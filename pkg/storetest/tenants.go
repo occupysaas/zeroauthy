@@ -1,0 +1,118 @@
+package storetest
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
+)
+
+func newTenant(name string) *store.Tenant {
+	return &store.Tenant{
+		ID:              "ten_" + name,
+		Name:            name,
+		FriendlyName:    strings.ToUpper(name),
+		Domains:         []string{name + ".example.test"},
+		DefaultAudience: "https://" + name + ".api.test",
+		CreatedAt:       ts(0),
+	}
+}
+
+func testTenants(t *testing.T, newStore Factory) {
+	ctx := context.Background()
+
+	t.Run("CreateAndGet", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newTenant("acme")
+		mustNoErr(t, s.Tenants().Create(ctx, want))
+
+		got, err := s.Tenants().Get(ctx, want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+
+		got, err = s.Tenants().GetByName(ctx, "acme")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+
+		got, err = s.Tenants().GetByDomain(ctx, "acme.example.test")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+	})
+
+	t.Run("NotFound", func(t *testing.T) {
+		s := open(t, newStore)
+		_, err := s.Tenants().Get(ctx, "missing")
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.Tenants().GetByName(ctx, "missing")
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.Tenants().GetByDomain(ctx, "missing.example.test")
+		mustErrIs(t, err, store.ErrNotFound)
+		mustErrIs(t, s.Tenants().Update(ctx, newTenant("missing")), store.ErrNotFound)
+	})
+
+	t.Run("Conflicts", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Tenants().Create(ctx, newTenant("acme")))
+
+		sameID := newTenant("other")
+		sameID.ID = "ten_acme"
+		mustErrIs(t, s.Tenants().Create(ctx, sameID), store.ErrConflict)
+
+		sameName := newTenant("acme")
+		sameName.ID = "ten_x"
+		sameName.Domains = []string{"x.example.test"}
+		mustErrIs(t, s.Tenants().Create(ctx, sameName), store.ErrConflict)
+
+		sameDomain := newTenant("other")
+		sameDomain.Domains = []string{"other.example.test", "acme.example.test"}
+		mustErrIs(t, s.Tenants().Create(ctx, sameDomain), store.ErrConflict)
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Tenants().Create(ctx, newTenant("acme")))
+		mustNoErr(t, s.Tenants().Create(ctx, newTenant("globex")))
+
+		upd := newTenant("acme")
+		upd.FriendlyName = "Acme Corp"
+		upd.Domains = []string{"acme.example.test", "login.acme.test"}
+		mustNoErr(t, s.Tenants().Update(ctx, upd))
+		got, err := s.Tenants().GetByDomain(ctx, "login.acme.test")
+		mustNoErr(t, err)
+		mustEqual(t, got, upd)
+
+		steal := newTenant("acme")
+		steal.Domains = []string{"globex.example.test"}
+		mustErrIs(t, s.Tenants().Update(ctx, steal), store.ErrConflict)
+	})
+
+	t.Run("ListOrderedByName", func(t *testing.T) {
+		s := open(t, newStore)
+		for _, n := range []string{"zeta", "acme", "mid"} {
+			mustNoErr(t, s.Tenants().Create(ctx, newTenant(n)))
+		}
+		got, err := s.Tenants().List(ctx)
+		mustNoErr(t, err)
+		var names []string
+		for _, tn := range got {
+			names = append(names, tn.Name)
+		}
+		mustEqual(t, names, []string{"acme", "mid", "zeta"})
+	})
+
+	t.Run("ReturnsCopies", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newTenant("acme")
+		mustNoErr(t, s.Tenants().Create(ctx, in))
+		in.Domains[0] = "mutated.example.test"
+
+		got, err := s.Tenants().Get(ctx, "ten_acme")
+		mustNoErr(t, err)
+		got.Domains[0] = "mutated-again.example.test"
+
+		again, err := s.Tenants().Get(ctx, "ten_acme")
+		mustNoErr(t, err)
+		mustEqual(t, again.Domains, []string{"acme.example.test"})
+	})
+}
