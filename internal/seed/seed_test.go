@@ -129,6 +129,13 @@ func TestValidation(t *testing.T) {
 	cases := map[string]struct{ yaml, want string }{
 		"unknown field":         {`tenants: [{name: a, domainz: [x]}]`, "domainz"},
 		"no name":               {`tenants: [{domains: [x]}]`, "name is required"},
+		"uppercase name":        {`tenants: [{name: Acme}]`, "valid DNS label"},
+		"dotted name":           {`tenants: [{name: a.b}]`, "valid DNS label"},
+		"leading hyphen name":   {`tenants: [{name: -a}]`, "valid DNS label"},
+		"long name":             {`tenants: [{name: ` + strings.Repeat("a", 64) + `}]`, "valid DNS label"},
+		"empty domain":          {`tenants: [{name: a, domains: [""]}]`, "empty domain"},
+		"dup domain across":     {`tenants: [{name: a, domains: [x.test]}, {name: b, domains: ["X.test:443"]}]`, `domain "X.test:443"`},
+		"dup domain within":     {`tenants: [{name: a, domains: [x.test, x.test.]}]`, "duplicate domain"},
 		"dup tenant":            {`tenants: [{name: a}, {name: a}]`, `duplicate tenant "a"`},
 		"bad app type":          {`tenants: [{name: a, clients: [{client_id: c, app_type: robot}]}]`, `app_type "robot"`},
 		"secret missing":        {`tenants: [{name: a, clients: [{client_id: c, app_type: non_interactive}]}]`, "client_secret is required"},

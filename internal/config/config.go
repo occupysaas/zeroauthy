@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/providers/file"
@@ -83,7 +84,17 @@ func Load(path string, environ []string) (*Config, error) {
 		return nil, fmt.Errorf("config: environment: %w", err)
 	}
 	cfg := defaults()
-	if err := k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{Tag: "koanf"}); err != nil {
+	// ErrorUnused makes misspelled keys (file or environment) fail loudly
+	// instead of silently leaving a setting at its default.
+	err = k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{
+		Tag: "koanf",
+		DecoderConfig: &mapstructure.DecoderConfig{
+			DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+			WeaklyTypedInput: true,
+			ErrorUnused:      true,
+		},
+	})
+	if err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
 	if err := cfg.validate(); err != nil {

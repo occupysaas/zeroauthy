@@ -3,10 +3,15 @@ package seed
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
+
+var dnsLabel = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
 
 var appTypes = []string{
 	string(store.AppTypeSPA), string(store.AppTypeRegularWeb),
@@ -31,6 +36,7 @@ func defaultAuthMethod(appType string) string {
 func (f *File) validate() error {
 	var errs []error
 	seenTenants := map[string]bool{}
+	domainOwner := map[string]string{}
 	for i := range f.Tenants {
 		t := &f.Tenants[i]
 		if t.Name == "" {
@@ -41,7 +47,26 @@ func (f *File) validate() error {
 			errs = append(errs, fmt.Errorf("seed: duplicate tenant %q", t.Name))
 		}
 		seenTenants[t.Name] = true
+		if !dnsLabel.MatchString(t.Name) {
+			errs = append(errs, fmt.Errorf("seed: tenant %q: name must be a valid DNS label (lowercase a-z, 0-9, '-', at most 63 characters)", t.Name))
+		}
 		errs = append(errs, t.validate()...)
+		for _, d := range t.Domains {
+			if strings.TrimSpace(d) == "" {
+				errs = append(errs, fmt.Errorf("seed: tenant %q: empty domain", t.Name))
+				continue
+			}
+			nd := tenant.NormalizeHost(d)
+			if owner, dup := domainOwner[nd]; dup {
+				if owner == t.Name {
+					errs = append(errs, fmt.Errorf("seed: tenant %q: duplicate domain %q", t.Name, d))
+				} else {
+					errs = append(errs, fmt.Errorf("seed: tenant %q: domain %q is already used by tenant %q", t.Name, d, owner))
+				}
+				continue
+			}
+			domainOwner[nd] = t.Name
+		}
 	}
 	return errors.Join(errs...)
 }

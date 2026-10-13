@@ -70,7 +70,10 @@ func TestLoadErrors(t *testing.T) {
 		"bad level":        {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_LOG__LEVEL=loud"}, want: "log.level"},
 		"bad format":       {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_LOG__FORMAT=xml"}, want: "log.format"},
 		"both master keys": {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SECURITY__MASTER_KEY=x", "ZEROAUTHY_SECURITY__MASTER_KEY_FILE=/k"}, want: "only one of"},
-		"unknown file":     {file: "/nonexistent/zeroauthy.yaml", want: "no such file"},
+		"unknown env key":  {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SECURITY__MASTERKEY=x"}, want: "masterkey"},
+		"unknown top env":  {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_BOGUS=1"}, want: "bogus"},
+		"unknown file key": {file: writeFile(t, "bad.yaml", "storage:\n  dsn: memory://\nserver:\n  listn: \":1\"\n"), want: "listn"},
+		"missing file":     {file: "/nonexistent/zeroauthy.yaml", want: "no such file"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
