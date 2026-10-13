@@ -14,6 +14,9 @@ import (
 
 // Apply upserts everything in f. It never deletes.
 func Apply(ctx context.Context, st store.Store, f *File, now func() time.Time) error {
+	if now == nil {
+		now = time.Now
+	}
 	for _, t := range f.Tenants {
 		if err := applyTenant(ctx, st, t, now().UTC()); err != nil {
 			return fmt.Errorf("seed: tenant %q: %w", t.Name, err)
