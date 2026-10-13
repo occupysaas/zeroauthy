@@ -19,6 +19,12 @@ const authFailed = "client authentication failed"
 // reveal which part was wrong; the reason is logged instead.
 func (h *Handlers) authenticateClient(ctx context.Context, r *http.Request, form url.Values, tenantID string) (*store.Client, *Error) {
 	basicID, basicSecret, hasBasic := r.BasicAuth()
+	if !hasBasic && r.Header.Get("Authorization") != "" {
+		// A present but unusable Authorization header must not fall through
+		// to body credentials: that would silently pick one method.
+		h.log().InfoContext(ctx, "client authentication failed: malformed Authorization header", "tenant", tenantID)
+		return nil, invalidClient(authFailed, true)
+	}
 	if hasBasic {
 		// RFC 6749 §2.3.1: credentials are form-urlencoded before base64.
 		id, err1 := url.QueryUnescape(basicID)

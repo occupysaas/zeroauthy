@@ -14,12 +14,15 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
-func authRequest(t *testing.T, body url.Values, basicID, basicSecret string) (*http.Request, url.Values) {
+func authRequest(t *testing.T, body url.Values, basicID, basicSecret string, rawAuth ...string) (*http.Request, url.Values) {
 	t.Helper()
 	req := httptest.NewRequest("POST", "https://acme.example.test/oauth/token", strings.NewReader(body.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if basicID != "" {
 		req.SetBasicAuth(url.QueryEscape(basicID), url.QueryEscape(basicSecret))
+	}
+	if len(rawAuth) > 0 {
+		req.Header.Set("Authorization", rawAuth[0])
 	}
 	form, oerr := parseTokenRequest(httptest.NewRecorder(), req)
 	if oerr != nil {
@@ -39,6 +42,7 @@ func TestAuthenticateClient(t *testing.T) {
 		body          url.Values
 		basicID       string
 		basicSecret   string
+		rawAuth       string
 		wantClient    string
 		wantCode      string
 		wantStatus    int
@@ -59,12 +63,21 @@ func TestAuthenticateClient(t *testing.T) {
 		// Review focus 2: two methods at once.
 		{name: "basic and body secret", tenantID: acme, body: url.Values{"client_secret": {"p@ss:w+rd"}}, basicID: "m2m-basic", basicSecret: "p@ss:w+rd", wantCode: "invalid_request", wantStatus: 400},
 		{name: "basic and different body client_id", tenantID: acme, body: url.Values{"client_id": {"m2m"}}, basicID: "m2m-basic", basicSecret: "p@ss:w+rd", wantCode: "invalid_request", wantStatus: 400},
+		// A malformed Authorization header is never silently ignored.
+		{name: "malformed basic with body credentials", tenantID: acme, body: url.Values{"client_id": {"m2m"}, "client_secret": {"m2m-secret"}}, rawAuth: "Basic !!!not-base64", wantCode: "invalid_client", wantStatus: 401, wantChallenge: true},
+		{name: "malformed basic alone", tenantID: acme, rawAuth: "Basic !!!not-base64", wantCode: "invalid_client", wantStatus: 401, wantChallenge: true},
+		{name: "basic without colon", tenantID: acme, rawAuth: "Basic bm9jb2xvbg==", wantCode: "invalid_client", wantStatus: 401, wantChallenge: true},
+		{name: "bearer scheme", tenantID: acme, body: url.Values{"client_id": {"m2m"}, "client_secret": {"m2m-secret"}}, rawAuth: "Bearer abc", wantCode: "invalid_client", wantStatus: 401, wantChallenge: true},
 		// Review focus 5: tenant isolation.
 		{name: "client from other tenant", tenantID: globex, body: url.Values{"client_id": {"m2m"}, "client_secret": {"m2m-secret"}}, wantCode: "invalid_client", wantStatus: 401},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			req, form := authRequest(t, tc.body, tc.basicID, tc.basicSecret)
+			var raw []string
+			if tc.rawAuth != "" {
+				raw = append(raw, tc.rawAuth)
+			}
+			req, form := authRequest(t, tc.body, tc.basicID, tc.basicSecret, raw...)
 			c, oerr := f.h.authenticateClient(context.Background(), req, form, tc.tenantID)
 			if tc.wantClient != "" {
 				if oerr != nil {

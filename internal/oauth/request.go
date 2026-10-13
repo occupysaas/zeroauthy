@@ -4,6 +4,7 @@ package oauth
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"net/url"
@@ -34,26 +35,45 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Err
 		}
 		return r.PostForm, nil
 	case "application/json":
-		var raw map[string]any
 		dec := json.NewDecoder(r.Body)
 		dec.UseNumber()
-		if err := dec.Decode(&raw); err != nil {
-			return nil, invalidRequest("malformed or oversized JSON body")
+		bad := invalidRequest("malformed or oversized JSON body")
+		if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+			return nil, bad
 		}
-		form := url.Values{}
-		for k, v := range raw {
+		form, seen := url.Values{}, map[string]bool{}
+		for dec.More() {
+			keyTok, err := dec.Token()
+			key, ok := keyTok.(string)
+			if err != nil || !ok {
+				return nil, bad
+			}
+			if seen[key] {
+				return nil, invalidRequest(fmt.Sprintf("parameter %q is repeated", key))
+			}
+			seen[key] = true
+			var v any
+			if err := dec.Decode(&v); err != nil {
+				return nil, bad
+			}
 			switch x := v.(type) {
 			case string:
-				form.Set(k, x)
+				form.Set(key, x)
 			case json.Number:
-				form.Set(k, x.String())
+				form.Set(key, x.String())
 			case bool:
-				form.Set(k, strconv.FormatBool(x))
+				form.Set(key, strconv.FormatBool(x))
 			case nil:
 				// null is treated as absent
 			default:
-				return nil, invalidRequest(fmt.Sprintf("parameter %q must be a string", k))
+				return nil, invalidRequest(fmt.Sprintf("parameter %q must be a string", key))
 			}
+		}
+		if tok, err := dec.Token(); err != nil || tok != json.Delim('}') {
+			return nil, bad
+		}
+		if _, err := dec.Token(); err != io.EOF {
+			return nil, invalidRequest("unexpected data after the JSON object")
 		}
 		return form, nil
 	default:
