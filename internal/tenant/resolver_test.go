@@ -83,6 +83,9 @@ func TestMiddleware(t *testing.T) {
 		h.ServeHTTP(rec, req)
 		var body map[string]string
 		_ = json.Unmarshal(rec.Body.Bytes(), &body)
+		if cc := rec.Header().Get("Cache-Control"); cc != "no-store" {
+			t.Errorf("Cache-Control = %q, want no-store", cc)
+		}
 		if rec.Code != 404 || body["error"] != "not_found" || body["error_description"] != "unknown tenant" {
 			t.Fatalf("got %d %v", rec.Code, body)
 		}
@@ -115,4 +118,36 @@ func TestMiddleware(t *testing.T) {
 			t.Fatalf("got %q", rec.Body)
 		}
 	})
+}
+
+func TestMiddlewareStoreErrorIsNoStore500(t *testing.T) {
+	h := NewResolver(failingTenants{newTestStore(t).Tenants()}, "", false).Middleware(http.NotFoundHandler())
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "https://login.acme.test/x", nil))
+	if rec.Code != 500 || rec.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("got %d cache-control %q", rec.Code, rec.Header().Get("Cache-Control"))
+	}
+}
+
+type failingTenants struct{ store.Tenants }
+
+func (failingTenants) GetByDomain(context.Context, string) (*store.Tenant, error) {
+	return nil, errors.New("db down")
+}
+
+// A custom domain that looks like another tenant's base-domain host must
+// never shadow that tenant.
+func TestBaseDomainHostBeatsCustomDomain(t *testing.T) {
+	s := newTestStore(t)
+	err := s.Tenants().Create(context.Background(), &store.Tenant{
+		ID: "ten_evil", Name: "evil", Domains: []string{"acme.auth.example.test"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := NewResolver(s.Tenants(), "auth.example.test", false)
+	got, err := r.Resolve(context.Background(), "acme.auth.example.test")
+	if err != nil || got.Tenant.ID != "ten_acme" {
+		t.Fatalf("got %+v, %v; want ten_acme", got.Tenant, err)
+	}
 }

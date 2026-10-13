@@ -42,7 +42,7 @@ var _ authapi.ServerInterface = authAPI{}
 
 func New(d Deps) http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID, requestLog(d.Log), middleware.Recoverer)
+	r.Use(middleware.RequestID, requestLog(d.Log), recoverer(d.Log))
 
 	// Operational endpoints answer on any host.
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {

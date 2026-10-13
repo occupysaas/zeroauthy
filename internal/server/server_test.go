@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zeroauthy/zeroauthy/api"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -97,5 +98,22 @@ func TestAPIRoutesThroughServer(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "access_token") {
 		t.Errorf("token %d: %s", rec.Code, rec.Body)
+	}
+}
+
+func TestRecovererWritesJSON(t *testing.T) {
+	var logs bytes.Buffer
+	log := slog.New(slog.NewTextHandler(&logs, nil))
+	h := middleware.RequestID(recoverer(log)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		panic("boom")
+	})))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "https://x.test/", nil))
+	if rec.Code != 500 || rec.Header().Get("Content-Type") != "application/json" ||
+		!strings.Contains(rec.Body.String(), `"error":"server_error"`) {
+		t.Fatalf("got %d %q %s", rec.Code, rec.Header().Get("Content-Type"), rec.Body)
+	}
+	if !strings.Contains(logs.String(), "boom") || !strings.Contains(logs.String(), "request_id") {
+		t.Errorf("panic not logged with request id: %s", logs.String())
 	}
 }

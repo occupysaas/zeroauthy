@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
 )
@@ -36,5 +37,17 @@ func TestNewRejectsBadSeed(t *testing.T) {
 	cfg := &config.Config{Storage: config.Storage{DSN: "memory://"}, Seed: "/nonexistent/seed.yaml"}
 	if _, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil))); err == nil {
 		t.Fatal("expected error for missing seed file")
+	}
+}
+
+func TestHTTPServerTimeouts(t *testing.T) {
+	a := &App{cfg: &config.Config{Server: config.Server{Listen: ":1234"}}}
+	srv := a.httpServer()
+	if srv.Addr != ":1234" {
+		t.Errorf("Addr = %q", srv.Addr)
+	}
+	if srv.ReadHeaderTimeout != 10*time.Second || srv.ReadTimeout != 30*time.Second ||
+		srv.WriteTimeout != 30*time.Second || srv.IdleTimeout != 120*time.Second {
+		t.Errorf("timeouts = header %v read %v write %v idle %v", srv.ReadHeaderTimeout, srv.ReadTimeout, srv.WriteTimeout, srv.IdleTimeout)
 	}
 }

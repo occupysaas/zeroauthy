@@ -97,13 +97,22 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 
 func (a *App) Handler() http.Handler { return a.handler }
 
-// Serve listens until ctx is cancelled, then shuts down gracefully.
-func (a *App) Serve(ctx context.Context) error {
-	srv := &http.Server{
+// httpServer builds the http.Server with explicit timeouts so slow clients
+// cannot hold connections open indefinitely.
+func (a *App) httpServer() *http.Server {
+	return &http.Server{
 		Addr:              a.cfg.Server.Listen,
 		Handler:           a.handler,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
+}
+
+// Serve listens until ctx is cancelled, then shuts down gracefully.
+func (a *App) Serve(ctx context.Context) error {
+	srv := a.httpServer()
 	tls := a.cfg.Server.TLSCertFile != ""
 	errc := make(chan error, 1)
 	go func() {
