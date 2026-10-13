@@ -1,0 +1,244 @@
+# api/authentication.yaml
+openapi: 3.1.0
+info:
+  title: zeroauthy Authentication API
+  version: 0.1.0
+  summary: Auth0-compatible Authentication API served by every zeroauthy tenant.
+  description: |
+    The Authentication API of a zeroauthy tenant. It is wire-compatible with
+    the Auth0 Authentication API, so existing Auth0 SDKs work by changing only
+    the domain.
+
+    Each tenant is addressed by its own domain. Tokens are issued with the
+    issuer `https://{tenant_domain}/`, with a trailing slash.
+
+    Every operation lists the public documents it was derived from in
+    `x-source`. zeroauthy is a clean-room implementation; see `CLEAN_ROOM.md`.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://{tenant_domain}
+    variables:
+      tenant_domain:
+        default: tenant.example.com
+        description: Any domain configured for the tenant.
+tags:
+  - name: Discovery
+    description: Metadata that lets clients configure themselves.
+  - name: Tokens
+    description: Obtain tokens.
+paths:
+  /.well-known/openid-configuration:
+    get:
+      operationId: discovery
+      tags: [Discovery]
+      summary: OpenID Provider configuration
+      description: |
+        Returns the tenant's OpenID Provider metadata. Lists only grant
+        types and features that this server version implements.
+      x-source:
+        - https://openid.net/specs/openid-connect-discovery-1_0.html
+        - https://auth0.com/docs/get-started/applications/configure-applications-with-oidc-discovery
+      responses:
+        "200":
+          description: Provider metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenIDConfiguration"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /.well-known/jwks.json:
+    get:
+      operationId: jwks
+      tags: [Discovery]
+      summary: JSON Web Key Set
+      description: |
+        Public keys for verifying tokens signed by this tenant: the current
+        signing key first, followed by the next key and the previous key.
+      x-source:
+        - https://www.rfc-editor.org/rfc/rfc7517
+        - https://auth0.com/docs/secure/tokens/json-web-tokens/json-web-key-sets
+      responses:
+        "200":
+          description: The tenant's published keys.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JWKS"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /oauth/token:
+    post:
+      operationId: oauthToken
+      tags: [Tokens]
+      summary: Get a token
+      description: |
+        Exchanges a grant for tokens. The body may be form-encoded or JSON.
+
+        **Supported grant types**
+
+        | `grant_type` | Purpose |
+        |---|---|
+        | `client_credentials` | Machine-to-machine access token for `audience` |
+
+        **Client authentication.** Confidential clients authenticate with
+        the method they are registered with: `client_secret_post`
+        (`client_id` and `client_secret` in the body) or
+        `client_secret_basic` (HTTP Basic, with the client ID and secret
+        form-urlencoded before base64 encoding). Using both methods in one
+        request is rejected.
+      x-source:
+        - https://www.rfc-editor.org/rfc/rfc6749#section-4.4
+        - https://www.rfc-editor.org/rfc/rfc6749#section-2.3.1
+        - https://auth0.com/docs/api/authentication
+        - https://auth0.com/docs/get-started/authentication-and-authorization-flow/client-credentials-flow
+      security:
+        - clientSecretBasic: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+      responses:
+        "200":
+          description: Tokens issued.
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "401":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "403":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        default:
+          $ref: "#/components/responses/ServerError"
+components:
+  securitySchemes:
+    clientSecretBasic:
+      type: http
+      scheme: basic
+      description: Client ID and secret, each form-urlencoded, as HTTP Basic credentials.
+  responses:
+    OAuthErrorResponse:
+      description: |
+        The request failed. Common `error` values: `invalid_request`,
+        `invalid_client`, `unauthorized_client`, `unsupported_grant_type`,
+        `invalid_scope`, `access_denied`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OAuthError"
+    UnknownTenant:
+      description: The request host is not a domain of any tenant.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OAuthError"
+    ServerError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OAuthError"
+  schemas:
+    OAuthError:
+      type: object
+      required: [error, error_description]
+      properties:
+        error:
+          type: string
+          examples: [invalid_client]
+        error_description:
+          type: string
+    TokenRequest:
+      type: object
+      required: [grant_type]
+      properties:
+        grant_type:
+          type: string
+          examples: [client_credentials]
+        client_id:
+          type: string
+        client_secret:
+          type: string
+        audience:
+          type: string
+          description: Identifier of the API the token is for. Defaults to the tenant's default audience.
+        scope:
+          type: string
+          description: Space-separated scopes to request. Defaults to all scopes granted to the client.
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          examples: [Bearer]
+        expires_in:
+          type: integer
+          minimum: 0
+          description: Lifetime of the access token in seconds.
+        scope:
+          type: string
+        id_token:
+          type: string
+        refresh_token:
+          type: string
+    OpenIDConfiguration:
+      type: object
+      required:
+        - issuer
+        - authorization_endpoint
+        - token_endpoint
+        - jwks_uri
+        - response_types_supported
+        - subject_types_supported
+        - id_token_signing_alg_values_supported
+      properties:
+        issuer: {type: string, format: uri}
+        authorization_endpoint: {type: string, format: uri}
+        token_endpoint: {type: string, format: uri}
+        jwks_uri: {type: string, format: uri}
+        response_types_supported: {type: array, items: {type: string}}
+        subject_types_supported: {type: array, items: {type: string}}
+        id_token_signing_alg_values_supported: {type: array, items: {type: string}}
+        token_endpoint_auth_methods_supported: {type: array, items: {type: string}}
+        grant_types_supported: {type: array, items: {type: string}}
+    JWKS:
+      type: object
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: "#/components/schemas/JWK"
+    JWK:
+      type: object
+      required: [kty, kid, use, alg, n, e]
+      properties:
+        kty: {type: string, examples: [RSA]}
+        kid: {type: string}
+        use: {type: string, examples: [sig]}
+        alg: {type: string, examples: [RS256]}
+        "n": {type: string}
+        e: {type: string}
