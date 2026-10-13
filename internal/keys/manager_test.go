@@ -84,8 +84,18 @@ func TestJWKSFollowsRotation(t *testing.T) {
 	if err := m.Rotate(ctx, "ten_a"); err != nil {
 		t.Fatal(err)
 	}
-	set, _ = m.JWKS(ctx, "ten_a")
-	for _, k := range kids(set) {
+	set, err = m.JWKS(ctx, "ten_a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = kids(set)
+	if len(got) != 3 {
+		t.Fatalf("after second rotate kids = %v; want 3 published keys", got)
+	}
+	if got[2] != next {
+		t.Fatalf("after second rotate kids = %v; want original next (now previous) last", got)
+	}
+	for _, k := range got {
 		if k == cur {
 			t.Fatal("revoked key still published")
 		}
@@ -129,10 +139,23 @@ func TestSignVerifiesWithPublishedKey(t *testing.T) {
 func TestKeysAreTenantScoped(t *testing.T) {
 	m, _ := newManager(t)
 	ctx := context.Background()
-	_ = m.Ensure(ctx, "ten_a")
-	_ = m.Ensure(ctx, "ten_b")
-	a, _ := m.JWKS(ctx, "ten_a")
-	b, _ := m.JWKS(ctx, "ten_b")
+	if err := m.Ensure(ctx, "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Ensure(ctx, "ten_b"); err != nil {
+		t.Fatal(err)
+	}
+	a, err := m.JWKS(ctx, "ten_a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := m.JWKS(ctx, "ten_b")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(a.Keys) != 2 || len(b.Keys) != 2 {
+		t.Fatalf("published key counts = %d, %d; want 2, 2", len(a.Keys), len(b.Keys))
+	}
 	for _, ka := range kids(a) {
 		for _, kb := range kids(b) {
 			if ka == kb {
