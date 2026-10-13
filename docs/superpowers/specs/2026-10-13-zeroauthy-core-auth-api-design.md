@@ -47,9 +47,11 @@ The policy lives in `CLEAN_ROOM.md` at the repo root and is restated in the PR t
   - Auth0's open-source SDKs, used only as black-box test clients
 - **Prohibited:**
   - Decompiling, disassembling or inspecting Auth0 server software or proprietary assets
-  - Probing live Auth0 tenants to infer undocumented behavior
+  - Probing live Auth0 tenants, except for firewalled Management API observation (below)
+  - Capturing the Auth0 dashboard or hosted pages
   - Copying Auth0 UI templates, stylesheets, images or product copy
   - Using Auth0 trademarks beyond nominative "Auth0-compatible" statements
+- **Firewalled Management API observation** (sub-project 3 onward): an *observer* calls documented Management API endpoints on a tenant they own and writes behavioral notes in their own words to `docs/compat/observations/`. *Implementers* work only from public docs and those notes. No verbatim messages, no credentials or personal data, no dashboard capture. The maintainer has accepted the terms-of-service risk; see `CLEAN_ROOM.md`.
 - **Provenance:**
   - Every OpenAPI operation carries an `x-source` extension listing the public URL(s) it was derived from.
   - Behaviors that are not documented are resolved using RFC/OIDC semantics. Each such resolution gets an entry in `docs/compat/decisions.md`.
