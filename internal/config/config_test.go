@@ -59,6 +59,16 @@ func TestLoadEnvOnly(t *testing.T) {
 	}
 }
 
+func TestLoadIgnoresConfigPathVariable(t *testing.T) {
+	_, err := Load("", []string{
+		"ZEROAUTHY_CONFIG=/some/path.yaml",
+		"ZEROAUTHY_STORAGE__DSN=memory://",
+	})
+	if err != nil {
+		t.Fatalf("ZEROAUTHY_CONFIG must not be treated as a setting: %v", err)
+	}
+}
+
 func TestLoadErrors(t *testing.T) {
 	cases := map[string]struct {
 		file string

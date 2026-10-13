@@ -76,6 +76,12 @@ func Load(path string, environ []string) (*Config, error) {
 		Prefix:      envPrefix,
 		EnvironFunc: func() []string { return environ },
 		TransformFunc: func(key, value string) (string, any) {
+			// ZEROAUTHY_CONFIG names the config file (see cmd/zeroauthy); it is
+			// not a setting. An empty key makes koanf drop the entry, so it does
+			// not reach strict decoding as an unknown key "config".
+			if key == envPrefix+"CONFIG" {
+				return "", nil
+			}
 			key = strings.ToLower(strings.TrimPrefix(key, envPrefix))
 			return strings.ReplaceAll(key, "__", "."), value
 		},
