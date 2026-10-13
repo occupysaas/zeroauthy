@@ -22,6 +22,9 @@ var (
 // Store aggregates the repositories of one storage backend.
 type Store interface {
 	Tenants() Tenants
+	Clients() Clients
+	ResourceServers() ResourceServers
+	ClientGrants() ClientGrants
 	Ping(ctx context.Context) error
 	Close() error
 }
@@ -43,4 +46,40 @@ type Tenants interface {
 	Update(ctx context.Context, t *Tenant) error
 	// List returns all tenants ordered by Name.
 	List(ctx context.Context) ([]*Tenant, error)
+}
+
+// Clients stores applications, keyed by (TenantID, ClientID).
+type Clients interface {
+	// Create returns ErrConflict if the client ID exists in the tenant.
+	Create(ctx context.Context, c *Client) error
+	Get(ctx context.Context, tenantID, clientID string) (*Client, error)
+	// Update returns ErrNotFound if the client does not exist.
+	Update(ctx context.Context, c *Client) error
+	// Delete returns ErrNotFound if the client does not exist.
+	Delete(ctx context.Context, tenantID, clientID string) error
+}
+
+// ResourceServers stores APIs, keyed by (TenantID, ID). Identifier is
+// unique within a tenant.
+type ResourceServers interface {
+	// Create returns ErrConflict if the ID or Identifier exists in the tenant.
+	Create(ctx context.Context, rs *ResourceServer) error
+	Get(ctx context.Context, tenantID, id string) (*ResourceServer, error)
+	GetByIdentifier(ctx context.Context, tenantID, identifier string) (*ResourceServer, error)
+	// Update returns ErrNotFound if absent and ErrConflict if the new
+	// Identifier is used by another resource server in the tenant.
+	Update(ctx context.Context, rs *ResourceServer) error
+	Delete(ctx context.Context, tenantID, id string) error
+}
+
+// ClientGrants stores client_credentials authorizations, keyed by
+// (TenantID, ID). (ClientID, Audience) is unique within a tenant.
+type ClientGrants interface {
+	// Create returns ErrConflict if the ID or (ClientID, Audience) exists.
+	Create(ctx context.Context, g *ClientGrant) error
+	Find(ctx context.Context, tenantID, clientID, audience string) (*ClientGrant, error)
+	// Update replaces the grant with the same ID. ClientID and Audience
+	// must not change; drivers return ErrConflict if they do.
+	Update(ctx context.Context, g *ClientGrant) error
+	Delete(ctx context.Context, tenantID, id string) error
 }

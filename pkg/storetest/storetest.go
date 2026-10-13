@@ -15,6 +15,9 @@ type Factory func(t *testing.T) store.Store
 // Run executes every conformance test against stores made by newStore.
 func Run(t *testing.T, newStore Factory) {
 	t.Run("Tenants", func(t *testing.T) { testTenants(t, newStore) })
+	t.Run("Clients", func(t *testing.T) { testClients(t, newStore) })
+	t.Run("ResourceServers", func(t *testing.T) { testResourceServers(t, newStore) })
+	t.Run("ClientGrants", func(t *testing.T) { testClientGrants(t, newStore) })
 }
 
 func open(t *testing.T, newStore Factory) store.Store {

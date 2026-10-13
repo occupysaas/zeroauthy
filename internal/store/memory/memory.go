@@ -9,22 +9,34 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
+// key addresses a tenant-scoped entity.
+type key struct{ tenant, id string }
+
 // Store is safe for concurrent use. One RWMutex guards all maps, so
 // multi-entity operations such as key rotation are trivially atomic.
 type Store struct {
-	mu      sync.RWMutex
-	tenants map[string]*store.Tenant // by ID
+	mu              sync.RWMutex
+	tenants         map[string]*store.Tenant      // by ID
+	clients         map[key]*store.Client         // by (tenant, client ID)
+	resourceServers map[key]*store.ResourceServer // by (tenant, ID)
+	clientGrants    map[key]*store.ClientGrant    // by (tenant, ID)
 }
 
 // New returns an empty store.
 func New() *Store {
 	return &Store{
-		tenants: map[string]*store.Tenant{},
+		tenants:         map[string]*store.Tenant{},
+		clients:         map[key]*store.Client{},
+		resourceServers: map[key]*store.ResourceServer{},
+		clientGrants:    map[key]*store.ClientGrant{},
 	}
 }
 
-func (s *Store) Tenants() store.Tenants     { return tenants{s} }
-func (s *Store) Ping(context.Context) error { return nil }
-func (s *Store) Close() error               { return nil }
+func (s *Store) Tenants() store.Tenants                 { return tenants{s} }
+func (s *Store) Clients() store.Clients                 { return clients{s} }
+func (s *Store) ResourceServers() store.ResourceServers { return resourceServers{s} }
+func (s *Store) ClientGrants() store.ClientGrants       { return clientGrants{s} }
+func (s *Store) Ping(context.Context) error             { return nil }
+func (s *Store) Close() error                           { return nil }
 
 var _ store.Store = (*Store)(nil)
