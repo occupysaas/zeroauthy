@@ -331,7 +331,7 @@ Admin console rules:
 ## 8. Keys and secrets
 
 - Each tenant has its own RS256 key pairs with the lifecycle `next → current → previous → revoked`. JWKS publishes next, current and previous.
-- Private keys are encrypted at rest with AES-256-GCM. The data key is wrapped by a master key from `ZEROAUTHY_MASTER_KEY` or a key file. KMS integrations can implement the `KeyWrapper` interface later.
+- Private keys are encrypted at rest with AES-256-GCM. The data key is wrapped by a master key from `ZEROAUTHY_SECURITY__MASTER_KEY` or a key file. KMS integrations can implement the `KeyWrapper` interface later.
 - Client secrets are stored hashed (argon2id). Secret rotation keeps old and new secrets valid during an overlap window.
 
 ## 9. Configuration

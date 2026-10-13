@@ -35,8 +35,10 @@ paths:
       tags: [Discovery]
       summary: OpenID Provider configuration
       description: |
-        Returns the tenant's OpenID Provider metadata. Lists only grant
-        types and features that this server version implements.
+        Returns the tenant's OpenID Provider metadata. Grant types and
+        features are listed only when this server version implements them.
+        authorization_endpoint is always advertised, as OpenID Connect
+        Discovery requires it, and is served once hosted login is available.
       x-source:
         - https://openid.net/specs/openid-connect-discovery-1_0.html
         - https://auth0.com/docs/get-started/applications/configure-applications-with-oidc-discovery

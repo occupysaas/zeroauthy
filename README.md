@@ -44,6 +44,16 @@ separates levels: `ZEROAUTHY_STORAGE__DSN=memory://` sets `storage.dsn`.
 See [internal/config/config.go](internal/config/config.go) for every
 setting. Tenants, APIs, applications and grants come from a declarative
 [seed file](tests/e2e/seed.yaml) until the Management API exists.
+Unknown configuration keys are rejected at startup.
+
+**Master key.** Signing keys are stored envelope-encrypted under a 32-byte
+master key. Generate one with `openssl rand -base64 32` and set it as
+`ZEROAUTHY_SECURITY__MASTER_KEY` (or point `security.master_key_file` at a
+file containing it). It is required for persistent storage; with
+`memory://` storage zeroauthy uses an ephemeral key and logs a warning.
+
+**Proxies.** Enable `server.trust_proxy_headers` only behind a proxy that
+sets `X-Forwarded-Host`; otherwise clients could choose their own tenant.
 
 ## Development
 
