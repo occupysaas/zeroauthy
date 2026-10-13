@@ -3,6 +3,7 @@ module github.com/zeroauthy/zeroauthy
 go 1.26.0
 
 require (
+	github.com/go-jose/go-jose/v4 v4.1.5
 	github.com/google/go-cmp v0.7.0
 	github.com/knadh/koanf/parsers/yaml v1.1.1
 	github.com/knadh/koanf/providers/env/v2 v2.0.2
