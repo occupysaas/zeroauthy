@@ -88,3 +88,28 @@ type ClientGrant struct {
 	Scopes    []string
 	CreatedAt time.Time
 }
+
+// KeyStatus is a signing key's place in the rotation lifecycle:
+// next → current → previous → revoked.
+type KeyStatus string
+
+const (
+	KeyNext     KeyStatus = "next"     // published in JWKS, not yet signing
+	KeyCurrent  KeyStatus = "current"  // signs new tokens
+	KeyPrevious KeyStatus = "previous" // published so recent tokens still verify
+	KeyRevoked  KeyStatus = "revoked"  // kept for audit, not published
+)
+
+// SigningKey is a tenant's token signing key pair.
+type SigningKey struct {
+	TenantID string
+	KID      string
+	Alg      string
+	Status   KeyStatus
+	// PrivateKey is the envelope-encrypted private key (see internal/keys).
+	// Drivers store it opaquely and never see plaintext key material.
+	PrivateKey []byte
+	// PublicJWK is the public key as a JSON Web Key.
+	PublicJWK []byte
+	CreatedAt time.Time
+}

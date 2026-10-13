@@ -25,6 +25,7 @@ type Store interface {
 	Clients() Clients
 	ResourceServers() ResourceServers
 	ClientGrants() ClientGrants
+	SigningKeys() SigningKeys
 	Ping(ctx context.Context) error
 	Close() error
 }
@@ -82,4 +83,18 @@ type ClientGrants interface {
 	// must not change; drivers return ErrConflict if they do.
 	Update(ctx context.Context, g *ClientGrant) error
 	Delete(ctx context.Context, tenantID, id string) error
+}
+
+// SigningKeys stores signing keys, keyed by (TenantID, KID).
+type SigningKeys interface {
+	// Create returns ErrConflict if the KID exists in the tenant.
+	Create(ctx context.Context, k *SigningKey) error
+	// List returns all of a tenant's keys, every status, ordered by
+	// CreatedAt then KID.
+	List(ctx context.Context, tenantID string) ([]*SigningKey, error)
+	// Rotate atomically moves previous→revoked, current→previous and
+	// next→current, then stores next, which must have Status KeyNext.
+	// If the tenant has no next key it returns ErrNotFound and changes
+	// nothing. A duplicate KID returns ErrConflict and changes nothing.
+	Rotate(ctx context.Context, tenantID string, next *SigningKey) error
 }

@@ -44,3 +44,10 @@ func cloneClientGrant(g *store.ClientGrant) *store.ClientGrant {
 	out.Scopes = slices.Clone(g.Scopes)
 	return &out
 }
+
+func cloneSigningKey(k *store.SigningKey) *store.SigningKey {
+	out := *k
+	out.PrivateKey = slices.Clone(k.PrivateKey)
+	out.PublicJWK = slices.Clone(k.PublicJWK)
+	return &out
+}
