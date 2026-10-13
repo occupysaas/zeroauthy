@@ -3,12 +3,16 @@ package oauth
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/testutil/contract"
 )
 
 var fixedNow = func() time.Time { return time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC) }
@@ -46,8 +50,9 @@ tenants:
 `
 
 type fixture struct {
-	st store.Store
-	h  *Handlers
+	st   store.Store
+	keys *keys.Manager
+	h    *Handlers
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -60,7 +65,24 @@ func newFixture(t *testing.T) *fixture {
 	if err := seed.Apply(context.Background(), st, f, fixedNow); err != nil {
 		t.Fatal(err)
 	}
-	return &fixture{st: st, h: &Handlers{Store: st, Now: fixedNow}}
+	km := newTestKeys(t)
+	tenants, _ := st.Tenants().List(context.Background())
+	for _, tn := range tenants {
+		if err := km.Ensure(context.Background(), tn.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return &fixture{st: st, keys: km, h: &Handlers{Store: st, Now: fixedNow, Minter: &Minter{Keys: km, Now: fixedNow}}}
+}
+
+// server returns the token endpoint behind tenant resolution and contract
+// validation. Use strict=false for tests that send malformed requests.
+func (f *fixture) server(t *testing.T, strict bool) http.Handler {
+	h := tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(f.h.OauthToken))
+	if strict {
+		return contract.Wrap(t, h)
+	}
+	return contract.WrapResponses(t, h)
 }
 
 func (f *fixture) tenantID(t *testing.T, name string) string {

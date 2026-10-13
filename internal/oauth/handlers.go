@@ -15,6 +15,8 @@ type Handlers struct {
 	Store store.Store
 	Log   *slog.Logger
 	Now   func() time.Time
+
+	Minter *Minter
 }
 
 func (h *Handlers) now() time.Time {
