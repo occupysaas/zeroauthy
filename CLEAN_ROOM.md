@@ -1,0 +1,41 @@
+# Clean-Room Policy
+
+zeroauthy is an independent, clean-room implementation of an identity server
+that is wire-compatible with Auth0. It is not affiliated with, endorsed by, or
+derived from Auth0 or Okta. Every contribution must follow this policy.
+
+## Permitted sources
+
+- Auth0's **public documentation** (https://auth0.com/docs), including the
+  public API reference.
+- The Apache-2.0 licensed OpenAPI description at
+  https://github.com/aminya/auth0-openapi (see `NOTICE`).
+- IETF RFCs, OpenID Foundation specifications, and other open standards.
+- Auth0's **open-source SDKs**, used only as **black-box test clients**:
+  we run them against zeroauthy and observe the requests they send to *our*
+  server.
+
+## Prohibited
+
+- Decompiling, disassembling, or otherwise inspecting Auth0 server software,
+  hosted pages, or other proprietary assets.
+- Probing or scraping live Auth0 tenants to infer undocumented behavior.
+- Copying Auth0 UI templates, stylesheets, images, or product copy. All
+  templates and text in this repository are original.
+- Using Auth0 trademarks beyond nominative statements such as
+  "Auth0-compatible".
+- Contributing code or knowledge obtained under an Auth0/Okta NDA or from
+  employment there that is not public.
+
+## Provenance
+
+- Every operation in `api/*.yaml` carries an `x-source` extension listing
+  the public URL(s) it was derived from.
+- When public sources leave behavior unspecified, resolve it using
+  RFC/OpenID semantics and log the decision in `docs/compat/decisions.md`.
+- Known differences from Auth0 are listed in `docs/compat/matrix.md`.
+
+## Contributor attestation
+
+By opening a pull request you confirm that your contribution was produced
+under this policy. The pull request template contains the checklist.

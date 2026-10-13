@@ -1,0 +1,11 @@
+zeroauthy
+Copyright 2026 The zeroauthy Authors
+
+This product is an independent clean-room implementation. It is not
+affiliated with or endorsed by Auth0, Inc. or Okta, Inc. "Auth0" is a
+trademark of its respective owner and is used here only nominatively to
+describe API compatibility.
+
+Portions of the API description in api/ were informed by
+"auth0-openapi" (https://github.com/aminya/auth0-openapi),
+licensed under the Apache License, Version 2.0.

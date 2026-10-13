@@ -1,0 +1,25 @@
+# Binaries
+/zeroauthy
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+
+# Local data and secrets
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.key
+.env
+.env.*
+
+# Tooling
+/coverage/
+node_modules/
+tests/e2e/**/playwright-report/
+tests/e2e/**/test-results/
+.idea/
+.vscode/
+.DS_Store
