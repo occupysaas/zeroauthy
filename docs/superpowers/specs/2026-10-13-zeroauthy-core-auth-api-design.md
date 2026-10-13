@@ -16,7 +16,7 @@ The project's selling point is breadth of compatibility. That makes the wire con
 |---|-------------|------------|
 | **1** | **Core platform, Authentication API, hosted login** (this document) | none |
 | 2 | Extensibility & federation: passwordless, MFA API, social/enterprise connections, Actions (embedded JS runtime), custom claims | 1 |
-| 3 | Management API v2 (own spec-first contract), Organizations | 1 |
+| 3 | Management API v2 (own spec-first contract), Organizations, admin console (Vue 3 SPA, §7.1) | 1 |
 | 4 | SAML and WS-Federation | 1, 2 |
 
 Each sub-project gets its own spec, plan, and implementation cycle.
@@ -312,6 +312,21 @@ Server-rendered `html/template` pages embedded in the binary, with progressive e
 - **Brute-force protection:** per IP + per user, with exponential backoff and a configurable lockout.
 - **Password hashing:** argon2id (tunable). Imported bcrypt hashes are verified and upgraded to argon2id on login.
 - **Password policy:** per connection (minimum length, character classes, no reuse of the last N passwords).
+
+### 7.1 UI technology boundary
+
+zeroauthy has two user interfaces, built with different technology on purpose:
+
+| UI | Technology | Sub-project | Why |
+|----|-----------|-------------|-----|
+| Hosted login (`/u/*`, and later MFA, passwordless, organization pickers) | Server-rendered Go `html/template` | 1 (grows in 2) | It is the most attacked surface, so it stays minimal: strict nonce-based CSP, no JS bundle, almost no supply chain. Silent authentication (`web_message`) must render in a cross-site iframe without client JS. Operators can theme it by overriding templates, with no build toolchain. The screens grow in number, not complexity. |
+| Admin console (equivalent of a management dashboard) | Vue 3 + Vite + TypeScript SPA | 3 | It is a large, stateful app (tables, filters, editors for users, applications, APIs, connections, logs), which is where a component framework pays off. |
+
+Admin console rules:
+- **API boundary:** the console talks only to the Management API, through a TypeScript client generated from zeroauthy's own management OpenAPI contract (the same spec-first approach as the server). It has no private backend endpoints.
+- **Packaging:** the production build is embedded in the Go binary and served under `/admin`, so self-hosting stays a single binary. Node is needed only to build it.
+- **Origin:** its own login uses the hosted login pages via authorization code + PKCE like any other SPA client.
+- **Clean room:** the dashboard UI is original work; it is never modeled on captures of Auth0's dashboard (see `CLEAN_ROOM.md`).
 
 ## 8. Keys and secrets
 
