@@ -1,0 +1,21 @@
+# tests/e2e/seed.yaml: test-only credentials; never reuse them.
+tenants:
+  - name: e2e
+    friendly_name: E2E
+    domains: ["localhost:8443"]
+    resource_servers:
+      - identifier: https://api.e2e.local
+        name: E2E API
+        token_lifetime: 3600
+        scopes:
+          - {value: "read:things", description: "Read things"}
+    clients:
+      - client_id: e2e-m2m
+        name: E2E machine client
+        app_type: non_interactive
+        client_secret: e2e-m2m-secret-not-for-production
+        grant_types: [client_credentials]
+    client_grants:
+      - client_id: e2e-m2m
+        audience: https://api.e2e.local
+        scopes: ["read:things"]

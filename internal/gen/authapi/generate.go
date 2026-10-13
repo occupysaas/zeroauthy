@@ -1,4 +1,3 @@
-
 // Package authapi is generated from api/authentication.yaml. Do not edit
 // authapi.gen.go; edit the spec and run `go generate ./...`.
 package authapi

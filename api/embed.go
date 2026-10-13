@@ -1,4 +1,3 @@
-
 // Package api embeds zeroauthy's hand-written OpenAPI contracts.
 package api
 

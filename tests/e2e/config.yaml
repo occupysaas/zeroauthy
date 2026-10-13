@@ -1,0 +1,9 @@
+# tests/e2e/config.yaml: paths are relative to the repository root.
+server:
+  listen: ":8443"
+storage:
+  dsn: memory://
+seed: tests/e2e/seed.yaml
+log:
+  level: debug
+  format: text

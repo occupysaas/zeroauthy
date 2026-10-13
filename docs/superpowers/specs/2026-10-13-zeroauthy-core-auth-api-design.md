@@ -30,7 +30,7 @@ These clients work against zeroauthy unmodified, with only the domain and client
    - `getTokenSilently`, both with refresh tokens (rotation) and with the hidden-iframe `response_mode=web_message` + `prompt=none`
    - `logout`
 2. **nextjs-auth0:** login, session, access token retrieval, logout.
-3. **node-auth0 `AuthenticationClient`:**
+3. **@auth0/auth0-auth-js `AuthClient`** (current) **and node-auth0 `auth0/legacy` `AuthenticationClient`** (v4 API): client credentials, refresh, password (realm), signup, change password, as each SDK supports them.
    - `oauth.passwordGrant` (including realm), `oauth.clientCredentialsGrant`, `oauth.refreshTokenGrant`
    - `database.signUp`, `database.changePassword`
 4. **express-oauth2-jwt-bearer:** validates access tokens issued by zeroauthy.
