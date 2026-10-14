@@ -151,12 +151,13 @@ func TestValidateCustomText(t *testing.T) {
 		ct      store.CustomText
 		want    string
 	}{
-		"language not enabled": {[]string{"en"}, ok, `"fr" is not an enabled locale`},
-		"unknown prompt":       {nil, store.CustomText{"nope": {"en": {"login": {"title": "x"}}}}, "unknown key"},
-		"unknown screen":       {nil, store.CustomText{"login": {"en": {"nope": {"title": "x"}}}}, "unknown key"},
-		"unknown key":          {nil, store.CustomText{"login": {"en": {"login": {"nope": "x"}}}}, "unknown key"},
-		"foreign variable":     {nil, store.CustomText{"login": {"en": {"login": {"title": "Hi ${userName}"}}}}, "${userName}"},
-		"bad language tag":     {[]string{"en", "not a tag"}, store.CustomText{"login": {"not a tag": {"login": {"title": "x"}}}}, "not a tag"},
+		"language not enabled":                    {[]string{"en"}, ok, `"fr" is not an enabled locale`},
+		"unknown zeroauthy screen":                {nil, store.CustomText{"zeroauthy": {"en": {"nope": {"title": "x"}}}}, "unknown key"},
+		"unknown zeroauthy key":                   {nil, store.CustomText{"zeroauthy": {"en": {"error": {"titel": "x"}}}}, "unknown key"},
+		"ignored Auth0 key, language not enabled": {[]string{"en"}, store.CustomText{"login": {"fr": {"login": {"forgotPasswordText": "x"}}}}, `"fr" is not an enabled locale`},
+		"ignored Auth0 key, empty text":           {nil, store.CustomText{"login": {"en": {"login": {"forgotPasswordText": ""}}}}, "is empty"},
+		"foreign variable":                        {nil, store.CustomText{"login": {"en": {"login": {"title": "Hi ${userName}"}}}}, "${userName}"},
+		"bad language tag":                        {[]string{"en", "not a tag"}, store.CustomText{"login": {"not a tag": {"login": {"title": "x"}}}}, "not a tag"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -233,5 +234,31 @@ func TestEmptyCustomTextFallsBackToCatalog(t *testing.T) {
 	}
 	if got := l.T("login.login.title"); got != "Sign in" {
 		t.Errorf("blank custom text = %q, want the catalog's Sign in", got)
+	}
+}
+
+// Documented Auth0 keys for screens zeroauthy does not render are accepted
+// and ignored, so a configuration written for Auth0 still loads.
+func TestValidateCustomTextAcceptsUnrenderedAuth0Keys(t *testing.T) {
+	ct := store.CustomText{
+		"login":              {"en": {"login": {"forgotPasswordText": "Forgot it? ${unknownVar}"}}},
+		"reset-password":     {"en": {"reset-password-request": {"title": "Reset"}}},
+		"signup":             {"en": {"signup": {"password-policy-not-conformant": "Weak password."}}},
+		"login-passwordless": {"en": {"login-passwordless-email-code": {"title": "Code"}}},
+	}
+	if err := ValidateCustomText(nil, ct); err != nil {
+		t.Fatalf("unrendered Auth0 keys rejected: %v", err)
+	}
+}
+
+func TestHasCustom(t *testing.T) {
+	tn := &store.Tenant{CustomText: store.CustomText{"login": {"en": {"login": {"title": "Hi", "buttonText": ""}}}}}
+	l := New(tn, "en")
+	if !l.HasCustom("login.login.title") || l.HasCustom("login.login.buttonText") || l.HasCustom("login.login.description") {
+		t.Fatal("HasCustom must report only non-empty custom text")
+	}
+	var nilL *Localizer
+	if nilL.HasCustom("login.login.title") {
+		t.Fatal("nil localizer has no custom text")
 	}
 }

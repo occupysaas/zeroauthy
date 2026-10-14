@@ -277,3 +277,27 @@ func TestRenderErrorDetail(t *testing.T) {
 		t.Fatalf("got %d %s", rec.Code, body)
 	}
 }
+
+func TestLogoAltTextUsesScreenKeys(t *testing.T) {
+	tn := &store.Tenant{Name: "acme", Branding: store.Branding{LogoURL: "https://cdn.acme.test/l.png"}, CustomText: store.CustomText{
+		"login":  {"en": {"login": {"logoAltText": "Acme login logo", "forgotPasswordText": "IGNORED-AUTH0-KEY"}}},
+		"signup": {"en": {"signup": {"logoAltText": "Acme signup logo"}}},
+	}}
+	view := TenantView(tn, i18n.New(tn, "en"))
+	rec := httptest.NewRecorder()
+	RenderLogin(rec, 200, view, LoginData{State: "st", CSRF: "cs"})
+	if body := rec.Body.String(); !strings.Contains(body, `alt="Acme login logo"`) || strings.Contains(body, "IGNORED-AUTH0-KEY") {
+		t.Errorf("login logo alt or ignored key wrong:\n%s", body)
+	}
+	rec = httptest.NewRecorder()
+	RenderSignup(rec, 200, view, SignupData{State: "st", CSRF: "cs"})
+	if !strings.Contains(rec.Body.String(), `alt="Acme signup logo"`) {
+		t.Errorf("signup logo alt:\n%s", rec.Body)
+	}
+	// Other pages keep the layout default, the company name.
+	rec = httptest.NewRecorder()
+	RenderLoggedOut(rec, view)
+	if !strings.Contains(rec.Body.String(), `alt="acme"`) {
+		t.Errorf("default logo alt:\n%s", rec.Body)
+	}
+}

@@ -38,6 +38,7 @@ tenants:
         fr:
           signup:
             title: "Créer un compte"
+            password-policy-not-conformant: "Mot de passe trop faible."
     clients:
       - {client_id: spa, app_type: spa, grant_types: [authorization_code], callbacks: ["https://app.acme.test/cb"]}
       - {client_id: closed, app_type: spa, grant_types: [authorization_code], callbacks: ["https://closed.acme.test/cb"]}
@@ -517,5 +518,41 @@ func TestPostVerificationErrorPagesKeepUILocales(t *testing.T) {
 	rec = b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"x"}})
 	if !strings.Contains(rec.Body.String(), `lang="fr"`) {
 		t.Fatalf("POST no-connection error not French = %d\n%s", rec.Code, rec.Body)
+	}
+}
+
+// Auth0's signup.signup.password-policy-not-conformant, when the tenant sets
+// it for the language, replaces every password policy message.
+func TestPasswordPolicyAliasFromSeed(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t, "screen_hint", "signup", "ui_locales", "fr")
+	rec := b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"new@acme.test"}, "password": {"short"}})
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "Mot de passe trop faible.") {
+		t.Fatalf("short password in fr = %d\n%s", rec.Code, rec.Body)
+	}
+}
+
+func TestPolicyTextAlias(t *testing.T) {
+	tn := &store.Tenant{CustomText: store.CustomText{
+		"signup": {"fr": {"signup": {"password-policy-not-conformant": "Trop faible."}}},
+	}}
+	fr, en := i18n.New(tn, "fr"), i18n.New(tn, "en")
+	for _, err := range []error{
+		identity.CheckPassword(store.PasswordPolicy{}, strings.Repeat("x", 300)),
+		identity.CheckPassword(store.PasswordPolicy{MinLength: 12}, "short"),
+		identity.CheckPassword(store.PasswordPolicy{RequireCharacterClasses: 3}, "alllowercase"),
+	} {
+		pe := err.(*identity.PolicyError)
+		if got := policyText(fr, pe); got != "Trop faible." {
+			t.Errorf("%s in fr = %q, want the alias text", pe.Key, got)
+		}
+		if got, want := policyText(en, pe), en.T(pe.Key, pe.Vars...); got != want {
+			t.Errorf("%s in en = %q, want %q", pe.Key, got, want)
+		}
+	}
+	pe := identity.CheckUsername("not valid!").(*identity.PolicyError)
+	if got := policyText(fr, pe); got == "Trop faible." {
+		t.Error("the alias must not replace the username message")
 	}
 }

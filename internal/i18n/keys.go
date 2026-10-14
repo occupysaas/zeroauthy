@@ -1,5 +1,11 @@
 package i18n
 
+// KeyPasswordPolicyAlias is Auth0's signup key for a password that fails the
+// policy. It is not in en.json and has no built-in text: when a tenant sets
+// it for the language, it replaces all three password policy messages
+// (too short, too long, character classes). The catalog test exempts it.
+const KeyPasswordPolicyAlias = "signup.signup.password-policy-not-conformant"
+
 // Keys used from Go code. The catalog test checks each exists in en.json.
 const (
 	KeyWrongCredentials       = "login.login.wrong-credentials"

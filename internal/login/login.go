@@ -254,7 +254,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.As(err, &pe):
 		if pe.Key != "" {
-			data.Error = f.view.L.T(pe.Key, pe.Vars...)
+			data.Error = policyText(f.view.L, pe)
 		} else {
 			data.Error = capitalize(pe.Reason) + "."
 		}
@@ -294,4 +294,18 @@ func capitalize(s string) string {
 		return s
 	}
 	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+// passwordPolicyKeys are the messages Auth0's password-policy-not-conformant
+// key stands for.
+var passwordPolicyKeys = []string{i18n.KeyPasswordTooShort, i18n.KeyPasswordTooLong, i18n.KeyPasswordClasses}
+
+// policyText localizes a keyed policy error. A password policy message uses
+// the tenant's custom text for Auth0's password-policy-not-conformant key
+// when the language has one, and its own zeroauthy key otherwise.
+func policyText(l *i18n.Localizer, pe *identity.PolicyError) string {
+	if slices.Contains(passwordPolicyKeys, pe.Key) && l.HasCustom(i18n.KeyPasswordPolicyAlias) {
+		return l.T(i18n.KeyPasswordPolicyAlias, pe.Vars...)
+	}
+	return l.T(pe.Key, pe.Vars...)
 }

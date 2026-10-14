@@ -45,9 +45,19 @@ func usedKeys(t *testing.T) []string {
 	return used
 }
 
+// aliasKeys are Auth0 keys used from Go code only as tenant custom text;
+// they have no built-in text, so they are deliberately absent from en.json.
+var aliasKeys = []string{KeyPasswordPolicyAlias}
+
 func TestCatalogMatchesUsage(t *testing.T) {
 	used := usedKeys(t)
 	for _, k := range used {
+		if slices.Contains(aliasKeys, k) {
+			if _, ok := catalogs["en"][k]; ok {
+				t.Errorf("alias key %q must not be in en.json", k)
+			}
+			continue
+		}
 		if _, ok := catalogs["en"][k]; !ok {
 			t.Errorf("key %q is used but missing from en.json", k)
 		}

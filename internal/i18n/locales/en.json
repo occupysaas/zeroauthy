@@ -2,6 +2,7 @@
   "login": {
     "login": {
       "title": "Sign in",
+      "logoAltText": "${companyName}",
       "description": "Sign in to ${companyName} to continue to ${clientName}.",
       "usernamePlaceholder": "Email or username",
       "passwordPlaceholder": "Password",
@@ -15,6 +16,7 @@
   "signup": {
     "signup": {
       "title": "Create your account",
+      "logoAltText": "${companyName}",
       "description": "Sign up for ${companyName} to continue to ${clientName}.",
       "emailPlaceholder": "Email",
       "usernamePlaceholder": "Username",

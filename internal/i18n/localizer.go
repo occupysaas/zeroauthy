@@ -117,6 +117,12 @@ func (l *Localizer) T(key string, kv ...string) string {
 	})
 }
 
+// HasCustom reports whether the tenant set non-empty custom text for key in
+// this language.
+func (l *Localizer) HasCustom(key string) bool {
+	return l != nil && strings.TrimSpace(l.custom[key]) != ""
+}
+
 func builtin(lang, key string) (string, bool) {
 	for _, c := range []string{strings.ToLower(lang), baseOf(lang), "en"} {
 		if v, ok := catalogs[c][key]; ok {

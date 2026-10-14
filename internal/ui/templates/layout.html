@@ -29,7 +29,7 @@ a { color: var(--accent); }
 <body>
 <main>
 <header>
-{{if .Tenant.LogoURL}}<img src="{{.Tenant.LogoURL}}" alt="{{t .Tenant.L "zeroauthy.layout.logoAltText"}}">{{end}}
+{{if .Tenant.LogoURL}}<img src="{{.Tenant.LogoURL}}" alt="{{block "logoalt" .}}{{t .Tenant.L "zeroauthy.layout.logoAltText"}}{{end}}">{{end}}
 <h1>{{template "title" .}}</h1>
 <p class="sub">{{block "description" .}}{{.Tenant.Name}}{{end}}</p>
 </header>

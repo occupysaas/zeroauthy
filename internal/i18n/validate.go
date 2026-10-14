@@ -29,12 +29,18 @@ func ValidateLocales(tags []string) error {
 	return errors.Join(errs...)
 }
 
+// zeroauthyPrompt is the custom-text prompt for zeroauthy's own keys.
+const zeroauthyPrompt = "zeroauthy"
+
 // universalVars are set on every page, so any text may use them.
 var universalVars = []string{"companyName", "clientName"}
 
 // ValidateCustomText checks overrides against the English catalog: every
-// language enabled, every key known, and only the variables the English
-// string uses, plus the page-wide companyName and clientName.
+// language enabled and every text non-empty. Keys in en.json may use only
+// the variables the English string uses, plus the page-wide companyName and
+// clientName. Unknown keys are rejected under the zeroauthy prompt and
+// accepted but ignored elsewhere (documented Auth0 keys for screens
+// zeroauthy does not render).
 func ValidateCustomText(enabled []string, ct store.CustomText) error {
 	if len(enabled) == 0 {
 		enabled = []string{"en"}
@@ -65,7 +71,12 @@ func ValidateCustomText(enabled []string, ct store.CustomText) error {
 					}
 					en, ok := catalogs["en"][full]
 					if !ok {
-						errs = append(errs, fmt.Errorf("custom_text.%s.%s: unknown key %q", prompt, lang, full))
+						// Auth0 documents many keys for screens zeroauthy does
+						// not render; accept and ignore them. The zeroauthy
+						// prompt is ours, so an unknown key there is a typo.
+						if prompt == zeroauthyPrompt {
+							errs = append(errs, fmt.Errorf("custom_text.%s.%s: unknown key %q", prompt, lang, full))
+						}
 						continue
 					}
 					allowed := append(Placeholders(en), universalVars...)
