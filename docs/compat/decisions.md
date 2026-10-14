@@ -38,3 +38,10 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Sources:** RFC 6749 §2.3 ("MUST NOT use more than one authentication method in each request"); RFC 7591 §2 (`token_endpoint_auth_method`).
 - **Decision:** A mismatched method → `401 invalid_client`. Two methods → `400 invalid_request`. The server log records the registered and used methods.
 - **Rationale:** It follows the RFCs and avoids ambiguity about which credential was checked.
+
+## D-0005: Session lifetime defaults
+
+- **Context:** The spec requires absolute and idle session timeouts but does not give defaults.
+- **Sources:** https://auth0.com/docs/manage-users/sessions/configure-session-lifetime-settings (public docs on tenant session lifetime settings).
+- **Decision:** Default absolute lifetime 7 days and idle lifetime 3 days, overridable per tenant (`session_lifetime`, `idle_session_lifetime`, seconds). Every authenticated request slides the idle expiry, never past the absolute expiry.
+- **Rationale:** These are conservative defaults for a hosted login session. Making them configurable covers deployments that need other values.
