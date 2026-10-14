@@ -152,6 +152,7 @@ paths:
 
         | `grant_type` | Purpose |
         |---|---|
+        | `authorization_code` | Exchange a code from `/authorize` (with `code_verifier` when PKCE was used) for an access token and, with scope `openid`, an ID token |
         | `client_credentials` | Machine-to-machine access token for `audience` |
 
         **Client authentication.** Confidential clients authenticate with
@@ -162,6 +163,8 @@ paths:
         request is rejected.
       x-source:
         - https://www.rfc-editor.org/rfc/rfc6749#section-4.4
+        - https://www.rfc-editor.org/rfc/rfc6749#section-4.1.3
+        - https://www.rfc-editor.org/rfc/rfc7636#section-4.6
         - https://www.rfc-editor.org/rfc/rfc6749#section-2.3.1
         - https://auth0.com/docs/api/authentication
         - https://auth0.com/docs/get-started/authentication-and-authorization-flow/client-credentials-flow
@@ -252,6 +255,15 @@ components:
         scope:
           type: string
           description: Space-separated scopes to request. Defaults to all scopes granted to the client.
+        code:
+          type: string
+          description: Authorization code (grant_type=authorization_code).
+        redirect_uri:
+          type: string
+          description: Must equal the redirect_uri of the authorization request.
+        code_verifier:
+          type: string
+          description: PKCE verifier for the code_challenge sent to /authorize.
     TokenResponse:
       type: object
       required: [access_token, token_type, expires_in]

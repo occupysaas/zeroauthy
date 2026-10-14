@@ -17,9 +17,10 @@ import (
 type grantHandler func(h *Handlers, ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error)
 
 // grantHandlers maps grant_type to its implementation. Later plans add
-// authorization_code, refresh_token, password, password-realm, and
+// refresh_token, password, password-realm, and
 // device_code.
 var grantHandlers = map[string]grantHandler{
+	"authorization_code": (*Handlers).authorizationCode,
 	"client_credentials": (*Handlers).clientCredentials,
 }
 

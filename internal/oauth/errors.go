@@ -60,3 +60,7 @@ func writeError(w http.ResponseWriter, e *Error) {
 	}
 	httpx.WriteError(w, e.Status, e.Code, e.Description)
 }
+
+func invalidGrant(desc string) *Error {
+	return &Error{Status: http.StatusBadRequest, Code: "invalid_grant", Description: desc}
+}

@@ -35,6 +35,12 @@ tenants:
       - {client_id: m2m-basic, app_type: non_interactive, client_secret: "p@ss:w+rd", token_endpoint_auth_method: client_secret_basic, grant_types: [client_credentials]}
       - {client_id: web, app_type: regular_web, client_secret: web-secret, grant_types: [authorization_code]}
       - {client_id: spa, app_type: spa, grant_types: [client_credentials]}
+      - {client_id: code-spa, app_type: spa, grant_types: [authorization_code], callbacks: ["https://app.acme.test/cb"], id_token_lifetime: 600}
+      - {client_id: code-web, app_type: regular_web, client_secret: code-web-secret, grant_types: [authorization_code], callbacks: ["https://web.acme.test/cb"]}
+    connections:
+      - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web]}
+    users:
+      - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1", email_verified: true, name: Alice}
     client_grants:
       - {client_id: m2m, audience: https://api.acme.test, scopes: ["read:things", "write:things"]}
       - {client_id: m2m-basic, audience: https://api.acme.test, scopes: ["read:things"]}

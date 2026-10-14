@@ -68,3 +68,15 @@ them. Each entry: context, sources consulted, decision, rationale.
   - Counters are in-process.
   - Failed logins show one message whether the account exists or not.
 - **Rationale:** Server-side transactions keep the authorize request out of the browser. The cookie binding defeats login CSRF. The per-account lockout limits guessing without letting one IP lock out every account.
+
+## D-0008: Authorization codes and user-flow tokens
+
+- **Context:** Code lifetime, replay handling, and the audience of user-flow access tokens.
+- **Sources:** RFC 6749 §4.1.2 and §10.5; OAuth 2.0 Security BCP (RFC 9700) §4.5; OpenID Connect Core §5.3.1; Auth0 public docs on calling /userinfo with an access token.
+- **Decision:**
+  - Codes live 60 seconds, are single-use, and are stored hashed. A replayed code is rejected with `invalid_grant` and logged; revoking descendant tokens comes with refresh tokens.
+  - User-flow access tokens are JWTs:
+    - `aud` holds the API identifier and, when `openid` is granted, `https://{host}/userinfo`.
+    - Without an API, `aud` is the userinfo URL only, and clients must treat the token as opaque.
+    - Granted scopes are the requested `openid`/`profile`/`email` plus requested scopes the API defines. No `gty` claim is added.
+- **Rationale:** A short single-use code limits interception. JWTs for userinfo-only tokens avoid server-side token storage while behaving like opaque tokens to clients.

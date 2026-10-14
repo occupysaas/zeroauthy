@@ -59,8 +59,17 @@ type TokenRequest struct {
 	ClientId     *string `json:"client_id,omitempty"`
 	ClientSecret *string `json:"client_secret,omitempty"`
 
+	// Code Authorization code (grant_type=authorization_code).
+	Code *string `json:"code,omitempty"`
+
+	// CodeVerifier PKCE verifier for the code_challenge sent to /authorize.
+	CodeVerifier *string `json:"code_verifier,omitempty"`
+
 	// GrantType Examples: client_credentials
 	GrantType string `json:"grant_type"`
+
+	// RedirectUri Must equal the redirect_uri of the authorization request.
+	RedirectUri *string `json:"redirect_uri,omitempty"`
 
 	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
