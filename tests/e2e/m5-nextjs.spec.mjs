@@ -43,7 +43,10 @@ test('nextjs-auth0 logs in, gets an access token and logs out', async ({ page })
   await page.click('#logout');
   await page.waitForURL(APP);
   await expect(page.locator('#login')).toBeVisible();
-  expect(logoutCalls.length).toBeGreaterThan(0);
+  expect(logoutCalls).toHaveLength(1);
+  const logout = new URL(logoutCalls[0]);
+  expect(logout.pathname).toBe('/oidc/logout');
+  expect(logout.searchParams.get('id_token_hint')).toBeTruthy();
 
   // The zeroauthy session is gone too: logging in again shows the form.
   await page.click('#login');

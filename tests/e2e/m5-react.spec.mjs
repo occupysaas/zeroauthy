@@ -61,11 +61,20 @@ test('auth0-react rotates refresh tokens, detects reuse and logs out', async ({ 
   expect(reused.body.error).toBe('invalid_grant');
   expect((await replay(second.refresh_token)).status).toBe(400);
 
-  // Logout ends the zeroauthy session: logging in again shows the form.
+  // Logout goes through zeroauthy's /v2/logout and ends its session:
+  // logging in again shows the form.
+  const logoutCalls = [];
+  page.on('request', (r) => {
+    if (/localhost:8443\/(oidc|v2)\/logout/.test(r.url())) logoutCalls.push(r.url());
+  });
   await page.click('#logout');
   await page.waitForURL(APP);
   await ready(page);
   await expect(page.locator('#login')).toBeVisible();
+  expect(logoutCalls).toHaveLength(1);
+  const logout = new URL(logoutCalls[0]);
+  expect(logout.pathname).toBe('/v2/logout');
+  expect(logout.searchParams.get('client_id')).toBe('e2e-react');
   await page.click('#login');
   await page.waitForURL(/localhost:8443\/u\/login/);
 });
