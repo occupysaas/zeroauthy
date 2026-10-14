@@ -65,7 +65,7 @@ func TestDiscovery(t *testing.T) {
 		}
 	}
 	wantLists := map[string][]string{
-		"grant_types_supported":                 {"authorization_code", "client_credentials", "refresh_token"},
+		"grant_types_supported":                 {"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm"},
 		"response_types_supported":              {"code"},
 		"response_modes_supported":              {"query", "fragment", "form_post", "web_message"},
 		"code_challenge_methods_supported":      {"S256"},

@@ -104,6 +104,12 @@ type TokenRequest struct {
 	// GrantType Examples: client_credentials
 	GrantType string `json:"grant_type"`
 
+	// Password The user's password (password grants).
+	Password *string `json:"password,omitempty"`
+
+	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm).
+	Realm *string `json:"realm,omitempty"`
+
 	// RedirectUri Must equal the redirect_uri of the authorization request.
 	RedirectUri *string `json:"redirect_uri,omitempty"`
 
@@ -112,6 +118,9 @@ type TokenRequest struct {
 
 	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
+
+	// Username The user's email or username (password grants).
+	Username *string `json:"username,omitempty"`
 }
 
 // TokenResponse defines model for TokenResponse.

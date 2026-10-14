@@ -16,12 +16,14 @@ import (
 
 type grantHandler func(h *Handlers, ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error)
 
-// grantHandlers maps grant_type to its implementation. Later plans add
-// password, password-realm, and device_code.
+// grantHandlers maps grant_type to its implementation. A later plan adds
+// device_code.
 var grantHandlers = map[string]grantHandler{
 	"authorization_code": (*Handlers).authorizationCode,
 	"client_credentials": (*Handlers).clientCredentials,
 	"refresh_token":      (*Handlers).refreshToken,
+	"password":           (*Handlers).passwordGrant,
+	GrantPasswordRealm:   (*Handlers).passwordRealmGrant,
 }
 
 // OauthToken implements POST /oauth/token.
@@ -60,5 +62,7 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	if !slices.Contains(client.GrantTypes, grantType) {
 		return nil, unauthorizedClient(fmt.Sprintf("grant type %q is not allowed for this client", grantType))
 	}
-	return grant(h, r.Context(), res, client, form)
+	// Grants that throttle by end user see the IP through the context.
+	ctx := withClientIP(r.Context(), h.endUserIP(r, client))
+	return grant(h, ctx, res, client, form)
 }

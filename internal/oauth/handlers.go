@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -17,6 +18,13 @@ type Handlers struct {
 	Now   func() time.Time
 
 	Minter *Minter
+
+	// Database, UserThrottle and IPThrottle serve the password grants.
+	// The throttles are the hosted login's, so both paths share limits.
+	Database          *identity.Database
+	UserThrottle      *identity.Throttle
+	IPThrottle        *identity.Throttle
+	TrustProxyHeaders bool
 }
 
 func (h *Handlers) now() time.Time {

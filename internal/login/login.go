@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -181,8 +182,8 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	login := r.PostForm.Get("username")
 	data := ui.LoginData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: login, SignupURL: signupURL(f), RedirectURI: f.txn.Params["redirect_uri"]}
 
-	userKey := "user|" + f.res.Tenant.ID + "|" + f.conn.Name + "|" + identity.NormalizeLogin(login)
-	ipKey := "ip|" + f.res.Tenant.ID + "|" + clientIP(r, h.TrustProxyHeaders)
+	userKey := identity.UserThrottleKey(f.res.Tenant.ID, f.conn.Name, login)
+	ipKey := identity.IPThrottleKey(f.res.Tenant.ID, httpx.ClientIP(r, h.TrustProxyHeaders))
 	// Attempt counts the try up front; it is undone or cleared below once
 	// the password turns out to be correct.
 	if !h.IPThrottle.Attempt(ipKey) || !h.UserThrottle.Attempt(userKey) {
@@ -245,7 +246,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	// Every signup hashes a password and stores a user, so each attempt
 	// counts against the IP limit and none is refunded.
-	if !h.IPThrottle.Attempt("ip|" + f.res.Tenant.ID + "|" + clientIP(r, h.TrustProxyHeaders)) {
+	if !h.IPThrottle.Attempt(identity.IPThrottleKey(f.res.Tenant.ID, httpx.ClientIP(r, h.TrustProxyHeaders))) {
 		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
 		ui.RenderSignup(w, http.StatusTooManyRequests, f.view, data)
 		return

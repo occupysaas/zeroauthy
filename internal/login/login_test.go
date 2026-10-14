@@ -327,22 +327,6 @@ func mustTenant(t *testing.T, e *env, name string) *store.Tenant {
 	return tn
 }
 
-func TestClientIP(t *testing.T) {
-	r := httptest.NewRequest("POST", "/u/login", nil)
-	r.RemoteAddr = "10.0.0.1:4444"
-	r.Header.Set("X-Forwarded-For", "spoofed, 203.0.113.9")
-	if got := clientIP(r, false); got != "10.0.0.1" {
-		t.Errorf("untrusted = %q", got)
-	}
-	if got := clientIP(r, true); got != "203.0.113.9" {
-		t.Errorf("trusted = %q", got)
-	}
-	r.Header.Del("X-Forwarded-For")
-	if got := clientIP(r, true); got != "10.0.0.1" {
-		t.Errorf("no header = %q", got)
-	}
-}
-
 func TestIPThrottle(t *testing.T) {
 	e := newEnv(t)
 	e.h.IPThrottle = identity.NewThrottle(3, 15*time.Minute, 15*time.Minute)

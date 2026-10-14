@@ -75,7 +75,7 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		SubjectTypesSupported:             []string{"public"},
 		IDTokenSigningAlgValuesSupported:  []string{"RS256"},
 		TokenEndpointAuthMethodsSupported: []string{"client_secret_basic", "client_secret_post", "none"},
-		GrantTypesSupported:               []string{"authorization_code", "client_credentials", "refresh_token"},
+		GrantTypesSupported:               []string{"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm"},
 		CodeChallengeMethodsSupported:     []string{"S256"},
 		ScopesSupported:                   []string{"openid", "profile", "email", "offline_access"},
 		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce", "sid", "at_hash",

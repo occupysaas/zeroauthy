@@ -76,6 +76,8 @@ type userTokens struct {
 	nonce     string
 	sessionID string
 	authTime  time.Time
+	// grantType becomes the access token's gty claim; empty omits it.
+	grantType string
 }
 
 // mintUserTokens returns an access token and, with scope openid, an ID
@@ -95,7 +97,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	}
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
-		ClientID: c.ClientID, Scopes: ut.scopes, Lifetime: ut.lifetime,
+		ClientID: c.ClientID, Scopes: ut.scopes, Lifetime: ut.lifetime, GrantType: ut.grantType,
 	})
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)

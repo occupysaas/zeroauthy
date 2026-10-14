@@ -104,3 +104,12 @@ func (t *Throttle) prune(now time.Time) {
 		}
 	}
 }
+
+// UserThrottleKey and IPThrottleKey name throttle buckets. The hosted
+// login and the password grants share them, so attempts through either
+// count against the same limits.
+func UserThrottleKey(tenantID, connection, login string) string {
+	return "user|" + tenantID + "|" + connection + "|" + NormalizeLogin(login)
+}
+
+func IPThrottleKey(tenantID, ip string) string { return "ip|" + tenantID + "|" + ip }

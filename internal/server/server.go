@@ -101,8 +101,13 @@ func New(d Deps) http.Handler {
 	r.Group(func(tr chi.Router) {
 		tr.Use(d.Resolver.Middleware, cors(d.Store))
 		authapi.HandlerWithOptions(authAPI{
-			oidc:  &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
-			oauth: &oauth.Handlers{Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}},
+			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
+			oauth: &oauth.Handlers{
+				Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys},
+				Database:     &identity.Database{Store: d.Store},
+				UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
+				TrustProxyHeaders: d.TrustProxyHeaders,
+			},
 			authz: az,
 		}, authapi.ChiServerOptions{
 			BaseRouter: tr,

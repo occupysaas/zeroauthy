@@ -211,3 +211,17 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **`/oidc/logout`:** now honours `ui_locales`, which replaces the D-0015 note.
   - **OAuth `error_description`:** stays English.
 - **Rationale:** It follows the documented selection order and custom-text shape, so configuration written for Auth0 keeps working. English fallback guarantees that a page never shows a missing string.
+
+## D-0017: Resource owner password grants
+
+- **Context:** Auth0 documents the `password` grant, the `http://auth0.com/oauth/grant-type/password-realm` extension (realm = connection) and the `auth0-forwarded-for` header, but not error codes beyond success.
+- **Sources:** RFC 6749 §4.3 and §5.2; https://auth0.com/docs/api/authentication/resource-owner-password-flow/get-token; OAuth 2.0 Security BCP (RFC 9700) §2.4.
+- **Decision:**
+  - `password` uses the tenant's `default_directory`; without one it is `invalid_request`.
+  - The connection must be a database connection enabled for the client.
+  - Wrong credentials and unknown users give the same `invalid_grant`; a blocked user gives `invalid_grant`.
+  - Attempts share the hosted login's per-user and per-IP throttles and return `429 too_many_requests` when locked.
+  - `auth0-forwarded-for` is honoured only for clients that authenticated with a secret.
+  - Access tokens carry `gty: "password"`. ID tokens have `auth_time` = now and no `sid` (no browser session).
+  - Refresh tokens follow the `offline_access` rules of D-0012 and start a new family.
+- **Rationale:** It follows the documented parameters and RFC 6749 errors. Sharing the throttles prevents the API from being used to bypass hosted-login brute-force protection.

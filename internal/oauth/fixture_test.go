@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -22,6 +23,7 @@ tenants:
   - name: acme
     domains: [acme.example.test]
     default_audience: https://api.acme.test
+    default_directory: Username-Password-Authentication
     resource_servers:
       - identifier: https://api.acme.test
         name: Acme API
@@ -45,10 +47,20 @@ tenants:
         grant_types: [authorization_code, refresh_token]
         callbacks: ["https://rtweb.acme.test/cb"]
         refresh_token: {rotation_type: non-rotating, expiration_type: expiring, token_lifetime: 86400, idle_token_lifetime: 3600}
+      - client_id: ropg
+        app_type: regular_web
+        client_secret: ropg-secret
+        grant_types: [password, "http://auth0.com/oauth/grant-type/password-realm", refresh_token]
+      - client_id: ropg-public
+        app_type: native
+        grant_types: [password]
     connections:
-      - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web, rt-spa, rt-web]}
+      - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web, rt-spa, rt-web, ropg, ropg-public]}
+      - {name: Other-DB, enabled_clients: [ropg]}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1", email_verified: true, name: Alice}
+      - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
+      - {connection: Other-DB, email: bob@acme.test, password: "bob password 12"}
     client_grants:
       - {client_id: m2m, audience: https://api.acme.test, scopes: ["read:things", "write:things"]}
       - {client_id: m2m-basic, audience: https://api.acme.test, scopes: ["read:things"]}
@@ -86,7 +98,12 @@ func newFixture(t *testing.T) *fixture {
 			t.Fatal(err)
 		}
 	}
-	return &fixture{st: st, keys: km, h: &Handlers{Store: st, Now: fixedNow, Minter: &Minter{Keys: km, Now: fixedNow}}}
+	return &fixture{st: st, keys: km, h: &Handlers{
+		Store: st, Now: fixedNow, Minter: &Minter{Keys: km, Now: fixedNow},
+		Database:     &identity.Database{Store: st, Now: fixedNow},
+		UserThrottle: identity.NewThrottle(3, 15*time.Minute, 15*time.Minute),
+		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),
+	}}
 }
 
 // server returns the token endpoint behind tenant resolution and contract

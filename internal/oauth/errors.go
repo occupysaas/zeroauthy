@@ -43,6 +43,10 @@ func accessDenied(desc string) *Error {
 	return &Error{Status: http.StatusForbidden, Code: "access_denied", Description: desc}
 }
 
+func tooManyRequests() *Error {
+	return &Error{Status: http.StatusTooManyRequests, Code: "too_many_requests", Description: "too many attempts; wait a few minutes and try again"}
+}
+
 func serverError() *Error {
 	return &Error{Status: http.StatusInternalServerError, Code: "server_error", Description: "internal error"}
 }

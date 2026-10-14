@@ -15,6 +15,7 @@ type tokenCall struct {
 	json        string // when set, sent as an application/json body instead of form
 	basicID     string
 	basicSecret string
+	header      map[string]string
 }
 
 func (f *fixture) call(t *testing.T, strict bool, c tokenCall) (*httptest.ResponseRecorder, map[string]any) {
@@ -29,6 +30,9 @@ func (f *fixture) call(t *testing.T, strict bool, c tokenCall) (*httptest.Respon
 	}
 	if c.basicID != "" {
 		req.SetBasicAuth(url.QueryEscape(c.basicID), url.QueryEscape(c.basicSecret))
+	}
+	for k, v := range c.header {
+		req.Header.Set(k, v)
 	}
 	rec := httptest.NewRecorder()
 	f.server(t, strict).ServeHTTP(rec, req)
@@ -131,7 +135,7 @@ func TestTokenErrors(t *testing.T) {
 		wantError  string
 	}{
 		{"missing grant_type", false, tokenCall{host: "acme.example.test", form: url.Values{"client_id": {"m2m"}}}, 400, "invalid_request"},
-		{"unsupported grant", true, tokenCall{host: "acme.example.test", form: url.Values{"grant_type": {"password"}, "client_id": {"m2m"}}}, 400, "unsupported_grant_type"},
+		{"unsupported grant", true, tokenCall{host: "acme.example.test", form: url.Values{"grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"}, "client_id": {"m2m"}}}, 400, "unsupported_grant_type"},
 		{"bad secret", true, tokenCall{host: "acme.example.test", form: cc("m2m", "wrong")}, 401, "invalid_client"},
 		{"grant type not allowed", true, tokenCall{host: "acme.example.test", form: cc("web", "web-secret")}, 403, "unauthorized_client"},
 		{"public client", true, tokenCall{host: "acme.example.test", form: cc("spa", "")}, 403, "unauthorized_client"},
