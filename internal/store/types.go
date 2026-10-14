@@ -17,6 +17,11 @@ type Tenant struct {
 	// AllowedLogoutURLs are where /v2/logout may send a browser when the
 	// request names no client.
 	AllowedLogoutURLs []string
+	// EnabledLocales are the languages hosted pages may use; the first is
+	// the default. Empty means ["en"].
+	EnabledLocales []string
+	// CustomText overrides hosted-page text per language.
+	CustomText CustomText
 	// SessionLifetime and IdleSessionLifetime bound login sessions, in
 	// seconds. Zero means the defaults (7 days and 3 days).
 	SessionLifetime     int
@@ -271,3 +276,7 @@ type RefreshTokenPolicy struct {
 	// the default (2592000) when Expiring.
 	IdleTokenLifetime int
 }
+
+// CustomText holds a tenant's text overrides, shaped like Auth0's
+// documented prompt custom text: prompt → language → screen → key → text.
+type CustomText map[string]map[string]map[string]map[string]string

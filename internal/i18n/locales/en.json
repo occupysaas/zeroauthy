@@ -1,0 +1,71 @@
+{
+  "login": {
+    "login": {
+      "title": "Sign in",
+      "description": "Sign in to ${companyName} to continue to ${clientName}.",
+      "usernamePlaceholder": "Email or username",
+      "passwordPlaceholder": "Password",
+      "buttonText": "Continue",
+      "signupActionText": "New here?",
+      "signupActionLinkText": "Create an account",
+      "wrong-credentials": "Incorrect email/username or password.",
+      "user-blocked": "This account has been blocked. Contact the application's support."
+    }
+  },
+  "signup": {
+    "signup": {
+      "title": "Create your account",
+      "description": "Sign up for ${companyName} to continue to ${clientName}.",
+      "emailPlaceholder": "Email",
+      "usernamePlaceholder": "Username",
+      "passwordPlaceholder": "Password",
+      "buttonText": "Sign up",
+      "loginActionText": "Already have an account?",
+      "loginActionLinkText": "Sign in",
+      "email-in-use": "An account with this email or username already exists.",
+      "invalid-username": "Usernames are 1-64 characters: letters, digits, and _ . + -"
+    }
+  },
+  "logout": {
+    "logout": {
+      "pageTitle": "Log out",
+      "title": "Log out?",
+      "description": "An application asked to end your session. Do you want to log out?",
+      "acceptButtonText": "Log out"
+    }
+  },
+  "zeroauthy": {
+    "layout": {
+      "logoAltText": "${companyName}"
+    },
+    "common": {
+      "too-many-attempts": "Too many attempts. Wait a few minutes and try again."
+    },
+    "signup": {
+      "password-too-long": "This password is too long.",
+      "password-too-short": "Use a password of at least ${min} characters.",
+      "password-character-classes": "Use at least ${count} of: lowercase letters, uppercase letters, digits, symbols."
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "Return to the application and try again.",
+      "session-expired": "Your login session has expired or is invalid. Return to the application and start again.",
+      "no-connection": "No login method is enabled for this application.",
+      "signup-disabled": "Sign-up is not available for this application.",
+      "server-error": "Something went wrong on our side. Please try again.",
+      "invalid-request": "The application sent a request that could not be completed.",
+      "logout-unknown-client": "The application that asked to log you out is not registered. You are still logged in.",
+      "logout-url-not-allowed": "The address to return to after logout is not allowed for this application. You are still logged in.",
+      "logout-invalid": "The logout request was not valid. You are still logged in."
+    },
+    "logged-out": {
+      "title": "You are logged out",
+      "description": "Your session has ended.",
+      "hint": "You can close this window."
+    },
+    "form-post": {
+      "title": "Continuing…",
+      "buttonText": "Continue"
+    }
+  }
+}
