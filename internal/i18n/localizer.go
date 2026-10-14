@@ -40,9 +40,14 @@ func New(t *store.Tenant, lang string) *Localizer {
 	}
 	l.vars["companyName"] = name
 	for prompt, langs := range t.CustomText {
-		for screen, keys := range langs[lang] {
-			for k, v := range keys {
-				l.custom[prompt+"."+screen+"."+k] = v
+		for customLang, screens := range langs {
+			if !strings.EqualFold(customLang, lang) {
+				continue
+			}
+			for screen, keys := range screens {
+				for k, v := range keys {
+					l.custom[prompt+"."+screen+"."+k] = v
+				}
 			}
 		}
 	}

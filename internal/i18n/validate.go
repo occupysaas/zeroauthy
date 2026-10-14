@@ -41,7 +41,13 @@ func ValidateCustomText(enabled []string, ct store.CustomText) error {
 	}
 	var errs []error
 	for prompt, langs := range ct {
+		seenLang := map[string]bool{}
 		for lang, screens := range langs {
+			if seenLang[strings.ToLower(lang)] {
+				errs = append(errs, fmt.Errorf("custom_text.%s: language %q is given more than once (case-insensitive)", prompt, lang))
+				continue
+			}
+			seenLang[strings.ToLower(lang)] = true
 			if _, err := language.Parse(lang); err != nil || lang == "" {
 				errs = append(errs, fmt.Errorf("custom_text.%s: %q is not a valid language tag", prompt, lang))
 				continue

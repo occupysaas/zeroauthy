@@ -192,3 +192,23 @@ func TestGoKeysExist(t *testing.T) {
 		}
 	}
 }
+
+func TestCustomTextLanguageCaseInsensitive(t *testing.T) {
+	tn := &store.Tenant{CustomText: store.CustomText{
+		"login": {"fr-ca": {"login": {"buttonText": "Poursuivre"}}},
+	}}
+	if got := New(tn, "fr-CA").T("login.login.buttonText"); got != "Poursuivre" {
+		t.Fatalf("fr-ca custom text for fr-CA = %q", got)
+	}
+}
+
+func TestValidateCustomTextCaseDuplicateLanguages(t *testing.T) {
+	ct := store.CustomText{"login": {
+		"fr": {"login": {"title": "a"}},
+		"FR": {"login": {"title": "b"}},
+	}}
+	err := ValidateCustomText([]string{"en", "fr"}, ct)
+	if err == nil || !strings.Contains(err.Error(), "more than once") {
+		t.Fatalf("err = %v, want duplicate-language rejection", err)
+	}
+}
