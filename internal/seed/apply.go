@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -35,6 +36,8 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 	case errors.Is(err, store.ErrNotFound):
 		tn = &store.Tenant{ID: "ten_" + secrets.RandomString(16), Name: in.Name, CreatedAt: now}
 		tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
+		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
+		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
 		if err := st.Tenants().Create(ctx, tn); err != nil {
 			return err
 		}
@@ -42,6 +45,8 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 		return err
 	default:
 		tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
+		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
+		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
 		if err := st.Tenants().Update(ctx, tn); err != nil {
 			return err
 		}
@@ -60,6 +65,16 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 	for _, g := range in.ClientGrants {
 		if err := applyClientGrant(ctx, st, tn.ID, g, now); err != nil {
 			return fmt.Errorf("client grant %q → %q: %w", g.ClientID, g.Audience, err)
+		}
+	}
+	for _, c := range in.Connections {
+		if err := applyConnection(ctx, st, tn.ID, c, now); err != nil {
+			return fmt.Errorf("connection %q: %w", c.Name, err)
+		}
+	}
+	for _, u := range in.Users {
+		if err := applyUser(ctx, st, tn.ID, u, now); err != nil {
+			return fmt.Errorf("user %q: %w", u.Email, err)
 		}
 	}
 	return nil
@@ -100,6 +115,7 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	c.GrantTypes = slices.Clone(in.GrantTypes)
 	c.Callbacks, c.AllowedLogoutURLs = slices.Clone(in.Callbacks), slices.Clone(in.AllowedLogoutURLs)
 	c.WebOrigins, c.AllowedOrigins = slices.Clone(in.WebOrigins), slices.Clone(in.AllowedOrigins)
+	c.IDTokenLifetime = in.IDTokenLifetime
 
 	switch {
 	case in.ClientSecret == "":
@@ -140,4 +156,64 @@ func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in C
 		g.Scopes = slices.Clone(in.Scopes)
 		return st.ClientGrants().Update(ctx, g)
 	}
+}
+
+func applyConnection(ctx context.Context, st store.Store, tenantID string, in Connection, now time.Time) error {
+	c, err := st.Connections().GetByName(ctx, tenantID, in.Name)
+	create := errors.Is(err, store.ErrNotFound)
+	if err != nil && !create {
+		return err
+	}
+	if create {
+		c = &store.Connection{TenantID: tenantID, ID: "con_" + secrets.RandomString(16), Name: in.Name, CreatedAt: now}
+	}
+	c.Strategy = in.Strategy
+	c.EnabledClients = slices.Clone(in.EnabledClients)
+	c.DisableSignup, c.RequiresUsername = in.DisableSignup, in.RequiresUsername
+	c.PasswordPolicy = store.PasswordPolicy{MinLength: in.PasswordPolicy.MinLength, RequireCharacterClasses: in.PasswordPolicy.RequireCharacterClasses}
+	if create {
+		return st.Connections().Create(ctx, c)
+	}
+	return st.Connections().Update(ctx, c)
+}
+
+func applyUser(ctx context.Context, st store.Store, tenantID string, in User, now time.Time) error {
+	u, err := st.Users().FindByLogin(ctx, tenantID, in.Connection, in.Email)
+	create := errors.Is(err, store.ErrNotFound)
+	if err != nil && !create {
+		return err
+	}
+	if create {
+		id := secrets.RandomHex(12)
+		u = &store.User{
+			TenantID: tenantID, UserID: store.StrategyDatabase + "|" + id, CreatedAt: now,
+			Identities: []store.Identity{{Connection: in.Connection, Provider: store.StrategyDatabase, UserID: id}},
+		}
+	}
+	u.Email, u.EmailVerified, u.Username = in.Email, in.EmailVerified, in.Username
+	u.Name, u.Nickname, u.Picture, u.Blocked = in.Name, in.Nickname, in.Picture, in.Blocked
+	if u.Name == "" {
+		u.Name = in.Email
+	}
+	if u.Nickname == "" {
+		u.Nickname = strings.SplitN(in.Email, "@", 2)[0]
+	}
+	u.UpdatedAt = now
+	for i := range u.Identities {
+		if u.Identities[i].Connection != in.Connection {
+			continue
+		}
+		if ok, err := secrets.Verify(u.Identities[i].PasswordHash, in.Password); err == nil && ok {
+			continue
+		}
+		h, err := secrets.Hash(in.Password)
+		if err != nil {
+			return err
+		}
+		u.Identities[i].PasswordHash = h
+	}
+	if create {
+		return st.Users().Create(ctx, u)
+	}
+	return st.Users().Update(ctx, u)
 }

@@ -3,15 +3,20 @@ package seed
 import (
 	"errors"
 	"fmt"
+	"net/mail"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 var dnsLabel = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
+var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 var appTypes = []string{
 	string(store.AppTypeSPA), string(store.AppTypeRegularWeb),
@@ -138,6 +143,71 @@ func (t *Tenant) validate() []error {
 			if !slices.ContainsFunc(rs.Scopes, func(d Scope) bool { return d.Value == s }) {
 				fail("client grant %q → %q: scope %q is not defined by the resource server", g.ClientID, g.Audience, s)
 			}
+		}
+	}
+
+	if b := t.Branding; b.LogoURL != "" {
+		if u, err := url.Parse(b.LogoURL); err != nil || u.Scheme != "https" || u.Host == "" {
+			fail("branding.logo_url must be an https URL")
+		}
+	}
+	if c := t.Branding.PrimaryColor; c != "" && !hexColor.MatchString(c) {
+		fail("branding.primary_color must look like #1a73e8")
+	}
+
+	conns := map[string]*Connection{}
+	for i := range t.Connections {
+		c := &t.Connections[i]
+		if c.Name == "" {
+			fail("connections[%d]: name is required", i)
+			continue
+		}
+		if conns[c.Name] != nil {
+			fail("duplicate connection %q", c.Name)
+		}
+		conns[c.Name] = c
+		if c.Strategy == "" {
+			c.Strategy = store.StrategyDatabase
+		}
+		if c.Strategy != store.StrategyDatabase {
+			fail("connection %q: strategy %q is not supported (only %q)", c.Name, c.Strategy, store.StrategyDatabase)
+		}
+		for _, id := range c.EnabledClients {
+			if !clients[id] {
+				fail("connection %q: unknown client %q", c.Name, id)
+			}
+		}
+		if p := c.PasswordPolicy; p.MinLength < 0 || p.RequireCharacterClasses < 0 || p.RequireCharacterClasses > 4 {
+			fail("connection %q: password_policy.min_length must be >= 0 and require_character_classes 0-4", c.Name)
+		}
+	}
+
+	seenUsers := map[[2]string]bool{}
+	for i := range t.Users {
+		u := &t.Users[i]
+		c := conns[u.Connection]
+		if c == nil {
+			fail("users[%d]: unknown connection %q", i, u.Connection)
+			continue
+		}
+		u.Email = identity.NormalizeLogin(u.Email)
+		u.Username = identity.NormalizeLogin(u.Username)
+		if addr, err := mail.ParseAddress(u.Email); err != nil || addr.Address != u.Email {
+			fail("users[%d]: %q is not a valid email address", i, u.Email)
+			continue
+		}
+		k := [2]string{u.Connection, u.Email}
+		if seenUsers[k] {
+			fail("duplicate user %q on connection %q", u.Email, u.Connection)
+		}
+		seenUsers[k] = true
+		if c.RequiresUsername && u.Username == "" {
+			fail("user %q: username is required by connection %q", u.Email, c.Name)
+		}
+		if err := identity.CheckPassword(store.PasswordPolicy{
+			MinLength: c.PasswordPolicy.MinLength, RequireCharacterClasses: c.PasswordPolicy.RequireCharacterClasses,
+		}, u.Password); err != nil {
+			fail("user %q: %v", u.Email, err)
 		}
 	}
 	return errs

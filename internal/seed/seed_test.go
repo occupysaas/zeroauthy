@@ -2,6 +2,7 @@ package seed
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -149,6 +150,113 @@ func TestValidation(t *testing.T) {
 			_, err := Parse([]byte(tc.yaml))
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("err = %v, want it to contain %q", err, tc.want)
+			}
+		})
+	}
+}
+
+const sampleWithUsers = `
+tenants:
+  - name: acme
+    domains: [acme.test]
+    session_lifetime: 3600
+    idle_session_lifetime: 600
+    branding: {logo_url: "https://cdn.acme.test/logo.png", primary_color: "#1A73E8"}
+    clients:
+      - {client_id: spa, app_type: spa, id_token_lifetime: 1200, callbacks: ["https://app.acme.test/"]}
+    connections:
+      - name: Username-Password-Authentication
+        enabled_clients: [spa]
+        password_policy: {min_length: 10}
+    users:
+      - connection: Username-Password-Authentication
+        email: " Alice@Acme.TEST "
+        password: "alice password 1"
+        email_verified: true
+        name: Alice
+`
+
+func TestApplyConnectionsAndUsers(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(sampleWithUsers))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	if tn.SessionLifetime != 3600 || tn.IdleSessionLifetime != 600 || tn.Branding.PrimaryColor != "#1a73e8" || tn.Branding.LogoURL != "https://cdn.acme.test/logo.png" {
+		t.Errorf("tenant settings = %+v", tn)
+	}
+	c, _ := st.Clients().Get(ctx, tn.ID, "spa")
+	if c.IDTokenLifetime != 1200 {
+		t.Errorf("id_token_lifetime = %d", c.IDTokenLifetime)
+	}
+	conn, err := st.Connections().GetByName(ctx, tn.ID, "Username-Password-Authentication")
+	if err != nil || conn.Strategy != store.StrategyDatabase || conn.PasswordPolicy.MinLength != 10 || len(conn.EnabledClients) != 1 {
+		t.Fatalf("connection = %+v, %v", conn, err)
+	}
+	u, err := st.Users().FindByLogin(ctx, tn.ID, conn.Name, "alice@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !u.EmailVerified || u.Name != "Alice" || u.Nickname != "alice" || !strings.HasPrefix(u.UserID, "auth0|") {
+		t.Errorf("user = %+v", u)
+	}
+	if ok, _ := secrets.Verify(u.Identities[0].PasswordHash, "alice password 1"); !ok {
+		t.Error("seeded password does not verify")
+	}
+
+	// Idempotent: same user ID and hash on re-apply; a changed password is re-hashed.
+	if err := Apply(ctx, st, f, fixedNow); err != nil {
+		t.Fatal(err)
+	}
+	u2, _ := st.Users().FindByLogin(ctx, tn.ID, conn.Name, "alice@acme.test")
+	if u2.UserID != u.UserID || u2.Identities[0].PasswordHash != u.Identities[0].PasswordHash {
+		t.Fatal("re-apply changed the user")
+	}
+	f2, _ := Parse([]byte(strings.Replace(sampleWithUsers, "alice password 1", "alice password 2", 1)))
+	if err := Apply(ctx, st, f2, fixedNow); err != nil {
+		t.Fatal(err)
+	}
+	u3, _ := st.Users().FindByLogin(ctx, tn.ID, conn.Name, "alice@acme.test")
+	if ok, _ := secrets.Verify(u3.Identities[0].PasswordHash, "alice password 2"); !ok || u3.UserID != u.UserID {
+		t.Fatal("changed password not applied in place")
+	}
+}
+
+func TestValidateConnectionsAndUsers(t *testing.T) {
+	base := `tenants: [{name: a, clients: [{client_id: spa, app_type: spa}], connections: [%s], users: [%s]}]`
+	conn := `{name: DB, enabled_clients: [spa]}`
+	cases := map[string]struct{ conns, users, want string }{
+		"unknown strategy":   {`{name: DB, strategy: google-oauth2}`, ``, `strategy "google-oauth2"`},
+		"unknown client":     {`{name: DB, enabled_clients: [nope]}`, ``, `unknown client "nope"`},
+		"dup connection":     {conn + `, ` + conn, ``, `duplicate connection "DB"`},
+		"bad policy":         {`{name: DB, password_policy: {require_character_classes: 5}}`, ``, "require_character_classes"},
+		"user unknown conn":  {conn, `{connection: Nope, email: a@b.test, password: "long enough 1"}`, `unknown connection "Nope"`},
+		"user bad email":     {conn, `{connection: DB, email: nope, password: "long enough 1"}`, "valid email"},
+		"user weak password": {conn, `{connection: DB, email: a@b.test, password: short}`, "at least 8"},
+		"user dup email":     {conn, `{connection: DB, email: a@b.test, password: "long enough 1"}, {connection: DB, email: A@B.test, password: "long enough 2"}`, `duplicate user "a@b.test"`},
+		"username required":  {`{name: DB, requires_username: true}`, `{connection: DB, email: a@b.test, password: "long enough 1"}`, "username is required"},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(fmt.Sprintf(base, tc.conns, tc.users)))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, tc.want)
+			}
+		})
+	}
+	for name, branding := range map[string]string{
+		"http logo": `{logo_url: "http://x.test/l.png"}`,
+		"bad color": `{primary_color: "blue"}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(`tenants: [{name: a, branding: ` + branding + `}]`))
+			if err == nil || !strings.Contains(err.Error(), "branding") {
+				t.Fatalf("err = %v", err)
 			}
 		})
 	}

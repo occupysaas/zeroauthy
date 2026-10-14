@@ -16,13 +16,18 @@ type File struct {
 }
 
 type Tenant struct {
-	Name            string           `yaml:"name"`
-	FriendlyName    string           `yaml:"friendly_name"`
-	Domains         []string         `yaml:"domains"`
-	DefaultAudience string           `yaml:"default_audience"`
-	ResourceServers []ResourceServer `yaml:"resource_servers"`
-	Clients         []Client         `yaml:"clients"`
-	ClientGrants    []ClientGrant    `yaml:"client_grants"`
+	Name                string           `yaml:"name"`
+	FriendlyName        string           `yaml:"friendly_name"`
+	Domains             []string         `yaml:"domains"`
+	DefaultAudience     string           `yaml:"default_audience"`
+	ResourceServers     []ResourceServer `yaml:"resource_servers"`
+	Clients             []Client         `yaml:"clients"`
+	ClientGrants        []ClientGrant    `yaml:"client_grants"`
+	SessionLifetime     int              `yaml:"session_lifetime"`
+	IdleSessionLifetime int              `yaml:"idle_session_lifetime"`
+	Branding            Branding         `yaml:"branding"`
+	Connections         []Connection     `yaml:"connections"`
+	Users               []User           `yaml:"users"`
 }
 
 type ResourceServer struct {
@@ -51,6 +56,7 @@ type Client struct {
 	AllowedLogoutURLs       []string `yaml:"allowed_logout_urls"`
 	WebOrigins              []string `yaml:"web_origins"`
 	AllowedOrigins          []string `yaml:"allowed_origins"`
+	IDTokenLifetime         int      `yaml:"id_token_lifetime"`
 }
 
 type ClientGrant struct {
@@ -84,4 +90,36 @@ func Parse(data []byte) (*File, error) {
 		return nil, err
 	}
 	return &f, nil
+}
+
+type Branding struct {
+	LogoURL      string `yaml:"logo_url"`
+	PrimaryColor string `yaml:"primary_color"`
+}
+
+type Connection struct {
+	Name             string         `yaml:"name"`
+	Strategy         string         `yaml:"strategy"`
+	EnabledClients   []string       `yaml:"enabled_clients"`
+	DisableSignup    bool           `yaml:"disable_signup"`
+	RequiresUsername bool           `yaml:"requires_username"`
+	PasswordPolicy   PasswordPolicy `yaml:"password_policy"`
+}
+
+type PasswordPolicy struct {
+	MinLength               int `yaml:"min_length"`
+	RequireCharacterClasses int `yaml:"require_character_classes"`
+}
+
+type User struct {
+	Connection string `yaml:"connection"`
+	Email      string `yaml:"email"`
+	Username   string `yaml:"username"`
+	// Password is plaintext in the seed file and hashed when applied.
+	Password      string `yaml:"password"`
+	EmailVerified bool   `yaml:"email_verified"`
+	Name          string `yaml:"name"`
+	Nickname      string `yaml:"nickname"`
+	Picture       string `yaml:"picture"`
+	Blocked       bool   `yaml:"blocked"`
 }
