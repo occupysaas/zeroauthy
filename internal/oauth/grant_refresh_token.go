@@ -60,24 +60,24 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if aud := form.Get("audience"); aud != "" && aud != rt.Audience {
 		return nil, invalidRequest("audience does not match the refresh token")
 	}
+	rs, lifetime, oerr := h.audienceFor(ctx, tenantID, rt.Audience)
+	if oerr != nil {
+		return nil, oerr
+	}
+	// Requested scopes are filtered as issuance filters them, so scopes the
+	// API does not define are ignored; what remains may only narrow. If
+	// nothing remains, the token's scopes apply, as without a scope.
 	scopes := rt.Scopes
-	if requested := strings.Fields(form.Get("scope")); len(requested) > 0 {
-		scopes = nil
+	if requested := userScopes(strings.Fields(form.Get("scope")), rs, true); len(requested) > 0 {
 		for _, s := range requested {
 			if !slices.Contains(rt.Scopes, s) {
 				return nil, invalidScope(fmt.Sprintf("scope %q was not granted to this refresh token", s))
 			}
-			if !slices.Contains(scopes, s) {
-				scopes = append(scopes, s)
-			}
 		}
+		scopes = requested
 	}
 
 	user, oerr := h.activeUser(ctx, tenantID, rt.UserID)
-	if oerr != nil {
-		return nil, oerr
-	}
-	rs, lifetime, oerr := h.audienceFor(ctx, tenantID, rt.Audience)
 	if oerr != nil {
 		return nil, oerr
 	}

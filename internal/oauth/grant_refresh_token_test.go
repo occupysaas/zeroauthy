@@ -173,6 +173,35 @@ func TestRefreshNarrowsScope(t *testing.T) {
 	}
 }
 
+// A scope that issuance would have dropped (the API does not define it) is
+// ignored rather than treated as escalation, so an SDK that re-sends its
+// configured scope on every refresh keeps working.
+func TestRefreshIgnoresScopesIssuanceWouldDrop(t *testing.T) {
+	granted := []string{"openid", "offline_access", "read:things"}
+	cases := []struct{ name, scope, want string }{
+		{"only undefined", "undefined:scope", "openid offline_access read:things"},
+		{"undefined with granted", "openid undefined:scope read:things", "openid read:things"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			raw, _ := f.issueRefresh(t, "rt-spa", granted, acmeAPI)
+			code, body := f.refresh(t, refreshForm("rt-spa", raw, "scope", tc.scope))
+			if code != 200 || body["scope"] != tc.want {
+				t.Fatalf("got %d %v; want 200 with scope %q", code, body, tc.want)
+			}
+		})
+	}
+	t.Run("defined but not granted", func(t *testing.T) {
+		f := newFixture(t)
+		raw, _ := f.issueRefresh(t, "rt-spa", granted, acmeAPI)
+		code, body := f.refresh(t, refreshForm("rt-spa", raw, "scope", "undefined:scope write:things"))
+		if code != 400 || body["error"] != "invalid_scope" {
+			t.Fatalf("got %d %v; want 400 invalid_scope", code, body)
+		}
+	})
+}
+
 func TestRefreshByAnotherClientLeavesTokenUntouched(t *testing.T) {
 	f := newFixture(t)
 	raw, _ := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, "")
