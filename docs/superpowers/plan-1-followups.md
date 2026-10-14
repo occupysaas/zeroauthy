@@ -43,3 +43,8 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - CORS: negative-path tests and `Vary: Origin` are missing; OPTIONS/CORS are not in the OpenAPI contract.
 - Untested branches: fragment/form_post error delivery; `Resume` re-validation failure; public client without PKCE; deleted audience; default ID token lifetime; `auth_time` value; store-error throttle refund; signup error re-render CSP.
 - `tests/e2e/run-m4.sh` readiness loop is not fail-fast.
+
+### From the Plan 2 final fix-wave re-review
+
+- `authz.callbackAllowed` now does the exact match before `url.Parse`, so a registered callback that does not parse (e.g. `https://a.test/cb%zz`) passes validation and `writeResponse` (query mode) panics on a nil URL; the recoverer turns it into a 500. Validate callback syntax at seed load (and in the Management API) or parse on the exact-match path.
+- `response_mode=form_post` with a private-use (non-http(s)) callback renders a form whose CSP `form-action` is `'none'`, so it cannot submit. Reject `form_post` for non-http(s) callbacks or document it.
