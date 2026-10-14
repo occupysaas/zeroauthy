@@ -98,3 +98,10 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Sources:** Content Security Policy Level 3 (`form-action` and redirects); observed in Chromium running @auth0/auth0-spa-js against zeroauthy.
 - **Decision:** `/u/login` and `/u/signup` pages (including their error re-renders) send `form-action 'self' <origin of the validated redirect_uri>`. For a native app's private-use `redirect_uri` (scheme matching `^[a-z][a-z0-9+.-]*$`, such as `com.example.app:/oauth2redirect`), the page sends `form-action 'self' <scheme>:` so the final hop is not blocked. `http`, `https` and executable or content schemes (`javascript`, `data`, `vbscript`, `file`, `blob`, `about`, `filesystem`) never become a scheme source; any other `redirect_uri` adds nothing.
 - **Rationale:** The origin is taken from the already-validated, registered `redirect_uri` of the login transaction, so no attacker-controlled source is added.
+
+## D-0011: Purging expired records
+
+- **Context:** Login transactions, sessions, authorization codes and refresh tokens expire but were never removed. Unauthenticated `/authorize` requests create transactions, so storage grew without bound.
+- **Sources:** RFC 6749 §10.5 (codes are short-lived and single-use); OAuth 2.0 Security BCP (RFC 9700) §4.5 (code replay).
+- **Decision:** A sweeper runs every 10 minutes in `serve`. It deletes expired transactions, sessions and refresh tokens. Authorization codes are kept for 24 hours after they expire, so a replay within that time is still recognized and revokes the tokens issued from the code.
+- **Rationale:** It bounds storage. The code retention keeps replay detection meaningful beyond the 60-second code lifetime.
