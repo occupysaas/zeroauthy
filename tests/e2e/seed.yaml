@@ -7,6 +7,7 @@ tenants:
       - identifier: https://api.e2e.local
         name: E2E API
         token_lifetime: 3600
+        allow_offline_access: true
         scopes:
           - {value: "read:things", description: "Read things"}
     clients:
@@ -22,13 +23,21 @@ tenants:
         callbacks: ["https://localhost:3443/"]
         web_origins: ["https://localhost:3443"]
         allowed_origins: ["https://localhost:3443"]
+      - client_id: e2e-react
+        name: E2E React
+        app_type: spa
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["https://localhost:3443/react/"]
+        allowed_logout_urls: ["https://localhost:3443/react/"]
+        web_origins: ["https://localhost:3443"]
+        allowed_origins: ["https://localhost:3443"]
     client_grants:
       - client_id: e2e-m2m
         audience: https://api.e2e.local
         scopes: ["read:things"]
     connections:
       - name: Username-Password-Authentication
-        enabled_clients: [e2e-spa]
+        enabled_clients: [e2e-spa, e2e-react]
     users:
       - connection: Username-Password-Authentication
         email: alice@e2e.local

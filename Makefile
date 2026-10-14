@@ -17,4 +17,4 @@ check-sources:
 
 e2e:
 	./tests/e2e/run-m3.sh
-	./tests/e2e/run-m4.sh
+	./tests/e2e/run-browser.sh
