@@ -225,6 +225,7 @@ type AuthCode struct {
 	ExpiresAt           time.Time
 	CreatedAt           time.Time
 	UsedAt              *time.Time
+	ReplayedAt          *time.Time // first presentation after UsedAt; see AuthCodes.Consume
 }
 
 // RefreshToken is an issued refresh token. A token and the tokens issued

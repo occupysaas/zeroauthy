@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -274,5 +275,94 @@ func TestCodeReplayRevokesRefreshTokens(t *testing.T) {
 	rt, err := f.st.RefreshTokens().GetByTokenHash(context.Background(), f.tenantID(t, "acme"), secrets.HashToken(raw))
 	if err != nil || rt.RevokedAt == nil {
 		t.Fatalf("refresh token after code replay = %+v, %v; want revoked", rt, err)
+	}
+}
+
+// raceStore blocks the first Users().Get until release is closed, and
+// records the refresh tokens created through it.
+type raceStore struct {
+	store.Store
+	entered, release chan struct{}
+	once             sync.Once
+	mu               sync.Mutex
+	createdHashes    []string
+}
+
+func (s *raceStore) Users() store.Users { return raceUsers{s.Store.Users(), s} }
+
+func (s *raceStore) RefreshTokens() store.RefreshTokens {
+	return raceRefreshTokens{s.Store.RefreshTokens(), s}
+}
+
+type raceUsers struct {
+	store.Users
+	s *raceStore
+}
+
+func (u raceUsers) Get(ctx context.Context, tenantID, userID string) (*store.User, error) {
+	first := false
+	u.s.once.Do(func() { first = true })
+	if first {
+		close(u.s.entered)
+		<-u.s.release
+	}
+	return u.Users.Get(ctx, tenantID, userID)
+}
+
+type raceRefreshTokens struct {
+	store.RefreshTokens
+	s *raceStore
+}
+
+func (r raceRefreshTokens) Create(ctx context.Context, t *store.RefreshToken) error {
+	err := r.RefreshTokens.Create(ctx, t)
+	if err == nil {
+		r.s.mu.Lock()
+		r.s.createdHashes = append(r.s.createdHashes, t.TokenHash)
+		r.s.mu.Unlock()
+	}
+	return err
+}
+
+// A replay that lands after the first exchange consumed the code but
+// before it stored its refresh token must still leave no live token.
+func TestCodeReplayDuringFirstExchange(t *testing.T) {
+	f := newFixture(t)
+	rs := &raceStore{Store: f.st, entered: make(chan struct{}), release: make(chan struct{})}
+	f.h.Store = rs
+	code := f.issueCode(t, "rt-spa", "https://rt.acme.test/cb", "https://api.acme.test",
+		[]string{"openid", "offline_access"}, pkceChallenge)
+	form := codeForm(code, "rt-spa", "https://rt.acme.test/cb", pkceVerifier)
+
+	type result struct {
+		status int
+		body   map[string]any
+	}
+	done := make(chan result, 1)
+	go func() {
+		rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: form})
+		done <- result{rec.Code, body}
+	}()
+	<-rs.entered // the first exchange has consumed the code and is loading the user
+
+	rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: form})
+	if rec.Code != 400 || body["error"] != "invalid_grant" {
+		t.Fatalf("replay: %d %v", rec.Code, body)
+	}
+	close(rs.release)
+	first := <-done
+	if first.status != 400 || first.body["error"] != "invalid_grant" || first.body["refresh_token"] != nil || first.body["access_token"] != nil {
+		t.Fatalf("first exchange after replay: %d %v; want 400 invalid_grant without tokens", first.status, first.body)
+	}
+
+	rs.mu.Lock()
+	hashes := slices.Clone(rs.createdHashes)
+	rs.mu.Unlock()
+	if len(hashes) != 1 {
+		t.Fatalf("refresh tokens created = %d; want 1", len(hashes))
+	}
+	rt, err := f.st.RefreshTokens().GetByTokenHash(context.Background(), f.tenantID(t, "acme"), hashes[0])
+	if err != nil || rt.RevokedAt == nil || rt.FamilyID != familyForCode(secrets.HashToken(code)) {
+		t.Fatalf("refresh token of the replayed code = %+v, %v; want revoked", rt, err)
 	}
 }

@@ -89,6 +89,10 @@ func cloneAuthCode(c *store.AuthCode) *store.AuthCode {
 		t := *c.UsedAt
 		out.UsedAt = &t
 	}
+	if c.ReplayedAt != nil {
+		t := *c.ReplayedAt
+		out.ReplayedAt = &t
+	}
 	return &out
 }
 

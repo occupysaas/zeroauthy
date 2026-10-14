@@ -89,6 +89,21 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
 			return nil, serverError()
 		}
+		// A replay that ran after Consume but before Create found no token
+		// to revoke. Replays record ReplayedAt before revoking, so either it
+		// is visible here or the replay's RevokeFamily saw the stored token.
+		latest, err := h.Store.AuthCodes().Get(ctx, tenantID, ac.CodeHash)
+		if err != nil {
+			h.log().ErrorContext(ctx, "reload authorization code", "tenant", tenantID, "err", err)
+			return nil, serverError()
+		}
+		if latest.ReplayedAt != nil {
+			h.log().WarnContext(ctx, "authorization code replayed during exchange; revoking its refresh tokens", "tenant", tenantID, "client_id", ac.ClientID, "user_id", ac.UserID)
+			if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, familyForCode(ac.CodeHash), now); err != nil {
+				h.log().ErrorContext(ctx, "revoke refresh tokens of a replayed code", "tenant", tenantID, "err", err)
+			}
+			return nil, invalidGrant("invalid authorization code")
+		}
 		resp.RefreshToken = &raw
 	}
 	return resp, nil

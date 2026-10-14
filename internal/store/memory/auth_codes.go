@@ -28,10 +28,24 @@ func (r authCodes) Consume(_ context.Context, tenantID, codeHash string, at time
 		return nil, store.ErrNotFound
 	}
 	if c.UsedAt != nil {
+		if c.ReplayedAt == nil {
+			t := at
+			c.ReplayedAt = &t
+		}
 		return cloneAuthCode(c), store.ErrAlreadyUsed
 	}
 	t := at
 	c.UsedAt = &t
+	return cloneAuthCode(c), nil
+}
+
+func (r authCodes) Get(_ context.Context, tenantID, codeHash string) (*store.AuthCode, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	c, ok := r.s.authCodes[key{tenantID, codeHash}]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
 	return cloneAuthCode(c), nil
 }
 

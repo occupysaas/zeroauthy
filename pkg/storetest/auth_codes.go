@@ -38,6 +38,60 @@ func testAuthCodes(t *testing.T, newStore Factory) {
 		mustEqual(t, again.ClientID, "spa")
 	})
 
+	t.Run("ReplayRecorded", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode("ten_a", "h1")))
+		first, err := s.AuthCodes().Consume(ctx, "ten_a", "h1", ts(10*time.Second))
+		mustNoErr(t, err)
+		mustEqual(t, first.ReplayedAt == nil, true)
+
+		replay, err := s.AuthCodes().Consume(ctx, "ten_a", "h1", ts(20*time.Second))
+		mustErrIs(t, err, store.ErrAlreadyUsed)
+		mustEqual(t, replay.ReplayedAt != nil && replay.ReplayedAt.Equal(ts(20*time.Second)), true)
+
+		// A later replay keeps the first replay time.
+		again, err := s.AuthCodes().Consume(ctx, "ten_a", "h1", ts(30*time.Second))
+		mustErrIs(t, err, store.ErrAlreadyUsed)
+		mustEqual(t, again.ReplayedAt != nil && again.ReplayedAt.Equal(ts(20*time.Second)), true)
+		mustEqual(t, again.UsedAt.Equal(ts(10*time.Second)), true)
+
+		got, err := s.AuthCodes().Get(ctx, "ten_a", "h1")
+		mustNoErr(t, err)
+		mustEqual(t, got.ReplayedAt != nil && got.ReplayedAt.Equal(ts(20*time.Second)), true)
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode("ten_a", "h1")))
+		got, err := s.AuthCodes().Get(ctx, "ten_a", "h1")
+		mustNoErr(t, err)
+		mustEqual(t, got, newAuthCode("ten_a", "h1"))
+		_, err = s.AuthCodes().Get(ctx, "ten_a", "nope")
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.AuthCodes().Get(ctx, "ten_b", "h1")
+		mustErrIs(t, err, store.ErrNotFound)
+	})
+
+	t.Run("GetReturnsCopies", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode("ten_a", "h1")))
+		_, err := s.AuthCodes().Consume(ctx, "ten_a", "h1", ts(10*time.Second))
+		mustNoErr(t, err)
+		_, err = s.AuthCodes().Consume(ctx, "ten_a", "h1", ts(20*time.Second))
+		mustErrIs(t, err, store.ErrAlreadyUsed)
+		got, err := s.AuthCodes().Get(ctx, "ten_a", "h1")
+		mustNoErr(t, err)
+		mustEqual(t, got.UsedAt != nil && got.ReplayedAt != nil, true)
+		got.Scopes[0] = "mutated"
+		*got.UsedAt = ts(time.Hour)
+		*got.ReplayedAt = ts(time.Hour)
+		again, err := s.AuthCodes().Get(ctx, "ten_a", "h1")
+		mustNoErr(t, err)
+		mustEqual(t, again.Scopes, []string{"openid", "email"})
+		mustEqual(t, again.UsedAt.Equal(ts(10*time.Second)), true)
+		mustEqual(t, again.ReplayedAt.Equal(ts(20*time.Second)), true)
+	})
+
 	t.Run("UnknownAndOtherTenant", func(t *testing.T) {
 		s := open(t, newStore)
 		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode("ten_a", "h1")))
