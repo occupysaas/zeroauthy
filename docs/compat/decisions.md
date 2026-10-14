@@ -199,7 +199,12 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Password policy alias:** if the tenant sets Auth0's `signup.signup.password-policy-not-conformant` for the language, that text replaces all three password policy messages (too short, too long, character classes). It has no built-in text and is not in `en.json`; the catalog test exempts it by name.
   - **Custom-text language keys:** matched against `enabled_locales` case-insensitively (`fr-ca` applies to `fr-CA`); two keys under one prompt that differ only by case are rejected.
   - **`Accept-Language` parsing is tolerant:** entries are ordered by q-value (header order breaks ties). Malformed entries and entries whose tag does not parse are skipped, not fatal to the header. `*`, empty entries, `q=0` and an invalid or out-of-range q-value (outside 0 to 1) are ignored. Only the first 1024 entries are considered.
-  - **English wording:** existing English messages keep their earlier wording; catalog keys replaced hard-coded strings without changing the English text.
+  - **English wording:** these are the intended visible English changes:
+    - the login and signup subtitle is now a sentence ("Sign in to ${companyName} to continue to ${clientName}."). When the application has no name, it reads "Sign in to ${companyName} to continue." (and "Sign up for …" on signup), so a client ID is never shown to end users;
+    - the logout confirmation tab title is "Log out";
+    - the `/authorize` error page shows a generic localized message, with the technical detail below it.
+
+    Every other existing string is unchanged.
   - **Variables:** `${companyName}` and `${clientName}` may be used in an override on any key, plus the variables the English string for that key uses. Any other variable is rejected. Unset variables render empty.
   - **Error pages after a verified login transaction:** keep that transaction's language.
   - **`/oidc/logout`:** now honours `ui_locales`, which replaces the D-0015 note.

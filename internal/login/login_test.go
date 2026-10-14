@@ -556,3 +556,37 @@ func TestPolicyTextAlias(t *testing.T) {
 		t.Error("the alias must not replace the username message")
 	}
 }
+
+// Without an application name, the subtitle names only the tenant; the
+// client ID is never shown to end users.
+func TestSubtitleWithAndWithoutClientName(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	rec, state, _ := b.begin(t)
+	body := rec.Body.String()
+	if !strings.Contains(body, "Sign in to acme to continue.") || strings.Contains(body, "continue to spa") {
+		t.Fatalf("login subtitle without a client name:\n%s", body)
+	}
+	rec = b.do(t, "GET", "/u/signup?state="+url.QueryEscape(state), nil)
+	if body := rec.Body.String(); !strings.Contains(body, "Sign up for acme to continue.") || strings.Contains(body, "continue to spa") {
+		t.Fatalf("signup subtitle without a client name:\n%s", body)
+	}
+
+	tn := mustTenant(t, e, "acme")
+	c, err := e.st.Clients().Get(context.Background(), tn.ID, "spa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Name = "Shop"
+	if err := e.st.Clients().Update(context.Background(), c); err != nil {
+		t.Fatal(err)
+	}
+	rec, state, _ = b.begin(t)
+	if !strings.Contains(rec.Body.String(), "Sign in to acme to continue to Shop.") {
+		t.Fatalf("login subtitle with a client name:\n%s", rec.Body)
+	}
+	rec = b.do(t, "GET", "/u/signup?state="+url.QueryEscape(state), nil)
+	if !strings.Contains(rec.Body.String(), "Sign up for acme to continue to Shop.") {
+		t.Fatalf("signup subtitle with a client name:\n%s", rec.Body)
+	}
+}

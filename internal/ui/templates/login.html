@@ -1,5 +1,5 @@
 {{define "title"}}{{t .Tenant.L "login.login.title"}}{{end}}
-{{define "description"}}{{t .Tenant.L "login.login.description"}}{{end}}
+{{define "description"}}{{if .Tenant.HasClientName}}{{t .Tenant.L "login.login.description"}}{{else}}{{t .Tenant.L "zeroauthy.login.description-no-client"}}{{end}}{{end}}
 {{define "logoalt"}}{{t .Tenant.L "login.login.logoAltText"}}{{end}}
 {{define "content"}}
 {{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}

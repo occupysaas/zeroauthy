@@ -52,6 +52,10 @@ type Tenant struct {
 	LogoURL      string
 	PrimaryColor string
 	L            *i18n.Localizer // nil renders English
+	// HasClientName selects the login and signup subtitle that names the
+	// application; without it the subtitle names only the tenant, so a
+	// client ID is never shown to end users.
+	HasClientName bool
 }
 
 // TenantView builds the page branding and language for a tenant.

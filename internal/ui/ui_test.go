@@ -301,3 +301,28 @@ func TestLogoAltTextUsesScreenKeys(t *testing.T) {
 		t.Errorf("default logo alt:\n%s", rec.Body)
 	}
 }
+
+func TestSubtitleDependsOnClientName(t *testing.T) {
+	tn := &store.Tenant{Name: "acme"}
+	named := TenantView(tn, i18n.New(tn, "en").WithVar("clientName", "Shop"))
+	named.HasClientName = true
+	unnamed := TenantView(tn, i18n.New(tn, "en").WithVar("clientName", "spa-client-id"))
+	for _, tc := range []struct {
+		view       Tenant
+		login, sig string
+	}{
+		{named, "Sign in to acme to continue to Shop.", "Sign up for acme to continue to Shop."},
+		{unnamed, "Sign in to acme to continue.", "Sign up for acme to continue."},
+	} {
+		rec := httptest.NewRecorder()
+		RenderLogin(rec, 200, tc.view, LoginData{State: "st", CSRF: "cs"})
+		if body := rec.Body.String(); !strings.Contains(body, tc.login) || strings.Contains(body, "spa-client-id") {
+			t.Errorf("login subtitle, want %q:\n%s", tc.login, body)
+		}
+		rec = httptest.NewRecorder()
+		RenderSignup(rec, 200, tc.view, SignupData{State: "st", CSRF: "cs"})
+		if body := rec.Body.String(); !strings.Contains(body, tc.sig) || strings.Contains(body, "spa-client-id") {
+			t.Errorf("signup subtitle, want %q:\n%s", tc.sig, body)
+		}
+	}
+}

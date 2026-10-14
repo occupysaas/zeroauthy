@@ -43,7 +43,11 @@
     "common": {
       "too-many-attempts": "Too many attempts. Wait a few minutes and try again."
     },
+    "login": {
+      "description-no-client": "Sign in to ${companyName} to continue."
+    },
     "signup": {
+      "description-no-client": "Sign up for ${companyName} to continue.",
       "password-too-long": "Password is too long.",
       "password-too-short": "Password must be at least ${min} characters.",
       "password-character-classes": "Password must contain at least ${count} of: lowercase letters, uppercase letters, digits, symbols."

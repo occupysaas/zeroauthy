@@ -79,12 +79,13 @@ func (h *Handlers) load(r *http.Request, state string) (*flow, error) {
 	if !h.now().Before(txn.ExpiresAt) {
 		return nil, errTxn
 	}
-	clientName := txn.ClientID
+	clientName, named := txn.ClientID, false
 	if c, err := h.Store.Clients().Get(ctx, res.Tenant.ID, txn.ClientID); err == nil && c.Name != "" {
-		clientName = c.Name
+		clientName, named = c.Name, true
 	}
 	l := i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]).WithVar("clientName", clientName)
 	f := &flow{res: res, view: ui.TenantView(res.Tenant, l), txn: txn}
+	f.view.HasClientName = named
 	// The flow is returned with the error so the error page keeps the
 	// transaction's language; conn is nil in that case.
 	f.conn, err = h.connection(ctx, res.Tenant.ID, txn)
