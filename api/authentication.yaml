@@ -121,6 +121,7 @@ paths:
         - {name: connection, in: query, schema: {type: string}, description: Name of the connection to log in with.}
         - {name: login_hint, in: query, schema: {type: string}, description: Prefills the login identifier.}
         - {name: screen_hint, in: query, schema: {type: string}, description: "`signup` opens the signup page."}
+        - {name: ui_locales, in: query, schema: {type: string}, description: "Space-separated preferred languages; the first entry selects the hosted page language if the tenant enables it."}
         - {name: organization, in: query, schema: {type: string}, description: Not supported yet; rejected.}
         - {name: invitation, in: query, schema: {type: string}, description: Not supported yet; rejected.}
       responses:
@@ -132,7 +133,7 @@ paths:
             text/html:
               schema: {type: string}
         "400":
-          description: Error page for an unknown client or unregistered redirect URI, or a JSON error for malformed parameters (for example a repeated `client_id`).
+          description: Error page for an unknown client or unregistered redirect URI, or a JSON error for malformed parameters (for example a repeated `client_id`). The error page shows a localized message, with the OAuth `error_description` as English detail.
           content:
             text/html:
               schema: {type: string}

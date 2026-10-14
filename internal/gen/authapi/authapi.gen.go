@@ -196,6 +196,9 @@ type AuthorizeParams struct {
 	// ScreenHint `signup` opens the signup page.
 	ScreenHint *string `form:"screen_hint,omitempty" json:"screen_hint,omitempty"`
 
+	// UiLocales Space-separated preferred languages; the first entry selects the hosted page language if the tenant enables it.
+	UiLocales *string `form:"ui_locales,omitempty" json:"ui_locales,omitempty"`
+
 	// Organization Not supported yet; rejected.
 	Organization *string `form:"organization,omitempty" json:"organization,omitempty"`
 
@@ -742,6 +745,19 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "screen_hint"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "screen_hint", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "ui_locales" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "ui_locales", r.URL.Query(), &params.UiLocales, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "ui_locales"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ui_locales", Err: err})
 		}
 		return
 	}

@@ -12,8 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zeroauthy/zeroauthy/api"
+	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -153,4 +155,20 @@ func TestAuthorizeThroughServer(t *testing.T) {
 	if rec.Code != 400 || !strings.HasPrefix(rec.Header().Get("Content-Type"), "application/json") || !strings.Contains(rec.Body.String(), `"invalid_request"`) {
 		t.Errorf("repeated client_id = %d %v %s", rec.Code, rec.Header(), rec.Body)
 	}
+}
+
+// Query parameters the handlers read must appear in the contract, so the
+// generated wrapper binds and documents them.
+func TestContractDocumentsUILocales(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(api.AuthenticationYAML)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/authorize", "/oidc/logout"} {
+		op := doc.Paths.Find(path).Get
+		if op == nil || op.Parameters.GetByInAndName("query", "ui_locales") == nil {
+			t.Errorf("GET %s does not document ui_locales", path)
+		}
+	}
+	_ = authapi.AuthorizeParams{UiLocales: new(string)} // the generated wrapper binds it
 }
