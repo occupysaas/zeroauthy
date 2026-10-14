@@ -1,5 +1,6 @@
-{{define "title"}}Something went wrong{{end}}
+{{define "title"}}{{t .Tenant.L "zeroauthy.error.title"}}{{end}}
 {{define "content"}}
-<p class="alert" role="alert">{{.Data}}</p>
-<p class="alt">Return to the application and try again.</p>
+<p class="alert" role="alert">{{.Data.Message}}</p>
+{{if .Data.Detail}}<p class="alt"><small>{{.Data.Detail}}</small></p>{{end}}
+<p class="alt">{{t .Tenant.L "zeroauthy.error.description"}}</p>
 {{end}}

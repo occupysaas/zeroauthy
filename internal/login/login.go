@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -22,18 +23,6 @@ import (
 )
 
 const maxFormBytes = 16 << 10
-
-// User-facing messages (original wording).
-const (
-	msgBadCredentials = "Incorrect email/username or password."
-	msgBlocked        = "This account has been blocked. Contact the application's support."
-	msgTooMany        = "Too many attempts. Wait a few minutes and try again."
-	msgExpired        = "Your login session has expired or is invalid. Return to the application and start again."
-	msgNoConnection   = "No login method is enabled for this application."
-	msgSignupDisabled = "Sign-up is not available for this application."
-	msgUserExists     = "An account with this email or username already exists."
-	msgServer         = "Something went wrong on our side. Please try again."
-)
 
 var errTxn = errors.New("login: invalid or expired transaction")
 
@@ -94,7 +83,12 @@ func (h *Handlers) load(r *http.Request, state string) (*flow, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &flow{res: res, view: ui.TenantView(res.Tenant), txn: txn, conn: conn}, nil
+	clientName := txn.ClientID
+	if c, err := h.Store.Clients().Get(ctx, res.Tenant.ID, txn.ClientID); err == nil && c.Name != "" {
+		clientName = c.Name
+	}
+	l := i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]).WithVar("clientName", clientName)
+	return &flow{res: res, view: ui.TenantView(res.Tenant, l), txn: txn, conn: conn}, nil
 }
 
 var errNoConnection = errors.New("login: no enabled connection")
@@ -121,16 +115,16 @@ func (h *Handlers) connection(ctx context.Context, tenantID string, txn *store.A
 func (h *Handlers) fail(w http.ResponseWriter, r *http.Request, err error) {
 	view := ui.Tenant{}
 	if res, ok := tenant.FromContext(r.Context()); ok {
-		view = ui.TenantView(res.Tenant)
+		view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	}
 	switch {
 	case errors.Is(err, errTxn):
-		ui.RenderError(w, http.StatusBadRequest, view, msgExpired)
+		ui.RenderError(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrSessionExpired))
 	case errors.Is(err, errNoConnection):
-		ui.RenderError(w, http.StatusBadRequest, view, msgNoConnection)
+		ui.RenderError(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrNoConnection))
 	default:
 		h.log().ErrorContext(r.Context(), "login page", "err", err)
-		ui.RenderError(w, http.StatusInternalServerError, view, msgServer)
+		ui.RenderError(w, http.StatusInternalServerError, view, view.L.T(i18n.KeyErrServer))
 	}
 }
 
@@ -186,7 +180,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	// Attempt counts the try up front; it is undone or cleared below once
 	// the password turns out to be correct.
 	if !h.IPThrottle.Attempt(ipKey) || !h.UserThrottle.Attempt(userKey) {
-		data.Error = msgTooMany
+		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
 		ui.RenderLogin(w, http.StatusTooManyRequests, f.view, data)
 		return
 	}
@@ -195,13 +189,13 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		h.log().InfoContext(ctx, "login failed", "tenant", f.res.Tenant.ID, "connection", f.conn.Name)
-		data.Error = msgBadCredentials
+		data.Error = f.view.L.T(i18n.KeyWrongCredentials)
 		ui.RenderLogin(w, http.StatusUnauthorized, f.view, data)
 		return
 	case errors.Is(err, identity.ErrUserBlocked):
 		h.UserThrottle.Success(userKey)
 		h.IPThrottle.Refund(ipKey)
-		data.Error = msgBlocked
+		data.Error = f.view.L.T(i18n.KeyUserBlocked)
 		ui.RenderLogin(w, http.StatusForbidden, f.view, data)
 		return
 	case err != nil:
@@ -222,7 +216,7 @@ func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if f.conn.DisableSignup {
-		ui.RenderError(w, http.StatusForbidden, f.view, msgSignupDisabled)
+		ui.RenderError(w, http.StatusForbidden, f.view, f.view.L.T(i18n.KeyErrSignupDisabled))
 		return
 	}
 	ui.RenderSignup(w, http.StatusOK, f.view, ui.SignupData{
@@ -246,7 +240,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	// Every signup hashes a password and stores a user, so each attempt
 	// counts against the IP limit and none is refunded.
 	if !h.IPThrottle.Attempt("ip|" + f.res.Tenant.ID + "|" + clientIP(r, h.TrustProxyHeaders)) {
-		data.Error = msgTooMany
+		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
 		ui.RenderSignup(w, http.StatusTooManyRequests, f.view, data)
 		return
 	}
@@ -254,15 +248,19 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	var pe *identity.PolicyError
 	switch {
 	case errors.As(err, &pe):
-		data.Error = capitalize(pe.Reason) + "."
+		if pe.Key != "" {
+			data.Error = f.view.L.T(pe.Key, pe.Vars...)
+		} else {
+			data.Error = capitalize(pe.Reason) + "."
+		}
 		ui.RenderSignup(w, http.StatusBadRequest, f.view, data)
 		return
 	case errors.Is(err, identity.ErrUserExists):
-		data.Error = msgUserExists
+		data.Error = f.view.L.T(i18n.KeyEmailInUse)
 		ui.RenderSignup(w, http.StatusBadRequest, f.view, data)
 		return
 	case errors.Is(err, identity.ErrSignupDisabled):
-		ui.RenderError(w, http.StatusForbidden, f.view, msgSignupDisabled)
+		ui.RenderError(w, http.StatusForbidden, f.view, f.view.L.T(i18n.KeyErrSignupDisabled))
 		return
 	case err != nil:
 		h.fail(w, r, err)

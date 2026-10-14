@@ -1,14 +1,15 @@
-{{define "title"}}Sign in{{end}}
+{{define "title"}}{{t .Tenant.L "login.login.title"}}{{end}}
+{{define "description"}}{{t .Tenant.L "login.login.description"}}{{end}}
 {{define "content"}}
 {{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
 <form method="post" action="/u/login" novalidate>
 <input type="hidden" name="state" value="{{.Data.State}}">
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">
-<label for="username">Email or username</label>
+<label for="username">{{t .Tenant.L "login.login.usernamePlaceholder"}}</label>
 <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" value="{{.Data.Login}}" required autofocus>
-<label for="password">Password</label>
+<label for="password">{{t .Tenant.L "login.login.passwordPlaceholder"}}</label>
 <input id="password" name="password" type="password" autocomplete="current-password" required>
-<button type="submit">Continue</button>
+<button type="submit">{{t .Tenant.L "login.login.buttonText"}}</button>
 </form>
-{{if .Data.SignupURL}}<p class="alt">New here? <a href="{{.Data.SignupURL}}">Create an account</a></p>{{end}}
+{{if .Data.SignupURL}}<p class="alt">{{t .Tenant.L "login.login.signupActionText"}} <a href="{{.Data.SignupURL}}">{{t .Tenant.L "login.login.signupActionLinkText"}}</a></p>{{end}}
 {{end}}

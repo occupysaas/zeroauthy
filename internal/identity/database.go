@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -19,7 +20,7 @@ var usernamePattern = regexp.MustCompile(`^[a-z0-9_.+-]{1,64}$`)
 // '@', so a login that contains one can only be an email.
 func CheckUsername(username string) error {
 	if !usernamePattern.MatchString(username) {
-		return &PolicyError{Reason: "username must be 1-64 characters: letters, digits, and _ . + -"}
+		return &PolicyError{Reason: "username must be 1-64 characters: letters, digits, and _ . + -", Key: i18n.KeyInvalidUsername}
 	}
 	return nil
 }

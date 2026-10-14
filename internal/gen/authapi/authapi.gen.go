@@ -220,7 +220,7 @@ type OidcLogoutParams struct {
 	// State Returned unchanged on the redirect.
 	State *string `form:"state,omitempty" json:"state,omitempty"`
 
-	// UiLocales Accepted and ignored.
+	// UiLocales Language for the confirmation and logged-out pages (first entry only).
 	UiLocales *string `form:"ui_locales,omitempty" json:"ui_locales,omitempty"`
 }
 

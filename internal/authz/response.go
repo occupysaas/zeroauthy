@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
 )
 
@@ -14,7 +16,11 @@ import (
 func writeResponse(w http.ResponseWriter, r *http.Request, req Request, params url.Values) {
 	switch req.ResponseMode {
 	case "form_post":
-		ui.RenderFormPost(w, req.RedirectURI, params)
+		l := i18n.Default()
+		if res, ok := tenant.FromContext(r.Context()); ok {
+			l = i18n.ForRequest(res.Tenant, r, req.UILocales)
+		}
+		ui.RenderFormPost(w, l, req.RedirectURI, params)
 	case "web_message":
 		resp := map[string]string{}
 		for k := range params {

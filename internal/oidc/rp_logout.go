@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -38,19 +39,20 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	view := ui.TenantView(res.Tenant)
-	fail := func(status int, msg string) { ui.RenderError(w, status, view, msg) }
 	if r.Body != nil {
 		r.Body = http.MaxBytesReader(w, r.Body, maxLogoutFormBytes)
 	}
 	if err := r.ParseForm(); err != nil {
-		fail(http.StatusBadRequest, msgLogoutInvalid)
+		view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
+		ui.RenderError(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrLogoutInvalid))
 		return
 	}
 	p := r.Form
+	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, p.Get("ui_locales")))
+	fail := func(status int, key string) { ui.RenderError(w, status, view, view.L.T(key)) }
 	confirmed := r.Method == http.MethodPost && p.Get("confirm") == "yes"
 	if confirmed && !confirmationValid(r, p.Get("csrf")) {
-		fail(http.StatusBadRequest, msgLogoutInvalid)
+		fail(http.StatusBadRequest, i18n.KeyErrLogoutInvalid)
 		return
 	}
 
@@ -59,18 +61,18 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 		aud, sid, ok, err := h.idTokenHint(ctx, res, raw)
 		if err != nil {
 			h.log().ErrorContext(ctx, "verify id_token_hint", "tenant", res.Tenant.ID, "err", err)
-			fail(http.StatusInternalServerError, msgLogoutServer)
+			fail(http.StatusInternalServerError, i18n.KeyErrServer)
 			return
 		}
 		if !ok || (clientID != "" && clientID != aud) {
-			fail(http.StatusBadRequest, msgLogoutInvalid)
+			fail(http.StatusBadRequest, i18n.KeyErrLogoutInvalid)
 			return
 		}
 		clientID, hintSID = aud, sid
 	}
 	logoutHint := p.Get("logout_hint")
 	if hintSID != "" && logoutHint != "" && hintSID != logoutHint {
-		fail(http.StatusBadRequest, msgLogoutInvalid)
+		fail(http.StatusBadRequest, i18n.KeyErrLogoutInvalid)
 		return
 	}
 
@@ -78,26 +80,26 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 	if clientID != "" {
 		c, err := h.Store.Clients().Get(ctx, res.Tenant.ID, clientID)
 		if errors.Is(err, store.ErrNotFound) {
-			fail(http.StatusBadRequest, msgLogoutUnknownClient)
+			fail(http.StatusBadRequest, i18n.KeyErrLogoutUnknownClient)
 			return
 		}
 		if err != nil {
 			h.log().ErrorContext(ctx, "load client", "tenant", res.Tenant.ID, "err", err)
-			fail(http.StatusInternalServerError, msgLogoutServer)
+			fail(http.StatusInternalServerError, i18n.KeyErrServer)
 			return
 		}
 		allowed = c.AllowedLogoutURLs
 	}
 	target := p.Get("post_logout_redirect_uri")
 	if target != "" && !authz.AllowedURL(allowed, target) {
-		fail(http.StatusBadRequest, msgLogoutURL)
+		fail(http.StatusBadRequest, i18n.KeyErrLogoutURL)
 		return
 	}
 
 	sess, err := h.Sessions.Lookup(ctx, r, res.Tenant)
 	if err != nil {
 		h.log().ErrorContext(ctx, "load session", "tenant", res.Tenant.ID, "err", err)
-		fail(http.StatusInternalServerError, msgLogoutServer)
+		fail(http.StatusInternalServerError, i18n.KeyErrServer)
 		return
 	}
 	hinted := sess != nil && ((hintSID != "" && hintSID == sess.ID) || (logoutHint != "" && logoutHint == sess.ID))

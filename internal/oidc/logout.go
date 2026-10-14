@@ -7,17 +7,10 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
-)
-
-// User-facing messages (original wording).
-const (
-	msgLogoutUnknownClient = "The application that asked to log you out is not registered. You are still logged in."
-	msgLogoutURL           = "The address to return to after logout is not allowed for this application. You are still logged in."
-	msgLogoutInvalid       = "The logout request was not valid. You are still logged in."
-	msgLogoutServer        = "Something went wrong on our side. Please try again."
 )
 
 // Logout implements GET /v2/logout (D-0014). The request is validated
@@ -29,19 +22,19 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	view := ui.TenantView(res.Tenant)
+	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	q := r.URL.Query()
 	returnTo := q.Get("returnTo")
 	allowed := res.Tenant.AllowedLogoutURLs
 	if id := q.Get("client_id"); id != "" {
 		c, err := h.Store.Clients().Get(ctx, res.Tenant.ID, id)
 		if errors.Is(err, store.ErrNotFound) {
-			ui.RenderError(w, http.StatusBadRequest, view, msgLogoutUnknownClient)
+			ui.RenderError(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrLogoutUnknownClient))
 			return
 		}
 		if err != nil {
 			h.log().ErrorContext(ctx, "load client", "tenant", res.Tenant.ID, "err", err)
-			ui.RenderError(w, http.StatusInternalServerError, view, msgLogoutServer)
+			ui.RenderError(w, http.StatusInternalServerError, view, view.L.T(i18n.KeyErrServer))
 			return
 		}
 		allowed = c.AllowedLogoutURLs
@@ -50,7 +43,7 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if returnTo != "" && !returnToAllowed(allowed, returnTo) {
-		ui.RenderError(w, http.StatusBadRequest, view, msgLogoutURL)
+		ui.RenderError(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrLogoutURL))
 		return
 	}
 	if !h.endSession(w, r, res, view) {
@@ -111,7 +104,7 @@ func (h *Handlers) endSession(w http.ResponseWriter, r *http.Request, res tenant
 	s, err := h.Sessions.End(ctx, w, r, res.Tenant)
 	if err != nil {
 		h.log().ErrorContext(ctx, "end session", "tenant", res.Tenant.ID, "err", err)
-		ui.RenderError(w, http.StatusInternalServerError, view, msgLogoutServer)
+		ui.RenderError(w, http.StatusInternalServerError, view, view.L.T(i18n.KeyErrServer))
 		return false
 	}
 	if s != nil {

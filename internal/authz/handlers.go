@@ -10,6 +10,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -54,12 +55,12 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	view := ui.TenantView(res.Tenant)
+	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, r.URL.Query().Get("ui_locales")))
 	req := ParseRequest(r.URL.Query())
 	client, verr, redirectable := validate(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {
-			ui.RenderError(w, http.StatusBadRequest, view, verr.Description)
+			ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), verr.Description)
 			return
 		}
 		writeResponse(w, r, req, errorParams(verr, req.State))
@@ -179,7 +180,8 @@ func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Res
 	if verr != nil {
 		// The application changed while the user was logging in.
 		if !redirectable {
-			ui.RenderError(w, http.StatusBadRequest, ui.TenantView(res.Tenant), verr.Description)
+			view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]))
+			ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), verr.Description)
 			return
 		}
 		writeResponse(w, r, req, errorParams(verr, req.State))

@@ -382,7 +382,7 @@ paths:
         - {name: client_id, in: query, schema: {type: string}, description: The application asking for the logout.}
         - {name: post_logout_redirect_uri, in: query, schema: {type: string}, description: Where to send the browser after logout.}
         - {name: state, in: query, schema: {type: string}, description: Returned unchanged on the redirect.}
-        - {name: ui_locales, in: query, schema: {type: string}, description: Accepted and ignored.}
+        - {name: ui_locales, in: query, schema: {type: string}, description: Language for the confirmation and logged-out pages (first entry only).}
       responses:
         "302":
           description: Logged out; redirect to `post_logout_redirect_uri`.

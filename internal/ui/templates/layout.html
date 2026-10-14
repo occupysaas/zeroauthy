@@ -1,10 +1,10 @@
 {{define "layout"}}<!doctype html>
-<html lang="en">
+<html lang="{{.Tenant.L.Lang}}" dir="{{.Tenant.L.Dir}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>{{template "title" .}} · {{.Tenant.Name}}</title>
+<title>{{block "doctitle" .}}{{template "title" .}}{{end}} · {{.Tenant.Name}}</title>
 <style nonce="{{.Nonce}}">
 :root { --accent: {{if .Tenant.PrimaryColor}}{{.Tenant.PrimaryColor}}{{else}}#3355cc{{end}}; }
 * { box-sizing: border-box; }
@@ -29,9 +29,9 @@ a { color: var(--accent); }
 <body>
 <main>
 <header>
-{{if .Tenant.LogoURL}}<img src="{{.Tenant.LogoURL}}" alt="{{.Tenant.Name}}">{{end}}
+{{if .Tenant.LogoURL}}<img src="{{.Tenant.LogoURL}}" alt="{{t .Tenant.L "zeroauthy.layout.logoAltText"}}">{{end}}
 <h1>{{template "title" .}}</h1>
-<p class="sub">{{.Tenant.Name}}</p>
+<p class="sub">{{block "description" .}}{{.Tenant.Name}}{{end}}</p>
 </header>
 {{template "content" .}}
 </main>

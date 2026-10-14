@@ -1,18 +1,19 @@
-{{define "title"}}Create your account{{end}}
+{{define "title"}}{{t .Tenant.L "signup.signup.title"}}{{end}}
+{{define "description"}}{{t .Tenant.L "signup.signup.description"}}{{end}}
 {{define "content"}}
 {{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
 <form method="post" action="/u/signup" novalidate>
 <input type="hidden" name="state" value="{{.Data.State}}">
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">
-<label for="email">Email</label>
+<label for="email">{{t .Tenant.L "signup.signup.emailPlaceholder"}}</label>
 <input id="email" name="email" type="email" autocomplete="email" value="{{.Data.Email}}" required autofocus>
 {{if .Data.RequiresUsername}}
-<label for="username">Username</label>
+<label for="username">{{t .Tenant.L "signup.signup.usernamePlaceholder"}}</label>
 <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" value="{{.Data.Username}}" required>
 {{end}}
-<label for="password">Password</label>
+<label for="password">{{t .Tenant.L "signup.signup.passwordPlaceholder"}}</label>
 <input id="password" name="password" type="password" autocomplete="new-password" required>
-<button type="submit">Sign up</button>
+<button type="submit">{{t .Tenant.L "signup.signup.buttonText"}}</button>
 </form>
-<p class="alt">Already have an account? <a href="{{.Data.LoginURL}}">Sign in</a></p>
+<p class="alt">{{t .Tenant.L "signup.signup.loginActionText"}} <a href="{{.Data.LoginURL}}">{{t .Tenant.L "signup.signup.loginActionLinkText"}}</a></p>
 {{end}}

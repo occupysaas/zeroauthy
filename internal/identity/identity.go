@@ -5,10 +5,12 @@ package identity
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -20,8 +22,12 @@ var (
 )
 
 // PolicyError explains why input was rejected. Reason is safe to show to
-// the person signing up.
-type PolicyError struct{ Reason string }
+// the person signing up; Key, when set, is the catalog key for a localized
+// message and Vars its variables as name, value pairs.
+type PolicyError struct {
+	Reason, Key string
+	Vars        []string
+}
 
 func (e *PolicyError) Error() string { return "identity: " + e.Reason }
 
@@ -41,10 +47,13 @@ func CheckPassword(p store.PasswordPolicy, password string) error {
 		minLen = defaultMinPasswordLength
 	}
 	if len(password) > maxPasswordBytes {
-		return &PolicyError{Reason: "password is too long"}
+		return &PolicyError{Reason: "password is too long", Key: i18n.KeyPasswordTooLong}
 	}
 	if utf8.RuneCountInString(password) < minLen {
-		return &PolicyError{Reason: fmt.Sprintf("password must be at least %d characters", minLen)}
+		return &PolicyError{
+			Reason: fmt.Sprintf("password must be at least %d characters", minLen),
+			Key:    i18n.KeyPasswordTooShort, Vars: []string{"min", strconv.Itoa(minLen)},
+		}
 	}
 	if p.RequireCharacterClasses > 0 {
 		var lower, upper, digit, other bool
@@ -67,9 +76,12 @@ func CheckPassword(p store.PasswordPolicy, password string) error {
 			}
 		}
 		if n < p.RequireCharacterClasses {
-			return &PolicyError{Reason: fmt.Sprintf(
-				"password must contain at least %d of: lowercase letters, uppercase letters, digits, symbols",
-				p.RequireCharacterClasses)}
+			return &PolicyError{
+				Reason: fmt.Sprintf(
+					"password must contain at least %d of: lowercase letters, uppercase letters, digits, symbols",
+					p.RequireCharacterClasses),
+				Key: i18n.KeyPasswordClasses, Vars: []string{"count", strconv.Itoa(p.RequireCharacterClasses)},
+			}
 		}
 	}
 	return nil

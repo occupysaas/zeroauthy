@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -22,32 +23,44 @@ import (
 //go:embed templates/*.html
 var files embed.FS
 
+var funcs = template.FuncMap{
+	// t renders a catalog key: {{t .Tenant.L "login.login.title" "name" "value"}}.
+	"t": func(l *i18n.Localizer, key string, kv ...string) string { return l.T(key, kv...) },
+	// tv renders a key whose variables are a slice: {{tv .Tenant.L .Data.ErrorKey .Data.ErrorVars}}.
+	"tv": func(l *i18n.Localizer, key string, kv []string) string { return l.T(key, kv...) },
+}
+
+func parsePage(names ...string) *template.Template {
+	return template.Must(template.New("").Funcs(funcs).ParseFS(files, names...))
+}
+
 var (
 	pages = map[string]*template.Template{
-		"login":          template.Must(template.ParseFS(files, "templates/layout.html", "templates/login.html")),
-		"signup":         template.Must(template.ParseFS(files, "templates/layout.html", "templates/signup.html")),
-		"error":          template.Must(template.ParseFS(files, "templates/layout.html", "templates/error.html")),
-		"logout_confirm": template.Must(template.ParseFS(files, "templates/layout.html", "templates/logout_confirm.html")),
-		"logged_out":     template.Must(template.ParseFS(files, "templates/layout.html", "templates/logged_out.html")),
+		"login":          parsePage("templates/layout.html", "templates/login.html"),
+		"signup":         parsePage("templates/layout.html", "templates/signup.html"),
+		"error":          parsePage("templates/layout.html", "templates/error.html"),
+		"logout_confirm": parsePage("templates/layout.html", "templates/logout_confirm.html"),
+		"logged_out":     parsePage("templates/layout.html", "templates/logged_out.html"),
 	}
-	formPost   = template.Must(template.ParseFS(files, "templates/form_post.html"))
-	webMessage = template.Must(template.ParseFS(files, "templates/web_message.html"))
+	formPost   = parsePage("templates/form_post.html")
+	webMessage = parsePage("templates/web_message.html")
 )
 
-// Tenant is the branding shown on hosted pages.
+// Tenant is the branding and language of a hosted page.
 type Tenant struct {
 	Name         string
 	LogoURL      string
 	PrimaryColor string
+	L            *i18n.Localizer // nil renders English
 }
 
-// TenantView builds the page branding for a tenant.
-func TenantView(t *store.Tenant) Tenant {
+// TenantView builds the page branding and language for a tenant.
+func TenantView(t *store.Tenant, l *i18n.Localizer) Tenant {
 	name := t.FriendlyName
 	if name == "" {
 		name = t.Name
 	}
-	return Tenant{Name: name, LogoURL: t.Branding.LogoURL, PrimaryColor: t.Branding.PrimaryColor}
+	return Tenant{Name: name, LogoURL: t.Branding.LogoURL, PrimaryColor: t.Branding.PrimaryColor, L: l}
 }
 
 type LoginData struct {
@@ -79,8 +92,16 @@ func RenderSignup(w http.ResponseWriter, status int, t Tenant, d SignupData) {
 	render(w, status, "signup", t, d, formActionFor(d.RedirectURI))
 }
 
+type errorData struct{ Message, Detail string }
+
 func RenderError(w http.ResponseWriter, status int, t Tenant, message string) {
-	render(w, status, "error", t, message, "'self'")
+	RenderErrorDetail(w, status, t, message, "")
+}
+
+// RenderErrorDetail shows a localized message and an optional technical
+// detail (OAuth error descriptions stay English).
+func RenderErrorDetail(w http.ResponseWriter, status int, t Tenant, message, detail string) {
+	render(w, status, "error", t, errorData{Message: message, Detail: detail}, "'self'")
 }
 
 // formActionFor returns the form-action source list for a page whose form
@@ -120,16 +141,23 @@ func customScheme(redirectURI string) string {
 }
 
 func render(w http.ResponseWriter, status int, name string, t Tenant, data any, formAction string) {
+	if t.L == nil {
+		t.L = i18n.Default()
+	}
 	nonce := newNonce()
 	setHeaders(w, nonce, "'none'", formAction)
 	write(w, status, pages[name], "layout", page{Tenant: t, Nonce: nonce, Data: data})
 }
 
-// RenderFormPost writes the OAuth 2.0 Form Post Response Mode page.
-func RenderFormPost(w http.ResponseWriter, action string, params url.Values) {
+// RenderFormPost writes the OAuth 2.0 Form Post Response Mode page in the
+// language of l (nil renders English).
+func RenderFormPost(w http.ResponseWriter, l *i18n.Localizer, action string, params url.Values) {
+	if l == nil {
+		l = i18n.Default()
+	}
 	nonce := newNonce()
 	setHeaders(w, nonce, "'none'", origin(action))
-	write(w, http.StatusOK, formPost, "form_post.html", map[string]any{"Action": action, "Params": params, "Nonce": nonce})
+	write(w, http.StatusOK, formPost, "form_post.html", map[string]any{"Action": action, "Params": params, "Nonce": nonce, "L": l})
 }
 
 // RenderWebMessage writes the Web Message Response Mode page, which posts

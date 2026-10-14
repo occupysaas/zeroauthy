@@ -26,6 +26,7 @@ type Request struct {
 	ScreenHint          string
 	Organization        string
 	Invitation          string
+	UILocales           string
 }
 
 // paramNames maps query parameter names to Request fields; it drives
@@ -33,7 +34,7 @@ type Request struct {
 var paramNames = []string{
 	"client_id", "redirect_uri", "response_type", "response_mode", "scope", "state", "nonce",
 	"audience", "prompt", "max_age", "code_challenge", "code_challenge_method",
-	"connection", "login_hint", "screen_hint", "organization", "invitation",
+	"connection", "login_hint", "screen_hint", "organization", "invitation", "ui_locales",
 }
 
 func (r *Request) field(name string) *string {
@@ -72,6 +73,8 @@ func (r *Request) field(name string) *string {
 		return &r.Organization
 	case "invitation":
 		return &r.Invitation
+	case "ui_locales":
+		return &r.UILocales
 	}
 	panic("authz: unknown parameter " + name)
 }

@@ -9,6 +9,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 var nonceAttr = regexp.MustCompile(`nonce="([^"]+)"`)
@@ -83,7 +86,7 @@ func TestRenderSignupAndError(t *testing.T) {
 
 func TestRenderFormPost(t *testing.T) {
 	rec := httptest.NewRecorder()
-	RenderFormPost(rec, "https://app.test/cb?x=1", url.Values{"code": {"abc"}, "state": {`"><x`}})
+	RenderFormPost(rec, nil, "https://app.test/cb?x=1", url.Values{"code": {"abc"}, "state": {`"><x`}})
 	body, csp := rec.Body.String(), rec.Header().Get("Content-Security-Policy")
 	for _, want := range []string{`method="post"`, `action="https://app.test/cb?x=1"`, `name="code" value="abc"`, `value="&#34;&gt;&lt;x"`} {
 		if !strings.Contains(body, want) {
@@ -174,7 +177,7 @@ func TestRenderLoginNeutralisesHostileStyleAndHref(t *testing.T) {
 
 func TestRenderFormPostRejectsBadActionOrigin(t *testing.T) {
 	rec := httptest.NewRecorder()
-	RenderFormPost(rec, "https://a.test;script-src/cb", url.Values{"code": {"abc"}})
+	RenderFormPost(rec, nil, "https://a.test;script-src/cb", url.Values{"code": {"abc"}})
 	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'none'") {
 		t.Errorf("CSP %q does not refuse form-action for an invalid origin", csp)
 	}
@@ -225,5 +228,52 @@ func TestRenderLogoutConfirm(t *testing.T) {
 	if rec.Code != 200 || !strings.Contains(body, `name="csrf" value="tok"`) || !strings.Contains(body, `name="client_id" value="spa"`) ||
 		strings.Contains(body, "<script>alert(1)") || !strings.Contains(csp, "form-action 'self' https://app.acme.test;") {
 		t.Fatalf("confirmation page = %d %q\n%s", rec.Code, csp, body)
+	}
+}
+
+func frenchTenant() *store.Tenant {
+	return &store.Tenant{Name: "acme", EnabledLocales: []string{"en", "fr"}, CustomText: store.CustomText{
+		"login": {"fr": {"login": {"title": "Connexion", "buttonText": "Continuer"}}},
+	}}
+}
+
+func TestRenderLoginLocalized(t *testing.T) {
+	tn := frenchTenant()
+	rec := httptest.NewRecorder()
+	RenderLogin(rec, 200, TenantView(tn, i18n.New(tn, "fr")), LoginData{State: "st", CSRF: "cs"})
+	body := rec.Body.String()
+	for _, want := range []string{`<html lang="fr" dir="ltr">`, "Connexion", "Continuer", "Email or username"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body lacks %q", want)
+		}
+	}
+}
+
+func TestRTLDirection(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderLoggedOut(rec, TenantView(&store.Tenant{Name: "acme"}, i18n.New(nil, "ar")))
+	if !strings.Contains(rec.Body.String(), `<html lang="ar" dir="rtl">`) {
+		t.Fatalf("body = %s", rec.Body)
+	}
+}
+
+func TestCustomTextIsEscaped(t *testing.T) {
+	tn := &store.Tenant{Name: `<b>acme</b>`, CustomText: store.CustomText{
+		"login": {"en": {"login": {"title": `<script>alert(1)</script> ${companyName}`}}},
+	}}
+	rec := httptest.NewRecorder()
+	RenderLogin(rec, 200, TenantView(tn, i18n.New(tn, "en")), LoginData{State: "st", CSRF: "cs"})
+	body := rec.Body.String()
+	if strings.Contains(body, "<script>alert(1)") || strings.Contains(body, "<b>acme</b>") {
+		t.Fatalf("custom text or variable not escaped:\n%s", body)
+	}
+}
+
+func TestRenderErrorDetail(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderErrorDetail(rec, 400, Tenant{Name: "Acme"}, "Localized message", "redirect_uri is not registered")
+	body := rec.Body.String()
+	if rec.Code != 400 || !strings.Contains(body, "Localized message") || !strings.Contains(body, "redirect_uri is not registered") {
+		t.Fatalf("got %d %s", rec.Code, body)
 	}
 }

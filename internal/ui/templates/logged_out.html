@@ -1,5 +1,5 @@
-{{define "title"}}You are logged out{{end}}
+{{define "title"}}{{t .Tenant.L "zeroauthy.logged-out.title"}}{{end}}
 {{define "content"}}
-<p>Your session has ended.</p>
-<p class="alt">You can close this window.</p>
+<p>{{t .Tenant.L "zeroauthy.logged-out.description"}}</p>
+<p class="alt">{{t .Tenant.L "zeroauthy.logged-out.hint"}}</p>
 {{end}}
