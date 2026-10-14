@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Continuing…</title></head>
+<body>
+<form method="post" action="{{.Action}}">
+{{range $k, $vs := .Params}}{{range $vs}}<input type="hidden" name="{{$k}}" value="{{.}}">
+{{end}}{{end}}<noscript><button type="submit">Continue</button></noscript>
+</form>
+<script nonce="{{.Nonce}}">document.forms[0].submit();</script>
+</body>
+</html>

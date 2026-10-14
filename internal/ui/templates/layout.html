@@ -1,0 +1,39 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>{{template "title" .}} · {{.Tenant.Name}}</title>
+<style nonce="{{.Nonce}}">
+:root { --accent: {{if .Tenant.PrimaryColor}}{{.Tenant.PrimaryColor}}{{else}}#3355cc{{end}}; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f3f4f6;
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1f2933; }
+main { width: min(380px, 92vw); background: #fff; border-radius: 12px; padding: 32px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .08); }
+header { text-align: center; margin-bottom: 24px; }
+header img { max-height: 48px; max-width: 100%; }
+h1 { font-size: 1.25rem; margin: 12px 0 4px; }
+p.sub { margin: 0; color: #52606d; font-size: .9rem; }
+label { display: block; font-size: .85rem; margin: 16px 0 4px; }
+input { width: 100%; padding: 10px 12px; border: 1px solid #cbd2d9; border-radius: 8px; font: inherit; }
+input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+button { width: 100%; margin-top: 24px; padding: 11px; border: 0; border-radius: 8px;
+  background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.alert { background: #fdecea; color: #8a1c13; padding: 10px 12px; border-radius: 8px; font-size: .9rem; }
+.alt { text-align: center; margin-top: 20px; font-size: .9rem; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+<header>
+{{if .Tenant.LogoURL}}<img src="{{.Tenant.LogoURL}}" alt="{{.Tenant.Name}}">{{end}}
+<h1>{{template "title" .}}</h1>
+<p class="sub">{{.Tenant.Name}}</p>
+</header>
+{{template "content" .}}
+</main>
+</body>
+</html>{{end}}

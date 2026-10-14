@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Authorization response</title></head>
+<body>
+<script nonce="{{.Nonce}}">
+(function () {
+  var target = window.opener || window.parent;
+  target.postMessage({ type: "authorization_response", response: {{.Response}} }, {{.Origin}});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+package ui
+
+import (
+	"net/http/httptest"
+	"net/url"
+	"regexp"
+	"strings"
+	"testing"
+)
+
+var nonceAttr = regexp.MustCompile(`nonce="([^"]+)"`)
+
+func checkNonce(t *testing.T, csp, body string) {
+	t.Helper()
+	m := nonceAttr.FindAllStringSubmatch(body, -1)
+	if len(m) == 0 {
+		t.Fatal("no nonce attribute in body")
+	}
+	for _, x := range m {
+		if !strings.Contains(csp, "'nonce-"+x[1]+"'") {
+			t.Fatalf("nonce %q not in CSP %q", x[1], csp)
+		}
+	}
+}
+
+func TestRenderLogin(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderLogin(rec, 200, Tenant{Name: "Acme", PrimaryColor: "#112233", LogoURL: "https://cdn.acme.test/l.png"}, LoginData{
+		State: "st", CSRF: "cs", Login: `"><script>alert(1)</script>`, SignupURL: "/u/signup?state=st", Error: "Nope",
+	})
+	body, h := rec.Body.String(), rec.Header()
+	for _, want := range []string{`name="state" value="st"`, `name="csrf" value="cs"`, `id="username"`, `id="password"`,
+		`type="submit"`, "Acme", "#112233", "https://cdn.acme.test/l.png", "/u/signup?state=st", "Nope"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body lacks %q", want)
+		}
+	}
+	if strings.Contains(body, "<script>alert(1)</script>") {
+		t.Fatal("login hint not escaped")
+	}
+	csp := h.Get("Content-Security-Policy")
+	checkNonce(t, csp, body)
+	for _, want := range []string{"default-src 'none'", "frame-ancestors 'none'", "form-action 'self'", "img-src https:"} {
+		if !strings.Contains(csp, want) {
+			t.Errorf("CSP %q lacks %q", csp, want)
+		}
+	}
+	if h.Get("X-Frame-Options") != "DENY" || h.Get("Cache-Control") != "no-store" || h.Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Errorf("headers = %v", h)
+	}
+}
+
+func TestRenderLoginWithoutSignup(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderLogin(rec, 200, Tenant{Name: "Acme"}, LoginData{State: "st", CSRF: "cs"})
+	if strings.Contains(rec.Body.String(), "/u/signup") {
+		t.Fatal("signup link shown without SignupURL")
+	}
+}
+
+func TestRenderSignupAndError(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderSignup(rec, 400, Tenant{Name: "Acme"}, SignupData{State: "st", CSRF: "cs", Email: "a@b.test", RequiresUsername: true, LoginURL: "/u/login?state=st", Error: "Too short"})
+	body := rec.Body.String()
+	for _, want := range []string{`id="email"`, `id="username"`, `id="password"`, "Too short", "/u/login?state=st"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("signup lacks %q", want)
+		}
+	}
+	if rec.Code != 400 {
+		t.Errorf("status %d", rec.Code)
+	}
+
+	rec = httptest.NewRecorder()
+	RenderError(rec, 400, Tenant{Name: "Acme"}, "Something <b>bad</b>")
+	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "Something &lt;b&gt;bad&lt;/b&gt;") {
+		t.Fatalf("error page = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestRenderFormPost(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderFormPost(rec, "https://app.test/cb?x=1", url.Values{"code": {"abc"}, "state": {`"><x`}})
+	body, csp := rec.Body.String(), rec.Header().Get("Content-Security-Policy")
+	for _, want := range []string{`method="post"`, `action="https://app.test/cb?x=1"`, `name="code" value="abc"`, `value="&#34;&gt;&lt;x"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("form_post lacks %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, `value=""><x`) {
+		t.Fatal("form_post value not escaped")
+	}
+	checkNonce(t, csp, body)
+	if !strings.Contains(csp, "form-action https://app.test") {
+		t.Errorf("CSP %q does not allow posting to the client", csp)
+	}
+}
+
+func TestRenderWebMessage(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderWebMessage(rec, "https://app.test", map[string]string{"code": "abc", "state": "</script><script>alert(1)"})
+	body, h := rec.Body.String(), rec.Header()
+	if strings.Contains(body, "</script><script>alert(1)") {
+		t.Fatal("response not escaped in script context")
+	}
+	// html/template escapes "/" inside JS strings, so match the host only.
+	for _, want := range []string{"authorization_response", "postMessage", "app.test"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("web_message lacks %q:\n%s", want, body)
+		}
+	}
+	csp := h.Get("Content-Security-Policy")
+	checkNonce(t, csp, body)
+	if !strings.Contains(csp, "frame-ancestors https://app.test") || h.Get("X-Frame-Options") != "" {
+		t.Errorf("web_message must be frameable by its origin only: csp=%q xfo=%q", csp, h.Get("X-Frame-Options"))
+	}
+}

@@ -1,0 +1,18 @@
+{{define "title"}}Create your account{{end}}
+{{define "content"}}
+{{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
+<form method="post" action="/u/signup" novalidate>
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<label for="email">Email</label>
+<input id="email" name="email" type="email" autocomplete="email" value="{{.Data.Email}}" required autofocus>
+{{if .Data.RequiresUsername}}
+<label for="username">Username</label>
+<input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" value="{{.Data.Username}}" required>
+{{end}}
+<label for="password">Password</label>
+<input id="password" name="password" type="password" autocomplete="new-password" required>
+<button type="submit">Sign up</button>
+</form>
+<p class="alt">Already have an account? <a href="{{.Data.LoginURL}}">Sign in</a></p>
+{{end}}
