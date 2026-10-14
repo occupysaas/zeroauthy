@@ -51,7 +51,7 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Context:** Several /authorize behaviors are not pinned down by public Auth0 docs.
 - **Sources:** RFC 6749 §3.1.2 and §4.1.2.1; RFC 7636; OpenID Connect Core §3.1.2.1; OAuth 2.0 Security BCP (RFC 9700) §4.1 and §2.1.1.
 - **Decision:**
-  - `redirect_uri` must match a registered callback exactly, except for the single-label wildcard host form `https://*.domain/path` (https only). URIs with a fragment or userinfo are rejected.
+  - `redirect_uri` must match a registered callback exactly, except for the single-label wildcard host form `https://*.domain/path` (https only). URIs with a fragment are rejected, as are wildcard URIs with userinfo. Private-use scheme callbacks (RFC 8252, e.g. `com.example.app:/oauth2redirect`) are accepted by exact match only. Seed validation rejects a wildcard whose domain has fewer than two labels (`https://*.com/cb`). A wildcard still matches every site under its domain, so operators must not register wildcards over domains they do not control (for example shared-hosting suffixes).
   - Public clients must use PKCE with `S256`; `plain` is rejected.
   - `prompt=consent` and `prompt=select_account` are accepted and ignored. All clients are first-party until the consent milestone.
   - With no `audience`, the tenant's default audience applies.
@@ -96,5 +96,5 @@ them. Each entry: context, sources consulted, decision, rationale.
 
 - **Context:** The hosted login form posts to `/u/login`, which redirects (via `/authorize` processing) to the application's `redirect_uri`. Chromium applies the CSP `form-action` directive to the whole redirect chain after a form submission, so `form-action 'self'` blocks the final hop to another origin and the login appears to hang.
 - **Sources:** Content Security Policy Level 3 (`form-action` and redirects); observed in Chromium running @auth0/auth0-spa-js against zeroauthy.
-- **Decision:** `/u/login` and `/u/signup` pages (including their error re-renders) send `form-action 'self' <origin of the validated redirect_uri>`. A `redirect_uri` without a valid http(s) origin (for example a custom scheme) adds nothing.
+- **Decision:** `/u/login` and `/u/signup` pages (including their error re-renders) send `form-action 'self' <origin of the validated redirect_uri>`. For a native app's private-use `redirect_uri` (scheme matching `^[a-z][a-z0-9+.-]*$`, such as `com.example.app:/oauth2redirect`), the page sends `form-action 'self' <scheme>:` so the final hop is not blocked. `http`, `https` and executable or content schemes (`javascript`, `data`, `vbscript`, `file`, `blob`, `about`, `filesystem`) never become a scheme source; any other `redirect_uri` adds nothing.
 - **Rationale:** The origin is taken from the already-validated, registered `redirect_uri` of the login transaction, so no attacker-controlled source is added.

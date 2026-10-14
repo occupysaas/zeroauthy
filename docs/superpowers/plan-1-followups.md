@@ -26,8 +26,20 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 | Before | Item |
 |---|---|
-| SQL drivers (milestone 7) | Expired login transactions, authorization codes and sessions are never purged; add `DeleteExpired` to those stores and a periodic sweeper. |
+| Now (memory driver) and SQL drivers (milestone 7) | Expired login transactions, authorization codes and sessions are never purged. Unauthenticated `GET /authorize` creates a login transaction each time, so the memory driver already grows without bound under abuse. Add `DeleteExpired` to those stores and a periodic sweeper. |
 | Multi-instance deployments | Login throttling is in-process; move counters to the store or a shared cache. |
 | Large tenants | CORS origin checks list all clients per cross-origin request; index origins. |
 | Hosted login (spec §7) | Template override directory; bcrypt hash verification and upgrade for imported users. |
 | Refresh tokens (milestone 5) | On authorization-code replay, revoke refresh tokens issued from that code. |
+
+## Plan 2 deferred review findings
+
+- Storage conformance gaps for SQL drivers: concurrent `AuthCodes.Consume` single-use test; `Sessions.Update` TokenHash uniqueness; same TokenHash or session ID across tenants; `AuthCode` ReturnsCopies; `Users.Update` username-collision case; round-trip of Tenant session/branding and `Client.IDTokenLifetime`; `Rotate` wrong-status guard.
+- `Users.Update` overwrites login stats (LastLogin, LoginsCount) with the caller's copy.
+- Session writes are last-writer-wins; revisit at the logout milestone.
+- Login throttle pruning is O(n) and in-process.
+- Cap `password_policy.min_length`; a value over 256 makes signup impossible.
+- No test that `Verify` rejects `alg=none` and HS256 tokens.
+- CORS: negative-path tests and `Vary: Origin` are missing; OPTIONS/CORS are not in the OpenAPI contract.
+- Untested branches: fragment/form_post error delivery; `Resume` re-validation failure; public client without PKCE; deleted audience; default ID token lifetime; `auth_time` value; store-error throttle refund; signup error re-render CSP.
+- `tests/e2e/run-m4.sh` readiness loop is not fail-fast.
