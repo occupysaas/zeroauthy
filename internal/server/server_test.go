@@ -10,9 +10,11 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zeroauthy/zeroauthy/api"
+	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -53,6 +55,9 @@ func newTestServer(t *testing.T) http.Handler {
 		Resolver: tenant.NewResolver(st.Tenants(), "", false),
 		Sessions: &session.Manager{Store: st},
 		Log:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+
+		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
+		IPThrottle:   identity.NewThrottle(100, time.Minute, time.Minute),
 	})
 }
 

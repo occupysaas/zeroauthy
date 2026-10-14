@@ -49,6 +49,12 @@ type Security struct {
 	// MasterKey is a base64-encoded 32-byte key. Prefer MasterKeyFile.
 	MasterKey     string `koanf:"master_key"`
 	MasterKeyFile string `koanf:"master_key_file"`
+
+	// LoginMaxAttempts failed logins for one account within the lockout
+	// window lock that account for LoginLockoutSeconds. Per-IP limits are
+	// ten times higher.
+	LoginMaxAttempts    int `koanf:"login_max_attempts"`
+	LoginLockoutSeconds int `koanf:"login_lockout_seconds"`
 }
 
 type Log struct {
@@ -58,8 +64,9 @@ type Log struct {
 
 func defaults() *Config {
 	return &Config{
-		Server: Server{Listen: ":8080"},
-		Log:    Log{Level: "info", Format: "json"},
+		Server:   Server{Listen: ":8080"},
+		Log:      Log{Level: "info", Format: "json"},
+		Security: Security{LoginMaxAttempts: 10, LoginLockoutSeconds: 900},
 	}
 }
 
@@ -129,6 +136,9 @@ func (c *Config) validate() error {
 	}
 	if c.Security.MasterKey != "" && c.Security.MasterKeyFile != "" {
 		errs = append(errs, errors.New("set only one of security.master_key and security.master_key_file"))
+	}
+	if c.Security.LoginMaxAttempts <= 0 || c.Security.LoginLockoutSeconds <= 0 {
+		errs = append(errs, errors.New("security.login_max_attempts and security.login_lockout_seconds must be positive"))
 	}
 	if err := errors.Join(errs...); err != nil {
 		return fmt.Errorf("config: %w", err)

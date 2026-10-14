@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/server"
@@ -83,6 +84,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		}
 	}
 
+	lockout := time.Duration(cfg.Security.LoginLockoutSeconds) * time.Second
 	return &App{
 		cfg:   cfg,
 		log:   log,
@@ -93,6 +95,10 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Resolver: tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),
 			Sessions: &session.Manager{Store: st},
 			Log:      log,
+
+			UserThrottle:      identity.NewThrottle(cfg.Security.LoginMaxAttempts, lockout, lockout),
+			IPThrottle:        identity.NewThrottle(10*cfg.Security.LoginMaxAttempts, lockout, lockout),
+			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
 		}),
 	}, nil
 }

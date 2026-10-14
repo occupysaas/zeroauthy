@@ -57,3 +57,14 @@ them. Each entry: context, sources consulted, decision, rationale.
   - With no `audience`, the tenant's default audience applies.
   - `organization` and `invitation` are rejected until Organizations are implemented.
 - **Rationale:** Exact matching and mandatory S256 PKCE are the security BCP's recommendations. Rejecting organization parameters prevents tokens that silently lack an organization claim.
+
+## D-0007: Hosted login transactions and brute-force protection
+
+- **Context:** The spec requires CSRF-bound login transactions and per-IP/per-user brute-force protection with configurable lockout.
+- **Sources:** OWASP Authentication and CSRF Prevention cheat sheets; RFC 6749 §10.12 (CSRF).
+- **Decision:**
+  - Each login transaction is a server-side record (15 minutes) bound to the browser by an `HttpOnly; Secure; SameSite=Lax` cookie `za_txn_<id>` on path `/u`, and to the form by a CSRF token.
+  - After `security.login_max_attempts` (default 10) failures for one (tenant, connection, login) within `security.login_lockout_seconds` (default 900), that login is locked for the same period. Per IP, the limit is 10× higher.
+  - Counters are in-process.
+  - Failed logins show one message whether the account exists or not.
+- **Rationale:** Server-side transactions keep the authorize request out of the browser. The cookie binding defeats login CSRF. The per-account lockout limits guessing without letting one IP lock out every account.

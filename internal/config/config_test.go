@@ -122,3 +122,16 @@ func TestMasterKeyBytes(t *testing.T) {
 		t.Fatal("short key accepted")
 	}
 }
+func TestLoginThrottleSettings(t *testing.T) {
+	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://"})
+	if err != nil || cfg.Security.LoginMaxAttempts != 10 || cfg.Security.LoginLockoutSeconds != 900 {
+		t.Fatalf("defaults = %+v, %v", cfg.Security, err)
+	}
+	cfg, err = Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SECURITY__LOGIN_MAX_ATTEMPTS=5", "ZEROAUTHY_SECURITY__LOGIN_LOCKOUT_SECONDS=60"})
+	if err != nil || cfg.Security.LoginMaxAttempts != 5 || cfg.Security.LoginLockoutSeconds != 60 {
+		t.Fatalf("overrides = %+v, %v", cfg.Security, err)
+	}
+	if _, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SECURITY__LOGIN_MAX_ATTEMPTS=0"}); err == nil {
+		t.Fatal("zero attempts accepted")
+	}
+}

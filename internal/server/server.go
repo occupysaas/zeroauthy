@@ -13,7 +13,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/login"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -27,6 +29,10 @@ type Deps struct {
 	Resolver *tenant.Resolver
 	Sessions *session.Manager
 	Log      *slog.Logger
+
+	UserThrottle      *identity.Throttle
+	IPThrottle        *identity.Throttle
+	TrustProxyHeaders bool
 }
 
 // authAPI adapts the handler groups to the generated ServerInterface.
@@ -71,19 +77,31 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
+	az := &authz.Handlers{Store: d.Store, Sessions: d.Sessions, Log: d.Log}
+	lg := &login.Handlers{
+		Store: d.Store, Sessions: d.Sessions, Authz: az,
+		Database:     &identity.Database{Store: d.Store},
+		UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
+		TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
+	}
+
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
 		tr.Use(d.Resolver.Middleware)
 		authapi.HandlerWithOptions(authAPI{
 			oidc:  &oidc.Handlers{Keys: d.Keys, Log: d.Log},
 			oauth: &oauth.Handlers{Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}},
-			authz: &authz.Handlers{Store: d.Store, Sessions: d.Sessions, Log: d.Log},
+			authz: az,
 		}, authapi.ChiServerOptions{
 			BaseRouter: tr,
 			ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 				httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 			},
 		})
+		tr.Get("/u/login", lg.LoginPage)
+		tr.Post("/u/login", lg.LoginSubmit)
+		tr.Get("/u/signup", lg.SignupPage)
+		tr.Post("/u/signup", lg.SignupSubmit)
 	})
 	return r
 }
