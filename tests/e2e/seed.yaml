@@ -2,6 +2,13 @@
 tenants:
   - name: e2e
     friendly_name: E2E
+    enabled_locales: [en, fr]
+    custom_text:
+      login:
+        fr:
+          login:
+            title: "Connexion à ${companyName}"
+            buttonText: "Continuer"
     domains: ["localhost:8443"]
     resource_servers:
       - identifier: https://api.e2e.local

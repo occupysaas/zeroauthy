@@ -73,3 +73,9 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - A code replayed mid-exchange without `offline_access` still returns the first exchange's access and ID tokens (JWTs are not revocable); the `ReplayedAt` re-check runs only when a refresh token is issued.
 - SQL drivers must set `AuthCode.ReplayedAt` in the same statement or transaction as the used-check; `storetest` checks the outcome, not atomicity under concurrency.
 - The `server_error` branch for a failed `AuthCodes().Get` after the refresh token is stored has no test.
+
+## Plan 4 follow-ups
+
+- `PUT /prompts/{prompt}/custom-text/{language}` and `GET /prompts/{prompt}/custom-text/{language}` are planned for sub-project 3; storage is ready.
+- RTL layout needs a visual review once an RTL catalog exists.
+- Email templates must use the catalog in milestone 6.

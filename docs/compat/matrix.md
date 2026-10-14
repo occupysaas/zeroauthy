@@ -19,3 +19,4 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Management API v2 | Planned (sub-project 3) | |
 | SAML, WS-Federation | Planned (sub-project 4) | |
 | Deprecated endpoints (`/oauth/ro`, `/delegation`, `/tokeninfo`, `/oauth/access_token`, impersonation) | Not planned | Deprecated by Auth0 |
+| Hosted page languages (`ui_locales`, `Accept-Language`, `enabled_locales`, per-tenant `custom_text`) | Implemented | English catalog only; verified with @auth0/auth0-spa-js 2.28.3 (`ui_locales`) and browser `Accept-Language`; custom-text Management API planned (sub-project 3) |

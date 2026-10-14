@@ -174,5 +174,27 @@ them. Each entry: context, sources consulted, decision, rationale.
     - When the browser has a session and no hint matches it, a confirmation page is shown.
     - The page posts back with a CSRF token. The token is bound to an `HttpOnly; Secure; SameSite=Strict` cookie `za_logout` on path `/oidc/logout` that lives 10 minutes.
     - Without a session there is nothing to confirm, and the request proceeds.
-  - `ui_locales` is ignored.
+  - `ui_locales` selects the page language (D-0016).
 - **Rationale:** It follows the documented behavior. The confirmation stops cross-site requests from silently ending sessions, and the CSRF binding stops them from auto-submitting the confirmation.
+
+## D-0016: Hosted page languages and custom text
+
+- **Context:** Auth0's public docs describe language selection (`enabled_locales`, `ui_locales`, `Accept-Language`) and per-prompt custom text with `${variables}`. They do not say how region tags relate to base languages, or how missing text falls back.
+- **Sources:** https://auth0.com/docs/customize/internationalization-and-localization/universal-login-internationalization; https://auth0.com/docs/customize/login-pages/universal-login/customize-text-elements; RFC 5646; RFC 9110 §12.5.4.
+- **Decision:**
+  - **Language selection:** the language is chosen in this order:
+    1. the first `ui_locales` entry, if enabled;
+    2. otherwise the first enabled `Accept-Language` entry, by weight;
+    3. otherwise the tenant default (the first of `enabled_locales`, else `en`).
+    A region tag is matched by an enabled base language (`fr-CA` → `fr`).
+  - **Text lookup:** text comes from, in order:
+    1. tenant custom text for the language;
+    2. the built-in catalog for the language;
+    3. the built-in catalog for the base language;
+    4. English.
+  - **Custom text shape:** prompt → language → screen → key, using Auth0's documented identifiers where a screen matches, and the `zeroauthy` prompt otherwise.
+  - **Variables:** `${companyName}` and `${clientName}` may be used in an override on any key, plus the variables the English string for that key uses. Any other variable is rejected. Unset variables render empty.
+  - **Error pages after a verified login transaction:** keep that transaction's language.
+  - **`/oidc/logout`:** now honours `ui_locales`, which replaces the D-0015 note.
+  - **OAuth `error_description`:** stays English.
+- **Rationale:** It follows the documented selection order and custom-text shape, so configuration written for Auth0 keeps working. English fallback guarantees that a page never shows a missing string.
