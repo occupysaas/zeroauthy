@@ -1,4 +1,4 @@
-// Package oidc serves OpenID Connect metadata: discovery and JWKS.
+// Package oidc serves OpenID Connect metadata (discovery, JWKS), /userinfo and the logout endpoints.
 package oidc
 
 import (
@@ -9,6 +9,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -18,10 +19,11 @@ import (
 const metadataCacheControl = "public, max-age=300"
 
 type Handlers struct {
-	Keys  *keys.Manager
-	Store store.Store
-	Log   *slog.Logger
-	Now   func() time.Time
+	Keys     *keys.Manager
+	Store    store.Store
+	Sessions *session.Manager
+	Log      *slog.Logger
+	Now      func() time.Time
 }
 
 func (h *Handlers) now() time.Time {

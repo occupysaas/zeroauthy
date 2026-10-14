@@ -203,3 +203,13 @@ func TestFormPagesAllowRedirectOriginInFormAction(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderLoggedOut(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderLoggedOut(rec, Tenant{Name: "Acme"})
+	csp := rec.Header().Get("Content-Security-Policy")
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "logged out") ||
+		!strings.Contains(csp, "frame-ancestors 'none'") || !strings.Contains(csp, "form-action 'none'") {
+		t.Fatalf("logged-out page = %d %q %s", rec.Code, csp, rec.Body)
+	}
+}

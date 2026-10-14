@@ -134,3 +134,27 @@ func minTime(a, b time.Time) time.Time {
 	}
 	return b
 }
+
+// End deletes the request's session, if any, and clears the cookie. It
+// returns the ended session, or nil if there was none.
+func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Request, t *store.Tenant) (*store.LoginSession, error) {
+	http.SetCookie(w, &http.Cookie{
+		Name: CookieName, Value: "", Path: "/", MaxAge: -1,
+		HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode,
+	})
+	c, err := r.Cookie(CookieName)
+	if err != nil || c.Value == "" {
+		return nil, nil
+	}
+	s, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(c.Value))
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := m.Store.Sessions().Delete(ctx, t.ID, s.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
+		return nil, err
+	}
+	return s, nil
+}

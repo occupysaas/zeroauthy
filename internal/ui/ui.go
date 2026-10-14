@@ -24,9 +24,10 @@ var files embed.FS
 
 var (
 	pages = map[string]*template.Template{
-		"login":  template.Must(template.ParseFS(files, "templates/layout.html", "templates/login.html")),
-		"signup": template.Must(template.ParseFS(files, "templates/layout.html", "templates/signup.html")),
-		"error":  template.Must(template.ParseFS(files, "templates/layout.html", "templates/error.html")),
+		"login":      template.Must(template.ParseFS(files, "templates/layout.html", "templates/login.html")),
+		"signup":     template.Must(template.ParseFS(files, "templates/layout.html", "templates/signup.html")),
+		"error":      template.Must(template.ParseFS(files, "templates/layout.html", "templates/error.html")),
+		"logged_out": template.Must(template.ParseFS(files, "templates/layout.html", "templates/logged_out.html")),
 	}
 	formPost   = template.Must(template.ParseFS(files, "templates/form_post.html"))
 	webMessage = template.Must(template.ParseFS(files, "templates/web_message.html"))
@@ -240,4 +241,10 @@ func validOrigin(s string) bool {
 		}
 	}
 	return true
+}
+
+// RenderLoggedOut writes the page shown after a logout with nowhere to
+// return to.
+func RenderLoggedOut(w http.ResponseWriter, t Tenant) {
+	render(w, http.StatusOK, "logged_out", t, nil, "'none'")
 }

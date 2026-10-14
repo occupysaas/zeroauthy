@@ -55,6 +55,10 @@ func (a authAPI) Authorize(w http.ResponseWriter, r *http.Request, _ authapi.Aut
 	a.authz.Authorize(w, r)
 }
 
+func (a authAPI) Logout(w http.ResponseWriter, r *http.Request, _ authapi.LogoutParams) {
+	a.oidc.Logout(w, r)
+}
+
 var _ authapi.ServerInterface = authAPI{}
 
 func New(d Deps) http.Handler {
@@ -92,7 +96,7 @@ func New(d Deps) http.Handler {
 	r.Group(func(tr chi.Router) {
 		tr.Use(d.Resolver.Middleware, cors(d.Store))
 		authapi.HandlerWithOptions(authAPI{
-			oidc:  &oidc.Handlers{Keys: d.Keys, Store: d.Store, Log: d.Log},
+			oidc:  &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}},
 			authz: az,
 		}, authapi.ChiServerOptions{

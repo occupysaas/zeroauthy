@@ -205,3 +205,36 @@ func TestAddClient(t *testing.T) {
 		t.Fatalf("clients = %v", got.ClientIDs)
 	}
 }
+
+func TestEnd(t *testing.T) {
+	ctx := context.Background()
+	m, c, tn := setup()
+	rec := httptest.NewRecorder()
+	s, err := m.Start(ctx, rec, requestWith(nil), tn, "auth0|1", "Database", c.t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookies := rec.Result().Cookies()
+
+	rec = httptest.NewRecorder()
+	ended, err := m.End(ctx, rec, requestWith(cookies), tn)
+	if err != nil || ended == nil || ended.ID != s.ID {
+		t.Fatalf("End = %+v, %v", ended, err)
+	}
+	cleared := rec.Result().Cookies()
+	if len(cleared) != 1 || cleared[0].Name != CookieName || cleared[0].MaxAge >= 0 || !cleared[0].Secure ||
+		!cleared[0].HttpOnly || cleared[0].SameSite != http.SameSiteNoneMode || cleared[0].Path != "/" {
+		t.Fatalf("clearing cookie = %+v", cleared)
+	}
+	if got, err := m.Current(ctx, requestWith(cookies), tn); err != nil || got != nil {
+		t.Fatalf("session survived End: %+v, %v", got, err)
+	}
+	// Ending again, or without a cookie, is not an error and still clears.
+	rec = httptest.NewRecorder()
+	if ended, err := m.End(ctx, rec, requestWith(cookies), tn); err != nil || ended != nil || len(rec.Result().Cookies()) != 1 {
+		t.Fatalf("second End = %+v, %v, %v", ended, err, rec.Result().Cookies())
+	}
+	if ended, err := m.End(ctx, httptest.NewRecorder(), requestWith(nil), tn); err != nil || ended != nil {
+		t.Fatalf("End without cookie = %+v, %v", ended, err)
+	}
+}

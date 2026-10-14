@@ -311,6 +311,51 @@ paths:
           $ref: "#/components/responses/UnknownTenant"
         default:
           $ref: "#/components/responses/ServerError"
+  /v2/logout:
+    get:
+      operationId: logout
+      tags: [Login]
+      summary: Log the user out
+      description: |
+        Ends the user's session with this tenant, then redirects to
+        `returnTo`. With `client_id`, `returnTo` must be one of that
+        application's allowed logout URLs; without it, one of the tenant's.
+        The query string and fragment of `returnTo` are not compared, and the
+        scheme and host are case-insensitive. With `client_id` and no
+        `returnTo`, the application's first allowed logout URL is used;
+        otherwise a logged-out page is shown.
+
+        An unknown `client_id` or a `returnTo` that is not allowed shows an
+        error page; the session is not ended and nothing is redirected.
+        Refresh tokens are not revoked by logout.
+      x-source:
+        - https://auth0.com/docs/api/authentication
+        - https://auth0.com/docs/authenticate/login/logout
+        - https://auth0.com/docs/authenticate/login/logout/redirect-users-after-logout
+      parameters:
+        - {name: returnTo, in: query, schema: {type: string}, description: Where to send the browser after logout.}
+        - {name: client_id, in: query, schema: {type: string}, description: The application asking for the logout.}
+        - {name: federated, in: query, schema: {type: string}, description: Accepted and ignored; there are no upstream identity providers yet.}
+      responses:
+        "302":
+          description: Logged out; redirect to `returnTo`.
+        "200":
+          description: Logged out; no return URL.
+          content:
+            text/html:
+              schema: {type: string}
+        "400":
+          description: Unknown application or return URL not allowed. Not logged out.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
 components:
   securitySchemes:
     clientSecretBasic:

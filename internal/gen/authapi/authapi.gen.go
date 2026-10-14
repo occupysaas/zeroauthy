@@ -186,6 +186,18 @@ type AuthorizeParams struct {
 	Invitation *string `form:"invitation,omitempty" json:"invitation,omitempty"`
 }
 
+// LogoutParams defines parameters for Logout.
+type LogoutParams struct {
+	// ReturnTo Where to send the browser after logout.
+	ReturnTo *string `form:"returnTo,omitempty" json:"returnTo,omitempty"`
+
+	// ClientId The application asking for the logout.
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
+
+	// Federated Accepted and ignored; there are no upstream identity providers yet.
+	Federated *string `form:"federated,omitempty" json:"federated,omitempty"`
+}
+
 // OauthRevokeJSONRequestBody defines body for OauthRevoke for application/json ContentType.
 type OauthRevokeJSONRequestBody = RevokeRequest
 
@@ -377,6 +389,9 @@ type ServerInterface interface {
 	// UserinfoPost Get the user's profile (POST)
 	// (POST /userinfo)
 	UserinfoPost(w http.ResponseWriter, r *http.Request)
+	// Logout Log the user out
+	// (GET /v2/logout)
+	Logout(w http.ResponseWriter, r *http.Request, params LogoutParams)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -422,6 +437,12 @@ func (_ Unimplemented) Userinfo(w http.ResponseWriter, r *http.Request) {
 // UserinfoPost Get the user's profile (POST)
 // (POST /userinfo)
 func (_ Unimplemented) UserinfoPost(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Logout Log the user out
+// (GET /v2/logout)
+func (_ Unimplemented) Logout(w http.ResponseWriter, r *http.Request, params LogoutParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -759,6 +780,65 @@ func (siw *ServerInterfaceWrapper) UserinfoPost(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// Logout operation middleware
+func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params LogoutParams
+
+	// ------------- Optional query parameter "returnTo" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "returnTo", r.URL.Query(), &params.ReturnTo, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "returnTo"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "returnTo", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "client_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "client_id", r.URL.Query(), &params.ClientId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "client_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "federated" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "federated", r.URL.Query(), &params.Federated, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "federated"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "federated", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Logout(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -892,6 +972,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/userinfo", wrapper.UserinfoPost)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/logout", wrapper.Logout)
 	})
 
 	return r

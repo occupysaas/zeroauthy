@@ -138,3 +138,22 @@ them. Each entry: context, sources consulted, decision, rationale.
   - A known token revokes its whole rotation family.
   - `token_type_hint` is ignored. Access tokens are JWTs and are not revocable, so presenting one is the same as presenting an unknown token.
 - **Rationale:** It follows RFC 7009. Family-wide revocation matches what reuse detection does, so a revoked login cannot continue through an earlier successor.
+
+## D-0014: Logout
+
+- **Context:** Public docs describe `/v2/logout` and `/oidc/logout` and their allowed logout URLs. Some edge cases are not covered: a request with no client and no return URL, what an invalid request does to the session, and refresh tokens.
+- **Sources:**
+  - https://auth0.com/docs/authenticate/login/logout/redirect-users-after-logout
+  - https://auth0.com/docs/authenticate/login/logout/log-users-out-of-auth0
+  - OpenID Connect RP-Initiated Logout 1.0 §2–§3
+  - RFC 9700 §4.11 (open redirection)
+- **Decision:**
+  - Every logout request is validated before the session ends. An invalid request shows an error page (400), keeps the session, and never redirects.
+  - **`/v2/logout`:**
+    - `returnTo` is checked against the client's allowed logout URLs when `client_id` is present, otherwise the tenant's.
+    - It is compared without its query string and fragment, with scheme and host case-insensitive. The single-label wildcard host form is allowed.
+    - With `client_id` and no `returnTo`, the browser goes to the client's first non-wildcard allowed logout URL. With neither, a logged-out page is shown.
+    - `federated` is ignored.
+  - **`/oidc/logout`:** see D-0015.
+  - Logout deletes the server-side session and clears the cookie. Refresh tokens are not revoked; applications revoke them at `/oauth/revoke`.
+- **Rationale:** Validating first means a malformed or malicious link can neither redirect elsewhere nor log the user out while claiming failure. Keeping refresh tokens matches the public docs, which describe revocation as a separate step.
