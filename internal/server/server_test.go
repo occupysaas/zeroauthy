@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/api"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/testutil/contract"
@@ -50,6 +51,7 @@ func newTestServer(t *testing.T) http.Handler {
 		Store:    st,
 		Keys:     km,
 		Resolver: tenant.NewResolver(st.Tenants(), "", false),
+		Sessions: &session.Manager{Store: st},
 		Log:      slog.New(slog.NewTextHandler(io.Discard, nil)),
 	})
 }

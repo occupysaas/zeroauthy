@@ -28,6 +28,8 @@ tags:
     description: Metadata that lets clients configure themselves.
   - name: Tokens
     description: Obtain tokens.
+  - name: Login
+    description: Browser-based login flows.
 paths:
   /.well-known/openid-configuration:
     get:
@@ -71,6 +73,66 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/JWKS"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        default:
+          $ref: "#/components/responses/ServerError"
+  /authorize:
+    get:
+      operationId: authorize
+      tags: [Login]
+      summary: Start an authorization (login) flow
+      description: |
+        Starts the authorization code flow (with PKCE for public applications).
+        If the browser has a valid session, the authorization code is returned
+        immediately. Otherwise the user is sent to the hosted login page.
+
+        Responses are delivered according to `response_mode`: `query`
+        (default), `fragment`, `form_post` (an auto-submitting form), or
+        `web_message` (a page that posts the response to the application's
+        window, used for silent authentication with `prompt=none`).
+
+        If `client_id` is unknown or `redirect_uri` is not registered, an
+        error page is shown and nothing is sent to the `redirect_uri`.
+        Unknown parameters are ignored.
+      x-source:
+        - https://www.rfc-editor.org/rfc/rfc6749#section-4.1
+        - https://www.rfc-editor.org/rfc/rfc7636
+        - https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+        - https://openid.net/specs/oauth-v2-form-post-response-mode-1_0.html
+        - https://datatracker.ietf.org/doc/html/draft-sakimura-oauth-wmrm-00
+        - https://auth0.com/docs/api/authentication
+      parameters:
+        - {name: client_id, in: query, schema: {type: string}, description: The application's client ID.}
+        - {name: redirect_uri, in: query, schema: {type: string}, description: A callback URL registered for the application.}
+        - {name: response_type, in: query, schema: {type: string}, description: Must be `code`.}
+        - {name: response_mode, in: query, schema: {type: string}, description: "`query`, `fragment`, `form_post` or `web_message`."}
+        - {name: scope, in: query, schema: {type: string}, description: "Space-separated scopes, e.g. `openid profile email`."}
+        - {name: state, in: query, schema: {type: string}, description: Opaque value returned unchanged.}
+        - {name: nonce, in: query, schema: {type: string}, description: Value copied into the ID token.}
+        - {name: audience, in: query, schema: {type: string}, description: Identifier of the API to issue an access token for.}
+        - {name: prompt, in: query, schema: {type: string}, description: "`none` (fail instead of showing login) or `login` (force login)."}
+        - {name: max_age, in: query, schema: {type: string}, description: Maximum authentication age in seconds.}
+        - {name: code_challenge, in: query, schema: {type: string}, description: PKCE challenge (S256).}
+        - {name: code_challenge_method, in: query, schema: {type: string}, description: Must be `S256`.}
+        - {name: connection, in: query, schema: {type: string}, description: Name of the connection to log in with.}
+        - {name: login_hint, in: query, schema: {type: string}, description: Prefills the login identifier.}
+        - {name: screen_hint, in: query, schema: {type: string}, description: "`signup` opens the signup page."}
+        - {name: organization, in: query, schema: {type: string}, description: Not supported yet; rejected.}
+        - {name: invitation, in: query, schema: {type: string}, description: Not supported yet; rejected.}
+      responses:
+        "302":
+          description: Redirect to the login page, or to `redirect_uri` with `code` or `error` (query and fragment modes).
+        "200":
+          description: A `form_post` or `web_message` response page.
+          content:
+            text/html:
+              schema: {type: string}
+        "400":
+          description: Error page for an unknown client or unregistered redirect URI.
+          content:
+            text/html:
+              schema: {type: string}
         "404":
           $ref: "#/components/responses/UnknownTenant"
         default:

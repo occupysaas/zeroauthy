@@ -4,10 +4,12 @@
 package authapi
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 )
 
 // JWK defines model for JWK.
@@ -87,6 +89,60 @@ type ServerError = OAuthError
 // UnknownTenant defines model for UnknownTenant.
 type UnknownTenant = OAuthError
 
+// AuthorizeParams defines parameters for Authorize.
+type AuthorizeParams struct {
+	// ClientId The application's client ID.
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
+
+	// RedirectUri A callback URL registered for the application.
+	RedirectUri *string `form:"redirect_uri,omitempty" json:"redirect_uri,omitempty"`
+
+	// ResponseType Must be `code`.
+	ResponseType *string `form:"response_type,omitempty" json:"response_type,omitempty"`
+
+	// ResponseMode `query`, `fragment`, `form_post` or `web_message`.
+	ResponseMode *string `form:"response_mode,omitempty" json:"response_mode,omitempty"`
+
+	// Scope Space-separated scopes, e.g. `openid profile email`.
+	Scope *string `form:"scope,omitempty" json:"scope,omitempty"`
+
+	// State Opaque value returned unchanged.
+	State *string `form:"state,omitempty" json:"state,omitempty"`
+
+	// Nonce Value copied into the ID token.
+	Nonce *string `form:"nonce,omitempty" json:"nonce,omitempty"`
+
+	// Audience Identifier of the API to issue an access token for.
+	Audience *string `form:"audience,omitempty" json:"audience,omitempty"`
+
+	// Prompt `none` (fail instead of showing login) or `login` (force login).
+	Prompt *string `form:"prompt,omitempty" json:"prompt,omitempty"`
+
+	// MaxAge Maximum authentication age in seconds.
+	MaxAge *string `form:"max_age,omitempty" json:"max_age,omitempty"`
+
+	// CodeChallenge PKCE challenge (S256).
+	CodeChallenge *string `form:"code_challenge,omitempty" json:"code_challenge,omitempty"`
+
+	// CodeChallengeMethod Must be `S256`.
+	CodeChallengeMethod *string `form:"code_challenge_method,omitempty" json:"code_challenge_method,omitempty"`
+
+	// Connection Name of the connection to log in with.
+	Connection *string `form:"connection,omitempty" json:"connection,omitempty"`
+
+	// LoginHint Prefills the login identifier.
+	LoginHint *string `form:"login_hint,omitempty" json:"login_hint,omitempty"`
+
+	// ScreenHint `signup` opens the signup page.
+	ScreenHint *string `form:"screen_hint,omitempty" json:"screen_hint,omitempty"`
+
+	// Organization Not supported yet; rejected.
+	Organization *string `form:"organization,omitempty" json:"organization,omitempty"`
+
+	// Invitation Not supported yet; rejected.
+	Invitation *string `form:"invitation,omitempty" json:"invitation,omitempty"`
+}
+
 // OauthTokenJSONRequestBody defines body for OauthToken for application/json ContentType.
 type OauthTokenJSONRequestBody = TokenRequest
 
@@ -101,6 +157,9 @@ type ServerInterface interface {
 	// Discovery OpenID Provider configuration
 	// (GET /.well-known/openid-configuration)
 	Discovery(w http.ResponseWriter, r *http.Request)
+	// Authorize Start an authorization (login) flow
+	// (GET /authorize)
+	Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams)
 	// OauthToken Get a token
 	// (POST /oauth/token)
 	OauthToken(w http.ResponseWriter, r *http.Request)
@@ -119,6 +178,12 @@ func (_ Unimplemented) Jwks(w http.ResponseWriter, r *http.Request) {
 // Discovery OpenID Provider configuration
 // (GET /.well-known/openid-configuration)
 func (_ Unimplemented) Discovery(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Authorize Start an authorization (login) flow
+// (GET /authorize)
+func (_ Unimplemented) Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -156,6 +221,247 @@ func (siw *ServerInterfaceWrapper) Discovery(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Discovery(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// Authorize operation middleware
+func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthorizeParams
+
+	// ------------- Optional query parameter "client_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "client_id", r.URL.Query(), &params.ClientId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "client_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "redirect_uri" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "redirect_uri", r.URL.Query(), &params.RedirectUri, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "redirect_uri"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "redirect_uri", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "response_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "response_type", r.URL.Query(), &params.ResponseType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "response_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "response_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "response_mode" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "response_mode", r.URL.Query(), &params.ResponseMode, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "response_mode"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "response_mode", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "nonce" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "nonce", r.URL.Query(), &params.Nonce, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "nonce"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "audience" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "audience", r.URL.Query(), &params.Audience, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "audience"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "audience", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "prompt" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "prompt", r.URL.Query(), &params.Prompt, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "prompt"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prompt", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "max_age" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "max_age", r.URL.Query(), &params.MaxAge, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "max_age"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_age", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "code_challenge" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "code_challenge", r.URL.Query(), &params.CodeChallenge, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code_challenge"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code_challenge", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "code_challenge_method" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "code_challenge_method", r.URL.Query(), &params.CodeChallengeMethod, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code_challenge_method"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code_challenge_method", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "connection" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "connection", r.URL.Query(), &params.Connection, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "login_hint" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "login_hint", r.URL.Query(), &params.LoginHint, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "login_hint"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "login_hint", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "screen_hint" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "screen_hint", r.URL.Query(), &params.ScreenHint, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "screen_hint"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "screen_hint", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "organization" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "organization", r.URL.Query(), &params.Organization, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "organization"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "organization", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "invitation" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "invitation", r.URL.Query(), &params.Invitation, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "invitation"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "invitation", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Authorize(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -297,6 +603,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/.well-known/jwks.json", wrapper.Jwks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/authorize", wrapper.Authorize)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oauth/token", wrapper.OauthToken)

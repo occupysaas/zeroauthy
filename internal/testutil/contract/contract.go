@@ -21,6 +21,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/api"
 )
 
+// Hosted pages are HTML; the validator only needs to accept the body.
+func init() { openapi3filter.RegisterBodyDecoder("text/html", openapi3filter.FileBodyDecoder) }
+
 var (
 	loadOnce  sync.Once
 	theRouter routers.Router

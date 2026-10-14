@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/server"
+	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/storage"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -90,6 +91,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Store:    st,
 			Keys:     km,
 			Resolver: tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),
+			Sessions: &session.Manager{Store: st},
 			Log:      log,
 		}),
 	}, nil
