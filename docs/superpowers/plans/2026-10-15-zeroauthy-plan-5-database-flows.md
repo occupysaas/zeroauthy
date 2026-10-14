@@ -2101,7 +2101,7 @@ test('forgot password: email link, new password, sign in', async ({ page }) => {
   await page.waitForURL(/localhost:8443\/u\/login/);
   const since = Date.now() - 1000;
   await page.click('text=Forgot password?');
-  await page.fill('#email', 'alice@e2e.local');
+  await page.fill('#email', 'reset-me@e2e.local');
   await page.click('button[type=submit]');
   await expect(page.locator('h1')).toHaveText('Check your email');
 
@@ -2116,14 +2116,14 @@ test('forgot password: email link, new password, sign in', async ({ page }) => {
   await page.goto(SPA);
   await page.click('#login');
   await page.waitForURL(/localhost:8443\/u\/login/);
-  await page.fill('#username', 'alice@e2e.local');
+  await page.fill('#username', 'reset-me@e2e.local');
   await page.fill('#password', 'Brand-New-Password-7');
   await page.click('button[type=submit]');
   await page.waitForURL(SPA);
 });
 ```
 
-The m4 spec and the other specs log in as `alice` with `Correct-Horse-Battery-9`. Changing her password would break any spec that runs after this one. So give this spec its own user: add `reset-me@e2e.local` (with password `Correct-Horse-Battery-9`) to `seed.yaml`, and use that address in place of `alice@e2e.local` in this spec. The reset page's inputs must use `id="password"` and `id="password_confirm"`, and the request form's input must use `id="email"`.
+The m4 spec and the other specs log in as `alice` with `Correct-Horse-Battery-9`. Changing her password would break any spec that runs after this one. So give this spec its own user: add `reset-me@e2e.local` (with password `Correct-Horse-Battery-9`) to `seed.yaml`, and use that address in place of `reset-me@e2e.local` in this spec. The reset page's inputs must use `id="password"` and `id="password_confirm"`, and the request form's input must use `id="email"`.
 
 Run: `make e2e`
 Expected: run-m3 prints both OK lines, and run-browser reports `6 passed`.
