@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -406,5 +407,25 @@ func TestSignupIPThrottle(t *testing.T) {
 	}
 	if _, err := e.st.Users().FindByLogin(context.Background(), mustTenant(t, e, "acme").ID, "Username-Password-Authentication", "u3@acme.test"); err == nil {
 		t.Fatal("throttled signup created a user")
+	}
+}
+
+// Localized policy messages keep the English wording that Reason produced
+// before localization.
+func TestPolicyMessagesKeepEnglishWording(t *testing.T) {
+	errs := []error{
+		identity.CheckPassword(store.PasswordPolicy{}, strings.Repeat("x", 300)),
+		identity.CheckPassword(store.PasswordPolicy{MinLength: 12}, "short"),
+		identity.CheckPassword(store.PasswordPolicy{RequireCharacterClasses: 3}, "alllowercase"),
+		identity.CheckUsername("not valid!"),
+	}
+	for _, err := range errs {
+		pe, ok := err.(*identity.PolicyError)
+		if !ok || pe.Key == "" {
+			t.Fatalf("err = %#v, want a keyed PolicyError", err)
+		}
+		if got, want := i18n.Default().T(pe.Key, pe.Vars...), capitalize(pe.Reason)+"."; got != want {
+			t.Errorf("%s = %q, want %q", pe.Key, got, want)
+		}
 	}
 }

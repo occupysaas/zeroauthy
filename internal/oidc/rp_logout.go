@@ -26,7 +26,7 @@ const maxLogoutFormBytes = 16 << 10
 
 // confirmedFields are the request parameters the confirmation page posts
 // back.
-var confirmedFields = []string{"id_token_hint", "logout_hint", "client_id", "post_logout_redirect_uri", "state"}
+var confirmedFields = []string{"id_token_hint", "logout_hint", "client_id", "post_logout_redirect_uri", "state", "ui_locales"}
 
 // OidcLogout implements OpenID Connect RP-Initiated Logout 1.0 at GET and
 // POST /oidc/logout (D-0015). The request is validated before anything

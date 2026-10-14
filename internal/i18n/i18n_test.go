@@ -80,7 +80,7 @@ func TestVariables(t *testing.T) {
 	if got := l.T("login.login.description"); got != "Sign in to Acme Corp to continue to Shop." {
 		t.Fatalf("description = %q", got)
 	}
-	if got := l.T("zeroauthy.signup.password-too-short", "min", "12"); got != "Use a password of at least 12 characters." {
+	if got := l.T("zeroauthy.signup.password-too-short", "min", "12"); got != "Password must be at least 12 characters." {
 		t.Fatalf("with kv = %q", got)
 	}
 	if got := New(&store.Tenant{Name: "acme"}, "en").T("login.login.description"); got != "Sign in to acme to continue to ." {

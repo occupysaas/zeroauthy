@@ -23,7 +23,7 @@
       "loginActionText": "Already have an account?",
       "loginActionLinkText": "Sign in",
       "email-in-use": "An account with this email or username already exists.",
-      "invalid-username": "Usernames are 1-64 characters: letters, digits, and _ . + -"
+      "invalid-username": "Username must be 1-64 characters: letters, digits, and _ . + -."
     }
   },
   "logout": {
@@ -42,9 +42,9 @@
       "too-many-attempts": "Too many attempts. Wait a few minutes and try again."
     },
     "signup": {
-      "password-too-long": "This password is too long.",
-      "password-too-short": "Use a password of at least ${min} characters.",
-      "password-character-classes": "Use at least ${count} of: lowercase letters, uppercase letters, digits, symbols."
+      "password-too-long": "Password is too long.",
+      "password-too-short": "Password must be at least ${min} characters.",
+      "password-character-classes": "Password must contain at least ${count} of: lowercase letters, uppercase letters, digits, symbols."
     },
     "error": {
       "title": "Something went wrong",

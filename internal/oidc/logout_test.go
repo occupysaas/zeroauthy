@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
@@ -39,7 +40,8 @@ func newLogoutEnv(t *testing.T, wrap func(store.Store) store.Store) *logoutEnv {
 	t.Helper()
 	ctx := context.Background()
 	st := memory.New()
-	tn := &store.Tenant{ID: "ten_a", Name: "acme", Domains: []string{"acme.example.test"}, AllowedLogoutURLs: []string{"https://acme.test/bye"}}
+	tn := &store.Tenant{ID: "ten_a", Name: "acme", Domains: []string{"acme.example.test"}, AllowedLogoutURLs: []string{"https://acme.test/bye"},
+		EnabledLocales: []string{"en", "fr"}}
 	for _, x := range []*store.Tenant{tn, {ID: "ten_b", Name: "globex", Domains: []string{"globex.example.test"}}} {
 		if err := st.Tenants().Create(ctx, x); err != nil {
 			t.Fatal(err)
@@ -361,6 +363,36 @@ func TestOidcLogoutConfirmation(t *testing.T) {
 	rec = confirm(m[1], ck, csrfCookie)
 	if rec.Code != 302 || rec.Header().Get("Location") != "https://app.acme.test/bye?state=st" || e.alive(t, s) {
 		t.Fatalf("confirmed = %d %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+var hiddenField = regexp.MustCompile(`<input type="hidden" name="([^"]+)" value="([^"]*)">`)
+
+// The confirmation page posts ui_locales back, so the logged-out page keeps
+// the requested language.
+func TestOidcLogoutConfirmationKeepsLanguage(t *testing.T) {
+	e := newLogoutEnv(t, nil)
+	ck, s := e.login(t)
+	rec := e.do(t, "GET", rp(url.Values{"client_id": {"spa"}, "ui_locales": {"fr"}}), nil, ck)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `<html lang="fr" dir="ltr">`) {
+		t.Fatalf("confirmation = %d %s", rec.Code, rec.Body)
+	}
+	form := url.Values{}
+	for _, m := range hiddenField.FindAllStringSubmatch(rec.Body.String(), -1) {
+		form.Add(m[1], html.UnescapeString(m[2]))
+	}
+	if form.Get("ui_locales") != "fr" {
+		t.Fatalf("confirmation form lacks ui_locales: %v", form)
+	}
+	var csrfCookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "za_logout" {
+			csrfCookie = c
+		}
+	}
+	rec = e.do(t, "POST", "/oidc/logout", form, ck, csrfCookie)
+	if rec.Code != 200 || e.alive(t, s) || !strings.Contains(rec.Body.String(), `<html lang="fr" dir="ltr">`) {
+		t.Fatalf("logged out = %d alive=%v %s", rec.Code, e.alive(t, s), rec.Body)
 	}
 }
 
