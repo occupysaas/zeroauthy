@@ -3,6 +3,7 @@ package identity
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,10 +60,16 @@ func TestSignupThenLogin(t *testing.T) {
 func TestLoginFailures(t *testing.T) {
 	ctx := context.Background()
 	db, conn := newDB(t)
-	u, _ := db.Signup(ctx, conn, "bob@example.com", "", "bobs password")
+	u, err := db.Signup(ctx, conn, "bob@example.com", "", "bobs password")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if _, err := db.Login(ctx, conn, "bob@example.com", "wrong"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("wrong password err = %v", err)
+	}
+	if _, err := db.Login(ctx, conn, "bob@example.com", strings.Repeat("x", maxPasswordBytes+1)); !errors.Is(err, ErrInvalidCredentials) {
+		t.Errorf("over-long password err = %v", err)
 	}
 	if _, err := db.Login(ctx, conn, "nobody@example.com", "x"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("unknown user err = %v", err)

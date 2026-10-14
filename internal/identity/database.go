@@ -43,6 +43,10 @@ func (d *Database) now() time.Time {
 // and wrong passwords alike, and ErrUserBlocked only after the password
 // has been verified.
 func (d *Database) Login(ctx context.Context, conn *store.Connection, login, password string) (*store.User, error) {
+	if len(password) > maxPasswordBytes {
+		_, _ = secrets.Verify(dummyHash(), password)
+		return nil, ErrInvalidCredentials
+	}
 	u, err := d.Store.Users().FindByLogin(ctx, conn.TenantID, conn.Name, NormalizeLogin(login))
 	if errors.Is(err, store.ErrNotFound) {
 		_, _ = secrets.Verify(dummyHash(), password)

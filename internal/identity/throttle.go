@@ -5,11 +5,12 @@ import (
 	"time"
 )
 
-// maxThrottleEntries bounds memory. Expired entries are pruned when the
-// map grows past it.
+// maxThrottleEntries is the map size at which Attempt prunes expired
+// entries. It is not a hard cap: if every entry is still live, the map
+// keeps growing.
 const maxThrottleEntries = 100_000
 
-// Throttle locks a key after too many failures within a window. It is
+// Throttle locks a key after too many attempts within a window. It is
 // in-process; each server instance counts separately.
 type Throttle struct {
 	Now func() time.Time
@@ -23,12 +24,17 @@ type Throttle struct {
 }
 
 type throttleEntry struct {
-	failures    int
+	count       int
 	windowStart time.Time
 	lockedUntil time.Time
 }
 
+// NewThrottle returns a throttle that locks a key for lockout after
+// maxFailures attempts within window. maxFailures below 1 is treated as 1.
 func NewThrottle(maxFailures int, window, lockout time.Duration) *Throttle {
+	if maxFailures < 1 {
+		maxFailures = 1
+	}
 	return &Throttle{max: maxFailures, window: window, lockout: lockout, entries: map[string]*throttleEntry{}}
 }
 
@@ -39,36 +45,50 @@ func (t *Throttle) now() time.Time {
 	return time.Now()
 }
 
-// Allowed reports whether an attempt for key may proceed.
-func (t *Throttle) Allowed(key string) bool {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	e, ok := t.entries[key]
-	return !ok || !t.now().Before(e.lockedUntil)
-}
-
-// Failure records a failed attempt.
-func (t *Throttle) Failure(key string) {
+// Attempt counts an attempt for key and reports whether it may proceed.
+// It returns false while key is locked. The check and the count happen
+// under one lock, so callers must call Attempt before verifying
+// credentials: concurrent attempts then cannot all pass a check that a
+// later failure would enforce.
+func (t *Throttle) Attempt(key string) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	now := t.now()
 	e, ok := t.entries[key]
-	if !ok || now.Sub(e.windowStart) > t.window {
+	if !ok {
 		if len(t.entries) >= maxThrottleEntries {
 			t.prune(now)
 		}
 		e = &throttleEntry{windowStart: now}
 		t.entries[key] = e
-	}
-	e.failures++
-	if e.failures >= t.max {
-		e.lockedUntil = now.Add(t.lockout)
-		e.failures = 0
+	} else if now.Before(e.lockedUntil) {
+		return false
+	} else if now.Sub(e.windowStart) > t.window {
+		// The window expired. lockedUntil is left alone, so a lockout
+		// longer than the window still holds.
 		e.windowStart = now
+		e.count = 0
+	}
+	e.count++
+	if e.count >= t.max {
+		e.lockedUntil = now.Add(t.lockout)
+		e.count = 0
+		e.windowStart = now
+	}
+	return true
+}
+
+// Refund undoes one counted attempt for key. It does not clear an active
+// lockout. Use it for a key whose successful logins should not accumulate.
+func (t *Throttle) Refund(key string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if e, ok := t.entries[key]; ok && e.count > 0 {
+		e.count--
 	}
 }
 
-// Success clears the failures for key.
+// Success clears all state for key, including any lockout.
 func (t *Throttle) Success(key string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
