@@ -144,6 +144,12 @@ func TestAuthorizationCodeMisuse(t *testing.T) {
 		"wrong verifier": func() tokenCall {
 			return tokenCall{host: "acme.example.test", form: codeForm(spa(), "code-spa", "https://app.acme.test/cb", strings.Repeat("a", 43))}
 		},
+		"verifier without challenge": func() tokenCall {
+			code := f.issueCode(t, "code-web", "https://web.acme.test/cb", "", []string{"openid"}, "")
+			form := codeForm(code, "code-web", "https://web.acme.test/cb", pkceVerifier)
+			form.Set("client_secret", "code-web-secret")
+			return tokenCall{host: "acme.example.test", form: form}
+		},
 		"other tenant": func() tokenCall {
 			return tokenCall{host: "globex.example.test", form: codeForm(spa(), "code-spa", "https://app.acme.test/cb", pkceVerifier)}
 		},
@@ -154,8 +160,15 @@ func TestAuthorizationCodeMisuse(t *testing.T) {
 			if rec.Code == 200 || body["access_token"] != nil {
 				t.Fatalf("tokens issued: %d %v", rec.Code, body)
 			}
-			if e := body["error"]; e != "invalid_grant" && e != "invalid_client" {
-				t.Fatalf("error = %v", e)
+			want := "invalid_grant"
+			if name == "other tenant" {
+				if body["error"] != "invalid_client" && body["error"] != want {
+					t.Fatalf("error = %v", body["error"])
+				}
+				return
+			}
+			if body["error"] != want {
+				t.Fatalf("error = %v, want %s", body["error"], want)
 			}
 		})
 	}
@@ -172,7 +185,10 @@ func TestAuthorizationCodeMisuse(t *testing.T) {
 	t.Run("blocked user", func(t *testing.T) {
 		code := spa()
 		ctx := context.Background()
-		u, _ := f.st.Users().FindByLogin(ctx, f.tenantID(t, "acme"), "Username-Password-Authentication", "alice@acme.test")
+		u, err := f.st.Users().FindByLogin(ctx, f.tenantID(t, "acme"), "Username-Password-Authentication", "alice@acme.test")
+		if err != nil {
+			t.Fatal(err)
+		}
 		u.Blocked = true
 		_ = f.st.Users().Update(ctx, u)
 		defer func() { u.Blocked = false; _ = f.st.Users().Update(ctx, u) }()

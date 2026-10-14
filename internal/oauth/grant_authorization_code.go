@@ -66,8 +66,14 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		if !verifyPKCE(ac.CodeChallengeMethod, ac.CodeChallenge, form.Get("code_verifier")) {
 			return nil, invalidGrant("code_verifier does not match the code_challenge")
 		}
-	} else if c.TokenEndpointAuthMethod == store.AuthMethodNone {
-		return nil, invalidGrant("PKCE is required for public applications")
+	} else {
+		if c.TokenEndpointAuthMethod == store.AuthMethodNone {
+			return nil, invalidGrant("PKCE is required for public applications")
+		}
+		// RFC 9700 §4.8.2: refuse a verifier for a code issued without a challenge.
+		if form.Get("code_verifier") != "" {
+			return nil, invalidGrant("code_verifier was sent but the authorization request had no code_challenge")
+		}
 	}
 
 	user, err := h.Store.Users().Get(ctx, tenantID, ac.UserID)
@@ -75,6 +81,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		return nil, invalidGrant("the user is not allowed to sign in")
 	}
 	if err != nil {
+		h.log().ErrorContext(ctx, "load user", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
 
@@ -87,6 +94,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			return nil, invalidGrant("the requested audience no longer exists")
 		}
 		if err != nil {
+			h.log().ErrorContext(ctx, "load resource server", "tenant", tenantID, "err", err)
 			return nil, serverError()
 		}
 		if rs.TokenLifetime > 0 {
