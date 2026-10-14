@@ -22,7 +22,7 @@ tenants:
       - client_id: spa
         app_type: spa
         grant_types: [authorization_code]
-        callbacks: ["https://app.acme.test/callback", "https://*.preview.acme.test/cb", "http://localhost:3000/", "https://app.acme.test/cb2?next=https://*.x"]
+        callbacks: ["https://app.acme.test/callback", "https://*.preview.acme.test/cb", "http://localhost:3000/", "https://app.acme.test/cb2?next=https://*.x", "com.example.app:/oauth2redirect"]
         web_origins: ["https://app.acme.test"]
       - client_id: other-spa
         app_type: spa

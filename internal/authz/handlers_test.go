@@ -236,3 +236,42 @@ func TestSessionConnectionMustBeEnabledForClient(t *testing.T) {
 		t.Fatalf("prompt=none Location = %s", loc)
 	}
 }
+
+func TestPrivateUseCallbackReceivesCode(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	loc := location(t, e.get(t, with(goodQuery(), "redirect_uri", "com.example.app:/oauth2redirect"), ck))
+	if loc.Scheme != "com.example.app" || loc.Path != "/oauth2redirect" || loc.Query().Get("code") == "" || loc.Query().Get("state") != "st" {
+		t.Fatalf("Location = %s", loc)
+	}
+}
+
+// A session whose user was blocked or deleted since login must not get a code.
+func TestSessionOfBlockedOrDeletedUser(t *testing.T) {
+	for _, name := range []string{"blocked", "deleted"} {
+		t.Run(name, func(t *testing.T) {
+			e := newEnv(t)
+			ck := e.login(t, fixedNow())
+			if name == "blocked" {
+				u, _ := e.st.Users().FindByLogin(context.Background(), e.tenant.ID, "Username-Password-Authentication", "alice@acme.test")
+				u.Blocked = true
+				if err := e.st.Users().Update(context.Background(), u); err != nil {
+					t.Fatal(err)
+				}
+			} else { // the store has no user deletion; a session for a missing user is equivalent
+				rec := httptest.NewRecorder()
+				if _, err := e.h.Sessions.Start(context.Background(), rec, httptest.NewRequest("GET", "/", nil), e.tenant, "auth0|gone", "Username-Password-Authentication", fixedNow()); err != nil {
+					t.Fatal(err)
+				}
+				ck = rec.Result().Cookies()[0]
+			}
+			if loc := location(t, e.get(t, goodQuery(), ck)); loc.Path != "/u/login" || loc.Query().Get("code") != "" {
+				t.Fatalf("Location = %s", loc)
+			}
+			loc := location(t, e.get(t, with(goodQuery(), "prompt", "none"), ck))
+			if loc.Query().Get("error") != "login_required" || loc.Query().Get("code") != "" {
+				t.Fatalf("prompt=none Location = %s", loc)
+			}
+		})
+	}
+}

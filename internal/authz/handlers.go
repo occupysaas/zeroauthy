@@ -72,6 +72,19 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		writeResponse(w, r, req, errorParams(errServer(), req.State))
 		return
 	}
+	if sess != nil {
+		// A session outlives its user: a blocked or deleted user must log in
+		// again (and be refused there) rather than receive a code.
+		u, err := h.Store.Users().Get(ctx, res.Tenant.ID, sess.UserID)
+		switch {
+		case errors.Is(err, store.ErrNotFound) || (err == nil && u.Blocked):
+			sess = nil
+		case err != nil:
+			h.log().ErrorContext(ctx, "load session user", "tenant", res.Tenant.ID, "err", err)
+			writeResponse(w, r, req, errorParams(errServer(), req.State))
+			return
+		}
+	}
 	login := h.needsLogin(req, sess)
 	if !login {
 		login, err = h.connectionDisabled(ctx, res, client, sess)

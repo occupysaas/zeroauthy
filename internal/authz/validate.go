@@ -121,14 +121,19 @@ var dnsLabel = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$
 // "*" stands for exactly one DNS label. Only a callback whose authority
 // begins with "*." is a wildcard pattern.
 func callbackAllowed(callbacks []string, uri string) bool {
+	if strings.Contains(uri, "#") {
+		return false
+	}
+	// An exact match is always allowed, including RFC 8252 private-use
+	// schemes (com.example.app:/callback) that have no host.
+	if slices.Contains(callbacks, uri) {
+		return true
+	}
 	u, err := url.Parse(uri)
-	if err != nil || u.Fragment != "" || strings.Contains(uri, "#") || u.User != nil || u.Host == "" {
+	if err != nil || u.User != nil || u.Host == "" {
 		return false
 	}
 	for _, cb := range callbacks {
-		if cb == uri {
-			return true
-		}
 		if !strings.HasPrefix(cb, "https://*.") {
 			continue
 		}

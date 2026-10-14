@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -88,7 +89,32 @@ func formActionFor(redirectURI string) string {
 	if o := origin(redirectURI); o != "'none'" {
 		return "'self' " + o
 	}
+	if s := customScheme(redirectURI); s != "" {
+		return "'self' " + s
+	}
 	return "'self'"
+}
+
+var (
+	schemeSyntax = regexp.MustCompile(`^[a-z][a-z0-9+.-]*$`)
+	// Schemes that execute or expose content and must never become a
+	// form-action source.
+	dangerousSchemes = []string{"javascript", "data", "vbscript", "file", "blob", "about", "filesystem"}
+)
+
+// customScheme returns the "<scheme>:" CSP source for a native-app
+// redirect_uri (RFC 8252 private-use scheme), or "" for http(s), relative
+// or malformed URIs.
+func customScheme(redirectURI string) string {
+	i := strings.IndexByte(redirectURI, ':')
+	if i <= 0 {
+		return ""
+	}
+	s := redirectURI[:i]
+	if !schemeSyntax.MatchString(s) || s == "http" || s == "https" || slices.Contains(dangerousSchemes, s) {
+		return ""
+	}
+	return s + ":"
 }
 
 func render(w http.ResponseWriter, status int, name string, t Tenant, data any, formAction string) {

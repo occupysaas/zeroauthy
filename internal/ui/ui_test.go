@@ -182,9 +182,14 @@ func TestRenderFormPostRejectsBadActionOrigin(t *testing.T) {
 
 func TestFormPagesAllowRedirectOriginInFormAction(t *testing.T) {
 	for redirect, want := range map[string]string{
-		"https://app.test:3443/cb?x=1": "form-action 'self' https://app.test:3443;",
-		"com.example.app://cb":         "form-action 'self';",
-		"":                             "form-action 'self';",
+		"https://app.test:3443/cb?x=1":    "form-action 'self' https://app.test:3443;",
+		"com.example.app://cb":            "form-action 'self' com.example.app:;",
+		"com.example.app:/oauth2redirect": "form-action 'self' com.example.app:;",
+		"java script:foo":                 "form-action 'self';",
+		"a;b:/x":                          "form-action 'self';",
+		"1abc:/x":                         "form-action 'self';",
+		"javascript:alert(1)":             "form-action 'self';",
+		"":                                "form-action 'self';",
 	} {
 		rec := httptest.NewRecorder()
 		RenderLogin(rec, 200, Tenant{Name: "Acme"}, LoginData{State: "st", CSRF: "cs", RedirectURI: redirect})

@@ -74,6 +74,8 @@ func TestValidateErrors(t *testing.T) {
 		{"wildcard quote label", with(goodQuery(), "redirect_uri", "https://x\".preview.acme.test/cb"), "invalid_request", false},
 		{"wildcard encoded path", with(goodQuery(), "redirect_uri", "https://x.preview.acme.test/%63b"), "invalid_request", false},
 		{"wildcard percent label", with(goodQuery(), "redirect_uri", "https://x%25.preview.acme.test/cb"), "invalid_request", false},
+		{"unregistered private-use", with(goodQuery(), "redirect_uri", "com.example.app:/other"), "invalid_request", false},
+		{"private-use with fragment", with(goodQuery(), "redirect_uri", "com.example.app:/oauth2redirect#x"), "invalid_request", false},
 		{"web_message unregistered origin", with(goodQuery(), "redirect_uri", "http://localhost:3000/", "response_mode", "web_message"), "invalid_request", false},
 		// Redirectable errors.
 		{"no response_type", with(goodQuery(), "response_type", ""), "invalid_request", true},
@@ -107,6 +109,7 @@ func TestValidateAccepts(t *testing.T) {
 	f := newFixture(t)
 	for name, q := range map[string]url.Values{
 		"wildcard one label":     with(goodQuery(), "redirect_uri", "https://pr-42.preview.acme.test/cb"),
+		"private-use exact":      with(goodQuery(), "redirect_uri", "com.example.app:/oauth2redirect"),
 		"localhost http":         with(goodQuery(), "redirect_uri", "http://localhost:3000/"),
 		"web_message registered": with(goodQuery(), "response_mode", "web_message", "prompt", "none"),
 		"form_post":              with(goodQuery(), "response_mode", "form_post"),
