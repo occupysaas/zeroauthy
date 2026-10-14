@@ -80,6 +80,21 @@ func testRefreshTokens(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 	})
 
+	t.Run("RotateAfterFamilyRevoked", func(t *testing.T) {
+		s := open(t, newStore)
+		revokedAt := ts(2 * time.Minute)
+		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken("ten_a", "rt1", "h1", "f1")))
+		mustNoErr(t, s.RefreshTokens().Rotate(ctx, "ten_a", "rt1", newRefreshToken("ten_a", "rt2", "h2", "f1"), ts(time.Minute), time.Hour))
+		mustNoErr(t, s.RefreshTokens().RevokeFamily(ctx, "ten_a", "f1", revokedAt))
+		// A rotated token of a revoked family is reuse, even inside the leeway.
+		err := s.RefreshTokens().Rotate(ctx, "ten_a", "rt1", newRefreshToken("ten_a", "rt3", "h3", "f1"), ts(3*time.Minute), time.Hour)
+		mustErrIs(t, err, store.ErrAlreadyUsed)
+		_, err = s.RefreshTokens().GetByTokenHash(ctx, "ten_a", "h3")
+		mustErrIs(t, err, store.ErrNotFound)
+		rt1 := getRT(t, s, "ten_a", "h1")
+		mustEqual(t, rt1.RevokedAt != nil && rt1.RevokedAt.Equal(revokedAt), true)
+	})
+
 	t.Run("RotateWithinLeeway", func(t *testing.T) {
 		s := open(t, newStore)
 		leeway := 30 * time.Second
@@ -143,13 +158,19 @@ func testRefreshTokens(t *testing.T, newStore Factory) {
 		}
 		mustEqual(t, ok, 1)
 		mustEqual(t, reused, n-1)
-		// The race was reuse, so even the winning successor is revoked.
+		// The race was reuse, so even the winning successor is revoked, and
+		// only the winner's successor was stored.
+		stored := 0
 		for i := range n {
 			rt, err := s.RefreshTokens().GetByTokenHash(ctx, "ten_a", fmt.Sprintf("hn%d", i))
-			if err == nil {
-				mustEqual(t, rt.RevokedAt != nil, true)
+			if errors.Is(err, store.ErrNotFound) {
+				continue
 			}
+			mustNoErr(t, err)
+			stored++
+			mustEqual(t, rt.RevokedAt != nil, true)
 		}
+		mustEqual(t, stored, 1)
 	})
 
 	t.Run("Touch", func(t *testing.T) {
