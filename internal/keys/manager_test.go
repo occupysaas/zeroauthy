@@ -164,3 +164,38 @@ func TestKeysAreTenantScoped(t *testing.T) {
 		}
 	}
 }
+
+func TestVerify(t *testing.T) {
+	m, _ := newManager(t)
+	ctx := context.Background()
+	if err := m.Ensure(ctx, "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Ensure(ctx, "ten_b"); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := m.Sign(ctx, "ten_a", map[string]any{"sub": "u1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	if err := m.Verify(ctx, "ten_a", raw, &got); err != nil || got["sub"] != "u1" {
+		t.Fatalf("Verify = %v, %v", got, err)
+	}
+	if err := m.Verify(ctx, "ten_b", raw, &got); !errors.Is(err, ErrInvalidToken) {
+		t.Fatalf("cross-tenant Verify err = %v", err)
+	}
+	if err := m.Verify(ctx, "ten_a", raw[:len(raw)-4]+"AAAA", &got); !errors.Is(err, ErrInvalidToken) {
+		t.Fatalf("tampered Verify err = %v", err)
+	}
+	if err := m.Verify(ctx, "ten_a", "not.a.jwt", &got); !errors.Is(err, ErrInvalidToken) {
+		t.Fatalf("garbage Verify err = %v", err)
+	}
+	// Still valid after one rotation (key becomes "previous").
+	if err := m.Rotate(ctx, "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Verify(ctx, "ten_a", raw, &got); err != nil {
+		t.Fatalf("Verify after rotation: %v", err)
+	}
+}

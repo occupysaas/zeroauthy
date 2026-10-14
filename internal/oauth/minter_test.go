@@ -4,13 +4,17 @@ package oauth
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/google/go-cmp/cmp"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 )
 
@@ -116,5 +120,32 @@ func TestAccessTokenRequiresAudience(t *testing.T) {
 	m := &Minter{Keys: newTestKeys(t, "ten_a"), Now: fixedNow}
 	if _, err := m.AccessToken(context.Background(), AccessTokenParams{TenantID: "ten_a", Issuer: "https://a/", Subject: "s", ClientID: "c"}); err == nil {
 		t.Fatal("token minted without an audience")
+	}
+}
+
+func TestIDToken(t *testing.T) {
+	km := newTestKeys(t, "ten_a")
+	m := &Minter{Keys: km, Now: fixedNow}
+	u := &store.User{UserID: "auth0|1", Email: "alice@example.com", EmailVerified: true, Name: "Alice", UpdatedAt: fixedNow()}
+	authTime := fixedNow().Add(-time.Minute)
+	raw, err := m.IDToken(context.Background(), IDTokenParams{
+		TenantID: "ten_a", Issuer: "https://a.example.test/", ClientID: "spa", User: u,
+		Scopes: []string{"openid", "email"}, Nonce: "n-123", SessionID: "sid-1",
+		AuthTime: authTime, AccessToken: "the-access-token",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	claims, _ := verifyToken(t, km, "ten_a", raw)
+	iat := float64(fixedNow().Unix())
+	sum := sha256.Sum256([]byte("the-access-token"))
+	want := map[string]any{
+		"iss": "https://a.example.test/", "sub": "auth0|1", "aud": "spa",
+		"iat": iat, "exp": iat + DefaultIDTokenLifetime.Seconds(), "auth_time": float64(authTime.Unix()),
+		"nonce": "n-123", "sid": "sid-1", "email": "alice@example.com", "email_verified": true,
+		"at_hash": base64.RawURLEncoding.EncodeToString(sum[:16]),
+	}
+	if diff := cmp.Diff(want, claims); diff != "" {
+		t.Fatalf("claims (-want +got):\n%s", diff)
 	}
 }

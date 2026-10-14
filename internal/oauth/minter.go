@@ -3,13 +3,17 @@ package oauth
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 // DefaultAccessTokenLifetime applies when the resource server sets none.
@@ -65,11 +69,7 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 	if lifetime <= 0 {
 		lifetime = DefaultAccessTokenLifetime
 	}
-	now := time.Now
-	if m.Now != nil {
-		now = m.Now
-	}
-	iat := now().Unix()
+	iat := m.now().Unix()
 	return m.Keys.Sign(ctx, p.TenantID, accessTokenClaims{
 		Issuer:          p.Issuer,
 		Subject:         p.Subject,
@@ -81,4 +81,55 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 		GrantType:       p.GrantType,
 		ID:              secrets.RandomString(24),
 	})
+}
+
+// DefaultIDTokenLifetime applies when the client sets none.
+const DefaultIDTokenLifetime = 10 * time.Hour
+
+func (m *Minter) now() time.Time {
+	if m.Now != nil {
+		return m.Now()
+	}
+	return time.Now()
+}
+
+type IDTokenParams struct {
+	TenantID  string
+	Issuer    string
+	ClientID  string
+	User      *store.User
+	Scopes    []string
+	Nonce     string
+	SessionID string
+	AuthTime  time.Time
+	// AccessToken, when set, adds at_hash (OpenID Connect Core §3.1.3.6).
+	AccessToken string
+	// Lifetime defaults to DefaultIDTokenLifetime when zero.
+	Lifetime time.Duration
+}
+
+// IDToken returns a signed OpenID Connect ID token.
+func (m *Minter) IDToken(ctx context.Context, p IDTokenParams) (string, error) {
+	lifetime := p.Lifetime
+	if lifetime <= 0 {
+		lifetime = DefaultIDTokenLifetime
+	}
+	c := claims.ForUser(p.User, p.Scopes)
+	iat := m.now().Unix()
+	c["iss"] = p.Issuer
+	c["aud"] = p.ClientID
+	c["iat"] = iat
+	c["exp"] = iat + int64(lifetime/time.Second)
+	c["auth_time"] = p.AuthTime.Unix()
+	if p.Nonce != "" {
+		c["nonce"] = p.Nonce
+	}
+	if p.SessionID != "" {
+		c["sid"] = p.SessionID
+	}
+	if p.AccessToken != "" {
+		sum := sha256.Sum256([]byte(p.AccessToken))
+		c["at_hash"] = base64.RawURLEncoding.EncodeToString(sum[:16])
+	}
+	return m.Keys.Sign(ctx, p.TenantID, c)
 }

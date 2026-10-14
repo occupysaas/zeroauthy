@@ -21,6 +21,10 @@ import (
 // ErrNoSigningKey means the tenant has no current key; call Ensure first.
 var ErrNoSigningKey = errors.New("keys: tenant has no current signing key")
 
+// ErrInvalidToken means a token is malformed, uses another algorithm, or
+// is not signed by one of the tenant's published keys.
+var ErrInvalidToken = errors.New("keys: invalid token")
+
 const rsaBits = 2048
 
 type Manager struct {
@@ -176,3 +180,25 @@ func (m *Manager) signer(k *store.SigningKey) (jose.Signer, error) {
 // aad binds ciphertext to its tenant and key ID so a sealed key cannot be
 // moved to another record.
 func aad(tenantID, kid string) []byte { return []byte(tenantID + "|" + kid) }
+
+// Verify checks raw's signature against the tenant's published keys
+// (current, next, previous) and decodes its claims into dst. It does not
+// validate time or audience claims.
+func (m *Manager) Verify(ctx context.Context, tenantID, raw string, dst ...any) error {
+	tok, err := jwt.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256})
+	if err != nil || len(tok.Headers) != 1 {
+		return ErrInvalidToken
+	}
+	set, err := m.JWKS(ctx, tenantID)
+	if err != nil {
+		return err
+	}
+	matches := set.Key(tok.Headers[0].KeyID)
+	if len(matches) != 1 {
+		return ErrInvalidToken
+	}
+	if err := tok.Claims(matches[0].Key, dst...); err != nil {
+		return ErrInvalidToken
+	}
+	return nil
+}
