@@ -98,3 +98,5 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - `${clientName}` renders empty on the logout and error pages.
 - Languages are matched only exactly or by base language; there is no `zh-TW` → `zh-Hant` style matching.
 - Spaces around `q =` in Accept-Language are not tolerated.
+- The password-policy alias (`signup.signup.password-policy-not-conformant`) is not variable-checked; a value made only of unknown variables renders an empty alert. Fall back to the specific key when the rendered alias is blank.
+- The strict-key check for the `zeroauthy` prompt is case-sensitive, so `Zeroauthy`/`ZEROAUTHY` typos are accepted and ignored.
