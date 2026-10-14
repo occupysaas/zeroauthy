@@ -24,6 +24,11 @@ tenants:
         grant_types: [authorization_code]
         callbacks: ["https://app.acme.test/callback", "https://*.preview.acme.test/cb", "http://localhost:3000/", "https://app.acme.test/cb2?next=https://*.x"]
         web_origins: ["https://app.acme.test"]
+      - client_id: other-spa
+        app_type: spa
+        grant_types: [authorization_code]
+        callbacks: ["https://other.acme.test/cb"]
+        web_origins: ["https://other.acme.test"]
       - client_id: web
         app_type: regular_web
         client_secret: web-secret

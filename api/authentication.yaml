@@ -129,10 +129,13 @@ paths:
             text/html:
               schema: {type: string}
         "400":
-          description: Error page for an unknown client or unregistered redirect URI.
+          description: Error page for an unknown client or unregistered redirect URI, or a JSON error for malformed parameters (for example a repeated `client_id`).
           content:
             text/html:
               schema: {type: string}
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
         "404":
           $ref: "#/components/responses/UnknownTenant"
         default:

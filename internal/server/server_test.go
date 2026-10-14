@@ -135,3 +135,17 @@ func TestDocsPageIsPinnedAndLockedDown(t *testing.T) {
 		}
 	}
 }
+
+func TestAuthorizeThroughServer(t *testing.T) {
+	h := contract.Wrap(t, newTestServer(t))
+
+	rec := get(h, "https://acme.example.test/authorize?client_id=nope&redirect_uri=https://x.test/cb&response_type=code")
+	if rec.Code != 400 || rec.Header().Get("Location") != "" || !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/html") {
+		t.Errorf("unknown client = %d %v %s", rec.Code, rec.Header(), rec.Body)
+	}
+
+	rec = get(h, "https://acme.example.test/authorize?client_id=a&client_id=b")
+	if rec.Code != 400 || !strings.HasPrefix(rec.Header().Get("Content-Type"), "application/json") || !strings.Contains(rec.Body.String(), `"invalid_request"`) {
+		t.Errorf("repeated client_id = %d %v %s", rec.Code, rec.Header(), rec.Body)
+	}
+}

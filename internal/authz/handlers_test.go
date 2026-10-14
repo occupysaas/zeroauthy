@@ -221,3 +221,18 @@ func TestResume(t *testing.T) {
 		t.Fatal("transaction not deleted after resume")
 	}
 }
+
+// A session made through a connection the client does not have enabled must
+// not be reused for that client.
+func TestSessionConnectionMustBeEnabledForClient(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	q := with(goodQuery(), "client_id", "other-spa", "redirect_uri", "https://other.acme.test/cb")
+	if loc := location(t, e.get(t, q, ck)); loc.Path != "/u/login" {
+		t.Fatalf("Location = %s", loc)
+	}
+	loc := location(t, e.get(t, with(q, "prompt", "none"), ck))
+	if loc.Host != "other.acme.test" || loc.Query().Get("error") != "login_required" || loc.Query().Get("code") != "" {
+		t.Fatalf("prompt=none Location = %s", loc)
+	}
+}

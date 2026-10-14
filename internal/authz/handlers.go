@@ -3,6 +3,7 @@ package authz
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -71,7 +72,16 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		writeResponse(w, r, req, errorParams(errServer(), req.State))
 		return
 	}
-	if h.needsLogin(req, sess) {
+	login := h.needsLogin(req, sess)
+	if !login {
+		login, err = h.connectionDisabled(ctx, res, client, sess)
+		if err != nil {
+			h.log().ErrorContext(ctx, "load session connection", "tenant", res.Tenant.ID, "err", err)
+			writeResponse(w, r, req, errorParams(errServer(), req.State))
+			return
+		}
+	}
+	if login {
 		if slices.Contains(req.Prompts(), "none") {
 			writeResponse(w, r, req, errorParams(errLoginRequired(), req.State))
 			return
@@ -93,6 +103,19 @@ func (h *Handlers) needsLogin(req Request, sess *store.LoginSession) bool {
 		return true
 	}
 	return false
+}
+
+// connectionDisabled reports whether the session's connection is missing or
+// not enabled for the client, in which case the session must not be reused.
+func (h *Handlers) connectionDisabled(ctx context.Context, res tenant.Resolved, client *store.Client, sess *store.LoginSession) (bool, error) {
+	conn, err := h.Store.Connections().GetByName(ctx, res.Tenant.ID, sess.Connection)
+	if errors.Is(err, store.ErrNotFound) {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return !slices.Contains(conn.EnabledClients, client.ClientID), nil
 }
 
 // startLogin stores the request in a transaction bound to this browser and
