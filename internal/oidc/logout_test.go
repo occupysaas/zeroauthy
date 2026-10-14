@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -72,6 +73,8 @@ func newLogoutEnv(t *testing.T, wrap func(store.Store) store.Store) *logoutEnv {
 	h := &Handlers{Keys: km, Store: st, Sessions: sm, Log: slog.New(slog.NewTextHandler(io.Discard, nil)), Now: clock}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v2/logout", h.Logout)
+	mux.HandleFunc("GET /oidc/logout", h.OidcLogout)
+	mux.HandleFunc("POST /oidc/logout", h.OidcLogout)
 	return &logoutEnv{st: st, km: km, sm: &session.Manager{Store: st, Now: clock}, tn: tn, mux: mux,
 		srv: contract.Wrap(t, tenant.NewResolver(st.Tenants(), "", false).Middleware(mux))}
 }
@@ -222,5 +225,198 @@ func TestV2LogoutStoreFailure(t *testing.T) {
 	rec := e.do(t, "GET", v2(url.Values{"client_id": {"spa"}, "returnTo": {"https://app.acme.test/bye"}}), nil, ck)
 	if rec.Code != 500 || rec.Header().Get("Location") != "" || !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/html") {
 		t.Fatalf("got %d %v", rec.Code, rec.Header())
+	}
+}
+
+// idToken signs an ID token for auth0|1 issued to spa, with overrides
+// (a nil value deletes the claim).
+func (e *logoutEnv) idToken(t *testing.T, tenantID string, over map[string]any) string {
+	t.Helper()
+	c := map[string]any{"iss": "https://acme.example.test/", "sub": "auth0|1", "aud": "spa",
+		"iat": logoutNow.Unix(), "exp": logoutNow.Add(time.Hour).Unix()}
+	for k, v := range over {
+		if v == nil {
+			delete(c, k)
+		} else {
+			c[k] = v
+		}
+	}
+	raw, err := e.km.Sign(context.Background(), tenantID, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
+func rp(q url.Values) string { return "/oidc/logout?" + q.Encode() }
+
+var csrfField = regexp.MustCompile(`name="csrf" value="([^"]+)"`)
+
+func TestOidcLogoutWithMatchingHint(t *testing.T) {
+	for _, method := range []string{"GET", "POST"} {
+		t.Run(method, func(t *testing.T) {
+			e := newLogoutEnv(t, nil)
+			ck, s := e.login(t)
+			q := url.Values{"id_token_hint": {e.idToken(t, "ten_a", map[string]any{"sid": s.ID})},
+				"post_logout_redirect_uri": {"https://app.acme.test/bye"}, "state": {"xyz"}}
+			var rec *httptest.ResponseRecorder
+			if method == "GET" {
+				rec = e.do(t, "GET", rp(q), nil, ck)
+			} else {
+				rec = e.do(t, "POST", "/oidc/logout", q, ck)
+			}
+			if rec.Code != 302 || rec.Header().Get("Location") != "https://app.acme.test/bye?state=xyz" {
+				t.Fatalf("got %d %q %s", rec.Code, rec.Header().Get("Location"), rec.Body)
+			}
+			if e.alive(t, s) || !clearsSessionCookie(rec) {
+				t.Fatal("session not ended")
+			}
+		})
+	}
+}
+
+func TestOidcLogoutAccepted(t *testing.T) {
+	cases := map[string]struct {
+		q    func(e *logoutEnv, s *store.LoginSession) url.Values
+		code int
+		loc  string
+	}{
+		"expired hint": {func(e *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"id_token_hint": {e.idToken(t, "ten_a", map[string]any{"sid": s.ID,
+				"iat": logoutNow.Add(-2 * time.Hour).Unix(), "exp": logoutNow.Add(-time.Hour).Unix()})},
+				"post_logout_redirect_uri": {"https://app.acme.test/bye"}}
+		}, 302, "https://app.acme.test/bye"},
+		"logout_hint with tenant URL": {func(_ *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"logout_hint": {s.ID}, "post_logout_redirect_uri": {"https://acme.test/bye"}}
+		}, 302, "https://acme.test/bye"},
+		"registered query kept": {func(_ *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"client_id": {"spa"}, "logout_hint": {s.ID}, "state": {"s1"},
+				"post_logout_redirect_uri": {"https://app.acme.test/bye?from=oidc"}}
+		}, 302, "https://app.acme.test/bye?from=oidc&state=s1"},
+		"no redirect uri": {func(e *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"id_token_hint": {e.idToken(t, "ten_a", map[string]any{"sid": s.ID})}}
+		}, 200, ""},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			e := newLogoutEnv(t, nil)
+			ck, s := e.login(t)
+			rec := e.do(t, "GET", rp(tc.q(e, s)), nil, ck)
+			if rec.Code != tc.code || rec.Header().Get("Location") != tc.loc || e.alive(t, s) {
+				t.Fatalf("got %d %q alive=%v %s", rec.Code, rec.Header().Get("Location"), e.alive(t, s), rec.Body)
+			}
+		})
+	}
+}
+
+func TestOidcLogoutWithoutSessionSkipsConfirmation(t *testing.T) {
+	e := newLogoutEnv(t, nil)
+	rec := e.do(t, "GET", rp(url.Values{"client_id": {"spa"}, "post_logout_redirect_uri": {"https://app.acme.test/bye"}}), nil)
+	if rec.Code != 302 || rec.Header().Get("Location") != "https://app.acme.test/bye" {
+		t.Fatalf("got %d %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+func TestOidcLogoutConfirmation(t *testing.T) {
+	e := newLogoutEnv(t, nil)
+	ck, s := e.login(t)
+	params := url.Values{"client_id": {"spa"}, "post_logout_redirect_uri": {"https://app.acme.test/bye"}, "state": {"st"}}
+
+	// No hint: ask first.
+	rec := e.do(t, "GET", rp(params), nil, ck)
+	m := csrfField.FindStringSubmatch(rec.Body.String())
+	if rec.Code != 200 || m == nil || !e.alive(t, s) ||
+		!strings.Contains(rec.Header().Get("Content-Security-Policy"), "form-action 'self' https://app.acme.test;") {
+		t.Fatalf("confirmation = %d alive=%v %s", rec.Code, e.alive(t, s), rec.Body)
+	}
+	var csrfCookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "za_logout" {
+			csrfCookie = c
+		}
+	}
+	if csrfCookie == nil || !csrfCookie.HttpOnly || !csrfCookie.Secure || csrfCookie.SameSite != http.SameSiteStrictMode {
+		t.Fatalf("confirmation cookie = %+v", csrfCookie)
+	}
+	confirm := func(token string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
+		f := url.Values{"confirm": {"yes"}, "csrf": {token}}
+		for k, v := range params {
+			f[k] = v
+		}
+		return e.do(t, "POST", "/oidc/logout", f, cookies...)
+	}
+	// A forged confirmation fails and keeps the session.
+	if rec := confirm("wrong", ck, csrfCookie); rec.Code != 400 || !e.alive(t, s) {
+		t.Fatalf("wrong token = %d", rec.Code)
+	}
+	if rec := confirm(m[1], ck); rec.Code != 400 || !e.alive(t, s) {
+		t.Fatalf("missing cookie = %d", rec.Code)
+	}
+	// The real confirmation logs out.
+	rec = confirm(m[1], ck, csrfCookie)
+	if rec.Code != 302 || rec.Header().Get("Location") != "https://app.acme.test/bye?state=st" || e.alive(t, s) {
+		t.Fatalf("confirmed = %d %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+func TestOidcLogoutHintForAnotherSessionAsksFirst(t *testing.T) {
+	e := newLogoutEnv(t, nil)
+	ck, s := e.login(t)
+	q := url.Values{"id_token_hint": {e.idToken(t, "ten_a", map[string]any{"sid": "some-other-session"})},
+		"post_logout_redirect_uri": {"https://app.acme.test/bye"}}
+	if rec := e.do(t, "GET", rp(q), nil, ck); rec.Code != 200 || csrfField.FindString(rec.Body.String()) == "" || !e.alive(t, s) {
+		t.Fatalf("got %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestOidcLogoutRejects(t *testing.T) {
+	cases := map[string]func(e *logoutEnv, s *store.LoginSession) url.Values{
+		"garbage hint": func(*logoutEnv, *store.LoginSession) url.Values {
+			return url.Values{"id_token_hint": {"not-a-jwt"}, "post_logout_redirect_uri": {"https://app.acme.test/bye"}}
+		},
+		"hint from another tenant": func(e *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"id_token_hint": {e.idToken(t, "ten_b", map[string]any{"iss": "https://globex.example.test/", "sid": s.ID})},
+				"post_logout_redirect_uri": {"https://app.acme.test/bye"}}
+		},
+		"hint with foreign issuer": func(e *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"id_token_hint": {e.idToken(t, "ten_a", map[string]any{"iss": "https://evil.test/", "sid": s.ID})},
+				"post_logout_redirect_uri": {"https://app.acme.test/bye"}}
+		},
+		"hint for another client": func(e *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"id_token_hint": {e.idToken(t, "ten_a", map[string]any{"sid": s.ID})}, "client_id": {"other"},
+				"post_logout_redirect_uri": {"https://other.acme.test/bye"}}
+		},
+		"unregistered uri": func(_ *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"client_id": {"spa"}, "logout_hint": {s.ID}, "post_logout_redirect_uri": {"https://evil.test/bye"}}
+		},
+		"another client's uri": func(_ *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"client_id": {"spa"}, "logout_hint": {s.ID}, "post_logout_redirect_uri": {"https://other.acme.test/bye"}}
+		},
+		"query differs": func(_ *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"client_id": {"spa"}, "logout_hint": {s.ID}, "post_logout_redirect_uri": {"https://app.acme.test/bye?from=x"}}
+		},
+		"client uri without client": func(_ *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"logout_hint": {s.ID}, "post_logout_redirect_uri": {"https://app.acme.test/bye"}}
+		},
+		"contradicting hints": func(e *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"id_token_hint": {e.idToken(t, "ten_a", map[string]any{"sid": s.ID})}, "logout_hint": {"another-sid"},
+				"post_logout_redirect_uri": {"https://app.acme.test/bye"}}
+		},
+		"unknown client": func(_ *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"client_id": {"nope"}, "logout_hint": {s.ID}, "post_logout_redirect_uri": {"https://app.acme.test/bye"}}
+		},
+		"javascript uri": func(_ *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"client_id": {"spa"}, "logout_hint": {s.ID}, "post_logout_redirect_uri": {"javascript:alert(1)"}}
+		},
+	}
+	for name, q := range cases {
+		t.Run(name, func(t *testing.T) {
+			e := newLogoutEnv(t, nil)
+			ck, s := e.login(t)
+			rec := e.do(t, "GET", rp(q(e, s)), nil, ck)
+			if rec.Code != 400 || rec.Header().Get("Location") != "" || !e.alive(t, s) || clearsSessionCookie(rec) {
+				t.Fatalf("got %d Location=%q alive=%v", rec.Code, rec.Header().Get("Location"), e.alive(t, s))
+			}
+		})
 	}
 }

@@ -40,11 +40,28 @@ type OAuthError struct {
 	ErrorDescription string `json:"error_description"`
 }
 
+// OidcLogoutRequest defines model for OidcLogoutRequest.
+type OidcLogoutRequest struct {
+	ClientId *string `json:"client_id,omitempty"`
+
+	// Confirm Set by the confirmation page.
+	Confirm *string `json:"confirm,omitempty"`
+
+	// Csrf Set by the confirmation page.
+	Csrf                  *string `json:"csrf,omitempty"`
+	IdTokenHint           *string `json:"id_token_hint,omitempty"`
+	LogoutHint            *string `json:"logout_hint,omitempty"`
+	PostLogoutRedirectUri *string `json:"post_logout_redirect_uri,omitempty"`
+	State                 *string `json:"state,omitempty"`
+	UiLocales             *string `json:"ui_locales,omitempty"`
+}
+
 // OpenIDConfiguration defines model for OpenIDConfiguration.
 type OpenIDConfiguration struct {
 	AuthorizationEndpoint             string    `json:"authorization_endpoint"`
 	ClaimsSupported                   *[]string `json:"claims_supported,omitempty"`
 	CodeChallengeMethodsSupported     *[]string `json:"code_challenge_methods_supported,omitempty"`
+	EndSessionEndpoint                *string   `json:"end_session_endpoint,omitempty"`
 	GrantTypesSupported               *[]string `json:"grant_types_supported,omitempty"`
 	IdTokenSigningAlgValuesSupported  []string  `json:"id_token_signing_alg_values_supported"`
 	Issuer                            string    `json:"issuer"`
@@ -186,6 +203,27 @@ type AuthorizeParams struct {
 	Invitation *string `form:"invitation,omitempty" json:"invitation,omitempty"`
 }
 
+// OidcLogoutParams defines parameters for OidcLogout.
+type OidcLogoutParams struct {
+	// IdTokenHint An ID token this tenant issued to the user.
+	IdTokenHint *string `form:"id_token_hint,omitempty" json:"id_token_hint,omitempty"`
+
+	// LogoutHint The session ID (`sid`) to end.
+	LogoutHint *string `form:"logout_hint,omitempty" json:"logout_hint,omitempty"`
+
+	// ClientId The application asking for the logout.
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
+
+	// PostLogoutRedirectUri Where to send the browser after logout.
+	PostLogoutRedirectUri *string `form:"post_logout_redirect_uri,omitempty" json:"post_logout_redirect_uri,omitempty"`
+
+	// State Returned unchanged on the redirect.
+	State *string `form:"state,omitempty" json:"state,omitempty"`
+
+	// UiLocales Accepted and ignored.
+	UiLocales *string `form:"ui_locales,omitempty" json:"ui_locales,omitempty"`
+}
+
 // LogoutParams defines parameters for Logout.
 type LogoutParams struct {
 	// ReturnTo Where to send the browser after logout.
@@ -209,6 +247,9 @@ type OauthTokenJSONRequestBody = TokenRequest
 
 // OauthTokenFormdataRequestBody defines body for OauthToken for application/x-www-form-urlencoded ContentType.
 type OauthTokenFormdataRequestBody = TokenRequest
+
+// OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
+type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
 
 // Getter for additional properties for UserInfo. Returns the specified
 // element and whether it was found
@@ -383,6 +424,12 @@ type ServerInterface interface {
 	// OauthToken Get a token
 	// (POST /oauth/token)
 	OauthToken(w http.ResponseWriter, r *http.Request)
+	// OidcLogout Log the user out (OpenID Connect RP-Initiated Logout)
+	// (GET /oidc/logout)
+	OidcLogout(w http.ResponseWriter, r *http.Request, params OidcLogoutParams)
+	// OidcLogoutPost Log the user out (form post)
+	// (POST /oidc/logout)
+	OidcLogoutPost(w http.ResponseWriter, r *http.Request)
 	// Userinfo Get the user's profile
 	// (GET /userinfo)
 	Userinfo(w http.ResponseWriter, r *http.Request)
@@ -425,6 +472,18 @@ func (_ Unimplemented) OauthRevoke(w http.ResponseWriter, r *http.Request) {
 // OauthToken Get a token
 // (POST /oauth/token)
 func (_ Unimplemented) OauthToken(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// OidcLogout Log the user out (OpenID Connect RP-Initiated Logout)
+// (GET /oidc/logout)
+func (_ Unimplemented) OidcLogout(w http.ResponseWriter, r *http.Request, params OidcLogoutParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// OidcLogoutPost Log the user out (form post)
+// (POST /oidc/logout)
+func (_ Unimplemented) OidcLogoutPost(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -752,6 +811,118 @@ func (siw *ServerInterfaceWrapper) OauthToken(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// OidcLogout operation middleware
+func (siw *ServerInterfaceWrapper) OidcLogout(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params OidcLogoutParams
+
+	// ------------- Optional query parameter "id_token_hint" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "id_token_hint", r.URL.Query(), &params.IdTokenHint, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "id_token_hint"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id_token_hint", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "logout_hint" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "logout_hint", r.URL.Query(), &params.LogoutHint, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "logout_hint"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "logout_hint", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "client_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "client_id", r.URL.Query(), &params.ClientId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "client_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "post_logout_redirect_uri" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "post_logout_redirect_uri", r.URL.Query(), &params.PostLogoutRedirectUri, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "post_logout_redirect_uri"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "post_logout_redirect_uri", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "ui_locales" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "ui_locales", r.URL.Query(), &params.UiLocales, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "ui_locales"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ui_locales", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OidcLogout(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// OidcLogoutPost operation middleware
+func (siw *ServerInterfaceWrapper) OidcLogoutPost(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OidcLogoutPost(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Userinfo operation middleware
 func (siw *ServerInterfaceWrapper) Userinfo(w http.ResponseWriter, r *http.Request) {
 
@@ -975,6 +1146,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/logout", wrapper.Logout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/oidc/logout", wrapper.OidcLogout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/oidc/logout", wrapper.OidcLogoutPost)
 	})
 
 	return r

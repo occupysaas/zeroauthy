@@ -158,3 +158,24 @@ func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Reques
 	}
 	return s, nil
 }
+
+// Lookup returns the request's unexpired session for t, or nil, without
+// extending it. Logout uses it to decide whether to ask for confirmation.
+func (m *Manager) Lookup(ctx context.Context, r *http.Request, t *store.Tenant) (*store.LoginSession, error) {
+	c, err := r.Cookie(CookieName)
+	if err != nil || c.Value == "" {
+		return nil, nil
+	}
+	s, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(c.Value))
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	now := m.now()
+	if !now.Before(s.ExpiresAt) || !now.Before(s.IdleExpiresAt) {
+		return nil, nil
+	}
+	return s, nil
+}

@@ -213,3 +213,17 @@ func TestRenderLoggedOut(t *testing.T) {
 		t.Fatalf("logged-out page = %d %q %s", rec.Code, csp, rec.Body)
 	}
 }
+
+func TestRenderLogoutConfirm(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderLogoutConfirm(rec, Tenant{Name: "Acme"}, LogoutConfirmData{
+		CSRF:        "tok",
+		Fields:      url.Values{"state": {`"><script>alert(1)</script>`}, "client_id": {"spa"}},
+		RedirectURI: "https://app.acme.test/bye",
+	})
+	body, csp := rec.Body.String(), rec.Header().Get("Content-Security-Policy")
+	if rec.Code != 200 || !strings.Contains(body, `name="csrf" value="tok"`) || !strings.Contains(body, `name="client_id" value="spa"`) ||
+		strings.Contains(body, "<script>alert(1)") || !strings.Contains(csp, "form-action 'self' https://app.acme.test;") {
+		t.Fatalf("confirmation page = %d %q\n%s", rec.Code, csp, body)
+	}
+}

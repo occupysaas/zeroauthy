@@ -57,6 +57,7 @@ func TestDiscovery(t *testing.T) {
 		"token_endpoint":         "https://acme.example.test/oauth/token",
 		"revocation_endpoint":    "https://acme.example.test/oauth/revoke",
 		"jwks_uri":               "https://acme.example.test/.well-known/jwks.json",
+		"end_session_endpoint":   "https://acme.example.test/oidc/logout",
 	}
 	for k, v := range want {
 		if doc[k] != v {

@@ -24,10 +24,11 @@ var files embed.FS
 
 var (
 	pages = map[string]*template.Template{
-		"login":      template.Must(template.ParseFS(files, "templates/layout.html", "templates/login.html")),
-		"signup":     template.Must(template.ParseFS(files, "templates/layout.html", "templates/signup.html")),
-		"error":      template.Must(template.ParseFS(files, "templates/layout.html", "templates/error.html")),
-		"logged_out": template.Must(template.ParseFS(files, "templates/layout.html", "templates/logged_out.html")),
+		"login":          template.Must(template.ParseFS(files, "templates/layout.html", "templates/login.html")),
+		"signup":         template.Must(template.ParseFS(files, "templates/layout.html", "templates/signup.html")),
+		"error":          template.Must(template.ParseFS(files, "templates/layout.html", "templates/error.html")),
+		"logout_confirm": template.Must(template.ParseFS(files, "templates/layout.html", "templates/logout_confirm.html")),
+		"logged_out":     template.Must(template.ParseFS(files, "templates/layout.html", "templates/logged_out.html")),
 	}
 	formPost   = template.Must(template.ParseFS(files, "templates/form_post.html"))
 	webMessage = template.Must(template.ParseFS(files, "templates/web_message.html"))
@@ -247,4 +248,18 @@ func validOrigin(s string) bool {
 // return to.
 func RenderLoggedOut(w http.ResponseWriter, t Tenant) {
 	render(w, http.StatusOK, "logged_out", t, nil, "'none'")
+}
+
+// LogoutConfirmData is the logout confirmation page.
+type LogoutConfirmData struct {
+	CSRF   string
+	Fields url.Values // the logout request, posted again on confirmation
+	// RedirectURI is where the browser goes after logout; its origin is
+	// allowed as a form-action (D-0010).
+	RedirectURI string
+}
+
+// RenderLogoutConfirm asks the user to confirm an RP-initiated logout.
+func RenderLogoutConfirm(w http.ResponseWriter, t Tenant, d LogoutConfirmData) {
+	render(w, http.StatusOK, "logout_confirm", t, d, formActionFor(d.RedirectURI))
 }

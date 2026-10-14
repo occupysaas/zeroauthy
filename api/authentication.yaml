@@ -356,6 +356,86 @@ paths:
           content:
             text/html:
               schema: {type: string}
+  /oidc/logout:
+    get:
+      operationId: oidcLogout
+      tags: [Login]
+      summary: Log the user out (OpenID Connect RP-Initiated Logout)
+      description: |
+        Ends the user's session and redirects to `post_logout_redirect_uri`
+        with `state`. The URI must exactly match (including any query
+        string) an allowed logout URL of the application named by
+        `id_token_hint` or `client_id`, or of the tenant when neither is
+        given. `id_token_hint` may be expired.
+
+        If the browser has a session and neither the hint's `sid` nor
+        `logout_hint` matches it, a confirmation page is shown first.
+        Invalid requests (a bad or foreign `id_token_hint`, contradicting
+        hints, an unknown application, an unregistered URI) show an error
+        page and do not end the session.
+      x-source:
+        - https://openid.net/specs/openid-connect-rpinitiated-1_0.html
+        - https://auth0.com/docs/authenticate/login/logout/log-users-out-of-auth0
+      parameters:
+        - {name: id_token_hint, in: query, schema: {type: string}, description: An ID token this tenant issued to the user.}
+        - {name: logout_hint, in: query, schema: {type: string}, description: The session ID (`sid`) to end.}
+        - {name: client_id, in: query, schema: {type: string}, description: The application asking for the logout.}
+        - {name: post_logout_redirect_uri, in: query, schema: {type: string}, description: Where to send the browser after logout.}
+        - {name: state, in: query, schema: {type: string}, description: Returned unchanged on the redirect.}
+        - {name: ui_locales, in: query, schema: {type: string}, description: Accepted and ignored.}
+      responses:
+        "302":
+          description: Logged out; redirect to `post_logout_redirect_uri`.
+        "200":
+          description: Logged-out page, or the logout confirmation page.
+          content:
+            text/html:
+              schema: {type: string}
+        "400":
+          description: Invalid logout request. Not logged out.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
+    post:
+      operationId: oidcLogoutPost
+      tags: [Login]
+      summary: Log the user out (form post)
+      description: Same as `GET /oidc/logout` with the parameters in a form body. The confirmation page posts here with `confirm=yes` and its `csrf` token.
+      x-source:
+        - https://openid.net/specs/openid-connect-rpinitiated-1_0.html
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/OidcLogoutRequest"
+      responses:
+        "302":
+          description: Logged out; redirect to `post_logout_redirect_uri`.
+        "200":
+          description: Logged-out page, or the logout confirmation page.
+          content:
+            text/html:
+              schema: {type: string}
+        "400":
+          description: Invalid logout request. Not logged out.
+          content:
+            text/html:
+              schema: {type: string}
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page.
+          content:
+            text/html:
+              schema: {type: string}
 components:
   securitySchemes:
     clientSecretBasic:
@@ -389,6 +469,21 @@ components:
           schema:
             $ref: "#/components/schemas/OAuthError"
   schemas:
+    OidcLogoutRequest:
+      type: object
+      properties:
+        id_token_hint: {type: string}
+        logout_hint: {type: string}
+        client_id: {type: string}
+        post_logout_redirect_uri: {type: string}
+        state: {type: string}
+        ui_locales: {type: string}
+        confirm:
+          type: string
+          description: Set by the confirmation page.
+        csrf:
+          type: string
+          description: Set by the confirmation page.
     OAuthError:
       type: object
       required: [error, error_description]
@@ -476,6 +571,7 @@ components:
         token_endpoint: {type: string, format: uri}
         revocation_endpoint: {type: string, format: uri}
         jwks_uri: {type: string, format: uri}
+        end_session_endpoint: {type: string, format: uri}
         response_types_supported: {type: array, items: {type: string}}
         subject_types_supported: {type: array, items: {type: string}}
         id_token_signing_alg_values_supported: {type: array, items: {type: string}}

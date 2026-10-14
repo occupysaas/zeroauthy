@@ -157,3 +157,22 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **`/oidc/logout`:** see D-0015.
   - Logout deletes the server-side session and clears the cookie. Refresh tokens are not revoked; applications revoke them at `/oauth/revoke`.
 - **Rationale:** Validating first means a malformed or malicious link can neither redirect elsewhere nor log the user out while claiming failure. Keeping refresh tokens matches the public docs, which describe revocation as a separate step.
+
+## D-0015: RP-Initiated Logout (`/oidc/logout`)
+
+- **Context:** Public docs list the `/oidc/logout` parameters, a confirmation prompt when no hint matches the session, exact matching of `post_logout_redirect_uri`, and errors for inconsistent hints. They do not say how the confirmation is protected or how expired hints are treated.
+- **Sources:** OpenID Connect RP-Initiated Logout 1.0 §2–§3; https://auth0.com/docs/authenticate/login/logout/log-users-out-of-auth0; OWASP CSRF Prevention Cheat Sheet.
+- **Decision:**
+  - **Hints:**
+    - `id_token_hint` must be signed by the tenant's published keys and carry the tenant issuer. Expiry is ignored.
+    - Its single audience names the client, and must equal `client_id` if both are sent.
+    - Its `sid` and `logout_hint` must agree when both are present.
+  - **Allowed URLs:**
+    - `post_logout_redirect_uri` must match exactly (including the query string) an allowed logout URL. The list is the client's when a client is known, otherwise the tenant's.
+    - `state` is added to the redirect's query.
+  - **Confirmation:**
+    - When the browser has a session and no hint matches it, a confirmation page is shown.
+    - The page posts back with a CSRF token. The token is bound to an `HttpOnly; Secure; SameSite=Strict` cookie `za_logout` on path `/oidc/logout` that lives 10 minutes.
+    - Without a session there is nothing to confirm, and the request proceeds.
+  - `ui_locales` is ignored.
+- **Rationale:** It follows the documented behavior. The confirmation stops cross-site requests from silently ending sessions, and the CSRF binding stops them from auto-submitting the confirmation.

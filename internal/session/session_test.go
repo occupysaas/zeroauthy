@@ -238,3 +238,30 @@ func TestEnd(t *testing.T) {
 		t.Fatalf("End without cookie = %+v, %v", ended, err)
 	}
 }
+
+func TestLookupDoesNotSlide(t *testing.T) {
+	ctx := context.Background()
+	m, c, tn := setup()
+	rec := httptest.NewRecorder()
+	s, err := m.Start(ctx, rec, requestWith(nil), tn, "auth0|1", "Database", c.t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookies := rec.Result().Cookies()
+	c.t = c.t.Add(time.Hour)
+	got, err := m.Lookup(ctx, requestWith(cookies), tn)
+	if err != nil || got == nil || got.ID != s.ID || !got.IdleExpiresAt.Equal(s.IdleExpiresAt) {
+		t.Fatalf("Lookup = %+v, %v", got, err)
+	}
+	stored, _ := m.Store.Sessions().GetByTokenHash(ctx, tn.ID, s.TokenHash)
+	if !stored.IdleExpiresAt.Equal(s.IdleExpiresAt) {
+		t.Fatal("Lookup extended the idle expiry")
+	}
+	c.t = s.IdleExpiresAt
+	if got, err := m.Lookup(ctx, requestWith(cookies), tn); err != nil || got != nil {
+		t.Fatalf("expired Lookup = %+v, %v", got, err)
+	}
+	if got, err := m.Lookup(ctx, requestWith(nil), tn); err != nil || got != nil {
+		t.Fatalf("Lookup without cookie = %+v, %v", got, err)
+	}
+}

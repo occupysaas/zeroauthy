@@ -42,6 +42,7 @@ type Configuration struct {
 	RevocationEndpoint                string   `json:"revocation_endpoint"`
 	UserinfoEndpoint                  string   `json:"userinfo_endpoint"`
 	JWKSURI                           string   `json:"jwks_uri"`
+	EndSessionEndpoint                string   `json:"end_session_endpoint"`
 	ResponseTypesSupported            []string `json:"response_types_supported"`
 	ResponseModesSupported            []string `json:"response_modes_supported"`
 	SubjectTypesSupported             []string `json:"subject_types_supported"`
@@ -68,6 +69,7 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		RevocationEndpoint:                base + "/oauth/revoke",
 		UserinfoEndpoint:                  base + "/userinfo",
 		JWKSURI:                           base + "/.well-known/jwks.json",
+		EndSessionEndpoint:                base + "/oidc/logout",
 		ResponseTypesSupported:            []string{"code"},
 		ResponseModesSupported:            []string{"query", "fragment", "form_post", "web_message"},
 		SubjectTypesSupported:             []string{"public"},

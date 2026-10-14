@@ -59,6 +59,11 @@ func (a authAPI) Logout(w http.ResponseWriter, r *http.Request, _ authapi.Logout
 	a.oidc.Logout(w, r)
 }
 
+func (a authAPI) OidcLogout(w http.ResponseWriter, r *http.Request, _ authapi.OidcLogoutParams) {
+	a.oidc.OidcLogout(w, r)
+}
+func (a authAPI) OidcLogoutPost(w http.ResponseWriter, r *http.Request) { a.oidc.OidcLogout(w, r) }
+
 var _ authapi.ServerInterface = authAPI{}
 
 func New(d Deps) http.Handler {

@@ -1,0 +1,10 @@
+{{define "title"}}Log out?{{end}}
+{{define "content"}}
+<p>An application asked to end your session. Do you want to log out?</p>
+<form method="post" action="/oidc/logout">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<input type="hidden" name="confirm" value="yes">
+{{range $name, $values := .Data.Fields}}{{range $values}}<input type="hidden" name="{{$name}}" value="{{.}}">
+{{end}}{{end}}<button type="submit">Log out</button>
+</form>
+{{end}}
