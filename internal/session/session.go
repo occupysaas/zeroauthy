@@ -67,6 +67,9 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 	_, idle := lifetimes(t)
 	s.IdleExpiresAt = minTime(now.Add(idle), s.ExpiresAt)
 	if err := m.Store.Sessions().Update(ctx, s); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, nil // deleted (e.g. logout) since it was read
+		}
 		return nil, err
 	}
 	return s, nil
