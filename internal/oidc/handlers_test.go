@@ -63,11 +63,11 @@ func TestDiscovery(t *testing.T) {
 		}
 	}
 	wantLists := map[string][]string{
-		"grant_types_supported":                 {"authorization_code", "client_credentials"},
+		"grant_types_supported":                 {"authorization_code", "client_credentials", "refresh_token"},
 		"response_types_supported":              {"code"},
 		"response_modes_supported":              {"query", "fragment", "form_post", "web_message"},
 		"code_challenge_methods_supported":      {"S256"},
-		"scopes_supported":                      {"openid", "profile", "email"},
+		"scopes_supported":                      {"openid", "profile", "email", "offline_access"},
 		"token_endpoint_auth_methods_supported": {"client_secret_basic", "client_secret_post", "none"},
 	}
 	for k, want := range wantLists {

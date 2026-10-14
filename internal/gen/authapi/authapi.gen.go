@@ -77,6 +77,9 @@ type TokenRequest struct {
 	// RedirectUri Must equal the redirect_uri of the authorization request.
 	RedirectUri *string `json:"redirect_uri,omitempty"`
 
+	// RefreshToken Refresh token (grant_type=refresh_token).
+	RefreshToken *string `json:"refresh_token,omitempty"`
+
 	// Scope Space-separated scopes to request. Defaults to all scopes granted to the client.
 	Scope *string `json:"scope,omitempty"`
 }
