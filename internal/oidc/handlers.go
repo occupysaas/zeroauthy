@@ -5,9 +5,11 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
@@ -16,8 +18,17 @@ import (
 const metadataCacheControl = "public, max-age=300"
 
 type Handlers struct {
-	Keys *keys.Manager
-	Log  *slog.Logger
+	Keys  *keys.Manager
+	Store store.Store
+	Log   *slog.Logger
+	Now   func() time.Time
+}
+
+func (h *Handlers) now() time.Time {
+	if h.Now != nil {
+		return h.Now()
+	}
+	return time.Now()
 }
 
 // Configuration is OpenID Provider metadata (OpenID Connect Discovery 1.0

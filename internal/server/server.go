@@ -44,9 +44,11 @@ type authAPI struct {
 	authz *authz.Handlers
 }
 
-func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request)  { a.oidc.Discovery(w, r) }
-func (a authAPI) Jwks(w http.ResponseWriter, r *http.Request)       { a.oidc.Jwks(w, r) }
-func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request) { a.oauth.OauthToken(w, r) }
+func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request)    { a.oidc.Discovery(w, r) }
+func (a authAPI) Jwks(w http.ResponseWriter, r *http.Request)         { a.oidc.Jwks(w, r) }
+func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request)   { a.oauth.OauthToken(w, r) }
+func (a authAPI) Userinfo(w http.ResponseWriter, r *http.Request)     { a.oidc.Userinfo(w, r) }
+func (a authAPI) UserinfoPost(w http.ResponseWriter, r *http.Request) { a.oidc.Userinfo(w, r) }
 
 func (a authAPI) Authorize(w http.ResponseWriter, r *http.Request, _ authapi.AuthorizeParams) {
 	a.authz.Authorize(w, r)
@@ -89,7 +91,7 @@ func New(d Deps) http.Handler {
 	r.Group(func(tr chi.Router) {
 		tr.Use(d.Resolver.Middleware)
 		authapi.HandlerWithOptions(authAPI{
-			oidc:  &oidc.Handlers{Keys: d.Keys, Log: d.Log},
+			oidc:  &oidc.Handlers{Keys: d.Keys, Store: d.Store, Log: d.Log},
 			oauth: &oauth.Handlers{Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}},
 			authz: az,
 		}, authapi.ChiServerOptions{

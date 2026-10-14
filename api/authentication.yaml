@@ -30,6 +30,8 @@ tags:
     description: Obtain tokens.
   - name: Login
     description: Browser-based login flows.
+  - name: Users
+    description: Information about the signed-in user.
 paths:
   /.well-known/openid-configuration:
     get:
@@ -200,12 +202,82 @@ paths:
           $ref: "#/components/responses/UnknownTenant"
         default:
           $ref: "#/components/responses/ServerError"
+  /userinfo:
+    get:
+      operationId: userinfo
+      tags: [Users]
+      summary: Get the user's profile
+      description: |
+        Returns OpenID Connect claims about the user an access token was
+        issued to. The access token must include `https://{tenant_domain}/userinfo`
+        in its audience, which tokens requested with scope `openid` do. Claims
+        follow the token's scopes: `profile` adds name, nickname, picture and
+        updated_at; `email` adds email and email_verified.
+      x-source:
+        - https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
+        - https://www.rfc-editor.org/rfc/rfc6750#section-2.1
+        - https://auth0.com/docs/api/authentication
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The user's claims.
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+        "401":
+          description: Missing or invalid access token.
+          headers:
+            WWW-Authenticate:
+              schema: {type: string}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        default:
+          $ref: "#/components/responses/ServerError"
+    post:
+      operationId: userinfoPost
+      tags: [Users]
+      summary: Get the user's profile (POST)
+      description: Same as `GET /userinfo`.
+      x-source:
+        - https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The user's claims.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+        "401":
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        default:
+          $ref: "#/components/responses/ServerError"
 components:
   securitySchemes:
     clientSecretBasic:
       type: http
       scheme: basic
       description: Client ID and secret, each form-urlencoded, as HTTP Basic credentials.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: An access token issued by this tenant.
   responses:
     OAuthErrorResponse:
       description: |
@@ -321,3 +393,15 @@ components:
         alg: {type: string, examples: [RS256]}
         "n": {type: string}
         e: {type: string}
+    UserInfo:
+      type: object
+      required: [sub]
+      properties:
+        sub: {type: string}
+        name: {type: string}
+        nickname: {type: string}
+        picture: {type: string}
+        updated_at: {type: integer}
+        email: {type: string}
+        email_verified: {type: boolean}
+      additionalProperties: true

@@ -4,6 +4,7 @@
 package authapi
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -89,6 +90,18 @@ type TokenResponse struct {
 	TokenType string `json:"token_type"`
 }
 
+// UserInfo defines model for UserInfo.
+type UserInfo struct {
+	Email                *string                `json:"email,omitempty"`
+	EmailVerified        *bool                  `json:"email_verified,omitempty"`
+	Name                 *string                `json:"name,omitempty"`
+	Nickname             *string                `json:"nickname,omitempty"`
+	Picture              *string                `json:"picture,omitempty"`
+	Sub                  string                 `json:"sub"`
+	UpdatedAt            *int                   `json:"updated_at,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
 // OAuthErrorResponse defines model for OAuthErrorResponse.
 type OAuthErrorResponse = OAuthError
 
@@ -158,6 +171,162 @@ type OauthTokenJSONRequestBody = TokenRequest
 // OauthTokenFormdataRequestBody defines body for OauthToken for application/x-www-form-urlencoded ContentType.
 type OauthTokenFormdataRequestBody = TokenRequest
 
+// Getter for additional properties for UserInfo. Returns the specified
+// element and whether it was found
+func (a UserInfo) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for UserInfo
+func (a *UserInfo) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for UserInfo to handle AdditionalProperties
+func (a *UserInfo) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["email_verified"]; found {
+		err = json.Unmarshal(raw, &a.EmailVerified)
+		if err != nil {
+			return fmt.Errorf("error reading 'email_verified': %w", err)
+		}
+		delete(object, "email_verified")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["nickname"]; found {
+		err = json.Unmarshal(raw, &a.Nickname)
+		if err != nil {
+			return fmt.Errorf("error reading 'nickname': %w", err)
+		}
+		delete(object, "nickname")
+	}
+
+	if raw, found := object["picture"]; found {
+		err = json.Unmarshal(raw, &a.Picture)
+		if err != nil {
+			return fmt.Errorf("error reading 'picture': %w", err)
+		}
+		delete(object, "picture")
+	}
+
+	if raw, found := object["sub"]; found {
+		err = json.Unmarshal(raw, &a.Sub)
+		if err != nil {
+			return fmt.Errorf("error reading 'sub': %w", err)
+		}
+		delete(object, "sub")
+	}
+
+	if raw, found := object["updated_at"]; found {
+		err = json.Unmarshal(raw, &a.UpdatedAt)
+		if err != nil {
+			return fmt.Errorf("error reading 'updated_at': %w", err)
+		}
+		delete(object, "updated_at")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for UserInfo to handle AdditionalProperties
+func (a UserInfo) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.EmailVerified != nil {
+		object["email_verified"], err = json.Marshal(a.EmailVerified)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email_verified': %w", err)
+		}
+	}
+
+	if a.Name != nil {
+		object["name"], err = json.Marshal(a.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.Nickname != nil {
+		object["nickname"], err = json.Marshal(a.Nickname)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'nickname': %w", err)
+		}
+	}
+
+	if a.Picture != nil {
+		object["picture"], err = json.Marshal(a.Picture)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'picture': %w", err)
+		}
+	}
+
+	object["sub"], err = json.Marshal(a.Sub)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'sub': %w", err)
+	}
+
+	if a.UpdatedAt != nil {
+		object["updated_at"], err = json.Marshal(a.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'updated_at': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Jwks JSON Web Key Set
@@ -172,6 +341,12 @@ type ServerInterface interface {
 	// OauthToken Get a token
 	// (POST /oauth/token)
 	OauthToken(w http.ResponseWriter, r *http.Request)
+	// Userinfo Get the user's profile
+	// (GET /userinfo)
+	Userinfo(w http.ResponseWriter, r *http.Request)
+	// UserinfoPost Get the user's profile (POST)
+	// (POST /userinfo)
+	UserinfoPost(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -199,6 +374,18 @@ func (_ Unimplemented) Authorize(w http.ResponseWriter, r *http.Request, params 
 // OauthToken Get a token
 // (POST /oauth/token)
 func (_ Unimplemented) OauthToken(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Userinfo Get the user's profile
+// (GET /userinfo)
+func (_ Unimplemented) Userinfo(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UserinfoPost Get the user's profile (POST)
+// (POST /userinfo)
+func (_ Unimplemented) UserinfoPost(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -494,6 +681,34 @@ func (siw *ServerInterfaceWrapper) OauthToken(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// Userinfo operation middleware
+func (siw *ServerInterfaceWrapper) Userinfo(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Userinfo(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UserinfoPost operation middleware
+func (siw *ServerInterfaceWrapper) UserinfoPost(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UserinfoPost(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -618,6 +833,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oauth/token", wrapper.OauthToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/userinfo", wrapper.Userinfo)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/userinfo", wrapper.UserinfoPost)
 	})
 
 	return r
