@@ -38,9 +38,17 @@ npx esbuild react/app.jsx --bundle --minify --format=iife --jsx=automatic \
 E2E_CERT="$work/cert.pem" E2E_KEY="$work/key.pem" E2E_REACT_BUNDLE="$work/react.js" \
   node spa-server.mjs >"$work/spa.log" 2>&1 &
 pids+=($!)
+export NEXT_TELEMETRY_DISABLED=1
+npx next build next-app >"$work/next-build.log" 2>&1 || { cat "$work/next-build.log"; exit 1; }
+AUTH0_DOMAIN=https://localhost:8443 AUTH0_CLIENT_ID=e2e-next \
+  AUTH0_CLIENT_SECRET=e2e-next-secret-not-for-production \
+  AUTH0_SECRET="$(openssl rand -hex 32)" APP_BASE_URL=http://localhost:3000 \
+  NODE_EXTRA_CA_CERTS="$work/cert.pem" \
+  npx next start next-app -p 3000 >"$work/next.log" 2>&1 &
+pids+=($!)
 
 status=0
-wait_for https://localhost:8443/healthz && wait_for https://localhost:3443/ || status=$?
+wait_for https://localhost:8443/healthz && wait_for https://localhost:3443/ && wait_for http://localhost:3000/ || status=$?
 
 if [[ $status -eq 0 ]]; then
   if [[ "${E2E_IN_CONTAINER:-0}" == 1 ]]; then

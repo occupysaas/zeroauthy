@@ -9,9 +9,10 @@ and open standards. It is not affiliated with Auth0 or Okta. See
 [CLEAN_ROOM.md](CLEAN_ROOM.md).
 
 > **Status:** early. Multi-tenant discovery, JWKS, the `client_credentials`
-> grant, login with the hosted page and the authorization code + PKCE flow
-> (verified with auth0-spa-js) work today. See the
-> [compatibility matrix](docs/compat/matrix.md).
+> grant, login with the hosted page, the authorization code + PKCE flow,
+> rotating refresh tokens, `/oauth/revoke`, and logout through `/v2/logout`
+> and `/oidc/logout` work today (verified with auth0-spa-js, auth0-react and
+> nextjs-auth0). See the [compatibility matrix](docs/compat/matrix.md).
 
 ## Quick start
 

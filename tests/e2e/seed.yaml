@@ -31,13 +31,21 @@ tenants:
         allowed_logout_urls: ["https://localhost:3443/react/"]
         web_origins: ["https://localhost:3443"]
         allowed_origins: ["https://localhost:3443"]
+      - client_id: e2e-next
+        name: E2E Next.js
+        app_type: regular_web
+        client_secret: e2e-next-secret-not-for-production
+        token_endpoint_auth_method: client_secret_post
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["http://localhost:3000/auth/callback"]
+        allowed_logout_urls: ["http://localhost:3000", "http://localhost:3000/"]
     client_grants:
       - client_id: e2e-m2m
         audience: https://api.e2e.local
         scopes: ["read:things"]
     connections:
       - name: Username-Password-Authentication
-        enabled_clients: [e2e-spa, e2e-react]
+        enabled_clients: [e2e-spa, e2e-react, e2e-next]
     users:
       - connection: Username-Password-Authentication
         email: alice@e2e.local
