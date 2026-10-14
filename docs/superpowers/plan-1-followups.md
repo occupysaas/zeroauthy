@@ -46,3 +46,27 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 |---|---|
 | SQL drivers (milestone 7) | `RefreshTokens.Rotate` must be one transaction (select-for-update on the old token, insert next, or revoke the family); `storetest` `ConcurrentRotate` must pass under `-race` against every SQL dialect. `DeleteExpired` needs indexes on expiry columns. |
 | Multi-instance deployments | The sweeper runs in every `serve` process; harmless (deletes are idempotent) but redundant. |
+
+## Plan 3 deferred review findings
+
+- `sweepLoop` is untested and not awaited on shutdown; SQL drivers must honour context cancellation in `DeleteExpired`.
+- No test for sweep error aggregation.
+- `session.Manager.AddClient` returns `ErrNotFound` when a logout races `/authorize`: a 500 and no code, which fails safe.
+- `RefreshTokens.Rotate` checks for a conflict before checking for reuse, so a malformed successor skips reuse revocation; only a caller bug can reach this.
+- The `form_post` check uses a case-sensitive `https://` prefix; this fails closed.
+- Seed validation does not tie the `refresh_token` policy to the `refresh_token` grant type.
+- `newRefreshToken` reads its own clock rather than the grant's `now`.
+- `refreshLifetimes` and the idle clamp have no direct unit tests; the seed accepts an `idle_token_lifetime` above the 31557600 default when `token_lifetime` is 0, and the value is then silently capped.
+- Refresh tests: no deleted-user case; the leeway test does not assert the second successor's family or its revocation; test setup discards errors; the "family revoked" log line also fires on the already-revoked race.
+- The refresh grant does not re-check `allow_offline_access`, so tokens survive the API disabling offline access; undecided.
+- Revoked tokens that never expire are never purged; the memory store's hash lookups scan all tokens under the write lock.
+- Revoke tests: the unknown-token case does not assert an empty body; no test for HTTP Basic or a JSON body; no `OPTIONS /oauth/revoke` CORS test.
+- `/v2/logout` has no negative tests for a two-label wildcard, http against an https wildcard, a port, `//evil`, or a backslash host (all rejected today).
+- Repeated query parameters on the logout endpoints get a JSON 400 from the generated wrapper rather than the HTML error page.
+- A single `za_logout` confirmation cookie per browser means two tabs confirming at once fail closed.
+- `idTokenHint` accepts any tenant-signed single-audience JWT, including an access token; harmless, but token type is not checked.
+- The logout confirmation page has no "stay logged in" action.
+- `/oidc/logout` tests do not cover a hint with multiple `aud` values, a GET carrying `confirm=yes`, or a confirmed POST after the session is gone.
+- Flow test gaps: it does not check that logout leaves refresh tokens valid; it does not drive `/oidc/logout` through `server.New`; revoke asserts only the status code; there is an unchecked type assertion.
+- E2E runner: failures in `npm ci` or esbuild exit before the logs are dumped; `spa-server` crashes when `E2E_REACT_BUNDLE` is unset; `next start` is wrapped by `npx`, so its process may be orphaned on cleanup.
+- The nextjs E2E uses `AUTH0_DOMAIN=https://localhost:8443` with `allowInsecureRequests` because the SDK rejects a domain with a port or localhost; the documented production setup (port 443 with a real hostname) is not exercised.
