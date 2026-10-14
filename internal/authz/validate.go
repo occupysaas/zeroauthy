@@ -113,9 +113,13 @@ func validate(ctx context.Context, st store.Store, t *store.Tenant, req *Request
 	return client, nil, true
 }
 
+// dnsLabel matches one RFC 1123 DNS label.
+var dnsLabel = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$`)
+
 // callbackAllowed reports whether uri exactly matches a registered
-// callback, or matches a callback of the form scheme://*.domain/path where
-// "*" stands for exactly one DNS label.
+// callback, or matches a callback of the form https://*.domain/path where
+// "*" stands for exactly one DNS label. Only a callback whose authority
+// begins with "*." is a wildcard pattern.
 func callbackAllowed(callbacks []string, uri string) bool {
 	u, err := url.Parse(uri)
 	if err != nil || u.Fragment != "" || strings.Contains(uri, "#") || u.User != nil || u.Host == "" {
@@ -125,19 +129,19 @@ func callbackAllowed(callbacks []string, uri string) bool {
 		if cb == uri {
 			return true
 		}
-		if !strings.Contains(cb, "://*.") {
+		if !strings.HasPrefix(cb, "https://*.") {
 			continue
 		}
-		pattern, err := url.Parse(strings.Replace(cb, "://*.", "://wildcard.", 1))
-		if err != nil {
+		pattern, err := url.Parse("https://wildcard." + strings.TrimPrefix(cb, "https://*."))
+		if err != nil || !strings.HasPrefix(pattern.Host, "wildcard.") {
 			continue
 		}
 		suffix := strings.TrimPrefix(pattern.Host, "wildcard")
 		label, ok := strings.CutSuffix(u.Host, suffix)
-		if !ok || label == "" || strings.ContainsAny(label, ".:@") {
+		if !ok || !dnsLabel.MatchString(label) {
 			continue
 		}
-		if u.Scheme == pattern.Scheme && u.Path == pattern.Path && u.RawQuery == pattern.RawQuery {
+		if u.Scheme == "https" && u.EscapedPath() == pattern.EscapedPath() && u.RawQuery == pattern.RawQuery {
 			return true
 		}
 	}

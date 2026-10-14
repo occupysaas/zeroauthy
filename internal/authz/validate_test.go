@@ -69,6 +69,11 @@ func TestValidateErrors(t *testing.T) {
 		{"wildcard two labels", with(goodQuery(), "redirect_uri", "https://a.b.preview.acme.test/cb"), "invalid_request", false},
 		{"wildcard suffix trick", with(goodQuery(), "redirect_uri", "https://evil.test/.preview.acme.test/cb"), "invalid_request", false},
 		{"wildcard scheme", with(goodQuery(), "redirect_uri", "http://x.preview.acme.test/cb"), "invalid_request", false},
+		{"query-wildcard abuse", with(goodQuery(), "redirect_uri", "https://evilapp.acme.test/cb2?next=https://wildcard.x"), "invalid_request", false},
+		{"wildcard fullwidth dot", with(goodQuery(), "redirect_uri", "https://evil\u3002com.preview.acme.test/cb"), "invalid_request", false},
+		{"wildcard quote label", with(goodQuery(), "redirect_uri", "https://x\".preview.acme.test/cb"), "invalid_request", false},
+		{"wildcard encoded path", with(goodQuery(), "redirect_uri", "https://x.preview.acme.test/%63b"), "invalid_request", false},
+		{"wildcard percent label", with(goodQuery(), "redirect_uri", "https://x%25.preview.acme.test/cb"), "invalid_request", false},
 		{"web_message unregistered origin", with(goodQuery(), "redirect_uri", "http://localhost:3000/", "response_mode", "web_message"), "invalid_request", false},
 		// Redirectable errors.
 		{"no response_type", with(goodQuery(), "response_type", ""), "invalid_request", true},

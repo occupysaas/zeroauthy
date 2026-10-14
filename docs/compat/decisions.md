@@ -51,7 +51,7 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Context:** Several /authorize behaviors are not pinned down by public Auth0 docs.
 - **Sources:** RFC 6749 §3.1.2 and §4.1.2.1; RFC 7636; OpenID Connect Core §3.1.2.1; OAuth 2.0 Security BCP (RFC 9700) §4.1 and §2.1.1.
 - **Decision:**
-  - `redirect_uri` must match a registered callback exactly, except for the single-label wildcard host form `scheme://*.domain/path`. URIs with a fragment or userinfo are rejected.
+  - `redirect_uri` must match a registered callback exactly, except for the single-label wildcard host form `https://*.domain/path` (https only). URIs with a fragment or userinfo are rejected.
   - Public clients must use PKCE with `S256`; `plain` is rejected.
   - `prompt=consent` and `prompt=select_account` are accepted and ignored. All clients are first-party until the consent milestone.
   - With no `audience`, the tenant's default audience applies.
