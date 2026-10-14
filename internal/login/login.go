@@ -204,6 +204,8 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		ui.RenderLogin(w, http.StatusForbidden, f.view, data)
 		return
 	case err != nil:
+		h.UserThrottle.Refund(userKey)
+		h.IPThrottle.Refund(ipKey)
 		h.fail(w, r, err)
 		return
 	}
@@ -263,13 +265,13 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) complete(w http.ResponseWriter, r *http.Request, f *flow, user *store.User) {
 	ctx := r.Context()
 	now := h.now()
-	if err := h.Store.Users().RecordLogin(ctx, f.res.Tenant.ID, user.UserID, now); err != nil {
-		h.log().WarnContext(ctx, "record login", "tenant", f.res.Tenant.ID, "err", err)
-	}
 	sess, err := h.Sessions.Start(ctx, w, r, f.res.Tenant, user.UserID, f.conn.Name, now)
 	if err != nil {
 		h.fail(w, r, err)
 		return
+	}
+	if err := h.Store.Users().RecordLogin(ctx, f.res.Tenant.ID, user.UserID, now); err != nil {
+		h.log().WarnContext(ctx, "record login", "tenant", f.res.Tenant.ID, "err", err)
 	}
 	h.Authz.Resume(w, r, f.res, f.txn, sess)
 }

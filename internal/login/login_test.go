@@ -34,6 +34,7 @@ tenants:
       - {name: Invite-Only, enabled_clients: [closed], disable_signup: true}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1"}
+      - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
   - name: globex
     domains: [globex.example.test]
 `
@@ -43,6 +44,7 @@ const challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
 type env struct {
 	st  store.Store
 	srv http.Handler
+	h   *Handlers
 }
 
 func newEnv(t *testing.T) *env {
@@ -70,7 +72,7 @@ func newEnv(t *testing.T) *env {
 	mux.HandleFunc("POST /u/login", h.LoginSubmit)
 	mux.HandleFunc("GET /u/signup", h.SignupPage)
 	mux.HandleFunc("POST /u/signup", h.SignupSubmit)
-	return &env{st: st, srv: tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)}
+	return &env{st: st, h: h, srv: tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)}
 }
 
 // browser is a minimal cookie-keeping client for one host.
@@ -305,4 +307,62 @@ func mustTenant(t *testing.T, e *env, name string) *store.Tenant {
 		t.Fatal(err)
 	}
 	return tn
+}
+
+func TestClientIP(t *testing.T) {
+	r := httptest.NewRequest("POST", "/u/login", nil)
+	r.RemoteAddr = "10.0.0.1:4444"
+	r.Header.Set("X-Forwarded-For", "spoofed, 203.0.113.9")
+	if got := clientIP(r, false); got != "10.0.0.1" {
+		t.Errorf("untrusted = %q", got)
+	}
+	if got := clientIP(r, true); got != "203.0.113.9" {
+		t.Errorf("trusted = %q", got)
+	}
+	r.Header.Del("X-Forwarded-For")
+	if got := clientIP(r, true); got != "10.0.0.1" {
+		t.Errorf("no header = %q", got)
+	}
+}
+
+func TestIPThrottle(t *testing.T) {
+	e := newEnv(t)
+	e.h.IPThrottle = identity.NewThrottle(3, 15*time.Minute, 15*time.Minute)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	var last int
+	for i := 0; i < 4; i++ {
+		user := "nobody" + string(rune('a'+i)) + "@acme.test"
+		last = b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {user}, "password": {"wrong"}}).Code
+	}
+	if last != http.StatusTooManyRequests {
+		t.Fatalf("fourth failure from one IP = %d, want 429", last)
+	}
+}
+
+func TestSuccessfulLoginsRefundIPAttempt(t *testing.T) {
+	e := newEnv(t)
+	e.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	for i := 0; i < 5; i++ {
+		b := e.browser("acme.example.test")
+		_, state, csrf := b.begin(t)
+		rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"alice password 1"}})
+		if rec.Code != 302 {
+			t.Fatalf("login %d = %d %s", i, rec.Code, rec.Body)
+		}
+	}
+}
+
+func TestBlockedUser(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	form := url.Values{"state": {state}, "csrf": {csrf}, "username": {"carol@acme.test"}, "password": {"carol password 1"}}
+	// More tries than the per-user maximum: a blocked user is not a failed guess.
+	for i := 0; i < 5; i++ {
+		rec := b.do(t, "POST", "/u/login", form)
+		if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "blocked") || b.cookies[session.CookieName] != nil {
+			t.Fatalf("blocked login %d = %d %s", i, rec.Code, rec.Body)
+		}
+	}
 }
