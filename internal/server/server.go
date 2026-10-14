@@ -89,7 +89,7 @@ func New(d Deps) http.Handler {
 
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
-		tr.Use(d.Resolver.Middleware)
+		tr.Use(d.Resolver.Middleware, cors(d.Store))
 		authapi.HandlerWithOptions(authAPI{
 			oidc:  &oidc.Handlers{Keys: d.Keys, Store: d.Store, Log: d.Log},
 			oauth: &oauth.Handlers{Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}},
@@ -100,6 +100,9 @@ func New(d Deps) http.Handler {
 				httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 			},
 		})
+		preflight := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }
+		tr.Options("/oauth/token", preflight)
+		tr.Options("/userinfo", preflight)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)
 		tr.Get("/u/signup", lg.SignupPage)

@@ -37,12 +37,17 @@ type Configuration struct {
 	Issuer                            string   `json:"issuer"`
 	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
 	TokenEndpoint                     string   `json:"token_endpoint"`
+	UserinfoEndpoint                  string   `json:"userinfo_endpoint"`
 	JWKSURI                           string   `json:"jwks_uri"`
 	ResponseTypesSupported            []string `json:"response_types_supported"`
+	ResponseModesSupported            []string `json:"response_modes_supported"`
 	SubjectTypesSupported             []string `json:"subject_types_supported"`
 	IDTokenSigningAlgValuesSupported  []string `json:"id_token_signing_alg_values_supported"`
 	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
 	GrantTypesSupported               []string `json:"grant_types_supported"`
+	CodeChallengeMethodsSupported     []string `json:"code_challenge_methods_supported"`
+	ScopesSupported                   []string `json:"scopes_supported"`
+	ClaimsSupported                   []string `json:"claims_supported"`
 }
 
 func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
@@ -57,12 +62,18 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		Issuer:                            res.Issuer(),
 		AuthorizationEndpoint:             base + "/authorize",
 		TokenEndpoint:                     base + "/oauth/token",
+		UserinfoEndpoint:                  base + "/userinfo",
 		JWKSURI:                           base + "/.well-known/jwks.json",
 		ResponseTypesSupported:            []string{"code"},
+		ResponseModesSupported:            []string{"query", "fragment", "form_post", "web_message"},
 		SubjectTypesSupported:             []string{"public"},
 		IDTokenSigningAlgValuesSupported:  []string{"RS256"},
-		TokenEndpointAuthMethodsSupported: []string{"client_secret_basic", "client_secret_post"},
-		GrantTypesSupported:               []string{"client_credentials"},
+		TokenEndpointAuthMethodsSupported: []string{"client_secret_basic", "client_secret_post", "none"},
+		GrantTypesSupported:               []string{"authorization_code", "client_credentials"},
+		CodeChallengeMethodsSupported:     []string{"S256"},
+		ScopesSupported:                   []string{"openid", "profile", "email"},
+		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce", "sid", "at_hash",
+			"name", "nickname", "picture", "updated_at", "email", "email_verified"},
 	})
 }
 

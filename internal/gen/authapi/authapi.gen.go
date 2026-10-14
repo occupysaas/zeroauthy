@@ -43,14 +43,19 @@ type OAuthError struct {
 // OpenIDConfiguration defines model for OpenIDConfiguration.
 type OpenIDConfiguration struct {
 	AuthorizationEndpoint             string    `json:"authorization_endpoint"`
+	ClaimsSupported                   *[]string `json:"claims_supported,omitempty"`
+	CodeChallengeMethodsSupported     *[]string `json:"code_challenge_methods_supported,omitempty"`
 	GrantTypesSupported               *[]string `json:"grant_types_supported,omitempty"`
 	IdTokenSigningAlgValuesSupported  []string  `json:"id_token_signing_alg_values_supported"`
 	Issuer                            string    `json:"issuer"`
 	JwksUri                           string    `json:"jwks_uri"`
+	ResponseModesSupported            *[]string `json:"response_modes_supported,omitempty"`
 	ResponseTypesSupported            []string  `json:"response_types_supported"`
+	ScopesSupported                   *[]string `json:"scopes_supported,omitempty"`
 	SubjectTypesSupported             []string  `json:"subject_types_supported"`
 	TokenEndpoint                     string    `json:"token_endpoint"`
 	TokenEndpointAuthMethodsSupported *[]string `json:"token_endpoint_auth_methods_supported,omitempty"`
+	UserinfoEndpoint                  *string   `json:"userinfo_endpoint,omitempty"`
 }
 
 // TokenRequest defines model for TokenRequest.

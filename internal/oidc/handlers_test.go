@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -61,8 +62,28 @@ func TestDiscovery(t *testing.T) {
 			t.Errorf("%s = %v, want %s", k, doc[k], v)
 		}
 	}
-	if got := doc["grant_types_supported"]; len(got.([]any)) != 1 || got.([]any)[0] != "client_credentials" {
-		t.Errorf("grant_types_supported = %v", got)
+	wantLists := map[string][]string{
+		"grant_types_supported":                 {"authorization_code", "client_credentials"},
+		"response_types_supported":              {"code"},
+		"response_modes_supported":              {"query", "fragment", "form_post", "web_message"},
+		"code_challenge_methods_supported":      {"S256"},
+		"scopes_supported":                      {"openid", "profile", "email"},
+		"token_endpoint_auth_methods_supported": {"client_secret_basic", "client_secret_post", "none"},
+	}
+	for k, want := range wantLists {
+		var got []string
+		for _, v := range doc[k].([]any) {
+			got = append(got, v.(string))
+		}
+		if strings.Join(got, ",") != strings.Join(want, ",") {
+			t.Errorf("%s = %v, want %v", k, got, want)
+		}
+	}
+	if doc["userinfo_endpoint"] != "https://acme.example.test/userinfo" {
+		t.Errorf("userinfo_endpoint = %v", doc["userinfo_endpoint"])
+	}
+	if len(doc["claims_supported"].([]any)) == 0 {
+		t.Error("claims_supported is empty")
 	}
 	if cc := rec.Header().Get("Cache-Control"); cc != "public, max-age=300" {
 		t.Errorf("Cache-Control = %q", cc)

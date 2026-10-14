@@ -41,8 +41,9 @@ paths:
       description: |
         Returns the tenant's OpenID Provider metadata. Grant types and
         features are listed only when this server version implements them.
-        authorization_endpoint is always advertised, as OpenID Connect
-        Discovery requires it, and is served once hosted login is available.
+        authorization_endpoint and userinfo_endpoint are served by this
+        server and advertised alongside the supported response modes, PKCE
+        methods, scopes and claims.
       x-source:
         - https://openid.net/specs/openid-connect-discovery-1_0.html
         - https://auth0.com/docs/get-started/applications/configure-applications-with-oidc-discovery
@@ -375,6 +376,11 @@ components:
         id_token_signing_alg_values_supported: {type: array, items: {type: string}}
         token_endpoint_auth_methods_supported: {type: array, items: {type: string}}
         grant_types_supported: {type: array, items: {type: string}}
+        userinfo_endpoint: {type: string, format: uri}
+        response_modes_supported: {type: array, items: {type: string}}
+        code_challenge_methods_supported: {type: array, items: {type: string}}
+        scopes_supported: {type: array, items: {type: string}}
+        claims_supported: {type: array, items: {type: string}}
     JWKS:
       type: object
       required: [keys]

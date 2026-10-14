@@ -80,3 +80,14 @@ them. Each entry: context, sources consulted, decision, rationale.
     - Without an API, `aud` is the userinfo URL only, and clients must treat the token as opaque.
     - Granted scopes are the requested `openid`/`profile`/`email` plus requested scopes the API defines. No `gty` claim is added.
 - **Rationale:** A short single-use code limits interception. JWTs for userinfo-only tokens avoid server-side token storage while behaving like opaque tokens to clients.
+
+## D-0009: CORS for browser applications
+
+- **Context:** SPAs call `/oauth/token` and `/userinfo` cross-origin. A preflight does not say which client is calling.
+- **Sources:** Fetch Standard (CORS protocol); Auth0 public docs describing "Allowed Web Origins" and "Allowed Origins (CORS)" application settings.
+- **Decision:**
+  - Discovery and JWKS send `Access-Control-Allow-Origin: *`.
+  - `/oauth/token` and `/userinfo` echo the `Origin` back if any client of the tenant lists it in `allowed_origins` or `web_origins`, and preflights reflect the requested headers.
+  - Other origins get no CORS headers (403 on preflight).
+  - Credentials (cookies) are never allowed cross-origin.
+- **Rationale:** Client authentication still happens on the actual request. CORS only decides which browser origins may read responses.
