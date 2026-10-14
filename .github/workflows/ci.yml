@@ -31,4 +31,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: tests/e2e/package-lock.json
-      - run: ./tests/e2e/run-m3.sh
+      - run: npm ci --no-audit --no-fund
+        working-directory: tests/e2e
+      - run: npx playwright install --with-deps chromium
+        working-directory: tests/e2e
+      - run: make e2e

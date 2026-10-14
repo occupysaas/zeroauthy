@@ -8,8 +8,9 @@ zeroauthy is a clean-room implementation built from public documentation
 and open standards. It is not affiliated with Auth0 or Okta. See
 [CLEAN_ROOM.md](CLEAN_ROOM.md).
 
-> **Status:** early. Multi-tenant discovery, JWKS and the
-> `client_credentials` grant work today. See the
+> **Status:** early. Multi-tenant discovery, JWKS, the `client_credentials`
+> grant, login with the hosted page and the authorization code + PKCE flow
+> (verified with auth0-spa-js) work today. See the
 > [compatibility matrix](docs/compat/matrix.md).
 
 ## Quick start
@@ -33,6 +34,17 @@ curl --cacert cert.pem https://localhost:8443/oauth/token \
   -d grant_type=client_credentials -d client_id=e2e-m2m \
   -d client_secret=e2e-m2m-secret-not-for-production -d audience=https://api.e2e.local
 ```
+
+### Try the login page
+
+With the quick-start server running, open:
+
+```
+https://localhost:8443/authorize?client_id=e2e-spa&response_type=code&redirect_uri=https://localhost:3443/&scope=openid%20profile&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256&state=demo
+```
+
+and sign in as `alice@e2e.local` / `Correct-Horse-Battery-9` (test data from
+`tests/e2e/seed.yaml`). You are redirected to `https://localhost:3443/?code=…`.
 
 API reference: `https://localhost:8443/docs`. The raw contract is at
 `/openapi.yaml`, and its source is [api/authentication.yaml](api/authentication.yaml).

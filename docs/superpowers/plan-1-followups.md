@@ -7,11 +7,8 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 | Before | Item |
 |---|---|
-| Hash import (custom-db bridge, Management API, SQL drivers) | `secrets.Verify` passes stored argon2 `m`/`t`/`p` unchecked: `t=0`/`p=0`/`m<8p` panic and a huge `m` allocates unboundedly. Bound parameters, key length and salt length. |
 | SQL drivers (milestone 7) | `keys.Manager.Ensure` returns early if any key exists, so a half-created key set (current without next) can never rotate; it is also only serialized in-process. Create whichever of current/next is missing and enforce one current/one next at the store level. |
 | SQL drivers (milestone 7) | `storetest` gaps: tenant `Update` name collision and stale-domain checks; read-side copy checks for clients/resource servers/grants; Rotate wrong-status guard; single next/current invariant. Add `Store.WithTx`; make `seed.Apply` transactional. |
-| Hosted login (milestone 4) | `/docs` loads Scalar from jsDelivr without SRI. Login pages will share the origin and session cookies: add SRI + CSP or self-host the bundle. |
-| Hosted login (milestone 4) | `Minter` with an empty audience emits `aud: null`; guard it before opaque/userinfo tokens. |
 | Management API (sub-project 3) | Tenants created at runtime need `keys.Manager.Ensure`; domains must be normalized with `tenant.NormalizeHost` and must not fall under `server.base_domain`. |
 
 ## Nice to have
@@ -24,3 +21,13 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - `seed`: empty file reports `seed: EOF`; `Load` and update paths untested.
 - `tests/e2e/run-m3.sh`: readiness loop doesn't fail fast; port 8443 hardcoded in three files.
 - Spec §1.2 item 3 sub-bullets still name node-auth0 methods.
+
+## Plan 2 follow-ups
+
+| Before | Item |
+|---|---|
+| SQL drivers (milestone 7) | Expired login transactions, authorization codes and sessions are never purged; add `DeleteExpired` to those stores and a periodic sweeper. |
+| Multi-instance deployments | Login throttling is in-process; move counters to the store or a shared cache. |
+| Large tenants | CORS origin checks list all clients per cross-origin request; index origins. |
+| Hosted login (spec §7) | Template override directory; bcrypt hash verification and upgrade for imported users. |
+| Refresh tokens (milestone 5) | On authorization-code replay, revoke refresh tokens issued from that code. |

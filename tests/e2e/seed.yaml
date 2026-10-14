@@ -15,7 +15,23 @@ tenants:
         app_type: non_interactive
         client_secret: e2e-m2m-secret-not-for-production
         grant_types: [client_credentials]
+      - client_id: e2e-spa
+        name: E2E SPA
+        app_type: spa
+        grant_types: [authorization_code]
+        callbacks: ["https://localhost:3443/"]
+        web_origins: ["https://localhost:3443"]
+        allowed_origins: ["https://localhost:3443"]
     client_grants:
       - client_id: e2e-m2m
         audience: https://api.e2e.local
         scopes: ["read:things"]
+    connections:
+      - name: Username-Password-Authentication
+        enabled_clients: [e2e-spa]
+    users:
+      - connection: Username-Password-Authentication
+        email: alice@e2e.local
+        password: "Correct-Horse-Battery-9"
+        email_verified: true
+        name: Alice Example
