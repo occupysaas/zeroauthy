@@ -27,7 +27,10 @@ type Tenant struct {
 	SessionLifetime     int
 	IdleSessionLifetime int
 	Branding            Branding
-	CreatedAt           time.Time
+	// DefaultDirectory is the name of the connection the password grant
+	// authenticates against.
+	DefaultDirectory string
+	CreatedAt        time.Time
 }
 
 // AppType is the kind of application a client represents.
@@ -179,12 +182,16 @@ type User struct {
 	Name          string
 	Nickname      string
 	Picture       string
-	Blocked       bool
-	Identities    []Identity
-	LastLogin     *time.Time
-	LoginsCount   int
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	GivenName     string
+	FamilyName    string
+	// UserMetadata is free-form, user-editable JSON (maps, slices, scalars).
+	UserMetadata map[string]any
+	Blocked      bool
+	Identities   []Identity
+	LastLogin    *time.Time
+	LoginsCount  int
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 // LoginSession is a browser's authenticated session with a tenant.
@@ -280,3 +287,19 @@ type RefreshTokenPolicy struct {
 // CustomText holds a tenant's text overrides, shaped like Auth0's
 // documented prompt custom text: prompt → language → screen → key → text.
 type CustomText map[string]map[string]map[string]map[string]string
+
+// PasswordResetTicket is an issued password-reset link. Only the hash of
+// the ticket token is stored.
+type PasswordResetTicket struct {
+	TenantID   string
+	ID         string
+	TokenHash  string // secrets.HashToken of the ticket token
+	UserID     string
+	Connection string
+	ClientID   string
+	// Lang is the UI language chosen when the ticket was requested.
+	Lang      string
+	ExpiresAt time.Time
+	UsedAt    *time.Time
+	CreatedAt time.Time
+}

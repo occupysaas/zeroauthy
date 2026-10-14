@@ -109,4 +109,21 @@ func testSessions(t *testing.T, newStore Factory) {
 			mustErrIs(t, err, store.ErrNotFound)
 		}
 	})
+
+	t.Run("DeleteByUser", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Sessions().Create(ctx, newSession("ten_a", "s1", "h1"))) // auth0|u1
+		mustNoErr(t, s.Sessions().Create(ctx, newSession("ten_a", "s2", "h2"))) // auth0|u1
+		other := newSession("ten_a", "s3", "h3")
+		other.UserID = "auth0|u2"
+		mustNoErr(t, s.Sessions().Create(ctx, other))
+		mustNoErr(t, s.Sessions().Create(ctx, newSession("ten_b", "s4", "h4"))) // same user ID, other tenant
+		n, err := s.Sessions().DeleteByUser(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, n, 2)
+		_, err = s.Sessions().GetByTokenHash(ctx, "ten_a", "h3")
+		mustNoErr(t, err)
+		_, err = s.Sessions().GetByTokenHash(ctx, "ten_b", "h4")
+		mustNoErr(t, err)
+	})
 }

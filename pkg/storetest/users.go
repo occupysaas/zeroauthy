@@ -21,8 +21,10 @@ func newUser(tenantID, id, email, username string) *store.User {
 		Identities: []store.Identity{{
 			Connection: "Database", Provider: store.StrategyDatabase, UserID: id, PasswordHash: "$argon2id$hash-" + id,
 		}},
-		CreatedAt: ts(0),
-		UpdatedAt: ts(0),
+		GivenName: "Given " + id, FamilyName: "Family " + id,
+		UserMetadata: map[string]any{"plan": "pro", "nested": map[string]any{"a": []any{"x"}}},
+		CreatedAt:    ts(0),
+		UpdatedAt:    ts(0),
 	}
 }
 
@@ -112,5 +114,28 @@ func testUsers(t *testing.T, newStore Factory) {
 		again, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
 		mustEqual(t, again.Identities[0], newUser("ten_a", "u1", "alice@example.test", "").Identities[0])
 		mustEqual(t, again.LastLogin.Equal(ts(time.Hour)), true)
+	})
+
+	t.Run("MetadataIsCopied", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newUser("ten_a", "u1", "alice@example.test", "alice")
+		mustNoErr(t, s.Users().Create(ctx, in))
+		in.UserMetadata["plan"] = "mutated"
+		got, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		got.UserMetadata["nested"].(map[string]any)["a"] = "mutated"
+		again, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, again.UserMetadata, map[string]any{"plan": "pro", "nested": map[string]any{"a": []any{"x"}}})
+	})
+
+	t.Run("SetPasswordHash", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "u1", "alice@example.test", "alice")))
+		mustNoErr(t, s.Users().SetPasswordHash(ctx, "ten_a", "auth0|u1", "Database", "$argon2id$new", ts(time.Hour)))
+		got, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, got.Identities[0].PasswordHash, "$argon2id$new")
+		mustEqual(t, got.UpdatedAt, ts(time.Hour))
+		mustErrIs(t, s.Users().SetPasswordHash(ctx, "ten_a", "auth0|u1", "Other", "x", ts(0)), store.ErrNotFound)
+		mustErrIs(t, s.Users().SetPasswordHash(ctx, "ten_a", "auth0|nobody", "Database", "x", ts(0)), store.ErrNotFound)
+		mustErrIs(t, s.Users().SetPasswordHash(ctx, "ten_b", "auth0|u1", "Database", "x", ts(0)), store.ErrNotFound)
 	})
 }

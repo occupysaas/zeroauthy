@@ -15,6 +15,7 @@ func newTenant(name string) *store.Tenant {
 		FriendlyName:      strings.ToUpper(name),
 		Domains:           []string{name + ".example.test"},
 		DefaultAudience:   "https://" + name + ".api.test",
+		DefaultDirectory:  "Database",
 		AllowedLogoutURLs: []string{"https://" + name + ".example.test/bye"},
 		EnabledLocales:    []string{"en", "fr"},
 		CustomText:        store.CustomText{"login": {"fr": {"login": {"title": "Connexion"}}}},

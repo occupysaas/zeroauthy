@@ -227,4 +227,22 @@ func testRefreshTokens(t *testing.T, newStore Factory) {
 		_, err = s.RefreshTokens().GetByTokenHash(ctx, "ten_b", "h-idle")
 		mustErrIs(t, err, store.ErrNotFound)
 	})
+
+	t.Run("RevokeByUser", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken("ten_a", "a", "ha", "f1"))) // auth0|u1
+		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken("ten_a", "b", "hb", "f2"))) // auth0|u1
+		other := newRefreshToken("ten_a", "c", "hc", "f3")
+		other.UserID = "auth0|u2"
+		mustNoErr(t, s.RefreshTokens().Create(ctx, other))
+		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken("ten_b", "d", "hd", "f4")))
+		mustNoErr(t, s.RefreshTokens().RevokeFamily(ctx, "ten_a", "f2", ts(time.Minute))) // already revoked
+		n, err := s.RefreshTokens().RevokeByUser(ctx, "ten_a", "auth0|u1", ts(time.Hour))
+		mustNoErr(t, err)
+		mustEqual(t, n, 1)
+		mustEqual(t, getRT(t, s, "ten_a", "ha").RevokedAt.Equal(ts(time.Hour)), true)
+		mustEqual(t, getRT(t, s, "ten_a", "hb").RevokedAt.Equal(ts(time.Minute)), true) // first revocation kept
+		mustEqual(t, getRT(t, s, "ten_a", "hc").RevokedAt == nil, true)
+		mustEqual(t, getRT(t, s, "ten_b", "hd").RevokedAt == nil, true)
+	})
 }

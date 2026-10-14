@@ -71,6 +71,19 @@ func (r sessions) DeleteExpired(_ context.Context, before time.Time) (int, error
 	return n, nil
 }
 
+func (r sessions) DeleteByUser(_ context.Context, tenantID, userID string) (int, error) {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	n := 0
+	for k, s := range r.s.sessions {
+		if k.tenant == tenantID && s.UserID == userID {
+			delete(r.s.sessions, k)
+			n++
+		}
+	}
+	return n, nil
+}
+
 func (r sessions) Delete(_ context.Context, tenantID, id string) error {
 	r.s.mu.Lock()
 	defer r.s.mu.Unlock()

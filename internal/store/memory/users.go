@@ -71,6 +71,23 @@ func (r users) RecordLogin(_ context.Context, tenantID, userID string, at time.T
 	return nil
 }
 
+func (r users) SetPasswordHash(_ context.Context, tenantID, userID, connection, hash string, at time.Time) error {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	u, ok := r.s.users[key{tenantID, userID}]
+	if !ok {
+		return store.ErrNotFound
+	}
+	for i := range u.Identities {
+		if u.Identities[i].Connection == connection {
+			u.Identities[i].PasswordHash = hash
+			u.UpdatedAt = at
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
 // loginTaken reports whether another user shares a connection with u and
 // has the same non-empty email or username. The caller holds the lock.
 func (r users) loginTaken(u *store.User) bool {

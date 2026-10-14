@@ -25,6 +25,7 @@ func Run(t *testing.T, newStore Factory) {
 	t.Run("AuthTransactions", func(t *testing.T) { testAuthTransactions(t, newStore) })
 	t.Run("AuthCodes", func(t *testing.T) { testAuthCodes(t, newStore) })
 	t.Run("RefreshTokens", func(t *testing.T) { testRefreshTokens(t, newStore) })
+	t.Run("PasswordResetTickets", func(t *testing.T) { testPasswordResetTickets(t, newStore) })
 }
 
 func open(t *testing.T, newStore Factory) store.Store {

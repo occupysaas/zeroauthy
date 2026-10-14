@@ -93,6 +93,20 @@ func (r refreshTokens) RevokeFamily(_ context.Context, tenantID, familyID string
 	return nil
 }
 
+func (r refreshTokens) RevokeByUser(_ context.Context, tenantID, userID string, at time.Time) (int, error) {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	n := 0
+	for k, t := range r.s.refreshTokens {
+		if k.tenant == tenantID && t.UserID == userID && t.RevokedAt == nil {
+			v := at
+			t.RevokedAt = &v
+			n++
+		}
+	}
+	return n, nil
+}
+
 // revokeFamily is called with the lock held.
 func (r refreshTokens) revokeFamily(tenantID, familyID string, at time.Time) {
 	for k, t := range r.s.refreshTokens {

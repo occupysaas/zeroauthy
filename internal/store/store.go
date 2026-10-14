@@ -35,6 +35,7 @@ type Store interface {
 	AuthTransactions() AuthTransactions
 	AuthCodes() AuthCodes
 	RefreshTokens() RefreshTokens
+	PasswordResetTickets() PasswordResetTickets
 	Ping(ctx context.Context) error
 	Close() error
 }
@@ -141,6 +142,10 @@ type Users interface {
 	Update(ctx context.Context, u *User) error
 	// RecordLogin atomically sets LastLogin and increments LoginsCount.
 	RecordLogin(ctx context.Context, tenantID, userID string, at time.Time) error
+	// SetPasswordHash replaces the password hash of the user's identity on
+	// connection and sets UpdatedAt = at. It returns ErrNotFound if the user
+	// or the identity is absent.
+	SetPasswordHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error
 }
 
 // Sessions stores login sessions, keyed by (TenantID, ID). TokenHash is
@@ -158,6 +163,9 @@ type Sessions interface {
 	AddClient(ctx context.Context, tenantID, id, clientID string) error
 	// Delete returns ErrNotFound if absent.
 	Delete(ctx context.Context, tenantID, id string) error
+	// DeleteByUser removes every session of the user in the tenant and
+	// returns how many it removed.
+	DeleteByUser(ctx context.Context, tenantID, userID string) (int, error)
 	// DeleteExpired removes, in every tenant, the sessions whose ExpiresAt
 	// or IdleExpiresAt is not after before, and returns how many it removed.
 	DeleteExpired(ctx context.Context, before time.Time) (int, error)
@@ -217,8 +225,28 @@ type RefreshTokens interface {
 	// RevokeFamily sets RevokedAt = at on every unrevoked token of the
 	// family. An unknown family is not an error.
 	RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error
+	// RevokeByUser sets RevokedAt = at on every unrevoked token of the user
+	// in the tenant and returns how many it revoked. Already revoked tokens
+	// keep their first RevokedAt.
+	RevokeByUser(ctx context.Context, tenantID, userID string, at time.Time) (int, error)
 	// DeleteExpired removes, in every tenant, the tokens whose non-zero
 	// ExpiresAt or IdleExpiresAt is not after before, and returns how many
 	// it removed.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
+}
+
+// PasswordResetTickets stores password-reset tickets, keyed by
+// (TenantID, ID). TokenHash is unique within a tenant.
+type PasswordResetTickets interface {
+	// Create returns ErrConflict if the ID or TokenHash exists.
+	Create(ctx context.Context, t *PasswordResetTicket) error
+	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*PasswordResetTicket, error)
+	// Consume atomically marks the ticket used at `at` and returns it. A
+	// ticket that was already used is returned together with
+	// ErrAlreadyUsed, and its first UsedAt is kept. Unknown tickets return
+	// ErrNotFound.
+	Consume(ctx context.Context, tenantID, tokenHash string, at time.Time) (*PasswordResetTicket, error)
+	// DeleteExpired removes, in every tenant, the tickets whose ExpiresAt is
+	// not after before, used or not, and returns how many it removed.
 	DeleteExpired(ctx context.Context, before time.Time) (int, error)
 }

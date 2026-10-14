@@ -138,6 +138,7 @@ func TestValidation(t *testing.T) {
 		"unknown text key":      {`tenants: [{name: a, custom_text: {zeroauthy: {en: {error: {nope: x}}}}}]`, "unknown key"},
 		"empty text":            {`tenants: [{name: a, custom_text: {login: {en: {login: {buttonText: }}}}}]`, "is empty"},
 		"foreign variable":      {`tenants: [{name: a, custom_text: {login: {en: {login: {title: "Hi ${userName}"}}}}}]`, "${userName}"},
+		"unknown default dir":   {`tenants: [{name: a, default_directory: Nope}]`, "default_directory"},
 		"bad tenant logout url": {`tenants: [{name: a, allowed_logout_urls: ["bye"]}]`, "absolute"},
 		"bad rotation type":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {rotation_type: sometimes}}]}]`, "rotation_type"},
 		"bad expiration type":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {expiration_type: never}}]}]`, "expiration_type"},
@@ -179,6 +180,7 @@ const sampleWithUsers = `
 tenants:
   - name: acme
     domains: [acme.test]
+    default_directory: Username-Password-Authentication
     session_lifetime: 3600
     idle_session_lifetime: 600
     branding: {logo_url: "https://cdn.acme.test/logo.png", primary_color: "#1A73E8"}
@@ -207,7 +209,7 @@ func TestApplyConnectionsAndUsers(t *testing.T) {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
-	if tn.SessionLifetime != 3600 || tn.IdleSessionLifetime != 600 || tn.Branding.PrimaryColor != "#1a73e8" || tn.Branding.LogoURL != "https://cdn.acme.test/logo.png" {
+	if tn.SessionLifetime != 3600 || tn.IdleSessionLifetime != 600 || tn.Branding.PrimaryColor != "#1a73e8" || tn.Branding.LogoURL != "https://cdn.acme.test/logo.png" || tn.DefaultDirectory != "Username-Password-Authentication" {
 		t.Errorf("tenant settings = %+v", tn)
 	}
 	c, _ := st.Clients().Get(ctx, tn.ID, "spa")

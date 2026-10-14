@@ -21,6 +21,7 @@ type Tenant struct {
 	FriendlyName        string           `yaml:"friendly_name"`
 	Domains             []string         `yaml:"domains"`
 	DefaultAudience     string           `yaml:"default_audience"`
+	DefaultDirectory    string           `yaml:"default_directory"`
 	AllowedLogoutURLs   []string         `yaml:"allowed_logout_urls"`
 	ResourceServers     []ResourceServer `yaml:"resource_servers"`
 	Clients             []Client         `yaml:"clients"`

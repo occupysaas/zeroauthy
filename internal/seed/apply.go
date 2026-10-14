@@ -41,6 +41,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 		tn.CustomText = in.CustomText
 		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
 		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
+		tn.DefaultDirectory = in.DefaultDirectory
 		if err := st.Tenants().Create(ctx, tn); err != nil {
 			return err
 		}
@@ -53,6 +54,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 		tn.CustomText = in.CustomText
 		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
 		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
+		tn.DefaultDirectory = in.DefaultDirectory
 		if err := st.Tenants().Update(ctx, tn); err != nil {
 			return err
 		}

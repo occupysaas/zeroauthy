@@ -259,6 +259,10 @@ func (t *Tenant) validate() []error {
 		}
 	}
 
+	if t.DefaultDirectory != "" && conns[t.DefaultDirectory] == nil {
+		fail("default_directory %q is not a connection of this tenant", t.DefaultDirectory)
+	}
+
 	seenUsers := map[[2]string]bool{}
 	seenUsernames := map[[2]string]bool{}
 	for i := range t.Users {

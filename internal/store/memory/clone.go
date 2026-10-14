@@ -86,6 +86,7 @@ func cloneUser(u *store.User) *store.User {
 		t := *u.LastLogin
 		out.LastLogin = &t
 	}
+	out.UserMetadata = cloneJSON(u.UserMetadata)
 	return &out
 }
 
@@ -127,4 +128,40 @@ func cloneRefreshToken(t *store.RefreshToken) *store.RefreshToken {
 		out.RevokedAt = &v
 	}
 	return &out
+}
+
+func cloneResetTicket(t *store.PasswordResetTicket) *store.PasswordResetTicket {
+	out := *t
+	if t.UsedAt != nil {
+		v := *t.UsedAt
+		out.UsedAt = &v
+	}
+	return &out
+}
+
+// cloneJSON deep-copies JSON-like values (maps, slices, scalars).
+func cloneJSON(m map[string]any) map[string]any {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = cloneJSONValue(v)
+	}
+	return out
+}
+
+func cloneJSONValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		return cloneJSON(x)
+	case []any:
+		c := make([]any, len(x))
+		for i, e := range x {
+			c[i] = cloneJSONValue(e)
+		}
+		return c
+	default:
+		return x
+	}
 }
