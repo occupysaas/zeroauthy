@@ -11,14 +11,15 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
-// ValidateLocales checks enabled_locales: valid BCP 47 tags, no duplicates
-// (case-insensitive).
+// ValidateLocales checks enabled_locales: valid BCP 47 tags written in
+// canonical form, naming a language (no "und", private-use "x-" or
+// grandfathered "i-" tags), with no duplicates (case-insensitive).
 func ValidateLocales(tags []string) error {
 	var errs []error
 	seen := map[string]bool{}
 	for _, t := range tags {
-		if _, err := language.Parse(t); err != nil || t == "" {
-			errs = append(errs, fmt.Errorf("%q is not a valid language tag", t))
+		if err := checkLocale(t); err != nil {
+			errs = append(errs, err)
 			continue
 		}
 		if seen[strings.ToLower(t)] {
@@ -27,6 +28,27 @@ func ValidateLocales(tags []string) error {
 		seen[strings.ToLower(t)] = true
 	}
 	return errors.Join(errs...)
+}
+
+func checkLocale(t string) error {
+	tag, err := language.Parse(t)
+	if err != nil || t == "" {
+		return fmt.Errorf("%q is not a valid language tag", t)
+	}
+	lower := strings.ToLower(t)
+	switch {
+	case strings.HasPrefix(lower, "x-"):
+		return fmt.Errorf("%q is not a valid language tag: private-use tags are not supported", t)
+	case strings.HasPrefix(lower, "i-"):
+		return fmt.Errorf("%q is not a valid language tag: grandfathered tags are not supported", t)
+	}
+	if _, conf := tag.Base(); conf != language.Exact {
+		return fmt.Errorf("%q is not a valid language tag: undetermined language", t)
+	}
+	if c := tag.String(); c != t {
+		return fmt.Errorf("%q is not in canonical form; use %q", t, c)
+	}
+	return nil
 }
 
 // zeroauthyPrompt is the custom-text prompt for zeroauthy's own keys.

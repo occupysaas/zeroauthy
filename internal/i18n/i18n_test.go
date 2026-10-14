@@ -33,6 +33,9 @@ func TestNegotiate(t *testing.T) {
 		{"garbage header", "", "!!!,,;;q=x", "en"},
 		{"garbage ui_locales", "%%%", "", "en"},
 		{"long header", "", strings.Repeat("xx-YY, ", 500) + "fr", "fr"},
+		{"entries past 1024 ignored", "", strings.Repeat("xx-YY, ", 1024) + "fr", "en"},
+		{"q name is case-insensitive", "", "fr;Q=0", "en"},
+		{"Q weight orders entries", "", "fr;Q=0.1, pt-BR;Q=0.5", "pt-BR"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -260,5 +263,23 @@ func TestHasCustom(t *testing.T) {
 	var nilL *Localizer
 	if nilL.HasCustom("login.login.title") {
 		t.Fatal("nil localizer has no custom text")
+	}
+}
+
+func TestValidateLocalesRejectsNonCanonicalAndSpecialTags(t *testing.T) {
+	for tag, want := range map[string]string{
+		"und":       "undetermined",
+		"x-foo":     "private-use",
+		"i-klingon": "grandfathered",
+		"i-default": "grandfathered",
+		"en_US":     `use "en-US"`,
+		"fr-ca":     `use "fr-CA"`,
+		"EN":        `use "en"`,
+		"iw":        `use "he"`,
+	} {
+		err := ValidateLocales([]string{tag})
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("ValidateLocales(%q) = %v, want it to contain %q", tag, err, want)
+		}
 	}
 }

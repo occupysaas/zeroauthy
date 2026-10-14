@@ -26,8 +26,6 @@ var files embed.FS
 var funcs = template.FuncMap{
 	// t renders a catalog key: {{t .Tenant.L "login.login.title" "name" "value"}}.
 	"t": func(l *i18n.Localizer, key string, kv ...string) string { return l.T(key, kv...) },
-	// tv renders a key whose variables are a slice: {{tv .Tenant.L .Data.ErrorKey .Data.ErrorVars}}.
-	"tv": func(l *i18n.Localizer, key string, kv []string) string { return l.T(key, kv...) },
 }
 
 func parsePage(names ...string) *template.Template {

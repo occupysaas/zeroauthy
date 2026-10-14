@@ -37,11 +37,13 @@ func Negotiate(t *store.Tenant, uiLocales, acceptLanguage string) string {
 	return enabled[0]
 }
 
-// maxAcceptEntries bounds the Accept-Language entries considered.
+// maxAcceptEntries bounds the Accept-Language entries considered: only the
+// first 1024 comma-separated entries.
 const maxAcceptEntries = 1024
 
 // acceptedTags returns the tags of an Accept-Language header in descending
-// q order (header order breaks ties), skipping q=0 and malformed entries. It
+// q order (header order breaks ties), skipping q=0 and malformed entries. The
+// q parameter name is matched case-insensitively (RFC 9110 §12.4.2). It
 // is deliberately tolerant: one bad entry never discards the rest, unlike
 // language.ParseAcceptLanguage, which fails the whole header.
 func acceptedTags(header string) []string {
@@ -50,7 +52,9 @@ func acceptedTags(header string) []string {
 		q   float64
 	}
 	var entries []entry
-	for i, part := range strings.Split(header, ",") {
+	// SplitN caps the work before splitting; the extra element holds the
+	// unsplit remainder and is dropped.
+	for i, part := range strings.SplitN(header, ",", maxAcceptEntries+1) {
 		if i >= maxAcceptEntries {
 			break
 		}
@@ -62,7 +66,7 @@ func acceptedTags(header string) []string {
 		q := 1.0
 		for _, p := range fields[1:] {
 			p = strings.TrimSpace(p)
-			if v, ok := strings.CutPrefix(p, "q="); ok {
+			if name, v, ok := strings.Cut(p, "="); ok && strings.EqualFold(name, "q") {
 				f, err := strconv.ParseFloat(v, 64)
 				if err != nil || f < 0 || f > 1 {
 					q = 0
