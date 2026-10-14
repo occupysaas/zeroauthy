@@ -45,3 +45,15 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Sources:** https://auth0.com/docs/manage-users/sessions/configure-session-lifetime-settings (public docs on tenant session lifetime settings).
 - **Decision:** Default absolute lifetime 7 days and idle lifetime 3 days, overridable per tenant (`session_lifetime`, `idle_session_lifetime`, seconds). Every authenticated request slides the idle expiry, never past the absolute expiry.
 - **Rationale:** These are conservative defaults for a hosted login session. Making them configurable covers deployments that need other values.
+
+## D-0006: Authorization request validation choices
+
+- **Context:** Several /authorize behaviors are not pinned down by public Auth0 docs.
+- **Sources:** RFC 6749 §3.1.2 and §4.1.2.1; RFC 7636; OpenID Connect Core §3.1.2.1; OAuth 2.0 Security BCP (RFC 9700) §4.1 and §2.1.1.
+- **Decision:**
+  - `redirect_uri` must match a registered callback exactly, except for the single-label wildcard host form `scheme://*.domain/path`. URIs with a fragment or userinfo are rejected.
+  - Public clients must use PKCE with `S256`; `plain` is rejected.
+  - `prompt=consent` and `prompt=select_account` are accepted and ignored. All clients are first-party until the consent milestone.
+  - With no `audience`, the tenant's default audience applies.
+  - `organization` and `invitation` are rejected until Organizations are implemented.
+- **Rationale:** Exact matching and mandatory S256 PKCE are the security BCP's recommendations. Rejecting organization parameters prevents tokens that silently lack an organization claim.
