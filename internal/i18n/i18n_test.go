@@ -212,3 +212,26 @@ func TestValidateCustomTextCaseDuplicateLanguages(t *testing.T) {
 		t.Fatalf("err = %v, want duplicate-language rejection", err)
 	}
 }
+
+func TestValidateCustomTextRejectsEmptyText(t *testing.T) {
+	for _, text := range []string{"", "   \t"} {
+		ct := store.CustomText{"login": {"en": {"login": {"buttonText": text}}}}
+		err := ValidateCustomText(nil, ct)
+		if err == nil || !strings.Contains(err.Error(), "login.login.buttonText") || !strings.Contains(err.Error(), "empty") {
+			t.Errorf("text %q: err = %v, want an empty-text error naming the key", text, err)
+		}
+	}
+}
+
+func TestEmptyCustomTextFallsBackToCatalog(t *testing.T) {
+	tn := &store.Tenant{CustomText: store.CustomText{
+		"login": {"en": {"login": {"buttonText": "", "title": "  "}}},
+	}}
+	l := New(tn, "en")
+	if got := l.T("login.login.buttonText"); got != "Continue" {
+		t.Errorf("empty custom text = %q, want the catalog's Continue", got)
+	}
+	if got := l.T("login.login.title"); got != "Sign in" {
+		t.Errorf("blank custom text = %q, want the catalog's Sign in", got)
+	}
+}

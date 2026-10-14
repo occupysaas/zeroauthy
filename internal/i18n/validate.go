@@ -59,6 +59,10 @@ func ValidateCustomText(enabled []string, ct store.CustomText) error {
 			for screen, keys := range screens {
 				for k, text := range keys {
 					full := prompt + "." + screen + "." + k
+					if strings.TrimSpace(text) == "" {
+						errs = append(errs, fmt.Errorf("custom_text.%s.%s: %q is empty; remove it to use the built-in text", prompt, lang, full))
+						continue
+					}
 					en, ok := catalogs["en"][full]
 					if !ok {
 						errs = append(errs, fmt.Errorf("custom_text.%s.%s: unknown key %q", prompt, lang, full))

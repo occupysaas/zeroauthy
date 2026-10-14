@@ -96,8 +96,10 @@ func (l *Localizer) T(key string, kv ...string) string {
 	if l == nil {
 		l = english
 	}
+	// Empty custom text is rejected by validation; ignoring it here too
+	// keeps a page from ever showing a blank string.
 	text, ok := l.custom[key]
-	if !ok {
+	if !ok || strings.TrimSpace(text) == "" {
 		text, ok = builtin(l.Lang(), key)
 	}
 	if !ok {
