@@ -28,12 +28,13 @@ tenants:
   - name: flow
     domains: ["HOST"]
     resource_servers:
-      - {identifier: "https://api.flow.test", name: API, scopes: [{value: "read:things"}]}
+      - {identifier: "https://api.flow.test", name: API, allow_offline_access: true, scopes: [{value: "read:things"}]}
     clients:
       - client_id: spa
         app_type: spa
-        grant_types: [authorization_code]
+        grant_types: [authorization_code, refresh_token]
         callbacks: ["https://app.flow.test/cb"]
+        allowed_logout_urls: ["https://app.flow.test/bye"]
         web_origins: ["https://app.flow.test"]
         allowed_origins: ["https://app.flow.test"]
     connections:
@@ -204,5 +205,101 @@ func TestCORS(t *testing.T) {
 	resp, _ := fetch(t, c, e.base+"/.well-known/jwks.json")
 	if resp.Header.Get("Access-Control-Allow-Origin") != "*" {
 		t.Errorf("jwks ACAO = %q", resp.Header.Get("Access-Control-Allow-Origin"))
+	}
+}
+
+// postForm posts a form from the SPA's origin and decodes a JSON reply.
+func (e *flowEnv) postForm(t *testing.T, c *http.Client, path string, form url.Values) (*http.Response, map[string]any) {
+	t.Helper()
+	req, _ := http.NewRequest("POST", e.base+path, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", "https://app.flow.test")
+	resp, body := mustDo(t, c, req)
+	var out map[string]any
+	_ = json.Unmarshal([]byte(body), &out)
+	return resp, out
+}
+
+// codeFlow runs /authorize (logging in if needed) and exchanges the code.
+func (e *flowEnv) codeFlow(t *testing.T, c *http.Client, extra ...string) map[string]any {
+	t.Helper()
+	resp, _ := fetch(t, c, authorizeURL(e.base, extra...))
+	loc, _ := resp.Location()
+	if loc != nil && loc.Path == "/u/login" {
+		_, page := fetch(t, c, loc.String())
+		csrf := csrfRe.FindStringSubmatch(page)
+		if csrf == nil {
+			t.Fatalf("no csrf: %s", page)
+		}
+		form := url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}}
+		req, _ := http.NewRequest("POST", e.base+"/u/login", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		resp, _ = mustDo(t, c, req)
+		loc, _ = resp.Location()
+	}
+	if loc == nil || loc.Host != "app.flow.test" || loc.Query().Get("code") == "" {
+		t.Fatalf("authorize ended at %v (status %d)", loc, resp.StatusCode)
+	}
+	resp, tok := e.postForm(t, c, "/oauth/token", url.Values{"grant_type": {"authorization_code"}, "client_id": {"spa"},
+		"code": {loc.Query().Get("code")}, "redirect_uri": {"https://app.flow.test/cb"}, "code_verifier": {verifier}})
+	if resp.StatusCode != 200 {
+		t.Fatalf("code exchange = %d %v", resp.StatusCode, tok)
+	}
+	return tok
+}
+
+func TestEndToEndRefreshAndLogout(t *testing.T) {
+	e := newFlowEnv(t)
+	c := e.client(t)
+	refresh := func(token string) (*http.Response, map[string]any) {
+		return e.postForm(t, c, "/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {"spa"}, "refresh_token": {token}})
+	}
+
+	// 1. offline_access yields a refresh token.
+	tok := e.codeFlow(t, c, "scope", "openid offline_access read:things")
+	first, _ := tok["refresh_token"].(string)
+	if first == "" || tok["scope"] != "openid offline_access read:things" {
+		t.Fatalf("token response = %v", tok)
+	}
+	// 2. Refreshing rotates, cross-origin, with an ID token.
+	resp, body := refresh(first)
+	second, _ := body["refresh_token"].(string)
+	if resp.StatusCode != 200 || second == "" || second == first || body["id_token"] == nil ||
+		resp.Header.Get("Access-Control-Allow-Origin") != "https://app.flow.test" {
+		t.Fatalf("refresh = %d %v %v", resp.StatusCode, resp.Header, body)
+	}
+	// 3. Reusing the rotated token revokes the family.
+	if resp, body := refresh(first); resp.StatusCode != 400 || body["error"] != "invalid_grant" {
+		t.Fatalf("reuse = %d %v", resp.StatusCode, body)
+	}
+	if resp, body := refresh(second); resp.StatusCode != 400 || body["error"] != "invalid_grant" {
+		t.Fatalf("successor after reuse = %d %v", resp.StatusCode, body)
+	}
+	// 4. The session still works: a new login gives a new family, which
+	//    /oauth/revoke ends.
+	tok = e.codeFlow(t, c, "scope", "openid offline_access")
+	third := tok["refresh_token"].(string)
+	if resp, body := e.postForm(t, c, "/oauth/revoke", url.Values{"client_id": {"spa"}, "token": {third}}); resp.StatusCode != 200 {
+		t.Fatalf("revoke = %d %v", resp.StatusCode, body)
+	}
+	if resp, _ := refresh(third); resp.StatusCode != 400 {
+		t.Fatalf("refresh after revoke = %d", resp.StatusCode)
+	}
+	// 5. /v2/logout ends the session and returns to the app.
+	resp, _ = fetch(t, c, e.base+"/v2/logout?"+url.Values{"client_id": {"spa"}, "returnTo": {"https://app.flow.test/bye"}}.Encode())
+	if loc, _ := resp.Location(); resp.StatusCode != 302 || loc.String() != "https://app.flow.test/bye" {
+		t.Fatalf("logout = %d %v", resp.StatusCode, loc)
+	}
+	// 6. Silent authentication now reports login_required.
+	resp, page := fetch(t, c, authorizeURL(e.base, "prompt", "none", "response_mode", "web_message"))
+	if resp.StatusCode != 200 || !strings.Contains(page, "login_required") {
+		t.Fatalf("silent auth after logout = %d %s", resp.StatusCode, page)
+	}
+	// 7. Discovery advertises the new endpoints.
+	_, doc := fetch(t, c, e.base+"/.well-known/openid-configuration")
+	for _, want := range []string{`"end_session_endpoint":"` + e.base + `/oidc/logout"`, `"revocation_endpoint":"` + e.base + `/oauth/revoke"`, `"refresh_token"`, `"offline_access"`} {
+		if !strings.Contains(doc, want) {
+			t.Errorf("discovery lacks %s", want)
+		}
 	}
 }
