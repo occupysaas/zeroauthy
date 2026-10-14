@@ -51,6 +51,7 @@ type LoginData struct {
 	State, CSRF, Login string
 	SignupURL          string // empty hides the signup link
 	Error              string
+	RedirectURI        string // the client's callback; its origin is allowed as form-action
 }
 
 type SignupData struct {
@@ -58,6 +59,7 @@ type SignupData struct {
 	RequiresUsername             bool
 	LoginURL                     string
 	Error                        string
+	RedirectURI                  string // the client's callback; its origin is allowed as form-action
 }
 
 type page struct {
@@ -67,20 +69,31 @@ type page struct {
 }
 
 func RenderLogin(w http.ResponseWriter, status int, t Tenant, d LoginData) {
-	render(w, status, "login", t, d)
+	render(w, status, "login", t, d, formActionFor(d.RedirectURI))
 }
 
 func RenderSignup(w http.ResponseWriter, status int, t Tenant, d SignupData) {
-	render(w, status, "signup", t, d)
+	render(w, status, "signup", t, d, formActionFor(d.RedirectURI))
 }
 
 func RenderError(w http.ResponseWriter, status int, t Tenant, message string) {
-	render(w, status, "error", t, message)
+	render(w, status, "error", t, message, "'self'")
 }
 
-func render(w http.ResponseWriter, status int, name string, t Tenant, data any) {
+// formActionFor returns the form-action source list for a page whose form
+// submission ends in a redirect to redirectURI. Browsers apply form-action to
+// the whole redirect chain, so the client's origin must be allowed or the
+// final hop back to the application is blocked.
+func formActionFor(redirectURI string) string {
+	if o := origin(redirectURI); o != "'none'" {
+		return "'self' " + o
+	}
+	return "'self'"
+}
+
+func render(w http.ResponseWriter, status int, name string, t Tenant, data any, formAction string) {
 	nonce := newNonce()
-	setHeaders(w, nonce, "'none'", "'self'")
+	setHeaders(w, nonce, "'none'", formAction)
 	write(w, status, pages[name], "layout", page{Tenant: t, Nonce: nonce, Data: data})
 }
 

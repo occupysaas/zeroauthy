@@ -91,3 +91,10 @@ them. Each entry: context, sources consulted, decision, rationale.
   - Other origins get no CORS headers (403 on preflight).
   - Credentials (cookies) are never allowed cross-origin.
 - **Rationale:** Client authentication still happens on the actual request. CORS only decides which browser origins may read responses.
+
+## D-0010: Login pages allow the client's origin as a form-action target
+
+- **Context:** The hosted login form posts to `/u/login`, which redirects (via `/authorize` processing) to the application's `redirect_uri`. Chromium applies the CSP `form-action` directive to the whole redirect chain after a form submission, so `form-action 'self'` blocks the final hop to another origin and the login appears to hang.
+- **Sources:** Content Security Policy Level 3 (`form-action` and redirects); observed in Chromium running @auth0/auth0-spa-js against zeroauthy.
+- **Decision:** `/u/login` and `/u/signup` pages (including their error re-renders) send `form-action 'self' <origin of the validated redirect_uri>`. A `redirect_uri` without a valid http(s) origin (for example a custom scheme) adds nothing.
+- **Rationale:** The origin is taken from the already-validated, registered `redirect_uri` of the login transaction, so no attacker-controlled source is added.

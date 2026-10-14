@@ -149,6 +149,7 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 	ui.RenderLogin(w, http.StatusOK, f.view, ui.LoginData{
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: f.txn.Params["login_hint"], SignupURL: signupURL(f),
+		RedirectURI: f.txn.Params["redirect_uri"],
 	})
 }
 
@@ -178,7 +179,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	login := r.PostForm.Get("username")
-	data := ui.LoginData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: login, SignupURL: signupURL(f)}
+	data := ui.LoginData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: login, SignupURL: signupURL(f), RedirectURI: f.txn.Params["redirect_uri"]}
 
 	userKey := "user|" + f.res.Tenant.ID + "|" + f.conn.Name + "|" + identity.NormalizeLogin(login)
 	ipKey := "ip|" + f.res.Tenant.ID + "|" + clientIP(r, h.TrustProxyHeaders)
@@ -227,6 +228,7 @@ func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 	ui.RenderSignup(w, http.StatusOK, f.view, ui.SignupData{
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Email: f.txn.Params["login_hint"],
 		RequiresUsername: f.conn.RequiresUsername, LoginURL: "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
+		RedirectURI: f.txn.Params["redirect_uri"],
 	})
 }
 
@@ -239,6 +241,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	data := ui.SignupData{
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Email: email, Username: username,
 		RequiresUsername: f.conn.RequiresUsername, LoginURL: "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
+		RedirectURI: f.txn.Params["redirect_uri"],
 	}
 	user, err := h.Database.Signup(r.Context(), f.conn, email, username, r.PostForm.Get("password"))
 	var pe *identity.PolicyError

@@ -366,3 +366,24 @@ func TestBlockedUser(t *testing.T) {
 		}
 	}
 }
+
+// Browsers apply form-action to the redirect chain that follows a form
+// submission, so every page with a form must allow the client's origin or
+// the final redirect back to the application is blocked.
+func TestFormPagesAllowClientOriginInFormAction(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	page, state, csrf := b.begin(t)
+	want := "form-action 'self' https://app.acme.test;"
+	if csp := page.Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
+		t.Errorf("login page CSP %q lacks %q", csp, want)
+	}
+	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"wrong"}})
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
+		t.Errorf("failed login CSP %q lacks %q", csp, want)
+	}
+	rec = b.do(t, "GET", "/u/signup?state="+state, nil)
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
+		t.Errorf("signup page CSP %q lacks %q", csp, want)
+	}
+}

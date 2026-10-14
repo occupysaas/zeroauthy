@@ -179,3 +179,22 @@ func TestRenderFormPostRejectsBadActionOrigin(t *testing.T) {
 		t.Errorf("CSP %q does not refuse form-action for an invalid origin", csp)
 	}
 }
+
+func TestFormPagesAllowRedirectOriginInFormAction(t *testing.T) {
+	for redirect, want := range map[string]string{
+		"https://app.test:3443/cb?x=1": "form-action 'self' https://app.test:3443;",
+		"com.example.app://cb":         "form-action 'self';",
+		"":                             "form-action 'self';",
+	} {
+		rec := httptest.NewRecorder()
+		RenderLogin(rec, 200, Tenant{Name: "Acme"}, LoginData{State: "st", CSRF: "cs", RedirectURI: redirect})
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
+			t.Errorf("login with redirect %q: CSP %q lacks %q", redirect, csp, want)
+		}
+		rec = httptest.NewRecorder()
+		RenderSignup(rec, 200, Tenant{Name: "Acme"}, SignupData{State: "st", CSRF: "cs", RedirectURI: redirect})
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
+			t.Errorf("signup with redirect %q: CSP %q lacks %q", redirect, csp, want)
+		}
+	}
+}
