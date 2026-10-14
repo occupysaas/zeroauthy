@@ -19,6 +19,8 @@ func Run(t *testing.T, newStore Factory) {
 	t.Run("ResourceServers", func(t *testing.T) { testResourceServers(t, newStore) })
 	t.Run("ClientGrants", func(t *testing.T) { testClientGrants(t, newStore) })
 	t.Run("SigningKeys", func(t *testing.T) { testSigningKeys(t, newStore) })
+	t.Run("Connections", func(t *testing.T) { testConnections(t, newStore) })
+	t.Run("Users", func(t *testing.T) { testUsers(t, newStore) })
 }
 
 func open(t *testing.T, newStore Factory) store.Store {

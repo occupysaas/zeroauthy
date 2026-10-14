@@ -9,6 +9,7 @@ package store
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 var (
@@ -26,6 +27,8 @@ type Store interface {
 	ResourceServers() ResourceServers
 	ClientGrants() ClientGrants
 	SigningKeys() SigningKeys
+	Connections() Connections
+	Users() Users
 	Ping(ctx context.Context) error
 	Close() error
 }
@@ -58,6 +61,8 @@ type Clients interface {
 	Update(ctx context.Context, c *Client) error
 	// Delete returns ErrNotFound if the client does not exist.
 	Delete(ctx context.Context, tenantID, clientID string) error
+	// List returns the tenant's clients ordered by ClientID.
+	List(ctx context.Context, tenantID string) ([]*Client, error)
 }
 
 // ResourceServers stores APIs, keyed by (TenantID, ID). Identifier is
@@ -97,4 +102,37 @@ type SigningKeys interface {
 	// If the tenant has no next key it returns ErrNotFound and changes
 	// nothing. A duplicate KID returns ErrConflict and changes nothing.
 	Rotate(ctx context.Context, tenantID string, next *SigningKey) error
+}
+
+// Connections stores identity sources, keyed by (TenantID, ID). Name is
+// unique within a tenant.
+type Connections interface {
+	// Create returns ErrConflict if the ID or Name exists in the tenant.
+	Create(ctx context.Context, c *Connection) error
+	Get(ctx context.Context, tenantID, id string) (*Connection, error)
+	GetByName(ctx context.Context, tenantID, name string) (*Connection, error)
+	// Update returns ErrNotFound if absent and ErrConflict if the new Name
+	// is used by another connection in the tenant.
+	Update(ctx context.Context, c *Connection) error
+	// List returns the tenant's connections ordered by Name.
+	List(ctx context.Context, tenantID string) ([]*Connection, error)
+}
+
+// Users stores people, keyed by (TenantID, UserID). Within one connection,
+// non-empty Email and non-empty Username values are unique. Callers pass
+// lowercase emails and usernames.
+type Users interface {
+	// Create returns ErrConflict if the UserID exists, or if another user
+	// with an identity on the same connection has the same Email or
+	// Username.
+	Create(ctx context.Context, u *User) error
+	Get(ctx context.Context, tenantID, userID string) (*User, error)
+	// FindByLogin finds the user with an identity on connection whose
+	// Email or Username equals login.
+	FindByLogin(ctx context.Context, tenantID, connection, login string) (*User, error)
+	// Update replaces the user. ErrNotFound if absent; ErrConflict under
+	// the same uniqueness rules as Create.
+	Update(ctx context.Context, u *User) error
+	// RecordLogin atomically sets LastLogin and increments LoginsCount.
+	RecordLogin(ctx context.Context, tenantID, userID string, at time.Time) error
 }

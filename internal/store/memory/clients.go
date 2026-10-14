@@ -2,6 +2,8 @@ package memory
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -49,4 +51,17 @@ func (r clients) Delete(_ context.Context, tenantID, clientID string) error {
 	}
 	delete(r.s.clients, k)
 	return nil
+}
+
+func (r clients) List(_ context.Context, tenantID string) ([]*store.Client, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	var out []*store.Client
+	for k, c := range r.s.clients {
+		if k.tenant == tenantID {
+			out = append(out, cloneClient(c))
+		}
+	}
+	slices.SortFunc(out, func(a, b *store.Client) int { return strings.Compare(a.ClientID, b.ClientID) })
+	return out, nil
 }

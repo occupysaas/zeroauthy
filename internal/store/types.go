@@ -14,7 +14,12 @@ type Tenant struct {
 	Domains []string
 	// DefaultAudience is used when a token request has no audience.
 	DefaultAudience string
-	CreatedAt       time.Time
+	// SessionLifetime and IdleSessionLifetime bound login sessions, in
+	// seconds. Zero means the defaults (7 days and 3 days).
+	SessionLifetime     int
+	IdleSessionLifetime int
+	Branding            Branding
+	CreatedAt           time.Time
 }
 
 // AppType is the kind of application a client represents.
@@ -55,7 +60,9 @@ type Client struct {
 	AllowedLogoutURLs       []string
 	WebOrigins              []string
 	AllowedOrigins          []string
-	CreatedAt               time.Time
+	// IDTokenLifetime in seconds; zero means the default (36000).
+	IDTokenLifetime int
+	CreatedAt       time.Time
 }
 
 // Scope is a permission defined by a resource server.
@@ -112,4 +119,61 @@ type SigningKey struct {
 	// PublicJWK is the public key as a JSON Web Key.
 	PublicJWK []byte
 	CreatedAt time.Time
+}
+
+// Branding customizes the hosted login pages.
+type Branding struct {
+	LogoURL      string // https URL, shown above the form
+	PrimaryColor string // "#rrggbb"
+}
+
+// StrategyDatabase is the strategy of zeroauthy-managed username/password
+// connections.
+const StrategyDatabase = "auth0"
+
+// PasswordPolicy constrains passwords on a database connection.
+type PasswordPolicy struct {
+	MinLength int // zero means 8
+	// RequireCharacterClasses is how many of lowercase, uppercase, digits
+	// and other characters a password must contain (0-4).
+	RequireCharacterClasses int
+}
+
+// Connection is a source of user identities for a tenant.
+type Connection struct {
+	TenantID         string
+	ID               string
+	Name             string // unique per tenant, e.g. "Username-Password-Authentication"
+	Strategy         string
+	EnabledClients   []string
+	DisableSignup    bool
+	RequiresUsername bool
+	PasswordPolicy   PasswordPolicy
+	CreatedAt        time.Time
+}
+
+// Identity links a user to a connection.
+type Identity struct {
+	Connection   string
+	Provider     string // the connection strategy, e.g. "auth0"
+	UserID       string // ID within the provider (User.UserID without "provider|")
+	PasswordHash string // argon2id PHC string; database connections only
+}
+
+// User is a person in a tenant. Email and Username are stored lowercase.
+type User struct {
+	TenantID      string
+	UserID        string // "<provider>|<id>", e.g. "auth0|65f0c2..."
+	Email         string
+	EmailVerified bool
+	Username      string
+	Name          string
+	Nickname      string
+	Picture       string
+	Blocked       bool
+	Identities    []Identity
+	LastLogin     *time.Time
+	LoginsCount   int
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }

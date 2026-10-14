@@ -51,3 +51,19 @@ func cloneSigningKey(k *store.SigningKey) *store.SigningKey {
 	out.PublicJWK = slices.Clone(k.PublicJWK)
 	return &out
 }
+
+func cloneConnection(c *store.Connection) *store.Connection {
+	out := *c
+	out.EnabledClients = slices.Clone(c.EnabledClients)
+	return &out
+}
+
+func cloneUser(u *store.User) *store.User {
+	out := *u
+	out.Identities = slices.Clone(u.Identities)
+	if u.LastLogin != nil {
+		t := *u.LastLogin
+		out.LastLogin = &t
+	}
+	return &out
+}

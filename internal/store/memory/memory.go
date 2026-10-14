@@ -21,6 +21,8 @@ type Store struct {
 	resourceServers map[key]*store.ResourceServer // by (tenant, ID)
 	clientGrants    map[key]*store.ClientGrant    // by (tenant, ID)
 	signingKeys     map[key]*store.SigningKey     // by (tenant, KID)
+	connections     map[key]*store.Connection     // by (tenant, ID)
+	users           map[key]*store.User           // by (tenant, UserID)
 }
 
 // New returns an empty store.
@@ -31,6 +33,8 @@ func New() *Store {
 		resourceServers: map[key]*store.ResourceServer{},
 		clientGrants:    map[key]*store.ClientGrant{},
 		signingKeys:     map[key]*store.SigningKey{},
+		connections:     map[key]*store.Connection{},
+		users:           map[key]*store.User{},
 	}
 }
 
@@ -39,6 +43,8 @@ func (s *Store) Clients() store.Clients                 { return clients{s} }
 func (s *Store) ResourceServers() store.ResourceServers { return resourceServers{s} }
 func (s *Store) ClientGrants() store.ClientGrants       { return clientGrants{s} }
 func (s *Store) SigningKeys() store.SigningKeys         { return signingKeys{s} }
+func (s *Store) Connections() store.Connections         { return connections{s} }
+func (s *Store) Users() store.Users                     { return users{s} }
 func (s *Store) Ping(context.Context) error             { return nil }
 func (s *Store) Close() error                           { return nil }
 

@@ -82,4 +82,19 @@ func testClients(t *testing.T, newStore Factory) {
 		mustNoErr(t, err)
 		mustEqual(t, got, newClient("ten_a", "c1"))
 	})
+
+	t.Run("ListOrderedByClientID", func(t *testing.T) {
+		s := open(t, newStore)
+		for _, id := range []string{"zz", "aa", "mm"} {
+			mustNoErr(t, s.Clients().Create(ctx, newClient("ten_a", id)))
+		}
+		mustNoErr(t, s.Clients().Create(ctx, newClient("ten_b", "other")))
+		got, err := s.Clients().List(ctx, "ten_a")
+		mustNoErr(t, err)
+		var ids []string
+		for _, c := range got {
+			ids = append(ids, c.ClientID)
+		}
+		mustEqual(t, ids, []string{"aa", "mm", "zz"})
+	})
 }
