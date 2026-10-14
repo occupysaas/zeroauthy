@@ -39,7 +39,22 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		h.log().WarnContext(ctx, "refresh token presented by another client", "tenant", tenantID, "client_id", c.ClientID, "owner", rt.ClientID)
 		return nil, invalid
 	}
-	if rt.RevokedAt != nil || refreshExpired(rt, now) {
+	if rt.RevokedAt != nil {
+		return nil, invalid
+	}
+	// A rotated token presented outside the leeway is reuse. Detect it before
+	// any other check so those checks cannot mask it or probe the family.
+	if rt.Rotating && rt.RotatedAt != nil {
+		leeway := time.Duration(c.RefreshToken.Leeway) * time.Second
+		if leeway <= 0 || !now.Before(rt.RotatedAt.Add(leeway)) {
+			h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
+			if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, rt.FamilyID, now); err != nil {
+				h.log().ErrorContext(ctx, "revoke refresh token family", "tenant", tenantID, "family", rt.FamilyID, "err", err)
+			}
+			return nil, invalid
+		}
+	}
+	if refreshExpired(rt, now) {
 		return nil, invalid
 	}
 	if aud := form.Get("audience"); aud != "" && aud != rt.Audience {
@@ -86,8 +101,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		err := h.Store.RefreshTokens().Rotate(ctx, tenantID, rt.ID, next, now, time.Duration(c.RefreshToken.Leeway)*time.Second)
 		switch {
 		case errors.Is(err, store.ErrAlreadyUsed):
-			h.log().WarnContext(ctx, "refresh token reuse detected; family revoked",
-				"tenant", tenantID, "client_id", c.ClientID, "user_id", rt.UserID, "family", rt.FamilyID)
+			h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
 			return nil, invalid
 		case errors.Is(err, store.ErrNotFound):
 			return nil, invalid
@@ -112,4 +126,9 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		}
 	}
 	return resp, nil
+}
+
+func (h *Handlers) logRefreshReuse(ctx context.Context, tenantID, clientID string, rt *store.RefreshToken) {
+	h.log().WarnContext(ctx, "refresh token reuse detected; family revoked",
+		"tenant", tenantID, "client_id", clientID, "user_id", rt.UserID, "family", rt.FamilyID)
 }

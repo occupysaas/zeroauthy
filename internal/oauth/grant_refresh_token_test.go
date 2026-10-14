@@ -244,3 +244,26 @@ func TestRefreshRejects(t *testing.T) {
 		})
 	}
 }
+
+func TestRefreshReuseNotMaskedByOtherChecks(t *testing.T) {
+	for name, extra := range map[string][]string{
+		"audience mismatch": {"audience", "https://billing.acme.test"},
+		"scope escalation":  {"scope", "openid write:things"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			raw, _ := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access", "read:things"}, acmeAPI)
+			code, body := f.refresh(t, refreshForm("rt-spa", raw))
+			if code != 200 {
+				t.Fatalf("rotate = %d %v", code, body)
+			}
+			next := body["refresh_token"].(string)
+			if code, b := f.refresh(t, refreshForm("rt-spa", raw, extra...)); code != 400 || b["error"] != "invalid_grant" {
+				t.Fatalf("reuse = %d %v", code, b)
+			}
+			if code, b := f.refresh(t, refreshForm("rt-spa", next)); code != 400 || b["error"] != "invalid_grant" {
+				t.Fatalf("successor = %d %v", code, b)
+			}
+		})
+	}
+}
