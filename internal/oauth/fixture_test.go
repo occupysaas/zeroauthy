@@ -26,6 +26,7 @@ tenants:
       - identifier: https://api.acme.test
         name: Acme API
         token_lifetime: 3600
+        allow_offline_access: true
         scopes: [{value: "read:things"}, {value: "write:things"}]
       - identifier: https://billing.acme.test
         name: Billing
@@ -37,8 +38,15 @@ tenants:
       - {client_id: spa, app_type: spa, grant_types: [client_credentials]}
       - {client_id: code-spa, app_type: spa, grant_types: [authorization_code], callbacks: ["https://app.acme.test/cb"], id_token_lifetime: 600}
       - {client_id: code-web, app_type: regular_web, client_secret: code-web-secret, grant_types: [authorization_code], callbacks: ["https://web.acme.test/cb"]}
+      - {client_id: rt-spa, app_type: spa, grant_types: [authorization_code, refresh_token], callbacks: ["https://rt.acme.test/cb"]}
+      - client_id: rt-web
+        app_type: regular_web
+        client_secret: rt-web-secret
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["https://rtweb.acme.test/cb"]
+        refresh_token: {rotation_type: non-rotating, expiration_type: expiring, token_lifetime: 86400, idle_token_lifetime: 3600}
     connections:
-      - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web]}
+      - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web, rt-spa, rt-web]}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1", email_verified: true, name: Alice}
     client_grants:

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/url"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
@@ -13,26 +12,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
-
-// oidcScopes are the user-flow scopes zeroauthy grants without an API.
-// offline_access is added when refresh tokens exist (milestone 5).
-var oidcScopes = []string{"openid", "profile", "email"}
-
-// userScopes keeps requested OIDC scopes and, when an API is the
-// audience, requested scopes that API defines.
-func userScopes(requested []string, rs *store.ResourceServer) []string {
-	var out []string
-	for _, s := range requested {
-		ok := slices.Contains(oidcScopes, s)
-		if !ok && rs != nil {
-			ok = slices.ContainsFunc(rs.Scopes, func(d store.Scope) bool { return d.Value == s })
-		}
-		if ok && !slices.Contains(out, s) {
-			out = append(out, s)
-		}
-	}
-	return out
-}
 
 // authorizationCode implements RFC 6749 §4.1.3 with RFC 7636 PKCE.
 func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error) {
@@ -47,7 +26,11 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	case errors.Is(err, store.ErrNotFound):
 		return nil, invalidGrant("invalid authorization code")
 	case errors.Is(err, store.ErrAlreadyUsed):
-		h.log().WarnContext(ctx, "authorization code reused", "tenant", tenantID, "client_id", ac.ClientID, "user_id", ac.UserID)
+		// RFC 9700 §4.5: a replayed code may be stolen; revoke what it issued.
+		h.log().WarnContext(ctx, "authorization code reused; revoking its refresh tokens", "tenant", tenantID, "client_id", ac.ClientID, "user_id", ac.UserID)
+		if err := h.Store.RefreshTokens().RevokeFamily(ctx, tenantID, familyForCode(ac.CodeHash), now); err != nil {
+			h.log().ErrorContext(ctx, "revoke refresh tokens of a replayed code", "tenant", tenantID, "err", err)
+		}
 		return nil, invalidGrant("invalid authorization code")
 	case err != nil:
 		h.log().ErrorContext(ctx, "consume authorization code", "tenant", tenantID, "err", err)
@@ -76,67 +59,37 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 		}
 	}
 
-	user, err := h.Store.Users().Get(ctx, tenantID, ac.UserID)
-	if errors.Is(err, store.ErrNotFound) || (err == nil && user.Blocked) {
-		return nil, invalidGrant("the user is not allowed to sign in")
+	user, oerr := h.activeUser(ctx, tenantID, ac.UserID)
+	if oerr != nil {
+		return nil, oerr
 	}
-	if err != nil {
-		h.log().ErrorContext(ctx, "load user", "tenant", tenantID, "err", err)
-		return nil, serverError()
+	rs, lifetime, oerr := h.audienceFor(ctx, tenantID, ac.Audience)
+	if oerr != nil {
+		return nil, oerr
 	}
-
-	userinfo := res.Issuer() + "userinfo"
-	var rs *store.ResourceServer
-	lifetime := DefaultAccessTokenLifetime
-	if ac.Audience != "" {
-		rs, err = h.Store.ResourceServers().GetByIdentifier(ctx, tenantID, ac.Audience)
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, invalidGrant("the requested audience no longer exists")
-		}
-		if err != nil {
-			h.log().ErrorContext(ctx, "load resource server", "tenant", tenantID, "err", err)
-			return nil, serverError()
-		}
-		if rs.TokenLifetime > 0 {
-			lifetime = time.Duration(rs.TokenLifetime) * time.Second
-		}
-	}
-	scopes := userScopes(ac.Scopes, rs)
-	openid := slices.Contains(scopes, "openid")
-	var audiences []string
-	switch {
-	case rs != nil && openid:
-		audiences = []string{rs.Identifier, userinfo}
-	case rs != nil:
-		audiences = []string{rs.Identifier}
-	default:
-		audiences = []string{userinfo}
-	}
-
-	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
-		TenantID: tenantID, Issuer: res.Issuer(), Subject: user.UserID, Audience: audiences,
-		ClientID: c.ClientID, Scopes: scopes, Lifetime: lifetime,
+	scopes := userScopes(ac.Scopes, rs, offlineAllowed(c, rs))
+	resp, oerr := h.mintUserTokens(ctx, res, c, userTokens{
+		user: user, rs: rs, lifetime: lifetime, scopes: scopes,
+		nonce: ac.Nonce, sessionID: ac.SessionID, authTime: ac.AuthTime,
 	})
-	if err != nil {
-		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
-		return nil, serverError()
+	if oerr != nil {
+		return nil, oerr
 	}
-	resp := &authapi.TokenResponse{AccessToken: accessToken, TokenType: "Bearer", ExpiresIn: int(lifetime / time.Second)}
-	if len(scopes) > 0 {
-		s := strings.Join(scopes, " ")
-		resp.Scope = &s
-	}
-	if openid {
-		idToken, err := h.Minter.IDToken(ctx, IDTokenParams{
-			TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: user, Scopes: scopes,
-			Nonce: ac.Nonce, SessionID: ac.SessionID, AuthTime: ac.AuthTime, AccessToken: accessToken,
-			Lifetime: time.Duration(c.IDTokenLifetime) * time.Second,
+	if slices.Contains(scopes, "offline_access") {
+		absolute, _ := refreshLifetimes(c.RefreshToken)
+		var expiresAt time.Time
+		if absolute > 0 {
+			expiresAt = now.UTC().Add(absolute)
+		}
+		rt, raw := h.newRefreshToken(c, tenantID, refreshGrant{
+			familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID,
+			audience: ac.Audience, scopes: scopes, authTime: ac.AuthTime, expiresAt: expiresAt,
 		})
-		if err != nil {
-			h.log().ErrorContext(ctx, "mint id token", "tenant", tenantID, "err", err)
+		if err := h.Store.RefreshTokens().Create(ctx, rt); err != nil {
+			h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
 			return nil, serverError()
 		}
-		resp.IdToken = &idToken
+		resp.RefreshToken = &raw
 	}
 	return resp, nil
 }

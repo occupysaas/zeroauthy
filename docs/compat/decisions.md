@@ -105,3 +105,24 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Sources:** RFC 6749 §10.5 (codes are short-lived and single-use); OAuth 2.0 Security BCP (RFC 9700) §4.5 (code replay).
 - **Decision:** A sweeper runs every 10 minutes in `serve`. It deletes expired transactions, sessions and refresh tokens. Authorization codes are kept for 24 hours after they expire, so a replay within that time is still recognized and revokes the tokens issued from the code.
 - **Rationale:** It bounds storage. The code retention keeps replay detection meaningful beyond the 60-second code lifetime.
+
+## D-0012: Refresh token issuance, rotation and lifetimes
+
+- **Context:** Public docs describe refresh token rotation, reuse detection and expiration settings. They do not pin down every condition for issuing a token or every default.
+- **Sources:** RFC 6749 §6; OAuth 2.0 Security BCP (RFC 9700) §4.14 (refresh token protection) and §4.5 (code replay); https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation; https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-expiration.
+- **Decision:**
+  - **Issuance:** a refresh token is issued only when all of these hold:
+    - `offline_access` is requested;
+    - the client's `grant_types` include `refresh_token`;
+    - either no API is the audience, or the API allows offline access.
+    The response's `scope` then includes `offline_access`.
+  - **Policy:**
+    - `rotation_type` defaults to `rotating` for SPAs and `non-rotating` otherwise.
+    - Rotating tokens must expire.
+    - SPAs may not use non-expiring tokens.
+    - Expiring tokens default to an absolute lifetime of 31557600 s (the documented maximum, since no default is documented) and an idle lifetime of 2592000 s (the documented default).
+  - **Rotation:**
+    - Each exchange returns a new token in the same family. It inherits the absolute expiry and starts a new idle period.
+    - Presenting a rotated token again after the `leeway` (default 0 s) revokes the whole family and returns `invalid_grant`.
+  - **Code replay:** a replayed authorization code revokes the family started from it.
+- **Rationale:** These follow the documented settings and the security BCP. Rotation and reuse detection are a single atomic store operation, so concurrent requests cannot fork a family.

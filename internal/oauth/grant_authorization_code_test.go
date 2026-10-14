@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -196,4 +197,82 @@ func TestAuthorizationCodeMisuse(t *testing.T) {
 			t.Fatalf("blocked = %d %v", rec.Code, body)
 		}
 	})
+}
+
+func TestCodeIssuesRefreshToken(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	code := f.issueCode(t, "rt-spa", "https://rt.acme.test/cb", "https://api.acme.test",
+		[]string{"openid", "offline_access", "read:things"}, pkceChallenge)
+	rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, "rt-spa", "https://rt.acme.test/cb", pkceVerifier)})
+	if rec.Code != 200 {
+		t.Fatalf("status %d: %v", rec.Code, body)
+	}
+	if body["scope"] != "openid offline_access read:things" {
+		t.Errorf("scope = %v", body["scope"])
+	}
+	raw, _ := body["refresh_token"].(string)
+	if len(raw) != 48 {
+		t.Fatalf("refresh_token = %q", raw)
+	}
+	rt, err := f.st.RefreshTokens().GetByTokenHash(ctx, f.tenantID(t, "acme"), secrets.HashToken(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rt.ClientID != "rt-spa" || rt.FamilyID != familyForCode(secrets.HashToken(code)) || !rt.Rotating ||
+		rt.SessionID != "sid-1" || rt.Audience != "https://api.acme.test" ||
+		!rt.AuthTime.Equal(fixedNow().Add(-time.Minute)) ||
+		!rt.ExpiresAt.Equal(fixedNow().Add(DefaultRefreshTokenLifetime)) ||
+		!rt.IdleExpiresAt.Equal(fixedNow().Add(DefaultRefreshTokenIdleLifetime)) ||
+		!slices.Equal(rt.Scopes, []string{"openid", "offline_access", "read:things"}) {
+		t.Fatalf("stored refresh token = %+v", rt)
+	}
+}
+
+func TestRefreshTokenOnlyWhenAllowed(t *testing.T) {
+	cases := []struct {
+		name, client, redirect, audience string
+		scopes                           []string
+		want                             bool
+	}{
+		{"client without refresh_token grant", "code-spa", "https://app.acme.test/cb", "https://api.acme.test", []string{"openid", "offline_access"}, false},
+		{"API without offline access", "rt-spa", "https://rt.acme.test/cb", "https://billing.acme.test", []string{"openid", "offline_access"}, false},
+		{"offline_access not requested", "rt-spa", "https://rt.acme.test/cb", "https://api.acme.test", []string{"openid"}, false},
+		{"no API", "rt-spa", "https://rt.acme.test/cb", "", []string{"openid", "offline_access"}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			code := f.issueCode(t, tc.client, tc.redirect, tc.audience, tc.scopes, pkceChallenge)
+			rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: codeForm(code, tc.client, tc.redirect, pkceVerifier)})
+			if rec.Code != 200 {
+				t.Fatalf("status %d: %v", rec.Code, body)
+			}
+			_, got := body["refresh_token"]
+			offline := slices.Contains(strings.Fields(body["scope"].(string)), "offline_access")
+			if got != tc.want || offline != tc.want {
+				t.Fatalf("refresh_token present = %v, offline_access in scope = %v; want %v (%v)", got, offline, tc.want, body)
+			}
+		})
+	}
+}
+
+func TestCodeReplayRevokesRefreshTokens(t *testing.T) {
+	f := newFixture(t)
+	code := f.issueCode(t, "rt-spa", "https://rt.acme.test/cb", "https://api.acme.test",
+		[]string{"openid", "offline_access"}, pkceChallenge)
+	form := codeForm(code, "rt-spa", "https://rt.acme.test/cb", pkceVerifier)
+	rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: form})
+	if rec.Code != 200 {
+		t.Fatalf("first exchange: %d %v", rec.Code, body)
+	}
+	raw := body["refresh_token"].(string)
+	rec, body = f.call(t, true, tokenCall{host: "acme.example.test", form: form})
+	if rec.Code != 400 || body["error"] != "invalid_grant" {
+		t.Fatalf("replay: %d %v", rec.Code, body)
+	}
+	rt, err := f.st.RefreshTokens().GetByTokenHash(context.Background(), f.tenantID(t, "acme"), secrets.HashToken(raw))
+	if err != nil || rt.RevokedAt == nil {
+		t.Fatalf("refresh token after code replay = %+v, %v; want revoked", rt, err)
+	}
 }
