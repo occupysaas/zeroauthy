@@ -115,6 +115,14 @@ func (t *Tenant) validate() []error {
 		if !slices.Contains(authMethods, c.TokenEndpointAuthMethod) {
 			fail("client %q: token_endpoint_auth_method %q must be one of %v", c.ClientID, c.TokenEndpointAuthMethod, authMethods)
 		}
+		for _, cb := range c.Callbacks {
+			if rest, ok := strings.CutPrefix(cb, "https://*."); ok {
+				host := rest[:strings.IndexAny(rest+"/", "/:?")]
+				if len(strings.Split(host, ".")) < 2 || slices.Contains(strings.Split(host, "."), "") {
+					fail("client %q: wildcard callback %q must cover a domain of at least two labels", c.ClientID, cb)
+				}
+			}
+		}
 		public := c.TokenEndpointAuthMethod == store.AuthMethodNone
 		if public && c.ClientSecret != "" {
 			fail("client %q: public clients must not have a client_secret", c.ClientID)

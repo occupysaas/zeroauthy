@@ -144,6 +144,9 @@ func TestValidation(t *testing.T) {
 		"grant unknown client":  {`tenants: [{name: a, resource_servers: [{identifier: "https://x"}], client_grants: [{client_id: nope, audience: "https://x"}]}]`, `unknown client "nope"`},
 		"grant unknown api":     {`tenants: [{name: a, clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://nope"}]}]`, `unknown audience "https://nope"`},
 		"grant undefined scope": {`tenants: [{name: a, resource_servers: [{identifier: "https://x", scopes: [{value: r}]}], clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://x", scopes: [w]}]}]`, `scope "w"`},
+		"wildcard over TLD":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.com/cb"]}]}]`, "wildcard"},
+		"wildcard bare label":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.localhost:3000/cb"]}]}]`, "wildcard"},
+		"wildcard empty host":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*./cb"]}]}]`, "wildcard"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -261,5 +264,12 @@ func TestValidateConnectionsAndUsers(t *testing.T) {
 				t.Fatalf("err = %v", err)
 			}
 		})
+	}
+}
+
+func TestWildcardCallbackAccepted(t *testing.T) {
+	_, err := Parse([]byte(`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.preview.acme.test/cb", "https://*.acme.test:8443/cb?x=1", "com.example.app:/cb"]}]}]`))
+	if err != nil {
+		t.Fatal(err)
 	}
 }
