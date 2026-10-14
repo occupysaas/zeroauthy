@@ -90,3 +90,17 @@ func cloneAuthCode(c *store.AuthCode) *store.AuthCode {
 	}
 	return &out
 }
+
+func cloneRefreshToken(t *store.RefreshToken) *store.RefreshToken {
+	out := *t
+	out.Scopes = slices.Clone(t.Scopes)
+	if t.RotatedAt != nil {
+		v := *t.RotatedAt
+		out.RotatedAt = &v
+	}
+	if t.RevokedAt != nil {
+		v := *t.RevokedAt
+		out.RevokedAt = &v
+	}
+	return &out
+}

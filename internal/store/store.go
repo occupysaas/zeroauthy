@@ -34,6 +34,7 @@ type Store interface {
 	Sessions() Sessions
 	AuthTransactions() AuthTransactions
 	AuthCodes() AuthCodes
+	RefreshTokens() RefreshTokens
 	Ping(ctx context.Context) error
 	Close() error
 }
@@ -184,5 +185,36 @@ type AuthCodes interface {
 	Consume(ctx context.Context, tenantID, codeHash string, at time.Time) (*AuthCode, error)
 	// DeleteExpired removes, in every tenant, the codes whose ExpiresAt is
 	// not after before, used or not, and returns how many it removed.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
+}
+
+// RefreshTokens stores refresh tokens, keyed by (TenantID, ID). TokenHash
+// is unique within a tenant. Rotation and reuse detection happen inside
+// Rotate so that drivers can make them atomic.
+type RefreshTokens interface {
+	// Create returns ErrConflict if the ID or TokenHash exists.
+	Create(ctx context.Context, t *RefreshToken) error
+	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*RefreshToken, error)
+	// Rotate atomically exchanges the token oldID for next, which must have
+	// the same TenantID and FamilyID (otherwise ErrConflict).
+	//   - Absent, or revoked without having been rotated: ErrNotFound,
+	//     nothing changes.
+	//   - Rotated and revoked: ErrAlreadyUsed, nothing changes.
+	//   - next's ID or TokenHash exists: ErrConflict, nothing changes.
+	//   - Not rotated yet: sets RotatedAt = at and stores next.
+	//   - Already rotated and at is before RotatedAt+leeway (leeway > 0):
+	//     stores next and keeps RotatedAt.
+	//   - Already rotated otherwise: revokes every token of the family at
+	//     `at`, stores nothing, and returns ErrAlreadyUsed.
+	Rotate(ctx context.Context, tenantID, oldID string, next *RefreshToken, at time.Time, leeway time.Duration) error
+	// Touch sets IdleExpiresAt of a token that is neither revoked nor
+	// rotated; otherwise it returns ErrNotFound.
+	Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error
+	// RevokeFamily sets RevokedAt = at on every unrevoked token of the
+	// family. An unknown family is not an error.
+	RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error
+	// DeleteExpired removes, in every tenant, the tokens whose non-zero
+	// ExpiresAt or IdleExpiresAt is not after before, and returns how many
+	// it removed.
 	DeleteExpired(ctx context.Context, before time.Time) (int, error)
 }

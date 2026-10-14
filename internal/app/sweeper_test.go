@@ -28,10 +28,12 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 	// still recognized.
 	must(st.AuthCodes().Create(ctx, &store.AuthCode{TenantID: "t", CodeHash: "recent", ExpiresAt: now.Add(-time.Hour)}))
 	must(st.AuthCodes().Create(ctx, &store.AuthCode{TenantID: "t", CodeHash: "ancient", ExpiresAt: now.Add(-codeRetention - time.Minute)}))
+	must(st.RefreshTokens().Create(ctx, &store.RefreshToken{TenantID: "t", ID: "old", TokenHash: "r1", ExpiresAt: now.Add(-time.Second)}))
+	must(st.RefreshTokens().Create(ctx, &store.RefreshToken{TenantID: "t", ID: "forever", TokenHash: "r2"}))
 
 	n, err := sweep(ctx, st, now)
-	if err != nil || n != 3 {
-		t.Fatalf("sweep = %d, %v; want 3, nil", n, err)
+	if err != nil || n != 4 {
+		t.Fatalf("sweep = %d, %v; want 4, nil", n, err)
 	}
 	if _, err := st.AuthTransactions().Get(ctx, "t", "new"); err != nil {
 		t.Errorf("live transaction removed: %v", err)
@@ -44,5 +46,8 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 	}
 	if _, err := st.AuthCodes().Consume(ctx, "t", "ancient", now); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("ancient code kept: %v", err)
+	}
+	if _, err := st.RefreshTokens().GetByTokenHash(ctx, "t", "r2"); err != nil {
+		t.Errorf("non-expiring refresh token removed: %v", err)
 	}
 }

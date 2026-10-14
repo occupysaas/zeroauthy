@@ -26,6 +26,7 @@ type Store struct {
 	sessions        map[key]*store.LoginSession    // by (tenant, ID)
 	transactions    map[key]*store.AuthTransaction // by (tenant, ID)
 	authCodes       map[key]*store.AuthCode        // by (tenant, CodeHash)
+	refreshTokens   map[key]*store.RefreshToken    // by (tenant, ID)
 }
 
 // New returns an empty store.
@@ -41,6 +42,7 @@ func New() *Store {
 		sessions:        map[key]*store.LoginSession{},
 		transactions:    map[key]*store.AuthTransaction{},
 		authCodes:       map[key]*store.AuthCode{},
+		refreshTokens:   map[key]*store.RefreshToken{},
 	}
 }
 
@@ -54,6 +56,7 @@ func (s *Store) Users() store.Users                       { return users{s} }
 func (s *Store) Sessions() store.Sessions                 { return sessions{s} }
 func (s *Store) AuthTransactions() store.AuthTransactions { return authTransactions{s} }
 func (s *Store) AuthCodes() store.AuthCodes               { return authCodes{s} }
+func (s *Store) RefreshTokens() store.RefreshTokens       { return refreshTokens{s} }
 func (s *Store) Ping(context.Context) error               { return nil }
 func (s *Store) Close() error                             { return nil }
 

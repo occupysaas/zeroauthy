@@ -222,3 +222,28 @@ type AuthCode struct {
 	CreatedAt           time.Time
 	UsedAt              *time.Time
 }
+
+// RefreshToken is an issued refresh token. A token and the tokens issued
+// by rotating it form a family that shares FamilyID; reuse of a rotated
+// token revokes the whole family.
+type RefreshToken struct {
+	TenantID  string
+	ID        string // public identifier, used in logs
+	TokenHash string // secrets.HashToken of the token
+	FamilyID  string
+	ClientID  string
+	UserID    string
+	SessionID string // the login session the family started in ("sid")
+	Scopes    []string
+	Audience  string    // API identifier; empty when the token is for /userinfo only
+	AuthTime  time.Time // when the user authenticated; ID tokens carry it
+	Rotating  bool
+	// ExpiresAt is the family's absolute expiry. Zero means never.
+	ExpiresAt time.Time
+	// IdleExpiresAt is this token's inactivity expiry. Zero means never.
+	IdleExpiresAt time.Time
+	// RotatedAt is when the token was first exchanged for a successor.
+	RotatedAt *time.Time
+	RevokedAt *time.Time
+	CreatedAt time.Time
+}
