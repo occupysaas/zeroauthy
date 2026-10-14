@@ -7,8 +7,12 @@ import (
 	"embed"
 	"html/template"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -91,9 +95,9 @@ func RenderFormPost(w http.ResponseWriter, action string, params url.Values) {
 // the authorization response to targetOrigin from a popup or iframe.
 func RenderWebMessage(w http.ResponseWriter, targetOrigin string, response map[string]string) {
 	// The origin is used as a CSP source and as the postMessage target, so
-	// only a bare scheme://host[:port] is accepted. Anything else (e.g. "*")
+	// only a strict scheme://host[:port] is accepted. Anything else (e.g. "*")
 	// would leak the response or widen the CSP.
-	if o := origin(targetOrigin); o == "'none'" || o != targetOrigin {
+	if !validOrigin(targetOrigin) {
 		slog.Error("refusing web_message: invalid target origin", "origin", targetOrigin)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -132,11 +136,69 @@ func write(w http.ResponseWriter, status int, t *template.Template, name string,
 }
 
 // origin returns scheme://host[:port] of u, or "'none'" if u is not an
-// absolute URL.
+// absolute URL with a valid origin.
 func origin(u string) string {
 	p, err := url.Parse(u)
 	if err != nil || p.Scheme == "" || p.Host == "" {
 		return "'none'"
 	}
-	return p.Scheme + "://" + p.Host
+	o := p.Scheme + "://" + p.Host
+	if !validOrigin(o) {
+		return "'none'"
+	}
+	return o
+}
+
+var (
+	dnsLabel = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$`)
+	portNum  = regexp.MustCompile(`^[0-9]{1,5}$`)
+)
+
+// validOrigin reports whether s is exactly http or https, followed by a DNS
+// name, an IPv4 literal, or a bracketed IPv6 literal, with an optional port
+// from 0 to 65535. Paths, queries, userinfo, wildcards and CSP delimiters are
+// rejected.
+func validOrigin(s string) bool {
+	var rest string
+	switch {
+	case strings.HasPrefix(s, "https://"):
+		rest = s[len("https://"):]
+	case strings.HasPrefix(s, "http://"):
+		rest = s[len("http://"):]
+	default:
+		return false
+	}
+
+	host, port := rest, ""
+	if strings.HasPrefix(rest, "[") {
+		end := strings.IndexByte(rest, ']')
+		if end < 0 {
+			return false
+		}
+		inner := rest[1:end]
+		if ip := net.ParseIP(inner); ip == nil || !strings.Contains(inner, ":") {
+			return false
+		}
+		host, port = rest[:end+1], rest[end+1:]
+	} else if i := strings.IndexByte(rest, ':'); i >= 0 {
+		host, port = rest[:i], rest[i:]
+	}
+
+	if port != "" {
+		if !strings.HasPrefix(port, ":") || !portNum.MatchString(port[1:]) {
+			return false
+		}
+		if n, err := strconv.Atoi(port[1:]); err != nil || n > 65535 {
+			return false
+		}
+	}
+	if strings.HasPrefix(host, "[") {
+		return true
+	}
+	for _, label := range strings.Split(host, ".") {
+		if !dnsLabel.MatchString(label) {
+			return false
+		}
+	}
+	return true
 }

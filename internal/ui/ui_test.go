@@ -123,7 +123,10 @@ func TestRenderWebMessageRefusesBadOrigins(t *testing.T) {
 	prev := slog.Default()
 	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	t.Cleanup(func() { slog.SetDefault(prev) })
-	for _, bad := range []string{"*", "", "https://a.test https:", "https://a.test;script-src *", "https://a.test/path"} {
+	for _, bad := range []string{
+		"*", "", "https://a.test https:", "https://a.test;script-src *", "https://a.test/path",
+		"https://a.test;script-src", "https://a.test,*", "https://*", "javascript://x", "https://a.test:99999999",
+	} {
 		rec := httptest.NewRecorder()
 		RenderWebMessage(rec, bad, map[string]string{"code": "abc"})
 		body := rec.Body.String()
@@ -133,9 +136,6 @@ func TestRenderWebMessageRefusesBadOrigins(t *testing.T) {
 		if strings.Contains(body, "postMessage") {
 			t.Errorf("origin %q: page rendered", bad)
 		}
-		if csp := rec.Header().Get("Content-Security-Policy"); csp != "" && strings.Contains(csp, bad) && bad != "" {
-			t.Errorf("origin %q: CSP %q carries the bad value", bad, csp)
-		}
 		if rec.Header().Get("Content-Security-Policy") != "" || rec.Header().Get("X-Frame-Options") != "" {
 			t.Errorf("origin %q: security headers set on refused response", bad)
 		}
@@ -143,7 +143,7 @@ func TestRenderWebMessageRefusesBadOrigins(t *testing.T) {
 }
 
 func TestRenderWebMessageAcceptsGoodOrigins(t *testing.T) {
-	for _, good := range []string{"https://app.test", "http://localhost:3000"} {
+	for _, good := range []string{"https://app.test", "http://localhost:3000", "https://[::1]:8443", "https://127.0.0.1:3443"} {
 		rec := httptest.NewRecorder()
 		RenderWebMessage(rec, good, map[string]string{"code": "abc"})
 		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "postMessage") {
@@ -169,5 +169,13 @@ func TestRenderLoginNeutralisesHostileStyleAndHref(t *testing.T) {
 	}
 	if strings.Contains(body, `href="javascript:alert(1)"`) {
 		t.Fatal("javascript: signup URL emitted as href")
+	}
+}
+
+func TestRenderFormPostRejectsBadActionOrigin(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderFormPost(rec, "https://a.test;script-src/cb", url.Values{"code": {"abc"}})
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'none'") {
+		t.Errorf("CSP %q does not refuse form-action for an invalid origin", csp)
 	}
 }
