@@ -243,6 +243,13 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		RequiresUsername: f.conn.RequiresUsername, LoginURL: "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
 		RedirectURI: f.txn.Params["redirect_uri"],
 	}
+	// Every signup hashes a password and stores a user, so each attempt
+	// counts against the IP limit and none is refunded.
+	if !h.IPThrottle.Attempt("ip|" + f.res.Tenant.ID + "|" + clientIP(r, h.TrustProxyHeaders)) {
+		data.Error = msgTooMany
+		ui.RenderSignup(w, http.StatusTooManyRequests, f.view, data)
+		return
+	}
 	user, err := h.Database.Signup(r.Context(), f.conn, email, username, r.PostForm.Get("password"))
 	var pe *identity.PolicyError
 	switch {

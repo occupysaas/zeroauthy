@@ -237,7 +237,7 @@ func TestTransactionBinding(t *testing.T) {
 		b := e.browser("acme.example.test")
 		state, csrf := good(b)
 		other := &browser{e: e, host: "globex.example.test", cookies: b.cookies}
-		if rec := other.do(t, "POST", "/u/login", creds(state, csrf)); rec.Code != 400 {
+		if rec := other.do(t, "POST", "/u/login", creds(state, csrf)); rec.Code != 400 || other.cookies[session.CookieName] != nil {
 			t.Fatalf("got %d", rec.Code)
 		}
 	})
@@ -249,7 +249,7 @@ func TestTransactionBinding(t *testing.T) {
 		_ = e.st.AuthTransactions().Delete(context.Background(), txn.TenantID, txn.ID)
 		_ = e.st.AuthTransactions().Create(context.Background(), txn)
 		rec := b.do(t, "POST", "/u/login", creds(state, csrf))
-		if rec.Code != 400 || !strings.Contains(rec.Body.String(), "expired") {
+		if rec.Code != 400 || !strings.Contains(rec.Body.String(), "expired") || b.cookies[session.CookieName] != nil {
 			t.Fatalf("got %d %s", rec.Code, rec.Body)
 		}
 	})
@@ -385,5 +385,26 @@ func TestFormPagesAllowClientOriginInFormAction(t *testing.T) {
 	rec = b.do(t, "GET", "/u/signup?state="+state, nil)
 	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, want) {
 		t.Errorf("signup page CSP %q lacks %q", csp, want)
+	}
+}
+
+func TestSignupIPThrottle(t *testing.T) {
+	e := newEnv(t)
+	e.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	signup := func(email string) *httptest.ResponseRecorder {
+		b := e.browser("acme.example.test")
+		_, state, csrf := b.begin(t, "screen_hint", "signup")
+		return b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {email}, "password": {"long enough pw"}})
+	}
+	for _, email := range []string{"u1@acme.test", "u2@acme.test"} {
+		if rec := signup(email); rec.Code != http.StatusFound {
+			t.Fatalf("signup %s = %d %s", email, rec.Code, rec.Body)
+		}
+	}
+	if rec := signup("u3@acme.test"); rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "Too many attempts") {
+		t.Fatalf("third signup = %d", rec.Code)
+	}
+	if _, err := e.st.Users().FindByLogin(context.Background(), mustTenant(t, e, "acme").ID, "Username-Password-Authentication", "u3@acme.test"); err == nil {
+		t.Fatal("throttled signup created a user")
 	}
 }
