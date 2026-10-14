@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -38,4 +39,17 @@ func (r authTransactions) Delete(_ context.Context, tenantID, id string) error {
 	}
 	delete(r.s.transactions, k)
 	return nil
+}
+
+func (r authTransactions) DeleteExpired(_ context.Context, before time.Time) (int, error) {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	n := 0
+	for k, t := range r.s.transactions {
+		if !t.ExpiresAt.After(before) {
+			delete(r.s.transactions, k)
+			n++
+		}
+	}
+	return n, nil
 }

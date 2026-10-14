@@ -49,4 +49,20 @@ func testAuthCodes(t *testing.T, newStore Factory) {
 		_, err = s.AuthCodes().Consume(ctx, "ten_a", "h1", ts(0))
 		mustNoErr(t, err)
 	})
+
+	t.Run("DeleteExpired", func(t *testing.T) {
+		s := open(t, newStore)
+		short := newAuthCode("ten_a", "h1") // expires ts(1m)
+		long := newAuthCode("ten_a", "h2")
+		long.ExpiresAt = ts(time.Hour)
+		mustNoErr(t, s.AuthCodes().Create(ctx, short))
+		mustNoErr(t, s.AuthCodes().Create(ctx, long))
+		n, err := s.AuthCodes().DeleteExpired(ctx, ts(time.Minute))
+		mustNoErr(t, err)
+		mustEqual(t, n, 1)
+		_, err = s.AuthCodes().Consume(ctx, "ten_a", "h1", ts(0))
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.AuthCodes().Consume(ctx, "ten_a", "h2", ts(0))
+		mustNoErr(t, err)
+	})
 }

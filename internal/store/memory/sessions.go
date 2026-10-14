@@ -2,6 +2,8 @@ package memory
 
 import (
 	"context"
+	"slices"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -32,15 +34,41 @@ func (r sessions) GetByTokenHash(_ context.Context, tenantID, tokenHash string) 
 	return cloneSession(s), nil
 }
 
-func (r sessions) Update(_ context.Context, s *store.LoginSession) error {
+func (r sessions) Touch(_ context.Context, tenantID, id string, idleExpiresAt time.Time) error {
 	r.s.mu.Lock()
 	defer r.s.mu.Unlock()
-	k := key{s.TenantID, s.ID}
-	if _, ok := r.s.sessions[k]; !ok {
+	s, ok := r.s.sessions[key{tenantID, id}]
+	if !ok {
 		return store.ErrNotFound
 	}
-	r.s.sessions[k] = cloneSession(s)
+	s.IdleExpiresAt = idleExpiresAt
 	return nil
+}
+
+func (r sessions) AddClient(_ context.Context, tenantID, id, clientID string) error {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	s, ok := r.s.sessions[key{tenantID, id}]
+	if !ok {
+		return store.ErrNotFound
+	}
+	if !slices.Contains(s.ClientIDs, clientID) {
+		s.ClientIDs = append(slices.Clone(s.ClientIDs), clientID)
+	}
+	return nil
+}
+
+func (r sessions) DeleteExpired(_ context.Context, before time.Time) (int, error) {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	n := 0
+	for k, s := range r.s.sessions {
+		if !s.ExpiresAt.After(before) || !s.IdleExpiresAt.After(before) {
+			delete(r.s.sessions, k)
+			n++
+		}
+	}
+	return n, nil
 }
 
 func (r sessions) Delete(_ context.Context, tenantID, id string) error {

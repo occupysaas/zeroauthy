@@ -65,13 +65,14 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 		return nil, nil
 	}
 	_, idle := lifetimes(t)
-	s.IdleExpiresAt = minTime(now.Add(idle), s.ExpiresAt)
-	if err := m.Store.Sessions().Update(ctx, s); err != nil {
+	idleAt := minTime(now.Add(idle), s.ExpiresAt)
+	if err := m.Store.Sessions().Touch(ctx, t.ID, s.ID, idleAt); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, nil // deleted (e.g. logout) since it was read
 		}
 		return nil, err
 	}
+	s.IdleExpiresAt = idleAt
 	return s, nil
 }
 
@@ -120,8 +121,11 @@ func (m *Manager) AddClient(ctx context.Context, s *store.LoginSession, clientID
 	if slices.Contains(s.ClientIDs, clientID) {
 		return nil
 	}
+	if err := m.Store.Sessions().AddClient(ctx, s.TenantID, s.ID, clientID); err != nil {
+		return err
+	}
 	s.ClientIDs = append(s.ClientIDs, clientID)
-	return m.Store.Sessions().Update(ctx, s)
+	return nil
 }
 
 func minTime(a, b time.Time) time.Time {

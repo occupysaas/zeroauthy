@@ -133,15 +133,15 @@ func TestCurrentDeletesExpiredRecord(t *testing.T) {
 	}
 }
 
-// notFoundOnUpdate simulates a session deleted (e.g. by logout) between
+// notFoundOnTouch simulates a session deleted (e.g. by logout) between
 // Current's read and its sliding write.
-type notFoundOnUpdate struct{ store.Store }
+type notFoundOnTouch struct{ store.Store }
 
-func (s notFoundOnUpdate) Sessions() store.Sessions { return notFoundSessions{s.Store.Sessions()} }
+func (s notFoundOnTouch) Sessions() store.Sessions { return notFoundSessions{s.Store.Sessions()} }
 
 type notFoundSessions struct{ store.Sessions }
 
-func (notFoundSessions) Update(context.Context, *store.LoginSession) error {
+func (notFoundSessions) Touch(context.Context, string, string, time.Time) error {
 	return store.ErrNotFound
 }
 
@@ -152,7 +152,7 @@ func TestCurrentToleratesConcurrentDelete(t *testing.T) {
 	if _, err := m.Start(ctx, rec, requestWith(nil), tn, "auth0|1", "Database", c.t); err != nil {
 		t.Fatal(err)
 	}
-	m.Store = notFoundOnUpdate{m.Store}
+	m.Store = notFoundOnTouch{m.Store}
 
 	got, err := m.Current(ctx, requestWith(rec.Result().Cookies()), tn)
 	if err != nil || got != nil {

@@ -34,3 +34,16 @@ func (r authCodes) Consume(_ context.Context, tenantID, codeHash string, at time
 	c.UsedAt = &t
 	return cloneAuthCode(c), nil
 }
+
+func (r authCodes) DeleteExpired(_ context.Context, before time.Time) (int, error) {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	n := 0
+	for k, c := range r.s.authCodes {
+		if !c.ExpiresAt.After(before) {
+			delete(r.s.authCodes, k)
+			n++
+		}
+	}
+	return n, nil
+}

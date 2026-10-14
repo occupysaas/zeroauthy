@@ -131,6 +131,7 @@ func (a *App) Serve(ctx context.Context) error {
 		}
 	}()
 	a.log.Info("listening", "addr", a.cfg.Server.Listen, "tls", tls)
+	go a.sweepLoop(ctx, sweepInterval)
 
 	select {
 	case err := <-errc:

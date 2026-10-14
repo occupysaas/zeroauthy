@@ -143,15 +143,23 @@ type Users interface {
 }
 
 // Sessions stores login sessions, keyed by (TenantID, ID). TokenHash is
-// unique within a tenant.
+// unique within a tenant. Changes after creation are narrow atomic
+// methods, so concurrent requests cannot overwrite each other's writes.
 type Sessions interface {
 	// Create returns ErrConflict if the ID or TokenHash exists.
 	Create(ctx context.Context, s *LoginSession) error
 	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*LoginSession, error)
-	// Update returns ErrNotFound if absent.
-	Update(ctx context.Context, s *LoginSession) error
+	// Touch sets IdleExpiresAt. It returns ErrNotFound if the session is
+	// absent.
+	Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error
+	// AddClient appends clientID to ClientIDs unless it is already there.
+	// It returns ErrNotFound if the session is absent.
+	AddClient(ctx context.Context, tenantID, id, clientID string) error
 	// Delete returns ErrNotFound if absent.
 	Delete(ctx context.Context, tenantID, id string) error
+	// DeleteExpired removes, in every tenant, the sessions whose ExpiresAt
+	// or IdleExpiresAt is not after before, and returns how many it removed.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
 }
 
 // AuthTransactions stores in-progress logins, keyed by (TenantID, ID).
@@ -161,6 +169,9 @@ type AuthTransactions interface {
 	Get(ctx context.Context, tenantID, id string) (*AuthTransaction, error)
 	// Delete returns ErrNotFound if absent.
 	Delete(ctx context.Context, tenantID, id string) error
+	// DeleteExpired removes, in every tenant, the transactions whose
+	// ExpiresAt is not after before, and returns how many it removed.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
 }
 
 // AuthCodes stores authorization codes, keyed by (TenantID, CodeHash).
@@ -171,4 +182,7 @@ type AuthCodes interface {
 	// code that was already used is returned together with ErrAlreadyUsed,
 	// so callers can react to replay. Unknown codes return ErrNotFound.
 	Consume(ctx context.Context, tenantID, codeHash string, at time.Time) (*AuthCode, error)
+	// DeleteExpired removes, in every tenant, the codes whose ExpiresAt is
+	// not after before, used or not, and returns how many it removed.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
 }
