@@ -128,6 +128,18 @@ func TestApplyIsIdempotent(t *testing.T) {
 
 func TestValidation(t *testing.T) {
 	cases := map[string]struct{ yaml, want string }{
+		"bad callback escape":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://a.test/cb%zz"]}]}]`, "not a valid URL"},
+		"relative callback":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["/cb"]}]}]`, "absolute"},
+		"callback fragment":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://a.test/cb#x"]}]}]`, "fragment"},
+		"https without host":    {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https:/cb"]}]}]`, "no host"},
+		"bad logout url":        {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, allowed_logout_urls: ["https://a.test/%zz"]}]}]`, "not a valid URL"},
+		"bad tenant logout url": {`tenants: [{name: a, allowed_logout_urls: ["bye"]}]`, "absolute"},
+		"bad rotation type":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {rotation_type: sometimes}}]}]`, "rotation_type"},
+		"bad expiration type":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {expiration_type: never}}]}]`, "expiration_type"},
+		"rotation needs expiry": {`tenants: [{name: a, clients: [{client_id: c, app_type: regular_web, client_secret: s, refresh_token: {rotation_type: rotating, expiration_type: non-expiring}}]}]`, "requires expiration_type expiring"},
+		"spa non-expiring":      {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {rotation_type: non-rotating, expiration_type: non-expiring}}]}]`, "single-page"},
+		"negative leeway":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {leeway: -1}}]}]`, "must not be negative"},
+		"idle exceeds absolute": {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {token_lifetime: 60, idle_token_lifetime: 120}}]}]`, "must not exceed"},
 		"unknown field":         {`tenants: [{name: a, domainz: [x]}]`, "domainz"},
 		"no name":               {`tenants: [{domains: [x]}]`, "name is required"},
 		"uppercase name":        {`tenants: [{name: Acme}]`, "valid DNS label"},
@@ -271,5 +283,47 @@ func TestWildcardCallbackAccepted(t *testing.T) {
 	_, err := Parse([]byte(`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.preview.acme.test/cb", "https://*.acme.test:8443/cb?x=1", "com.example.app:/cb"]}]}]`))
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestApplyRefreshTokenPolicyAndLogoutURLs(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(`
+tenants:
+  - name: acme
+    allowed_logout_urls: ["https://acme.test/bye"]
+    clients:
+      - {client_id: spa, app_type: spa, callbacks: ["com.example.app:/cb"]}
+      - {client_id: web, app_type: regular_web, client_secret: s}
+      - client_id: tuned
+        app_type: regular_web
+        client_secret: s
+        allowed_logout_urls: ["https://web.acme.test/bye"]
+        refresh_token: {rotation_type: rotating, leeway: 10, token_lifetime: 86400, idle_token_lifetime: 3600}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	if len(tn.AllowedLogoutURLs) != 1 || tn.AllowedLogoutURLs[0] != "https://acme.test/bye" {
+		t.Errorf("tenant allowed_logout_urls = %v", tn.AllowedLogoutURLs)
+	}
+	want := map[string]store.RefreshTokenPolicy{
+		"spa":   {Rotating: true, Expiring: true},
+		"web":   {Rotating: false, Expiring: false},
+		"tuned": {Rotating: true, Expiring: true, Leeway: 10, TokenLifetime: 86400, IdleTokenLifetime: 3600},
+	}
+	for id, w := range want {
+		c, err := st.Clients().Get(ctx, tn.ID, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.RefreshToken != w {
+			t.Errorf("%s refresh_token = %+v, want %+v", id, c.RefreshToken, w)
+		}
 	}
 }

@@ -14,6 +14,9 @@ type Tenant struct {
 	Domains []string
 	// DefaultAudience is used when a token request has no audience.
 	DefaultAudience string
+	// AllowedLogoutURLs are where /v2/logout may send a browser when the
+	// request names no client.
+	AllowedLogoutURLs []string
 	// SessionLifetime and IdleSessionLifetime bound login sessions, in
 	// seconds. Zero means the defaults (7 days and 3 days).
 	SessionLifetime     int
@@ -62,6 +65,7 @@ type Client struct {
 	AllowedOrigins          []string
 	// IDTokenLifetime in seconds; zero means the default (36000).
 	IDTokenLifetime int
+	RefreshToken    RefreshTokenPolicy
 	CreatedAt       time.Time
 }
 
@@ -246,4 +250,23 @@ type RefreshToken struct {
 	RotatedAt *time.Time
 	RevokedAt *time.Time
 	CreatedAt time.Time
+}
+
+// RefreshTokenPolicy configures the refresh tokens issued to a client.
+// Field meanings follow Auth0's public application settings.
+type RefreshTokenPolicy struct {
+	// Rotating issues a new refresh token on every exchange; presenting a
+	// rotated token again (after Leeway) revokes its whole family.
+	Rotating bool
+	// Leeway is how many seconds after its first rotation a token may still
+	// be exchanged, for clients that retry. Zero means no reuse at all.
+	Leeway int
+	// Expiring false means the tokens never expire.
+	Expiring bool
+	// TokenLifetime is the family's absolute lifetime in seconds; zero means
+	// the default (31557600) when Expiring.
+	TokenLifetime int
+	// IdleTokenLifetime is the inactivity lifetime in seconds; zero means
+	// the default (2592000) when Expiring.
+	IdleTokenLifetime int
 }

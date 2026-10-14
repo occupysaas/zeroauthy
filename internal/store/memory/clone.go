@@ -10,6 +10,7 @@ import (
 func cloneTenant(t *store.Tenant) *store.Tenant {
 	c := *t
 	c.Domains = slices.Clone(t.Domains)
+	c.AllowedLogoutURLs = slices.Clone(t.AllowedLogoutURLs)
 	return &c
 }
 

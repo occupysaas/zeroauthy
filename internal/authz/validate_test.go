@@ -143,3 +143,26 @@ func TestRequestParamsRoundTrip(t *testing.T) {
 		t.Fatalf("round trip:\n got %+v\nwant %+v", got, req)
 	}
 }
+
+func TestUnparsableRegisteredCallbackIsRejected(t *testing.T) {
+	// Seed validation now refuses such callbacks, but a callback stored by
+	// another path must still never reach writeResponse.
+	if callbackAllowed([]string{"https://a.test/cb%zz"}, "https://a.test/cb%zz") {
+		t.Fatal("an unparsable registered callback was accepted")
+	}
+}
+
+func TestAllowedURL(t *testing.T) {
+	reg := []string{"https://app.acme.test/bye", "https://*.preview.acme.test/bye", "com.example.app:/bye"}
+	for uri, want := range map[string]bool{
+		"https://app.acme.test/bye":          true,
+		"https://pr-1.preview.acme.test/bye": true,
+		"com.example.app:/bye":               true,
+		"https://app.acme.test/bye/":         false,
+		"https://evil.test/bye":              false,
+	} {
+		if got := AllowedURL(reg, uri); got != want {
+			t.Errorf("AllowedURL(%q) = %v, want %v", uri, got, want)
+		}
+	}
+}

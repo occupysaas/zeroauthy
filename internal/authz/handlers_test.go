@@ -275,3 +275,13 @@ func TestSessionOfBlockedOrDeletedUser(t *testing.T) {
 		})
 	}
 }
+
+func TestFormPostRequiresHTTPCallback(t *testing.T) {
+	e := newEnv(t)
+	q := with(goodQuery(), "redirect_uri", "com.example.app:/oauth2redirect", "response_mode", "form_post")
+	u := location(t, e.get(t, q))
+	if u.Scheme != "com.example.app" || u.Query().Get("error") != "invalid_request" ||
+		!strings.Contains(u.Query().Get("error_description"), "form_post") {
+		t.Fatalf("redirect = %v", u)
+	}
+}

@@ -36,6 +36,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 	case errors.Is(err, store.ErrNotFound):
 		tn = &store.Tenant{ID: "ten_" + secrets.RandomString(16), Name: in.Name, CreatedAt: now}
 		tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
+		tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
 		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
 		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
 		if err := st.Tenants().Create(ctx, tn); err != nil {
@@ -45,6 +46,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 		return err
 	default:
 		tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
+		tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
 		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
 		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
 		if err := st.Tenants().Update(ctx, tn); err != nil {
@@ -116,6 +118,13 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	c.Callbacks, c.AllowedLogoutURLs = slices.Clone(in.Callbacks), slices.Clone(in.AllowedLogoutURLs)
 	c.WebOrigins, c.AllowedOrigins = slices.Clone(in.WebOrigins), slices.Clone(in.AllowedOrigins)
 	c.IDTokenLifetime = in.IDTokenLifetime
+	c.RefreshToken = store.RefreshTokenPolicy{
+		Rotating:          in.RefreshToken.RotationType == "rotating",
+		Leeway:            in.RefreshToken.Leeway,
+		Expiring:          in.RefreshToken.ExpirationType == "expiring",
+		TokenLifetime:     in.RefreshToken.TokenLifetime,
+		IdleTokenLifetime: in.RefreshToken.IdleTokenLifetime,
+	}
 
 	switch {
 	case in.ClientSecret == "":

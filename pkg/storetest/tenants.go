@@ -10,12 +10,13 @@ import (
 
 func newTenant(name string) *store.Tenant {
 	return &store.Tenant{
-		ID:              "ten_" + name,
-		Name:            name,
-		FriendlyName:    strings.ToUpper(name),
-		Domains:         []string{name + ".example.test"},
-		DefaultAudience: "https://" + name + ".api.test",
-		CreatedAt:       ts(0),
+		ID:                "ten_" + name,
+		Name:              name,
+		FriendlyName:      strings.ToUpper(name),
+		Domains:           []string{name + ".example.test"},
+		DefaultAudience:   "https://" + name + ".api.test",
+		AllowedLogoutURLs: []string{"https://" + name + ".example.test/bye"},
+		CreatedAt:         ts(0),
 	}
 }
 

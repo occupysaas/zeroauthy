@@ -50,6 +50,11 @@ func validate(ctx context.Context, st store.Store, t *store.Tenant, req *Request
 	if req.ResponseMode == "web_message" && !slices.Contains(client.WebOrigins, originOf(req.RedirectURI)) {
 		return client, errInvalidRequest("web_message requires the redirect_uri origin to be an allowed web origin"), false
 	}
+	if req.ResponseMode == "form_post" && !strings.HasPrefix(req.RedirectURI, "https://") && !strings.HasPrefix(req.RedirectURI, "http://") {
+		// A browser form cannot post to a native app's private-use scheme.
+		req.ResponseMode = "query"
+		return client, errInvalidRequest("response_mode=form_post requires an http or https redirect_uri"), true
+	}
 
 	switch req.ResponseType {
 	case "":
@@ -116,6 +121,11 @@ func validate(ctx context.Context, st store.Store, t *store.Tenant, req *Request
 // dnsLabel matches one RFC 1123 DNS label.
 var dnsLabel = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$`)
 
+// AllowedURL reports whether uri matches one of registered under the
+// callback rules: an exact match, or the https single-label wildcard host.
+// Logout uses it for return URLs.
+func AllowedURL(registered []string, uri string) bool { return callbackAllowed(registered, uri) }
+
 // callbackAllowed reports whether uri exactly matches a registered
 // callback, or matches a callback of the form https://*.domain/path where
 // "*" stands for exactly one DNS label. Only a callback whose authority
@@ -127,7 +137,8 @@ func callbackAllowed(callbacks []string, uri string) bool {
 	// An exact match is always allowed, including RFC 8252 private-use
 	// schemes (com.example.app:/callback) that have no host.
 	if slices.Contains(callbacks, uri) {
-		return true
+		_, err := url.Parse(uri) // writeResponse parses it again
+		return err == nil
 	}
 	u, err := url.Parse(uri)
 	if err != nil || u.User != nil || u.Host == "" {

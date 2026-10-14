@@ -20,6 +20,7 @@ type Tenant struct {
 	FriendlyName        string           `yaml:"friendly_name"`
 	Domains             []string         `yaml:"domains"`
 	DefaultAudience     string           `yaml:"default_audience"`
+	AllowedLogoutURLs   []string         `yaml:"allowed_logout_urls"`
 	ResourceServers     []ResourceServer `yaml:"resource_servers"`
 	Clients             []Client         `yaml:"clients"`
 	ClientGrants        []ClientGrant    `yaml:"client_grants"`
@@ -49,14 +50,25 @@ type Client struct {
 	AppType  string `yaml:"app_type"`
 	// ClientSecret is plaintext in the seed file and hashed when applied.
 	// Protect seed files like any other credential store.
-	ClientSecret            string   `yaml:"client_secret"`
-	TokenEndpointAuthMethod string   `yaml:"token_endpoint_auth_method"`
-	GrantTypes              []string `yaml:"grant_types"`
-	Callbacks               []string `yaml:"callbacks"`
-	AllowedLogoutURLs       []string `yaml:"allowed_logout_urls"`
-	WebOrigins              []string `yaml:"web_origins"`
-	AllowedOrigins          []string `yaml:"allowed_origins"`
-	IDTokenLifetime         int      `yaml:"id_token_lifetime"`
+	ClientSecret            string       `yaml:"client_secret"`
+	TokenEndpointAuthMethod string       `yaml:"token_endpoint_auth_method"`
+	GrantTypes              []string     `yaml:"grant_types"`
+	Callbacks               []string     `yaml:"callbacks"`
+	AllowedLogoutURLs       []string     `yaml:"allowed_logout_urls"`
+	WebOrigins              []string     `yaml:"web_origins"`
+	AllowedOrigins          []string     `yaml:"allowed_origins"`
+	IDTokenLifetime         int          `yaml:"id_token_lifetime"`
+	RefreshToken            RefreshToken `yaml:"refresh_token"`
+}
+
+// RefreshToken is a client's refresh-token policy. Values follow Auth0's
+// public application settings; empty types take defaults in validate.
+type RefreshToken struct {
+	RotationType      string `yaml:"rotation_type"`   // rotating | non-rotating
+	ExpirationType    string `yaml:"expiration_type"` // expiring | non-expiring
+	Leeway            int    `yaml:"leeway"`
+	TokenLifetime     int    `yaml:"token_lifetime"`
+	IdleTokenLifetime int    `yaml:"idle_token_lifetime"`
 }
 
 type ClientGrant struct {

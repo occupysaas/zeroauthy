@@ -25,6 +25,7 @@ func newClient(tenantID, clientID string) *store.Client {
 		AllowedLogoutURLs:       []string{"https://app.test/"},
 		WebOrigins:              []string{"https://app.test"},
 		AllowedOrigins:          []string{"https://app.test"},
+		RefreshToken:            store.RefreshTokenPolicy{Rotating: true, Leeway: 5, Expiring: true, TokenLifetime: 86400, IdleTokenLifetime: 3600},
 		CreatedAt:               ts(0),
 	}
 }

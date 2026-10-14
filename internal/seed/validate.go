@@ -16,6 +16,24 @@ import (
 
 var dnsLabel = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
 
+// checkURL reports why raw cannot be registered as a redirect target: it
+// must parse, be absolute, have no fragment, and http(s) URLs need a host.
+// Wildcard hosts (https://*.example.com/cb) parse like any other host.
+func checkURL(raw string) error {
+	u, err := url.Parse(raw)
+	switch {
+	case err != nil:
+		return fmt.Errorf("%q is not a valid URL", raw)
+	case u.Scheme == "":
+		return fmt.Errorf("%q must be an absolute URL", raw)
+	case strings.Contains(raw, "#"):
+		return fmt.Errorf("%q must not contain a fragment", raw)
+	case (u.Scheme == "http" || u.Scheme == "https") && u.Host == "":
+		return fmt.Errorf("%q has no host", raw)
+	}
+	return nil
+}
+
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 var appTypes = []string{
@@ -81,6 +99,11 @@ func (t *Tenant) validate() []error {
 	fail := func(format string, args ...any) {
 		errs = append(errs, fmt.Errorf("seed: tenant %q: "+format, append([]any{t.Name}, args...)...))
 	}
+	for _, u := range t.AllowedLogoutURLs {
+		if err := checkURL(u); err != nil {
+			fail("allowed_logout_urls: %v", err)
+		}
+	}
 
 	apis := map[string]*ResourceServer{}
 	for i := range t.ResourceServers {
@@ -116,11 +139,20 @@ func (t *Tenant) validate() []error {
 			fail("client %q: token_endpoint_auth_method %q must be one of %v", c.ClientID, c.TokenEndpointAuthMethod, authMethods)
 		}
 		for _, cb := range c.Callbacks {
+			if err := checkURL(cb); err != nil {
+				fail("client %q: callback %v", c.ClientID, err)
+				continue
+			}
 			if rest, ok := strings.CutPrefix(cb, "https://*."); ok {
 				host := rest[:strings.IndexAny(rest+"/", "/:?")]
 				if len(strings.Split(host, ".")) < 2 || slices.Contains(strings.Split(host, "."), "") {
 					fail("client %q: wildcard callback %q must cover a domain of at least two labels", c.ClientID, cb)
 				}
+			}
+		}
+		for _, u := range c.AllowedLogoutURLs {
+			if err := checkURL(u); err != nil {
+				fail("client %q: allowed_logout_urls: %v", c.ClientID, err)
 			}
 		}
 		public := c.TokenEndpointAuthMethod == store.AuthMethodNone
@@ -129,6 +161,35 @@ func (t *Tenant) validate() []error {
 		}
 		if !public && c.ClientSecret == "" {
 			fail("client %q: client_secret is required for %s", c.ClientID, c.TokenEndpointAuthMethod)
+		}
+		rt := &c.RefreshToken
+		if rt.RotationType == "" {
+			rt.RotationType = "non-rotating"
+			if store.AppType(c.AppType) == store.AppTypeSPA {
+				rt.RotationType = "rotating"
+			}
+		}
+		if rt.ExpirationType == "" {
+			rt.ExpirationType = "non-expiring"
+			if rt.RotationType == "rotating" {
+				rt.ExpirationType = "expiring"
+			}
+		}
+		switch {
+		case rt.RotationType != "rotating" && rt.RotationType != "non-rotating":
+			fail("client %q: refresh_token.rotation_type %q must be rotating or non-rotating", c.ClientID, rt.RotationType)
+		case rt.ExpirationType != "expiring" && rt.ExpirationType != "non-expiring":
+			fail("client %q: refresh_token.expiration_type %q must be expiring or non-expiring", c.ClientID, rt.ExpirationType)
+		case rt.RotationType == "rotating" && rt.ExpirationType != "expiring":
+			fail("client %q: refresh_token rotation requires expiration_type expiring", c.ClientID)
+		case store.AppType(c.AppType) == store.AppTypeSPA && rt.ExpirationType != "expiring":
+			fail("client %q: single-page applications require expiring refresh tokens", c.ClientID)
+		}
+		if rt.Leeway < 0 || rt.TokenLifetime < 0 || rt.IdleTokenLifetime < 0 {
+			fail("client %q: refresh_token leeway and lifetimes must not be negative", c.ClientID)
+		}
+		if rt.TokenLifetime > 0 && rt.IdleTokenLifetime > rt.TokenLifetime {
+			fail("client %q: refresh_token.idle_token_lifetime must not exceed token_lifetime", c.ClientID)
 		}
 	}
 
