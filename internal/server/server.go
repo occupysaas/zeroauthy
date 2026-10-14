@@ -47,6 +47,7 @@ type authAPI struct {
 func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request)    { a.oidc.Discovery(w, r) }
 func (a authAPI) Jwks(w http.ResponseWriter, r *http.Request)         { a.oidc.Jwks(w, r) }
 func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request)   { a.oauth.OauthToken(w, r) }
+func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request)  { a.oauth.OauthRevoke(w, r) }
 func (a authAPI) Userinfo(w http.ResponseWriter, r *http.Request)     { a.oidc.Userinfo(w, r) }
 func (a authAPI) UserinfoPost(w http.ResponseWriter, r *http.Request) { a.oidc.Userinfo(w, r) }
 
@@ -102,6 +103,7 @@ func New(d Deps) http.Handler {
 		})
 		preflight := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }
 		tr.Options("/oauth/token", preflight)
+		tr.Options("/oauth/revoke", preflight)
 		tr.Options("/userinfo", preflight)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)

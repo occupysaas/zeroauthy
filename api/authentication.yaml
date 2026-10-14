@@ -207,6 +207,44 @@ paths:
           $ref: "#/components/responses/UnknownTenant"
         default:
           $ref: "#/components/responses/ServerError"
+  /oauth/revoke:
+    post:
+      operationId: oauthRevoke
+      tags: [Tokens]
+      summary: Revoke a refresh token
+      description: |
+        Revokes a refresh token together with every refresh token derived
+        from the same login (its rotation family). The client authenticates
+        as at `/oauth/token`. An unknown token is not an error (RFC 7009),
+        so the response does not reveal whether a token existed. Access
+        tokens are self-contained JWTs and cannot be revoked; they expire.
+      x-source:
+        - https://www.rfc-editor.org/rfc/rfc7009
+        - https://auth0.com/docs/api/authentication
+        - https://auth0.com/docs/secure/tokens/refresh-tokens/revoke-refresh-tokens
+      security:
+        - clientSecretBasic: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/RevokeRequest"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeRequest"
+      responses:
+        "200":
+          description: The token was revoked, or was not a known refresh token.
+        "400":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "401":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        default:
+          $ref: "#/components/responses/ServerError"
   /userinfo:
     get:
       operationId: userinfo
@@ -315,6 +353,20 @@ components:
           examples: [invalid_client]
         error_description:
           type: string
+    RevokeRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: The refresh token to revoke.
+        token_type_hint:
+          type: string
+          description: Accepted and ignored; only refresh tokens can be revoked.
+        client_id:
+          type: string
+        client_secret:
+          type: string
     TokenRequest:
       type: object
       required: [grant_type]
@@ -377,6 +429,7 @@ components:
         issuer: {type: string, format: uri}
         authorization_endpoint: {type: string, format: uri}
         token_endpoint: {type: string, format: uri}
+        revocation_endpoint: {type: string, format: uri}
         jwks_uri: {type: string, format: uri}
         response_types_supported: {type: array, items: {type: string}}
         subject_types_supported: {type: array, items: {type: string}}

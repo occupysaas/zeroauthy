@@ -37,6 +37,7 @@ type Configuration struct {
 	Issuer                            string   `json:"issuer"`
 	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
 	TokenEndpoint                     string   `json:"token_endpoint"`
+	RevocationEndpoint                string   `json:"revocation_endpoint"`
 	UserinfoEndpoint                  string   `json:"userinfo_endpoint"`
 	JWKSURI                           string   `json:"jwks_uri"`
 	ResponseTypesSupported            []string `json:"response_types_supported"`
@@ -62,6 +63,7 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		Issuer:                            res.Issuer(),
 		AuthorizationEndpoint:             base + "/authorize",
 		TokenEndpoint:                     base + "/oauth/token",
+		RevocationEndpoint:                base + "/oauth/revoke",
 		UserinfoEndpoint:                  base + "/userinfo",
 		JWKSURI:                           base + "/.well-known/jwks.json",
 		ResponseTypesSupported:            []string{"code"},

@@ -55,6 +55,7 @@ func TestDiscovery(t *testing.T) {
 		"issuer":                 "https://acme.example.test/",
 		"authorization_endpoint": "https://acme.example.test/authorize",
 		"token_endpoint":         "https://acme.example.test/oauth/token",
+		"revocation_endpoint":    "https://acme.example.test/oauth/revoke",
 		"jwks_uri":               "https://acme.example.test/.well-known/jwks.json",
 	}
 	for k, v := range want {

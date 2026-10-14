@@ -126,3 +126,15 @@ them. Each entry: context, sources consulted, decision, rationale.
     - Presenting a rotated token again after the `leeway` (default 0 s) revokes the whole family and returns `invalid_grant`.
   - **Code replay:** a replayed authorization code revokes the family started from it.
 - **Rationale:** These follow the documented settings and the security BCP. Rotation and reuse detection are a single atomic store operation, so concurrent requests cannot fork a family.
+
+## D-0013: Token revocation
+
+- **Context:** `/oauth/revoke` revokes refresh tokens. Public docs do not say what happens for a token issued to another client or for access tokens.
+- **Sources:** RFC 7009 §2.1–2.2; RFC 6749 §5.2 (`invalid_grant` covers a grant "issued to another client"); https://auth0.com/docs/secure/tokens/refresh-tokens/revoke-refresh-tokens.
+- **Decision:**
+  - The client authenticates as at the token endpoint.
+  - An unknown token returns `200` with an empty body.
+  - A token issued to another client returns `400 invalid_grant` and is left untouched.
+  - A known token revokes its whole rotation family.
+  - `token_type_hint` is ignored. Access tokens are JWTs and are not revocable, so presenting one is the same as presenting an unknown token.
+- **Rationale:** It follows RFC 7009. Family-wide revocation matches what reuse detection does, so a revoked login cannot continue through an earlier successor.

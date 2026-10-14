@@ -51,11 +51,24 @@ type OpenIDConfiguration struct {
 	JwksUri                           string    `json:"jwks_uri"`
 	ResponseModesSupported            *[]string `json:"response_modes_supported,omitempty"`
 	ResponseTypesSupported            []string  `json:"response_types_supported"`
+	RevocationEndpoint                *string   `json:"revocation_endpoint,omitempty"`
 	ScopesSupported                   *[]string `json:"scopes_supported,omitempty"`
 	SubjectTypesSupported             []string  `json:"subject_types_supported"`
 	TokenEndpoint                     string    `json:"token_endpoint"`
 	TokenEndpointAuthMethodsSupported *[]string `json:"token_endpoint_auth_methods_supported,omitempty"`
 	UserinfoEndpoint                  *string   `json:"userinfo_endpoint,omitempty"`
+}
+
+// RevokeRequest defines model for RevokeRequest.
+type RevokeRequest struct {
+	ClientId     *string `json:"client_id,omitempty"`
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// Token The refresh token to revoke.
+	Token string `json:"token"`
+
+	// TokenTypeHint Accepted and ignored; only refresh tokens can be revoked.
+	TokenTypeHint *string `json:"token_type_hint,omitempty"`
 }
 
 // TokenRequest defines model for TokenRequest.
@@ -172,6 +185,12 @@ type AuthorizeParams struct {
 	// Invitation Not supported yet; rejected.
 	Invitation *string `form:"invitation,omitempty" json:"invitation,omitempty"`
 }
+
+// OauthRevokeJSONRequestBody defines body for OauthRevoke for application/json ContentType.
+type OauthRevokeJSONRequestBody = RevokeRequest
+
+// OauthRevokeFormdataRequestBody defines body for OauthRevoke for application/x-www-form-urlencoded ContentType.
+type OauthRevokeFormdataRequestBody = RevokeRequest
 
 // OauthTokenJSONRequestBody defines body for OauthToken for application/json ContentType.
 type OauthTokenJSONRequestBody = TokenRequest
@@ -346,6 +365,9 @@ type ServerInterface interface {
 	// Authorize Start an authorization (login) flow
 	// (GET /authorize)
 	Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams)
+	// OauthRevoke Revoke a refresh token
+	// (POST /oauth/revoke)
+	OauthRevoke(w http.ResponseWriter, r *http.Request)
 	// OauthToken Get a token
 	// (POST /oauth/token)
 	OauthToken(w http.ResponseWriter, r *http.Request)
@@ -376,6 +398,12 @@ func (_ Unimplemented) Discovery(w http.ResponseWriter, r *http.Request) {
 // Authorize Start an authorization (login) flow
 // (GET /authorize)
 func (_ Unimplemented) Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// OauthRevoke Revoke a refresh token
+// (POST /oauth/revoke)
+func (_ Unimplemented) OauthRevoke(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -675,6 +703,20 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// OauthRevoke operation middleware
+func (siw *ServerInterfaceWrapper) OauthRevoke(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OauthRevoke(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // OauthToken operation middleware
 func (siw *ServerInterfaceWrapper) OauthToken(w http.ResponseWriter, r *http.Request) {
 
@@ -841,6 +883,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oauth/token", wrapper.OauthToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/oauth/revoke", wrapper.OauthRevoke)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/userinfo", wrapper.Userinfo)
