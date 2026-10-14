@@ -11,9 +11,9 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | `/oauth/token`: `authorization_code` | Implemented | ID token with `at_hash`, `sid`, `nonce` |
 | `/userinfo` (GET, POST) | Implemented | |
 | Hosted login: `/u/login`, `/u/signup` | Implemented | Database connections only |
-| `/oauth/token`: `refresh_token` (rotation, reuse detection, leeway) | Implemented | Verified with @auth0/auth0-react 2.28.2 and @auth0/nextjs-auth0 4.32.0 |
+| `/oauth/token`: `refresh_token` (rotation, reuse detection, leeway) | Implemented | Rotation and reuse rejection verified with @auth0/auth0-react 2.28.2 (m5-react); @auth0/nextjs-auth0 4.32.0 obtains a refresh token via `offline_access` and revokes it at logout (m5-nextjs) but does not exchange it; leeway covered by server tests only |
 | `/oauth/revoke` | Implemented | Refresh tokens (whole family); JWT access tokens are not revocable |
-| `/v2/logout`, `/oidc/logout` (RP-Initiated Logout with confirmation) | Implemented | Verified with @auth0/auth0-react 2.28.2 and @auth0/nextjs-auth0 4.32.0; `federated` ignored; no back-/front-channel logout |
+| `/v2/logout`, `/oidc/logout` (RP-Initiated Logout with confirmation) | Implemented | `/v2/logout` verified with @auth0/auth0-react 2.28.2 (m5-react); `/oidc/logout` verified with @auth0/nextjs-auth0 4.32.0 (m5-nextjs, with `id_token_hint` and `logout_hint`, so no confirmation); the confirmation page and `returnTo`/`post_logout_redirect_uri` rejection are covered by server tests only; `federated` ignored; no back-/front-channel logout |
 | Implicit/hybrid flows, password reset, `/dbconnections/*`, password grants | Planned (milestone 6) | |
 | Passwordless, MFA, social connections, Actions | Planned (sub-project 2) | |
 | Management API v2 | Planned (sub-project 3) | |
