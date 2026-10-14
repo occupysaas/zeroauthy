@@ -18,6 +18,8 @@ var (
 	// ErrConflict is returned when a create or update would violate a
 	// uniqueness rule.
 	ErrConflict = errors.New("store: conflict")
+	// ErrAlreadyUsed is returned when a single-use entity was already used.
+	ErrAlreadyUsed = errors.New("store: already used")
 )
 
 // Store aggregates the repositories of one storage backend.
@@ -29,6 +31,9 @@ type Store interface {
 	SigningKeys() SigningKeys
 	Connections() Connections
 	Users() Users
+	Sessions() Sessions
+	AuthTransactions() AuthTransactions
+	AuthCodes() AuthCodes
 	Ping(ctx context.Context) error
 	Close() error
 }
@@ -135,4 +140,35 @@ type Users interface {
 	Update(ctx context.Context, u *User) error
 	// RecordLogin atomically sets LastLogin and increments LoginsCount.
 	RecordLogin(ctx context.Context, tenantID, userID string, at time.Time) error
+}
+
+// Sessions stores login sessions, keyed by (TenantID, ID). TokenHash is
+// unique within a tenant.
+type Sessions interface {
+	// Create returns ErrConflict if the ID or TokenHash exists.
+	Create(ctx context.Context, s *LoginSession) error
+	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*LoginSession, error)
+	// Update returns ErrNotFound if absent.
+	Update(ctx context.Context, s *LoginSession) error
+	// Delete returns ErrNotFound if absent.
+	Delete(ctx context.Context, tenantID, id string) error
+}
+
+// AuthTransactions stores in-progress logins, keyed by (TenantID, ID).
+type AuthTransactions interface {
+	// Create returns ErrConflict if the ID exists.
+	Create(ctx context.Context, t *AuthTransaction) error
+	Get(ctx context.Context, tenantID, id string) (*AuthTransaction, error)
+	// Delete returns ErrNotFound if absent.
+	Delete(ctx context.Context, tenantID, id string) error
+}
+
+// AuthCodes stores authorization codes, keyed by (TenantID, CodeHash).
+type AuthCodes interface {
+	// Create returns ErrConflict if the CodeHash exists.
+	Create(ctx context.Context, c *AuthCode) error
+	// Consume atomically marks the code used at `at` and returns it. A
+	// code that was already used is returned together with ErrAlreadyUsed,
+	// so callers can react to replay. Unknown codes return ErrNotFound.
+	Consume(ctx context.Context, tenantID, codeHash string, at time.Time) (*AuthCode, error)
 }

@@ -21,6 +21,9 @@ func Run(t *testing.T, newStore Factory) {
 	t.Run("SigningKeys", func(t *testing.T) { testSigningKeys(t, newStore) })
 	t.Run("Connections", func(t *testing.T) { testConnections(t, newStore) })
 	t.Run("Users", func(t *testing.T) { testUsers(t, newStore) })
+	t.Run("Sessions", func(t *testing.T) { testSessions(t, newStore) })
+	t.Run("AuthTransactions", func(t *testing.T) { testAuthTransactions(t, newStore) })
+	t.Run("AuthCodes", func(t *testing.T) { testAuthCodes(t, newStore) })
 }
 
 func open(t *testing.T, newStore Factory) store.Store {

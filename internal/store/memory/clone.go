@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"maps"
 	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -64,6 +65,28 @@ func cloneUser(u *store.User) *store.User {
 	if u.LastLogin != nil {
 		t := *u.LastLogin
 		out.LastLogin = &t
+	}
+	return &out
+}
+
+func cloneSession(s *store.LoginSession) *store.LoginSession {
+	out := *s
+	out.ClientIDs = slices.Clone(s.ClientIDs)
+	return &out
+}
+
+func cloneAuthTransaction(t *store.AuthTransaction) *store.AuthTransaction {
+	out := *t
+	out.Params = maps.Clone(t.Params)
+	return &out
+}
+
+func cloneAuthCode(c *store.AuthCode) *store.AuthCode {
+	out := *c
+	out.Scopes = slices.Clone(c.Scopes)
+	if c.UsedAt != nil {
+		t := *c.UsedAt
+		out.UsedAt = &t
 	}
 	return &out
 }

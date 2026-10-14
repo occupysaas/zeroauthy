@@ -177,3 +177,48 @@ type User struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
+
+// LoginSession is a browser's authenticated session with a tenant.
+type LoginSession struct {
+	TenantID        string
+	ID              string // public identifier, used as the ID token "sid" claim
+	TokenHash       string // secrets.HashToken of the session cookie value
+	UserID          string
+	Connection      string
+	AuthenticatedAt time.Time
+	ClientIDs       []string // clients that received tokens through this session
+	ExpiresAt       time.Time
+	IdleExpiresAt   time.Time
+	CreatedAt       time.Time
+}
+
+// AuthTransaction holds an /authorize request while the user logs in.
+type AuthTransaction struct {
+	TenantID   string
+	ID         string // the "state" of the hosted login pages
+	CookieHash string // secrets.HashToken of the za_txn_<ID> cookie value
+	CSRFToken  string
+	ClientID   string
+	Params     map[string]string // the validated authorize request
+	ExpiresAt  time.Time
+	CreatedAt  time.Time
+}
+
+// AuthCode is an issued authorization code.
+type AuthCode struct {
+	TenantID            string
+	CodeHash            string // secrets.HashToken of the code
+	ClientID            string
+	RedirectURI         string
+	UserID              string
+	SessionID           string
+	Scopes              []string
+	Audience            string
+	Nonce               string
+	CodeChallenge       string
+	CodeChallengeMethod string
+	AuthTime            time.Time
+	ExpiresAt           time.Time
+	CreatedAt           time.Time
+	UsedAt              *time.Time
+}
