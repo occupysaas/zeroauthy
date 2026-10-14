@@ -1,12 +1,15 @@
 package oidc
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/zeroauthy/zeroauthy/internal/claims"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
@@ -29,24 +32,43 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 	var extra struct {
 		Scope string `json:"scope"`
 	}
-	err := h.Keys.Verify(ctx, res.Tenant.ID, raw, &std, &extra)
-	if err == nil {
-		err = std.ValidateWithLeeway(jwt.Expected{
-			Issuer:      res.Issuer(),
-			AnyAudience: jwt.Audience{res.Issuer() + "userinfo"},
-			Time:        h.now(),
-		}, 0)
+	if err := h.Keys.Verify(ctx, res.Tenant.ID, raw, &std, &extra); err != nil {
+		if errors.Is(err, keys.ErrInvalidToken) {
+			invalidToken(w)
+			return
+		}
+		h.internalError(w, r, res.Tenant.ID, "verify access token", err)
+		return
 	}
-	if err != nil {
+	// ValidateWithLeeway skips exp when it is absent, so require exp and
+	// sub explicitly. Every error it returns is a claim-validation failure.
+	if std.Expiry == nil || std.Subject == "" {
+		invalidToken(w)
+		return
+	}
+	if err := std.ValidateWithLeeway(jwt.Expected{
+		Issuer:      res.Issuer(),
+		AnyAudience: jwt.Audience{res.Issuer() + "userinfo"},
+		Time:        h.now(),
+	}, 0); err != nil {
 		invalidToken(w)
 		return
 	}
 	user, err := h.Store.Users().Get(ctx, res.Tenant.ID, std.Subject)
-	if err != nil || user.Blocked {
+	if errors.Is(err, store.ErrNotFound) || (err == nil && user.Blocked) {
 		invalidToken(w)
 		return
 	}
+	if err != nil {
+		h.internalError(w, r, res.Tenant.ID, "load user", err)
+		return
+	}
 	httpx.WriteJSON(w, http.StatusOK, claims.ForUser(user, strings.Fields(extra.Scope)))
+}
+
+func (h *Handlers) internalError(w http.ResponseWriter, r *http.Request, tenantID, what string, err error) {
+	h.log().ErrorContext(r.Context(), "userinfo: "+what, "tenant", tenantID, "err", err)
+	httpx.WriteError(w, http.StatusInternalServerError, "server_error", "internal error")
 }
 
 func invalidToken(w http.ResponseWriter) {

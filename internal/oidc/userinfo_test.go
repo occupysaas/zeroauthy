@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -24,7 +27,23 @@ type uiEnv struct {
 	srv http.Handler
 }
 
+// failingUsers is a store whose Users().Get fails with an infrastructure error.
+type failingUsers struct{ store.Store }
+
+func (f failingUsers) Users() store.Users { return failingUserStore{f.Store.Users()} }
+
+type failingUserStore struct{ store.Users }
+
+func (failingUserStore) Get(context.Context, string, string) (*store.User, error) {
+	return nil, errors.New("database unavailable")
+}
+
 func newUserinfoEnv(t *testing.T) *uiEnv {
+	t.Helper()
+	return newUserinfoEnvWith(t, func(s store.Store) store.Store { return s })
+}
+
+func newUserinfoEnvWith(t *testing.T, wrap func(store.Store) store.Store) *uiEnv {
 	t.Helper()
 	ctx := context.Background()
 	st := memory.New()
@@ -38,11 +57,16 @@ func newUserinfoEnv(t *testing.T) *uiEnv {
 		TenantID: "ten_a", UserID: "auth0|1", Email: "alice@acme.test", EmailVerified: true, Name: "Alice",
 		Identities: []store.Identity{{Connection: "DB", Provider: "auth0", UserID: "1"}}, UpdatedAt: uiNow,
 	})
+	_ = st.Users().Create(ctx, &store.User{
+		TenantID: "ten_a", UserID: "auth0|blocked", Email: "bob@acme.test", Blocked: true,
+		Identities: []store.Identity{{Connection: "DB", Provider: "auth0", UserID: "blocked"}}, UpdatedAt: uiNow,
+	})
 	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{4}, 32))
 	km := keys.NewManager(st.SigningKeys(), w)
 	_ = km.Ensure(ctx, "ten_a")
 	_ = km.Ensure(ctx, "ten_b")
-	h := &Handlers{Keys: km, Store: st, Now: func() time.Time { return uiNow }}
+	quiet := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := &Handlers{Keys: km, Store: wrap(st), Log: quiet, Now: func() time.Time { return uiNow }}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /userinfo", h.Userinfo)
 	mux.HandleFunc("POST /userinfo", h.Userinfo)
@@ -113,6 +137,9 @@ func TestUserinfoRejects(t *testing.T) {
 		"wrong issuer":     "Bearer " + e.token(t, "ten_a", map[string]any{"iss": "https://globex.example.test/"}),
 		"api-only aud":     "Bearer " + e.token(t, "ten_a", map[string]any{"aud": "https://api.test"}),
 		"unknown user":     "Bearer " + e.token(t, "ten_a", map[string]any{"sub": "auth0|missing"}),
+		"blocked user":     "Bearer " + e.token(t, "ten_a", map[string]any{"sub": "auth0|blocked"}),
+		"no exp":           "Bearer " + e.token(t, "ten_a", map[string]any{"exp": nil}),
+		"no sub":           "Bearer " + e.token(t, "ten_a", map[string]any{"sub": nil}),
 	}
 	for name, header := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -121,5 +148,15 @@ func TestUserinfoRejects(t *testing.T) {
 				t.Fatalf("got %d %v %s", rec.Code, rec.Header(), rec.Body)
 			}
 		})
+	}
+}
+
+func TestUserinfoStoreFailureIs500(t *testing.T) {
+	e := newUserinfoEnvWith(t, func(s store.Store) store.Store { return failingUsers{s} })
+	rec := e.call("GET", "Bearer "+e.token(t, "ten_a", nil))
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if rec.Code != 500 || body["error"] != "server_error" {
+		t.Fatalf("got %d %v", rec.Code, body)
 	}
 }
