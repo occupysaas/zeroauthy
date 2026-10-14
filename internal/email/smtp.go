@@ -13,8 +13,9 @@ import (
 )
 
 type smtpMailer struct {
-	from string
-	cfg  config.SMTP
+	from     string // From: header value
+	envelope string // bare envelope sender
+	cfg      config.SMTP
 }
 
 func (s *smtpMailer) Send(ctx context.Context, m Message) error {
@@ -51,7 +52,7 @@ func (s *smtpMailer) Send(ctx context.Context, m Message) error {
 			return err
 		}
 	}
-	if err := c.Mail(s.from); err != nil {
+	if err := c.Mail(s.envelope); err != nil {
 		return err
 	}
 	if err := c.Rcpt(m.To); err != nil {

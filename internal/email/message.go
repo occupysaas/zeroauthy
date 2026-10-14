@@ -28,7 +28,7 @@ func build(from string, m Message, now time.Time) ([]byte, error) {
 	part := func(ctype, body string) {
 		fmt.Fprintf(&b, "--%s\r\nContent-Type: %s; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n", boundary, ctype)
 		w := quotedprintable.NewWriter(&b)
-		_, _ = w.Write([]byte(strings.ReplaceAll(body, "\n", "\r\n")))
+		_, _ = w.Write([]byte(strings.ReplaceAll(strings.ReplaceAll(body, "\r\n", "\n"), "\n", "\r\n")))
 		_ = w.Close()
 		b.WriteString("\r\n")
 	}

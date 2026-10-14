@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/mail"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
 )
@@ -27,13 +29,26 @@ func New(cfg config.Email, log *slog.Logger) (Mailer, error) {
 	if log == nil {
 		log = slog.Default()
 	}
+	if cfg.From == "" { // config.Load always sets it; programmatic callers may not
+		cfg.From = "zeroauthy@localhost"
+	}
+	addr, err := mail.ParseAddress(cfg.From)
+	if err != nil || strings.ContainsAny(cfg.From, "\r\n") {
+		return nil, fmt.Errorf("email: from %q is not a valid address", cfg.From)
+	}
+	// header is the From: header value (display name encoded by net/mail);
+	// the bare address is the SMTP envelope sender.
+	header := addr.Address
+	if addr.Name != "" {
+		header = addr.String()
+	}
 	switch cfg.Driver {
 	case "", "log":
-		return &logMailer{from: cfg.From, log: log}, nil
+		return &logMailer{from: header, log: log}, nil
 	case "dir":
-		return &dirMailer{from: cfg.From, dir: cfg.Dir}, nil
+		return &dirMailer{from: header, dir: cfg.Dir}, nil
 	case "smtp":
-		return &smtpMailer{from: cfg.From, cfg: cfg.SMTP}, nil
+		return &smtpMailer{from: header, envelope: addr.Address, cfg: cfg.SMTP}, nil
 	}
 	return nil, fmt.Errorf("email: unknown driver %q", cfg.Driver)
 }

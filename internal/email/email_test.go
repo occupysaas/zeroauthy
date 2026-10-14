@@ -74,7 +74,7 @@ func TestDirMailer(t *testing.T) {
 }
 
 // fakeSMTP is a minimal SMTP server that does not offer STARTTLS.
-func fakeSMTP(t *testing.T, got chan<- string) string {
+func fakeSMTP(t *testing.T, got chan<- string, mailFrom ...chan<- string) string {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -101,6 +101,9 @@ func fakeSMTP(t *testing.T, got chan<- string) string {
 			case strings.HasPrefix(cmd, "EHLO"), strings.HasPrefix(cmd, "HELO"):
 				say("250-fake")
 				say("250 8BITMIME")
+			case strings.HasPrefix(cmd, "MAIL") && len(mailFrom) > 0:
+				mailFrom[0] <- strings.TrimSpace(line)
+				say("250 ok")
 			case strings.HasPrefix(cmd, "MAIL"), strings.HasPrefix(cmd, "RCPT"), strings.HasPrefix(cmd, "RSET"), strings.HasPrefix(cmd, "NOOP"):
 				say("250 ok")
 			case cmd == "DATA":
@@ -146,5 +149,43 @@ func TestSMTPRequiresSTARTTLS(t *testing.T) {
 	m, _ := New(config.Email{Driver: "smtp", From: "zeroauthy@localhost", SMTP: config.SMTP{Host: host, Port: atoi(port)}}, nil)
 	if err := m.Send(context.Background(), msg); err == nil || !strings.Contains(err.Error(), "STARTTLS") {
 		t.Fatalf("err = %v, want STARTTLS required", err)
+	}
+}
+
+func TestNewRejectsBadFrom(t *testing.T) {
+	for _, from := range []string{"a@x.test\r\nBcc: e@x.test", "not an address"} {
+		if _, err := New(config.Email{Driver: "log", From: from}, nil); err == nil {
+			t.Errorf("New accepted From %q", from)
+		}
+	}
+}
+
+func TestSMTPDisplayNameFrom(t *testing.T) {
+	got, mf := make(chan string, 1), make(chan string, 1)
+	host, port, _ := net.SplitHostPort(fakeSMTP(t, got, mf))
+	m, err := New(config.Email{Driver: "smtp", From: "Zéro Auth <z@x.test>",
+		SMTP: config.SMTP{Host: host, Port: atoi(port), Insecure: true}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Send(context.Background(), msg); err != nil {
+		t.Fatal(err)
+	}
+	if line := <-mf; !strings.HasPrefix(line, "MAIL FROM:<z@x.test>") {
+		t.Errorf("envelope = %q, want bare address", line)
+	}
+	body := <-got
+	if !strings.Contains(body, "From: =?utf-8?q?Z=C3=A9ro_Auth?= <z@x.test>") {
+		t.Errorf("From header = %q", body)
+	}
+}
+
+func TestBodyCRLFNotDoubled(t *testing.T) {
+	raw, err := build("z@x.test", Message{To: "a@x.test", Subject: "s", Text: "a\r\nb\nc"}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "\r\r") {
+		t.Errorf("doubled CR in %q", raw)
 	}
 }
