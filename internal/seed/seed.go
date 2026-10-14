@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -29,6 +30,8 @@ type Tenant struct {
 	Branding            Branding         `yaml:"branding"`
 	Connections         []Connection     `yaml:"connections"`
 	Users               []User           `yaml:"users"`
+	EnabledLocales      []string         `yaml:"enabled_locales"`
+	CustomText          store.CustomText `yaml:"custom_text"`
 }
 
 type ResourceServer struct {

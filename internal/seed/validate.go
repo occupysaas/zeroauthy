@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -103,6 +104,13 @@ func (t *Tenant) validate() []error {
 		if err := checkURL(u); err != nil {
 			fail("allowed_logout_urls: %v", err)
 		}
+	}
+
+	if err := i18n.ValidateLocales(t.EnabledLocales); err != nil {
+		fail("enabled_locales: %v", err)
+	}
+	if err := i18n.ValidateCustomText(t.EnabledLocales, t.CustomText); err != nil {
+		fail("%v", err)
 	}
 
 	apis := map[string]*ResourceServer{}

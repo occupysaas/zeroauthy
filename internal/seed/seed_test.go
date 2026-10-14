@@ -133,6 +133,10 @@ func TestValidation(t *testing.T) {
 		"callback fragment":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://a.test/cb#x"]}]}]`, "fragment"},
 		"https without host":    {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https:/cb"]}]}]`, "no host"},
 		"bad logout url":        {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, allowed_logout_urls: ["https://a.test/%zz"]}]}]`, "not a valid URL"},
+		"bad locale":            {`tenants: [{name: a, enabled_locales: ["not a tag"]}]`, "not a valid language tag"},
+		"text for disabled":     {`tenants: [{name: a, custom_text: {login: {fr: {login: {title: x}}}}}]`, "not an enabled locale"},
+		"unknown text key":      {`tenants: [{name: a, custom_text: {login: {en: {login: {nope: x}}}}}]`, "unknown key"},
+		"foreign variable":      {`tenants: [{name: a, custom_text: {login: {en: {login: {title: "Hi ${userName}"}}}}}]`, "${userName}"},
 		"bad tenant logout url": {`tenants: [{name: a, allowed_logout_urls: ["bye"]}]`, "absolute"},
 		"bad rotation type":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {rotation_type: sometimes}}]}]`, "rotation_type"},
 		"bad expiration type":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {expiration_type: never}}]}]`, "expiration_type"},
@@ -325,5 +329,31 @@ tenants:
 		if c.RefreshToken != w {
 			t.Errorf("%s refresh_token = %+v, want %+v", id, c.RefreshToken, w)
 		}
+	}
+}
+
+func TestApplyLocalesAndCustomText(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(`
+tenants:
+  - name: acme
+    enabled_locales: [en, fr]
+    custom_text:
+      login:
+        fr:
+          login:
+            title: "Connexion à ${companyName}"
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	if len(tn.EnabledLocales) != 2 || tn.EnabledLocales[1] != "fr" ||
+		tn.CustomText["login"]["fr"]["login"]["title"] != "Connexion à ${companyName}" {
+		t.Fatalf("tenant = %+v", tn)
 	}
 }

@@ -16,12 +16,28 @@ func newTenant(name string) *store.Tenant {
 		Domains:           []string{name + ".example.test"},
 		DefaultAudience:   "https://" + name + ".api.test",
 		AllowedLogoutURLs: []string{"https://" + name + ".example.test/bye"},
+		EnabledLocales:    []string{"en", "fr"},
+		CustomText:        store.CustomText{"login": {"fr": {"login": {"title": "Connexion"}}}},
 		CreatedAt:         ts(0),
 	}
 }
 
 func testTenants(t *testing.T, newStore Factory) {
 	ctx := context.Background()
+
+	t.Run("CustomTextIsCopied", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newTenant("acme")
+		mustNoErr(t, s.Tenants().Create(ctx, in))
+		in.CustomText["login"]["fr"]["login"]["title"] = "mutated"
+		in.EnabledLocales[0] = "xx"
+		got, err := s.Tenants().Get(ctx, in.ID)
+		mustNoErr(t, err)
+		got.CustomText["login"]["fr"]["login"]["title"] = "mutated-too"
+		again, _ := s.Tenants().Get(ctx, in.ID)
+		mustEqual(t, again.CustomText["login"]["fr"]["login"]["title"], "Connexion")
+		mustEqual(t, again.EnabledLocales, []string{"en", "fr"})
+	})
 
 	t.Run("CreateAndGet", func(t *testing.T) {
 		s := open(t, newStore)

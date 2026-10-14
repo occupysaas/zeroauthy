@@ -37,6 +37,8 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 		tn = &store.Tenant{ID: "ten_" + secrets.RandomString(16), Name: in.Name, CreatedAt: now}
 		tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
 		tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
+		tn.EnabledLocales = slices.Clone(in.EnabledLocales)
+		tn.CustomText = in.CustomText
 		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
 		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
 		if err := st.Tenants().Create(ctx, tn); err != nil {
@@ -47,6 +49,8 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 	default:
 		tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
 		tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
+		tn.EnabledLocales = slices.Clone(in.EnabledLocales)
+		tn.CustomText = in.CustomText
 		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
 		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
 		if err := st.Tenants().Update(ctx, tn); err != nil {
