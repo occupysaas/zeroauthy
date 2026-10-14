@@ -4,8 +4,10 @@ package secrets
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -20,6 +22,17 @@ const (
 	threads   = 1
 	saltLen   = 16
 	keyLen    = 32
+)
+
+// Bounds for parameters read from stored hashes. They keep a corrupt or
+// hostile stored value from panicking argon2 or exhausting memory.
+const (
+	maxMemoryKiB = 256 * 1024 // 256 MiB
+	maxTimeCost  = 10
+	minSaltLen   = 8
+	maxSaltLen   = 64
+	minKeyLen    = 16
+	maxKeyLen    = 64
 )
 
 var errMalformed = errors.New("secrets: malformed argon2id hash")
@@ -54,16 +67,37 @@ func Verify(encoded, secret string) (bool, error) {
 	if _, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &m, &t, &p); err != nil {
 		return false, errMalformed
 	}
+	if t < 1 || t > maxTimeCost || p < 1 || m < 8*uint32(p) || m > maxMemoryKiB {
+		return false, errMalformed
+	}
 	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
-	if err != nil {
+	if err != nil || len(salt) < minSaltLen || len(salt) > maxSaltLen {
 		return false, errMalformed
 	}
 	want, err := base64.RawStdEncoding.DecodeString(parts[5])
-	if err != nil || len(want) == 0 {
+	if err != nil || len(want) < minKeyLen || len(want) > maxKeyLen {
 		return false, errMalformed
 	}
 	got := argon2.IDKey([]byte(secret), salt, t, m, p, uint32(len(want)))
 	return subtle.ConstantTimeCompare(got, want) == 1, nil
+}
+
+// HashToken returns the hex SHA-256 of a high-entropy token (session
+// cookie, authorization code, transaction cookie). Such tokens are stored
+// only in this form. Never use it for passwords; use Hash.
+func HashToken(s string) string {
+	sum := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(sum[:])
+}
+
+// RandomHex returns nBytes of crypto/rand output as lowercase hex. It panics
+// if the system random source fails.
+func RandomHex(nBytes int) string {
+	b := make([]byte, nBytes)
+	if _, err := rand.Read(b); err != nil {
+		panic("secrets: crypto/rand failed: " + err.Error())
+	}
+	return hex.EncodeToString(b)
 }
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"

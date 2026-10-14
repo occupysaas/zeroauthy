@@ -60,3 +60,38 @@ func TestRandomString(t *testing.T) {
 		seen[s] = true
 	}
 }
+
+func TestVerifyRejectsOutOfRangeParameters(t *testing.T) {
+	salt := "c2FsdHNhbHRzYWx0c2FsdA"                     // 16 bytes, raw std base64
+	key := "aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2g" // 32 bytes
+	for _, params := range []string{
+		"m=0,t=2,p=1",          // memory below 8*p
+		"m=19456,t=0,p=1",      // zero time cost
+		"m=19456,t=2,p=0",      // zero parallelism
+		"m=4294967295,t=2,p=1", // absurd memory
+		"m=19456,t=99,p=1",     // absurd time cost
+	} {
+		enc := "$argon2id$v=19$" + params + "$" + salt + "$" + key
+		if _, err := Verify(enc, "x"); err == nil {
+			t.Errorf("Verify accepted %s", params)
+		}
+	}
+	short := "$argon2id$v=19$m=19456,t=2,p=1$c2FsdA$" + key // 4-byte salt
+	if _, err := Verify(short, "x"); err == nil {
+		t.Error("Verify accepted a 4-byte salt")
+	}
+}
+
+func TestHashToken(t *testing.T) {
+	// SHA-256("abc"), FIPS 180-2 test vector.
+	if got, want := HashToken("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"; got != want {
+		t.Fatalf("HashToken = %s", got)
+	}
+}
+
+func TestRandomHex(t *testing.T) {
+	a, b := RandomHex(12), RandomHex(12)
+	if len(a) != 24 || a == b || strings.Trim(a, "0123456789abcdef") != "" {
+		t.Fatalf("RandomHex = %q, %q", a, b)
+	}
+}

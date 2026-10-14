@@ -4,6 +4,7 @@ package oauth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -57,6 +58,9 @@ func (a audience) MarshalJSON() ([]byte, error) {
 
 // AccessToken returns a signed JWT access token.
 func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, error) {
+	if len(p.Audience) == 0 {
+		return "", errors.New("oauth: an access token needs at least one audience")
+	}
 	lifetime := p.Lifetime
 	if lifetime <= 0 {
 		lifetime = DefaultAccessTokenLifetime

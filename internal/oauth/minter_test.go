@@ -111,3 +111,10 @@ func TestAccessTokenOptionalClaims(t *testing.T) {
 		t.Errorf("default lifetime not applied: %v", claims)
 	}
 }
+
+func TestAccessTokenRequiresAudience(t *testing.T) {
+	m := &Minter{Keys: newTestKeys(t, "ten_a"), Now: fixedNow}
+	if _, err := m.AccessToken(context.Background(), AccessTokenParams{TenantID: "ten_a", Issuer: "https://a/", Subject: "s", ClientID: "c"}); err == nil {
+		t.Fatal("token minted without an audience")
+	}
+}

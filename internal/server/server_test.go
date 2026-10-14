@@ -117,3 +117,19 @@ func TestRecovererWritesJSON(t *testing.T) {
 		t.Errorf("panic not logged with request id: %s", logs.String())
 	}
 }
+
+func TestDocsPageIsPinnedAndLockedDown(t *testing.T) {
+	rec := get(newTestServer(t), "http://any.host/docs")
+	body := rec.Body.String()
+	if !strings.Contains(body, `integrity="sha384-VXnKAz61Xwc3tbw1P+KKrUP7YbcsSl1Ik4is5UnogJyw9XEYZ5Ay/T1i0zPYtSZH"`) ||
+		!strings.Contains(body, `crossorigin="anonymous"`) ||
+		!strings.Contains(body, "@scalar/api-reference@1.74.0/dist/browser/standalone.js") {
+		t.Fatalf("docs script is not pinned with SRI:\n%s", body)
+	}
+	csp := rec.Header().Get("Content-Security-Policy")
+	for _, want := range []string{"default-src 'none'", "script-src 'sha256-", "https://cdn.jsdelivr.net", "connect-src 'self'", "frame-ancestors 'none'"} {
+		if !strings.Contains(csp, want) {
+			t.Errorf("CSP %q lacks %q", csp, want)
+		}
+	}
+}
