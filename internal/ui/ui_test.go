@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"io"
+	"log/slog"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
@@ -113,5 +116,58 @@ func TestRenderWebMessage(t *testing.T) {
 	checkNonce(t, csp, body)
 	if !strings.Contains(csp, "frame-ancestors https://app.test") || h.Get("X-Frame-Options") != "" {
 		t.Errorf("web_message must be frameable by its origin only: csp=%q xfo=%q", csp, h.Get("X-Frame-Options"))
+	}
+}
+
+func TestRenderWebMessageRefusesBadOrigins(t *testing.T) {
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+	for _, bad := range []string{"*", "", "https://a.test https:", "https://a.test;script-src *", "https://a.test/path"} {
+		rec := httptest.NewRecorder()
+		RenderWebMessage(rec, bad, map[string]string{"code": "abc"})
+		body := rec.Body.String()
+		if rec.Code != http.StatusInternalServerError {
+			t.Errorf("origin %q: status %d, want 500", bad, rec.Code)
+		}
+		if strings.Contains(body, "postMessage") {
+			t.Errorf("origin %q: page rendered", bad)
+		}
+		if csp := rec.Header().Get("Content-Security-Policy"); csp != "" && strings.Contains(csp, bad) && bad != "" {
+			t.Errorf("origin %q: CSP %q carries the bad value", bad, csp)
+		}
+		if rec.Header().Get("Content-Security-Policy") != "" || rec.Header().Get("X-Frame-Options") != "" {
+			t.Errorf("origin %q: security headers set on refused response", bad)
+		}
+	}
+}
+
+func TestRenderWebMessageAcceptsGoodOrigins(t *testing.T) {
+	for _, good := range []string{"https://app.test", "http://localhost:3000"} {
+		rec := httptest.NewRecorder()
+		RenderWebMessage(rec, good, map[string]string{"code": "abc"})
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "postMessage") {
+			t.Errorf("origin %q: status %d, want 200 with page", good, rec.Code)
+		}
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "frame-ancestors "+good) {
+			t.Errorf("origin %q: CSP %q", good, csp)
+		}
+	}
+}
+
+func TestRenderLoginNeutralisesHostileStyleAndHref(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderLogin(rec, 200, Tenant{Name: "Acme", PrimaryColor: "red;}body{display:none}"}, LoginData{
+		State: "st", CSRF: "cs", SignupURL: "javascript:alert(1)",
+	})
+	body := rec.Body.String()
+	if strings.Contains(body, "red;}body{display:none}") {
+		t.Fatal("hostile primary color emitted raw")
+	}
+	if !strings.Contains(body, "ZgotmplZ") {
+		t.Error("hostile primary color not replaced with ZgotmplZ")
+	}
+	if strings.Contains(body, `href="javascript:alert(1)"`) {
+		t.Fatal("javascript: signup URL emitted as href")
 	}
 }

@@ -90,6 +90,14 @@ func RenderFormPost(w http.ResponseWriter, action string, params url.Values) {
 // RenderWebMessage writes the Web Message Response Mode page, which posts
 // the authorization response to targetOrigin from a popup or iframe.
 func RenderWebMessage(w http.ResponseWriter, targetOrigin string, response map[string]string) {
+	// The origin is used as a CSP source and as the postMessage target, so
+	// only a bare scheme://host[:port] is accepted. Anything else (e.g. "*")
+	// would leak the response or widen the CSP.
+	if o := origin(targetOrigin); o == "'none'" || o != targetOrigin {
+		slog.Error("refusing web_message: invalid target origin", "origin", targetOrigin)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 	nonce := newNonce()
 	setHeaders(w, nonce, targetOrigin, "'none'")
 	write(w, http.StatusOK, webMessage, "web_message.html", map[string]any{"Origin": targetOrigin, "Response": response, "Nonce": nonce})
