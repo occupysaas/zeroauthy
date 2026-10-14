@@ -64,16 +64,33 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 // returnToAllowed applies the /v2/logout rule: the query string and
-// fragment of returnTo are not compared, and scheme and host are
-// case-insensitive.
+// fragment are not compared, and scheme and host are case-insensitive. Both
+// returnTo and each registered URL are normalized the same way.
 func returnToAllowed(allowed []string, returnTo string) bool {
-	u, err := url.Parse(returnTo)
-	if err != nil || u.Scheme == "" || u.User != nil {
+	n, ok := normalizeLogoutURL(returnTo)
+	if !ok {
 		return false
+	}
+	norm := make([]string, 0, len(allowed))
+	for _, a := range allowed {
+		if x, ok := normalizeLogoutURL(a); ok {
+			norm = append(norm, x)
+		}
+	}
+	return authz.AllowedURL(norm, n)
+}
+
+// normalizeLogoutURL drops the query and fragment and lowercases scheme and
+// host. It reports false for URLs that do not parse, have no scheme, or
+// carry userinfo.
+func normalizeLogoutURL(raw string) (string, bool) {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme == "" || u.User != nil {
+		return "", false
 	}
 	u.RawQuery, u.ForceQuery, u.Fragment, u.RawFragment = "", false, "", ""
 	u.Scheme, u.Host = strings.ToLower(u.Scheme), strings.ToLower(u.Host)
-	return authz.AllowedURL(allowed, u.String())
+	return u.String(), true
 }
 
 // firstConcrete returns the first allowed URL that is not a wildcard

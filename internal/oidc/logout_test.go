@@ -50,6 +50,8 @@ func newLogoutEnv(t *testing.T, wrap func(store.Store) store.Store) *logoutEnv {
 		{TenantID: "ten_a", ClientID: "other", AllowedLogoutURLs: []string{"https://other.acme.test/bye"}},
 		{TenantID: "ten_a", ClientID: "wild-first", AllowedLogoutURLs: []string{"https://*.preview.acme.test/bye", "https://wild.acme.test/bye"}},
 		{TenantID: "ten_a", ClientID: "no-urls"},
+		{TenantID: "ten_a", ClientID: "query-first", AllowedLogoutURLs: []string{"https://q.acme.test/bye?from=app"}},
+		{TenantID: "ten_a", ClientID: "mixed-case", AllowedLogoutURLs: []string{"https://Upper.acme.test/bye", "https://*.Preview.acme.test/cased"}},
 	} {
 		if err := st.Clients().Create(ctx, c); err != nil {
 			t.Fatal(err)
@@ -125,13 +127,17 @@ func TestV2LogoutRedirects(t *testing.T) {
 		q    url.Values
 		want string
 	}{
-		"client URL":            {url.Values{"client_id": {"spa"}, "returnTo": {"https://app.acme.test/bye"}}, "https://app.acme.test/bye"},
-		"query not compared":    {url.Values{"client_id": {"spa"}, "returnTo": {"https://app.acme.test/bye?lang=en"}}, "https://app.acme.test/bye?lang=en"},
-		"host case-insensitive": {url.Values{"client_id": {"spa"}, "returnTo": {"https://APP.acme.test/bye"}}, "https://APP.acme.test/bye"},
-		"wildcard":              {url.Values{"client_id": {"spa"}, "returnTo": {"https://pr-7.preview.acme.test/bye"}}, "https://pr-7.preview.acme.test/bye"},
-		"tenant URL":            {url.Values{"returnTo": {"https://acme.test/bye"}}, "https://acme.test/bye"},
-		"first client URL":      {url.Values{"client_id": {"spa"}}, "https://app.acme.test/bye"},
-		"first concrete URL":    {url.Values{"client_id": {"wild-first"}}, "https://wild.acme.test/bye"},
+		"client URL":                {url.Values{"client_id": {"spa"}, "returnTo": {"https://app.acme.test/bye"}}, "https://app.acme.test/bye"},
+		"query not compared":        {url.Values{"client_id": {"spa"}, "returnTo": {"https://app.acme.test/bye?lang=en"}}, "https://app.acme.test/bye?lang=en"},
+		"host case-insensitive":     {url.Values{"client_id": {"spa"}, "returnTo": {"https://APP.acme.test/bye"}}, "https://APP.acme.test/bye"},
+		"wildcard":                  {url.Values{"client_id": {"spa"}, "returnTo": {"https://pr-7.preview.acme.test/bye"}}, "https://pr-7.preview.acme.test/bye"},
+		"tenant URL":                {url.Values{"returnTo": {"https://acme.test/bye"}}, "https://acme.test/bye"},
+		"first client URL":          {url.Values{"client_id": {"spa"}}, "https://app.acme.test/bye"},
+		"first concrete URL":        {url.Values{"client_id": {"wild-first"}}, "https://wild.acme.test/bye"},
+		"first URL has query":       {url.Values{"client_id": {"query-first"}}, "https://q.acme.test/bye?from=app"},
+		"registered query":          {url.Values{"client_id": {"query-first"}, "returnTo": {"https://q.acme.test/bye?from=app"}}, "https://q.acme.test/bye?from=app"},
+		"registered upper host":     {url.Values{"client_id": {"mixed-case"}, "returnTo": {"https://upper.acme.test/bye"}}, "https://upper.acme.test/bye"},
+		"registered upper wildcard": {url.Values{"client_id": {"mixed-case"}, "returnTo": {"https://pr-1.preview.acme.test/cased"}}, "https://pr-1.preview.acme.test/cased"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
