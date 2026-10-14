@@ -79,3 +79,22 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - `PUT /prompts/{prompt}/custom-text/{language}` and `GET /prompts/{prompt}/custom-text/{language}` are planned for sub-project 3; storage is ready.
 - RTL layout needs a visual review once an RTL catalog exists.
 - Email templates must use the catalog in milestone 6.
+
+## Plan 4 deferred review findings
+
+- No tests for Accept-Language q ties, or for a key-specific variable (such as `${min}`) used in an override of a different key.
+- `i18n.Enabled` returns the tenant's own `EnabledLocales` slice rather than a copy.
+- `i18n.New` iterates custom-text languages in map order, so if duplicates that differ only by case ever bypassed validation, the winner would be arbitrary.
+- Seed apply shares the parsed `CustomText` map with the stored tenant instead of copying it.
+- Invalid `enabled_locales` also produce noisy duplicate errors from custom-text validation.
+- No re-apply test for the seed's locale and custom-text update branch.
+- The catalog test treats "used" as "present in keys.go", and keys written in template pipeline form are invisible to its regex.
+- `login.load` does not log non-NotFound errors from `Clients().Get`.
+- The custom-text escape test lacks a positive assertion that the escaped text is present.
+- No negative test for a bad `state` combined with `ui_locales`.
+- The POST no-connection localization test lacks a status assertion.
+- `load`'s `(flow, err)` contract (flow returned alongside errNoConnection) is documented only by an inline comment.
+- The store-error `fail` paths in the login package have no dedicated test.
+- `${clientName}` renders empty on the logout and error pages.
+- Languages are matched only exactly or by base language; there is no `zh-TW` → `zh-Hant` style matching.
+- Spaces around `q =` in Accept-Language are not tolerated.
