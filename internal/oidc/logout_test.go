@@ -41,7 +41,11 @@ func newLogoutEnv(t *testing.T, wrap func(store.Store) store.Store) *logoutEnv {
 	ctx := context.Background()
 	st := memory.New()
 	tn := &store.Tenant{ID: "ten_a", Name: "acme", Domains: []string{"acme.example.test"}, AllowedLogoutURLs: []string{"https://acme.test/bye"},
-		EnabledLocales: []string{"en", "fr"}}
+		EnabledLocales: []string{"en", "fr"},
+		CustomText: store.CustomText{
+			"logout":    {"fr": {"logout": {"title": "Se déconnecter ?"}}},
+			"zeroauthy": {"fr": {"logged-out": {"title": "Vous êtes déconnecté"}}},
+		}}
 	for _, x := range []*store.Tenant{tn, {ID: "ten_b", Name: "globex", Domains: []string{"globex.example.test"}}} {
 		if err := st.Tenants().Create(ctx, x); err != nil {
 			t.Fatal(err)
@@ -455,5 +459,23 @@ func TestOidcLogoutRejects(t *testing.T) {
 				t.Fatalf("got %d Location=%q alive=%v", rec.Code, rec.Header().Get("Location"), e.alive(t, s))
 			}
 		})
+	}
+}
+
+func TestLogoutPagesAreLocalized(t *testing.T) {
+	e := newLogoutEnv(t, nil)
+	ck, _ := e.login(t)
+	// /oidc/logout honours its own ui_locales on the confirmation page.
+	rec := e.do(t, "GET", rp(url.Values{"client_id": {"spa"}, "post_logout_redirect_uri": {"https://app.acme.test/bye"}, "ui_locales": {"fr"}}), nil, ck)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Se déconnecter ?") {
+		t.Fatalf("confirmation = %d %s", rec.Code, rec.Body)
+	}
+	// /v2/logout follows Accept-Language.
+	r := httptest.NewRequest("GET", "https://acme.example.test/v2/logout", nil)
+	r.Header.Set("Accept-Language", "fr")
+	out := httptest.NewRecorder()
+	e.srv.ServeHTTP(out, r)
+	if out.Code != 200 || !strings.Contains(out.Body.String(), "Vous êtes déconnecté") {
+		t.Fatalf("logged-out page = %d %s", out.Code, out.Body)
 	}
 }

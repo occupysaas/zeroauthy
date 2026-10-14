@@ -27,6 +27,17 @@ const loginSeed = `
 tenants:
   - name: acme
     domains: [acme.example.test]
+    enabled_locales: [en, fr]
+    custom_text:
+      login:
+        fr:
+          login:
+            title: "Connexion"
+            wrong-credentials: "Identifiant ou mot de passe incorrect."
+      signup:
+        fr:
+          signup:
+            title: "Créer un compte"
     clients:
       - {client_id: spa, app_type: spa, grant_types: [authorization_code], callbacks: ["https://app.acme.test/cb"]}
       - {client_id: closed, app_type: spa, grant_types: [authorization_code], callbacks: ["https://closed.acme.test/cb"]}
@@ -81,6 +92,8 @@ type browser struct {
 	e       *env
 	host    string
 	cookies map[string]*http.Cookie
+	// acceptLanguage, when set, is sent as the Accept-Language header.
+	acceptLanguage string
 }
 
 func (e *env) browser(host string) *browser {
@@ -95,6 +108,9 @@ func (b *browser) do(t *testing.T, method, path string, form url.Values) *httpte
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	} else {
 		r = httptest.NewRequest(method, "https://"+b.host+path, nil)
+	}
+	if b.acceptLanguage != "" {
+		r.Header.Set("Accept-Language", b.acceptLanguage)
 	}
 	for _, c := range b.cookies {
 		r.AddCookie(c)
@@ -427,5 +443,79 @@ func TestPolicyMessagesKeepEnglishWording(t *testing.T) {
 		if got, want := i18n.Default().T(pe.Key, pe.Vars...), capitalize(pe.Reason)+"."; got != want {
 			t.Errorf("%s = %q, want %q", pe.Key, got, want)
 		}
+	}
+}
+
+func TestLoginPagesFollowUILocales(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	rec, state, csrf := b.begin(t, "ui_locales", "fr")
+	body := rec.Body.String()
+	if !strings.Contains(body, `lang="fr"`) || !strings.Contains(body, "Connexion") || !strings.Contains(body, "Email or username") {
+		t.Fatalf("login page not French with English fallback:\n%s", body)
+	}
+	// A failed login keeps the transaction's language, error included.
+	rec = b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"wrong"}})
+	if !strings.Contains(rec.Body.String(), "Identifiant ou mot de passe incorrect.") || !strings.Contains(rec.Body.String(), `lang="fr"`) {
+		t.Fatalf("failed login not French:\n%s", rec.Body)
+	}
+	rec = b.do(t, "GET", "/u/signup?state="+url.QueryEscape(state), nil)
+	if !strings.Contains(rec.Body.String(), "Créer un compte") {
+		t.Fatalf("signup not French:\n%s", rec.Body)
+	}
+}
+
+func TestLoginPageFollowsAcceptLanguageAndPolicyVariables(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	rec, state, csrf := b.begin(t)
+	if !strings.Contains(rec.Body.String(), `lang="en"`) {
+		t.Fatal("default must be English")
+	}
+	// A short password shows the English policy text with ${min} filled in.
+	rec = b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"new@acme.test"}, "password": {"short"}})
+	if !strings.Contains(rec.Body.String(), "at least 8 characters") {
+		t.Fatalf("policy message:\n%s", rec.Body)
+	}
+}
+
+func TestLoginPageFollowsAcceptLanguageHeader(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	b.acceptLanguage = "fr-CA,fr;q=0.9"
+	rec, _, _ := b.begin(t)
+	if !strings.Contains(rec.Body.String(), `lang="fr"`) {
+		t.Fatalf("Accept-Language not honoured:\n%s", rec.Body)
+	}
+}
+
+// An error page rendered after the transaction is verified keeps the
+// transaction's ui_locales.
+func TestPostVerificationErrorPagesKeepUILocales(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t, "ui_locales", "fr")
+	// Drop the connection's enablement so load fails with errNoConnection
+	// after the transaction itself verifies.
+	tn := mustTenant(t, e, "acme")
+	conns, err := e.st.Connections().List(context.Background(), tn.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range conns {
+		if c.Name == "Username-Password-Authentication" {
+			c.EnabledClients = nil
+			if err := e.st.Connections().Update(context.Background(), c); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	rec := b.do(t, "GET", "/u/login?state="+url.QueryEscape(state), nil)
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), `lang="fr"`) {
+		t.Fatalf("no-connection error not French = %d\n%s", rec.Code, rec.Body)
+	}
+	rec = b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"x"}})
+	if !strings.Contains(rec.Body.String(), `lang="fr"`) {
+		t.Fatalf("POST no-connection error not French = %d\n%s", rec.Code, rec.Body)
 	}
 }

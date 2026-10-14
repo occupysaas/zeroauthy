@@ -3,6 +3,7 @@ package authz
 
 import (
 	"context"
+	"html"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -283,5 +284,20 @@ func TestFormPostRequiresHTTPCallback(t *testing.T) {
 	if u.Scheme != "com.example.app" || u.Query().Get("error") != "invalid_request" ||
 		!strings.Contains(u.Query().Get("error_description"), "form_post") {
 		t.Fatalf("redirect = %v", u)
+	}
+}
+
+func TestErrorPageAndFormPostAreLocalized(t *testing.T) {
+	e := newEnv(t)
+	rec := e.get(t, with(goodQuery(), "redirect_uri", "https://evil.test/cb", "ui_locales", "fr"))
+	// html/template escapes the apostrophes in the rendered page.
+	if rec.Code != 400 || !strings.Contains(html.UnescapeString(rec.Body.String()), "La demande de l'application n'a pas pu aboutir.") ||
+		!strings.Contains(rec.Body.String(), "redirect_uri") {
+		t.Fatalf("error page = %d %s", rec.Code, rec.Body)
+	}
+	ck := e.login(t, fixedNow())
+	rec = e.get(t, with(goodQuery(), "response_mode", "form_post", "ui_locales", "fr"), ck)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Poursuivre") || !strings.Contains(rec.Body.String(), `lang="fr"`) {
+		t.Fatalf("form_post = %d %s", rec.Code, rec.Body)
 	}
 }

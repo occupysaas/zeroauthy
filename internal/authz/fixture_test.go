@@ -16,6 +16,14 @@ const fixtureSeed = `
 tenants:
   - name: acme
     domains: [acme.example.test]
+    enabled_locales: [en, fr]
+    custom_text:
+      zeroauthy:
+        fr:
+          error:
+            invalid-request: "La demande de l'application n'a pas pu aboutir."
+          form-post:
+            buttonText: "Poursuivre"
     resource_servers:
       - {identifier: "https://api.acme.test", name: API, scopes: [{value: "read:things"}]}
     clients:

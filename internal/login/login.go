@@ -79,16 +79,16 @@ func (h *Handlers) load(r *http.Request, state string) (*flow, error) {
 	if !h.now().Before(txn.ExpiresAt) {
 		return nil, errTxn
 	}
-	conn, err := h.connection(ctx, res.Tenant.ID, txn)
-	if err != nil {
-		return nil, err
-	}
 	clientName := txn.ClientID
 	if c, err := h.Store.Clients().Get(ctx, res.Tenant.ID, txn.ClientID); err == nil && c.Name != "" {
 		clientName = c.Name
 	}
 	l := i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]).WithVar("clientName", clientName)
-	return &flow{res: res, view: ui.TenantView(res.Tenant, l), txn: txn, conn: conn}, nil
+	f := &flow{res: res, view: ui.TenantView(res.Tenant, l), txn: txn}
+	// The flow is returned with the error so the error page keeps the
+	// transaction's language; conn is nil in that case.
+	f.conn, err = h.connection(ctx, res.Tenant.ID, txn)
+	return f, err
 }
 
 var errNoConnection = errors.New("login: no enabled connection")
@@ -112,9 +112,14 @@ func (h *Handlers) connection(ctx context.Context, tenantID string, txn *store.A
 	return nil, errNoConnection
 }
 
-func (h *Handlers) fail(w http.ResponseWriter, r *http.Request, err error) {
+// fail renders an error page. f is the verified flow when there is one,
+// so the page keeps the transaction's language; otherwise the language
+// comes from the request alone.
+func (h *Handlers) fail(w http.ResponseWriter, r *http.Request, err error, f *flow) {
 	view := ui.Tenant{}
-	if res, ok := tenant.FromContext(r.Context()); ok {
+	if f != nil {
+		view = f.view
+	} else if res, ok := tenant.FromContext(r.Context()); ok {
 		view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	}
 	switch {
@@ -138,7 +143,7 @@ func signupURL(f *flow) string {
 func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 	f, err := h.load(r, r.URL.Query().Get("state"))
 	if err != nil {
-		h.fail(w, r, err)
+		h.fail(w, r, err, f)
 		return
 	}
 	ui.RenderLogin(w, http.StatusOK, f.view, ui.LoginData{
@@ -151,16 +156,16 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) postedFlow(w http.ResponseWriter, r *http.Request) (*flow, bool) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
 	if err := r.ParseForm(); err != nil {
-		h.fail(w, r, errTxn)
+		h.fail(w, r, errTxn, nil)
 		return nil, false
 	}
 	f, err := h.load(r, r.PostForm.Get("state"))
 	if err != nil {
-		h.fail(w, r, err)
+		h.fail(w, r, err, f)
 		return nil, false
 	}
 	if subtle.ConstantTimeCompare([]byte(r.PostForm.Get("csrf")), []byte(f.txn.CSRFToken)) != 1 {
-		h.fail(w, r, errTxn)
+		h.fail(w, r, errTxn, f)
 		return nil, false
 	}
 	return f, true
@@ -201,7 +206,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		h.UserThrottle.Refund(userKey)
 		h.IPThrottle.Refund(ipKey)
-		h.fail(w, r, err)
+		h.fail(w, r, err, f)
 		return
 	}
 	h.UserThrottle.Success(userKey)
@@ -212,7 +217,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 	f, err := h.load(r, r.URL.Query().Get("state"))
 	if err != nil {
-		h.fail(w, r, err)
+		h.fail(w, r, err, f)
 		return
 	}
 	if f.conn.DisableSignup {
@@ -263,7 +268,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		ui.RenderError(w, http.StatusForbidden, f.view, f.view.L.T(i18n.KeyErrSignupDisabled))
 		return
 	case err != nil:
-		h.fail(w, r, err)
+		h.fail(w, r, err, f)
 		return
 	}
 	h.complete(w, r, f, user)
@@ -275,7 +280,7 @@ func (h *Handlers) complete(w http.ResponseWriter, r *http.Request, f *flow, use
 	now := h.now()
 	sess, err := h.Sessions.Start(ctx, w, r, f.res.Tenant, user.UserID, f.conn.Name, now)
 	if err != nil {
-		h.fail(w, r, err)
+		h.fail(w, r, err, f)
 		return
 	}
 	if err := h.Store.Users().RecordLogin(ctx, f.res.Tenant.ID, user.UserID, now); err != nil {
