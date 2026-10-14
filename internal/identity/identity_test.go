@@ -40,3 +40,17 @@ func TestCheckPassword(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckUsername(t *testing.T) {
+	for _, ok := range []string{"alice", "a.b_c+d-e", strings.Repeat("a", 64)} {
+		if err := CheckUsername(ok); err != nil {
+			t.Errorf("CheckUsername(%q) = %v, want nil", ok, err)
+		}
+	}
+	for _, bad := range []string{"", "victim@acme.test", "has space", strings.Repeat("a", 65)} {
+		var pe *PolicyError
+		if err := CheckUsername(bad); !errors.As(err, &pe) {
+			t.Errorf("CheckUsername(%q) = %v, want a PolicyError", bad, err)
+		}
+	}
+}

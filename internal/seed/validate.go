@@ -183,6 +183,7 @@ func (t *Tenant) validate() []error {
 	}
 
 	seenUsers := map[[2]string]bool{}
+	seenUsernames := map[[2]string]bool{}
 	for i := range t.Users {
 		u := &t.Users[i]
 		c := conns[u.Connection]
@@ -203,6 +204,16 @@ func (t *Tenant) validate() []error {
 		seenUsers[k] = true
 		if c.RequiresUsername && u.Username == "" {
 			fail("user %q: username is required by connection %q", u.Email, c.Name)
+		}
+		if u.Username != "" {
+			if err := identity.CheckUsername(u.Username); err != nil {
+				fail("user %q: %v", u.Email, err)
+			}
+			uk := [2]string{u.Connection, u.Username}
+			if seenUsernames[uk] {
+				fail("duplicate username %q on connection %q", u.Username, u.Connection)
+			}
+			seenUsernames[uk] = true
 		}
 		if err := identity.CheckPassword(store.PasswordPolicy{
 			MinLength: c.PasswordPolicy.MinLength, RequireCharacterClasses: c.PasswordPolicy.RequireCharacterClasses,

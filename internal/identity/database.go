@@ -15,6 +15,15 @@ import (
 
 var usernamePattern = regexp.MustCompile(`^[a-z0-9_.+-]{1,64}$`)
 
+// CheckUsername validates a normalized username. Usernames never contain
+// '@', so a login that contains one can only be an email.
+func CheckUsername(username string) error {
+	if !usernamePattern.MatchString(username) {
+		return &PolicyError{Reason: "username must be 1-64 characters: letters, digits, and _ . + -"}
+	}
+	return nil
+}
+
 // dummyHash is verified when a login names an unknown user, so that the
 // response time does not reveal whether the user exists.
 var dummyHash = sync.OnceValue(func() string {
@@ -89,8 +98,8 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, email, us
 	}
 	username = NormalizeLogin(username)
 	if conn.RequiresUsername {
-		if !usernamePattern.MatchString(username) {
-			return nil, &PolicyError{Reason: "username must be 1-64 characters: letters, digits, and _ . + -"}
+		if err := CheckUsername(username); err != nil {
+			return nil, err
 		}
 	} else {
 		username = ""

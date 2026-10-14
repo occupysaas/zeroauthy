@@ -240,6 +240,8 @@ func TestValidateConnectionsAndUsers(t *testing.T) {
 		"user weak password": {conn, `{connection: DB, email: a@b.test, password: short}`, "at least 8"},
 		"user dup email":     {conn, `{connection: DB, email: a@b.test, password: "long enough 1"}, {connection: DB, email: A@B.test, password: "long enough 2"}`, `duplicate user "a@b.test"`},
 		"username required":  {`{name: DB, requires_username: true}`, `{connection: DB, email: a@b.test, password: "long enough 1"}`, "username is required"},
+		"username with at":   {conn, `{connection: DB, email: a@b.test, username: "a@b.test", password: "long enough 1"}`, "username"},
+		"dup username":       {conn, `{connection: DB, email: a@b.test, username: alice, password: "long enough 1"}, {connection: DB, email: c@b.test, username: ALICE, password: "long enough 2"}`, `duplicate username "alice" on connection "DB"`},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
