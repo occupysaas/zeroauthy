@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
@@ -116,11 +117,13 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if state := p.Get("state"); state != "" {
-		u, _ := url.Parse(target) // AllowedURL accepted it, so it parses
-		q := u.Query()
-		q.Set("state", state)
-		u.RawQuery = q.Encode()
-		target = u.String()
+		// Append to the registered URL byte for byte. AllowedURL rejects
+		// fragments, so the query is the end of the string.
+		sep := "?"
+		if strings.Contains(target, "?") {
+			sep = "&"
+		}
+		target += sep + "state=" + url.QueryEscape(state)
 	}
 	redirect(w, r, target)
 }

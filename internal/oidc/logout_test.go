@@ -47,7 +47,8 @@ func newLogoutEnv(t *testing.T, wrap func(store.Store) store.Store) *logoutEnv {
 	}
 	for _, c := range []*store.Client{
 		{TenantID: "ten_a", ClientID: "spa", AllowedLogoutURLs: []string{
-			"https://app.acme.test/bye", "https://app.acme.test/bye?from=oidc", "https://*.preview.acme.test/bye"}},
+			"https://app.acme.test/bye", "https://app.acme.test/bye?from=oidc", "https://*.preview.acme.test/bye",
+			"https://app.acme.test/bye?b=2&a=1"}},
 		{TenantID: "ten_a", ClientID: "other", AllowedLogoutURLs: []string{"https://other.acme.test/bye"}},
 		{TenantID: "ten_a", ClientID: "wild-first", AllowedLogoutURLs: []string{"https://*.preview.acme.test/bye", "https://wild.acme.test/bye"}},
 		{TenantID: "ten_a", ClientID: "no-urls"},
@@ -293,6 +294,10 @@ func TestOidcLogoutAccepted(t *testing.T) {
 			return url.Values{"client_id": {"spa"}, "logout_hint": {s.ID}, "state": {"s1"},
 				"post_logout_redirect_uri": {"https://app.acme.test/bye?from=oidc"}}
 		}, 302, "https://app.acme.test/bye?from=oidc&state=s1"},
+		"registered query byte-exact": {func(_ *logoutEnv, s *store.LoginSession) url.Values {
+			return url.Values{"client_id": {"spa"}, "logout_hint": {s.ID}, "state": {"s"},
+				"post_logout_redirect_uri": {"https://app.acme.test/bye?b=2&a=1"}}
+		}, 302, "https://app.acme.test/bye?b=2&a=1&state=s"},
 		"no redirect uri": {func(e *logoutEnv, s *store.LoginSession) url.Values {
 			return url.Values{"id_token_hint": {e.idToken(t, "ten_a", map[string]any{"sid": s.ID})}}
 		}, 200, ""},
