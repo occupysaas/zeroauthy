@@ -70,3 +70,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Flow test gaps: it does not check that logout leaves refresh tokens valid; it does not drive `/oidc/logout` through `server.New`; revoke asserts only the status code; there is an unchecked type assertion.
 - E2E runner: failures in `npm ci` or esbuild exit before the logs are dumped; `spa-server` crashes when `E2E_REACT_BUNDLE` is unset; `next start` is wrapped by `npx`, so its process may be orphaned on cleanup.
 - The nextjs E2E uses `AUTH0_DOMAIN=https://localhost:8443` with `allowInsecureRequests` because the SDK rejects a domain with a port or localhost; the documented production setup (port 443 with a real hostname) is not exercised.
+- A code replayed mid-exchange without `offline_access` still returns the first exchange's access and ID tokens (JWTs are not revocable); the `ReplayedAt` re-check runs only when a refresh token is issued.
+- SQL drivers must set `AuthCode.ReplayedAt` in the same statement or transaction as the used-check; `storetest` checks the outcome, not atomicity under concurrency.
+- The `server_error` branch for a failed `AuthCodes().Get` after the refresh token is stored has no test.
