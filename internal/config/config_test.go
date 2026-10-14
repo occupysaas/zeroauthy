@@ -135,3 +135,32 @@ func TestLoginThrottleSettings(t *testing.T) {
 		t.Fatal("zero attempts accepted")
 	}
 }
+
+func TestEmailSettings(t *testing.T) {
+	base := "ZEROAUTHY_STORAGE__DSN=memory://"
+	cfg, err := Load("", []string{base})
+	if err != nil || cfg.Email.Driver != "log" || cfg.Email.From != "zeroauthy@localhost" || cfg.Email.SMTP.Port != 587 {
+		t.Fatalf("defaults = %+v, %v", cfg.Email, err)
+	}
+	cfg, err = Load("", []string{base, "ZEROAUTHY_EMAIL__SMTP__PORT=2525"})
+	if err != nil || cfg.Email.SMTP.Port != 2525 {
+		t.Fatalf("port override = %+v, %v", cfg.Email, err)
+	}
+	cases := map[string]struct {
+		env  []string
+		want string
+	}{
+		"dir without dir":   {[]string{base, "ZEROAUTHY_EMAIL__DRIVER=dir"}, "email.dir is required"},
+		"smtp without host": {[]string{base, "ZEROAUTHY_EMAIL__DRIVER=smtp"}, "email.smtp.host"},
+		"bad driver":        {[]string{base, "ZEROAUTHY_EMAIL__DRIVER=pigeon"}, "email.driver"},
+		"from with newline": {[]string{base, "ZEROAUTHY_EMAIL__FROM=a@x.test\nBcc: b@x.test"}, "email.from"},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			_, err := Load("", tc.env)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, tc.want)
+			}
+		})
+	}
+}

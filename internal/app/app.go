@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -83,6 +84,12 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			return nil, fmt.Errorf("app: signing keys for tenant %q: %w", tn.Name, err)
 		}
 	}
+
+	mailer, err := email.New(cfg.Email, log)
+	if err != nil {
+		return nil, err
+	}
+	_ = mailer // Task 5 passes the mailer to server.Deps.
 
 	lockout := time.Duration(cfg.Security.LoginLockoutSeconds) * time.Second
 	return &App{

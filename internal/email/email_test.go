@@ -1,0 +1,150 @@
+package email
+
+import (
+	"bufio"
+	"context"
+	"errors"
+	"io"
+	"log/slog"
+	"net"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/zeroauthy/zeroauthy/internal/config"
+)
+
+var msg = Message{To: "alice@example.test", Subject: "Réinitialiser", Text: "Open https://a.test/u/reset-password?ticket=abc=def", HTML: "<p>Open</p>"}
+
+func atoi(s string) int {
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
+func TestBuildIsWellFormed(t *testing.T) {
+	raw, err := build("zeroauthy@localhost", msg, time.Date(2026, 10, 15, 9, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(raw)
+	for _, want := range []string{"From: zeroauthy@localhost\r\n", "To: alice@example.test\r\n", "MIME-Version: 1.0\r\n",
+		"Subject: =?utf-8?q?R=C3=A9initialiser?=\r\n", "multipart/alternative", "text/plain; charset=utf-8", "text/html; charset=utf-8",
+		"Content-Transfer-Encoding: quoted-printable"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("message lacks %q:\n%s", want, s)
+		}
+	}
+}
+
+func TestHeaderInjectionRejected(t *testing.T) {
+	for _, bad := range []Message{
+		{To: "a@x.test\r\nBcc: evil@x.test", Subject: "s", Text: "t"},
+		{To: "a@x.test", Subject: "s\nBcc: evil@x.test", Text: "t"},
+		{To: "not an address", Subject: "s", Text: "t"},
+	} {
+		if _, err := build("zeroauthy@localhost", bad, time.Now()); !errors.Is(err, ErrHeaderInjection) {
+			t.Errorf("build(%q) err = %v, want ErrHeaderInjection", bad.To+"|"+bad.Subject, err)
+		}
+	}
+}
+
+func TestDirMailer(t *testing.T) {
+	dir := t.TempDir()
+	m, err := New(config.Email{Driver: "dir", Dir: dir, From: "zeroauthy@localhost"}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Send(context.Background(), msg); err != nil {
+		t.Fatal(err)
+	}
+	files, _ := filepath.Glob(filepath.Join(dir, "*.eml"))
+	if len(files) != 1 {
+		t.Fatalf("files = %v", files)
+	}
+	b, _ := os.ReadFile(files[0])
+	if !strings.Contains(string(b), "To: alice@example.test") {
+		t.Fatalf("eml = %s", b)
+	}
+}
+
+// fakeSMTP is a minimal SMTP server that does not offer STARTTLS.
+func fakeSMTP(t *testing.T, got chan<- string) string {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	go func() {
+		c, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		defer c.Close()
+		r, w := bufio.NewReader(c), bufio.NewWriter(c)
+		say := func(s string) { w.WriteString(s + "\r\n"); w.Flush() }
+		say("220 fake ESMTP")
+		var data strings.Builder
+		for {
+			line, err := r.ReadString('\n')
+			if err != nil {
+				return
+			}
+			cmd := strings.ToUpper(strings.TrimSpace(line))
+			switch {
+			case strings.HasPrefix(cmd, "EHLO"), strings.HasPrefix(cmd, "HELO"):
+				say("250-fake")
+				say("250 8BITMIME")
+			case strings.HasPrefix(cmd, "MAIL"), strings.HasPrefix(cmd, "RCPT"), strings.HasPrefix(cmd, "RSET"), strings.HasPrefix(cmd, "NOOP"):
+				say("250 ok")
+			case cmd == "DATA":
+				say("354 go")
+				for {
+					l, err := r.ReadString('\n')
+					if err != nil || l == ".\r\n" {
+						break
+					}
+					data.WriteString(l)
+				}
+				say("250 queued")
+				got <- data.String()
+			case cmd == "QUIT":
+				say("221 bye")
+				return
+			default:
+				say("502 no")
+			}
+		}
+	}()
+	return ln.Addr().String()
+}
+
+func TestSMTPInsecureSends(t *testing.T) {
+	got := make(chan string, 1)
+	host, port, _ := net.SplitHostPort(fakeSMTP(t, got))
+	m, err := New(config.Email{Driver: "smtp", From: "zeroauthy@localhost",
+		SMTP: config.SMTP{Host: host, Port: atoi(port), Insecure: true}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Send(context.Background(), msg); err != nil {
+		t.Fatal(err)
+	}
+	if body := <-got; !strings.Contains(body, "To: alice@example.test") {
+		t.Fatalf("server received %q", body)
+	}
+}
+
+func TestSMTPRequiresSTARTTLS(t *testing.T) {
+	host, port, _ := net.SplitHostPort(fakeSMTP(t, make(chan string, 1)))
+	m, _ := New(config.Email{Driver: "smtp", From: "zeroauthy@localhost", SMTP: config.SMTP{Host: host, Port: atoi(port)}}, nil)
+	if err := m.Send(context.Background(), msg); err == nil || !strings.Contains(err.Error(), "STARTTLS") {
+		t.Fatalf("err = %v, want STARTTLS required", err)
+	}
+}

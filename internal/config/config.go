@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/mail"
 	"os"
 	"strings"
 
@@ -24,6 +25,7 @@ type Config struct {
 	Storage  Storage  `koanf:"storage"`
 	Security Security `koanf:"security"`
 	Log      Log      `koanf:"log"`
+	Email    Email    `koanf:"email"`
 	// Seed is an optional path to a declarative seed file applied at startup.
 	Seed string `koanf:"seed"`
 }
@@ -62,11 +64,28 @@ type Log struct {
 	Format string `koanf:"format"` // json, text
 }
 
+// Email configures outgoing mail (password reset, verification).
+type Email struct {
+	Driver string `koanf:"driver"` // log (default) | dir | smtp
+	From   string `koanf:"from"`   // default "zeroauthy@localhost"
+	Dir    string `koanf:"dir"`
+	SMTP   SMTP   `koanf:"smtp"`
+}
+
+type SMTP struct {
+	Host     string `koanf:"host"`
+	Port     int    `koanf:"port"` // default 587
+	Username string `koanf:"username"`
+	Password string `koanf:"password"`
+	Insecure bool   `koanf:"insecure"` // allow plaintext (no STARTTLS); for local test servers only
+}
+
 func defaults() *Config {
 	return &Config{
 		Server:   Server{Listen: ":8080"},
 		Log:      Log{Level: "info", Format: "json"},
 		Security: Security{LoginMaxAttempts: 10, LoginLockoutSeconds: 900},
+		Email:    Email{Driver: "log", From: "zeroauthy@localhost", SMTP: SMTP{Port: 587}},
 	}
 }
 
@@ -139,6 +158,22 @@ func (c *Config) validate() error {
 	}
 	if c.Security.LoginMaxAttempts <= 0 || c.Security.LoginLockoutSeconds <= 0 {
 		errs = append(errs, errors.New("security.login_max_attempts and security.login_lockout_seconds must be positive"))
+	}
+	switch c.Email.Driver {
+	case "log":
+	case "dir":
+		if c.Email.Dir == "" {
+			errs = append(errs, errors.New("email.dir is required with email.driver dir"))
+		}
+	case "smtp":
+		if c.Email.SMTP.Host == "" || c.Email.SMTP.Port <= 0 || c.Email.SMTP.Port > 65535 {
+			errs = append(errs, errors.New("email.smtp.host and a valid email.smtp.port are required with email.driver smtp"))
+		}
+	default:
+		errs = append(errs, fmt.Errorf("email.driver %q must be log, dir or smtp", c.Email.Driver))
+	}
+	if a, err := mail.ParseAddress(c.Email.From); err != nil || strings.ContainsAny(c.Email.From, "\r\n") || a.Address == "" {
+		errs = append(errs, fmt.Errorf("email.from %q is not a valid address", c.Email.From))
 	}
 	if err := errors.Join(errs...); err != nil {
 		return fmt.Errorf("config: %w", err)
