@@ -73,7 +73,7 @@ func newFlowEnv(t *testing.T) *flowEnv {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := seed.Apply(ctx, st, f, nil); err != nil {
+	if err := seed.Apply(ctx, st, f, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "flow")

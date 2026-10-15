@@ -1,6 +1,7 @@
 package seed
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
@@ -51,7 +53,7 @@ func TestApply(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -100,14 +102,14 @@ func TestApplyIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	st := memory.New()
 	f, _ := Parse([]byte(sample))
-	if err := Apply(ctx, st, f, fixedNow); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 	tn1, _ := st.Tenants().GetByName(ctx, "acme")
 	c1, _ := st.Clients().Get(ctx, tn1.ID, "m2m")
 	rs1, _ := st.ResourceServers().GetByIdentifier(ctx, tn1.ID, "https://api.acme.test")
 
-	if err := Apply(ctx, st, f, fixedNow); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 	tn2, _ := st.Tenants().GetByName(ctx, "acme")
@@ -118,7 +120,7 @@ func TestApplyIsIdempotent(t *testing.T) {
 	}
 
 	changed, _ := Parse([]byte(strings.Replace(sample, "first-secret", "second-secret", 1)))
-	if err := Apply(ctx, st, changed, fixedNow); err != nil {
+	if err := Apply(ctx, st, changed, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 	c3, _ := st.Clients().Get(ctx, tn2.ID, "m2m")
@@ -207,7 +209,7 @@ func TestApplyConnectionsAndUsers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
@@ -234,7 +236,7 @@ func TestApplyConnectionsAndUsers(t *testing.T) {
 	}
 
 	// Idempotent: same user ID and hash on re-apply; a changed password is re-hashed.
-	if err := Apply(ctx, st, f, fixedNow); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 	u2, _ := st.Users().FindByLogin(ctx, tn.ID, conn.Name, "alice@acme.test")
@@ -242,7 +244,7 @@ func TestApplyConnectionsAndUsers(t *testing.T) {
 		t.Fatal("re-apply changed the user")
 	}
 	f2, _ := Parse([]byte(strings.Replace(sampleWithUsers, "alice password 1", "alice password 2", 1)))
-	if err := Apply(ctx, st, f2, fixedNow); err != nil {
+	if err := Apply(ctx, st, f2, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 	u3, _ := st.Users().FindByLogin(ctx, tn.ID, conn.Name, "alice@acme.test")
@@ -315,7 +317,7 @@ tenants:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
@@ -354,7 +356,7 @@ tenants:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
@@ -400,7 +402,7 @@ tenants:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, failingStore{st}, f, fixedNow); err == nil {
+	if err := Apply(ctx, failingStore{st}, f, fixedNow, nil); err == nil {
 		t.Fatal("Apply succeeded despite injected failure")
 	}
 	if _, err := st.Tenants().GetByName(ctx, "acme"); !errors.Is(err, store.ErrNotFound) {
@@ -445,7 +447,7 @@ func TestApplyRetriesOnceOnConflict(t *testing.T) {
 
 	st := memory.New()
 	calls, conflicts := 0, 1
-	if err := Apply(ctx, conflictStore{st, &calls, &conflicts}, f, fixedNow); err != nil {
+	if err := Apply(ctx, conflictStore{st, &calls, &conflicts}, f, fixedNow, nil); err != nil {
 		t.Fatalf("Apply after one conflict: %v", err)
 	}
 	if calls != 2 {
@@ -457,10 +459,144 @@ func TestApplyRetriesOnceOnConflict(t *testing.T) {
 
 	st = memory.New()
 	calls, conflicts = 0, 5
-	if err := Apply(ctx, conflictStore{st, &calls, &conflicts}, f, fixedNow); !errors.Is(err, store.ErrConflict) {
+	if err := Apply(ctx, conflictStore{st, &calls, &conflicts}, f, fixedNow, nil); !errors.Is(err, store.ErrConflict) {
 		t.Fatalf("persistent conflict: err = %v, want ErrConflict", err)
 	}
 	if calls != 2 {
 		t.Errorf("persistent conflict: Create calls = %d, want 2 (one retry)", calls)
+	}
+}
+
+const legacyDoc = `
+tenants:
+  - name: acme
+    clients:
+      - {client_id: app, name: App, app_type: spa, callbacks: ["https://app.acme.test/cb"]}
+    connections:
+      - name: legacy
+        enabled_clients: [app]
+        enabledDatabaseCustomization: true
+        import_mode: true
+        set_user_root_attributes: on_first_login
+        customScripts:
+          login: |
+            function login(email, password, callback) { callback(null, null); }
+          get_user: |
+            function getUser(email, callback) { callback(null, null); }
+        configuration:
+          API_URL: https://legacy.example
+          API_TOKEN: s3cret
+`
+
+func testWrapper(t *testing.T) keys.Wrapper {
+	t.Helper()
+	w, err := keys.NewLocalWrapper(bytes.Repeat([]byte{7}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return w
+}
+
+func TestApplyCustomDatabase(t *testing.T) {
+	ctx := context.Background()
+	st, w := memory.New(), testWrapper(t)
+	f, err := Parse([]byte(legacyDoc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, w); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	c, err := st.Connections().GetByName(ctx, tn.ID, "legacy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.EnabledDatabaseCustomization || !c.ImportMode || c.SetUserRootAttributes != store.RootAttributesOnFirstLogin {
+		t.Errorf("flags not stored: %+v", c)
+	}
+	if len(c.CustomScripts) != 2 || !strings.Contains(c.CustomScripts["login"], "function login") {
+		t.Errorf("scripts = %v", c.CustomScripts)
+	}
+	if c.ConfigurationSealed == nil {
+		t.Fatal("configuration not sealed")
+	}
+	got, err := keys.OpenConnectionConfig(w, tn.ID, c.ID, c.ConfigurationSealed)
+	if err != nil || got["API_TOKEN"] != "s3cret" || got["API_URL"] != "https://legacy.example" {
+		t.Fatalf("opened = %v, %v", got, err)
+	}
+
+	// (b) re-apply with a changed token keeps the ID and re-seals.
+	f2, err := Parse([]byte(strings.Replace(legacyDoc, "s3cret", "rotated", 1)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f2, fixedNow, w); err != nil {
+		t.Fatal(err)
+	}
+	c2, _ := st.Connections().GetByName(ctx, tn.ID, "legacy")
+	if c2.ID != c.ID {
+		t.Fatalf("connection ID changed: %s -> %s", c.ID, c2.ID)
+	}
+	got, err = keys.OpenConnectionConfig(w, tn.ID, c2.ID, c2.ConfigurationSealed)
+	if err != nil || got["API_TOKEN"] != "rotated" {
+		t.Fatalf("after re-apply: %v, %v", got, err)
+	}
+}
+
+func TestApplyPlainConnectionHasNoSealedConfig(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte("tenants:\n  - name: acme\n    connections:\n      - name: db\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	c, _ := st.Connections().GetByName(ctx, tn.ID, "db")
+	if c.ConfigurationSealed != nil || c.EnabledDatabaseCustomization {
+		t.Errorf("plain connection has custom db state: %+v", c)
+	}
+}
+
+func TestCustomDatabaseValidation(t *testing.T) {
+	conn := func(body string) string {
+		return "tenants:\n  - name: acme\n    connections:\n      - name: legacy\n" + body
+	}
+	login := "        customScripts: {login: \"function login(e,p,cb){cb(null,null)}\"}\n"
+	long := strings.Repeat("a", 102401)
+	manyKeys := ""
+	for i := 0; i < 65; i++ {
+		manyKeys += fmt.Sprintf("          K%d: v\n", i)
+	}
+	cases := []struct{ name, doc, want string }{
+		{"unknown script", conn("        enabledDatabaseCustomization: true\n        customScripts: {login: x, bogus: y}\n"), `unknown customScripts key "bogus"`},
+		{"script too large", conn("        enabledDatabaseCustomization: true\n        customScripts: {login: " + long + "}\n"), "larger than 102400 bytes"},
+		{"scripts without flag", conn(login), "require enabledDatabaseCustomization"},
+		{"configuration without flag", conn("        configuration: {A: b}\n"), "require enabledDatabaseCustomization"},
+		{"flag without login", conn("        enabledDatabaseCustomization: true\n        customScripts: {get_user: x}\n"), "requires a login script"},
+		{"bad root attributes", conn("        set_user_root_attributes: sometimes\n"), "set_user_root_attributes"},
+		{"bad config key", conn("        enabledDatabaseCustomization: true\n" + login + "        configuration: {\"bad-key\": v}\n"), `configuration key "bad-key"`},
+		{"config value too large", conn("        enabledDatabaseCustomization: true\n" + login + "        configuration: {A: " + strings.Repeat("v", 4097) + "}\n"), "larger than 4096 bytes"},
+		{"too many keys", conn("        enabledDatabaseCustomization: true\n" + login + "        configuration:\n" + manyKeys), "at most 64"},
+		{"legacy users", conn("        enabledDatabaseCustomization: true\n"+login) +
+			"    users:\n      - {connection: legacy, email: a@b.test, password: Passw0rd!x}\n", "is a legacy custom database; users live in the legacy store"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := Parse([]byte(tc.doc))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("err = %v, want containing %q", err, tc.want)
+			}
+		})
+	}
+
+	// import mode allows seeded users.
+	ok := conn("        enabledDatabaseCustomization: true\n        import_mode: true\n"+login) +
+		"    users:\n      - {connection: legacy, email: a@b.test, password: Passw0rd!x}\n"
+	if _, err := Parse([]byte(ok)); err != nil {
+		t.Errorf("import-mode users rejected: %v", err)
 	}
 }

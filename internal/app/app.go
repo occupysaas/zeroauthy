@@ -33,7 +33,7 @@ type App struct {
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error) {
 	// The master key is checked before the store is opened, so a missing key
 	// never leaves a created or migrated database behind.
-	masterKey, err := loadMasterKey(cfg, log)
+	masterKey, err := MasterKey(cfg, log)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +80,9 @@ func prepareSchema(ctx context.Context, cfg *config.Config, log *slog.Logger, st
 	return nil
 }
 
-// loadMasterKey returns the configured master key. Persistent storage
+// MasterKey returns the configured master key. Persistent storage
 // requires one; memory storage gets an ephemeral key.
-func loadMasterKey(cfg *config.Config, log *slog.Logger) ([]byte, error) {
+func MasterKey(cfg *config.Config, log *slog.Logger) ([]byte, error) {
 	masterKey, err := cfg.Security.MasterKeyBytes()
 	if err != nil || masterKey != nil {
 		return masterKey, err
@@ -110,7 +110,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err != nil {
 			return nil, err
 		}
-		if err := seed.Apply(ctx, st, f, time.Now); err != nil {
+		if err := seed.Apply(ctx, st, f, time.Now, wrapper); err != nil {
 			return nil, err
 		}
 		log.Info("applied seed", "file", cfg.Seed, "tenants", len(f.Tenants))

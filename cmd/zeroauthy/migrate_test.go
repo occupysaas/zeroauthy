@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,7 +48,9 @@ func TestSeedCommandRefusesUnmigratedDatabase(t *testing.T) {
 	seedPath := filepath.Join(dir, "seed.yaml")
 	cfgPath := filepath.Join(dir, "zeroauthy.yaml")
 	_ = os.WriteFile(seedPath, []byte("tenants:\n  - name: acme\n"), 0o600)
-	_ = os.WriteFile(cfgPath, []byte("storage:\n  dsn: sqlite://"+filepath.Join(dir, "z.db")+"\n"), 0o600)
+	// seed loads the master key to seal connection configuration.
+	key := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32))
+	_ = os.WriteFile(cfgPath, []byte("storage:\n  dsn: sqlite://"+filepath.Join(dir, "z.db")+"\nsecurity:\n  master_key: "+key+"\n"), 0o600)
 	cmd := newRootCmd()
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetArgs([]string{"seed", "--config", cfgPath, "--file", seedPath})

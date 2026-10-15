@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"path"
@@ -10,7 +11,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/zeroauthy/zeroauthy/internal/app"
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/storage"
 )
@@ -37,6 +40,14 @@ func newSeedCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			masterKey, err := app.MasterKey(cfg, slog.Default())
+			if err != nil {
+				return err
+			}
+			wrapper, err := keys.NewLocalWrapper(masterKey)
+			if err != nil {
+				return err
+			}
 			st, err := storage.Open(cmd.Context(), cfg.Storage.DSN)
 			if err != nil {
 				return err
@@ -48,7 +59,7 @@ func newSeedCmd() *cobra.Command {
 					return err
 				}
 			}
-			if err := seed.Apply(cmd.Context(), st, f, time.Now); err != nil {
+			if err := seed.Apply(cmd.Context(), st, f, time.Now, wrapper); err != nil {
 				return err
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "applied %s: %d tenant(s)\n", path, len(f.Tenants))

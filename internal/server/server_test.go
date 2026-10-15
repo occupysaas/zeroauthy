@@ -43,7 +43,7 @@ func newTestServer(t *testing.T) http.Handler {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := seed.Apply(ctx, st, f, nil); err != nil {
+	if err := seed.Apply(ctx, st, f, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{5}, 32))

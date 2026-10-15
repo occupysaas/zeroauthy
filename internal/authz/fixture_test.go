@@ -70,7 +70,7 @@ func newFixture(t *testing.T) *fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := seed.Apply(context.Background(), st, f, fixedNow); err != nil {
+	if err := seed.Apply(context.Background(), st, f, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
 	tn, err := st.Tenants().GetByName(context.Background(), "acme")

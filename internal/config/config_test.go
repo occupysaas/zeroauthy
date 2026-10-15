@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func writeFile(t *testing.T, name, body string) string {
@@ -181,5 +182,30 @@ func TestStorageAutoMigrate(t *testing.T) {
 	}
 	if !cfg.Storage.AutoMigrate {
 		t.Error("ZEROAUTHY_STORAGE__AUTO_MIGRATE=true not applied")
+	}
+}
+
+func TestCustomDBSettings(t *testing.T) {
+	base := "ZEROAUTHY_STORAGE__DSN=memory://"
+	cfg, err := Load("", []string{base})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.CustomDB.Node != "node" || cfg.CustomDB.MaxMemoryMB != 256 || cfg.CustomDB.IdleTimeout != 5*time.Minute {
+		t.Errorf("defaults = %+v", cfg.CustomDB)
+	}
+	cfg, err = Load("", []string{base, "ZEROAUTHY_CUSTOM_DB__IDLE_TIMEOUT=30s", "ZEROAUTHY_CUSTOM_DB__MODULES_DIR=/opt/mods"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.CustomDB.IdleTimeout != 30*time.Second || cfg.CustomDB.ModulesDir != "/opt/mods" {
+		t.Errorf("env not applied: %+v", cfg.CustomDB)
+	}
+	_, err = Load("", []string{base, "ZEROAUTHY_CUSTOM_DB__MODULES_DIR=mods"})
+	if err == nil || !strings.Contains(err.Error(), "custom_db.modules_dir must be an absolute path") {
+		t.Errorf("relative modules_dir: err = %v", err)
+	}
+	if _, err = Load("", []string{base, "ZEROAUTHY_CUSTOM_DB__MAX_MEMORY_MB=31"}); err == nil {
+		t.Error("max_memory_mb 31 accepted")
 	}
 }

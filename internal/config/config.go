@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"net/mail"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -26,6 +28,7 @@ type Config struct {
 	Security Security `koanf:"security"`
 	Log      Log      `koanf:"log"`
 	Email    Email    `koanf:"email"`
+	CustomDB CustomDB `koanf:"custom_db"`
 	// Seed is an optional path to a declarative seed file applied at startup.
 	Seed string `koanf:"seed"`
 }
@@ -63,6 +66,14 @@ type Security struct {
 	LoginLockoutSeconds int `koanf:"login_lockout_seconds"`
 }
 
+// CustomDB configures the runner for custom database connection scripts.
+type CustomDB struct {
+	Node        string        `koanf:"node"`          // Node.js executable; default "node"
+	ModulesDir  string        `koanf:"modules_dir"`   // optional absolute path of allowed npm modules
+	MaxMemoryMB int           `koanf:"max_memory_mb"` // default 256, at least 32
+	IdleTimeout time.Duration `koanf:"idle_timeout"`  // idle runner lifetime; default 5m
+}
+
 type Log struct {
 	Level  string `koanf:"level"`  // debug, info, warn, error
 	Format string `koanf:"format"` // json, text
@@ -92,6 +103,7 @@ func defaults() *Config {
 		Server:   Server{Listen: ":8080"},
 		Log:      Log{Level: "info", Format: "json"},
 		Security: Security{LoginMaxAttempts: 10, LoginLockoutSeconds: 900},
+		CustomDB: CustomDB{Node: "node", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute},
 		Email:    Email{Driver: "log", From: "zeroauthy@localhost", SMTP: SMTP{Port: 587}},
 	}
 }
@@ -165,6 +177,18 @@ func (c *Config) validate() error {
 	}
 	if c.Security.LoginMaxAttempts <= 0 || c.Security.LoginLockoutSeconds <= 0 {
 		errs = append(errs, errors.New("security.login_max_attempts and security.login_lockout_seconds must be positive"))
+	}
+	if c.CustomDB.ModulesDir != "" && !filepath.IsAbs(c.CustomDB.ModulesDir) {
+		errs = append(errs, errors.New("custom_db.modules_dir must be an absolute path"))
+	}
+	if c.CustomDB.MaxMemoryMB < 32 {
+		errs = append(errs, fmt.Errorf("custom_db.max_memory_mb %d must be at least 32", c.CustomDB.MaxMemoryMB))
+	}
+	if c.CustomDB.Node == "" {
+		errs = append(errs, errors.New("custom_db.node must not be empty"))
+	}
+	if c.CustomDB.IdleTimeout <= 0 {
+		errs = append(errs, errors.New("custom_db.idle_timeout must be positive"))
 	}
 	switch c.Email.Driver {
 	case "log":

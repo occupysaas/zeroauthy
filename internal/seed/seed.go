@@ -120,6 +120,14 @@ type Connection struct {
 	DisableSignup    bool           `yaml:"disable_signup"`
 	RequiresUsername bool           `yaml:"requires_username"`
 	PasswordPolicy   PasswordPolicy `yaml:"password_policy"`
+
+	// Custom database options keep Auth0's names.
+	EnabledDatabaseCustomization bool              `yaml:"enabledDatabaseCustomization"`
+	ImportMode                   bool              `yaml:"import_mode"`
+	CustomScripts                map[string]string `yaml:"customScripts"`
+	// Configuration is plaintext in the seed file and sealed when applied.
+	Configuration         map[string]string `yaml:"configuration"`
+	SetUserRootAttributes string            `yaml:"set_user_root_attributes"`
 }
 
 type PasswordPolicy struct {

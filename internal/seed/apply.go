@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -19,21 +21,21 @@ import (
 // replicas seeding a fresh shared database both see a tenant (or client, or
 // user) as missing, and the loser's insert conflicts. On the retry the
 // winner's rows exist and are updated instead.
-func Apply(ctx context.Context, st store.Store, f *File, now func() time.Time) error {
-	err := apply(ctx, st, f, now)
+func Apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper) error {
+	err := apply(ctx, st, f, now, w)
 	if errors.Is(err, store.ErrConflict) {
-		err = apply(ctx, st, f, now)
+		err = apply(ctx, st, f, now, w)
 	}
 	return err
 }
 
-func apply(ctx context.Context, st store.Store, f *File, now func() time.Time) error {
+func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper) error {
 	if now == nil {
 		now = time.Now
 	}
 	return st.WithTx(ctx, func(tx store.Store) error {
 		for _, t := range f.Tenants {
-			if err := applyTenant(ctx, tx, t, now().UTC()); err != nil {
+			if err := applyTenant(ctx, tx, t, now().UTC(), w); err != nil {
 				return fmt.Errorf("seed: tenant %q: %w", t.Name, err)
 			}
 		}
@@ -41,7 +43,7 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time) e
 	})
 }
 
-func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) error {
+func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, w keys.Wrapper) error {
 	domains := make([]string, len(in.Domains))
 	for i, d := range in.Domains {
 		domains[i] = tenant.NormalizeHost(d)
@@ -91,7 +93,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) 
 		}
 	}
 	for _, c := range in.Connections {
-		if err := applyConnection(ctx, st, tn.ID, c, now); err != nil {
+		if err := applyConnection(ctx, st, tn.ID, c, now, w); err != nil {
 			return fmt.Errorf("connection %q: %w", c.Name, err)
 		}
 	}
@@ -188,7 +190,7 @@ func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in C
 	}
 }
 
-func applyConnection(ctx context.Context, st store.Store, tenantID string, in Connection, now time.Time) error {
+func applyConnection(ctx context.Context, st store.Store, tenantID string, in Connection, now time.Time, w keys.Wrapper) error {
 	c, err := st.Connections().GetByName(ctx, tenantID, in.Name)
 	create := errors.Is(err, store.ErrNotFound)
 	if err != nil && !create {
@@ -201,6 +203,23 @@ func applyConnection(ctx context.Context, st store.Store, tenantID string, in Co
 	c.EnabledClients = slices.Clone(in.EnabledClients)
 	c.DisableSignup, c.RequiresUsername = in.DisableSignup, in.RequiresUsername
 	c.PasswordPolicy = store.PasswordPolicy{MinLength: in.PasswordPolicy.MinLength, RequireCharacterClasses: in.PasswordPolicy.RequireCharacterClasses}
+	c.EnabledDatabaseCustomization, c.ImportMode = in.EnabledDatabaseCustomization, in.ImportMode
+	c.SetUserRootAttributes = in.SetUserRootAttributes
+	c.CustomScripts = maps.Clone(in.CustomScripts)
+	// The ID is final here (generated or existing), so the AAD stays valid
+	// across re-applies. Configuration is always re-sealed: sealing is
+	// randomized, so there is nothing to compare, and removing it clears it.
+	c.ConfigurationSealed = nil
+	if len(in.Configuration) > 0 {
+		if w == nil {
+			return errors.New("a master key wrapper is required to seal configuration")
+		}
+		sealed, err := keys.SealConnectionConfig(w, tenantID, c.ID, in.Configuration)
+		if err != nil {
+			return err
+		}
+		c.ConfigurationSealed = sealed
+	}
 	if create {
 		return st.Connections().Create(ctx, c)
 	}
