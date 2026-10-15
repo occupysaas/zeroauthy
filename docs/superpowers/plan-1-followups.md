@@ -108,3 +108,19 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Breached-password detection.
 - The `organization` parameter on `change_password`.
 - Move the `change_password` send limit into the store; it is per-process today, which multi-instance deployments need fixed.
+
+## Plan 5 deferred review findings
+
+- SQL drivers must implement `PasswordResetTickets.Consume` as a conditional update (`WHERE used_at IS NULL`).
+- Access tokens issued before a reset stay valid until they expire (stateless JWT).
+- A password grant that verified the old password just before a reset can still mint a refresh token after `RevokeByUser` (needs a store-level user version).
+- SMTP implicit TLS (port 465) is not supported.
+- Background reset sends are untracked goroutines; sends in flight at shutdown are lost (documented in D-0018/D-0019).
+- No storetest mutates a returned ticket's `UsedAt` to prove the driver returns a copy; memory `cloneJSON` shares non-JSON container types.
+- Email tests lack coverage of dir-driver file modes, credential withholding on non-TLS non-localhost SMTP, and the STARTTLS success path; `TestBodyCRLFNotDoubled` is vacuous (the old bug shows as a doubled blank line, not `\r\r`).
+- SMTP accepts a username without a password, does not honour context cancellation after dialing, and the dir driver does not tighten permissions on an existing directory.
+- Password grants call `RecordLogin` before the audience check, look up the identifier twice, and duplicate the code grant's refresh-token issuance block.
+- Password grants lack edge tests: realm not enabled for the client, no default directory, non-database connection, `offline_access` without the refresh grant; `auth0-forwarded-for` is described only in prose, not as an OpenAPI header parameter.
+- `SignupFormRequest` duplicates the `SignupRequest` schema; `parseBody` has a redundant `dec.More()` check; no test for `picture` rune counting.
+- `change_password` lacks tests for a non-database connection and for the detached send context; import grouping in `server_test.go`; `KeyEmailResetSubject` placement in `keys.go`.
+- E2E: the node reset-email check does not assert the recipient or link; the auth-js `signUp` result is unasserted; the browser reset spec uses an opaque `match()[0]`, is not retry-safe, and picks the newest email by mtime.
