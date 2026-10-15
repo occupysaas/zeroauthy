@@ -246,6 +246,10 @@ type PasswordResetTickets interface {
 	// ErrAlreadyUsed, and its first UsedAt is kept. Unknown tickets return
 	// ErrNotFound.
 	Consume(ctx context.Context, tenantID, tokenHash string, at time.Time) (*PasswordResetTicket, error)
+	// DeleteByUser removes every unused ticket of the user in the tenant and
+	// returns how many it removed. Used tickets are kept (until
+	// DeleteExpired) so that a replayed link can still be reported as used.
+	DeleteByUser(ctx context.Context, tenantID, userID string) (int, error)
 	// DeleteExpired removes, in every tenant, the tickets whose ExpiresAt is
 	// not after before, used or not, and returns how many it removed.
 	DeleteExpired(ctx context.Context, before time.Time) (int, error)

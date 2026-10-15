@@ -57,6 +57,19 @@ func (r resetTickets) Consume(_ context.Context, tenantID, tokenHash string, at 
 	return cloneResetTicket(t), nil
 }
 
+func (r resetTickets) DeleteByUser(_ context.Context, tenantID, userID string) (int, error) {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	n := 0
+	for k, t := range r.s.resetTickets {
+		if k.tenant == tenantID && t.UserID == userID && t.UsedAt == nil {
+			delete(r.s.resetTickets, k)
+			n++
+		}
+	}
+	return n, nil
+}
+
 func (r resetTickets) DeleteExpired(_ context.Context, before time.Time) (int, error) {
 	r.s.mu.Lock()
 	defer r.s.mu.Unlock()

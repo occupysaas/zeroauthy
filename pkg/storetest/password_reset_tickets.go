@@ -72,6 +72,40 @@ func testPasswordResetTickets(t *testing.T, newStore Factory) {
 		mustEqual(t, ok, 1)
 	})
 
+	t.Run("DeleteByUser", func(t *testing.T) {
+		s := open(t, newStore)
+		mine1 := newTicket("ten_a", "pr1", "h1")
+		mine2 := newTicket("ten_a", "pr2", "h2")
+		other := newTicket("ten_a", "pr3", "h3")
+		other.UserID = "auth0|u2"
+		used := newTicket("ten_a", "pr4", "h4")
+		foreign := newTicket("ten_b", "pr1", "h1") // same user ID in another tenant
+		for _, tk := range []*store.PasswordResetTicket{mine1, mine2, other, used, foreign} {
+			mustNoErr(t, s.PasswordResetTickets().Create(ctx, tk))
+		}
+		_, err := s.PasswordResetTickets().Consume(ctx, "ten_a", "h4", ts(time.Minute))
+		mustNoErr(t, err)
+		n, err := s.PasswordResetTickets().DeleteByUser(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, n, 2)
+		for _, h := range []string{"h1", "h2"} {
+			_, err = s.PasswordResetTickets().GetByTokenHash(ctx, "ten_a", h)
+			mustErrIs(t, err, store.ErrNotFound)
+		}
+		_, err = s.PasswordResetTickets().GetByTokenHash(ctx, "ten_a", "h3")
+		mustNoErr(t, err)
+		// A used ticket is kept, so a replayed link can still be reported
+		// as used until DeleteExpired removes it.
+		got, err := s.PasswordResetTickets().GetByTokenHash(ctx, "ten_a", "h4")
+		mustNoErr(t, err)
+		mustEqual(t, got.UsedAt != nil, true)
+		_, err = s.PasswordResetTickets().GetByTokenHash(ctx, "ten_b", "h1")
+		mustNoErr(t, err)
+		n, err = s.PasswordResetTickets().DeleteByUser(ctx, "ten_a", "auth0|nobody")
+		mustNoErr(t, err)
+		mustEqual(t, n, 0)
+	})
+
 	t.Run("DeleteExpired", func(t *testing.T) {
 		s := open(t, newStore)
 		for i, exp := range []time.Duration{time.Hour, 48 * time.Hour} {
