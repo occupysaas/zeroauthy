@@ -29,7 +29,7 @@ func nonNilBytes(b []byte) []byte {
 	return b
 }
 
-// Create relies on the primary key and the partial unique index over
+// Create relies on the primary key and the active-key unique index over
 // current/next to report ErrConflict.
 func (r signingKeys) Create(ctx context.Context, k *store.SigningKey) error {
 	return insertSigningKey(ctx, r.s, k)
@@ -64,15 +64,30 @@ func (r signingKeys) Rotate(ctx context.Context, tenantID string, next *store.Si
 		return fmt.Errorf("store: rotate needs a key for tenant %q", tenantID)
 	}
 	return r.s.atomic(ctx, func(tx *Store) error {
-		var kid string
-		err := tx.queryRow(ctx, `SELECT kid FROM signing_keys WHERE tenant_id = ? AND kid = ?`+tx.d.forUpdate, tenantID, next.KID).Scan(&kid)
-		if err == nil {
-			return store.ErrConflict
-		}
-		if !errors.Is(err, sql.ErrNoRows) {
+		// Lock the tenant's active keys first, purely to wait for any
+		// concurrent Rotate. Later statements then see its committed state
+		// (a fresh snapshot on PostgreSQL), and no gap locks are taken on a
+		// missing row (a MySQL deadlock).
+		rows, err := tx.query(ctx, `SELECT kid FROM signing_keys WHERE tenant_id = ? AND status IN ('current', 'next')`+tx.d.forUpdate, tenantID)
+		if err != nil {
 			return err
 		}
-		err = tx.queryRow(ctx, `SELECT kid FROM signing_keys WHERE tenant_id = ? AND status = ?`+tx.d.forUpdate,
+		for rows.Next() {
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return err
+		}
+		var kid string
+		dupErr := tx.queryRow(ctx, `SELECT kid FROM signing_keys WHERE tenant_id = ? AND kid = ?`, tenantID, next.KID).Scan(&kid)
+		if dupErr == nil {
+			return store.ErrConflict
+		}
+		if !errors.Is(dupErr, sql.ErrNoRows) {
+			return dupErr
+		}
+		err = tx.queryRow(ctx, `SELECT kid FROM signing_keys WHERE tenant_id = ? AND status = ?`,
 			tenantID, string(store.KeyNext)).Scan(&kid)
 		if errors.Is(err, sql.ErrNoRows) {
 			return store.ErrNotFound

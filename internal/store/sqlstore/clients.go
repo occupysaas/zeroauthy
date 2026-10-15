@@ -80,14 +80,6 @@ func (r clients) List(ctx context.Context, tenantID string) ([]*store.Client, er
 	return out, rows.Err()
 }
 
-// expectRow maps "no row affected" to store.ErrNotFound.
-func expectRow(res sql.Result) error {
-	if n, _ := res.RowsAffected(); n == 0 {
-		return store.ErrNotFound
-	}
-	return nil
-}
-
 func scanClient(row scanner) (*store.Client, error) {
 	var c store.Client
 	var secrets, grants, callbacks, logout, webOrigins, origins, refresh string

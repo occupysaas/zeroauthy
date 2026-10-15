@@ -65,8 +65,8 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 		if err != nil {
 			return tx.conflict(err)
 		}
-		if n, _ := res.RowsAffected(); n == 0 {
-			return store.ErrNotFound
+		if err := expectRow(res); err != nil {
+			return err
 		}
 		return tenants{tx}.putDomains(ctx, t.ID, t.Domains)
 	})
@@ -101,7 +101,7 @@ func (r tenants) List(ctx context.Context) ([]*store.Tenant, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	rows.Close()
+	rows.Close() // release the single SQLite connection before the per-tenant domain queries
 	for _, t := range out {
 		if t.Domains, err = r.domains(ctx, t.ID); err != nil {
 			return nil, err
@@ -139,8 +139,6 @@ func (r tenants) domains(ctx context.Context, id string) ([]string, error) {
 	}
 	return out, rows.Err()
 }
-
-type scanner interface{ Scan(...any) error }
 
 func scanTenant(row scanner) (*store.Tenant, error) {
 	var t store.Tenant

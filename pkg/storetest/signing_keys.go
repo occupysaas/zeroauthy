@@ -2,6 +2,8 @@ package storetest
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -108,5 +110,34 @@ func testSigningKeys(t *testing.T, newStore Factory) {
 			t.Fatal("Rotate accepted a successor without status next")
 		}
 		mustEqual(t, statuses(t, s, "ten_a"), map[string]store.KeyStatus{"k1": store.KeyCurrent, "k2": store.KeyNext})
+	})
+
+	t.Run("ConcurrentRotate", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k0", store.KeyCurrent, 0)))
+		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k1", store.KeyNext, time.Hour)))
+		const n = 6
+		errs := make([]error, n)
+		var wg sync.WaitGroup
+		for i := 0; i < n; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				errs[i] = s.SigningKeys().Rotate(ctx, "ten_a", newSigningKey("ten_a", fmt.Sprintf("r%d", i), store.KeyNext, time.Duration(i+2)*time.Hour))
+			}()
+		}
+		wg.Wait()
+		for i, err := range errs {
+			if err != nil {
+				t.Errorf("Rotate %d: %v", i, err)
+			}
+		}
+		counts := map[store.KeyStatus]int{}
+		for _, st := range statuses(t, s, "ten_a") {
+			counts[st]++
+		}
+		if counts[store.KeyCurrent] != 1 || counts[store.KeyNext] != 1 || len(statuses(t, s, "ten_a")) != n+2 {
+			t.Fatalf("unexpected end state: %v", statuses(t, s, "ten_a"))
+		}
 	})
 }
