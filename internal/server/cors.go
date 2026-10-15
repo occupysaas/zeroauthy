@@ -9,7 +9,7 @@ import (
 )
 
 // cors applies CORS. Public metadata is readable from any origin. The
-// token, revoke and userinfo endpoints accept an origin only if one of the
+// token, revoke, userinfo and dbconnections endpoints accept an origin only if one of the
 // tenant's clients lists it in allowed_origins or web_origins. Runs after
 // tenant resolution.
 func cors(st store.Store) func(http.Handler) http.Handler {
@@ -20,7 +20,7 @@ func cors(st store.Store) func(http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				next.ServeHTTP(w, r)
 				return
-			case "/oauth/token", "/oauth/revoke", "/userinfo":
+			case "/oauth/token", "/oauth/revoke", "/userinfo", "/dbconnections/signup", "/dbconnections/change_password":
 			default:
 				next.ServeHTTP(w, r)
 				return

@@ -225,3 +225,19 @@ them. Each entry: context, sources consulted, decision, rationale.
   - Access tokens carry `gty: "password"`. ID tokens have `auth_time` = now and no `sid` (no browser session).
   - Refresh tokens follow the `offline_access` rules of D-0012 and start a new family.
 - **Rationale:** It follows the documented parameters and RFC 6749 errors. Sharing the throttles prevents the API from being used to bypass hosted-login brute-force protection.
+
+## D-0018: /dbconnections endpoints
+
+- **Context:** Auth0 documents the request and success fields and the status codes of `/dbconnections/signup` (200, 400, 409) and `/dbconnections/change_password` (200 plain text, 400, 404). It does not document error bodies.
+- **Sources:** https://auth0.com/docs/api/authentication/signup/create-a-new-user; https://auth0.com/docs/api/authentication/change-password/change-password.
+- **Decision:**
+  - **Error bodies:** they use zeroauthy's JSON error shape `{error, error_description}`:
+    - `invalid_request`: missing or malformed parameters, or an unknown client;
+    - `invalid_signup`: the connection is not enabled for the client, sign-up is disabled, or the profile is invalid;
+    - `invalid_password`: the password policy is not met;
+    - `user_exists` (409);
+    - `too_many_requests` (429).
+  - **`client_id` is required:** zeroauthy has no global client.
+  - **Signup response:** `_id` is the user ID without the `auth0|` prefix.
+  - **`change_password`:** it follows the documented status codes, including 404 for an unknown user (strict parity; the maintainer chose this over hiding which emails have accounts). Its 200 body is a plain-text sentence of our own wording. See D-0019 for reset tickets.
+- **Rationale:** It follows every documented field and status. Undocumented error bodies use the shape all other zeroauthy endpoints use.

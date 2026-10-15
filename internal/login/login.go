@@ -251,7 +251,9 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		ui.RenderSignup(w, http.StatusTooManyRequests, f.view, data)
 		return
 	}
-	user, err := h.Database.Signup(r.Context(), f.conn, email, username, r.PostForm.Get("password"))
+	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
+		Email: email, Username: username, Password: r.PostForm.Get("password"),
+	})
 	var pe *identity.PolicyError
 	switch {
 	case errors.As(err, &pe):

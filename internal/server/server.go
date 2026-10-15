@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zeroauthy/zeroauthy/api"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -39,9 +40,10 @@ type Deps struct {
 // The var _ assertion fails to compile when api/authentication.yaml gains
 // an operation that has no forwarding method here.
 type authAPI struct {
-	oidc  *oidc.Handlers
-	oauth *oauth.Handlers
-	authz *authz.Handlers
+	oidc   *oidc.Handlers
+	oauth  *oauth.Handlers
+	authz  *authz.Handlers
+	dbconn *dbconn.Handlers
 }
 
 func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request)    { a.oidc.Discovery(w, r) }
@@ -50,6 +52,8 @@ func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request)   { a.oauth.
 func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request)  { a.oauth.OauthRevoke(w, r) }
 func (a authAPI) Userinfo(w http.ResponseWriter, r *http.Request)     { a.oidc.Userinfo(w, r) }
 func (a authAPI) UserinfoPost(w http.ResponseWriter, r *http.Request) { a.oidc.Userinfo(w, r) }
+
+func (a authAPI) DbconnectionsSignup(w http.ResponseWriter, r *http.Request) { a.dbconn.Signup(w, r) }
 
 func (a authAPI) Authorize(w http.ResponseWriter, r *http.Request, _ authapi.AuthorizeParams) {
 	a.authz.Authorize(w, r)
@@ -109,6 +113,10 @@ func New(d Deps) http.Handler {
 				TrustProxyHeaders: d.TrustProxyHeaders,
 			},
 			authz: az,
+			dbconn: &dbconn.Handlers{
+				Store: d.Store, Database: &identity.Database{Store: d.Store},
+				IPThrottle: d.IPThrottle, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
+			},
 		}, authapi.ChiServerOptions{
 			BaseRouter: tr,
 			ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
@@ -119,6 +127,8 @@ func New(d Deps) http.Handler {
 		tr.Options("/oauth/token", preflight)
 		tr.Options("/oauth/revoke", preflight)
 		tr.Options("/userinfo", preflight)
+		tr.Options("/dbconnections/signup", preflight)
+		tr.Options("/dbconnections/change_password", preflight)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)
 		tr.Get("/u/signup", lg.SignupPage)

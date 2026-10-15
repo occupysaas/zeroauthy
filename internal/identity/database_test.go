@@ -28,7 +28,7 @@ func TestSignupThenLogin(t *testing.T) {
 	ctx := context.Background()
 	db, conn := newDB(t)
 
-	u, err := db.Signup(ctx, conn, " Alice@Example.COM ", "", "correct horse")
+	u, err := db.Signup(ctx, conn, SignupInput{Email: " Alice@Example.COM ", Username: "", Password: "correct horse"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestSignupThenLogin(t *testing.T) {
 		t.Fatalf("Login = %v, %v", got, err)
 	}
 
-	_, err = db.Signup(ctx, conn, "alice@EXAMPLE.com", "", "another pass")
+	_, err = db.Signup(ctx, conn, SignupInput{Email: "alice@EXAMPLE.com", Username: "", Password: "another pass"})
 	if !errors.Is(err, ErrUserExists) {
 		t.Fatalf("duplicate signup err = %v, want ErrUserExists", err)
 	}
@@ -60,7 +60,7 @@ func TestSignupThenLogin(t *testing.T) {
 func TestLoginFailures(t *testing.T) {
 	ctx := context.Background()
 	db, conn := newDB(t)
-	u, err := db.Signup(ctx, conn, "bob@example.com", "", "bobs password")
+	u, err := db.Signup(ctx, conn, SignupInput{Email: "bob@example.com", Username: "", Password: "bobs password"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,20 +98,20 @@ func TestSignupRules(t *testing.T) {
 
 	conn.PasswordPolicy = store.PasswordPolicy{MinLength: 10}
 	var pe *PolicyError
-	if _, err := db.Signup(ctx, conn, "c@example.com", "", "short"); !errors.As(err, &pe) {
+	if _, err := db.Signup(ctx, conn, SignupInput{Email: "c@example.com", Username: "", Password: "short"}); !errors.As(err, &pe) {
 		t.Errorf("weak password err = %v", err)
 	}
 	for _, bad := range []string{"", "not-an-email", "a@", "Name <x@example.com>"} {
-		if _, err := db.Signup(ctx, conn, bad, "", "long enough pw"); !errors.As(err, &pe) {
+		if _, err := db.Signup(ctx, conn, SignupInput{Email: bad, Password: "long enough pw"}); !errors.As(err, &pe) {
 			t.Errorf("email %q err = %v", bad, err)
 		}
 	}
 
 	conn.RequiresUsername = true
-	if _, err := db.Signup(ctx, conn, "d@example.com", "", "long enough pw"); !errors.As(err, &pe) {
+	if _, err := db.Signup(ctx, conn, SignupInput{Email: "d@example.com", Username: "", Password: "long enough pw"}); !errors.As(err, &pe) {
 		t.Errorf("missing username err = %v", err)
 	}
-	u, err := db.Signup(ctx, conn, "d@example.com", " Dave_1 ", "long enough pw")
+	u, err := db.Signup(ctx, conn, SignupInput{Email: "d@example.com", Username: " Dave_1 ", Password: "long enough pw"})
 	if err != nil || u.Username != "dave_1" {
 		t.Fatalf("signup with username = %+v, %v", u, err)
 	}
@@ -120,7 +120,58 @@ func TestSignupRules(t *testing.T) {
 	}
 
 	conn.DisableSignup = true
-	if _, err := db.Signup(ctx, conn, "e@example.com", "eve", "long enough pw"); !errors.Is(err, ErrSignupDisabled) {
+	if _, err := db.Signup(ctx, conn, SignupInput{Email: "e@example.com", Username: "eve", Password: "long enough pw"}); !errors.Is(err, ErrSignupDisabled) {
 		t.Errorf("disabled signup err = %v", err)
+	}
+}
+
+func TestSignupProfile(t *testing.T) {
+	ctx := context.Background()
+	db, conn := newDB(t)
+	u, err := db.Signup(ctx, conn, SignupInput{
+		Email: "p@example.com", Password: "long enough pw", GivenName: "Pat", FamilyName: "Lee",
+		Name: "Pat Lee", Nickname: "patty", Picture: "https://img.example.com/p.png",
+		UserMetadata: map[string]any{"plan": "pro"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.GivenName != "Pat" || u.FamilyName != "Lee" || u.Name != "Pat Lee" || u.Nickname != "patty" ||
+		u.Picture != "https://img.example.com/p.png" || u.UserMetadata["plan"] != "pro" {
+		t.Fatalf("user = %+v", u)
+	}
+	d, err := db.Signup(ctx, conn, SignupInput{Email: "q@example.com", Password: "long enough pw"})
+	if err != nil || d.Name != "q@example.com" || d.Nickname != "q" {
+		t.Fatalf("defaults = %+v, %v", d, err)
+	}
+}
+
+func TestSignupProfileRejected(t *testing.T) {
+	ctx := context.Background()
+	db, conn := newDB(t)
+	long := strings.Repeat("x", 301)
+	cases := map[string]SignupInput{
+		"http picture":     {Picture: "http://img.example.com/p.png"},
+		"relative picture": {Picture: "/p.png"},
+		"hostless picture": {Picture: "https:///p.png"},
+		"long picture":     {Picture: "https://example.com/" + strings.Repeat("a", 2000)},
+		"long given_name":  {GivenName: long},
+		"long family_name": {FamilyName: long},
+		"long name":        {Name: long},
+		"long nickname":    {Nickname: long},
+	}
+	for name, in := range cases {
+		t.Run(name, func(t *testing.T) {
+			in.Email, in.Password = "r@example.com", "long enough pw"
+			var pe *PolicyError
+			if _, err := db.Signup(ctx, conn, in); !errors.As(err, &pe) {
+				t.Fatalf("err = %v, want PolicyError", err)
+			}
+		})
+	}
+	var pe *PolicyError
+	_, err := db.Signup(ctx, conn, SignupInput{Email: "r@example.com", Password: "long enough pw", Picture: "http://x.test/p"})
+	if !errors.As(err, &pe) || pe.Reason != "picture must be an https URL" {
+		t.Fatalf("err = %v", err)
 	}
 }

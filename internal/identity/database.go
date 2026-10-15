@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"net/mail"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -88,12 +90,46 @@ func (d *Database) Login(ctx context.Context, conn *store.Connection, login, pas
 	return u, nil
 }
 
+// SignupInput is the data a new database-connection user signs up with.
+// Name defaults to the email and Nickname to the part of the email before
+// the '@'. UserMetadata is stored as given; callers validate its shape.
+type SignupInput struct {
+	Email, Username, Password             string
+	GivenName, FamilyName, Name, Nickname string
+	Picture                               string
+	UserMetadata                          map[string]any
+}
+
+const (
+	maxProfileFieldRunes = 300
+	maxPictureLength     = 2000
+)
+
+// checkProfile validates the optional profile fields of a signup.
+func checkProfile(in SignupInput) error {
+	for _, f := range []struct{ label, value string }{
+		{"given_name", in.GivenName}, {"family_name", in.FamilyName}, {"name", in.Name}, {"nickname", in.Nickname},
+	} {
+		if utf8.RuneCountInString(f.value) > maxProfileFieldRunes {
+			return &PolicyError{Reason: f.label + " must be at most 300 characters"}
+		}
+	}
+	if in.Picture != "" {
+		u, err := url.Parse(in.Picture)
+		if err != nil || len(in.Picture) > maxPictureLength || u.Scheme != "https" || u.Host == "" {
+			return &PolicyError{Reason: "picture must be an https URL"}
+		}
+	}
+	return nil
+}
+
 // Signup registers a user on a database connection.
-func (d *Database) Signup(ctx context.Context, conn *store.Connection, email, username, password string) (*store.User, error) {
+func (d *Database) Signup(ctx context.Context, conn *store.Connection, in SignupInput) (*store.User, error) {
 	if conn.DisableSignup {
 		return nil, ErrSignupDisabled
 	}
-	email = NormalizeLogin(email)
+	username, password := in.Username, in.Password
+	email := NormalizeLogin(in.Email)
 	if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email || addr.Name != "" {
 		return nil, &PolicyError{Reason: "enter a valid email address"}
 	}
@@ -105,8 +141,18 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, email, us
 	} else {
 		username = ""
 	}
+	if err := checkProfile(in); err != nil {
+		return nil, err
+	}
 	if err := CheckPassword(conn.PasswordPolicy, password); err != nil {
 		return nil, err
+	}
+	name, nickname := in.Name, in.Nickname
+	if name == "" {
+		name = email
+	}
+	if nickname == "" {
+		nickname = strings.SplitN(email, "@", 2)[0]
 	}
 	hash, err := secrets.Hash(password)
 	if err != nil {
@@ -119,8 +165,13 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, email, us
 		UserID:   store.StrategyDatabase + "|" + id,
 		Email:    email,
 		Username: username,
-		Name:     email,
-		Nickname: strings.SplitN(email, "@", 2)[0],
+		Name:     name,
+		Nickname: nickname,
+
+		GivenName:    in.GivenName,
+		FamilyName:   in.FamilyName,
+		Picture:      in.Picture,
+		UserMetadata: in.UserMetadata,
 		Identities: []store.Identity{{
 			Connection: conn.Name, Provider: store.StrategyDatabase, UserID: id, PasswordHash: hash,
 		}},

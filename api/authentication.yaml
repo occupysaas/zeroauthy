@@ -452,6 +452,53 @@ paths:
           content:
             text/html:
               schema: {type: string}
+  /dbconnections/signup:
+    post:
+      operationId: dbconnectionsSignup
+      tags: [Users]
+      summary: Sign up a user
+      description: |
+        Creates a user on a database connection. The body may be JSON or
+        form-encoded; `user_metadata` is an object and so needs JSON. The
+        connection must be enabled for `client_id` and must allow sign-up.
+        The user starts with `email_verified` false. Because zeroauthy has no
+        global client, `client_id` is required. Sign-ups count against the
+        same per-IP limit as the hosted sign-up page; while it is reached the
+        response is `429` with `too_many_requests`.
+
+        **Errors** use the `{error, error_description}` shape:
+        `invalid_request` (missing or malformed parameters, unknown client),
+        `invalid_signup` (connection not enabled for the client, sign-up
+        disabled, invalid email or profile), `invalid_password` (password
+        policy not met) and `user_exists` (409).
+      x-source:
+        - https://auth0.com/docs/api/authentication/signup/create-a-new-user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/SignupFormRequest"
+      responses:
+        "200":
+          description: The user was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignupResponse"
+        "400":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "409":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "429":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        default:
+          $ref: "#/components/responses/ServerError"
 components:
   securitySchemes:
     clientSecretBasic:
@@ -500,6 +547,62 @@ components:
         csrf:
           type: string
           description: Set by the confirmation page.
+    SignupRequest:
+      type: object
+      required: [client_id, connection, email, password]
+      properties:
+        client_id: {type: string}
+        connection:
+          type: string
+          description: Name of the database connection.
+        email: {type: string}
+        password: {type: string}
+        username:
+          type: string
+          description: Required when the connection requires usernames.
+        given_name: {type: string, maxLength: 300}
+        family_name: {type: string, maxLength: 300}
+        name: {type: string, maxLength: 300}
+        nickname: {type: string, maxLength: 300}
+        picture:
+          type: string
+          description: An absolute https URL of at most 2000 characters.
+        user_metadata:
+          type: object
+          description: At most 10 properties; string values of at most 500 characters.
+          additionalProperties: {type: string}
+    SignupFormRequest:
+      type: object
+      description: |
+        The form-encoded variant of SignupRequest. Form bodies cannot carry
+        the `user_metadata` object.
+      required: [client_id, connection, email, password]
+      properties:
+        client_id: {type: string}
+        connection: {type: string}
+        email: {type: string}
+        password: {type: string}
+        username: {type: string}
+        given_name: {type: string, maxLength: 300}
+        family_name: {type: string, maxLength: 300}
+        name: {type: string, maxLength: 300}
+        nickname: {type: string, maxLength: 300}
+        picture: {type: string}
+    SignupResponse:
+      type: object
+      required: [_id, email_verified, email]
+      properties:
+        _id:
+          type: string
+          description: The user ID without the `auth0|` prefix.
+        email_verified: {type: boolean}
+        email: {type: string}
+        username: {type: string}
+        given_name: {type: string}
+        family_name: {type: string}
+        name: {type: string}
+        nickname: {type: string}
+        picture: {type: string}
     OAuthError:
       type: object
       required: [error, error_description]

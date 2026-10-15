@@ -88,6 +88,58 @@ type RevokeRequest struct {
 	TokenTypeHint *string `json:"token_type_hint,omitempty"`
 }
 
+// SignupFormRequest The form-encoded variant of SignupRequest. Form bodies cannot carry
+// the `user_metadata` object.
+type SignupFormRequest struct {
+	ClientId   string  `json:"client_id"`
+	Connection string  `json:"connection"`
+	Email      string  `json:"email"`
+	FamilyName *string `json:"family_name,omitempty"`
+	GivenName  *string `json:"given_name,omitempty"`
+	Name       *string `json:"name,omitempty"`
+	Nickname   *string `json:"nickname,omitempty"`
+	Password   string  `json:"password"`
+	Picture    *string `json:"picture,omitempty"`
+	Username   *string `json:"username,omitempty"`
+}
+
+// SignupRequest defines model for SignupRequest.
+type SignupRequest struct {
+	ClientId string `json:"client_id"`
+
+	// Connection Name of the database connection.
+	Connection string  `json:"connection"`
+	Email      string  `json:"email"`
+	FamilyName *string `json:"family_name,omitempty"`
+	GivenName  *string `json:"given_name,omitempty"`
+	Name       *string `json:"name,omitempty"`
+	Nickname   *string `json:"nickname,omitempty"`
+	Password   string  `json:"password"`
+
+	// Picture An absolute https URL of at most 2000 characters.
+	Picture *string `json:"picture,omitempty"`
+
+	// UserMetadata At most 10 properties; string values of at most 500 characters.
+	UserMetadata *map[string]string `json:"user_metadata,omitempty"`
+
+	// Username Required when the connection requires usernames.
+	Username *string `json:"username,omitempty"`
+}
+
+// SignupResponse defines model for SignupResponse.
+type SignupResponse struct {
+	// UnderscoreId The user ID without the `auth0|` prefix.
+	UnderscoreId  string  `json:"_id"`
+	Email         string  `json:"email"`
+	EmailVerified bool    `json:"email_verified"`
+	FamilyName    *string `json:"family_name,omitempty"`
+	GivenName     *string `json:"given_name,omitempty"`
+	Name          *string `json:"name,omitempty"`
+	Nickname      *string `json:"nickname,omitempty"`
+	Picture       *string `json:"picture,omitempty"`
+	Username      *string `json:"username,omitempty"`
+}
+
 // TokenRequest defines model for TokenRequest.
 type TokenRequest struct {
 	// Audience Identifier of the API the token is for. Defaults to the tenant's default audience.
@@ -247,6 +299,12 @@ type LogoutParams struct {
 	// Federated Accepted and ignored; there are no upstream identity providers yet.
 	Federated *string `form:"federated,omitempty" json:"federated,omitempty"`
 }
+
+// DbconnectionsSignupJSONRequestBody defines body for DbconnectionsSignup for application/json ContentType.
+type DbconnectionsSignupJSONRequestBody = SignupRequest
+
+// DbconnectionsSignupFormdataRequestBody defines body for DbconnectionsSignup for application/x-www-form-urlencoded ContentType.
+type DbconnectionsSignupFormdataRequestBody = SignupFormRequest
 
 // OauthRevokeJSONRequestBody defines body for OauthRevoke for application/json ContentType.
 type OauthRevokeJSONRequestBody = RevokeRequest
@@ -430,6 +488,9 @@ type ServerInterface interface {
 	// Authorize Start an authorization (login) flow
 	// (GET /authorize)
 	Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams)
+	// DbconnectionsSignup Sign up a user
+	// (POST /dbconnections/signup)
+	DbconnectionsSignup(w http.ResponseWriter, r *http.Request)
 	// OauthRevoke Revoke a refresh token
 	// (POST /oauth/revoke)
 	OauthRevoke(w http.ResponseWriter, r *http.Request)
@@ -472,6 +533,12 @@ func (_ Unimplemented) Discovery(w http.ResponseWriter, r *http.Request) {
 // Authorize Start an authorization (login) flow
 // (GET /authorize)
 func (_ Unimplemented) Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DbconnectionsSignup Sign up a user
+// (POST /dbconnections/signup)
+func (_ Unimplemented) DbconnectionsSignup(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -799,6 +866,20 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Authorize(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DbconnectionsSignup operation middleware
+func (siw *ServerInterfaceWrapper) DbconnectionsSignup(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DbconnectionsSignup(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1177,6 +1258,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oidc/logout", wrapper.OidcLogoutPost)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/dbconnections/signup", wrapper.DbconnectionsSignup)
 	})
 
 	return r
