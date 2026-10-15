@@ -126,4 +126,14 @@ func testSessions(t *testing.T, newStore Factory) {
 		_, err = s.Sessions().GetByTokenHash(ctx, "ten_b", "h4")
 		mustNoErr(t, err)
 	})
+
+	t.Run("SameHashAndIDAcrossTenants", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Sessions().Create(ctx, newSession("ten_a", "s1", "hash1")))
+		mustNoErr(t, s.Sessions().Create(ctx, newSession("ten_b", "s1", "hash1")))
+		a, _ := s.Sessions().GetByTokenHash(ctx, "ten_a", "hash1")
+		b, _ := s.Sessions().GetByTokenHash(ctx, "ten_b", "hash1")
+		mustEqual(t, a.TenantID, "ten_a")
+		mustEqual(t, b.TenantID, "ten_b")
+	})
 }

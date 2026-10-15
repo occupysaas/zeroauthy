@@ -138,4 +138,21 @@ func testUsers(t *testing.T, newStore Factory) {
 		mustErrIs(t, s.Users().SetPasswordHash(ctx, "ten_a", "auth0|nobody", "Database", "x", ts(0)), store.ErrNotFound)
 		mustErrIs(t, s.Users().SetPasswordHash(ctx, "ten_b", "auth0|u1", "Database", "x", ts(0)), store.ErrNotFound)
 	})
+
+	t.Run("UpdateUsernameConflictAndKeepsLoginStats", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "u1", "alice@example.test", "alice")))
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "u2", "bob@example.test", "bob")))
+		taken := newUser("ten_a", "u2", "bob@example.test", "alice")
+		mustErrIs(t, s.Users().Update(ctx, taken), store.ErrConflict)
+
+		mustNoErr(t, s.Users().RecordLogin(ctx, "ten_a", "auth0|u1", ts(time.Hour)))
+		stale := newUser("ten_a", "u1", "alice@example.test", "alice") // LoginsCount 0, LastLogin nil
+		stale.Name = "Alice Renamed"
+		mustNoErr(t, s.Users().Update(ctx, stale))
+		got, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, got.Name, "Alice Renamed")
+		mustEqual(t, got.LoginsCount, 1)
+		mustEqual(t, got.LastLogin != nil && got.LastLogin.Equal(ts(time.Hour)), true)
+	})
 }

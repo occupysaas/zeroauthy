@@ -199,3 +199,75 @@ func TestVerify(t *testing.T) {
 		t.Fatalf("Verify after rotation: %v", err)
 	}
 }
+
+func keyStatuses(t *testing.T, st store.Store, tenantID string) map[store.KeyStatus]int {
+	t.Helper()
+	ks, err := st.SigningKeys().List(context.Background(), tenantID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[store.KeyStatus]int{}
+	for _, k := range ks {
+		out[k.Status]++
+	}
+	return out
+}
+
+func TestEnsureRepairsMissingNext(t *testing.T) {
+	m, st := newManager(t)
+	ctx := context.Background()
+	k, err := m.generate("ten_a", store.KeyCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SigningKeys().Create(ctx, k); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Ensure(ctx, "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	got := keyStatuses(t, st, "ten_a")
+	if len(got) != 2 || got[store.KeyCurrent] != 1 || got[store.KeyNext] != 1 {
+		t.Fatalf("statuses after Ensure: %v", got)
+	}
+}
+
+func TestEnsureRepairsMissingCurrent(t *testing.T) {
+	m, st := newManager(t)
+	ctx := context.Background()
+	k, err := m.generate("ten_a", store.KeyNext)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SigningKeys().Create(ctx, k); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Ensure(ctx, "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	got := keyStatuses(t, st, "ten_a")
+	if len(got) != 2 || got[store.KeyCurrent] != 1 || got[store.KeyNext] != 1 {
+		t.Fatalf("statuses after Ensure: %v", got)
+	}
+}
+
+func TestEnsureLeavesCompleteSetAlone(t *testing.T) {
+	m, st := newManager(t)
+	ctx := context.Background()
+	if err := m.Ensure(ctx, "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := st.SigningKeys().List(ctx, "ten_a")
+	if err := m.Ensure(ctx, "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := st.SigningKeys().List(ctx, "ten_a")
+	if len(before) != 2 || len(after) != 2 {
+		t.Fatalf("before %d after %d keys", len(before), len(after))
+	}
+	for i := range before {
+		if before[i].KID != after[i].KID || before[i].Status != after[i].Status {
+			t.Fatalf("key %d changed: %+v -> %+v", i, before[i], after[i])
+		}
+	}
+}

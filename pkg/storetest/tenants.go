@@ -10,16 +10,19 @@ import (
 
 func newTenant(name string) *store.Tenant {
 	return &store.Tenant{
-		ID:                "ten_" + name,
-		Name:              name,
-		FriendlyName:      strings.ToUpper(name),
-		Domains:           []string{name + ".example.test"},
-		DefaultAudience:   "https://" + name + ".api.test",
-		DefaultDirectory:  "Database",
-		AllowedLogoutURLs: []string{"https://" + name + ".example.test/bye"},
-		EnabledLocales:    []string{"en", "fr"},
-		CustomText:        store.CustomText{"login": {"fr": {"login": {"title": "Connexion"}}}},
-		CreatedAt:         ts(0),
+		ID:                  "ten_" + name,
+		Name:                name,
+		FriendlyName:        strings.ToUpper(name),
+		Domains:             []string{name + ".example.test"},
+		DefaultAudience:     "https://" + name + ".api.test",
+		DefaultDirectory:    "Database",
+		AllowedLogoutURLs:   []string{"https://" + name + ".example.test/bye"},
+		EnabledLocales:      []string{"en", "fr"},
+		CustomText:          store.CustomText{"login": {"fr": {"login": {"title": "Connexion"}}}},
+		SessionLifetime:     3600,
+		IdleSessionLifetime: 600,
+		Branding:            store.Branding{LogoURL: "https://cdn.test/" + name + ".png", PrimaryColor: "#112233"},
+		CreatedAt:           ts(0),
 	}
 }
 
@@ -117,6 +120,26 @@ func testTenants(t *testing.T, newStore Factory) {
 			names = append(names, tn.Name)
 		}
 		mustEqual(t, names, []string{"acme", "mid", "zeta"})
+	})
+
+	t.Run("UpdateConflictsAndStaleDomains", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Tenants().Create(ctx, newTenant("acme")))
+		mustNoErr(t, s.Tenants().Create(ctx, newTenant("globex")))
+		rename := newTenant("acme")
+		rename.Name = "globex"
+		mustErrIs(t, s.Tenants().Update(ctx, rename), store.ErrConflict)
+		missing := newTenant("nobody")
+		mustErrIs(t, s.Tenants().Update(ctx, missing), store.ErrNotFound)
+
+		moved := newTenant("acme")
+		moved.Domains = []string{"login.acme.test"}
+		mustNoErr(t, s.Tenants().Update(ctx, moved))
+		_, err := s.Tenants().GetByDomain(ctx, "acme.example.test")
+		mustErrIs(t, err, store.ErrNotFound) // the dropped domain is released
+		claim := newTenant("globex")
+		claim.Domains = []string{"globex.example.test", "acme.example.test"}
+		mustNoErr(t, s.Tenants().Update(ctx, claim))
 	})
 
 	t.Run("ReturnsCopies", func(t *testing.T) {

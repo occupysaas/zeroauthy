@@ -88,4 +88,25 @@ func testSigningKeys(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrConflict)
 		mustEqual(t, statuses(t, s, "ten_a"), map[string]store.KeyStatus{"k1": store.KeyCurrent, "k2": store.KeyNext})
 	})
+
+	t.Run("SingleCurrentAndNext", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k1", store.KeyCurrent, 0)))
+		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k2", store.KeyNext, 0)))
+		mustErrIs(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k3", store.KeyCurrent, 0)), store.ErrConflict)
+		mustErrIs(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k4", store.KeyNext, 0)), store.ErrConflict)
+		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k5", store.KeyPrevious, 0)))
+		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k6", store.KeyPrevious, 0)))
+		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_b", "k1", store.KeyCurrent, 0))) // other tenant
+	})
+
+	t.Run("RotateRequiresNextStatus", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k1", store.KeyCurrent, 0)))
+		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k2", store.KeyNext, time.Hour)))
+		if err := s.SigningKeys().Rotate(ctx, "ten_a", newSigningKey("ten_a", "k3", store.KeyCurrent, 2*time.Hour)); err == nil {
+			t.Fatal("Rotate accepted a successor without status next")
+		}
+		mustEqual(t, statuses(t, s, "ten_a"), map[string]store.KeyStatus{"k1": store.KeyCurrent, "k2": store.KeyNext})
+	})
 }

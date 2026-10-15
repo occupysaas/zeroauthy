@@ -11,10 +11,11 @@ import (
 func newClient(tenantID, clientID string) *store.Client {
 	exp := ts(48 * time.Hour)
 	return &store.Client{
-		TenantID: tenantID,
-		ClientID: clientID,
-		Name:     "App " + clientID,
-		AppType:  store.AppTypeNonInteractive,
+		TenantID:        tenantID,
+		ClientID:        clientID,
+		Name:            "App " + clientID,
+		AppType:         store.AppTypeNonInteractive,
+		IDTokenLifetime: 600,
 		Secrets: []store.ClientSecret{
 			{Hash: "$argon2id$v=19$m=19456,t=2,p=1$c2FsdA$aGFzaA", CreatedAt: ts(0)},
 			{Hash: "$argon2id$v=19$m=19456,t=2,p=1$c2FsdDI$aGFzaDI", CreatedAt: ts(time.Hour), ExpiresAt: &exp},

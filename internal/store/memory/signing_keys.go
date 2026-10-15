@@ -3,6 +3,7 @@ package memory
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -17,6 +18,13 @@ func (r signingKeys) Create(_ context.Context, k *store.SigningKey) error {
 	kk := key{k.TenantID, k.KID}
 	if _, ok := r.s.signingKeys[kk]; ok {
 		return store.ErrConflict
+	}
+	if k.Status == store.KeyCurrent || k.Status == store.KeyNext {
+		for ok, sk := range r.s.signingKeys {
+			if ok.tenant == k.TenantID && sk.Status == k.Status {
+				return store.ErrConflict
+			}
+		}
 	}
 	r.s.signingKeys[kk] = cloneSigningKey(k)
 	return nil
@@ -41,8 +49,11 @@ func (r signingKeys) List(_ context.Context, tenantID string) ([]*store.SigningK
 }
 
 func (r signingKeys) Rotate(_ context.Context, tenantID string, next *store.SigningKey) error {
-	if next.Status != store.KeyNext || next.TenantID != tenantID {
-		return fmt.Errorf("memory: rotate needs a %q key for tenant %q", store.KeyNext, tenantID)
+	if next.Status != store.KeyNext {
+		return errors.New("store: the new key must have status next")
+	}
+	if next.TenantID != tenantID {
+		return fmt.Errorf("memory: rotate needs a key for tenant %q", tenantID)
 	}
 	r.s.mu.Lock()
 	defer r.s.mu.Unlock()

@@ -36,6 +36,11 @@ type Store interface {
 	AuthCodes() AuthCodes
 	RefreshTokens() RefreshTokens
 	PasswordResetTickets() PasswordResetTickets
+	// WithTx runs fn against a transactional view of the store. If fn
+	// returns an error, none of its writes persist. Drivers serialize
+	// transactions; the memory driver's isolation from concurrent
+	// non-transactional writers is best effort (tests and demos only).
+	WithTx(ctx context.Context, fn func(tx Store) error) error
 	Ping(ctx context.Context) error
 	Close() error
 }
@@ -99,13 +104,16 @@ type ClientGrants interface {
 
 // SigningKeys stores signing keys, keyed by (TenantID, KID).
 type SigningKeys interface {
-	// Create returns ErrConflict if the KID exists in the tenant.
+	// Create returns ErrConflict if the KID exists in the tenant, or if
+	// k.Status is KeyCurrent or KeyNext and the tenant already has a key
+	// with that status.
 	Create(ctx context.Context, k *SigningKey) error
 	// List returns all of a tenant's keys, every status, ordered by
 	// CreatedAt then KID.
 	List(ctx context.Context, tenantID string) ([]*SigningKey, error)
 	// Rotate atomically moves previous→revoked, current→previous and
-	// next→current, then stores next, which must have Status KeyNext.
+	// next→current, then stores next. It returns an error and changes
+	// nothing if next.Status is not KeyNext.
 	// If the tenant has no next key it returns ErrNotFound and changes
 	// nothing. A duplicate KID returns ErrConflict and changes nothing.
 	Rotate(ctx context.Context, tenantID string, next *SigningKey) error
@@ -138,7 +146,8 @@ type Users interface {
 	// Email or Username equals login.
 	FindByLogin(ctx context.Context, tenantID, connection, login string) (*User, error)
 	// Update replaces the user. ErrNotFound if absent; ErrConflict under
-	// the same uniqueness rules as Create.
+	// the same uniqueness rules as Create. Update never changes LastLogin
+	// or LoginsCount; only RecordLogin does.
 	Update(ctx context.Context, u *User) error
 	// RecordLogin atomically sets LastLogin and increments LoginsCount.
 	RecordLogin(ctx context.Context, tenantID, userID string, at time.Time) error

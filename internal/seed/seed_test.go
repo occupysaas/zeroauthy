@@ -2,6 +2,7 @@ package seed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -359,5 +360,47 @@ tenants:
 	if len(tn.EnabledLocales) != 2 || tn.EnabledLocales[1] != "fr" ||
 		tn.CustomText["login"]["fr"]["login"]["title"] != "Connexion à ${companyName}" {
 		t.Fatalf("tenant = %+v", tn)
+	}
+}
+
+// failingStore makes Clients().Create fail for client ID "boom".
+type failingStore struct{ store.Store }
+
+func (f failingStore) Clients() store.Clients { return failingClients{f.Store.Clients()} }
+
+func (f failingStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return f.Store.WithTx(ctx, func(tx store.Store) error { return fn(failingStore{tx}) })
+}
+
+type failingClients struct{ store.Clients }
+
+func (c failingClients) Create(ctx context.Context, cl *store.Client) error {
+	if cl.ClientID == "boom" {
+		return fmt.Errorf("injected failure")
+	}
+	return c.Clients.Create(ctx, cl)
+}
+
+func TestApplyIsTransactional(t *testing.T) {
+	const doc = `
+tenants:
+  - name: acme
+    clients:
+      - {client_id: ok, name: Ok, app_type: spa, callbacks: ["https://app.acme.test/cb"]}
+  - name: globex
+    clients:
+      - {client_id: boom, name: Boom, app_type: spa, callbacks: ["https://app.globex.test/cb"]}
+`
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, failingStore{st}, f, fixedNow); err == nil {
+		t.Fatal("Apply succeeded despite injected failure")
+	}
+	if _, err := st.Tenants().GetByName(ctx, "acme"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("tenant acme survived the failed Apply: %v", err)
 	}
 }

@@ -2,6 +2,8 @@ package storetest
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -118,5 +120,35 @@ func testAuthCodes(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 		_, err = s.AuthCodes().Consume(ctx, "ten_a", "h2", ts(0))
 		mustNoErr(t, err)
+	})
+
+	t.Run("ConcurrentConsume", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode("ten_a", "h1")))
+		const n = 10
+		errs := make([]error, n)
+		var wg sync.WaitGroup
+		for i := range n {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_, errs[i] = s.AuthCodes().Consume(ctx, "ten_a", "h1", ts(time.Second))
+			}()
+		}
+		wg.Wait()
+		ok := 0
+		for _, err := range errs {
+			switch {
+			case err == nil:
+				ok++
+			case errors.Is(err, store.ErrAlreadyUsed):
+			default:
+				t.Fatalf("unexpected %v", err)
+			}
+		}
+		mustEqual(t, ok, 1)
+		got, err := s.AuthCodes().Get(ctx, "ten_a", "h1")
+		mustNoErr(t, err)
+		mustEqual(t, got.ReplayedAt != nil, true)
 	})
 }

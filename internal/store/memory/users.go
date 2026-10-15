@@ -54,7 +54,10 @@ func (r users) Update(_ context.Context, u *store.User) error {
 	if r.loginTaken(u) {
 		return store.ErrConflict
 	}
-	r.s.users[k] = cloneUser(u)
+	nu := cloneUser(u)
+	old := r.s.users[k]
+	nu.LastLogin, nu.LoginsCount = old.LastLogin, old.LoginsCount
+	r.s.users[k] = nu
 	return nil
 }
 

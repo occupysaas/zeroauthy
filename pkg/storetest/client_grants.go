@@ -47,6 +47,22 @@ func testClientGrants(t *testing.T, newStore Factory) {
 		mustErrIs(t, s.ClientGrants().Update(ctx, want), store.ErrNotFound)
 	})
 
+	t.Run("ReturnsCopies", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newClientGrant("ten_a", "cg1", "c1", "https://api.test")
+		mustNoErr(t, s.ClientGrants().Create(ctx, in))
+		in.Scopes[0] = "mutated"
+
+		got, err := s.ClientGrants().Find(ctx, "ten_a", "c1", "https://api.test")
+		mustNoErr(t, err)
+		mustEqual(t, got, newClientGrant("ten_a", "cg1", "c1", "https://api.test"))
+		got.Scopes[0] = "mutated-again"
+
+		again, err := s.ClientGrants().Find(ctx, "ten_a", "c1", "https://api.test")
+		mustNoErr(t, err)
+		mustEqual(t, again, newClientGrant("ten_a", "cg1", "c1", "https://api.test"))
+	})
+
 	t.Run("Uniqueness", func(t *testing.T) {
 		s := open(t, newStore)
 		mustNoErr(t, s.ClientGrants().Create(ctx, newClientGrant("ten_a", "cg1", "c1", "https://api.test")))

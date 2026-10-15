@@ -40,8 +40,10 @@ func NewManager(s store.SigningKeys, w Wrapper) *Manager {
 	return &Manager{store: s, wrap: w, now: time.Now}
 }
 
-// Ensure creates a current key and a next key for a tenant that has no
-// keys. It does nothing if the tenant already has keys.
+// Ensure makes sure the tenant has one current and one next key, creating
+// whichever is missing. Concurrent callers (other processes) may race; the
+// store rejects a second current/next key with ErrConflict, which Ensure
+// treats as "someone else created it".
 func (m *Manager) Ensure(ctx context.Context, tenantID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -49,15 +51,19 @@ func (m *Manager) Ensure(ctx context.Context, tenantID string) error {
 	if err != nil {
 		return err
 	}
-	if len(ks) > 0 {
-		return nil
+	have := map[store.KeyStatus]bool{}
+	for _, k := range ks {
+		have[k.Status] = true
 	}
 	for _, status := range []store.KeyStatus{store.KeyCurrent, store.KeyNext} {
+		if have[status] {
+			continue
+		}
 		k, err := m.generate(tenantID, status)
 		if err != nil {
 			return err
 		}
-		if err := m.store.Create(ctx, k); err != nil {
+		if err := m.store.Create(ctx, k); err != nil && !errors.Is(err, store.ErrConflict) {
 			return err
 		}
 	}

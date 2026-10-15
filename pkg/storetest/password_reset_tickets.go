@@ -119,4 +119,16 @@ func testPasswordResetTickets(t *testing.T, newStore Factory) {
 		_, err = s.PasswordResetTickets().GetByTokenHash(ctx, "ten_a", "h1")
 		mustNoErr(t, err)
 	})
+
+	t.Run("ReturnsCopies", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.PasswordResetTickets().Create(ctx, newTicket("ten_a", "pr1", "h1")))
+		used, err := s.PasswordResetTickets().Consume(ctx, "ten_a", "h1", ts(time.Minute))
+		mustNoErr(t, err)
+		*used.UsedAt = ts(time.Hour)
+
+		got, err := s.PasswordResetTickets().GetByTokenHash(ctx, "ten_a", "h1")
+		mustNoErr(t, err)
+		mustEqual(t, got.UsedAt != nil && got.UsedAt.Equal(ts(time.Minute)), true)
+	})
 }

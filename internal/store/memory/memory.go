@@ -15,6 +15,7 @@ type key struct{ tenant, id string }
 // Store is safe for concurrent use. One RWMutex guards all maps, so
 // multi-entity operations such as key rotation are trivially atomic.
 type Store struct {
+	txMu            sync.Mutex // serializes WithTx
 	mu              sync.RWMutex
 	tenants         map[string]*store.Tenant           // by ID
 	clients         map[key]*store.Client              // by (tenant, client ID)

@@ -18,12 +18,14 @@ func Apply(ctx context.Context, st store.Store, f *File, now func() time.Time) e
 	if now == nil {
 		now = time.Now
 	}
-	for _, t := range f.Tenants {
-		if err := applyTenant(ctx, st, t, now().UTC()); err != nil {
-			return fmt.Errorf("seed: tenant %q: %w", t.Name, err)
+	return st.WithTx(ctx, func(tx store.Store) error {
+		for _, t := range f.Tenants {
+			if err := applyTenant(ctx, tx, t, now().UTC()); err != nil {
+				return fmt.Errorf("seed: tenant %q: %w", t.Name, err)
+			}
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
 func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time) error {

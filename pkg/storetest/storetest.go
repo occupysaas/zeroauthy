@@ -12,20 +12,46 @@ import (
 // Factory returns a new, empty store. Run closes it when the subtest ends.
 type Factory func(t *testing.T) store.Store
 
+// Suites maps each conformance suite name to its test function. SQL drivers
+// use RunSuites to bring suites up one at a time.
+var Suites = map[string]func(t *testing.T, newStore Factory){
+	"Tenants":              testTenants,
+	"Clients":              testClients,
+	"ResourceServers":      testResourceServers,
+	"ClientGrants":         testClientGrants,
+	"SigningKeys":          testSigningKeys,
+	"Connections":          testConnections,
+	"Users":                testUsers,
+	"Sessions":             testSessions,
+	"AuthTransactions":     testAuthTransactions,
+	"AuthCodes":            testAuthCodes,
+	"RefreshTokens":        testRefreshTokens,
+	"PasswordResetTickets": testPasswordResetTickets,
+	"Tx":                   testTx,
+}
+
+// suiteOrder is the order Run executes the suites in.
+var suiteOrder = []string{
+	"Tenants", "Clients", "ResourceServers", "ClientGrants", "SigningKeys",
+	"Connections", "Users", "Sessions", "AuthTransactions", "AuthCodes",
+	"RefreshTokens", "PasswordResetTickets", "Tx",
+}
+
 // Run executes every conformance test against stores made by newStore.
 func Run(t *testing.T, newStore Factory) {
-	t.Run("Tenants", func(t *testing.T) { testTenants(t, newStore) })
-	t.Run("Clients", func(t *testing.T) { testClients(t, newStore) })
-	t.Run("ResourceServers", func(t *testing.T) { testResourceServers(t, newStore) })
-	t.Run("ClientGrants", func(t *testing.T) { testClientGrants(t, newStore) })
-	t.Run("SigningKeys", func(t *testing.T) { testSigningKeys(t, newStore) })
-	t.Run("Connections", func(t *testing.T) { testConnections(t, newStore) })
-	t.Run("Users", func(t *testing.T) { testUsers(t, newStore) })
-	t.Run("Sessions", func(t *testing.T) { testSessions(t, newStore) })
-	t.Run("AuthTransactions", func(t *testing.T) { testAuthTransactions(t, newStore) })
-	t.Run("AuthCodes", func(t *testing.T) { testAuthCodes(t, newStore) })
-	t.Run("RefreshTokens", func(t *testing.T) { testRefreshTokens(t, newStore) })
-	t.Run("PasswordResetTickets", func(t *testing.T) { testPasswordResetTickets(t, newStore) })
+	RunSuites(t, newStore, suiteOrder...)
+}
+
+// RunSuites executes only the named suites. An unknown name fails the test.
+func RunSuites(t *testing.T, newStore Factory, names ...string) {
+	t.Helper()
+	for _, name := range names {
+		fn, ok := Suites[name]
+		if !ok {
+			t.Fatalf("storetest: unknown suite %q", name)
+		}
+		t.Run(name, func(t *testing.T) { fn(t, newStore) })
+	}
 }
 
 func open(t *testing.T, newStore Factory) store.Store {
