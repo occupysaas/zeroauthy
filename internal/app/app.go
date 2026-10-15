@@ -89,6 +89,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
+	if cfg.Email.Driver == "" || cfg.Email.Driver == "log" {
+		log.Warn("email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
+	}
 
 	lockout := time.Duration(cfg.Security.LoginLockoutSeconds) * time.Second
 	return &App{

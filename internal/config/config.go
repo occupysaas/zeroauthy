@@ -70,6 +70,9 @@ type Email struct {
 	From   string `koanf:"from"`   // default "zeroauthy@localhost"
 	Dir    string `koanf:"dir"`
 	SMTP   SMTP   `koanf:"smtp"`
+	// LogLinks makes the log driver print reset links in full. Off by
+	// default: a logged link lets anyone who reads the log reset a password.
+	LogLinks bool `koanf:"log_links"`
 }
 
 type SMTP struct {

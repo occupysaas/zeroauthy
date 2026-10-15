@@ -44,7 +44,7 @@ func New(cfg config.Email, log *slog.Logger) (Mailer, error) {
 	}
 	switch cfg.Driver {
 	case "", "log":
-		return &logMailer{from: header, log: log}, nil
+		return &logMailer{from: header, log: log, showLinks: cfg.LogLinks}, nil
 	case "dir":
 		return &dirMailer{from: header, dir: cfg.Dir}, nil
 	case "smtp":

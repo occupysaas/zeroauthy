@@ -212,3 +212,32 @@ func TestResetPasswordMessage(t *testing.T) {
 		t.Errorf("text part must not be HTML escaped: %q", m.Text)
 	}
 }
+
+// logged sends msg through the log driver and returns the log output.
+func logged(t *testing.T, cfg config.Email) string {
+	t.Helper()
+	var buf strings.Builder
+	m, err := New(cfg, slog.New(slog.NewTextHandler(&buf, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Send(context.Background(), msg); err != nil {
+		t.Fatal(err)
+	}
+	return buf.String()
+}
+
+func TestLogDriverRedactsLinksByDefault(t *testing.T) {
+	out := logged(t, config.Email{Driver: "log", From: "zeroauthy@localhost"})
+	if strings.Contains(out, "abc") || !strings.Contains(out, "ticket=REDACTED") ||
+		!strings.Contains(out, "alice@example.test") || !strings.Contains(out, "Réinitialiser") {
+		t.Fatalf("log output = %s", out)
+	}
+}
+
+func TestLogDriverShowsLinksWhenAsked(t *testing.T) {
+	out := logged(t, config.Email{Driver: "log", From: "zeroauthy@localhost", LogLinks: true})
+	if !strings.Contains(out, "ticket=abc=def") {
+		t.Fatalf("log output = %s", out)
+	}
+}

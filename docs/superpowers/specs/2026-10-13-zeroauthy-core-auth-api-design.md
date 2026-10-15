@@ -349,7 +349,8 @@ storage:
 security:
   master_key_file: /etc/zeroauthy/master.key
 email:
-  driver: smtp                       # or "log"
+  driver: smtp                       # or "log" (default; redacts reset links) or "dir"
+  # log_links: true                  # log driver only: print reset links in full (local development)
   smtp: { host: …, port: 587, username: …, from: "no-reply@example.com" }
 seed: /etc/zeroauthy/seed.yaml       # optional declarative tenants/clients/APIs/connections/users
 ```

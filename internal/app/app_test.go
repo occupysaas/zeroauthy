@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,5 +50,22 @@ func TestHTTPServerTimeouts(t *testing.T) {
 	if srv.ReadHeaderTimeout != 10*time.Second || srv.ReadTimeout != 30*time.Second ||
 		srv.WriteTimeout != 30*time.Second || srv.IdleTimeout != 120*time.Second {
 		t.Errorf("timeouts = header %v read %v write %v idle %v", srv.ReadHeaderTimeout, srv.ReadTimeout, srv.WriteTimeout, srv.IdleTimeout)
+	}
+}
+
+func TestNewWarnsAboutLogEmailDriver(t *testing.T) {
+	for driver, want := range map[string]bool{"log": true, "dir": false} {
+		var buf strings.Builder
+		cfg := &config.Config{Storage: config.Storage{DSN: "memory://"}, Email: config.Email{Driver: driver, Dir: t.TempDir()}}
+		a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(&buf, nil)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		a.Close()
+		got := strings.Contains(buf.String(), "level=WARN") &&
+			strings.Contains(buf.String(), "email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
+		if got != want {
+			t.Errorf("driver %s: warned = %v, log = %s", driver, got, buf.String())
+		}
 	}
 }
