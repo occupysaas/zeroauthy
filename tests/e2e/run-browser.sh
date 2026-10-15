@@ -7,6 +7,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 work="$(mktemp -d)"
+mkdir -p "$work/mail"
+export E2E_MAIL_DIR="$work/mail"
 pids=()
 cleanup() { for p in "${pids[@]}"; do kill "$p" 2>/dev/null || true; done; rm -rf "$work"; }
 trap cleanup EXIT
@@ -28,7 +30,7 @@ chmod 644 "$work/key.pem"
 
 CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
 ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
-  "$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1 &
+  ZEROAUTHY_EMAIL__DIR="$work/mail" "$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1 &
 pids+=($!)
 
 cd tests/e2e
@@ -54,8 +56,8 @@ if [[ $status -eq 0 ]]; then
   if [[ "${E2E_IN_CONTAINER:-0}" == 1 ]]; then
     runtime="$(command -v docker || command -v podman)"
     "$runtime" run --rm --network host --ipc host \
-      -v "$PWD:/e2e" -v "$work:$work:ro" -w /e2e \
-      -e NODE_EXTRA_CA_CERTS="$work/cert.pem" \
+      -v "$PWD:/e2e" -v "$work:$work:ro" -v "$work/mail:$work/mail" -w /e2e \
+      -e NODE_EXTRA_CA_CERTS="$work/cert.pem" -e E2E_MAIL_DIR="$work/mail" \
       mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test || status=$?
   else
     npx playwright install chromium >/dev/null

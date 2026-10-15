@@ -100,3 +100,11 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Spaces around `q =` in Accept-Language are not tolerated.
 - The password-policy alias (`signup.signup.password-policy-not-conformant`) is not variable-checked; a value made only of unknown variables renders an empty alert. Fall back to the specific key when the rendered alias is blank.
 - The strict-key check for the `zeroauthy` prompt is case-sensitive, so `Zeroauthy`/`ZEROAUTHY` typos are accepted and ignored.
+
+## Plan 5 follow-ups
+
+- Email verification emails.
+- MFA (`mfa_required`).
+- Breached-password detection.
+- The `organization` parameter on `change_password`.
+- Move the `change_password` send limit into the store; it is per-process today, which multi-instance deployments need fixed.

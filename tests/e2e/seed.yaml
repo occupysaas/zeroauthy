@@ -10,6 +10,7 @@ tenants:
             title: "Connexion à ${companyName}"
             buttonText: "Continuer"
     domains: ["localhost:8443"]
+    default_directory: Username-Password-Authentication
     resource_servers:
       - identifier: https://api.e2e.local
         name: E2E API
@@ -46,16 +47,26 @@ tenants:
         grant_types: [authorization_code, refresh_token]
         callbacks: ["http://localhost:3000/auth/callback"]
         allowed_logout_urls: ["http://localhost:3000", "http://localhost:3000/"]
+      - client_id: e2e-node
+        name: E2E node-auth0
+        app_type: regular_web
+        client_secret: e2e-node-secret-not-for-production
+        grant_types: [password, "http://auth0.com/oauth/grant-type/password-realm", refresh_token]
     client_grants:
       - client_id: e2e-m2m
         audience: https://api.e2e.local
         scopes: ["read:things"]
     connections:
       - name: Username-Password-Authentication
-        enabled_clients: [e2e-spa, e2e-react, e2e-next]
+        enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node]
     users:
       - connection: Username-Password-Authentication
         email: alice@e2e.local
         password: "Correct-Horse-Battery-9"
         email_verified: true
         name: Alice Example
+      - connection: Username-Password-Authentication
+        email: reset-me@e2e.local
+        password: "Correct-Horse-Battery-9"
+        email_verified: true
+        name: Reset Example

@@ -5,6 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 work="$(mktemp -d)"
+mkdir -p "$work/mail"
+export E2E_MAIL_DIR="$work/mail"
 pid=""
 cleanup() { [[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true; rm -rf "$work"; }
 trap cleanup EXIT
@@ -17,6 +19,7 @@ CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
 
 ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" \
 ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
+ZEROAUTHY_EMAIL__DIR="$work/mail" \
   "$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1 &
 pid=$!
 
@@ -27,7 +30,8 @@ done
 
 status=0
 (cd tests/e2e && npm ci --no-audit --no-fund --silent && \
-  NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m3-client-credentials.mjs) || status=$?
+  NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m3-client-credentials.mjs && \
+  NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m3-db-flows.mjs) || status=$?
 if [[ $status -ne 0 ]]; then
   echo "--- zeroauthy server log ---"
   cat "$work/server.log"

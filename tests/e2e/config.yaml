@@ -7,3 +7,6 @@ seed: tests/e2e/seed.yaml
 log:
   level: debug
   format: text
+email:
+  driver: dir
+  dir: /tmp/zeroauthy-e2e-mail
