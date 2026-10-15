@@ -322,3 +322,25 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Process handling:** the plugin must `exec` and not fork. `Kill` waits for anything that still holds the plugin's stdio, so a forked child would make shutdown hang.
   - **DSN:** `plugin:///absolute/path/to/binary?arg=…&arg=…`. The host must be empty and the path absolute. Each `arg` value is one argv entry, in order. Any other query key is an error that names the key and never a value. No error quotes the DSN, because arguments may carry secrets. Plugin storage is persistent, so `security.master_key` is required; plugin stores have no schema, so the server does not migrate them.
 - **Rationale:** One RPC per method keeps the contract the same as the Go interface, so `storetest` is the single arbiter for in-process, SQL and plugin drivers. Explicit transactions let plugins back the same multi-step operations that SQL drivers do; the stack rule and the idle timer keep a misbehaving or dead host from holding a lock indefinitely.
+
+## D-0022: Custom database connections: Auth0's shape, scripts run in Node.js
+
+- **Context:** Milestone 9 brings Auth0's custom database connections. Spec §5.3 first designed this as zeroauthy-specific HMAC webhooks under a separate `custom-db` strategy. Auth0's public docs describe a database connection (strategy `auth0`) whose options turn on customization, select import mode, and carry the action scripts written in Node.js and their configuration settings.
+- **Sources:** https://auth0.com/docs/authenticate/database-connections/custom-db and its templates, error-handling and best-practice pages; https://auth0.com/docs/manage-users/user-migration/configure-automatic-migration-from-your-database. User decisions, 2026-10-16: follow Auth0's connection shape, and choose any execution model that keeps scripts from reading the system's environment variables.
+- **Decision:**
+  - **Shape:**
+    - The strategy stays `auth0`.
+    - The options use Auth0's names: `enabledDatabaseCustomization`, `import_mode`, `customScripts` (keys `login`, `get_user`, `create`, `verify`, `change_password`, `delete`, `change_email`), `configuration` and `set_user_root_attributes`.
+    - The user ID is `auth0|<user_id returned by the script>`.
+  - **Runtime:**
+    - Scripts run unchanged in a real Node.js process (≥ 22.13), so existing Auth0 scripts, including `require()` of pure-JS npm packages, work as written.
+    - Each tenant gets its own process, started lazily and stopped when idle. The protocol is newline-delimited JSON over stdin and stdout.
+    - Each connection has its own `vm` context with Auth0's globals (`configuration`, `global`, the `WrongUsernameOrPasswordError`, `ValidationError` and `UnauthorizedError` classes, `require`, `fetch`, `console`).
+    - One execution may take 20 s, after which the tenant's process is killed. A script may be at most 100 kB.
+  - **Isolation:**
+    - The process starts with an empty environment.
+    - Configuration reaches it only inside requests on stdin.
+    - Node's permission model (`--permission`) allows file reads only in the runner and operator-modules directories, and grants no child processes, workers, addons or WASI. Neither the host's environment (including `/proc/<ppid>/environ`) nor its files can be read, even by a script that escapes `vm`.
+    - Network access is allowed, because scripts must reach their stores. This is documented as an operator egress concern.
+    - Configuration values are encrypted at rest with the master-key envelope, bound to the tenant and connection.
+- **Rationale:** Parity is the product. Operators migrating from Auth0 can paste their scripts as they are. A process per tenant contains runaway scripts and keeps one tenant's configuration out of another's memory. The empty environment plus the permission model enforce the user's requirement at the OS-process boundary rather than relying on `vm`, which is not a security boundary. The Actions runtime (sub-project 2) can reuse the runner.

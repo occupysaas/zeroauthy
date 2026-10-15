@@ -83,7 +83,8 @@ internal/oauth/                /authorize, /oauth/token (grant handlers), /oauth
                                /oauth/par, /oauth/device/code
 internal/oidc/                 discovery, id_token construction, /userinfo, logout endpoints
 internal/login/                hosted pages (/u/*), login sessions, html/template + embed
-internal/identity/             connection strategies: database, custom-db bridge; password hashing
+internal/identity/             connection strategies: database, custom database (legacy and import mode); password hashing
+internal/customdb/             Node.js runner for custom database action scripts (D-0022)
 internal/email/                Mailer interface; SMTP and log (dev) implementations
 internal/store/                repository interfaces, domain types, Tx
 internal/store/memory/         in-memory driver
@@ -116,7 +117,7 @@ All entities are tenant-scoped (`tenant_id` is part of every key) except `Tenant
 | Client (application) | client_id, secrets[] (hashed, with created/expires for rotation), app_type (spa, regular_web, native, non_interactive), callbacks[], allowed_logout_urls[], web_origins[], allowed_origins[], grant_types[], token_endpoint_auth_method, refresh_token config (rotation, reuse interval, lifetimes), id_token lifetime, enabled connections[] |
 | ResourceServer (API) | id, identifier (audience), name, scopes[], signing_alg (RS256), token_lifetime, token_lifetime_for_web, allow_offline_access, skip_consent_for_verifiable_first_party_clients |
 | ClientGrant | client_id, audience, scopes[] (authorizes client_credentials) |
-| Connection | id, name, strategy (`auth0` database, `custom-db`), enabled_clients[], options (password policy, require username, disable signup, custom-db endpoint config, import mode) |
+| Connection | id, name, strategy (`auth0` database), enabled_clients[], options (password policy, require username, disable signup; custom database: `enabledDatabaseCustomization`, `import_mode`, `customScripts`, sealed `configuration`, `set_user_root_attributes`) |
 | User | user_id (`auth0\|<id>` form for database users), email, email_verified, username, phone, name fields, picture, app_metadata, user_metadata, blocked, created/updated, last_login, logins_count |
 | Identity | user_id, connection, provider, provider user id, credential (password hash, hash algorithm) |
 | LoginSession | id, user_id, authenticated_at, amr, connection, expires, idle_expires, client_ids[] (used for logout and `prompt=none`) |
@@ -161,25 +162,23 @@ Supported versions: PostgreSQL 14+ (tested on 17), MySQL 8.0.17+ (tested on 8.4;
 
 `proto/store/v1` mirrors the repository interfaces as a gRPC service. `pkg/storeplugin.Open` launches the plugin binary through `hashicorp/go-plugin` and handshakes; `grpcstore` is the adapter that turns the gRPC client into a `store.Store` (and the server side that wraps a `store.Store` for plugins). Transactions do cross the plugin boundary: the host opens a remote transaction (`BeginTx`, `Commit`, `Rollback`), which may nest with savepoint semantics, and a plugin's own `WithTx` runs behind it (D-0021; this replaces the earlier "no transactions across the boundary" rule). Go plugin authors use `pkg/storeplugin` (`Serve`, `Open`) and `pkg/store`; other languages implement the protocol directly. Plugin authors run `pkg/storetest` against their driver; CI runs it against a sample plugin backed by the memory driver.
 
-### 5.3 Layer 3: legacy user-store bridge (`custom-db` connection)
+### 5.3 Layer 3: legacy user stores (custom database connections)
 
-This is the equivalent of Auth0's Custom Database Connections, built on webhooks. Each connection configures a base URL and an HMAC signing secret. zeroauthy sends a signed JSON `POST` to these operations:
+This is Auth0's custom database connection, in Auth0's shape (user decision, 2026-10-16; D-0022). It replaces the earlier webhook design. A database connection (strategy `auth0`) with `enabledDatabaseCustomization: true` delegates its users to action scripts in `customScripts`:
 
-| Operation | Purpose |
-|-----------|---------|
-| `login` | Verify credentials, return the user profile |
-| `get_user` | Look up by email or username (signup checks, password reset) |
-| `create` | Create a user in the legacy store |
-| `verify` | Mark the email as verified |
-| `change_password` | Set a new password |
-| `delete` | Remove the user |
+| Script | Called by zeroauthy for |
+|--------|-------------------------|
+| `login(identifier, password, callback)` | Every login in legacy mode; the first login of a user in import mode |
+| `get_user(identifier, callback)` | Signup (does the user exist?) and password reset lookups |
+| `create(user, callback)` | Signup in legacy mode |
+| `change_password(identifier, newPassword, callback)` | Completing a password reset in legacy mode |
+| `verify`, `delete`, `change_email` | Stored and runnable; called once email verification and the Management API exist |
 
-Request and response details:
-- Requests carry `X-Zeroauthy-Signature` (HMAC-SHA256 over timestamp + body) and `X-Zeroauthy-Timestamp`.
-- Responses are JSON profiles.
-- Webhook calls have a timeout of 5 s by default.
+Scripts read the connection's `configuration` settings (secrets, encrypted at rest) and report failures with Auth0's error classes (`WrongUsernameOrPasswordError`, `ValidationError`, `UnauthorizedError`). Profiles become users with ID `auth0|<user_id>` (D-0024); error responses follow D-0023.
 
-**Import mode:** when enabled (`options.import_mode: true`), a user who logs in successfully is copied into zeroauthy's store with their password re-hashed. Later logins use the local store, so the legacy database can be retired gradually. A JS-script variant comes with the Actions runtime in sub-project 2.
+**Runtime:** scripts run unchanged in Node.js ≥ 22.13, one process per tenant, with an empty environment and Node's permission model (no host file reads beyond the runner and operator-modules directories, no child processes). A single execution may take 20 s, and a script may be at most 100 kB. See D-0022 and `docs/custom-db.md`.
+
+**Import mode** (`import_mode: true`): a user who logs in successfully through the `login` script is copied into zeroauthy's store with the password re-hashed (argon2id). From then on the local store answers, so the legacy database can be retired gradually. Signup and reset consult `get_user` but create users locally.
 
 ## 6. Authentication API
 
@@ -356,6 +355,11 @@ email:
   driver: smtp                       # or "log" (default; redacts reset links) or "dir"
   # log_links: true                  # log driver only: print reset links in full (local development)
   smtp: { host: …, port: 587, username: …, from: "no-reply@example.com" }
+custom_db:                           # only needed when a connection uses custom database scripts
+  node: node                         # Node.js >= 22.13
+  modules_dir: /opt/zeroauthy/js     # optional; npm packages scripts may require()
+  max_memory_mb: 256
+  idle_timeout: 5m
 seed: /etc/zeroauthy/seed.yaml       # optional declarative tenants/clients/APIs/connections/users
 ```
 
@@ -406,4 +410,5 @@ Before each milestone's plan is written, review Auth0's public changelog since t
 - **Legal:** API compatibility has generally been treated as permissible, but the clean-room discipline and provenance trail are what protect the project. Get a legal review before the public launch. The project name and branding must not imply affiliation with Auth0.
 - **Undocumented behavior:** exact parity is impossible where Auth0 behavior isn't documented. Each gap is logged as a decision and appears in the public matrix.
 - **SDK drift:** SDK versions are pinned in e2e tests, and a scheduled job runs the latest versions to catch regressions.
+- **Custom database scripts:** they run tenant-supplied code. A process per tenant, an empty environment and Node's permission model contain it (D-0022), but scripts can reach the network, including internal addresses; operators hosting untrusted tenants must restrict egress. Node.js becomes a runtime dependency for tenants that use the feature.
 - **Plugin boundary:** a plugin crash fails storage calls and `/readyz` (`/healthz` is liveness only and stays green) until the server is restarted; automatic plugin restart is a follow-up. Open transactions die with the plugin and are rolled back by its database.

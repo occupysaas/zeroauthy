@@ -35,14 +35,35 @@ Okta products) need no row; the "Reviewed through" date covers them.
 
 | Reviewed on | Reviewed through | By | Notes |
 |---|---|---|---|
-| — | — | — | First review is due before the milestone 9 (`custom-db`) plan; it covers everything since the spec date (2026-10-13), plus earlier entries that affect milestones 1–8 and are not yet in the matrix. |
+| 2026-10-16 | 2026-10-12 (newest entry) | Claude (Plan 8 planning) | First review. Read the whole changelog page back to mid-2025 for entries that affect milestones 1–9 or later sub-projects. No entry changes a behavior zeroauthy already implements. Custom-database items are recorded below; most are later features. |
 
 ## Relevant entries
 
 | Date | Summary | Surface | Impact | Outcome |
 |---|---|---|---|---|
+| 2026-10-01 | Newly issued refresh tokens become longer; integrations should not assume a fixed length | Refresh tokens | none | zeroauthy refresh tokens are opaque and stored hashed; Plan 8 Task 7 adds a matrix note |
+| 2026-04-09 | The hosted "forgot password" call to action was renamed to "reset password" | Hosted login | none | Our copy is original; no change needed |
+| 2026-04-02 | Fields captured by customized signup and login prompts are passed to custom database scripts | Custom DB, hosted login | backlog | Sub-project 2 (custom prompts) |
+| 2026-09-17 | A pre-registration Action can assign a custom `user_id` at signup, including on custom databases with migration (EA) | Signup, custom DB | backlog | Sub-project 2 (Actions) |
+| 2025-07-21 | Passkeys work on custom database connections with import mode off (EA) | Custom DB | backlog | Sub-project 2 (passkeys) |
+| 2025-10-28 | Callback URIs that cannot be verified (custom schemes, loopback) get a login confirmation step, and `prompt=none` is refused for them in some cases | `/authorize` | backlog | Milestone 10 (consent) — decide whether to follow |
+| 2026-01-21 | Editing a connection's `enabled_clients` through the connection object is deprecated in favor of dedicated endpoints | Management API | backlog | Sub-project 3 |
 
 ## Backlog (from the changelog)
 
 | Entry date | Feature, in our words | Target milestone / sub-project | Status |
 |---|---|---|---|
+| 2025-10-28 | Confirmation step for non-verifiable callback URIs; `prompt=none` limits | Milestone 10 | open |
+| 2025-10-10 | Private-key-JWT client assertions must use the issuer string as `aud` | When `private_key_jwt` client auth is added | open |
+| 2025-08-11 / 2026-04-14 | Multi-resource refresh tokens (one refresh token, several APIs) | Later (refresh tokens) | open |
+| 2025-11-07 / 2026-02-10 | Session metadata, carried in back-channel logout tokens | Sub-project 2 | open |
+| 2026-05-11 | Online refresh tokens bound to the session | Later (refresh tokens) | open |
+| 2026-06-11 / 2026-06-22 | Refresh token search, bulk revoke and metadata through the Management API | Sub-project 3 | open |
+| 2025-08-22 / 2026-05-13 | Non-unique emails on new database connections | Sub-project 3 | open |
+| 2026-08-13 | Flexible password policy (new connections default to it) | Sub-project 3 (connections API); zeroauthy keeps the legacy policy shape until then | open |
+| 2026-01-21 | Dedicated endpoints for a connection's enabled clients | Sub-project 3 | open |
+| 2026-05-26 | Federated logout for OIDC and Okta connections | Sub-project 2 | open |
+| 2026-07-20 | Anonymous sessions (`POST /anonymous/token`, beta) | Unassigned | open |
+| 2026-04-02 | Custom prompt fields reach custom database scripts | Sub-project 2 | open |
+| 2026-09-17 | Custom user IDs at signup via a pre-registration Action | Sub-project 2 | open |
+| 2025-07-21 | Passkeys on custom database connections | Sub-project 2 | open |
