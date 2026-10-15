@@ -55,20 +55,29 @@ func NewServer(st store.Store, opts ...ServerOption) *Server {
 	return s
 }
 
-// heldTx is one open transaction. A nested transaction runs on its parent's
-// underlying transaction (a SQL savepoint, a memory snapshot), so every
-// transaction in one tree shares the root's lock: no two calls, and no
-// BeginTx/finish, touch the same underlying transaction at once.
+// txTree is what all transactions of one tree share. A nested transaction
+// runs on its parent's underlying transaction (a SQL savepoint, a memory
+// snapshot), so the tree has one lock: no two calls, and no BeginTx/finish,
+// touch the same underlying transaction at once. The tree also has one idle
+// timer: any activity in the tree restarts it, and when it fires the root is
+// rolled back with everything nested in it.
+type txTree struct {
+	lock  sync.Mutex
+	timer *time.Timer // stopped and reset only under lock; set before the root is registered
+}
+
+// heldTx is one open transaction. A tree is a stack, like the savepoints it
+// maps to: a transaction has at most one open nested transaction, and only
+// the innermost one accepts repository calls and Commit.
 type heldTx struct {
 	id     string
 	parent *heldTx
-	lock   *sync.Mutex // the root's; shared by the whole tree
+	tree   *txTree
 	st     store.Store
-	kids   map[string]*heldTx // nested transactions not yet ended (guarded by Server.mu)
-	end    chan error         // nil = commit, errRollback = rollback
-	result chan error         // the store's WithTx result
-	done   chan struct{}      // closed once WithTx has returned and h left its parent's kids
-	timer  *time.Timer        // the idle timer; stopped and reset only under lock
+	child  *heldTx       // the open nested transaction (guarded by Server.mu)
+	end    chan error    // nil = commit, errRollback = rollback
+	result chan error    // the store's WithTx result
+	done   chan struct{} // closed once WithTx has returned and h left its parent
 	cancel context.CancelFunc
 }
 
@@ -78,7 +87,12 @@ func newTxID() string {
 	return hex.EncodeToString(b[:])
 }
 
-// BeginTx opens a transaction, nested in ParentTxId when it is set.
+// BeginTx opens a transaction, nested in ParentTxId when it is set. A parent
+// that already has an open nested transaction is refused (errOpenChild).
+//
+// A root BeginTx stops waiting for the store when ctx is done. A nested one
+// waits for the tree lock (an in-flight call in the tree) without honouring
+// ctx; it is quick once it holds the lock.
 func (s *Server) BeginTx(ctx context.Context, r *storev1.BeginTxRequest) (*storev1.BeginTxResponse, error) {
 	fail := func(err error) (*storev1.BeginTxResponse, error) {
 		return &storev1.BeginTxResponse{Error: errToPB(err)}, nil
@@ -94,6 +108,10 @@ func (s *Server) BeginTx(ctx context.Context, r *storev1.BeginTxRequest) (*store
 			s.mu.Unlock()
 			return fail(errUnknownTx)
 		}
+		if parent.child != nil { // fast path; rechecked at registration
+			s.mu.Unlock()
+			return fail(errOpenChild)
+		}
 	}
 	s.wg.Add(1) // under mu while open, so Close's Wait never races an Add
 	s.mu.Unlock()
@@ -104,23 +122,23 @@ func (s *Server) BeginTx(ctx context.Context, r *storev1.BeginTxRequest) (*store
 		}
 	}()
 
-	base, lock := s.st, &sync.Mutex{}
+	base, tree := s.st, &txTree{}
 	if parent != nil {
-		base, lock = parent.st, parent.lock
+		base, tree = parent.st, parent.tree
 	}
-	lock.Lock() // the nested WithTx issues its savepoint on the shared transaction
-	defer lock.Unlock()
+	tree.lock.Lock() // the nested WithTx issues its savepoint on the shared transaction
+	defer tree.lock.Unlock()
 	if parent != nil {
-		// Beginning a nested transaction is activity on its ancestors. A
-		// stopped timer means an ancestor is ending.
-		if !stopTimers(parent) {
+		// Beginning a nested transaction is activity in the tree. A timer
+		// that is not running means the tree is being rolled back.
+		if !tree.timer.Stop() {
 			return fail(errUnknownTx)
 		}
-		defer s.resetTimers(parent)
+		defer tree.timer.Reset(s.idle)
 	}
 
 	txCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
-	h := &heldTx{id: newTxID(), parent: parent, lock: lock, kids: map[string]*heldTx{},
+	h := &heldTx{id: newTxID(), parent: parent, tree: tree,
 		end: make(chan error, 1), result: make(chan error, 1), done: make(chan struct{}), cancel: cancel}
 	ready := make(chan struct{})
 	started = true
@@ -153,12 +171,14 @@ func (s *Server) BeginTx(ctx context.Context, r *storev1.BeginTxRequest) (*store
 	}
 
 	s.mu.Lock()
-	err := errClosed
-	if !s.closed {
-		err = nil
-		if parent != nil && s.txs[parent.id] != parent {
-			err = errUnknownTx // the parent ended while this one began
-		}
+	var err error
+	switch {
+	case s.closed:
+		err = errClosed
+	case parent != nil && s.txs[parent.id] != parent:
+		err = errUnknownTx // the parent ended while this one began
+	case parent != nil && parent.child != nil:
+		err = errOpenChild // a sibling registered first
 	}
 	if err != nil {
 		s.mu.Unlock()
@@ -167,23 +187,24 @@ func (s *Server) BeginTx(ctx context.Context, r *storev1.BeginTxRequest) (*store
 		cancel()
 		return fail(err)
 	}
-	h.timer = time.AfterFunc(s.idle, func() { _ = s.finish(h.id, errRollback) })
-	s.txs[h.id] = h
-	if parent != nil {
-		parent.kids[h.id] = h
+	if parent == nil {
+		tree.timer = time.AfterFunc(s.idle, func() { _ = s.finish(h.id, errRollback) })
+	} else {
+		parent.child = h
 	}
+	s.txs[h.id] = h
 	s.mu.Unlock()
 	return &storev1.BeginTxResponse{TxId: h.id}, nil
 }
 
 // finish ends transaction id with signal (nil commits, errRollback rolls
 // back) and returns the store's result; a rollback is not an error. Commit
-// refuses while nested transactions are open; Rollback first rolls back the
-// open nested transactions, innermost first.
+// refuses while a nested transaction is open; Rollback first rolls back the
+// open nested chain, innermost first.
 //
 // A transaction leaves Server.txs before its WithTx ends (no new calls
-// reach it) but leaves its parent's kids only after (the parent cannot end
-// while the nested WithTx still runs on its transaction).
+// reach it) but leaves its parent only after (the parent cannot end while
+// the nested WithTx still runs on its transaction).
 func (s *Server) finish(id string, signal error) error {
 	s.mu.Lock()
 	h := s.txs[id]
@@ -191,20 +212,15 @@ func (s *Server) finish(id string, signal error) error {
 		s.mu.Unlock()
 		return errUnknownTx
 	}
-	for len(h.kids) > 0 {
+	for h.child != nil {
 		if signal == nil {
 			s.mu.Unlock()
 			return errOpenChild
 		}
-		kids := make([]*heldTx, 0, len(h.kids))
-		for _, k := range h.kids {
-			kids = append(kids, k)
-		}
+		k := h.child
 		s.mu.Unlock()
-		for _, k := range kids {
-			_ = s.finish(k.id, errRollback) // unknown if already ending
-			<-k.done
-		}
+		_ = s.finish(k.id, errRollback) // rolls back k's own chain first; unknown if already ending
+		<-k.done
 		s.mu.Lock()
 		if s.txs[id] != h { // finished concurrently (e.g. the idle timer)
 			s.mu.Unlock()
@@ -214,18 +230,22 @@ func (s *Server) finish(id string, signal error) error {
 	delete(s.txs, id)
 	s.mu.Unlock()
 
-	h.lock.Lock() // wait for an in-flight call in this tree
-	h.timer.Stop()
+	t := h.tree
+	t.lock.Lock() // wait for an in-flight call in this tree
+	if h.parent == nil {
+		t.timer.Stop()
+	} else if t.timer.Stop() { // ending a nested transaction is activity in the tree
+		t.timer.Reset(s.idle)
+	}
 	h.end <- signal
 	err := <-h.result
-	h.lock.Unlock()
-	h.cancel()
-
 	if h.parent != nil {
-		s.mu.Lock()
-		delete(h.parent.kids, id)
+		s.mu.Lock() // tree lock, then Server.mu: the permitted order
+		h.parent.child = nil
 		s.mu.Unlock()
 	}
+	t.lock.Unlock()
+	h.cancel()
 	close(h.done)
 	if errors.Is(err, errRollback) {
 		return nil
@@ -233,12 +253,15 @@ func (s *Server) finish(id string, signal error) error {
 	return err
 }
 
-// Commit commits a transaction; a nested one releases its savepoint.
+// Commit commits a transaction; a nested one releases its savepoint. It
+// waits for the tree lock (an in-flight call in the tree) without
+// honouring ctx.
 func (s *Server) Commit(_ context.Context, r *storev1.EndTxRequest) (*storev1.Result, error) {
 	return &storev1.Result{Error: errToPB(s.finish(r.TxId, nil))}, nil
 }
 
-// Rollback rolls a transaction back with its nested transactions.
+// Rollback rolls a transaction back with its open nested chain, innermost
+// first. It waits for the tree lock without honouring ctx.
 func (s *Server) Rollback(_ context.Context, r *storev1.EndTxRequest) (*storev1.Result, error) {
 	return &storev1.Result{Error: errToPB(s.finish(r.TxId, errRollback))}, nil
 }
@@ -268,9 +291,9 @@ func (s *Server) Close() {
 }
 
 // with runs f against the store a request addresses: the base store, or
-// the held transaction txID. Calls in one transaction tree are serialized,
-// and each call restarts the idle timers of the transaction and its
-// ancestors.
+// the held transaction txID. Only the innermost transaction of a tree
+// accepts calls (errOpenChild otherwise). Calls in one tree are serialized,
+// and each restarts the tree's idle timer.
 func (s *Server) with(txID string, f func(store.Store) error) error {
 	if txID == "" {
 		return f(s.st)
@@ -281,33 +304,22 @@ func (s *Server) with(txID string, f func(store.Store) error) error {
 	if h == nil {
 		return errUnknownTx
 	}
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	if !stopTimers(h) { // a timer already fired or finish stopped it: it is ending
+	t := h.tree
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	// Under the tree lock no nested transaction can begin or end, so this
+	// answer holds for the whole call.
+	s.mu.Lock()
+	live, child := s.txs[txID] == h, h.child
+	s.mu.Unlock()
+	switch {
+	case !live:
+		return errUnknownTx
+	case child != nil:
+		return errOpenChild
+	case !t.timer.Stop(): // the idle timer fired: the tree is being rolled back
 		return errUnknownTx
 	}
-	defer s.resetTimers(h)
+	defer t.timer.Reset(s.idle)
 	return f(h.st)
-}
-
-// stopTimers stops the idle timers of h and its ancestors so that none
-// fires during a call. It reports false if one was not running, which
-// means that transaction is ending (its timer fired, or finish stopped it).
-// The caller holds the tree lock.
-func stopTimers(h *heldTx) bool {
-	for n := h; n != nil; n = n.parent {
-		if !n.timer.Stop() {
-			return false
-		}
-	}
-	return true
-}
-
-// resetTimers restarts the timers stopTimers stopped. The caller holds the
-// tree lock; a transaction that started ending meanwhile stops its own
-// timer again once it holds the tree lock.
-func (s *Server) resetTimers(h *heldTx) {
-	for n := h; n != nil; n = n.parent {
-		n.timer.Reset(s.idle)
-	}
 }
