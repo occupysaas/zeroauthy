@@ -305,6 +305,7 @@ type ResetRequestData struct {
 	State, CSRF, Email string
 	LoginURL           string
 	RedirectURI        string // the client's callback; its origin is allowed as form-action
+	Error              string
 }
 
 // ResetFormData is the new-password form (screen reset-password).

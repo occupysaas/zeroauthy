@@ -1,6 +1,7 @@
 {{define "title"}}{{t .Tenant.L "reset-password.reset-password-request.title"}}{{end}}
 {{define "description"}}{{t .Tenant.L "reset-password.reset-password-request.descriptionEmail"}}{{end}}
 {{define "content"}}
+{{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
 <form method="post" action="/u/reset-password/request" novalidate>
 <input type="hidden" name="state" value="{{.Data.State}}">
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">

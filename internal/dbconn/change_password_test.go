@@ -103,3 +103,17 @@ func TestChangePasswordSendLimit(t *testing.T) {
 		t.Fatalf("sent %d emails, want 2 (the third is silently skipped)", len(e.mail.sent))
 	}
 }
+
+func TestChangePasswordIPThrottle(t *testing.T) {
+	e := newEnv(t)
+	e.h.IPThrottle = identity.NewThrottle(2, time.Hour, time.Hour)
+	var code int
+	var body map[string]any
+	for range 3 {
+		code, body, _ = e.post(t, "/dbconnections/change_password", "application/json",
+			`{"connection":"Username-Password-Authentication","email":"alice@acme.test"}`)
+	}
+	if code != 429 || body["error"] != "too_many_requests" || len(e.mail.sent) != 2 {
+		t.Fatalf("third request = %d %v, sent %d", code, body, len(e.mail.sent))
+	}
+}

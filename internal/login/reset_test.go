@@ -280,6 +280,26 @@ func TestResetRequestUsernameSendsNothing(t *testing.T) {
 	}
 }
 
+// The forgot-password form counts against the per-IP limit; once it is
+// reached the form is shown again with 429, whatever the address.
+func TestResetRequestIPThrottle(t *testing.T) {
+	e := newEnv(t)
+	e.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	var rec *httptest.ResponseRecorder
+	for _, addr := range []string{"nobody@acme.test", "nobody2@acme.test", "alice@acme.test"} {
+		rec = b.do(t, "POST", "/u/reset-password/request", url.Values{"state": {state}, "csrf": {csrf}, "email": {addr}})
+	}
+	if rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "Too many attempts") ||
+		!strings.Contains(rec.Body.String(), `action="/u/reset-password/request"`) {
+		t.Fatalf("third request = %d %s", rec.Code, rec.Body)
+	}
+	if len(e.mail.sent) != 0 {
+		t.Fatalf("sent %d emails while throttled", len(e.mail.sent))
+	}
+}
+
 func TestLoginPageWithoutResets(t *testing.T) {
 	e := newEnv(t)
 	e.h.Resets = nil

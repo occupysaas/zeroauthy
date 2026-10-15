@@ -252,7 +252,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Email:** it is sent in the background, so response time does not depend on mail delivery.
   - **Throttling:**
     - **Send limit:** at most 3 emails per user per hour. Extra requests still return 200 without sending.
-    - **Request limit:** requests are limited per IP.
+    - **Request limit:** requests to `change_password` and to the hosted "Forgot password?" form are limited per IP (429 once the limit is reached; the hosted form is shown again with a "too many attempts" message).
   - **Blocked users:** they get the 200 response but no email.
   - **Completing a reset:**
     - **Password:** sets a new argon2id hash.

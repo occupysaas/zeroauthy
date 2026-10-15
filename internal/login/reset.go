@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -43,7 +44,8 @@ func (h *Handlers) ResetRequestPage(w http.ResponseWriter, r *http.Request) {
 // ResetRequestSubmit serves POST /u/reset-password/request. It always shows
 // the same page, so the response does not reveal whether the address has an
 // account; the link is emailed only to an existing, unblocked user within
-// the send limit.
+// the send limit. Requests count against the per-IP limit; a throttled one
+// gets the form again with 429.
 func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 	if h.Resets == nil {
 		http.NotFound(w, r)
@@ -51,6 +53,14 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	f, ok := h.postedFlow(w, r)
 	if !ok {
+		return
+	}
+	// Each request counts against the per-IP limit shared with the login
+	// form. The throttled page says nothing about the address.
+	if !h.IPThrottle.Attempt(identity.IPThrottleKey(f.res.Tenant.ID, httpx.ClientIP(r, h.TrustProxyHeaders))) {
+		data := h.resetRequestData(f, r.PostForm.Get("email"))
+		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
+		ui.RenderResetRequest(w, http.StatusTooManyRequests, f.view, data)
 		return
 	}
 	ctx := r.Context()
