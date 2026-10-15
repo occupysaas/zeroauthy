@@ -93,7 +93,8 @@ func parseDSN(dsn string) (dialect, string, error) {
 		for k, v := range u.Query() {
 			cfg.Params[k] = v[len(v)-1]
 		}
-		cfg.ParseTime = false // never let the DSN override: times are BIGINT
+		cfg.ParseTime = false      // never let the DSN override: times are BIGINT
+		cfg.ClientFoundRows = true // RowsAffected counts matched rows, so an unchanged UPDATE is not "not found"
 		cfg.Params["sql_mode"] = "'STRICT_ALL_TABLES,NO_ZERO_DATE'"
 		cfg.Params["time_zone"] = "'+00:00'"
 		return dMySQL, cfg.FormatDSN(), nil
