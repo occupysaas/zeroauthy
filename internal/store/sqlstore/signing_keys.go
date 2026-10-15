@@ -63,7 +63,7 @@ func (r signingKeys) Rotate(ctx context.Context, tenantID string, next *store.Si
 	if next.TenantID != tenantID {
 		return fmt.Errorf("store: rotate needs a key for tenant %q", tenantID)
 	}
-	return r.s.atomic(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, func(tx *Store) error {
 		// Serialize Rotates of a tenant on one deterministic lock, the
 		// tenant row, and drain it only to wait. Later statements then see
 		// the previous Rotate's committed state (a fresh snapshot on

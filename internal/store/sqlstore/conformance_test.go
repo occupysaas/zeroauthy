@@ -2,6 +2,7 @@ package sqlstore
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -55,6 +56,13 @@ func TestUsersUpdateUnchangedTwice(t *testing.T) {
 				if err := s.Users().Update(ctx, u); err != nil {
 					t.Fatalf("Update #%d: %v", i+1, err)
 				}
+			}
+			got, err := s.Users().Get(ctx, u.TenantID, u.UserID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, u) {
+				t.Fatalf("got %+v, want %+v", got, u)
 			}
 		})
 	}

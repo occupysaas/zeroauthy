@@ -2,6 +2,7 @@ package storetest
 
 import (
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -33,4 +34,23 @@ func mustEqual(t *testing.T, got, want any) {
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("mismatch (-want +got):\n%s", diff)
 	}
+}
+
+// parallel runs f(0..n-1) concurrently, released together, and returns the
+// errors by index. f must not call t.Fatal; callers assert on the results.
+func parallel(n int, f func(i int) error) []error {
+	errs := make([]error, n)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			errs[i] = f(i)
+		}()
+	}
+	close(start)
+	wg.Wait()
+	return errs
 }

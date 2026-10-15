@@ -1,9 +1,11 @@
 package sqlstore
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -21,37 +23,82 @@ func (r users) Create(ctx context.Context, u *store.User) error {
 	if err != nil {
 		return err
 	}
-	return r.s.atomic(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, func(tx *Store) error {
 		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
-		return putLogins(ctx, tx, u)
+		return putLogins(ctx, tx, u, false)
 	})
 }
 
-// putLogins replaces the user's rows in user_logins. A duplicate value on
-// the same connection is a unique violation, mapped to ErrConflict; the
-// first violation ends the call (the caller's transaction rolls back).
-// Values are inserted in a fixed order so concurrent writers wait on each
-// other's rows in the same sequence.
-func putLogins(ctx context.Context, tx *Store, u *store.User) error {
-	if _, err := tx.exec(ctx, `DELETE FROM user_logins WHERE tenant_id = ? AND user_id = ?`, u.TenantID, u.UserID); err != nil {
-		return err
-	}
-	seen := map[string]bool{}
+// login is one row of user_logins, minus tenant and user.
+type login struct{ connection, kind, value string }
+
+// desiredLogins is the sorted, deduplicated set of login rows for u.
+func desiredLogins(u *store.User) []login {
+	var out []login
 	for _, id := range u.Identities {
-		if seen[id.Connection] {
+		for _, l := range [...]login{{id.Connection, "email", u.Email}, {id.Connection, "username", u.Username}} {
+			if l.value != "" {
+				out = append(out, l)
+			}
+		}
+	}
+	slices.SortFunc(out, func(a, b login) int {
+		return cmp.Or(cmp.Compare(a.connection, b.connection), cmp.Compare(a.kind, b.kind), cmp.Compare(a.value, b.value))
+	})
+	return slices.Compact(out)
+}
+
+// putLogins brings the user's rows in user_logins to the desired set. When
+// existing is false (Create) it only inserts. Otherwise it reads the current
+// rows (safe: the caller holds the users row), inserts the added rows first
+// and then deletes the removed ones, both in primary-key order. It never
+// runs a DELETE by user_id or any predicate that can match nothing: on MySQL
+// that takes gap locks and deadlocks concurrent writers. A duplicate value on
+// the same connection is a unique violation, mapped to ErrConflict; the
+// first violation ends the call and the caller's transaction rolls back.
+func putLogins(ctx context.Context, tx *Store, u *store.User, existing bool) error {
+	want := desiredLogins(u)
+	var have []login
+	if existing {
+		rows, err := tx.query(ctx, `SELECT connection, kind, value FROM user_logins WHERE tenant_id = ? AND user_id = ?`, u.TenantID, u.UserID)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var l login
+			if err := rows.Scan(&l.connection, &l.kind, &l.value); err != nil {
+				rows.Close()
+				return err
+			}
+			have = append(have, l)
+		}
+		err = rows.Err()
+		rows.Close() // release the single SQLite connection before writing
+		if err != nil {
+			return err
+		}
+	}
+	for _, l := range want {
+		if slices.Contains(have, l) {
 			continue
 		}
-		seen[id.Connection] = true
-		for _, l := range [...]struct{ kind, value string }{{"email", u.Email}, {"username", u.Username}} {
-			if l.value == "" {
-				continue
-			}
-			if _, err := tx.exec(ctx, `INSERT INTO user_logins (tenant_id, connection, kind, value, user_id) VALUES (?,?,?,?,?)`,
-				u.TenantID, id.Connection, l.kind, l.value, u.UserID); err != nil {
-				return tx.conflict(err)
-			}
+		if _, err := tx.exec(ctx, `INSERT INTO user_logins (tenant_id, connection, kind, value, user_id) VALUES (?,?,?,?,?)`,
+			u.TenantID, l.connection, l.kind, l.value, u.UserID); err != nil {
+			return tx.conflict(err)
+		}
+	}
+	slices.SortFunc(have, func(a, b login) int {
+		return cmp.Or(cmp.Compare(a.connection, b.connection), cmp.Compare(a.kind, b.kind), cmp.Compare(a.value, b.value))
+	})
+	for _, l := range have {
+		if slices.Contains(want, l) {
+			continue
+		}
+		if _, err := tx.exec(ctx, `DELETE FROM user_logins WHERE tenant_id = ? AND connection = ? AND kind = ? AND value = ?`,
+			u.TenantID, l.connection, l.kind, l.value); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -70,7 +117,7 @@ func (r users) Update(ctx context.Context, u *store.User) error {
 	if err != nil {
 		return err
 	}
-	return r.s.atomic(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, func(tx *Store) error {
 		// Login stats are owned by RecordLogin; Update never changes them.
 		// Relies on MySQL clientFoundRows so an unchanged row still counts.
 		res, err := tx.exec(ctx, `UPDATE users SET email=?, email_verified=?, username=?, name=?, nickname=?, picture=?,
@@ -84,7 +131,7 @@ func (r users) Update(ctx context.Context, u *store.User) error {
 		if err := expectRow(res); err != nil {
 			return err
 		}
-		return putLogins(ctx, tx, u)
+		return putLogins(ctx, tx, u, true)
 	})
 }
 
@@ -114,7 +161,7 @@ func (r users) RecordLogin(ctx context.Context, tenantID, userID string, at time
 }
 
 func (r users) SetPasswordHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error {
-	return r.s.atomic(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, func(tx *Store) error {
 		var raw string
 		err := tx.queryRow(ctx, `SELECT identities FROM users WHERE tenant_id=? AND user_id=?`+tx.d.forUpdate, tenantID, userID).Scan(&raw)
 		if errors.Is(err, sql.ErrNoRows) {

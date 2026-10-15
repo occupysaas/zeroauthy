@@ -47,7 +47,7 @@ func (r clientGrants) Update(ctx context.Context, g *store.ClientGrant) error {
 	if err != nil {
 		return err
 	}
-	return r.s.atomic(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, func(tx *Store) error {
 		var clientID, audience string
 		err := tx.queryRow(ctx, `SELECT client_id, audience FROM client_grants WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate,
 			g.TenantID, g.ID).Scan(&clientID, &audience)

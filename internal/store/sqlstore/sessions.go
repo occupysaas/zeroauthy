@@ -55,7 +55,7 @@ func (r sessions) Touch(ctx context.Context, tenantID, id string, idleExpiresAt 
 }
 
 func (r sessions) AddClient(ctx context.Context, tenantID, id, clientID string) error {
-	return r.s.atomic(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, func(tx *Store) error {
 		var raw string
 		err := tx.queryRow(ctx, `SELECT client_ids FROM sessions WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate, tenantID, id).Scan(&raw)
 		if errors.Is(err, sql.ErrNoRows) {

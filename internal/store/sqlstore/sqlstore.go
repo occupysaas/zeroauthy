@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math/rand/v2"
 	"net"
 	"net/url"
 	"strings"
@@ -119,6 +120,8 @@ func (s *Store) queryRow(ctx context.Context, q string, args ...any) *sql.Row {
 // (the nested call joins the outer transaction). fn must use t, never s: with
 // SQLite's single connection, touching the pool from inside a transaction
 // would deadlock. An error or panic from fn rolls the transaction back.
+// atomic never retries: fn may have side effects, so the public WithTx (which
+// is built on it) does not retry either. Repository writes use atomicRetry.
 func (s *Store) atomic(ctx context.Context, fn func(t *Store) error) error {
 	if s.tx != nil {
 		return fn(s)
@@ -150,3 +153,27 @@ func (s *Store) conflict(err error) error {
 
 func (s *Store) Ping(ctx context.Context) error { return s.db.PingContext(ctx) }
 func (s *Store) Close() error                   { return s.db.Close() }
+
+// atomicRetry is atomic for repository write methods: the outermost call
+// retries up to 3 attempts when the database aborts the transaction as a
+// deadlock or serialization failure, with a short jittered backoff. fn must
+// be safe to re-run (repository methods only touch the database). A nested
+// call, already inside a transaction, never retries; it just propagates.
+func (s *Store) atomicRetry(ctx context.Context, fn func(t *Store) error) error {
+	if s.tx != nil {
+		return s.atomic(ctx, fn)
+	}
+	const attempts = 3
+	var err error
+	for i := range attempts {
+		if err = s.atomic(ctx, fn); err == nil || !s.d.isDeadlock(err) || i == attempts-1 {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(time.Duration(5+rand.IntN(20*(i+1))) * time.Millisecond):
+		}
+	}
+	return err
+}

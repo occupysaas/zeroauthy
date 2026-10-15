@@ -60,3 +60,18 @@ func (d dialect) isUniqueViolation(err error) bool {
 	}
 	return false
 }
+
+// isDeadlock reports whether err is a deadlock or serialization failure the
+// database resolved by aborting the transaction: MySQL 1213, PostgreSQL
+// 40P01 and 40001.
+func (d dialect) isDeadlock(err error) bool {
+	var pg *pgconn.PgError
+	if errors.As(err, &pg) {
+		return pg.Code == "40P01" || pg.Code == "40001"
+	}
+	var my *mysql.MySQLError
+	if errors.As(err, &my) {
+		return my.Number == 1213
+	}
+	return false
+}

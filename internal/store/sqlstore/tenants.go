@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -26,7 +28,7 @@ func prefixed(p, cols string) string {
 }
 
 func (r tenants) Create(ctx context.Context, t *store.Tenant) error {
-	return r.s.atomic(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, func(tx *Store) error {
 		args, err := tenantArgs(t)
 		if err != nil {
 			return err
@@ -34,27 +36,74 @@ func (r tenants) Create(ctx context.Context, t *store.Tenant) error {
 		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
-		return tenants{tx}.putDomains(ctx, t.ID, t.Domains)
+		return tenants{tx}.putDomains(ctx, t.ID, t.Domains, false)
 	})
 }
 
-// putDomains replaces a tenant's domains. A domain owned by another tenant
-// violates the primary key; that error ends the call, so the failed statement
-// never has to be survived by the transaction.
-func (r tenants) putDomains(ctx context.Context, id string, domains []string) error {
-	if _, err := r.s.exec(ctx, `DELETE FROM tenant_domains WHERE tenant_id = ?`, id); err != nil {
-		return err
-	}
+// putDomains brings a tenant's domains to the given ordered list. When
+// existing is false (Create) it only inserts. Otherwise it reads the current
+// rows (the tenants row is already locked), then inserts the added domains,
+// re-positions the kept ones and deletes the removed ones, all by primary key
+// in sorted order; it never deletes by tenant_id, which takes gap locks on
+// MySQL. A domain owned by another tenant violates the primary key; that
+// error ends the call, so the failed statement never has to be survived by
+// the transaction. A repeated domain in the list is a conflict.
+func (r tenants) putDomains(ctx context.Context, id string, domains []string, existing bool) error {
+	want := make(map[string]int, len(domains))
 	for i, d := range domains {
-		if _, err := r.s.exec(ctx, `INSERT INTO tenant_domains (domain, tenant_id, position) VALUES (?, ?, ?)`, d, id, i); err != nil {
-			return r.s.conflict(err)
+		if _, dup := want[d]; dup {
+			return store.ErrConflict
+		}
+		want[d] = i
+	}
+	have := map[string]int{}
+	if existing {
+		rows, err := r.s.query(ctx, `SELECT domain, position FROM tenant_domains WHERE tenant_id = ?`, id)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var d string
+			var p int
+			if err := rows.Scan(&d, &p); err != nil {
+				rows.Close()
+				return err
+			}
+			have[d] = p
+		}
+		err = rows.Err()
+		rows.Close() // release the single SQLite connection before writing
+		if err != nil {
+			return err
+		}
+	}
+	sorted := slices.Sorted(maps.Keys(want))
+	for _, d := range sorted {
+		p, ok := have[d]
+		switch {
+		case !ok:
+			if _, err := r.s.exec(ctx, `INSERT INTO tenant_domains (domain, tenant_id, position) VALUES (?, ?, ?)`, d, id, want[d]); err != nil {
+				return r.s.conflict(err)
+			}
+		case p != want[d]:
+			if _, err := r.s.exec(ctx, `UPDATE tenant_domains SET position = ? WHERE domain = ?`, want[d], d); err != nil {
+				return err
+			}
+		}
+	}
+	for _, d := range slices.Sorted(maps.Keys(have)) {
+		if _, kept := want[d]; kept {
+			continue
+		}
+		if _, err := r.s.exec(ctx, `DELETE FROM tenant_domains WHERE domain = ?`, d); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
-	return r.s.atomic(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, func(tx *Store) error {
 		args, err := tenantArgs(t)
 		if err != nil {
 			return err
@@ -68,7 +117,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 		if err := expectRow(res); err != nil {
 			return err
 		}
-		return tenants{tx}.putDomains(ctx, t.ID, t.Domains)
+		return tenants{tx}.putDomains(ctx, t.ID, t.Domains, true)
 	})
 }
 

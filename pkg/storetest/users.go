@@ -2,6 +2,8 @@ package storetest
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -154,5 +156,62 @@ func testUsers(t *testing.T, newStore Factory) {
 		mustEqual(t, got.Name, "Alice Renamed")
 		mustEqual(t, got.LoginsCount, 1)
 		mustEqual(t, got.LastLogin != nil && got.LastLogin.Equal(ts(time.Hour)), true)
+	})
+
+	t.Run("ConcurrentCreateDistinct", func(t *testing.T) {
+		s := open(t, newStore)
+		for i, err := range parallel(16, func(i int) error {
+			return s.Users().Create(ctx, newUser("ten_a", fmt.Sprint("u", i), fmt.Sprintf("e%d@example.test", i), fmt.Sprint("name", i)))
+		}) {
+			if err != nil {
+				t.Errorf("create %d: %v", i, err)
+			}
+		}
+	})
+
+	t.Run("ConcurrentCreateSameLogin", func(t *testing.T) {
+		s := open(t, newStore)
+		errs := parallel(16, func(i int) error {
+			u := newUser("ten_a", fmt.Sprint("u", i), "same@example.test", fmt.Sprint("name", i))
+			u.Identities = []store.Identity{{Connection: "A", Provider: store.StrategyDatabase, UserID: u.UserID}, {Connection: "B", Provider: store.StrategyDatabase, UserID: u.UserID}}
+			if i%2 == 1 {
+				u.Identities[0], u.Identities[1] = u.Identities[1], u.Identities[0]
+			}
+			return s.Users().Create(ctx, u)
+		})
+		ok := 0
+		for i, err := range errs {
+			switch {
+			case err == nil:
+				ok++
+			case !errors.Is(err, store.ErrConflict):
+				t.Errorf("create %d: want ErrConflict, got %v", i, err)
+			}
+		}
+		if ok != 1 {
+			t.Errorf("%d creates succeeded, want exactly 1", ok)
+		}
+	})
+
+	t.Run("CrossedUpdateConflicts", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "a", "a@example.test", "")))
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "b", "b@example.test", "")))
+		errs := parallel(2, func(i int) error {
+			if i == 0 {
+				return s.Users().Update(ctx, newUser("ten_a", "a", "b@example.test", ""))
+			}
+			return s.Users().Update(ctx, newUser("ten_a", "b", "a@example.test", ""))
+		})
+		for i, err := range errs {
+			if !errors.Is(err, store.ErrConflict) {
+				t.Errorf("update %d: want ErrConflict, got %v", i, err)
+			}
+		}
+		for id, email := range map[string]string{"a": "a@example.test", "b": "b@example.test"} {
+			got, err := s.Users().Get(ctx, "ten_a", "auth0|"+id)
+			mustNoErr(t, err)
+			mustEqual(t, got.Email, email)
+		}
 	})
 }

@@ -2,6 +2,7 @@ package storetest
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -28,6 +29,17 @@ func newTenant(name string) *store.Tenant {
 
 func testTenants(t *testing.T, newStore Factory) {
 	ctx := context.Background()
+
+	t.Run("ConcurrentCreateDistinct", func(t *testing.T) {
+		s := open(t, newStore)
+		for i, err := range parallel(16, func(i int) error {
+			return s.Tenants().Create(ctx, newTenant(fmt.Sprint("t", i)))
+		}) {
+			if err != nil {
+				t.Errorf("create %d: %v", i, err)
+			}
+		}
+	})
 
 	t.Run("CustomTextIsCopied", func(t *testing.T) {
 		s := open(t, newStore)
