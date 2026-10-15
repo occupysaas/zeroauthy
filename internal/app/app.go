@@ -89,7 +89,6 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
-	_ = mailer // Task 5 passes the mailer to server.Deps.
 
 	lockout := time.Duration(cfg.Security.LoginLockoutSeconds) * time.Second
 	return &App{
@@ -102,6 +101,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Resolver: tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),
 			Sessions: &session.Manager{Store: st},
 			Log:      log,
+			Mailer:   mailer,
 
 			UserThrottle:      identity.NewThrottle(cfg.Security.LoginMaxAttempts, lockout, lockout),
 			IPThrottle:        identity.NewThrottle(10*cfg.Security.LoginMaxAttempts, lockout, lockout),

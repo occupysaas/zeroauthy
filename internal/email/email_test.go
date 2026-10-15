@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 var msg = Message{To: "alice@example.test", Subject: "Réinitialiser", Text: "Open https://a.test/u/reset-password?ticket=abc=def", HTML: "<p>Open</p>"}
@@ -187,5 +189,26 @@ func TestBodyCRLFNotDoubled(t *testing.T) {
 	}
 	if strings.Contains(string(raw), "\r\r") {
 		t.Errorf("doubled CR in %q", raw)
+	}
+}
+
+func TestResetPasswordMessage(t *testing.T) {
+	tn := &store.Tenant{Name: "acme", FriendlyName: "Acme <b>Co</b>"}
+	link := "https://acme.test/u/reset-password?ticket=abc"
+	m := ResetPassword(i18n.New(tn, "en"), link)
+	if m.Subject != "Reset your Acme <b>Co</b> password" {
+		t.Errorf("subject = %q", m.Subject)
+	}
+	if !strings.Contains(m.Text, link) || !strings.Contains(m.Text, "Reset your password") {
+		t.Errorf("text = %q", m.Text)
+	}
+	if !strings.Contains(m.HTML, `href="`+link+`"`) || !strings.Contains(m.HTML, `lang="en" dir="ltr"`) {
+		t.Errorf("html = %q", m.HTML)
+	}
+	if strings.Contains(m.HTML, "<b>") || !strings.Contains(m.HTML, "&lt;b&gt;Co&lt;/b&gt;") {
+		t.Errorf("hostile company name not escaped: %q", m.HTML)
+	}
+	if strings.Contains(m.Text, "&lt;") {
+		t.Errorf("text part must not be HTML escaped: %q", m.Text)
 	}
 }

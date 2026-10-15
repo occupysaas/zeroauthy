@@ -18,9 +18,13 @@ var templateKey = regexp.MustCompile(`\{\{-?\s*t\s+\.(?:Tenant\.)?L\s+"([^"]+)"`
 func usedKeys(t *testing.T) []string {
 	t.Helper()
 	var used []string
-	files, err := filepath.Glob("../ui/templates/*.html")
-	if err != nil || len(files) == 0 {
-		t.Fatalf("templates: %v", err)
+	var files []string
+	for _, g := range []string{"../ui/templates/*.html", "../email/templates/*"} {
+		m, err := filepath.Glob(g)
+		if err != nil || len(m) == 0 {
+			t.Fatalf("templates %s: %v", g, err)
+		}
+		files = append(files, m...)
 	}
 	for _, f := range files {
 		b, err := os.ReadFile(f)

@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"github.com/zeroauthy/zeroauthy/internal/email"
 	"io"
 	"log/slog"
 	"net/http"
@@ -56,6 +57,7 @@ func newTestServer(t *testing.T) http.Handler {
 		Keys:     km,
 		Resolver: tenant.NewResolver(st.Tenants(), "", false),
 		Sessions: &session.Manager{Store: st},
+		Mailer:   discardMailer{},
 		Log:      slog.New(slog.NewTextHandler(io.Discard, nil)),
 
 		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
@@ -172,3 +174,8 @@ func TestContractDocumentsUILocales(t *testing.T) {
 	}
 	_ = authapi.AuthorizeParams{UiLocales: new(string)} // the generated wrapper binds it
 }
+
+// discardMailer is a Mailer for tests that never expect mail.
+type discardMailer struct{}
+
+func (discardMailer) Send(context.Context, email.Message) error { return nil }

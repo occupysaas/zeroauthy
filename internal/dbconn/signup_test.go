@@ -9,9 +9,11 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -33,6 +35,9 @@ tenants:
       - {name: Username-Password-Authentication, enabled_clients: [app]}
       - {name: Closed, enabled_clients: [app], disable_signup: true}
       - {name: Not-Enabled, enabled_clients: [other]}
+    users:
+      - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1"}
+      - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
 `
 
 type env struct {
@@ -40,6 +45,20 @@ type env struct {
 	h        *Handlers
 	tenantID string
 	strict   bool
+	mail     *recorder
+}
+
+// recorder is a Mailer that keeps what it is asked to send.
+type recorder struct {
+	mu   sync.Mutex
+	sent []email.Message
+}
+
+func (r *recorder) Send(_ context.Context, m email.Message) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.sent = append(r.sent, m)
+	return nil
 }
 
 func newEnv(t *testing.T) *env {
@@ -56,10 +75,12 @@ func newEnv(t *testing.T) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &env{st: st, tenantID: tn.ID, strict: true, h: &Handlers{
-		Store: st, Now: fixedNow,
-		Database:   &identity.Database{Store: st, Now: fixedNow},
-		IPThrottle: identity.NewThrottle(100, time.Hour, time.Hour),
+	mail := &recorder{}
+	return &env{st: st, tenantID: tn.ID, strict: true, mail: mail, h: &Handlers{
+		Store: st, Now: fixedNow, Mailer: mail, Go: func(f func()) { f() },
+		SendThrottle: identity.NewThrottle(100, time.Hour, time.Hour),
+		Database:     &identity.Database{Store: st, Now: fixedNow},
+		IPThrottle:   identity.NewThrottle(100, time.Hour, time.Hour),
 	}}
 }
 
@@ -67,7 +88,11 @@ func newEnv(t *testing.T) *env {
 // Requests are checked against the spec unless e.strict is false.
 func (e *env) post(t *testing.T, path, contentType, body string) (int, map[string]any, string) {
 	t.Helper()
-	var h http.Handler = tenant.NewResolver(e.st.Tenants(), "", false).Middleware(http.HandlerFunc(e.h.Signup))
+	handler := e.h.Signup
+	if path == "/dbconnections/change_password" {
+		handler = e.h.ChangePassword
+	}
+	var h http.Handler = tenant.NewResolver(e.st.Tenants(), "", false).Middleware(http.HandlerFunc(handler))
 	if e.strict {
 		h = contract.Wrap(t, h)
 	} else {

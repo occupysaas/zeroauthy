@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/api"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -30,6 +31,7 @@ type Deps struct {
 	Resolver *tenant.Resolver
 	Sessions *session.Manager
 	Log      *slog.Logger
+	Mailer   email.Mailer
 
 	UserThrottle      *identity.Throttle
 	IPThrottle        *identity.Throttle
@@ -54,6 +56,9 @@ func (a authAPI) Userinfo(w http.ResponseWriter, r *http.Request)     { a.oidc.U
 func (a authAPI) UserinfoPost(w http.ResponseWriter, r *http.Request) { a.oidc.Userinfo(w, r) }
 
 func (a authAPI) DbconnectionsSignup(w http.ResponseWriter, r *http.Request) { a.dbconn.Signup(w, r) }
+func (a authAPI) DbconnectionsChangePassword(w http.ResponseWriter, r *http.Request) {
+	a.dbconn.ChangePassword(w, r)
+}
 
 func (a authAPI) Authorize(w http.ResponseWriter, r *http.Request, _ authapi.AuthorizeParams) {
 	a.authz.Authorize(w, r)
@@ -116,6 +121,7 @@ func New(d Deps) http.Handler {
 			dbconn: &dbconn.Handlers{
 				Store: d.Store, Database: &identity.Database{Store: d.Store},
 				IPThrottle: d.IPThrottle, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
+				Mailer: d.Mailer, SendThrottle: identity.NewThrottle(3, time.Hour, time.Hour),
 			},
 		}, authapi.ChiServerOptions{
 			BaseRouter: tr,

@@ -13,6 +13,15 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// ChangePasswordRequest defines model for ChangePasswordRequest.
+type ChangePasswordRequest struct {
+	ClientId *string `json:"client_id,omitempty"`
+
+	// Connection Name of the database connection.
+	Connection string `json:"connection"`
+	Email      string `json:"email"`
+}
+
 // JWK defines model for JWK.
 type JWK struct {
 	// Alg Examples: RS256
@@ -300,6 +309,12 @@ type LogoutParams struct {
 	Federated *string `form:"federated,omitempty" json:"federated,omitempty"`
 }
 
+// DbconnectionsChangePasswordJSONRequestBody defines body for DbconnectionsChangePassword for application/json ContentType.
+type DbconnectionsChangePasswordJSONRequestBody = ChangePasswordRequest
+
+// DbconnectionsChangePasswordFormdataRequestBody defines body for DbconnectionsChangePassword for application/x-www-form-urlencoded ContentType.
+type DbconnectionsChangePasswordFormdataRequestBody = ChangePasswordRequest
+
 // DbconnectionsSignupJSONRequestBody defines body for DbconnectionsSignup for application/json ContentType.
 type DbconnectionsSignupJSONRequestBody = SignupRequest
 
@@ -488,6 +503,9 @@ type ServerInterface interface {
 	// Authorize Start an authorization (login) flow
 	// (GET /authorize)
 	Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams)
+	// DbconnectionsChangePassword Request a password reset email
+	// (POST /dbconnections/change_password)
+	DbconnectionsChangePassword(w http.ResponseWriter, r *http.Request)
 	// DbconnectionsSignup Sign up a user
 	// (POST /dbconnections/signup)
 	DbconnectionsSignup(w http.ResponseWriter, r *http.Request)
@@ -533,6 +551,12 @@ func (_ Unimplemented) Discovery(w http.ResponseWriter, r *http.Request) {
 // Authorize Start an authorization (login) flow
 // (GET /authorize)
 func (_ Unimplemented) Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DbconnectionsChangePassword Request a password reset email
+// (POST /dbconnections/change_password)
+func (_ Unimplemented) DbconnectionsChangePassword(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -866,6 +890,20 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Authorize(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DbconnectionsChangePassword operation middleware
+func (siw *ServerInterfaceWrapper) DbconnectionsChangePassword(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DbconnectionsChangePassword(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1261,6 +1299,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/dbconnections/signup", wrapper.DbconnectionsSignup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/dbconnections/change_password", wrapper.DbconnectionsChangePassword)
 	})
 
 	return r

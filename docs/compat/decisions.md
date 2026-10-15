@@ -242,3 +242,19 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Signup response:** `_id` is the user ID without the `auth0|` prefix.
   - **`change_password`:** it follows the documented status codes, including 404 for an unknown user (strict parity; the maintainer chose this over hiding which emails have accounts). Its 200 body is a plain-text sentence of our own wording. See D-0019 (password reset).
 - **Rationale:** It follows every documented field and status. Undocumented error bodies use the shape all other zeroauthy endpoints use.
+
+## D-0019: Password reset tickets
+
+- **Context:** Auth0 documents that `change_password` sends a reset email, and documents the hosted `reset-password` screens. It does not document ticket lifetime or what a reset does to existing sign-ins.
+- **Sources:** https://auth0.com/docs/api/authentication/change-password/change-password; https://auth0.com/docs/customize/login-pages/universal-login/customize-text-elements (reset-password prompt); OWASP Forgot Password Cheat Sheet.
+- **Decision:**
+  - **Tickets:** 43 random characters, stored hashed, single use, valid for 24 hours. The link is `https://{tenant host}/u/reset-password?ticket=…`.
+  - **Email:** it is sent in the background, so response time does not depend on mail delivery.
+  - **Throttling:**
+    - **Send limit:** at most 3 emails per user per hour. Extra requests still return 200 without sending.
+    - **Request limit:** requests are limited per IP.
+  - **Blocked users:** they get the 200 response but no email.
+  - **Completing a reset:**
+    - **Password:** sets a new argon2id hash.
+    - **Other sign-ins:** deletes all of the user's sessions and revokes all of the user's refresh tokens. The maintainer chose this.
+- **Rationale:** It follows the documented endpoint. Where the docs are silent, the choices follow OWASP guidance, so a reset locks out anyone holding an old session.

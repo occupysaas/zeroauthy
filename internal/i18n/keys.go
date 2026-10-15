@@ -23,5 +23,6 @@ const (
 	KeyErrInvalidRequest      = "zeroauthy.error.invalid-request"
 	KeyErrLogoutUnknownClient = "zeroauthy.error.logout-unknown-client"
 	KeyErrLogoutURL           = "zeroauthy.error.logout-url-not-allowed"
+	KeyEmailResetSubject      = "zeroauthy.email-reset-password.subject"
 	KeyErrLogoutInvalid       = "zeroauthy.error.logout-invalid"
 )

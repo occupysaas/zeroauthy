@@ -63,6 +63,7 @@ func newFlowEnv(t *testing.T) *flowEnv {
 		Store: st, Keys: km, Resolver: tenant.NewResolver(st.Tenants(), "", false),
 		Log:          slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Sessions:     &session.Manager{Store: st},
+		Mailer:       discardMailer{},
 		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
 		IPThrottle:   identity.NewThrottle(100, time.Minute, time.Minute),
 	}))

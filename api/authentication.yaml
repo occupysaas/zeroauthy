@@ -499,6 +499,48 @@ paths:
           $ref: "#/components/responses/OAuthErrorResponse"
         default:
           $ref: "#/components/responses/ServerError"
+  /dbconnections/change_password:
+    post:
+      operationId: dbconnectionsChangePassword
+      tags: [Users]
+      summary: Request a password reset email
+      description: |
+        Emails a single-use link, valid for 24 hours, that lets the user
+        choose a new password on a database connection. The body may be JSON
+        or form-encoded. `client_id` is optional; when given it must exist.
+        The response is plain text. An unknown user is answered `404` with
+        `user_not_found`. A blocked user, or one who already received three
+        links in the past hour, still gets `200` but no email. Requests count
+        against the per-IP limit; while it is reached the response is `429`.
+      x-source:
+        - https://auth0.com/docs/api/authentication/change-password/change-password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: The reset email was sent, or is not sent for this user.
+          content:
+            text/plain:
+              schema: {type: string}
+        "400":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "404":
+          description: The tenant is unknown, or the user does not exist (`user_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        "429":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        default:
+          $ref: "#/components/responses/ServerError"
 components:
   securitySchemes:
     clientSecretBasic:
@@ -573,6 +615,15 @@ components:
           description: At most 10 properties; string values of at most 500 characters.
           maxProperties: 10
           additionalProperties: {type: string, maxLength: 500}
+    ChangePasswordRequest:
+      type: object
+      required: [connection, email]
+      properties:
+        client_id: {type: string}
+        connection:
+          type: string
+          description: Name of the database connection.
+        email: {type: string}
     SignupFormRequest:
       type: object
       description: |
