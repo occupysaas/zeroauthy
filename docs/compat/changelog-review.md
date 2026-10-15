@@ -4,8 +4,8 @@ zeroauthy aims to be a one-to-one replacement for Auth0, so features Auth0 adds
 or changes after the spec was written must reach the roadmap. Auth0's public
 changelog (https://auth0.com/changelog) is the signal for this. It is a
 permitted source under `CLEAN_ROOM.md`: read it for *what* changed, then
-implement from the linked public documentation. Never copy changelog text;
-summarize each entry in your own words.
+implement from the linked public documentation. Never copy changelog text
+or code blocks; summarize each entry in your own words.
 
 ## When to review
 

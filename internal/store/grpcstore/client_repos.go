@@ -1,0 +1,464 @@
+package grpcstore
+
+import (
+	"context"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
+	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
+)
+
+// This file holds the repository adapters. Each method encodes its
+// arguments, makes one RPC with the view's transaction ID, and decodes the
+// result. A gRPC error is a transport or server fault and is wrapped by
+// rpcErr; a domain error arrives in the response's Error field and maps back
+// to the store sentinel through errFromPB.
+
+// result is implemented by the generated responses that carry only an Error.
+type result interface{ GetError() *storev1.Error }
+
+// put encodes v and sends it with call.
+func put[T, P any](op string, v *T, enc func(*T) (P, error), call func(P) (result, error)) error {
+	pb, err := enc(v)
+	if err != nil {
+		return err
+	}
+	r, err := call(pb)
+	if err != nil {
+		return rpcErr(op, err)
+	}
+	return errFromPB(r.GetError())
+}
+
+// do reports the outcome of a call that returns only an error.
+func do(op string, r result, err error) error {
+	if err != nil {
+		return rpcErr(op, err)
+	}
+	return errFromPB(r.GetError())
+}
+
+// counted reports the outcome of a call that returns a count.
+func counted(op string, r *storev1.CountResult, err error) (int, error) {
+	if err != nil {
+		return 0, rpcErr(op, err)
+	}
+	if e := errFromPB(r.GetError()); e != nil {
+		return 0, e
+	}
+	return int(r.GetCount()), nil
+}
+
+// decOne decodes a single value. The value is returned together with a domain
+// error, because Consume returns both.
+func decOne[P, T any](op string, err error, e *storev1.Error, pb P, dec func(P) (*T, error)) (*T, error) {
+	if err != nil {
+		return nil, rpcErr(op, err)
+	}
+	v, derr := dec(pb)
+	if derr != nil {
+		return nil, derr
+	}
+	return v, errFromPB(e)
+}
+
+// decList decodes a list of values.
+func decList[P, T any](op string, err error, e *storev1.Error, pbs []P, dec func(P) (*T, error)) ([]*T, error) {
+	if err != nil {
+		return nil, rpcErr(op, err)
+	}
+	if de := errFromPB(e); de != nil {
+		return nil, de
+	}
+	out := make([]*T, 0, len(pbs))
+	for _, pb := range pbs {
+		v, derr := dec(pb)
+		if derr != nil {
+			return nil, derr
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+// ---- tenants ----
+
+type clientTenants struct{ c *Client }
+
+func (a clientTenants) Create(ctx context.Context, t *store.Tenant) error {
+	return put("TenantsCreate", t, tenantToPB, func(pb *storev1.Tenant) (result, error) {
+		return a.c.rpc.TenantsCreate(ctx, &storev1.TenantWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientTenants) get(ctx context.Context, op string, call func(context.Context, *storev1.TenantsGetRequest, ...grpc.CallOption) (*storev1.TenantResult, error), key string) (*store.Tenant, error) {
+	r, err := call(ctx, &storev1.TenantsGetRequest{TxId: a.c.txID, Key: key})
+	return decOne(op, err, r.GetError(), r.GetValue(), tenantFromPB)
+}
+
+func (a clientTenants) Get(ctx context.Context, id string) (*store.Tenant, error) {
+	return a.get(ctx, "TenantsGet", a.c.rpc.TenantsGet, id)
+}
+
+func (a clientTenants) GetByName(ctx context.Context, name string) (*store.Tenant, error) {
+	return a.get(ctx, "TenantsGetByName", a.c.rpc.TenantsGetByName, name)
+}
+
+func (a clientTenants) GetByDomain(ctx context.Context, domain string) (*store.Tenant, error) {
+	return a.get(ctx, "TenantsGetByDomain", a.c.rpc.TenantsGetByDomain, domain)
+}
+
+func (a clientTenants) Update(ctx context.Context, t *store.Tenant) error {
+	return put("TenantsUpdate", t, tenantToPB, func(pb *storev1.Tenant) (result, error) {
+		return a.c.rpc.TenantsUpdate(ctx, &storev1.TenantWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientTenants) List(ctx context.Context) ([]*store.Tenant, error) {
+	r, err := a.c.rpc.TenantsList(ctx, &storev1.TenantsListRequest{TxId: a.c.txID})
+	return decList("TenantsList", err, r.GetError(), r.GetValues(), tenantFromPB)
+}
+
+// ---- clients ----
+
+type clientClients struct{ c *Client }
+
+func (a clientClients) Create(ctx context.Context, v *store.Client) error {
+	return put("ClientsCreate", v, clientToPB, func(pb *storev1.Client) (result, error) {
+		return a.c.rpc.ClientsCreate(ctx, &storev1.ClientWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientClients) Get(ctx context.Context, tenantID, clientID string) (*store.Client, error) {
+	r, err := a.c.rpc.ClientsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: clientID})
+	return decOne("ClientsGet", err, r.GetError(), r.GetValue(), clientFromPB)
+}
+
+func (a clientClients) Update(ctx context.Context, v *store.Client) error {
+	return put("ClientsUpdate", v, clientToPB, func(pb *storev1.Client) (result, error) {
+		return a.c.rpc.ClientsUpdate(ctx, &storev1.ClientWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientClients) Delete(ctx context.Context, tenantID, clientID string) error {
+	r, err := a.c.rpc.ClientsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: clientID})
+	return do("ClientsDelete", r, err)
+}
+
+func (a clientClients) List(ctx context.Context, tenantID string) ([]*store.Client, error) {
+	r, err := a.c.rpc.ClientsList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+	return decList("ClientsList", err, r.GetError(), r.GetValues(), clientFromPB)
+}
+
+// ---- resource servers ----
+
+type clientResourceServers struct{ c *Client }
+
+func (a clientResourceServers) Create(ctx context.Context, v *store.ResourceServer) error {
+	return put("ResourceServersCreate", v, resourceServerToPB, func(pb *storev1.ResourceServer) (result, error) {
+		return a.c.rpc.ResourceServersCreate(ctx, &storev1.ResourceServerWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientResourceServers) Get(ctx context.Context, tenantID, id string) (*store.ResourceServer, error) {
+	r, err := a.c.rpc.ResourceServersGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return decOne("ResourceServersGet", err, r.GetError(), r.GetValue(), resourceServerFromPB)
+}
+
+func (a clientResourceServers) GetByIdentifier(ctx context.Context, tenantID, identifier string) (*store.ResourceServer, error) {
+	r, err := a.c.rpc.ResourceServersGetByIdentifier(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: identifier})
+	return decOne("ResourceServersGetByIdentifier", err, r.GetError(), r.GetValue(), resourceServerFromPB)
+}
+
+func (a clientResourceServers) Update(ctx context.Context, v *store.ResourceServer) error {
+	return put("ResourceServersUpdate", v, resourceServerToPB, func(pb *storev1.ResourceServer) (result, error) {
+		return a.c.rpc.ResourceServersUpdate(ctx, &storev1.ResourceServerWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientResourceServers) Delete(ctx context.Context, tenantID, id string) error {
+	r, err := a.c.rpc.ResourceServersDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return do("ResourceServersDelete", r, err)
+}
+
+// ---- client grants ----
+
+type clientClientGrants struct{ c *Client }
+
+func (a clientClientGrants) Create(ctx context.Context, v *store.ClientGrant) error {
+	return put("ClientGrantsCreate", v, clientGrantToPB, func(pb *storev1.ClientGrant) (result, error) {
+		return a.c.rpc.ClientGrantsCreate(ctx, &storev1.ClientGrantWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientClientGrants) Find(ctx context.Context, tenantID, clientID, audience string) (*store.ClientGrant, error) {
+	r, err := a.c.rpc.ClientGrantsFind(ctx, &storev1.ClientGrantsFindRequest{TxId: a.c.txID, TenantId: tenantID, ClientId: clientID, Audience: audience})
+	return decOne("ClientGrantsFind", err, r.GetError(), r.GetValue(), clientGrantFromPB)
+}
+
+func (a clientClientGrants) Update(ctx context.Context, v *store.ClientGrant) error {
+	return put("ClientGrantsUpdate", v, clientGrantToPB, func(pb *storev1.ClientGrant) (result, error) {
+		return a.c.rpc.ClientGrantsUpdate(ctx, &storev1.ClientGrantWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientClientGrants) Delete(ctx context.Context, tenantID, id string) error {
+	r, err := a.c.rpc.ClientGrantsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return do("ClientGrantsDelete", r, err)
+}
+
+// ---- signing keys ----
+
+type clientSigningKeys struct{ c *Client }
+
+func (a clientSigningKeys) Create(ctx context.Context, v *store.SigningKey) error {
+	return put("SigningKeysCreate", v, signingKeyToPB, func(pb *storev1.SigningKey) (result, error) {
+		return a.c.rpc.SigningKeysCreate(ctx, &storev1.SigningKeyWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientSigningKeys) List(ctx context.Context, tenantID string) ([]*store.SigningKey, error) {
+	r, err := a.c.rpc.SigningKeysList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+	return decList("SigningKeysList", err, r.GetError(), r.GetValues(), signingKeyFromPB)
+}
+
+func (a clientSigningKeys) Rotate(ctx context.Context, tenantID string, next *store.SigningKey) error {
+	return put("SigningKeysRotate", next, signingKeyToPB, func(pb *storev1.SigningKey) (result, error) {
+		return a.c.rpc.SigningKeysRotate(ctx, &storev1.SigningKeysRotateRequest{TxId: a.c.txID, TenantId: tenantID, Next: pb})
+	})
+}
+
+// ---- connections ----
+
+type clientConnections struct{ c *Client }
+
+func (a clientConnections) Create(ctx context.Context, v *store.Connection) error {
+	return put("ConnectionsCreate", v, connectionToPB, func(pb *storev1.Connection) (result, error) {
+		return a.c.rpc.ConnectionsCreate(ctx, &storev1.ConnectionWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientConnections) Get(ctx context.Context, tenantID, id string) (*store.Connection, error) {
+	r, err := a.c.rpc.ConnectionsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return decOne("ConnectionsGet", err, r.GetError(), r.GetValue(), connectionFromPB)
+}
+
+func (a clientConnections) GetByName(ctx context.Context, tenantID, name string) (*store.Connection, error) {
+	r, err := a.c.rpc.ConnectionsGetByName(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: name})
+	return decOne("ConnectionsGetByName", err, r.GetError(), r.GetValue(), connectionFromPB)
+}
+
+func (a clientConnections) Update(ctx context.Context, v *store.Connection) error {
+	return put("ConnectionsUpdate", v, connectionToPB, func(pb *storev1.Connection) (result, error) {
+		return a.c.rpc.ConnectionsUpdate(ctx, &storev1.ConnectionWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientConnections) List(ctx context.Context, tenantID string) ([]*store.Connection, error) {
+	r, err := a.c.rpc.ConnectionsList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+	return decList("ConnectionsList", err, r.GetError(), r.GetValues(), connectionFromPB)
+}
+
+// ---- users ----
+
+type clientUsers struct{ c *Client }
+
+func (a clientUsers) Create(ctx context.Context, v *store.User) error {
+	return put("UsersCreate", v, userToPB, func(pb *storev1.User) (result, error) {
+		return a.c.rpc.UsersCreate(ctx, &storev1.UserWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientUsers) Get(ctx context.Context, tenantID, userID string) (*store.User, error) {
+	r, err := a.c.rpc.UsersGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return decOne("UsersGet", err, r.GetError(), r.GetValue(), userFromPB)
+}
+
+func (a clientUsers) FindByLogin(ctx context.Context, tenantID, connection, login string) (*store.User, error) {
+	r, err := a.c.rpc.UsersFindByLogin(ctx, &storev1.UsersFindByLoginRequest{TxId: a.c.txID, TenantId: tenantID, Connection: connection, Login: login})
+	return decOne("UsersFindByLogin", err, r.GetError(), r.GetValue(), userFromPB)
+}
+
+func (a clientUsers) Update(ctx context.Context, v *store.User) error {
+	return put("UsersUpdate", v, userToPB, func(pb *storev1.User) (result, error) {
+		return a.c.rpc.UsersUpdate(ctx, &storev1.UserWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientUsers) RecordLogin(ctx context.Context, tenantID, userID string, at time.Time) error {
+	r, err := a.c.rpc.UsersRecordLogin(ctx, &storev1.UsersRecordLoginRequest{TxId: a.c.txID, TenantId: tenantID, UserId: userID, At: tsToPB(at)})
+	return do("UsersRecordLogin", r, err)
+}
+
+func (a clientUsers) SetPasswordHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error {
+	r, err := a.c.rpc.UsersSetPasswordHash(ctx, &storev1.UsersSetPasswordHashRequest{
+		TxId: a.c.txID, TenantId: tenantID, UserId: userID, Connection: connection, Hash: hash, At: tsToPB(at)})
+	return do("UsersSetPasswordHash", r, err)
+}
+
+// ---- sessions ----
+
+type clientSessions struct{ c *Client }
+
+func (a clientSessions) Create(ctx context.Context, v *store.LoginSession) error {
+	return put("SessionsCreate", v, sessionToPB, func(pb *storev1.LoginSession) (result, error) {
+		return a.c.rpc.SessionsCreate(ctx, &storev1.SessionWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientSessions) GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*store.LoginSession, error) {
+	r, err := a.c.rpc.SessionsGetByTokenHash(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: tokenHash})
+	return decOne("SessionsGetByTokenHash", err, r.GetError(), r.GetValue(), sessionFromPB)
+}
+
+func (a clientSessions) Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error {
+	r, err := a.c.rpc.SessionsTouch(ctx, &storev1.TouchRequest{TxId: a.c.txID, TenantId: tenantID, Id: id, IdleExpiresAt: tsToPB(idleExpiresAt)})
+	return do("SessionsTouch", r, err)
+}
+
+func (a clientSessions) AddClient(ctx context.Context, tenantID, id, clientID string) error {
+	r, err := a.c.rpc.SessionsAddClient(ctx, &storev1.SessionsAddClientRequest{TxId: a.c.txID, TenantId: tenantID, Id: id, ClientId: clientID})
+	return do("SessionsAddClient", r, err)
+}
+
+func (a clientSessions) Delete(ctx context.Context, tenantID, id string) error {
+	r, err := a.c.rpc.SessionsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return do("SessionsDelete", r, err)
+}
+
+func (a clientSessions) DeleteByUser(ctx context.Context, tenantID, userID string) (int, error) {
+	r, err := a.c.rpc.SessionsDeleteByUser(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return counted("SessionsDeleteByUser", r, err)
+}
+
+func (a clientSessions) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	r, err := a.c.rpc.SessionsDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
+	return counted("SessionsDeleteExpired", r, err)
+}
+
+// ---- auth transactions ----
+
+type clientAuthTransactions struct{ c *Client }
+
+func (a clientAuthTransactions) Create(ctx context.Context, v *store.AuthTransaction) error {
+	return put("AuthTransactionsCreate", v, authTransactionToPB, func(pb *storev1.AuthTransaction) (result, error) {
+		return a.c.rpc.AuthTransactionsCreate(ctx, &storev1.AuthTransactionWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientAuthTransactions) Get(ctx context.Context, tenantID, id string) (*store.AuthTransaction, error) {
+	r, err := a.c.rpc.AuthTransactionsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return decOne("AuthTransactionsGet", err, r.GetError(), r.GetValue(), authTransactionFromPB)
+}
+
+func (a clientAuthTransactions) Delete(ctx context.Context, tenantID, id string) error {
+	r, err := a.c.rpc.AuthTransactionsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return do("AuthTransactionsDelete", r, err)
+}
+
+func (a clientAuthTransactions) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	r, err := a.c.rpc.AuthTransactionsDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
+	return counted("AuthTransactionsDeleteExpired", r, err)
+}
+
+// ---- auth codes ----
+
+type clientAuthCodes struct{ c *Client }
+
+func (a clientAuthCodes) Create(ctx context.Context, v *store.AuthCode) error {
+	return put("AuthCodesCreate", v, authCodeToPB, func(pb *storev1.AuthCode) (result, error) {
+		return a.c.rpc.AuthCodesCreate(ctx, &storev1.AuthCodeWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+// Consume returns the code together with ErrAlreadyUsed on a replay.
+func (a clientAuthCodes) Consume(ctx context.Context, tenantID, codeHash string, at time.Time) (*store.AuthCode, error) {
+	r, err := a.c.rpc.AuthCodesConsume(ctx, &storev1.ConsumeRequest{TxId: a.c.txID, TenantId: tenantID, Hash: codeHash, At: tsToPB(at)})
+	return decOne("AuthCodesConsume", err, r.GetError(), r.GetValue(), authCodeFromPB)
+}
+
+func (a clientAuthCodes) Get(ctx context.Context, tenantID, codeHash string) (*store.AuthCode, error) {
+	r, err := a.c.rpc.AuthCodesGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: codeHash})
+	return decOne("AuthCodesGet", err, r.GetError(), r.GetValue(), authCodeFromPB)
+}
+
+func (a clientAuthCodes) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	r, err := a.c.rpc.AuthCodesDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
+	return counted("AuthCodesDeleteExpired", r, err)
+}
+
+// ---- refresh tokens ----
+
+type clientRefreshTokens struct{ c *Client }
+
+func (a clientRefreshTokens) Create(ctx context.Context, v *store.RefreshToken) error {
+	return put("RefreshTokensCreate", v, refreshTokenToPB, func(pb *storev1.RefreshToken) (result, error) {
+		return a.c.rpc.RefreshTokensCreate(ctx, &storev1.RefreshTokenWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientRefreshTokens) GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*store.RefreshToken, error) {
+	r, err := a.c.rpc.RefreshTokensGetByTokenHash(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: tokenHash})
+	return decOne("RefreshTokensGetByTokenHash", err, r.GetError(), r.GetValue(), refreshTokenFromPB)
+}
+
+func (a clientRefreshTokens) Rotate(ctx context.Context, tenantID, oldID string, next *store.RefreshToken, at time.Time, leeway time.Duration) error {
+	return put("RefreshTokensRotate", next, refreshTokenToPB, func(pb *storev1.RefreshToken) (result, error) {
+		return a.c.rpc.RefreshTokensRotate(ctx, &storev1.RefreshTokensRotateRequest{
+			TxId: a.c.txID, TenantId: tenantID, OldId: oldID, Next: pb, At: tsToPB(at), Leeway: durationpb.New(leeway)})
+	})
+}
+
+func (a clientRefreshTokens) Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error {
+	r, err := a.c.rpc.RefreshTokensTouch(ctx, &storev1.TouchRequest{TxId: a.c.txID, TenantId: tenantID, Id: id, IdleExpiresAt: tsToPB(idleExpiresAt)})
+	return do("RefreshTokensTouch", r, err)
+}
+
+func (a clientRefreshTokens) RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error {
+	r, err := a.c.rpc.RefreshTokensRevokeFamily(ctx, &storev1.RevokeRequest{TxId: a.c.txID, TenantId: tenantID, Key: familyID, At: tsToPB(at)})
+	return do("RefreshTokensRevokeFamily", r, err)
+}
+
+func (a clientRefreshTokens) RevokeByUser(ctx context.Context, tenantID, userID string, at time.Time) (int, error) {
+	r, err := a.c.rpc.RefreshTokensRevokeByUser(ctx, &storev1.RevokeRequest{TxId: a.c.txID, TenantId: tenantID, Key: userID, At: tsToPB(at)})
+	return counted("RefreshTokensRevokeByUser", r, err)
+}
+
+func (a clientRefreshTokens) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	r, err := a.c.rpc.RefreshTokensDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
+	return counted("RefreshTokensDeleteExpired", r, err)
+}
+
+// ---- password reset tickets ----
+
+type clientPasswordResetTickets struct{ c *Client }
+
+func (a clientPasswordResetTickets) Create(ctx context.Context, v *store.PasswordResetTicket) error {
+	return put("PasswordResetTicketsCreate", v, passwordResetTicketToPB, func(pb *storev1.PasswordResetTicket) (result, error) {
+		return a.c.rpc.PasswordResetTicketsCreate(ctx, &storev1.PasswordResetTicketWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientPasswordResetTickets) GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*store.PasswordResetTicket, error) {
+	r, err := a.c.rpc.PasswordResetTicketsGetByTokenHash(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: tokenHash})
+	return decOne("PasswordResetTicketsGetByTokenHash", err, r.GetError(), r.GetValue(), passwordResetTicketFromPB)
+}
+
+// Consume returns the ticket together with ErrAlreadyUsed on a replay.
+func (a clientPasswordResetTickets) Consume(ctx context.Context, tenantID, tokenHash string, at time.Time) (*store.PasswordResetTicket, error) {
+	r, err := a.c.rpc.PasswordResetTicketsConsume(ctx, &storev1.ConsumeRequest{TxId: a.c.txID, TenantId: tenantID, Hash: tokenHash, At: tsToPB(at)})
+	return decOne("PasswordResetTicketsConsume", err, r.GetError(), r.GetValue(), passwordResetTicketFromPB)
+}
+
+func (a clientPasswordResetTickets) DeleteByUser(ctx context.Context, tenantID, userID string) (int, error) {
+	r, err := a.c.rpc.PasswordResetTicketsDeleteByUser(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return counted("PasswordResetTicketsDeleteByUser", r, err)
+}
+
+func (a clientPasswordResetTickets) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	r, err := a.c.rpc.PasswordResetTicketsDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
+	return counted("PasswordResetTicketsDeleteExpired", r, err)
+}
