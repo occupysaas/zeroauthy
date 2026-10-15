@@ -150,9 +150,10 @@ func (h *Handlers) ResetPasswordPage(w http.ResponseWriter, r *http.Request) {
 	ui.RenderResetForm(w, http.StatusOK, view, ui.ResetFormData{Ticket: raw, CSRF: csrf})
 }
 
-// ResetPasswordSubmit serves POST /u/reset-password. It sets the new
-// password, ends every session and refresh token of the user, and clears
-// the caller's session cookie.
+// ResetPasswordSubmit serves POST /u/reset-password. It ends every
+// session, refresh token and other reset link of the user, sets the new
+// password, clears any login lock on the user, and clears the caller's
+// session cookie (D-0019).
 func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	res, ok := tenant.FromContext(ctx)
@@ -215,7 +216,25 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 4. Use the ticket.
+	// 4. The user must still exist and not be blocked. The ticket is not
+	// spent otherwise.
+	user, err := h.Store.Users().Get(ctx, res.Tenant.ID, tk.UserID)
+	if errors.Is(err, store.ErrNotFound) || (err == nil && user.Blocked) {
+		h.renderResetError(w, view, resetInvalid)
+		return
+	} else if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+
+	// 5. Hash before using the ticket, so a hashing failure does not spend it.
+	hash, err := secrets.Hash(pw)
+	if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+
+	// 6. Use the ticket.
 	now := h.now()
 	tk, err = h.Store.PasswordResetTickets().Consume(ctx, res.Tenant.ID, secrets.HashToken(raw), now)
 	switch {
@@ -233,19 +252,9 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 5. Set the password and log the user out everywhere.
-	hash, err := secrets.Hash(pw)
-	if err != nil {
-		h.fail(w, r, err, nil)
-		return
-	}
-	if err := h.Store.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); errors.Is(err, store.ErrNotFound) {
-		h.renderResetError(w, view, resetInvalid)
-		return
-	} else if err != nil {
-		h.fail(w, r, err, nil)
-		return
-	}
+	// 7. Log the user out everywhere and invalidate their other reset
+	// links before the password changes, so a storage failure part way
+	// leaves the account in the safer state.
 	if _, err := h.Store.Sessions().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
 		h.fail(w, r, err, nil)
 		return
@@ -254,9 +263,29 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, nil)
 		return
 	}
+	if _, err := h.Store.PasswordResetTickets().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+
+	// 8. Set the password.
+	if err := h.Store.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); errors.Is(err, store.ErrNotFound) {
+		h.renderResetError(w, view, resetInvalid)
+		return
+	} else if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
 	h.log().InfoContext(ctx, "password reset", "tenant", res.Tenant.ID, "user_id", tk.UserID)
 
-	// 6. Clear the form and session cookies.
+	// 9. A password change unblocks a user locked by brute-force
+	// protection, as on Auth0.
+	h.UserThrottle.Success(identity.UserThrottleKey(res.Tenant.ID, tk.Connection, user.Email))
+	if user.Username != "" {
+		h.UserThrottle.Success(identity.UserThrottleKey(res.Tenant.ID, tk.Connection, user.Username))
+	}
+
+	// 10. Clear the form and session cookies.
 	setResetCookie(w, "", -1)
 	if _, err := h.Sessions.End(ctx, w, r, res.Tenant); err != nil {
 		h.log().WarnContext(ctx, "reset: end session", "tenant", res.Tenant.ID, "err", err)

@@ -246,7 +246,7 @@ them. Each entry: context, sources consulted, decision, rationale.
 ## D-0019: Password reset tickets
 
 - **Context:** Auth0 documents that `change_password` sends a reset email, and documents the hosted `reset-password` screens. It does not document ticket lifetime or what a reset does to existing sign-ins.
-- **Sources:** https://auth0.com/docs/api/authentication/change-password/change-password; https://auth0.com/docs/customize/login-pages/universal-login/customize-text-elements (reset-password prompt); OWASP Forgot Password Cheat Sheet.
+- **Sources:** https://auth0.com/docs/api/authentication/change-password/change-password; https://auth0.com/docs/customize/login-pages/universal-login/customize-text-elements (reset-password prompt); https://auth0.com/docs/secure/attack-protection/brute-force-protection (a password change unblocks a blocked user); OWASP Forgot Password Cheat Sheet (outstanding reset tokens are invalidated once one is used).
 - **Decision:**
   - **Tickets:** 43 random characters, stored hashed, single use, valid for 24 hours. The link is `https://{tenant host}/u/reset-password?ticket=…`.
   - **Email:** it is sent in the background, so response time does not depend on mail delivery.
@@ -255,6 +255,10 @@ them. Each entry: context, sources consulted, decision, rationale.
     - **Request limit:** requests to `change_password` and to the hosted "Forgot password?" form are limited per IP (429 once the limit is reached; the hosted form is shown again with a "too many attempts" message).
   - **Blocked users:** they get the 200 response but no email.
   - **Completing a reset:**
-    - **Password:** sets a new argon2id hash.
+    - **Checks first:** the user must still exist and not be blocked; otherwise the generic error screen is shown and the ticket is not spent. The new password is hashed before the ticket is used, so a hashing failure does not spend it either.
     - **Other sign-ins:** deletes all of the user's sessions and revokes all of the user's refresh tokens. The maintainer chose this.
+    - **Other reset links:** every other unused ticket of the user is deleted, following OWASP's advice to invalidate outstanding tokens. Used tickets stay until they expire, so a replayed link still shows the "already used" screen.
+    - **Order:** sessions, refresh tokens and other tickets are revoked before the password is changed, so a storage failure part way leaves the account in the safer state.
+    - **Password:** sets a new argon2id hash.
+    - **Brute-force lock:** the user's login lock (on their email and, if set, username) is cleared, as Auth0 documents that a password change unblocks a user blocked by brute-force protection.
 - **Rationale:** It follows the documented endpoint. Where the docs are silent, the choices follow OWASP guidance, so a reset locks out anyone holding an old session.

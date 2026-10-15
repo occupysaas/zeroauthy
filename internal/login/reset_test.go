@@ -300,6 +300,86 @@ func TestResetRequestIPThrottle(t *testing.T) {
 	}
 }
 
+// completeReset opens the reset link in b and submits the new password.
+func completeReset(t *testing.T, b *browser, ticket, pw string) *httptest.ResponseRecorder {
+	t.Helper()
+	rec := b.do(t, "GET", "/u/reset-password?ticket="+ticket, nil)
+	m := csrfField.FindStringSubmatch(rec.Body.String())
+	if m == nil {
+		t.Fatalf("reset form = %d %s", rec.Code, rec.Body)
+	}
+	return b.do(t, "POST", "/u/reset-password", url.Values{"ticket": {ticket}, "csrf": {m[1]}, "password": {pw}, "password_confirm": {pw}})
+}
+
+// A completed reset invalidates the user's other outstanding links.
+func TestResetInvalidatesOtherTickets(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	first := e.issueTicket(t, "alice@acme.test", time.Hour)
+	second := e.issueTicket(t, "alice@acme.test", time.Hour)
+	if rec := completeReset(t, b, first, "new password 123"); rec.Code != 200 {
+		t.Fatalf("reset = %d %s", rec.Code, rec.Body)
+	}
+	if rec := b.do(t, "GET", "/u/reset-password?ticket="+second, nil); rec.Code != 400 || !strings.Contains(rec.Body.String(), "not valid") {
+		t.Fatalf("second ticket after reset = %d %s", rec.Code, rec.Body)
+	}
+}
+
+// A completed reset clears a brute-force lock on the user's email and
+// username, as Auth0 unblocks a user whose password is changed.
+func TestResetClearsLoginLock(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	login := func(user, pw string) int {
+		return b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {user}, "password": {pw}}).Code
+	}
+	for _, user := range []string{"alice@acme.test", "alice1"} {
+		for range 3 {
+			login(user, "wrong")
+		}
+		if code := login(user, "alice password 1"); code != http.StatusTooManyRequests {
+			t.Fatalf("%s not locked: %d", user, code)
+		}
+	}
+	if rec := completeReset(t, e.browser("acme.example.test"), e.issueTicket(t, "alice@acme.test", time.Hour), "new password 123"); rec.Code != 200 {
+		t.Fatalf("reset = %d %s", rec.Code, rec.Body)
+	}
+	for _, user := range []string{"alice@acme.test", "alice1"} {
+		b = e.browser("acme.example.test") // not yet signed in
+		_, state, csrf = b.begin(t)
+		if code := login(user, "new password 123"); code != http.StatusFound {
+			t.Fatalf("login as %s after reset = %d", user, code)
+		}
+	}
+}
+
+// A user blocked after the link was sent cannot use it, and the ticket is
+// not spent.
+func TestResetBlockedAfterIssue(t *testing.T) {
+	e := newEnv(t)
+	ticket := e.issueTicket(t, "alice@acme.test", time.Hour)
+	u := e.user(t, "alice@acme.test")
+	u.Blocked = true
+	if err := e.st.Users().Update(context.Background(), u); err != nil {
+		t.Fatal(err)
+	}
+	if rec := completeReset(t, e.browser("acme.example.test"), ticket, "new password 123"); rec.Code != 400 || !strings.Contains(rec.Body.String(), "not valid") {
+		t.Fatalf("reset for blocked user = %d %s", rec.Code, rec.Body)
+	}
+	tk, err := e.st.PasswordResetTickets().GetByTokenHash(context.Background(), mustTenant(t, e, "acme").ID, secrets.HashToken(ticket))
+	if err != nil || tk.UsedAt != nil {
+		t.Fatalf("ticket = %+v, %v", tk, err)
+	}
+	u.Blocked = false
+	if err := e.st.Users().Update(context.Background(), u); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.h.Database.Login(context.Background(), e.conn(t), "alice@acme.test", "alice password 1"); err != nil {
+		t.Fatalf("password changed for a blocked user: %v", err)
+	}
+}
+
 func TestLoginPageWithoutResets(t *testing.T) {
 	e := newEnv(t)
 	e.h.Resets = nil
