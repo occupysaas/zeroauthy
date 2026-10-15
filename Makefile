@@ -1,10 +1,13 @@
-.PHONY: build test lint generate check-sources e2e
+.PHONY: build test test-sql lint generate check-sources e2e
 
 build:
 	CGO_ENABLED=0 go build -trimpath -o bin/zeroauthy ./cmd/zeroauthy
 
 test:
 	go test ./...
+
+test-sql:
+	./scripts/test-sql.sh
 
 lint:
 	go vet ./...

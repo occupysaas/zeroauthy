@@ -40,6 +40,7 @@ type Store interface {
 	// returns an error, none of its writes persist. Drivers serialize
 	// transactions; the memory driver's isolation from concurrent
 	// non-transactional writers is best effort (tests and demos only).
+	// A nested WithTx call inside fn runs inline and joins the outer transaction.
 	WithTx(ctx context.Context, fn func(tx Store) error) error
 	Ping(ctx context.Context) error
 	Close() error
