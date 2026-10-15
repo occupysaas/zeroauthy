@@ -64,11 +64,12 @@ func (r signingKeys) Rotate(ctx context.Context, tenantID string, next *store.Si
 		return fmt.Errorf("store: rotate needs a key for tenant %q", tenantID)
 	}
 	return r.s.atomic(ctx, func(tx *Store) error {
-		// Lock the tenant's active keys first, purely to wait for any
-		// concurrent Rotate. Later statements then see its committed state
-		// (a fresh snapshot on PostgreSQL), and no gap locks are taken on a
-		// missing row (a MySQL deadlock).
-		rows, err := tx.query(ctx, `SELECT kid FROM signing_keys WHERE tenant_id = ? AND status IN ('current', 'next')`+tx.d.forUpdate, tenantID)
+		// Serialize Rotates of a tenant on one deterministic lock, the
+		// tenant row, and drain it only to wait. Later statements then see
+		// the previous Rotate's committed state (a fresh snapshot on
+		// PostgreSQL), and no gap locks are taken on missing rows. A missing
+		// tenant row locks nothing, which memory tolerates too.
+		rows, err := tx.query(ctx, `SELECT id FROM tenants WHERE id = ?`+tx.d.forUpdate, tenantID)
 		if err != nil {
 			return err
 		}

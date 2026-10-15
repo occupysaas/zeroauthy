@@ -114,6 +114,10 @@ func testSigningKeys(t *testing.T, newStore Factory) {
 
 	t.Run("ConcurrentRotate", func(t *testing.T) {
 		s := open(t, newStore)
+		// Rotate serializes on the tenant's row, so the tenant exists as it
+		// always does outside tests.
+		tn := newTenant("a")
+		mustNoErr(t, s.Tenants().Create(ctx, tn))
 		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k0", store.KeyCurrent, 0)))
 		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "k1", store.KeyNext, time.Hour)))
 		const n = 6
@@ -132,12 +136,17 @@ func testSigningKeys(t *testing.T, newStore Factory) {
 				t.Errorf("Rotate %d: %v", i, err)
 			}
 		}
+		got := statuses(t, s, "ten_a")
 		counts := map[store.KeyStatus]int{}
-		for _, st := range statuses(t, s, "ten_a") {
+		for kid, st := range got {
 			counts[st]++
+			if st != store.KeyCurrent && st != store.KeyNext && st != store.KeyPrevious && st != store.KeyRevoked {
+				t.Errorf("key %s has status %q", kid, st)
+			}
 		}
-		if counts[store.KeyCurrent] != 1 || counts[store.KeyNext] != 1 || len(statuses(t, s, "ten_a")) != n+2 {
-			t.Fatalf("unexpected end state: %v", statuses(t, s, "ten_a"))
+		if counts[store.KeyCurrent] != 1 || counts[store.KeyNext] != 1 || len(got) != n+2 ||
+			counts[store.KeyCurrent]+counts[store.KeyNext]+counts[store.KeyPrevious]+counts[store.KeyRevoked] != n+2 {
+			t.Fatalf("unexpected end state: %v", got)
 		}
 	})
 }
