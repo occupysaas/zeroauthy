@@ -32,9 +32,34 @@ type Store struct {
 	q  querier
 	tx *sql.Tx
 	d  dialect
-	// depth counts the savepoints open in tx; shared by every Store bound to
-	// the same transaction.
-	depth *int
+	st *txState // shared by every Store bound to tx; nil outside one
+}
+
+// txState is the state of one transaction shared by its nested calls.
+type txState struct {
+	depth  int   // savepoints currently open
+	broken error // set when a ROLLBACK TO SAVEPOINT failed; see savepoint
+}
+
+// usable returns the error that broke s's transaction, if any.
+func (s *Store) usable() error {
+	if s.st != nil {
+		return s.st.broken
+	}
+	return nil
+}
+
+// row is a *sql.Row, or the error that broke the transaction.
+type row struct {
+	r   *sql.Row
+	err error
+}
+
+func (r row) Scan(dest ...any) error {
+	if r.err != nil {
+		return r.err
+	}
+	return r.r.Scan(dest...)
 }
 
 // Open connects to the database named by dsn (sqlite://, postgres(ql)://,
@@ -108,15 +133,24 @@ func parseDSN(dsn string) (dialect, string, error) {
 }
 
 func (s *Store) exec(ctx context.Context, q string, args ...any) (sql.Result, error) {
+	if err := s.usable(); err != nil {
+		return nil, err
+	}
 	return s.q.ExecContext(ctx, s.d.rebind(q), args...)
 }
 
 func (s *Store) query(ctx context.Context, q string, args ...any) (*sql.Rows, error) {
+	if err := s.usable(); err != nil {
+		return nil, err
+	}
 	return s.q.QueryContext(ctx, s.d.rebind(q), args...)
 }
 
-func (s *Store) queryRow(ctx context.Context, q string, args ...any) *sql.Row {
-	return s.q.QueryRowContext(ctx, s.d.rebind(q), args...)
+func (s *Store) queryRow(ctx context.Context, q string, args ...any) row {
+	if err := s.usable(); err != nil {
+		return row{err: err}
+	}
+	return row{r: s.q.QueryRowContext(ctx, s.d.rebind(q), args...)}
 }
 
 // atomic runs fn in one transaction begun with opts (nil for the defaults).
@@ -143,8 +177,11 @@ func (s *Store) atomic(ctx context.Context, opts *sql.TxOptions, fn func(t *Stor
 			_ = tx.Rollback()
 		}
 	}()
-	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, depth: new(int)}
+	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, st: &txState{}}
 	if err := fn(t); err != nil {
+		return err
+	}
+	if err := t.st.broken; err != nil { // fn carried on after a failed rollback
 		return err
 	}
 	finished = true
@@ -152,25 +189,39 @@ func (s *Store) atomic(ctx context.Context, opts *sql.TxOptions, fn func(t *Stor
 }
 
 // savepoint runs fn inside SAVEPOINT sp_<depth> of the current transaction,
-// rolling back to it when fn fails or panics. If the database has already
-// aborted the whole transaction (a MySQL deadlock), the rollback fails and
-// fn's error still propagates to the outermost call.
+// rolling back to it when fn fails or panics. If that rollback fails (MySQL
+// has already rolled the whole transaction back after a deadlock, say), the
+// transaction is marked broken: every later statement through it returns
+// the error, and the outermost atomic rolls back and returns it instead of
+// committing, so a caller that handles fn's error cannot carry on unaware.
 func (s *Store) savepoint(ctx context.Context, fn func(t *Store) error) (err error) {
-	*s.depth++
-	name := fmt.Sprintf("sp_%d", *s.depth)
-	defer func() { *s.depth-- }()
+	if err := s.usable(); err != nil {
+		return err
+	}
+	s.st.depth++
+	name := fmt.Sprintf("sp_%d", s.st.depth)
+	defer func() { s.st.depth-- }()
 	if _, err := s.q.ExecContext(ctx, "SAVEPOINT "+name); err != nil {
 		return err
 	}
 	ok := false
+	var fnErr error
 	defer func() {
-		if !ok {
-			_, _ = s.q.ExecContext(ctx, "ROLLBACK TO SAVEPOINT "+name)
-			_, _ = s.q.ExecContext(ctx, "RELEASE SAVEPOINT "+name)
+		if ok {
+			return
 		}
+		if _, rbErr := s.q.ExecContext(ctx, "ROLLBACK TO SAVEPOINT "+name); rbErr != nil {
+			cause := rbErr
+			if fnErr != nil && s.d.isDeadlock(fnErr) {
+				cause = fnErr // let the outermost atomicRetry retry
+			}
+			s.st.broken = fmt.Errorf("sqlstore: transaction unusable: rollback to savepoint failed (%v) after: %v: %w", rbErr, fnErr, cause)
+			return
+		}
+		_, _ = s.q.ExecContext(ctx, "RELEASE SAVEPOINT "+name)
 	}()
-	if err := fn(s); err != nil {
-		return err
+	if fnErr = fn(s); fnErr != nil {
+		return fnErr
 	}
 	ok = true
 	_, err = s.q.ExecContext(ctx, "RELEASE SAVEPOINT "+name)
@@ -197,10 +248,19 @@ func (s *Store) sweep() *sql.TxOptions {
 	return nil
 }
 
-// write runs one statement as a repository write: in atomicRetry, so it is
-// retried on deadlock and, inside a transaction, wrapped in a savepoint.
+// write runs one statement as a repository write, retried on deadlock.
+// Outside a transaction and without opts it runs directly on the pool (one
+// statement is atomic by itself); with opts it gets its own transaction (the
+// isolation level), and inside a transaction a savepoint.
 func (s *Store) write(ctx context.Context, opts *sql.TxOptions, q string, args ...any) (sql.Result, error) {
 	var res sql.Result
+	if s.tx == nil && opts == nil {
+		err := s.retry(ctx, func() (err error) {
+			res, err = s.exec(ctx, q, args...)
+			return err
+		})
+		return res, err
+	}
 	err := s.atomicRetry(ctx, opts, func(t *Store) (err error) {
 		res, err = t.exec(ctx, q, args...)
 		return err
@@ -219,9 +279,17 @@ func (s *Store) atomicRetry(ctx context.Context, opts *sql.TxOptions, fn func(t 
 	if s.tx != nil {
 		return s.atomic(ctx, nil, fn)
 	}
+	return s.retry(ctx, func() error { return s.atomic(ctx, opts, fn) })
+}
+
+// retry runs op up to 3 times while it fails as a deadlock or serialization
+// failure, with a short jittered backoff. After the last attempt the error is
+// wrapped ("after 3 attempts: …"); a context that ends during the backoff
+// returns ctx.Err().
+func (s *Store) retry(ctx context.Context, op func() error) error {
 	const attempts = 3
 	for i := 1; ; i++ {
-		err := s.atomic(ctx, opts, fn)
+		err := op()
 		if err == nil || !s.d.isDeadlock(err) {
 			return err
 		}

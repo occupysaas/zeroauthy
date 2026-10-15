@@ -46,6 +46,19 @@ func testAuthTransactions(t *testing.T, newStore Factory) {
 		mustEqual(t, again.Params, map[string]string{"redirect_uri": "https://app.test/cb", "state": "xyz"})
 	})
 
+	t.Run("DeleteExpiredZeroTime", func(t *testing.T) {
+		s := open(t, newStore)
+		zero := newAuthTransaction("ten_a", "t1")
+		zero.ExpiresAt = time.Time{} // "not after before": expired
+		mustNoErr(t, s.AuthTransactions().Create(ctx, zero))
+		mustNoErr(t, s.AuthTransactions().Create(ctx, newAuthTransaction("ten_a", "t2")))
+		n, err := s.AuthTransactions().DeleteExpired(ctx, ts(0))
+		mustNoErr(t, err)
+		mustEqual(t, n, 1)
+		_, err = s.AuthTransactions().Get(ctx, "ten_a", "t1")
+		mustErrIs(t, err, store.ErrNotFound)
+	})
+
 	t.Run("DeleteExpired", func(t *testing.T) {
 		s := open(t, newStore)
 		early := newAuthTransaction("ten_a", "t1") // expires ts(15m)

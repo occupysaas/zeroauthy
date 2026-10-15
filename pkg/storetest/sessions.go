@@ -110,6 +110,28 @@ func testSessions(t *testing.T, newStore Factory) {
 		}
 	})
 
+	t.Run("DeleteExpiredZeroTimes", func(t *testing.T) {
+		// A zero ExpiresAt or IdleExpiresAt is "not after before": expired,
+		// unlike refresh tokens, where zero means never.
+		s := open(t, newStore)
+		noAbs := newSession("ten_a", "noabs", "h-noabs")
+		noAbs.ExpiresAt = time.Time{}
+		noIdle := newSession("ten_a", "noidle", "h-noidle")
+		noIdle.IdleExpiresAt = time.Time{}
+		for _, x := range []*store.LoginSession{noAbs, noIdle, newSession("ten_a", "live", "h-live")} {
+			mustNoErr(t, s.Sessions().Create(ctx, x))
+		}
+		n, err := s.Sessions().DeleteExpired(ctx, ts(0))
+		mustNoErr(t, err)
+		mustEqual(t, n, 2)
+		_, err = s.Sessions().GetByTokenHash(ctx, "ten_a", "h-live")
+		mustNoErr(t, err)
+		for _, h := range []string{"h-noabs", "h-noidle"} {
+			_, err = s.Sessions().GetByTokenHash(ctx, "ten_a", h)
+			mustErrIs(t, err, store.ErrNotFound)
+		}
+	})
+
 	t.Run("DeleteByUser", func(t *testing.T) {
 		s := open(t, newStore)
 		mustNoErr(t, s.Sessions().Create(ctx, newSession("ten_a", "s1", "h1"))) // auth0|u1

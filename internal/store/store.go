@@ -178,7 +178,8 @@ type Sessions interface {
 	// returns how many it removed.
 	DeleteByUser(ctx context.Context, tenantID, userID string) (int, error)
 	// DeleteExpired removes, in every tenant, the sessions whose ExpiresAt
-	// or IdleExpiresAt is not after before, and returns how many it removed.
+	// or IdleExpiresAt is not after before (a zero time counts as expired),
+	// and returns how many it removed.
 	DeleteExpired(ctx context.Context, before time.Time) (int, error)
 }
 

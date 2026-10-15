@@ -236,3 +236,48 @@ func TestAtomicRetry(t *testing.T) {
 		t.Fatalf("calls=%d err=%v", calls, err)
 	}
 }
+
+// A failed ROLLBACK TO SAVEPOINT (here forced by releasing the savepoint
+// inside fn; in production, MySQL killing the transaction on a deadlock)
+// marks the transaction broken: later statements fail, and the outermost
+// atomic rolls back and reports it even though fn handled the error.
+func TestBrokenTransaction(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			s := mk(t)
+			ins := func(t *Store, id string) error {
+				_, err := t.exec(ctx, "INSERT INTO tenants (id, name, friendly_name, default_audience, allowed_logout_urls, enabled_locales, custom_text, session_lifetime, idle_session_lifetime, logo_url, primary_color, default_directory, created_at) VALUES (?, ?, '', '', '[]', '[]', '{}', 0, 0, '', '', '', 0)", id, id)
+				return err
+			}
+			boom := errors.New("boom")
+			var nestedErr, laterErr error
+			err := s.atomic(ctx, nil, func(tx *Store) error {
+				if err := ins(tx, "a"); err != nil {
+					return err
+				}
+				nestedErr = tx.atomic(ctx, nil, func(in *Store) error {
+					if _, err := in.q.ExecContext(ctx, "RELEASE SAVEPOINT sp_1"); err != nil {
+						return err
+					}
+					return boom
+				})
+				laterErr = ins(tx, "b") // the caller "handled" boom and carries on
+				return nil
+			})
+			if !errors.Is(nestedErr, boom) {
+				t.Fatalf("nested: %v", nestedErr)
+			}
+			if laterErr == nil || !strings.Contains(laterErr.Error(), "transaction unusable") {
+				t.Fatalf("statement after broken rollback: %v", laterErr)
+			}
+			if err == nil || !strings.Contains(err.Error(), "transaction unusable") {
+				t.Fatalf("outer atomic: %v", err)
+			}
+			var n int
+			if err := s.queryRow(ctx, "SELECT COUNT(*) FROM tenants").Scan(&n); err != nil || n != 0 {
+				t.Fatalf("count=%d err=%v; want the transaction rolled back", n, err)
+			}
+		})
+	}
+}
