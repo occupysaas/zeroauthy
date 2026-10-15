@@ -164,7 +164,39 @@ type Connection struct {
 	RequiresUsername bool
 	PasswordPolicy   PasswordPolicy
 	CreatedAt        time.Time
+
+	// EnabledDatabaseCustomization makes the connection use CustomScripts
+	// (Auth0's custom database). ImportMode copies users into zeroauthy on
+	// their first successful login.
+	EnabledDatabaseCustomization bool
+	ImportMode                   bool
+	CustomScripts                map[string]string // ScriptNames -> JS source
+	// ConfigurationSealed is the envelope-sealed JSON object of the
+	// connection's configuration settings (keys.SealConnectionConfig).
+	ConfigurationSealed   []byte
+	SetUserRootAttributes string // RootAttributes*; empty means on_each_login
 }
+
+// Custom database script names.
+const (
+	ScriptLogin          = "login"
+	ScriptGetUser        = "get_user"
+	ScriptCreate         = "create"
+	ScriptVerify         = "verify"
+	ScriptChangePassword = "change_password"
+	ScriptDelete         = "delete"
+	ScriptChangeEmail    = "change_email"
+)
+
+// ScriptNames lists every custom database script name Auth0 defines.
+var ScriptNames = []string{ScriptLogin, ScriptGetUser, ScriptCreate, ScriptVerify,
+	ScriptChangePassword, ScriptDelete, ScriptChangeEmail}
+
+// Values for Connection.SetUserRootAttributes.
+const (
+	RootAttributesOnEachLogin  = "on_each_login" // default (empty means this)
+	RootAttributesOnFirstLogin = "on_first_login"
+)
 
 // Identity links a user to a connection.
 type Identity struct {
@@ -188,12 +220,14 @@ type User struct {
 	FamilyName    string
 	// UserMetadata is free-form, user-editable JSON (maps, slices, scalars).
 	UserMetadata map[string]any
-	Blocked      bool
-	Identities   []Identity
-	LastLogin    *time.Time
-	LoginsCount  int
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	// AppMetadata is free-form JSON that users cannot edit.
+	AppMetadata map[string]any
+	Blocked     bool
+	Identities  []Identity
+	LastLogin   *time.Time
+	LoginsCount int
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // LoginSession is a browser's authenticated session with a tenant.

@@ -65,7 +65,7 @@ func TestMigrate(t *testing.T) {
 				t.Fatal(err)
 			}
 			var n int
-			if err := s.queryRow(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&n); err != nil || n != 1 {
+			if err := s.queryRow(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&n); err != nil || int64(n) != s.LatestVersion() {
 				t.Fatalf("schema_migrations rows: %d %v", n, err)
 			}
 
@@ -169,5 +169,13 @@ func TestSchemaConstraints(t *testing.T) {
 				t.Fatal("tenant_domains must reference tenants")
 			}
 		})
+	}
+}
+
+func TestLatestVersionIsTwo(t *testing.T) {
+	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
+		if v := (&Store{d: d}).LatestVersion(); v != 2 {
+			t.Errorf("%s LatestVersion = %d, want 2", d.name, v)
+		}
 	}
 }

@@ -202,9 +202,34 @@ func TestConnectionRoundTrip(t *testing.T) {
 		TenantID: "ten", ID: "c1", Name: "Username-Password-Authentication", Strategy: store.StrategyDatabase,
 		EnabledClients: []string{"cid1", "cid2"}, DisableSignup: true, RequiresUsername: true,
 		PasswordPolicy: store.PasswordPolicy{MinLength: 12, RequireCharacterClasses: 3}, CreatedAt: nanoTime,
+		EnabledDatabaseCustomization: true, ImportMode: true,
+		CustomScripts:         map[string]string{store.ScriptLogin: "function login() {}", store.ScriptCreate: ""},
+		ConfigurationSealed:   []byte{0x01, 0x00, 0xff},
+		SetUserRootAttributes: store.RootAttributesOnFirstLogin,
 	}, connectionToPB, connectionFromPB)
+	// An empty (non-nil) script map stays distinct from nil.
+	roundTrip(t, "empty scripts", &store.Connection{CustomScripts: map[string]string{}}, connectionToPB, connectionFromPB)
 	roundTrip(t, "empty", &store.Connection{EnabledClients: []string{}}, connectionToPB, connectionFromPB)
 	roundTrip(t, "zero", &store.Connection{}, connectionToPB, connectionFromPB)
+}
+
+// Empty sealed bytes are not distinguishable from nil: they normalize to nil
+// on the wire, as they do in the SQL drivers (stored as NULL).
+func TestConnectionEmptySealedNormalizesToNil(t *testing.T) {
+	pb, err := connectionToPB(&store.Connection{ConfigurationSealed: []byte{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pb.ConfigurationSealed != nil {
+		t.Fatalf("sealed = %v, want absent", pb.ConfigurationSealed)
+	}
+	got, err := connectionFromPB(&storev1.Connection{ConfigurationSealed: []byte{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ConfigurationSealed != nil {
+		t.Fatalf("sealed = %v, want nil", got.ConfigurationSealed)
+	}
 }
 
 func TestUserRoundTrip(t *testing.T) {
@@ -214,11 +239,12 @@ func TestUserRoundTrip(t *testing.T) {
 		GivenName: "A", FamilyName: "L",
 		// JSON numbers decode as float64, as in the SQL drivers (D-0020).
 		UserMetadata: map[string]any{"plan": "pro", "seats": float64(3), "tags": []any{"x", "y"}, "nested": map[string]any{"k": true}, "none": nil},
+		AppMetadata:  map[string]any{"plan": "gold", "n": float64(3), "roles": []any{"a"}},
 		Blocked:      true,
 		Identities:   []store.Identity{{Connection: "db", Provider: "auth0", UserID: "u1", PasswordHash: "$argon2id$..."}},
 		LastLogin:    ptr(nanoTime), LoginsCount: 7, CreatedAt: nanoTime, UpdatedAt: nanoTime.Add(time.Second),
 	}, userToPB, userFromPB)
-	roundTrip(t, "empty", &store.User{UserMetadata: map[string]any{}, Identities: []store.Identity{}}, userToPB, userFromPB)
+	roundTrip(t, "empty", &store.User{UserMetadata: map[string]any{}, AppMetadata: map[string]any{}, Identities: []store.Identity{}}, userToPB, userFromPB)
 	roundTrip(t, "zero", &store.User{}, userToPB, userFromPB)
 }
 

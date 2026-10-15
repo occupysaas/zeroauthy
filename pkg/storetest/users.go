@@ -25,6 +25,7 @@ func newUser(tenantID, id, email, username string) *store.User {
 		}},
 		GivenName: "Given " + id, FamilyName: "Family " + id,
 		UserMetadata: map[string]any{"plan": "pro", "nested": map[string]any{"a": []any{"x"}}},
+		AppMetadata:  map[string]any{"plan": "gold", "n": float64(3)},
 		CreatedAt:    ts(0),
 		UpdatedAt:    ts(0),
 	}
@@ -127,6 +128,27 @@ func testUsers(t *testing.T, newStore Factory) {
 		got.UserMetadata["nested"].(map[string]any)["a"] = "mutated"
 		again, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
 		mustEqual(t, again.UserMetadata, map[string]any{"plan": "pro", "nested": map[string]any{"a": []any{"x"}}})
+	})
+
+	t.Run("AppMetadataIsCopiedAndNilRoundTrips", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newUser("ten_a", "u1", "alice@example.test", "alice")
+		mustNoErr(t, s.Users().Create(ctx, in))
+		in.AppMetadata["plan"] = "mutated"
+		got, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		got.AppMetadata["n"] = "mutated"
+		again, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, again.AppMetadata, map[string]any{"plan": "gold", "n": float64(3)})
+
+		plain := newUser("ten_a", "u2", "bob@example.test", "bob")
+		plain.AppMetadata = nil
+		mustNoErr(t, s.Users().Create(ctx, plain))
+		got, _ = s.Users().Get(ctx, "ten_a", "auth0|u2")
+		mustEqual(t, got.AppMetadata == nil, true)
+		again.AppMetadata = nil
+		mustNoErr(t, s.Users().Update(ctx, again))
+		got, _ = s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, got.AppMetadata == nil, true)
 	})
 
 	t.Run("SetPasswordHash", func(t *testing.T) {

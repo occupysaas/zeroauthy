@@ -48,6 +48,8 @@ var (
 	ErrNotFound    = store.ErrNotFound
 	ErrConflict    = store.ErrConflict
 	ErrAlreadyUsed = store.ErrAlreadyUsed
+
+	ScriptNames = store.ScriptNames
 )
 
 const (
@@ -66,4 +68,15 @@ const (
 	KeyRevoked  = store.KeyRevoked
 
 	StrategyDatabase = store.StrategyDatabase
+
+	ScriptLogin          = store.ScriptLogin
+	ScriptGetUser        = store.ScriptGetUser
+	ScriptCreate         = store.ScriptCreate
+	ScriptVerify         = store.ScriptVerify
+	ScriptChangePassword = store.ScriptChangePassword
+	ScriptDelete         = store.ScriptDelete
+	ScriptChangeEmail    = store.ScriptChangeEmail
+
+	RootAttributesOnEachLogin  = store.RootAttributesOnEachLogin
+	RootAttributesOnFirstLogin = store.RootAttributesOnFirstLogin
 )

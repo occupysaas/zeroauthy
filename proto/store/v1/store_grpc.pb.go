@@ -120,7 +120,7 @@ const (
 //
 //	custom_text_json is a JSON object: prompt -> language -> screen -> key ->
 //	text, every level an object and every leaf a string. user_metadata_json
-//	is any JSON object (nested objects, arrays, strings, numbers, booleans,
+//	and app_metadata_json are each any JSON object (nested objects, arrays, strings, numbers, booleans,
 //	null); numbers are read back as double-precision floats. An absent
 //	optional field means "nil", which is distinct from an empty object.
 //
@@ -895,7 +895,7 @@ func (c *storeServiceClient) PasswordResetTicketsDeleteExpired(ctx context.Conte
 //
 //	custom_text_json is a JSON object: prompt -> language -> screen -> key ->
 //	text, every level an object and every leaf a string. user_metadata_json
-//	is any JSON object (nested objects, arrays, strings, numbers, booleans,
+//	and app_metadata_json are each any JSON object (nested objects, arrays, strings, numbers, booleans,
 //	null); numbers are read back as double-precision floats. An absent
 //	optional field means "nil", which is distinct from an empty object.
 //

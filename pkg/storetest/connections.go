@@ -18,6 +18,12 @@ func newConnection(tenantID, id, name string) *store.Connection {
 		RequiresUsername: true,
 		PasswordPolicy:   store.PasswordPolicy{MinLength: 10, RequireCharacterClasses: 3},
 		CreatedAt:        ts(0),
+
+		EnabledDatabaseCustomization: true,
+		ImportMode:                   true,
+		CustomScripts:                map[string]string{store.ScriptLogin: "function login(e, p, cb) { cb(null, null) }"},
+		ConfigurationSealed:          []byte{0x01, 0x02, 0xff},
+		SetUserRootAttributes:        store.RootAttributesOnFirstLogin,
 	}
 }
 
@@ -72,6 +78,33 @@ func testConnections(t *testing.T, newStore Factory) {
 			names = append(names, c.Name)
 		}
 		mustEqual(t, names, []string{"a", "b", "c"})
+	})
+
+	t.Run("PlainConnectionHasNoScripts", func(t *testing.T) {
+		s := open(t, newStore)
+		c := newConnection("ten_a", "con1", "Database")
+		c.EnabledDatabaseCustomization, c.ImportMode = false, false
+		c.CustomScripts, c.ConfigurationSealed, c.SetUserRootAttributes = nil, nil, ""
+		mustNoErr(t, s.Connections().Create(ctx, c))
+		got, err := s.Connections().Get(ctx, "ten_a", "con1")
+		mustNoErr(t, err)
+		mustEqual(t, got, c)
+	})
+
+	t.Run("ScriptsAndSealedConfigAreCopied", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newConnection("ten_a", "con1", "Database")
+		mustNoErr(t, s.Connections().Create(ctx, in))
+		in.CustomScripts[store.ScriptLogin] = "mutated"
+		in.ConfigurationSealed[0] = 0x99
+		got, err := s.Connections().Get(ctx, "ten_a", "con1")
+		mustNoErr(t, err)
+		got.CustomScripts[store.ScriptLogin] = "mutated-too"
+		got.ConfigurationSealed[0] = 0x98
+		again, err := s.Connections().Get(ctx, "ten_a", "con1")
+		mustNoErr(t, err)
+		mustEqual(t, again.CustomScripts, map[string]string{store.ScriptLogin: "function login(e, p, cb) { cb(null, null) }"})
+		mustEqual(t, again.ConfigurationSealed, []byte{0x01, 0x02, 0xff})
 	})
 
 	t.Run("ReturnsCopies", func(t *testing.T) {

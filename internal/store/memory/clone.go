@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"bytes"
 	"maps"
 	"slices"
 
@@ -76,6 +77,8 @@ func cloneSigningKey(k *store.SigningKey) *store.SigningKey {
 func cloneConnection(c *store.Connection) *store.Connection {
 	out := *c
 	out.EnabledClients = slices.Clone(c.EnabledClients)
+	out.CustomScripts = maps.Clone(c.CustomScripts)
+	out.ConfigurationSealed = bytes.Clone(c.ConfigurationSealed)
 	return &out
 }
 
@@ -87,6 +90,7 @@ func cloneUser(u *store.User) *store.User {
 		out.LastLogin = &t
 	}
 	out.UserMetadata = cloneJSON(u.UserMetadata)
+	out.AppMetadata = cloneJSON(u.AppMetadata)
 	return &out
 }
 

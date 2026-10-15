@@ -341,14 +341,22 @@ func connectionToPB(c *store.Connection) (*storev1.Connection, error) {
 	if c == nil {
 		return nil, nil
 	}
-	return &storev1.Connection{
+	pb := &storev1.Connection{
 		TenantId: c.TenantID, Id: c.ID, Name: c.Name, Strategy: c.Strategy,
 		EnabledClients: stringsToPB(c.EnabledClients), DisableSignup: c.DisableSignup,
 		RequiresUsername: c.RequiresUsername,
 		PasswordPolicy: &storev1.PasswordPolicy{
 			MinLength: int64(c.PasswordPolicy.MinLength), RequireCharacterClasses: int64(c.PasswordPolicy.RequireCharacterClasses)},
-		CreatedAt: tsToPB(c.CreatedAt),
-	}, nil
+		CreatedAt:                    tsToPB(c.CreatedAt),
+		EnabledDatabaseCustomization: c.EnabledDatabaseCustomization, ImportMode: c.ImportMode,
+		CustomScripts: stringMapToPB(c.CustomScripts), SetUserRootAttributes: c.SetUserRootAttributes,
+	}
+	// Empty sealed bytes normalize to absent (nil): the SQL drivers store
+	// them as NULL too.
+	if len(c.ConfigurationSealed) > 0 {
+		pb.ConfigurationSealed = cloneBytes(c.ConfigurationSealed)
+	}
+	return pb, nil
 }
 
 func connectionFromPB(pb *storev1.Connection) (*store.Connection, error) {
@@ -358,14 +366,20 @@ func connectionFromPB(pb *storev1.Connection) (*store.Connection, error) {
 	if err := checkTS(pb.CreatedAt); err != nil {
 		return nil, err
 	}
-	return &store.Connection{
+	c := &store.Connection{
 		TenantID: pb.TenantId, ID: pb.Id, Name: pb.Name, Strategy: pb.Strategy,
 		EnabledClients: stringsFromPB(pb.EnabledClients), DisableSignup: pb.DisableSignup,
 		RequiresUsername: pb.RequiresUsername,
 		PasswordPolicy: store.PasswordPolicy{
 			MinLength: int(pb.GetPasswordPolicy().GetMinLength()), RequireCharacterClasses: int(pb.GetPasswordPolicy().GetRequireCharacterClasses())},
-		CreatedAt: tsFromPB(pb.CreatedAt),
-	}, nil
+		CreatedAt:                    tsFromPB(pb.CreatedAt),
+		EnabledDatabaseCustomization: pb.EnabledDatabaseCustomization, ImportMode: pb.ImportMode,
+		CustomScripts: stringMapFromPB(pb.CustomScripts), SetUserRootAttributes: pb.SetUserRootAttributes,
+	}
+	if len(pb.ConfigurationSealed) > 0 {
+		c.ConfigurationSealed = cloneBytes(pb.ConfigurationSealed)
+	}
+	return c, nil
 }
 
 // ---- user ----
@@ -387,6 +401,13 @@ func userToPB(u *store.User) (*storev1.User, error) {
 			return nil, fmt.Errorf("grpcstore: encode user metadata: %w", err)
 		}
 		pb.UserMetadataJson = b
+	}
+	if u.AppMetadata != nil {
+		b, err := json.Marshal(u.AppMetadata)
+		if err != nil {
+			return nil, fmt.Errorf("grpcstore: encode app metadata: %w", err)
+		}
+		pb.AppMetadataJson = b
 	}
 	if u.Identities != nil {
 		pb.Identities = &storev1.IdentityList{Values: make([]*storev1.Identity, 0, len(u.Identities))}
@@ -418,6 +439,13 @@ func userFromPB(pb *storev1.User) (*store.User, error) {
 			return nil, fmt.Errorf("grpcstore: decode user metadata: %w", err)
 		}
 		u.UserMetadata = m
+	}
+	if pb.AppMetadataJson != nil {
+		var m map[string]any
+		if err := json.Unmarshal(pb.AppMetadataJson, &m); err != nil {
+			return nil, fmt.Errorf("grpcstore: decode app metadata: %w", err)
+		}
+		u.AppMetadata = m
 	}
 	if pb.Identities != nil {
 		u.Identities = make([]store.Identity, 0, len(pb.Identities.Values))

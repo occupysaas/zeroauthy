@@ -34,7 +34,7 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 // JSON fields
 //   custom_text_json is a JSON object: prompt -> language -> screen -> key ->
 //   text, every level an object and every leaf a string. user_metadata_json
-//   is any JSON object (nested objects, arrays, strings, numbers, booleans,
+//   and app_metadata_json are each any JSON object (nested objects, arrays, strings, numbers, booleans,
 //   null); numbers are read back as double-precision floats. An absent
 //   optional field means "nil", which is distinct from an empty object.
 //
@@ -247,6 +247,10 @@ message Connection {
   string tenant_id = 1; string id = 2; string name = 3; string strategy = 4;
   StringList enabled_clients = 5; bool disable_signup = 6; bool requires_username = 7;
   PasswordPolicy password_policy = 8; google.protobuf.Timestamp created_at = 9;
+  bool enabled_database_customization = 10; bool import_mode = 11;
+  StringMap custom_scripts = 12;            // absent = nil map
+  optional bytes configuration_sealed = 13; // absent = nil
+  string set_user_root_attributes = 14;
 }
 
 message Identity { string connection = 1; string provider = 2; string user_id = 3; string password_hash = 4; }
@@ -260,6 +264,7 @@ message User {
   google.protobuf.Timestamp last_login = 14; // absent = nil
   int64 logins_count = 15;
   google.protobuf.Timestamp created_at = 16; google.protobuf.Timestamp updated_at = 17;
+  optional bytes app_metadata_json = 18; // absent = nil map
 }
 
 message LoginSession {
