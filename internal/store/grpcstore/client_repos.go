@@ -73,6 +73,9 @@ func decList[P, T any](op string, err error, e *storev1.Error, pbs []P, dec func
 	if de := errFromPB(e); de != nil {
 		return nil, de
 	}
+	if len(pbs) == 0 {
+		return nil, nil
+	}
 	out := make([]*T, 0, len(pbs))
 	for _, pb := range pbs {
 		v, derr := dec(pb)

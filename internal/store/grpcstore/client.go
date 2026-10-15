@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
@@ -27,7 +29,17 @@ func NewClient(conn grpc.ClientConnInterface, closer func() error) *Client {
 }
 
 // rpcErr wraps a transport failure so it never matches a store sentinel.
-func rpcErr(op string, err error) error { return fmt.Errorf("storage plugin: %s: %w", op, err) }
+// A cancelled or expired context is reported as the matching context error,
+// with the gRPC status kept in the chain.
+func rpcErr(op string, err error) error {
+	switch status.Code(err) {
+	case codes.Canceled:
+		return fmt.Errorf("storage plugin: %s: %w: %w", op, context.Canceled, err)
+	case codes.DeadlineExceeded:
+		return fmt.Errorf("storage plugin: %s: %w: %w", op, context.DeadlineExceeded, err)
+	}
+	return fmt.Errorf("storage plugin: %s: %w", op, err)
+}
 
 func (c *Client) Ping(ctx context.Context) error {
 	r, err := c.rpc.Ping(ctx, &storev1.PingRequest{})
@@ -63,15 +75,15 @@ func (c *Client) WithTx(ctx context.Context, fn func(store.Store) error) (err er
 	}
 	tx := &Client{rpc: c.rpc, txID: r.TxId}
 	end := context.WithoutCancel(ctx)
-	committed := false
+	committed, commitFailed := false, false
 	defer func() {
 		if committed {
 			return
 		}
-		// Reached on an fn error or a panic. A rollback failure is only
-		// reported when there is an error to attach it to; during a panic
-		// the panic keeps propagating.
-		if _, rbErr := c.rpc.Rollback(end, &storev1.EndTxRequest{TxId: r.TxId}); rbErr != nil && err != nil {
+		// Reached on an fn error, a panic, or a failed Commit. A rollback
+		// failure is only reported when fn failed; after a failed Commit the
+		// Commit error stands, and during a panic the panic keeps propagating.
+		if _, rbErr := c.rpc.Rollback(end, &storev1.EndTxRequest{TxId: r.TxId}); rbErr != nil && err != nil && !commitFailed {
 			err = errors.Join(err, rpcErr("Rollback", rbErr))
 		}
 	}()
@@ -79,11 +91,21 @@ func (c *Client) WithTx(ctx context.Context, fn func(store.Store) error) (err er
 		return err
 	}
 	cr, cerr := c.rpc.Commit(end, &storev1.EndTxRequest{TxId: r.TxId})
-	committed = true // a failed Commit has already ended the transaction
-	if cerr != nil {
-		return rpcErr("Commit", cerr)
+	commitFailed = true
+	if cerr == nil {
+		cerr2 := errFromPB(cr.GetError())
+		if cerr2 == nil {
+			committed, commitFailed = true, false
+			return nil
+		}
+		err = cerr2
+	} else {
+		err = rpcErr("Commit", cerr)
 	}
-	return errFromPB(cr.GetError())
+	// A failed Commit may leave the transaction open (a transport error, an
+	// open nested transaction). The deferred Rollback is a best effort so it
+	// does not linger until the idle timeout; its result is ignored.
+	return err
 }
 
 func (c *Client) Tenants() store.Tenants                   { return clientTenants{c} }
