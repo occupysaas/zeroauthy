@@ -1,0 +1,69 @@
+// Package store re-exports zeroauthy's storage interfaces and domain types
+// for code outside this module, such as external storage plugins. The
+// definitions and their documentation live in internal/store; every name
+// here is an alias, so values are interchangeable.
+package store
+
+import "github.com/zeroauthy/zeroauthy/internal/store"
+
+type (
+	Store                = store.Store
+	Tenants              = store.Tenants
+	Clients              = store.Clients
+	ResourceServers      = store.ResourceServers
+	ClientGrants         = store.ClientGrants
+	SigningKeys          = store.SigningKeys
+	Connections          = store.Connections
+	Users                = store.Users
+	Sessions             = store.Sessions
+	AuthTransactions     = store.AuthTransactions
+	AuthCodes            = store.AuthCodes
+	RefreshTokens        = store.RefreshTokens
+	PasswordResetTickets = store.PasswordResetTickets
+
+	Tenant              = store.Tenant
+	Branding            = store.Branding
+	CustomText          = store.CustomText
+	AppType             = store.AppType
+	ClientSecret        = store.ClientSecret
+	Client              = store.Client
+	RefreshTokenPolicy  = store.RefreshTokenPolicy
+	Scope               = store.Scope
+	ResourceServer      = store.ResourceServer
+	ClientGrant         = store.ClientGrant
+	KeyStatus           = store.KeyStatus
+	SigningKey          = store.SigningKey
+	PasswordPolicy      = store.PasswordPolicy
+	Connection          = store.Connection
+	Identity            = store.Identity
+	User                = store.User
+	LoginSession        = store.LoginSession
+	AuthTransaction     = store.AuthTransaction
+	AuthCode            = store.AuthCode
+	RefreshToken        = store.RefreshToken
+	PasswordResetTicket = store.PasswordResetTicket
+)
+
+var (
+	ErrNotFound    = store.ErrNotFound
+	ErrConflict    = store.ErrConflict
+	ErrAlreadyUsed = store.ErrAlreadyUsed
+)
+
+const (
+	AppTypeSPA            = store.AppTypeSPA
+	AppTypeRegularWeb     = store.AppTypeRegularWeb
+	AppTypeNative         = store.AppTypeNative
+	AppTypeNonInteractive = store.AppTypeNonInteractive
+
+	AuthMethodNone              = store.AuthMethodNone
+	AuthMethodClientSecretPost  = store.AuthMethodClientSecretPost
+	AuthMethodClientSecretBasic = store.AuthMethodClientSecretBasic
+
+	KeyNext     = store.KeyNext
+	KeyCurrent  = store.KeyCurrent
+	KeyPrevious = store.KeyPrevious
+	KeyRevoked  = store.KeyRevoked
+
+	StrategyDatabase = store.StrategyDatabase
+)

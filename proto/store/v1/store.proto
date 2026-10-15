@@ -1,0 +1,323 @@
+syntax = "proto3";
+
+package zeroauthy.store.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
+
+// StoreService mirrors zeroauthy's store.Store. Every request carries tx_id:
+// empty means "no transaction"; otherwise the call runs inside the
+// transaction BeginTx returned. Domain errors are reported in the response's
+// `error` field; gRPC status codes mean transport or plugin failure.
+service StoreService {
+  rpc Ping(PingRequest) returns (Result);
+  rpc BeginTx(BeginTxRequest) returns (BeginTxResponse);
+  rpc Commit(EndTxRequest) returns (Result);
+  rpc Rollback(EndTxRequest) returns (Result);
+
+  rpc TenantsCreate(TenantWrite) returns (Result);
+  rpc TenantsGet(TenantsGetRequest) returns (TenantResult);
+  rpc TenantsGetByName(TenantsGetRequest) returns (TenantResult);
+  rpc TenantsGetByDomain(TenantsGetRequest) returns (TenantResult);
+  rpc TenantsUpdate(TenantWrite) returns (Result);
+  rpc TenantsList(TenantsListRequest) returns (TenantList);
+
+  rpc ClientsCreate(ClientWrite) returns (Result);
+  rpc ClientsGet(ScopedKey) returns (ClientResult);
+  rpc ClientsUpdate(ClientWrite) returns (Result);
+  rpc ClientsDelete(ScopedKey) returns (Result);
+  rpc ClientsList(TenantScope) returns (ClientList);
+
+  rpc ResourceServersCreate(ResourceServerWrite) returns (Result);
+  rpc ResourceServersGet(ScopedKey) returns (ResourceServerResult);
+  rpc ResourceServersGetByIdentifier(ScopedKey) returns (ResourceServerResult);
+  rpc ResourceServersUpdate(ResourceServerWrite) returns (Result);
+  rpc ResourceServersDelete(ScopedKey) returns (Result);
+
+  rpc ClientGrantsCreate(ClientGrantWrite) returns (Result);
+  rpc ClientGrantsFind(ClientGrantsFindRequest) returns (ClientGrantResult);
+  rpc ClientGrantsUpdate(ClientGrantWrite) returns (Result);
+  rpc ClientGrantsDelete(ScopedKey) returns (Result);
+
+  rpc SigningKeysCreate(SigningKeyWrite) returns (Result);
+  rpc SigningKeysList(TenantScope) returns (SigningKeyList);
+  rpc SigningKeysRotate(SigningKeysRotateRequest) returns (Result);
+
+  rpc ConnectionsCreate(ConnectionWrite) returns (Result);
+  rpc ConnectionsGet(ScopedKey) returns (ConnectionResult);
+  rpc ConnectionsGetByName(ScopedKey) returns (ConnectionResult);
+  rpc ConnectionsUpdate(ConnectionWrite) returns (Result);
+  rpc ConnectionsList(TenantScope) returns (ConnectionList);
+
+  rpc UsersCreate(UserWrite) returns (Result);
+  rpc UsersGet(ScopedKey) returns (UserResult);
+  rpc UsersFindByLogin(UsersFindByLoginRequest) returns (UserResult);
+  rpc UsersUpdate(UserWrite) returns (Result);
+  rpc UsersRecordLogin(UsersRecordLoginRequest) returns (Result);
+  rpc UsersSetPasswordHash(UsersSetPasswordHashRequest) returns (Result);
+
+  rpc SessionsCreate(SessionWrite) returns (Result);
+  rpc SessionsGetByTokenHash(ScopedKey) returns (SessionResult);
+  rpc SessionsTouch(TouchRequest) returns (Result);
+  rpc SessionsAddClient(SessionsAddClientRequest) returns (Result);
+  rpc SessionsDelete(ScopedKey) returns (Result);
+  rpc SessionsDeleteByUser(ScopedKey) returns (CountResult);
+  rpc SessionsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+
+  rpc AuthTransactionsCreate(AuthTransactionWrite) returns (Result);
+  rpc AuthTransactionsGet(ScopedKey) returns (AuthTransactionResult);
+  rpc AuthTransactionsDelete(ScopedKey) returns (Result);
+  rpc AuthTransactionsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+
+  rpc AuthCodesCreate(AuthCodeWrite) returns (Result);
+  rpc AuthCodesConsume(ConsumeRequest) returns (AuthCodeResult);
+  rpc AuthCodesGet(ScopedKey) returns (AuthCodeResult);
+  rpc AuthCodesDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+
+  rpc RefreshTokensCreate(RefreshTokenWrite) returns (Result);
+  rpc RefreshTokensGetByTokenHash(ScopedKey) returns (RefreshTokenResult);
+  rpc RefreshTokensRotate(RefreshTokensRotateRequest) returns (Result);
+  rpc RefreshTokensTouch(TouchRequest) returns (Result);
+  rpc RefreshTokensRevokeFamily(RevokeRequest) returns (Result);
+  rpc RefreshTokensRevokeByUser(RevokeRequest) returns (CountResult);
+  rpc RefreshTokensDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+
+  rpc PasswordResetTicketsCreate(PasswordResetTicketWrite) returns (Result);
+  rpc PasswordResetTicketsGetByTokenHash(ScopedKey) returns (PasswordResetTicketResult);
+  rpc PasswordResetTicketsConsume(ConsumeRequest) returns (PasswordResetTicketResult);
+  rpc PasswordResetTicketsDeleteByUser(ScopedKey) returns (CountResult);
+  rpc PasswordResetTicketsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+}
+
+// ---- errors and generic results ----
+
+message Error {
+  enum Kind {
+    KIND_UNSPECIFIED = 0; // any other error; see message
+    KIND_NOT_FOUND = 1;   // store.ErrNotFound
+    KIND_CONFLICT = 2;    // store.ErrConflict
+    KIND_ALREADY_USED = 3; // store.ErrAlreadyUsed
+  }
+  Kind kind = 1;
+  string message = 2; // human-readable; for KIND_UNSPECIFIED the whole error
+}
+
+message Result { Error error = 1; }            // absent error = success
+message CountResult { Error error = 1; int64 count = 2; }
+
+// ---- transactions ----
+
+message PingRequest {}
+message BeginTxRequest { string parent_tx_id = 1; } // empty = top level
+message BeginTxResponse { Error error = 1; string tx_id = 2; }
+message EndTxRequest { string tx_id = 1; }
+
+// ---- shared request shapes ----
+
+message TenantScope { string tx_id = 1; string tenant_id = 2; }
+// ScopedKey addresses one entity in a tenant by its key (ID, client ID,
+// identifier, name or token hash, depending on the RPC).
+message ScopedKey { string tx_id = 1; string tenant_id = 2; string key = 3; }
+message TouchRequest {
+  string tx_id = 1; string tenant_id = 2; string id = 3;
+  google.protobuf.Timestamp idle_expires_at = 4;
+}
+message DeleteExpiredRequest { string tx_id = 1; google.protobuf.Timestamp before = 2; }
+message ConsumeRequest {
+  string tx_id = 1; string tenant_id = 2; string hash = 3;
+  google.protobuf.Timestamp at = 4;
+}
+message RevokeRequest {
+  string tx_id = 1; string tenant_id = 2; string key = 3; // family ID or user ID
+  google.protobuf.Timestamp at = 4;
+}
+
+// ---- presence-preserving wrappers: an absent wrapper is a nil slice/map ----
+
+message StringList { repeated string values = 1; }
+message StringMap { map<string, string> values = 1; }
+
+// ---- entities ----
+
+message Tenant {
+  string id = 1;
+  string name = 2;
+  string friendly_name = 3;
+  StringList domains = 4;
+  string default_audience = 5;
+  StringList allowed_logout_urls = 6;
+  StringList enabled_locales = 7;
+  optional bytes custom_text_json = 8; // absent = nil CustomText
+  int64 session_lifetime = 9;
+  int64 idle_session_lifetime = 10;
+  Branding branding = 11;
+  string default_directory = 12;
+  google.protobuf.Timestamp created_at = 13;
+}
+message Branding { string logo_url = 1; string primary_color = 2; }
+
+message ClientSecret {
+  string hash = 1;
+  google.protobuf.Timestamp created_at = 2;
+  google.protobuf.Timestamp expires_at = 3; // absent = nil
+}
+message ClientSecretList { repeated ClientSecret values = 1; }
+message RefreshTokenPolicy {
+  bool rotating = 1; int64 leeway = 2; bool expiring = 3;
+  int64 token_lifetime = 4; int64 idle_token_lifetime = 5;
+}
+message Client {
+  string tenant_id = 1;
+  string client_id = 2;
+  string name = 3;
+  string app_type = 4;
+  ClientSecretList secrets = 5;
+  string token_endpoint_auth_method = 6;
+  StringList grant_types = 7;
+  StringList callbacks = 8;
+  StringList allowed_logout_urls = 9;
+  StringList web_origins = 10;
+  StringList allowed_origins = 11;
+  int64 id_token_lifetime = 12;
+  RefreshTokenPolicy refresh_token = 13;
+  google.protobuf.Timestamp created_at = 14;
+}
+
+message Scope { string value = 1; string description = 2; }
+message ScopeList { repeated Scope values = 1; }
+message ResourceServer {
+  string tenant_id = 1; string id = 2; string identifier = 3; string name = 4;
+  ScopeList scopes = 5; string signing_alg = 6; int64 token_lifetime = 7;
+  bool allow_offline_access = 8; google.protobuf.Timestamp created_at = 9;
+}
+
+message ClientGrant {
+  string tenant_id = 1; string id = 2; string client_id = 3; string audience = 4;
+  StringList scopes = 5; google.protobuf.Timestamp created_at = 6;
+}
+
+message SigningKey {
+  string tenant_id = 1; string kid = 2; string alg = 3; string status = 4;
+  optional bytes private_key = 5; // absent = nil
+  optional bytes public_jwk = 6;  // absent = nil
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message PasswordPolicy { int64 min_length = 1; int64 require_character_classes = 2; }
+message Connection {
+  string tenant_id = 1; string id = 2; string name = 3; string strategy = 4;
+  StringList enabled_clients = 5; bool disable_signup = 6; bool requires_username = 7;
+  PasswordPolicy password_policy = 8; google.protobuf.Timestamp created_at = 9;
+}
+
+message Identity { string connection = 1; string provider = 2; string user_id = 3; string password_hash = 4; }
+message IdentityList { repeated Identity values = 1; }
+message User {
+  string tenant_id = 1; string user_id = 2; string email = 3; bool email_verified = 4;
+  string username = 5; string name = 6; string nickname = 7; string picture = 8;
+  string given_name = 9; string family_name = 10;
+  optional bytes user_metadata_json = 11; // absent = nil map
+  bool blocked = 12; IdentityList identities = 13;
+  google.protobuf.Timestamp last_login = 14; // absent = nil
+  int64 logins_count = 15;
+  google.protobuf.Timestamp created_at = 16; google.protobuf.Timestamp updated_at = 17;
+}
+
+message LoginSession {
+  string tenant_id = 1; string id = 2; string token_hash = 3; string user_id = 4;
+  string connection = 5; google.protobuf.Timestamp authenticated_at = 6;
+  StringList client_ids = 7; google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp idle_expires_at = 9; google.protobuf.Timestamp created_at = 10;
+}
+
+message AuthTransaction {
+  string tenant_id = 1; string id = 2; string cookie_hash = 3; string csrf_token = 4;
+  string client_id = 5; StringMap params = 6;
+  google.protobuf.Timestamp expires_at = 7; google.protobuf.Timestamp created_at = 8;
+}
+
+message AuthCode {
+  string tenant_id = 1; string code_hash = 2; string client_id = 3; string redirect_uri = 4;
+  string user_id = 5; string session_id = 6; StringList scopes = 7; string audience = 8;
+  string nonce = 9; string code_challenge = 10; string code_challenge_method = 11;
+  google.protobuf.Timestamp auth_time = 12; google.protobuf.Timestamp expires_at = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp used_at = 15;     // absent = nil
+  google.protobuf.Timestamp replayed_at = 16; // absent = nil
+}
+
+message RefreshToken {
+  string tenant_id = 1; string id = 2; string token_hash = 3; string family_id = 4;
+  string client_id = 5; string user_id = 6; string session_id = 7; StringList scopes = 8;
+  string audience = 9; google.protobuf.Timestamp auth_time = 10; bool rotating = 11;
+  google.protobuf.Timestamp expires_at = 12; google.protobuf.Timestamp idle_expires_at = 13;
+  google.protobuf.Timestamp rotated_at = 14; // absent = nil
+  google.protobuf.Timestamp revoked_at = 15; // absent = nil
+  google.protobuf.Timestamp created_at = 16;
+}
+
+message PasswordResetTicket {
+  string tenant_id = 1; string id = 2; string token_hash = 3; string user_id = 4;
+  string connection = 5; string client_id = 6; string lang = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp used_at = 9; // absent = nil
+  google.protobuf.Timestamp created_at = 10;
+}
+
+// ---- per-entity requests and results ----
+
+message TenantWrite { string tx_id = 1; Tenant value = 2; }
+message TenantsGetRequest { string tx_id = 1; string key = 2; } // id, name or domain
+message TenantsListRequest { string tx_id = 1; }
+message TenantResult { Error error = 1; Tenant value = 2; }
+message TenantList { Error error = 1; repeated Tenant values = 2; }
+
+message ClientWrite { string tx_id = 1; Client value = 2; }
+message ClientResult { Error error = 1; Client value = 2; }
+message ClientList { Error error = 1; repeated Client values = 2; }
+
+message ResourceServerWrite { string tx_id = 1; ResourceServer value = 2; }
+message ResourceServerResult { Error error = 1; ResourceServer value = 2; }
+
+message ClientGrantWrite { string tx_id = 1; ClientGrant value = 2; }
+message ClientGrantsFindRequest { string tx_id = 1; string tenant_id = 2; string client_id = 3; string audience = 4; }
+message ClientGrantResult { Error error = 1; ClientGrant value = 2; }
+
+message SigningKeyWrite { string tx_id = 1; SigningKey value = 2; }
+message SigningKeyList { Error error = 1; repeated SigningKey values = 2; }
+message SigningKeysRotateRequest { string tx_id = 1; string tenant_id = 2; SigningKey next = 3; }
+
+message ConnectionWrite { string tx_id = 1; Connection value = 2; }
+message ConnectionResult { Error error = 1; Connection value = 2; }
+message ConnectionList { Error error = 1; repeated Connection values = 2; }
+
+message UserWrite { string tx_id = 1; User value = 2; }
+message UserResult { Error error = 1; User value = 2; }
+message UsersFindByLoginRequest { string tx_id = 1; string tenant_id = 2; string connection = 3; string login = 4; }
+message UsersRecordLoginRequest { string tx_id = 1; string tenant_id = 2; string user_id = 3; google.protobuf.Timestamp at = 4; }
+message UsersSetPasswordHashRequest {
+  string tx_id = 1; string tenant_id = 2; string user_id = 3; string connection = 4;
+  string hash = 5; google.protobuf.Timestamp at = 6;
+}
+
+message SessionWrite { string tx_id = 1; LoginSession value = 2; }
+message SessionResult { Error error = 1; LoginSession value = 2; }
+message SessionsAddClientRequest { string tx_id = 1; string tenant_id = 2; string id = 3; string client_id = 4; }
+
+message AuthTransactionWrite { string tx_id = 1; AuthTransaction value = 2; }
+message AuthTransactionResult { Error error = 1; AuthTransaction value = 2; }
+
+message AuthCodeWrite { string tx_id = 1; AuthCode value = 2; }
+message AuthCodeResult { Error error = 1; AuthCode value = 2; } // Consume may set both
+
+message RefreshTokenWrite { string tx_id = 1; RefreshToken value = 2; }
+message RefreshTokenResult { Error error = 1; RefreshToken value = 2; }
+message RefreshTokensRotateRequest {
+  string tx_id = 1; string tenant_id = 2; string old_id = 3; RefreshToken next = 4;
+  google.protobuf.Timestamp at = 5; google.protobuf.Duration leeway = 6;
+}
+
+message PasswordResetTicketWrite { string tx_id = 1; PasswordResetTicket value = 2; }
+message PasswordResetTicketResult { Error error = 1; PasswordResetTicket value = 2; }

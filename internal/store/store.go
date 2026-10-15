@@ -1,3 +1,5 @@
+// Exported through pkg/store; add new names there too.
+
 // Package store defines zeroauthy's storage interfaces. Every driver
 // (memory, SQL, external plugin) implements Store and must pass the
 // conformance suite in pkg/storetest.

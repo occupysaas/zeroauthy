@@ -1,3 +1,5 @@
+// Exported through pkg/store; add new names there too.
+
 package store
 
 import "time"
