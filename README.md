@@ -65,15 +65,31 @@ master key. Generate one with `openssl rand -base64 32` and set it as
 file containing it). It is required for persistent storage; with
 `memory://` storage zeroauthy uses an ephemeral key and logs a warning.
 
+**Storage.** `storage.dsn` selects the driver:
+
+| DSN | Driver |
+|-----|--------|
+| `memory://` | In memory; lost on exit (tests, demos) |
+| `sqlite:///var/lib/zeroauthy/zeroauthy.db` | SQLite (pure Go, no CGO); `sqlite://relative.db` is relative to the working directory |
+| `postgres://user:pass@host:5432/db?sslmode=require` | PostgreSQL 14+ (`postgresql://` also works) |
+| `mysql://user:pass@host:3306/db` | MySQL 8.0.17+ (MariaDB is not supported) |
+
+The SQL drivers have a schema. Apply pending migrations with
+`zeroauthy migrate --config zeroauthy.yaml` before starting a new version,
+or set `storage.auto_migrate: true` (`ZEROAUTHY_STORAGE__AUTO_MIGRATE=true`)
+to have `serve` migrate at startup. Without it, `serve` refuses to start
+against a schema that is behind or ahead of the binary.
+
 **Proxies.** Enable `server.trust_proxy_headers` only behind a proxy that
 sets `X-Forwarded-Host`; otherwise clients could choose their own tenant.
 
 ## Development
 
 ```bash
-make test           # unit + contract + storage conformance tests
+make test           # unit + contract + storage conformance tests (memory and SQLite)
+make test-sql       # SQL driver tests against PostgreSQL 17 and MySQL 8.4 containers (needs podman or docker)
 make generate       # regenerate code from api/authentication.yaml
-make e2e            # Auth0 SDKs against a live zeroauthy (needs Node 22+, openssl)
+make e2e            # Auth0 SDKs against a live zeroauthy on SQLite (needs Node 22+, openssl)
 make check-sources  # verify every x-source provenance link
 ```
 

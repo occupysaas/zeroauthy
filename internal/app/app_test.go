@@ -69,3 +69,35 @@ func TestNewWarnsAboutLogEmailDriver(t *testing.T) {
 		}
 	}
 }
+
+func sqliteConfig(t *testing.T, autoMigrate bool) *config.Config {
+	t.Helper()
+	return &config.Config{
+		Storage:  config.Storage{DSN: "sqlite://" + filepath.Join(t.TempDir(), "z.db"), AutoMigrate: autoMigrate},
+		Security: config.Security{MasterKey: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="},
+	}
+}
+
+func TestNewRefusesUnmigratedDatabase(t *testing.T) {
+	_, err := New(context.Background(), sqliteConfig(t, false), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err == nil || !strings.Contains(err.Error(), "run zeroauthy migrate") {
+		t.Fatalf("err = %v, want it to say run zeroauthy migrate", err)
+	}
+}
+
+func TestNewAutoMigrates(t *testing.T) {
+	var buf strings.Builder
+	a, err := New(context.Background(), sqliteConfig(t, true), slog.New(slog.NewTextHandler(&buf, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	rec := httptest.NewRecorder()
+	a.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/healthz", nil))
+	if rec.Code != 200 {
+		t.Fatalf("/healthz = %d %s", rec.Code, rec.Body)
+	}
+	if !strings.Contains(buf.String(), "schema_version=") {
+		t.Errorf("schema version not logged: %s", buf.String())
+	}
+}

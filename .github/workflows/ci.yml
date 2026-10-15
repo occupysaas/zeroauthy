@@ -36,3 +36,37 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: tests/e2e
       - run: make e2e
+  sql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: zeroauthy
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 24
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: zeroauthy
+        ports:
+          - 53306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -pzeroauthy --silent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 24
+    env:
+      ZEROAUTHY_TEST_POSTGRES_DSN: postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable
+      ZEROAUTHY_TEST_MYSQL_DSN: mysql://root:zeroauthy@127.0.0.1:53306/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test -race -count=1 ./internal/store/sqlstore/...

@@ -40,6 +40,12 @@ func newSeedCmd() *cobra.Command {
 				return err
 			}
 			defer st.Close()
+			// Never write into a schema that is missing or from another version.
+			if m, ok := st.(storage.Migrator); ok {
+				if err := m.CheckSchema(cmd.Context()); err != nil {
+					return err
+				}
+			}
 			if err := seed.Apply(cmd.Context(), st, f, time.Now); err != nil {
 				return err
 			}

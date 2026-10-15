@@ -264,3 +264,30 @@ them. Each entry: context, sources consulted, decision, rationale.
     - **Password:** sets a new argon2id hash.
     - **Brute-force lock:** the user's login lock (on their email and, if set, username) is cleared, as Auth0 documents that a password change unblocks a user blocked by brute-force protection.
 - **Rationale:** It follows the documented endpoint. Where the docs are silent, the choices follow OWASP guidance, so a reset locks out anyone holding an old session.
+
+## D-0020: SQL storage encoding and isolation
+
+- **Context:** The spec requires SQLite, PostgreSQL and MySQL drivers that pass the same conformance suite as the memory driver, with atomic single-method operations.
+- **Sources:** spec §5.1; the database vendors' documentation for unique-violation codes, row locking, savepoints and collations.
+- **Decision:**
+  - **Supported versions:** PostgreSQL 14+ (tested on 17), MySQL 8.0.17+ (tested on 8.4), SQLite through `modernc.org/sqlite`. MariaDB is not supported.
+  - **Times:** stored as BIGINT microseconds since the Unix epoch (UTC). Zero time is 0 and a nil time is NULL, so every dialect compares and sorts times the same way, with no timezone or precision differences. A session or auth transaction with a zero expiry counts as expired, as in the memory driver.
+  - **Values without their own table:** lists and maps are stored as JSON text.
+  - **Uniqueness:** enforced by unique indexes; a violation maps to `ErrConflict`. This includes:
+    - per-connection user logins, through `user_logins`;
+    - tenant domains; a domain repeated within one tenant's `Domains` is also `ErrConflict`, on every driver;
+    - one current and one next signing key per tenant, through a partial or generated-column unique index.
+  - **Atomic operations:** each runs in one transaction. PostgreSQL and MySQL use `SELECT … FOR UPDATE`. SQLite uses a single connection and immediate transactions.
+    - `SigningKeys.Rotate` locks the tenant row, so rotations of one tenant are serialized.
+    - Revoking a refresh-token family or all of a user's refresh tokens repeats until nothing more is revoked, so a successor rotated concurrently cannot stay live.
+  - **Transactions:**
+    - A nested `WithTx`, or a repository call inside a transaction, runs in a SAVEPOINT. An inner error rolls back only the inner work; the memory driver behaves the same way.
+    - The public `WithTx` never retries; the caller decides.
+    - Single repository writes are attempted up to 3 times (with backoff) when the database aborts them as a deadlock or serialization failure (MySQL 1213; PostgreSQL 40P01 and 40001).
+    - If `ROLLBACK TO SAVEPOINT` fails, the transaction is marked broken and is rolled back as a whole.
+  - **Isolation:** each dialect's default (PostgreSQL READ COMMITTED, MySQL REPEATABLE READ, SQLite serializable), except that on MySQL the expiry sweepers and set-based deletes run at READ COMMITTED, to avoid gap locks that deadlock with concurrent inserts.
+  - **MySQL:**
+    - **Collation:** `utf8mb4_0900_bin`, so comparisons are case-sensitive and, being NO PAD, trailing spaces are significant in keys, as on PostgreSQL and SQLite. This collation is why MySQL 8.0.17 is the minimum.
+    - **Session settings:** strict SQL mode, a UTC session time zone, and `clientFoundRows`.
+  - **Migrations:** embedded and ordered. `serve` refuses to start against an older or newer schema unless `storage.auto_migrate` is true; `zeroauthy migrate` applies pending migrations, and `zeroauthy seed` refuses an unmigrated database.
+- **Rationale:** One encoding for all dialects keeps the shared SQL simple and the conformance results identical.

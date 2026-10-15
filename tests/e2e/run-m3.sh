@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # tests/e2e/run-m3.sh: build zeroauthy, serve it over TLS on localhost:8443,
-# and run the SDK black-box test against it.
+# and run the SDK black-box test against it. Storage is SQLite (auto-migrated),
+# so the SQL driver is exercised end to end.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -20,6 +21,9 @@ CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
 ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" \
 ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
 ZEROAUTHY_EMAIL__DIR="$work/mail" \
+ZEROAUTHY_STORAGE__DSN="sqlite://$work/e2e.db" \
+ZEROAUTHY_STORAGE__AUTO_MIGRATE=true \
+ZEROAUTHY_SECURITY__MASTER_KEY="$(openssl rand -base64 32)" \
   "$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1 &
 pid=$!
 

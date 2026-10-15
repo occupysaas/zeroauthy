@@ -35,12 +35,43 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 	if err != nil {
 		return nil, err
 	}
+	if err := prepareSchema(ctx, cfg, log, st); err != nil {
+		_ = st.Close()
+		return nil, err
+	}
 	a, err := build(ctx, cfg, log, st)
 	if err != nil {
 		_ = st.Close()
 		return nil, err
 	}
 	return a, nil
+}
+
+// prepareSchema migrates (storage.auto_migrate) or verifies the schema of
+// drivers that have one. serve never runs against a schema that is behind or
+// ahead of this binary.
+func prepareSchema(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.Store) error {
+	m, ok := st.(storage.Migrator)
+	if !ok {
+		return nil
+	}
+	if cfg.Storage.AutoMigrate {
+		if err := m.Migrate(ctx); err != nil {
+			return err
+		}
+	} else if err := m.CheckSchema(ctx); err != nil {
+		return err
+	}
+	if v, ok := st.(interface {
+		SchemaVersion(context.Context) (int64, error)
+	}); ok {
+		version, err := v.SchemaVersion(ctx)
+		if err != nil {
+			return err
+		}
+		log.Info("storage schema ready", "schema_version", version, "auto_migrate", cfg.Storage.AutoMigrate)
+	}
+	return nil
 }
 
 func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.Store) (*App, error) {

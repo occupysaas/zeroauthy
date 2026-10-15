@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # tests/e2e/run-browser.sh: build zeroauthy, serve it and the test apps over
 # TLS, and drive the browser SDK specs (m*-*.spec.mjs) with Playwright.
+# Storage is SQLite (auto-migrated), so the SQL driver is exercised end to end.
 # E2E_IN_CONTAINER=1 runs Playwright in the official container image
 # (docker or podman) instead of on the host.
 set -euo pipefail
@@ -30,7 +31,9 @@ chmod 644 "$work/key.pem"
 
 CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
 ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
-  ZEROAUTHY_EMAIL__DIR="$work/mail" "$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1 &
+  ZEROAUTHY_EMAIL__DIR="$work/mail" ZEROAUTHY_STORAGE__DSN="sqlite://$work/e2e.db" \
+  ZEROAUTHY_STORAGE__AUTO_MIGRATE=true ZEROAUTHY_SECURITY__MASTER_KEY="$(openssl rand -base64 32)" \
+  "$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1 &
 pids+=($!)
 
 cd tests/e2e

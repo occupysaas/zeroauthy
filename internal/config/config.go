@@ -42,9 +42,13 @@ type Server struct {
 }
 
 type Storage struct {
-	// DSN selects the driver: memory://, and later sqlite://, postgres://,
-	// mysql://, plugin://.
+	// DSN selects the driver: memory://, sqlite://, postgres:// (or
+	// postgresql://), mysql://. plugin:// comes with the gRPC plugin host.
 	DSN string `koanf:"dsn"`
+	// AutoMigrate applies pending schema migrations at startup. When false,
+	// serve refuses to start against a schema that is behind or ahead; run
+	// zeroauthy migrate first.
+	AutoMigrate bool `koanf:"auto_migrate"`
 }
 
 type Security struct {

@@ -166,3 +166,20 @@ func TestEmailSettings(t *testing.T) {
 		})
 	}
 }
+
+func TestStorageAutoMigrate(t *testing.T) {
+	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=sqlite:///tmp/z.db"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Storage.AutoMigrate {
+		t.Error("auto_migrate defaults to true, want false")
+	}
+	cfg, err = Load("", []string{"ZEROAUTHY_STORAGE__DSN=sqlite:///tmp/z.db", "ZEROAUTHY_STORAGE__AUTO_MIGRATE=true"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Storage.AutoMigrate {
+		t.Error("ZEROAUTHY_STORAGE__AUTO_MIGRATE=true not applied")
+	}
+}

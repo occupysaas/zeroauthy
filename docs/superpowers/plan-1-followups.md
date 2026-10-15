@@ -7,8 +7,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 | Before | Item |
 |---|---|
-| SQL drivers (milestone 7) | `keys.Manager.Ensure` returns early if any key exists, so a half-created key set (current without next) can never rotate; it is also only serialized in-process. Create whichever of current/next is missing and enforce one current/one next at the store level. |
-| SQL drivers (milestone 7) | `storetest` gaps: tenant `Update` name collision and stale-domain checks; read-side copy checks for clients/resource servers/grants; Rotate wrong-status guard; single next/current invariant. Add `Store.WithTx`; make `seed.Apply` transactional. |
 | Management API (sub-project 3) | Tenants created at runtime need `keys.Manager.Ensure`; domains must be normalized with `tenant.NormalizeHost` and must not fall under `server.base_domain`. |
 
 ## Nice to have
@@ -32,8 +30,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 ## Plan 2 deferred review findings
 
-- Storage conformance gaps for SQL drivers: concurrent `AuthCodes.Consume` single-use test; `Sessions.Update` TokenHash uniqueness; same TokenHash or session ID across tenants; `AuthCode` ReturnsCopies; `Users.Update` username-collision case; round-trip of Tenant session/branding and `Client.IDTokenLifetime`; `Rotate` wrong-status guard.
-- `Users.Update` overwrites login stats (LastLogin, LoginsCount) with the caller's copy.
 - Login throttle pruning is O(n) and in-process.
 - Cap `password_policy.min_length`; a value over 256 makes signup impossible.
 - No test that `Verify` rejects `alg=none` and HS256 tokens.
@@ -44,7 +40,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 | Before | Item |
 |---|---|
-| SQL drivers (milestone 7) | `RefreshTokens.Rotate` must be one transaction (select-for-update on the old token, insert next, or revoke the family); `storetest` `ConcurrentRotate` must pass under `-race` against every SQL dialect. `DeleteExpired` needs indexes on expiry columns. |
 | Multi-instance deployments | The sweeper runs in every `serve` process; harmless (deletes are idempotent) but redundant. |
 
 ## Plan 3 deferred review findings
@@ -71,7 +66,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - E2E runner: failures in `npm ci` or esbuild exit before the logs are dumped; `spa-server` crashes when `E2E_REACT_BUNDLE` is unset; `next start` is wrapped by `npx`, so its process may be orphaned on cleanup.
 - The nextjs E2E uses `AUTH0_DOMAIN=https://localhost:8443` with `allowInsecureRequests` because the SDK rejects a domain with a port or localhost; the documented production setup (port 443 with a real hostname) is not exercised.
 - A code replayed mid-exchange without `offline_access` still returns the first exchange's access and ID tokens (JWTs are not revocable); the `ReplayedAt` re-check runs only when a refresh token is issued.
-- SQL drivers must set `AuthCode.ReplayedAt` in the same statement or transaction as the used-check; `storetest` checks the outcome, not atomicity under concurrency.
 - The `server_error` branch for a failed `AuthCodes().Get` after the refresh token is stored has no test.
 
 ## Plan 4 follow-ups
@@ -111,7 +105,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 ## Plan 5 deferred review findings
 
-- SQL drivers must implement `PasswordResetTickets.Consume` as a conditional update (`WHERE used_at IS NULL`).
 - Access tokens issued before a reset stay valid until they expire (stateless JWT).
 - A password grant that verified the old password just before a reset can still mint a refresh token after `RevokeByUser` (needs a store-level user version).
 - SMTP implicit TLS (port 465) is not supported.
@@ -124,3 +117,13 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - `SignupFormRequest` duplicates the `SignupRequest` schema; `parseBody` has a redundant `dec.More()` check; no test for `picture` rune counting.
 - `change_password` lacks tests for a non-database connection and for the detached send context; import grouping in `server_test.go`; `KeyEmailResetSubject` placement in `keys.go`.
 - E2E: the node reset-email check does not assert the recipient or link; the auth-js `signUp` result is unasserted; the browser reset spec uses an opaque `match()[0]`, is not retry-safe, and picks the newest email by mtime.
+
+## Plan 6 follow-ups
+
+- The gRPC plugin host (milestone 8) must run `pkg/storetest` against a sample plugin.
+- MariaDB support (it lacks the `utf8mb4_0900_bin` collation that MySQL 8.0.17+ provides).
+- Down-migrations; today migrations only move forward.
+- Move the login throttles and the `change_password` send limit into the store, for multi-instance deployments.
+- MySQL caps `resource_servers.identifier` and `client_grants.audience` at `VARCHAR(255)` (they are `TEXT` on SQLite and PostgreSQL); add validation-layer length limits so every driver accepts the same values.
+- Concurrent `SigningKeys.Rotate` calls for a tenant that does not exist are not serialized (the lock is the tenant row); acceptable because keys are only rotated for existing tenants.
+- Test nits: `TestAtomicRetry` sleeps through the real retry backoff; a stray `TestSchemaTables` doc comment sits in `internal/store/sqlstore/migrate_test.go`; the `LatestVersion` panic path is untested.

@@ -153,6 +153,10 @@ The driver is selected by DSN:
 
 `sqlstore` holds hand-written SQL shared across dialects. A small dialect type covers placeholders, upsert syntax, JSON columns, and `RETURNING` support. Migrations are embedded per dialect and applied by `zeroauthy migrate`, or at `serve` start when `storage.auto_migrate: true`.
 
+When `storage.auto_migrate` is false (the default), `serve` checks the schema version at start and refuses to run against a database whose schema is behind or ahead of the binary, naming both versions; run `zeroauthy migrate` first. `zeroauthy seed` performs the same check, so it never writes into an unmigrated database.
+
+Supported versions: PostgreSQL 14+ (tested on 17), MySQL 8.0.17+ (tested on 8.4; the `utf8mb4_0900_bin` collation needs 8.0.17), and SQLite through `modernc.org/sqlite`. MariaDB is not supported. The encoding and isolation choices are recorded in D-0020.
+
 ### 5.2 Layer 2: external driver plugins
 
 `proto/store/v1` mirrors the repository interfaces as a gRPC service. `grpcstore` launches the plugin binary through `hashicorp/go-plugin`, handshakes, and adapts the gRPC client to the `store.Store` interface. Transactions are not offered across the plugin boundary; plugins must implement the atomic methods themselves. Plugin authors run `pkg/storetest` against their driver; CI runs it against a sample plugin backed by the memory driver.
