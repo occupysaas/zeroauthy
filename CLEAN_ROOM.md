@@ -8,6 +8,9 @@ derived from Auth0 or Okta. Every contribution must follow this policy.
 
 - Auth0's **public documentation** (https://auth0.com/docs), including the
   public API reference.
+- Auth0's **public changelog** (https://auth0.com/changelog), used to track
+  new and changed features for parity planning. Entries are summarized in our
+  own words in `docs/compat/changelog-review.md`, never copied.
 - The Apache-2.0 licensed OpenAPI description at
   https://github.com/aminya/auth0-openapi (see `NOTICE`).
 - IETF RFCs, OpenID Foundation specifications, and other open standards.

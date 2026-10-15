@@ -387,6 +387,8 @@ The seed file is idempotent: it upserts by natural keys. Until the Management AP
 
 ## 13. Milestones (input to the implementation plan)
 
+Before each milestone's plan is written, review Auth0's public changelog since the last review (`docs/compat/changelog-review.md`). Relevant entries become plan tasks, decisions or backlog items.
+
 1. Repo skeleton, config, store interfaces, memory driver, `storetest`, CI.
 2. JOSE keys, tenant resolution, discovery, JWKS, `/docs`.
 3. `client_credentials` and access token issuance. **E2E:** express-oauth2-jwt-bearer.

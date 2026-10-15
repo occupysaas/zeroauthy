@@ -7,6 +7,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 | Before | Item |
 |---|---|
+| Milestone 9 plan (`custom-db`) | First Auth0 changelog review (`docs/compat/changelog-review.md`): everything since 2026-10-13, plus older entries that affect milestones 1–8 and are missing from `docs/compat/matrix.md`. |
 | Management API (sub-project 3) | Tenants created at runtime need `keys.Manager.Ensure`; domains must be normalized with `tenant.NormalizeHost` and must not fall under `server.base_domain`. |
 
 ## Nice to have
