@@ -28,6 +28,10 @@ func TestOpenNeverLeaksPassword(t *testing.T) {
 		"mysql://u:" + pw + "@127.0.0.1:1/db?timeout=notaduration",
 		"mysql://u:" + pw + "@127.0.0.1:1/db?tls=bogus",
 		"sqlite://" + dir + "/missing/dir/z.db?x=" + pw,
+		// plugin: secrets may ride in the arguments.
+		"plugin:///nonexistent?arg=" + pw,
+		"plugin:///abs?other=" + pw,
+		"plugin://relative?arg=" + pw,
 		// Well formed but unreachable.
 		"postgres://u:" + pw + "@127.0.0.1:1/db?sslmode=disable&connect_timeout=2",
 		"postgresql://u:" + pw + "@127.0.0.1:1/db?sslmode=disable&connect_timeout=2",

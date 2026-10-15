@@ -73,6 +73,14 @@ file containing it). It is required for persistent storage; with
 | `sqlite:///var/lib/zeroauthy/zeroauthy.db` | SQLite (pure Go, no CGO); `sqlite://relative.db` is relative to the working directory |
 | `postgres://user:pass@host:5432/db?sslmode=require` | PostgreSQL 14+ (`postgresql://` also works) |
 | `mysql://user:pass@host:3306/db` | MySQL 8.0.17+ (MariaDB is not supported) |
+| `plugin:///abs/path/to/binary?arg=x&arg=y` | External gRPC storage plugin; each `arg` becomes one argument of the binary. Needs `security.master_key` |
+
+**Writing a storage plugin.** A plugin is a Go program that calls
+`pkg/storeplugin.Serve` with any `store.Store`; `cmd/zeroauthy-store-memory`
+is a minimal template. Check your driver by running
+`storetest.Run` (package `pkg/storetest`) with a factory that calls
+`storeplugin.Open` on your built binary. Transactions work across the
+boundary; see decision D-0021 for the protocol.
 
 The SQL drivers have a schema. Apply pending migrations with
 `zeroauthy migrate --config zeroauthy.yaml` before starting a new version,

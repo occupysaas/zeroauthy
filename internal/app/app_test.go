@@ -5,7 +5,9 @@ import (
 	"io"
 	"log/slog"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -114,5 +116,55 @@ func TestNewNeedsMasterKeyBeforeMigrating(t *testing.T) {
 	}
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Errorf("database file %s was created (stat err = %v); want it untouched", path, err)
+	}
+}
+
+// TestAppOnPluginStorage: the app runs on a gRPC storage plugin; the plugin
+// store is not a Migrator, so schema preparation is skipped, and it needs the
+// master key like any persistent store.
+func TestAppOnPluginStorage(t *testing.T) {
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "zeroauthy-store-memory")
+	if out, err := exec.Command("go", "build", "-o", bin, "github.com/zeroauthy/zeroauthy/cmd/zeroauthy-store-memory").CombinedOutput(); err != nil {
+		t.Fatalf("build plugin: %v\n%s", err, out)
+	}
+	seedPath := filepath.Join(dir, "seed.yaml")
+	seed := `
+tenants:
+  - name: acme
+    domains: [acme.example.test]
+    resource_servers:
+      - {identifier: "https://api.acme.test", name: API, scopes: [{value: "read:things"}]}
+    clients:
+      - {client_id: m2m, app_type: non_interactive, client_secret: m2m-secret, grant_types: [client_credentials]}
+    client_grants:
+      - {client_id: m2m, audience: "https://api.acme.test", scopes: ["read:things"]}
+`
+	if err := os.WriteFile(seedPath, []byte(seed), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config.Config{
+		Storage:  config.Storage{DSN: "plugin://" + bin},
+		Security: config.Security{MasterKey: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="},
+		Seed:     seedPath,
+	}
+	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+
+	rec := httptest.NewRecorder()
+	a.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/healthz", nil))
+	if rec.Code != 200 {
+		t.Fatalf("/healthz = %d %s", rec.Code, rec.Body)
+	}
+	form := url.Values{"grant_type": {"client_credentials"}, "client_id": {"m2m"}, "client_secret": {"m2m-secret"}, "audience": {"https://api.acme.test"}}
+	req := httptest.NewRequest("POST", "https://acme.example.test/oauth/token", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec = httptest.NewRecorder()
+	a.Handler().ServeHTTP(rec, req)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"access_token"`) {
+		t.Fatalf("token = %d %s", rec.Code, rec.Body)
 	}
 }

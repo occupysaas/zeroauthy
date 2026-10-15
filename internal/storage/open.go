@@ -6,15 +6,19 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"github.com/zeroauthy/zeroauthy/internal/store/sqlstore"
+	"github.com/zeroauthy/zeroauthy/pkg/storeplugin"
 )
 
 // Open returns the driver named by the DSN scheme: memory://, sqlite://,
-// postgres:// (or postgresql://), mysql://. plugin:// comes with the gRPC
-// plugin host.
+// postgres:// (or postgresql://), mysql://, and
+// plugin:///absolute/path/to/binary?arg=...&arg=..., which starts an external
+// gRPC storage plugin; each arg value becomes one argv entry, in order, and
+// no other query key is accepted.
 func Open(ctx context.Context, dsn string) (store.Store, error) {
 	// Errors never quote the DSN: it may carry a password. A *url.Error
 	// embeds the whole URL, so it is not wrapped either.
@@ -30,6 +34,18 @@ func Open(ctx context.Context, dsn string) (store.Store, error) {
 		return memory.New(), nil
 	case "sqlite", "postgres", "postgresql", "mysql":
 		return sqlstore.Open(ctx, dsn)
+	case "plugin":
+		// Arguments may carry secrets: errors name a bad key, never a value.
+		if u.Host != "" || !strings.HasPrefix(u.Path, "/") {
+			return nil, errors.New("storage: plugin DSN must be plugin:///absolute/path/to/binary")
+		}
+		q := u.Query()
+		for k := range q {
+			if k != "arg" {
+				return nil, fmt.Errorf("storage: plugin DSN: unknown query parameter %q (only arg is allowed)", k)
+			}
+		}
+		return storeplugin.Open(ctx, u.Path, q["arg"]...)
 	default:
 		return nil, fmt.Errorf("storage: driver %q is not available in this build", u.Scheme)
 	}

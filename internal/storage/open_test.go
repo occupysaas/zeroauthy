@@ -2,11 +2,64 @@ package storage
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+var pluginBin string
+
+func TestMain(m *testing.M) {
+	dir, err := os.MkdirTemp("", "zeroauthy-storage")
+	if err != nil {
+		panic(err)
+	}
+	pluginBin = filepath.Join(dir, "zeroauthy-store-memory")
+	out, err := exec.Command("go", "build", "-o", pluginBin, "github.com/zeroauthy/zeroauthy/cmd/zeroauthy-store-memory").CombinedOutput()
+	if err != nil {
+		panic(string(out))
+	}
+	code := m.Run()
+	os.RemoveAll(dir)
+	os.Exit(code)
+}
+
+func TestOpenPlugin(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	// The sample plugin ignores argv, so ?arg=... only proves Open accepts it.
+	for _, dsn := range []string{"plugin://" + pluginBin, "plugin://" + pluginBin + "?arg=--ignored&arg=b"} {
+		st, err := Open(ctx, dsn)
+		if err != nil {
+			t.Fatalf("Open(%q): %v", dsn, err)
+		}
+		if err := st.Ping(ctx); err != nil {
+			t.Errorf("Ping: %v", err)
+		}
+		st.Close()
+	}
+}
+
+func TestOpenPluginDSNErrors(t *testing.T) {
+	ctx := context.Background()
+	for dsn, want := range map[string]string{
+		"plugin://relative":                   "absolute",
+		"plugin://host/abs":                   "absolute",
+		"plugin://":                           "absolute",
+		"plugin://" + pluginBin + "?other=xx": `"other"`,
+	} {
+		_, err := Open(ctx, dsn)
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("Open(%q) err = %v, want it to contain %q", dsn, err, want)
+		}
+		if err != nil && strings.Contains(err.Error(), "xx") {
+			t.Errorf("error quotes the parameter value: %v", err)
+		}
+	}
+}
 
 func TestOpen(t *testing.T) {
 	st, err := Open(context.Background(), "memory://")

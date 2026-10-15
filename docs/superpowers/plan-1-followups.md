@@ -130,3 +130,10 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - `storetest.Suites` and `RunSuites` are unused in the repository since the SQL drivers run the full suite; keep them for plugin authors bringing suites up one at a time, or unexport them.
 - Concurrent `SigningKeys.Rotate` calls for a tenant that does not exist are not serialized (the lock is the tenant row); acceptable because keys are only rotated for existing tenants.
 - Test nits: `TestAtomicRetry` sleeps through the real retry backoff; a stray `TestSchemaTables` doc comment sits in `internal/store/sqlstore/migrate_test.go`; the `LatestVersion` panic path is untested.
+
+## Plan 7 follow-ups
+
+- Automatic plugin restart with backoff; today a plugin crash fails storage calls until the server restarts.
+- Binary checksum pinning for plugins (go-plugin `SecureConfig`).
+- Plugin-side schema migration hooks (plugins are not `storage.Migrator`s).
+- A reference plugin in a language other than Go.

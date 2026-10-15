@@ -294,3 +294,28 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Email length:** email addresses are capped at 254 bytes (RFC 5321's path limit) at signup, in the seed, and when matching a login or a `change_password` address; a longer one is an invalid email (signup: 400 `invalid_signup`), and a login or reset request naming one matches no user. Auth0 documents no limit. The cap exists because MySQL stores logins in `VARCHAR(255)`, which would otherwise fail where the other drivers succeed.
   - **Seeding races:** `seed.Apply` retries once when its transaction fails with `ErrConflict`, so replicas seeding a fresh shared database at the same time converge instead of failing.
 - **Rationale:** One encoding for all dialects keeps the shared SQL simple and the conformance results identical.
+
+## D-0021: Storage plugins: protocol and remote transactions
+
+- **Context:** Milestone 8 lets operators supply a storage driver as a separate process. This is a zeroauthy extension with no Auth0 counterpart.
+- **Sources:** spec §5.2; the `hashicorp/go-plugin` and gRPC documentation. User decision, 2026-10-16: transactions cross the plugin boundary. This replaces the earlier rule in spec §5.2 that no transactions are offered across it.
+- **Decision:**
+  - **Protocol:** `proto/store/v1` has one RPC per store method. Domain errors (not found, conflict and the like) travel in the response message, so they map back to the store sentinels.
+  - **Encoding:**
+    - Wrapper messages keep nil and empty apart for slices and maps.
+    - A plain `time.Time` is always sent as a Timestamp. A `*time.Time` is nil on the wire when absent.
+    - User metadata and custom text are JSON bytes; numbers inside them decode as `float64`, as in the SQL drivers.
+  - **Remote transactions:**
+    - `BeginTx` returns a transaction id; `Commit` and `Rollback` end it. Calls made inside a transaction carry its id.
+    - Nesting uses `parent_tx_id` and has savepoint semantics: an inner rollback undoes only the inner work.
+    - A transaction tree is a stack. It has at most one open child, and only the innermost transaction accepts calls or `Commit`. Rolling back an ancestor ends the chain below it, innermost first.
+    - Each tree has one 60 second idle timer; when it fires, the root is rolled back and the tree released.
+    - There is no retry across the boundary; the caller decides, as in D-0020.
+    - A failed `Commit` is followed by a best-effort `Rollback`.
+    - When the plugin exits, open transactions are abandoned and the database rolls them back as the connection drops.
+  - **Errors:** transport errors never match store sentinels. gRPC `Canceled` and `DeadlineExceeded` map to `context.Canceled` and `context.DeadlineExceeded`.
+  - **Handshake:** protocol version 1, magic cookie key `ZEROAUTHY_STORE_PLUGIN`, value `5b0f7c1e-store-v1`, plugin name `store`. Only the gRPC protocol is allowed, with AutoMTLS. Starting the plugin is bounded by a 10 second timeout and by the caller's context.
+  - **Robustness:** plugins install a panic-recovery interceptor, so a panic fails one request and the server keeps serving.
+  - **Process handling:** the plugin must `exec` and not fork. `Kill` waits for anything that still holds the plugin's stdio, so a forked child would make shutdown hang.
+  - **DSN:** `plugin:///absolute/path/to/binary?arg=…&arg=…`. The host must be empty and the path absolute. Each `arg` value is one argv entry, in order. Any other query key is an error that names the key and never a value. No error quotes the DSN, because arguments may carry secrets. Plugin storage is persistent, so `security.master_key` is required; plugin stores have no schema, so the server does not migrate them.
+- **Rationale:** One RPC per method keeps the contract the same as the Go interface, so `storetest` is the single arbiter for in-process, SQL and plugin drivers. Explicit transactions let plugins back the same multi-step operations that SQL drivers do; the stack rule and the idle timer keep a misbehaving or dead host from holding a lock indefinitely.
