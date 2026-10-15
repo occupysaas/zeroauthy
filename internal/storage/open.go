@@ -39,7 +39,10 @@ func Open(ctx context.Context, dsn string) (store.Store, error) {
 		if u.Host != "" || !strings.HasPrefix(u.Path, "/") {
 			return nil, errors.New("storage: plugin DSN must be plugin:///absolute/path/to/binary")
 		}
-		q := u.Query()
+		q, err := url.ParseQuery(u.RawQuery)
+		if err != nil {
+			return nil, errors.New("storage: plugin DSN: the query string is malformed")
+		}
 		for k := range q {
 			if k != "arg" {
 				return nil, fmt.Errorf("storage: plugin DSN: unknown query parameter %q (only arg is allowed)", k)

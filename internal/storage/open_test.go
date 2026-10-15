@@ -46,10 +46,11 @@ func TestOpenPlugin(t *testing.T) {
 func TestOpenPluginDSNErrors(t *testing.T) {
 	ctx := context.Background()
 	for dsn, want := range map[string]string{
-		"plugin://relative":                   "absolute",
-		"plugin://host/abs":                   "absolute",
-		"plugin://":                           "absolute",
-		"plugin://" + pluginBin + "?other=xx": `"other"`,
+		"plugin://relative":                    "absolute",
+		"plugin://host/abs":                    "absolute",
+		"plugin://":                            "absolute",
+		"plugin://" + pluginBin + "?other=xx":  `"other"`,
+		"plugin://" + pluginBin + "?arg=%zzxx": "malformed",
 	} {
 		_, err := Open(ctx, dsn)
 		if err == nil || !strings.Contains(err.Error(), want) {

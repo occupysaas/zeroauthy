@@ -37,3 +37,17 @@ func TestSeedCommandNeedsFile(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestDiscardsData(t *testing.T) {
+	for dsn, want := range map[string]bool{
+		"memory://": true,
+		"plugin:///opt/plugins/zeroauthy-store-memory":       true,
+		"plugin:///opt/plugins/zeroauthy-store-memory?arg=x": true,
+		"plugin:///opt/plugins/my-store":                     false,
+		"sqlite:///tmp/z.db":                                 false,
+	} {
+		if got := discardsData(dsn); got != want {
+			t.Errorf("discardsData(%q) = %v, want %v", dsn, got, want)
+		}
+	}
+}

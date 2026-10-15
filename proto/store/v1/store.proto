@@ -7,6 +7,43 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 
+// Protocol contract for plugin authors (any language).
+//
+// Transactions
+//   BeginTx returns a tx_id; Commit or Rollback ends it. Send the tx_id on
+//   every call that belongs to the transaction. A BeginTx with parent_tx_id
+//   opens a nested transaction (a savepoint): rolling it back undoes only the
+//   inner work. A transaction tree is a stack: a transaction has at most one
+//   open nested transaction, and only the innermost one accepts calls and
+//   Commit. Rolling back an ancestor rolls back the chain below it first.
+//   Misuse is reported in the response's `error` as KIND_UNSPECIFIED with a
+//   message: an unknown or already finished tx_id ("unknown or finished
+//   transaction"), and a call or Commit on a transaction that has an open
+//   nested one ("has an open nested transaction"). Each tree has one 60
+//   second idle timer, restarted by any call in the tree; when it fires the
+//   root and everything nested in it are rolled back. A plugin that exits
+//   abandons its open transactions; its database rolls them back when the
+//   connection drops. The host never retries across the boundary.
+//
+// Units
+//   Every int64 that holds a lifetime, timeout or leeway counts SECONDS
+//   (session_lifetime, token_lifetime, leeway, ...). The one exception is
+//   RefreshTokensRotateRequest.leeway, a google.protobuf.Duration. Instants
+//   are google.protobuf.Timestamp with nanosecond precision.
+//
+// JSON fields
+//   custom_text_json is a JSON object: prompt -> language -> screen -> key ->
+//   text, every level an object and every leaf a string. user_metadata_json
+//   is any JSON object (nested objects, arrays, strings, numbers, booleans,
+//   null); numbers are read back as double-precision floats. An absent
+//   optional field means "nil", which is distinct from an empty object.
+//
+// Evolution
+//   Within v1, fields are only added, never renumbered or reused. A plugin
+//   that predates a field drops it silently. New RPCs may be added; a plugin
+//   that lacks one answers with gRPC status Unimplemented, which the host
+//   reports as an error.
+//
 // StoreService mirrors zeroauthy's store.Store. Every request carries tx_id:
 // empty means "no transaction"; otherwise the call runs inside the
 // transaction BeginTx returned. Domain errors are reported in the response's

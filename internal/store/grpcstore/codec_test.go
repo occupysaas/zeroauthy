@@ -3,6 +3,8 @@ package grpcstore
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -27,6 +29,9 @@ func roundTrip[P any, PP interface {
 }, T any](t *testing.T, name string, in *T, to func(*T) (PP, error), from func(PP) (*T, error)) {
 	t.Helper()
 	t.Run(name, func(t *testing.T) {
+		if name == "full" {
+			assertNoZeroFields(t, "", reflect.ValueOf(in))
+		}
 		pb, err := to(in)
 		if err != nil {
 			t.Fatal(err)
@@ -46,6 +51,80 @@ func roundTrip[P any, PP interface {
 			t.Fatalf("wire round trip (-in +out):\n%s", diff)
 		}
 	})
+}
+
+// assertNoZeroFields fails for every zero-valued field reachable from v,
+// descending into pointers, structs, slice elements and map values. A "full"
+// fixture passing it exercises every field, so a field added to the store
+// types cannot escape the round-trip tests unnoticed. Elements of one slice
+// or map may differ (a fixture lists a bare element beside a full one): a
+// field counts as exercised when some element sets it.
+func assertNoZeroFields(t *testing.T, path string, v reflect.Value) {
+	t.Helper()
+	for _, p := range zeroPaths(path, v) {
+		t.Errorf("full fixture: %s is zero, nil or empty", p)
+	}
+}
+
+func zeroPaths(path string, v reflect.Value) []string {
+	switch v.Kind() {
+	case reflect.Pointer, reflect.Interface:
+		if v.IsNil() {
+			return []string{path}
+		}
+		return zeroPaths(path, v.Elem())
+	case reflect.Struct:
+		if v.Type() == reflect.TypeOf(time.Time{}) {
+			if v.IsZero() {
+				return []string{path}
+			}
+			return nil
+		}
+		var out []string
+		for i := 0; i < v.NumField(); i++ {
+			out = append(out, zeroPaths(path+"."+v.Type().Field(i).Name, v.Field(i))...)
+		}
+		return out
+	case reflect.Slice, reflect.Map:
+		if v.Len() == 0 {
+			return []string{path}
+		}
+		if v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8 {
+			return nil
+		}
+		var elems []reflect.Value
+		if v.Kind() == reflect.Slice {
+			for i := 0; i < v.Len(); i++ {
+				elems = append(elems, v.Index(i))
+			}
+		} else {
+			for _, k := range v.MapKeys() {
+				elems = append(elems, v.MapIndex(k))
+			}
+		}
+		// Zero paths common to every element are the unexercised fields.
+		var common map[string]bool
+		for _, e := range elems {
+			cur := map[string]bool{}
+			for _, p := range zeroPaths(path+"[]", e) {
+				if common == nil || common[p] {
+					cur[p] = true
+				}
+			}
+			common = cur
+		}
+		var out []string
+		for p := range common {
+			out = append(out, p)
+		}
+		sort.Strings(out)
+		return out
+	default:
+		if v.IsZero() {
+			return []string{path}
+		}
+		return nil
+	}
 }
 
 func mustFrom[PP any, T any](t *testing.T, from func(PP) (*T, error), pb PP) *T {

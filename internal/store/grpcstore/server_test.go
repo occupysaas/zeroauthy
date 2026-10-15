@@ -440,6 +440,35 @@ func TestServerBeginTxCancelledWhileWaiting(t *testing.T) {
 	}
 }
 
+// A BeginTx whose context is already done never leaves a transaction
+// registered, root or nested, whichever branch finishes the race.
+func TestServerBeginTxAlreadyCancelled(t *testing.T) {
+	ctx := context.Background()
+	mem := memory.New()
+	srv := NewServer(mem)
+	defer srv.Close()
+	parent, _ := srv.BeginTx(ctx, &storev1.BeginTxRequest{})
+	for i := 0; i < 50; i++ {
+		cctx, cancel := context.WithCancel(ctx)
+		cancel()
+		for _, p := range []string{"", parent.TxId} {
+			r, err := srv.BeginTx(cctx, &storev1.BeginTxRequest{ParentTxId: p})
+			if err != nil || r.GetError() == nil {
+				t.Fatalf("cancelled BeginTx(parent %q) = %v, %v; want an error", p, r, err)
+			}
+		}
+	}
+	if n := openTxs(srv); n != 1 {
+		t.Fatalf("%d transactions registered, want only the parent", n)
+	}
+	if r, _ := srv.Commit(ctx, &storev1.EndTxRequest{TxId: parent.TxId}); r.GetError() != nil {
+		t.Fatalf("commit parent: %v", r.GetError())
+	}
+	if err := mem.WithTx(ctx, func(store.Store) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // Close rolls back open transactions, releases the store, and refuses new
 // transactions.
 func TestServerCloseRollsBackOpenTxs(t *testing.T) {

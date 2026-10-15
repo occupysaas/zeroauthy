@@ -3,7 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -50,7 +52,7 @@ func newSeedCmd() *cobra.Command {
 				return err
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "applied %s: %d tenant(s)\n", path, len(f.Tenants))
-			if strings.HasPrefix(cfg.Storage.DSN, "memory:") {
+			if discardsData(cfg.Storage.DSN) {
 				fmt.Fprintln(cmd.OutOrStdout(), "note: memory storage is discarded when this command exits; the seed was validated only")
 			}
 			return nil
@@ -59,4 +61,15 @@ func newSeedCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&configPath, "config", "c", os.Getenv("ZEROAUTHY_CONFIG"), "path to the YAML config file")
 	cmd.Flags().StringVarP(&file, "file", "f", "", "seed file (defaults to the config's seed setting)")
 	return cmd
+}
+
+// discardsData reports whether the DSN names storage that is lost when the
+// process exits: memory://, or a plugin://-run copy of the sample memory
+// plugin.
+func discardsData(dsn string) bool {
+	if strings.HasPrefix(dsn, "memory:") {
+		return true
+	}
+	u, err := url.Parse(dsn)
+	return err == nil && u.Scheme == "plugin" && path.Base(u.Path) == "zeroauthy-store-memory"
 }

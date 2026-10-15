@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/pkg/storeplugin"
 )
 
 func TestNewSeedsAndServes(t *testing.T) {
@@ -159,6 +161,12 @@ tenants:
 	if rec.Code != 200 {
 		t.Fatalf("/healthz = %d %s", rec.Code, rec.Body)
 	}
+	// /healthz is liveness only; /readyz pings the store, i.e. the plugin.
+	rec = httptest.NewRecorder()
+	a.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/readyz", nil))
+	if rec.Code != 200 {
+		t.Fatalf("/readyz = %d %s", rec.Code, rec.Body)
+	}
 	form := url.Values{"grant_type": {"client_credentials"}, "client_id": {"m2m"}, "client_secret": {"m2m-secret"}, "audience": {"https://api.acme.test"}}
 	req := httptest.NewRequest("POST", "https://acme.example.test/oauth/token", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -166,5 +174,28 @@ tenants:
 	a.Handler().ServeHTTP(rec, req)
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"access_token"`) {
 		t.Fatalf("token = %d %s", rec.Code, rec.Body)
+	}
+
+	// A dead plugin makes the app not ready, while it stays alive.
+	storeplugin.KillForTest(a.store)
+	rec = httptest.NewRecorder()
+	a.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/readyz", nil))
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("/readyz after the plugin died = %d, want 503", rec.Code)
+	}
+	rec = httptest.NewRecorder()
+	a.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "/healthz", nil))
+	if rec.Code != 200 {
+		t.Fatalf("/healthz after the plugin died = %d, want 200", rec.Code)
+	}
+}
+
+// A plugin store is persistent, so it needs the master key like the SQL
+// drivers, and nothing is started without it.
+func TestPluginStorageNeedsMasterKey(t *testing.T) {
+	cfg := &config.Config{Storage: config.Storage{DSN: "plugin:///nonexistent/plugin"}}
+	_, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err == nil || !strings.Contains(err.Error(), "security.master_key or security.master_key_file is required") {
+		t.Fatalf("err = %v, want the master-key error", err)
 	}
 }

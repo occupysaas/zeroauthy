@@ -122,6 +122,16 @@ func (s *Server) BeginTx(ctx context.Context, r *storev1.BeginTxRequest) (*store
 		}
 	}()
 
+	// A caller that gave up while the transaction was being registered must
+	// not leave it behind. Rolling it back needs the tree lock, so it runs
+	// after the deferred unlock below.
+	var abandon string
+	defer func() {
+		if abandon != "" {
+			_ = s.finish(abandon, errRollback)
+		}
+	}()
+
 	base, tree := s.st, &txTree{}
 	if parent != nil {
 		base, tree = parent.st, parent.tree
@@ -194,6 +204,10 @@ func (s *Server) BeginTx(ctx context.Context, r *storev1.BeginTxRequest) (*store
 	}
 	s.txs[h.id] = h
 	s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		abandon = h.id
+		return fail(err)
+	}
 	return &storev1.BeginTxResponse{TxId: h.id}, nil
 }
 

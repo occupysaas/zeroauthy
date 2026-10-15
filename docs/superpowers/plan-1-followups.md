@@ -121,7 +121,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 ## Plan 6 follow-ups
 
-- The gRPC plugin host (milestone 8) must run `pkg/storetest` against a sample plugin.
 - MariaDB support (it lacks the `utf8mb4_0900_bin` collation that MySQL 8.0.17+ provides).
 - Down-migrations; today migrations only move forward.
 - Move the login throttles and the `change_password` send limit into the store, for multi-instance deployments.
@@ -137,3 +136,10 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Binary checksum pinning for plugins (go-plugin `SecureConfig`).
 - Plugin-side schema migration hooks (plugins are not `storage.Migrator`s).
 - A reference plugin in a language other than Go.
+
+## Plan 7 follow-ups
+
+- `pkg/storetest` does not pin the nil-versus-empty policy for list results (an empty list may come back as nil or as an empty slice, and the plugin path normalizes one way); decide the policy and pin it.
+- A closed plugin client reports `context.Canceled` for calls made after `Close`; a dedicated "store closed" error would be clearer.
+- Theoretical lost-`BeginTx`-response window: if the response is lost after the plugin registered the transaction, the host cannot name it, so it waits for the idle timer. Client-proposed transaction ids would close it; decide before protocol v1 is frozen.
+- Route plugin logs through `slog` instead of go-plugin's stderr logger, so levels and format match the host.

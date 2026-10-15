@@ -1,8 +1,10 @@
 package storeplugin_test
 
 import (
+	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,6 +21,10 @@ import (
 var pluginBin string
 
 func TestMain(m *testing.M) {
+	if bin := os.Getenv("ZA_TEST_HELPER_HOST"); bin != "" {
+		helperHost(bin)
+		return
+	}
 	dir, err := os.MkdirTemp("", "zeroauthy-plugin")
 	if err != nil {
 		panic(err)
@@ -146,5 +152,121 @@ func TestPluginStopped(t *testing.T) {
 	}
 	if cctx.Err() != nil {
 		t.Fatal("Ping hung until the deadline")
+	}
+}
+
+// helperHost is the body of the re-executed test binary that plays a host:
+// it opens the plugin, prints the plugin pid, starts a transaction and waits
+// to be killed.
+func helperHost(bin string) {
+	s, err := storeplugin.Open(context.Background(), bin)
+	if err != nil {
+		fmt.Println("error", err)
+		os.Exit(2)
+	}
+	_ = s.WithTx(context.Background(), func(store.Store) error {
+		fmt.Println("pid", storeplugin.PidForTest(s))
+		time.Sleep(time.Minute)
+		return nil
+	})
+	os.Exit(3)
+}
+
+func pidAlive(pid int) bool { return syscall.Kill(pid, 0) == nil }
+
+// go-plugin does not notice a dead host; Serve does: a SIGKILLed host with a
+// transaction open must not leave the plugin running.
+func TestPluginExitsWhenHostIsKilled(t *testing.T) {
+	cmd := exec.Command(os.Args[0])
+	cmd.Env = append(os.Environ(), "ZA_TEST_HELPER_HOST="+pluginBin)
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = cmd.Process.Kill(); _ = cmd.Wait() }()
+	line, err := bufio.NewReader(out).ReadString('\n')
+	if err != nil {
+		t.Fatalf("helper output: %v", err)
+	}
+	var pid int
+	if _, err := fmt.Sscanf(line, "pid %d", &pid); err != nil {
+		t.Fatalf("helper said %q", line)
+	}
+	defer func() { _ = syscall.Kill(pid, syscall.SIGKILL) }()
+	if !pidAlive(pid) {
+		t.Fatal("plugin not running before the host was killed")
+	}
+	_ = cmd.Process.Kill()
+	_ = cmd.Wait()
+	deadline := time.Now().Add(6 * time.Second)
+	for pidAlive(pid) {
+		if time.Now().After(deadline) {
+			t.Fatal("plugin still running 6s after its host was killed")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func writeScript(t *testing.T, name, body string) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(p, []byte("#!/bin/sh\n"+body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// The plugin does not see zeroauthy's own variables, but keeps the rest.
+func TestPluginEnvironmentIsScrubbed(t *testing.T) {
+	t.Setenv("ZEROAUTHY_SECURITY__MASTER_KEY", "top-secret")
+	t.Setenv("ZEROAUTHY_STORAGE__DSN", "postgres://u:pw@h/db")
+	t.Setenv("ZA_TEST_MARKER", "kept")
+	dump := filepath.Join(t.TempDir(), "env.txt")
+	wrapper := writeScript(t, "wrap.sh", "env > "+dump+"\nexec "+pluginBin+"\n")
+	s, err := storeplugin.Open(context.Background(), wrapper)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	b, err := os.ReadFile(dump)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The handshake cookie is itself ZEROAUTHY_STORE_PLUGIN; it is the one
+	// allowed variable and proves go-plugin's own variables arrive.
+	env := strings.ReplaceAll(string(b), storeplugin.Handshake.MagicCookieKey+"=", "COOKIE=")
+	if !strings.Contains(env, "COOKIE="+storeplugin.Handshake.MagicCookieValue) {
+		t.Fatalf("magic cookie missing:\n%s", env)
+	}
+	if strings.Contains(env, "ZEROAUTHY_") || strings.Contains(env, "top-secret") {
+		t.Fatalf("plugin inherited zeroauthy variables:\n%s", env)
+	}
+	if !strings.Contains(env, "ZA_TEST_MARKER=kept") {
+		t.Fatalf("ordinary variable not passed:\n%s", env)
+	}
+	// Open succeeded, so go-plugin's own handshake variables arrived too.
+	if err := s.Ping(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Each arg reaches the plugin's argv, in order.
+func TestPluginArgsReachArgvInOrder(t *testing.T) {
+	dump := filepath.Join(t.TempDir(), "argv.txt")
+	wrapper := writeScript(t, "wrap.sh", "for a in \"$@\"; do echo \"$a\" >> "+dump+"; done\nexec "+pluginBin+"\n")
+	s, err := storeplugin.Open(context.Background(), wrapper, "--first", "two words", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	b, err := os.ReadFile(dump)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(b), "--first\ntwo words\n\n"; got != want {
+		t.Fatalf("argv = %q, want %q", got, want)
 	}
 }

@@ -66,7 +66,7 @@
    - Pinned in Task 3 (rollback on idle timeout) and Task 4 (panic and cancelled context on the client).
 2. **Plugin crash or exit.**
    - Condition: the plugin process exits while serving.
-   - Expected: store calls return an error promptly and never hang. `Ping` fails, so `/healthz` reports the problem.
+   - Expected: store calls return an error promptly and never hang. `Ping` fails, so `/readyz` reports the problem (`/healthz` is liveness only).
    - Pinned in Task 5.
 3. **Bad plugin binary.**
    - Condition: the binary is missing, not executable, or a program that never completes the handshake.

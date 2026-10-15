@@ -14,6 +14,18 @@
 //   - If a wrapper script starts the real binary, use exec so no extra
 //     process sits in between, and never fork children that inherit stdio:
 //     stopping the plugin waits for every holder of its pipes.
+//   - Log levels: the host shows plugin stderr lines that start with
+//     "[WARN] " or "[ERROR] "; unprefixed lines are logged at debug level,
+//     which the host's default level hides.
+//   - Configuration comes through the plugin's arguments (the arg values of
+//     the plugin:// DSN). The host removes every ZEROAUTHY_* variable from
+//     the environment it hands the plugin, so zeroauthy's own secrets (the
+//     master key, the storage DSN) never reach it; other variables such as
+//     PATH, HOME and PG* are kept.
+//   - Host death: the plugin polls its parent process and exits within
+//     about a second after the host dies (go-plugin has no such check), so
+//     a crashed host does not leave plugins behind. Open transactions are
+//     abandoned, as below.
 //   - Do not count on cleanup at exit. The process may be killed, and open
 //     transactions are simply abandoned; a database rolls them back when
 //     the connection drops.
@@ -26,6 +38,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -85,8 +98,27 @@ func serverOptions() []grpc.ServerOption {
 	return []grpc.ServerOption{grpc.ChainUnaryInterceptor(recoverPanics)}
 }
 
-// Serve runs s as a zeroauthy storage plugin. It does not return.
+// parentPollInterval is how often a plugin checks that its host still lives.
+const parentPollInterval = time.Second
+
+// exitWithParent exits the process once the host that started it is gone:
+// the plugin is then re-parented, so its parent pid changes.
+func exitWithParent() {
+	ppid := os.Getppid()
+	for range time.Tick(parentPollInterval) {
+		if os.Getppid() != ppid {
+			fmt.Fprintln(os.Stderr, "[WARN] storage plugin: host process is gone; exiting")
+			os.Exit(1)
+		}
+	}
+}
+
+// Serve runs s as a zeroauthy storage plugin. It does not return. The
+// process exits on its own when the host dies.
 func Serve(s store.Store) {
+	if os.Getenv(Handshake.MagicCookieKey) == Handshake.MagicCookieValue {
+		go exitWithParent()
+	}
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: Handshake,
 		Plugins:         plugin.PluginSet{pluginName: &grpcPlugin{impl: s}},
@@ -110,12 +142,21 @@ func Open(ctx context.Context, path string, args ...string) (store.Store, error)
 	// kills the process through this context instead; it lives as long as
 	// the plugin does and is cancelled when the store is closed.
 	procCtx, stop := context.WithCancel(context.Background())
+	cmd := exec.CommandContext(procCtx, path, args...)
+	// The plugin gets its configuration from args; zeroauthy's own
+	// variables (master key, storage DSN) stay with the host.
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "ZEROAUTHY_") {
+			cmd.Env = append(cmd.Env, kv)
+		}
+	}
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:  Handshake,
 		Plugins:          plugin.PluginSet{pluginName: &grpcPlugin{}},
-		Cmd:              exec.CommandContext(procCtx, path, args...),
+		Cmd:              cmd,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 		AutoMTLS:         true,
+		SkipHostEnv:      true,
 		StartTimeout:     StartTimeout,
 		Logger:           hclog.New(&hclog.LoggerOptions{Name: "storage-plugin", Output: os.Stderr, Level: hclog.Warn}),
 	})

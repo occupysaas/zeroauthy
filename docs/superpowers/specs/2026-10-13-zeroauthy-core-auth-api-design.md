@@ -159,7 +159,7 @@ Supported versions: PostgreSQL 14+ (tested on 17), MySQL 8.0.17+ (tested on 8.4;
 
 ### 5.2 Layer 2: external driver plugins
 
-`proto/store/v1` mirrors the repository interfaces as a gRPC service. `grpcstore` launches the plugin binary through `hashicorp/go-plugin`, handshakes, and adapts the gRPC client to the `store.Store` interface. Transactions do cross the plugin boundary: the host opens a remote transaction (`BeginTx`, `Commit`, `Rollback`), which may nest with savepoint semantics, and a plugin's own `WithTx` runs behind it (D-0021; this replaces the earlier "no transactions across the boundary" rule). Go plugin authors use `pkg/storeplugin` (`Serve`, `Open`) and `pkg/store`; other languages implement the protocol directly. Plugin authors run `pkg/storetest` against their driver; CI runs it against a sample plugin backed by the memory driver.
+`proto/store/v1` mirrors the repository interfaces as a gRPC service. `pkg/storeplugin.Open` launches the plugin binary through `hashicorp/go-plugin` and handshakes; `grpcstore` is the adapter that turns the gRPC client into a `store.Store` (and the server side that wraps a `store.Store` for plugins). Transactions do cross the plugin boundary: the host opens a remote transaction (`BeginTx`, `Commit`, `Rollback`), which may nest with savepoint semantics, and a plugin's own `WithTx` runs behind it (D-0021; this replaces the earlier "no transactions across the boundary" rule). Go plugin authors use `pkg/storeplugin` (`Serve`, `Open`) and `pkg/store`; other languages implement the protocol directly. Plugin authors run `pkg/storetest` against their driver; CI runs it against a sample plugin backed by the memory driver.
 
 ### 5.3 Layer 3: legacy user-store bridge (`custom-db` connection)
 
@@ -406,4 +406,4 @@ Before each milestone's plan is written, review Auth0's public changelog since t
 - **Legal:** API compatibility has generally been treated as permissible, but the clean-room discipline and provenance trail are what protect the project. Get a legal review before the public launch. The project name and branding must not imply affiliation with Auth0.
 - **Undocumented behavior:** exact parity is impossible where Auth0 behavior isn't documented. Each gap is logged as a decision and appears in the public matrix.
 - **SDK drift:** SDK versions are pinned in e2e tests, and a scheduled job runs the latest versions to catch regressions.
-- **Plugin boundary:** a plugin crash fails storage calls (and `/healthz`) until the server is restarted; automatic plugin restart is a follow-up. Open transactions die with the plugin and are rolled back by its database.
+- **Plugin boundary:** a plugin crash fails storage calls and `/readyz` (`/healthz` is liveness only and stays green) until the server is restarted; automatic plugin restart is a follow-up. Open transactions die with the plugin and are rolled back by its database.
