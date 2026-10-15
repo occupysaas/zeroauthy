@@ -55,3 +55,17 @@ func TestSeedCommandRefusesUnmigratedDatabase(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+// TestMigrateCommandIgnoresTestDSNVariables guards against the SQL test
+// variables (set by scripts/test-sql.sh and CI) being read as config keys:
+// config.Load rejects unknown ZEROAUTHY_* variables.
+func TestMigrateCommandIgnoresTestDSNVariables(t *testing.T) {
+	t.Setenv("ZA_TEST_POSTGRES_DSN", "postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable")
+	t.Setenv("ZA_TEST_MYSQL_DSN", "mysql://root:zeroauthy@127.0.0.1:53306/")
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "zeroauthy.yaml")
+	_ = os.WriteFile(cfgPath, []byte("storage:\n  dsn: sqlite://"+filepath.Join(dir, "z.db")+"\n"), 0o600)
+	if out := runMigrate(t, cfgPath); !strings.Contains(out, "migrated schema from version 0 to ") {
+		t.Fatalf("output = %q", out)
+	}
+}

@@ -22,6 +22,6 @@ wait_for() { # name, command...
 wait_for postgres "$rt" exec "$pg" pg_isready -h 127.0.0.1 -U postgres
 wait_for mysql "$rt" exec "$my" mysqladmin ping -h 127.0.0.1 -pzeroauthy --silent
 
-export ZEROAUTHY_TEST_POSTGRES_DSN="postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable"
-export ZEROAUTHY_TEST_MYSQL_DSN="mysql://root:zeroauthy@127.0.0.1:53306/"
+export ZA_TEST_POSTGRES_DSN="postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable"
+export ZA_TEST_MYSQL_DSN="mysql://root:zeroauthy@127.0.0.1:53306/"
 go test -race -count=1 "${@:-./internal/store/sqlstore/...}"

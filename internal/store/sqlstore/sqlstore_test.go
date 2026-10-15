@@ -18,8 +18,8 @@ import (
 
 // Environment for the server dialects; scripts/test-sql.sh sets them.
 const (
-	envPostgres = "ZEROAUTHY_TEST_POSTGRES_DSN" // postgres://…/postgres (an admin database)
-	envMySQL    = "ZEROAUTHY_TEST_MYSQL_DSN"    // mysql://root:…@host:port/ (no database)
+	envPostgres = "ZA_TEST_POSTGRES_DSN" // postgres://…/postgres (an admin database)
+	envMySQL    = "ZA_TEST_MYSQL_DSN"    // mysql://root:…@host:port/ (no database)
 )
 
 // dsnsUnderTest returns a constructor per dialect that yields the DSN of a

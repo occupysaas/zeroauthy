@@ -27,6 +27,27 @@ func CheckUsername(username string) error {
 	return nil
 }
 
+// MaxEmailLength caps email addresses in bytes (RFC 5321's 254-octet path
+// limit). Auth0 documents no limit; the cap keeps every storage driver in
+// agreement (MySQL stores logins in VARCHAR(255)). See D-0020.
+const MaxEmailLength = 254
+
+// CheckEmail validates a normalized email address: a bare addr-spec of at
+// most MaxEmailLength bytes.
+func CheckEmail(email string) error {
+	if len(email) > MaxEmailLength {
+		return &PolicyError{Reason: "enter a valid email address"}
+	}
+	if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email || addr.Name != "" {
+		return &PolicyError{Reason: "enter a valid email address"}
+	}
+	return nil
+}
+
+// maxLoginLength is the longest login that can match a user: an email
+// (usernames are at most 64 characters).
+const maxLoginLength = MaxEmailLength
+
 // dummyHash is verified when a login names an unknown user, so that the
 // response time does not reveal whether the user exists.
 var dummyHash = sync.OnceValue(func() string {
@@ -55,11 +76,13 @@ func (d *Database) now() time.Time {
 // and wrong passwords alike, and ErrUserBlocked only after the password
 // has been verified.
 func (d *Database) Login(ctx context.Context, conn *store.Connection, login, password string) (*store.User, error) {
-	if len(password) > maxPasswordBytes {
+	login = NormalizeLogin(login)
+	// An over-long login matches no user; it is not sent to the store.
+	if len(password) > maxPasswordBytes || len(login) > maxLoginLength {
 		_, _ = secrets.Verify(dummyHash(), password)
 		return nil, ErrInvalidCredentials
 	}
-	u, err := d.Store.Users().FindByLogin(ctx, conn.TenantID, conn.Name, NormalizeLogin(login))
+	u, err := d.Store.Users().FindByLogin(ctx, conn.TenantID, conn.Name, login)
 	if errors.Is(err, store.ErrNotFound) {
 		_, _ = secrets.Verify(dummyHash(), password)
 		return nil, ErrInvalidCredentials
@@ -130,8 +153,8 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 	}
 	username, password := in.Username, in.Password
 	email := NormalizeLogin(in.Email)
-	if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email || addr.Name != "" {
-		return nil, &PolicyError{Reason: "enter a valid email address"}
+	if err := CheckEmail(email); err != nil {
+		return nil, err
 	}
 	username = NormalizeLogin(username)
 	if conn.RequiresUsername {

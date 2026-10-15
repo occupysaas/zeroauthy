@@ -261,6 +261,7 @@ func TestValidateConnectionsAndUsers(t *testing.T) {
 		"bad policy":         {`{name: DB, password_policy: {require_character_classes: 5}}`, ``, "require_character_classes"},
 		"user unknown conn":  {conn, `{connection: Nope, email: a@b.test, password: "long enough 1"}`, `unknown connection "Nope"`},
 		"user bad email":     {conn, `{connection: DB, email: nope, password: "long enough 1"}`, "valid email"},
+		"user long email":    {conn, `{connection: DB, email: ` + strings.Repeat("e", 250) + `@b.test, password: "long enough 1"}`, "valid email"},
 		"user weak password": {conn, `{connection: DB, email: a@b.test, password: short}`, "at least 8"},
 		"user dup email":     {conn, `{connection: DB, email: a@b.test, password: "long enough 1"}, {connection: DB, email: A@B.test, password: "long enough 2"}`, `duplicate user "a@b.test"`},
 		"username required":  {`{name: DB, requires_username: true}`, `{connection: DB, email: a@b.test, password: "long enough 1"}`, "username is required"},
@@ -404,5 +405,62 @@ tenants:
 	}
 	if _, err := st.Tenants().GetByName(ctx, "acme"); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("tenant acme survived the failed Apply: %v", err)
+	}
+}
+
+// conflictStore makes Tenants().Create fail with store.ErrConflict for the
+// first `conflicts` calls, as when another replica inserted the tenant first.
+type conflictStore struct {
+	store.Store
+	calls, conflicts *int
+}
+
+func (c conflictStore) Tenants() store.Tenants {
+	return conflictTenants{c.Store.Tenants(), c.calls, c.conflicts}
+}
+
+func (c conflictStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return c.Store.WithTx(ctx, func(tx store.Store) error { return fn(conflictStore{tx, c.calls, c.conflicts}) })
+}
+
+type conflictTenants struct {
+	store.Tenants
+	calls, conflicts *int
+}
+
+func (t conflictTenants) Create(ctx context.Context, tn *store.Tenant) error {
+	*t.calls++
+	if *t.calls <= *t.conflicts {
+		return store.ErrConflict
+	}
+	return t.Tenants.Create(ctx, tn)
+}
+
+func TestApplyRetriesOnceOnConflict(t *testing.T) {
+	ctx := context.Background()
+	f, err := Parse([]byte("tenants:\n  - name: acme\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	st := memory.New()
+	calls, conflicts := 0, 1
+	if err := Apply(ctx, conflictStore{st, &calls, &conflicts}, f, fixedNow); err != nil {
+		t.Fatalf("Apply after one conflict: %v", err)
+	}
+	if calls != 2 {
+		t.Errorf("Tenants().Create calls = %d, want 2", calls)
+	}
+	if _, err := st.Tenants().GetByName(ctx, "acme"); err != nil {
+		t.Fatalf("tenant not created on retry: %v", err)
+	}
+
+	st = memory.New()
+	calls, conflicts = 0, 5
+	if err := Apply(ctx, conflictStore{st, &calls, &conflicts}, f, fixedNow); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("persistent conflict: err = %v, want ErrConflict", err)
+	}
+	if calls != 2 {
+		t.Errorf("persistent conflict: Create calls = %d, want 2 (one retry)", calls)
 	}
 }

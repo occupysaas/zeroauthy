@@ -14,7 +14,20 @@ import (
 )
 
 // Apply upserts everything in f. It never deletes.
+//
+// A transaction that fails with store.ErrConflict is retried once: two
+// replicas seeding a fresh shared database both see a tenant (or client, or
+// user) as missing, and the loser's insert conflicts. On the retry the
+// winner's rows exist and are updated instead.
 func Apply(ctx context.Context, st store.Store, f *File, now func() time.Time) error {
+	err := apply(ctx, st, f, now)
+	if errors.Is(err, store.ErrConflict) {
+		err = apply(ctx, st, f, now)
+	}
+	return err
+}
+
+func apply(ctx context.Context, st store.Store, f *File, now func() time.Time) error {
 	if now == nil {
 		now = time.Now
 	}

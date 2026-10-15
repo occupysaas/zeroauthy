@@ -85,6 +85,10 @@ func testSessions(t *testing.T, newStore Factory) {
 		}
 	})
 
+	t.Run("ConcurrentDeleteExpiredAndCreate", func(t *testing.T) {
+		testSweepWhileCreating(t, newStore, sessionSweepTarget())
+	})
+
 	t.Run("DeleteExpired", func(t *testing.T) {
 		s := open(t, newStore)
 		live := newSession("ten_a", "live", "h-live")

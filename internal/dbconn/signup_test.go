@@ -158,6 +158,7 @@ func TestSignupErrors(t *testing.T) {
 		"signup disabled":         {body: `{"client_id":"app","connection":"Closed","email":"x@acme.test","password":"a good password 1"}`, status: 400, code: "invalid_signup"},
 		"weak password":           {body: `{"client_id":"app","connection":"Username-Password-Authentication","email":"x@acme.test","password":"short"}`, status: 400, code: "invalid_password"},
 		"bad email":               {body: `{"client_id":"app","connection":"Username-Password-Authentication","email":"nope","password":"a good password 1"}`, status: 400, code: "invalid_signup"},
+		"email over 254 bytes":    {body: `{"client_id":"app","connection":"Username-Password-Authentication","email":"` + rep("e", 250) + `@acme.test","password":"a good password 1"}`, status: 400, code: "invalid_signup"},
 		"bad picture":             {body: `{` + ok + `,"picture":"http://img.acme.test/p.png"}`, status: 400, code: "invalid_signup"},
 		"name too long":           {body: `{` + ok + `,"name":"` + rep("n", 301) + `"}`, loose: true, status: 400, code: "invalid_signup"},
 		"client_id not a string":  {body: `{"client_id":1,"connection":"Username-Password-Authentication","email":"x@acme.test","password":"a good password 1"}`, loose: true, status: 400, code: "invalid_request", descContain: "must be a string"},

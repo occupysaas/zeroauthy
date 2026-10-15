@@ -175,3 +175,28 @@ func TestSignupProfileRejected(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+// Email addresses are capped at MaxEmailLength bytes (D-0020): longer ones
+// are a policy error at signup and never match at login.
+func TestEmailLengthCap(t *testing.T) {
+	ctx := context.Background()
+	db, conn := newDB(t)
+	atCap := strings.Repeat("a", 64) + "@" + strings.Repeat("b", MaxEmailLength-64-1-len(".test")) + ".test"
+	if len(atCap) != MaxEmailLength {
+		t.Fatalf("test address is %d bytes", len(atCap))
+	}
+	if _, err := db.Signup(ctx, conn, SignupInput{Email: atCap, Password: "long enough pw"}); err != nil {
+		t.Fatalf("signup at the cap: %v", err)
+	}
+	over := "c" + atCap
+	var pe *PolicyError
+	if _, err := db.Signup(ctx, conn, SignupInput{Email: over, Password: "long enough pw"}); !errors.As(err, &pe) {
+		t.Fatalf("signup over the cap: err = %v, want PolicyError", err)
+	}
+	if _, err := db.Login(ctx, conn, over, "long enough pw"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Errorf("login over the cap: err = %v", err)
+	}
+	if _, err := db.Login(ctx, conn, atCap, "long enough pw"); err != nil {
+		t.Errorf("login at the cap: %v", err)
+	}
+}

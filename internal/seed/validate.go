@@ -3,7 +3,6 @@ package seed
 import (
 	"errors"
 	"fmt"
-	"net/mail"
 	"net/url"
 	"regexp"
 	"slices"
@@ -278,7 +277,7 @@ func (t *Tenant) validate() []error {
 		}
 		u.Email = identity.NormalizeLogin(u.Email)
 		u.Username = identity.NormalizeLogin(u.Username)
-		if addr, err := mail.ParseAddress(u.Email); err != nil || addr.Address != u.Email {
+		if identity.CheckEmail(u.Email) != nil {
 			fail("users[%d]: %q is not a valid email address", i, u.Email)
 			continue
 		}

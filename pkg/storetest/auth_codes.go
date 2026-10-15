@@ -106,6 +106,10 @@ func testAuthCodes(t *testing.T, newStore Factory) {
 		mustNoErr(t, err)
 	})
 
+	t.Run("ConcurrentDeleteExpiredAndCreate", func(t *testing.T) {
+		testSweepWhileCreating(t, newStore, authCodeSweepTarget())
+	})
+
 	t.Run("DeleteExpired", func(t *testing.T) {
 		s := open(t, newStore)
 		short := newAuthCode("ten_a", "h1") // expires ts(1m)

@@ -87,6 +87,9 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 // a username match is reported as store.ErrNotFound.
 func (h *Handlers) FindByEmail(ctx context.Context, tenantID, connection, email string) (*store.User, error) {
 	email = identity.NormalizeLogin(email)
+	if len(email) > identity.MaxEmailLength {
+		return nil, store.ErrNotFound // no user can have it; not sent to the store
+	}
 	user, err := h.Store.Users().FindByLogin(ctx, tenantID, connection, email)
 	if err != nil {
 		return nil, err

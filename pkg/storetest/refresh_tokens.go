@@ -249,6 +249,10 @@ func testRefreshTokens(t *testing.T, newStore Factory) {
 		mustEqual(t, getRT(t, s, "ten_b", "hc1").RevokedAt == nil, true)
 	})
 
+	t.Run("ConcurrentDeleteExpiredAndCreate", func(t *testing.T) {
+		testSweepWhileCreating(t, newStore, refreshTokenSweepTarget())
+	})
+
 	t.Run("DeleteExpired", func(t *testing.T) {
 		s := open(t, newStore)
 		live := newRefreshToken("ten_a", "live", "h-live", "f1")

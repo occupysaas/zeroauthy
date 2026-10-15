@@ -121,3 +121,14 @@ func TestChangePasswordIPThrottle(t *testing.T) {
 		t.Fatalf("third request = %d %v, sent %d", code, body, len(e.mail.sent))
 	}
 }
+
+// An address over the email length cap cannot belong to a user: it gets the
+// usual 200 and no email, and never reaches the store (MySQL would reject it).
+func TestChangePasswordOverlongEmail(t *testing.T) {
+	e := newEnv(t)
+	code, _, text := e.post(t, "/dbconnections/change_password", "application/json",
+		`{"connection":"Username-Password-Authentication","email":"`+strings.Repeat("e", 300)+`@acme.test"}`)
+	if code != 200 || text == "" || len(e.mail.sent) != 0 {
+		t.Fatalf("got %d %q, sent %d", code, text, len(e.mail.sent))
+	}
+}
