@@ -3,6 +3,7 @@ package sqlstore
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"embed"
 	"fmt"
 	"sort"
@@ -70,7 +71,10 @@ func splitStatements(src string) []string {
 // LatestVersion is the newest schema version this binary knows.
 func (s *Store) LatestVersion() int64 {
 	ms, err := s.migrations()
-	if err != nil || len(ms) == 0 {
+	if err != nil {
+		panic(err) // migrations are embedded; this is a build defect
+	}
+	if len(ms) == 0 {
 		return 0
 	}
 	return ms[len(ms)-1].version
@@ -138,7 +142,11 @@ func (s *Store) lock(ctx context.Context) (func(), error) {
 	}
 	release := func(q string) func() {
 		return func() {
-			_, _ = conn.ExecContext(context.WithoutCancel(ctx), q)
+			if _, err := conn.ExecContext(context.WithoutCancel(ctx), q); err != nil {
+				// The lock may still be held: discard the connection so
+				// closing it releases the lock server-side.
+				_ = conn.Raw(func(any) error { return driver.ErrBadConn })
+			}
 			_ = conn.Close()
 		}
 	}

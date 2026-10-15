@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -81,17 +82,18 @@ func parseDSN(dsn string) (dialect, string, error) {
 		cfg.User = u.User.Username()
 		cfg.Passwd, _ = u.User.Password()
 		cfg.Net = "tcp"
-		cfg.Addr = u.Host
-		if u.Port() == "" {
-			cfg.Addr = u.Hostname() + ":3306"
+		port := u.Port()
+		if port == "" {
+			port = "3306"
 		}
+		cfg.Addr = net.JoinHostPort(u.Hostname(), port)
 		cfg.DBName = strings.TrimPrefix(u.Path, "/")
-		cfg.ParseTime = false
 		cfg.Loc = time.UTC
 		cfg.Params = map[string]string{}
 		for k, v := range u.Query() {
 			cfg.Params[k] = v[len(v)-1]
 		}
+		cfg.ParseTime = false // never let the DSN override: times are BIGINT
 		cfg.Params["sql_mode"] = "'STRICT_ALL_TABLES,NO_ZERO_DATE'"
 		cfg.Params["time_zone"] = "'+00:00'"
 		return dMySQL, cfg.FormatDSN(), nil

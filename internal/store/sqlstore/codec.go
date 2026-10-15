@@ -3,6 +3,7 @@ package sqlstore
 import (
 	"database/sql"
 	"encoding/json"
+	"reflect"
 	"time"
 )
 
@@ -47,9 +48,10 @@ func toJSON(v any) (string, error) {
 	return string(b), nil
 }
 
-// fromJSON decodes JSON text into v; "" and "null" leave v at its zero value.
+// fromJSON decodes JSON text into v; "" and "null" set *v to its zero value.
 func fromJSON(s string, v any) error {
 	if s == "" || s == "null" {
+		reflect.ValueOf(v).Elem().SetZero()
 		return nil
 	}
 	return json.Unmarshal([]byte(s), v)

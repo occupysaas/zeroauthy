@@ -23,7 +23,7 @@
   - `github.com/jackc/pgx/v5/stdlib`.
   - `github.com/go-sql-driver/mysql`.
 - Test databases run in podman containers started by a CLI script; there is no testcontainers (user decision, 2026-10-15).
-- MySQL 8.0+ only; MariaDB is not supported (user decision, 2026-10-15).
+- MySQL 8.0.17+ only; MariaDB is not supported (user decision, 2026-10-15).
 
 **Spec:** `docs/superpowers/specs/2026-10-13-zeroauthy-core-auth-api-design.md` §5.1, §5.2 (plugin authors reuse `storetest`), §3 (`zeroauthy migrate`), §9 (`storage.dsn`, `storage.auto_migrate`), §12 (storage conformance), §13 milestone 7.
 
@@ -45,7 +45,7 @@
   | `mysql://user:pass@host:port/db` | MySQL. Converted to the go-sql-driver form `user:pass@tcp(host:port)/db`. |
 
   Any other scheme is an error naming the scheme.
-- **Supported versions:** PostgreSQL 14+ (tested on 17), MySQL 8.0+ (tested on 8.4), SQLite through modernc.
+- **Supported versions:** PostgreSQL 14+ (tested on 17), MySQL 8.0.17+ (tested on 8.4), SQLite through modernc.
 - **Storage encoding** (D-0020):
   - **Times:** `BIGINT` microseconds since the Unix epoch, in UTC. A zero `time.Time` is stored as `0`, and a nil `*time.Time` as `NULL`. Values read back are `time.UnixMicro(v).UTC()`.
   - **Slices, maps and structs without their own table:** JSON text. Use `TEXT` in SQLite and PostgreSQL, and `LONGTEXT` in MySQL. JSON `null` decodes to a nil slice or map.
@@ -1802,7 +1802,7 @@ Append to `docs/compat/decisions.md`:
 In `docs/compat/matrix.md`, add a "Storage drivers" row:
 
 ```markdown
-| Storage drivers: memory, SQLite, PostgreSQL 14+, MySQL 8.0+ | Implemented | All pass `pkg/storetest` (SQLite in every test run; PostgreSQL 17 and MySQL 8.4 via `make test-sql` and CI); E2E runs on SQLite |
+| Storage drivers: memory, SQLite, PostgreSQL 14+, MySQL 8.0.17+ | Implemented | All pass `pkg/storetest` (SQLite in every test run; PostgreSQL 17 and MySQL 8.4 via `make test-sql` and CI); E2E runs on SQLite |
 ```
 
 `README.md`:

@@ -51,14 +51,8 @@ func TestJSON(t *testing.T) {
 		t.Fatalf("nil slice: %q %v", s, err)
 	}
 	back := []string{"stale"}
-	if err := fromJSON(s, &back); err != nil {
-		t.Fatal(err)
-	}
-	// "null" decodes to the zero value only when v starts zero; json.Unmarshal
-	// of null into a slice sets it nil, but fromJSON skips it, so use a fresh var.
-	var fresh []string
-	if err := fromJSON(s, &fresh); err != nil || fresh != nil {
-		t.Fatalf("nil slice round trip: %#v %v", fresh, err)
+	if err := fromJSON(s, &back); err != nil || back != nil {
+		t.Fatalf("null must zero a pre-filled slice: %#v %v", back, err)
 	}
 
 	var nm map[string]string
@@ -74,7 +68,12 @@ func TestJSON(t *testing.T) {
 	if err := fromJSON(s, &out); err != nil || !reflect.DeepEqual(in, out) {
 		t.Fatalf("map round trip: %#v %v", out, err)
 	}
-	if err := fromJSON("", &out); err != nil {
-		t.Fatal(err)
+	if err := fromJSON("", &out); err != nil || out != nil {
+		t.Fatalf("empty must zero a pre-filled map: %#v %v", out, err)
+	}
+	type st struct{ A string }
+	stv := st{A: "x"}
+	if err := fromJSON("null", &stv); err != nil || stv != (st{}) {
+		t.Fatalf("null must zero a pre-filled struct: %#v %v", stv, err)
 	}
 }

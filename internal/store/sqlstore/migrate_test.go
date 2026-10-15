@@ -2,15 +2,41 @@ package sqlstore
 
 import (
 	"context"
+	"errors"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 func TestSplitStatements(t *testing.T) {
 	got := splitStatements("-- c\nCREATE TABLE a (\n  x INT\n);\n\nCREATE INDEX i ON a (x);\n")
 	if len(got) != 2 || got[0] != "CREATE TABLE a (\n  x INT\n)" || got[1] != "CREATE INDEX i ON a (x)" {
 		t.Fatalf("%q", got)
+	}
+}
+
+func TestMigrationSetsMatch(t *testing.T) {
+	var base []int64
+	for i, d := range []dialect{dSQLite, dPostgres, dMySQL} {
+		ms, err := (&Store{d: d}).migrations()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var vs []int64
+		for _, m := range ms {
+			vs = append(vs, m.version)
+		}
+		if i == 0 {
+			base = vs
+		} else if !reflect.DeepEqual(base, vs) {
+			t.Errorf("%s migrations %v differ from sqlite %v", d.name, vs, base)
+		}
+	}
+	if len(base) == 0 {
+		t.Fatal("no migrations")
 	}
 }
 
@@ -97,6 +123,27 @@ func TestMigrateConcurrent(t *testing.T) {
 
 // TestSchemaTables checks the full DDL applies and that the signing-key
 // current/next invariant is enforced by the database.
+// TestTrailingSpaceKeys: keys differing only by a trailing space are distinct
+// on every dialect (MySQL needs a NO PAD collation for this).
+func TestTrailingSpaceKeys(t *testing.T) {
+	ctx := context.Background()
+	for name, mk := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := mk(t)
+			for _, id := range []string{"acme", "acme "} {
+				_, err := s.exec(ctx, "INSERT INTO tenants (id, name, friendly_name, default_audience, allowed_logout_urls, enabled_locales, custom_text, session_lifetime, idle_session_lifetime, logo_url, primary_color, default_directory, created_at) VALUES (?, ?, '', '', '[]', '[]', '{}', 0, 0, '', '', '', 0)", id, id)
+				if err != nil {
+					t.Fatalf("insert %q: %v", id, err)
+				}
+			}
+			var n int
+			if err := s.queryRow(ctx, "SELECT COUNT(*) FROM tenants WHERE id = ?", "acme ").Scan(&n); err != nil || n != 1 {
+				t.Fatalf("exact lookup matched %d rows (err %v)", n, err)
+			}
+		})
+	}
+}
+
 func TestSchemaConstraints(t *testing.T) {
 	ctx := context.Background()
 	for name, mk := range dialectsUnderTest(t) {
@@ -115,7 +162,7 @@ func TestSchemaConstraints(t *testing.T) {
 			if err := ins("k3", "retired"); err != nil {
 				t.Fatal(err)
 			}
-			if err := ins("k4", "current"); err == nil {
+			if err := ins("k4", "current"); !errors.Is(err, store.ErrConflict) {
 				t.Fatal("second current key must violate the unique index")
 			}
 			if _, err := s.exec(ctx, "INSERT INTO tenant_domains (domain, tenant_id, position) VALUES ('d', 'missing', 0)"); err == nil {

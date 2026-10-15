@@ -14,7 +14,7 @@ CREATE TABLE tenants (
   created_at BIGINT NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY tenants_name (name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE tenant_domains (
   domain VARCHAR(255) NOT NULL,
   tenant_id VARCHAR(64) NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE tenant_domains (
   PRIMARY KEY (domain),
   KEY tenant_domains_tenant (tenant_id),
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE clients (
   tenant_id VARCHAR(64) NOT NULL,
   client_id VARCHAR(255) NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE clients (
   refresh_token LONGTEXT NOT NULL,
   created_at BIGINT NOT NULL,
   PRIMARY KEY (tenant_id, client_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE resource_servers (
   tenant_id VARCHAR(64) NOT NULL,
   id VARCHAR(255) NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE resource_servers (
   created_at BIGINT NOT NULL,
   PRIMARY KEY (tenant_id, id),
   UNIQUE KEY resource_servers_identifier (tenant_id, identifier)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE client_grants (
   tenant_id VARCHAR(64) NOT NULL,
   id VARCHAR(255) NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE client_grants (
   created_at BIGINT NOT NULL,
   PRIMARY KEY (tenant_id, id),
   UNIQUE KEY client_grants_client_audience (tenant_id, client_id, audience)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE signing_keys (
   tenant_id VARCHAR(64) NOT NULL,
   kid VARCHAR(255) NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE signing_keys (
   active_status VARCHAR(16) GENERATED ALWAYS AS (CASE WHEN status IN ('current', 'next') THEN status END) STORED,
   PRIMARY KEY (tenant_id, kid),
   UNIQUE KEY signing_keys_active (tenant_id, active_status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE connections (
   tenant_id VARCHAR(64) NOT NULL,
   id VARCHAR(255) NOT NULL,
@@ -88,7 +88,7 @@ CREATE TABLE connections (
   created_at BIGINT NOT NULL,
   PRIMARY KEY (tenant_id, id),
   UNIQUE KEY connections_name (tenant_id, name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE users (
   tenant_id VARCHAR(64) NOT NULL,
   user_id VARCHAR(255) NOT NULL,
@@ -108,7 +108,7 @@ CREATE TABLE users (
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL,
   PRIMARY KEY (tenant_id, user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE user_logins (
   tenant_id VARCHAR(64) NOT NULL,
   connection VARCHAR(255) NOT NULL,
@@ -117,7 +117,7 @@ CREATE TABLE user_logins (
   user_id VARCHAR(255) NOT NULL,
   PRIMARY KEY (tenant_id, connection, kind, value),
   KEY user_logins_user (tenant_id, user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE sessions (
   tenant_id VARCHAR(64) NOT NULL,
   id VARCHAR(255) NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE sessions (
   KEY sessions_user (tenant_id, user_id),
   KEY sessions_expires (expires_at),
   KEY sessions_idle (idle_expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE auth_transactions (
   tenant_id VARCHAR(64) NOT NULL,
   id VARCHAR(255) NOT NULL,
@@ -146,7 +146,7 @@ CREATE TABLE auth_transactions (
   created_at BIGINT NOT NULL,
   PRIMARY KEY (tenant_id, id),
   KEY auth_transactions_expires (expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE auth_codes (
   tenant_id VARCHAR(64) NOT NULL,
   code_hash VARCHAR(255) NOT NULL,
@@ -166,7 +166,7 @@ CREATE TABLE auth_codes (
   replayed_at BIGINT NULL,
   PRIMARY KEY (tenant_id, code_hash),
   KEY auth_codes_expires (expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE refresh_tokens (
   tenant_id VARCHAR(64) NOT NULL,
   id VARCHAR(255) NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE refresh_tokens (
   KEY refresh_tokens_user (tenant_id, user_id),
   KEY refresh_tokens_expires (expires_at),
   KEY refresh_tokens_idle (idle_expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE TABLE password_reset_tickets (
   tenant_id VARCHAR(64) NOT NULL,
   id VARCHAR(255) NOT NULL,
@@ -206,4 +206,4 @@ CREATE TABLE password_reset_tickets (
   UNIQUE KEY password_reset_tickets_token_hash (tenant_id, token_hash),
   KEY password_reset_tickets_user (tenant_id, user_id),
   KEY password_reset_tickets_expires (expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
