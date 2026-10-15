@@ -2,6 +2,7 @@
 
 build:
 	CGO_ENABLED=0 go build -trimpath -o bin/zeroauthy ./cmd/zeroauthy
+	CGO_ENABLED=0 go build -trimpath -o bin/zeroauthy-store-memory ./cmd/zeroauthy-store-memory
 
 test:
 	go test ./...
