@@ -2,7 +2,7 @@
 // zeroauthy's database endpoints and password grants.
 import assert from 'node:assert/strict';
 import { readdir } from 'node:fs/promises';
-import { AuthClient, ChangePasswordError } from '@auth0/auth0-auth-js';
+import { AuthClient } from '@auth0/auth0-auth-js';
 import { AuthenticationClient } from 'auth0/legacy';
 
 const auth = new AuthenticationClient({
@@ -31,11 +31,13 @@ await auth.database.changePassword({ email, connection });
 const files = (await readdir(process.env.E2E_MAIL_DIR)).filter((f) => f.endsWith('.eml'));
 assert.ok(files.length >= 1, 'a reset email was written');
 
-await assert.rejects(auth.database.changePassword({ email: 'nobody@e2e.local', connection }), 'unknown user is rejected (404)');
+// An unknown address gets the same success answer (D-0018): the endpoint
+// does not reveal which addresses have accounts.
+await auth.database.changePassword({ email: 'nobody@e2e.local', connection });
 
 // The current SDK, @auth0/auth0-auth-js, documents the same flows in its
 // README: database.signUp, getTokenByPassword with realm, and
-// database.changePassword (which throws ChangePasswordError on failure).
+// database.changePassword.
 const modern = new AuthClient({
   domain: 'localhost:8443', clientId: 'e2e-node', clientSecret: 'e2e-node-secret-not-for-production',
 });
@@ -48,6 +50,6 @@ const t2 = await modern.getTokenByPassword({
 assert.ok(t2.accessToken, '@auth0/auth0-auth-js password-realm grant returns an access token');
 const message = await modern.database.changePassword({ email: modernEmail, connection });
 assert.equal(typeof message, 'string', 'changePassword returns the plain-text confirmation');
-await assert.rejects(modern.database.changePassword({ email: 'nobody@e2e.local', connection }), ChangePasswordError,
-  'unknown user is rejected (404)');
+const unknown = await modern.database.changePassword({ email: 'nobody@e2e.local', connection });
+assert.equal(unknown, message, 'an unknown address gets the same confirmation');
 console.log('e2e m3 database flows: OK');

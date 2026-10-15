@@ -508,10 +508,12 @@ paths:
         Emails a single-use link, valid for 24 hours, that lets the user
         choose a new password on a database connection. The body may be JSON
         or form-encoded. `client_id` is optional; when given it must exist.
-        The response is plain text. An unknown user is answered `404` with
-        `user_not_found`. A blocked user, or one who already received three
-        links in the past hour, still gets `200` but no email. Requests count
-        against the per-IP limit; while it is reached the response is `429`.
+        The response is plain text. `email` is matched against users' email
+        addresses only, never usernames. An unknown address, a blocked user,
+        or a user who already received three links in the past hour gets the
+        same `200` response but no email, so the response does not reveal
+        whether an account exists. Requests count against the per-IP limit;
+        while it is reached the response is `429`.
       x-source:
         - https://auth0.com/docs/api/authentication/change-password/change-password
       requestBody:
@@ -525,18 +527,14 @@ paths:
               $ref: "#/components/schemas/ChangePasswordRequest"
       responses:
         "200":
-          description: The reset email was sent, or is not sent for this user.
+          description: The request was accepted. The same sentence is returned whether or not an email was sent.
           content:
             text/plain:
               schema: {type: string}
         "400":
           $ref: "#/components/responses/OAuthErrorResponse"
         "404":
-          description: The tenant is unknown, or the user does not exist (`user_not_found`).
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OAuthError"
+          $ref: "#/components/responses/UnknownTenant"
         "429":
           $ref: "#/components/responses/OAuthErrorResponse"
         default:

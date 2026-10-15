@@ -228,8 +228,8 @@ them. Each entry: context, sources consulted, decision, rationale.
 
 ## D-0018: /dbconnections endpoints
 
-- **Context:** Auth0 documents the request and success fields and the status codes of `/dbconnections/signup` (200, 400, 409) and `/dbconnections/change_password` (200 plain text, 400, 404). It does not document error bodies.
-- **Sources:** https://auth0.com/docs/api/authentication/signup/create-a-new-user; https://auth0.com/docs/api/authentication/change-password/change-password.
+- **Context:** Auth0 documents the request and success fields and the status codes of `/dbconnections/signup` (200, 400, 409) and `/dbconnections/change_password` (200 plain text, 400, 404). It does not document error bodies. The two public sources disagree about an unknown user on `change_password`: the Authentication API reference lists a 404 response, while the README of the official `@auth0/auth0-auth-js` SDK says the endpoint never reveals whether the email matches an existing user.
+- **Sources:** https://auth0.com/docs/api/authentication/signup/create-a-new-user; https://auth0.com/docs/api/authentication/change-password/change-password (lists 404); the `@auth0/auth0-auth-js` README, `database.changePassword` (never reveals whether a user exists).
 - **Decision:**
   - **Error bodies:** they use zeroauthy's JSON error shape `{error, error_description}`:
     - `invalid_request`: missing or malformed parameters, or an unknown client;
@@ -240,7 +240,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **`client_id` is required:** zeroauthy has no global client.
   - **Limits of our own choosing:** a request body is capped at 64 KiB; `picture` must be an absolute https URL of at most 2000 characters; `given_name`, `family_name`, `name` and `nickname` are limited to 300 characters; form-encoded bodies cannot carry `user_metadata` (it is an object, so it needs JSON). `user_metadata` follows Auth0's documented limits (10 properties, names up to 100 and string values up to 500 characters).
   - **Signup response:** `_id` is the user ID without the `auth0|` prefix.
-  - **`change_password`:** it follows the documented status codes, including 404 for an unknown user (strict parity; the maintainer chose this over hiding which emails have accounts). Its 200 body is a plain-text sentence of our own wording. See D-0019 (password reset).
+  - **`change_password`:** an unknown user gets the same 200 plain-text body as a known one, and no email is sent. The maintainer chose the auth0-auth-js README's behaviour over the API reference's 404 (2026-10-15). `email` matches users' email addresses only, never usernames. The 200 body is a plain-text sentence of our own wording. The remaining 404 is for an unknown tenant. See D-0019 (password reset).
 - **Rationale:** It follows every documented field and status. Undocumented error bodies use the shape all other zeroauthy endpoints use.
 
 ## D-0019: Password reset tickets

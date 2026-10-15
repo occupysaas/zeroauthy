@@ -267,6 +267,19 @@ func TestResetRequestSendLimit(t *testing.T) {
 	}
 }
 
+// The form asks for an email address; a username does not match.
+func TestResetRequestUsernameSendsNothing(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	if rec := b.do(t, "POST", "/u/reset-password/request", url.Values{"state": {state}, "csrf": {csrf}, "email": {"alice1"}}); rec.Code != 200 {
+		t.Fatalf("request = %d", rec.Code)
+	}
+	if len(e.mail.sent) != 0 {
+		t.Fatalf("sent %d emails for a username", len(e.mail.sent))
+	}
+}
+
 func TestLoginPageWithoutResets(t *testing.T) {
 	e := newEnv(t)
 	e.h.Resets = nil

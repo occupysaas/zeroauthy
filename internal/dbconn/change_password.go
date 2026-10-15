@@ -1,6 +1,7 @@
 package dbconn
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -62,16 +63,31 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "load connection", err)
 		return
 	}
-	user, err := h.Store.Users().FindByLogin(ctx, tenantID, conn.Name, identity.NormalizeLogin(fields["email"]))
-	if errors.Is(err, store.ErrNotFound) {
-		writeErr(w, http.StatusNotFound, "user_not_found", "the user does not exist")
-		return
-	} else if err != nil {
+	// An unknown user gets the same answer and no email, so the response
+	// does not reveal which addresses have accounts (D-0018).
+	user, err := h.FindByEmail(ctx, tenantID, conn.Name, fields["email"])
+	if err == nil {
+		h.RequestReset(res, conn, user, fields["client_id"], i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language")))
+	} else if !errors.Is(err, store.ErrNotFound) {
 		h.internal(w, r, "find user", err)
 		return
 	}
-	h.RequestReset(res, conn, user, fields["client_id"], i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language")))
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("A password reset link has been sent to the email address."))
+}
+
+// FindByEmail returns the user of connection whose email address is email.
+// FindByLogin also matches usernames; a reset request names an address, so
+// a username match is reported as store.ErrNotFound.
+func (h *Handlers) FindByEmail(ctx context.Context, tenantID, connection, email string) (*store.User, error) {
+	email = identity.NormalizeLogin(email)
+	user, err := h.Store.Users().FindByLogin(ctx, tenantID, connection, email)
+	if err != nil {
+		return nil, err
+	}
+	if user.Email != email {
+		return nil, store.ErrNotFound
+	}
+	return user, nil
 }

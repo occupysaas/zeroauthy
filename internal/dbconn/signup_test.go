@@ -36,7 +36,7 @@ tenants:
       - {name: Closed, enabled_clients: [app], disable_signup: true}
       - {name: Not-Enabled, enabled_clients: [other]}
     users:
-      - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1"}
+      - {connection: Username-Password-Authentication, email: alice@acme.test, username: alice1, password: "alice password 1"}
       - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
 `
 

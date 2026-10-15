@@ -52,6 +52,7 @@ All earlier constraints still apply:
   - **200:** a plain-text sentence.
   - **400:** bad request.
   - **404:** user not found.
+  - *Superseded (user decision, 2026-10-15, final fix wave):* an unknown user now gets the same 200 and no email, following the `@auth0/auth0-auth-js` README ("never reveals whether the email matches an existing user") instead of the API reference's 404. See D-0018.
 - The tenant setting is named `default_directory`.
 
 Where Auth0's docs are silent, the behaviour is our decision and gets a compat decision record. Such decisions include:

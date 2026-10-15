@@ -47,7 +47,7 @@ tenants:
       - {name: Username-Password-Authentication, enabled_clients: [spa]}
       - {name: Invite-Only, enabled_clients: [closed], disable_signup: true}
     users:
-      - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1"}
+      - {connection: Username-Password-Authentication, email: alice@acme.test, username: alice1, password: "alice password 1"}
       - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
   - name: globex
     domains: [globex.example.test]

@@ -196,7 +196,7 @@ The full contract is in `api/authentication.yaml`.
 | `GET /v2/logout` | Ends the session; redirects to `returnTo` only if it matches the client's (or tenant's) allowed logout URLs |
 | `GET\|POST /oidc/logout` | OIDC RP-Initiated Logout (`id_token_hint`, `post_logout_redirect_uri`, `state`, `client_id`, `logout_hint`) |
 | `POST /dbconnections/signup` | Creates a database (or custom-db) user; returns the created user profile |
-| `POST /dbconnections/change_password` | Sends a reset email (single-use link, 24 h). Unknown users get 404, as Auth0 documents; the hosted 'Forgot password?' page always shows the same confirmation. |
+| `POST /dbconnections/change_password` | Sends a reset email (single-use link, 24 h). Matches by email address only. An unknown user gets the same 200 plain-text answer and no email, as the auth0-auth-js README documents (the maintainer chose this over the API reference's 404; D-0018); the hosted 'Forgot password?' page behaves the same way. |
 
 **Deferred:** `/passwordless/*`, `/mfa/*`, `/samlp/*`, `/wsfed/*`, `/oidc/register`, `/co/authenticate`, `/login/callback`.
 

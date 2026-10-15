@@ -32,12 +32,32 @@ func TestChangePasswordSendsTicket(t *testing.T) {
 	}
 }
 
-func TestChangePasswordUnknownUserIs404(t *testing.T) {
+// An unknown address gets the same answer as a known one, so the endpoint
+// does not reveal which addresses have accounts (D-0018).
+func TestChangePasswordUnknownUserLooksTheSame(t *testing.T) {
 	e := newEnv(t)
-	code, body, _ := e.post(t, "/dbconnections/change_password", "application/json",
+	knownCode, _, known := e.post(t, "/dbconnections/change_password", "application/json",
+		`{"connection":"Username-Password-Authentication","email":"alice@acme.test"}`)
+	if len(e.mail.sent) != 1 {
+		t.Fatalf("known user: sent %d emails, want 1", len(e.mail.sent))
+	}
+	unknownCode, _, unknown := e.post(t, "/dbconnections/change_password", "application/json",
 		`{"connection":"Username-Password-Authentication","email":"nobody@acme.test"}`)
-	if code != 404 || body["error"] != "user_not_found" || len(e.mail.sent) != 0 {
-		t.Fatalf("got %d %v, sent %d", code, body, len(e.mail.sent))
+	if knownCode != 200 || unknownCode != knownCode || unknown != known {
+		t.Fatalf("known = %d %q, unknown = %d %q", knownCode, known, unknownCode, unknown)
+	}
+	if len(e.mail.sent) != 1 {
+		t.Fatalf("unknown user: sent %d emails in total, want still 1", len(e.mail.sent))
+	}
+}
+
+// The endpoint takes an email address; a username does not match.
+func TestChangePasswordUsernameSendsNothing(t *testing.T) {
+	e := newEnv(t)
+	code, _, _ := e.post(t, "/dbconnections/change_password", "application/json",
+		`{"connection":"Username-Password-Authentication","email":"alice1"}`)
+	if code != 200 || len(e.mail.sent) != 0 {
+		t.Fatalf("got %d, sent %d", code, len(e.mail.sent))
 	}
 }
 

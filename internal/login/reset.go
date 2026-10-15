@@ -54,7 +54,7 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	user, err := h.Store.Users().FindByLogin(ctx, f.res.Tenant.ID, f.conn.Name, identity.NormalizeLogin(r.PostForm.Get("email")))
+	user, err := h.Resets.FindByEmail(ctx, f.res.Tenant.ID, f.conn.Name, r.PostForm.Get("email"))
 	switch {
 	case err == nil:
 		h.Resets.RequestReset(f.res, f.conn, user, f.txn.ClientID, f.view.L.Lang())
