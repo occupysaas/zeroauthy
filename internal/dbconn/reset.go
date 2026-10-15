@@ -2,7 +2,10 @@ package dbconn
 
 import (
 	"context"
+	"fmt"
 	"net/url"
+	"runtime"
+	"runtime/debug"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/email"
@@ -51,10 +54,26 @@ func (h *Handlers) RequestReset(res tenant.Resolved, conn *store.Connection, use
 	})
 }
 
+// goRun runs f in the background. A panic in f is logged and swallowed so
+// that a failed send cannot crash the server. The panic value is not
+// logged, since it may hold the message (and its reset link); runtime
+// errors, which carry no message data, are.
 func (h *Handlers) goRun(f func()) {
+	safe := func() {
+		defer func() {
+			if v := recover(); v != nil {
+				attrs := []any{"panic_type", fmt.Sprintf("%T", v), "stack", string(debug.Stack())}
+				if re, ok := v.(runtime.Error); ok {
+					attrs = append(attrs, "err", re.Error())
+				}
+				h.log().Error("background send panicked", attrs...)
+			}
+		}()
+		f()
+	}
 	if h.Go != nil {
-		h.Go(f)
+		h.Go(safe)
 		return
 	}
-	go f()
+	go safe()
 }
