@@ -78,7 +78,10 @@ The SQL drivers have a schema. Apply pending migrations with
 `zeroauthy migrate --config zeroauthy.yaml` before starting a new version,
 or set `storage.auto_migrate: true` (`ZEROAUTHY_STORAGE__AUTO_MIGRATE=true`)
 to have `serve` migrate at startup. Without it, `serve` refuses to start
-against a schema that is behind or ahead of the binary.
+against a schema that is behind or ahead of the binary. `zeroauthy seed`
+requires a migrated database and ignores `storage.auto_migrate`. MySQL
+commits DDL implicitly, so if a migration fails part-way there, clean up the
+objects it created by hand before running `zeroauthy migrate` again.
 
 **Proxies.** Enable `server.trust_proxy_headers` only behind a proxy that
 sets `X-Forwarded-Host`; otherwise clients could choose their own tenant.

@@ -517,8 +517,8 @@ import (
 
 // Environment for the server dialects; scripts/test-sql.sh sets them.
 const (
-	envPostgres = "ZEROAUTHY_TEST_POSTGRES_DSN" // postgres://…/postgres (an admin database)
-	envMySQL    = "ZEROAUTHY_TEST_MYSQL_DSN"    // mysql://root:…@host:port/ (no database)
+	envPostgres = "ZA_TEST_POSTGRES_DSN" // postgres://…/postgres (an admin database)
+	envMySQL    = "ZA_TEST_MYSQL_DSN"    // mysql://root:…@host:port/ (no database)
 )
 
 // dialectsUnderTest returns a constructor per dialect that yields a fresh,
@@ -1013,8 +1013,8 @@ trap cleanup EXIT
 for _ in $(seq 1 120); do "$rt" exec "$pg" pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done
 for _ in $(seq 1 120); do "$rt" exec "$my" mysqladmin ping -h 127.0.0.1 -pzeroauthy --silent >/dev/null 2>&1 && break; sleep 1; done
 
-export ZEROAUTHY_TEST_POSTGRES_DSN="postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable"
-export ZEROAUTHY_TEST_MYSQL_DSN="mysql://root:zeroauthy@127.0.0.1:53306/"
+export ZA_TEST_POSTGRES_DSN="postgres://postgres:zeroauthy@127.0.0.1:55432/postgres?sslmode=disable"
+export ZA_TEST_MYSQL_DSN="mysql://root:zeroauthy@127.0.0.1:53306/"
 go test -race -count=1 "${@:-./internal/store/sqlstore/...}"
 ```
 
@@ -1762,7 +1762,7 @@ In `.github/workflows/ci.yml`, add a job `sql`:
 - `services: postgres` (`postgres:17`, env `POSTGRES_PASSWORD: zeroauthy`, port `55432:5432`, health check `pg_isready`);
 - `services: mysql` (`mysql:8.4`, env `MYSQL_ROOT_PASSWORD: zeroauthy`, port `53306:3306`, health check `mysqladmin ping -pzeroauthy`).
 
-It sets the same two `ZEROAUTHY_TEST_*` environment variables as `scripts/test-sql.sh`, then runs `go test -race -count=1 ./internal/store/sqlstore/...`.
+It sets the same two `ZA_TEST_*` environment variables as `scripts/test-sql.sh`, then runs `go test -race -count=1 ./internal/store/sqlstore/...`.
 
 - [ ] **Step 4: E2E on SQLite**
 

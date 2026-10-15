@@ -124,6 +124,8 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - MariaDB support (it lacks the `utf8mb4_0900_bin` collation that MySQL 8.0.17+ provides).
 - Down-migrations; today migrations only move forward.
 - Move the login throttles and the `change_password` send limit into the store, for multi-instance deployments.
-- MySQL caps `resource_servers.identifier` and `client_grants.audience` at `VARCHAR(255)` (they are `TEXT` on SQLite and PostgreSQL); add validation-layer length limits so every driver accepts the same values.
+- MySQL stores several user-supplied values in `VARCHAR(255)` columns (wider or `TEXT` elsewhere), so a longer value fails only on MySQL. Email addresses are now capped at 254 bytes (D-0020); add validation-layer length limits for the rest so every driver accepts the same values: `resource_servers.identifier` and `client_grants.audience` (`TEXT` on SQLite and PostgreSQL), the seed's `client_id`, connection names and tenant names.
+- Tenant reads (`Tenants().Get`/`GetByName`/`GetByDomain` and `List`) take separate statements for the tenant rows and their domains, outside a transaction, so a read concurrent with `Update` can see the new row with the old domains (a torn read).
+- `storetest.Suites` and `RunSuites` are unused in the repository since the SQL drivers run the full suite; keep them for plugin authors bringing suites up one at a time, or unexport them.
 - Concurrent `SigningKeys.Rotate` calls for a tenant that does not exist are not serialized (the lock is the tenant row); acceptable because keys are only rotated for existing tenants.
 - Test nits: `TestAtomicRetry` sleeps through the real retry backoff; a stray `TestSchemaTables` doc comment sits in `internal/store/sqlstore/migrate_test.go`; the `LatestVersion` panic path is untested.
