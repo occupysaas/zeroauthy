@@ -3,6 +3,20 @@
 // (hashicorp/go-plugin). A plugin's main calls Serve with its store.Store;
 // zeroauthy starts it from a plugin:///path DSN. Run pkg/storetest against
 // Open(path) to check a plugin before shipping it.
+//
+// Notes for plugin authors:
+//
+//   - Keep main to a single call, storeplugin.Serve(yourStore).
+//   - Stdout carries the go-plugin handshake, so write logs to stderr only.
+//     Lines on stderr that start with "[ERROR] " reach the host's log.
+//   - Running the binary by hand just prints go-plugin's message that it is
+//     a plugin and exits.
+//   - If a wrapper script starts the real binary, use exec so no extra
+//     process sits in between, and never fork children that inherit stdio:
+//     stopping the plugin waits for every holder of its pipes.
+//   - Do not count on cleanup at exit. The process may be killed, and open
+//     transactions are simply abandoned; a database rolls them back when
+//     the connection drops.
 package storeplugin
 
 import (
@@ -60,7 +74,7 @@ func (p *grpcPlugin) GRPCClient(_ context.Context, _ *plugin.GRPCBroker, conn *g
 func recoverPanics(ctx context.Context, req any, info *grpc.UnaryServerInfo, h grpc.UnaryHandler) (resp any, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Fprintf(os.Stderr, "storage plugin: panic in %s: %v\n", info.FullMethod, r)
+			fmt.Fprintf(os.Stderr, "[ERROR] storage plugin: panic in %s: %v\n", info.FullMethod, r)
 			resp, err = nil, status.Error(codes.Internal, "plugin handler panicked")
 		}
 	}()
@@ -92,29 +106,54 @@ func Open(ctx context.Context, path string, args ...string) (store.Store, error)
 	if fi, err := os.Stat(path); err != nil || fi.IsDir() || fi.Mode()&0o111 == 0 {
 		return nil, errors.New("storage plugin: the binary does not exist or is not executable")
 	}
+	// client.Kill blocks while a start is in flight, so cancelling ctx
+	// kills the process through this context instead; it lives as long as
+	// the plugin does and is cancelled when the store is closed.
+	procCtx, stop := context.WithCancel(context.Background())
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:  Handshake,
 		Plugins:          plugin.PluginSet{pluginName: &grpcPlugin{}},
-		Cmd:              exec.Command(path, args...),
+		Cmd:              exec.CommandContext(procCtx, path, args...),
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 		AutoMTLS:         true,
 		StartTimeout:     StartTimeout,
 		Logger:           hclog.New(&hclog.LoggerOptions{Name: "storage-plugin", Output: os.Stderr, Level: hclog.Warn}),
 	})
-	rpc, err := client.Client()
-	if err != nil {
+	type started struct {
+		rpc plugin.ClientProtocol
+		err error
+	}
+	startCh := make(chan started, 1)
+	go func() {
+		rpc, err := client.Client()
+		startCh <- started{rpc, err}
+	}()
+	var rpc plugin.ClientProtocol
+	select {
+	case r := <-startCh:
+		if r.err != nil {
+			stop()
+			client.Kill()
+			return nil, errors.New("storage plugin: start failed (handshake): " + r.err.Error())
+		}
+		rpc = r.rpc
+	case <-ctx.Done():
+		stop()
+		<-startCh
 		client.Kill()
-		return nil, errors.New("storage plugin: start failed (handshake): " + err.Error())
+		return nil, ctx.Err()
 	}
 	raw, err := rpc.Dispense(pluginName)
 	if err != nil {
+		stop()
 		client.Kill()
 		return nil, errors.New("storage plugin: dispense failed: " + err.Error())
 	}
 	conn := raw.(*grpc.ClientConn)
-	st := grpcstore.NewClient(conn, func() error { client.Kill(); return nil })
+	st := grpcstore.NewClient(conn, func() error { client.Kill(); stop(); return nil })
 	if err := st.Ping(ctx); err != nil {
 		client.Kill()
+		stop()
 		return nil, err
 	}
 	return &opened{Store: st, client: client}, nil

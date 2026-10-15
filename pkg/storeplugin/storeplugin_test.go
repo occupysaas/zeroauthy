@@ -2,10 +2,12 @@ package storeplugin_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -52,6 +54,7 @@ func TestOpenErrors(t *testing.T) {
 		t.Fatal("relative path accepted")
 	}
 	// A program that never handshakes fails within the start timeout.
+	// exec: a forked sleep would hold the plugin's pipes and make Kill wait.
 	sleeper := filepath.Join(t.TempDir(), "sleeper.sh")
 	if err := os.WriteFile(sleeper, []byte("#!/bin/sh\nexec sleep 60\n"), 0o755); err != nil {
 		t.Fatal(err)
@@ -66,13 +69,14 @@ func TestOpenErrors(t *testing.T) {
 	}
 }
 
-// Open errors must not echo the plugin's arguments, which may be secrets.
-func TestOpenErrorOmitsArgs(t *testing.T) {
-	sleeper := filepath.Join(t.TempDir(), "exits.sh")
-	if err := os.WriteFile(sleeper, []byte("#!/bin/sh\nexit 3\n"), 0o755); err != nil {
+// A plugin that prints junk instead of the handshake fails Open, and the
+// error does not echo the plugin's arguments (which may be secrets).
+func TestOpenGarbageHandshakeOmitsArgs(t *testing.T) {
+	junk := filepath.Join(t.TempDir(), "junk.sh")
+	if err := os.WriteFile(junk, []byte("#!/bin/sh\necho not-a-handshake\nexec sleep 60\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	_, err := storeplugin.Open(context.Background(), sleeper, "--password=hunter2-secret")
+	_, err := storeplugin.Open(context.Background(), junk, "--password=hunter2-secret")
 	if err == nil {
 		t.Fatal("non-plugin opened")
 	}
@@ -81,8 +85,53 @@ func TestOpenErrorOmitsArgs(t *testing.T) {
 	}
 }
 
-// When the plugin dies, calls fail promptly and Ping reports it.
-func TestPluginCrash(t *testing.T) {
+// Open honours ctx while waiting for the plugin to start.
+func TestOpenHonoursContext(t *testing.T) {
+	sleeper := filepath.Join(t.TempDir(), "sleeper.sh")
+	if err := os.WriteFile(sleeper, []byte("#!/bin/sh\nexec sleep 60\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	_, err := storeplugin.Open(ctx, sleeper)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("err = %v, want deadline exceeded", err)
+	}
+	if d := time.Since(start); d > 5*time.Second {
+		t.Fatalf("Open took %v after ctx expiry", d)
+	}
+	if out, _ := exec.Command("pgrep", "-f", sleeper).Output(); len(out) > 0 {
+		t.Fatalf("plugin process left behind: %s", out)
+	}
+}
+
+// A real crash: SIGKILL the plugin while the connection is live.
+func TestPluginSIGKILL(t *testing.T) {
+	ctx := context.Background()
+	s, err := storeplugin.Open(ctx, pluginBin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if err := s.Ping(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Kill(storeplugin.PidForTest(s), syscall.SIGKILL); err != nil {
+		t.Fatal(err)
+	}
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := s.Ping(cctx); err == nil {
+		t.Fatal("Ping succeeded after SIGKILL")
+	}
+	if cctx.Err() != nil {
+		t.Fatal("Ping hung until the deadline")
+	}
+}
+
+// Once the plugin is stopped (via the client side), calls fail promptly.
+func TestPluginStopped(t *testing.T) {
 	ctx := context.Background()
 	s, err := storeplugin.Open(ctx, pluginBin)
 	if err != nil {
