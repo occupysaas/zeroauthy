@@ -71,13 +71,17 @@ func TestChangePasswordErrors(t *testing.T) {
 		"missing connection": {`{"email":"alice@acme.test"}`, true, 400},
 		"unknown connection": {`{"connection":"Nope","email":"alice@acme.test"}`, false, 400},
 		"unknown client":     {`{"client_id":"nope","connection":"Username-Password-Authentication","email":"alice@acme.test"}`, false, 400},
+		"not enabled":        {`{"client_id":"other","connection":"Username-Password-Authentication","email":"alice@acme.test"}`, false, 400},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			e := newEnv(t)
 			e.strict = !tc.loose
-			if code, body, _ := e.post(t, "/dbconnections/change_password", "application/json", tc.body); code != tc.status {
+			if code, body, _ := e.post(t, "/dbconnections/change_password", "application/json", tc.body); code != tc.status || body["error"] != "invalid_request" {
 				t.Fatalf("got %d %v", code, body)
+			}
+			if len(e.mail.sent) != 0 {
+				t.Fatalf("sent %d emails", len(e.mail.sent))
 			}
 		})
 	}

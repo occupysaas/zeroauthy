@@ -221,7 +221,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - The connection must be a database connection enabled for the client.
   - Wrong credentials and unknown users give the same `invalid_grant`; a blocked user gives `invalid_grant`.
   - Attempts share the hosted login's per-user and per-IP throttles and return `429 too_many_requests` when locked.
-  - `auth0-forwarded-for` is honoured only for clients that authenticated with a secret.
+  - `auth0-forwarded-for` is honoured only for clients that authenticated with a secret, and only when its value parses as an IP address; otherwise the request's own address is used.
   - Access tokens carry `gty: "password"`. ID tokens have `auth_time` = now and no `sid` (no browser session).
   - Refresh tokens follow the `offline_access` rules of D-0012 and start a new family.
 - **Rationale:** It follows the documented parameters and RFC 6749 errors. Sharing the throttles prevents the API from being used to bypass hosted-login brute-force protection.
@@ -240,7 +240,9 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **`client_id` is required:** zeroauthy has no global client.
   - **Limits of our own choosing:** a request body is capped at 64 KiB; `picture` must be an absolute https URL of at most 2000 characters; `given_name`, `family_name`, `name` and `nickname` are limited to 300 characters; form-encoded bodies cannot carry `user_metadata` (it is an object, so it needs JSON). `user_metadata` follows Auth0's documented limits (10 properties, names up to 100 and string values up to 500 characters).
   - **Signup response:** `_id` is the user ID without the `auth0|` prefix.
-  - **`change_password`:** an unknown user gets the same 200 plain-text body as a known one, and no email is sent. The maintainer chose the auth0-auth-js README's behaviour over the API reference's 404 (2026-10-15). `email` matches users' email addresses only, never usernames. The 200 body is a plain-text sentence of our own wording. The remaining 404 is for an unknown tenant. See D-0019 (password reset).
+  - **`change_password`:** an unknown user gets the same 200 plain-text body as a known one, and no email is sent. The maintainer chose the auth0-auth-js README's behaviour over the API reference's 404 (2026-10-15). `email` matches users' email addresses only, never usernames. The 200 body is a plain-text sentence of our own wording. The remaining 404 is for an unknown tenant. When `client_id` is given, the client must exist and the connection must be enabled for it (as for signup); otherwise 400 `invalid_request`. See D-0019 (password reset).
+  - **Shared IP limit:** `/dbconnections/signup` and `/dbconnections/change_password` count against the same per-IP bucket as the hosted login and the password grants. A server-side backend that calls them for many users from one address should expect to be throttled (429); for password grants it should send the end user's IP in `auth0-forwarded-for`.
+  - **Background email:** reset emails are sent after the response. An email still being sent when the server shuts down is lost.
 - **Rationale:** It follows every documented field and status. Undocumented error bodies use the shape all other zeroauthy endpoints use.
 
 ## D-0019: Password reset tickets
@@ -249,10 +251,10 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Sources:** https://auth0.com/docs/api/authentication/change-password/change-password; https://auth0.com/docs/customize/login-pages/universal-login/customize-text-elements (reset-password prompt); https://auth0.com/docs/secure/attack-protection/brute-force-protection (a password change unblocks a blocked user); OWASP Forgot Password Cheat Sheet (outstanding reset tokens are invalidated once one is used).
 - **Decision:**
   - **Tickets:** 43 random characters, stored hashed, single use, valid for 24 hours. The link is `https://{tenant host}/u/reset-password?ticket=…`.
-  - **Email:** it is sent in the background, so response time does not depend on mail delivery.
+  - **Email:** it is sent in the background, so response time does not depend on mail delivery. Sends still in flight at shutdown are lost; a panic in a send is logged and does not stop the server.
   - **Throttling:**
     - **Send limit:** at most 3 emails per user per hour. Extra requests still return 200 without sending.
-    - **Request limit:** requests to `change_password` and to the hosted "Forgot password?" form are limited per IP (429 once the limit is reached; the hosted form is shown again with a "too many attempts" message).
+    - **Request limit:** requests to `change_password` and to the hosted "Forgot password?" form are limited per IP, in the same bucket as the hosted login, the password grants and signup, so a server-side backend calling `change_password` for many users from one address will be throttled (429 once the limit is reached; the hosted form is shown again with a "too many attempts" message).
   - **Blocked users:** they get the 200 response but no email.
   - **Completing a reset:**
     - **Checks first:** the user must still exist and not be blocked; otherwise the generic error screen is shown and the ticket is not spent. The new password is hashed before the ticket is used, so a hashing failure does not spend it either.

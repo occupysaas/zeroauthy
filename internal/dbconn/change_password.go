@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
@@ -61,6 +62,10 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		h.internal(w, r, "load connection", err)
+		return
+	}
+	if id := fields["client_id"]; id != "" && !slices.Contains(conn.EnabledClients, id) {
+		writeErr(w, http.StatusBadRequest, "invalid_request", "the connection is not enabled for this application")
 		return
 	}
 	// An unknown user gets the same answer and no email, so the response

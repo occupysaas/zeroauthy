@@ -139,6 +139,7 @@ func TestValidation(t *testing.T) {
 		"empty text":            {`tenants: [{name: a, custom_text: {login: {en: {login: {buttonText: }}}}}]`, "is empty"},
 		"foreign variable":      {`tenants: [{name: a, custom_text: {login: {en: {login: {title: "Hi ${userName}"}}}}}]`, "${userName}"},
 		"unknown default dir":   {`tenants: [{name: a, default_directory: Nope}]`, "default_directory"},
+		"non-db default dir":    {`tenants: [{name: a, connections: [{name: G, strategy: google-oauth2}], default_directory: G}]`, "default_directory \"G\" must be a database connection"},
 		"bad tenant logout url": {`tenants: [{name: a, allowed_logout_urls: ["bye"]}]`, "absolute"},
 		"bad rotation type":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {rotation_type: sometimes}}]}]`, "rotation_type"},
 		"bad expiration type":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {expiration_type: never}}]}]`, "expiration_type"},

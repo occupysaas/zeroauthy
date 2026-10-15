@@ -259,8 +259,12 @@ func (t *Tenant) validate() []error {
 		}
 	}
 
-	if t.DefaultDirectory != "" && conns[t.DefaultDirectory] == nil {
-		fail("default_directory %q is not a connection of this tenant", t.DefaultDirectory)
+	if d := t.DefaultDirectory; d != "" {
+		if c := conns[d]; c == nil {
+			fail("default_directory %q is not a connection of this tenant", d)
+		} else if c.Strategy != store.StrategyDatabase {
+			fail("default_directory %q must be a database connection", d)
+		}
 	}
 
 	seenUsers := map[[2]string]bool{}

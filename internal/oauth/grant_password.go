@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"net/url"
 	"slices"
@@ -33,11 +34,13 @@ func clientIPFrom(ctx context.Context) string { s, _ := ctx.Value(clientIPKey{})
 
 // endUserIP is the address used for throttling. auth0-forwarded-for lets a
 // confidential server-side client pass its end user's IP; a public client
-// could forge it, so for those the request's own address is used.
+// could forge it, so for those the request's own address is used. A value
+// that is not an IP address is ignored, so it cannot be used to mint fresh
+// throttle keys.
 func (h *Handlers) endUserIP(r *http.Request, c *store.Client) string {
 	if c.TokenEndpointAuthMethod != store.AuthMethodNone {
-		if ip := strings.TrimSpace(r.Header.Get("auth0-forwarded-for")); ip != "" {
-			return ip
+		if ip := net.ParseIP(strings.TrimSpace(r.Header.Get("auth0-forwarded-for"))); ip != nil {
+			return ip.String()
 		}
 	}
 	return httpx.ClientIP(r, h.TrustProxyHeaders)

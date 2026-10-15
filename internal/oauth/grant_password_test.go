@@ -128,3 +128,19 @@ func TestForwardedForOnlyForConfidentialClients(t *testing.T) {
 		t.Fatalf("confidential client with forwarded IP = %d %v", rec.Code, body)
 	}
 }
+
+// auth0-forwarded-for is used only when it is an IP address; otherwise a
+// confidential client could mint a fresh throttle key per request.
+func TestForwardedForMustBeAnIP(t *testing.T) {
+	f := newFixture(t)
+	f.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	for i := range 2 {
+		f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "nobody@acme.test", "nope"),
+			header: map[string]string{"auth0-forwarded-for": fmt.Sprintf("not-an-ip-%d", i)}})
+	}
+	call := tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1"),
+		header: map[string]string{"auth0-forwarded-for": "not-an-ip-x"}}
+	if rec, body := f.call(t, false, call); rec.Code != 429 {
+		t.Fatalf("invalid forwarded IPs escaped the IP limit: %d %v", rec.Code, body)
+	}
+}
