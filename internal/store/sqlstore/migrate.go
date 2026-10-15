@@ -205,7 +205,7 @@ func (s *Store) Migrate(ctx context.Context) error {
 // applyMigration runs one migration in a transaction. MySQL commits DDL
 // implicitly, so there the version check is what keeps a re-run safe.
 func (s *Store) applyMigration(ctx context.Context, m migration) error {
-	return s.atomic(ctx, func(t *Store) error {
+	return s.atomic(ctx, nil, func(t *Store) error {
 		var n int
 		if err := t.queryRow(ctx, "SELECT COUNT(*) FROM schema_migrations WHERE version = ?", m.version).Scan(&n); err != nil {
 			return err

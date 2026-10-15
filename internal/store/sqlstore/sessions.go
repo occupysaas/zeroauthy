@@ -21,7 +21,7 @@ func (r sessions) Create(ctx context.Context, s *store.LoginSession) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.s.exec(ctx, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`,
 		s.TenantID, s.ID, s.TokenHash, s.UserID, s.Connection, micros(s.AuthenticatedAt), clients,
 		micros(s.ExpiresAt), micros(s.IdleExpiresAt), micros(s.CreatedAt))
 	return r.s.conflict(err)
@@ -47,7 +47,7 @@ func (r sessions) GetByTokenHash(ctx context.Context, tenantID, tokenHash string
 }
 
 func (r sessions) Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error {
-	res, err := r.s.exec(ctx, `UPDATE sessions SET idle_expires_at = ? WHERE tenant_id = ? AND id = ?`, micros(idleExpiresAt), tenantID, id)
+	res, err := r.s.write(ctx, nil, `UPDATE sessions SET idle_expires_at = ? WHERE tenant_id = ? AND id = ?`, micros(idleExpiresAt), tenantID, id)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (r sessions) Touch(ctx context.Context, tenantID, id string, idleExpiresAt 
 }
 
 func (r sessions) AddClient(ctx context.Context, tenantID, id, clientID string) error {
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		var raw string
 		err := tx.queryRow(ctx, `SELECT client_ids FROM sessions WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate, tenantID, id).Scan(&raw)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -80,18 +80,27 @@ func (r sessions) AddClient(ctx context.Context, tenantID, id, clientID string) 
 	})
 }
 
+// DeleteExpired runs one range DELETE per expiry index, each in its own
+// transaction (an OR across both columns would scan the whole table).
 func (r sessions) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
-	res, err := r.s.exec(ctx, `DELETE FROM sessions WHERE expires_at <= ? OR idle_expires_at <= ?`, micros(before), micros(before))
-	return affected(res, err)
+	total := 0
+	for _, col := range []string{`expires_at`, `idle_expires_at`} {
+		n, err := affected(r.s.write(ctx, r.s.sweep(), `DELETE FROM sessions WHERE `+col+` <= ?`, micros(before)))
+		if err != nil {
+			return total, err
+		}
+		total += n
+	}
+	return total, nil
 }
 
 func (r sessions) DeleteByUser(ctx context.Context, tenantID, userID string) (int, error) {
-	res, err := r.s.exec(ctx, `DELETE FROM sessions WHERE tenant_id = ? AND user_id = ?`, tenantID, userID)
+	res, err := r.s.write(ctx, r.s.sweep(), `DELETE FROM sessions WHERE tenant_id = ? AND user_id = ?`, tenantID, userID)
 	return affected(res, err)
 }
 
 func (r sessions) Delete(ctx context.Context, tenantID, id string) error {
-	res, err := r.s.exec(ctx, `DELETE FROM sessions WHERE tenant_id = ? AND id = ?`, tenantID, id)
+	res, err := r.s.write(ctx, nil, `DELETE FROM sessions WHERE tenant_id = ? AND id = ?`, tenantID, id)
 	if err != nil {
 		return err
 	}

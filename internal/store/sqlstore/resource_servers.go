@@ -19,7 +19,7 @@ func (r resourceServers) Create(ctx context.Context, rs *store.ResourceServer) e
 	if err != nil {
 		return err
 	}
-	_, err = r.s.exec(ctx, `INSERT INTO resource_servers (`+resourceServerCols+`) VALUES (?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO resource_servers (`+resourceServerCols+`) VALUES (?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -36,7 +36,7 @@ func (r resourceServers) Update(ctx context.Context, rs *store.ResourceServer) e
 	if err != nil {
 		return err
 	}
-	res, err := r.s.exec(ctx, `UPDATE resource_servers SET identifier=?, name=?, scopes=?, signing_alg=?, token_lifetime=?,
+	res, err := r.s.write(ctx, nil, `UPDATE resource_servers SET identifier=?, name=?, scopes=?, signing_alg=?, token_lifetime=?,
  allow_offline_access=?, created_at=? WHERE tenant_id=? AND id=?`, append(args[2:], rs.TenantID, rs.ID)...)
 	if err != nil {
 		return r.s.conflict(err)
@@ -45,7 +45,7 @@ func (r resourceServers) Update(ctx context.Context, rs *store.ResourceServer) e
 }
 
 func (r resourceServers) Delete(ctx context.Context, tenantID, id string) error {
-	res, err := r.s.exec(ctx, `DELETE FROM resource_servers WHERE tenant_id = ? AND id = ?`, tenantID, id)
+	res, err := r.s.write(ctx, nil, `DELETE FROM resource_servers WHERE tenant_id = ? AND id = ?`, tenantID, id)
 	if err != nil {
 		return err
 	}

@@ -28,7 +28,7 @@ func prefixed(p, cols string) string {
 }
 
 func (r tenants) Create(ctx context.Context, t *store.Tenant) error {
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		args, err := tenantArgs(t)
 		if err != nil {
 			return err
@@ -103,7 +103,7 @@ func (r tenants) putDomains(ctx context.Context, id string, domains []string, ex
 }
 
 func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		args, err := tenantArgs(t)
 		if err != nil {
 			return err

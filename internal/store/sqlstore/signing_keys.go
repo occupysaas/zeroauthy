@@ -32,7 +32,7 @@ func nonNilBytes(b []byte) []byte {
 // Create relies on the primary key and the active-key unique index over
 // current/next to report ErrConflict.
 func (r signingKeys) Create(ctx context.Context, k *store.SigningKey) error {
-	return insertSigningKey(ctx, r.s, k)
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error { return insertSigningKey(ctx, tx, k) })
 }
 
 func (r signingKeys) List(ctx context.Context, tenantID string) ([]*store.SigningKey, error) {
@@ -63,7 +63,7 @@ func (r signingKeys) Rotate(ctx context.Context, tenantID string, next *store.Si
 	if next.TenantID != tenantID {
 		return fmt.Errorf("store: rotate needs a key for tenant %q", tenantID)
 	}
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		// Serialize Rotates of a tenant on one deterministic lock, the
 		// tenant row, and drain it only to wait. Later statements then see
 		// the previous Rotate's committed state (a fresh snapshot on

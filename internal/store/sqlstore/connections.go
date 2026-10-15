@@ -20,7 +20,7 @@ func (r connections) Create(ctx context.Context, c *store.Connection) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.s.exec(ctx, `INSERT INTO connections (`+connectionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO connections (`+connectionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -45,7 +45,7 @@ func (r connections) Update(ctx context.Context, c *store.Connection) error {
 	if err != nil {
 		return err
 	}
-	res, err := r.s.exec(ctx, `UPDATE connections SET name=?, strategy=?, enabled_clients=?, disable_signup=?, requires_username=?,
+	res, err := r.s.write(ctx, nil, `UPDATE connections SET name=?, strategy=?, enabled_clients=?, disable_signup=?, requires_username=?,
  password_min_length=?, password_character_classes=?, created_at=? WHERE tenant_id=? AND id=?`, append(args[2:], c.TenantID, c.ID)...)
 	if err != nil {
 		return r.s.conflict(err)

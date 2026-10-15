@@ -23,7 +23,7 @@ func (r authCodes) Create(ctx context.Context, c *store.AuthCode) error {
 	}
 	// Retried on deadlock: on MySQL an INSERT can be the victim of a cycle
 	// with DeleteExpired's range DELETE (gap locks).
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		_, err := tx.exec(ctx, `INSERT INTO auth_codes (`+authCodeCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			c.TenantID, c.CodeHash, c.ClientID, c.RedirectURI, c.UserID, c.SessionID, scopes, c.Audience, c.Nonce,
 			c.CodeChallenge, c.CodeChallengeMethod, micros(c.AuthTime), micros(c.ExpiresAt), micros(c.CreatedAt),
@@ -41,7 +41,7 @@ func (r authCodes) Create(ctx context.Context, c *store.AuthCode) error {
 func (r authCodes) Consume(ctx context.Context, tenantID, codeHash string, at time.Time) (*store.AuthCode, error) {
 	var out *store.AuthCode
 	var replay bool
-	err := r.s.atomicRetry(ctx, func(tx *Store) error {
+	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		out, replay = nil, false
 		res, err := tx.exec(ctx, `UPDATE auth_codes SET used_at = ? WHERE tenant_id = ? AND code_hash = ? AND used_at IS NULL`,
 			micros(at), tenantID, codeHash)
@@ -86,7 +86,7 @@ func (r authCodes) Get(ctx context.Context, tenantID, codeHash string) (*store.A
 
 func (r authCodes) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
 	var n int
-	err := r.s.atomicRetry(ctx, func(tx *Store) (err error) {
+	err := r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) (err error) {
 		n, err = affected(tx.exec(ctx, `DELETE FROM auth_codes WHERE expires_at <= ?`, micros(before)))
 		return err
 	})

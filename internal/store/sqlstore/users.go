@@ -23,7 +23,7 @@ func (r users) Create(ctx context.Context, u *store.User) error {
 	if err != nil {
 		return err
 	}
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
@@ -117,7 +117,7 @@ func (r users) Update(ctx context.Context, u *store.User) error {
 	if err != nil {
 		return err
 	}
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		// Login stats are owned by RecordLogin; Update never changes them.
 		// Relies on MySQL clientFoundRows so an unchanged row still counts.
 		res, err := tx.exec(ctx, `UPDATE users SET email=?, email_verified=?, username=?, name=?, nickname=?, picture=?,
@@ -152,7 +152,7 @@ func (r users) FindByLogin(ctx context.Context, tenantID, connection, login stri
 }
 
 func (r users) RecordLogin(ctx context.Context, tenantID, userID string, at time.Time) error {
-	res, err := r.s.exec(ctx, `UPDATE users SET last_login=?, logins_count=logins_count+1 WHERE tenant_id=? AND user_id=?`,
+	res, err := r.s.write(ctx, nil, `UPDATE users SET last_login=?, logins_count=logins_count+1 WHERE tenant_id=? AND user_id=?`,
 		micros(at), tenantID, userID)
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func (r users) RecordLogin(ctx context.Context, tenantID, userID string, at time
 }
 
 func (r users) SetPasswordHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error {
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		var raw string
 		err := tx.queryRow(ctx, `SELECT identities FROM users WHERE tenant_id=? AND user_id=?`+tx.d.forUpdate, tenantID, userID).Scan(&raw)
 		if errors.Is(err, sql.ErrNoRows) {

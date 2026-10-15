@@ -162,11 +162,11 @@ func TestAtomic(t *testing.T) {
 				return err
 			}
 			// Commit, with a nested call joining the outer transaction.
-			err := s.atomic(ctx, func(tx *Store) error {
+			err := s.atomic(ctx, nil, func(tx *Store) error {
 				if err := ins(tx, "a"); err != nil {
 					return err
 				}
-				return tx.atomic(ctx, func(in *Store) error {
+				return tx.atomic(ctx, nil, func(in *Store) error {
 					if in != tx {
 						return fmt.Errorf("nested atomic did not run inline")
 					}
@@ -177,8 +177,8 @@ func TestAtomic(t *testing.T) {
 				t.Fatalf("commit: err=%v count=%d", err, count())
 			}
 			// Error in the outer function rolls back the nested work too.
-			err = s.atomic(ctx, func(tx *Store) error {
-				if err := tx.atomic(ctx, func(in *Store) error { return ins(in, "c") }); err != nil {
+			err = s.atomic(ctx, nil, func(tx *Store) error {
+				if err := tx.atomic(ctx, nil, func(in *Store) error { return ins(in, "c") }); err != nil {
 					return err
 				}
 				return fmt.Errorf("boom")
@@ -193,7 +193,7 @@ func TestAtomic(t *testing.T) {
 						t.Error("panic was swallowed")
 					}
 				}()
-				_ = s.atomic(ctx, func(tx *Store) error {
+				_ = s.atomic(ctx, nil, func(tx *Store) error {
 					_ = ins(tx, "d")
 					panic("boom")
 				})
@@ -202,7 +202,7 @@ func TestAtomic(t *testing.T) {
 				t.Fatalf("panic rollback: count=%d", count())
 			}
 			// Unique violations map to store.ErrConflict.
-			err = s.atomic(ctx, func(tx *Store) error { return tx.conflict(ins(tx, "a")) })
+			err = s.atomic(ctx, nil, func(tx *Store) error { return tx.conflict(ins(tx, "a")) })
 			if !errors.Is(err, store.ErrConflict) {
 				t.Fatalf("want ErrConflict, got %v", err)
 			}
@@ -217,21 +217,21 @@ func TestAtomicRetry(t *testing.T) {
 	deadlock := &mysql.MySQLError{Number: 1213, Message: "Deadlock found"}
 
 	calls := 0
-	err := s.atomicRetry(context.Background(), func(*Store) error { calls++; return deadlock })
+	err := s.atomicRetry(context.Background(), nil, func(*Store) error { calls++; return deadlock })
 	if calls != 3 || !errors.Is(err, deadlock) || !strings.HasPrefix(err.Error(), "after 3 attempts: ") {
 		t.Fatalf("calls=%d err=%v", calls, err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	calls = 0
-	err = s.atomicRetry(ctx, func(*Store) error { calls++; cancel(); return deadlock })
+	err = s.atomicRetry(ctx, nil, func(*Store) error { calls++; cancel(); return deadlock })
 	if calls != 1 || !errors.Is(err, context.Canceled) {
 		t.Fatalf("calls=%d err=%v", calls, err)
 	}
 
 	calls = 0
 	boom := errors.New("boom")
-	err = s.atomicRetry(context.Background(), func(*Store) error { calls++; return boom })
+	err = s.atomicRetry(context.Background(), nil, func(*Store) error { calls++; return boom })
 	if calls != 1 || err != boom {
 		t.Fatalf("calls=%d err=%v", calls, err)
 	}

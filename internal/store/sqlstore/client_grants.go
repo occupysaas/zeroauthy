@@ -17,7 +17,7 @@ func (r clientGrants) Create(ctx context.Context, g *store.ClientGrant) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.s.exec(ctx, `INSERT INTO client_grants (tenant_id, id, client_id, audience, scopes, created_at) VALUES (?,?,?,?,?,?)`,
+	_, err = r.s.write(ctx, nil, `INSERT INTO client_grants (tenant_id, id, client_id, audience, scopes, created_at) VALUES (?,?,?,?,?,?)`,
 		g.TenantID, g.ID, g.ClientID, g.Audience, scopes, micros(g.CreatedAt))
 	return r.s.conflict(err)
 }
@@ -47,7 +47,7 @@ func (r clientGrants) Update(ctx context.Context, g *store.ClientGrant) error {
 	if err != nil {
 		return err
 	}
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		var clientID, audience string
 		err := tx.queryRow(ctx, `SELECT client_id, audience FROM client_grants WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate,
 			g.TenantID, g.ID).Scan(&clientID, &audience)
@@ -67,7 +67,7 @@ func (r clientGrants) Update(ctx context.Context, g *store.ClientGrant) error {
 }
 
 func (r clientGrants) Delete(ctx context.Context, tenantID, id string) error {
-	res, err := r.s.exec(ctx, `DELETE FROM client_grants WHERE tenant_id = ? AND id = ?`, tenantID, id)
+	res, err := r.s.write(ctx, nil, `DELETE FROM client_grants WHERE tenant_id = ? AND id = ?`, tenantID, id)
 	if err != nil {
 		return err
 	}

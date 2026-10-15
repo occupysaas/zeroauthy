@@ -19,7 +19,7 @@ const refreshCols = `tenant_id, id, token_hash, family_id, client_id, user_id, s
 // Create retries on deadlock: on MySQL an INSERT can be the victim of a cycle
 // with the sweepers' range DELETEs (gap locks).
 func (r refreshTokens) Create(ctx context.Context, t *store.RefreshToken) error {
-	return r.s.atomicRetry(ctx, func(tx *Store) error { return refreshTokens{tx}.insert(ctx, t) })
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error { return refreshTokens{tx}.insert(ctx, t) })
 }
 
 func (r refreshTokens) insert(ctx context.Context, t *store.RefreshToken) error {
@@ -48,7 +48,7 @@ func (r refreshTokens) GetByTokenHash(ctx context.Context, tenantID, tokenHash s
 // error rolls back, so "nothing changes".
 func (r refreshTokens) Rotate(ctx context.Context, tenantID, oldID string, next *store.RefreshToken, at time.Time, leeway time.Duration) error {
 	var reused bool
-	err := r.s.atomicRetry(ctx, func(tx *Store) error {
+	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		reused = false
 		old, err := scanRefreshToken(tx.queryRow(ctx, `SELECT `+refreshCols+` FROM refresh_tokens WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate, tenantID, oldID))
 		if errors.Is(err, sql.ErrNoRows) {
@@ -68,15 +68,16 @@ func (r refreshTokens) Rotate(ctx context.Context, tenantID, oldID string, next 
 		if next.TenantID != tenantID || next.FamilyID != old.FamilyID {
 			return store.ErrConflict
 		}
-		// memory checks a taken successor before reuse; a plain read takes no
-		// locks, and a successor inserted concurrently still fails the insert
-		// below with ErrConflict.
-		var taken int
-		if err := tx.queryRow(ctx, `SELECT COUNT(*) FROM refresh_tokens WHERE tenant_id = ? AND (id = ? OR token_hash = ?)`,
-			tenantID, next.ID, next.TokenHash).Scan(&taken); err != nil {
+		// memory checks a taken successor before reuse; plain point reads
+		// take no locks, and a successor inserted concurrently still fails
+		// the insert below with ErrConflict.
+		var idTaken, hashTaken bool
+		if err := tx.queryRow(ctx, `SELECT EXISTS (SELECT 1 FROM refresh_tokens WHERE tenant_id = ? AND id = ?),
+ EXISTS (SELECT 1 FROM refresh_tokens WHERE tenant_id = ? AND token_hash = ?)`,
+			tenantID, next.ID, tenantID, next.TokenHash).Scan(&idTaken, &hashTaken); err != nil {
 			return err
 		}
-		if taken > 0 {
+		if idTaken || hashTaken {
 			return store.ErrConflict
 		}
 		if old.RotatedAt != nil {
@@ -100,7 +101,7 @@ func (r refreshTokens) Rotate(ctx context.Context, tenantID, oldID string, next 
 }
 
 func (r refreshTokens) Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error {
-	res, err := r.s.exec(ctx, `UPDATE refresh_tokens SET idle_expires_at = ? WHERE tenant_id = ? AND id = ? AND revoked_at IS NULL AND rotated_at IS NULL`,
+	res, err := r.s.write(ctx, nil, `UPDATE refresh_tokens SET idle_expires_at = ? WHERE tenant_id = ? AND id = ? AND revoked_at IS NULL AND rotated_at IS NULL`,
 		micros(idleExpiresAt), tenantID, id)
 	if err != nil {
 		return err
@@ -109,7 +110,7 @@ func (r refreshTokens) Touch(ctx context.Context, tenantID, id string, idleExpir
 }
 
 func (r refreshTokens) RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error {
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		_, err := revokeUntilStable(ctx, tx, `family_id`, tenantID, familyID, at)
 		return err
 	})
@@ -117,7 +118,7 @@ func (r refreshTokens) RevokeFamily(ctx context.Context, tenantID, familyID stri
 
 func (r refreshTokens) RevokeByUser(ctx context.Context, tenantID, userID string, at time.Time) (int, error) {
 	var n int
-	err := r.s.atomicRetry(ctx, func(tx *Store) (err error) {
+	err := r.s.atomicRetry(ctx, nil, func(tx *Store) (err error) {
 		n, err = revokeUntilStable(ctx, tx, `user_id`, tenantID, userID, at)
 		return err
 	})
@@ -130,7 +131,10 @@ func (r refreshTokens) RevokeByUser(ctx context.Context, tenantID, userID string
 // PostgreSQL (READ COMMITTED): an UPDATE that waits on a row being rotated
 // re-checks only that row, so it misses the successor the rotation commits;
 // the next statement's snapshot sees it. A statement that revokes nothing
-// waited on no in-flight rotation, so no successor can still appear.
+// waited on no in-flight rotation, so no successor can still appear. Under
+// REPEATABLE READ (MySQL) the loop usually exits after one pass: next-key
+// locks make the successor's INSERT wait for the revocation (or deadlock and
+// be retried), so there is nothing left to catch.
 func revokeUntilStable(ctx context.Context, tx *Store, column, tenantID, value string, at time.Time) (int, error) {
 	total := 0
 	for {
@@ -154,7 +158,7 @@ func (r refreshTokens) DeleteExpired(ctx context.Context, before time.Time) (int
 	total := 0
 	for _, col := range []string{`expires_at`, `idle_expires_at`} {
 		var n int
-		err := r.s.atomicRetry(ctx, func(tx *Store) (err error) {
+		err := r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) (err error) {
 			n, err = affected(tx.exec(ctx, `DELETE FROM refresh_tokens WHERE `+col+` > 0 AND `+col+` <= ?`, micros(before)))
 			return err
 		})

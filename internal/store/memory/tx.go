@@ -28,10 +28,23 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 }
 
 // txStore is the store handed to a transaction body. Its WithTx joins the
-// enclosing transaction instead of locking txMu again.
+// enclosing transaction instead of locking txMu again, like a savepoint in
+// the SQL drivers: an error or panic from fn undoes fn's writes only, and the
+// enclosing transaction continues.
 type txStore struct{ *Store }
 
-func (t txStore) WithTx(_ context.Context, fn func(store.Store) error) error { return fn(t) }
+func (t txStore) WithTx(_ context.Context, fn func(store.Store) error) error {
+	snap := t.snapshot()
+	ok := false
+	defer func() {
+		if !ok {
+			t.restore(snap)
+		}
+	}()
+	err := fn(t)
+	ok = err == nil
+	return err
+}
 
 // snapshot deep-copies every map.
 func (s *Store) snapshot() *Store {

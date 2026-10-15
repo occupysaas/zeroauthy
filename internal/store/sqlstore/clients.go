@@ -28,7 +28,7 @@ func (r clients) Create(ctx context.Context, c *store.Client) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.s.exec(ctx, `INSERT INTO clients (`+clientCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO clients (`+clientCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -46,7 +46,7 @@ func (r clients) Update(ctx context.Context, c *store.Client) error {
 		return err
 	}
 	// args: tenant_id, client_id, then the 12 mutable columns.
-	res, err := r.s.exec(ctx, `UPDATE clients SET name=?, app_type=?, secrets=?, token_endpoint_auth_method=?, grant_types=?,
+	res, err := r.s.write(ctx, nil, `UPDATE clients SET name=?, app_type=?, secrets=?, token_endpoint_auth_method=?, grant_types=?,
  callbacks=?, allowed_logout_urls=?, web_origins=?, allowed_origins=?, id_token_lifetime=?, refresh_token=?, created_at=?
  WHERE tenant_id=? AND client_id=?`, append(args[2:], c.TenantID, c.ClientID)...)
 	if err != nil {
@@ -56,7 +56,7 @@ func (r clients) Update(ctx context.Context, c *store.Client) error {
 }
 
 func (r clients) Delete(ctx context.Context, tenantID, clientID string) error {
-	res, err := r.s.exec(ctx, `DELETE FROM clients WHERE tenant_id = ? AND client_id = ?`, tenantID, clientID)
+	res, err := r.s.write(ctx, nil, `DELETE FROM clients WHERE tenant_id = ? AND client_id = ?`, tenantID, clientID)
 	if err != nil {
 		return err
 	}

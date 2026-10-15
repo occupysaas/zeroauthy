@@ -20,7 +20,7 @@ func (r authTransactions) Create(ctx context.Context, t *store.AuthTransaction) 
 	if err != nil {
 		return err
 	}
-	_, err = r.s.exec(ctx, `INSERT INTO auth_transactions (`+authTxnCols+`) VALUES (?,?,?,?,?,?,?,?)`,
+	_, err = r.s.write(ctx, nil, `INSERT INTO auth_transactions (`+authTxnCols+`) VALUES (?,?,?,?,?,?,?,?)`,
 		t.TenantID, t.ID, t.CookieHash, t.CSRFToken, t.ClientID, params, micros(t.ExpiresAt), micros(t.CreatedAt))
 	return r.s.conflict(err)
 }
@@ -45,7 +45,7 @@ func (r authTransactions) Get(ctx context.Context, tenantID, id string) (*store.
 }
 
 func (r authTransactions) Delete(ctx context.Context, tenantID, id string) error {
-	res, err := r.s.exec(ctx, `DELETE FROM auth_transactions WHERE tenant_id = ? AND id = ?`, tenantID, id)
+	res, err := r.s.write(ctx, nil, `DELETE FROM auth_transactions WHERE tenant_id = ? AND id = ?`, tenantID, id)
 	if err != nil {
 		return err
 	}
@@ -53,6 +53,6 @@ func (r authTransactions) Delete(ctx context.Context, tenantID, id string) error
 }
 
 func (r authTransactions) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
-	res, err := r.s.exec(ctx, `DELETE FROM auth_transactions WHERE expires_at <= ?`, micros(before))
+	res, err := r.s.write(ctx, r.s.sweep(), `DELETE FROM auth_transactions WHERE expires_at <= ?`, micros(before))
 	return affected(res, err)
 }

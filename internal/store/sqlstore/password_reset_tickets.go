@@ -18,7 +18,7 @@ const resetTicketCols = `tenant_id, id, token_hash, user_id, connection, client_
 func (r resetTickets) Create(ctx context.Context, t *store.PasswordResetTicket) error {
 	// Retried on deadlock: on MySQL an INSERT can be the victim of a cycle
 	// with the range DELETEs of DeleteExpired and DeleteByUser (gap locks).
-	return r.s.atomicRetry(ctx, func(tx *Store) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		_, err := tx.exec(ctx, `INSERT INTO password_reset_tickets (`+resetTicketCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`,
 			t.TenantID, t.ID, t.TokenHash, t.UserID, t.Connection, t.ClientID, t.Lang,
 			micros(t.ExpiresAt), nullMicros(t.UsedAt), micros(t.CreatedAt))
@@ -42,7 +42,7 @@ func (r resetTickets) GetByTokenHash(ctx context.Context, tenantID, tokenHash st
 func (r resetTickets) Consume(ctx context.Context, tenantID, tokenHash string, at time.Time) (*store.PasswordResetTicket, error) {
 	var out *store.PasswordResetTicket
 	var used bool
-	err := r.s.atomicRetry(ctx, func(tx *Store) error {
+	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		out, used = nil, false
 		t, err := resetTickets{tx}.GetByTokenHash(ctx, tenantID, tokenHash)
 		if err != nil {
@@ -99,7 +99,7 @@ func (r resetTickets) getLatest(ctx context.Context, tenantID, id string) (*stor
 
 func (r resetTickets) DeleteByUser(ctx context.Context, tenantID, userID string) (int, error) {
 	var n int
-	err := r.s.atomicRetry(ctx, func(tx *Store) (err error) {
+	err := r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) (err error) {
 		n, err = affected(tx.exec(ctx, `DELETE FROM password_reset_tickets WHERE tenant_id = ? AND user_id = ? AND used_at IS NULL`, tenantID, userID))
 		return err
 	})
@@ -108,7 +108,7 @@ func (r resetTickets) DeleteByUser(ctx context.Context, tenantID, userID string)
 
 func (r resetTickets) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
 	var n int
-	err := r.s.atomicRetry(ctx, func(tx *Store) (err error) {
+	err := r.s.atomicRetry(ctx, r.s.sweep(), func(tx *Store) (err error) {
 		n, err = affected(tx.exec(ctx, `DELETE FROM password_reset_tickets WHERE expires_at <= ?`, micros(before)))
 		return err
 	})
