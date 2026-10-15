@@ -99,9 +99,17 @@ func New(d Deps) http.Handler {
 	r.Get("/docs", serveDocs)
 
 	az := &authz.Handlers{Store: d.Store, Sessions: d.Sessions, Log: d.Log}
+	// One instance serves the API and the hosted reset pages, so they share
+	// the per-user reset send limit.
+	dbconnHandlers := &dbconn.Handlers{
+		Store: d.Store, Database: &identity.Database{Store: d.Store},
+		IPThrottle: d.IPThrottle, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
+		Mailer: d.Mailer, SendThrottle: identity.NewThrottle(3, time.Hour, time.Hour),
+	}
 	lg := &login.Handlers{
 		Store: d.Store, Sessions: d.Sessions, Authz: az,
 		Database:     &identity.Database{Store: d.Store},
+		Resets:       dbconnHandlers,
 		UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
 		TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 	}
@@ -117,12 +125,8 @@ func New(d Deps) http.Handler {
 				UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
 				TrustProxyHeaders: d.TrustProxyHeaders,
 			},
-			authz: az,
-			dbconn: &dbconn.Handlers{
-				Store: d.Store, Database: &identity.Database{Store: d.Store},
-				IPThrottle: d.IPThrottle, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
-				Mailer: d.Mailer, SendThrottle: identity.NewThrottle(3, time.Hour, time.Hour),
-			},
+			authz:  az,
+			dbconn: dbconnHandlers,
 		}, authapi.ChiServerOptions{
 			BaseRouter: tr,
 			ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
@@ -139,6 +143,10 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/login", lg.LoginSubmit)
 		tr.Get("/u/signup", lg.SignupPage)
 		tr.Post("/u/signup", lg.SignupSubmit)
+		tr.Get("/u/reset-password/request", lg.ResetRequestPage)
+		tr.Post("/u/reset-password/request", lg.ResetRequestSubmit)
+		tr.Get("/u/reset-password", lg.ResetPasswordPage)
+		tr.Post("/u/reset-password", lg.ResetPasswordSubmit)
 	})
 	return r
 }

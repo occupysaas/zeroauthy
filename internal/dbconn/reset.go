@@ -34,6 +34,23 @@ func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *st
 	return h.Mailer.Send(ctx, m)
 }
 
+// RequestReset sends user a reset link in the background, unless the user
+// is blocked or has reached the per-user send limit. The hosted
+// forgot-password page and /dbconnections/change_password share the limit.
+func (h *Handlers) RequestReset(res tenant.Resolved, conn *store.Connection, user *store.User, clientID, lang string) {
+	if user.Blocked || !h.SendThrottle.Attempt("reset|"+res.Tenant.ID+"|"+conn.Name+"|"+user.UserID) {
+		return
+	}
+	h.goRun(func() {
+		// The request context ends with the response.
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := h.StartReset(ctx, res, conn, user, clientID, lang); err != nil {
+			h.log().Error("send reset email", "err", err, "tenant", res.Tenant.ID, "user_id", user.UserID)
+		}
+	})
+}
+
 func (h *Handlers) goRun(f func()) {
 	if h.Go != nil {
 		h.Go(f)

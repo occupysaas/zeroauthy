@@ -25,4 +25,15 @@ const (
 	KeyErrLogoutURL           = "zeroauthy.error.logout-url-not-allowed"
 	KeyEmailResetSubject      = "zeroauthy.email-reset-password.subject"
 	KeyErrLogoutInvalid       = "zeroauthy.error.logout-invalid"
+	KeyResetPasswordMismatch  = "reset-password.reset-password.password-mismatch"
+)
+
+// Password reset error screen keys (Auth0's reset-password-error screen).
+const (
+	KeyResetErrExpiredTitle = "reset-password.reset-password-error.eventTitleExpired"
+	KeyResetErrExpired      = "reset-password.reset-password-error.descriptionExpired"
+	KeyResetErrUsedTitle    = "reset-password.reset-password-error.eventTitleUsed"
+	KeyResetErrUsed         = "reset-password.reset-password-error.descriptionUsed"
+	KeyResetErrGenericTitle = "reset-password.reset-password-error.eventTitleGeneric"
+	KeyResetErrGeneric      = "reset-password.reset-password-error.descriptionGeneric"
 )

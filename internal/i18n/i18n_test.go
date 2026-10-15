@@ -190,6 +190,8 @@ func TestGoKeysExist(t *testing.T) {
 		KeyTooManyAttempts, KeyPasswordTooLong, KeyPasswordTooShort, KeyPasswordClasses,
 		KeyErrSessionExpired, KeyErrNoConnection, KeyErrSignupDisabled, KeyErrServer,
 		KeyErrInvalidRequest, KeyErrLogoutUnknownClient, KeyErrLogoutURL, KeyErrLogoutInvalid,
+		KeyResetPasswordMismatch, KeyResetErrExpiredTitle, KeyResetErrExpired, KeyResetErrUsedTitle,
+		KeyResetErrUsed, KeyResetErrGenericTitle, KeyResetErrGeneric,
 	} {
 		if catalogs["en"][k] == "" {
 			t.Errorf("key %q missing from en.json", k)
@@ -244,8 +246,8 @@ func TestEmptyCustomTextFallsBackToCatalog(t *testing.T) {
 // and ignored, so a configuration written for Auth0 still loads.
 func TestValidateCustomTextAcceptsUnrenderedAuth0Keys(t *testing.T) {
 	ct := store.CustomText{
-		"login":              {"en": {"login": {"forgotPasswordText": "Forgot it? ${unknownVar}"}}},
-		"reset-password":     {"en": {"reset-password-request": {"title": "Reset"}}},
+		"login":              {"en": {"login": {"federatedConnectionButtonText": "Use ${unknownVar}"}}},
+		"reset-password":     {"en": {"reset-password-request": {"pageTitle": "Reset"}}},
 		"signup":             {"en": {"signup": {"password-policy-not-conformant": "Weak password."}}},
 		"login-passwordless": {"en": {"login-passwordless-email-code": {"title": "Code"}}},
 	}

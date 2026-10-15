@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -55,9 +56,10 @@ tenants:
 const challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
 
 type env struct {
-	st  store.Store
-	srv http.Handler
-	h   *Handlers
+	st   store.Store
+	srv  http.Handler
+	h    *Handlers
+	mail *recorder
 }
 
 func newEnv(t *testing.T) *env {
@@ -79,13 +81,24 @@ func newEnv(t *testing.T) *env {
 		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),
 		Now:          fixedNow,
 	}
+	mail := &recorder{}
+	h.Resets = &dbconn.Handlers{
+		Store: st, Now: fixedNow, Mailer: mail, Go: func(f func()) { f() },
+		Database:     h.Database,
+		SendThrottle: identity.NewThrottle(100, time.Hour, time.Hour),
+		IPThrottle:   identity.NewThrottle(100, time.Hour, time.Hour),
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /authorize", az.Authorize)
 	mux.HandleFunc("GET /u/login", h.LoginPage)
 	mux.HandleFunc("POST /u/login", h.LoginSubmit)
 	mux.HandleFunc("GET /u/signup", h.SignupPage)
 	mux.HandleFunc("POST /u/signup", h.SignupSubmit)
-	return &env{st: st, h: h, srv: tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)}
+	mux.HandleFunc("GET /u/reset-password/request", h.ResetRequestPage)
+	mux.HandleFunc("POST /u/reset-password/request", h.ResetRequestSubmit)
+	mux.HandleFunc("GET /u/reset-password", h.ResetPasswordPage)
+	mux.HandleFunc("POST /u/reset-password", h.ResetPasswordSubmit)
+	return &env{st: st, h: h, mail: mail, srv: tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)}
 }
 
 // browser is a minimal cookie-keeping client for one host.

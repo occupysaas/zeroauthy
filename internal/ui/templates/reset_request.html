@@ -1,0 +1,12 @@
+{{define "title"}}{{t .Tenant.L "reset-password.reset-password-request.title"}}{{end}}
+{{define "description"}}{{t .Tenant.L "reset-password.reset-password-request.descriptionEmail"}}{{end}}
+{{define "content"}}
+<form method="post" action="/u/reset-password/request" novalidate>
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<label for="email">{{t .Tenant.L "reset-password.reset-password-request.emailPlaceholder"}}</label>
+<input id="email" name="email" type="email" autocomplete="email" value="{{.Data.Email}}" required autofocus>
+<button type="submit">{{t .Tenant.L "reset-password.reset-password-request.buttonText"}}</button>
+</form>
+<p class="alt"><a href="{{.Data.LoginURL}}">{{t .Tenant.L "reset-password.reset-password-request.backToLoginLinkText"}}</a></p>
+{{end}}

@@ -34,11 +34,16 @@ func parsePage(names ...string) *template.Template {
 
 var (
 	pages = map[string]*template.Template{
-		"login":          parsePage("templates/layout.html", "templates/login.html"),
-		"signup":         parsePage("templates/layout.html", "templates/signup.html"),
-		"error":          parsePage("templates/layout.html", "templates/error.html"),
-		"logout_confirm": parsePage("templates/layout.html", "templates/logout_confirm.html"),
-		"logged_out":     parsePage("templates/layout.html", "templates/logged_out.html"),
+		"login":            parsePage("templates/layout.html", "templates/login.html"),
+		"signup":           parsePage("templates/layout.html", "templates/signup.html"),
+		"error":            parsePage("templates/layout.html", "templates/error.html"),
+		"logout_confirm":   parsePage("templates/layout.html", "templates/logout_confirm.html"),
+		"logged_out":       parsePage("templates/layout.html", "templates/logged_out.html"),
+		"reset_request":    parsePage("templates/layout.html", "templates/reset_request.html"),
+		"reset_email_sent": parsePage("templates/layout.html", "templates/reset_email_sent.html"),
+		"reset_password":   parsePage("templates/layout.html", "templates/reset_password.html"),
+		"reset_success":    parsePage("templates/layout.html", "templates/reset_success.html"),
+		"reset_error":      parsePage("templates/layout.html", "templates/reset_error.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
 	webMessage = parsePage("templates/web_message.html")
@@ -68,6 +73,7 @@ func TenantView(t *store.Tenant, l *i18n.Localizer) Tenant {
 type LoginData struct {
 	State, CSRF, Login string
 	SignupURL          string // empty hides the signup link
+	ForgotURL          string // empty hides the forgot-password link
 	Error              string
 	RedirectURI        string // the client's callback; its origin is allowed as form-action
 }
@@ -292,4 +298,49 @@ type LogoutConfirmData struct {
 // RenderLogoutConfirm asks the user to confirm an RP-initiated logout.
 func RenderLogoutConfirm(w http.ResponseWriter, t Tenant, d LogoutConfirmData) {
 	render(w, http.StatusOK, "logout_confirm", t, d, formActionFor(d.RedirectURI))
+}
+
+// ResetRequestData is the forgot-password page (screen reset-password-request).
+type ResetRequestData struct {
+	State, CSRF, Email string
+	LoginURL           string
+	RedirectURI        string // the client's callback; its origin is allowed as form-action
+}
+
+// ResetFormData is the new-password form (screen reset-password).
+type ResetFormData struct {
+	Ticket, CSRF string
+	Error        string
+}
+
+// ResetErrorData is a localized reset-password-error screen.
+type ResetErrorData struct {
+	Title, Description string
+}
+
+// RenderResetRequest asks for the email address to send a reset link to.
+func RenderResetRequest(w http.ResponseWriter, status int, t Tenant, d ResetRequestData) {
+	render(w, status, "reset_request", t, d, formActionFor(d.RedirectURI))
+}
+
+// RenderResetEmailSent tells the user to check their email. It never says
+// whether the address belongs to an account.
+func RenderResetEmailSent(w http.ResponseWriter, t Tenant) {
+	render(w, http.StatusOK, "reset_email_sent", t, nil, "'none'")
+}
+
+// RenderResetForm asks for the new password. The form posts back to this
+// origin, where the success page renders in place.
+func RenderResetForm(w http.ResponseWriter, status int, t Tenant, d ResetFormData) {
+	render(w, status, "reset_password", t, d, "'self'")
+}
+
+// RenderResetSuccess confirms the password change.
+func RenderResetSuccess(w http.ResponseWriter, t Tenant) {
+	render(w, http.StatusOK, "reset_success", t, nil, "'none'")
+}
+
+// RenderResetError explains why a reset link cannot be used.
+func RenderResetError(w http.ResponseWriter, status int, t Tenant, d ResetErrorData) {
+	render(w, status, "reset_error", t, d, "'none'")
 }

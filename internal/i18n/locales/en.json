@@ -10,7 +10,8 @@
       "signupActionText": "New here?",
       "signupActionLinkText": "Create an account",
       "wrong-credentials": "Incorrect email/username or password.",
-      "user-blocked": "This account has been blocked. Contact the application's support."
+      "user-blocked": "This account has been blocked. Contact the application's support.",
+      "forgotPasswordText": "Forgot password?"
     }
   },
   "signup": {
@@ -34,6 +35,39 @@
       "title": "Log out?",
       "description": "An application asked to end your session. Do you want to log out?",
       "acceptButtonText": "Log out"
+    }
+  },
+  "reset-password": {
+    "reset-password-request": {
+      "title": "Forgot your password?",
+      "descriptionEmail": "Enter the email address of your ${companyName} account and we will send you a link to reset your password.",
+      "emailPlaceholder": "Email",
+      "buttonText": "Send reset link",
+      "backToLoginLinkText": "Back to sign in"
+    },
+    "reset-password-email": {
+      "title": "Check your email",
+      "emailDescription": "If an account exists for that address, we have sent a link to reset its password. The link expires in 24 hours."
+    },
+    "reset-password": {
+      "title": "Choose a new password",
+      "description": "Enter a new password for your ${companyName} account.",
+      "passwordPlaceholder": "New password",
+      "reEnterpasswordPlaceholder": "Confirm new password",
+      "buttonText": "Reset password",
+      "password-mismatch": "The passwords do not match."
+    },
+    "reset-password-success": {
+      "eventTitle": "Password changed",
+      "description": "Your password has been changed. You can now sign in with your new password."
+    },
+    "reset-password-error": {
+      "eventTitleExpired": "Link expired",
+      "descriptionExpired": "This password reset link has expired. Request a new one.",
+      "eventTitleUsed": "Link already used",
+      "descriptionUsed": "This password reset link has already been used. Request a new one if you still need to.",
+      "eventTitleGeneric": "Link not valid",
+      "descriptionGeneric": "This password reset link is not valid. Request a new one."
     }
   },
   "zeroauthy": {

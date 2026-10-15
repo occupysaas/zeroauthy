@@ -12,5 +12,6 @@
 <input id="password" name="password" type="password" autocomplete="current-password" required>
 <button type="submit">{{t .Tenant.L "login.login.buttonText"}}</button>
 </form>
+{{if .Data.ForgotURL}}<p class="alt"><a href="{{.Data.ForgotURL}}">{{t .Tenant.L "login.login.forgotPasswordText"}}</a></p>{{end}}
 {{if .Data.SignupURL}}<p class="alt">{{t .Tenant.L "login.login.signupActionText"}} <a href="{{.Data.SignupURL}}">{{t .Tenant.L "login.login.signupActionLinkText"}}</a></p>{{end}}
 {{end}}

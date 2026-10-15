@@ -1,0 +1,255 @@
+package login
+
+import (
+	"crypto/subtle"
+	"errors"
+	"net/http"
+	"net/url"
+
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/ui"
+)
+
+// resetCookie holds the CSRF token of the new-password form.
+const resetCookie = "za_reset"
+
+func (h *Handlers) resetRequestData(f *flow, email string) ui.ResetRequestData {
+	return ui.ResetRequestData{
+		State: f.txn.ID, CSRF: f.txn.CSRFToken, Email: email,
+		LoginURL:    "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
+		RedirectURI: f.txn.Params["redirect_uri"],
+	}
+}
+
+// ResetRequestPage serves GET /u/reset-password/request: the email form
+// (screen reset-password-request), in the login transaction's language.
+func (h *Handlers) ResetRequestPage(w http.ResponseWriter, r *http.Request) {
+	if h.Resets == nil {
+		http.NotFound(w, r)
+		return
+	}
+	f, err := h.load(r, r.URL.Query().Get("state"))
+	if err != nil {
+		h.fail(w, r, err, f)
+		return
+	}
+	ui.RenderResetRequest(w, http.StatusOK, f.view, h.resetRequestData(f, f.txn.Params["login_hint"]))
+}
+
+// ResetRequestSubmit serves POST /u/reset-password/request. It always shows
+// the same page, so the response does not reveal whether the address has an
+// account; the link is emailed only to an existing, unblocked user within
+// the send limit.
+func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
+	if h.Resets == nil {
+		http.NotFound(w, r)
+		return
+	}
+	f, ok := h.postedFlow(w, r)
+	if !ok {
+		return
+	}
+	ctx := r.Context()
+	user, err := h.Store.Users().FindByLogin(ctx, f.res.Tenant.ID, f.conn.Name, identity.NormalizeLogin(r.PostForm.Get("email")))
+	switch {
+	case err == nil:
+		h.Resets.RequestReset(f.res, f.conn, user, f.txn.ClientID, f.view.L.Lang())
+	case !errors.Is(err, store.ErrNotFound):
+		h.log().ErrorContext(ctx, "reset request: find user", "tenant", f.res.Tenant.ID, "err", err)
+	}
+	ui.RenderResetEmailSent(w, f.view)
+}
+
+// resetProblem names the reset-password-error screen variants.
+type resetProblem int
+
+const (
+	resetInvalid resetProblem = iota
+	resetExpired
+	resetUsed
+)
+
+func (h *Handlers) renderResetError(w http.ResponseWriter, view ui.Tenant, p resetProblem) {
+	title, desc := i18n.KeyResetErrGenericTitle, i18n.KeyResetErrGeneric
+	switch p {
+	case resetExpired:
+		title, desc = i18n.KeyResetErrExpiredTitle, i18n.KeyResetErrExpired
+	case resetUsed:
+		title, desc = i18n.KeyResetErrUsedTitle, i18n.KeyResetErrUsed
+	}
+	ui.RenderResetError(w, http.StatusBadRequest, view, ui.ResetErrorData{Title: view.L.T(title), Description: view.L.T(desc)})
+}
+
+// resetTicket looks up the ticket without consuming it. On failure it
+// returns the error screen to show, or err for a storage failure. view is
+// in the ticket's language when the ticket exists, otherwise the request's.
+func (h *Handlers) resetTicket(r *http.Request, res tenant.Resolved, raw string) (tk *store.PasswordResetTicket, view ui.Tenant, p resetProblem, err error) {
+	view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
+	if raw == "" {
+		return nil, view, resetInvalid, nil
+	}
+	tk, err = h.Store.PasswordResetTickets().GetByTokenHash(r.Context(), res.Tenant.ID, secrets.HashToken(raw))
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, view, resetInvalid, nil
+	}
+	if err != nil {
+		return nil, view, resetInvalid, err
+	}
+	view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, tk.Lang))
+	switch {
+	case tk.UsedAt != nil:
+		return nil, view, resetUsed, nil
+	case !h.now().Before(tk.ExpiresAt):
+		return nil, view, resetExpired, nil
+	}
+	return tk, view, 0, nil
+}
+
+func setResetCookie(w http.ResponseWriter, value string, maxAge int) {
+	http.SetCookie(w, &http.Cookie{
+		Name: resetCookie, Value: value, Path: "/u/reset-password", MaxAge: maxAge,
+		HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+	})
+}
+
+// ResetPasswordPage serves GET /u/reset-password?ticket=…: the
+// new-password form (screen reset-password), or the error screen for an
+// unknown, used or expired ticket. Viewing the form does not use the ticket.
+func (h *Handlers) ResetPasswordPage(w http.ResponseWriter, r *http.Request) {
+	res, ok := tenant.FromContext(r.Context())
+	if !ok {
+		h.fail(w, r, errTxn, nil)
+		return
+	}
+	raw := r.URL.Query().Get("ticket")
+	tk, view, p, err := h.resetTicket(r, res, raw)
+	if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	if tk == nil {
+		h.renderResetError(w, view, p)
+		return
+	}
+	csrf := secrets.RandomString(32)
+	setResetCookie(w, csrf, 900)
+	ui.RenderResetForm(w, http.StatusOK, view, ui.ResetFormData{Ticket: raw, CSRF: csrf})
+}
+
+// ResetPasswordSubmit serves POST /u/reset-password. It sets the new
+// password, ends every session and refresh token of the user, and clears
+// the caller's session cookie.
+func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	res, ok := tenant.FromContext(ctx)
+	if !ok {
+		h.fail(w, r, errTxn, nil)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
+	if err := r.ParseForm(); err != nil {
+		h.renderResetError(w, ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, "")), resetInvalid)
+		return
+	}
+	// 1. CSRF: the form's token must match the za_reset cookie.
+	csrf := r.PostForm.Get("csrf")
+	c, cerr := r.Cookie(resetCookie)
+	csrfOK := cerr == nil && c.Value != "" && subtle.ConstantTimeCompare([]byte(csrf), []byte(c.Value)) == 1
+
+	// 2. The ticket. A forged or stale form still learns nothing beyond
+	// what the ticket holder could see by opening the link; once the
+	// ticket is used or expired that screen wins, otherwise a CSRF failure
+	// shows the generic one.
+	raw := r.PostForm.Get("ticket")
+	tk, view, p, err := h.resetTicket(r, res, raw)
+	if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	if tk == nil {
+		h.renderResetError(w, view, p)
+		return
+	}
+	if !csrfOK {
+		h.renderResetError(w, view, resetInvalid)
+		return
+	}
+	conn, err := h.Store.Connections().GetByName(ctx, res.Tenant.ID, tk.Connection)
+	if errors.Is(err, store.ErrNotFound) || (err == nil && conn.Strategy != store.StrategyDatabase) {
+		h.renderResetError(w, view, resetInvalid)
+		return
+	} else if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+
+	// 3. The new password; the ticket stays usable while it is rejected.
+	pw := r.PostForm.Get("password")
+	form := ui.ResetFormData{Ticket: raw, CSRF: csrf}
+	if pw != r.PostForm.Get("password_confirm") {
+		form.Error = view.L.T(i18n.KeyResetPasswordMismatch)
+		ui.RenderResetForm(w, http.StatusBadRequest, view, form)
+		return
+	}
+	var pe *identity.PolicyError
+	if err := identity.CheckPassword(conn.PasswordPolicy, pw); errors.As(err, &pe) {
+		form.Error = policyMessage(view.L, pe)
+		ui.RenderResetForm(w, http.StatusBadRequest, view, form)
+		return
+	} else if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+
+	// 4. Use the ticket.
+	now := h.now()
+	tk, err = h.Store.PasswordResetTickets().Consume(ctx, res.Tenant.ID, secrets.HashToken(raw), now)
+	switch {
+	case errors.Is(err, store.ErrAlreadyUsed):
+		h.renderResetError(w, view, resetUsed)
+		return
+	case errors.Is(err, store.ErrNotFound):
+		h.renderResetError(w, view, resetInvalid)
+		return
+	case err != nil:
+		h.fail(w, r, err, nil)
+		return
+	case !now.Before(tk.ExpiresAt):
+		h.renderResetError(w, view, resetExpired)
+		return
+	}
+
+	// 5. Set the password and log the user out everywhere.
+	hash, err := secrets.Hash(pw)
+	if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	if err := h.Store.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); errors.Is(err, store.ErrNotFound) {
+		h.renderResetError(w, view, resetInvalid)
+		return
+	} else if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	if _, err := h.Store.Sessions().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	if _, err := h.Store.RefreshTokens().RevokeByUser(ctx, res.Tenant.ID, tk.UserID, now); err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	h.log().InfoContext(ctx, "password reset", "tenant", res.Tenant.ID, "user_id", tk.UserID)
+
+	// 6. Clear the form and session cookies.
+	setResetCookie(w, "", -1)
+	if _, err := h.Sessions.End(ctx, w, r, res.Tenant); err != nil {
+		h.log().WarnContext(ctx, "reset: end session", "tenant", res.Tenant.ID, "err", err)
+	}
+	ui.RenderResetSuccess(w, view)
+}

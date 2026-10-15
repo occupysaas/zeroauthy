@@ -1,10 +1,8 @@
 package dbconn
 
 import (
-	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
@@ -72,18 +70,7 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "find user", err)
 		return
 	}
-	if !user.Blocked && h.SendThrottle.Attempt("reset|"+tenantID+"|"+conn.Name+"|"+user.UserID) {
-		lang := i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language"))
-		clientID := fields["client_id"]
-		h.goRun(func() {
-			// The request context ends with the response.
-			sctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
-			if err := h.StartReset(sctx, res, conn, user, clientID, lang); err != nil {
-				h.log().Error("dbconnections: send reset email", "err", err, "tenant", tenantID, "user_id", user.UserID)
-			}
-		})
-	}
+	h.RequestReset(res, conn, user, fields["client_id"], i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language")))
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("A password reset link has been sent to the email address."))

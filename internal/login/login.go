@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -32,6 +33,7 @@ type Handlers struct {
 	Sessions          *session.Manager
 	Authz             *authz.Handlers
 	Database          *identity.Database
+	Resets            *dbconn.Handlers // nil disables the hosted password reset pages
 	UserThrottle      *identity.Throttle
 	IPThrottle        *identity.Throttle
 	TrustProxyHeaders bool
@@ -142,6 +144,15 @@ func signupURL(f *flow) string {
 	return "/u/signup?" + url.Values{"state": {f.txn.ID}}.Encode()
 }
 
+// forgotURL links the login page to the forgot-password page, or is empty
+// when password resets are not served.
+func (h *Handlers) forgotURL(f *flow) string {
+	if h.Resets == nil {
+		return ""
+	}
+	return "/u/reset-password/request?" + url.Values{"state": {f.txn.ID}}.Encode()
+}
+
 func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 	f, err := h.load(r, r.URL.Query().Get("state"))
 	if err != nil {
@@ -150,7 +161,7 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 	ui.RenderLogin(w, http.StatusOK, f.view, ui.LoginData{
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: f.txn.Params["login_hint"], SignupURL: signupURL(f),
-		RedirectURI: f.txn.Params["redirect_uri"],
+		ForgotURL: h.forgotURL(f), RedirectURI: f.txn.Params["redirect_uri"],
 	})
 }
 
@@ -180,7 +191,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	login := r.PostForm.Get("username")
-	data := ui.LoginData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: login, SignupURL: signupURL(f), RedirectURI: f.txn.Params["redirect_uri"]}
+	data := ui.LoginData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: login, SignupURL: signupURL(f), ForgotURL: h.forgotURL(f), RedirectURI: f.txn.Params["redirect_uri"]}
 
 	userKey := identity.UserThrottleKey(f.res.Tenant.ID, f.conn.Name, login)
 	ipKey := identity.IPThrottleKey(f.res.Tenant.ID, httpx.ClientIP(r, h.TrustProxyHeaders))
@@ -257,11 +268,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	var pe *identity.PolicyError
 	switch {
 	case errors.As(err, &pe):
-		if pe.Key != "" {
-			data.Error = policyText(f.view.L, pe)
-		} else {
-			data.Error = capitalize(pe.Reason) + "."
-		}
+		data.Error = policyMessage(f.view.L, pe)
 		ui.RenderSignup(w, http.StatusBadRequest, f.view, data)
 		return
 	case errors.Is(err, identity.ErrUserExists):
@@ -298,6 +305,14 @@ func capitalize(s string) string {
 		return s
 	}
 	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+// policyMessage is the text shown for a rejected signup or new password.
+func policyMessage(l *i18n.Localizer, pe *identity.PolicyError) string {
+	if pe.Key != "" {
+		return policyText(l, pe)
+	}
+	return capitalize(pe.Reason) + "."
 }
 
 // passwordPolicyKeys are the messages Auth0's password-policy-not-conformant
