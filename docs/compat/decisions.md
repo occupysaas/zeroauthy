@@ -238,6 +238,7 @@ them. Each entry: context, sources consulted, decision, rationale.
     - `user_exists` (409);
     - `too_many_requests` (429).
   - **`client_id` is required:** zeroauthy has no global client.
+  - **Limits of our own choosing:** a request body is capped at 64 KiB; `picture` must be an absolute https URL of at most 2000 characters; `given_name`, `family_name`, `name` and `nickname` are limited to 300 characters; form-encoded bodies cannot carry `user_metadata` (it is an object, so it needs JSON). `user_metadata` follows Auth0's documented limits (10 properties, names up to 100 and string values up to 500 characters).
   - **Signup response:** `_id` is the user ID without the `auth0|` prefix.
-  - **`change_password`:** it follows the documented status codes, including 404 for an unknown user (strict parity; the maintainer chose this over hiding which emails have accounts). Its 200 body is a plain-text sentence of our own wording. See D-0019 for reset tickets.
+  - **`change_password`:** it follows the documented status codes, including 404 for an unknown user (strict parity; the maintainer chose this over hiding which emails have accounts). Its 200 body is a plain-text sentence of our own wording. See D-0019 (password reset).
 - **Rationale:** It follows every documented field and status. Undocumented error bodies use the shape all other zeroauthy endpoints use.

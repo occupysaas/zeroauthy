@@ -75,7 +75,9 @@ func (e *env) post(t *testing.T, path, contentType, body string) (int, map[strin
 	}
 	req := httptest.NewRequest("POST", path, strings.NewReader(body))
 	req.Host = "acme.example.test"
-	req.Header.Set("Content-Type", contentType)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	raw, _ := io.ReadAll(rec.Result().Body)
@@ -113,33 +115,77 @@ func TestSignupForm(t *testing.T) {
 
 func TestSignupErrors(t *testing.T) {
 	ok := `"client_id":"app","connection":"Username-Password-Authentication","email":"x@acme.test","password":"a good password 1"`
+	rep := strings.Repeat
+	// loose marks cases whose request violates the OpenAPI request schema.
 	cases := map[string]struct {
-		body   string
-		status int
-		code   string
+		ct, body    string
+		loose       bool
+		status      int
+		code        string
+		descContain string
 	}{
-		"missing password":        {`{"client_id":"app","connection":"Username-Password-Authentication","email":"x@acme.test"}`, 400, "invalid_request"},
-		"missing connection":      {`{"client_id":"app","email":"x@acme.test","password":"a good password 1"}`, 400, "invalid_request"},
-		"missing client_id":       {`{"connection":"Username-Password-Authentication","email":"x@acme.test","password":"a good password 1"}`, 400, "invalid_request"},
-		"unknown client":          {`{"client_id":"nope","connection":"Username-Password-Authentication","email":"x@acme.test","password":"a good password 1"}`, 400, "invalid_request"},
-		"connection not enabled":  {`{"client_id":"app","connection":"Not-Enabled","email":"x@acme.test","password":"a good password 1"}`, 400, "invalid_signup"},
-		"signup disabled":         {`{"client_id":"app","connection":"Closed","email":"x@acme.test","password":"a good password 1"}`, 400, "invalid_signup"},
-		"weak password":           {`{"client_id":"app","connection":"Username-Password-Authentication","email":"x@acme.test","password":"short"}`, 400, "invalid_password"},
-		"bad email":               {`{"client_id":"app","connection":"Username-Password-Authentication","email":"nope","password":"a good password 1"}`, 400, "invalid_signup"},
-		"metadata not string":     {`{` + ok + `,"user_metadata":{"n":1}}`, 400, "invalid_request"},
-		"metadata too many":       {`{` + ok + `,"user_metadata":{"a":"1","b":"1","c":"1","d":"1","e":"1","f":"1","g":"1","h":"1","i":"1","j":"1","k":"1"}}`, 400, "invalid_request"},
-		"metadata value too long": {`{` + ok + `,"user_metadata":{"a":"` + strings.Repeat("x", 501) + `"}}`, 400, "invalid_request"},
-		"malformed json":          {`{`, 400, "invalid_request"},
+		"missing password":        {body: `{"client_id":"app","connection":"Username-Password-Authentication","email":"x@acme.test"}`, loose: true, status: 400, code: "invalid_request"},
+		"missing connection":      {body: `{"client_id":"app","email":"x@acme.test","password":"a good password 1"}`, loose: true, status: 400, code: "invalid_request"},
+		"missing client_id":       {body: `{"connection":"Username-Password-Authentication","email":"x@acme.test","password":"a good password 1"}`, loose: true, status: 400, code: "invalid_request"},
+		"missing email":           {body: `{"client_id":"app","connection":"Username-Password-Authentication","password":"a good password 1"}`, loose: true, status: 400, code: "invalid_request"},
+		"unknown client":          {body: `{"client_id":"nope","connection":"Username-Password-Authentication","email":"x@acme.test","password":"a good password 1"}`, status: 400, code: "invalid_request"},
+		"connection not enabled":  {body: `{"client_id":"app","connection":"Not-Enabled","email":"x@acme.test","password":"a good password 1"}`, status: 400, code: "invalid_signup"},
+		"signup disabled":         {body: `{"client_id":"app","connection":"Closed","email":"x@acme.test","password":"a good password 1"}`, status: 400, code: "invalid_signup"},
+		"weak password":           {body: `{"client_id":"app","connection":"Username-Password-Authentication","email":"x@acme.test","password":"short"}`, status: 400, code: "invalid_password"},
+		"bad email":               {body: `{"client_id":"app","connection":"Username-Password-Authentication","email":"nope","password":"a good password 1"}`, status: 400, code: "invalid_signup"},
+		"bad picture":             {body: `{` + ok + `,"picture":"http://img.acme.test/p.png"}`, status: 400, code: "invalid_signup"},
+		"name too long":           {body: `{` + ok + `,"name":"` + rep("n", 301) + `"}`, loose: true, status: 400, code: "invalid_signup"},
+		"client_id not a string":  {body: `{"client_id":1,"connection":"Username-Password-Authentication","email":"x@acme.test","password":"a good password 1"}`, loose: true, status: 400, code: "invalid_request", descContain: "must be a string"},
+		"metadata not string":     {body: `{` + ok + `,"user_metadata":{"n":1}}`, loose: true, status: 400, code: "invalid_request"},
+		"metadata array":          {body: `{` + ok + `,"user_metadata":["a"]}`, loose: true, status: 400, code: "invalid_request", descContain: "must be an object"},
+		"metadata too many":       {body: `{` + ok + `,"user_metadata":{"a":"1","b":"1","c":"1","d":"1","e":"1","f":"1","g":"1","h":"1","i":"1","j":"1","k":"1"}}`, loose: true, status: 400, code: "invalid_request"},
+		"metadata value too long": {body: `{` + ok + `,"user_metadata":{"a":"` + rep("x", 501) + `"}}`, loose: true, status: 400, code: "invalid_request"},
+		"metadata name too long":  {body: `{` + ok + `,"user_metadata":{"` + rep("k", 101) + `":"v"}}`, status: 400, code: "invalid_request"},
+		"malformed json":          {body: `{`, loose: true, status: 400, code: "invalid_request"},
+		"null body":               {body: `null`, loose: true, status: 400, code: "invalid_request"},
+		"array body":              {body: `[]`, loose: true, status: 400, code: "invalid_request"},
+		"trailing data":           {body: `{` + ok + `} {}`, loose: true, status: 400, code: "invalid_request"},
+		"trailing garbage":        {body: `{` + ok + `}x`, loose: true, status: 400, code: "invalid_request"},
+		"body over 64 KiB":        {body: `{` + ok + `,"nickname":"` + rep("x", 64<<10) + `"}`, loose: true, status: 400, code: "invalid_request"},
+		"repeated form key":       {ct: "application/x-www-form-urlencoded", body: "client_id=app&client_id=app&connection=Username-Password-Authentication&email=x@acme.test&password=a+good+password+1", loose: true, status: 400, code: "invalid_request"},
+		"unsupported media type":  {ct: "text/plain", body: `{` + ok + `}`, loose: true, status: 400, code: "invalid_request"},
+		"missing content type":    {ct: "-", body: `{` + ok + `}`, loose: true, status: 400, code: "invalid_request"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			e := newEnv(t)
-			e.strict = false // these requests deliberately violate the request schema
-			code, body, _ := e.post(t, "/dbconnections/signup", "application/json", tc.body)
+			e.strict = !tc.loose
+			ct := tc.ct
+			switch ct {
+			case "":
+				ct = "application/json"
+			case "-":
+				ct = ""
+			}
+			code, body, _ := e.post(t, "/dbconnections/signup", ct, tc.body)
 			if code != tc.status || body["error"] != tc.code || body["error_description"] == "" {
 				t.Fatalf("got %d %v; want %d %s", code, body, tc.status, tc.code)
 			}
+			if d, _ := body["error_description"].(string); !strings.Contains(d, tc.descContain) {
+				t.Fatalf("description %q lacks %q", d, tc.descContain)
+			}
+			if strings.Contains(fmt.Sprint(body["error_description"]), "kkkkk") {
+				t.Fatalf("description echoes the metadata key: %v", body)
+			}
 		})
+	}
+}
+
+func TestSignupMetadataLimitsAccepted(t *testing.T) {
+	e := newEnv(t)
+	props := make([]string, 0, 10)
+	for i := 0; i < 9; i++ {
+		props = append(props, fmt.Sprintf(`"p%d":"v"`, i))
+	}
+	props = append(props, `"long":"`+strings.Repeat("x", 500)+`"`)
+	body := `{"client_id":"app","connection":"Username-Password-Authentication","email":"m@acme.test","password":"a good password 1","user_metadata":{` + strings.Join(props, ",") + `}}`
+	if code, b, _ := e.post(t, "/dbconnections/signup", "application/json", body); code != 200 {
+		t.Fatalf("10 properties / 500 characters = %d %v", code, b)
 	}
 }
 

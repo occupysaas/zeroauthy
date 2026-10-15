@@ -2,7 +2,6 @@ package dbconn
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -43,7 +42,7 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		}
 		fields[k] = s
 	}
-	for _, k := range []string{"client_id", "connection", "password"} {
+	for _, k := range []string{"client_id", "connection", "email", "password"} {
 		if fields[k] == "" {
 			writeErr(w, http.StatusBadRequest, "invalid_request", k+" is required")
 			return
@@ -87,7 +86,7 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, identity.ErrUserExists):
 		writeErr(w, http.StatusConflict, "user_exists", "the user already exists")
 		return
-	case errors.As(err, &pe) && pe.Key != "" && strings.HasPrefix(pe.Key, "zeroauthy.signup.password"):
+	case errors.As(err, &pe) && strings.HasPrefix(pe.Key, "zeroauthy.signup.password"):
 		writeErr(w, http.StatusBadRequest, "invalid_password", pe.Reason)
 		return
 	case errors.As(err, &pe):
@@ -123,7 +122,7 @@ func userMetadata(v any) (map[string]any, error) {
 	for k, val := range m {
 		s, ok := val.(string)
 		if !ok || utf8.RuneCountInString(k) > 100 || utf8.RuneCountInString(s) > 500 {
-			return nil, fmt.Errorf("user_metadata.%s must be a string of at most 500 characters with a name of at most 100", k)
+			return nil, errors.New("user_metadata values must be strings of at most 500 characters, with names of at most 100")
 		}
 	}
 	return m, nil

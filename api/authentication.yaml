@@ -566,11 +566,13 @@ components:
         nickname: {type: string, maxLength: 300}
         picture:
           type: string
+          maxLength: 2000
           description: An absolute https URL of at most 2000 characters.
         user_metadata:
           type: object
           description: At most 10 properties; string values of at most 500 characters.
-          additionalProperties: {type: string}
+          maxProperties: 10
+          additionalProperties: {type: string, maxLength: 500}
     SignupFormRequest:
       type: object
       description: |
@@ -587,7 +589,7 @@ components:
         family_name: {type: string, maxLength: 300}
         name: {type: string, maxLength: 300}
         nickname: {type: string, maxLength: 300}
-        picture: {type: string}
+        picture: {type: string, maxLength: 2000}
     SignupResponse:
       type: object
       required: [_id, email_verified, email]

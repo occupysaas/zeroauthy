@@ -116,7 +116,7 @@ func checkProfile(in SignupInput) error {
 	}
 	if in.Picture != "" {
 		u, err := url.Parse(in.Picture)
-		if err != nil || len(in.Picture) > maxPictureLength || u.Scheme != "https" || u.Host == "" {
+		if err != nil || utf8.RuneCountInString(in.Picture) > maxPictureLength || u.Scheme != "https" || u.Host == "" {
 			return &PolicyError{Reason: "picture must be an https URL"}
 		}
 	}
