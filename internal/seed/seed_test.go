@@ -368,6 +368,8 @@ type failingStore struct{ store.Store }
 
 func (f failingStore) Clients() store.Clients { return failingClients{f.Store.Clients()} }
 
+// WithTx must wrap the transaction store too: Apply uses the tx handed to it,
+// so without this the injected failure would never fire inside the transaction.
 func (f failingStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	return f.Store.WithTx(ctx, func(tx store.Store) error { return fn(failingStore{tx}) })
 }

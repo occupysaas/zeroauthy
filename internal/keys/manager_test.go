@@ -271,3 +271,26 @@ func TestEnsureLeavesCompleteSetAlone(t *testing.T) {
 		}
 	}
 }
+
+func TestEnsureConcurrentManagers(t *testing.T) {
+	m1, st := newManager(t)
+	w, err := NewLocalWrapper(testMasterKey(7))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2 := NewManager(st.SigningKeys(), w)
+	ctx := context.Background()
+	errs := make(chan error, 2)
+	for _, m := range []*Manager{m1, m2} {
+		go func() { errs <- m.Ensure(ctx, "ten_a") }()
+	}
+	for range 2 {
+		if err := <-errs; err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := keyStatuses(t, st, "ten_a")
+	if len(got) != 2 || got[store.KeyCurrent] != 1 || got[store.KeyNext] != 1 {
+		t.Fatalf("statuses after concurrent Ensure: %v", got)
+	}
+}

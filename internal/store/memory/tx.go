@@ -7,19 +7,31 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
-// WithTx snapshots every map, runs fn against the same store, and restores
-// the snapshot if fn fails. Transactions are serialized by txMu. Writers that
-// are not inside a transaction are not isolated (memory is for tests/demos).
+// WithTx snapshots every map, runs fn, and restores the snapshot unless fn
+// returns nil (including when fn panics or calls runtime.Goexit, e.g. via
+// t.Fatal). Transactions are serialized by txMu. fn receives a txStore, so a
+// nested WithTx runs inline like it does in the SQL drivers. Writers that are
+// not inside a transaction are not isolated (memory is for tests/demos).
 func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	s.txMu.Lock()
 	defer s.txMu.Unlock()
 	snap := s.snapshot()
-	if err := fn(s); err != nil {
-		s.restore(snap)
-		return err
-	}
-	return nil
+	committed := false
+	defer func() {
+		if !committed {
+			s.restore(snap)
+		}
+	}()
+	err := fn(txStore{s})
+	committed = err == nil
+	return err
 }
+
+// txStore is the store handed to a transaction body. Its WithTx joins the
+// enclosing transaction instead of locking txMu again.
+type txStore struct{ *Store }
+
+func (t txStore) WithTx(_ context.Context, fn func(store.Store) error) error { return fn(t) }
 
 // snapshot deep-copies every map.
 func (s *Store) snapshot() *Store {

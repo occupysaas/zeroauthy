@@ -53,7 +53,7 @@ func (r signingKeys) Rotate(_ context.Context, tenantID string, next *store.Sign
 		return errors.New("store: the new key must have status next")
 	}
 	if next.TenantID != tenantID {
-		return fmt.Errorf("memory: rotate needs a key for tenant %q", tenantID)
+		return fmt.Errorf("store: rotate needs a key for tenant %q", tenantID)
 	}
 	r.s.mu.Lock()
 	defer r.s.mu.Unlock()
