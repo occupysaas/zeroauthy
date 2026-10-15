@@ -159,21 +159,25 @@ func (s *Store) Close() error                   { return s.db.Close() }
 // deadlock or serialization failure, with a short jittered backoff. fn must
 // be safe to re-run (repository methods only touch the database). A nested
 // call, already inside a transaction, never retries; it just propagates.
+// After the last attempt the error is wrapped ("after 3 attempts: …"); a
+// context that ends during the backoff returns ctx.Err().
 func (s *Store) atomicRetry(ctx context.Context, fn func(t *Store) error) error {
 	if s.tx != nil {
 		return s.atomic(ctx, fn)
 	}
 	const attempts = 3
-	var err error
-	for i := range attempts {
-		if err = s.atomic(ctx, fn); err == nil || !s.d.isDeadlock(err) || i == attempts-1 {
+	for i := 1; ; i++ {
+		err := s.atomic(ctx, fn)
+		if err == nil || !s.d.isDeadlock(err) {
 			return err
+		}
+		if i == attempts {
+			return fmt.Errorf("after %d attempts: %w", attempts, err)
 		}
 		select {
 		case <-ctx.Done():
-			return err
-		case <-time.After(time.Duration(5+rand.IntN(20*(i+1))) * time.Millisecond):
+			return ctx.Err()
+		case <-time.After(time.Duration(5+rand.IntN(20*i)) * time.Millisecond):
 		}
 	}
-	return err
 }

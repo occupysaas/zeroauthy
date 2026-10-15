@@ -73,9 +73,16 @@ func (r tenants) find(match func(*store.Tenant) bool) (*store.Tenant, error) {
 	return nil, store.ErrNotFound
 }
 
-// collides reports whether t's name or domains are used by another tenant.
-// The caller holds the lock.
+// collides reports whether t's name or domains are used by another tenant,
+// or t lists a domain more than once. The caller holds the lock.
 func (r tenants) collides(t *store.Tenant) bool {
+	seen := make(map[string]bool, len(t.Domains))
+	for _, d := range t.Domains {
+		if seen[d] {
+			return true
+		}
+		seen[d] = true
+	}
 	for id, o := range r.s.tenants {
 		if id == t.ID {
 			continue

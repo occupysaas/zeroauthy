@@ -50,7 +50,8 @@ type Store interface {
 // tenant ID.
 type Tenants interface {
 	// Create stores a new tenant. It returns ErrConflict if the ID, the
-	// name, or any of the domains is already used by another tenant.
+	// name, or any of the domains is already used by another tenant, or if
+	// Domains lists a domain more than once.
 	Create(ctx context.Context, t *Tenant) error
 	Get(ctx context.Context, id string) (*Tenant, error)
 	GetByName(ctx context.Context, name string) (*Tenant, error)
@@ -59,7 +60,7 @@ type Tenants interface {
 	GetByDomain(ctx context.Context, domain string) (*Tenant, error)
 	// Update replaces the tenant with the same ID. It returns ErrNotFound
 	// if absent and ErrConflict if the new name or a domain collides with
-	// another tenant.
+	// another tenant, or if Domains lists a domain more than once.
 	Update(ctx context.Context, t *Tenant) error
 	// List returns all tenants ordered by Name.
 	List(ctx context.Context) ([]*Tenant, error)

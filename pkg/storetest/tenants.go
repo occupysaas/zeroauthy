@@ -102,6 +102,24 @@ func testTenants(t *testing.T, newStore Factory) {
 		mustErrIs(t, s.Tenants().Create(ctx, sameDomain), store.ErrConflict)
 	})
 
+	t.Run("RepeatedDomainConflicts", func(t *testing.T) {
+		s := open(t, newStore)
+		dup := newTenant("acme")
+		dup.Domains = []string{"acme.example.test", "login.acme.test", "acme.example.test"}
+		mustErrIs(t, s.Tenants().Create(ctx, dup), store.ErrConflict)
+		_, err := s.Tenants().Get(ctx, "ten_acme")
+		mustErrIs(t, err, store.ErrNotFound)
+
+		mustNoErr(t, s.Tenants().Create(ctx, newTenant("acme")))
+		upd := newTenant("acme")
+		upd.FriendlyName = "changed"
+		upd.Domains = []string{"login.acme.test", "login.acme.test"}
+		mustErrIs(t, s.Tenants().Update(ctx, upd), store.ErrConflict)
+		got, err := s.Tenants().Get(ctx, "ten_acme")
+		mustNoErr(t, err)
+		mustEqual(t, got, newTenant("acme")) // nothing changed
+	})
+
 	t.Run("Update", func(t *testing.T) {
 		s := open(t, newStore)
 		mustNoErr(t, s.Tenants().Create(ctx, newTenant("acme")))

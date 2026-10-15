@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-sql-driver/mysql"
+
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -205,5 +207,32 @@ func TestAtomic(t *testing.T) {
 				t.Fatalf("want ErrConflict, got %v", err)
 			}
 		})
+	}
+}
+
+// atomicRetry gives up after three deadlocks with a wrapped error, and stops
+// with ctx.Err() when the context ends during the backoff.
+func TestAtomicRetry(t *testing.T) {
+	s := mustOpen(t, "sqlite://"+filepath.Join(t.TempDir(), "z.db"))
+	deadlock := &mysql.MySQLError{Number: 1213, Message: "Deadlock found"}
+
+	calls := 0
+	err := s.atomicRetry(context.Background(), func(*Store) error { calls++; return deadlock })
+	if calls != 3 || !errors.Is(err, deadlock) || !strings.HasPrefix(err.Error(), "after 3 attempts: ") {
+		t.Fatalf("calls=%d err=%v", calls, err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	calls = 0
+	err = s.atomicRetry(ctx, func(*Store) error { calls++; cancel(); return deadlock })
+	if calls != 1 || !errors.Is(err, context.Canceled) {
+		t.Fatalf("calls=%d err=%v", calls, err)
+	}
+
+	calls = 0
+	boom := errors.New("boom")
+	err = s.atomicRetry(context.Background(), func(*Store) error { calls++; return boom })
+	if calls != 1 || err != boom {
+		t.Fatalf("calls=%d err=%v", calls, err)
 	}
 }

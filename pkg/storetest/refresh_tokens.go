@@ -173,6 +173,50 @@ func testRefreshTokens(t *testing.T, newStore Factory) {
 		mustEqual(t, stored, 1)
 	})
 
+	t.Run("ConcurrentRotateAndRevoke", func(t *testing.T) {
+		// A chain of rotations racing RevokeFamily (or RevokeByUser): once
+		// the revocation has returned, no token of the family may be live,
+		// including successors stored by a rotation it waited for.
+		for _, byUser := range []bool{false, true} {
+			s := open(t, newStore)
+			mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken("ten_a", "c0", "hc0", "f1")))
+			const steps = 30
+			errs := parallel(2, func(i int) error {
+				if i == 1 {
+					if byUser {
+						_, err := s.RefreshTokens().RevokeByUser(ctx, "ten_a", "auth0|u1", ts(time.Hour))
+						return err
+					}
+					return s.RefreshTokens().RevokeFamily(ctx, "ten_a", "f1", ts(time.Hour))
+				}
+				for k := range steps {
+					next := newRefreshToken("ten_a", fmt.Sprintf("c%d", k+1), fmt.Sprintf("hc%d", k+1), "f1")
+					err := s.RefreshTokens().Rotate(ctx, "ten_a", fmt.Sprintf("c%d", k), next, ts(time.Minute), 0)
+					if errors.Is(err, store.ErrNotFound) {
+						return nil // the revocation got there first
+					}
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+			for _, err := range errs {
+				mustNoErr(t, err)
+			}
+			for k := range steps + 1 {
+				rt, err := s.RefreshTokens().GetByTokenHash(ctx, "ten_a", fmt.Sprintf("hc%d", k))
+				if errors.Is(err, store.ErrNotFound) {
+					break
+				}
+				mustNoErr(t, err)
+				if rt.RevokedAt == nil {
+					t.Fatalf("byUser=%v: token %s survived the revocation", byUser, rt.ID)
+				}
+			}
+		}
+	})
+
 	t.Run("Touch", func(t *testing.T) {
 		s := open(t, newStore)
 		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken("ten_a", "rt1", "h1", "f1")))
