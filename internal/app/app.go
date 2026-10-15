@@ -31,6 +31,12 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error) {
+	// The master key is checked before the store is opened, so a missing key
+	// never leaves a created or migrated database behind.
+	masterKey, err := loadMasterKey(cfg, log)
+	if err != nil {
+		return nil, err
+	}
 	st, err := storage.Open(ctx, cfg.Storage.DSN)
 	if err != nil {
 		return nil, err
@@ -39,7 +45,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		_ = st.Close()
 		return nil, err
 	}
-	a, err := build(ctx, cfg, log, st)
+	a, err := build(ctx, cfg, log, st, masterKey)
 	if err != nil {
 		_ = st.Close()
 		return nil, err
@@ -74,21 +80,25 @@ func prepareSchema(ctx context.Context, cfg *config.Config, log *slog.Logger, st
 	return nil
 }
 
-func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.Store) (*App, error) {
+// loadMasterKey returns the configured master key. Persistent storage
+// requires one; memory storage gets an ephemeral key.
+func loadMasterKey(cfg *config.Config, log *slog.Logger) ([]byte, error) {
 	masterKey, err := cfg.Security.MasterKeyBytes()
-	if err != nil {
+	if err != nil || masterKey != nil {
+		return masterKey, err
+	}
+	if !strings.HasPrefix(cfg.Storage.DSN, "memory:") {
+		return nil, errors.New("app: security.master_key or security.master_key_file is required with persistent storage")
+	}
+	log.Warn("no master key configured; using an ephemeral key (acceptable only with memory storage)")
+	masterKey = make([]byte, 32)
+	if _, err := rand.Read(masterKey); err != nil {
 		return nil, err
 	}
-	if masterKey == nil {
-		if !strings.HasPrefix(cfg.Storage.DSN, "memory:") {
-			return nil, errors.New("app: security.master_key or security.master_key_file is required with persistent storage")
-		}
-		log.Warn("no master key configured; using an ephemeral key (acceptable only with memory storage)")
-		masterKey = make([]byte, 32)
-		if _, err := rand.Read(masterKey); err != nil {
-			return nil, err
-		}
-	}
+	return masterKey, nil
+}
+
+func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.Store, masterKey []byte) (*App, error) {
 	wrapper, err := keys.NewLocalWrapper(masterKey)
 	if err != nil {
 		return nil, err

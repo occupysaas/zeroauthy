@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 
@@ -134,6 +135,36 @@ func TestParseDSN(t *testing.T) {
 	}
 	if _, native, _ = parseDSN("sqlite:///abs/z.db"); !strings.HasPrefix(native, "file:/abs/z.db?_pragma=busy_timeout(5000)") || !strings.Contains(native, "_txlock=immediate") {
 		t.Errorf("sqlite DSN: %q", native)
+	}
+}
+
+// TestOpenNeverLeaksPassword: no error from Open, for a malformed or an
+// unreachable DSN of any dialect, may contain the DSN's password.
+func TestOpenNeverLeaksPassword(t *testing.T) {
+	const pw = "s3cr3tPW"
+	for _, dsn := range []string{
+		"mysql://u:" + pw + "@host:badport/db",
+		"mysql://u:" + pw + "@127.0.0.1:1/db?%zz",
+		"mysql://u:" + pw + "@127.0.0.1:1/db?timeout=notaduration",
+		"mysql://u:" + pw + "@127.0.0.1:1/db?timeout=2s",
+		"postgres://u:" + pw + "@host:badport/db",
+		"postgres://u:" + pw + "@127.0.0.1:1/db?sslmode=bogus",
+		"postgresql://u:" + pw + "@127.0.0.1:1/db?sslmode=disable&connect_timeout=2",
+		"sqlite://" + t.TempDir() + "/missing/dir/z.db?x=" + pw,
+		"oracle://u:" + pw + "@host/db",
+		"u:" + pw + "@host/db",
+	} {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		st, err := Open(ctx, dsn)
+		cancel()
+		if err == nil {
+			_ = st.Close()
+			t.Errorf("Open(%q) succeeded, want an error", strings.ReplaceAll(dsn, pw, "***"))
+			continue
+		}
+		if strings.Contains(err.Error(), pw) {
+			t.Errorf("Open(%q) error leaks the password: %v", strings.ReplaceAll(dsn, pw, "***"), err)
+		}
 	}
 }
 

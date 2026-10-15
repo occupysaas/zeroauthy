@@ -101,3 +101,18 @@ func TestNewAutoMigrates(t *testing.T) {
 		t.Errorf("schema version not logged: %s", buf.String())
 	}
 }
+
+// TestNewNeedsMasterKeyBeforeMigrating: a persistent store without a master
+// key is refused before anything touches the database.
+func TestNewNeedsMasterKeyBeforeMigrating(t *testing.T) {
+	cfg := sqliteConfig(t, true)
+	cfg.Security.MasterKey = ""
+	path := strings.TrimPrefix(cfg.Storage.DSN, "sqlite://")
+	_, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err == nil || !strings.Contains(err.Error(), "security.master_key or security.master_key_file is required") {
+		t.Fatalf("err = %v, want the master-key error", err)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Errorf("database file %s was created (stat err = %v); want it untouched", path, err)
+	}
+}

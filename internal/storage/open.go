@@ -3,6 +3,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -15,9 +16,14 @@ import (
 // postgres:// (or postgresql://), mysql://. plugin:// comes with the gRPC
 // plugin host.
 func Open(ctx context.Context, dsn string) (store.Store, error) {
+	// Errors never quote the DSN: it may carry a password. A *url.Error
+	// embeds the whole URL, so it is not wrapped either.
 	u, err := url.Parse(dsn)
-	if err != nil || u.Scheme == "" {
-		return nil, fmt.Errorf("storage: DSN %q has no scheme (e.g. memory://, sqlite:///path.db)", dsn)
+	if err != nil {
+		return nil, errors.New("storage: DSN is not a valid URL; check the host, the port and the percent-encoding of the user name and password")
+	}
+	if u.Scheme == "" {
+		return nil, errors.New("storage: DSN has no scheme (e.g. memory://, sqlite:///path.db)")
 	}
 	switch u.Scheme {
 	case "memory":

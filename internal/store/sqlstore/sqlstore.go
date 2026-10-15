@@ -5,6 +5,7 @@ package sqlstore
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"net"
@@ -105,7 +106,8 @@ func parseDSN(dsn string) (dialect, string, error) {
 	case "mysql":
 		u, err := url.Parse(dsn)
 		if err != nil {
-			return dialect{}, "", fmt.Errorf("sqlstore: parse mysql DSN: %w", err)
+			// Not wrapped: a *url.Error embeds the whole DSN, password included.
+			return dialect{}, "", errors.New("sqlstore: mysql DSN is not a valid URL; check the host, the port and the percent-encoding of the user name and password")
 		}
 		cfg := mysql.NewConfig()
 		cfg.User = u.User.Username()
