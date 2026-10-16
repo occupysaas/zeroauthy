@@ -99,8 +99,9 @@ sets `X-Forwarded-Host`; otherwise clients could choose their own tenant.
 A database connection can run your own Node.js scripts (`login`, `get_user`,
 `create`, `change_password`) against an existing user store, either as the
 permanent source of truth or as an import that migrates users on first
-login. Scripts written for Auth0 run unchanged and need Node.js 22.13 or
-later. See [docs/custom-db.md](docs/custom-db.md), including the security
+login. Scripts written for Auth0 run as written (native addons and a few
+blocked built-ins such as `child_process` are the known differences) and
+need Node.js 22.13 or later. See [docs/custom-db.md](docs/custom-db.md), including the security
 notes for hosting untrusted tenants.
 
 ## Development

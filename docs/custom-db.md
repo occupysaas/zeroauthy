@@ -1,6 +1,6 @@
 # Custom database connections
 
-A custom database connection lets users sign in against a user store you already run, such as a SQL table or an HTTP service, instead of (or on the way to) zeroauthy's own user table. The connection keeps the shape of an Auth0 custom database: you write short JavaScript scripts, and zeroauthy runs them in Node.js when someone logs in, signs up or resets a password. Scripts written for Auth0 run unchanged. The design decisions are D-0022 (runtime and isolation), D-0023 (errors) and D-0024 (profiles) in [compat/decisions.md](compat/decisions.md).
+A custom database connection lets users sign in against a user store you already run, such as a SQL table or an HTTP service, instead of (or on the way to) zeroauthy's own user table. The connection keeps the shape of an Auth0 custom database: you write short JavaScript scripts, and zeroauthy runs them in Node.js when someone logs in, signs up or resets a password. Scripts written for Auth0 run as written, with two known differences from Auth0: native addons do not load under Node's permission model, and some built-in modules (`child_process`, `vm`, `v8`, `worker_threads` and similar) are blocked. The design decisions are D-0022 (runtime and isolation), D-0023 (errors) and D-0024 (profiles) in [compat/decisions.md](compat/decisions.md).
 
 ## Two modes
 
@@ -8,7 +8,7 @@ A custom database connection lets users sign in against a user store you already
 |---|---|---|
 | Source of truth | Your store, always | Your store until a user has migrated, then zeroauthy |
 | Passwords | Never stored; the `login` script checks every sign-in | Hashed (argon2id) and stored locally after the first successful `login` script run |
-| Hosted login, password grants | `login` on every attempt | `login` only for a user not yet migrated; after that the local hash decides and no script runs |
+| Hosted login, password grants (`password-realm` and the plain `password` grant, which honours `realm`) | `login` on every attempt | `login` for a user not yet migrated. Afterwards the local hash decides and normally no script runs; the script can still run for a migrated user reached through a login the local record no longer matches, but the local hash still decides |
 | Sign-up (`/dbconnections/signup`, `/u/signup`) | `get_user` (does the user exist?), then `create`, then `login` to confirm the account | `get_user` (optional), then an ordinary local sign-up; `create` is never called |
 | Forgot password | `get_user`; the reset email is sent only for a user it finds | A local user wins; otherwise `get_user` finds the user, who is copied locally without a password |
 | Completing a reset | `change_password` | Local; sets the password hash, which finishes the migration |
@@ -70,7 +70,8 @@ Rules the seed enforces:
 - `customScripts` keys are `login`, `get_user`, `create`, `verify`, `change_password`, `delete` and `change_email`. Each script is at most 100 kB (102400 bytes).
 - `configuration` holds at most 64 string values. A key is 1-128 characters of `A-Za-z0-9_`, and a value is at most 4096 bytes.
 - `configuration` is plaintext in the seed file only. It is encrypted with the master key when applied, bound to the tenant and connection, and stored sealed. Protect the seed file as you would a secret.
-- A legacy connection has no local passwords, so seeded users with passwords are only meaningful in import mode.
+- A legacy connection has no local passwords, so the seed refuses `users` on it. Seeded users are allowed only on import-mode connections.
+- A customized connection must define a `login` script.
 
 `tests/e2e/seed.yaml` has a working legacy and import pair backed by a small HTTP store.
 
@@ -94,7 +95,7 @@ A script is one function. Name it as you like; zeroauthy also recognizes the usu
 
 - `new WrongUsernameOrPasswordError(identifier)`: the credentials are wrong. The user sees the ordinary wrong-credentials answer.
 - `new ValidationError(code, message)`: the input was rejected. On sign-up the code `user_exists` means the user exists; other codes are shown as a rejected sign-up with your message.
-- `new UnauthorizedError(message)`: refuse with a message the user should see. It is the only error whose message reaches the user.
+- `new UnauthorizedError(message)`: refuse with a message the user should see. Its message is shown to the user, on every surface. The one other message that reaches users is a `create` script's `ValidationError` on sign-up, which is shown like a rejected sign-up field.
 - Any other `Error`, a thrown exception, or an invalid profile is a script failure: the user sees a generic error and the details go to the server log (tenant, connection, script, kind and message; never passwords or configuration).
 
 How each surface answers is in D-0023.
@@ -164,6 +165,6 @@ What you must provide when tenants are not trusted:
 
 1. Start in import mode (`import_mode: true`) with `login` (and `get_user`) pointing at the old store. Each user migrates on their first successful sign-in; a user who resets their password first migrates too.
 2. Watch the logs and the user count until the users you care about have migrated.
-3. Switch `login` and `get_user` to call back with no user (`callback(null)` in `get_user`, `callback(new WrongUsernameOrPasswordError(email))` in `login`), or remove them. Migrated users keep working from their local hashes, and the old store is no longer contacted.
+3. Switch `get_user` to call back with no user (`callback(null)`), or remove it, and switch `login` to always report no user (`callback(new WrongUsernameOrPasswordError(email))`). `login` must stay defined, because the seed requires it on every customized connection. Migrated users keep working from their local hashes, and the old store is no longer contacted.
 
 Auth0's own automatic-migration guide describes the same sequence.

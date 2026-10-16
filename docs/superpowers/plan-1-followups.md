@@ -8,6 +8,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 | Before | Item |
 |---|---|
 | Management API (sub-project 3) | Tenants created at runtime need `keys.Manager.Ensure`; domains must be normalized with `tenant.NormalizeHost` and must not fall under `server.base_domain`. |
+| Management API (sub-project 3) | Use a pinned auth0-cli as a black-box E2E client against zeroauthy only (CLEAN_ROOM.md: open-source tools as black-box clients). Never run it against live Auth0 to diff behaviour; Management API observation of a real tenant stays under the firewalled observation rules. |
 
 ## Nice to have
 
@@ -143,7 +144,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 ## Plan 8 follow-ups
 
-- Callers for the stored `verify`, `delete` and `change_email` scripts: `verify` needs verification emails; `delete` and `change_email` are called by the Management API (sub-project 3). The runner and `Client.Run` already execute any of the seven scripts.
+- Callers for the stored `verify`, `delete` and `change_email` scripts: `verify` needs verification emails; `delete` and `change_email` are called by the Management API (sub-project 3). The runner (`Executor.Execute`) can already execute any of the seven scripts; `customdb.Client` exposes only `Login`, `GetUser`, `Create` and `ChangePassword`.
 - `mfa_factors` in profiles (MFA, sub-project 2).
 - Custom signup prompt fields passed to `create` (changelog 2026-04-02, sub-project 2).
 - Custom user IDs at signup (changelog 2026-09-17, early access).
