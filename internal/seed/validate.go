@@ -238,6 +238,9 @@ func (t *Tenant) validate() []error {
 			c.RefreshToken.RotationType = "rotating" // strict default for native apps
 		}
 		rt := &c.RefreshToken
+		if strict && rt.ExpirationType == "" {
+			rt.ExpirationType = "expiring" // Auth0 requires strict refresh tokens to expire
+		}
 		if rt.RotationType == "" {
 			rt.RotationType = "non-rotating"
 			if store.AppType(c.AppType) == store.AppTypeSPA {

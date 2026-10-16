@@ -352,6 +352,31 @@ tenants:
 	}
 }
 
+func TestStrictThirdPartyDefaultsToExpiringRefreshTokens(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(`
+tenants:
+  - name: acme
+    clients:
+      - {client_id: partner, app_type: regular_web, client_secret: s, is_first_party: false}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	c, err := st.Clients().Get(ctx, tn.ID, "partner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.RefreshToken.Expiring {
+		t.Errorf("refresh_token = %+v, want expiring", c.RefreshToken)
+	}
+}
+
 func TestApplyLocalesAndCustomText(t *testing.T) {
 	ctx := context.Background()
 	st := memory.New()

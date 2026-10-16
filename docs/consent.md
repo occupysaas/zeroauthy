@@ -19,6 +19,8 @@ Third-party clients have a security mode:
 | Refresh tokens | Must expire; native apps default to rotating | As for first-party clients |
 | `client_credentials` | Needs a confidential client | |
 
+Strict clients default to expiring refresh tokens; an explicit `refresh_token.expiration_type: non-expiring` is rejected by the seed, even for a client without the `refresh_token` grant.
+
 A stored third-party client whose mode is empty or unknown is treated as `strict`. Permissive mode could not be observed on Auth0 (the maintainer's account cannot create such clients), so its behaviour follows Auth0's permissive-mode page; strict behaviour was observed.
 
 All third-party clients:
