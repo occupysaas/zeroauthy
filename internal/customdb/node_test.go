@@ -468,8 +468,10 @@ func TestRunnerCannotReadHostEnvironment(t *testing.T) {
 func TestRunnerEscapedContextStillIsolated(t *testing.T) {
 	t.Setenv("ZA_SENTINEL_SECRET", "sentinel-7f3a")
 	r := newRunner(t, config.CustomDB{})
-	// Escape the vm context to the runner's real process object and its real
-	// require; only the process boundary (empty env, --permission) remains.
+	// Reach the host realm's process through a constructor chain and use
+	// process.getBuiltinModule, which skips the runner's require allowlist.
+	// What still holds is the process boundary (empty env, --permission),
+	// not vm; that boundary is what this test checks.
 	src := `function login(e, p, callback) {
 	  const process = this.constructor.constructor("return process")();
 	  const require = process.getBuiltinModule;
@@ -531,4 +533,61 @@ func TestFuncExecutor(t *testing.T) {
 		t.Fatalf("recorded %d calls, want 2", n)
 	}
 	var _ Executor = f
+}
+
+func TestRunnerCannotSignalOtherProcesses(t *testing.T) {
+	r := newRunner(t, config.CustomDB{})
+	res, err := execLogin(t, r, `function login(e, p, cb) {
+	  const out = {};
+	  const attempt = (label, f) => { try { f(); out[label] = "allowed"; } catch (err) { out[label] = "denied"; } };
+	  attempt("direct", () => process.kill(process.ppid, 0));
+	  const real = this.constructor.constructor("return process")();
+	  attempt("escaped", () => real.kill(real.ppid, 0));
+	  attempt("raw", () => real._kill(real.ppid, 0));
+	  attempt("reassigned", () => { delete real.kill; real.kill = () => true; real.kill(real.ppid, 0); });
+	  attempt("redefined", () => Object.defineProperty(real, "kill", { value: () => true }));
+	  attempt("priority", () => require("os").setPriority(real.ppid, 0));
+	  attempt("escapedPriority", () => real.getBuiltinModule("os").setPriority(real.ppid, 0));
+	  try { real.binding("process_methods"); out.binding = "loaded"; } catch (err) { out.binding = "denied:" + err.code; }
+	  cb(null, out);
+	}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("signal probe: %s", res)
+	var out map[string]string
+	if err := json.Unmarshal(res, &out); err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range []string{"direct", "escaped", "raw", "reassigned", "redefined", "priority", "escapedPriority"} {
+		if out[k] != "denied" {
+			t.Errorf("%s = %q, want denied", k, out[k])
+		}
+	}
+	if out["binding"] != "denied:ERR_ACCESS_DENIED" {
+		t.Errorf("binding = %q, want denied:ERR_ACCESS_DENIED", out["binding"])
+	}
+}
+
+func TestRunnerUnprintableErrors(t *testing.T) {
+	r := newRunner(t, config.CustomDB{})
+	for _, src := range []string{
+		`function login(e, p, cb) { cb(Object.create(null)); }`,
+		`function login(e, p, cb) { const err = new Error("x"); Object.defineProperty(err, "message", { get() { throw new Error("no"); } }); cb(err); }`,
+		`function login(e, p, cb) { throw Object.create(null); }`,
+	} {
+		start := time.Now()
+		_, err := execLogin(t, r, src)
+		scriptErr(t, err, KindError)
+		if d := time.Since(start); d > 5*time.Second {
+			t.Fatalf("took %v", d)
+		}
+	}
+}
+
+func TestRunnerTinyIdleTimeout(t *testing.T) {
+	r := newRunner(t, config.CustomDB{IdleTimeout: time.Nanosecond})
+	if _, err := execLogin(t, r, `function login(e, p, cb) { cb(null, {}); }`); err != nil {
+		t.Fatal(err)
+	}
 }

@@ -54,6 +54,7 @@ const (
 	maxInFlight     = 64      // concurrent requests per tenant process
 	maxResponseLine = 1 << 20 // bytes; a longer response kills the process
 	maxLogMsg       = 2048    // bytes of one logged runner line
+	minReapTick     = 100 * time.Millisecond
 )
 
 // NodeRunner is the Executor backed by Node.js processes, one per tenant.
@@ -63,8 +64,11 @@ type NodeRunner struct {
 	dir         string        // 0700 temp dir holding runner.mjs
 	maxDuration time.Duration // MaxDuration; tests shorten it
 
+	reapGrace time.Duration // how long a reaped process may take to exit before it is killed
+
 	mu     sync.Mutex
-	procs  map[string]*proc // by tenant ID
+	procs  map[string]*proc   // by tenant ID; the processes taking new requests
+	live   map[*proc]struct{} // every started process until it has exited
 	closed bool
 
 	probeOnce sync.Once
@@ -106,8 +110,8 @@ func NewNodeRunner(cfg config.CustomDB, log *slog.Logger) (*NodeRunner, error) {
 		return nil, fmt.Errorf("customdb: %w", err)
 	}
 	r := &NodeRunner{
-		cfg: cfg, log: log, dir: dir, maxDuration: MaxDuration,
-		procs: map[string]*proc{}, stop: make(chan struct{}), reaperDone: make(chan struct{}),
+		cfg: cfg, log: log, dir: dir, maxDuration: MaxDuration, reapGrace: 5 * time.Second,
+		procs: map[string]*proc{}, live: map[*proc]struct{}{}, stop: make(chan struct{}), reaperDone: make(chan struct{}),
 	}
 	go r.reaper()
 	return r, nil
@@ -233,13 +237,14 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 		wire.Args = []any{}
 	}
 
+	// The timer is owned by await, which may hand it to a watcher.
 	timer := time.NewTimer(r.maxDuration)
-	defer timer.Stop()
 
 	// A process retired between lookup and registration is replaced; retry.
 	for range 3 {
 		p, err := r.getProc(req.TenantID)
 		if err != nil {
+			timer.Stop()
 			return nil, err
 		}
 		select {
@@ -247,6 +252,7 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 		case <-p.done:
 			continue
 		case <-ctx.Done():
+			timer.Stop()
 			return nil, ctx.Err()
 		case <-timer.C:
 			return nil, ErrTimeout
@@ -264,14 +270,23 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 		p.lastUsed = time.Now()
 		p.mu.Unlock()
 
-		res, err := r.await(ctx, p, req, wire, ch, timer)
-		<-p.sem
-		return res, err
+		return r.await(ctx, p, req, wire, ch, timer)
 	}
+	timer.Stop()
 	return nil, fmt.Errorf("%w: runner process keeps exiting", ErrUnavailable)
 }
 
+// await waits for the response to a registered request. It owns p's
+// semaphore slot and timer; if the caller leaves early, a watcher takes them
+// over so the request stays bounded by the deadline.
 func (r *NodeRunner) await(ctx context.Context, p *proc, req Request, wire wireRequest, ch chan response, timer *time.Timer) (json.RawMessage, error) {
+	handedOff := false
+	defer func() {
+		if !handedOff {
+			timer.Stop()
+			<-p.sem
+		}
+	}()
 	line, err := json.Marshal(wire)
 	if err != nil {
 		p.unregister(wire.ID)
@@ -299,16 +314,49 @@ func (r *NodeRunner) await(ctx context.Context, p *proc, req Request, wire wireR
 				return nil, fmt.Errorf("%w: runner process exited", ErrUnavailable)
 			}
 		case <-ctx.Done():
-			p.unregister(wire.ID)
+			// The script keeps running: leave it pending (the reaper must not
+			// retire its process) and still enforce the deadline.
+			handedOff = true
+			go r.watch(p, req, wire.ID, ch, errc, timer)
 			return nil, ctx.Err()
 		case <-timer.C:
-			p.unregister(wire.ID)
-			r.log.Warn("custom database script timed out; killing the tenant's runner",
-				"tenant", req.TenantID, "connection", req.ConnectionID, "script", req.Script)
-			r.kill(p)
+			r.timedOut(p, req, wire.ID)
 			return nil, ErrTimeout
 		}
 	}
+}
+
+// watch finishes a request whose caller has gone: it drops the response, or
+// kills the process at the deadline.
+func (r *NodeRunner) watch(p *proc, req Request, id int64, ch chan response, errc chan error, timer *time.Timer) {
+	defer func() {
+		timer.Stop()
+		<-p.sem
+	}()
+	for {
+		select {
+		case <-ch:
+			return
+		case err := <-errc:
+			if err != nil {
+				p.unregister(id)
+				return
+			}
+			errc = nil
+		case <-p.done:
+			return
+		case <-timer.C:
+			r.timedOut(p, req, id)
+			return
+		}
+	}
+}
+
+func (r *NodeRunner) timedOut(p *proc, req Request, id int64) {
+	p.unregister(id)
+	r.log.Warn("custom database script timed out; killing the tenant's runner",
+		"tenant", req.TenantID, "connection", req.ConnectionID, "script", req.Script)
+	r.kill(p)
 }
 
 func toResult(resp response) (json.RawMessage, error) {
@@ -359,6 +407,7 @@ func (r *NodeRunner) start(tenant string) (*proc, error) {
 	cmd := exec.Command(r.cfg.Node, args...)
 	cmd.Env = []string{} // never inherit the host environment (D-0022)
 	cmd.Dir = r.dir
+	setProcAttr(cmd)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrUnavailable, err)
@@ -379,6 +428,7 @@ func (r *NodeRunner) start(tenant string) (*proc, error) {
 		sem: make(chan struct{}, maxInFlight), done: make(chan struct{}),
 		pending: map[int64]chan response{}, lastUsed: time.Now(),
 	}
+	r.live[p] = struct{}{}
 	var readers sync.WaitGroup
 	readers.Add(2)
 	go func() { defer readers.Done(); r.readResponses(p, stdout) }()
@@ -484,14 +534,19 @@ func (r *NodeRunner) kill(p *proc) {
 
 func (r *NodeRunner) exited(p *proc) {
 	r.retire(p)
+	r.mu.Lock()
+	delete(r.live, p)
+	r.mu.Unlock()
 	close(p.done)
 }
 
 // reaper closes the stdin of processes idle past IdleTimeout; the runner
-// exits when its stdin closes.
+// exits when its stdin closes, or is killed after reapGrace if it does not
+// (a script still busy from a timer, say). A process with any pending
+// request, including one whose caller has gone, is not idle.
 func (r *NodeRunner) reaper() {
 	defer close(r.reaperDone)
-	t := time.NewTicker(r.cfg.IdleTimeout / 2)
+	t := time.NewTicker(max(r.cfg.IdleTimeout/2, minReapTick))
 	defer t.Stop()
 	for {
 		select {
@@ -516,12 +571,23 @@ func (r *NodeRunner) reaper() {
 					defer p.wmu.Unlock()
 					_ = p.stdin.Close()
 				}()
+				go func() {
+					grace := time.NewTimer(r.reapGrace)
+					defer grace.Stop()
+					select {
+					case <-p.done:
+					case <-grace.C:
+						r.log.Warn("idle custom database runner did not exit; killing it", "tenant", p.tenant)
+						r.kill(p)
+					}
+				}()
 			}
 		}
 	}
 }
 
-// Close kills every runner process and removes the temp dir.
+// Close kills every runner process, including retired ones still running,
+// and removes the temp dir.
 func (r *NodeRunner) Close() error {
 	r.mu.Lock()
 	if r.closed {
@@ -529,8 +595,8 @@ func (r *NodeRunner) Close() error {
 		return nil
 	}
 	r.closed = true
-	procs := make([]*proc, 0, len(r.procs))
-	for _, p := range r.procs {
+	procs := make([]*proc, 0, len(r.live))
+	for p := range r.live {
 		procs = append(procs, p)
 	}
 	r.mu.Unlock()

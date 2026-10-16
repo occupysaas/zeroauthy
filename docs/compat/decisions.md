@@ -344,3 +344,9 @@ them. Each entry: context, sources consulted, decision, rationale.
     - Network access is allowed, because scripts must reach their stores. This is documented as an operator egress concern.
     - Configuration values are encrypted at rest with the master-key envelope, bound to the tenant and connection.
 - **Rationale:** Parity is the product. Operators migrating from Auth0 can paste their scripts as they are. A process per tenant contains runaway scripts and keeps one tenant's configuration out of another's memory. The empty environment plus the permission model enforce the user's requirement at the OS-process boundary rather than relying on `vm`, which is not a security boundary. The Actions runtime (sub-project 2) can reuse the runner.
+- **Addendum (Plan 8 Task 3):**
+  - Node's permission model does not stop a process from signalling others, so before any script runs, the runner replaces `process.kill`, `process._kill` and `os.setPriority` with locked functions that throw. A script, even one that escapes `vm`, cannot signal or renice zeroauthy or another tenant's runner through Node's API. (`process.binding` is denied under `--permission`.)
+  - Apart from that, every runner shares the server's uid and kernel. Operators who host untrusted tenants should run zeroauthy under a dedicated uid or in a container, so a runner cannot reach other software on the machine.
+  - `--max-old-space-size` limits the JavaScript heap only. Buffers and ArrayBuffers sit outside it, so a script can use more memory than `max_memory_mb`. Use cgroup or container memory limits for a hard cap.
+  - Scripts cannot read the environment or files, but they can read basic host facts through `os`, such as the hostname, network interfaces, CPU count and uptime.
+  - Network egress is open, including to internal and link-local addresses (for example, cloud metadata endpoints). Operators who need to restrict it should use firewall or egress-proxy rules.
