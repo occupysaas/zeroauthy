@@ -48,6 +48,9 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 	if d := access.Decide(access.Input{Flow: access.ClientCredentials, Client: c, API: rs, ClientGrant: grant}); d.Err != nil {
 		return nil, accessDenied(d.Err.Description)
 	}
+	if grant == nil {
+		return nil, accessDenied("client is not authorized for this audience")
+	}
 	scopes, oerr := resolveScopes(form.Get("scope"), grant.Scopes, rs.Scopes)
 	if oerr != nil {
 		return nil, oerr

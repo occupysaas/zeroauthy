@@ -1,7 +1,9 @@
 package oauth
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -172,6 +174,23 @@ func TestTokenErrors(t *testing.T) {
 func TestClientCredentialsDenyAll(t *testing.T) {
 	f := newFixture(t)
 	rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: cc("m2m", "m2m-secret", "audience", "https://locked.test")})
+	if rec.Code != 403 || body["error"] != "access_denied" {
+		t.Fatalf("got %d %v", rec.Code, body)
+	}
+}
+
+func TestClientCredentialsStoredAllowAllNeedsGrant(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	rs, err := f.st.ResourceServers().GetByIdentifier(ctx, f.tenantID(t, "acme"), "https://billing.acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rs.SubjectTypeAuthorization.Client = store.PolicyAllowAll
+	if err := f.st.ResourceServers().Update(ctx, rs); err != nil {
+		t.Fatal(err)
+	}
+	rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: cc("m2m", "m2m-secret", "audience", "https://billing.acme.test")})
 	if rec.Code != 403 || body["error"] != "access_denied" {
 		t.Fatalf("got %d %v", rec.Code, body)
 	}

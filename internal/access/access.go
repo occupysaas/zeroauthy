@@ -122,6 +122,14 @@ func checkPolicy(in Input) *Error {
 	case store.PolicyDenyAll:
 		return &Error{code, "the API does not allow this application to access it"}
 	case store.PolicyAllowAll:
+		if in.Flow == ClientCredentials {
+			// Auth0 offers only require_client_grant and deny_all for
+			// clients; a stored allow_all fails closed.
+			if in.ClientGrant == nil {
+				return &Error{code, "client is not authorized for this audience"}
+			}
+			return nil
+		}
 		if in.ClientGrant == nil && !in.Client.IsFirstParty && (Strict(in.Client) || !permissiveFollowsPolicy) {
 			return &Error{code, "the application is not authorized to access this API"}
 		}

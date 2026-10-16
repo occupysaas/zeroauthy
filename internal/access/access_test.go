@@ -102,6 +102,8 @@ func TestDecide(t *testing.T) {
 			Decision{Err: &Error{Code: "access_denied"}}},
 		{"client credentials: no grant", Input{Flow: ClientCredentials, Client: firstParty(), API: api()},
 			Decision{Err: &Error{Code: "access_denied", Description: "client is not authorized for this audience"}}},
+		{"client credentials: stored allow_all still needs a grant", Input{Flow: ClientCredentials, Client: firstParty(), API: api(func(rs *store.ResourceServer) { rs.SubjectTypeAuthorization.Client = store.PolicyAllowAll })},
+			Decision{Err: &Error{Code: "access_denied", Description: "client is not authorized for this audience"}}},
 		{"client credentials: allowed", Input{Flow: ClientCredentials, Client: strict(), API: api(), ClientGrant: &store.ClientGrant{SubjectType: store.SubjectTypeClient}},
 			Decision{}},
 	}
