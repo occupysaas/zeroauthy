@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -100,13 +101,20 @@ var errNoConnection = errors.New("login: no enabled connection")
 // connection picks the requested connection, or the first database
 // connection (by name) enabled for the client.
 func (h *Handlers) connection(ctx context.Context, tenantID string, txn *store.AuthTransaction) (*store.Connection, error) {
+	client, err := h.Store.Clients().Get(ctx, tenantID, txn.ClientID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, errNoConnection
+	}
+	if err != nil {
+		return nil, err
+	}
 	conns, err := h.Store.Connections().List(ctx, tenantID)
 	if err != nil {
 		return nil, err
 	}
 	want := txn.Params["connection"]
 	for _, c := range conns {
-		if c.Strategy != store.StrategyDatabase || !slices.Contains(c.EnabledClients, txn.ClientID) {
+		if c.Strategy != store.StrategyDatabase || !access.ConnectionUsable(client, c) {
 			continue
 		}
 		if want == "" || c.Name == want {

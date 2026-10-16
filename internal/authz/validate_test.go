@@ -3,6 +3,7 @@ package authz
 import (
 	"context"
 	"net/url"
+	"reflect"
 	"testing"
 )
 
@@ -139,7 +140,7 @@ func TestDefaultAudience(t *testing.T) {
 
 func TestRequestParamsRoundTrip(t *testing.T) {
 	req := ParseRequest(with(goodQuery(), "nonce", "n", "max_age", "60", "login_hint", "a@b.test"))
-	if got := RequestFromParams(req.Params()); got != req {
+	if got := RequestFromParams(req.Params()); !reflect.DeepEqual(got, req) {
 		t.Fatalf("round trip:\n got %+v\nwant %+v", got, req)
 	}
 }

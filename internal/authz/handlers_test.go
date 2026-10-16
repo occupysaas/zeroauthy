@@ -13,6 +13,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/testutil/contract"
 )
@@ -299,5 +300,173 @@ func TestErrorPageAndFormPostAreLocalized(t *testing.T) {
 	rec = e.get(t, with(goodQuery(), "response_mode", "form_post", "ui_locales", "fr"), ck)
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Poursuivre") || !strings.Contains(rec.Body.String(), `lang="fr"`) {
 		t.Fatalf("form_post = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func partnerQuery() url.Values {
+	q := url.Values{
+		"client_id": {"partner"}, "redirect_uri": {"https://partner.example/cb"}, "response_type": {"code"},
+		"scope": {"read:things"}, "audience": {"https://api.acme.test"}, "state": {"st"},
+		"code_challenge": {strings.Repeat("a", 43)}, "code_challenge_method": {"S256"},
+	}
+	return q
+}
+
+func (e *env) grantConsent(t *testing.T, clientID, audience string, scopes ...string) {
+	t.Helper()
+	u, err := e.st.Users().FindByLogin(context.Background(), e.tenant.ID, "Username-Password-Authentication", "alice@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.st.UserGrants().Upsert(context.Background(), &store.UserGrant{
+		TenantID: e.tenant.ID, ID: "ugr_test", ClientID: clientID, UserID: u.UserID, Audience: audience,
+		Scopes: scopes, CreatedAt: fixedNow(), UpdatedAt: fixedNow(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// loginOn starts a session for alice through the named connection; Start
+// does not check identities.
+func (e *env) loginOn(t *testing.T, connection string, authTime time.Time) *http.Cookie {
+	t.Helper()
+	u, err := e.st.Users().FindByLogin(context.Background(), e.tenant.ID, "Username-Password-Authentication", "alice@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	if _, err := e.h.Sessions.Start(context.Background(), rec, httptest.NewRequest("GET", "/", nil), e.tenant, u.UserID, connection, authTime); err != nil {
+		t.Fatal(err)
+	}
+	return rec.Result().Cookies()[0]
+}
+
+func TestThirdPartyGoesToConsent(t *testing.T) {
+	e := newEnv(t)
+	rec := e.get(t, partnerQuery(), e.login(t, fixedNow()))
+	loc := location(t, rec)
+	if loc.Path != "/u/consent" || loc.Query().Get("state") == "" {
+		t.Fatalf("Location = %s", loc)
+	}
+}
+
+func TestThirdPartyConsentCoveredIssuesCode(t *testing.T) {
+	e := newEnv(t)
+	e.grantConsent(t, "partner", "https://api.acme.test", "read:things")
+	loc := location(t, e.get(t, partnerQuery(), e.login(t, fixedNow())))
+	if loc.Host != "partner.example" || loc.Query().Get("code") == "" {
+		t.Fatalf("Location = %s", loc)
+	}
+}
+
+func TestPromptNoneConsentRequired(t *testing.T) {
+	e := newEnv(t)
+	// partner-open redirects errors (allow_always); partner would show a page.
+	q := url.Values{"client_id": {"partner-open"}, "redirect_uri": {"https://open.example/cb"}, "response_type": {"code"},
+		"audience": {"https://api.acme.test"}, "scope": {"read:things"}, "state": {"st"}, "prompt": {"none"}}
+	loc := location(t, e.get(t, q, e.login(t, fixedNow())))
+	if got := loc.Query().Get("error"); got != "consent_required" { // O5
+		t.Fatalf("error = %q (%s)", got, loc)
+	}
+}
+
+func TestProtectedClientErrorsArePages(t *testing.T) {
+	e := newEnv(t)
+	for name, q := range map[string]url.Values{
+		"prompt=none, consent needed": func() url.Values { q := partnerQuery(); q.Set("prompt", "none"); return q }(),
+		"no audience (strict)":        func() url.Values { q := partnerQuery(); q.Del("audience"); return q }(),
+	} {
+		rec := e.get(t, q, e.login(t, fixedNow()))
+		if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" {
+			t.Errorf("%s: status %d Location %q", name, rec.Code, rec.Header().Get("Location"))
+		}
+	}
+	q := partnerQuery()
+	q.Set("prompt", "none")
+	if rec := e.get(t, q); rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" { // no session: login_required as a page
+		t.Errorf("no session: status %d Location %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+func TestStrictRejectsParameters(t *testing.T) {
+	e := newEnv(t)
+	for _, p := range []string{"request_uri", "request", "id_token_hint", "claims", "login_ticket", "screen_hint"} {
+		q := partnerQuery()
+		q.Set(p, "x")
+		// A protected client's errors are pages (D-0027), never redirects.
+		rec := e.get(t, q)
+		if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" || !strings.Contains(rec.Body.String(), p+" is not supported") {
+			t.Errorf("%s: status %d Location %q", p, rec.Code, rec.Header().Get("Location"))
+		}
+	}
+}
+
+func TestStrictRequiresPKCE(t *testing.T) {
+	e := newEnv(t)
+	q := partnerQuery()
+	q.Del("code_challenge")
+	q.Del("code_challenge_method")
+	rec := e.get(t, q)
+	if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" || !strings.Contains(rec.Body.String(), "must use PKCE") {
+		t.Fatalf("status %d Location %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+func TestDenyAllUnderProtectionShowsErrorPage(t *testing.T) {
+	e := newEnv(t)
+	q := partnerQuery()
+	q.Set("audience", "https://locked.acme.test")
+	rec := e.get(t, q, e.login(t, fixedNow()))
+	if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" {
+		t.Fatalf("status %d Location %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+func TestDenyAllAllowAlwaysRedirects(t *testing.T) {
+	e := newEnv(t)
+	q := url.Values{"client_id": {"partner-open"}, "redirect_uri": {"https://open.example/cb"}, "response_type": {"code"},
+		"audience": {"https://locked.acme.test"}, "state": {"st"}}
+	loc := location(t, e.get(t, q, e.login(t, fixedNow())))
+	if loc.Host != "open.example" || loc.Query().Get("error") != "invalid_request" { // O7
+		t.Fatalf("Location = %s", loc)
+	}
+}
+
+func TestLocalhostConfirmation(t *testing.T) {
+	e := newEnv(t)
+	q := url.Values{"client_id": {"local"}, "redirect_uri": {"http://localhost:5000/cb"}, "response_type": {"code"},
+		"state": {"st"}, "code_challenge": {strings.Repeat("a", 43)}, "code_challenge_method": {"S256"}}
+	loc := location(t, e.get(t, q, e.login(t, fixedNow())))
+	if loc.Path != "/u/consent" {
+		t.Fatalf("Location = %s", loc)
+	}
+	q.Set("prompt", "none")
+	loc = location(t, e.get(t, q, e.login(t, fixedNow())))
+	if loc.Query().Get("error") != "consent_required" { // O5
+		t.Fatalf("Location = %s", loc)
+	}
+}
+
+func TestPromptConsentSurvivesLogin(t *testing.T) {
+	e := newEnv(t)
+	q := goodQuery()
+	q.Set("prompt", "login consent")
+	loc := location(t, e.get(t, q))
+	txn, err := e.st.AuthTransactions().Get(context.Background(), e.tenant.ID, loc.Query().Get("state"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if txn.Params["prompt"] != "consent" {
+		t.Fatalf("prompt kept in transaction = %q, want consent", txn.Params["prompt"])
+	}
+}
+
+func TestThirdPartySessionOnNonDomainConnectionLogsInAgain(t *testing.T) {
+	e := newEnv(t)
+	e.grantConsent(t, "partner", "https://api.acme.test", "read:things")
+	cookie := e.loginOn(t, "Other-DB", fixedNow()) // a session through a non-domain connection
+	loc := location(t, e.get(t, partnerQuery(), cookie))
+	if loc.Path != "/u/login" {
+		t.Fatalf("Location = %s", loc)
 	}
 }

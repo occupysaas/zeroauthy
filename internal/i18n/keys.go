@@ -21,6 +21,7 @@ const (
 	KeyErrSignupDisabled      = "zeroauthy.error.signup-disabled"
 	KeyErrServer              = "zeroauthy.error.server-error"
 	KeyErrInvalidRequest      = "zeroauthy.error.invalid-request"
+	KeyErrAccessDenied        = "zeroauthy.error.access-denied"
 	KeyErrLogoutUnknownClient = "zeroauthy.error.logout-unknown-client"
 	KeyErrLogoutURL           = "zeroauthy.error.logout-url-not-allowed"
 	KeyEmailResetSubject      = "zeroauthy.email-reset-password.subject"

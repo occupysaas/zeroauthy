@@ -16,3 +16,7 @@ func errUnsupportedResponseType(d string) *Error {
 }
 func errLoginRequired() *Error { return &Error{"login_required", "the user must log in"} }
 func errServer() *Error        { return &Error{"server_error", "internal error"} }
+
+func errUserDeclined() *Error {
+	return &Error{"access_denied", "the user did not authorize the request"}
+}

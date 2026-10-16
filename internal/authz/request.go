@@ -27,7 +27,16 @@ type Request struct {
 	Organization        string
 	Invitation          string
 	UILocales           string
+	// Present lists which strictUnsupported parameters the request carried.
+	// It is not part of Params(): a request that carries any of these never
+	// reaches a transaction for a strict client.
+	Present []string
 }
+
+// strictUnsupported are /authorize parameters that strict third-party
+// applications may not send (D-0025). Organization and invitation are
+// refused for every client until Organizations exist.
+var strictUnsupported = []string{"claims", "id_token_hint", "login_ticket", "request", "request_uri", "screen_hint"}
 
 // paramNames maps query parameter names to Request fields; it drives
 // parsing and the transaction round trip.
@@ -84,6 +93,11 @@ func ParseRequest(q url.Values) Request {
 	var r Request
 	for _, name := range paramNames {
 		*r.field(name) = q.Get(name)
+	}
+	for _, n := range strictUnsupported {
+		if q.Has(n) {
+			r.Present = append(r.Present, n)
+		}
 	}
 	return r
 }

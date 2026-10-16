@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -80,6 +81,14 @@ func validate(ctx context.Context, st store.Store, t *store.Tenant, req *Request
 	case req.CodeChallenge == "" && client.TokenEndpointAuthMethod == store.AuthMethodNone:
 		return client, errInvalidRequest("public applications must use PKCE (code_challenge)"), true
 	}
+	if access.Strict(client) {
+		if len(req.Present) > 0 {
+			return client, errInvalidRequest(req.Present[0] + " is not supported for this application"), true
+		}
+		if req.CodeChallenge == "" {
+			return client, errInvalidRequest("this application must use PKCE (code_challenge)"), true
+		}
+	}
 
 	if req.MaxAge != "" {
 		if n, err := strconv.Atoi(req.MaxAge); err != nil || n < 0 {
@@ -109,7 +118,7 @@ func validate(ctx context.Context, st store.Store, t *store.Tenant, req *Request
 
 	if req.Connection != "" {
 		conn, err := st.Connections().GetByName(ctx, t.ID, req.Connection)
-		if errors.Is(err, store.ErrNotFound) || (err == nil && !slices.Contains(conn.EnabledClients, client.ClientID)) {
+		if errors.Is(err, store.ErrNotFound) || (err == nil && !access.ConnectionUsable(client, conn)) {
 			return client, errInvalidRequest("connection is not enabled for this application"), true
 		} else if err != nil {
 			return client, errServer(), true
