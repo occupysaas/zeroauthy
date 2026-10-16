@@ -136,7 +136,7 @@ tenants:
   - name: acme
     domains: [acme.example.test]
     resource_servers:
-      - {identifier: "https://api.acme.test", name: API, scopes: [{value: "read:things"}]}
+      - {identifier: "https://api.acme.test", skip_consent_for_verifiable_first_party_clients: true, name: API, scopes: [{value: "read:things"}]}
     clients:
       - {client_id: m2m, app_type: non_interactive, client_secret: m2m-secret, grant_types: [client_credentials]}
     client_grants:

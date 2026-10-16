@@ -28,7 +28,7 @@ tenants:
   - name: flow
     domains: ["HOST"]
     resource_servers:
-      - {identifier: "https://api.flow.test", name: API, allow_offline_access: true, scopes: [{value: "read:things"}]}
+      - {identifier: "https://api.flow.test", skip_consent_for_verifiable_first_party_clients: true, name: API, allow_offline_access: true, scopes: [{value: "read:things"}]}
     clients:
       - client_id: spa
         app_type: spa

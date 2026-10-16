@@ -59,6 +59,8 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
 		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
 		tn.DefaultDirectory = in.DefaultDirectory
+		tn.SkipNonVerifiableCallbackURIConfirmationPrompt = in.SkipNonVerifiableCallbackURIConfirmationPrompt
+		tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
 		if err := st.Tenants().Create(ctx, tn); err != nil {
 			return err
 		}
@@ -72,6 +74,8 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
 		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
 		tn.DefaultDirectory = in.DefaultDirectory
+		tn.SkipNonVerifiableCallbackURIConfirmationPrompt = in.SkipNonVerifiableCallbackURIConfirmationPrompt
+		tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
 		if err := st.Tenants().Update(ctx, tn); err != nil {
 			return err
 		}
@@ -120,6 +124,8 @@ func applyResourceServer(ctx context.Context, st store.Store, tenantID string, i
 	}
 	rs.Name, rs.Scopes, rs.SigningAlg = in.Name, scopes, "RS256"
 	rs.TokenLifetime, rs.AllowOfflineAccess = in.TokenLifetime, in.AllowOfflineAccess
+	rs.SkipConsentForVerifiableFirstPartyClients = *in.SkipConsentForVerifiableFirstPartyClients
+	rs.SubjectTypeAuthorization = store.SubjectTypeAuthorization{User: in.SubjectTypeAuthorization.User.Policy, Client: in.SubjectTypeAuthorization.Client.Policy}
 	if create {
 		return st.ResourceServers().Create(ctx, rs)
 	}
@@ -134,6 +140,16 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	}
 	if create {
 		c = &store.Client{TenantID: tenantID, ClientID: in.ClientID, CreatedAt: now}
+	}
+	if !create && (c.IsFirstParty != *in.IsFirstParty || c.ThirdPartySecurityMode != in.ThirdPartySecurityMode) {
+		return errors.New("is_first_party and third_party_security_mode cannot change after creation; use a new client_id")
+	}
+	c.IsFirstParty, c.ThirdPartySecurityMode = *in.IsFirstParty, in.ThirdPartySecurityMode
+	c.RedirectionPolicy = in.RedirectionPolicy
+	c.SkipNonVerifiableCallbackURIConfirmationPrompt = nil
+	if p := in.SkipNonVerifiableCallbackURIConfirmationPrompt; p != nil {
+		v := *p
+		c.SkipNonVerifiableCallbackURIConfirmationPrompt = &v
 	}
 	c.Name, c.AppType = in.Name, store.AppType(in.AppType)
 	c.TokenEndpointAuthMethod = in.TokenEndpointAuthMethod
@@ -175,13 +191,13 @@ func secretMatches(existing []store.ClientSecret, plaintext string) bool {
 }
 
 func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in ClientGrant, now time.Time) error {
-	g, err := st.ClientGrants().Find(ctx, tenantID, in.ClientID, in.Audience, store.SubjectTypeClient)
+	g, err := st.ClientGrants().Find(ctx, tenantID, in.ClientID, in.Audience, in.SubjectType)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		return st.ClientGrants().Create(ctx, &store.ClientGrant{
 			TenantID: tenantID, ID: "cgr_" + secrets.RandomString(24),
 			ClientID: in.ClientID, Audience: in.Audience, Scopes: slices.Clone(in.Scopes),
-			SubjectType: store.SubjectTypeClient, CreatedAt: now,
+			SubjectType: in.SubjectType, CreatedAt: now,
 		})
 	case err != nil:
 		return err
@@ -201,6 +217,7 @@ func applyConnection(ctx context.Context, st store.Store, tenantID string, in Co
 		c = &store.Connection{TenantID: tenantID, ID: "con_" + secrets.RandomString(16), Name: in.Name, CreatedAt: now}
 	}
 	c.Strategy = in.Strategy
+	c.IsDomainConnection = in.IsDomainConnection
 	c.EnabledClients = slices.Clone(in.EnabledClients)
 	c.DisableSignup, c.RequiresUsername = in.DisableSignup, in.RequiresUsername
 	c.PasswordPolicy = store.PasswordPolicy{MinLength: in.PasswordPolicy.MinLength, RequireCharacterClasses: in.PasswordPolicy.RequireCharacterClasses}

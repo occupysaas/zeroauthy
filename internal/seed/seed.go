@@ -33,6 +33,9 @@ type Tenant struct {
 	Users               []User           `yaml:"users"`
 	EnabledLocales      []string         `yaml:"enabled_locales"`
 	CustomText          store.CustomText `yaml:"custom_text"`
+
+	SkipNonVerifiableCallbackURIConfirmationPrompt bool `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
+	UseScopeDescriptionsForConsent                 bool `yaml:"use_scope_descriptions_for_consent"`
 }
 
 type ResourceServer struct {
@@ -41,6 +44,19 @@ type ResourceServer struct {
 	Scopes             []Scope `yaml:"scopes"`
 	TokenLifetime      int     `yaml:"token_lifetime"`
 	AllowOfflineAccess bool    `yaml:"allow_offline_access"`
+
+	SkipConsentForVerifiableFirstPartyClients *bool                    `yaml:"skip_consent_for_verifiable_first_party_clients"`
+	SubjectTypeAuthorization                  SubjectTypeAuthorization `yaml:"subject_type_authorization"`
+}
+
+// SubjectTypeAuthorization is Auth0's API access policy object.
+type SubjectTypeAuthorization struct {
+	User   AccessPolicy `yaml:"user"`
+	Client AccessPolicy `yaml:"client"`
+}
+
+type AccessPolicy struct {
+	Policy string `yaml:"policy"`
 }
 
 type Scope struct {
@@ -63,6 +79,11 @@ type Client struct {
 	AllowedOrigins          []string     `yaml:"allowed_origins"`
 	IDTokenLifetime         int          `yaml:"id_token_lifetime"`
 	RefreshToken            RefreshToken `yaml:"refresh_token"`
+
+	IsFirstParty                                   *bool  `yaml:"is_first_party"`
+	ThirdPartySecurityMode                         string `yaml:"third_party_security_mode"`
+	RedirectionPolicy                              string `yaml:"redirection_policy"`
+	SkipNonVerifiableCallbackURIConfirmationPrompt *bool  `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 }
 
 // RefreshToken is a client's refresh-token policy. Values follow Auth0's
@@ -79,6 +100,8 @@ type ClientGrant struct {
 	ClientID string   `yaml:"client_id"`
 	Audience string   `yaml:"audience"`
 	Scopes   []string `yaml:"scopes"`
+
+	SubjectType string `yaml:"subject_type"`
 }
 
 // Load reads and validates a seed file.
@@ -128,6 +151,8 @@ type Connection struct {
 	// Configuration is plaintext in the seed file and sealed when applied.
 	Configuration         map[string]string `yaml:"configuration"`
 	SetUserRootAttributes string            `yaml:"set_user_root_attributes"`
+
+	IsDomainConnection bool `yaml:"is_domain_connection"`
 }
 
 type PasswordPolicy struct {

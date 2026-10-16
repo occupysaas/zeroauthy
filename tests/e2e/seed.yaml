@@ -13,6 +13,7 @@ tenants:
     default_directory: Username-Password-Authentication
     resource_servers:
       - identifier: https://api.e2e.local
+        skip_consent_for_verifiable_first_party_clients: true
         name: E2E API
         token_lifetime: 3600
         allow_offline_access: true

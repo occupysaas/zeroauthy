@@ -25,7 +25,7 @@ tenants:
           form-post:
             buttonText: "Poursuivre"
     resource_servers:
-      - {identifier: "https://api.acme.test", name: API, scopes: [{value: "read:things"}]}
+      - {identifier: "https://api.acme.test", skip_consent_for_verifiable_first_party_clients: true, name: API, scopes: [{value: "read:things"}]}
     clients:
       - client_id: spa
         app_type: spa

@@ -30,7 +30,7 @@ const testSeed = `
 tenants:
   - name: acme
     domains: [acme.example.test]
-    resource_servers: [{identifier: "https://api.acme.test", scopes: [{value: "read:things"}]}]
+    resource_servers: [{identifier: "https://api.acme.test", skip_consent_for_verifiable_first_party_clients: true, scopes: [{value: "read:things"}]}]
     clients: [{client_id: m2m, app_type: non_interactive, client_secret: s3cret, grant_types: [client_credentials]}]
     client_grants: [{client_id: m2m, audience: "https://api.acme.test", scopes: ["read:things"]}]
 `

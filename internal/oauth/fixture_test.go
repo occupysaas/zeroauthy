@@ -28,11 +28,13 @@ tenants:
     default_directory: Username-Password-Authentication
     resource_servers:
       - identifier: https://api.acme.test
+        skip_consent_for_verifiable_first_party_clients: true
         name: Acme API
         token_lifetime: 3600
         allow_offline_access: true
         scopes: [{value: "read:things"}, {value: "write:things"}]
       - identifier: https://billing.acme.test
+        skip_consent_for_verifiable_first_party_clients: true
         name: Billing
         scopes: [{value: "read:invoices"}]
     clients:
@@ -74,7 +76,7 @@ tenants:
   - name: globex
     domains: [globex.example.test]
     resource_servers:
-      - {identifier: https://api.globex.test, name: Globex API, scopes: [{value: "read:things"}]}
+      - {identifier: https://api.globex.test, skip_consent_for_verifiable_first_party_clients: true, name: Globex API, scopes: [{value: "read:things"}]}
     clients:
       - {client_id: globex-m2m, app_type: non_interactive, client_secret: globex-secret, grant_types: [client_credentials]}
     client_grants:

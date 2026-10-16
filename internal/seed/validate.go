@@ -54,6 +54,10 @@ var authMethods = []string{
 	store.AuthMethodNone, store.AuthMethodClientSecretPost, store.AuthMethodClientSecretBasic,
 }
 
+// strictGrantTypes are the only grant types a strict third-party
+// application may use.
+var strictGrantTypes = []string{"authorization_code", "refresh_token", "client_credentials"}
+
 // defaultAuthMethod picks a method when the seed omits one. Browser and
 // native apps cannot keep secrets, so they are public clients.
 func defaultAuthMethod(appType string) string {
@@ -132,9 +136,27 @@ func (t *Tenant) validate() []error {
 			fail("duplicate resource server %q", rs.Identifier)
 		}
 		apis[rs.Identifier] = rs
+		if rs.SkipConsentForVerifiableFirstPartyClients == nil {
+			skip := false // O1a: Auth0's default for new APIs (D-0026)
+			rs.SkipConsentForVerifiableFirstPartyClients = &skip
+		}
+		sta := &rs.SubjectTypeAuthorization
+		if sta.User.Policy == "" {
+			sta.User.Policy = store.PolicyAllowAll
+		}
+		if sta.Client.Policy == "" {
+			sta.Client.Policy = store.PolicyRequireClientGrant
+		}
+		if !slices.Contains([]string{store.PolicyAllowAll, store.PolicyRequireClientGrant, store.PolicyDenyAll}, sta.User.Policy) {
+			fail("resource server %q: subject_type_authorization.user.policy %q must be allow_all, require_client_grant or deny_all", rs.Identifier, sta.User.Policy)
+		}
+		if !slices.Contains([]string{store.PolicyRequireClientGrant, store.PolicyDenyAll}, sta.Client.Policy) {
+			fail("resource server %q: subject_type_authorization.client.policy %q must be require_client_grant or deny_all", rs.Identifier, sta.Client.Policy)
+		}
 	}
 
 	clients := map[string]bool{}
+	thirdParty := map[string]bool{}
 	for i := range t.Clients {
 		c := &t.Clients[i]
 		if c.ClientID == "" {
@@ -178,6 +200,43 @@ func (t *Tenant) validate() []error {
 		if !public && c.ClientSecret == "" {
 			fail("client %q: client_secret is required for %s", c.ClientID, c.TokenEndpointAuthMethod)
 		}
+		firstParty := c.IsFirstParty == nil || *c.IsFirstParty
+		c.IsFirstParty = &firstParty
+		thirdParty[c.ClientID] = !firstParty
+		switch {
+		case firstParty && c.ThirdPartySecurityMode != "":
+			fail("client %q: third_party_security_mode is only for third-party applications", c.ClientID)
+		case !firstParty && c.ThirdPartySecurityMode == "":
+			c.ThirdPartySecurityMode = store.SecurityModeStrict // O1c
+		}
+		if !firstParty && c.ThirdPartySecurityMode != store.SecurityModeStrict && c.ThirdPartySecurityMode != store.SecurityModePermissive {
+			fail("client %q: third_party_security_mode %q must be strict or permissive", c.ClientID, c.ThirdPartySecurityMode)
+		}
+		if c.RedirectionPolicy == "" {
+			c.RedirectionPolicy = store.RedirectionPolicyAllowAlways // O1d
+			if !firstParty {
+				c.RedirectionPolicy = store.RedirectionPolicyOpenRedirectProtection
+			}
+		}
+		if c.RedirectionPolicy != store.RedirectionPolicyAllowAlways && c.RedirectionPolicy != store.RedirectionPolicyOpenRedirectProtection {
+			fail("client %q: redirection_policy %q must be %s or %s", c.ClientID, c.RedirectionPolicy,
+				store.RedirectionPolicyOpenRedirectProtection, store.RedirectionPolicyAllowAlways)
+		}
+		strict := !firstParty && c.ThirdPartySecurityMode == store.SecurityModeStrict
+		for _, gt := range c.GrantTypes {
+			switch {
+			case !firstParty && (gt == "password" || gt == "http://auth0.com/oauth/grant-type/password-realm"):
+				fail("client %q: grant type %q is not available to third-party applications", c.ClientID, gt)
+			case strict && !slices.Contains(strictGrantTypes, gt):
+				fail("client %q: grant type %q is not available to strict third-party applications", c.ClientID, gt)
+			}
+		}
+		if strict && slices.Contains(c.GrantTypes, "client_credentials") && c.TokenEndpointAuthMethod == store.AuthMethodNone {
+			fail("client %q: client_credentials requires a confidential client", c.ClientID)
+		}
+		if strict && store.AppType(c.AppType) == store.AppTypeNative && c.RefreshToken.RotationType == "" {
+			c.RefreshToken.RotationType = "rotating" // strict default for native apps
+		}
 		rt := &c.RefreshToken
 		if rt.RotationType == "" {
 			rt.RotationType = "non-rotating"
@@ -201,6 +260,9 @@ func (t *Tenant) validate() []error {
 		case store.AppType(c.AppType) == store.AppTypeSPA && rt.ExpirationType != "expiring":
 			fail("client %q: single-page applications require expiring refresh tokens", c.ClientID)
 		}
+		if strict && rt.ExpirationType != "expiring" {
+			fail("client %q: strict third-party applications require expiring refresh tokens", c.ClientID)
+		}
 		if rt.Leeway < 0 || rt.TokenLifetime < 0 || rt.IdleTokenLifetime < 0 {
 			fail("client %q: refresh_token leeway and lifetimes must not be negative", c.ClientID)
 		}
@@ -209,8 +271,15 @@ func (t *Tenant) validate() []error {
 		}
 	}
 
-	seenGrants := map[[2]string]bool{}
-	for _, g := range t.ClientGrants {
+	seenGrants := map[[3]string]bool{}
+	for i := range t.ClientGrants {
+		g := &t.ClientGrants[i]
+		if g.SubjectType == "" {
+			g.SubjectType = store.SubjectTypeClient // O1e
+		}
+		if g.SubjectType != store.SubjectTypeClient && g.SubjectType != store.SubjectTypeUser {
+			fail("client grant %q → %q: subject_type %q must be client or user", g.ClientID, g.Audience, g.SubjectType)
+		}
 		if !clients[g.ClientID] {
 			fail("client grant references unknown client %q", g.ClientID)
 		}
@@ -219,9 +288,9 @@ func (t *Tenant) validate() []error {
 			fail("client grant references unknown audience %q", g.Audience)
 			continue
 		}
-		k := [2]string{g.ClientID, g.Audience}
+		k := [3]string{g.ClientID, g.Audience, g.SubjectType}
 		if seenGrants[k] {
-			fail("duplicate client grant %q → %q", g.ClientID, g.Audience)
+			fail("duplicate client grant %q → %q (%s)", g.ClientID, g.Audience, g.SubjectType)
 		}
 		seenGrants[k] = true
 		for _, s := range g.Scopes {
@@ -258,8 +327,13 @@ func (t *Tenant) validate() []error {
 			fail("connection %q: strategy %q is not supported (only %q)", c.Name, c.Strategy, store.StrategyDatabase)
 		}
 		for _, id := range c.EnabledClients {
-			if !clients[id] {
+			switch {
+			case !clients[id]:
 				fail("connection %q: unknown client %q", c.Name, id)
+			case thirdParty[id]:
+				// Auth0 refuses this (observations/consent.md): third-party
+				// applications reach connections only at the domain level.
+				fail("connection %q: third-party application %q cannot be enabled on a connection; use is_domain_connection", c.Name, id)
 			}
 		}
 		if p := c.PasswordPolicy; p.MinLength < 0 || p.RequireCharacterClasses < 0 || p.RequireCharacterClasses > 4 {

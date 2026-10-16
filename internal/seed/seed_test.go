@@ -131,44 +131,56 @@ func TestApplyIsIdempotent(t *testing.T) {
 
 func TestValidation(t *testing.T) {
 	cases := map[string]struct{ yaml, want string }{
-		"bad callback escape":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://a.test/cb%zz"]}]}]`, "not a valid URL"},
-		"relative callback":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["/cb"]}]}]`, "absolute"},
-		"callback fragment":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://a.test/cb#x"]}]}]`, "fragment"},
-		"https without host":    {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https:/cb"]}]}]`, "no host"},
-		"bad logout url":        {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, allowed_logout_urls: ["https://a.test/%zz"]}]}]`, "not a valid URL"},
-		"bad locale":            {`tenants: [{name: a, enabled_locales: ["not a tag"]}]`, "not a valid language tag"},
-		"text for disabled":     {`tenants: [{name: a, custom_text: {login: {fr: {login: {title: x}}}}}]`, "not an enabled locale"},
-		"unknown text key":      {`tenants: [{name: a, custom_text: {zeroauthy: {en: {error: {nope: x}}}}}]`, "unknown key"},
-		"empty text":            {`tenants: [{name: a, custom_text: {login: {en: {login: {buttonText: }}}}}]`, "is empty"},
-		"foreign variable":      {`tenants: [{name: a, custom_text: {login: {en: {login: {title: "Hi ${userName}"}}}}}]`, "${userName}"},
-		"unknown default dir":   {`tenants: [{name: a, default_directory: Nope}]`, "default_directory"},
-		"non-db default dir":    {`tenants: [{name: a, connections: [{name: G, strategy: google-oauth2}], default_directory: G}]`, "default_directory \"G\" must be a database connection"},
-		"bad tenant logout url": {`tenants: [{name: a, allowed_logout_urls: ["bye"]}]`, "absolute"},
-		"bad rotation type":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {rotation_type: sometimes}}]}]`, "rotation_type"},
-		"bad expiration type":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {expiration_type: never}}]}]`, "expiration_type"},
-		"rotation needs expiry": {`tenants: [{name: a, clients: [{client_id: c, app_type: regular_web, client_secret: s, refresh_token: {rotation_type: rotating, expiration_type: non-expiring}}]}]`, "requires expiration_type expiring"},
-		"spa non-expiring":      {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {rotation_type: non-rotating, expiration_type: non-expiring}}]}]`, "single-page"},
-		"negative leeway":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {leeway: -1}}]}]`, "must not be negative"},
-		"idle exceeds absolute": {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {token_lifetime: 60, idle_token_lifetime: 120}}]}]`, "must not exceed"},
-		"unknown field":         {`tenants: [{name: a, domainz: [x]}]`, "domainz"},
-		"no name":               {`tenants: [{domains: [x]}]`, "name is required"},
-		"uppercase name":        {`tenants: [{name: Acme}]`, "valid DNS label"},
-		"dotted name":           {`tenants: [{name: a.b}]`, "valid DNS label"},
-		"leading hyphen name":   {`tenants: [{name: -a}]`, "valid DNS label"},
-		"long name":             {`tenants: [{name: ` + strings.Repeat("a", 64) + `}]`, "valid DNS label"},
-		"empty domain":          {`tenants: [{name: a, domains: [""]}]`, "empty domain"},
-		"dup domain across":     {`tenants: [{name: a, domains: [x.test]}, {name: b, domains: ["X.test:443"]}]`, `domain "X.test:443"`},
-		"dup domain within":     {`tenants: [{name: a, domains: [x.test, x.test.]}]`, "duplicate domain"},
-		"dup tenant":            {`tenants: [{name: a}, {name: a}]`, `duplicate tenant "a"`},
-		"bad app type":          {`tenants: [{name: a, clients: [{client_id: c, app_type: robot}]}]`, `app_type "robot"`},
-		"secret missing":        {`tenants: [{name: a, clients: [{client_id: c, app_type: non_interactive}]}]`, "client_secret is required"},
-		"secret on public":      {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, client_secret: x}]}]`, "must not have a client_secret"},
-		"grant unknown client":  {`tenants: [{name: a, resource_servers: [{identifier: "https://x"}], client_grants: [{client_id: nope, audience: "https://x"}]}]`, `unknown client "nope"`},
-		"grant unknown api":     {`tenants: [{name: a, clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://nope"}]}]`, `unknown audience "https://nope"`},
-		"grant undefined scope": {`tenants: [{name: a, resource_servers: [{identifier: "https://x", scopes: [{value: r}]}], clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://x", scopes: [w]}]}]`, `scope "w"`},
-		"wildcard over TLD":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.com/cb"]}]}]`, "wildcard"},
-		"wildcard bare label":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.localhost:3000/cb"]}]}]`, "wildcard"},
-		"wildcard empty host":   {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*./cb"]}]}]`, "wildcard"},
+		"bad callback escape":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://a.test/cb%zz"]}]}]`, "not a valid URL"},
+		"relative callback":         {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["/cb"]}]}]`, "absolute"},
+		"callback fragment":         {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://a.test/cb#x"]}]}]`, "fragment"},
+		"https without host":        {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https:/cb"]}]}]`, "no host"},
+		"bad logout url":            {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, allowed_logout_urls: ["https://a.test/%zz"]}]}]`, "not a valid URL"},
+		"bad locale":                {`tenants: [{name: a, enabled_locales: ["not a tag"]}]`, "not a valid language tag"},
+		"text for disabled":         {`tenants: [{name: a, custom_text: {login: {fr: {login: {title: x}}}}}]`, "not an enabled locale"},
+		"unknown text key":          {`tenants: [{name: a, custom_text: {zeroauthy: {en: {error: {nope: x}}}}}]`, "unknown key"},
+		"empty text":                {`tenants: [{name: a, custom_text: {login: {en: {login: {buttonText: }}}}}]`, "is empty"},
+		"foreign variable":          {`tenants: [{name: a, custom_text: {login: {en: {login: {title: "Hi ${userName}"}}}}}]`, "${userName}"},
+		"unknown default dir":       {`tenants: [{name: a, default_directory: Nope}]`, "default_directory"},
+		"non-db default dir":        {`tenants: [{name: a, connections: [{name: G, strategy: google-oauth2}], default_directory: G}]`, "default_directory \"G\" must be a database connection"},
+		"bad tenant logout url":     {`tenants: [{name: a, allowed_logout_urls: ["bye"]}]`, "absolute"},
+		"bad rotation type":         {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {rotation_type: sometimes}}]}]`, "rotation_type"},
+		"bad expiration type":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {expiration_type: never}}]}]`, "expiration_type"},
+		"rotation needs expiry":     {`tenants: [{name: a, clients: [{client_id: c, app_type: regular_web, client_secret: s, refresh_token: {rotation_type: rotating, expiration_type: non-expiring}}]}]`, "requires expiration_type expiring"},
+		"spa non-expiring":          {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {rotation_type: non-rotating, expiration_type: non-expiring}}]}]`, "single-page"},
+		"negative leeway":           {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {leeway: -1}}]}]`, "must not be negative"},
+		"idle exceeds absolute":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, refresh_token: {token_lifetime: 60, idle_token_lifetime: 120}}]}]`, "must not exceed"},
+		"first-party with mode":     {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, third_party_security_mode: strict}]}]`, `third_party_security_mode is only for third-party`},
+		"bad mode":                  {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, is_first_party: false, third_party_security_mode: loose}]}]`, `third_party_security_mode "loose"`},
+		"bad redirection policy":    {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, redirection_policy: sometimes}]}]`, `redirection_policy "sometimes"`},
+		"third-party password":      {`tenants: [{name: a, clients: [{client_id: c, app_type: regular_web, client_secret: s, is_first_party: false, third_party_security_mode: permissive, grant_types: [password]}]}]`, `grant type "password" is not available to third-party applications`},
+		"strict implicit-free list": {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, is_first_party: false, grant_types: [authorization_code, "urn:ietf:params:oauth:grant-type:device_code"]}]}]`, `not available to strict third-party applications`},
+		"strict non-expiring":       {`tenants: [{name: a, clients: [{client_id: c, app_type: regular_web, client_secret: s, is_first_party: false, grant_types: [authorization_code, refresh_token], refresh_token: {rotation_type: non-rotating, expiration_type: non-expiring}}]}]`, `strict third-party applications require expiring refresh tokens`},
+		"strict public m2m":         {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, is_first_party: false, grant_types: [client_credentials]}]}]`, `client_credentials requires a confidential client`},
+		"bad user policy":           {`tenants: [{name: a, resource_servers: [{identifier: "https://x", subject_type_authorization: {user: {policy: maybe}}}]}]`, `subject_type_authorization.user.policy "maybe"`},
+		"client allow_all":          {`tenants: [{name: a, resource_servers: [{identifier: "https://x", subject_type_authorization: {client: {policy: allow_all}}}]}]`, `subject_type_authorization.client.policy "allow_all"`},
+		"bad subject type":          {`tenants: [{name: a, resource_servers: [{identifier: "https://x"}], clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://x", subject_type: robot}]}]`, `subject_type "robot"`},
+		"third-party enabled":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, is_first_party: false, callbacks: ["https://c.test/cb"]}], connections: [{name: db, enabled_clients: [c]}]}]`, `third-party application "c" cannot be enabled on a connection; use is_domain_connection`},
+		"dup grant same subject":    {`tenants: [{name: a, resource_servers: [{identifier: "https://x"}], clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://x", subject_type: user}, {client_id: c, audience: "https://x", subject_type: user}]}]`, `duplicate client grant`},
+		"unknown field":             {`tenants: [{name: a, domainz: [x]}]`, "domainz"},
+		"no name":                   {`tenants: [{domains: [x]}]`, "name is required"},
+		"uppercase name":            {`tenants: [{name: Acme}]`, "valid DNS label"},
+		"dotted name":               {`tenants: [{name: a.b}]`, "valid DNS label"},
+		"leading hyphen name":       {`tenants: [{name: -a}]`, "valid DNS label"},
+		"long name":                 {`tenants: [{name: ` + strings.Repeat("a", 64) + `}]`, "valid DNS label"},
+		"empty domain":              {`tenants: [{name: a, domains: [""]}]`, "empty domain"},
+		"dup domain across":         {`tenants: [{name: a, domains: [x.test]}, {name: b, domains: ["X.test:443"]}]`, `domain "X.test:443"`},
+		"dup domain within":         {`tenants: [{name: a, domains: [x.test, x.test.]}]`, "duplicate domain"},
+		"dup tenant":                {`tenants: [{name: a}, {name: a}]`, `duplicate tenant "a"`},
+		"bad app type":              {`tenants: [{name: a, clients: [{client_id: c, app_type: robot}]}]`, `app_type "robot"`},
+		"secret missing":            {`tenants: [{name: a, clients: [{client_id: c, app_type: non_interactive}]}]`, "client_secret is required"},
+		"secret on public":          {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, client_secret: x}]}]`, "must not have a client_secret"},
+		"grant unknown client":      {`tenants: [{name: a, resource_servers: [{identifier: "https://x"}], client_grants: [{client_id: nope, audience: "https://x"}]}]`, `unknown client "nope"`},
+		"grant unknown api":         {`tenants: [{name: a, clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://nope"}]}]`, `unknown audience "https://nope"`},
+		"grant undefined scope":     {`tenants: [{name: a, resource_servers: [{identifier: "https://x", scopes: [{value: r}]}], clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://x", scopes: [w]}]}]`, `scope "w"`},
+		"wildcard over TLD":         {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.com/cb"]}]}]`, "wildcard"},
+		"wildcard bare label":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.localhost:3000/cb"]}]}]`, "wildcard"},
+		"wildcard empty host":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*./cb"]}]}]`, "wildcard"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -598,5 +610,99 @@ func TestCustomDatabaseValidation(t *testing.T) {
 		"    users:\n      - {connection: legacy, email: a@b.test, password: Passw0rd!x}\n"
 	if _, err := Parse([]byte(ok)); err != nil {
 		t.Errorf("import-mode users rejected: %v", err)
+	}
+}
+
+func TestApplyConsentFields(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(`
+tenants:
+  - name: a
+    skip_non_verifiable_callback_uri_confirmation_prompt: true
+    use_scope_descriptions_for_consent: true
+    resource_servers:
+      - identifier: https://x
+        skip_consent_for_verifiable_first_party_clients: false
+        subject_type_authorization: {user: {policy: require_client_grant}}
+        scopes: [{value: read}]
+    clients:
+      - {client_id: first, app_type: spa, callbacks: ["https://f.test/cb"]}
+      - {client_id: third, app_type: spa, is_first_party: false, callbacks: ["https://t.test/cb"], skip_non_verifiable_callback_uri_confirmation_prompt: false}
+      - {client_id: m2m, app_type: non_interactive, client_secret: s}
+    client_grants:
+      - {client_id: third, audience: https://x, subject_type: user, scopes: [read]}
+      - {client_id: m2m, audience: https://x, scopes: [read]}
+    connections:
+      - {name: db, is_domain_connection: true, enabled_clients: [first]}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "a")
+	if !tn.SkipNonVerifiableCallbackURIConfirmationPrompt || !tn.UseScopeDescriptionsForConsent {
+		t.Errorf("tenant flags: %+v", tn)
+	}
+	first, _ := st.Clients().Get(ctx, tn.ID, "first")
+	if !first.IsFirstParty || first.ThirdPartySecurityMode != "" || first.RedirectionPolicy != store.RedirectionPolicyAllowAlways || first.SkipNonVerifiableCallbackURIConfirmationPrompt != nil {
+		t.Errorf("first: %+v", first)
+	}
+	third, _ := st.Clients().Get(ctx, tn.ID, "third")
+	if third.IsFirstParty || third.ThirdPartySecurityMode != store.SecurityModeStrict ||
+		third.RedirectionPolicy != store.RedirectionPolicyOpenRedirectProtection ||
+		third.SkipNonVerifiableCallbackURIConfirmationPrompt == nil || *third.SkipNonVerifiableCallbackURIConfirmationPrompt {
+		t.Errorf("third: %+v", third)
+	}
+	rs, _ := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://x")
+	if rs.SkipConsentForVerifiableFirstPartyClients || rs.SubjectTypeAuthorization != (store.SubjectTypeAuthorization{User: store.PolicyRequireClientGrant, Client: store.PolicyRequireClientGrant}) {
+		t.Errorf("rs: %+v", rs)
+	}
+	if _, err := st.ClientGrants().Find(ctx, tn.ID, "third", "https://x", store.SubjectTypeUser); err != nil {
+		t.Errorf("user grant: %v", err)
+	}
+	if _, err := st.ClientGrants().Find(ctx, tn.ID, "m2m", "https://x", store.SubjectTypeClient); err != nil {
+		t.Errorf("client grant (default subject type): %v", err)
+	}
+	conn, _ := st.Connections().GetByName(ctx, tn.ID, "db")
+	if !conn.IsDomainConnection {
+		t.Errorf("connection: %+v", conn)
+	}
+}
+
+func TestApplyRefusesPartyChange(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	first, _ := Parse([]byte(`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://c.test/cb"]}]}]`))
+	if err := Apply(ctx, st, first, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	third, _ := Parse([]byte(`tenants: [{name: a, clients: [{client_id: c, app_type: spa, is_first_party: false, callbacks: ["https://c.test/cb"]}]}]`))
+	err := Apply(ctx, st, third, nil, nil)
+	if err == nil || !strings.Contains(err.Error(), "cannot change after creation") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestOmittedSkipConsentAppliesAsFalse(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(`tenants: [{name: a, resource_servers: [{identifier: "https://x"}, {identifier: "https://y", skip_consent_for_verifiable_first_party_clients: true}]}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "a")
+	x, _ := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://x")
+	y, _ := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://y")
+	if x.SkipConsentForVerifiableFirstPartyClients || !y.SkipConsentForVerifiableFirstPartyClients {
+		t.Errorf("x=%v y=%v", x.SkipConsentForVerifiableFirstPartyClients, y.SkipConsentForVerifiableFirstPartyClients)
+	}
+	if x.SubjectTypeAuthorization != (store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyRequireClientGrant}) {
+		t.Errorf("default policies: %+v", x.SubjectTypeAuthorization)
 	}
 }
