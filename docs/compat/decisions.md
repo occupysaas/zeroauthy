@@ -215,7 +215,7 @@ them. Each entry: context, sources consulted, decision, rationale.
 ## D-0017: Resource owner password grants
 
 - **Context:** Auth0 documents the `password` grant, the `http://auth0.com/oauth/grant-type/password-realm` extension (realm = connection) and the `auth0-forwarded-for` header, but not error codes beyond success.
-- **Sources:** RFC 6749 §4.3 and §5.2; https://auth0.com/docs/api/authentication/resource-owner-password-flow/get-token; OAuth 2.0 Security BCP (RFC 9700) §2.4.
+- **Sources:** RFC 6749 §4.3 and §5.2; https://auth0.com/docs/api/authentication/resource-owner-password-flow/get-token; OAuth 2.0 Security BCP (RFC 9700) §2.4. The `realm` handling on the plain `password` grant comes from @auth0/auth0-auth-js 1.16.1 (MIT): `AuthClient.getTokenByPassword` in `dist/index.js` sends `grant_type=password` with `realm`, and its type documentation says the realm picks the connection instead of the default directory. The m9 E2E test confirms the behavior on the wire.
 - **Decision:**
   - `password` honours `realm` when given (as @auth0/auth0-auth-js sends it) and behaves like the password-realm grant for that connection; otherwise it uses the tenant's `default_directory`, and without one it is `invalid_request`.
   - The connection must be a database connection enabled for the client.
