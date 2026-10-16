@@ -36,6 +36,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 | Reviewed on | Reviewed through | By | Notes |
 |---|---|---|---|
 | 2026-10-16 | 2026-10-12 (newest entry) | Claude (Plan 8 planning) | First review. Read the whole changelog page back to mid-2025 for entries that affect milestones 1–9 or later sub-projects. No entry changes a behavior zeroauthy already implements. Custom-database items are recorded below; most are later features. |
+| 2026-10-16 | 2026-10-12 (newest entry) | Claude (Plan 9 planning) | No entries since the previous review. Re-read entries on consent and third-party applications; the 2026 third-party security modes, access policies and confirmation prompt are taken from the current documentation into the Plan 9 design. |
 
 ## Relevant entries
 
@@ -53,7 +54,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 
 | Entry date | Feature, in our words | Target milestone / sub-project | Status |
 |---|---|---|---|
-| 2025-10-28 | Confirmation step for non-verifiable callback URIs; `prompt=none` limits | Milestone 10 | open |
+| 2025-10-28 | Confirmation step for non-verifiable callback URIs; `prompt=none` limits | Milestone 10 (Plan 9) | planned |
 | 2025-10-10 | Private-key-JWT client assertions must use the issuer string as `aud` | When `private_key_jwt` client auth is added | open |
 | 2025-08-11 / 2026-04-14 | Multi-resource refresh tokens (one refresh token, several APIs) | Later (refresh tokens) | open |
 | 2025-11-07 / 2026-02-10 | Session metadata, carried in back-channel logout tokens | Sub-project 2 | open |
