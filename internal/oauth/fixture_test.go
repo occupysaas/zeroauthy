@@ -37,7 +37,18 @@ tenants:
         skip_consent_for_verifiable_first_party_clients: true
         name: Billing
         scopes: [{value: "read:invoices"}]
+      - identifier: https://locked.test
+        name: Locked
+        subject_type_authorization: {user: {policy: deny_all}, client: {policy: deny_all}}
+        scopes: [{value: a}]
+      - identifier: https://granted.test
+        name: Granted
+        allow_offline_access: true
+        subject_type_authorization: {user: {policy: require_client_grant}}
+        scopes: [{value: a}, {value: b}]
     clients:
+      - {client_id: partner, app_type: regular_web, client_secret: partner-secret, is_first_party: false, third_party_security_mode: permissive, grant_types: [authorization_code, refresh_token]}
+      - {client_id: other-ropg, app_type: regular_web, client_secret: other-secret, grant_types: [password]}
       - {client_id: m2m, app_type: non_interactive, client_secret: m2m-secret, grant_types: [client_credentials]}
       - {client_id: m2m-basic, app_type: non_interactive, client_secret: "p@ss:w+rd", token_endpoint_auth_method: client_secret_basic, grant_types: [client_credentials]}
       - {client_id: web, app_type: regular_web, client_secret: web-secret, grant_types: [authorization_code]}
@@ -59,7 +70,7 @@ tenants:
         app_type: native
         grant_types: [password]
     connections:
-      - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web, rt-spa, rt-web, ropg, ropg-public]}
+      - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web, rt-spa, rt-web, ropg, ropg-public, other-ropg]}
       - {name: Other-DB, enabled_clients: [ropg]}
       - name: Legacy-DB
         enabled_clients: [ropg]
@@ -71,6 +82,8 @@ tenants:
       - {connection: Other-DB, email: bob@acme.test, password: "bob password 12"}
     client_grants:
       - {client_id: m2m, audience: https://api.acme.test, scopes: ["read:things", "write:things"]}
+      - {client_id: m2m, audience: https://locked.test, scopes: [a]}
+      - {client_id: ropg, audience: https://granted.test, subject_type: user, scopes: [a]}
       - {client_id: m2m-basic, audience: https://api.acme.test, scopes: ["read:things"]}
       - {client_id: spa, audience: https://api.acme.test, scopes: ["read:things"]}
   - name: globex

@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 	"testing"
@@ -332,5 +333,94 @@ func TestPasswordRealmGrantImport(t *testing.T) {
 	}
 	if n := len(f.scripts.Requests()); n != 1 {
 		t.Fatalf("script calls = %d, want 1", n)
+	}
+}
+
+func (f *fixture) setUserPolicy(t *testing.T, audience, policy string) {
+	t.Helper()
+	ctx := context.Background()
+	rs, err := f.st.ResourceServers().GetByIdentifier(ctx, f.tenantID(t, "acme"), audience)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rs.SubjectTypeAuthorization.User = policy
+	if err := f.st.ResourceServers().Update(ctx, rs); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (f *fixture) pwCall(t *testing.T, form url.Values) (int, map[string]any) {
+	t.Helper()
+	rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: form})
+	return rec.Code, body
+}
+
+func TestPasswordGrantDenyAll(t *testing.T) {
+	f := newFixture(t)
+	code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", "https://locked.test"))
+	if code != 400 || body["error"] != "invalid_request" {
+		t.Fatalf("got %d %v", code, body)
+	}
+}
+
+func TestPasswordGrantClientGrantCapsScopes(t *testing.T) {
+	f := newFixture(t)
+	code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", "https://granted.test", "scope", "a b"))
+	if code != 200 || body["scope"] != "a" {
+		t.Fatalf("got %d %v", code, body)
+	}
+}
+
+func TestPasswordGrantRequireClientGrantWithoutGrant(t *testing.T) {
+	f := newFixture(t)
+	code, body := f.pwCall(t, pw("other-ropg", "other-secret", "alice@acme.test", "alice password 1", "audience", "https://granted.test"))
+	if code != 400 || body["error"] != "invalid_request" {
+		t.Fatalf("got %d %v", code, body)
+	}
+}
+
+func TestRefreshGrantRechecksPolicy(t *testing.T) {
+	f := newFixture(t)
+	raw, _ := f.issueRefresh(t, "ropg", []string{"a", "offline_access"}, "https://granted.test")
+	if code, body := f.refresh(t, refreshForm("ropg", raw, "client_secret", "ropg-secret")); code != 200 {
+		t.Fatalf("before = %d %v", code, body)
+	}
+	f.setUserPolicy(t, "https://granted.test", store.PolicyDenyAll)
+	raw, _ = f.issueRefresh(t, "ropg", []string{"a", "offline_access"}, "https://granted.test")
+	code, body := f.refresh(t, refreshForm("ropg", raw, "client_secret", "ropg-secret"))
+	if code != 400 || body["error"] != "invalid_request" {
+		t.Fatalf("got %d %v", code, body)
+	}
+}
+
+func TestPasswordGrantThirdPartyRefusedBeforeLogin(t *testing.T) {
+	var logs strings.Builder
+	f := newFixture(t)
+	f.h.Log = slog.New(slog.NewTextHandler(&logs, nil))
+	ctx := context.Background()
+	c, err := f.st.Clients().Get(ctx, f.tenantID(t, "acme"), "ropg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.IsFirstParty = false
+	c.ThirdPartySecurityMode = store.SecurityModePermissive
+	if err := f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	for range 5 {
+		code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "wrong"))
+		if code != 403 || body["error"] != "unauthorized_client" {
+			t.Fatalf("got %d %v", code, body)
+		}
+	}
+	if strings.Contains(logs.String(), "login failed") || strings.Contains(logs.String(), "password grant failed") {
+		t.Fatalf("password was checked: %s", logs.String())
+	}
+	c.IsFirstParty = true
+	if err := f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	if code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1")); code != 200 {
+		t.Fatalf("throttle was charged: %d %v", code, body)
 	}
 }

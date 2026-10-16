@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -83,6 +84,11 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	}
 	// Re-filter in case the API dropped a scope since the token was issued.
 	scopes = userScopes(scopes, rs, true)
+	d, oerr := h.decide(ctx, tenantID, access.Refresh, c, rs, scopes)
+	if oerr != nil {
+		return nil, oerr
+	}
+	scopes = d.Scopes
 	resp, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		user: user, rs: rs, lifetime: lifetime, scopes: scopes,
 		sessionID: rt.SessionID, authTime: rt.AuthTime,

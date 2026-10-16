@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -69,6 +70,9 @@ func (h *Handlers) passwordRealmGrant(ctx context.Context, res tenant.Resolved, 
 
 // resourceOwner implements RFC 6749 §4.3 against one database connection.
 func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values, connName string) (*authapi.TokenResponse, *Error) {
+	if !c.IsFirstParty {
+		return nil, unauthorizedClient("the password grant is not available to third-party applications")
+	}
 	tenantID := res.Tenant.ID
 	username, password := form.Get("username"), form.Get("password")
 	if username == "" || password == "" {
@@ -136,7 +140,11 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	if oerr != nil {
 		return nil, oerr
 	}
-	scopes := userScopes(strings.Fields(form.Get("scope")), rs, offlineAllowed(c, rs))
+	d, oerr := h.decide(ctx, tenantID, access.Password, c, rs, userScopes(strings.Fields(form.Get("scope")), rs, offlineAllowed(c, rs)))
+	if oerr != nil {
+		return nil, oerr
+	}
+	scopes := d.Scopes
 	resp, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		user: user, rs: rs, lifetime: lifetime, scopes: scopes, authTime: now, grantType: "password",
 	})

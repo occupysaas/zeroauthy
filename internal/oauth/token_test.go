@@ -168,3 +168,11 @@ func TestTokenErrors(t *testing.T) {
 		}
 	})
 }
+
+func TestClientCredentialsDenyAll(t *testing.T) {
+	f := newFixture(t)
+	rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: cc("m2m", "m2m-secret", "audience", "https://locked.test")})
+	if rec.Code != 403 || body["error"] != "access_denied" {
+		t.Fatalf("got %d %v", rec.Code, body)
+	}
+}

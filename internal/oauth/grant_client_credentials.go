@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -38,11 +39,14 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 	}
 	grant, err := h.Store.ClientGrants().Find(ctx, tenantID, c.ClientID, aud, store.SubjectTypeClient)
 	if errors.Is(err, store.ErrNotFound) {
-		return nil, accessDenied("client is not authorized for this audience")
+		grant, err = nil, nil
 	}
 	if err != nil {
 		h.log().ErrorContext(ctx, "load client grant", "tenant", tenantID, "client_id", c.ClientID, "err", err)
 		return nil, serverError()
+	}
+	if d := access.Decide(access.Input{Flow: access.ClientCredentials, Client: c, API: rs, ClientGrant: grant}); d.Err != nil {
+		return nil, accessDenied(d.Err.Description)
 	}
 	scopes, oerr := resolveScopes(form.Get("scope"), grant.Scopes, rs.Scopes)
 	if oerr != nil {
