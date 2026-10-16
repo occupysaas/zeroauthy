@@ -25,9 +25,16 @@ function lockOut(obj, name, what) {
 }
 lockOut(process, 'kill', 'process.kill');
 lockOut(process, '_kill', 'process.kill');
+// _debugProcess(pid) sends SIGUSR1 to any pid (default action: terminate).
+lockOut(process, '_debugProcess', 'process._debugProcess');
+lockOut(process, '_debugEnd', 'process._debugEnd');
 lockOut(os, 'setPriority', 'os.setPriority');
 
 const modulesDir = process.argv[2] || '';
+// The require denylist is a convenience that gives scripts clear errors. It
+// is not a control: process.getBuiltinModule (reachable via the real process)
+// bypasses it. --permission is what denies child processes, workers,
+// inspector, addons and file access.
 const denied = new Set(['child_process', 'cluster', 'worker_threads', 'inspector', 'vm', 'v8', 'module', 'repl', 'wasi', 'trace_events']);
 const hostRequire = createRequire(modulesDir ? path.join(modulesDir, 'noop.js') : import.meta.url);
 

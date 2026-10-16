@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os/exec"
 	"syscall"
 	"testing"
 	"time"
@@ -105,4 +106,60 @@ func TestRunnerCloseKillsRetiredProcess(t *testing.T) {
 		t.Fatalf("Close took %v", d)
 	}
 	waitGone(t, pid, time.Second)
+}
+
+func TestRunnerCannotSignalOtherProcesses(t *testing.T) {
+	r := newRunner(t, config.CustomDB{})
+	// A same-uid bystander with default SIGTERM/SIGUSR1 actions.
+	helper := exec.Command("sleep", "60")
+	if err := helper.Start(); err != nil {
+		t.Fatal(err)
+	}
+	exited := make(chan struct{})
+	go func() { _ = helper.Wait(); close(exited) }()
+	t.Cleanup(func() { _ = helper.Process.Kill(); <-exited })
+
+	res, err := r.Execute(context.Background(), Request{TenantID: "t1", ConnectionID: "c1", Script: "login",
+		Args: []any{helper.Process.Pid, "p"}, Source: `function login(pid, p, cb) {
+	  const out = {};
+	  const attempt = (label, f) => { try { f(); out[label] = "allowed"; } catch (err) { out[label] = "denied"; } };
+	  attempt("direct", () => process.kill(process.ppid, 0));
+	  attempt("helper", () => process.kill(pid));
+	  attempt("debug", () => process._debugProcess(pid));
+	  attempt("debugEnd", () => process._debugEnd());
+	  const real = this.constructor.constructor("return process")();
+	  attempt("escaped", () => real.kill(pid));
+	  attempt("raw", () => real._kill(pid, 15));
+	  attempt("escapedDebug", () => real._debugProcess(pid));
+	  attempt("reassigned", () => { delete real.kill; real.kill = () => true; real.kill(pid); });
+	  attempt("redefined", () => Object.defineProperty(real, "_debugProcess", { value: () => true }));
+	  attempt("priority", () => require("os").setPriority(pid, 19));
+	  attempt("escapedPriority", () => real.getBuiltinModule("os").setPriority(pid, 19));
+	  attempt("execve", () => real.execve("/bin/true", ["true"], {}));
+	  attempt("inspector", () => real.getBuiltinModule("inspector").open(0));
+	  try { real.binding("process_methods"); out.binding = "loaded"; } catch (err) { out.binding = "denied:" + err.code; }
+	  cb(null, out);
+	}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("signal probe: %s", res)
+	var out map[string]string
+	if err := json.Unmarshal(res, &out); err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range []string{"direct", "helper", "debug", "debugEnd", "escaped", "raw", "escapedDebug",
+		"reassigned", "redefined", "priority", "escapedPriority", "execve", "inspector"} {
+		if out[k] != "denied" {
+			t.Errorf("%s = %q, want denied", k, out[k])
+		}
+	}
+	if out["binding"] != "denied:ERR_ACCESS_DENIED" {
+		t.Errorf("binding = %q, want denied:ERR_ACCESS_DENIED", out["binding"])
+	}
+	select {
+	case <-exited:
+		t.Fatal("the helper process was killed by the script")
+	case <-time.After(300 * time.Millisecond):
+	}
 }

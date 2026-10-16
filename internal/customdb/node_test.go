@@ -535,40 +535,6 @@ func TestFuncExecutor(t *testing.T) {
 	var _ Executor = f
 }
 
-func TestRunnerCannotSignalOtherProcesses(t *testing.T) {
-	r := newRunner(t, config.CustomDB{})
-	res, err := execLogin(t, r, `function login(e, p, cb) {
-	  const out = {};
-	  const attempt = (label, f) => { try { f(); out[label] = "allowed"; } catch (err) { out[label] = "denied"; } };
-	  attempt("direct", () => process.kill(process.ppid, 0));
-	  const real = this.constructor.constructor("return process")();
-	  attempt("escaped", () => real.kill(real.ppid, 0));
-	  attempt("raw", () => real._kill(real.ppid, 0));
-	  attempt("reassigned", () => { delete real.kill; real.kill = () => true; real.kill(real.ppid, 0); });
-	  attempt("redefined", () => Object.defineProperty(real, "kill", { value: () => true }));
-	  attempt("priority", () => require("os").setPriority(real.ppid, 0));
-	  attempt("escapedPriority", () => real.getBuiltinModule("os").setPriority(real.ppid, 0));
-	  try { real.binding("process_methods"); out.binding = "loaded"; } catch (err) { out.binding = "denied:" + err.code; }
-	  cb(null, out);
-	}`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("signal probe: %s", res)
-	var out map[string]string
-	if err := json.Unmarshal(res, &out); err != nil {
-		t.Fatal(err)
-	}
-	for _, k := range []string{"direct", "escaped", "raw", "reassigned", "redefined", "priority", "escapedPriority"} {
-		if out[k] != "denied" {
-			t.Errorf("%s = %q, want denied", k, out[k])
-		}
-	}
-	if out["binding"] != "denied:ERR_ACCESS_DENIED" {
-		t.Errorf("binding = %q, want denied:ERR_ACCESS_DENIED", out["binding"])
-	}
-}
-
 func TestRunnerUnprintableErrors(t *testing.T) {
 	r := newRunner(t, config.CustomDB{})
 	for _, src := range []string{
