@@ -147,6 +147,8 @@ func New(d Deps) http.Handler {
 		tr.Options("/dbconnections/change_password", preflight)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)
+		tr.Get("/u/consent", lg.ConsentPage)
+		tr.Post("/u/consent", lg.ConsentSubmit)
 		tr.Get("/u/signup", lg.SignupPage)
 		tr.Post("/u/signup", lg.SignupSubmit)
 		tr.Get("/u/reset-password/request", lg.ResetRequestPage)

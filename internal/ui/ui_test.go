@@ -326,3 +326,30 @@ func TestSubtitleDependsOnClientName(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderConsent(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderConsent(rec, http.StatusOK, Tenant{Name: "Acme"}, ConsentData{
+		State: "st", CSRF: "tok", ThirdParty: true, CallbackDomain: "partner.example", APIName: "Things API",
+		Scopes: []string{"read:things", "<script>"}, RedirectURI: "https://partner.example/cb",
+	})
+	body := rec.Body.String()
+	for _, want := range []string{`name="state" value="st"`, `name="csrf" value="tok"`, `value="accept"`, `value="decline"`,
+		"read:things", "&lt;script&gt;", "partner.example", "Things API"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body lacks %q", want)
+		}
+	}
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'self' https://partner.example") {
+		t.Errorf("CSP = %q", csp)
+	}
+}
+
+func TestRenderConsentConfirmation(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderConsent(rec, http.StatusOK, Tenant{Name: "Acme"}, ConsentData{State: "st", CSRF: "tok", Confirmation: true, CallbackDomain: "localhost"})
+	body := rec.Body.String()
+	if strings.Contains(body, "<ul") || !strings.Contains(body, "localhost") {
+		t.Errorf("confirmation page: %s", body)
+	}
+}

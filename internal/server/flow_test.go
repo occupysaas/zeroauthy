@@ -29,7 +29,16 @@ tenants:
     domains: ["HOST"]
     resource_servers:
       - {identifier: "https://api.flow.test", skip_consent_for_verifiable_first_party_clients: true, name: API, allow_offline_access: true, scopes: [{value: "read:things"}]}
+    client_grants:
+      - {client_id: partner, audience: "https://api.flow.test", subject_type: user, scopes: ["read:things"]}
     clients:
+      - client_id: partner
+        app_type: regular_web
+        client_secret: partner-secret
+        is_first_party: false
+        refresh_token: {rotation_type: rotating, expiration_type: expiring}
+        grant_types: [authorization_code]
+        callbacks: ["https://partner.flow.test/cb"]
       - client_id: spa
         app_type: spa
         grant_types: [authorization_code, refresh_token]
@@ -38,7 +47,7 @@ tenants:
         web_origins: ["https://app.flow.test"]
         allowed_origins: ["https://app.flow.test"]
     connections:
-      - {name: Username-Password-Authentication, enabled_clients: [spa]}
+      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa]}
     users:
       - {connection: Username-Password-Authentication, email: alice@flow.test, password: "alice password 1", email_verified: true}
 `
@@ -302,5 +311,51 @@ func TestEndToEndRefreshAndLogout(t *testing.T) {
 		if !strings.Contains(doc, want) {
 			t.Errorf("discovery lacks %s", want)
 		}
+	}
+}
+
+func TestEndToEndConsentFlow(t *testing.T) {
+	e := newFlowEnv(t)
+	c := e.client(t)
+	post := func(path string, form url.Values) (*http.Response, string) {
+		req, _ := http.NewRequest("POST", e.base+path, strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return mustDo(t, c, req)
+	}
+	q := url.Values{"client_id": {"partner"}, "redirect_uri": {"https://partner.flow.test/cb"}, "response_type": {"code"},
+		"scope": {"openid read:things"}, "audience": {"https://api.flow.test"}, "state": {"p1"},
+		"code_challenge": {challenge}, "code_challenge_method": {"S256"}}
+
+	resp, _ := fetch(t, c, e.base+"/authorize?"+q.Encode())
+	loc, _ := resp.Location()
+	if loc == nil || loc.Path != "/u/login" {
+		t.Fatalf("authorize = %d %v", resp.StatusCode, loc)
+	}
+	_, page := fetch(t, c, loc.String())
+	csrf := csrfRe.FindStringSubmatch(page)
+	if csrf == nil {
+		t.Fatalf("no csrf: %s", page)
+	}
+	resp, body := post("/u/login", url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}})
+	loc, _ = resp.Location()
+	if loc == nil || loc.Path != "/u/consent" {
+		t.Fatalf("login = %d %v %s", resp.StatusCode, loc, body)
+	}
+	resp, page = fetch(t, c, loc.String())
+	csrf = csrfRe.FindStringSubmatch(page)
+	if resp.StatusCode != 200 || csrf == nil || !strings.Contains(page, "read:things") {
+		t.Fatalf("consent page = %d %s", resp.StatusCode, page)
+	}
+	resp, body = post("/u/consent", url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "action": {"accept"}})
+	cb, _ := resp.Location()
+	if cb == nil || cb.Host != "partner.flow.test" || cb.Query().Get("code") == "" || cb.Query().Get("state") != "p1" {
+		t.Fatalf("accept = %d %v %s", resp.StatusCode, cb, body)
+	}
+	resp, body = post("/oauth/token", url.Values{"grant_type": {"authorization_code"}, "client_id": {"partner"}, "client_secret": {"partner-secret"},
+		"code": {cb.Query().Get("code")}, "redirect_uri": {"https://partner.flow.test/cb"}, "code_verifier": {verifier}})
+	var tok map[string]any
+	_ = json.Unmarshal([]byte(body), &tok)
+	if resp.StatusCode != 200 || tok["scope"] != "read:things" || tok["id_token"] != nil {
+		t.Fatalf("token = %d %s", resp.StatusCode, body)
 	}
 }

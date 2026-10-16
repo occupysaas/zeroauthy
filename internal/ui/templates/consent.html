@@ -1,0 +1,20 @@
+{{define "doctitle"}}{{t .Tenant.L "consent.consent.pageTitle"}}{{end}}
+{{define "title"}}{{if .Data.Confirmation}}{{t .Tenant.L "zeroauthy.consent.confirmTitle"}}{{else}}{{t .Tenant.L "consent.consent.title"}}{{end}}{{end}}
+{{define "content"}}
+{{if .Data.Confirmation}}
+<p>{{t .Tenant.L "zeroauthy.consent.confirmDescription" "callbackDomain" .Data.CallbackDomain}}</p>
+{{else}}
+<p>{{t .Tenant.L "zeroauthy.consent.description"}}</p>
+{{if .Data.APIName}}<p><strong>{{.Data.APIName}}</strong></p>{{end}}
+<ul class="scopes">
+{{range .Data.Scopes}}<li>{{.}}</li>
+{{end}}</ul>
+{{if .Data.ThirdParty}}<p role="note">{{t .Tenant.L "zeroauthy.consent.externalApp" "callbackDomain" .Data.CallbackDomain}}</p>{{end}}
+{{end}}
+<form method="post" action="/u/consent">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<button type="submit" name="action" value="accept">{{if .Data.Confirmation}}{{t .Tenant.L "zeroauthy.consent.confirmButtonText"}}{{else}}{{t .Tenant.L "consent.consent.acceptButtonText"}}{{end}}</button>
+<button type="submit" name="action" value="decline" class="secondary">{{if .Data.Confirmation}}{{t .Tenant.L "zeroauthy.consent.cancelButtonText"}}{{else}}{{t .Tenant.L "consent.consent.declineButtonText"}}{{end}}</button>
+</form>
+{{end}}

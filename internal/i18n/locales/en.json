@@ -70,7 +70,23 @@
       "descriptionGeneric": "This password reset link is not valid. Request a new one."
     }
   },
+  "consent": {
+    "consent": {
+      "pageTitle": "Authorize application",
+      "title": "Allow ${clientName}?",
+      "acceptButtonText": "Allow",
+      "declineButtonText": "Deny"
+    }
+  },
   "zeroauthy": {
+    "consent": {
+      "description": "${clientName} is asking for permission to:",
+      "externalApp": "${clientName} is not operated by ${companyName}. If you allow it, you will be sent to ${callbackDomain}.",
+      "confirmTitle": "Continue to ${clientName}?",
+      "confirmDescription": "Continue only if you started this sign-in. You will be sent to ${callbackDomain}.",
+      "confirmButtonText": "Continue",
+      "cancelButtonText": "Cancel"
+    },
     "layout": {
       "logoAltText": "${companyName}"
     },

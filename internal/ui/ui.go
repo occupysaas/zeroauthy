@@ -36,6 +36,7 @@ var (
 	pages = map[string]*template.Template{
 		"login":            parsePage("templates/layout.html", "templates/login.html"),
 		"signup":           parsePage("templates/layout.html", "templates/signup.html"),
+		"consent":          parsePage("templates/layout.html", "templates/consent.html"),
 		"error":            parsePage("templates/layout.html", "templates/error.html"),
 		"logout_confirm":   parsePage("templates/layout.html", "templates/logout_confirm.html"),
 		"logged_out":       parsePage("templates/layout.html", "templates/logged_out.html"),
@@ -344,4 +345,20 @@ func RenderResetSuccess(w http.ResponseWriter, t Tenant) {
 // RenderResetError explains why a reset link cannot be used.
 func RenderResetError(w http.ResponseWriter, status int, t Tenant, d ResetErrorData) {
 	render(w, status, "reset_error", t, d, "'none'")
+}
+
+// ConsentData is the consent or confirmation page of a transaction.
+type ConsentData struct {
+	State, CSRF    string
+	Confirmation   bool
+	ThirdParty     bool
+	CallbackDomain string
+	APIName        string
+	Scopes         []string
+	RedirectURI    string // its origin is allowed as form-action
+}
+
+// RenderConsent shows the consent or confirmation page of a transaction.
+func RenderConsent(w http.ResponseWriter, status int, t Tenant, d ConsentData) {
+	render(w, status, "consent", t, d, formActionFor(d.RedirectURI))
 }

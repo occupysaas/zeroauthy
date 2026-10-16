@@ -64,9 +64,10 @@ type flow struct {
 	conn *store.Connection
 }
 
-// load validates the transaction named by state: it must exist in this
-// tenant, be unexpired, and be bound to this browser's za_txn cookie.
-func (h *Handlers) load(r *http.Request, state string) (*flow, error) {
+// loadTxn validates the transaction named by state: it must exist in this
+// tenant, be unexpired, and be bound to this browser's za_txn cookie. The
+// returned flow has no connection.
+func (h *Handlers) loadTxn(r *http.Request, state string) (*flow, error) {
 	ctx := r.Context()
 	res, ok := tenant.FromContext(ctx)
 	if !ok || state == "" {
@@ -90,9 +91,18 @@ func (h *Handlers) load(r *http.Request, state string) (*flow, error) {
 	l := i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]).WithVar("clientName", clientName)
 	f := &flow{res: res, view: ui.TenantView(res.Tenant, l), txn: txn}
 	f.view.HasClientName = named
-	// The flow is returned with the error so the error page keeps the
-	// transaction's language; conn is nil in that case.
-	f.conn, err = h.connection(ctx, res.Tenant.ID, txn)
+	return f, nil
+}
+
+// load is loadTxn plus the connection the transaction uses. The flow is
+// returned with the error so the error page keeps the transaction's
+// language; conn is nil in that case.
+func (h *Handlers) load(r *http.Request, state string) (*flow, error) {
+	f, err := h.loadTxn(r, state)
+	if err != nil {
+		return f, err
+	}
+	f.conn, err = h.connection(r.Context(), f.res.Tenant.ID, f.txn)
 	return f, err
 }
 
@@ -173,20 +183,34 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// postedFlow parses a form POST and checks its transaction and CSRF token.
-func (h *Handlers) postedFlow(w http.ResponseWriter, r *http.Request) (*flow, bool) {
+// postedTxn parses a form POST and checks its transaction and CSRF token.
+func (h *Handlers) postedTxn(w http.ResponseWriter, r *http.Request) (*flow, bool) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
 	if err := r.ParseForm(); err != nil {
 		h.fail(w, r, errTxn, nil)
 		return nil, false
 	}
-	f, err := h.load(r, r.PostForm.Get("state"))
+	f, err := h.loadTxn(r, r.PostForm.Get("state"))
 	if err != nil {
 		h.fail(w, r, err, f)
 		return nil, false
 	}
 	if subtle.ConstantTimeCompare([]byte(r.PostForm.Get("csrf")), []byte(f.txn.CSRFToken)) != 1 {
 		h.fail(w, r, errTxn, f)
+		return nil, false
+	}
+	return f, true
+}
+
+// postedFlow is postedTxn plus the transaction's connection.
+func (h *Handlers) postedFlow(w http.ResponseWriter, r *http.Request) (*flow, bool) {
+	f, ok := h.postedTxn(w, r)
+	if !ok {
+		return nil, false
+	}
+	var err error
+	if f.conn, err = h.connection(r.Context(), f.res.Tenant.ID, f.txn); err != nil {
+		h.fail(w, r, err, f)
 		return nil, false
 	}
 	return f, true

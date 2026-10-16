@@ -44,12 +44,20 @@ tenants:
           signup:
             title: "Créer un compte"
             password-policy-not-conformant: "Mot de passe trop faible."
+    resource_servers:
+      - {identifier: "https://api.acme.test", name: API, scopes: [{value: "read:things"}]}
+    client_grants:
+      - {client_id: partner, audience: "https://api.acme.test", subject_type: user, scopes: ["read:things"]}
+      - {client_id: partner-open, audience: "https://api.acme.test", subject_type: user, scopes: ["read:things"]}
     clients:
+      - {client_id: partner, app_type: regular_web, client_secret: partner-secret, is_first_party: false, refresh_token: {rotation_type: rotating, expiration_type: expiring}, grant_types: [authorization_code], callbacks: ["https://partner.example/cb"]}
+      - {client_id: partner-open, app_type: regular_web, client_secret: partner-open-secret, is_first_party: false, third_party_security_mode: permissive, redirection_policy: allow_always, grant_types: [authorization_code], callbacks: ["https://open.example/cb"]}
+      - {client_id: local, app_type: spa, grant_types: [authorization_code], callbacks: ["http://localhost:5000/cb"]}
       - {client_id: spa, app_type: spa, grant_types: [authorization_code], callbacks: ["https://app.acme.test/cb"]}
       - {client_id: closed, app_type: spa, grant_types: [authorization_code], callbacks: ["https://closed.acme.test/cb"]}
       - {client_id: legacy, app_type: spa, grant_types: [authorization_code], callbacks: ["https://legacy.acme.test/cb"]}
     connections:
-      - {name: Username-Password-Authentication, enabled_clients: [spa]}
+      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, local]}
       - {name: Invite-Only, enabled_clients: [closed], disable_signup: true}
       - name: Legacy-DB
         enabled_clients: [legacy]
@@ -127,6 +135,8 @@ func newEnv(t *testing.T) *env {
 	mux.HandleFunc("GET /authorize", az.Authorize)
 	mux.HandleFunc("GET /u/login", h.LoginPage)
 	mux.HandleFunc("POST /u/login", h.LoginSubmit)
+	mux.HandleFunc("GET /u/consent", h.ConsentPage)
+	mux.HandleFunc("POST /u/consent", h.ConsentSubmit)
 	mux.HandleFunc("GET /u/signup", h.SignupPage)
 	mux.HandleFunc("POST /u/signup", h.SignupSubmit)
 	mux.HandleFunc("GET /u/reset-password/request", h.ResetRequestPage)
