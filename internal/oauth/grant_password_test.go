@@ -180,6 +180,13 @@ func TestPasswordGrantHonoursRealm(t *testing.T) {
 	if rec.Code != 400 || viaRealm["error"] != "invalid_request" || viaPassword["error"] != viaRealm["error"] || viaPassword["error_description"] != viaRealm["error_description"] {
 		t.Fatalf("password = %v; password-realm = %d %v", viaPassword, rec.Code, viaRealm)
 	}
+	// An existing database connection that is not enabled for this client
+	// (Other-DB is enabled only for ropg) gets the same answer.
+	rec, notEnabled := f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg-public", "", "bob@acme.test", "bob password 12", "realm", "Other-DB")})
+	_, unknownRealm := f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg-public", "", "bob@acme.test", "bob password 12", "realm", "Unenabled-DB")})
+	if rec.Code != 400 || notEnabled["error"] != "invalid_request" || notEnabled["error_description"] != viaRealm["error_description"] || unknownRealm["error_description"] != viaRealm["error_description"] {
+		t.Fatalf("not enabled = %d %v; unknown = %v; want description %v", rec.Code, notEnabled, unknownRealm, viaRealm["error_description"])
+	}
 	// (c) without a realm the default directory is used.
 	if code, body := call(f, "bob@acme.test", "bob password 12", ""); code != 400 || body["error"] != "invalid_grant" {
 		t.Fatalf("no realm, bob = %d %v", code, body)

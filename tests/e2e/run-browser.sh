@@ -29,6 +29,10 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
   -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
 chmod 644 "$work/key.pem"
 
+if curl -sf -H "Authorization: Bearer e2e-legacy-token" http://127.0.0.1:8099/stats >/dev/null; then
+  echo "port 8099 is already in use by another legacy store" >&2
+  exit 1
+fi
 LEGACY_TOKEN=e2e-legacy-token node tests/e2e/legacy-store.mjs >"$work/legacy.log" 2>&1 &
 pids+=($!)
 for _ in $(seq 1 50); do
