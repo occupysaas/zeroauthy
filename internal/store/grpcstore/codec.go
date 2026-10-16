@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"time"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -89,6 +90,15 @@ func stringMapFromPB(m *storev1.StringMap) map[string]string {
 	return out
 }
 
+// cloneBool copies an optional bool so the result never aliases the input.
+func cloneBool(b *bool) *bool {
+	if b == nil {
+		return nil
+	}
+	v := *b
+	return &v
+}
+
 func cloneBytes(b []byte) []byte {
 	if b == nil {
 		return nil
@@ -144,6 +154,8 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		SessionLifetime: int64(t.SessionLifetime), IdleSessionLifetime: int64(t.IdleSessionLifetime),
 		Branding:         &storev1.Branding{LogoUrl: t.Branding.LogoURL, PrimaryColor: t.Branding.PrimaryColor},
 		DefaultDirectory: t.DefaultDirectory, CreatedAt: tsToPB(t.CreatedAt),
+		SkipNonVerifiableCallbackUriConfirmationPrompt: t.SkipNonVerifiableCallbackURIConfirmationPrompt,
+		UseScopeDescriptionsForConsent:                 t.UseScopeDescriptionsForConsent,
 	}
 	if t.CustomText != nil {
 		b, err := json.Marshal(t.CustomText)
@@ -169,6 +181,8 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		SessionLifetime: int(pb.SessionLifetime), IdleSessionLifetime: int(pb.IdleSessionLifetime),
 		Branding:         store.Branding{LogoURL: pb.GetBranding().GetLogoUrl(), PrimaryColor: pb.GetBranding().GetPrimaryColor()},
 		DefaultDirectory: pb.DefaultDirectory, CreatedAt: tsFromPB(pb.CreatedAt),
+		SkipNonVerifiableCallbackURIConfirmationPrompt: pb.SkipNonVerifiableCallbackUriConfirmationPrompt,
+		UseScopeDescriptionsForConsent:                 pb.UseScopeDescriptionsForConsent,
 	}
 	if pb.CustomTextJson != nil {
 		var ct store.CustomText
@@ -198,7 +212,10 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 			Expiring: c.RefreshToken.Expiring, TokenLifetime: int64(c.RefreshToken.TokenLifetime),
 			IdleTokenLifetime: int64(c.RefreshToken.IdleTokenLifetime),
 		},
-		CreatedAt: tsToPB(c.CreatedAt),
+		CreatedAt:    tsToPB(c.CreatedAt),
+		IsFirstParty: proto.Bool(c.IsFirstParty), ThirdPartySecurityMode: c.ThirdPartySecurityMode,
+		RedirectionPolicy: c.RedirectionPolicy,
+		SkipNonVerifiableCallbackUriConfirmationPrompt: cloneBool(c.SkipNonVerifiableCallbackURIConfirmationPrompt),
 	}
 	if c.Secrets != nil {
 		pb.Secrets = &storev1.ClientSecretList{Values: make([]*storev1.ClientSecret, 0, len(c.Secrets))}
@@ -229,7 +246,10 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 			Rotating: rt.GetRotating(), Leeway: int(rt.GetLeeway()), Expiring: rt.GetExpiring(),
 			TokenLifetime: int(rt.GetTokenLifetime()), IdleTokenLifetime: int(rt.GetIdleTokenLifetime()),
 		},
-		CreatedAt: tsFromPB(pb.CreatedAt),
+		CreatedAt:    tsFromPB(pb.CreatedAt),
+		IsFirstParty: pb.IsFirstParty == nil || *pb.IsFirstParty, ThirdPartySecurityMode: pb.ThirdPartySecurityMode,
+		RedirectionPolicy: pb.RedirectionPolicy,
+		SkipNonVerifiableCallbackURIConfirmationPrompt: cloneBool(pb.SkipNonVerifiableCallbackUriConfirmationPrompt),
 	}
 	if pb.Secrets != nil {
 		c.Secrets = make([]store.ClientSecret, 0, len(pb.Secrets.Values))
@@ -254,6 +274,8 @@ func resourceServerToPB(r *store.ResourceServer) (*storev1.ResourceServer, error
 		TenantId: r.TenantID, Id: r.ID, Identifier: r.Identifier, Name: r.Name,
 		SigningAlg: r.SigningAlg, TokenLifetime: int64(r.TokenLifetime),
 		AllowOfflineAccess: r.AllowOfflineAccess, CreatedAt: tsToPB(r.CreatedAt),
+		SkipConsentForVerifiableFirstPartyClients: proto.Bool(r.SkipConsentForVerifiableFirstPartyClients),
+		UserPolicy: r.SubjectTypeAuthorization.User, ClientPolicy: r.SubjectTypeAuthorization.Client,
 	}
 	if r.Scopes != nil {
 		pb.Scopes = &storev1.ScopeList{Values: make([]*storev1.Scope, 0, len(r.Scopes))}
@@ -275,6 +297,8 @@ func resourceServerFromPB(pb *storev1.ResourceServer) (*store.ResourceServer, er
 		TenantID: pb.TenantId, ID: pb.Id, Identifier: pb.Identifier, Name: pb.Name,
 		SigningAlg: pb.SigningAlg, TokenLifetime: int(pb.TokenLifetime),
 		AllowOfflineAccess: pb.AllowOfflineAccess, CreatedAt: tsFromPB(pb.CreatedAt),
+		SkipConsentForVerifiableFirstPartyClients: pb.SkipConsentForVerifiableFirstPartyClients == nil || *pb.SkipConsentForVerifiableFirstPartyClients,
+		SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: pb.UserPolicy, Client: pb.ClientPolicy},
 	}
 	if pb.Scopes != nil {
 		r.Scopes = make([]store.Scope, 0, len(pb.Scopes.Values))
@@ -293,7 +317,7 @@ func clientGrantToPB(g *store.ClientGrant) (*storev1.ClientGrant, error) {
 	}
 	return &storev1.ClientGrant{
 		TenantId: g.TenantID, Id: g.ID, ClientId: g.ClientID, Audience: g.Audience,
-		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt),
+		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), SubjectType: g.SubjectType,
 	}, nil
 }
 
@@ -304,9 +328,39 @@ func clientGrantFromPB(pb *storev1.ClientGrant) (*store.ClientGrant, error) {
 	if err := checkTS(pb.CreatedAt); err != nil {
 		return nil, err
 	}
+	// Plugins older than Plan 9 leave subject_type empty: a client grant.
+	subjectType := pb.SubjectType
+	if subjectType == "" {
+		subjectType = store.SubjectTypeClient
+	}
 	return &store.ClientGrant{
 		TenantID: pb.TenantId, ID: pb.Id, ClientID: pb.ClientId, Audience: pb.Audience,
-		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt),
+		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), SubjectType: subjectType,
+	}, nil
+}
+
+// ---- user grant ----
+
+func userGrantToPB(g *store.UserGrant) (*storev1.UserGrant, error) {
+	if g == nil {
+		return nil, nil
+	}
+	return &storev1.UserGrant{
+		TenantId: g.TenantID, Id: g.ID, ClientId: g.ClientID, UserId: g.UserID, Audience: g.Audience,
+		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), UpdatedAt: tsToPB(g.UpdatedAt),
+	}, nil
+}
+
+func userGrantFromPB(pb *storev1.UserGrant) (*store.UserGrant, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	if err := checkTS(pb.CreatedAt, pb.UpdatedAt); err != nil {
+		return nil, err
+	}
+	return &store.UserGrant{
+		TenantID: pb.TenantId, ID: pb.Id, ClientID: pb.ClientId, UserID: pb.UserId, Audience: pb.Audience,
+		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt),
 	}, nil
 }
 
@@ -350,6 +404,7 @@ func connectionToPB(c *store.Connection) (*storev1.Connection, error) {
 		CreatedAt:                    tsToPB(c.CreatedAt),
 		EnabledDatabaseCustomization: c.EnabledDatabaseCustomization, ImportMode: c.ImportMode,
 		CustomScripts: stringMapToPB(c.CustomScripts), SetUserRootAttributes: c.SetUserRootAttributes,
+		IsDomainConnection: c.IsDomainConnection,
 	}
 	// Empty sealed bytes normalize to absent (nil): the SQL drivers store
 	// them as NULL too.
@@ -375,6 +430,7 @@ func connectionFromPB(pb *storev1.Connection) (*store.Connection, error) {
 		CreatedAt:                    tsFromPB(pb.CreatedAt),
 		EnabledDatabaseCustomization: pb.EnabledDatabaseCustomization, ImportMode: pb.ImportMode,
 		CustomScripts: stringMapFromPB(pb.CustomScripts), SetUserRootAttributes: pb.SetUserRootAttributes,
+		IsDomainConnection: pb.IsDomainConnection,
 	}
 	if len(pb.ConfigurationSealed) > 0 {
 		c.ConfigurationSealed = cloneBytes(pb.ConfigurationSealed)

@@ -43,6 +43,11 @@ const (
 	StoreService_ClientGrantsFind_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ClientGrantsFind"
 	StoreService_ClientGrantsUpdate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientGrantsUpdate"
 	StoreService_ClientGrantsDelete_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientGrantsDelete"
+	StoreService_UserGrantsFind_FullMethodName                     = "/zeroauthy.store.v1.StoreService/UserGrantsFind"
+	StoreService_UserGrantsUpsert_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UserGrantsUpsert"
+	StoreService_UserGrantsListByUser_FullMethodName               = "/zeroauthy.store.v1.StoreService/UserGrantsListByUser"
+	StoreService_UserGrantsDelete_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UserGrantsDelete"
+	StoreService_UserGrantsDeleteByUser_FullMethodName             = "/zeroauthy.store.v1.StoreService/UserGrantsDeleteByUser"
 	StoreService_SigningKeysCreate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SigningKeysCreate"
 	StoreService_SigningKeysList_FullMethodName                    = "/zeroauthy.store.v1.StoreService/SigningKeysList"
 	StoreService_SigningKeysRotate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SigningKeysRotate"
@@ -124,6 +129,15 @@ const (
 //	null); numbers are read back as double-precision floats. An absent
 //	optional field means "nil", which is distinct from an empty object.
 //
+// Absent fields (plugins older than the consent fields)
+//
+//	Client.is_first_party absent = true; Client.skip_non_verifiable_callback_
+//	uri_confirmation_prompt absent = nil (inherit the tenant);
+//	ResourceServer.skip_consent_for_verifiable_first_party_clients absent =
+//	true; ClientGrant.subject_type empty = "client". A host sends
+//	ClientGrantsFindRequest.subject_type; a plugin that ignores it may return
+//	a grant of the other type, which the host treats as not found.
+//
 // Evolution
 //
 //	Within v1, fields are only added, never renumbered or reused. A plugin
@@ -160,6 +174,11 @@ type StoreServiceClient interface {
 	ClientGrantsFind(ctx context.Context, in *ClientGrantsFindRequest, opts ...grpc.CallOption) (*ClientGrantResult, error)
 	ClientGrantsUpdate(ctx context.Context, in *ClientGrantWrite, opts ...grpc.CallOption) (*Result, error)
 	ClientGrantsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
+	UserGrantsFind(ctx context.Context, in *UserGrantsFindRequest, opts ...grpc.CallOption) (*UserGrantResult, error)
+	UserGrantsUpsert(ctx context.Context, in *UserGrantWrite, opts ...grpc.CallOption) (*UserGrantResult, error)
+	UserGrantsListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantList, error)
+	UserGrantsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
+	UserGrantsDeleteByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*CountResult, error)
 	SigningKeysCreate(ctx context.Context, in *SigningKeyWrite, opts ...grpc.CallOption) (*Result, error)
 	SigningKeysList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*SigningKeyList, error)
 	SigningKeysRotate(ctx context.Context, in *SigningKeysRotateRequest, opts ...grpc.CallOption) (*Result, error)
@@ -445,6 +464,56 @@ func (c *storeServiceClient) ClientGrantsDelete(ctx context.Context, in *ScopedK
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_ClientGrantsDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UserGrantsFind(ctx context.Context, in *UserGrantsFindRequest, opts ...grpc.CallOption) (*UserGrantResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserGrantResult)
+	err := c.cc.Invoke(ctx, StoreService_UserGrantsFind_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UserGrantsUpsert(ctx context.Context, in *UserGrantWrite, opts ...grpc.CallOption) (*UserGrantResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserGrantResult)
+	err := c.cc.Invoke(ctx, StoreService_UserGrantsUpsert_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UserGrantsListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserGrantList)
+	err := c.cc.Invoke(ctx, StoreService_UserGrantsListByUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UserGrantsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_UserGrantsDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UserGrantsDeleteByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_UserGrantsDeleteByUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -899,6 +968,15 @@ func (c *storeServiceClient) PasswordResetTicketsDeleteExpired(ctx context.Conte
 //	null); numbers are read back as double-precision floats. An absent
 //	optional field means "nil", which is distinct from an empty object.
 //
+// Absent fields (plugins older than the consent fields)
+//
+//	Client.is_first_party absent = true; Client.skip_non_verifiable_callback_
+//	uri_confirmation_prompt absent = nil (inherit the tenant);
+//	ResourceServer.skip_consent_for_verifiable_first_party_clients absent =
+//	true; ClientGrant.subject_type empty = "client". A host sends
+//	ClientGrantsFindRequest.subject_type; a plugin that ignores it may return
+//	a grant of the other type, which the host treats as not found.
+//
 // Evolution
 //
 //	Within v1, fields are only added, never renumbered or reused. A plugin
@@ -935,6 +1013,11 @@ type StoreServiceServer interface {
 	ClientGrantsFind(context.Context, *ClientGrantsFindRequest) (*ClientGrantResult, error)
 	ClientGrantsUpdate(context.Context, *ClientGrantWrite) (*Result, error)
 	ClientGrantsDelete(context.Context, *ScopedKey) (*Result, error)
+	UserGrantsFind(context.Context, *UserGrantsFindRequest) (*UserGrantResult, error)
+	UserGrantsUpsert(context.Context, *UserGrantWrite) (*UserGrantResult, error)
+	UserGrantsListByUser(context.Context, *ScopedKey) (*UserGrantList, error)
+	UserGrantsDelete(context.Context, *ScopedKey) (*Result, error)
+	UserGrantsDeleteByUser(context.Context, *ScopedKey) (*CountResult, error)
 	SigningKeysCreate(context.Context, *SigningKeyWrite) (*Result, error)
 	SigningKeysList(context.Context, *TenantScope) (*SigningKeyList, error)
 	SigningKeysRotate(context.Context, *SigningKeysRotateRequest) (*Result, error)
@@ -1057,6 +1140,21 @@ func (UnimplementedStoreServiceServer) ClientGrantsUpdate(context.Context, *Clie
 }
 func (UnimplementedStoreServiceServer) ClientGrantsDelete(context.Context, *ScopedKey) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClientGrantsDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) UserGrantsFind(context.Context, *UserGrantsFindRequest) (*UserGrantResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method UserGrantsFind not implemented")
+}
+func (UnimplementedStoreServiceServer) UserGrantsUpsert(context.Context, *UserGrantWrite) (*UserGrantResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method UserGrantsUpsert not implemented")
+}
+func (UnimplementedStoreServiceServer) UserGrantsListByUser(context.Context, *ScopedKey) (*UserGrantList, error) {
+	return nil, status.Error(codes.Unimplemented, "method UserGrantsListByUser not implemented")
+}
+func (UnimplementedStoreServiceServer) UserGrantsDelete(context.Context, *ScopedKey) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method UserGrantsDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) UserGrantsDeleteByUser(context.Context, *ScopedKey) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method UserGrantsDeleteByUser not implemented")
 }
 func (UnimplementedStoreServiceServer) SigningKeysCreate(context.Context, *SigningKeyWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SigningKeysCreate not implemented")
@@ -1630,6 +1728,96 @@ func _StoreService_ClientGrantsDelete_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).ClientGrantsDelete(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UserGrantsFind_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserGrantsFindRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UserGrantsFind(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UserGrantsFind_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UserGrantsFind(ctx, req.(*UserGrantsFindRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UserGrantsUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserGrantWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UserGrantsUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UserGrantsUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UserGrantsUpsert(ctx, req.(*UserGrantWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UserGrantsListByUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UserGrantsListByUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UserGrantsListByUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UserGrantsListByUser(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UserGrantsDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UserGrantsDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UserGrantsDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UserGrantsDelete(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UserGrantsDeleteByUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UserGrantsDeleteByUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UserGrantsDeleteByUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UserGrantsDeleteByUser(ctx, req.(*ScopedKey))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2474,6 +2662,26 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ClientGrantsDelete",
 			Handler:    _StoreService_ClientGrantsDelete_Handler,
+		},
+		{
+			MethodName: "UserGrantsFind",
+			Handler:    _StoreService_UserGrantsFind_Handler,
+		},
+		{
+			MethodName: "UserGrantsUpsert",
+			Handler:    _StoreService_UserGrantsUpsert_Handler,
+		},
+		{
+			MethodName: "UserGrantsListByUser",
+			Handler:    _StoreService_UserGrantsListByUser_Handler,
+		},
+		{
+			MethodName: "UserGrantsDelete",
+			Handler:    _StoreService_UserGrantsDelete_Handler,
+		},
+		{
+			MethodName: "UserGrantsDeleteByUser",
+			Handler:    _StoreService_UserGrantsDeleteByUser_Handler,
 		},
 		{
 			MethodName: "SigningKeysCreate",

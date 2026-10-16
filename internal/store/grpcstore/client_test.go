@@ -146,3 +146,33 @@ func TestClientFailedCommitRollsBack(t *testing.T) {
 		}
 	}
 }
+
+// fakeFind answers ClientGrantsFind with a fixed grant, as a plugin that
+// predates subject_type would.
+type fakeFind struct {
+	storev1.StoreServiceClient
+	got *storev1.ClientGrantsFindRequest
+}
+
+func (f *fakeFind) ClientGrantsFind(_ context.Context, r *storev1.ClientGrantsFindRequest, _ ...grpc.CallOption) (*storev1.ClientGrantResult, error) {
+	f.got = r
+	return &storev1.ClientGrantResult{Value: &storev1.ClientGrant{TenantId: "t", Id: "g", ClientId: "c", Audience: "a",
+		SubjectType: "client", CreatedAt: tsToPB(time.Unix(0, 0))}}, nil
+}
+
+func TestFindIgnoresWrongSubjectType(t *testing.T) {
+	// An old plugin ignores subject_type and returns the client grant.
+	f := &fakeFind{}
+	c := &Client{rpc: f}
+	_, err := c.ClientGrants().Find(context.Background(), "t", "c", "a", store.SubjectTypeUser)
+	if !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+	if f.got.GetSubjectType() != store.SubjectTypeUser {
+		t.Fatalf("subject_type sent = %q", f.got.GetSubjectType())
+	}
+	g, err := c.ClientGrants().Find(context.Background(), "t", "c", "a", store.SubjectTypeClient)
+	if err != nil || g.SubjectType != store.SubjectTypeClient {
+		t.Fatalf("matching type: %+v %v", g, err)
+	}
+}

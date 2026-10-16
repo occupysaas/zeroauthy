@@ -38,6 +38,14 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 //   null); numbers are read back as double-precision floats. An absent
 //   optional field means "nil", which is distinct from an empty object.
 //
+// Absent fields (plugins older than the consent fields)
+//   Client.is_first_party absent = true; Client.skip_non_verifiable_callback_
+//   uri_confirmation_prompt absent = nil (inherit the tenant);
+//   ResourceServer.skip_consent_for_verifiable_first_party_clients absent =
+//   true; ClientGrant.subject_type empty = "client". A host sends
+//   ClientGrantsFindRequest.subject_type; a plugin that ignores it may return
+//   a grant of the other type, which the host treats as not found.
+//
 // Evolution
 //   Within v1, fields are only added, never renumbered or reused. A plugin
 //   that predates a field drops it silently. New RPCs may be added; a plugin
@@ -77,6 +85,12 @@ service StoreService {
   rpc ClientGrantsFind(ClientGrantsFindRequest) returns (ClientGrantResult);
   rpc ClientGrantsUpdate(ClientGrantWrite) returns (Result);
   rpc ClientGrantsDelete(ScopedKey) returns (Result);
+
+  rpc UserGrantsFind(UserGrantsFindRequest) returns (UserGrantResult);
+  rpc UserGrantsUpsert(UserGrantWrite) returns (UserGrantResult);
+  rpc UserGrantsListByUser(ScopedKey) returns (UserGrantList);   // key = user_id
+  rpc UserGrantsDelete(ScopedKey) returns (Result);
+  rpc UserGrantsDeleteByUser(ScopedKey) returns (CountResult);   // key = user_id
 
   rpc SigningKeysCreate(SigningKeyWrite) returns (Result);
   rpc SigningKeysList(TenantScope) returns (SigningKeyList);
@@ -192,6 +206,8 @@ message Tenant {
   Branding branding = 11;
   string default_directory = 12;
   google.protobuf.Timestamp created_at = 13;
+  bool skip_non_verifiable_callback_uri_confirmation_prompt = 14;
+  bool use_scope_descriptions_for_consent = 15;
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 
@@ -220,6 +236,10 @@ message Client {
   int64 id_token_lifetime = 12;
   RefreshTokenPolicy refresh_token = 13;
   google.protobuf.Timestamp created_at = 14;
+  optional bool is_first_party = 15;                                       // absent = true
+  string third_party_security_mode = 16;
+  string redirection_policy = 17;
+  optional bool skip_non_verifiable_callback_uri_confirmation_prompt = 18; // absent = nil
 }
 
 message Scope { string value = 1; string description = 2; }
@@ -228,11 +248,20 @@ message ResourceServer {
   string tenant_id = 1; string id = 2; string identifier = 3; string name = 4;
   ScopeList scopes = 5; string signing_alg = 6; int64 token_lifetime = 7;
   bool allow_offline_access = 8; google.protobuf.Timestamp created_at = 9;
+  optional bool skip_consent_for_verifiable_first_party_clients = 10;      // absent = true
+  string user_policy = 11;
+  string client_policy = 12;
 }
 
 message ClientGrant {
   string tenant_id = 1; string id = 2; string client_id = 3; string audience = 4;
   StringList scopes = 5; google.protobuf.Timestamp created_at = 6;
+  string subject_type = 7; // empty = "client" (plugins older than Plan 9)
+}
+
+message UserGrant {
+  string tenant_id = 1; string id = 2; string client_id = 3; string user_id = 4; string audience = 5;
+  StringList scopes = 6; google.protobuf.Timestamp created_at = 7; google.protobuf.Timestamp updated_at = 8;
 }
 
 message SigningKey {
@@ -251,6 +280,7 @@ message Connection {
   StringMap custom_scripts = 12;            // absent = nil map
   optional bytes configuration_sealed = 13; // absent = nil
   string set_user_root_attributes = 14;
+  bool is_domain_connection = 15;
 }
 
 message Identity { string connection = 1; string provider = 2; string user_id = 3; string password_hash = 4; }
@@ -324,8 +354,13 @@ message ResourceServerWrite { string tx_id = 1; ResourceServer value = 2; }
 message ResourceServerResult { Error error = 1; ResourceServer value = 2; }
 
 message ClientGrantWrite { string tx_id = 1; ClientGrant value = 2; }
-message ClientGrantsFindRequest { string tx_id = 1; string tenant_id = 2; string client_id = 3; string audience = 4; }
+message ClientGrantsFindRequest { string tx_id = 1; string tenant_id = 2; string client_id = 3; string audience = 4; string subject_type = 5; }
 message ClientGrantResult { Error error = 1; ClientGrant value = 2; }
+
+message UserGrantWrite { string tx_id = 1; UserGrant value = 2; }
+message UserGrantsFindRequest { string tx_id = 1; string tenant_id = 2; string client_id = 3; string user_id = 4; string audience = 5; }
+message UserGrantResult { Error error = 1; UserGrant value = 2; }
+message UserGrantList { Error error = 1; repeated UserGrant values = 2; }
 
 message SigningKeyWrite { string tx_id = 1; SigningKey value = 2; }
 message SigningKeyList { Error error = 1; repeated SigningKey values = 2; }

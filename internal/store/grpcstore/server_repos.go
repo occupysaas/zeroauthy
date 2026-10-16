@@ -210,7 +210,12 @@ func (s *Server) ClientGrantsCreate(ctx context.Context, r *storev1.ClientGrantW
 
 func (s *Server) ClientGrantsFind(ctx context.Context, r *storev1.ClientGrantsFindRequest) (*storev1.ClientGrantResult, error) {
 	v, e, err := one(s, r.TxId, func(st store.Store) (*store.ClientGrant, error) {
-		return st.ClientGrants().Find(ctx, r.TenantId, r.ClientId, r.Audience, store.SubjectTypeClient)
+		// Hosts older than Plan 9 send no subject_type: a client grant.
+		subjectType := r.SubjectType
+		if subjectType == "" {
+			subjectType = store.SubjectTypeClient
+		}
+		return st.ClientGrants().Find(ctx, r.TenantId, r.ClientId, r.Audience, subjectType)
 	}, clientGrantToPB)
 	if err != nil {
 		return nil, err
@@ -226,6 +231,50 @@ func (s *Server) ClientGrantsUpdate(ctx context.Context, r *storev1.ClientGrantW
 
 func (s *Server) ClientGrantsDelete(ctx context.Context, r *storev1.ScopedKey) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error { return st.ClientGrants().Delete(ctx, r.TenantId, r.Key) }), nil
+}
+
+// ---- user grants ----
+
+func (s *Server) UserGrantsFind(ctx context.Context, r *storev1.UserGrantsFindRequest) (*storev1.UserGrantResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.UserGrant, error) {
+		return st.UserGrants().Find(ctx, r.TenantId, r.ClientId, r.UserId, r.Audience)
+	}, userGrantToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.UserGrantResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) UserGrantsUpsert(ctx context.Context, r *storev1.UserGrantWrite) (*storev1.UserGrantResult, error) {
+	g, err := userGrantFromPB(r.Value)
+	if err != nil {
+		return &storev1.UserGrantResult{Error: errToPB(err)}, nil
+	}
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.UserGrant, error) {
+		return st.UserGrants().Upsert(ctx, g)
+	}, userGrantToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.UserGrantResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) UserGrantsListByUser(ctx context.Context, r *storev1.ScopedKey) (*storev1.UserGrantList, error) {
+	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.UserGrant, error) {
+		return st.UserGrants().ListByUser(ctx, r.TenantId, r.Key)
+	}, userGrantToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.UserGrantList{Error: e, Values: vs}, nil
+}
+
+func (s *Server) UserGrantsDelete(ctx context.Context, r *storev1.ScopedKey) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error { return st.UserGrants().Delete(ctx, r.TenantId, r.Key) }), nil
+}
+
+func (s *Server) UserGrantsDeleteByUser(ctx context.Context, r *storev1.ScopedKey) (*storev1.CountResult, error) {
+	return count(s, r.TxId, func(st store.Store) (int, error) { return st.UserGrants().DeleteByUser(ctx, r.TenantId, r.Key) }), nil
 }
 
 // ---- signing keys ----

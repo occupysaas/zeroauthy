@@ -197,9 +197,19 @@ func (a clientClientGrants) Create(ctx context.Context, v *store.ClientGrant) er
 	})
 }
 
-func (a clientClientGrants) Find(ctx context.Context, tenantID, clientID, audience, _ string) (*store.ClientGrant, error) {
-	r, err := a.c.rpc.ClientGrantsFind(ctx, &storev1.ClientGrantsFindRequest{TxId: a.c.txID, TenantId: tenantID, ClientId: clientID, Audience: audience})
-	return decOne("ClientGrantsFind", err, r.GetError(), r.GetValue(), clientGrantFromPB)
+func (a clientClientGrants) Find(ctx context.Context, tenantID, clientID, audience, subjectType string) (*store.ClientGrant, error) {
+	r, err := a.c.rpc.ClientGrantsFind(ctx, &storev1.ClientGrantsFindRequest{
+		TxId: a.c.txID, TenantId: tenantID, ClientId: clientID, Audience: audience, SubjectType: subjectType})
+	got, err := decOne("ClientGrantsFind", err, r.GetError(), r.GetValue(), clientGrantFromPB)
+	if err != nil {
+		return nil, err
+	}
+	// A plugin older than Plan 9 ignores subject_type and may return the
+	// other type's grant.
+	if got != nil && got.SubjectType != subjectType {
+		return nil, store.ErrNotFound
+	}
+	return got, nil
 }
 
 func (a clientClientGrants) Update(ctx context.Context, v *store.ClientGrant) error {
@@ -213,7 +223,41 @@ func (a clientClientGrants) Delete(ctx context.Context, tenantID, id string) err
 	return do("ClientGrantsDelete", r, err)
 }
 
-// ---- signing keys ----
+// ---- user grants ----
+
+type clientUserGrants struct{ c *Client }
+
+func (a clientUserGrants) Find(ctx context.Context, tenantID, clientID, userID, audience string) (*store.UserGrant, error) {
+	r, err := a.c.rpc.UserGrantsFind(ctx, &storev1.UserGrantsFindRequest{
+		TxId: a.c.txID, TenantId: tenantID, ClientId: clientID, UserId: userID, Audience: audience})
+	return decOne("UserGrantsFind", err, r.GetError(), r.GetValue(), userGrantFromPB)
+}
+
+func (a clientUserGrants) Upsert(ctx context.Context, g *store.UserGrant) (*store.UserGrant, error) {
+	pb, err := userGrantToPB(g)
+	if err != nil {
+		return nil, err
+	}
+	r, err := a.c.rpc.UserGrantsUpsert(ctx, &storev1.UserGrantWrite{TxId: a.c.txID, Value: pb})
+	return decOne("UserGrantsUpsert", err, r.GetError(), r.GetValue(), userGrantFromPB)
+}
+
+func (a clientUserGrants) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.UserGrant, error) {
+	r, err := a.c.rpc.UserGrantsListByUser(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return decList("UserGrantsListByUser", err, r.GetError(), r.GetValues(), userGrantFromPB)
+}
+
+func (a clientUserGrants) Delete(ctx context.Context, tenantID, id string) error {
+	r, err := a.c.rpc.UserGrantsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return do("UserGrantsDelete", r, err)
+}
+
+func (a clientUserGrants) DeleteByUser(ctx context.Context, tenantID, userID string) (int, error) {
+	r, err := a.c.rpc.UserGrantsDeleteByUser(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return counted("UserGrantsDeleteByUser", r, err)
+}
+
+// ----  ----
 
 type clientSigningKeys struct{ c *Client }
 

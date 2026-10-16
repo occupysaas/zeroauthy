@@ -144,6 +144,7 @@ func TestTenantRoundTrip(t *testing.T) {
 		SessionLifetime: 3600, IdleSessionLifetime: 1800,
 		Branding:         store.Branding{LogoURL: "https://l/logo.png", PrimaryColor: "#112233"},
 		DefaultDirectory: "Username-Password-Authentication", CreatedAt: nanoTime,
+		SkipNonVerifiableCallbackURIConfirmationPrompt: true, UseScopeDescriptionsForConsent: true,
 	}, tenantToPB, tenantFromPB)
 	roundTrip(t, "empty", &store.Tenant{Domains: []string{}, AllowedLogoutURLs: []string{}, EnabledLocales: []string{}, CustomText: store.CustomText{}}, tenantToPB, tenantFromPB)
 	roundTrip(t, "zero", &store.Tenant{}, tenantToPB, tenantFromPB)
@@ -162,6 +163,13 @@ func TestClientRoundTrip(t *testing.T) {
 		IDTokenLifetime: 36000,
 		RefreshToken:    store.RefreshTokenPolicy{Rotating: true, Leeway: 5, Expiring: true, TokenLifetime: 100, IdleTokenLifetime: 50},
 		CreatedAt:       nanoTime,
+		IsFirstParty:    true, ThirdPartySecurityMode: store.SecurityModeStrict,
+		RedirectionPolicy: store.RedirectionPolicyAllowAlways,
+		SkipNonVerifiableCallbackURIConfirmationPrompt: ptr(true),
+	}, clientToPB, clientFromPB)
+	roundTrip(t, "third party", &store.Client{
+		TenantID: "ten", ClientID: "tp", ThirdPartySecurityMode: store.SecurityModePermissive,
+		SkipNonVerifiableCallbackURIConfirmationPrompt: ptr(false),
 	}, clientToPB, clientFromPB)
 	roundTrip(t, "empty", &store.Client{
 		Secrets: []store.ClientSecret{}, GrantTypes: []string{}, Callbacks: []string{},
@@ -175,6 +183,11 @@ func TestResourceServerRoundTrip(t *testing.T) {
 		TenantID: "ten", ID: "rs", Identifier: "https://api", Name: "API",
 		Scopes:     []store.Scope{{Value: "read", Description: "Read"}, {Value: "write"}},
 		SigningAlg: "RS256", TokenLifetime: 7200, AllowOfflineAccess: true, CreatedAt: nanoTime,
+		SkipConsentForVerifiableFirstPartyClients: true,
+		SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyRequireClientGrant},
+	}, resourceServerToPB, resourceServerFromPB)
+	roundTrip(t, "skip off", &store.ResourceServer{
+		SubjectTypeAuthorization: store.SubjectTypeAuthorization{User: store.PolicyDenyAll},
 	}, resourceServerToPB, resourceServerFromPB)
 	roundTrip(t, "empty", &store.ResourceServer{Scopes: []store.Scope{}}, resourceServerToPB, resourceServerFromPB)
 	roundTrip(t, "zero", &store.ResourceServer{}, resourceServerToPB, resourceServerFromPB)
@@ -183,9 +196,43 @@ func TestResourceServerRoundTrip(t *testing.T) {
 func TestClientGrantRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.ClientGrant{
 		TenantID: "ten", ID: "g", ClientID: "cid", Audience: "https://api", Scopes: []string{"a", "b"}, CreatedAt: nanoTime,
+		SubjectType: store.SubjectTypeUser,
 	}, clientGrantToPB, clientGrantFromPB)
-	roundTrip(t, "empty", &store.ClientGrant{Scopes: []string{}}, clientGrantToPB, clientGrantFromPB)
-	roundTrip(t, "zero", &store.ClientGrant{}, clientGrantToPB, clientGrantFromPB)
+	roundTrip(t, "empty", &store.ClientGrant{Scopes: []string{}, SubjectType: store.SubjectTypeClient}, clientGrantToPB, clientGrantFromPB)
+	roundTrip(t, "zero", &store.ClientGrant{SubjectType: store.SubjectTypeClient}, clientGrantToPB, clientGrantFromPB)
+}
+
+func TestUserGrantRoundTrip(t *testing.T) {
+	roundTrip(t, "full", &store.UserGrant{
+		TenantID: "ten", ID: "ug", ClientID: "cid", UserID: "u1", Audience: "https://api",
+		Scopes: []string{"a", "b"}, CreatedAt: nanoTime, UpdatedAt: nanoTime.Add(time.Hour),
+	}, userGrantToPB, userGrantFromPB)
+	roundTrip(t, "empty", &store.UserGrant{Scopes: []string{}}, userGrantToPB, userGrantFromPB)
+	roundTrip(t, "zero", &store.UserGrant{}, userGrantToPB, userGrantFromPB)
+	if pb, err := userGrantToPB(nil); pb != nil || err != nil {
+		t.Fatalf("userGrantToPB(nil) = %v, %v", pb, err)
+	}
+	if g, err := userGrantFromPB(nil); g != nil || err != nil {
+		t.Fatalf("userGrantFromPB(nil) = %v, %v", g, err)
+	}
+}
+
+// A plugin built before the consent fields leaves them absent. Absence must
+// keep today's behaviour: a first-party client, an API that skips consent
+// for it, and a client-credentials grant.
+func TestCodecDefaultsForOldPlugins(t *testing.T) {
+	c, err := clientFromPB(&storev1.Client{TenantId: "t", ClientId: "c", CreatedAt: tsToPB(time.Unix(0, 0))})
+	if err != nil || !c.IsFirstParty || c.SkipNonVerifiableCallbackURIConfirmationPrompt != nil {
+		t.Fatalf("client: %+v %v", c, err)
+	}
+	rs, err := resourceServerFromPB(&storev1.ResourceServer{TenantId: "t", Id: "r", CreatedAt: tsToPB(time.Unix(0, 0))})
+	if err != nil || !rs.SkipConsentForVerifiableFirstPartyClients {
+		t.Fatalf("resource server: %+v %v", rs, err)
+	}
+	g, err := clientGrantFromPB(&storev1.ClientGrant{TenantId: "t", Id: "g", CreatedAt: tsToPB(time.Unix(0, 0))})
+	if err != nil || g.SubjectType != store.SubjectTypeClient {
+		t.Fatalf("grant: %+v %v", g, err)
+	}
 }
 
 func TestSigningKeyRoundTrip(t *testing.T) {
@@ -206,6 +253,7 @@ func TestConnectionRoundTrip(t *testing.T) {
 		CustomScripts:         map[string]string{store.ScriptLogin: "function login() {}", store.ScriptCreate: ""},
 		ConfigurationSealed:   []byte{0x01, 0x00, 0xff},
 		SetUserRootAttributes: store.RootAttributesOnFirstLogin,
+		IsDomainConnection:    true,
 	}, connectionToPB, connectionFromPB)
 	// An empty (non-nil) script map stays distinct from nil.
 	roundTrip(t, "empty scripts", &store.Connection{CustomScripts: map[string]string{}}, connectionToPB, connectionFromPB)
