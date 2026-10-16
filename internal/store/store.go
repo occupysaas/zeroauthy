@@ -30,6 +30,7 @@ type Store interface {
 	Clients() Clients
 	ResourceServers() ResourceServers
 	ClientGrants() ClientGrants
+	UserGrants() UserGrants
 	SigningKeys() SigningKeys
 	Connections() Connections
 	Users() Users
@@ -94,16 +95,36 @@ type ResourceServers interface {
 	Delete(ctx context.Context, tenantID, id string) error
 }
 
-// ClientGrants stores client_credentials authorizations, keyed by
-// (TenantID, ID). (ClientID, Audience) is unique within a tenant.
+// ClientGrants stores API authorizations of clients, keyed by
+// (TenantID, ID). (ClientID, Audience, SubjectType) is unique within a
+// tenant.
 type ClientGrants interface {
-	// Create returns ErrConflict if the ID or (ClientID, Audience) exists.
+	// Create returns ErrConflict if the ID or (ClientID, Audience, SubjectType) exists.
 	Create(ctx context.Context, g *ClientGrant) error
-	Find(ctx context.Context, tenantID, clientID, audience string) (*ClientGrant, error)
-	// Update replaces the grant with the same ID. ClientID and Audience
-	// must not change; drivers return ErrConflict if they do.
+	Find(ctx context.Context, tenantID, clientID, audience, subjectType string) (*ClientGrant, error)
+	// Update replaces the grant with the same ID. ClientID, Audience and
+	// SubjectType must not change; drivers return ErrConflict if they do.
 	Update(ctx context.Context, g *ClientGrant) error
 	Delete(ctx context.Context, tenantID, id string) error
+}
+
+// UserGrants stores consent, keyed by (TenantID, ID). (ClientID, UserID,
+// Audience) is unique within a tenant.
+type UserGrants interface {
+	// Find returns ErrNotFound when the user has no grant for the client
+	// and audience.
+	Find(ctx context.Context, tenantID, clientID, userID, audience string) (*UserGrant, error)
+	// Upsert stores g under its (ClientID, UserID, Audience). If a grant
+	// exists, its ID and CreatedAt are kept and Scopes and UpdatedAt are
+	// replaced; otherwise g is created as given. It returns the stored grant.
+	// Concurrent upserts of one key leave exactly one grant.
+	Upsert(ctx context.Context, g *UserGrant) (*UserGrant, error)
+	// ListByUser returns the user's grants ordered by ClientID, then Audience.
+	ListByUser(ctx context.Context, tenantID, userID string) ([]*UserGrant, error)
+	// Delete returns ErrNotFound if absent.
+	Delete(ctx context.Context, tenantID, id string) error
+	// DeleteByUser removes all of the user's grants and returns how many.
+	DeleteByUser(ctx context.Context, tenantID, userID string) (int, error)
 }
 
 // SigningKeys stores signing keys, keyed by (TenantID, KID).

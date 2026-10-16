@@ -12,6 +12,9 @@ type clientGrants struct{ s *Store }
 
 func (s *Store) ClientGrants() store.ClientGrants { return clientGrants{s} }
 
+// UserGrants is not implemented yet (Plan 9, Task 3).
+func (s *Store) UserGrants() store.UserGrants { panic("sqlstore: UserGrants not implemented") }
+
 func (r clientGrants) Create(ctx context.Context, g *store.ClientGrant) error {
 	scopes, err := toJSON(g.Scopes)
 	if err != nil {
@@ -22,7 +25,7 @@ func (r clientGrants) Create(ctx context.Context, g *store.ClientGrant) error {
 	return r.s.conflict(err)
 }
 
-func (r clientGrants) Find(ctx context.Context, tenantID, clientID, audience string) (*store.ClientGrant, error) {
+func (r clientGrants) Find(ctx context.Context, tenantID, clientID, audience, _ string) (*store.ClientGrant, error) {
 	var g store.ClientGrant
 	var scopes string
 	var created int64

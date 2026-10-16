@@ -197,7 +197,7 @@ func (a clientClientGrants) Create(ctx context.Context, v *store.ClientGrant) er
 	})
 }
 
-func (a clientClientGrants) Find(ctx context.Context, tenantID, clientID, audience string) (*store.ClientGrant, error) {
+func (a clientClientGrants) Find(ctx context.Context, tenantID, clientID, audience, _ string) (*store.ClientGrant, error) {
 	r, err := a.c.rpc.ClientGrantsFind(ctx, &storev1.ClientGrantsFindRequest{TxId: a.c.txID, TenantId: tenantID, ClientId: clientID, Audience: audience})
 	return decOne("ClientGrantsFind", err, r.GetError(), r.GetValue(), clientGrantFromPB)
 }

@@ -32,7 +32,12 @@ type Tenant struct {
 	// DefaultDirectory is the name of the connection the password grant
 	// authenticates against.
 	DefaultDirectory string
-	CreatedAt        time.Time
+	// SkipNonVerifiableCallbackURIConfirmationPrompt skips the confirmation
+	// prompt for third-party apps with non-verifiable callback URIs.
+	SkipNonVerifiableCallbackURIConfirmationPrompt bool
+	// UseScopeDescriptionsForConsent shows scope descriptions on the consent prompt.
+	UseScopeDescriptionsForConsent bool
+	CreatedAt                      time.Time
 }
 
 // AppType is the kind of application a client represents.
@@ -77,6 +82,18 @@ type Client struct {
 	IDTokenLifetime int
 	RefreshToken    RefreshTokenPolicy
 	CreatedAt       time.Time
+
+	// IsFirstParty is true for first-party applications.
+	IsFirstParty bool
+	// ThirdPartySecurityMode is SecurityModeStrict or SecurityModePermissive;
+	// empty for first-party clients.
+	ThirdPartySecurityMode string
+	// RedirectionPolicy is a RedirectionPolicy* value; empty means the
+	// default for the client's party.
+	RedirectionPolicy string
+	// SkipNonVerifiableCallbackURIConfirmationPrompt overrides the tenant's
+	// value; nil means the tenant's value applies.
+	SkipNonVerifiableCallbackURIConfirmationPrompt *bool
 }
 
 // Scope is a permission defined by a resource server.
@@ -97,17 +114,71 @@ type ResourceServer struct {
 	TokenLifetime      int // seconds; 0 means the default
 	AllowOfflineAccess bool
 	CreatedAt          time.Time
+
+	// SkipConsentForVerifiableFirstPartyClients skips the consent prompt
+	// for first-party clients with verifiable callback URIs.
+	SkipConsentForVerifiableFirstPartyClients bool
+	SubjectTypeAuthorization                  SubjectTypeAuthorization
 }
 
-// ClientGrant authorizes a client to obtain client_credentials tokens for
-// an audience, limited to Scopes.
+// Security modes of third-party applications.
+const (
+	SecurityModeStrict     = "strict"
+	SecurityModePermissive = "permissive"
+)
+
+// Redirection policies of applications.
+const (
+	RedirectionPolicyOpenRedirectProtection = "open_redirect_protection"
+	RedirectionPolicyAllowAlways            = "allow_always"
+)
+
+// API access policies.
+const (
+	PolicyAllowAll           = "allow_all"
+	PolicyRequireClientGrant = "require_client_grant"
+	PolicyDenyAll            = "deny_all"
+)
+
+// Subject types of client grants and access policies.
+const (
+	SubjectTypeUser   = "user"
+	SubjectTypeClient = "client"
+)
+
+// SubjectTypeAuthorization is an API's access policy for user flows and
+// for client credentials (Auth0's subject_type_authorization). An empty
+// policy means the default: allow_all for User, require_client_grant for
+// Client.
+type SubjectTypeAuthorization struct {
+	User   string
+	Client string
+}
+
+// ClientGrant authorizes a client to obtain tokens for an audience,
+// limited to Scopes. SubjectType says whether it applies to user flows
+// or to client credentials.
 type ClientGrant struct {
+	TenantID    string
+	ID          string
+	ClientID    string
+	Audience    string
+	Scopes      []string
+	SubjectType string // SubjectTypeUser or SubjectTypeClient
+	CreatedAt   time.Time
+}
+
+// UserGrant records the scopes a user consented to for a client and an
+// audience (Auth0's user grants).
+type UserGrant struct {
 	TenantID  string
 	ID        string
 	ClientID  string
-	Audience  string
+	UserID    string
+	Audience  string // an API identifier, or https://{domain}/userinfo
 	Scopes    []string
 	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // KeyStatus is a signing key's place in the rotation lifecycle:
@@ -175,6 +246,9 @@ type Connection struct {
 	// connection's configuration settings (keys.SealConnectionConfig).
 	ConfigurationSealed   []byte
 	SetUserRootAttributes string // RootAttributes*; empty means on_each_login
+	// IsDomainConnection marks a domain-level connection (Auth0's
+	// is_domain_connection).
+	IsDomainConnection bool
 }
 
 // Custom database script names.

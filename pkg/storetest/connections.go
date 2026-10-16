@@ -55,6 +55,22 @@ func testConnections(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 	})
 
+	t.Run("IsDomainConnection", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newConnection("ten_a", "con1", "Database")
+		want.IsDomainConnection = true
+		mustNoErr(t, s.Connections().Create(ctx, want))
+		got, err := s.Connections().Get(ctx, "ten_a", "con1")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+		got, err = s.Connections().GetByName(ctx, "ten_a", "Database")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+		list, err := s.Connections().List(ctx, "ten_a")
+		mustNoErr(t, err)
+		mustEqual(t, list, []*store.Connection{want})
+	})
+
 	t.Run("NameUniquePerTenant", func(t *testing.T) {
 		s := open(t, newStore)
 		mustNoErr(t, s.Connections().Create(ctx, newConnection("ten_a", "con1", "Database")))

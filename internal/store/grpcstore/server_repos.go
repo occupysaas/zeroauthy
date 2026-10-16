@@ -210,7 +210,7 @@ func (s *Server) ClientGrantsCreate(ctx context.Context, r *storev1.ClientGrantW
 
 func (s *Server) ClientGrantsFind(ctx context.Context, r *storev1.ClientGrantsFindRequest) (*storev1.ClientGrantResult, error) {
 	v, e, err := one(s, r.TxId, func(st store.Store) (*store.ClientGrant, error) {
-		return st.ClientGrants().Find(ctx, r.TenantId, r.ClientId, r.Audience)
+		return st.ClientGrants().Find(ctx, r.TenantId, r.ClientId, r.Audience, store.SubjectTypeClient)
 	}, clientGrantToPB)
 	if err != nil {
 		return nil, err

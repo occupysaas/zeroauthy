@@ -12,6 +12,7 @@ func newClient(tenantID, clientID string) *store.Client {
 	exp := ts(48 * time.Hour)
 	return &store.Client{
 		TenantID:        tenantID,
+		IsFirstParty:    true,
 		ClientID:        clientID,
 		Name:            "App " + clientID,
 		AppType:         store.AppTypeNonInteractive,
@@ -56,6 +57,28 @@ func testClients(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 		mustErrIs(t, s.Clients().Delete(ctx, "ten_a", "c1"), store.ErrNotFound)
 		mustErrIs(t, s.Clients().Update(ctx, want), store.ErrNotFound)
+	})
+
+	t.Run("ThirdPartyFields", func(t *testing.T) {
+		s := open(t, newStore)
+		yes, no := true, false
+		for i, skip := range []*bool{nil, &yes, &no} {
+			c := newClient("ten_a", "tp"+string(rune('0'+i)))
+			c.IsFirstParty = false
+			c.ThirdPartySecurityMode = store.SecurityModePermissive
+			c.RedirectionPolicy = store.RedirectionPolicyAllowAlways
+			c.SkipNonVerifiableCallbackURIConfirmationPrompt = skip
+			mustNoErr(t, s.Clients().Create(ctx, c))
+			got, err := s.Clients().Get(ctx, "ten_a", c.ClientID)
+			mustNoErr(t, err)
+			mustEqual(t, got, c)
+		}
+		got, err := s.Clients().Get(ctx, "ten_a", "tp1")
+		mustNoErr(t, err)
+		*got.SkipNonVerifiableCallbackURIConfirmationPrompt = false // must not reach the store
+		again, err := s.Clients().Get(ctx, "ten_a", "tp1")
+		mustNoErr(t, err)
+		mustEqual(t, *again.SkipNonVerifiableCallbackURIConfirmationPrompt, true)
 	})
 
 	t.Run("TenantIsolation", func(t *testing.T) {

@@ -1,0 +1,130 @@
+package storetest
+
+import (
+	"context"
+	"sync"
+	"testing"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
+)
+
+func newUserGrant(tenantID, id, clientID, userID, audience string, scopes ...string) *store.UserGrant {
+	return &store.UserGrant{
+		TenantID: tenantID, ID: id, ClientID: clientID, UserID: userID, Audience: audience,
+		Scopes: scopes, CreatedAt: ts(0), UpdatedAt: ts(0),
+	}
+}
+
+func testUserGrants(t *testing.T, newStore Factory) {
+	ctx := context.Background()
+
+	t.Run("UpsertFindDelete", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newUserGrant("ten_a", "ug1", "c1", "auth0|u1", "https://api.test", "read:things")
+		got, err := s.UserGrants().Upsert(ctx, in)
+		mustNoErr(t, err)
+		mustEqual(t, got, in)
+		found, err := s.UserGrants().Find(ctx, "ten_a", "c1", "auth0|u1", "https://api.test")
+		mustNoErr(t, err)
+		mustEqual(t, found, in)
+
+		// Same key, new ID and scopes: the first ID and CreatedAt are kept.
+		again := newUserGrant("ten_a", "ug2", "c1", "auth0|u1", "https://api.test", "read:things", "write:things")
+		again.CreatedAt, again.UpdatedAt = ts(5), ts(5)
+		got, err = s.UserGrants().Upsert(ctx, again)
+		mustNoErr(t, err)
+		want := newUserGrant("ten_a", "ug1", "c1", "auth0|u1", "https://api.test", "read:things", "write:things")
+		want.UpdatedAt = ts(5)
+		mustEqual(t, got, want)
+		found, err = s.UserGrants().Find(ctx, "ten_a", "c1", "auth0|u1", "https://api.test")
+		mustNoErr(t, err)
+		mustEqual(t, found, want)
+
+		mustNoErr(t, s.UserGrants().Delete(ctx, "ten_a", "ug1"))
+		_, err = s.UserGrants().Find(ctx, "ten_a", "c1", "auth0|u1", "https://api.test")
+		mustErrIs(t, err, store.ErrNotFound)
+		mustErrIs(t, s.UserGrants().Delete(ctx, "ten_a", "ug1"), store.ErrNotFound)
+	})
+
+	t.Run("ListAndDeleteByUser", func(t *testing.T) {
+		s := open(t, newStore)
+		for _, g := range []*store.UserGrant{
+			newUserGrant("ten_a", "ug3", "c2", "auth0|u1", "https://api.test", "a"),
+			newUserGrant("ten_a", "ug1", "c1", "auth0|u1", "https://z.test", "b"),
+			newUserGrant("ten_a", "ug2", "c1", "auth0|u1", "https://a.test", "c"),
+			newUserGrant("ten_a", "ug4", "c1", "auth0|u2", "https://api.test", "d"),
+			newUserGrant("ten_b", "ug5", "c1", "auth0|u1", "https://api.test", "e"),
+		} {
+			_, err := s.UserGrants().Upsert(ctx, g)
+			mustNoErr(t, err)
+		}
+		list, err := s.UserGrants().ListByUser(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		var ids []string
+		for _, g := range list {
+			ids = append(ids, g.ID)
+		}
+		mustEqual(t, ids, []string{"ug2", "ug1", "ug3"})
+
+		n, err := s.UserGrants().DeleteByUser(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, n, 3)
+		list, err = s.UserGrants().ListByUser(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, len(list), 0)
+		_, err = s.UserGrants().Find(ctx, "ten_b", "c1", "auth0|u1", "https://api.test")
+		mustNoErr(t, err) // other tenant untouched
+		_, err = s.UserGrants().Find(ctx, "ten_a", "c1", "auth0|u2", "https://api.test")
+		mustNoErr(t, err) // other user untouched
+	})
+
+	t.Run("ReturnsCopies", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newUserGrant("ten_a", "ug1", "c1", "auth0|u1", "https://api.test", "read:things")
+		got, err := s.UserGrants().Upsert(ctx, in)
+		mustNoErr(t, err)
+		in.Scopes[0], got.Scopes[0] = "mutated", "mutated"
+		found, err := s.UserGrants().Find(ctx, "ten_a", "c1", "auth0|u1", "https://api.test")
+		mustNoErr(t, err)
+		mustEqual(t, found.Scopes, []string{"read:things"})
+		found.Scopes[0] = "mutated"
+		list, err := s.UserGrants().ListByUser(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, list[0].Scopes, []string{"read:things"})
+	})
+
+	t.Run("ConcurrentUpsert", func(t *testing.T) {
+		s := open(t, newStore)
+		var wg sync.WaitGroup
+		errs := make(chan error, 8)
+		for i := range 8 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_, err := s.UserGrants().Upsert(ctx, newUserGrant("ten_a", "ug"+string(rune('a'+i)), "c1", "auth0|u1", "https://api.test", "read:things"))
+				errs <- err
+			}()
+		}
+		wg.Wait()
+		close(errs)
+		for err := range errs {
+			mustNoErr(t, err)
+		}
+		list, err := s.UserGrants().ListByUser(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, len(list), 1)
+	})
+
+	t.Run("RollsBackWithTx", func(t *testing.T) {
+		s := open(t, newStore)
+		err := s.WithTx(ctx, func(tx store.Store) error {
+			if _, err := tx.UserGrants().Upsert(ctx, newUserGrant("ten_a", "ug1", "c1", "auth0|u1", "https://api.test", "a")); err != nil {
+				return err
+			}
+			return store.ErrConflict // any error aborts
+		})
+		mustErrIs(t, err, store.ErrConflict)
+		_, err = s.UserGrants().Find(ctx, "ten_a", "c1", "auth0|u1", "https://api.test")
+		mustErrIs(t, err, store.ErrNotFound)
+	})
+}

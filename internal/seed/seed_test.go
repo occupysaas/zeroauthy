@@ -92,7 +92,7 @@ func TestApply(t *testing.T) {
 		t.Errorf("spa = %+v", spa)
 	}
 
-	g, err := st.ClientGrants().Find(ctx, tn.ID, "m2m", "https://api.acme.test")
+	g, err := st.ClientGrants().Find(ctx, tn.ID, "m2m", "https://api.acme.test", store.SubjectTypeClient)
 	if err != nil || strings.Join(g.Scopes, " ") != "read:things" {
 		t.Fatalf("grant = %+v, %v", g, err)
 	}

@@ -12,6 +12,7 @@ type (
 	Clients              = store.Clients
 	ResourceServers      = store.ResourceServers
 	ClientGrants         = store.ClientGrants
+	UserGrants           = store.UserGrants
 	SigningKeys          = store.SigningKeys
 	Connections          = store.Connections
 	Users                = store.Users
@@ -21,27 +22,29 @@ type (
 	RefreshTokens        = store.RefreshTokens
 	PasswordResetTickets = store.PasswordResetTickets
 
-	Tenant              = store.Tenant
-	Branding            = store.Branding
-	CustomText          = store.CustomText
-	AppType             = store.AppType
-	ClientSecret        = store.ClientSecret
-	Client              = store.Client
-	RefreshTokenPolicy  = store.RefreshTokenPolicy
-	Scope               = store.Scope
-	ResourceServer      = store.ResourceServer
-	ClientGrant         = store.ClientGrant
-	KeyStatus           = store.KeyStatus
-	SigningKey          = store.SigningKey
-	PasswordPolicy      = store.PasswordPolicy
-	Connection          = store.Connection
-	Identity            = store.Identity
-	User                = store.User
-	LoginSession        = store.LoginSession
-	AuthTransaction     = store.AuthTransaction
-	AuthCode            = store.AuthCode
-	RefreshToken        = store.RefreshToken
-	PasswordResetTicket = store.PasswordResetTicket
+	Tenant                   = store.Tenant
+	Branding                 = store.Branding
+	CustomText               = store.CustomText
+	AppType                  = store.AppType
+	ClientSecret             = store.ClientSecret
+	Client                   = store.Client
+	RefreshTokenPolicy       = store.RefreshTokenPolicy
+	Scope                    = store.Scope
+	ResourceServer           = store.ResourceServer
+	ClientGrant              = store.ClientGrant
+	UserGrant                = store.UserGrant
+	SubjectTypeAuthorization = store.SubjectTypeAuthorization
+	KeyStatus                = store.KeyStatus
+	SigningKey               = store.SigningKey
+	PasswordPolicy           = store.PasswordPolicy
+	Connection               = store.Connection
+	Identity                 = store.Identity
+	User                     = store.User
+	LoginSession             = store.LoginSession
+	AuthTransaction          = store.AuthTransaction
+	AuthCode                 = store.AuthCode
+	RefreshToken             = store.RefreshToken
+	PasswordResetTicket      = store.PasswordResetTicket
 )
 
 var (
@@ -61,6 +64,19 @@ const (
 	AuthMethodNone              = store.AuthMethodNone
 	AuthMethodClientSecretPost  = store.AuthMethodClientSecretPost
 	AuthMethodClientSecretBasic = store.AuthMethodClientSecretBasic
+
+	SecurityModeStrict     = store.SecurityModeStrict
+	SecurityModePermissive = store.SecurityModePermissive
+
+	RedirectionPolicyOpenRedirectProtection = store.RedirectionPolicyOpenRedirectProtection
+	RedirectionPolicyAllowAlways            = store.RedirectionPolicyAllowAlways
+
+	PolicyAllowAll           = store.PolicyAllowAll
+	PolicyRequireClientGrant = store.PolicyRequireClientGrant
+	PolicyDenyAll            = store.PolicyDenyAll
+
+	SubjectTypeUser   = store.SubjectTypeUser
+	SubjectTypeClient = store.SubjectTypeClient
 
 	KeyNext     = store.KeyNext
 	KeyCurrent  = store.KeyCurrent

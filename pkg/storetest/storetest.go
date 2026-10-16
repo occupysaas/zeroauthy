@@ -19,6 +19,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"Clients":              testClients,
 	"ResourceServers":      testResourceServers,
 	"ClientGrants":         testClientGrants,
+	"UserGrants":           testUserGrants,
 	"SigningKeys":          testSigningKeys,
 	"Connections":          testConnections,
 	"Users":                testUsers,
@@ -32,7 +33,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 
 // suiteOrder is the order Run executes the suites in.
 var suiteOrder = []string{
-	"Tenants", "Clients", "ResourceServers", "ClientGrants", "SigningKeys",
+	"Tenants", "Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys",
 	"Connections", "Users", "Sessions", "AuthTransactions", "AuthCodes",
 	"RefreshTokens", "PasswordResetTickets", "Tx",
 }

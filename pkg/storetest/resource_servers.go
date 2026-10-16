@@ -21,6 +21,8 @@ func newResourceServer(tenantID, id, identifier string) *store.ResourceServer {
 		TokenLifetime:      3600,
 		AllowOfflineAccess: true,
 		CreatedAt:          ts(0),
+
+		SkipConsentForVerifiableFirstPartyClients: true,
 	}
 }
 
@@ -53,6 +55,23 @@ func testResourceServers(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 		mustErrIs(t, s.ResourceServers().Delete(ctx, "ten_a", "rs1"), store.ErrNotFound)
 		mustErrIs(t, s.ResourceServers().Update(ctx, want), store.ErrNotFound)
+	})
+
+	t.Run("ConsentAndPolicies", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newResourceServer("ten_a", "rs1", "https://api.test")
+		want.SkipConsentForVerifiableFirstPartyClients = false
+		want.SubjectTypeAuthorization = store.SubjectTypeAuthorization{User: store.PolicyRequireClientGrant, Client: store.PolicyDenyAll}
+		mustNoErr(t, s.ResourceServers().Create(ctx, want))
+		got, err := s.ResourceServers().Get(ctx, "ten_a", "rs1")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+
+		want.SubjectTypeAuthorization = store.SubjectTypeAuthorization{User: store.PolicyDenyAll}
+		mustNoErr(t, s.ResourceServers().Update(ctx, want))
+		got, err = s.ResourceServers().Get(ctx, "ten_a", "rs1")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
 	})
 
 	t.Run("IdentifierUniquePerTenant", func(t *testing.T) {

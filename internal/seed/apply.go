@@ -175,12 +175,13 @@ func secretMatches(existing []store.ClientSecret, plaintext string) bool {
 }
 
 func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in ClientGrant, now time.Time) error {
-	g, err := st.ClientGrants().Find(ctx, tenantID, in.ClientID, in.Audience)
+	g, err := st.ClientGrants().Find(ctx, tenantID, in.ClientID, in.Audience, store.SubjectTypeClient)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		return st.ClientGrants().Create(ctx, &store.ClientGrant{
 			TenantID: tenantID, ID: "cgr_" + secrets.RandomString(24),
-			ClientID: in.ClientID, Audience: in.Audience, Scopes: slices.Clone(in.Scopes), CreatedAt: now,
+			ClientID: in.ClientID, Audience: in.Audience, Scopes: slices.Clone(in.Scopes),
+			SubjectType: store.SubjectTypeClient, CreatedAt: now,
 		})
 	case err != nil:
 		return err

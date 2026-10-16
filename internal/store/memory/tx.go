@@ -55,6 +55,7 @@ func (s *Store) snapshot() *Store {
 		clients:         cloneMap(s.clients, cloneClient),
 		resourceServers: cloneMap(s.resourceServers, cloneResourceServer),
 		clientGrants:    cloneMap(s.clientGrants, cloneClientGrant),
+		userGrants:      cloneMap(s.userGrants, cloneUserGrant),
 		signingKeys:     cloneMap(s.signingKeys, cloneSigningKey),
 		connections:     cloneMap(s.connections, cloneConnection),
 		users:           cloneMap(s.users, cloneUser),
@@ -72,6 +73,7 @@ func (s *Store) restore(snap *Store) {
 	defer s.mu.Unlock()
 	s.tenants, s.clients, s.resourceServers = snap.tenants, snap.clients, snap.resourceServers
 	s.clientGrants, s.signingKeys, s.connections = snap.clientGrants, snap.signingKeys, snap.connections
+	s.userGrants = snap.userGrants
 	s.users, s.sessions, s.transactions = snap.users, snap.sessions, snap.transactions
 	s.authCodes, s.refreshTokens, s.resetTickets = snap.authCodes, snap.refreshTokens, snap.resetTickets
 }

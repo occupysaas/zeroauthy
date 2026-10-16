@@ -52,6 +52,10 @@ func cloneClient(c *store.Client) *store.Client {
 	out.AllowedLogoutURLs = slices.Clone(c.AllowedLogoutURLs)
 	out.WebOrigins = slices.Clone(c.WebOrigins)
 	out.AllowedOrigins = slices.Clone(c.AllowedOrigins)
+	if c.SkipNonVerifiableCallbackURIConfirmationPrompt != nil {
+		v := *c.SkipNonVerifiableCallbackURIConfirmationPrompt
+		out.SkipNonVerifiableCallbackURIConfirmationPrompt = &v
+	}
 	return &out
 }
 
@@ -62,6 +66,12 @@ func cloneResourceServer(rs *store.ResourceServer) *store.ResourceServer {
 }
 
 func cloneClientGrant(g *store.ClientGrant) *store.ClientGrant {
+	out := *g
+	out.Scopes = slices.Clone(g.Scopes)
+	return &out
+}
+
+func cloneUserGrant(g *store.UserGrant) *store.UserGrant {
 	out := *g
 	out.Scopes = slices.Clone(g.Scopes)
 	return &out

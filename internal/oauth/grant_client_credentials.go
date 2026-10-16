@@ -36,7 +36,7 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		h.log().ErrorContext(ctx, "load resource server", "tenant", tenantID, "audience", aud, "err", err)
 		return nil, serverError()
 	}
-	grant, err := h.Store.ClientGrants().Find(ctx, tenantID, c.ClientID, aud)
+	grant, err := h.Store.ClientGrants().Find(ctx, tenantID, c.ClientID, aud, store.SubjectTypeClient)
 	if errors.Is(err, store.ErrNotFound) {
 		return nil, accessDenied("client is not authorized for this audience")
 	}
