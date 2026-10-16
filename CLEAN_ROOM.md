@@ -14,9 +14,13 @@ derived from Auth0 or Okta. Every contribution must follow this policy.
 - The Apache-2.0 licensed OpenAPI description at
   https://github.com/aminya/auth0-openapi (see `NOTICE`).
 - IETF RFCs, OpenID Foundation specifications, and other open standards.
-- Auth0's **open-source SDKs**, used only as **black-box test clients**:
-  we run them against zeroauthy and observe the requests they send to *our*
-  server.
+- Auth0's **open-source SDKs and tools** (for example the SDKs on
+  https://github.com/auth0 and auth0-cli), under their open-source licenses
+  (MIT, Apache-2.0):
+  - as **test clients**, run against zeroauthy and against the maintainer's
+    own tenant;
+  - as a **source**: their source code may be read and studied (see
+    "Open-source Auth0 code" below).
 - **Firewalled Management API observation** (see below).
 - **Behavior testing against the maintainer's own tenant** (see below).
 
@@ -54,13 +58,12 @@ and to Auth0's open-source tools such as auth0-cli
 
 - **Scope:** documented endpoints only (Authentication API and Management
   API), on a tenant the maintainer owns, with normal credentials. Run the
-  same black-box tools and requests against Auth0 and against zeroauthy.
+  same tools and requests against Auth0 and against zeroauthy.
   No other people's tenants, no undocumented or internal endpoints, and no
   load or fuzz testing.
-- **Tools stay black boxes:** use Auth0's SDKs and auth0-cli only through
-  their documented commands and options, and observe what they send and
-  receive on the wire. Do not reverse engineer, decompile, or mine their
-  source code for undocumented behavior.
+- **Tools:** Auth0's SDKs and auth0-cli may be run through their commands
+  and options, and their source may be read under "Open-source Auth0 code"
+  below.
 - **Results:** record behavior as observation notes in
   `docs/compat/observations/`, or as test assertions that encode facts:
   status codes, field names and types, error codes, redirects and
@@ -71,6 +74,26 @@ and to Auth0's open-source tools such as auth0-cli
 - **Still prohibited:** capturing hosted pages or the dashboard
   (screenshots, DOM, assets, copy), as listed below.
 
+## Open-source Auth0 code
+
+The maintainer has authorized (2026-10-16) reading and studying the source
+of Auth0's open-source SDKs and tools, such as auth0-cli, because their
+licenses (MIT, Apache-2.0) permit it. This covers only code Auth0 publishes
+under an open-source license; Auth0's server software and hosted pages
+remain off limits (see below).
+
+- **Confirm before building:** a behavior learned only from SDK or tool
+  code, such as an undocumented endpoint, parameter or field, is confirmed in
+  the public documentation or by behavior testing against the maintainer's
+  own tenant before zeroauthy implements it. Until then, it is at most a
+  note in `docs/compat/decisions.md`.
+- **Write our own code:** prefer original code. If code is copied or closely
+  adapted, keep its copyright and license notice, add it to `NOTICE`, and
+  make sure the license is compatible with zeroauthy's Apache-2.0 license.
+- **Record provenance:** when SDK or tool code informed a behavior, name the
+  repository, file and version (tag or commit) in the operation's
+  `x-source` or in the decision log.
+
 ## Prohibited
 
 - Decompiling, disassembling, or otherwise inspecting Auth0 server software,
@@ -78,8 +101,9 @@ and to Auth0's open-source tools such as auth0-cli
 - Probing or scraping live Auth0 tenants, except for firewalled Management
   API observation and behavior testing against the maintainer's own tenant,
   as described above.
-- Reverse engineering Auth0's SDKs, CLI, or other tools: they are used only
-  through their documented interfaces as black-box clients.
+- Reverse engineering Auth0 software that is not published under an
+  open-source license (for example binaries or obfuscated code without a
+  source release).
 - Capturing the Auth0 dashboard or hosted pages (screenshots, DOM, assets,
   copy).
 - Copying Auth0 UI templates, stylesheets, images, or product copy. All
@@ -92,7 +116,8 @@ and to Auth0's open-source tools such as auth0-cli
 ## Provenance
 
 - Every operation in `api/*.yaml` carries an `x-source` extension listing
-  the public URL(s) it was derived from.
+  the public URL(s) it was derived from, including the repository, file and
+  version of any open-source Auth0 code that informed it.
 - When public sources leave behavior unspecified, resolve it using
   RFC/OpenID semantics and log the decision in `docs/compat/decisions.md`.
 - Known differences from Auth0 are listed in `docs/compat/matrix.md`.

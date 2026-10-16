@@ -44,10 +44,10 @@ The policy lives in `CLEAN_ROOM.md` at the repo root and is restated in the PR t
   - Auth0's public documentation (`auth0.com/docs`)
   - The Apache-2.0 `aminya/auth0-openapi` description, attributed in `NOTICE`
   - IETF RFCs and OpenID Foundation specifications
-  - Auth0's open-source SDKs, used only as black-box test clients
+  - Auth0's open-source SDKs and tools (MIT, Apache-2.0): run as test clients, and their source may be studied; behavior learned only from their code is confirmed in the docs or against the maintainer's tenant before it is built
 - **Prohibited:**
   - Decompiling, disassembling or inspecting Auth0 server software or proprietary assets
-  - Probing live Auth0 tenants, except for firewalled Management API observation (below)
+  - Probing live Auth0 tenants, except for firewalled Management API observation and behavior testing against the maintainer's own tenant (see `CLEAN_ROOM.md`)
   - Capturing the Auth0 dashboard or hosted pages
   - Copying Auth0 UI templates, stylesheets, images or product copy
   - Using Auth0 trademarks beyond nominative "Auth0-compatible" statements
