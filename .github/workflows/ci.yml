@@ -15,7 +15,12 @@ jobs:
       - name: gofmt
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - run: go test -race ./...
+        env:
+          ZA_REQUIRE_NODE: "1"
       - run: CGO_ENABLED=0 go build ./cmd/zeroauthy
       - name: generated code is up to date
         run: go generate ./... && git diff --exit-code
