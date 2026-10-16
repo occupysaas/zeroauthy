@@ -182,7 +182,7 @@ func checkCustomDB(ctx context.Context, st store.Store, tenants []*store.Tenant,
 				continue
 			}
 			if err := runner.Probe(); err != nil {
-				log.Warn("custom database connections cannot run their scripts until Node.js is available",
+				log.Warn("custom database connections cannot run their scripts until Node.js is available (the check is cached: restart zeroauthy after installing or upgrading Node.js)",
 					"tenant", tn.Name, "connection", c.Name, "err", err)
 			}
 			return nil
@@ -225,7 +225,7 @@ func (a *App) Serve(ctx context.Context) error {
 	case err := <-errc:
 		return err
 	case <-ctx.Done():
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 		defer cancel()
 		a.log.Info("shutting down")
 		return srv.Shutdown(shutdownCtx)

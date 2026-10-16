@@ -275,8 +275,12 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 7. Log the user out everywhere and invalidate their other reset
-	// links before the password changes, so a storage failure part way
-	// leaves the account in the safer state.
+	// links. On a local connection this runs before the password changes
+	// (step 8), so a storage failure part way leaves the old password
+	// working but every session gone. On a legacy connection the script's
+	// change_password already ran (step 5), so the password changed first;
+	// if revocation then fails, the new password is live while old
+	// sessions survive, and the user should reset again.
 	if _, err := h.Store.Sessions().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
 		h.fail(w, r, err, nil)
 		return

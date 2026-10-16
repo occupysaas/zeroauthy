@@ -31,32 +31,46 @@ func ScriptRaised(err error) bool {
 // script client.
 var errNoClient = errors.New("identity: custom database scripts are not configured")
 
+// scriptNoAnswer lists the errors that mean the script never answered. Only
+// these are refunded by the throttle; every other failure counts as raised,
+// so a new error kind is counted until someone decides otherwise (D-0023).
+var scriptNoAnswer = []struct {
+	err  error
+	kind string
+}{
+	{customdb.ErrTimeout, "timeout"},
+	{customdb.ErrUnavailable, "unavailable"},
+	{customdb.ErrNoScript, "no_script"},
+	{customdb.ErrConfig, "config"},
+	{errNoClient, "no_client"},
+	{context.Canceled, "cancelled"},
+	{context.DeadlineExceeded, "deadline"},
+}
+
 // scriptErr maps a script failure. A script's UnauthorizedError becomes
 // *UnauthorizedError; everything else is logged and wrapped in ErrScript,
 // and also in ErrScriptUnavailable when the script gave no answer.
 func (d *Database) scriptErr(ctx context.Context, conn *store.Connection, script string, err error) error {
 	kind, msg := "error", err.Error()
-	unavailable := true
+	unavailable := false
 	var se *customdb.ScriptError
-	switch {
-	case errors.As(err, &se):
+	if errors.As(err, &se) {
 		kind, msg = se.Kind, se.Message
 		if se.Kind == customdb.KindUnauthorized {
 			d.log().InfoContext(ctx, "custom database script refused the user",
 				"tenant", conn.TenantID, "connection", conn.Name, "script", script, "kind", kind, "message", msg)
 			return &UnauthorizedError{Message: se.Message}
 		}
-		unavailable = false
-	case errors.Is(err, customdb.ErrTimeout):
-		kind = "timeout"
-	case errors.Is(err, customdb.ErrUnavailable):
-		kind = "unavailable"
-	case errors.Is(err, customdb.ErrNoScript):
-		kind = "no_script"
-	case errors.Is(err, customdb.ErrBadProfile):
-		kind, unavailable = "bad_profile", false
-	case errors.Is(err, customdb.ErrConfig):
-		kind = "config"
+	} else {
+		for _, n := range scriptNoAnswer {
+			if errors.Is(err, n.err) {
+				kind, unavailable = n.kind, true
+				break
+			}
+		}
+		if !unavailable && errors.Is(err, customdb.ErrBadProfile) {
+			kind = "bad_profile"
+		}
 	}
 	d.log().ErrorContext(ctx, "custom database script failed",
 		"tenant", conn.TenantID, "connection", conn.Name, "script", script, "kind", kind, "message", msg)

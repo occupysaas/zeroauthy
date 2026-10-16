@@ -96,7 +96,7 @@ A script is one function. Name it as you like; zeroauthy also recognizes the usu
 - `new WrongUsernameOrPasswordError(identifier)`: the credentials are wrong. The user sees the ordinary wrong-credentials answer.
 - `new ValidationError(code, message)`: the input was rejected. On sign-up the code `user_exists` means the user exists; other codes are shown as a rejected sign-up with your message.
 - `new UnauthorizedError(message)`: refuse with a message the user should see. Its message is shown to the user, on every surface. The one other message that reaches users is a `create` script's `ValidationError` on sign-up, which is shown like a rejected sign-up field.
-- Any other `Error`, a thrown exception, or an invalid profile is a script failure: the user sees a generic error and the details go to the server log (tenant, connection, script, kind and message; never passwords or configuration).
+- Any other `Error`, a thrown exception, or an invalid profile is a script failure: the user sees a generic error and the details go to the server log (tenant, connection, script, kind and message). zeroauthy itself never logs passwords or configuration; messages your scripts produce (error messages, console output) are logged as they are, so don't put secrets in them.
 
 How each surface answers is in D-0023.
 
@@ -124,7 +124,7 @@ Which fields follow your store after the first login (D-0024):
 
 ## Runtime
 
-- **Node.js 22.13 or later** must be on the server's `PATH`, or set `custom_db.node` to its path. If Node.js is missing or too old, scripts fail as "unavailable" (users see a generic error, the log says why). Install it in container images.
+- **Node.js 22.13 or later** must be on the server's `PATH`, or set `custom_db.node` to its path. If Node.js is missing or too old, scripts fail as "unavailable" (users see a generic error, the log says why). Install it in container images. The check is cached, so restart zeroauthy after installing or upgrading Node.js.
 - **Settings** (YAML `custom_db`, or `ZEROAUTHY_CUSTOM_DB__*`):
 
   | Key | Default | Meaning |
@@ -140,7 +140,7 @@ Which fields follow your store after the first login (D-0024):
   npm install --prefix /opt/zeroauthy/modules pg bcryptjs
   ```
 
-  Scripts then use `require("pg")`. Native addons do not load under Node's permission model, so prefer pure-JavaScript packages (for example `bcryptjs` instead of `bcrypt`). Packages in `modules_dir` are code you are choosing to trust: they run with the script's powers.
+  Scripts then use `require("pg")`. Native addons do not load under Node's permission model, so prefer pure-JavaScript packages (for example `bcryptjs` instead of `bcrypt`). Packages in `modules_dir` are code you are choosing to trust: they run with the script's powers. Every file under `modules_dir` is readable by every tenant's scripts, and symlinks are followed, so keep secrets, `.env` files and symlinks out of it.
 - **Limits.** One execution may run for 20 seconds; after that the tenant's process is killed. A script may be at most 100 kB.
 - **Process model.** Each tenant gets its own Node.js process, started on first use and stopped when idle. Within it, each connection has its own `vm` context.
 
@@ -151,6 +151,7 @@ What zeroauthy enforces:
 - The runner starts with an empty environment. Configuration reaches it only in the request, so scripts cannot read the server's environment variables.
 - Node's permission model (`--permission`) allows file reads only in the runner's directory and `modules_dir`, and grants no writes, child processes, workers, addons or WASI. A script cannot read host files, start processes, or reach the server's environment even if it escapes `vm`.
 - Methods that signal other processes of the same uid (`process.kill`, `process._kill`, `process._debugProcess`, `process._debugEnd`) and `os.setPriority` are locked and throw. Locking is by name; a future Node release that adds another such method would need it added (D-0022).
+- The trust boundary is the tenant, not the connection: the scripts of one tenant run in one shared runner process and can observe each other's requests.
 - Tenants never share a process, and `configuration` is encrypted at rest, bound to its tenant and connection.
 - The runner's `require` denylist only gives clearer errors. It is not a security control; `--permission` is.
 

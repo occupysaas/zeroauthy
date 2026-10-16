@@ -541,6 +541,8 @@ func TestScriptUnavailableClassification(t *testing.T) {
 		{"script error", nil, &customdb.ScriptError{Kind: customdb.KindError, Message: "bad"}, nil, false},
 		{"validation error", nil, &customdb.ScriptError{Kind: customdb.KindValidation, Message: "bad"}, nil, false},
 		{"bad profile", map[string]any{"user_id": "a|b", "email": "a@b.test"}, nil, nil, false},
+		{"unrecognised error", nil, errors.New("new kind"), nil, false},
+		{"deadline exceeded", nil, context.DeadlineExceeded, nil, true},
 		{"timeout", nil, customdb.ErrTimeout, nil, true},
 		{"unavailable", nil, customdb.ErrUnavailable, nil, true},
 		{"cancelled", nil, context.Canceled, nil, true},
@@ -559,6 +561,12 @@ func TestScriptUnavailableClassification(t *testing.T) {
 			}
 		})
 	}
+	t.Run("unrecognised error is counted", func(t *testing.T) {
+		db, conn, _ := legacyConn(t, scripts{store.ScriptLogin: func([]any) (any, error) { return nil, errors.New("new kind") }})
+		if _, err := db.Login(ctx, conn, "a@b.test", "pw"); !ScriptRaised(err) {
+			t.Fatalf("err = %v, want ScriptRaised", err)
+		}
+	})
 	t.Run("collision", func(t *testing.T) {
 		db, conn, _ := legacyConn(t, scripts{store.ScriptLogin: func([]any) (any, error) {
 			return map[string]any{"user_id": "42", "email": "a@b.test"}, nil
