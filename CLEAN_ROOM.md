@@ -18,6 +18,7 @@ derived from Auth0 or Okta. Every contribution must follow this policy.
   we run them against zeroauthy and observe the requests they send to *our*
   server.
 - **Firewalled Management API observation** (see below).
+- **Behavior testing against the maintainer's own tenant** (see below).
 
 ## Firewalled Management API observation
 
@@ -43,12 +44,42 @@ these conditions:
   and accepted the risk for firewalled API observation. Contributors must not
   perform observation unless the maintainer has authorized them to.
 
+## Behavior testing against the maintainer's own tenant
+
+The maintainer has authorized (2026-10-16) observing and testing Auth0's
+behavior on a tenant they own, so zeroauthy can be compared with it. This
+extends the observation rules above to the documented Authentication API
+and to Auth0's open-source tools such as auth0-cli
+(https://github.com/auth0/auth0-cli, MIT):
+
+- **Scope:** documented endpoints only (Authentication API and Management
+  API), on a tenant the maintainer owns, with normal credentials. Run the
+  same black-box tools and requests against Auth0 and against zeroauthy.
+  No other people's tenants, no undocumented or internal endpoints, and no
+  load or fuzz testing.
+- **Tools stay black boxes:** use Auth0's SDKs and auth0-cli only through
+  their documented commands and options, and observe what they send and
+  receive on the wire. Do not reverse engineer, decompile, or mine their
+  source code for undocumented behavior.
+- **Results:** record behavior as observation notes in
+  `docs/compat/observations/`, or as test assertions that encode facts:
+  status codes, field names and types, error codes, redirects and
+  parameters. The "notes, not copies" rule above applies: no verbatim error
+  messages or descriptions longer than a short identifier, and no
+  credentials, tenant identifiers, tokens, or personal data in the
+  repository.
+- **Still prohibited:** capturing hosted pages or the dashboard
+  (screenshots, DOM, assets, copy), as listed below.
+
 ## Prohibited
 
 - Decompiling, disassembling, or otherwise inspecting Auth0 server software,
   hosted pages, or other proprietary assets.
 - Probing or scraping live Auth0 tenants, except for firewalled Management
-  API observation as described above.
+  API observation and behavior testing against the maintainer's own tenant,
+  as described above.
+- Reverse engineering Auth0's SDKs, CLI, or other tools: they are used only
+  through their documented interfaces as black-box clients.
 - Capturing the Auth0 dashboard or hosted pages (screenshots, DOM, assets,
   copy).
 - Copying Auth0 UI templates, stylesheets, images, or product copy. All

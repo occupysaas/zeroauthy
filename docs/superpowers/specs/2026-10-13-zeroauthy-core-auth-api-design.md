@@ -388,7 +388,7 @@ The seed file is idempotent: it upserts by natural keys. Until the Management AP
 | Storage | `pkg/storetest` against memory, sqlite, postgres, mysql, and the sample gRPC plugin | testcontainers-go |
 | E2E | Sample apps for each SDK in §1.2, driven by Playwright | docker compose |
 | Conformance | OIDF Basic OP, Config OP, PKCE plans | OIDF suite container in CI |
-| Management API E2E (sub-project 3) | auth0-cli (MIT, github.com/auth0/auth0-cli), pinned, run as a black-box client against zeroauthy's Management API: login with client credentials, apps/apis/users/connections commands, `auth0 api`, `auth0 test token` | auth0-cli in CI |
+| Management API E2E (sub-project 3) | auth0-cli (MIT, github.com/auth0/auth0-cli), pinned, run as a black-box client against zeroauthy's Management API (login with client credentials, apps/apis/users/connections commands, `auth0 api`, `auth0 test token`), and against the maintainer's own Auth0 tenant for behavior comparison (CLEAN_ROOM.md) | auth0-cli in CI (zeroauthy); maintainer-run against Auth0 |
 
 ## 13. Milestones (input to the implementation plan)
 

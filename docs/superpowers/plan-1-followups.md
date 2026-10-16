@@ -8,7 +8,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 | Before | Item |
 |---|---|
 | Management API (sub-project 3) | Tenants created at runtime need `keys.Manager.Ensure`; domains must be normalized with `tenant.NormalizeHost` and must not fall under `server.base_domain`. |
-| Management API (sub-project 3) | Use a pinned auth0-cli as a black-box E2E client against zeroauthy only (CLEAN_ROOM.md: open-source tools as black-box clients). Never run it against live Auth0 to diff behaviour; Management API observation of a real tenant stays under the firewalled observation rules. |
+| Management API (sub-project 3) | Use a pinned auth0-cli as a black-box E2E client against zeroauthy, and run the same commands against the maintainer's own Auth0 tenant to compare behavior (CLEAN_ROOM.md, "Behavior testing against the maintainer's own tenant"). Record differences as observation notes or fact-only assertions; never reverse engineer the CLI's code. |
 
 ## Nice to have
 
