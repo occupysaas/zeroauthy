@@ -54,11 +54,11 @@
   - The consent and confirmation page copy, layout and styles are original.
   - The custom-text key names under the `consent` prompt are Auth0's public contract and are taken from the text-elements doc.
   - Task 1 records facts only: redirect URLs reduced to parameter names and error codes, screen types, JSON property names and values. No hosted-page text, no screenshots, no tenant domain or IDs. Follow `CLEAN_ROOM.md` "Behavior testing against the maintainer's own tenant".
-- **Defaults keep today's behaviour for existing data:**
-  - Clients are first-party.
-  - APIs skip consent for first-party clients and allow all user flows.
-  - Client credentials require a `client` grant.
+- **Defaults:**
+  - Clients are first-party unless the seed says otherwise.
+  - APIs allow all user flows, and client credentials require a `client` grant.
   - Existing client grants become `subject_type: client`.
+  - `skip_consent_for_verifiable_first_party_clients` defaults to **`false`** in the seed, as on Auth0 (D-0026). Rows migrated to schema 3 keep `true` until the next seed apply. Every test seed and fixture in this plan that expects no consent for first-party apps sets it to `true` explicitly.
 - **Fail closed when a stored value is unknown:** a third-party client with an empty or unknown `ThirdPartySecurityMode` is treated as `strict`.
 - **Non-verifiable callback:** any scheme other than `http`/`https`, or a host of `localhost`, `127.0.0.1` or `::1` (any scheme, any port).
 
@@ -66,21 +66,24 @@
 
 Task 1 fills the **Observed** column and edits `internal/access/observed.go` and the seed defaults to match. Tasks 2–11 are written against the **Default** column. If Task 1 changes a value, the implementer of each later task uses the observed value; the tests are written against the constants, so most will follow automatically.
 
-| # | Question | Constant / place | Default (from the docs, or OIDC where they are silent) | Observed |
-|---|---|---|---|---|
-| O1a | Default `skip_consent_for_verifiable_first_party_clients` on a new API | seed default (`internal/seed/validate.go`) | `true` | |
-| O1b | Default `subject_type_authorization` on a new API | seed default | user `allow_all`, client `require_client_grant` (documented) | |
-| O1c | Default `third_party_security_mode` for a new third-party client | seed default | `strict` (documented from 2026-10-23) | |
-| O1d | Default `redirection_policy` | seed default | third-party `open_redirect_protection` (documented), first-party `allow_always` | |
-| O1e | `subject_type` of a grant created without one | seed default | `client` | |
-| O2 | Consent with no `audience`; audience recorded on the grant | `consentWithoutAudience`; grant audience `https://{domain}/userinfo` | consent shown for third-party clients; grant audience is the userinfo URL | |
-| O2b | Strict client with no audience | `strictNeedsAudience` | refused with `access_denied` at /authorize | |
-| O3 | Is a subset covered; are scopes merged on a superset? | `mergeGrantScopes` | subset covered; accepted scopes are merged into the grant | |
-| O4 | First-party, API skips consent, non-verifiable callback | `firstPartyNonVerifiableConsent` | `false` (confirmation prompt only) | |
-| O5 | `prompt=none` codes | `codeConsentRequired`, `codeConfirmationRequired` | `consent_required`, `interaction_required` | |
-| O6 | Errors that `open_redirect_protection` shows as a page | `protectedErrors` | `access_denied` only | |
-| O7 | User flow refused by the access policy | `codeAuthorizeDenied`, `codeTokenDenied` | `access_denied` at /authorize, `unauthorized_client` at /oauth/token | |
-| O8 | Permissive client, `allow_all`, no grant | `permissiveFollowsPolicy` | `true` (allowed; permissive-mode page) | |
+Task 1 ran on 2026-10-16 (`docs/compat/observations/consent.md`, D-0025–D-0027). **The code blocks in Tasks 5–10 already use the observed values**; the table records where they came from.
+
+| # | Question | Constant / place | Observed (used by this plan) |
+|---|---|---|---|
+| O1a | Default `skip_consent_for_verifiable_first_party_clients` on a new API | seed default | **`false`** (maintainer chose parity; migrated rows keep `true`) |
+| O1b | Default `subject_type_authorization` | seed default | user `allow_all`, client `require_client_grant` |
+| O1c | Default `third_party_security_mode` | seed default | `strict` |
+| O1d | Default `redirection_policy` | seed default | third-party `open_redirect_protection`; first-party unset (zeroauthy stores `allow_always`) |
+| O1e | `subject_type` of a grant created without one | seed default | `client` |
+| O1f | Third-party client in a connection's `enabled_clients` | seed validation | **refused** (third-party apps use domain connections only) |
+| O2 | Consent with no `audience` (permissive) | `consentWithoutAudience` | not observable (no permissive clients); `true`, grant audience `https://{domain}/userinfo` |
+| O2b | Strict client with no audience | `codeStrictNoAudience` | **`invalid_request`** |
+| O3 | Subset covered; scopes merged | `mergeGrantScopes` | subset covered; merged (`true`) |
+| O4 | First-party, API skips consent, non-verifiable callback | `Input.ScreenShown` rule | **confirmation only when no other screen (login, signup, consent) was shown in the transaction**: none right after a login, shown on session reuse |
+| O5 | `prompt=none` codes | `codeConsentRequired`, `codeConfirmationRequired` | `consent_required` for both |
+| O6 | Errors `open_redirect_protection` shows as a page | `ShowErrorPage(client)` | **every** /authorize error after client and redirect URI validation; HTTP 400 |
+| O7 | User flow refused by the access policy | `codeAuthorizeDenied`, `codeTokenDenied` | **`invalid_request`** at /authorize; **HTTP 400 `invalid_request`** at /oauth/token; client credentials HTTP 403 `access_denied` (unchanged) |
+| O8 | Permissive client, `allow_all`, no grant | `permissiveFollowsPolicy` | not observable; `true` per the permissive-mode page |
 
 ## Review Focus
 
@@ -106,6 +109,8 @@ Task 11 adds these to `docs/superpowers/plan-1-followups.md` under "Plan 9 follo
 - `/api/v2/grants` and `/api/v2/client-grants`, and revoking refresh tokens when a grant is deleted (sub-project 3).
 - The `tpc_` client ID prefix for generated strict client IDs (sub-project 3).
 - Device flow (`/activate`, which will reuse the consent page) and PAR, which strict clients reject (Plans 10 and 11).
+- Auth0 stored a user grant for a first-party client after a login that showed no screen (observation check 1). zeroauthy stores grants only on accepted consent (D-0026); revisit once the grants Management API exists.
+- Re-checking the Management API defaults (O1) with a machine (client-credentials) login of auth0-cli; Task 1 used a user login.
 
 ## File Structure
 
@@ -135,6 +140,8 @@ Task 11 adds these to `docs/superpowers/plan-1-followups.md` under "Plan 9 follo
 
 ### Task 1: Observe the open points on the maintainer's Auth0 tenant
 
+**Status: done 2026-10-16** (inline, with the maintainer). Results: `docs/compat/observations/consent.md` and D-0025–D-0027. The extra checks run beyond the steps below (token endpoint, `allow_always` re-runs, connection and grant-type refusals) are recorded there. The steps are kept as the procedure for repeating the observation.
+
 This task needs the maintainer. Claude runs the Management API calls with auth0-cli. The maintainer opens the browser URLs and reports back only the final address-bar URL, or which kind of screen appeared. No code changes in this task.
 
 **Files:**
@@ -146,7 +153,7 @@ This task needs the maintainer. Claude runs the Management API calls with auth0-
 **Interfaces:**
 - Produces: observed values for O1–O8, used by Tasks 5 and 6.
 
-- [ ] **Step 1: Check the tools and tenant**
+- [x] **Step 1: Check the tools and tenant**
 
 Run: `auth0 --version && auth0 tenants list`
 Expected: a version, and the maintainer's tenant marked active. If it isn't logged in, ask the maintainer to run `! auth0 login`. Never print tokens.
@@ -154,7 +161,7 @@ Expected: a version, and the maintainer's tenant marked active. If it isn't logg
 Run: `auth0 api get tenants/settings | python3 -c 'import json,sys; d=json.load(sys.stdin); print({k: d.get(k) for k in ["skip_non_verifiable_callback_uri_confirmation_prompt","use_scope_descriptions_for_consent"]})'`
 Record both values. If the tenant has `skip_non_verifiable_callback_uri_confirmation_prompt: true`, the O4 and O5 confirmation checks need it to be false at the client level, which Step 2 does.
 
-- [ ] **Step 2: Create the test objects (O1)**
+- [x] **Step 2: Create the test objects (O1)**
 
 All names start with `za-obs-` so teardown can find them. Use `https://example.com/cb` as the callback: the browser ends there with a visible URL and the page content does not matter.
 
@@ -183,7 +190,7 @@ Create a test user on a database connection, and promote that connection to doma
 auth0 users create --connection-name Username-Password-Authentication --email za-obs-user@example.com --password '<random 20 chars>' --name za-obs --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["user_id"])'
 ```
 
-- [ ] **Step 3: Browser checks (O2–O7)**
+- [x] **Step 3: Browser checks (O2–O7)**
 
 For each check, Claude prints one `/authorize` URL (with `response_type=code`, `state=s1`, the client, `redirect_uri=https://example.com/cb` unless stated, and a PKCE `code_challenge` for the strict client). The maintainer opens it in a private window, logs in as `za-obs-user` where asked, and replies with **one** of:
 - `REDIRECT <the query parameters' names and the values of error only>`
@@ -207,11 +214,11 @@ They do not paste screen text.
 | O7c | `client_credentials` for a client with no grant: create `za-obs-m2m` (non_interactive) without a grant and call `/oauth/token` | HTTP status and `error` |
 | O8 | If a permissive client could be created: `allow_all` user policy restored, no grant for it, request the API audience | CONSENT (allowed) or REDIRECT error |
 
-- [ ] **Step 4: Tear down**
+- [x] **Step 4: Tear down**
 
 Delete every `za-obs-*` client, the API, the grants and the test user. Restore `is_domain_connection` if Step 2 changed it. Run `auth0 apps list` and `auth0 apis list` and confirm nothing `za-obs` remains. Delete the scratch JSON files.
 
-- [ ] **Step 5: Write the observation note**
+- [x] **Step 5: Write the observation note**
 
 Create `docs/compat/observations/consent.md` using the README layout. Record only facts:
 
@@ -233,18 +240,18 @@ Create `docs/compat/observations/consent.md` using the README layout. Record onl
 (one bullet per check, in the table's order)
 ```
 
-- [ ] **Step 6: Record decisions D-0025, D-0026 and D-0027**
+- [x] **Step 6: Record decisions D-0025, D-0026 and D-0027**
 
 Append three entries to `docs/compat/decisions.md` in the existing format (Context, Sources, Decision, Rationale). Each cites the docs and `observations/consent.md`:
 - **D-0025 Third-party modes and API access policies:** strict versus permissive (the grant types, PKCE and `/authorize` parameters strict refuses, OIDC scopes dropped); policy evaluation per subject type; O2b, O7 and O8; error codes at /authorize and /oauth/token; client credentials keep `access_denied`; an unknown mode is treated as strict.
 - **D-0026 Consent and user grants:** when consent is shown (first and third party, O4); grant key (client, user, audience); the no-audience grant audience (O2); subset and superset handling (O3); `prompt=consent`; decline.
 - **D-0027 Confirmation prompt, `prompt=none` and redirection policy:** the definition of non-verifiable; the tenant/client precedence; no confirmation after a consent screen in the same transaction; O5 codes; O6 scope of `open_redirect_protection`.
 
-- [ ] **Step 7: Fill the Observed column of this plan**
+- [x] **Step 7: Fill the Observed column of this plan**
 
 Edit the table above. Where an observation differs from its default, write the observed value in bold and add "→ change" so later implementers see it.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add docs/compat/observations/consent.md docs/compat/decisions.md docs/superpowers/plans/2026-10-16-zeroauthy-plan-9-consent.md
@@ -1216,7 +1223,7 @@ tenants:
     use_scope_descriptions_for_consent: false                      # default false
     resource_servers:
       - identifier: https://api
-        skip_consent_for_verifiable_first_party_clients: true      # default per O1a
+        skip_consent_for_verifiable_first_party_clients: true      # default false (O1a, as on Auth0)
         subject_type_authorization:
           user: {policy: allow_all}                                # default per O1b
           client: {policy: require_client_grant}
@@ -1247,6 +1254,7 @@ Add to `internal/seed/seed_test.go`. The existing error-table test takes `name: 
 		"bad user policy":           {`tenants: [{name: a, resource_servers: [{identifier: "https://x", subject_type_authorization: {user: {policy: maybe}}}]}]`, `subject_type_authorization.user.policy "maybe"`},
 		"client allow_all":          {`tenants: [{name: a, resource_servers: [{identifier: "https://x", subject_type_authorization: {client: {policy: allow_all}}}]}]`, `subject_type_authorization.client.policy "allow_all"`},
 		"bad subject type":          {`tenants: [{name: a, resource_servers: [{identifier: "https://x"}], clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://x", subject_type: robot}]}]`, `subject_type "robot"`},
+		"third-party enabled":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, is_first_party: false, callbacks: ["https://c.test/cb"]}], connections: [{name: db, enabled_clients: [c]}]}]`, `third-party application "c" cannot be enabled on a connection; use is_domain_connection`},
 		"dup grant same subject":    {`tenants: [{name: a, resource_servers: [{identifier: "https://x"}], clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://x", subject_type: user}, {client_id: c, audience: "https://x", subject_type: user}]}]`, `duplicate client grant`},
 ```
 
@@ -1327,7 +1335,9 @@ func TestApplyRefusesPartyChange(t *testing.T) {
 }
 ```
 
-Existing expectations: `TestApply…` cases that compare whole `store.Client` or `store.ResourceServer` values gain `IsFirstParty: true`, `RedirectionPolicy: allow_always`, `SkipConsentForVerifiableFirstPartyClients: true` and the two default policies.
+Existing expectations: `TestApply…` cases that compare whole `store.Client` or `store.ResourceServer` values gain `IsFirstParty: true`, `RedirectionPolicy: allow_always`, `SkipConsentForVerifiableFirstPartyClients: false` (the new default) and the two default policies.
+
+**Seeds that must keep today's behaviour.** Every test seed and fixture whose first-party flows must not hit consent gets `skip_consent_for_verifiable_first_party_clients: true` on each resource server. Find them with `grep -rln 'resource_servers' --include='*.go' --include='*.yaml' internal cmd tests`. That covers `internal/authz/fixture_test.go`, `internal/oauth/fixture_test.go`, `internal/login/login_test.go`, `internal/server/*_test.go`, `internal/dbconn/*_test.go`, `cmd/zeroauthy/*_test.go` and `tests/e2e/seed.yaml`. Add it in this task, so later tasks start from green seeds. Add a seed test that an omitted flag applies as `false`.
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
@@ -1375,6 +1385,7 @@ type AccessPolicy struct {
 ```go
 		firstParty := c.IsFirstParty == nil || *c.IsFirstParty
 		c.IsFirstParty = &firstParty
+		thirdParty[c.ClientID] = !firstParty
 		switch {
 		case firstParty && c.ThirdPartySecurityMode != "":
 			fail("client %q: third_party_security_mode is only for third-party applications", c.ClientID)
@@ -1423,7 +1434,7 @@ In the resource-server loop:
 
 ```go
 		if rs.SkipConsentForVerifiableFirstPartyClients == nil {
-			skip := true // O1a
+			skip := false // O1a: Auth0's default for new APIs (D-0026)
 			rs.SkipConsentForVerifiableFirstPartyClients = &skip
 		}
 		sta := &rs.SubjectTypeAuthorization
@@ -1461,6 +1472,21 @@ The client-grant loop takes a pointer to each grant so the default sticks:
 		seenGrants[k] = true
 		// ... existing scope checks ...
 	}
+```
+
+Declare `thirdParty := map[string]bool{}` next to `clients := map[string]bool{}` in `(*Tenant).validate`. In the connection loop, the `enabled_clients` check becomes:
+
+```go
+		for _, id := range c.EnabledClients {
+			switch {
+			case !clients[id]:
+				fail("connection %q: unknown client %q", c.Name, id)
+			case thirdParty[id]:
+				// Auth0 refuses this (observations/consent.md): third-party
+				// applications reach connections only at the domain level.
+				fail("connection %q: third-party application %q cannot be enabled on a connection; use is_domain_connection", c.Name, id)
+			}
+		}
 ```
 
 `apply.go`:
@@ -1536,6 +1562,9 @@ type Input struct {
 	// TenantSkipConfirmation is the tenant's
 	// skip_non_verifiable_callback_uri_confirmation_prompt.
 	TenantSkipConfirmation bool
+	// ScreenShown means the user already saw a login, signup or consent
+	// screen in this transaction, so no confirmation is needed (D-0027).
+	ScreenShown bool
 }
 
 type Decision struct {
@@ -1551,7 +1580,7 @@ func Decide(in Input) Decision
 func SubjectType(f Flow) string                       // "client" for ClientCredentials, else "user"
 func NonVerifiable(redirectURI string) bool
 func ConnectionUsable(c *store.Client, conn *store.Connection) bool
-func ShowErrorPage(c *store.Client, code string) bool // redirection_policy
+func ShowErrorPage(c *store.Client) bool             // redirection_policy: every /authorize error becomes a page
 func GrantScopes(existing, accepted []string) []string // O3
 func Strict(c *store.Client) bool
 ```
@@ -1634,7 +1663,11 @@ func TestDecide(t *testing.T) {
 		{"strict: prompt=none needs consent", Input{Flow: Interactive, Client: strict(), API: api(), ClientGrant: grant("read"), Scopes: []string{"read"}, Prompts: []string{"none"}, RedirectURI: web},
 			Decision{Err: &Error{Code: codeConsentRequired}}},
 		{"strict: no audience", Input{Flow: Interactive, Client: strict(), Scopes: []string{"openid"}, RedirectURI: web},
-			Decision{Err: &Error{Code: codeAuthorizeDenied}}},
+			Decision{Err: &Error{Code: codeStrictNoAudience}}},
+		{"localhost right after login: no confirmation", Input{Flow: Interactive, Client: firstParty(), Scopes: []string{"openid"}, RedirectURI: "http://localhost/cb", ScreenShown: true},
+			Decision{Scopes: []string{"openid"}}},
+		{"API without skip: consent even right after login", Input{Flow: Interactive, Client: firstParty(), API: api(noSkip), Scopes: []string{"read"}, RedirectURI: "http://localhost/cb", ScreenShown: true},
+			Decision{Scopes: []string{"read"}, Consent: true}},
 		{"permissive follows allow_all", Input{Flow: Interactive, Client: permissive(), API: api(), Scopes: []string{"openid", "read"}, RedirectURI: web},
 			permissiveAllowAll()},
 		{"permissive no audience asks consent", Input{Flow: Interactive, Client: permissive(), Scopes: []string{"openid", "profile"}, RedirectURI: web},
@@ -1718,15 +1751,13 @@ func TestConnectionUsable(t *testing.T) {
 }
 
 func TestShowErrorPage(t *testing.T) {
-	if !ShowErrorPage(strict(), "access_denied") || ShowErrorPage(firstParty(), "access_denied") {
-		t.Error("open_redirect_protection shows access_denied as a page; allow_always redirects")
+	if !ShowErrorPage(strict()) || !ShowErrorPage(permissive()) || ShowErrorPage(firstParty()) {
+		t.Error("open_redirect_protection (and an unset third-party policy) shows errors as a page; first-party unset redirects")
 	}
-	if ShowErrorPage(strict(), "login_required") != slices.Contains(protectedErrors, "login_required") {
-		t.Error("login_required follows protectedErrors (O6)")
-	}
-	unset := &store.Client{} // third-party with no stored policy: protection
-	if !ShowErrorPage(unset, "access_denied") {
-		t.Error("third-party default is open_redirect_protection")
+	open := strict()
+	open.RedirectionPolicy = store.RedirectionPolicyAllowAlways
+	if ShowErrorPage(open) {
+		t.Error("allow_always redirects")
 	}
 }
 
@@ -1758,29 +1789,27 @@ package access
 // maintainer's tenant (docs/compat/observations/consent.md, D-0025–D-0027).
 // Change them only together with those records.
 const (
-	// O5: prompt=none when a screen would be needed.
+	// O5: prompt=none when consent or the confirmation would be needed.
 	codeConsentRequired      = "consent_required"
-	codeConfirmationRequired = "interaction_required"
-	// O7: a user flow refused by the API's access policy.
-	codeAuthorizeDenied = "access_denied"
-	codeTokenDenied     = "unauthorized_client"
-	// O8: a permissive third-party client may use an allow_all API without
-	// a client grant.
+	codeConfirmationRequired = "consent_required"
+	// O7: a user flow refused by the API's access policy (HTTP 400 at the
+	// token endpoint).
+	codeAuthorizeDenied = "invalid_request"
+	codeTokenDenied     = "invalid_request"
+	// O2b: a strict client that names no audience.
+	codeStrictNoAudience = "invalid_request"
+	// O8 (not observable; permissive-mode page): a permissive third-party
+	// client may use an allow_all API without a client grant.
 	permissiveFollowsPolicy = true
-	// O4: a first-party client of an API that skips consent still sees
-	// consent (rather than only the confirmation) for a non-verifiable callback.
+	// O4: a first-party client of an API that skips consent gets the
+	// confirmation, not consent, for a non-verifiable callback.
 	firstPartyNonVerifiableConsent = false
-	// O2: a third-party request with no audience (OIDC scopes only) asks consent.
+	// O2 (not observable; permissive only): a third-party request with no
+	// audience asks consent.
 	consentWithoutAudience = true
-	// O2b: a strict client must name an audience.
-	strictNeedsAudience = true
-	// O3: accepting consent adds to a grant's scopes rather than replacing them.
+	// O3: accepting consent adds to a grant's scopes.
 	mergeGrantScopes = true
 )
-
-// O6: error codes that open_redirect_protection shows on an error page
-// instead of redirecting.
-var protectedErrors = []string{"access_denied"}
 ```
 
 `internal/access/access.go`:
@@ -1833,7 +1862,7 @@ func Decide(in Input) Decision {
 		return d
 	}
 	d.Consent = needsConsent(in, d.Scopes)
-	d.Confirmation = !d.Consent && NonVerifiable(in.RedirectURI) && !skipConfirmation(in)
+	d.Confirmation = !d.Consent && !in.ScreenShown && NonVerifiable(in.RedirectURI) && !skipConfirmation(in)
 	if slices.Contains(in.Prompts, "none") {
 		switch {
 		case d.Consent:
@@ -1856,8 +1885,8 @@ func checkPolicy(in Input) *Error {
 		code = "access_denied"
 	}
 	if in.API == nil {
-		if Strict(in.Client) && strictNeedsAudience {
-			return &Error{code, "this application must request an API audience"}
+		if Strict(in.Client) && in.Flow != ClientCredentials {
+			return &Error{codeStrictNoAudience, "this application must request an API audience"}
 		}
 		return nil
 	}
@@ -1972,14 +2001,15 @@ func ConnectionUsable(c *store.Client, conn *store.Connection) bool {
 	return slices.Contains(conn.EnabledClients, c.ClientID)
 }
 
-// ShowErrorPage reports whether an authorization error with code must be
-// shown on an error page instead of redirected (redirection_policy).
-func ShowErrorPage(c *store.Client, code string) bool {
+// ShowErrorPage reports whether c's /authorize errors must be shown on an
+// error page instead of redirected: under open_redirect_protection every
+// error is (observed, D-0027).
+func ShowErrorPage(c *store.Client) bool {
 	policy := c.RedirectionPolicy
 	if policy == "" && !c.IsFirstParty {
 		policy = store.RedirectionPolicyOpenRedirectProtection
 	}
-	return policy == store.RedirectionPolicyOpenRedirectProtection && slices.Contains(protectedErrors, code)
+	return policy == store.RedirectionPolicyOpenRedirectProtection
 }
 
 // GrantScopes is the scope list a user grant holds after the user accepts
@@ -2103,11 +2133,30 @@ func TestThirdPartyConsentCoveredIssuesCode(t *testing.T) {
 
 func TestPromptNoneConsentRequired(t *testing.T) {
 	e := newEnv(t)
-	q := partnerQuery()
-	q.Set("prompt", "none")
+	// partner-open redirects errors (allow_always); partner would show a page.
+	q := url.Values{"client_id": {"partner-open"}, "redirect_uri": {"https://open.example/cb"}, "response_type": {"code"},
+		"audience": {"https://api.acme.test"}, "scope": {"read:things"}, "state": {"st"}, "prompt": {"none"}}
 	loc := location(t, e.get(t, q, e.login(t, fixedNow())))
 	if got := loc.Query().Get("error"); got != "consent_required" { // O5
 		t.Fatalf("error = %q (%s)", got, loc)
+	}
+}
+
+func TestProtectedClientErrorsArePages(t *testing.T) {
+	e := newEnv(t)
+	for name, q := range map[string]url.Values{
+		"prompt=none, consent needed": func() url.Values { q := partnerQuery(); q.Set("prompt", "none"); return q }(),
+		"no audience (strict)":        func() url.Values { q := partnerQuery(); q.Del("audience"); return q }(),
+	} {
+		rec := e.get(t, q, e.login(t, fixedNow()))
+		if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" {
+			t.Errorf("%s: status %d Location %q", name, rec.Code, rec.Header().Get("Location"))
+		}
+	}
+	q := partnerQuery()
+	q.Set("prompt", "none")
+	if rec := e.get(t, q); rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" { // no session: login_required as a page
+		t.Errorf("no session: status %d Location %q", rec.Code, rec.Header().Get("Location"))
 	}
 }
 
@@ -2139,7 +2188,7 @@ func TestDenyAllUnderProtectionShowsErrorPage(t *testing.T) {
 	q := partnerQuery()
 	q.Set("audience", "https://locked.acme.test")
 	rec := e.get(t, q, e.login(t, fixedNow()))
-	if rec.Code != http.StatusForbidden || rec.Header().Get("Location") != "" {
+	if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" {
 		t.Fatalf("status %d Location %q", rec.Code, rec.Header().Get("Location"))
 	}
 }
@@ -2149,7 +2198,7 @@ func TestDenyAllAllowAlwaysRedirects(t *testing.T) {
 	q := url.Values{"client_id": {"partner-open"}, "redirect_uri": {"https://open.example/cb"}, "response_type": {"code"},
 		"audience": {"https://locked.acme.test"}, "state": {"st"}}
 	loc := location(t, e.get(t, q, e.login(t, fixedNow())))
-	if loc.Host != "open.example" || loc.Query().Get("error") != "access_denied" {
+	if loc.Host != "open.example" || loc.Query().Get("error") != "invalid_request" { // O7
 		t.Fatalf("Location = %s", loc)
 	}
 }
@@ -2164,7 +2213,7 @@ func TestLocalhostConfirmation(t *testing.T) {
 	}
 	q.Set("prompt", "none")
 	loc = location(t, e.get(t, q, e.login(t, fixedNow())))
-	if loc.Query().Get("error") != "interaction_required" { // O5
+	if loc.Query().Get("error") != "consent_required" { // O5
 		t.Fatalf("Location = %s", loc)
 	}
 }
@@ -2243,8 +2292,8 @@ The connection check becomes:
 
 1. Extract the session-user check in `Authorize` into `ActiveSession` (same logic; returns `nil, nil` for a missing or blocked user).
 2. `connectionDisabled` returns `!access.ConnectionUsable(client, conn)`.
-3. Replace the final `h.issueCode(...)` in `Authorize`, and the one in `Resume`, with `h.finish(w, r, res, client, req, sess, false)`.
-4. Route every redirectable validation error in `Authorize` and `Resume` through `h.deny(w, r, res, client, req, verr)`.
+3. Replace the final `h.issueCode(...)` in `Authorize` with `h.finish(w, r, res, client, req, sess, false, false)`, and the one in `Resume` with `h.finish(w, r, res, client, req, sess, false, true)`: the login or signup page was just shown, so the confirmation is skipped (D-0027).
+4. Route **every** error `Authorize` and `Resume` deliver to the client through `h.deny(w, r, res, client, req, e)`: redirectable validation errors, `login_required`, and the `server_error` responses after the client is known. Under `open_redirect_protection` all of them become error pages (D-0027).
 5. `startLogin` keeps every prompt but `login`:
 
 ```go
@@ -2270,13 +2319,9 @@ New code:
 // deny delivers an authorization error, or shows it on an error page when
 // the client's redirection_policy protects it (D-0027).
 func (h *Handlers) deny(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, e *Error) {
-	if access.ShowErrorPage(client, e.Code) {
+	if access.ShowErrorPage(client) {
 		view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
-		status := http.StatusBadRequest
-		if e.Code == "access_denied" {
-			status = http.StatusForbidden
-		}
-		ui.RenderErrorDetail(w, status, view, view.L.T(i18n.KeyErrAccessDenied), e.Description)
+		ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrAccessDenied), e.Description)
 		return
 	}
 	writeResponse(w, r, req, errorParams(e, req.State))
@@ -2316,8 +2361,9 @@ func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client 
 
 // finish runs the access decision for an authenticated request: it issues
 // the code, sends the browser to the consent page, or delivers an error.
-// accepted means the user just accepted the consent page for this request.
-func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, accepted bool) {
+// accepted means the user just accepted the consent page for this request;
+// screenShown means a login or signup page was shown in this transaction.
+func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, accepted, screenShown bool) {
 	ctx := r.Context()
 	in, audienceKey, err := h.accessInput(ctx, res, client, req, sess.UserID)
 	if err != nil {
@@ -2325,6 +2371,7 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 		writeResponse(w, r, req, errorParams(errServer(), req.State))
 		return
 	}
+	in.ScreenShown = screenShown || accepted
 	d := access.Decide(in)
 	switch {
 	case d.Err != nil:
@@ -2377,7 +2424,7 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 		h.deny(w, r, res, client, req, errUserDeclined())
 		return
 	}
-	h.finish(w, r, res, client, req, sess, true)
+	h.finish(w, r, res, client, req, sess, true, true)
 }
 
 // ConsentView describes the page for txn. It returns an error when the
@@ -2499,11 +2546,12 @@ func TestRenderConsentConfirmation(t *testing.T) {
 
 `internal/login/consent_test.go`: build on the login package's existing test env (`login_test.go`), using a seed with a third-party client like Task 7's `partner`. Add:
 - `TestConsentAcceptIssuesCodeAndRemembers`: GET `/authorize` (via the authz handler wired in the env) → `/u/consent`; GET the page (200, contains `read:things`); POST `action=accept` with state and CSRF → 302 to `partner.example/cb?code=…`; `UserGrants().Find` returns `[read:things]`. A second `/authorize` goes straight to the callback.
-- `TestConsentDeclineProtected`: POST `action=decline` → 403 error page, no `Location`, and no grant stored.
+- `TestConsentDeclineProtected`: POST `action=decline` → 400 error page, no `Location`, and no grant stored.
 - `TestConsentDeclineAllowAlways`: with `partner-open` → 302 with `error=access_denied` and `state=st`.
 - `TestConsentWrongCSRF`: → 400 session-expired page.
 - `TestConsentWithoutSessionFails`: drop the session cookie before the POST → 400 session-expired page, no code.
 - `TestConsentWrongCookie`: replace the `za_txn_` cookie value → 400.
+- `TestNoConfirmationRightAfterLogin`: `local` client, no session: `/authorize` → `/u/login` → POST valid credentials → 302 straight to `http://localhost:5000/cb?code=…`, not to `/u/consent` (D-0027: the login page counts as the transaction's screen).
 - `TestConfirmationAcceptStoresNoGrant`: `local` client on localhost → page without a scope list → accept → code; `UserGrants().Find` → `ErrNotFound`.
 
 `internal/server/flow_test.go`: one end-to-end flow through `server.New`: login page → consent → token exchange for the `partner` client. Assert the access token's `scope` is `read:things` and there is no `id_token` (strict drops `openid`).
@@ -2694,7 +2742,7 @@ Tests:
 func TestPasswordGrantDenyAll(t *testing.T) {
 	e := newEnv(t)
 	rec := e.token(t, passwordForm("https://locked.test"))
-	assertOAuthError(t, rec, http.StatusForbidden, "unauthorized_client") // O7
+	assertOAuthError(t, rec, http.StatusBadRequest, "invalid_request") // O7
 }
 
 func TestPasswordGrantClientGrantCapsScopes(t *testing.T) {
@@ -2710,14 +2758,14 @@ func TestPasswordGrantClientGrantCapsScopes(t *testing.T) {
 func TestPasswordGrantRequireClientGrantWithoutGrant(t *testing.T) {
 	e := newEnv(t)
 	f := passwordFormFor("other-password-client", "https://granted.test") // a first-party client with no user grant
-	assertOAuthError(t, e.token(t, f), http.StatusForbidden, "unauthorized_client")
+	assertOAuthError(t, e.token(t, f), http.StatusBadRequest, "invalid_request")
 }
 
 func TestRefreshGrantRechecksPolicy(t *testing.T) {
 	e := newEnv(t)
 	rt := e.issueRefreshToken(t, "https://granted.test", "a offline_access") // via the password grant
 	e.setUserPolicy(t, "https://granted.test", store.PolicyDenyAll)
-	assertOAuthError(t, e.token(t, refreshForm(rt)), http.StatusForbidden, "unauthorized_client")
+	assertOAuthError(t, e.token(t, refreshForm(rt)), http.StatusBadRequest, "invalid_request")
 }
 
 func TestClientCredentialsDenyAll(t *testing.T) {
@@ -2765,7 +2813,11 @@ func (h *Handlers) decide(ctx context.Context, tenantID string, flow access.Flow
 	}
 	d := access.Decide(in)
 	if d.Err != nil {
-		return d, &Error{Status: http.StatusForbidden, Code: d.Err.Code, Description: d.Err.Description}
+		status := http.StatusForbidden // unauthorized_client, access_denied
+		if d.Err.Code == "invalid_request" {
+			status = http.StatusBadRequest // a refused user flow (observed, D-0025)
+		}
+		return d, &Error{Status: status, Code: d.Err.Code, Description: d.Err.Description}
 	}
 	return d, nil
 }
@@ -2832,7 +2884,7 @@ Expected: `package.json` and `package-lock.json` updated; nothing else changes.
 In `tests/e2e/seed.yaml`:
 - **Tenant:** add `skip_non_verifiable_callback_uri_confirmation_prompt: true`. Every existing E2E app uses a localhost callback; the default prompt would change their flows. Individual clients below opt back in.
 - **Connection:** set `is_domain_connection: true` on `Username-Password-Authentication`.
-- **API:** add `https://locked.e2e.local` with `subject_type_authorization: {user: {policy: deny_all}}`.
+- **API:** add `https://locked.e2e.local` with `subject_type_authorization: {user: {policy: deny_all}}`. Task 5 already added `skip_consent_for_verifiable_first_party_clients: true` to `https://api.e2e.local`; keep it.
 - **Clients:**
 
 ```yaml
@@ -3016,30 +3068,38 @@ test('strict third-party: consent, decline page, and a token express-jwt accepts
   await page.waitForURL(/localhost:3443\/strict\/\?code=.*state=s2/);
 });
 
-test('auth0-spa-js: a localhost callback needs confirmation; silent auth is refused', async ({ page }) => {
+test('auth0-spa-js: a localhost callback needs confirmation on session reuse', async ({ page }) => {
   await page.goto('https://localhost:3443/confirm/');
   await expect(page.locator('body')).toHaveAttribute('data-ready', 'true', { timeout: 20_000 });
+
+  // A fresh login shows the login page, so no confirmation follows (D-0027).
   await page.click('#login');
   await login(page);
+  await page.waitForURL('https://localhost:3443/confirm/');
+  await expect(page.locator('body')).toHaveAttribute('data-ready', 'true');
+  expect(await page.evaluate(() => window.__za.client.isAuthenticated())).toBe(true);
+
+  // Silent authentication cannot show the confirmation: consent_required (O5).
+  await page.reload();
+  await expect(page.locator('body')).toHaveAttribute('data-ready', 'true');
+  expect(await page.evaluate(() => window.__za.client.isAuthenticated())).toBe(false);
+  const err = await page.evaluate(() => window.__za.client.getTokenSilently().then(() => null, (e) => e.error));
+  expect(err).toBe('consent_required');
+
+  // An interactive login that reuses the session shows the confirmation.
+  await page.click('#login');
   await page.waitForURL(/\/u\/consent/);
   await expect(page.locator('ul.scopes')).toHaveCount(0); // confirmation, not consent
   await page.click('button[value=accept]');
   await page.waitForURL('https://localhost:3443/confirm/');
   await expect(page.locator('body')).toHaveAttribute('data-ready', 'true');
   expect(await page.evaluate(() => window.__za.client.isAuthenticated())).toBe(true);
-
-  // Silent authentication cannot show the confirmation: interaction_required (O5).
-  await page.reload();
-  await expect(page.locator('body')).toHaveAttribute('data-ready', 'true');
-  expect(await page.evaluate(() => window.__za.client.isAuthenticated())).toBe(false);
-  const err = await page.evaluate(() => window.__za.client.getTokenSilently().then(() => null, (e) => e.error));
-  expect(err).toBe('interaction_required');
 });
 ```
 
 If the pinned express-openid-connect turns out to call `/v2/logout` (ending the zeroauthy session), the second visit will pass through `/u/login`. In that case, log in there and change the assertion to "no URL contains `/u/consent`". The point of the check is that consent is not shown twice.
 
-The node-auth0 check goes in the existing node-auth0 m3 script (`m3-db-flows.mjs` or the one that calls `oauth.passwordGrant`). Add one call with `audience: 'https://locked.e2e.local'` and assert a 403 with `error === 'unauthorized_client'` (O7).
+The node-auth0 check goes in the existing node-auth0 m3 script (`m3-db-flows.mjs` or the one that calls `oauth.passwordGrant`). Add one call with `audience: 'https://locked.e2e.local'` and assert a 400 with `error === 'invalid_request'` (O7).
 
 - [ ] **Step 5: Run the E2E suites**
 

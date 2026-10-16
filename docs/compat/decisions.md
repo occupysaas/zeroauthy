@@ -390,3 +390,57 @@ them. Each entry: context, sources consulted, decision, rationale.
   - `user_metadata` and `app_metadata` are set once, when the local user is created, and never overwritten from a profile.
   - A locally blocked user is refused after the script has accepted the password, as for local users.
 - **Rationale:** Failing closed on collisions means a legacy store can never take over an account it does not own. Keeping metadata local after creation preserves changes made in zeroauthy.
+
+## D-0025: Third-party applications and API access policies
+
+- **Context:** Auth0 has two third-party modes (`third_party_security_mode`: `strict`, `permissive`) and per-API access policies for user and client flows (`subject_type_authorization`). Client grants carry a `subject_type`. The docs do not give the error codes for refused flows, and they disagree on whether permissive applications need a grant under `allow_all`.
+- **Sources:** https://auth0.com/docs/get-started/applications/third-party-applications/security-controls; https://auth0.com/docs/get-started/applications/third-party-applications/permissive-mode; https://auth0.com/docs/get-started/apis/api-access-policies-for-applications; https://auth0.com/docs/get-started/applications/application-access-to-apis-client-grants; observations/consent.md.
+- **Decision:**
+  - **Defaults:**
+    - New third-party clients are `strict`. A stored third-party client with an empty or unknown mode is treated as `strict`.
+    - `is_first_party` and `third_party_security_mode` cannot change after creation.
+    - Grants created without a `subject_type` are `client`.
+    - APIs default to `{user: allow_all, client: require_client_grant}`.
+  - **Strict clients:**
+    - may use only the `authorization_code`, `refresh_token` and `client_credentials` grants;
+    - must use PKCE;
+    - get `invalid_request` for `claims`, `id_token_hint`, `login_ticket`, `request`, `request_uri` or `screen_hint`;
+    - lose OIDC scopes, so no ID token is issued;
+    - always need a `user` client grant;
+    - get `invalid_request` at `/authorize` when they send no audience (observed).
+  - **Third-party clients in general:** no password grants (the seed refuses them, as Auth0's Management API does). They may not be listed in a connection's `enabled_clients` (observed 400) and log in only through domain connections.
+  - **Access policies:** `deny_all` refuses. `require_client_grant` needs a grant of the flow's subject type. `allow_all` admits first-party clients; for permissive clients, see below. Scopes outside the grant are dropped silently (observed).
+  - **Refusal codes (observed):**
+    - a user flow at `/authorize`: `invalid_request`;
+    - a user flow at `/oauth/token` (password, refresh): HTTP 400 `invalid_request`;
+    - client credentials: HTTP 403 `access_denied`, as zeroauthy already answers.
+  - **Permissive clients follow the API's policy** (no grant needed under `allow_all`), as the permissive-mode page says. This could not be observed, because the maintainer's account cannot create permissive clients.
+  - **The refresh grant re-checks the policy and the client grant,** so withdrawing a grant takes effect at the next refresh. This is a zeroauthy choice; Auth0's docs are silent.
+- **Rationale:** Observed codes are matched exactly. Unknown stored values fail closed.
+
+## D-0026: Consent and user grants
+
+- **Context:** Auth0 shows consent to third-party clients always, and to first-party clients unless the API skips it. Approvals are remembered as user grants. The docs do not say how later scope changes are handled or what the API default is.
+- **Sources:** https://auth0.com/docs/get-started/applications/third-party-applications/user-consent-and-third-party-applications; observations/consent.md.
+- **Decision:**
+  - **Skipping consent:**
+    - `skip_consent_for_verifiable_first_party_clients` defaults to `false` for resource servers that do not set it, as on Auth0 (observed; maintainer's choice of parity, 2026-10-16).
+    - Databases migrated to schema 3 keep `true` on existing rows, but a seed apply sets `false` unless the seed names the field. Upgrade notes say so.
+  - **What a grant holds:**
+    - A grant is keyed by (client, user, audience). The audience is the API identifier, or `https://{domain}/userinfo` when there is none.
+    - A request whose scopes are all in the grant skips consent (observed).
+    - Accepting consent merges the accepted scopes into the grant (observed). `prompt=consent` forces the screen. Declining leaves the grant unchanged (observed).
+  - **The consent screen** lists every scope the request will receive, not only the new ones, matching check 7.
+  - **Grants with no screen:** Auth0 stored a grant for a first-party client after a login that showed no consent screen (check 1). zeroauthy stores grants only when the user accepts a consent screen. This is a recorded difference until the Management API exposes grants (sub-project 3) and the case is understood.
+- **Rationale:** Observed behavior is matched. The one unexplained case is visible only through the grants API, which zeroauthy does not have yet.
+
+## D-0027: Confirmation prompt, prompt=none and redirection policy
+
+- **Context:** Since 2026-04-28, Auth0 asks users to confirm logins that go to non-verifiable callbacks, and `prompt=none` is refused for them. `redirection_policy: open_redirect_protection` keeps errors from being redirected. The docs give neither the error codes nor which errors are kept.
+- **Sources:** https://auth0.com/docs/troubleshoot/product-lifecycle/deprecations-and-migrations/migrate-to-non-verifiable-callback-uri-end-user-confirmation; https://auth0.com/docs/secure/security-guidance/measures-against-app-impersonation; observations/consent.md.
+- **Decision:**
+  - **Non-verifiable** means any scheme other than `http`/`https`, or a host of `localhost`, `127.0.0.1` or `::1`.
+  - **When the confirmation appears:** the client's `skip_non_verifiable_callback_uri_confirmation_prompt` overrides the tenant's (default `false`, prompt on). The confirmation appears only when no other screen (login, signup or consent) was shown in the same transaction. That is why a fresh login goes straight back (check 1), while reusing a session shows the prompt (check 5).
+  - **`prompt=none`** fails with `consent_required` when consent or confirmation is needed (observed for both), and with `login_required` without a session.
+  - **`open_redirect_protection`** shows **every** `/authorize` error on an error page with HTTP 400 once the client and redirect URI are validated. Observed for `consent_required`, `login_required`, `invalid_request` and a declined consent. The decline page's status was not recorded and is 400 as well. With `allow_always`, or when unset on a first-party client, errors redirect.
+- **Rationale:** Observed. Showing every error as a page means silent authentication (`prompt=none` in an iframe) cannot work for protected third-party clients, on Auth0 and on zeroauthy alike. Operators who need it set `allow_always`.
