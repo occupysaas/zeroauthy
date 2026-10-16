@@ -459,3 +459,131 @@ func TestCustomWithoutScripts(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+// staleUsers misses the user on its first Get, as a Get that ran just
+// before a concurrent first login created the user would.
+type staleUsers struct {
+	store.Users
+	missed bool
+}
+
+func (s *staleUsers) Get(ctx context.Context, tenantID, userID string) (*store.User, error) {
+	if !s.missed {
+		s.missed = true
+		return nil, store.ErrNotFound
+	}
+	return s.Users.Get(ctx, tenantID, userID)
+}
+
+type staleStore struct {
+	store.Store
+	users *staleUsers
+}
+
+func (s staleStore) Users() store.Users { return s.users }
+
+func TestLegacyFirstLoginRace(t *testing.T) {
+	db, conn, _ := legacyConn(t, scripts{store.ScriptLogin: func([]any) (any, error) {
+		return map[string]any{"user_id": "42", "email": "alice@legacy.test", "name": "Alice"}, nil
+	}})
+	ctx := context.Background()
+	// The other first login has already created the user.
+	other := &store.User{TenantID: "ten_a", UserID: "auth0|42", Email: "alice@legacy.test",
+		Identities: []store.Identity{{Connection: "Legacy", Provider: "auth0", UserID: "42"}}}
+	if err := db.Store.Users().Create(ctx, other); err != nil {
+		t.Fatal(err)
+	}
+	db.Store = staleStore{Store: db.Store, users: &staleUsers{Users: db.Store.Users()}}
+	u, err := db.Login(ctx, conn, "alice@legacy.test", "pw")
+	if err != nil || u.UserID != "auth0|42" || u.Name != "Alice" {
+		t.Fatalf("Login = %+v, %v", u, err)
+	}
+}
+
+func TestLegacyConcurrentFirstLogins(t *testing.T) {
+	const n = 8
+	arrived := make(chan struct{}, n)
+	release := make(chan struct{})
+	db, conn, _ := legacyConn(t, scripts{store.ScriptLogin: func([]any) (any, error) {
+		arrived <- struct{}{}
+		<-release // every login reaches the store at about the same time
+		return map[string]any{"user_id": "42", "email": "alice@legacy.test"}, nil
+	}})
+	errs := make(chan error, n)
+	for range n {
+		go func() {
+			_, err := db.Login(context.Background(), conn, "alice@legacy.test", "pw")
+			errs <- err
+		}()
+	}
+	for range n {
+		<-arrived
+	}
+	close(release)
+	for range n {
+		if err := <-errs; err != nil {
+			t.Fatalf("concurrent first login: %v", err)
+		}
+	}
+}
+
+// Errors a script raised count as failed attempts; failures to get an
+// answer at all are ErrScriptUnavailable (D-0023).
+func TestScriptUnavailableClassification(t *testing.T) {
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name        string
+		result      any
+		err         error
+		mutate      func(*Database, *store.Connection)
+		unavailable bool
+	}{
+		{"script error", nil, &customdb.ScriptError{Kind: customdb.KindError, Message: "bad"}, nil, false},
+		{"validation error", nil, &customdb.ScriptError{Kind: customdb.KindValidation, Message: "bad"}, nil, false},
+		{"bad profile", map[string]any{"user_id": "a|b", "email": "a@b.test"}, nil, nil, false},
+		{"timeout", nil, customdb.ErrTimeout, nil, true},
+		{"unavailable", nil, customdb.ErrUnavailable, nil, true},
+		{"cancelled", nil, context.Canceled, nil, true},
+		{"no script", nil, nil, func(_ *Database, c *store.Connection) { c.CustomScripts[store.ScriptLogin] = "" }, true},
+		{"no client", nil, nil, func(d *Database, _ *store.Connection) { d.Scripts = nil }, true},
+		{"import mode", nil, nil, func(_ *Database, c *store.Connection) { c.ImportMode = true }, true},
+		{"config", nil, nil, func(_ *Database, c *store.Connection) { c.ConfigurationSealed = []byte("not sealed") }, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, conn, _ := legacyConn(t, scripts{store.ScriptLogin: func([]any) (any, error) { return tc.result, tc.err }})
+			if tc.mutate != nil {
+				tc.mutate(db, conn)
+			}
+			_, err := db.Login(ctx, conn, "a@b.test", "pw")
+			if !errors.Is(err, ErrScript) || errors.Is(err, ErrScriptUnavailable) != tc.unavailable {
+				t.Fatalf("err = %v, want ErrScript with unavailable=%v", err, tc.unavailable)
+			}
+		})
+	}
+	t.Run("collision", func(t *testing.T) {
+		db, conn, _ := legacyConn(t, scripts{store.ScriptLogin: func([]any) (any, error) {
+			return map[string]any{"user_id": "42", "email": "a@b.test"}, nil
+		}})
+		if err := db.Store.Users().Create(ctx, &store.User{TenantID: "ten_a", UserID: "auth0|42",
+			Identities: []store.Identity{{Connection: "Elsewhere", Provider: "auth0", UserID: "42"}}}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Login(ctx, conn, "a@b.test", "pw"); !errors.Is(err, ErrScript) || errors.Is(err, ErrScriptUnavailable) {
+			t.Fatalf("err = %v", err)
+		}
+	})
+}
+
+func TestLegacySignupConfirmRefusal(t *testing.T) {
+	s := &signupScripts{users: map[string]*legacyUser{}}
+	f := s.funcs()
+	f[store.ScriptLogin] = func([]any) (any, error) {
+		return nil, &customdb.ScriptError{Kind: customdb.KindUnauthorized, Message: "verify your email first"}
+	}
+	db, conn, _ := legacyConn(t, f)
+	_, err := db.Signup(context.Background(), conn, SignupInput{Email: "n@b.test", Password: "long enough pw"})
+	var ue *UnauthorizedError
+	if !errors.As(err, &ue) || ue.Message != "verify your email first" || errors.Is(err, ErrScript) {
+		t.Fatalf("err = %v", err)
+	}
+}

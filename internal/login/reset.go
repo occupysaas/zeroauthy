@@ -69,8 +69,9 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case err == nil:
 		h.Resets.RequestReset(f.res, f.conn, user, f.txn.ClientID, f.view.L.Lang())
-	case errors.As(err, &ue), errors.Is(err, store.ErrNotFound):
-		// Nothing to send; the page must not say so.
+	case errors.As(err, &ue), errors.Is(err, store.ErrNotFound), errors.Is(err, identity.ErrScript):
+		// Nothing to send; the page must not say so. identity has logged
+		// a script failure.
 	default:
 		h.log().ErrorContext(ctx, "reset request: find user", "tenant", f.res.Tenant.ID, "err", err)
 	}

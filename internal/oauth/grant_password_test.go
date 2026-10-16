@@ -190,3 +190,41 @@ func TestPasswordRealmGrantLegacyErrors(t *testing.T) {
 		t.Fatalf("script error = %d %v", rec.Code, body)
 	}
 }
+
+// An error the script raised counts against the throttles; a script that
+// could not answer does not (D-0023).
+func TestPasswordRealmGrantLegacyThrottle(t *testing.T) {
+	t.Run("raised error counts", func(t *testing.T) {
+		f := newFixture(t)
+		f.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+			return nil, &customdb.ScriptError{Kind: customdb.KindError, Message: "bad"}
+		}
+		for i := 0; i < 3; i++ { // the per-user limit is 3
+			if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "guess")}); rec.Code != 500 {
+				t.Fatalf("attempt %d = %d %v", i, rec.Code, body)
+			}
+		}
+		if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "guess")}); rec.Code != 429 {
+			t.Fatalf("attempt after the limit = %d %v", rec.Code, body)
+		}
+	})
+	t.Run("timeout refunded", func(t *testing.T) {
+		f := newFixture(t)
+		timeout := true
+		f.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+			if timeout {
+				return nil, customdb.ErrTimeout
+			}
+			return map[string]any{"user_id": 42, "email": "dave@legacy.test"}, nil
+		}
+		for i := 0; i < 5; i++ {
+			if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "pw")}); rec.Code != 500 {
+				t.Fatalf("attempt %d = %d %v", i, rec.Code, body)
+			}
+		}
+		timeout = false
+		if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "pw")}); rec.Code != 200 {
+			t.Fatalf("after timeouts = %d %v", rec.Code, body)
+		}
+	})
+}

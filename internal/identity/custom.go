@@ -17,6 +17,15 @@ func IsCustom(conn *store.Connection) bool { return conn.EnabledDatabaseCustomiz
 // truth (customized, not import mode).
 func IsLegacy(conn *store.Connection) bool { return IsCustom(conn) && !conn.ImportMode }
 
+// ScriptRaised reports whether err is a custom database script failure the
+// script itself raised (an error it passed or threw, an invalid profile, a
+// collision), as opposed to a script that could not answer. A raised
+// failure counts as a failed login attempt, since legacy scripts often
+// report a wrong password as a plain Error (D-0023).
+func ScriptRaised(err error) bool {
+	return errors.Is(err, ErrScript) && !errors.Is(err, ErrScriptUnavailable)
+}
+
 // errImportMode keeps import mode from silently taking the legacy path
 // until it is implemented.
 var errImportMode = errors.New("identity: import mode is not yet implemented")
@@ -26,9 +35,11 @@ var errImportMode = errors.New("identity: import mode is not yet implemented")
 var errNoClient = errors.New("identity: custom database scripts are not configured")
 
 // scriptErr maps a script failure. A script's UnauthorizedError becomes
-// *UnauthorizedError; everything else is logged and wrapped in ErrScript.
+// *UnauthorizedError; everything else is logged and wrapped in ErrScript,
+// and also in ErrScriptUnavailable when the script gave no answer.
 func (d *Database) scriptErr(ctx context.Context, conn *store.Connection, script string, err error) error {
 	kind, msg := "error", err.Error()
+	unavailable := true
 	var se *customdb.ScriptError
 	switch {
 	case errors.As(err, &se):
@@ -38,6 +49,7 @@ func (d *Database) scriptErr(ctx context.Context, conn *store.Connection, script
 				"tenant", conn.TenantID, "connection", conn.Name, "script", script, "kind", kind, "message", msg)
 			return &UnauthorizedError{Message: se.Message}
 		}
+		unavailable = false
 	case errors.Is(err, customdb.ErrTimeout):
 		kind = "timeout"
 	case errors.Is(err, customdb.ErrUnavailable):
@@ -45,10 +57,15 @@ func (d *Database) scriptErr(ctx context.Context, conn *store.Connection, script
 	case errors.Is(err, customdb.ErrNoScript):
 		kind = "no_script"
 	case errors.Is(err, customdb.ErrBadProfile):
-		kind = "bad_profile"
+		kind, unavailable = "bad_profile", false
+	case errors.Is(err, customdb.ErrConfig):
+		kind = "config"
 	}
 	d.log().ErrorContext(ctx, "custom database script failed",
 		"tenant", conn.TenantID, "connection", conn.Name, "script", script, "kind", kind, "message", msg)
+	if unavailable {
+		return fmt.Errorf("%w: %w: %w", ErrScript, ErrScriptUnavailable, err)
+	}
 	return fmt.Errorf("%w: %w", ErrScript, err)
 }
 
@@ -138,8 +155,10 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 	}
 	p, err := c.Login(ctx, conn, email, in.Password)
 	if err != nil {
-		// Even a refusal is a failure here: the account was just created.
-		return nil, fmt.Errorf("%w: confirming login after create: %w", ErrScript, d.scriptErr(ctx, conn, store.ScriptLogin, err))
+		// The account was just created, so any answer but a profile is a
+		// script failure. A refusal (UnauthorizedError) keeps its message
+		// for the user.
+		return nil, d.scriptErr(ctx, conn, store.ScriptLogin, err)
 	}
 	u, err := d.upsertProfile(ctx, conn, p, true)
 	if err != nil {
@@ -216,12 +235,19 @@ func (d *Database) upsertProfile(ctx context.Context, conn *store.Connection, p 
 			Identities: []store.Identity{{Connection: conn.Name, Provider: store.StrategyDatabase, UserID: p.UserID}},
 			CreatedAt:  now, UpdatedAt: now,
 		}
-		if err := d.Store.Users().Create(ctx, u); errors.Is(err, store.ErrConflict) {
-			return nil, d.collision(ctx, conn, userID, "email, username or user_id in use")
-		} else if err != nil {
+		if err = d.Store.Users().Create(ctx, u); err == nil {
+			return u, nil
+		}
+		if !errors.Is(err, store.ErrConflict) {
 			return nil, err
 		}
-		return u, nil
+		// A simultaneous first login may have created the user since the
+		// Get. If so, continue as an update, whose identity check still
+		// catches a real collision.
+		u, err = d.Store.Users().Get(ctx, conn.TenantID, userID)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, d.collision(ctx, conn, userID, "email or username in use")
+		}
 	}
 	if err != nil {
 		return nil, err

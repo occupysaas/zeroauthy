@@ -99,8 +99,12 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		// for the user (D-0023). The attempt still counts.
 		return nil, &Error{Status: http.StatusUnauthorized, Code: "unauthorized", Description: ue.Message}
 	case err != nil:
-		h.UserThrottle.Refund(userKey)
-		h.IPThrottle.Refund(ipKey)
+		// A failure the script raised counts as a failed attempt; one that
+		// kept the script from answering does not (D-0023).
+		if !identity.ScriptRaised(err) {
+			h.UserThrottle.Refund(userKey)
+			h.IPThrottle.Refund(ipKey)
+		}
 		h.log().ErrorContext(ctx, "password grant", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}

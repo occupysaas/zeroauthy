@@ -21,6 +21,11 @@ var (
 	ErrUserExists         = errors.New("identity: user already exists")
 	// ErrScript is a custom database script failure; it wraps the cause.
 	ErrScript = errors.New("identity: custom database script failed")
+	// ErrScriptUnavailable accompanies ErrScript when the script could not
+	// give an answer (timeout, no Node.js, no script, configuration that
+	// does not open). Unlike an error the script raised, it does not count
+	// as a failed login attempt (D-0023).
+	ErrScriptUnavailable = errors.New("identity: custom database script unavailable")
 	// ErrPasswordNotChanged is a change_password script reporting false.
 	ErrPasswordNotChanged = errors.New("identity: the legacy store did not change the password")
 )

@@ -363,12 +363,14 @@ them. Each entry: context, sources consulted, decision, rationale.
 
     | Surface | `UnauthorizedError` | Other script failure | `change_password` returns false |
     |---|---|---|---|
-    | Hosted login `/u/login` | 401; the login form again with the message (HTML-escaped); the attempt counts against the throttles | throttles refunded; error page (500) | n/a |
-    | Password grants | 401 `{"error":"unauthorized","error_description":<message>}`; the attempt counts | throttles refunded; 500 `server_error` | n/a |
+    | Hosted login `/u/login` | 401; the login form again with the message (HTML-escaped); the attempt counts against the throttles | error page (500); see the throttle rule below | n/a |
+    | Password grants | 401 `{"error":"unauthorized","error_description":<message>}`; the attempt counts | 500 `server_error`; see the throttle rule below | n/a |
     | `/dbconnections/signup`, `/u/signup` | 401 `unauthorized` with the message / the form again with the message | 500 `server_error` / error page | n/a |
     | `/dbconnections/change_password`, hosted forgot-password page | the usual answer, no email | the usual answer, no email, logged | n/a |
     | Hosted reset completion | the form again with the message; the link stays usable | error page; the link stays usable | the form again with `zeroauthy.reset.not-changed`; the link stays usable |
 
+  - **Throttles.** Many legacy login scripts report a wrong password with a plain `Error` rather than `WrongUsernameOrPasswordError`. A failure the script raised therefore counts as a failed attempt, as wrong credentials do; otherwise such a script would allow unlimited guessing. Raised failures are an `Error` or `ValidationError` from the script, a thrown exception, an invalid profile, and a profile collision (D-0024). Only failures that kept the script from answering are refunded: a timeout, an unavailable Node.js, a missing script, a configuration that does not open, a cancelled request, an unimplemented mode, and storage errors. `identity` tells the two apart with `ErrScriptUnavailable`.
+  - On sign-up, a `create` script's `UnauthorizedError` is a 401 with its message. So is an `UnauthorizedError` from the login that confirms the new account; any other failure of that login is a script failure.
   - On sign-up, a `create` script's `ValidationError` with code `user_exists` is `user_exists`; any other `ValidationError` is shown like a rejected sign-up field (`invalid_signup` with the script's message).
   - The token endpoint's `unauthorized` is not one of RFC 6749 §5.2's codes. It is used because the client must be able to tell a script's refusal from wrong credentials, and the status (401) matches the meaning.
 - **Rationale:** The surfaces never reveal more than they do for local users, the reset link survives a legacy store that is down, and the one message Auth0 intends for users reaches them.

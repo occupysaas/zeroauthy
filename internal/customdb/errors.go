@@ -18,6 +18,7 @@ var (
 	ErrTimeout     = errors.New("customdb: script timed out")
 	ErrUnavailable = errors.New("customdb: script runtime unavailable") // node missing, too old, crashed
 	ErrNoScript    = errors.New("customdb: script not configured")
+	ErrConfig      = errors.New("customdb: connection configuration could not be opened")
 )
 
 // MaxDuration bounds one script execution. When it is exceeded the tenant's

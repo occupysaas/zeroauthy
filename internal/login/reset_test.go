@@ -507,4 +507,8 @@ func TestLegacyResetRequestScriptError(t *testing.T) {
 	if rec.Code != 200 || len(le.mail.sent) != 0 {
 		t.Fatalf("got %d, sent %d", rec.Code, len(le.mail.sent))
 	}
+	// Logged once, by identity.
+	if logs := le.logs.String(); strings.Count(logs, "custom database script failed") != 1 || strings.Contains(logs, "reset request: find user") {
+		t.Fatalf("logs:\n%s", logs)
+	}
 }

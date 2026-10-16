@@ -224,8 +224,12 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		ui.RenderLogin(w, http.StatusUnauthorized, f.view, data)
 		return
 	case err != nil:
-		h.UserThrottle.Refund(userKey)
-		h.IPThrottle.Refund(ipKey)
+		// A failure the script raised counts as a failed attempt; one that
+		// kept the script from answering does not (D-0023).
+		if !identity.ScriptRaised(err) {
+			h.UserThrottle.Refund(userKey)
+			h.IPThrottle.Refund(ipKey)
+		}
 		h.fail(w, r, err, f)
 		return
 	}

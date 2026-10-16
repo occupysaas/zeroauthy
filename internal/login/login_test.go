@@ -724,3 +724,23 @@ func TestLegacySignupPage(t *testing.T) {
 		t.Fatalf("signup = %d %s; created %v", rec.Code, rec.Body, created)
 	}
 }
+
+// Many legacy scripts report a wrong password as a plain Error, so an error
+// the script raised counts against the throttles (D-0023).
+func TestLegacyLoginScriptRaisedErrorCounts(t *testing.T) {
+	e := newEnv(t)
+	e.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+		return nil, &customdb.ScriptError{Kind: customdb.KindError, Message: "bad"}
+	}
+	b := e.browser("acme.example.test")
+	state, csrf := b.legacyBegin(t)
+	form := url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"guess"}}
+	for i := 0; i < 3; i++ { // the per-user limit is 3
+		if rec := b.do(t, "POST", "/u/login", form); rec.Code != http.StatusInternalServerError {
+			t.Fatalf("attempt %d = %d %s", i, rec.Code, rec.Body)
+		}
+	}
+	if rec := b.do(t, "POST", "/u/login", form); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("attempt after the limit = %d %s", rec.Code, rec.Body)
+	}
+}

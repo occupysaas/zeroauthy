@@ -51,7 +51,7 @@ func (c *Client) run(ctx context.Context, conn *store.Connection, script string,
 	}
 	cfg, err := keys.OpenConnectionConfig(c.Wrapper, conn.TenantID, conn.ID, conn.ConfigurationSealed)
 	if err != nil {
-		return nil, fmt.Errorf("customdb: opening the connection configuration: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrConfig, err)
 	}
 	return c.Exec.Execute(ctx, Request{
 		TenantID: conn.TenantID, ConnectionID: conn.ID, Script: script, Source: src, Config: cfg, Args: args,
