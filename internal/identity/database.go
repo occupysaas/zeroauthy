@@ -83,30 +83,52 @@ func (d *Database) now() time.Time {
 // database connection. It returns ErrInvalidCredentials for unknown users
 // and wrong passwords alike, and ErrUserBlocked only after the password
 // has been verified.
+//
+// On a connection in import mode, a user without a password hash (unknown,
+// or created by a reset lookup) is checked by the login script and
+// migrated; every other user is checked locally.
 func (d *Database) Login(ctx context.Context, conn *store.Connection, login, password string) (*store.User, error) {
-	if IsCustom(conn) {
+	if IsLegacy(conn) {
 		return d.customLogin(ctx, conn, login, password)
 	}
-	login = NormalizeLogin(login)
+	norm := NormalizeLogin(login)
 	// An over-long login matches no user; it is not sent to the store.
-	if len(password) > maxPasswordBytes || len(login) > maxLoginLength {
+	if len(password) > maxPasswordBytes || len(norm) > maxLoginLength {
 		_, _ = secrets.Verify(dummyHash(), password)
 		return nil, ErrInvalidCredentials
 	}
-	u, err := d.Store.Users().FindByLogin(ctx, conn.TenantID, conn.Name, login)
+	u, err := d.Store.Users().FindByLogin(ctx, conn.TenantID, conn.Name, norm)
 	if errors.Is(err, store.ErrNotFound) {
-		_, _ = secrets.Verify(dummyHash(), password)
-		return nil, ErrInvalidCredentials
-	}
-	if err != nil {
+		u = nil
+	} else if err != nil {
 		return nil, err
+	}
+	hash := passwordHash(u, conn.Name)
+	if hash == "" && IsCustom(conn) {
+		return d.importLogin(ctx, conn, strings.TrimSpace(login), password, u)
+	}
+	return verifyLocal(u, hash, password)
+}
+
+// passwordHash returns the password hash of u's identity on connection, or
+// "" when u is nil or has none.
+func passwordHash(u *store.User, connection string) string {
+	if u == nil {
+		return ""
 	}
 	hash := ""
 	for _, id := range u.Identities {
-		if id.Connection == conn.Name {
+		if id.Connection == connection {
 			hash = id.PasswordHash
 		}
 	}
+	return hash
+}
+
+// verifyLocal checks password against hash, the stored hash of u. An empty
+// hash (no user, or no password) costs a dummy verification, so the time
+// taken does not reveal whether the user exists.
+func verifyLocal(u *store.User, hash, password string) (*store.User, error) {
 	if hash == "" {
 		_, _ = secrets.Verify(dummyHash(), password)
 		return nil, ErrInvalidCredentials
@@ -201,12 +223,17 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 	if conn.DisableSignup {
 		return nil, ErrSignupDisabled
 	}
-	if IsCustom(conn) {
+	if IsLegacy(conn) {
 		return d.customSignup(ctx, conn, in)
 	}
 	email, username, err := checkSignup(conn, in)
 	if err != nil {
 		return nil, err
+	}
+	if IsCustom(conn) {
+		if err := d.importSignupCheck(ctx, conn, email, username); err != nil {
+			return nil, err
+		}
 	}
 	name, nickname := defaultNames(in.Name, in.Nickname, email, username)
 	hash, err := secrets.Hash(in.Password)
@@ -246,7 +273,9 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 // a password reset. It returns store.ErrNotFound for an unknown address.
 // Logins also match usernames; a reset names an address, so a username
 // match is reported as store.ErrNotFound. On a legacy connection the
-// get_user script decides, and the local record is created or updated.
+// get_user script decides, and the local record is created or updated. In
+// import mode a local user wins; otherwise a user the get_user script
+// knows is migrated without a password.
 func (d *Database) FindForReset(ctx context.Context, conn *store.Connection, email string) (*store.User, error) {
 	email = NormalizeLogin(email)
 	if IsLegacy(conn) {
@@ -256,6 +285,9 @@ func (d *Database) FindForReset(ctx context.Context, conn *store.Connection, ema
 		return nil, store.ErrNotFound // no user can have it; not sent to the store
 	}
 	user, err := d.Store.Users().FindByLogin(ctx, conn.TenantID, conn.Name, email)
+	if errors.Is(err, store.ErrNotFound) && IsCustom(conn) {
+		return d.importFindForReset(ctx, conn, email)
+	}
 	if err != nil {
 		return nil, err
 	}

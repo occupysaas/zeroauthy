@@ -512,3 +512,33 @@ func TestLegacyResetRequestScriptError(t *testing.T) {
 		t.Fatalf("logs:\n%s", logs)
 	}
 }
+
+// In import mode a hosted reset of a user known only to the legacy store
+// migrates the user: the new password is stored locally, change_password
+// never runs, and the next login does not call the login script.
+func TestImportResetMigrates(t *testing.T) {
+	le := newLegacyResetEnv(t)
+	le.useImportMode(t)
+	le.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+		t.Error("login script called after the reset")
+		return nil, &customdb.ScriptError{Kind: customdb.KindWrongCredentials}
+	}
+	b := le.browser("acme.example.test")
+	ticket := le.requestLegacyReset(t, b)
+	if rec := completeReset(t, b, ticket, "new import pw 1"); rec.Code != 200 || !strings.Contains(rec.Body.String(), "Password changed") {
+		t.Fatalf("reset = %d %s", rec.Code, rec.Body)
+	}
+	if le.lastArgs != nil {
+		t.Fatalf("change_password ran: %v", le.lastArgs)
+	}
+	u, err := le.st.Users().Get(context.Background(), mustTenant(t, le.env, "acme").ID, "auth0|42")
+	if err != nil || u.Identities[0].PasswordHash == "" {
+		t.Fatalf("local user = %+v, %v", u, err)
+	}
+	b = le.browser("acme.example.test")
+	state, csrf := b.legacyBegin(t)
+	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"new import pw 1"}})
+	if rec.Code != 302 {
+		t.Fatalf("login with the new password = %d %s", rec.Code, rec.Body)
+	}
+}

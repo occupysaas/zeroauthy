@@ -744,3 +744,40 @@ func TestLegacyLoginScriptRaisedErrorCounts(t *testing.T) {
 		t.Fatalf("attempt after the limit = %d %s", rec.Code, rec.Body)
 	}
 }
+
+// useImportMode puts the Legacy-DB connection in import mode.
+func (e *env) useImportMode(t *testing.T) {
+	t.Helper()
+	ctx := context.Background()
+	c, err := e.st.Connections().GetByName(ctx, mustTenant(t, e, "acme").ID, "Legacy-DB")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.ImportMode = true
+	if err := e.st.Connections().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// In import mode the first login migrates the user; the next is checked
+// locally.
+func TestImportLogin(t *testing.T) {
+	e := newEnv(t)
+	e.useImportMode(t)
+	e.scripts.Funcs[store.ScriptLogin] = legacyLogin
+	for i := 0; i < 2; i++ {
+		b := e.browser("acme.example.test")
+		state, csrf := b.legacyBegin(t)
+		rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"dave legacy 1"}})
+		if loc, _ := url.Parse(rec.Header().Get("Location")); rec.Code != 302 || loc.Host != "legacy.acme.test" {
+			t.Fatalf("login %d = %d %s", i, rec.Code, rec.Body)
+		}
+	}
+	u, err := e.st.Users().Get(context.Background(), mustTenant(t, e, "acme").ID, "auth0|42")
+	if err != nil || u.LoginsCount != 2 || u.Identities[0].PasswordHash == "" {
+		t.Fatalf("local user = %+v, %v", u, err)
+	}
+	if n := len(e.scripts.Requests()); n != 1 {
+		t.Fatalf("script calls = %d, want 1", n)
+	}
+}

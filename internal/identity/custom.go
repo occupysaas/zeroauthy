@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -25,10 +26,6 @@ func IsLegacy(conn *store.Connection) bool { return IsCustom(conn) && !conn.Impo
 func ScriptRaised(err error) bool {
 	return errors.Is(err, ErrScript) && !errors.Is(err, ErrScriptUnavailable)
 }
-
-// errImportMode keeps import mode from silently taking the legacy path
-// until it is implemented.
-var errImportMode = errors.New("identity: import mode is not yet implemented")
 
 // errNoClient is a customized connection on a server built without a
 // script client.
@@ -69,21 +66,17 @@ func (d *Database) scriptErr(ctx context.Context, conn *store.Connection, script
 	return fmt.Errorf("%w: %w", ErrScript, err)
 }
 
-// scripts returns the client, or an ErrScript when there is none or conn is
-// in import mode (Task 5).
+// scripts returns the client, or an ErrScript when there is none.
 func (d *Database) scripts(ctx context.Context, conn *store.Connection, script string) (*customdb.Client, error) {
-	if conn.ImportMode {
-		// Task 5 replaces this guard with the import-mode flow.
-		return nil, d.scriptErr(ctx, conn, script, errImportMode)
-	}
 	if d.Scripts == nil {
 		return nil, d.scriptErr(ctx, conn, script, errNoClient)
 	}
 	return d.Scripts, nil
 }
 
-// customLogin authenticates through the login script. The script decides
-// every time; the local record is never used to check a password.
+// customLogin authenticates a user of a legacy connection through the login
+// script. The script decides every time; the local record is never used to
+// check a password.
 func (d *Database) customLogin(ctx context.Context, conn *store.Connection, login, password string) (*store.User, error) {
 	login = strings.TrimSpace(login)
 	if len(password) > maxPasswordBytes || len(login) > maxLoginLength {
@@ -93,13 +86,9 @@ func (d *Database) customLogin(ctx context.Context, conn *store.Connection, logi
 	if err != nil {
 		return nil, err
 	}
-	p, err := c.Login(ctx, conn, login, password)
+	p, err := d.runLogin(ctx, conn, c, login, password)
 	if err != nil {
-		var se *customdb.ScriptError
-		if errors.As(err, &se) && se.Kind == customdb.KindWrongCredentials {
-			return nil, ErrInvalidCredentials
-		}
-		return nil, d.scriptErr(ctx, conn, store.ScriptLogin, err)
+		return nil, err
 	}
 	u, err := d.upsertProfile(ctx, conn, p, true)
 	if err != nil {
@@ -109,6 +98,162 @@ func (d *Database) customLogin(ctx context.Context, conn *store.Connection, logi
 		return nil, ErrUserBlocked
 	}
 	return u, nil
+}
+
+// runLogin runs the login script. A WrongUsernameOrPasswordError is
+// ErrInvalidCredentials; other failures go through scriptErr.
+func (d *Database) runLogin(ctx context.Context, conn *store.Connection, c *customdb.Client, login, password string) (*customdb.Profile, error) {
+	p, err := c.Login(ctx, conn, login, password)
+	if err != nil {
+		var se *customdb.ScriptError
+		if errors.As(err, &se) && se.Kind == customdb.KindWrongCredentials {
+			return nil, ErrInvalidCredentials
+		}
+		return nil, d.scriptErr(ctx, conn, store.ScriptLogin, err)
+	}
+	return p, nil
+}
+
+// importLogin authenticates a user of an import-mode connection who has no
+// local password yet: u is the local user without a hash (created by a
+// reset lookup), or nil. The login script checks the password, and on
+// success the user is stored, or completed, with a hash of it, so later
+// logins are checked locally.
+func (d *Database) importLogin(ctx context.Context, conn *store.Connection, login, password string, u *store.User) (*store.User, error) {
+	c, err := d.scripts(ctx, conn, store.ScriptLogin)
+	if err != nil {
+		return nil, err
+	}
+	p, err := d.runLogin(ctx, conn, c, login, password)
+	if err != nil {
+		return nil, err
+	}
+	hash, err := secrets.Hash(password)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		var created bool
+		u, created, err = d.createImported(ctx, conn, p, hash)
+		if err != nil {
+			return nil, err
+		}
+		if created {
+			return u, nil
+		}
+		// A concurrent first login migrated the user first: its hash
+		// decides.
+		if h := passwordHash(u, conn.Name); h != "" {
+			return verifyLocal(u, h, password)
+		}
+	}
+	if u.UserID != store.StrategyDatabase+"|"+p.UserID || !onConnection(u, conn, p.UserID) {
+		return nil, d.collision(ctx, conn, store.StrategyDatabase+"|"+p.UserID, "login belongs to another user")
+	}
+	now := d.now().UTC()
+	if err := d.Store.Users().SetPasswordHash(ctx, conn.TenantID, u.UserID, conn.Name, hash, now); err != nil {
+		return nil, err
+	}
+	for i := range u.Identities {
+		if u.Identities[i].Connection == conn.Name {
+			u.Identities[i].PasswordHash = hash
+		}
+	}
+	u.UpdatedAt = now
+	if u.Blocked {
+		return nil, ErrUserBlocked
+	}
+	return u, nil
+}
+
+// importGetUser runs the get_user script of an import-mode connection.
+// get_user is optional there, so a connection without one finds nobody
+// (D-0023).
+func (d *Database) importGetUser(ctx context.Context, conn *store.Connection, login string) (*customdb.Profile, error) {
+	c, err := d.scripts(ctx, conn, store.ScriptGetUser)
+	if err != nil {
+		return nil, err
+	}
+	p, err := c.GetUser(ctx, conn, login)
+	if errors.Is(err, customdb.ErrNoScript) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, d.scriptErr(ctx, conn, store.ScriptGetUser, err)
+	}
+	return p, nil
+}
+
+// importSignupCheck refuses a sign-up on an import-mode connection when the
+// get_user script knows the email or username. The user is then created
+// locally; the create script is never called.
+func (d *Database) importSignupCheck(ctx context.Context, conn *store.Connection, email, username string) error {
+	lookups := []string{email}
+	if username != "" {
+		lookups = append(lookups, username)
+	}
+	for _, id := range lookups {
+		p, err := d.importGetUser(ctx, conn, id)
+		if err != nil {
+			return err
+		}
+		if p != nil {
+			return ErrUserExists
+		}
+	}
+	return nil
+}
+
+// importFindForReset migrates a user the get_user script knows by email,
+// without a password: the reset sets it, or the next login through the
+// login script does.
+func (d *Database) importFindForReset(ctx context.Context, conn *store.Connection, email string) (*store.User, error) {
+	if CheckEmail(email) != nil {
+		return nil, store.ErrNotFound
+	}
+	p, err := d.importGetUser(ctx, conn, email)
+	if err != nil {
+		return nil, err
+	}
+	if p == nil || p.Email != email {
+		return nil, store.ErrNotFound
+	}
+	u, _, err := d.createImported(ctx, conn, p, "")
+	if err != nil {
+		return nil, err
+	}
+	if u.Email != email {
+		return nil, store.ErrNotFound
+	}
+	return u, nil
+}
+
+// createImported stores the user of profile p on an import-mode connection,
+// with hash as its password hash (empty for a reset lookup). If a
+// concurrent migration stored the same user first, it returns that user
+// and created is false; anything else holding the user_id, email or
+// username is a collision (D-0024).
+func (d *Database) createImported(ctx context.Context, conn *store.Connection, p *customdb.Profile, hash string) (u *store.User, created bool, err error) {
+	u = d.profileUser(conn, p)
+	u.Identities[0].PasswordHash = hash
+	err = d.Store.Users().Create(ctx, u)
+	if err == nil {
+		return u, true, nil
+	}
+	if !errors.Is(err, store.ErrConflict) {
+		return nil, false, err
+	}
+	u, err = d.Store.Users().Get(ctx, conn.TenantID, u.UserID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, false, d.collision(ctx, conn, store.StrategyDatabase+"|"+p.UserID, "email or username in use")
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	if !onConnection(u, conn, p.UserID) {
+		return nil, false, d.collision(ctx, conn, u.UserID, "user_id belongs to another connection")
+	}
+	return u, false, nil
 }
 
 // customSignup creates the user in the legacy store, then logs in through
@@ -226,15 +371,7 @@ func (d *Database) upsertProfile(ctx context.Context, conn *store.Connection, p 
 	now := d.now().UTC()
 	u, err := d.Store.Users().Get(ctx, conn.TenantID, userID)
 	if errors.Is(err, store.ErrNotFound) {
-		name, nickname := defaultNames(p.Name, p.Nickname, p.Email, p.Username)
-		u = &store.User{
-			TenantID: conn.TenantID, UserID: userID,
-			Email: p.Email, EmailVerified: p.EmailVerified, Username: p.Username,
-			Name: name, Nickname: nickname, GivenName: p.GivenName, FamilyName: p.FamilyName, Picture: p.Picture,
-			UserMetadata: p.UserMetadata, AppMetadata: p.AppMetadata,
-			Identities: []store.Identity{{Connection: conn.Name, Provider: store.StrategyDatabase, UserID: p.UserID}},
-			CreatedAt:  now, UpdatedAt: now,
-		}
+		u = d.profileUser(conn, p)
 		if err = d.Store.Users().Create(ctx, u); err == nil {
 			return u, nil
 		}
@@ -252,13 +389,7 @@ func (d *Database) upsertProfile(ctx context.Context, conn *store.Connection, p 
 	if err != nil {
 		return nil, err
 	}
-	onConn := false
-	for _, id := range u.Identities {
-		if id.Connection == conn.Name && id.Provider == store.StrategyDatabase && id.UserID == p.UserID {
-			onConn = true
-		}
-	}
-	if !onConn {
+	if !onConnection(u, conn, p.UserID) {
 		return nil, d.collision(ctx, conn, userID, "user_id belongs to another connection")
 	}
 	u.Email, u.Username, u.EmailVerified = p.Email, p.Username, p.EmailVerified
@@ -273,4 +404,29 @@ func (d *Database) upsertProfile(ctx context.Context, conn *store.Connection, p 
 		return nil, err
 	}
 	return u, nil
+}
+
+// profileUser is a new local user for profile p, with no password hash.
+func (d *Database) profileUser(conn *store.Connection, p *customdb.Profile) *store.User {
+	now := d.now().UTC()
+	name, nickname := defaultNames(p.Name, p.Nickname, p.Email, p.Username)
+	return &store.User{
+		TenantID: conn.TenantID, UserID: store.StrategyDatabase + "|" + p.UserID,
+		Email: p.Email, EmailVerified: p.EmailVerified, Username: p.Username,
+		Name: name, Nickname: nickname, GivenName: p.GivenName, FamilyName: p.FamilyName, Picture: p.Picture,
+		UserMetadata: p.UserMetadata, AppMetadata: p.AppMetadata,
+		Identities: []store.Identity{{Connection: conn.Name, Provider: store.StrategyDatabase, UserID: p.UserID}},
+		CreatedAt:  now, UpdatedAt: now,
+	}
+}
+
+// onConnection reports whether u has the identity of legacy user_id
+// profileID on conn.
+func onConnection(u *store.User, conn *store.Connection, profileID string) bool {
+	for _, id := range u.Identities {
+		if id.Connection == conn.Name && id.Provider == store.StrategyDatabase && id.UserID == profileID {
+			return true
+		}
+	}
+	return false
 }

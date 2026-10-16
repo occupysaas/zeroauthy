@@ -300,3 +300,49 @@ func TestLegacySignupScriptErrors(t *testing.T) {
 		t.Fatalf("script error = %d %v", code, body)
 	}
 }
+
+// useImportMode puts the Legacy-DB connection in import mode.
+func (e *env) useImportMode(t *testing.T) {
+	t.Helper()
+	ctx := context.Background()
+	c, err := e.st.Connections().GetByName(ctx, e.tenantID, "Legacy-DB")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.ImportMode = true
+	if err := e.st.Connections().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// In import mode a sign-up is refused when get_user knows the user, and is
+// otherwise stored locally without calling create.
+func TestImportSignup(t *testing.T) {
+	e := newEnv(t)
+	e.useImportMode(t)
+	e.scripts.Funcs[store.ScriptGetUser] = func(args []any) (any, error) {
+		if args[0] == "old@legacy.test" {
+			return map[string]any{"user_id": "1", "email": "old@legacy.test"}, nil
+		}
+		return nil, nil
+	}
+	e.scripts.Funcs[store.ScriptCreate] = func([]any) (any, error) {
+		t.Error("create called in import mode")
+		return nil, nil
+	}
+	code, body, _ := e.post(t, "/dbconnections/signup", "application/json",
+		`{"client_id":"app","connection":"Legacy-DB","email":"old@legacy.test","password":"a good password 1"}`)
+	if code != 409 || body["error"] != "user_exists" {
+		t.Fatalf("existing = %d %v", code, body)
+	}
+	code, body, _ = e.post(t, "/dbconnections/signup", "application/json",
+		`{"client_id":"app","connection":"Legacy-DB","email":"new@legacy.test","password":"a good password 1"}`)
+	if code != 200 {
+		t.Fatalf("signup = %d %v", code, body)
+	}
+	id, _ := body["_id"].(string)
+	u, err := e.st.Users().Get(context.Background(), e.tenantID, "auth0|"+id)
+	if err != nil || u.Email != "new@legacy.test" || u.Identities[0].Connection != "Legacy-DB" || u.Identities[0].PasswordHash == "" {
+		t.Fatalf("local user = %+v, %v", u, err)
+	}
+}

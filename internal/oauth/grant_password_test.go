@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -227,4 +228,47 @@ func TestPasswordRealmGrantLegacyThrottle(t *testing.T) {
 			t.Fatalf("after timeouts = %d %v", rec.Code, body)
 		}
 	})
+}
+
+// useImportMode puts tenant's Legacy-DB connection in import mode.
+func useImportMode(t *testing.T, st store.Store, tenantID string) {
+	t.Helper()
+	ctx := context.Background()
+	c, err := st.Connections().GetByName(ctx, tenantID, "Legacy-DB")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.ImportMode = true
+	if err := st.Connections().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// In import mode the first grant migrates the user; later grants are
+// checked locally.
+func TestPasswordRealmGrantImport(t *testing.T) {
+	f := newFixture(t)
+	useImportMode(t, f.st, f.tenantID(t, "acme"))
+	f.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {
+		if args[0] == "dave@legacy.test" && args[1] == "dave legacy 1" {
+			return map[string]any{"user_id": 42, "email": "dave@legacy.test"}, nil
+		}
+		return nil, &customdb.ScriptError{Kind: customdb.KindWrongCredentials}
+	}
+	for i := 0; i < 2; i++ {
+		rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "dave legacy 1")})
+		if rec.Code != 200 {
+			t.Fatalf("grant %d = %d %v", i, rec.Code, body)
+		}
+		at, _ := verifyToken(t, f.keys, f.tenantID(t, "acme"), body["access_token"].(string))
+		if at["sub"] != "auth0|42" {
+			t.Fatalf("sub = %v", at["sub"])
+		}
+	}
+	if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "wrong")}); rec.Code != 400 || body["error"] != "invalid_grant" {
+		t.Fatalf("wrong password = %d %v", rec.Code, body)
+	}
+	if n := len(f.scripts.Requests()); n != 1 {
+		t.Fatalf("script calls = %d, want 1", n)
+	}
 }

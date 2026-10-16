@@ -4,13 +4,17 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
+	"github.com/zeroauthy/zeroauthy/internal/store/sqlstore"
 )
 
 type scripts = map[string]func([]any) (any, error)
@@ -19,13 +23,23 @@ type scripts = map[string]func([]any) (any, error)
 // connection, and the executor that records calls.
 func legacyConn(t *testing.T, s scripts) (*Database, *store.Connection, *customdb.FuncExecutor) {
 	t.Helper()
-	st := memory.New()
+	return customConn(t, memory.New(), false, s)
+}
+
+// importConn is legacyConn with the connection in import mode, on st.
+func importConn(t *testing.T, st store.Store, s scripts) (*Database, *store.Connection, *customdb.FuncExecutor) {
+	t.Helper()
+	return customConn(t, st, true, s)
+}
+
+func customConn(t *testing.T, st store.Store, importMode bool, s scripts) (*Database, *store.Connection, *customdb.FuncExecutor) {
+	t.Helper()
 	ctx := context.Background()
 	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_a", Name: "acme"}); err != nil {
 		t.Fatal(err)
 	}
 	conn := &store.Connection{TenantID: "ten_a", ID: "con_l", Name: "Legacy", Strategy: store.StrategyDatabase,
-		EnabledDatabaseCustomization: true, CustomScripts: map[string]string{}}
+		EnabledDatabaseCustomization: true, ImportMode: importMode, CustomScripts: map[string]string{}}
 	for _, name := range store.ScriptNames {
 		conn.CustomScripts[name] = "function " + name + "() {}"
 	}
@@ -218,20 +232,6 @@ func TestLegacyLoginScriptFailure(t *testing.T) {
 	db, conn, _ := legacyConn(t, scripts{store.ScriptLogin: func([]any) (any, error) { return nil, customdb.ErrTimeout }})
 	if _, err := db.Login(context.Background(), conn, "a@b.test", "pw"); !errors.Is(err, ErrScript) || !errors.Is(err, customdb.ErrTimeout) {
 		t.Fatalf("err = %v", err)
-	}
-}
-
-func TestImportModeNotYetImplemented(t *testing.T) {
-	db, conn, fe := legacyConn(t, scripts{})
-	conn.ImportMode = true
-	if _, err := db.Login(context.Background(), conn, "a@b.test", "pw"); !errors.Is(err, ErrScript) {
-		t.Fatalf("login err = %v", err)
-	}
-	if _, err := db.Signup(context.Background(), conn, SignupInput{Email: "a@b.test", Password: "long enough"}); !errors.Is(err, ErrScript) {
-		t.Fatalf("signup err = %v", err)
-	}
-	if len(fe.Requests()) != 0 {
-		t.Fatal("a script ran")
 	}
 }
 
@@ -546,7 +546,6 @@ func TestScriptUnavailableClassification(t *testing.T) {
 		{"cancelled", nil, context.Canceled, nil, true},
 		{"no script", nil, nil, func(_ *Database, c *store.Connection) { c.CustomScripts[store.ScriptLogin] = "" }, true},
 		{"no client", nil, nil, func(d *Database, _ *store.Connection) { d.Scripts = nil }, true},
-		{"import mode", nil, nil, func(_ *Database, c *store.Connection) { c.ImportMode = true }, true},
 		{"config", nil, nil, func(_ *Database, c *store.Connection) { c.ConfigurationSealed = []byte("not sealed") }, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -585,5 +584,401 @@ func TestLegacySignupConfirmRefusal(t *testing.T) {
 	var ue *UnauthorizedError
 	if !errors.As(err, &ue) || ue.Message != "verify your email first" || errors.Is(err, ErrScript) {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+// passwordHashOf returns the stored password hash of userID on conn.
+func passwordHashOf(t *testing.T, db *Database, conn *store.Connection, userID string) string {
+	t.Helper()
+	u, err := db.Store.Users().Get(context.Background(), conn.TenantID, userID)
+	if err != nil {
+		t.Fatalf("Get %s: %v", userID, err)
+	}
+	for _, id := range u.Identities {
+		if id.Connection == conn.Name {
+			return id.PasswordHash
+		}
+	}
+	t.Fatalf("%s has no identity on %s", userID, conn.Name)
+	return ""
+}
+
+// scriptCalls counts the recorded runs of script.
+func scriptCalls(fe *customdb.FuncExecutor, script string) int {
+	n := 0
+	for _, r := range fe.Requests() {
+		if r.Script == script {
+			n++
+		}
+	}
+	return n
+}
+
+func TestImportFirstLoginMigrates(t *testing.T) {
+	users := map[string]*legacyUser{"alice@legacy.test": {"legacy pw", map[string]any{
+		"user_id": 42, "email": "Alice@Legacy.test", "name": "Alice", "app_metadata": map[string]any{"plan": "gold"},
+	}}}
+	db, conn, fe := importConn(t, memory.New(), scripts{store.ScriptLogin: checkLogin(users)})
+	ctx := context.Background()
+	u, err := db.Login(ctx, conn, " Alice@legacy.test ", "legacy pw")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.UserID != "auth0|42" || u.Email != "alice@legacy.test" || u.Name != "Alice" || u.AppMetadata["plan"] != "gold" {
+		t.Fatalf("user = %+v", u)
+	}
+	hash := passwordHashOf(t, db, conn, "auth0|42")
+	if !strings.HasPrefix(hash, "$argon2id$") {
+		t.Fatalf("stored hash = %q", hash)
+	}
+	if ok, err := secrets.Verify(hash, "legacy pw"); err != nil || !ok {
+		t.Fatalf("stored hash does not verify: %v, %v", ok, err)
+	}
+	u, err = db.Login(ctx, conn, "alice@legacy.test", "legacy pw")
+	if err != nil || u.UserID != "auth0|42" {
+		t.Fatalf("second login = %+v, %v", u, err)
+	}
+	if n := len(fe.Requests()); n != 1 {
+		t.Fatalf("script calls = %d, want 1", n)
+	}
+}
+
+func TestImportWrongPasswordAfterMigration(t *testing.T) {
+	users := map[string]*legacyUser{"alice@legacy.test": {"legacy pw", map[string]any{"user_id": "42", "email": "alice@legacy.test"}}}
+	db, conn, fe := importConn(t, memory.New(), scripts{store.ScriptLogin: checkLogin(users)})
+	ctx := context.Background()
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "legacy pw"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "wrong"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("wrong password = %v", err)
+	}
+	if n := len(fe.Requests()); n != 1 {
+		t.Fatalf("script calls = %d, want 1", n)
+	}
+}
+
+func TestImportUnknownUser(t *testing.T) {
+	db, conn, fe := importConn(t, memory.New(), scripts{store.ScriptLogin: checkLogin(map[string]*legacyUser{})})
+	ctx := context.Background()
+	if _, err := db.Login(ctx, conn, "nobody@legacy.test", "pw"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("err = %v", err)
+	}
+	if n := len(fe.Requests()); n != 1 {
+		t.Fatalf("script calls = %d, want 1", n)
+	}
+	if _, err := db.Store.Users().FindByLogin(ctx, "ten_a", "Legacy", "nobody@legacy.test"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("a user was created: %v", err)
+	}
+}
+
+// Import mode keeps the throttle classification of legacy logins (D-0023).
+func TestImportScriptFailures(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		err         error
+		unavailable bool
+	}{
+		{"raised", &customdb.ScriptError{Kind: customdb.KindError, Message: "bad"}, false},
+		{"timeout", customdb.ErrTimeout, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, conn, _ := importConn(t, memory.New(), scripts{store.ScriptLogin: func([]any) (any, error) { return nil, tc.err }})
+			_, err := db.Login(context.Background(), conn, "a@b.test", "pw")
+			if !errors.Is(err, ErrScript) || errors.Is(err, ErrScriptUnavailable) != tc.unavailable {
+				t.Fatalf("err = %v", err)
+			}
+		})
+	}
+	t.Run("unauthorized", func(t *testing.T) {
+		db, conn, _ := importConn(t, memory.New(), scripts{store.ScriptLogin: func([]any) (any, error) {
+			return nil, &customdb.ScriptError{Kind: customdb.KindUnauthorized, Message: "suspended"}
+		}})
+		var ue *UnauthorizedError
+		if _, err := db.Login(context.Background(), conn, "a@b.test", "pw"); !errors.As(err, &ue) || ue.Message != "suspended" {
+			t.Fatalf("err = %v", err)
+		}
+	})
+	t.Run("collision", func(t *testing.T) {
+		db, conn, _ := importConn(t, memory.New(), scripts{store.ScriptLogin: func([]any) (any, error) {
+			return map[string]any{"user_id": "42", "email": "a@b.test"}, nil
+		}})
+		ctx := context.Background()
+		if err := db.Store.Users().Create(ctx, &store.User{TenantID: "ten_a", UserID: "auth0|42", Email: "old@b.test",
+			Identities: []store.Identity{{Connection: "Elsewhere", Provider: "auth0", UserID: "42", PasswordHash: "x"}}}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Login(ctx, conn, "a@b.test", "pw"); !ScriptRaised(err) {
+			t.Fatalf("err = %v", err)
+		}
+		if u, _ := db.Store.Users().Get(ctx, "ten_a", "auth0|42"); u.Email != "old@b.test" || u.Identities[0].PasswordHash != "x" {
+			t.Fatalf("existing user changed: %+v", u)
+		}
+	})
+}
+
+func openSQLite(t *testing.T) store.Store {
+	t.Helper()
+	ctx := context.Background()
+	st, err := sqlstore.Open(ctx, "sqlite://"+filepath.Join(t.TempDir(), "z.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	if err := st.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	return st
+}
+
+func TestImportConcurrentFirstLogin(t *testing.T) {
+	for name, open := range map[string]func(*testing.T) store.Store{
+		"memory": func(*testing.T) store.Store { return memory.New() },
+		"sqlite": openSQLite,
+	} {
+		t.Run(name, func(t *testing.T) {
+			const n = 10
+			db, conn, _ := importConn(t, open(t), scripts{store.ScriptLogin: func(args []any) (any, error) {
+				time.Sleep(20 * time.Millisecond)
+				if args[1] != "legacy pw" {
+					return nil, &customdb.ScriptError{Kind: customdb.KindWrongCredentials}
+				}
+				return map[string]any{"user_id": "42", "email": "alice@legacy.test"}, nil
+			}})
+			var start, done sync.WaitGroup
+			start.Add(1)
+			errs := make([]error, n)
+			for i := range n {
+				done.Add(1)
+				go func() {
+					defer done.Done()
+					start.Wait()
+					_, errs[i] = db.Login(context.Background(), conn, "alice@legacy.test", "legacy pw")
+				}()
+			}
+			start.Done()
+			done.Wait()
+			for i, err := range errs {
+				if err != nil {
+					t.Fatalf("login %d: %v", i, err)
+				}
+			}
+			ctx := context.Background()
+			u, err := db.Store.Users().FindByLogin(ctx, "ten_a", "Legacy", "alice@legacy.test")
+			if err != nil || u.UserID != "auth0|42" || len(u.Identities) != 1 {
+				t.Fatalf("FindByLogin = %+v, %v", u, err)
+			}
+			if ok, err := secrets.Verify(u.Identities[0].PasswordHash, "legacy pw"); err != nil || !ok {
+				t.Fatalf("stored hash: %v, %v", ok, err)
+			}
+		})
+	}
+}
+
+func TestImportSignup(t *testing.T) {
+	ctx := context.Background()
+	t.Run("get_user finds the user", func(t *testing.T) {
+		s := &signupScripts{users: map[string]*legacyUser{"old@b.test": {"pw", map[string]any{"user_id": "1", "email": "old@b.test"}}}}
+		db, conn, _ := importConn(t, memory.New(), s.funcs())
+		if _, err := db.Signup(ctx, conn, SignupInput{Email: "Old@b.test", Password: "long enough pw"}); !errors.Is(err, ErrUserExists) {
+			t.Fatalf("err = %v", err)
+		}
+		if strings.Join(s.calls, ",") != "get_user" {
+			t.Fatalf("calls = %v", s.calls)
+		}
+		if _, err := db.Store.Users().FindByLogin(ctx, "ten_a", "Legacy", "old@b.test"); !errors.Is(err, store.ErrNotFound) {
+			t.Fatalf("a user was created: %v", err)
+		}
+	})
+	t.Run("get_user finds the username", func(t *testing.T) {
+		s := &signupScripts{users: map[string]*legacyUser{"taken": {"pw", map[string]any{"user_id": "1", "username": "taken"}}}}
+		db, conn, _ := importConn(t, memory.New(), s.funcs())
+		conn.RequiresUsername = true
+		if _, err := db.Signup(ctx, conn, SignupInput{Email: "n@b.test", Username: "Taken", Password: "long enough pw"}); !errors.Is(err, ErrUserExists) {
+			t.Fatalf("err = %v", err)
+		}
+		if strings.Join(s.calls, ",") != "get_user,get_user" {
+			t.Fatalf("calls = %v", s.calls)
+		}
+	})
+	t.Run("get_user returns null", func(t *testing.T) {
+		s := &signupScripts{users: map[string]*legacyUser{}}
+		db, conn, fe := importConn(t, memory.New(), s.funcs())
+		u, err := db.Signup(ctx, conn, SignupInput{ClientID: "app", Email: "New@b.test", Password: "long enough pw", Name: "New"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Join(s.calls, ",") != "get_user" {
+			t.Fatalf("calls = %v", s.calls)
+		}
+		if !strings.HasPrefix(u.UserID, "auth0|") || u.Email != "new@b.test" || u.Name != "New" {
+			t.Fatalf("user = %+v", u)
+		}
+		if ok, err := secrets.Verify(passwordHashOf(t, db, conn, u.UserID), "long enough pw"); err != nil || !ok {
+			t.Fatalf("stored hash: %v, %v", ok, err)
+		}
+		n := len(fe.Requests())
+		if _, err := db.Login(ctx, conn, "new@b.test", "long enough pw"); err != nil {
+			t.Fatal(err)
+		}
+		if len(fe.Requests()) != n {
+			t.Fatal("login after signup ran a script")
+		}
+	})
+	t.Run("no get_user script", func(t *testing.T) {
+		s := &signupScripts{users: map[string]*legacyUser{}}
+		db, conn, fe := importConn(t, memory.New(), s.funcs())
+		delete(conn.CustomScripts, store.ScriptGetUser)
+		if _, err := db.Signup(ctx, conn, SignupInput{Email: "n@b.test", Password: "long enough pw"}); err != nil {
+			t.Fatal(err)
+		}
+		if n := len(fe.Requests()); n != 0 {
+			t.Fatalf("script calls = %d", n)
+		}
+	})
+	t.Run("local user exists", func(t *testing.T) {
+		s := &signupScripts{users: map[string]*legacyUser{}}
+		db, conn, _ := importConn(t, memory.New(), s.funcs())
+		if _, err := db.Signup(ctx, conn, SignupInput{Email: "n@b.test", Password: "long enough pw"}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Signup(ctx, conn, SignupInput{Email: "n@b.test", Password: "long enough pw"}); !errors.Is(err, ErrUserExists) {
+			t.Fatalf("err = %v", err)
+		}
+	})
+	t.Run("get_user fails", func(t *testing.T) {
+		db, conn, _ := importConn(t, memory.New(), scripts{store.ScriptGetUser: func([]any) (any, error) { return nil, customdb.ErrTimeout }})
+		if _, err := db.Signup(ctx, conn, SignupInput{Email: "n@b.test", Password: "long enough pw"}); !errors.Is(err, ErrScriptUnavailable) {
+			t.Fatalf("err = %v", err)
+		}
+	})
+}
+
+func TestImportResetMigrates(t *testing.T) {
+	users := map[string]*legacyUser{"alice@legacy.test": {"legacy pw", map[string]any{"user_id": "42", "email": "alice@legacy.test", "name": "Alice"}}}
+	f := scripts{
+		store.ScriptLogin: checkLogin(users),
+		store.ScriptGetUser: func(args []any) (any, error) {
+			if u := users[args[0].(string)]; u != nil {
+				return u.profile, nil
+			}
+			return nil, nil
+		},
+	}
+	db, conn, fe := importConn(t, memory.New(), f)
+	ctx := context.Background()
+	if _, err := db.FindForReset(ctx, conn, "nobody@legacy.test"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("unknown = %v", err)
+	}
+	u, err := db.FindForReset(ctx, conn, " Alice@Legacy.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.UserID != "auth0|42" || u.Name != "Alice" || passwordHashOf(t, db, conn, "auth0|42") != "" {
+		t.Fatalf("user = %+v", u)
+	}
+	// A second lookup finds the local user.
+	if u, err := db.FindForReset(ctx, conn, "alice@legacy.test"); err != nil || u.UserID != "auth0|42" {
+		t.Fatalf("second lookup = %+v, %v", u, err)
+	}
+	if n := scriptCalls(fe, store.ScriptGetUser); n != 2 {
+		t.Fatalf("get_user calls = %d, want 2", n)
+	}
+	// Before the reset completes, the login script still decides.
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "wrong"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("wrong password = %v", err)
+	}
+	if passwordHashOf(t, db, conn, "auth0|42") != "" {
+		t.Fatal("a wrong password stored a hash")
+	}
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "legacy pw"); err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := secrets.Verify(passwordHashOf(t, db, conn, "auth0|42"), "legacy pw"); err != nil || !ok {
+		t.Fatalf("stored hash: %v, %v", ok, err)
+	}
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "legacy pw"); err != nil {
+		t.Fatal(err)
+	}
+	if n := scriptCalls(fe, store.ScriptLogin); n != 2 {
+		t.Fatalf("login calls = %d, want 2", n)
+	}
+}
+
+// A user created by a reset lookup is not taken over by a login script
+// that returns another user_id for the same login.
+func TestImportResetUserCollision(t *testing.T) {
+	db, conn, _ := importConn(t, memory.New(), scripts{
+		store.ScriptGetUser: func([]any) (any, error) { return map[string]any{"user_id": "42", "email": "alice@legacy.test"}, nil },
+		store.ScriptLogin:   func([]any) (any, error) { return map[string]any{"user_id": "43", "email": "alice@legacy.test"}, nil },
+	})
+	ctx := context.Background()
+	if _, err := db.FindForReset(ctx, conn, "alice@legacy.test"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "pw"); !ScriptRaised(err) {
+		t.Fatalf("err = %v", err)
+	}
+	if passwordHashOf(t, db, conn, "auth0|42") != "" {
+		t.Fatal("hash stored on a collision")
+	}
+	if _, err := db.Store.Users().Get(ctx, "ten_a", "auth0|43"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("colliding user created: %v", err)
+	}
+}
+
+// A seeded user (stored with a hash, as seed.Apply does) is local from the
+// start: no script runs, even without a script client.
+func TestImportSeededUserIsLocal(t *testing.T) {
+	db, conn, fe := importConn(t, memory.New(), scripts{})
+	ctx := context.Background()
+	hash, err := secrets.Hash("seeded pw 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Store.Users().Create(ctx, &store.User{TenantID: "ten_a", UserID: "auth0|seed1", Email: "seed@b.test",
+		Identities: []store.Identity{{Connection: "Legacy", Provider: "auth0", UserID: "seed1", PasswordHash: hash}}}); err != nil {
+		t.Fatal(err)
+	}
+	if u, err := db.Login(ctx, conn, "seed@b.test", "seeded pw 1"); err != nil || u.UserID != "auth0|seed1" {
+		t.Fatalf("login = %+v, %v", u, err)
+	}
+	if _, err := db.Login(ctx, conn, "seed@b.test", "wrong"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("wrong password = %v", err)
+	}
+	if u, err := db.FindForReset(ctx, conn, "seed@b.test"); err != nil || u.UserID != "auth0|seed1" {
+		t.Fatalf("FindForReset = %+v, %v", u, err)
+	}
+	if n := len(fe.Requests()); n != 0 {
+		t.Fatalf("script calls = %d", n)
+	}
+}
+
+// A blocked user is refused after the password is checked, whether the
+// script or the local hash checks it.
+func TestImportBlocked(t *testing.T) {
+	users := map[string]*legacyUser{"alice@legacy.test": {"legacy pw", map[string]any{"user_id": "42", "email": "alice@legacy.test"}}}
+	f := scripts{
+		store.ScriptLogin:   checkLogin(users),
+		store.ScriptGetUser: func([]any) (any, error) { return users["alice@legacy.test"].profile, nil },
+	}
+	db, conn, _ := importConn(t, memory.New(), f)
+	ctx := context.Background()
+	u, err := db.FindForReset(ctx, conn, "alice@legacy.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u.Blocked = true
+	if err := db.Store.Users().Update(ctx, u); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "wrong"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("wrong password = %v", err)
+	}
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "legacy pw"); !errors.Is(err, ErrUserBlocked) {
+		t.Fatalf("via script = %v", err)
+	}
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "legacy pw"); !errors.Is(err, ErrUserBlocked) {
+		t.Fatalf("via hash = %v", err)
 	}
 }

@@ -174,3 +174,33 @@ func TestLegacyChangePassword(t *testing.T) {
 		t.Fatalf("unauthorized get_user = %d %q, sent %d", code, text, len(e.mail.sent))
 	}
 }
+
+// In import mode a reset request migrates a user get_user knows, without a
+// password; the next request finds the local user.
+func TestImportChangePassword(t *testing.T) {
+	e := newEnv(t)
+	e.useImportMode(t)
+	e.scripts.Funcs[store.ScriptGetUser] = func(args []any) (any, error) {
+		if args[0] == "dave@legacy.test" {
+			return map[string]any{"user_id": 42, "email": "dave@legacy.test"}, nil
+		}
+		return nil, nil
+	}
+	post := func(email string) int {
+		code, _, _ := e.post(t, "/dbconnections/change_password", "application/json",
+			`{"client_id":"app","connection":"Legacy-DB","email":"`+email+`"}`)
+		return code
+	}
+	if code := post("Dave@legacy.test"); code != 200 || len(e.mail.sent) != 1 || e.mail.sent[0].To != "dave@legacy.test" {
+		t.Fatalf("known = %d, sent %+v", code, e.mail.sent)
+	}
+	if u, err := e.st.Users().Get(context.Background(), e.tenantID, "auth0|42"); err != nil || u.Identities[0].PasswordHash != "" {
+		t.Fatalf("local user = %+v, %v", u, err)
+	}
+	if code := post("dave@legacy.test"); code != 200 || len(e.mail.sent) != 2 {
+		t.Fatalf("second = %d, sent %d", code, len(e.mail.sent))
+	}
+	if n := len(e.scripts.Requests()); n != 1 {
+		t.Fatalf("script calls = %d, want 1", n)
+	}
+}
