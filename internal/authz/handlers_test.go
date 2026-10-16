@@ -509,7 +509,11 @@ func (e *env) consent(t *testing.T, txn *store.AuthTransaction, ck *http.Cookie,
 	t.Helper()
 	rec := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "https://acme.example.test/u/consent", nil)
-	e.h.Consent(rec, r, e.res(), txn, e.session(t, ck), accepted)
+	sess := e.session(t, ck)
+	if _, bound := txn.Params[sessionKey]; !bound && txn.Params[stageKey] == stageConsent {
+		txn.Params[sessionKey] = sess.ID // as startConsent does
+	}
+	e.h.Consent(rec, r, e.res(), txn, sess, accepted)
 	return rec
 }
 
@@ -638,5 +642,51 @@ func TestConsentView(t *testing.T) {
 	v = view(partnerQuery())
 	if v.APIName != "https://api.acme.test" || strings.Join(v.Scopes, ",") != "Read your things" {
 		t.Fatalf("described view = %+v", v)
+	}
+}
+
+func (e *env) consentFor(t *testing.T, q url.Values, boundTo string) *store.AuthTransaction {
+	t.Helper()
+	txn := e.txnFor(t, q, true)
+	txn.Params[sessionKey] = boundTo
+	return txn
+}
+
+func TestConsentMaxAgeZeroDoesNotLoop(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	q := partnerQuery()
+	q.Set("max_age", "0")
+	txn := e.consentFor(t, q, e.session(t, ck).ID)
+	loc := location(t, e.consent(t, txn, ck, true))
+	if loc.Host != "partner.example" || loc.Query().Get("code") == "" {
+		t.Fatalf("Location = %s, want a code", loc)
+	}
+}
+
+func TestConsentShortMaxAgeElapsedDoesNotLoop(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	q := partnerQuery()
+	q.Set("max_age", "1")
+	txn := e.consentFor(t, q, e.session(t, ck).ID)
+	e.h.Now = func() time.Time { return fixedNow().Add(time.Minute) }
+	loc := location(t, e.consent(t, txn, ck, true))
+	if loc.Host != "partner.example" || loc.Query().Get("code") == "" {
+		t.Fatalf("Location = %s, want a code", loc)
+	}
+}
+
+func TestConsentFromAnotherSessionRestartsLogin(t *testing.T) {
+	e := newEnv(t)
+	first := e.session(t, e.login(t, fixedNow()))
+	second := e.login(t, fixedNow())
+	txn := e.consentFor(t, partnerQuery(), first.ID)
+	loc := location(t, e.consent(t, txn, second, true))
+	if loc.Path != "/u/login" || loc.Query().Get("code") != "" {
+		t.Fatalf("Location = %s, want the login page", loc)
+	}
+	if g := e.userGrant(t, "partner", "https://api.acme.test"); g != nil {
+		t.Fatalf("grant stored: %v", g)
 	}
 }

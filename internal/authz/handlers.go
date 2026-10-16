@@ -177,12 +177,16 @@ func (h *Handlers) startLogin(w http.ResponseWriter, r *http.Request, res tenant
 const (
 	stageKey     = "za_stage"
 	stageConsent = "consent"
+	// sessionKey holds the ID of the session the consent transaction was
+	// created for. Like stageKey it is not a request parameter.
+	sessionKey = "za_session"
 )
 
 // startConsent sends an authenticated user to the consent page.
-func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request) {
+func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession) {
 	params := req.Params()
 	params[stageKey] = stageConsent
+	params[sessionKey] = sess.ID
 	h.startTxn(w, r, res, client, req, params, "/u/consent")
 }
 
@@ -355,7 +359,7 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 		h.deny(w, r, res, client, req, &Error{d.Err.Code, d.Err.Description})
 		return
 	case (d.Consent || d.Confirmation) && !accepted:
-		h.startConsent(w, r, res, client, req)
+		h.startConsent(w, r, res, client, req, sess)
 		return
 	case d.Consent: // accepted
 		now := h.now()
@@ -401,11 +405,10 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 		h.deny(w, r, res, client, req, errUserDeclined())
 		return
 	}
-	// The session may have changed since the page was shown. prompt=login was
-	// satisfied before this transaction began.
-	check := req
-	check.Prompt = strings.Join(slices.DeleteFunc(req.Prompts(), func(p string) bool { return p == "login" }), " ")
-	login := h.needsLogin(check, sess)
+	// Login freshness (prompt=login, max_age, connection) was settled before
+	// this transaction began, so it is not checked again. The session must be
+	// the one the page was shown for, and its connection must still be usable.
+	login := sess.ID != txn.Params[sessionKey]
 	if !login {
 		var err error
 		if login, err = h.connectionDisabled(ctx, res, client, sess); err != nil {

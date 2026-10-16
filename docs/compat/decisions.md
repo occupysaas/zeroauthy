@@ -430,7 +430,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **What a grant holds:**
     - A grant is keyed by (client, user, audience). The audience is the API identifier, or `https://{domain}/userinfo` when there is none.
     - A request whose scopes are all in the grant skips consent (observed).
-    - Accepting consent merges the accepted scopes into the grant (observed). `prompt=consent` forces the screen. Declining leaves the grant unchanged (observed).
+    - Accepting consent merges the accepted scopes into the grant (observed). `prompt=consent` forces the screen, except for a first-party client whose API skips consent: there it does not force it. That exception is a zeroauthy assumption, unobserved on Auth0. Declining leaves the grant unchanged (observed).
   - **The consent screen** lists every scope the request will receive, not only the new ones, matching check 7.
   - **Grants with no screen:** Auth0 stored a grant for a first-party client after a login that showed no consent screen (check 1). zeroauthy stores grants only when the user accepts a consent screen. This is a recorded difference until the Management API exposes grants (sub-project 3) and the case is understood.
 - **Rationale:** Observed behavior is matched. The one unexplained case is visible only through the grants API, which zeroauthy does not have yet.

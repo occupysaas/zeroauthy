@@ -232,11 +232,11 @@ func ConnectionUsable(c *store.Client, conn *store.Connection) bool {
 // error page instead of redirected: under open_redirect_protection every
 // error is (observed, D-0027).
 func ShowErrorPage(c *store.Client) bool {
-	policy := c.RedirectionPolicy
-	if policy == "" && !c.IsFirstParty {
-		policy = store.RedirectionPolicyOpenRedirectProtection
+	if c.IsFirstParty {
+		return c.RedirectionPolicy == store.RedirectionPolicyOpenRedirectProtection
 	}
-	return policy == store.RedirectionPolicyOpenRedirectProtection
+	// Third-party clients fail closed: only an explicit allow_always redirects.
+	return c.RedirectionPolicy != store.RedirectionPolicyAllowAlways
 }
 
 // GrantScopes is the scope list a user grant holds after the user accepts

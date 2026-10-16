@@ -171,6 +171,16 @@ func TestShowErrorPage(t *testing.T) {
 	if ShowErrorPage(open) {
 		t.Error("allow_always redirects")
 	}
+	odd := strict()
+	odd.RedirectionPolicy = "something_new"
+	if !ShowErrorPage(odd) {
+		t.Error("an unknown policy on a third-party client fails closed")
+	}
+	oddFP := firstParty()
+	oddFP.RedirectionPolicy = "something_new"
+	if ShowErrorPage(oddFP) {
+		t.Error("an unknown policy on a first-party client redirects")
+	}
 }
 
 func TestGrantScopes(t *testing.T) {

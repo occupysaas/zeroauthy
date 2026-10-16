@@ -119,7 +119,7 @@ zeroauthy's own keys, under the `zeroauthy` prompt:
 
 `${callbackDomain}` is the host of the redirect URI, or its scheme (for example `com.example.app:`) for a custom scheme. The screen shows the API's name (its identifier when it has none), the scope list, and for a third-party client the external-application notice.
 
-The consent page is `/u/consent`. It completes only transactions that `/authorize` started for it, and it checks the browser's session again: if the session has ended or its user is blocked, the user is sent to log in again instead.
+The consent page is `/u/consent`. It completes only transactions that `/authorize` started for it, and it checks the browser's session again. If the session has ended or its user is blocked, the page shows the session-expired error. The user is sent to log in again only when the session's connection is no longer usable for the client, or when the session is not the one the page was shown for. Login freshness (`prompt=login`, `max_age`, `connection`) is settled before the page is shown and is not checked again, so a `max_age=0` request does not loop between login and consent.
 
 ## The confirmation prompt
 
@@ -212,5 +212,6 @@ tenants:
 
 ## Upgrading
 
+- Existing clients with a `localhost`, loopback or custom-scheme callback now get the confirmation prompt: the tenant flag is `false` and the client flag is unset after migration. `prompt=none` and `getTokenSilently` on those clients return `consent_required`. See [Local development](#local-development) to opt development clients out.
 - Migration 0003 adds the consent columns and the user grants table. Databases migrated to schema 3 keep `skip_consent_for_verifiable_first_party_clients = true` on existing resource servers, but a seed apply sets `false` unless the seed names the field.
 - Storage plugins must be rebuilt against this version to serve `UserGrants`; an older plugin fails a consent decision with a server error (D-0021 addendum).

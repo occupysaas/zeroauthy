@@ -1,7 +1,6 @@
 package login
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -57,6 +56,6 @@ func (h *Handlers) ConsentSubmit(w http.ResponseWriter, r *http.Request) {
 	case "decline":
 		h.Authz.Consent(w, r, f.res, f.txn, sess, false)
 	default:
-		h.fail(w, r, errors.New("login: consent form without an action"), f)
+		h.fail(w, r, errTxn, f)
 	}
 }

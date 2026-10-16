@@ -189,3 +189,19 @@ func TestConfirmationAcceptStoresNoGrant(t *testing.T) {
 		t.Fatalf("grant err = %v", err)
 	}
 }
+
+func TestConsentWithoutValidActionIs400(t *testing.T) {
+	for _, action := range []string{"", "maybe"} {
+		e := newEnv(t)
+		b := e.signedIn(t)
+		state, csrf := b.toConsent(t, partnerQ("partner", "https://partner.example/cb"))
+		form := url.Values{"state": {state}, "csrf": {csrf}}
+		if action != "" {
+			form.Set("action", action)
+		}
+		rec := b.do(t, "POST", "/u/consent", form)
+		if rec.Code != 400 || rec.Header().Get("Location") != "" {
+			t.Fatalf("action %q: got %d %s", action, rec.Code, rec.Body)
+		}
+	}
+}
