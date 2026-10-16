@@ -74,12 +74,16 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := h.Database.Signup(ctx, conn, identity.SignupInput{
-		Email: fields["email"], Username: fields["username"], Password: fields["password"],
+		ClientID: fields["client_id"], Email: fields["email"], Username: fields["username"], Password: fields["password"],
 		GivenName: fields["given_name"], FamilyName: fields["family_name"], Name: fields["name"],
 		Nickname: fields["nickname"], Picture: fields["picture"], UserMetadata: meta,
 	})
 	var pe *identity.PolicyError
+	var ue *identity.UnauthorizedError
 	switch {
+	case errors.As(err, &ue):
+		writeErr(w, http.StatusUnauthorized, "unauthorized", ue.Message)
+		return
 	case errors.Is(err, identity.ErrSignupDisabled):
 		writeErr(w, http.StatusBadRequest, "invalid_signup", "sign-up is disabled for this connection")
 		return

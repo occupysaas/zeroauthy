@@ -2,16 +2,20 @@
 package login
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -43,9 +47,14 @@ tenants:
     clients:
       - {client_id: spa, app_type: spa, grant_types: [authorization_code], callbacks: ["https://app.acme.test/cb"]}
       - {client_id: closed, app_type: spa, grant_types: [authorization_code], callbacks: ["https://closed.acme.test/cb"]}
+      - {client_id: legacy, app_type: spa, grant_types: [authorization_code], callbacks: ["https://legacy.acme.test/cb"]}
     connections:
       - {name: Username-Password-Authentication, enabled_clients: [spa]}
       - {name: Invite-Only, enabled_clients: [closed], disable_signup: true}
+      - name: Legacy-DB
+        enabled_clients: [legacy]
+        enabledDatabaseCustomization: true
+        customScripts: {login: "x", get_user: "x", create: "x", change_password: "x"}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, username: alice1, password: "alice password 1"}
       - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
@@ -60,6 +69,27 @@ type env struct {
 	srv  http.Handler
 	h    *Handlers
 	mail *recorder
+	// scripts runs the Legacy-DB connection's scripts; tests set Funcs.
+	scripts *customdb.FuncExecutor
+	logs    *syncBuffer
+}
+
+// syncBuffer is a goroutine-safe log sink.
+type syncBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
 }
 
 func newEnv(t *testing.T) *env {
@@ -73,10 +103,14 @@ func newEnv(t *testing.T) *env {
 		t.Fatal(err)
 	}
 	sm := &session.Manager{Store: st, Now: fixedNow}
-	az := &authz.Handlers{Store: st, Sessions: sm, Now: fixedNow}
+	logs := &syncBuffer{}
+	log := slog.New(slog.NewTextHandler(logs, nil))
+	az := &authz.Handlers{Store: st, Sessions: sm, Now: fixedNow, Log: log}
+	scripts := &customdb.FuncExecutor{Funcs: map[string]func([]any) (any, error){}}
 	h := &Handlers{
-		Store: st, Sessions: sm, Authz: az,
-		Database:     &identity.Database{Store: st, Now: fixedNow},
+		Store: st, Sessions: sm, Authz: az, Log: log,
+		Database: &identity.Database{Store: st, Now: fixedNow, Log: log,
+			Scripts: &customdb.Client{Exec: scripts}},
 		UserThrottle: identity.NewThrottle(3, 15*time.Minute, 15*time.Minute),
 		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),
 		Now:          fixedNow,
@@ -87,6 +121,7 @@ func newEnv(t *testing.T) *env {
 		Database:     h.Database,
 		SendThrottle: identity.NewThrottle(100, time.Hour, time.Hour),
 		IPThrottle:   identity.NewThrottle(100, time.Hour, time.Hour),
+		Log:          log,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /authorize", az.Authorize)
@@ -98,7 +133,7 @@ func newEnv(t *testing.T) *env {
 	mux.HandleFunc("POST /u/reset-password/request", h.ResetRequestSubmit)
 	mux.HandleFunc("GET /u/reset-password", h.ResetPasswordPage)
 	mux.HandleFunc("POST /u/reset-password", h.ResetPasswordSubmit)
-	return &env{st: st, h: h, mail: mail, srv: tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)}
+	return &env{st: st, h: h, mail: mail, scripts: scripts, logs: logs, srv: tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)}
 }
 
 // browser is a minimal cookie-keeping client for one host.
@@ -585,5 +620,107 @@ func TestSubtitleWithAndWithoutClientName(t *testing.T) {
 	rec = b.do(t, "GET", "/u/signup?state="+url.QueryEscape(state), nil)
 	if !strings.Contains(rec.Body.String(), "Sign up for acme to continue to Shop.") {
 		t.Fatalf("signup subtitle with a client name:\n%s", rec.Body)
+	}
+}
+
+// legacyBegin starts a login for the client whose only connection is the
+// Legacy-DB custom database.
+func (b *browser) legacyBegin(t *testing.T) (string, string) {
+	t.Helper()
+	_, state, csrf := b.begin(t, "client_id", "legacy", "redirect_uri", "https://legacy.acme.test/cb")
+	return state, csrf
+}
+
+// legacyLogin is a login script accepting dave@legacy.test / "dave legacy 1".
+func legacyLogin(args []any) (any, error) {
+	if strings.EqualFold(args[0].(string), "dave@legacy.test") && args[1] == "dave legacy 1" {
+		return map[string]any{"user_id": 42, "email": "dave@legacy.test"}, nil
+	}
+	return nil, &customdb.ScriptError{Kind: customdb.KindWrongCredentials, Message: "wrong"}
+}
+
+func TestLegacyLogin(t *testing.T) {
+	e := newEnv(t)
+	e.scripts.Funcs[store.ScriptLogin] = legacyLogin
+	b := e.browser("acme.example.test")
+	state, csrf := b.legacyBegin(t)
+
+	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"wrong"}})
+	if rec.Code != http.StatusUnauthorized || !strings.Contains(rec.Body.String(), "Incorrect") {
+		t.Fatalf("wrong password = %d %s", rec.Code, rec.Body)
+	}
+	rec = b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"dave legacy 1"}})
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	if rec.Code != 302 || loc.Host != "legacy.acme.test" || loc.Query().Get("code") == "" {
+		t.Fatalf("login = %d %s", rec.Code, rec.Body)
+	}
+	u, err := e.st.Users().Get(context.Background(), mustTenant(t, e, "acme").ID, "auth0|42")
+	if err != nil || u.LoginsCount != 1 {
+		t.Fatalf("local user = %+v, %v", u, err)
+	}
+}
+
+func TestLegacyLoginUnauthorizedMessage(t *testing.T) {
+	e := newEnv(t)
+	e.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+		return nil, &customdb.ScriptError{Kind: customdb.KindUnauthorized, Message: "<b>x</b>"}
+	}
+	b := e.browser("acme.example.test")
+	state, csrf := b.legacyBegin(t)
+	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"pw"}})
+	body := rec.Body.String()
+	if rec.Code != http.StatusUnauthorized || !strings.Contains(body, "&lt;b&gt;x&lt;/b&gt;") || strings.Contains(body, "<b>x</b>") {
+		t.Fatalf("unauthorized = %d %s", rec.Code, body)
+	}
+	if b.cookies[session.CookieName] != nil {
+		t.Fatal("signed in")
+	}
+}
+
+func TestLegacyLoginScriptFailureRefundsThrottles(t *testing.T) {
+	e := newEnv(t)
+	e.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	failing := true
+	e.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {
+		if failing {
+			return nil, customdb.ErrUnavailable
+		}
+		return legacyLogin(args)
+	}
+	b := e.browser("acme.example.test")
+	state, csrf := b.legacyBegin(t)
+	form := url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"dave legacy 1"}}
+	// More failures than either limit allows: none of them count.
+	for i := 0; i < 5; i++ {
+		rec := b.do(t, "POST", "/u/login", form)
+		if rec.Code != http.StatusInternalServerError || !strings.Contains(rec.Body.String(), "Something went wrong") {
+			t.Fatalf("script failure %d = %d %s", i, rec.Code, rec.Body)
+		}
+	}
+	if !strings.Contains(e.logs.String(), "custom database script failed") {
+		t.Fatalf("failure not logged: %s", e.logs)
+	}
+	failing = false
+	if rec := b.do(t, "POST", "/u/login", form); rec.Code != 302 {
+		t.Fatalf("login after failures = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestLegacySignupPage(t *testing.T) {
+	e := newEnv(t)
+	var created map[string]any
+	e.scripts.Funcs[store.ScriptGetUser] = func([]any) (any, error) { return nil, nil }
+	e.scripts.Funcs[store.ScriptCreate] = func(args []any) (any, error) {
+		created = args[0].(map[string]any)
+		return nil, nil
+	}
+	e.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+		return map[string]any{"user_id": "7", "email": "erin@legacy.test"}, nil
+	}
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t, "client_id", "legacy", "redirect_uri", "https://legacy.acme.test/cb", "screen_hint", "signup")
+	rec := b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"erin@legacy.test"}, "password": {"long enough pw"}})
+	if rec.Code != 302 || created["client_id"] != "legacy" {
+		t.Fatalf("signup = %d %s; created %v", rec.Code, rec.Body, created)
 	}
 }

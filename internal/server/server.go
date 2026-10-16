@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zeroauthy/zeroauthy/api"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
@@ -32,6 +33,10 @@ type Deps struct {
 	Sessions *session.Manager
 	Log      *slog.Logger
 	Mailer   email.Mailer
+
+	// Scripts runs custom database scripts; nil makes customized
+	// connections fail.
+	Scripts *customdb.Client
 
 	UserThrottle      *identity.Throttle
 	IPThrottle        *identity.Throttle
@@ -99,16 +104,17 @@ func New(d Deps) http.Handler {
 	r.Get("/docs", serveDocs)
 
 	az := &authz.Handlers{Store: d.Store, Sessions: d.Sessions, Log: d.Log}
+	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One instance serves the API and the hosted reset pages, so they share
 	// the per-user reset send limit.
 	dbconnHandlers := &dbconn.Handlers{
-		Store: d.Store, Database: &identity.Database{Store: d.Store},
+		Store: d.Store, Database: db,
 		IPThrottle: d.IPThrottle, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 		Mailer: d.Mailer, SendThrottle: identity.NewThrottle(3, time.Hour, time.Hour),
 	}
 	lg := &login.Handlers{
 		Store: d.Store, Sessions: d.Sessions, Authz: az,
-		Database:     &identity.Database{Store: d.Store},
+		Database:     db,
 		Resets:       dbconnHandlers,
 		UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
 		TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
@@ -121,7 +127,7 @@ func New(d Deps) http.Handler {
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
 				Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys},
-				Database:     &identity.Database{Store: d.Store},
+				Database:     db,
 				UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
 				TrustProxyHeaders: d.TrustProxyHeaders,
 			},

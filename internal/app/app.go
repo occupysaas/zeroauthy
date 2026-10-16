@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -27,6 +28,7 @@ type App struct {
 	cfg     *config.Config
 	log     *slog.Logger
 	store   store.Store
+	runner  *customdb.NodeRunner
 	handler http.Handler
 }
 
@@ -134,11 +136,22 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		log.Warn("email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
 	}
 
+	// The runner starts no Node process until a script runs.
+	runner, err := customdb.NewNodeRunner(cfg.CustomDB, log)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkCustomDB(ctx, st, tenants, runner, log); err != nil {
+		_ = runner.Close()
+		return nil, err
+	}
+
 	lockout := time.Duration(cfg.Security.LoginLockoutSeconds) * time.Second
 	return &App{
-		cfg:   cfg,
-		log:   log,
-		store: st,
+		cfg:    cfg,
+		log:    log,
+		store:  st,
+		runner: runner,
 		handler: server.New(server.Deps{
 			Store:    st,
 			Keys:     km,
@@ -146,12 +159,36 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Sessions: &session.Manager{Store: st},
 			Log:      log,
 			Mailer:   mailer,
+			Scripts:  &customdb.Client{Exec: runner, Wrapper: wrapper},
 
 			UserThrottle:      identity.NewThrottle(cfg.Security.LoginMaxAttempts, lockout, lockout),
 			IPThrottle:        identity.NewThrottle(10*cfg.Security.LoginMaxAttempts, lockout, lockout),
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
 		}),
 	}, nil
+}
+
+// checkCustomDB warns once when a tenant has a customized connection and
+// Node.js cannot run scripts. The server still starts: other tenants and
+// connections keep working, and those connections fail per request.
+func checkCustomDB(ctx context.Context, st store.Store, tenants []*store.Tenant, runner *customdb.NodeRunner, log *slog.Logger) error {
+	for _, tn := range tenants {
+		conns, err := st.Connections().List(ctx, tn.ID)
+		if err != nil {
+			return err
+		}
+		for _, c := range conns {
+			if !identity.IsCustom(c) {
+				continue
+			}
+			if err := runner.Probe(); err != nil {
+				log.Warn("custom database connections cannot run their scripts until Node.js is available",
+					"tenant", tn.Name, "connection", c.Name, "err", err)
+			}
+			return nil
+		}
+	}
+	return nil
 }
 
 func (a *App) Handler() http.Handler { return a.handler }
@@ -195,4 +232,11 @@ func (a *App) Serve(ctx context.Context) error {
 	}
 }
 
-func (a *App) Close() error { return a.store.Close() }
+// Close stops the custom database runner and closes the store.
+func (a *App) Close() error {
+	var errRunner error
+	if a.runner != nil {
+		errRunner = a.runner.Close()
+	}
+	return errors.Join(errRunner, a.store.Close())
+}

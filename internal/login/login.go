@@ -204,6 +204,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := h.Database.Login(ctx, f.conn, login, r.PostForm.Get("password"))
+	var ue *identity.UnauthorizedError
 	switch {
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		h.log().InfoContext(ctx, "login failed", "tenant", f.res.Tenant.ID, "connection", f.conn.Name)
@@ -215,6 +216,12 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		h.IPThrottle.Refund(ipKey)
 		data.Error = f.view.L.T(i18n.KeyUserBlocked)
 		ui.RenderLogin(w, http.StatusForbidden, f.view, data)
+		return
+	case errors.As(err, &ue):
+		// A custom database script refused the user with a message meant
+		// for them (D-0023); the attempt still counts.
+		data.Error = ue.Message
+		ui.RenderLogin(w, http.StatusUnauthorized, f.view, data)
 		return
 	case err != nil:
 		h.UserThrottle.Refund(userKey)
@@ -263,10 +270,15 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
-		Email: email, Username: username, Password: r.PostForm.Get("password"),
+		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"),
 	})
 	var pe *identity.PolicyError
+	var ue *identity.UnauthorizedError
 	switch {
+	case errors.As(err, &ue):
+		data.Error = ue.Message
+		ui.RenderSignup(w, http.StatusUnauthorized, f.view, data)
+		return
 	case errors.As(err, &pe):
 		data.Error = policyMessage(f.view.L, pe)
 		ui.RenderSignup(w, http.StatusBadRequest, f.view, data)

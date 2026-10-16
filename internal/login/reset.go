@@ -64,11 +64,14 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	user, err := h.Resets.FindByEmail(ctx, f.res.Tenant.ID, f.conn.Name, r.PostForm.Get("email"))
+	user, err := h.Resets.FindByEmail(ctx, f.conn, r.PostForm.Get("email"))
+	var ue *identity.UnauthorizedError
 	switch {
 	case err == nil:
 		h.Resets.RequestReset(f.res, f.conn, user, f.txn.ClientID, f.view.L.Lang())
-	case !errors.Is(err, store.ErrNotFound):
+	case errors.As(err, &ue), errors.Is(err, store.ErrNotFound):
+		// Nothing to send; the page must not say so.
+	default:
 		h.log().ErrorContext(ctx, "reset request: find user", "tenant", f.res.Tenant.ID, "err", err)
 	}
 	ui.RenderResetEmailSent(w, f.view)
@@ -227,9 +230,27 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 5. Hash before using the ticket, so a hashing failure does not spend it.
-	hash, err := secrets.Hash(pw)
-	if err != nil {
+	// 5. Set the password in the legacy store, or hash it, before using
+	// the ticket, so a failure does not spend it.
+	legacy := identity.IsLegacy(conn)
+	var hash string
+	if legacy {
+		err := h.Database.ChangeLegacyPassword(ctx, conn, user, pw)
+		var ue *identity.UnauthorizedError
+		switch {
+		case errors.As(err, &ue):
+			form.Error = ue.Message
+			ui.RenderResetForm(w, http.StatusBadRequest, view, form)
+			return
+		case errors.Is(err, identity.ErrPasswordNotChanged):
+			form.Error = view.L.T(i18n.KeyResetNotChanged)
+			ui.RenderResetForm(w, http.StatusBadRequest, view, form)
+			return
+		case err != nil:
+			h.fail(w, r, err, nil)
+			return
+		}
+	} else if hash, err = secrets.Hash(pw); err != nil {
 		h.fail(w, r, err, nil)
 		return
 	}
@@ -268,13 +289,16 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 8. Set the password.
-	if err := h.Store.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); errors.Is(err, store.ErrNotFound) {
-		h.renderResetError(w, view, resetInvalid)
-		return
-	} else if err != nil {
-		h.fail(w, r, err, nil)
-		return
+	// 8. Set the password. A legacy store already has it (step 5), so
+	// nothing is stored locally.
+	if !legacy {
+		if err := h.Store.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); errors.Is(err, store.ErrNotFound) {
+			h.renderResetError(w, view, resetInvalid)
+			return
+		} else if err != nil {
+			h.fail(w, r, err, nil)
+			return
+		}
 	}
 	h.log().InfoContext(ctx, "password reset", "tenant", res.Tenant.ID, "user_id", tk.UserID)
 

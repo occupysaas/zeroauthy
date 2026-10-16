@@ -85,6 +85,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		return nil, tooManyRequests()
 	}
 	user, err := h.Database.Login(ctx, conn, username, password)
+	var ue *identity.UnauthorizedError
 	switch {
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		h.log().InfoContext(ctx, "password grant failed", "tenant", tenantID, "client_id", c.ClientID, "connection", conn.Name)
@@ -93,6 +94,10 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		h.UserThrottle.Success(userKey)
 		h.IPThrottle.Refund(ipKey)
 		return nil, invalidGrant("the user is blocked")
+	case errors.As(err, &ue):
+		// A custom database script refused the user; its message is meant
+		// for the user (D-0023). The attempt still counts.
+		return nil, &Error{Status: http.StatusUnauthorized, Code: "unauthorized", Description: ue.Message}
 	case err != nil:
 		h.UserThrottle.Refund(userKey)
 		h.IPThrottle.Refund(ipKey)

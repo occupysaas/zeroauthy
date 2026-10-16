@@ -70,10 +70,15 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 	// An unknown user gets the same answer and no email, so the response
 	// does not reveal which addresses have accounts (D-0018).
-	user, err := h.FindByEmail(ctx, tenantID, conn.Name, fields["email"])
-	if err == nil {
+	// A custom database script that fails or refuses gets the same answer
+	// too; identity has logged it (D-0023).
+	user, err := h.FindByEmail(ctx, conn, fields["email"])
+	var ue *identity.UnauthorizedError
+	switch {
+	case err == nil:
 		h.RequestReset(res, conn, user, fields["client_id"], i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language")))
-	} else if !errors.Is(err, store.ErrNotFound) {
+	case errors.Is(err, store.ErrNotFound), errors.As(err, &ue), errors.Is(err, identity.ErrScript):
+	default:
 		h.internal(w, r, "find user", err)
 		return
 	}
@@ -82,20 +87,9 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("A password reset link has been sent to the email address."))
 }
 
-// FindByEmail returns the user of connection whose email address is email.
-// FindByLogin also matches usernames; a reset request names an address, so
-// a username match is reported as store.ErrNotFound.
-func (h *Handlers) FindByEmail(ctx context.Context, tenantID, connection, email string) (*store.User, error) {
-	email = identity.NormalizeLogin(email)
-	if len(email) > identity.MaxEmailLength {
-		return nil, store.ErrNotFound // no user can have it; not sent to the store
-	}
-	user, err := h.Store.Users().FindByLogin(ctx, tenantID, connection, email)
-	if err != nil {
-		return nil, err
-	}
-	if user.Email != email {
-		return nil, store.ErrNotFound
-	}
-	return user, nil
+// FindByEmail returns the user of conn whose email address is email, or
+// store.ErrNotFound. A username never matches. On a legacy custom database
+// the get_user script decides (identity.Database.FindForReset).
+func (h *Handlers) FindByEmail(ctx context.Context, conn *store.Connection, email string) (*store.User, error) {
+	return h.Database.FindForReset(ctx, conn, email)
 }

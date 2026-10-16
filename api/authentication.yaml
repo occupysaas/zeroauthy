@@ -471,7 +471,10 @@ paths:
         `invalid_request` (missing or malformed parameters, unknown client),
         `invalid_signup` (connection not enabled for the client, sign-up
         disabled, invalid email or profile), `invalid_password` (password
-        policy not met) and `user_exists` (409).
+        policy not met) and `user_exists` (409). On a custom database
+        connection, a `create` script's `UnauthorizedError` is `401` with
+        `unauthorized` and the script's message, and a failing script is
+        `500` with `server_error` (D-0023).
       x-source:
         - https://auth0.com/docs/api/authentication/signup/create-a-new-user
       requestBody:
@@ -491,6 +494,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/SignupResponse"
         "400":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "401":
           $ref: "#/components/responses/OAuthErrorResponse"
         "404":
           $ref: "#/components/responses/UnknownTenant"

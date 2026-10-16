@@ -191,7 +191,7 @@ func TestGoKeysExist(t *testing.T) {
 		KeyErrSessionExpired, KeyErrNoConnection, KeyErrSignupDisabled, KeyErrServer,
 		KeyErrInvalidRequest, KeyErrLogoutUnknownClient, KeyErrLogoutURL, KeyErrLogoutInvalid,
 		KeyResetPasswordMismatch, KeyResetErrExpiredTitle, KeyResetErrExpired, KeyResetErrUsedTitle,
-		KeyResetErrUsed, KeyResetErrGenericTitle, KeyResetErrGeneric,
+		KeyResetErrUsed, KeyResetErrGenericTitle, KeyResetErrGeneric, KeyResetNotChanged,
 	} {
 		if catalogs["en"][k] == "" {
 			t.Errorf("key %q missing from en.json", k)

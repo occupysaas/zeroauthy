@@ -7,7 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 func pw(clientID, secret, username, password string, extra ...string) url.Values {
@@ -142,5 +144,49 @@ func TestForwardedForMustBeAnIP(t *testing.T) {
 		header: map[string]string{"auth0-forwarded-for": "not-an-ip-x"}}
 	if rec, body := f.call(t, false, call); rec.Code != 429 {
 		t.Fatalf("invalid forwarded IPs escaped the IP limit: %d %v", rec.Code, body)
+	}
+}
+
+func legacyRealm(username, password string) url.Values {
+	form := pw("ropg", "ropg-secret", username, password)
+	form.Set("grant_type", GrantPasswordRealm)
+	form.Set("realm", "Legacy-DB")
+	return form
+}
+
+func TestPasswordRealmGrantLegacy(t *testing.T) {
+	f := newFixture(t)
+	f.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {
+		if args[0] == "dave@legacy.test" && args[1] == "dave legacy 1" {
+			return map[string]any{"user_id": 42, "email": "dave@legacy.test"}, nil
+		}
+		return nil, &customdb.ScriptError{Kind: customdb.KindWrongCredentials}
+	}
+	rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "dave legacy 1")})
+	if rec.Code != 200 {
+		t.Fatalf("legacy grant = %d %v", rec.Code, body)
+	}
+	at, _ := verifyToken(t, f.keys, f.tenantID(t, "acme"), body["access_token"].(string))
+	if at["sub"] != "auth0|42" {
+		t.Fatalf("sub = %v", at["sub"])
+	}
+	if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "wrong")}); rec.Code != 400 || body["error"] != "invalid_grant" {
+		t.Fatalf("wrong password = %d %v", rec.Code, body)
+	}
+}
+
+func TestPasswordRealmGrantLegacyErrors(t *testing.T) {
+	f := newFixture(t)
+	var scriptErr error
+	f.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) { return nil, scriptErr }
+	scriptErr = &customdb.ScriptError{Kind: customdb.KindUnauthorized, Message: "account suspended"}
+	rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "pw")})
+	if rec.Code != 401 || body["error"] != "unauthorized" || body["error_description"] != "account suspended" {
+		t.Fatalf("unauthorized = %d %v", rec.Code, body)
+	}
+	scriptErr = customdb.ErrTimeout
+	rec, body = f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "pw")})
+	if rec.Code != 500 || body["error"] != "server_error" {
+		t.Fatalf("script error = %d %v", rec.Code, body)
 	}
 }

@@ -3,25 +3,23 @@ package identity
 import (
 	"context"
 	"errors"
-	"net/mail"
-	"net/url"
-	"regexp"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/loginid"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
-var usernamePattern = regexp.MustCompile(`^[a-z0-9_.+-]{1,64}$`)
-
 // CheckUsername validates a normalized username. Usernames never contain
 // '@', so a login that contains one can only be an email.
 func CheckUsername(username string) error {
-	if !usernamePattern.MatchString(username) {
+	if !loginid.ValidUsername(username) {
 		return &PolicyError{Reason: "username must be 1-64 characters: letters, digits, and _ . + -", Key: i18n.KeyInvalidUsername}
 	}
 	return nil
@@ -30,15 +28,12 @@ func CheckUsername(username string) error {
 // MaxEmailLength caps email addresses in bytes (RFC 5321's 254-octet path
 // limit). Auth0 documents no limit; the cap keeps every storage driver in
 // agreement (MySQL stores logins in VARCHAR(255)). See D-0020.
-const MaxEmailLength = 254
+const MaxEmailLength = loginid.MaxEmailLength
 
 // CheckEmail validates a normalized email address: a bare addr-spec of at
 // most MaxEmailLength bytes.
 func CheckEmail(email string) error {
-	if len(email) > MaxEmailLength {
-		return &PolicyError{Reason: "enter a valid email address"}
-	}
-	if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email || addr.Name != "" {
+	if !loginid.ValidEmail(email) {
 		return &PolicyError{Reason: "enter a valid email address"}
 	}
 	return nil
@@ -58,10 +53,23 @@ var dummyHash = sync.OnceValue(func() string {
 	return h
 })
 
-// Database authenticates users stored by zeroauthy (strategy "auth0").
+// Database authenticates users of database connections (strategy
+// "auth0"): users stored by zeroauthy, or, on a customized connection,
+// users of a legacy store reached through custom database scripts.
 type Database struct {
 	Store store.Store
-	Now   func() time.Time
+	// Scripts runs custom database scripts. When nil, customized
+	// connections fail with ErrScript.
+	Scripts *customdb.Client
+	Log     *slog.Logger
+	Now     func() time.Time
+}
+
+func (d *Database) log() *slog.Logger {
+	if d.Log != nil {
+		return d.Log
+	}
+	return slog.Default()
 }
 
 func (d *Database) now() time.Time {
@@ -76,6 +84,9 @@ func (d *Database) now() time.Time {
 // and wrong passwords alike, and ErrUserBlocked only after the password
 // has been verified.
 func (d *Database) Login(ctx context.Context, conn *store.Connection, login, password string) (*store.User, error) {
+	if IsCustom(conn) {
+		return d.customLogin(ctx, conn, login, password)
+	}
 	login = NormalizeLogin(login)
 	// An over-long login matches no user; it is not sent to the store.
 	if len(password) > maxPasswordBytes || len(login) > maxLoginLength {
@@ -116,17 +127,16 @@ func (d *Database) Login(ctx context.Context, conn *store.Connection, login, pas
 // SignupInput is the data a new database-connection user signs up with.
 // Name defaults to the email and Nickname to the part of the email before
 // the '@'. UserMetadata is stored as given; callers validate its shape.
+// ClientID is the application signing up, passed to a create script.
 type SignupInput struct {
+	ClientID                              string
 	Email, Username, Password             string
 	GivenName, FamilyName, Name, Nickname string
 	Picture                               string
 	UserMetadata                          map[string]any
 }
 
-const (
-	maxProfileFieldRunes = 300
-	maxPictureLength     = 2000
-)
+const maxProfileFieldRunes = loginid.MaxProfileFieldRunes
 
 // checkProfile validates the optional profile fields of a signup.
 func checkProfile(in SignupInput) error {
@@ -137,13 +147,53 @@ func checkProfile(in SignupInput) error {
 			return &PolicyError{Reason: f.label + " must be at most 300 characters"}
 		}
 	}
-	if in.Picture != "" {
-		u, err := url.Parse(in.Picture)
-		if err != nil || utf8.RuneCountInString(in.Picture) > maxPictureLength || u.Scheme != "https" || u.Host == "" {
-			return &PolicyError{Reason: "picture must be an https URL"}
-		}
+	if in.Picture != "" && !loginid.ValidPicture(in.Picture) {
+		return &PolicyError{Reason: "picture must be an https URL"}
 	}
 	return nil
+}
+
+// checkSignup validates a signup and returns the normalized email and
+// username (empty unless the connection requires one).
+func checkSignup(conn *store.Connection, in SignupInput) (email, username string, err error) {
+	email = NormalizeLogin(in.Email)
+	if err := CheckEmail(email); err != nil {
+		return "", "", err
+	}
+	username = NormalizeLogin(in.Username)
+	if conn.RequiresUsername {
+		if err := CheckUsername(username); err != nil {
+			return "", "", err
+		}
+	} else {
+		username = ""
+	}
+	if err := checkProfile(in); err != nil {
+		return "", "", err
+	}
+	if err := CheckPassword(conn.PasswordPolicy, in.Password); err != nil {
+		return "", "", err
+	}
+	return email, username, nil
+}
+
+// defaultNames fills an empty name with the email and an empty nickname
+// with the part of the email before the '@'. Without an email (a legacy
+// profile may have only a username) both default to the username.
+func defaultNames(name, nickname, email, username string) (string, string) {
+	if name == "" {
+		name = email
+		if name == "" {
+			name = username
+		}
+	}
+	if nickname == "" {
+		nickname = strings.SplitN(email, "@", 2)[0]
+		if nickname == "" {
+			nickname = username
+		}
+	}
+	return name, nickname
 }
 
 // Signup registers a user on a database connection.
@@ -151,33 +201,15 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 	if conn.DisableSignup {
 		return nil, ErrSignupDisabled
 	}
-	username, password := in.Username, in.Password
-	email := NormalizeLogin(in.Email)
-	if err := CheckEmail(email); err != nil {
+	if IsCustom(conn) {
+		return d.customSignup(ctx, conn, in)
+	}
+	email, username, err := checkSignup(conn, in)
+	if err != nil {
 		return nil, err
 	}
-	username = NormalizeLogin(username)
-	if conn.RequiresUsername {
-		if err := CheckUsername(username); err != nil {
-			return nil, err
-		}
-	} else {
-		username = ""
-	}
-	if err := checkProfile(in); err != nil {
-		return nil, err
-	}
-	if err := CheckPassword(conn.PasswordPolicy, password); err != nil {
-		return nil, err
-	}
-	name, nickname := in.Name, in.Nickname
-	if name == "" {
-		name = email
-	}
-	if nickname == "" {
-		nickname = strings.SplitN(email, "@", 2)[0]
-	}
-	hash, err := secrets.Hash(password)
+	name, nickname := defaultNames(in.Name, in.Nickname, email, username)
+	hash, err := secrets.Hash(in.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -208,4 +240,27 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 		return nil, err
 	}
 	return u, nil
+}
+
+// FindForReset returns the user of conn whose email address is email, for
+// a password reset. It returns store.ErrNotFound for an unknown address.
+// Logins also match usernames; a reset names an address, so a username
+// match is reported as store.ErrNotFound. On a legacy connection the
+// get_user script decides, and the local record is created or updated.
+func (d *Database) FindForReset(ctx context.Context, conn *store.Connection, email string) (*store.User, error) {
+	email = NormalizeLogin(email)
+	if IsLegacy(conn) {
+		return d.legacyFindForReset(ctx, conn, email)
+	}
+	if len(email) > MaxEmailLength {
+		return nil, store.ErrNotFound // no user can have it; not sent to the store
+	}
+	user, err := d.Store.Users().FindByLogin(ctx, conn.TenantID, conn.Name, email)
+	if err != nil {
+		return nil, err
+	}
+	if user.Email != email {
+		return nil, store.ErrNotFound
+	}
+	return user, nil
 }

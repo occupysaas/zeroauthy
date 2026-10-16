@@ -154,6 +154,14 @@ func (r *NodeRunner) probe() error {
 	return nil
 }
 
+// Probe checks once that the configured Node.js can run scripts and caches
+// the answer; Execute calls it too. It starts no runner process. The error
+// wraps ErrUnavailable.
+func (r *NodeRunner) Probe() error {
+	r.probeOnce.Do(func() { r.probeErr = r.probe() })
+	return r.probeErr
+}
+
 // Wire protocol with runner.mjs.
 type wireRequest struct {
 	ID     int64             `json:"id"`
@@ -223,9 +231,8 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 	if req.Source == "" {
 		return nil, ErrNoScript
 	}
-	r.probeOnce.Do(func() { r.probeErr = r.probe() })
-	if r.probeErr != nil {
-		return nil, r.probeErr
+	if err := r.Probe(); err != nil {
+		return nil, err
 	}
 	sum := sha256.Sum256([]byte(req.Source))
 	wire := wireRequest{Conn: req.ConnectionID, Hash: hex.EncodeToString(sum[:]), Name: req.Script,

@@ -1,10 +1,12 @@
 package dbconn
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -35,6 +38,10 @@ tenants:
       - {name: Username-Password-Authentication, enabled_clients: [app]}
       - {name: Closed, enabled_clients: [app], disable_signup: true}
       - {name: Not-Enabled, enabled_clients: [other]}
+      - name: Legacy-DB
+        enabled_clients: [app]
+        enabledDatabaseCustomization: true
+        customScripts: {login: "x", get_user: "x", create: "x", change_password: "x"}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, username: alice1, password: "alice password 1"}
       - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
@@ -46,6 +53,9 @@ type env struct {
 	tenantID string
 	strict   bool
 	mail     *recorder
+	// scripts runs the Legacy-DB connection's scripts; tests set Funcs.
+	scripts *customdb.FuncExecutor
+	logs    *bytes.Buffer
 }
 
 // recorder is a Mailer that keeps what it is asked to send.
@@ -76,10 +86,13 @@ func newEnv(t *testing.T) *env {
 		t.Fatal(err)
 	}
 	mail := &recorder{}
-	return &env{st: st, tenantID: tn.ID, strict: true, mail: mail, h: &Handlers{
-		Store: st, Now: fixedNow, Mailer: mail, Go: func(f func()) { f() },
+	scripts := &customdb.FuncExecutor{Funcs: map[string]func([]any) (any, error){}}
+	logs := &bytes.Buffer{} // handlers run synchronously in these tests
+	log := slog.New(slog.NewTextHandler(logs, nil))
+	return &env{st: st, tenantID: tn.ID, strict: true, mail: mail, scripts: scripts, logs: logs, h: &Handlers{
+		Store: st, Now: fixedNow, Mailer: mail, Go: func(f func()) { f() }, Log: log,
 		SendThrottle: identity.NewThrottle(100, time.Hour, time.Hour),
-		Database:     &identity.Database{Store: st, Now: fixedNow},
+		Database:     &identity.Database{Store: st, Now: fixedNow, Log: log, Scripts: &customdb.Client{Exec: scripts}},
 		IPThrottle:   identity.NewThrottle(100, time.Hour, time.Hour),
 	}}
 }
@@ -233,5 +246,57 @@ func TestSignupIPThrottle(t *testing.T) {
 	e.post(t, "/dbconnections/signup", "application/json", b(1))
 	if code, body, _ := e.post(t, "/dbconnections/signup", "application/json", b(2)); code != 429 || body["error"] != "too_many_requests" {
 		t.Fatalf("second signup = %d %v", code, body)
+	}
+}
+
+func TestLegacySignup(t *testing.T) {
+	e := newEnv(t)
+	legacy := map[string]any{}
+	e.scripts.Funcs[store.ScriptGetUser] = func(args []any) (any, error) {
+		if args[0] == "old@legacy.test" {
+			return map[string]any{"user_id": "1", "email": "old@legacy.test"}, nil
+		}
+		return nil, nil
+	}
+	e.scripts.Funcs[store.ScriptCreate] = func(args []any) (any, error) {
+		legacy = args[0].(map[string]any)
+		return nil, nil
+	}
+	e.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {
+		return map[string]any{"user_id": "legacy-77", "email": args[0]}, nil
+	}
+	code, body, _ := e.post(t, "/dbconnections/signup", "application/json",
+		`{"client_id":"app","connection":"Legacy-DB","email":"new@legacy.test","password":"a good password 1"}`)
+	if code != 200 || body["_id"] != "legacy-77" || legacy["client_id"] != "app" || legacy["tenant"] != "acme" {
+		t.Fatalf("signup = %d %v; create got %v", code, body, legacy)
+	}
+	code, body, _ = e.post(t, "/dbconnections/signup", "application/json",
+		`{"client_id":"app","connection":"Legacy-DB","email":"old@legacy.test","password":"a good password 1"}`)
+	if code != 409 || body["error"] != "user_exists" {
+		t.Fatalf("existing = %d %v", code, body)
+	}
+}
+
+func TestLegacySignupScriptErrors(t *testing.T) {
+	e := newEnv(t)
+	e.scripts.Funcs[store.ScriptGetUser] = func([]any) (any, error) { return nil, nil }
+	var createErr error
+	e.scripts.Funcs[store.ScriptCreate] = func([]any) (any, error) { return nil, createErr }
+	post := func() (int, map[string]any) {
+		code, body, _ := e.post(t, "/dbconnections/signup", "application/json",
+			`{"client_id":"app","connection":"Legacy-DB","email":"new@legacy.test","password":"a good password 1"}`)
+		return code, body
+	}
+	createErr = &customdb.ScriptError{Kind: customdb.KindUnauthorized, Message: "sign-ups are closed"}
+	if code, body := post(); code != 401 || body["error"] != "unauthorized" || body["error_description"] != "sign-ups are closed" {
+		t.Fatalf("unauthorized = %d %v", code, body)
+	}
+	createErr = &customdb.ScriptError{Kind: customdb.KindValidation, Code: "bad_domain", Message: "that domain is not allowed"}
+	if code, body := post(); code != 400 || body["error"] != "invalid_signup" || body["error_description"] != "that domain is not allowed" {
+		t.Fatalf("validation = %d %v", code, body)
+	}
+	createErr = customdb.ErrTimeout
+	if code, body := post(); code != 500 || body["error"] != "server_error" {
+		t.Fatalf("script error = %d %v", code, body)
 	}
 }

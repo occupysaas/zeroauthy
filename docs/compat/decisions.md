@@ -351,3 +351,38 @@ them. Each entry: context, sources consulted, decision, rationale.
   - `--max-old-space-size` limits the JavaScript heap only. Buffers and ArrayBuffers sit outside it, so a script can use more memory than `max_memory_mb`. Use cgroup or container memory limits for a hard cap.
   - Scripts cannot read the environment or files, but they can read basic host facts through `os`, such as the hostname, network interfaces, CPU count and uptime.
   - Network egress is open, including to internal and link-local addresses (for example, cloud metadata endpoints). Operators who need to restrict it should use firewall or egress-proxy rules.
+
+## D-0023: Custom database script errors on the wire
+
+- **Context:** Auth0's custom database docs name the error classes a script may pass to its callback (`WrongUsernameOrPasswordError`, `ValidationError`, `UnauthorizedError`, any other `Error`) and the log events they produce. They do not say which HTTP response each surface returns.
+- **Sources:** https://auth0.com/docs/authenticate/database-connections/custom-db/error-handling; RFC 6749 §5.2.
+- **Decision:**
+  - A login script's `WrongUsernameOrPasswordError` is the same wrong-credentials answer as for a local user.
+  - Only `UnauthorizedError` shows the script's message, because Auth0 documents it as the way to send a message to the front end. Every other failure (another error class, a thrown exception, a timeout, an unavailable Node.js, a missing script, an invalid profile) is logged in `identity` with the tenant, connection, script, kind and the script's message, and the user sees a generic error. Passwords and configuration are never logged.
+  - Per surface:
+
+    | Surface | `UnauthorizedError` | Other script failure | `change_password` returns false |
+    |---|---|---|---|
+    | Hosted login `/u/login` | 401; the login form again with the message (HTML-escaped); the attempt counts against the throttles | throttles refunded; error page (500) | n/a |
+    | Password grants | 401 `{"error":"unauthorized","error_description":<message>}`; the attempt counts | throttles refunded; 500 `server_error` | n/a |
+    | `/dbconnections/signup`, `/u/signup` | 401 `unauthorized` with the message / the form again with the message | 500 `server_error` / error page | n/a |
+    | `/dbconnections/change_password`, hosted forgot-password page | the usual answer, no email | the usual answer, no email, logged | n/a |
+    | Hosted reset completion | the form again with the message; the link stays usable | error page; the link stays usable | the form again with `zeroauthy.reset.not-changed`; the link stays usable |
+
+  - On sign-up, a `create` script's `ValidationError` with code `user_exists` is `user_exists`; any other `ValidationError` is shown like a rejected sign-up field (`invalid_signup` with the script's message).
+  - The token endpoint's `unauthorized` is not one of RFC 6749 §5.2's codes. It is used because the client must be able to tell a script's refusal from wrong credentials, and the status (401) matches the meaning.
+- **Rationale:** The surfaces never reveal more than they do for local users, the reset link survives a legacy store that is down, and the one message Auth0 intends for users reaches them.
+
+## D-0024: Custom database profiles: identity, collisions, sync
+
+- **Context:** Auth0 documents the profile a login or `get_user` script returns, prefixes its `user_id` with the connection strategy, and offers `set_user_root_attributes` (`on_each_login`, `on_first_login`). It does not say what happens when a profile clashes with a user that already exists, or which fields follow the legacy store on each login.
+- **Sources:** https://auth0.com/docs/authenticate/database-connections/custom-db/templates/login; https://auth0.com/docs/manage-users/user-accounts/user-profiles/configure-connection-sync-with-auth0.
+- **Decision:**
+  - The user is `auth0|<profile.user_id>`, with the identity `{connection, "auth0", <profile.user_id>}` and no password hash in legacy mode. `user_id` is a non-empty string or an integer, at most 200 bytes, with no control characters and no `|`.
+  - A profile is checked before anything is stored: a valid email (lowercased) or username or both, name fields of at most 300 characters, an https picture, and metadata objects. A bad profile is a script failure (D-0023). The error names the field, never its value.
+  - Collisions fail closed and are logged. Two cases are collisions: the user ID exists without an identity on this connection, or another user of the connection holds the profile's email or username.
+  - Email, username and email_verified always follow the legacy store. The scripts are the source of truth, and a stale local email would send reset links to the wrong address.
+  - `set_user_root_attributes` governs name, nickname, given and family name, and picture: they are set on every login by default, or only when the user is created with `on_first_login`. A missing name or nickname takes the same defaults as a sign-up.
+  - `user_metadata` and `app_metadata` are set once, when the local user is created, and never overwritten from a profile.
+  - A locally blocked user is refused after the script has accepted the password, as for local users.
+- **Rationale:** Failing closed on collisions means a legacy store can never take over an account it does not own. Keeping metadata local after creation preserves changes made in zeroauthy.

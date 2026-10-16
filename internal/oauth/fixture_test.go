@@ -3,10 +3,12 @@ package oauth
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -57,6 +59,10 @@ tenants:
     connections:
       - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web, rt-spa, rt-web, ropg, ropg-public]}
       - {name: Other-DB, enabled_clients: [ropg]}
+      - name: Legacy-DB
+        enabled_clients: [ropg]
+        enabledDatabaseCustomization: true
+        customScripts: {login: "x"}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1", email_verified: true, name: Alice}
       - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
@@ -79,6 +85,8 @@ type fixture struct {
 	st   store.Store
 	keys *keys.Manager
 	h    *Handlers
+	// scripts runs the Legacy-DB connection's scripts; tests set Funcs.
+	scripts *customdb.FuncExecutor
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -98,9 +106,11 @@ func newFixture(t *testing.T) *fixture {
 			t.Fatal(err)
 		}
 	}
-	return &fixture{st: st, keys: km, h: &Handlers{
-		Store: st, Now: fixedNow, Minter: &Minter{Keys: km, Now: fixedNow},
-		Database:     &identity.Database{Store: st, Now: fixedNow},
+	scripts := &customdb.FuncExecutor{Funcs: map[string]func([]any) (any, error){}}
+	log := slog.New(slog.DiscardHandler)
+	return &fixture{st: st, keys: km, scripts: scripts, h: &Handlers{
+		Store: st, Now: fixedNow, Minter: &Minter{Keys: km, Now: fixedNow}, Log: log,
+		Database:     &identity.Database{Store: st, Now: fixedNow, Log: log, Scripts: &customdb.Client{Exec: scripts}},
 		UserThrottle: identity.NewThrottle(3, 15*time.Minute, 15*time.Minute),
 		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),
 	}}

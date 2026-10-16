@@ -104,6 +104,9 @@
       "logout-url-not-allowed": "The address to return to after logout is not allowed for this application. You are still logged in.",
       "logout-invalid": "The logout request was not valid. You are still logged in."
     },
+    "reset": {
+      "not-changed": "Your password could not be changed. Try again or contact support."
+    },
     "logged-out": {
       "title": "You are logged out",
       "description": "Your session has ended.",

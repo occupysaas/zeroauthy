@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -386,5 +387,124 @@ func TestLoginPageWithoutResets(t *testing.T) {
 	rec, _, _ := e.browser("acme.example.test").begin(t)
 	if strings.Contains(rec.Body.String(), "/u/reset-password/request") {
 		t.Fatal("forgot-password link shown without reset support")
+	}
+}
+
+// legacyResetEnv serves a legacy user, dave@legacy.test (user_id 42), known
+// only to the get_user script. changed is what change_password returns;
+// pw records the password it was given.
+type legacyResetEnv struct {
+	*env
+	changed  any
+	fail     error
+	lastArgs []any
+}
+
+func newLegacyResetEnv(t *testing.T) *legacyResetEnv {
+	t.Helper()
+	le := &legacyResetEnv{env: newEnv(t), changed: true}
+	le.scripts.Funcs[store.ScriptGetUser] = func(args []any) (any, error) {
+		if args[0] == "dave@legacy.test" {
+			return map[string]any{"user_id": 42, "email": "dave@legacy.test"}, nil
+		}
+		return nil, nil
+	}
+	le.scripts.Funcs[store.ScriptChangePassword] = func(args []any) (any, error) {
+		le.lastArgs = args
+		return le.changed, le.fail
+	}
+	return le
+}
+
+// requestLegacyReset asks for a reset link on the hosted page and returns
+// the ticket from the email.
+func (le *legacyResetEnv) requestLegacyReset(t *testing.T, b *browser) string {
+	t.Helper()
+	state, csrf := b.legacyBegin(t)
+	rec := b.do(t, "POST", "/u/reset-password/request", url.Values{"state": {state}, "csrf": {csrf}, "email": {"Dave@legacy.test"}})
+	if rec.Code != 200 {
+		t.Fatalf("reset request = %d %s", rec.Code, rec.Body)
+	}
+	return resetLink(t, le.env)
+}
+
+func TestLegacyResetCallsChangePassword(t *testing.T) {
+	le := newLegacyResetEnv(t)
+	b := le.browser("acme.example.test")
+	ticket := le.requestLegacyReset(t, b)
+	ctx := context.Background()
+	tn := mustTenant(t, le.env, "acme")
+	sess, err := le.h.Sessions.Start(ctx, httptest.NewRecorder(), httptest.NewRequest("GET", "https://acme.example.test/", nil),
+		tn, "auth0|42", "Legacy-DB", fixedNow())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 200 || !strings.Contains(rec.Body.String(), "Password changed") {
+		t.Fatalf("reset = %d %s", rec.Code, rec.Body)
+	}
+	if len(le.lastArgs) != 2 || le.lastArgs[0] != "dave@legacy.test" || le.lastArgs[1] != "new legacy pw 1" {
+		t.Fatalf("change_password args = %v", le.lastArgs)
+	}
+	if _, err := le.st.Sessions().GetByTokenHash(ctx, tn.ID, sess.TokenHash); err == nil {
+		t.Fatal("session survived the reset")
+	}
+	u, err := le.st.Users().Get(ctx, tn.ID, "auth0|42")
+	if err != nil || u.Identities[0].PasswordHash != "" {
+		t.Fatalf("local user = %+v, %v", u, err)
+	}
+}
+
+func TestLegacyResetNotChangedKeepsTicket(t *testing.T) {
+	le := newLegacyResetEnv(t)
+	le.changed = false
+	b := le.browser("acme.example.test")
+	ticket := le.requestLegacyReset(t, b)
+	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 400 || !strings.Contains(rec.Body.String(), "could not be changed") {
+		t.Fatalf("not changed = %d %s", rec.Code, rec.Body)
+	}
+	le.changed = true
+	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 200 {
+		t.Fatalf("retry = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestLegacyResetUnauthorizedKeepsTicket(t *testing.T) {
+	le := newLegacyResetEnv(t)
+	le.fail = &customdb.ScriptError{Kind: customdb.KindUnauthorized, Message: "<i>locked</i>"}
+	b := le.browser("acme.example.test")
+	ticket := le.requestLegacyReset(t, b)
+	rec := completeReset(t, b, ticket, "new legacy pw 1")
+	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "&lt;i&gt;locked&lt;/i&gt;") {
+		t.Fatalf("unauthorized = %d %s", rec.Code, rec.Body)
+	}
+	le.fail = nil
+	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 200 {
+		t.Fatalf("retry = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestLegacyResetScriptErrorKeepsTicket(t *testing.T) {
+	le := newLegacyResetEnv(t)
+	le.fail = customdb.ErrTimeout
+	b := le.browser("acme.example.test")
+	ticket := le.requestLegacyReset(t, b)
+	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 500 {
+		t.Fatalf("script error = %d %s", rec.Code, rec.Body)
+	}
+	le.fail = nil
+	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 200 {
+		t.Fatalf("retry = %d %s", rec.Code, rec.Body)
+	}
+}
+
+// A failing get_user gets the same page and sends nothing.
+func TestLegacyResetRequestScriptError(t *testing.T) {
+	le := newLegacyResetEnv(t)
+	le.scripts.Funcs[store.ScriptGetUser] = func([]any) (any, error) { return nil, customdb.ErrUnavailable }
+	b := le.browser("acme.example.test")
+	state, csrf := b.legacyBegin(t)
+	rec := b.do(t, "POST", "/u/reset-password/request", url.Values{"state": {state}, "csrf": {csrf}, "email": {"dave@legacy.test"}})
+	if rec.Code != 200 || len(le.mail.sent) != 0 {
+		t.Fatalf("got %d, sent %d", rec.Code, len(le.mail.sent))
 	}
 }

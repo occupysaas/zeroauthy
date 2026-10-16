@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/loginid"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -19,7 +19,17 @@ var (
 	ErrUserBlocked        = errors.New("identity: user is blocked")
 	ErrSignupDisabled     = errors.New("identity: signup is disabled for this connection")
 	ErrUserExists         = errors.New("identity: user already exists")
+	// ErrScript is a custom database script failure; it wraps the cause.
+	ErrScript = errors.New("identity: custom database script failed")
+	// ErrPasswordNotChanged is a change_password script reporting false.
+	ErrPasswordNotChanged = errors.New("identity: the legacy store did not change the password")
 )
+
+// UnauthorizedError carries the message of a script's UnauthorizedError,
+// which is shown to the user (D-0023).
+type UnauthorizedError struct{ Message string }
+
+func (e *UnauthorizedError) Error() string { return "identity: unauthorized: " + e.Message }
 
 // PolicyError explains why input was rejected. Reason is safe to show to
 // the person signing up; Key, when set, is the catalog key for a localized
@@ -38,7 +48,7 @@ const (
 )
 
 // NormalizeLogin trims and lowercases an email or username.
-func NormalizeLogin(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
+func NormalizeLogin(s string) string { return loginid.Normalize(s) }
 
 // CheckPassword enforces a connection's password policy.
 func CheckPassword(p store.PasswordPolicy, password string) error {

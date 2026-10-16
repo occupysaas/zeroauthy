@@ -199,3 +199,40 @@ func TestPluginStorageNeedsMasterKey(t *testing.T) {
 		t.Fatalf("err = %v, want the master-key error", err)
 	}
 }
+
+// A customized connection whose scripts cannot run (no Node.js) is a
+// warning, not a startup failure.
+func TestNewWarnsWhenNodeIsMissing(t *testing.T) {
+	dir := t.TempDir()
+	seedPath := filepath.Join(dir, "seed.yaml")
+	seedYAML := `tenants:
+  - name: acme
+    domains: [acme.example.test]
+    clients:
+      - {client_id: app, app_type: spa}
+    connections:
+      - name: Legacy-DB
+        enabled_clients: [app]
+        enabledDatabaseCustomization: true
+        customScripts: {login: "function login(u, p, cb) { cb(null, null); }"}
+`
+	if err := os.WriteFile(seedPath, []byte(seedYAML), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config.Config{Storage: config.Storage{DSN: "memory://"}, Seed: seedPath,
+		CustomDB: config.CustomDB{Node: filepath.Join(dir, "no-node")}}
+	var logs strings.Builder
+	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(&logs, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	if n := strings.Count(logs.String(), "cannot run their scripts"); n != 1 {
+		t.Fatalf("warnings = %d; log:\n%s", n, logs.String())
+	}
+	rec := httptest.NewRecorder()
+	a.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "https://acme.example.test/.well-known/jwks.json", nil))
+	if rec.Code != 200 {
+		t.Fatalf("jwks = %d", rec.Code)
+	}
+}

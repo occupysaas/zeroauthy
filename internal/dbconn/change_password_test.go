@@ -7,8 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 func TestChangePasswordSendsTicket(t *testing.T) {
@@ -130,5 +132,45 @@ func TestChangePasswordOverlongEmail(t *testing.T) {
 		`{"connection":"Username-Password-Authentication","email":"`+strings.Repeat("e", 300)+`@acme.test"}`)
 	if code != 200 || text == "" || len(e.mail.sent) != 0 {
 		t.Fatalf("got %d %q, sent %d", code, text, len(e.mail.sent))
+	}
+}
+
+func TestLegacyChangePassword(t *testing.T) {
+	e := newEnv(t)
+	var getUserErr error
+	e.scripts.Funcs[store.ScriptGetUser] = func(args []any) (any, error) {
+		if getUserErr != nil {
+			return nil, getUserErr
+		}
+		if args[0] == "dave@legacy.test" {
+			return map[string]any{"user_id": 42, "email": "dave@legacy.test"}, nil
+		}
+		return nil, nil
+	}
+	post := func(email string) (int, string) {
+		code, _, text := e.post(t, "/dbconnections/change_password", "application/json",
+			`{"client_id":"app","connection":"Legacy-DB","email":"`+email+`"}`)
+		return code, text
+	}
+	knownCode, known := post("Dave@legacy.test")
+	if knownCode != 200 || len(e.mail.sent) != 1 || e.mail.sent[0].To != "dave@legacy.test" {
+		t.Fatalf("known = %d, sent %+v", knownCode, e.mail.sent)
+	}
+	if u, err := e.st.Users().Get(context.Background(), e.tenantID, "auth0|42"); err != nil || u.Identities[0].PasswordHash != "" {
+		t.Fatalf("local user = %+v, %v", u, err)
+	}
+	if code, text := post("nobody@legacy.test"); code != knownCode || text != known || len(e.mail.sent) != 1 {
+		t.Fatalf("unknown = %d %q, sent %d", code, text, len(e.mail.sent))
+	}
+	getUserErr = customdb.ErrUnavailable
+	if code, text := post("dave@legacy.test"); code != knownCode || text != known || len(e.mail.sent) != 1 {
+		t.Fatalf("failing get_user = %d %q, sent %d", code, text, len(e.mail.sent))
+	}
+	if !strings.Contains(e.logs.String(), "custom database script failed") {
+		t.Fatalf("failure not logged: %s", e.logs)
+	}
+	getUserErr = &customdb.ScriptError{Kind: customdb.KindUnauthorized, Message: "no"}
+	if code, text := post("dave@legacy.test"); code != knownCode || text != known || len(e.mail.sent) != 1 {
+		t.Fatalf("unauthorized get_user = %d %q, sent %d", code, text, len(e.mail.sent))
 	}
 }
