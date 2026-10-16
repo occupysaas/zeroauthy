@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -30,11 +31,11 @@ func testUserGrants(t *testing.T, newStore Factory) {
 
 		// Same key, new ID and scopes: the first ID and CreatedAt are kept.
 		again := newUserGrant("ten_a", "ug2", "c1", "auth0|u1", "https://api.test", "read:things", "write:things")
-		again.CreatedAt, again.UpdatedAt = ts(5), ts(5)
+		again.CreatedAt, again.UpdatedAt = ts(5*time.Second), ts(5*time.Second)
 		got, err = s.UserGrants().Upsert(ctx, again)
 		mustNoErr(t, err)
 		want := newUserGrant("ten_a", "ug1", "c1", "auth0|u1", "https://api.test", "read:things", "write:things")
-		want.UpdatedAt = ts(5)
+		want.UpdatedAt = ts(5 * time.Second)
 		mustEqual(t, got, want)
 		found, err = s.UserGrants().Find(ctx, "ten_a", "c1", "auth0|u1", "https://api.test")
 		mustNoErr(t, err)

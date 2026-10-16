@@ -39,6 +39,22 @@ func fromNullMicros(v sql.NullInt64) *time.Time {
 	return &t
 }
 
+// nullBool encodes an optional bool: nil becomes SQL NULL.
+func nullBool(b *bool) any {
+	if b == nil {
+		return nil
+	}
+	return *b
+}
+
+func fromNullBool(v sql.NullBool) *bool {
+	if !v.Valid {
+		return nil
+	}
+	b := v.Bool
+	return &b
+}
+
 // toJSON encodes v as JSON text; nil slices and maps become "null".
 func toJSON(v any) (string, error) {
 	b, err := json.Marshal(v)

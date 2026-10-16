@@ -15,14 +15,14 @@ func (s *Store) Connections() store.Connections { return connections{s} }
 
 const connectionCols = `tenant_id, id, name, strategy, enabled_clients, disable_signup, requires_username,
  password_min_length, password_character_classes, created_at,
- enabled_database_customization, import_mode, custom_scripts, configuration_sealed, set_user_root_attributes`
+ enabled_database_customization, import_mode, custom_scripts, configuration_sealed, set_user_root_attributes, is_domain_connection`
 
 func (r connections) Create(ctx context.Context, c *store.Connection) error {
 	args, err := connectionArgs(c)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO connections (`+connectionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO connections (`+connectionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -49,7 +49,7 @@ func (r connections) Update(ctx context.Context, c *store.Connection) error {
 	}
 	res, err := r.s.write(ctx, nil, `UPDATE connections SET name=?, strategy=?, enabled_clients=?, disable_signup=?, requires_username=?,
  password_min_length=?, password_character_classes=?, created_at=?,
- enabled_database_customization=?, import_mode=?, custom_scripts=?, configuration_sealed=?, set_user_root_attributes=?
+ enabled_database_customization=?, import_mode=?, custom_scripts=?, configuration_sealed=?, set_user_root_attributes=?, is_domain_connection=?
  WHERE tenant_id=? AND id=?`, append(slices.Clone(args[2:]), c.TenantID, c.ID)...)
 	if err != nil {
 		return r.s.conflict(err)
@@ -82,7 +82,7 @@ func scanConnection(row scanner) (*store.Connection, error) {
 	var sealed []byte
 	if err := row.Scan(&c.TenantID, &c.ID, &c.Name, &c.Strategy, &enabled, &c.DisableSignup, &c.RequiresUsername,
 		&c.PasswordPolicy.MinLength, &c.PasswordPolicy.RequireCharacterClasses, &created,
-		&c.EnabledDatabaseCustomization, &c.ImportMode, &scripts, &sealed, &c.SetUserRootAttributes); err != nil {
+		&c.EnabledDatabaseCustomization, &c.ImportMode, &scripts, &sealed, &c.SetUserRootAttributes, &c.IsDomainConnection); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(scripts, &c.CustomScripts); err != nil {
@@ -113,5 +113,5 @@ func connectionArgs(c *store.Connection) ([]any, error) {
 	}
 	return []any{c.TenantID, c.ID, c.Name, c.Strategy, enabled, c.DisableSignup, c.RequiresUsername,
 		c.PasswordPolicy.MinLength, c.PasswordPolicy.RequireCharacterClasses, micros(c.CreatedAt),
-		c.EnabledDatabaseCustomization, c.ImportMode, scripts, sealed, c.SetUserRootAttributes}, nil
+		c.EnabledDatabaseCustomization, c.ImportMode, scripts, sealed, c.SetUserRootAttributes, c.IsDomainConnection}, nil
 }

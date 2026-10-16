@@ -12,26 +12,23 @@ type clientGrants struct{ s *Store }
 
 func (s *Store) ClientGrants() store.ClientGrants { return clientGrants{s} }
 
-// UserGrants is not implemented yet (Plan 9, Task 3).
-func (s *Store) UserGrants() store.UserGrants { panic("sqlstore: UserGrants not implemented") }
-
 func (r clientGrants) Create(ctx context.Context, g *store.ClientGrant) error {
 	scopes, err := toJSON(g.Scopes)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO client_grants (tenant_id, id, client_id, audience, scopes, created_at) VALUES (?,?,?,?,?,?)`,
-		g.TenantID, g.ID, g.ClientID, g.Audience, scopes, micros(g.CreatedAt))
+	_, err = r.s.write(ctx, nil, `INSERT INTO client_grants (tenant_id, id, client_id, audience, scopes, created_at, subject_type) VALUES (?,?,?,?,?,?,?)`,
+		g.TenantID, g.ID, g.ClientID, g.Audience, scopes, micros(g.CreatedAt), g.SubjectType)
 	return r.s.conflict(err)
 }
 
-func (r clientGrants) Find(ctx context.Context, tenantID, clientID, audience, _ string) (*store.ClientGrant, error) {
+func (r clientGrants) Find(ctx context.Context, tenantID, clientID, audience, subjectType string) (*store.ClientGrant, error) {
 	var g store.ClientGrant
 	var scopes string
 	var created int64
-	err := r.s.queryRow(ctx, `SELECT tenant_id, id, client_id, audience, scopes, created_at FROM client_grants
- WHERE tenant_id = ? AND client_id = ? AND audience = ?`, tenantID, clientID, audience).
-		Scan(&g.TenantID, &g.ID, &g.ClientID, &g.Audience, &scopes, &created)
+	err := r.s.queryRow(ctx, `SELECT tenant_id, id, client_id, audience, scopes, created_at, subject_type FROM client_grants
+ WHERE tenant_id = ? AND client_id = ? AND audience = ? AND subject_type = ?`, tenantID, clientID, audience, subjectType).
+		Scan(&g.TenantID, &g.ID, &g.ClientID, &g.Audience, &scopes, &created, &g.SubjectType)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
 	}
@@ -51,16 +48,16 @@ func (r clientGrants) Update(ctx context.Context, g *store.ClientGrant) error {
 		return err
 	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		var clientID, audience string
-		err := tx.queryRow(ctx, `SELECT client_id, audience FROM client_grants WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate,
-			g.TenantID, g.ID).Scan(&clientID, &audience)
+		var clientID, audience, subjectType string
+		err := tx.queryRow(ctx, `SELECT client_id, audience, subject_type FROM client_grants WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate,
+			g.TenantID, g.ID).Scan(&clientID, &audience, &subjectType)
 		if errors.Is(err, sql.ErrNoRows) {
 			return store.ErrNotFound
 		}
 		if err != nil {
 			return err
 		}
-		if clientID != g.ClientID || audience != g.Audience {
+		if clientID != g.ClientID || audience != g.Audience || subjectType != g.SubjectType {
 			return store.ErrConflict
 		}
 		_, err = tx.exec(ctx, `UPDATE client_grants SET scopes = ?, created_at = ? WHERE tenant_id = ? AND id = ?`,

@@ -172,10 +172,58 @@ func TestSchemaConstraints(t *testing.T) {
 	}
 }
 
-func TestLatestVersionIsTwo(t *testing.T) {
+func TestLatestVersionIsThree(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 2 {
-			t.Errorf("%s LatestVersion = %d, want 2", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 3 {
+			t.Errorf("%s LatestVersion = %d, want 3", d.name, v)
 		}
+	}
+}
+
+// openAtVersion opens a fresh database and applies only the migrations up to
+// version, through the same path Migrate uses.
+func openAtVersion(t *testing.T, dsn string, version int64) *Store {
+	t.Helper()
+	s := mustOpenRaw(t, dsn)
+	if err := s.migrateTo(context.Background(), version); err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func mustExec(t *testing.T, s *Store, q string, args ...any) {
+	t.Helper()
+	if _, err := s.exec(context.Background(), q, args...); err != nil {
+		t.Fatalf("%s: %v", q, err)
+	}
+}
+
+func TestMigration0003Defaults(t *testing.T) {
+	ctx := context.Background()
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := openAtVersion(t, mk(t), 2)
+			mustExec(t, s, `INSERT INTO clients (tenant_id, client_id, name, app_type, secrets, token_endpoint_auth_method,
+ grant_types, callbacks, allowed_logout_urls, web_origins, allowed_origins, id_token_lifetime, refresh_token, created_at)
+ VALUES ('t','c','n','spa','null','none','null','null','null','null','null',0,'null',0)`)
+			mustExec(t, s, `INSERT INTO resource_servers (tenant_id, id, identifier, name, scopes, signing_alg, token_lifetime, allow_offline_access, created_at)
+ VALUES ('t','rs','https://api','n','null','RS256',0,false,0)`)
+			mustExec(t, s, `INSERT INTO client_grants (tenant_id, id, client_id, audience, scopes, created_at) VALUES ('t','g','c','https://api','null',0)`)
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			c, err := s.Clients().Get(ctx, "t", "c")
+			if err != nil || !c.IsFirstParty || c.ThirdPartySecurityMode != "" || c.SkipNonVerifiableCallbackURIConfirmationPrompt != nil {
+				t.Fatalf("client after migration: %+v %v", c, err)
+			}
+			rs, err := s.ResourceServers().Get(ctx, "t", "rs")
+			if err != nil || !rs.SkipConsentForVerifiableFirstPartyClients || rs.SubjectTypeAuthorization != (store.SubjectTypeAuthorization{}) {
+				t.Fatalf("resource server after migration: %+v %v", rs, err)
+			}
+			g, err := s.ClientGrants().Find(ctx, "t", "c", "https://api", store.SubjectTypeClient)
+			if err != nil || g.SubjectType != store.SubjectTypeClient {
+				t.Fatalf("grant after migration: %+v %v", g, err)
+			}
+		})
 	}
 }

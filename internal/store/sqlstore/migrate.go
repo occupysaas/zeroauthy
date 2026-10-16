@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"embed"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -171,6 +172,11 @@ func (s *Store) lock(ctx context.Context) (func(), error) {
 // Migrate applies pending migrations. It refuses a database that is ahead of
 // this binary.
 func (s *Store) Migrate(ctx context.Context) error {
+	return s.migrateTo(ctx, math.MaxInt64)
+}
+
+// migrateTo applies pending migrations up to and including version.
+func (s *Store) migrateTo(ctx context.Context, version int64) error {
 	ms, err := s.migrations()
 	if err != nil {
 		return err
@@ -192,7 +198,7 @@ func (s *Store) Migrate(ctx context.Context) error {
 		return errNewer(cur, latest)
 	}
 	for _, m := range ms {
-		if m.version <= cur {
+		if m.version <= cur || m.version > version {
 			continue
 		}
 		if err := s.applyMigration(ctx, m); err != nil {
