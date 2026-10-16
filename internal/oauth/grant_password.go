@@ -46,9 +46,13 @@ func (h *Handlers) endUserIP(r *http.Request, c *store.Client) string {
 	return httpx.ClientIP(r, h.TrustProxyHeaders)
 }
 
-// passwordGrant authenticates against the tenant's default directory
-// (Auth0 "Default Directory").
+// passwordGrant authenticates against the connection named by realm when
+// the request carries one (as @auth0/auth0-auth-js sends it), otherwise
+// against the tenant's default directory (Auth0 "Default Directory").
 func (h *Handlers) passwordGrant(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error) {
+	if realm := form.Get("realm"); realm != "" {
+		return h.resourceOwner(ctx, res, c, form, realm)
+	}
 	if res.Tenant.DefaultDirectory == "" {
 		return nil, invalidRequest("the tenant has no default directory; use the password-realm grant with realm")
 	}

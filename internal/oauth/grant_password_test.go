@@ -155,6 +155,61 @@ func legacyRealm(username, password string) url.Values {
 	return form
 }
 
+// auth0-auth-js getTokenByPassword sends grant_type=password with a realm.
+func TestPasswordGrantHonoursRealm(t *testing.T) {
+	call := func(f *fixture, username, password, realm string) (int, map[string]any) {
+		extra := []string{}
+		if realm != "" {
+			extra = append(extra, "realm", realm)
+		}
+		rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", username, password, extra...)})
+		return rec.Code, body
+	}
+	f := newFixture(t)
+	// (a) bob exists only in Other-DB, a non-default connection.
+	if code, body := call(f, "bob@acme.test", "bob password 12", "Other-DB"); code != 200 {
+		t.Fatalf("realm = %d %v", code, body)
+	} else if at, _ := verifyToken(t, f.keys, f.tenantID(t, "acme"), body["access_token"].(string)); at["gty"] != "password" {
+		t.Fatalf("gty = %v", at["gty"])
+	}
+	// (b) a connection not enabled for the client fails like password-realm.
+	_, viaPassword := call(f, "alice@acme.test", "alice password 1", "Unenabled-DB")
+	realmForm := pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "realm", "Unenabled-DB")
+	realmForm.Set("grant_type", GrantPasswordRealm)
+	rec, viaRealm := f.call(t, false, tokenCall{host: "acme.example.test", form: realmForm})
+	if rec.Code != 400 || viaRealm["error"] != "invalid_request" || viaPassword["error"] != viaRealm["error"] || viaPassword["error_description"] != viaRealm["error_description"] {
+		t.Fatalf("password = %v; password-realm = %d %v", viaPassword, rec.Code, viaRealm)
+	}
+	// (c) without a realm the default directory is used.
+	if code, body := call(f, "bob@acme.test", "bob password 12", ""); code != 400 || body["error"] != "invalid_grant" {
+		t.Fatalf("no realm, bob = %d %v", code, body)
+	}
+	if code, body := call(f, "alice@acme.test", "alice password 1", ""); code != 200 {
+		t.Fatalf("no realm, alice = %d %v", code, body)
+	}
+}
+
+func TestPasswordGrantRealmWithoutDefaultDirectory(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	tn, err := f.st.Tenants().GetByName(ctx, "acme")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tn.DefaultDirectory = ""
+	if err := f.st.Tenants().Update(ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "bob@acme.test", "bob password 12", "realm", "Other-DB")})
+	if rec.Code != 200 {
+		t.Fatalf("realm without default directory = %d %v", rec.Code, body)
+	}
+	rec, body = f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "bob@acme.test", "bob password 12")})
+	if rec.Code != 400 || body["error"] != "invalid_request" {
+		t.Fatalf("no realm, no default = %d %v", rec.Code, body)
+	}
+}
+
 func TestPasswordRealmGrantLegacy(t *testing.T) {
 	f := newFixture(t)
 	f.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {

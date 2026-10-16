@@ -35,6 +35,11 @@ for _ in $(seq 1 50); do
   curl -sf -H "Authorization: Bearer e2e-legacy-token" http://127.0.0.1:8099/stats >/dev/null && break
   sleep 0.2
 done
+if ! curl -sf -H "Authorization: Bearer e2e-legacy-token" http://127.0.0.1:8099/stats >/dev/null || ! kill -0 "${pids[-1]}" 2>/dev/null; then
+  echo "legacy store did not start (is port 8099 in use?)" >&2
+  cat "$work/legacy.log" >&2
+  exit 1
+fi
 
 CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
 ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \

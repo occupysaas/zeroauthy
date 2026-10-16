@@ -159,7 +159,7 @@ paths:
         | `authorization_code` | Exchange a code from `/authorize` (with `code_verifier` when PKCE was used) for an access token and, with scope `openid`, an ID token |
         | `client_credentials` | Machine-to-machine access token for `audience` |
         | `refresh_token` | Exchange a refresh token (from a request with scope `offline_access`) for new tokens. Rotating refresh tokens return a new `refresh_token`; reusing a rotated token revokes all tokens derived from the same login. `scope` may narrow the original scopes. |
-        | `password` | Resource owner password: exchange `username` and `password` for tokens. The user is looked up in the tenant's default directory (`default_directory`); a tenant without one rejects this grant with `invalid_request`. |
+        | `password` | Resource owner password: exchange `username` and `password` for tokens. When `realm` is given, the user is looked up in that database connection (which must be enabled for the client), as with the password-realm grant. Otherwise the tenant's default directory (`default_directory`) is used, and a tenant without one rejects the request with `invalid_request`. |
         | `http://auth0.com/oauth/grant-type/password-realm` | As `password`, but `realm` names the database connection to use. The connection must be enabled for the client. |
 
         **Password grants.** Wrong passwords and unknown users get the same
@@ -721,7 +721,7 @@ components:
           description: The user's password (password grants).
         realm:
           type: string
-          description: Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm).
+          description: Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory).
     TokenResponse:
       type: object
       required: [access_token, token_type, expires_in]

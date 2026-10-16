@@ -60,14 +60,17 @@ await assert.rejects(
   },
 );
 
-// 5. The current SDK reaches the legacy connection too. Its
-// getTokenByPassword sends the plain password grant, which signs in against
-// the tenant's default directory (as the Auth0 documentation describes), so
-// the custom database is exercised through its signUp instead: get_user,
-// create and login all run, and the new user can then sign in.
+// 5. The current SDK: getTokenByPassword sends grant_type=password with a
+// realm, which must select the custom database rather than the default
+// directory.
 const modern = new AuthClient({
   domain: 'localhost:8443', clientId: 'e2e-node', clientSecret: 'e2e-node-secret-not-for-production',
 });
+const viaRealm = await modern.getTokenByPassword({
+  username: legacyUser, password: legacyPassword, realm: 'legacy-users', audience: 'https://api.e2e.local', scope: 'openid',
+});
+assert.ok(viaRealm.accessToken, '@auth0/auth0-auth-js getTokenByPassword with a realm returns an access token');
+// Signing up through the custom database runs get_user, create and login.
 const newEmail = `auth-js-${Date.now()}@e2e.local`;
 const newPassword = 'Modern-Password-123';
 const signupBefore = await stats();

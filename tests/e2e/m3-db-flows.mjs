@@ -28,7 +28,12 @@ const refreshed = await auth.oauth.refreshTokenGrant({ refresh_token: t1.refresh
 assert.ok((refreshed.data ?? refreshed).access_token, 'refresh works');
 
 await auth.database.changePassword({ email, connection });
-const files = (await readdir(process.env.E2E_MAIL_DIR)).filter((f) => f.endsWith('.eml'));
+// The server sends reset emails in the background (D-0018), so poll briefly.
+let files = [];
+for (let i = 0; i < 50 && files.length === 0; i++) {
+  files = (await readdir(process.env.E2E_MAIL_DIR)).filter((f) => f.endsWith('.eml'));
+  if (files.length === 0) await new Promise((r) => setTimeout(r, 100));
+}
 assert.ok(files.length >= 1, 'a reset email was written');
 
 // An unknown address gets the same success answer (D-0018): the endpoint

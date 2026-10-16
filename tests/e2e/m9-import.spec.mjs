@@ -12,7 +12,10 @@ async function legacyLogins(page) {
 }
 
 async function ready(page) {
-  await expect(page.locator('body')).toHaveAttribute('data-ready', 'true', { timeout: 20_000 });
+  await expect(page.locator('body')).toHaveAttribute('data-ready', /true|error/, { timeout: 20_000 });
+  if ((await page.locator('body').getAttribute('data-ready')) !== 'true') {
+    throw new Error('SPA failed: ' + (await page.locator('#out').textContent()));
+  }
 }
 
 async function loginOnImportConnection(page) {

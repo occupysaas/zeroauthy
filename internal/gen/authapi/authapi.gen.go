@@ -168,7 +168,7 @@ type TokenRequest struct {
 	// Password The user's password (password grants).
 	Password *string `json:"password,omitempty"`
 
-	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm).
+	// Realm Name of the database connection to sign in with (grant_type=http://auth0.com/oauth/grant-type/password-realm, or grant_type=password to override the default directory).
 	Realm *string `json:"realm,omitempty"`
 
 	// RedirectUri Must equal the redirect_uri of the authorization request.

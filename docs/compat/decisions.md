@@ -217,7 +217,7 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Context:** Auth0 documents the `password` grant, the `http://auth0.com/oauth/grant-type/password-realm` extension (realm = connection) and the `auth0-forwarded-for` header, but not error codes beyond success.
 - **Sources:** RFC 6749 §4.3 and §5.2; https://auth0.com/docs/api/authentication/resource-owner-password-flow/get-token; OAuth 2.0 Security BCP (RFC 9700) §2.4.
 - **Decision:**
-  - `password` uses the tenant's `default_directory`; without one it is `invalid_request`.
+  - `password` honours `realm` when given (as @auth0/auth0-auth-js sends it) and behaves like the password-realm grant for that connection; otherwise it uses the tenant's `default_directory`, and without one it is `invalid_request`.
   - The connection must be a database connection enabled for the client.
   - Wrong credentials and unknown users give the same `invalid_grant`; a blocked user gives `invalid_grant`.
   - Attempts share the hosted login's per-user and per-IP throttles and return `429 too_many_requests` when locked.
