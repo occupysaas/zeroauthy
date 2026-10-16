@@ -27,6 +27,19 @@ assert.ok(t1.access_token && t1.refresh_token && t1.id_token, 'password-realm gr
 const refreshed = await auth.oauth.refreshTokenGrant({ refresh_token: t1.refresh_token });
 assert.ok((refreshed.data ?? refreshed).access_token, 'refresh works');
 
+// An API whose user policy is deny_all refuses the password grant (O7).
+await assert.rejects(
+  auth.oauth.passwordGrant({
+    username: email, password: 'Node-Password-123', realm: connection,
+    audience: 'https://locked.e2e.local', scope: 'openid',
+  }),
+  (err) => {
+    assert.equal(err.statusCode ?? err.status, 400);
+    assert.equal(err.error ?? err.body?.error ?? JSON.parse(err.body ?? '{}').error, 'invalid_request');
+    return true;
+  },
+);
+
 await auth.database.changePassword({ email, connection });
 // The server sends reset emails in the background (D-0018), so poll briefly.
 let files = [];

@@ -5,6 +5,8 @@ import { readFile } from 'node:fs/promises';
 
 const routes = {
   '/': ['spa/index.html', 'text/html; charset=utf-8'],
+  '/confirm/': ['spa/index.html', 'text/html; charset=utf-8'],
+  '/strict/': ['spa/index.html', 'text/html; charset=utf-8'],
   '/app.js': ['spa/app.js', 'text/javascript'],
   '/auth0-spa-js.js': ['node_modules/@auth0/auth0-spa-js/dist/auth0-spa-js.production.js', 'text/javascript'],
   '/react/': ['react/index.html', 'text/html; charset=utf-8'],

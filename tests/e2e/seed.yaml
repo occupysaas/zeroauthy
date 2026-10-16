@@ -10,6 +10,9 @@ tenants:
             title: "Connexion à ${companyName}"
             buttonText: "Continuer"
     domains: ["localhost:8443"]
+    # Every existing E2E app uses a localhost callback; the default prompt would
+    # change their flows. Individual clients opt back in.
+    skip_non_verifiable_callback_uri_confirmation_prompt: true
     default_directory: Username-Password-Authentication
     resource_servers:
       - identifier: https://api.e2e.local
@@ -19,6 +22,12 @@ tenants:
         allow_offline_access: true
         scopes:
           - {value: "read:things", description: "Read things"}
+      - identifier: https://locked.e2e.local
+        name: E2E Locked API
+        token_lifetime: 3600
+        subject_type_authorization: {user: {policy: deny_all}}
+        scopes:
+          - {value: "read:locked", description: "Read locked things"}
     clients:
       - client_id: e2e-m2m
         name: E2E machine client
@@ -54,13 +63,41 @@ tenants:
         app_type: regular_web
         client_secret: e2e-node-secret-not-for-production
         grant_types: [password, "http://auth0.com/oauth/grant-type/password-realm", refresh_token]
+      - client_id: e2e-3p-web
+        name: E2E Partner Web
+        app_type: regular_web
+        is_first_party: false
+        third_party_security_mode: permissive
+        client_secret: e2e-3p-web-secret-not-for-production
+        token_endpoint_auth_method: client_secret_basic # express-openid-connect's default
+        grant_types: [authorization_code]
+        callbacks: ["http://localhost:3001/callback"]
+        allowed_logout_urls: ["http://localhost:3001"]
+      - client_id: e2e-3p-strict
+        name: E2E Partner Strict
+        app_type: spa
+        is_first_party: false
+        grant_types: [authorization_code]
+        callbacks: ["https://localhost:3443/strict/"]
+        web_origins: ["https://localhost:3443"]
+        allowed_origins: ["https://localhost:3443"]
+      - client_id: e2e-confirm
+        name: E2E Confirm
+        app_type: spa
+        grant_types: [authorization_code]
+        skip_non_verifiable_callback_uri_confirmation_prompt: false
+        callbacks: ["https://localhost:3443/confirm/"]
+        web_origins: ["https://localhost:3443"]
+        allowed_origins: ["https://localhost:3443"]
     client_grants:
       - client_id: e2e-m2m
         audience: https://api.e2e.local
         scopes: ["read:things"]
+      - {client_id: e2e-3p-strict, audience: https://api.e2e.local, subject_type: user, scopes: ["read:things"]}
     connections:
       - name: Username-Password-Authentication
-        enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node]
+        is_domain_connection: true
+        enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node, e2e-confirm]
       # Custom database connections backed by tests/e2e/legacy-store.mjs.
       - name: legacy-users
         enabledDatabaseCustomization: true
