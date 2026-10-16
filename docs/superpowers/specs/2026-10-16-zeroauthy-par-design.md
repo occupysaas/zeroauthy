@@ -62,9 +62,9 @@ The lifetime is a constant, 30 seconds, not configurable.
 4. A `request_uri` parameter in the body is `400 invalid_request` (RFC 9126 §2.1).
 5. The parameters go through the same validation `/authorize` uses, including Plan 9's strict third-party checks. If that validation is embedded in the handler today, it is split into a pure function shared by both endpoints. Failures are `400` JSON `{error, error_description}` with the `/authorize` error code; nothing is redirected (P2).
 6. Known authorization parameters and up to 10 `ext-*` parameters are kept. Other unknown parameters are dropped. More than 10 `ext-*` parameters follow P2.
-7. Success: a random 32-byte identifier, base64url, prefixed `urn:ietf:params:oauth:request_uri:`; `201 {request_uri, expires_in: 30}` with `Cache-Control: no-store`.
+7. Success: a random 43-character identifier (`secrets.RandomString`, about 256 bits), prefixed `urn:ietf:params:oauth:request_uri:`; `201 {request_uri, expires_in: 30}` with `Cache-Control: no-store`.
 
-PAR calls share the Authentication API rate limiter.
+Auth0 counts PAR calls against its Authentication API rate limit. zeroauthy has no general rate limiter yet (only per-identity throttles), so this is a follow-up.
 
 ### 4.2 `GET /authorize` with `request_uri` (`internal/authz`)
 
@@ -112,7 +112,7 @@ The first task writes `docs/compat/observations/par.md` with exact steps: a curl
   - express-openid-connect 3.4 with `pushedAuthorizationRequests: true`: full login in Chromium.
   - nextjs-auth0 4.32 with PAR enabled: login in Chromium.
   - auth0-auth-js 1.16: authorization URL through PAR, then code exchange.
-  - Negative: a client requiring PAR, driven by auth0-spa-js with a plain `/authorize`, sees the P5 outcome.
+  - Negative: a client requiring PAR sent to a plain `/authorize` in Chromium sees the P5 outcome. auth0-spa-js cannot drive this case: its clients are public, and only confidential clients can require PAR.
 
 ## 8. Documentation
 
