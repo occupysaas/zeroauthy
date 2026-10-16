@@ -172,9 +172,25 @@ func (h *Handlers) startLogin(w http.ResponseWriter, r *http.Request, res tenant
 	h.startTxn(w, r, res, client, req, params, page)
 }
 
+// stageKey marks a consent transaction in its Params. It is not a request
+// parameter: Params and RequestFromParams ignore it.
+const (
+	stageKey     = "za_stage"
+	stageConsent = "consent"
+)
+
 // startConsent sends an authenticated user to the consent page.
 func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request) {
-	h.startTxn(w, r, res, client, req, req.Params(), "/u/consent")
+	params := req.Params()
+	params[stageKey] = stageConsent
+	h.startTxn(w, r, res, client, req, params, "/u/consent")
+}
+
+// invalidTxn shows the generic error page for a transaction used at the
+// wrong step.
+func (h *Handlers) invalidTxn(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction) {
+	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]))
+	ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), view.L.T(i18n.KeyErrSessionExpired))
 }
 
 // startTxn stores params in a transaction bound to this browser and
@@ -209,6 +225,10 @@ func (h *Handlers) startTxn(w http.ResponseWriter, r *http.Request, res tenant.R
 // login pages call it after a successful login or signup.
 func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) {
 	ctx := r.Context()
+	if txn.Params[stageKey] == stageConsent {
+		h.invalidTxn(w, r, res, txn)
+		return
+	}
 	if err := h.Store.AuthTransactions().Delete(ctx, res.Tenant.ID, txn.ID); err != nil {
 		h.log().WarnContext(ctx, "delete login transaction", "tenant", res.Tenant.ID, "err", err)
 	}
@@ -358,6 +378,10 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 // Consent finishes a consent-page transaction. Declining is access_denied.
 func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession, accepted bool) {
 	ctx := r.Context()
+	if txn.Params[stageKey] != stageConsent {
+		h.invalidTxn(w, r, res, txn)
+		return
+	}
 	if err := h.Store.AuthTransactions().Delete(ctx, res.Tenant.ID, txn.ID); err != nil {
 		h.log().WarnContext(ctx, "delete consent transaction", "tenant", res.Tenant.ID, "err", err)
 	}
@@ -377,12 +401,32 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 		h.deny(w, r, res, client, req, errUserDeclined())
 		return
 	}
+	// The session may have changed since the page was shown. prompt=login was
+	// satisfied before this transaction began.
+	check := req
+	check.Prompt = strings.Join(slices.DeleteFunc(req.Prompts(), func(p string) bool { return p == "login" }), " ")
+	login := h.needsLogin(check, sess)
+	if !login {
+		var err error
+		if login, err = h.connectionDisabled(ctx, res, client, sess); err != nil {
+			h.log().ErrorContext(ctx, "load session connection", "tenant", res.Tenant.ID, "err", err)
+			h.deny(w, r, res, client, req, errServer())
+			return
+		}
+	}
+	if login {
+		h.startLogin(w, r, res, client, req)
+		return
+	}
 	h.finish(w, r, res, client, req, sess, true, true)
 }
 
 // ConsentView describes the page for txn. It returns an error when the
 // request is no longer valid; the caller shows the generic error page.
 func (h *Handlers) ConsentView(ctx context.Context, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) (*ConsentView, error) {
+	if txn.Params[stageKey] != stageConsent {
+		return nil, errors.New("not a consent transaction")
+	}
 	req := RequestFromParams(txn.Params)
 	client, verr, _ := validate(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {

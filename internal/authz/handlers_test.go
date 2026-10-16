@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -468,5 +469,174 @@ func TestThirdPartySessionOnNonDomainConnectionLogsInAgain(t *testing.T) {
 	loc := location(t, e.get(t, partnerQuery(), cookie))
 	if loc.Path != "/u/login" {
 		t.Fatalf("Location = %s", loc)
+	}
+}
+
+// txnFor stores a transaction for q; consent marks it as a consent transaction.
+func (e *env) txnFor(t *testing.T, q url.Values, consent bool) *store.AuthTransaction {
+	t.Helper()
+	req := ParseRequest(q)
+	params := req.Params()
+	if consent {
+		params[stageKey] = stageConsent
+	}
+	txn := &store.AuthTransaction{
+		TenantID: e.tenant.ID, ID: secrets.RandomString(24), CookieHash: "h", CSRFToken: "c",
+		ClientID: req.ClientID, Params: params, ExpiresAt: fixedNow().Add(TxnLifetime), CreatedAt: fixedNow(),
+	}
+	if err := e.st.AuthTransactions().Create(context.Background(), txn); err != nil {
+		t.Fatal(err)
+	}
+	return txn
+}
+
+func (e *env) session(t *testing.T, ck *http.Cookie) *store.LoginSession {
+	t.Helper()
+	r := httptest.NewRequest("GET", "/", nil)
+	r.AddCookie(ck)
+	s, err := e.h.Sessions.Current(context.Background(), r, e.tenant)
+	if err != nil || s == nil {
+		t.Fatalf("session: %v %v", s, err)
+	}
+	return s
+}
+
+func (e *env) res() tenant.Resolved {
+	return tenant.Resolved{Tenant: e.tenant, Host: "acme.example.test"}
+}
+
+func (e *env) consent(t *testing.T, txn *store.AuthTransaction, ck *http.Cookie, accepted bool) *httptest.ResponseRecorder {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "https://acme.example.test/u/consent", nil)
+	e.h.Consent(rec, r, e.res(), txn, e.session(t, ck), accepted)
+	return rec
+}
+
+func (e *env) userGrant(t *testing.T, clientID, audience string) *store.UserGrant {
+	t.Helper()
+	u, _ := e.st.Users().FindByLogin(context.Background(), e.tenant.ID, "Username-Password-Authentication", "alice@acme.test")
+	g, err := e.st.UserGrants().Find(context.Background(), e.tenant.ID, clientID, u.UserID, audience)
+	if err != nil {
+		return nil
+	}
+	return g
+}
+
+func TestConsentRefusesLoginTransaction(t *testing.T) {
+	e := newEnv(t)
+	q := partnerQuery()
+	q.Set("prompt", "login")
+	rec := e.consent(t, e.txnFor(t, q, false), e.login(t, fixedNow()), true)
+	if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" || e.userGrant(t, "partner", "https://api.acme.test") != nil {
+		t.Fatalf("status %d Location %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+func TestConsentRestartsLoginOnUnusableSession(t *testing.T) {
+	e := newEnv(t)
+	txn := e.txnFor(t, partnerQuery(), true)
+	rec := e.consent(t, txn, e.loginOn(t, "Other-DB", fixedNow()), true)
+	loc := location(t, rec)
+	if loc.Path != "/u/login" || e.userGrant(t, "partner", "https://api.acme.test") != nil {
+		t.Fatalf("Location = %s", loc)
+	}
+}
+
+func TestResumeRefusesConsentTransaction(t *testing.T) {
+	e := newEnv(t)
+	txn := e.txnFor(t, partnerQuery(), true)
+	rec := httptest.NewRecorder()
+	e.h.Resume(rec, httptest.NewRequest("POST", "https://acme.example.test/u/login", nil), e.res(), txn, e.session(t, e.login(t, fixedNow())))
+	if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" {
+		t.Fatalf("status %d Location %q", rec.Code, rec.Header().Get("Location"))
+	}
+}
+
+func TestConsentAcceptedWritesGrantAndMerges(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	loc := location(t, e.consent(t, e.txnFor(t, partnerQuery(), true), ck, true))
+	if loc.Host != "partner.example" || loc.Query().Get("code") == "" {
+		t.Fatalf("Location = %s", loc)
+	}
+	g := e.userGrant(t, "partner", "https://api.acme.test")
+	if g == nil || strings.Join(g.Scopes, " ") != "read:things" {
+		t.Fatalf("grant = %+v", g)
+	}
+	// A second accept with another scope merges into the same grant.
+	e.grantConsent(t, "partner", "https://api.acme.test", "other:scope")
+	loc = location(t, e.consent(t, e.txnFor(t, partnerQuery(), true), ck, true))
+	if loc.Query().Get("code") == "" {
+		t.Fatalf("Location = %s", loc)
+	}
+	g = e.userGrant(t, "partner", "https://api.acme.test")
+	if g == nil || !slices.Contains(g.Scopes, "read:things") || !slices.Contains(g.Scopes, "other:scope") {
+		t.Fatalf("merged grant = %+v", g)
+	}
+}
+
+func TestConsentDeclined(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	rec := e.consent(t, e.txnFor(t, partnerQuery(), true), ck, false)
+	if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" {
+		t.Fatalf("partner: status %d Location %q", rec.Code, rec.Header().Get("Location"))
+	}
+	q := url.Values{"client_id": {"partner-open"}, "redirect_uri": {"https://open.example/cb"}, "response_type": {"code"},
+		"audience": {"https://api.acme.test"}, "scope": {"read:things"}, "state": {"st"}}
+	loc := location(t, e.consent(t, e.txnFor(t, q, true), ck, false))
+	if loc.Host != "open.example" || loc.Query().Get("error") != "access_denied" {
+		t.Fatalf("Location = %s", loc)
+	}
+	if e.userGrant(t, "partner", "https://api.acme.test") != nil || e.userGrant(t, "partner-open", "https://api.acme.test") != nil {
+		t.Fatal("a grant was written")
+	}
+}
+
+func TestConsentView(t *testing.T) {
+	e := newEnv(t)
+	sess := e.session(t, e.login(t, fixedNow()))
+	view := func(q url.Values) *ConsentView {
+		t.Helper()
+		v, err := e.h.ConsentView(context.Background(), e.res(), e.txnFor(t, q, true), sess)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+	v := view(partnerQuery())
+	if v.Confirmation || !v.ThirdParty || v.CallbackDomain != "partner.example" || v.APIName != "API" || strings.Join(v.Scopes, ",") != "read:things" {
+		t.Fatalf("partner view = %+v", v)
+	}
+	local := url.Values{"client_id": {"local"}, "redirect_uri": {"http://localhost:5000/cb"}, "response_type": {"code"},
+		"state": {"st"}, "code_challenge": {strings.Repeat("a", 43)}, "code_challenge_method": {"S256"}}
+	if v := view(local); !v.Confirmation || v.ThirdParty || v.CallbackDomain != "localhost" {
+		t.Fatalf("local view = %+v", v)
+	}
+	// Custom scheme: the callback domain is the scheme.
+	if _, err := e.h.ConsentView(context.Background(), e.res(), e.txnFor(t, partnerQuery(), false), sess); err == nil {
+		t.Fatal("unmarked transaction accepted")
+	}
+	c, _ := e.st.Clients().Get(context.Background(), e.tenant.ID, "local")
+	c.Callbacks = append(c.Callbacks, "com.example.app:/cb")
+	if err := e.st.Clients().Update(context.Background(), c); err != nil {
+		t.Fatal(err)
+	}
+	local.Set("redirect_uri", "com.example.app:/cb")
+	if v := view(local); v.CallbackDomain != "com.example.app:" {
+		t.Fatalf("custom scheme view = %+v", v)
+	}
+	// An unnamed API shows its identifier; descriptions replace scope names.
+	rs, _ := e.st.ResourceServers().GetByIdentifier(context.Background(), e.tenant.ID, "https://api.acme.test")
+	rs.Name = ""
+	rs.Scopes = []store.Scope{{Value: "read:things", Description: "Read your things"}}
+	if err := e.st.ResourceServers().Update(context.Background(), rs); err != nil {
+		t.Fatal(err)
+	}
+	e.tenant.UseScopeDescriptionsForConsent = true
+	v = view(partnerQuery())
+	if v.APIName != "https://api.acme.test" || strings.Join(v.Scopes, ",") != "Read your things" {
+		t.Fatalf("described view = %+v", v)
 	}
 }
