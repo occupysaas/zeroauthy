@@ -54,7 +54,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 
 | Entry date | Feature, in our words | Target milestone / sub-project | Status |
 |---|---|---|---|
-| 2025-10-28 | Confirmation step for non-verifiable callback URIs; `prompt=none` limits | Milestone 10 (Plan 9) | planned |
+| 2025-10-28 | Confirmation step for non-verifiable callback URIs; `prompt=none` limits | Milestone 10 (Plan 9) | done (Plan 9) |
 | 2025-10-10 | Private-key-JWT client assertions must use the issuer string as `aud` | When `private_key_jwt` client auth is added | open |
 | 2025-08-11 / 2026-04-14 | Multi-resource refresh tokens (one refresh token, several APIs) | Later (refresh tokens) | open |
 | 2025-11-07 / 2026-02-10 | Session metadata, carried in back-channel logout tokens | Sub-project 2 | open |

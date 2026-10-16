@@ -322,6 +322,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Process handling:** the plugin must `exec` and not fork. `Kill` waits for anything that still holds the plugin's stdio, so a forked child would make shutdown hang.
   - **DSN:** `plugin:///absolute/path/to/binary?arg=…&arg=…`. The host must be empty and the path absolute. Each `arg` value is one argv entry, in order. Any other query key is an error that names the key and never a value. No error quotes the DSN, because arguments may carry secrets. Plugin storage is persistent, so `security.master_key` is required; plugin stores have no schema, so the server does not migrate them.
 - **Rationale:** One RPC per method keeps the contract the same as the Go interface, so `storetest` is the single arbiter for in-process, SQL and plugin drivers. Explicit transactions let plugins back the same multi-step operations that SQL drivers do; the stack rule and the idle timer keep a misbehaving or dead host from holding a lock indefinitely.
+- **Addendum (Plan 9):** the plugin protocol gained `UserGrants` (find, upsert, list by user, delete) and consent fields on clients, tenants, resource servers, client grants and connections. A plugin must be rebuilt against this version to serve `UserGrants`; an older plugin fails a consent decision with a server error.
 
 ## D-0022: Custom database connections: Auth0's shape, scripts run in Node.js
 

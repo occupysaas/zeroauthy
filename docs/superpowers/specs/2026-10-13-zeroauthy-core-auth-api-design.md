@@ -237,7 +237,7 @@ The full contract is in `api/authentication.yaml`.
 
 **`web_message`:** returns an HTML page that `postMessage`s `{type: "authorization_response", response: {...}}` to the client's registered web origin. It is used for silent authentication inside an iframe. Session cookies are `SameSite=None; Secure` so they reach the iframe.
 
-**Consent:** first-party clients skip consent. Third-party clients see a consent page for the requested scopes, and the grant is remembered.
+**Consent:** see `docs/superpowers/specs/2026-10-16-zeroauthy-consent-design.md` (Plan 9): first- and third-party applications, API access policies, user grants and the confirmation prompt for non-verifiable callbacks.
 
 ### 6.3 `/oauth/token`
 
@@ -403,7 +403,7 @@ Before each milestone's plan is written, review Auth0's public changelog since t
 7. SQL drivers (sqlite, postgres, mysql) passing `storetest`.
 8. gRPC plugin host and sample plugin.
 9. `custom-db` bridge with import mode.
-10. Device flow, PAR, consent.
+10. Device flow, PAR, consent. Consent, third-party applications and API access policies shipped in Plan 9 (see the consent design); device flow and PAR remain (Plans 10 and 11).
 11. OIDF conformance in CI; compatibility matrix published.
 
 ## 14. Risks
