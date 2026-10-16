@@ -29,6 +29,13 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
   -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
 chmod 644 "$work/key.pem"
 
+LEGACY_TOKEN=e2e-legacy-token node tests/e2e/legacy-store.mjs >"$work/legacy.log" 2>&1 &
+pids+=($!)
+for _ in $(seq 1 50); do
+  curl -sf -H "Authorization: Bearer e2e-legacy-token" http://127.0.0.1:8099/stats >/dev/null && break
+  sleep 0.2
+done
+
 CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
 ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
   ZEROAUTHY_EMAIL__DIR="$work/mail" ZEROAUTHY_STORAGE__DSN="sqlite://$work/e2e.db" \

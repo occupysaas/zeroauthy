@@ -29,6 +29,7 @@ tenants:
         app_type: spa
         grant_types: [authorization_code]
         callbacks: ["https://localhost:3443/"]
+        allowed_logout_urls: ["https://localhost:3443/"]
         web_origins: ["https://localhost:3443"]
         allowed_origins: ["https://localhost:3443"]
       - client_id: e2e-react
@@ -59,6 +60,65 @@ tenants:
     connections:
       - name: Username-Password-Authentication
         enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node]
+      # Custom database connections backed by tests/e2e/legacy-store.mjs.
+      - name: legacy-users
+        enabledDatabaseCustomization: true
+        import_mode: false
+        enabled_clients: [e2e-spa, e2e-node]
+        configuration: &legacy_configuration
+          API: "http://127.0.0.1:8099"
+          TOKEN: "e2e-legacy-token"
+        customScripts: &legacy_scripts
+          login: |
+            async function login(email, password, callback) {
+              const res = await fetch(configuration.API + "/login", {
+                method: "POST",
+                headers: { "content-type": "application/json", authorization: "Bearer " + configuration.TOKEN },
+                body: JSON.stringify({ email, password }),
+                signal: AbortSignal.timeout(5000),
+              });
+              if (res.status === 401) return callback(new WrongUsernameOrPasswordError(email));
+              if (!res.ok) return callback(new Error("legacy store answered " + res.status));
+              callback(null, await res.json());
+            }
+          get_user: |
+            async function getUser(email, callback) {
+              const res = await fetch(configuration.API + "/users?email=" + encodeURIComponent(email), {
+                headers: { authorization: "Bearer " + configuration.TOKEN },
+                signal: AbortSignal.timeout(5000),
+              });
+              if (res.status === 404) return callback(null);
+              if (!res.ok) return callback(new Error("legacy store answered " + res.status));
+              callback(null, await res.json());
+            }
+          create: |
+            async function create(user, callback) {
+              const res = await fetch(configuration.API + "/users", {
+                method: "POST",
+                headers: { "content-type": "application/json", authorization: "Bearer " + configuration.TOKEN },
+                body: JSON.stringify({ email: user.email, password: user.password }),
+                signal: AbortSignal.timeout(5000),
+              });
+              if (!res.ok) return callback(new Error("legacy store answered " + res.status));
+              callback(null);
+            }
+          change_password: |
+            async function changePassword(email, newPassword, callback) {
+              const res = await fetch(configuration.API + "/password", {
+                method: "POST",
+                headers: { "content-type": "application/json", authorization: "Bearer " + configuration.TOKEN },
+                body: JSON.stringify({ email, password: newPassword }),
+                signal: AbortSignal.timeout(5000),
+              });
+              if (!res.ok) return callback(new Error("legacy store answered " + res.status));
+              callback(null, true);
+            }
+      - name: import-users
+        enabledDatabaseCustomization: true
+        import_mode: true
+        enabled_clients: [e2e-spa, e2e-node]
+        configuration: *legacy_configuration
+        customScripts: *legacy_scripts
     users:
       - connection: Username-Password-Authentication
         email: alice@e2e.local
