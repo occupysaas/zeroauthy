@@ -140,3 +140,27 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Theoretical lost-`BeginTx`-response window: if the response is lost after the plugin registered the transaction, the host cannot name it, so it waits for the idle timer. Client-proposed transaction ids would close it; decide before protocol v1 is frozen.
 - Route plugin logs through `slog` instead of go-plugin's stderr logger, so levels and format match the host.
 - `storeplugin.Serve` reads the parent pid inside its watcher goroutine; read it synchronously before starting the goroutine so a host that dies during plugin startup is still detected.
+
+## Plan 8 follow-ups
+
+- Callers for the stored `verify`, `delete` and `change_email` scripts: `verify` needs verification emails; `delete` and `change_email` are called by the Management API (sub-project 3). The runner and `Client.Run` already execute any of the seven scripts.
+- `mfa_factors` in profiles (MFA, sub-project 2).
+- Custom signup prompt fields passed to `create` (changelog 2026-04-02, sub-project 2).
+- Custom user IDs at signup (changelog 2026-09-17, early access).
+- Passkeys on custom databases.
+- Bcrypt hashes from bulk import.
+- An egress allowlist for scripts. Network access is open; operators firewall it.
+- Pinning the Node version through a config option; today any Node 22.13 or later is accepted.
+
+## Plan 8 deferred review findings
+
+- A late `login` script result can overwrite a password hash that a concurrent reset completion just set; fixing it needs a store-level set-if-empty.
+- Import mode: the length check uses the normalized login while the script receives the trimmed form; `profileUser` reads the clock separately from `upsertProfile`; a comment in `importLogin` should say the script can still run for a migrated user reached through a changed login (the local hash wins).
+- Legacy mode: usernames from a legacy store must match the local username pattern; a legacy sign-up that lands on a locally blocked user returns a bare `ErrUserBlocked` (a 500); a `ValidationError` with an empty message renders a doubled period.
+- `scriptErr` treats unknown error types as "unavailable" (refunded), which fails open for future error types; consider defaulting to "raised". Scripts that hang or crash the runner are also refunded, so guessing is bounded but unthrottled at about one attempt per 20 s per connection.
+- Runner hardening left open (D-0022 addendum): Buffers are not bounded by `max_memory_mb`; `os.hostname`, `userInfo` and `networkInterfaces` are readable; per-process script caches and console output are unbounded and unthrottled; a script can forge response and log lines within its own tenant; the compile cache ignores the script name on the fallback path and fallback globals are shared; a last stderr line without a newline is dropped at EOF; `PDEATHSIG` is tied to the forking OS thread; a cancelled request holds its concurrency slot until the 20 s limit.
+- The `require` denylist can be bypassed through `process.getBuiltinModule`; only `--permission` is a control, and it must not be described as one.
+- The seed re-seals the configuration and updates the connection on every apply, even when nothing changed.
+- Test gaps: `Apply` with no wrapper plus a configuration (the error must not leak the value); exact boundary accepts (102400 bytes, 64 keys, 4096 bytes) and the config checks for an empty `node` and `idle_timeout <= 0`; `TestRunnerRequireAllowlist` accepts any error kind; `process._linkedBinding` is not probed by the isolation test; `TestImportConcurrentFirstLogin` does not assert that the conflict path ran; `TestLatestVersionIsTwo` hard-codes 2.
+- Cosmetic: an overlong comment line in `store.proto`; the constant `maxConfigValueBy` should be `maxConfigValueBytes`; the comment on `TestRunnerEscapedContextStillIsolated` overstates what it proves; a last stderr line without a newline.
+- E2E (m9): `LEGACY_PORT` is unused (8099 is hard-coded); the spec cannot be re-run against the same server; a missing legacy-store field prints "undefined"; the 409 check does not isolate the `get_user` path.
