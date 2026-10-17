@@ -122,3 +122,23 @@ func TestNewThrottleClampsMaxFailures(t *testing.T) {
 		t.Fatal("maxFailures 0 should lock after one attempt")
 	}
 }
+
+func TestNilThrottleAllows(t *testing.T) {
+	var th *Throttle
+	for range 100 {
+		if !th.Attempt("k") {
+			t.Fatal("nil throttle refused")
+		}
+	}
+	th.Refund("k")
+	th.Success("k")
+}
+
+func TestNewThrottleOrOffZero(t *testing.T) {
+	if NewThrottleOrOff(0, time.Minute, time.Minute) != nil {
+		t.Fatal("max 0 should be off")
+	}
+	if NewThrottleOrOff(3, time.Minute, time.Minute) == nil {
+		t.Fatal("max 3 should be on")
+	}
+}

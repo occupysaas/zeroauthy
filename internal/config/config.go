@@ -64,6 +64,16 @@ type Security struct {
 	// ten times higher.
 	LoginMaxAttempts    int `koanf:"login_max_attempts"`
 	LoginLockoutSeconds int `koanf:"login_lockout_seconds"`
+
+	// Device activation limits wrong user codes. The transaction limit
+	// (misses on one device code) must be at least 1. The IP and tenant
+	// limits are off at 0.
+	DeviceActivationTxnMaxMisses         int `koanf:"device_activation_txn_max_misses"`
+	DeviceActivationIPMaxMisses          int `koanf:"device_activation_ip_max_misses"`
+	DeviceActivationIPLockoutSeconds     int `koanf:"device_activation_ip_lockout_seconds"`
+	DeviceActivationTenantMaxMisses      int `koanf:"device_activation_tenant_max_misses"`
+	DeviceActivationTenantWindowSeconds  int `koanf:"device_activation_tenant_window_seconds"`
+	DeviceActivationTenantLockoutSeconds int `koanf:"device_activation_tenant_lockout_seconds"`
 }
 
 // CustomDB configures the runner for custom database connection scripts.
@@ -100,9 +110,13 @@ type SMTP struct {
 
 func defaults() *Config {
 	return &Config{
-		Server:   Server{Listen: ":8080"},
-		Log:      Log{Level: "info", Format: "json"},
-		Security: Security{LoginMaxAttempts: 10, LoginLockoutSeconds: 900},
+		Server: Server{Listen: ":8080"},
+		Log:    Log{Level: "info", Format: "json"},
+		Security: Security{
+			LoginMaxAttempts: 10, LoginLockoutSeconds: 900,
+			DeviceActivationTxnMaxMisses: 5, DeviceActivationIPMaxMisses: 10, DeviceActivationIPLockoutSeconds: 900,
+			DeviceActivationTenantMaxMisses: 1000, DeviceActivationTenantWindowSeconds: 600, DeviceActivationTenantLockoutSeconds: 60,
+		},
 		CustomDB: CustomDB{Node: "node", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute},
 		Email:    Email{Driver: "log", From: "zeroauthy@localhost", SMTP: SMTP{Port: 587}},
 	}
@@ -177,6 +191,19 @@ func (c *Config) validate() error {
 	}
 	if c.Security.LoginMaxAttempts <= 0 || c.Security.LoginLockoutSeconds <= 0 {
 		errs = append(errs, errors.New("security.login_max_attempts and security.login_lockout_seconds must be positive"))
+	}
+	sec := c.Security
+	if sec.DeviceActivationTxnMaxMisses < 1 {
+		errs = append(errs, errors.New("security.device_activation_txn_max_misses must be at least 1"))
+	}
+	if sec.DeviceActivationIPMaxMisses < 0 || sec.DeviceActivationTenantMaxMisses < 0 {
+		errs = append(errs, errors.New("security.device_activation_ip_max_misses and device_activation_tenant_max_misses must not be negative"))
+	}
+	if sec.DeviceActivationIPMaxMisses > 0 && sec.DeviceActivationIPLockoutSeconds <= 0 {
+		errs = append(errs, errors.New("security.device_activation_ip_lockout_seconds must be positive"))
+	}
+	if sec.DeviceActivationTenantMaxMisses > 0 && (sec.DeviceActivationTenantWindowSeconds <= 0 || sec.DeviceActivationTenantLockoutSeconds <= 0) {
+		errs = append(errs, errors.New("security.device_activation_tenant_window_seconds and device_activation_tenant_lockout_seconds must be positive"))
 	}
 	if c.CustomDB.ModulesDir != "" && !filepath.IsAbs(c.CustomDB.ModulesDir) {
 		errs = append(errs, errors.New("custom_db.modules_dir must be an absolute path"))

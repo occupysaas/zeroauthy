@@ -209,3 +209,24 @@ func TestCustomDBSettings(t *testing.T) {
 		t.Error("max_memory_mb 31 accepted")
 	}
 }
+
+func TestDeviceActivationSettings(t *testing.T) {
+	base := "ZEROAUTHY_STORAGE__DSN=memory://"
+	cfg, err := Load("", []string{base})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := cfg.Security
+	if s.DeviceActivationTxnMaxMisses != 5 || s.DeviceActivationIPMaxMisses != 10 || s.DeviceActivationIPLockoutSeconds != 900 ||
+		s.DeviceActivationTenantMaxMisses != 1000 || s.DeviceActivationTenantWindowSeconds != 600 || s.DeviceActivationTenantLockoutSeconds != 60 {
+		t.Fatalf("defaults = %+v", s)
+	}
+	if _, err := Load("", []string{base, "ZEROAUTHY_SECURITY__DEVICE_ACTIVATION_IP_MAX_MISSES=0", "ZEROAUTHY_SECURITY__DEVICE_ACTIVATION_TENANT_MAX_MISSES=0"}); err != nil {
+		t.Fatalf("zero (off) rejected: %v", err)
+	}
+	for _, bad := range []string{"DEVICE_ACTIVATION_IP_MAX_MISSES=-1", "DEVICE_ACTIVATION_TENANT_MAX_MISSES=-1", "DEVICE_ACTIVATION_TXN_MAX_MISSES=0"} {
+		if _, err := Load("", []string{base, "ZEROAUTHY_SECURITY__" + bad}); err == nil {
+			t.Errorf("%s accepted", bad)
+		}
+	}
+}

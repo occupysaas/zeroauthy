@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/devicecode"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -56,6 +57,10 @@ var authMethods = []string{
 
 // strictGrantTypes are the only grant types a strict third-party
 // application may use.
+// deviceGrant is the device authorization grant type. It is spelled out
+// here because seed does not import internal/oauth.
+const deviceGrant = "urn:ietf:params:oauth:grant-type:device_code"
+
 var strictGrantTypes = []string{"authorization_code", "refresh_token", "client_credentials"}
 
 // defaultAuthMethod picks a method when the seed omits one. Browser and
@@ -123,6 +128,27 @@ func (t *Tenant) validate() []error {
 	}
 	if err := i18n.ValidateCustomText(t.EnabledLocales, t.CustomText); err != nil {
 		fail("%v", err)
+	}
+
+	if t.DeviceFlow.Charset != "" || t.DeviceFlow.Mask != "" {
+		charset := t.DeviceFlow.Charset
+		if charset == "" {
+			charset = devicecode.CharsetBase20
+		}
+		if charset != devicecode.CharsetBase20 && charset != devicecode.CharsetDigits {
+			fail("device_flow.charset %q must be base20 or digits", t.DeviceFlow.Charset)
+		} else {
+			mask := t.DeviceFlow.Mask
+			if mask == "" {
+				mask = devicecode.DefaultMask
+				if charset == devicecode.CharsetDigits {
+					mask = "***-***-***"
+				}
+			}
+			if err := devicecode.ValidateMask(charset, mask); err != nil {
+				fail("device_flow.mask %q: %v", t.DeviceFlow.Mask, err)
+			}
+		}
 	}
 
 	apis := map[string]*ResourceServer{}
@@ -239,6 +265,19 @@ func (t *Tenant) validate() []error {
 				fail("client %q: grant type %q is not available to third-party applications", c.ClientID, gt)
 			case strict && !slices.Contains(strictGrantTypes, gt):
 				fail("client %q: grant type %q is not available to strict third-party applications", c.ClientID, gt)
+			}
+		}
+		if slices.Contains(c.GrantTypes, deviceGrant) {
+			// Observed on Auth0: the Management API accepts the device
+			// grant only for first-party native public clients.
+			if store.AppType(c.AppType) != store.AppTypeNative {
+				fail("client %q: device grant requires app_type native", c.ClientID)
+			}
+			if c.TokenEndpointAuthMethod != store.AuthMethodNone {
+				fail("client %q: device grant requires token_endpoint_auth_method none", c.ClientID)
+			}
+			if !firstParty {
+				fail("client %q: device grant is not available to third-party applications", c.ClientID)
 			}
 		}
 		if strict && slices.Contains(c.GrantTypes, "client_credentials") && c.TokenEndpointAuthMethod == store.AuthMethodNone {

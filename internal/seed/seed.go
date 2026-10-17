@@ -34,9 +34,18 @@ type Tenant struct {
 	EnabledLocales      []string         `yaml:"enabled_locales"`
 	CustomText          store.CustomText `yaml:"custom_text"`
 
+	DeviceFlow DeviceFlow `yaml:"device_flow"`
+
 	SkipNonVerifiableCallbackURIConfirmationPrompt bool `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 	UseScopeDescriptionsForConsent                 bool `yaml:"use_scope_descriptions_for_consent"`
 	PushedAuthorizationRequestsSupported           bool `yaml:"pushed_authorization_requests_supported"`
+}
+
+// DeviceFlow shapes the user codes of the device authorization grant.
+// Empty values select the defaults.
+type DeviceFlow struct {
+	Charset string `yaml:"charset"`
+	Mask    string `yaml:"mask"`
 }
 
 type ResourceServer struct {

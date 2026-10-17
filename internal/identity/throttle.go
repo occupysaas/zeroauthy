@@ -38,6 +38,15 @@ func NewThrottle(maxFailures int, window, lockout time.Duration) *Throttle {
 	return &Throttle{max: maxFailures, window: window, lockout: lockout, entries: map[string]*throttleEntry{}}
 }
 
+// NewThrottleOrOff is NewThrottle, except that maxFailures of 0 returns
+// nil, a throttle that allows everything.
+func NewThrottleOrOff(maxFailures int, window, lockout time.Duration) *Throttle {
+	if maxFailures == 0 {
+		return nil
+	}
+	return NewThrottle(maxFailures, window, lockout)
+}
+
 func (t *Throttle) now() time.Time {
 	if t.Now != nil {
 		return t.Now()
@@ -51,6 +60,9 @@ func (t *Throttle) now() time.Time {
 // credentials: concurrent attempts then cannot all pass a check that a
 // later failure would enforce.
 func (t *Throttle) Attempt(key string) bool {
+	if t == nil {
+		return true
+	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	now := t.now()
@@ -81,6 +93,9 @@ func (t *Throttle) Attempt(key string) bool {
 // Refund undoes one counted attempt for key. It does not clear an active
 // lockout. Use it for a key whose successful logins should not accumulate.
 func (t *Throttle) Refund(key string) {
+	if t == nil {
+		return
+	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if e, ok := t.entries[key]; ok && e.count > 0 {
@@ -90,6 +105,9 @@ func (t *Throttle) Refund(key string) {
 
 // Success clears all state for key, including any lockout.
 func (t *Throttle) Success(key string) {
+	if t == nil {
+		return
+	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	delete(t.entries, key)

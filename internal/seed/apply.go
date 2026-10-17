@@ -62,6 +62,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 		tn.SkipNonVerifiableCallbackURIConfirmationPrompt = in.SkipNonVerifiableCallbackURIConfirmationPrompt
 		tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
 		tn.PushedAuthorizationRequestsSupported = in.PushedAuthorizationRequestsSupported
+		tn.DeviceFlowCharset, tn.DeviceFlowMask = in.DeviceFlow.Charset, in.DeviceFlow.Mask
 		if err := st.Tenants().Create(ctx, tn); err != nil {
 			return err
 		}
@@ -78,6 +79,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 		tn.SkipNonVerifiableCallbackURIConfirmationPrompt = in.SkipNonVerifiableCallbackURIConfirmationPrompt
 		tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
 		tn.PushedAuthorizationRequestsSupported = in.PushedAuthorizationRequestsSupported
+		tn.DeviceFlowCharset, tn.DeviceFlowMask = in.DeviceFlow.Charset, in.DeviceFlow.Mask
 		if err := st.Tenants().Update(ctx, tn); err != nil {
 			return err
 		}
