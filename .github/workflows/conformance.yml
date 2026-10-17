@@ -1,0 +1,41 @@
+name: conformance
+# On demand only: start it from the Actions tab. See tests/conformance/README.md.
+on:
+  workflow_dispatch:
+    inputs:
+      plans:
+        description: "Space-separated plans to run (basic, config, formpost, logout)"
+        required: false
+        default: "basic config formpost logout"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run the OpenID conformance plans
+        env:
+          CONFORMANCE_RUNTIME: docker
+          PLANS: ${{ inputs.plans }}
+        run: |
+          # Word-split on purpose; run.sh rejects any name that is not a known plan.
+          read -r -a plans <<<"$PLANS"
+          ./tests/conformance/run.sh "${plans[@]}"
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-results
+          path: tests/conformance/results/
+          if-no-files-found: ignore
