@@ -17,6 +17,7 @@ Turn the feature on for the tenant first, then require it for the clients that s
 ```yaml
 tenants:
   - name: acme
+    domains: [auth.example.com]
     pushed_authorization_requests_supported: true    # default false
     clients:
       - client_id: webapp
@@ -27,7 +28,7 @@ tenants:
         require_pushed_authorization_requests: true  # default false
 ```
 
-- `pushed_authorization_requests_supported` is a tenant setting. While it is off, `/oauth/par` answers `400 invalid_request`, `request_uri` at `/authorize` is refused, and discovery does not mention PAR.
+- `pushed_authorization_requests_supported` is a tenant setting. While it is off, `/oauth/par` answers `400 invalid_request`, `request_uri` at `/authorize` is refused, and discovery lists no PAR endpoint (it still lists `request_uri_parameter_supported: false`).
 - `require_pushed_authorization_requests` is a client setting. The seed refuses it when the tenant setting is off, on public clients, and on third-party clients, because those cannot push.
 - A client without the setting may still push; the setting only forbids the plain `/authorize` request.
 
@@ -53,8 +54,10 @@ curl -s https://auth.example.com/oauth/par \
 ```
 
 ```json
-{"request_uri": "urn:ietf:params:oauth:request_uri:...(64 characters)", "expires_in": 30}
+{"request_uri": "urn:ietf:params:oauth:request_uri:q7Hn2WcX9bLr4TgYd1VzKf8MsPa3JuEo6NiRxA0CtBhZw5GyDeQkS2lUvOjF1mPb", "expires_in": 30}
 ```
+
+The opaque part after the prefix is 64 characters.
 
 The response is `201` with `Cache-Control: no-store`. Then send the browser to:
 
@@ -76,8 +79,8 @@ At `/oauth/par`:
 
 At `/authorize`:
 
-- With a `request_uri`, only the pushed parameters count. Every query parameter except `client_id` is ignored, never an error.
-- An unknown, used, expired or wrong-client `request_uri`, or one sent while the tenant setting is off, shows an HTTP 400 error page. There is no redirect. Any attempt that finds the request uses it up, including one with the wrong `client_id`.
+- With a `request_uri`, only the pushed parameters count. Every query parameter except `client_id` and `request_uri` is ignored, never an error.
+- An unknown, used, expired or wrong-client `request_uri`, or one sent while the tenant setting is off, shows an HTTP 400 error page. There is no redirect. An attempt by an existing, non-strict client that finds the request uses it up, including one with the wrong `client_id`; an unknown `client_id` or a strict third-party client never touches it.
 - A client with `require_pushed_authorization_requests` that sends a plain request is redirected back with `error=invalid_request` and its `state` (subject to `redirection_policy`).
 - The login and consent pages remember that the request was pushed, so a client that requires PAR is not refused after them.
 
@@ -85,7 +88,7 @@ Discovery shows `pushed_authorization_request_endpoint` only while the tenant se
 
 ## Storage plugins
 
-Plugins built before this version cannot store pushed requests. Their expiry sweep is tolerated, but a push fails. Rebuild plugins against this version before turning PAR on. The built-in memory, SQLite, PostgreSQL and MySQL drivers need no action beyond migration 0004, which runs automatically.
+Plugins built before this version cannot store pushed requests. Their expiry sweep is tolerated, but a push fails. A plugin built before Plan 10 also drops `require_pushed_authorization_requests` and `pushed_authorization_requests_supported` on write, so the settings silently read back as false until the plugin is rebuilt. Rebuild plugins against this version before turning PAR on. The built-in memory, SQLite, PostgreSQL and MySQL drivers need no action beyond migration 0004, which runs automatically.
 
 ## Differences from Auth0
 

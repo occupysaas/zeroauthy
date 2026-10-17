@@ -203,4 +203,5 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - A general Authentication API rate limiter covering `/oauth/par` (zeroauthy has per-identity throttles only).
 - The `iss` authorization response parameter (RFC 9207), which Auth0 sends (tenant setting `authorization_response_iss_parameter_supported`; observations/par.md).
 - Repeated query parameters on `/authorize` get a JSON 400 from the generated wrapper (existing item; it also applies to `request_uri`).
+- Store failures during `/authorize` request validation or `request_uri` resolution render a 400 error page; they should be 500. This applies to the existing non-redirectable server errors at `/authorize` too.
 - `scripts/test-sql.sh` hardcodes host ports 55432 (PostgreSQL) and 53306 (MySQL), which collide with other local containers. Make them configurable (this repeats the Plan 9 item and is still open).

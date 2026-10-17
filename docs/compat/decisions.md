@@ -467,7 +467,7 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Sources:** the D-0028 docs; RFC 9126 §4; observations/par.md.
 - **Decision:**
   - **Only pushed parameters count.** Query parameters other than `client_id` and `request_uri` are ignored, never an error (observed for `state`, `redirect_uri`, `response_type`, `scope` and an unknown parameter).
-  - **Failures are error pages** (HTTP 400, no redirect): an unknown, used, expired or wrong-client `request_uri`, or one presented while the tenant setting is off. The request is used up by any attempt that finds it, including one with the wrong `client_id` (observed).
+  - **Failures are error pages** (HTTP 400, no redirect): an unknown, used, expired or wrong-client `request_uri`, or one presented while the tenant setting is off. The request is used up by an attempt from an existing, non-strict client that finds it, including one with the wrong `client_id` (observed); an unknown `client_id` or a strict third-party client never touches it.
   - **Required PAR:** a plain `/authorize` from a client with `require_pushed_authorization_requests` redirects with `error=invalid_request` and the request's `state`, subject to `redirection_policy`. This holds even when the tenant setting is off (observed).
   - **The pushed mark survives the hosted pages:** the login transaction remembers that its request was pushed, so a client that requires PAR is not refused after the login or consent page.
   - Strict third-party clients keep refusing `request_uri` at `/authorize` (D-0025).

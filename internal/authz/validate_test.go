@@ -78,6 +78,7 @@ func TestValidateErrors(t *testing.T) {
 		{"unregistered private-use", with(goodQuery(), "redirect_uri", "com.example.app:/other"), "invalid_request", false},
 		{"private-use with fragment", with(goodQuery(), "redirect_uri", "com.example.app:/oauth2redirect#x"), "invalid_request", false},
 		{"web_message unregistered origin", with(goodQuery(), "redirect_uri", "http://localhost:3000/", "response_mode", "web_message"), "invalid_request", false},
+		{"required PAR after web_message rule", with(goodQuery(), "client_id", "par-required", "redirect_uri", "https://req.acme.test/cb", "response_mode", "web_message"), "invalid_request", false},
 		// Redirectable errors.
 		{"no response_type", with(goodQuery(), "response_type", ""), "invalid_request", true},
 		{"implicit", with(goodQuery(), "response_type", "token"), "unsupported_response_type", true},

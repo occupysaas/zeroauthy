@@ -93,6 +93,18 @@ func TestPushedReuseFails(t *testing.T) {
 	}
 }
 
+// D-0029: a wrong-client attempt by an existing client uses the request up.
+func TestWrongClientUsesUpRequest(t *testing.T) {
+	e := newEnv(t)
+	uri := e.push(t, e.tenant.ID, "par-web", parParams(), PARLifetime)
+	for _, client := range []string{"web", "par-web"} {
+		rec := e.get(t, parQuery(client, uri))
+		if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" {
+			t.Fatalf("client %s: status %d, Location %q", client, rec.Code, rec.Header().Get("Location"))
+		}
+	}
+}
+
 func TestPushedRequestRefused(t *testing.T) {
 	e := newEnv(t)
 	cases := map[string]func() url.Values{

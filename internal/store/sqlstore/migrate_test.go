@@ -227,3 +227,31 @@ func TestMigration0003Defaults(t *testing.T) {
 		})
 	}
 }
+
+func TestMigration0004Defaults(t *testing.T) {
+	ctx := context.Background()
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := openAtVersion(t, mk(t), 3)
+			mustExec(t, s, `INSERT INTO tenants (id, name, friendly_name, default_audience, allowed_logout_urls, enabled_locales, custom_text,
+ session_lifetime, idle_session_lifetime, logo_url, primary_color, default_directory, created_at,
+ skip_non_verifiable_callback_uri_confirmation_prompt, use_scope_descriptions_for_consent)
+ VALUES ('t','acme','Acme','','null','null','null',0,0,'','','',0,false,false)`)
+			mustExec(t, s, `INSERT INTO clients (tenant_id, client_id, name, app_type, secrets, token_endpoint_auth_method,
+ grant_types, callbacks, allowed_logout_urls, web_origins, allowed_origins, id_token_lifetime, refresh_token, created_at,
+ is_first_party, third_party_security_mode, redirection_policy)
+ VALUES ('t','c','n','spa','null','none','null','null','null','null','null',0,'null',0,true,'','')`)
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			tn, err := s.Tenants().Get(ctx, "t")
+			if err != nil || tn.PushedAuthorizationRequestsSupported {
+				t.Fatalf("tenant after migration: %+v %v", tn, err)
+			}
+			c, err := s.Clients().Get(ctx, "t", "c")
+			if err != nil || c.RequirePushedAuthorizationRequests {
+				t.Fatalf("client after migration: %+v %v", c, err)
+			}
+		})
+	}
+}
