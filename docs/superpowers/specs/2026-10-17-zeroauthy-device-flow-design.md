@@ -131,11 +131,11 @@ Each point has a default from RFC 8628 and the docs. Observation (§7) confirms 
 |---|---|---|
 | D1 | Path and redirect shape of `/activate`, the entry and confirmation pages; whether `verification_uri_complete` still shows confirmation | `/activate` → `/u/device?state=…`; confirmation always shows |
 | D2 | Default charset and mask; base20 alphabet; allowed separators; case-insensitive entry | `base20`, `****-****`, alphabet as in §3, `-` and space, case-insensitive |
-| D3 | `/oauth/device/code` with a client lacking the grant, a confidential client, an unknown audience, an audience refused by an access policy | `400 unauthorized_client`; `400 unauthorized_client`; `400` with the code `/authorize` uses (`invalid_request`, O7); policy checked only after login |
+| D3 | `/oauth/device/code` with a client lacking the grant, a confidential client, an unknown audience, an audience refused by an access policy | `unauthorized_client`; `unauthorized_client` (both with the token endpoint's existing 403); unknown audience `403 access_denied`; access policies checked only after login |
 | D4 | Consent in the device flow: a first-party client on an API that skips consent for verifiable first-party clients; a returning user with a grant; a first-party client with no audience | Consent shows (device clients are non-verifiable); no consent (grant covers it); no consent |
 | D5 | HTTP status of `expired_token` and later `invalid_grant` | `400` for both |
 | D6 | Discovery fields | `device_authorization_endpoint` present; grant in `grant_types_supported` |
-| D7 | Wrong code, expired code, reused code on the entry page | Same page, an error message, no hint which case it was |
+| D7 | Wrong code, expired code, reused code, empty submit on the entry page | Same page with Auth0's documented message keys: `invalid-code`; `invalid-expired-code`; `invalid-expired-code`; `no-code` |
 | D8 | Declining at confirmation vs at consent: device poll result | `access_denied` in both cases |
 | D9 | The `interval` returned after `slow_down`, and whether polls between `pending` responses are measured from the last response | +5 s per `slow_down`; measured from the last poll |
 | D10 | Code entered in a browser that already has a session | Silent reuse, as at `/authorize` (confirmation still shows) |
