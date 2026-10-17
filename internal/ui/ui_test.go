@@ -383,9 +383,9 @@ func TestRenderDevicePages(t *testing.T) {
 	}
 
 	rec = httptest.NewRecorder()
-	RenderDeviceConfirm(rec, Tenant{Name: "Acme"}, DeviceConfirmData{State: "st", CSRF: "tok", UserCode: "BCDF-GHJK"})
+	RenderDeviceConfirm(rec, Tenant{Name: "Acme"}, DeviceConfirmData{State: "st", CSRF: "tok", UserCode: "BCDF-GHJK", ClientName: "<TV>"})
 	body = rec.Body.String()
-	for _, want := range []string{`name="state" value="st"`, `name="csrf" value="tok"`, `action="/device/confirmation"`, "BCDF-GHJK", `value="confirm"`, `value="cancel"`} {
+	for _, want := range []string{`name="state" value="st"`, `name="csrf" value="tok"`, `action="/device/confirmation"`, "BCDF-GHJK", `<strong class="client">&lt;TV&gt;</strong>`, `value="confirm"`, `value="cancel"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("confirm page lacks %q:\n%s", want, body)
 		}

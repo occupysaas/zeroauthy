@@ -48,6 +48,8 @@ tenants:
         en:
           device-code-activation:
             title: "Link your Acme device"
+          device-code-confirmation:
+            confirmationText: "Confirm only if you started this yourself."
     resource_servers:
       - {identifier: "https://api.acme.test", name: API, scopes: [{value: "read:things"}]}
     client_grants:
@@ -168,6 +170,8 @@ type browser struct {
 	cookies map[string]*http.Cookie
 	// acceptLanguage, when set, is sent as the Accept-Language header.
 	acceptLanguage string
+	// remoteAddr, when set, is the request's RemoteAddr (host:port).
+	remoteAddr string
 }
 
 func (e *env) browser(host string) *browser {
@@ -185,6 +189,9 @@ func (b *browser) do(t *testing.T, method, path string, form url.Values) *httpte
 	}
 	if b.acceptLanguage != "" {
 		r.Header.Set("Accept-Language", b.acceptLanguage)
+	}
+	if b.remoteAddr != "" {
+		r.RemoteAddr = b.remoteAddr
 	}
 	for _, c := range b.cookies {
 		r.AddCookie(c)

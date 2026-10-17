@@ -319,3 +319,15 @@ func TestDeviceServerErrorPage(t *testing.T) {
 		t.Fatalf("status = %s", got.Status)
 	}
 }
+
+// /authorize keeps its 400 page for a server error; only device flows
+// render 500.
+func TestFlowErrorAuthorizeServerErrorStays400(t *testing.T) {
+	e := newEnv(t)
+	rec := httptest.NewRecorder()
+	e.h.flowError(rec, httptest.NewRequest("GET", "https://acme.example.test/u/login", nil), e.res(), flowReq{}, errServer())
+	l := i18n.ForRequest(e.tenant, httptest.NewRequest("GET", "/", nil), "")
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), html.EscapeString(l.T(i18n.KeyErrInvalidRequest))) {
+		t.Fatalf("status %d body %s", rec.Code, rec.Body)
+	}
+}

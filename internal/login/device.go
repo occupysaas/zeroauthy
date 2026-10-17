@@ -71,7 +71,13 @@ func (h *Handlers) checkCode(w http.ResponseWriter, r *http.Request, f *flow, co
 	data := ui.DeviceCodeData{State: f.txn.ID, CSRF: f.txn.CSRFToken, UserCode: code}
 	ipKey := identity.IPThrottleKey(tenantID, httpx.ClientIP(r, h.TrustProxyHeaders))
 	// Attempt counts the try up front; a code that is found refunds it.
-	if !h.DeviceTenantThrottle.Attempt(tenantID) || !h.DeviceIPThrottle.Attempt(ipKey) {
+	tenantOK := h.DeviceTenantThrottle.Attempt(tenantID)
+	ipOK := tenantOK && h.DeviceIPThrottle.Attempt(ipKey)
+	if !ipOK {
+		if tenantOK {
+			// A locked IP's requests must not wear down the tenant limit.
+			h.DeviceTenantThrottle.Refund(tenantID)
+		}
 		data.ErrorKey = i18n.KeyTooManyAttempts
 		ui.RenderDeviceCode(w, http.StatusTooManyRequests, f.view, data)
 		return
@@ -81,8 +87,14 @@ func (h *Handlers) checkCode(w http.ResponseWriter, r *http.Request, f *flow, co
 		h.fail(w, r, errTxn, f)
 		return
 	}
+	refund := func() {
+		h.DeviceTenantThrottle.Refund(tenantID)
+		h.DeviceIPThrottle.Refund(ipKey)
+		h.DeviceTxnThrottle.Refund(f.txn.ID)
+	}
 	norm := devicecode.Normalize(code)
 	if norm == "" {
+		refund() // not a guess
 		data.ErrorKey = i18n.KeyDeviceNoCode
 		ui.RenderDeviceCode(w, http.StatusBadRequest, f.view, data)
 		return
@@ -97,9 +109,7 @@ func (h *Handlers) checkCode(w http.ResponseWriter, r *http.Request, f *flow, co
 		ui.RenderDeviceCode(w, http.StatusBadRequest, f.view, data)
 		return
 	}
-	h.DeviceTenantThrottle.Refund(tenantID)
-	h.DeviceIPThrottle.Refund(ipKey)
-	h.DeviceTxnThrottle.Refund(f.txn.ID)
+	refund()
 	h.Authz.EndTxn(w, r, f.res, f.txn)
 
 	_, mask := devicecode.Settings(f.res.Tenant)
@@ -152,7 +162,9 @@ func (h *Handlers) DeviceConfirmPage(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
-	ui.RenderDeviceConfirm(w, f.view, ui.DeviceConfirmData{State: f.txn.ID, CSRF: f.txn.CSRFToken, UserCode: f.txn.Params[authz.ParamUserCode]})
+	ui.RenderDeviceConfirm(w, f.view, ui.DeviceConfirmData{
+		State: f.txn.ID, CSRF: f.txn.CSRFToken, UserCode: f.txn.Params[authz.ParamUserCode], ClientName: f.clientName,
+	})
 }
 
 // DeviceConfirmSubmit serves POST /device/confirmation (form: state, csrf,

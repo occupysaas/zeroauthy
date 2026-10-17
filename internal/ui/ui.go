@@ -373,8 +373,10 @@ func RenderConsent(w http.ResponseWriter, status int, t Tenant, d ConsentData) {
 type DeviceCodeData struct{ State, CSRF, UserCode, ErrorKey string }
 
 // DeviceConfirmData is the device confirmation page (screen
-// device-code-confirmation). UserCode is the formatted code.
-type DeviceConfirmData struct{ State, CSRF, UserCode string }
+// device-code-confirmation). UserCode is the formatted code. ClientName is
+// shown outside the tenant's overridable text, so custom text cannot hide
+// which application asks for access.
+type DeviceConfirmData struct{ State, CSRF, UserCode, ClientName string }
 
 // RenderDeviceCode asks for the code a device shows.
 func RenderDeviceCode(w http.ResponseWriter, status int, t Tenant, d DeviceCodeData) {

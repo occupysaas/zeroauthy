@@ -360,3 +360,51 @@ func TestDeviceCustomText(t *testing.T) {
 		t.Fatalf("entry page lacks the tenant's title:\n%s", rec.Body)
 	}
 }
+
+// A locked IP's refused requests do not count against the tenant, so one
+// IP cannot trip the tenant-wide lockout.
+func TestDeviceLockedIPDoesNotCountForTenant(t *testing.T) {
+	e := newEnv(t)
+	e.h.DeviceIPThrottle = identity.NewThrottle(3, 15*time.Minute, 15*time.Minute)
+	e.h.DeviceTenantThrottle = identity.NewThrottle(5, 10*time.Minute, time.Minute)
+	e.pendingCode(t, userCode)
+	b := e.browser("acme.example.test")
+	b.remoteAddr = "198.51.100.1:1234"
+	for i := 0; i < 3; i++ {
+		entryError(t, b.do(t, "GET", "/activate?user_code=wrongcode", nil), http.StatusBadRequest, i18n.KeyDeviceInvalidExpiredCode)
+	}
+	for i := 0; i < 10; i++ {
+		entryError(t, b.do(t, "GET", "/activate?user_code=wrongcode", nil), http.StatusTooManyRequests, i18n.KeyTooManyAttempts)
+	}
+	other := e.browser("acme.example.test")
+	other.remoteAddr = "198.51.100.2:1234"
+	redirectTo(t, other.submitCode(t, userCode), "/device/confirmation")
+}
+
+// An empty code is not a guess: it counts against no limit.
+func TestDeviceNoCodeNotCounted(t *testing.T) {
+	e := newEnv(t)
+	e.h.DeviceIPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	e.h.DeviceTenantThrottle = identity.NewThrottle(2, 10*time.Minute, time.Minute)
+	e.pendingCode(t, userCode)
+	b := e.browser("acme.example.test")
+	state, csrf := b.entry(t)
+	for i := 0; i < 8; i++ {
+		rec := b.do(t, "POST", "/activate", url.Values{"state": {state}, "csrf": {csrf}, "code": {" - "}})
+		entryError(t, rec, http.StatusBadRequest, i18n.KeyDeviceNoCode)
+	}
+	redirectTo(t, b.do(t, "POST", "/activate", url.Values{"state": {state}, "csrf": {csrf}, "code": {userCode}}), "/device/confirmation")
+}
+
+// The client's name is shown outside the overridable text: the tenant's
+// confirmationText (seeded without ${clientName}) cannot hide it.
+func TestDeviceConfirmShowsClientName(t *testing.T) {
+	e := newEnv(t)
+	e.pendingCode(t, userCode)
+	b := e.browser("acme.example.test")
+	page, _, _ := b.confirmPage(t, b.submitCode(t, userCode))
+	body := page.Body.String()
+	if !strings.Contains(body, "Confirm only if you started this yourself.") || !strings.Contains(body, `<strong class="client">Living Room TV</strong>`) {
+		t.Fatalf("confirmation page:\n%s", body)
+	}
+}

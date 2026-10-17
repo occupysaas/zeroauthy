@@ -67,6 +67,8 @@ type flow struct {
 	view ui.Tenant
 	txn  *store.AuthTransaction
 	conn *store.Connection
+	// clientName is the application's name, or its client ID when it has none.
+	clientName string
 }
 
 // loadTxn validates the transaction named by state: it must exist in this
@@ -94,7 +96,7 @@ func (h *Handlers) loadTxn(r *http.Request, state string) (*flow, error) {
 		clientName, named = c.Name, true
 	}
 	l := i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]).WithVar("clientName", clientName)
-	f := &flow{res: res, view: ui.TenantView(res.Tenant, l), txn: txn}
+	f := &flow{res: res, view: ui.TenantView(res.Tenant, l), txn: txn, clientName: clientName}
 	f.view.HasClientName = named
 	return f, nil
 }

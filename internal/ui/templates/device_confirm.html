@@ -3,6 +3,7 @@
 {{define "description"}}{{t .Tenant.L "device-flow.device-code-confirmation.description"}}{{end}}
 {{define "logoalt"}}{{t .Tenant.L "device-flow.device-code-confirmation.logoAltText"}}{{end}}
 {{define "content"}}
+{{if .Data.ClientName}}<p><strong class="client">{{.Data.ClientName}}</strong></p>{{end}}
 <label for="code">{{t .Tenant.L "device-flow.device-code-confirmation.inputCodeLabel"}}</label>
 <input id="code" type="text" value="{{.Data.UserCode}}" readonly>
 <p>{{t .Tenant.L "device-flow.device-code-confirmation.confirmationText"}}</p>
