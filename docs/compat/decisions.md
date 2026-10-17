@@ -482,3 +482,43 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Client:** `require_pushed_authorization_requests`, default `false`. The seed refuses it when the tenant setting is off (the docs' ordering), on public clients, and on third-party clients (which cannot push, D-0028). Auth0 lets the tenant setting be turned off afterwards; zeroauthy's seed cannot express that state, but stored data from plugins or migrations can, and `/authorize` then refuses every request from that client, as on Auth0.
   - **Discovery:** `pushed_authorization_request_endpoint` only while the tenant setting is on; `request_uri_parameter_supported: false` always (observed in both states). Without it, OpenID Connect clients would assume `request_uri` is accepted outside PAR.
 - **Rationale:** Observed names and discovery values are matched.
+
+## D-0031: The device authorization endpoint and the device_code grant
+
+- **Context:** Auth0 documents `POST /oauth/device/code` (RFC 8628), its response, the polling errors `authorization_pending`, `slow_down`, `expired_token` and `access_denied`, and the client prerequisites. Statuses, client identification errors and polling limits are not documented.
+- **Sources:** https://auth0.com/docs/get-started/authentication-and-authorization-flow/device-authorization-flow; https://auth0.com/docs/get-started/authentication-and-authorization-flow/device-authorization-flow/call-your-api-using-the-device-authorization-flow; RFC 8628; observations/device-flow.md.
+- **Decision:**
+  - **Request:** form or JSON body (observed: JSON accepted). An unknown, repeated or unsuitable `client_id` (no grant, not `none`) is `403 unauthorized_client`. `audience=` empty means no audience. An unknown audience, or an API whose access policy refuses the client, is `400 invalid_request` when the code is issued. Access policies are checked again after login.
+  - **Response:** `200` with `device_code` (24 random characters, stored as a SHA-256 hash), `user_code`, `verification_uri` = `https://{host}/activate`, `verification_uri_complete` = `…/activate?user_code={formatted code}`, `expires_in: 900`, `interval: 5`, `Cache-Control: no-store`.
+  - **Polling:** `403 authorization_pending`; `429 slow_down` only for a poll less than 1 second after the last accepted poll (a slow_down answer does not move that mark, and no `interval` is returned); `403 access_denied` once for a denied code, then `403 invalid_grant`; `200` tokens once for an approved code, then `403 invalid_grant`; an unknown code or another client's code is `403 invalid_grant`. Expiry: the first poll after expiry is `403 expired_token`, later polls `403 invalid_grant` (observed). Auth0 stops answering `expired_token` somewhere between a few seconds and 11 minutes after expiry; zeroauthy answers it on the first poll after expiry at any time while the record is kept (24 hours), which is harmless for clients and simpler than guessing the window.
+  - **Tokens:** the access token's audience is the API (plus `/userinfo` with `openid`) and carries no `gty`. The ID token has no `sid` and no `auth_time`: device tokens are not bound to the browser session, so logging out in the browser does not sign the device out. Refresh tokens rotate and revoke like any other; revoking one forces the device to start again.
+- **Rationale:** Observed values are matched. The 1-second gap is the narrowest rule consistent with the observation (no `slow_down` at 1 s, alternating `slow_down` in a burst); Auth0's exact algorithm is not observable without load.
+
+## D-0032: The device browser path
+
+- **Context:** Auth0 documents the browser path (enter the code, confirm it, log in, consent if needed) and the custom-text screens `device-code-activation`, `device-code-confirmation`, `device-code-activation-allowed` and `device-code-activation-denied`. Paths and messages are not documented.
+- **Sources:** the D-0031 docs; https://auth0.com/docs/customize/login-pages/universal-login/customize-text-elements; observations/device-flow.md.
+- **Decision:**
+  - **Paths (observed):** `GET /activate` serves the entry form, which posts `state` and `code` to `/activate`; `?user_code=` skips entry. A valid code redirects to `/device/confirmation?state=…`, which posts `state` and `action` (`confirm` or `cancel`). The result pages are `/device/success` and `/device/denied`. Login and consent are the normal `/u/login` and `/u/consent`.
+  - **Entry errors:** an unknown, expired or used code all show the `invalid-expired-code` text with status 400; an empty submit shows `no-code`. Codes are matched without case or separators.
+  - **Confirmation always shows,** including through `verification_uri_complete` and with a live session.
+  - **Session reuse:** a live browser session is reused without a login page (observed).
+  - **Consent:** decided as for `/authorize`: an API that skips consent for first-party applications shows none; otherwise consent shows and a remembered user grant skips it later. Declining at confirmation or consent denies the code.
+- **Rationale:** Observed. Path parity costs nothing and keeps tenant-hosted links and documentation interchangeable.
+
+## D-0033: Device flow settings, client rules and discovery
+
+- **Context:** Auth0 configures the user code with a tenant character set and mask; the Management API schema names them `device_flow.charset` (`base20` or `digits`) and `device_flow.mask`.
+- **Sources:** https://auth0.com/docs/get-started/tenant-settings/configure-device-user-code-settings; the Management API tenant settings schema in the open-source SDKs; observations/device-flow.md.
+- **Decision:**
+  - **Tenant:** `device_flow: {charset, mask}`, absent by default (observed), meaning `base20` and `****-****`. base20 is `BCDFGHJKLMNPQRSTVWXZ` (observed: exactly these 20 letters). A mask has `*` placeholders and `-` or space separators, at least 8 (base20) or 9 (digits) placeholders, at most 20 characters (documented).
+  - **Clients:** the device grant requires `app_type: native`, `token_endpoint_auth_method: none` and a first-party client. The Management API refuses each of the other combinations (observed), so the seed refuses them too.
+  - **Discovery:** `device_authorization_endpoint` and the grant in `grant_types_supported` (observed).
+- **Rationale:** Observed and documented values are matched.
+
+## D-0034: Device activation limits (deliberate)
+
+- **Context:** Auth0 says it rate-limits the device flow but publishes no numbers, and CLEAN_ROOM.md forbids load testing a tenant to find them.
+- **Sources:** the D-0031 docs; RFC 8628 §5.1 (user code brute forcing); design spec §5.
+- **Decision:** zeroauthy's own limits on wrong codes at `/activate`, each in-process: 5 per transaction (the transaction is then discarded), 10 per IP per 15 minutes, and 1,000 per tenant per 10 minutes with a 1-minute lockout. The IP and tenant limits can be turned off (0). Only misses count. Config keys are `security.device_activation_*`.
+- **Rationale:** a deliberate deviation in numbers, not in behaviour: Auth0 also throttles, and RFC 8628 requires protection against guessing. The defaults keep a slow or typo-prone user unaffected.

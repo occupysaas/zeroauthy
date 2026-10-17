@@ -127,6 +127,16 @@ Polling has its own protection through `slow_down` (§4.3). `POST /oauth/device/
 
 Each point has a default from RFC 8628 and the docs. Observation (§7) confirms or replaces it, and every outcome gets a decision (D-0031 onward) and a matrix note.
 
+**Observed 2026-10-17** (`docs/compat/observations/device-flow.md`, D-0031–D-0034). Where the observations differ from these defaults or from §3–§5, the decisions win. The main changes:
+- `device_code` is 24 characters.
+- Paths are `/activate` (which serves the form), `/device/confirmation`, `/device/success` and `/device/denied`.
+- Refusals at `/oauth/device/code`, including access policies, happen when the code is issued.
+- `invalid_grant`, `expired_token` and `access_denied` are all 403. A denied code is reported once.
+- `slow_down` applies only to polls less than 1 s apart, and the interval never grows.
+- Consent follows the API's first-party skip setting.
+- Device tokens carry no `sid` or `auth_time`, and are not bound to the browser session.
+- Third-party clients cannot use the device flow at all.
+
 | # | Point | Default |
 |---|---|---|
 | D1 | Path and redirect shape of `/activate`, the entry and confirmation pages; whether `verification_uri_complete` still shows confirmation | `/activate` → `/u/device?state=…`; confirmation always shows |
