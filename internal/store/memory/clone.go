@@ -130,6 +130,16 @@ func cloneAuthCode(c *store.AuthCode) *store.AuthCode {
 	return &out
 }
 
+func clonePushedAuthRequest(p *store.PushedAuthRequest) *store.PushedAuthRequest {
+	out := *p
+	out.Params = maps.Clone(p.Params)
+	if p.UsedAt != nil {
+		t := *p.UsedAt
+		out.UsedAt = &t
+	}
+	return &out
+}
+
 func cloneRefreshToken(t *store.RefreshToken) *store.RefreshToken {
 	out := *t
 	out.Scopes = slices.Clone(t.Scopes)

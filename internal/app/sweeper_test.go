@@ -32,10 +32,12 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 	must(st.RefreshTokens().Create(ctx, &store.RefreshToken{TenantID: "t", ID: "forever", TokenHash: "r2"}))
 	must(st.PasswordResetTickets().Create(ctx, &store.PasswordResetTicket{TenantID: "t", ID: "old", TokenHash: "p1", ExpiresAt: now.Add(-time.Second)}))
 	must(st.PasswordResetTickets().Create(ctx, &store.PasswordResetTicket{TenantID: "t", ID: "new", TokenHash: "p2", ExpiresAt: now.Add(time.Hour)}))
+	must(st.PushedAuthRequests().Create(ctx, &store.PushedAuthRequest{TenantID: "t", IDHash: "old", ExpiresAt: now.Add(-time.Second)}))
+	must(st.PushedAuthRequests().Create(ctx, &store.PushedAuthRequest{TenantID: "t", IDHash: "new", ExpiresAt: now.Add(30 * time.Second)}))
 
 	n, err := sweep(ctx, st, now)
-	if err != nil || n != 5 {
-		t.Fatalf("sweep = %d, %v; want 5, nil", n, err)
+	if err != nil || n != 6 {
+		t.Fatalf("sweep = %d, %v; want 6, nil", n, err)
 	}
 	if _, err := st.AuthTransactions().Get(ctx, "t", "new"); err != nil {
 		t.Errorf("live transaction removed: %v", err)
@@ -54,6 +56,9 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 	}
 	if _, err := st.PasswordResetTickets().GetByTokenHash(ctx, "t", "p2"); err != nil {
 		t.Errorf("live reset ticket removed: %v", err)
+	}
+	if _, err := st.PushedAuthRequests().Get(ctx, "t", "new"); err != nil {
+		t.Errorf("live pushed request removed: %v", err)
 	}
 	if _, err := st.PasswordResetTickets().GetByTokenHash(ctx, "t", "p1"); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("expired reset ticket kept: %v", err)

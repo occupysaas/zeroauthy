@@ -136,3 +136,22 @@ func authCodeSweepTarget() sweepTarget {
 		cutoff: ts(30 * time.Second),
 	}
 }
+
+func pushedAuthRequestSweepTarget() sweepTarget {
+	ctx := context.Background()
+	return sweepTarget{
+		create: func(s store.Store, i int, expired bool) error {
+			x := newPushedAuthRequest("ten_a", fmt.Sprintf("h%d", i)) // expires at ts(30s)
+			if expired {
+				x.ExpiresAt = ts(10 * time.Second)
+			}
+			return s.PushedAuthRequests().Create(ctx, x)
+		},
+		exists: func(s store.Store, i int) (bool, error) {
+			_, err := s.PushedAuthRequests().Get(ctx, "ten_a", fmt.Sprintf("h%d", i))
+			return existsBy(err)
+		},
+		sweep:  func(s store.Store, c time.Time) (int, error) { return s.PushedAuthRequests().DeleteExpired(ctx, c) },
+		cutoff: ts(20 * time.Second),
+	}
+}

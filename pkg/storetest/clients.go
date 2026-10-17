@@ -81,6 +81,22 @@ func testClients(t *testing.T, newStore Factory) {
 		mustEqual(t, *again.SkipNonVerifiableCallbackURIConfirmationPrompt, true)
 	})
 
+	t.Run("RequirePAR", func(t *testing.T) {
+		s := open(t, newStore)
+		c := newClient("ten_a", "par")
+		c.RequirePushedAuthorizationRequests = true
+		mustNoErr(t, s.Clients().Create(ctx, c))
+		got, err := s.Clients().Get(ctx, "ten_a", "par")
+		mustNoErr(t, err)
+		mustEqual(t, got, c)
+
+		c.RequirePushedAuthorizationRequests = false
+		mustNoErr(t, s.Clients().Update(ctx, c))
+		got, err = s.Clients().Get(ctx, "ten_a", "par")
+		mustNoErr(t, err)
+		mustEqual(t, got, c)
+	})
+
 	t.Run("TenantIsolation", func(t *testing.T) {
 		s := open(t, newStore)
 		a := newClient("ten_a", "same-id")

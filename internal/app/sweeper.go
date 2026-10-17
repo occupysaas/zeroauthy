@@ -26,6 +26,7 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 		{st.AuthTransactions().DeleteExpired, now},
 		{st.Sessions().DeleteExpired, now},
 		{st.AuthCodes().DeleteExpired, now.Add(-codeRetention)},
+		{st.PushedAuthRequests().DeleteExpired, now},
 		{st.RefreshTokens().DeleteExpired, now},
 		{st.PasswordResetTickets().DeleteExpired, now},
 	}

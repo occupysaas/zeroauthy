@@ -19,6 +19,7 @@ type (
 	Sessions             = store.Sessions
 	AuthTransactions     = store.AuthTransactions
 	AuthCodes            = store.AuthCodes
+	PushedAuthRequests   = store.PushedAuthRequests
 	RefreshTokens        = store.RefreshTokens
 	PasswordResetTickets = store.PasswordResetTickets
 
@@ -43,6 +44,7 @@ type (
 	LoginSession             = store.LoginSession
 	AuthTransaction          = store.AuthTransaction
 	AuthCode                 = store.AuthCode
+	PushedAuthRequest        = store.PushedAuthRequest
 	RefreshToken             = store.RefreshToken
 	PasswordResetTicket      = store.PasswordResetTicket
 )

@@ -26,6 +26,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"Sessions":             testSessions,
 	"AuthTransactions":     testAuthTransactions,
 	"AuthCodes":            testAuthCodes,
+	"PushedAuthRequests":   testPushedAuthRequests,
 	"RefreshTokens":        testRefreshTokens,
 	"PasswordResetTickets": testPasswordResetTickets,
 	"Tx":                   testTx,
@@ -35,6 +36,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 var suiteOrder = []string{
 	"Tenants", "Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys",
 	"Connections", "Users", "Sessions", "AuthTransactions", "AuthCodes",
+	"PushedAuthRequests",
 	"RefreshTokens", "PasswordResetTickets", "Tx",
 }
 

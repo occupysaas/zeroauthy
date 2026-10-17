@@ -51,19 +51,20 @@ func (s *Store) snapshot() *Store {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &Store{
-		tenants:         cloneMap(s.tenants, cloneTenant),
-		clients:         cloneMap(s.clients, cloneClient),
-		resourceServers: cloneMap(s.resourceServers, cloneResourceServer),
-		clientGrants:    cloneMap(s.clientGrants, cloneClientGrant),
-		userGrants:      cloneMap(s.userGrants, cloneUserGrant),
-		signingKeys:     cloneMap(s.signingKeys, cloneSigningKey),
-		connections:     cloneMap(s.connections, cloneConnection),
-		users:           cloneMap(s.users, cloneUser),
-		sessions:        cloneMap(s.sessions, cloneSession),
-		transactions:    cloneMap(s.transactions, cloneAuthTransaction),
-		authCodes:       cloneMap(s.authCodes, cloneAuthCode),
-		refreshTokens:   cloneMap(s.refreshTokens, cloneRefreshToken),
-		resetTickets:    cloneMap(s.resetTickets, cloneResetTicket),
+		tenants:            cloneMap(s.tenants, cloneTenant),
+		clients:            cloneMap(s.clients, cloneClient),
+		resourceServers:    cloneMap(s.resourceServers, cloneResourceServer),
+		clientGrants:       cloneMap(s.clientGrants, cloneClientGrant),
+		userGrants:         cloneMap(s.userGrants, cloneUserGrant),
+		signingKeys:        cloneMap(s.signingKeys, cloneSigningKey),
+		connections:        cloneMap(s.connections, cloneConnection),
+		users:              cloneMap(s.users, cloneUser),
+		sessions:           cloneMap(s.sessions, cloneSession),
+		transactions:       cloneMap(s.transactions, cloneAuthTransaction),
+		authCodes:          cloneMap(s.authCodes, cloneAuthCode),
+		pushedAuthRequests: cloneMap(s.pushedAuthRequests, clonePushedAuthRequest),
+		refreshTokens:      cloneMap(s.refreshTokens, cloneRefreshToken),
+		resetTickets:       cloneMap(s.resetTickets, cloneResetTicket),
 	}
 }
 
@@ -76,6 +77,7 @@ func (s *Store) restore(snap *Store) {
 	s.userGrants = snap.userGrants
 	s.users, s.sessions, s.transactions = snap.users, snap.sessions, snap.transactions
 	s.authCodes, s.refreshTokens, s.resetTickets = snap.authCodes, snap.refreshTokens, snap.resetTickets
+	s.pushedAuthRequests = snap.pushedAuthRequests
 }
 
 func cloneMap[K comparable, V any](m map[K]*V, clone func(*V) *V) map[K]*V {

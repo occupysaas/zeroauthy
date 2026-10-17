@@ -37,7 +37,11 @@ type Tenant struct {
 	SkipNonVerifiableCallbackURIConfirmationPrompt bool
 	// UseScopeDescriptionsForConsent shows scope descriptions on the consent prompt.
 	UseScopeDescriptionsForConsent bool
-	CreatedAt                      time.Time
+	// PushedAuthorizationRequestsSupported allows /oauth/par and request_uri
+	// at /authorize (RFC 9126).
+	PushedAuthorizationRequestsSupported bool
+
+	CreatedAt time.Time
 }
 
 // AppType is the kind of application a client represents.
@@ -94,6 +98,10 @@ type Client struct {
 	// SkipNonVerifiableCallbackURIConfirmationPrompt overrides the tenant's
 	// value; nil means the tenant's value applies.
 	SkipNonVerifiableCallbackURIConfirmationPrompt *bool
+	// RequirePushedAuthorizationRequests refuses /authorize requests that
+	// do not name a pushed request. Only for confidential clients of a
+	// tenant that allows PAR.
+	RequirePushedAuthorizationRequests bool
 }
 
 // Scope is a permission defined by a resource server.
@@ -348,6 +356,20 @@ type AuthCode struct {
 	CreatedAt           time.Time
 	UsedAt              *time.Time
 	ReplayedAt          *time.Time // first presentation after UsedAt; see AuthCodes.Consume
+}
+
+// PushedAuthRequest is an authorization request pushed to /oauth/par
+// (RFC 9126). The /authorize request that names it uses it once.
+type PushedAuthRequest struct {
+	TenantID string
+	// IDHash is secrets.HashToken of the opaque part of the request_uri.
+	IDHash   string
+	ClientID string
+	// Params is the validated request, including kept ext-* parameters.
+	Params    map[string]string
+	ExpiresAt time.Time
+	CreatedAt time.Time
+	UsedAt    *time.Time
 }
 
 // RefreshToken is an issued refresh token. A token and the tokens issued

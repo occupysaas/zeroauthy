@@ -37,6 +37,7 @@ type Store interface {
 	Sessions() Sessions
 	AuthTransactions() AuthTransactions
 	AuthCodes() AuthCodes
+	PushedAuthRequests() PushedAuthRequests
 	RefreshTokens() RefreshTokens
 	PasswordResetTickets() PasswordResetTickets
 	// WithTx runs fn against a transactional view of the store. If fn
@@ -232,6 +233,23 @@ type AuthCodes interface {
 	Get(ctx context.Context, tenantID, codeHash string) (*AuthCode, error)
 	// DeleteExpired removes, in every tenant, the codes whose ExpiresAt is
 	// not after before, used or not, and returns how many it removed.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
+}
+
+// PushedAuthRequests stores pushed authorization requests, keyed by
+// (TenantID, IDHash).
+type PushedAuthRequests interface {
+	// Create returns ErrConflict if the IDHash exists in the tenant.
+	Create(ctx context.Context, p *PushedAuthRequest) error
+	// Consume atomically marks the request used at `at` and returns it. A
+	// request that was already used is returned together with
+	// ErrAlreadyUsed, and its first UsedAt is kept. Unknown requests return
+	// ErrNotFound. Expiry is the caller's check.
+	Consume(ctx context.Context, tenantID, idHash string, at time.Time) (*PushedAuthRequest, error)
+	// Get returns the request without changing it, or ErrNotFound.
+	Get(ctx context.Context, tenantID, idHash string) (*PushedAuthRequest, error)
+	// DeleteExpired removes, in every tenant, the requests whose ExpiresAt
+	// is not after before, used or not, and returns how many it removed.
 	DeleteExpired(ctx context.Context, before time.Time) (int, error)
 }
 
