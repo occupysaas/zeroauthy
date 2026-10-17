@@ -140,6 +140,21 @@ func clonePushedAuthRequest(p *store.PushedAuthRequest) *store.PushedAuthRequest
 	return &out
 }
 
+func cloneDeviceCode(d *store.DeviceCode) *store.DeviceCode {
+	out := *d
+	out.Scopes = slices.Clone(d.Scopes)
+	out.GrantedScopes = slices.Clone(d.GrantedScopes)
+	if d.LastPolledAt != nil {
+		t := *d.LastPolledAt
+		out.LastPolledAt = &t
+	}
+	if d.ExpiredReportedAt != nil {
+		t := *d.ExpiredReportedAt
+		out.ExpiredReportedAt = &t
+	}
+	return &out
+}
+
 func cloneRefreshToken(t *store.RefreshToken) *store.RefreshToken {
 	out := *t
 	out.Scopes = slices.Clone(t.Scopes)

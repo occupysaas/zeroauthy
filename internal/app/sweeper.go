@@ -16,6 +16,10 @@ const sweepInterval = 10 * time.Minute
 // issued from the code.
 const codeRetention = 24 * time.Hour
 
+// deviceCodeRetention keeps an expired device code so the device's next
+// poll gets expired_token once.
+const deviceCodeRetention = 24 * time.Hour
+
 // sweep deletes expired records and returns how many it removed. A failure
 // in one kind of record does not stop the others.
 func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
@@ -27,6 +31,7 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 		{st.Sessions().DeleteExpired, now},
 		{st.AuthCodes().DeleteExpired, now.Add(-codeRetention)},
 		{st.PushedAuthRequests().DeleteExpired, now},
+		{st.DeviceCodes().DeleteExpired, now.Add(-deviceCodeRetention)},
 		{st.RefreshTokens().DeleteExpired, now},
 		{st.PasswordResetTickets().DeleteExpired, now},
 	}

@@ -30,6 +30,10 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"RefreshTokens":        testRefreshTokens,
 	"PasswordResetTickets": testPasswordResetTickets,
 	"Tx":                   testTx,
+	// DeviceCodes and TenantDeviceFlow are not in suiteOrder yet: the SQL and
+	// gRPC drivers pick them up in their own tasks.
+	"DeviceCodes":      testDeviceCodes,
+	"TenantDeviceFlow": testTenantDeviceFlow,
 }
 
 // suiteOrder is the order Run executes the suites in.
@@ -40,7 +44,8 @@ var suiteOrder = []string{
 	"RefreshTokens", "PasswordResetTickets", "Tx",
 }
 
-// Run executes every conformance test against stores made by newStore.
+// Run executes the conformance tests every driver passes against stores made
+// by newStore.
 func Run(t *testing.T, newStore Factory) {
 	RunSuites(t, newStore, suiteOrder...)
 }

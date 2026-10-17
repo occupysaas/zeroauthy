@@ -29,6 +29,7 @@ type Store struct {
 	transactions       map[key]*store.AuthTransaction     // by (tenant, ID)
 	authCodes          map[key]*store.AuthCode            // by (tenant, CodeHash)
 	pushedAuthRequests map[key]*store.PushedAuthRequest   // by (tenant, IDHash)
+	deviceCodes        map[key]*store.DeviceCode          // by (tenant, DeviceCodeHash)
 	refreshTokens      map[key]*store.RefreshToken        // by (tenant, ID)
 	resetTickets       map[key]*store.PasswordResetTicket // by (tenant, ID)
 }
@@ -48,6 +49,7 @@ func New() *Store {
 		transactions:       map[key]*store.AuthTransaction{},
 		authCodes:          map[key]*store.AuthCode{},
 		pushedAuthRequests: map[key]*store.PushedAuthRequest{},
+		deviceCodes:        map[key]*store.DeviceCode{},
 		refreshTokens:      map[key]*store.RefreshToken{},
 		resetTickets:       map[key]*store.PasswordResetTicket{},
 	}
@@ -65,6 +67,7 @@ func (s *Store) Sessions() store.Sessions                         { return sessi
 func (s *Store) AuthTransactions() store.AuthTransactions         { return authTransactions{s} }
 func (s *Store) AuthCodes() store.AuthCodes                       { return authCodes{s} }
 func (s *Store) PushedAuthRequests() store.PushedAuthRequests     { return pushedAuthRequests{s} }
+func (s *Store) DeviceCodes() store.DeviceCodes                   { return deviceCodes{s} }
 func (s *Store) RefreshTokens() store.RefreshTokens               { return refreshTokens{s} }
 func (s *Store) PasswordResetTickets() store.PasswordResetTickets { return resetTickets{s} }
 func (s *Store) Ping(context.Context) error                       { return nil }

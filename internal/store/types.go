@@ -40,6 +40,11 @@ type Tenant struct {
 	// PushedAuthorizationRequestsSupported allows /oauth/par and request_uri
 	// at /authorize (RFC 9126).
 	PushedAuthorizationRequestsSupported bool
+	// DeviceFlowCharset ("base20" or "digits") and DeviceFlowMask shape the
+	// user codes of the device flow. Empty means the defaults: base20 and
+	// "****-****".
+	DeviceFlowCharset string
+	DeviceFlowMask    string
 
 	CreatedAt time.Time
 }
@@ -370,6 +375,66 @@ type PushedAuthRequest struct {
 	ExpiresAt time.Time
 	CreatedAt time.Time
 	UsedAt    *time.Time
+}
+
+// DeviceCodeStatus is where a device authorization request is in its life.
+type DeviceCodeStatus string
+
+const (
+	DeviceCodePending  DeviceCodeStatus = "pending"
+	DeviceCodeApproved DeviceCodeStatus = "approved"
+	DeviceCodeDenied   DeviceCodeStatus = "denied"
+	DeviceCodeConsumed DeviceCodeStatus = "consumed"
+)
+
+// DeviceCode is a device authorization request (RFC 8628).
+type DeviceCode struct {
+	TenantID       string
+	DeviceCodeHash string // secrets.HashToken(device_code)
+	UserCodeHash   string // secrets.HashToken(devicecode.Normalize(user_code))
+	ClientID       string
+	Scopes         []string // requested
+	Audience       string   // resolved audience; "" for none
+	Status         DeviceCodeStatus
+	UserID         string   // set by Decide(approved)
+	GrantedScopes  []string // set by Decide(approved)
+	// LastPolledAt is the last poll that was not answered slow_down.
+	LastPolledAt      *time.Time
+	ExpiredReportedAt *time.Time
+	ExpiresAt         time.Time
+	CreatedAt         time.Time
+}
+
+// DeviceDecision is the user's answer to a device code. Device tokens are
+// not bound to the browser session: Auth0's device ID tokens carry no sid
+// and no auth_time (observations/device-flow.md), so no session ID or auth
+// time is recorded.
+type DeviceDecision struct {
+	Status        DeviceCodeStatus // DeviceCodeApproved or DeviceCodeDenied
+	UserID        string
+	GrantedScopes []string
+}
+
+// DevicePollOutcome is how the token endpoint answers one poll.
+type DevicePollOutcome string
+
+const (
+	PollPending  DevicePollOutcome = "pending"   // authorization_pending
+	PollSlowDown DevicePollOutcome = "slow_down" // too soon after the last accepted poll
+	PollApproved DevicePollOutcome = "approved"  // this poll consumed an approved code: issue tokens
+	PollDenied   DevicePollOutcome = "denied"    // this poll consumed a denied code: access_denied once
+	PollExpired  DevicePollOutcome = "expired"   // first poll after expiry: expired_token
+	PollInvalid  DevicePollOutcome = "invalid"   // consumed, or expired and already reported
+)
+
+// MinPollGap is the shortest gap between accepted polls (Auth0 never
+// answered slow_down to polls 1 s apart).
+const MinPollGap = time.Second
+
+// DevicePoll is the outcome of one poll. Code is the record after the poll.
+type DevicePoll struct {
+	Code    *DeviceCode
+	Outcome DevicePollOutcome
 }
 
 // RefreshToken is an issued refresh token. A token and the tokens issued

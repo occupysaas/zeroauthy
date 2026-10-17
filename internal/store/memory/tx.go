@@ -63,6 +63,7 @@ func (s *Store) snapshot() *Store {
 		transactions:       cloneMap(s.transactions, cloneAuthTransaction),
 		authCodes:          cloneMap(s.authCodes, cloneAuthCode),
 		pushedAuthRequests: cloneMap(s.pushedAuthRequests, clonePushedAuthRequest),
+		deviceCodes:        cloneMap(s.deviceCodes, cloneDeviceCode),
 		refreshTokens:      cloneMap(s.refreshTokens, cloneRefreshToken),
 		resetTickets:       cloneMap(s.resetTickets, cloneResetTicket),
 	}
@@ -77,7 +78,7 @@ func (s *Store) restore(snap *Store) {
 	s.userGrants = snap.userGrants
 	s.users, s.sessions, s.transactions = snap.users, snap.sessions, snap.transactions
 	s.authCodes, s.refreshTokens, s.resetTickets = snap.authCodes, snap.refreshTokens, snap.resetTickets
-	s.pushedAuthRequests = snap.pushedAuthRequests
+	s.pushedAuthRequests, s.deviceCodes = snap.pushedAuthRequests, snap.deviceCodes
 }
 
 func cloneMap[K comparable, V any](m map[K]*V, clone func(*V) *V) map[K]*V {

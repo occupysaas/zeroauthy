@@ -221,3 +221,23 @@ func testTenants(t *testing.T, newStore Factory) {
 		mustEqual(t, again.Domains, []string{"acme.example.test"})
 	})
 }
+
+// testTenantDeviceFlow checks that the device flow code settings round-trip.
+func testTenantDeviceFlow(t *testing.T, newStore Factory) {
+	ctx := context.Background()
+	s := open(t, newStore)
+	want := newTenant("acme")
+	want.DeviceFlowCharset = "digits"
+	want.DeviceFlowMask = "###-###"
+	mustNoErr(t, s.Tenants().Create(ctx, want))
+	got, err := s.Tenants().Get(ctx, want.ID)
+	mustNoErr(t, err)
+	mustEqual(t, got, want)
+
+	want.DeviceFlowCharset = ""
+	want.DeviceFlowMask = ""
+	mustNoErr(t, s.Tenants().Update(ctx, want))
+	got, err = s.Tenants().Get(ctx, want.ID)
+	mustNoErr(t, err)
+	mustEqual(t, got, want)
+}

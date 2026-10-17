@@ -20,6 +20,7 @@ type (
 	AuthTransactions     = store.AuthTransactions
 	AuthCodes            = store.AuthCodes
 	PushedAuthRequests   = store.PushedAuthRequests
+	DeviceCodes          = store.DeviceCodes
 	RefreshTokens        = store.RefreshTokens
 	PasswordResetTickets = store.PasswordResetTickets
 
@@ -45,6 +46,11 @@ type (
 	AuthTransaction          = store.AuthTransaction
 	AuthCode                 = store.AuthCode
 	PushedAuthRequest        = store.PushedAuthRequest
+	DeviceCode               = store.DeviceCode
+	DeviceCodeStatus         = store.DeviceCodeStatus
+	DeviceDecision           = store.DeviceDecision
+	DevicePoll               = store.DevicePoll
+	DevicePollOutcome        = store.DevicePollOutcome
 	RefreshToken             = store.RefreshToken
 	PasswordResetTicket      = store.PasswordResetTicket
 )
@@ -58,6 +64,20 @@ var (
 )
 
 const (
+	DeviceCodePending  = store.DeviceCodePending
+	DeviceCodeApproved = store.DeviceCodeApproved
+	DeviceCodeDenied   = store.DeviceCodeDenied
+	DeviceCodeConsumed = store.DeviceCodeConsumed
+
+	PollPending  = store.PollPending
+	PollSlowDown = store.PollSlowDown
+	PollApproved = store.PollApproved
+	PollDenied   = store.PollDenied
+	PollExpired  = store.PollExpired
+	PollInvalid  = store.PollInvalid
+
+	MinPollGap = store.MinPollGap
+
 	AppTypeSPA            = store.AppTypeSPA
 	AppTypeRegularWeb     = store.AppTypeRegularWeb
 	AppTypeNative         = store.AppTypeNative

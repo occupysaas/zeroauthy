@@ -38,6 +38,7 @@ type Store interface {
 	AuthTransactions() AuthTransactions
 	AuthCodes() AuthCodes
 	PushedAuthRequests() PushedAuthRequests
+	DeviceCodes() DeviceCodes
 	RefreshTokens() RefreshTokens
 	PasswordResetTickets() PasswordResetTickets
 	// WithTx runs fn against a transactional view of the store. If fn
@@ -250,6 +251,32 @@ type PushedAuthRequests interface {
 	Get(ctx context.Context, tenantID, idHash string) (*PushedAuthRequest, error)
 	// DeleteExpired removes, in every tenant, the requests whose ExpiresAt
 	// is not after before, used or not, and returns how many it removed.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
+}
+
+// DeviceCodes stores device authorization requests, keyed by
+// (TenantID, DeviceCodeHash). UserCodeHash is unique within a tenant.
+type DeviceCodes interface {
+	// Create returns ErrConflict if DeviceCodeHash or UserCodeHash exists in the tenant.
+	Create(ctx context.Context, d *DeviceCode) error
+	Get(ctx context.Context, tenantID, deviceCodeHash string) (*DeviceCode, error)
+	GetByUserCode(ctx context.Context, tenantID, userCodeHash string) (*DeviceCode, error)
+	// Decide atomically moves a pending code to dec.Status and records the
+	// decision. Any other status returns the record and ErrAlreadyUsed.
+	// Unknown codes return ErrNotFound. Expiry is the caller's check.
+	Decide(ctx context.Context, tenantID, deviceCodeHash string, dec DeviceDecision) (*DeviceCode, error)
+	// Poll atomically records a poll at `at`. The rules, in order:
+	//  1. consumed: PollInvalid, nothing changes.
+	//  2. at is not before ExpiresAt: PollExpired and ExpiredReportedAt is set
+	//     if it was nil, else PollInvalid.
+	//  3. less than MinPollGap since LastPolledAt: PollSlowDown, LastPolledAt
+	//     is not updated.
+	//  4. otherwise LastPolledAt = at; pending is PollPending, approved and
+	//     denied become consumed and give PollApproved and PollDenied.
+	// Unknown codes return ErrNotFound.
+	Poll(ctx context.Context, tenantID, deviceCodeHash string, at time.Time) (DevicePoll, error)
+	// DeleteExpired removes, in every tenant, the codes whose ExpiresAt is
+	// not after before, and returns how many it removed.
 	DeleteExpired(ctx context.Context, before time.Time) (int, error)
 }
 

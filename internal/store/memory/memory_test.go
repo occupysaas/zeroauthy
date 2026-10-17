@@ -9,5 +9,7 @@ import (
 )
 
 func TestConformance(t *testing.T) {
-	storetest.Run(t, func(*testing.T) store.Store { return memory.New() })
+	newStore := func(*testing.T) store.Store { return memory.New() }
+	storetest.Run(t, newStore)
+	storetest.RunSuites(t, newStore, "DeviceCodes", "TenantDeviceFlow")
 }
