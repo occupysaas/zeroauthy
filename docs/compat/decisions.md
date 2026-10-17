@@ -445,3 +445,40 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **`prompt=none`** fails with `consent_required` when consent or confirmation is needed (observed for both), and with `login_required` without a session.
   - **`open_redirect_protection`** shows **every** `/authorize` error on an error page with HTTP 400 once the client and redirect URI are validated. Observed for `consent_required`, `login_required`, `invalid_request` and a declined consent. The decline page's status was not recorded and is 400 as well. With `allow_always`, or when unset on a first-party client, errors redirect.
 - **Rationale:** Observed. Showing every error as a page means silent authentication (`prompt=none` in an iframe) cannot work for protected third-party clients, on Auth0 and on zeroauthy alike. Operators who need it set `allow_always`.
+
+## D-0028: The pushed authorization request endpoint
+
+- **Context:** Auth0 documents `POST /oauth/par` (RFC 9126): confidential clients only, a form body of at most 10 KB, up to 10 `ext-` parameters, `201` with a `request_uri` that lives 30 seconds. The docs give no error codes or statuses.
+- **Sources:** https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par; https://auth0.com/docs/get-started/applications/configure-par; RFC 9126; observations/par.md.
+- **Decision:**
+  - **Who may push:** first-party confidential clients authenticating with `client_secret_basic` or `client_secret_post` (scope A; `private_key_jwt` and mTLS are follow-ups). Public clients get `400 invalid_request` and every third-party client, strict or permissive, gets `400 invalid_request` (observed for strict; the refusal concerns third-party clients in general). A wrong secret is `401 invalid_client`.
+  - **Body:** form-encoded only (JSON is `400 invalid_request`), at most 10 KB (`413 payload_too_large`), no repeated parameters, no `request_uri` (`400 invalid_request`), at most 10 `ext-` parameters (an 11th is `400 invalid_request`). Other unknown parameters are dropped.
+  - **Validation:** the request goes through the same checks as `/authorize`. Errors keep the `/authorize` code with Auth0's observed status for that code: `invalid_request` 400, `unauthorized_client` 403, `access_denied` 403, `unsupported_response_type` 501. Nothing is redirected.
+  - **Differences:**
+    - `response_type=token` is `unsupported_response_type` (501). Auth0 answers `403 unauthorized_client` for a client without the implicit grant; zeroauthy has no implicit grant for any client.
+    - zeroauthy checks `response_mode` and `prompt` at this endpoint. Auth0 accepts unknown values here and checks them at `/authorize`. RFC 9126 §2.1 asks the server to validate the pushed request as it would at the authorization endpoint, and Auth0's docs list early validation as a benefit of PAR.
+  - **Tenant setting off:** `400 invalid_request` (observed).
+  - **Success:** `201` with `request_uri` = `urn:ietf:params:oauth:request_uri:` + 64 random characters and `expires_in: 30`, `Cache-Control: no-store`. The 64 characters are stored only as a SHA-256 hash.
+- **Rationale:** Observed codes and statuses are matched; the two differences either follow from a grant zeroauthy does not have or follow the RFC and Auth0's own documentation.
+
+## D-0029: request_uri at /authorize and required PAR
+
+- **Context:** Auth0 documents that a `request_uri` works once and expires, and that a client can require PAR. It does not say how other query parameters combine with `request_uri` or how failures are reported.
+- **Sources:** the D-0028 docs; RFC 9126 §4; observations/par.md.
+- **Decision:**
+  - **Only pushed parameters count.** Query parameters other than `client_id` and `request_uri` are ignored, never an error (observed for `state`, `redirect_uri`, `response_type`, `scope` and an unknown parameter).
+  - **Failures are error pages** (HTTP 400, no redirect): an unknown, used, expired or wrong-client `request_uri`, or one presented while the tenant setting is off. The request is used up by any attempt that finds it, including one with the wrong `client_id` (observed).
+  - **Required PAR:** a plain `/authorize` from a client with `require_pushed_authorization_requests` redirects with `error=invalid_request` and the request's `state`, subject to `redirection_policy`. This holds even when the tenant setting is off (observed).
+  - **The pushed mark survives the hosted pages:** the login transaction remembers that its request was pushed, so a client that requires PAR is not refused after the login or consent page.
+  - Strict third-party clients keep refusing `request_uri` at `/authorize` (D-0025).
+- **Rationale:** Observed.
+
+## D-0030: PAR settings and discovery
+
+- **Context:** Auth0 has a tenant toggle and a client field for PAR; the docs name only the client field and say the tenant toggle must be on first.
+- **Sources:** https://auth0.com/docs/get-started/applications/configure-par; observations/par.md.
+- **Decision:**
+  - **Tenant:** `pushed_authorization_requests_supported` (observed name, top level of tenant settings), default `false`.
+  - **Client:** `require_pushed_authorization_requests`, default `false`. The seed refuses it when the tenant setting is off (the docs' ordering), on public clients, and on third-party clients (which cannot push, D-0028). Auth0 lets the tenant setting be turned off afterwards; zeroauthy's seed cannot express that state, but stored data from plugins or migrations can, and `/authorize` then refuses every request from that client, as on Auth0.
+  - **Discovery:** `pushed_authorization_request_endpoint` only while the tenant setting is on; `request_uri_parameter_supported: false` always (observed in both states). Without it, OpenID Connect clients would assume `request_uri` is accepted outside PAR.
+- **Rationale:** Observed names and discovery values are matched.

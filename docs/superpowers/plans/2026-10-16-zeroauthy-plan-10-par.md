@@ -30,33 +30,35 @@
 - **Wire names are Auth0's:** client field `require_pushed_authorization_requests`; tenant field per P7 (working name `pushed_authorization_requests_supported`); discovery field `pushed_authorization_request_endpoint`; request URI prefix `urn:ietf:params:oauth:request_uri:`.
 - **Fixed values (documented):** lifetime 30 seconds, not configurable; body at most 10 KB (10240 bytes); form-encoded only; at most 10 `ext-*` parameters; response `201` with `request_uri` and `expires_in`; `Cache-Control: no-store`.
 - **Scope A only:** client-secret authentication (`client_secret_basic`, `client_secret_post`). No `private_key_jwt`, mTLS, JAR (`request`), RAR (`authorization_details`).
-- **Secrets at rest:** the opaque part of the `request_uri` (43 characters from `secrets.RandomString`) is stored only as `secrets.HashToken`.
+- **Secrets at rest:** the opaque part of the `request_uri` (64 characters from `secrets.RandomString`) is stored only as `secrets.HashToken`.
 - **Defaults are safe for old data:** both new booleans default to `false` in SQL and decode as `false` from plugins that predate the proto fields.
 - **Clean room:** Task 1 records facts only (status codes, `error` values, redirect parameter names, screen types, JSON property names). No messages, screenshots, tenant domains, IDs or secrets. Follow `CLEAN_ROOM.md` "Behavior testing against the maintainer's own tenant". The trial tenant belongs to the maintainer.
 
 ## Observation-dependent values
 
-Task 1 fills the **Observed** column. Tasks 2–9 are written against the **Default** column. If Task 1 observes something different, the implementer of each later task uses the observed value: the place to change is named in the **Where** column, and the matching test changes with it.
+Task 1 ran on 2026-10-16 (`docs/compat/observations/par.md`, D-0028–D-0030). **The code blocks in Tasks 5–8 already use the observed values and rulings**; the table records where they came from. Also observed: the `request_uri` opaque part is 64 characters (applied); Auth0 sends `iss` on authorization responses (RFC 9207; a follow-up).
+
+Originally: Task 1 fills the **Observed** column. Tasks 2–9 are written against the **Default** column. If Task 1 observes something different, the implementer of each later task uses the observed value: the place to change is named in the **Where** column, and the matching test changes with it.
 
 | # | Question | Default (used by the code blocks below) | Where | Observed |
 |---|---|---|---|---|
-| P1 | `/authorize` with `request_uri` plus other query parameters (`state`, `redirect_uri`, `scope`, an unknown one) | Only pushed parameters count; query parameters other than `client_id` and `request_uri` are ignored | `resolvePushed` (Task 6) | |
-| P2a | `/oauth/par` with an unregistered `redirect_uri` | `400 invalid_request` | `par` (Task 7) | |
-| P2b | `/oauth/par` with `response_type=token` | `400 unsupported_response_type` | `ValidateRequest` codes (Task 7 maps them) | |
-| P2c | `/oauth/par` with 11 `ext-*` parameters | `400 invalid_request` | `par` (Task 7) | |
-| P2d | `/oauth/par` with a body over 10 KB | `400 invalid_request` | `parsePARRequest` (Task 7) | |
-| P2e | `/oauth/par` with a JSON body | `400 invalid_request` | `parsePARRequest` (Task 7) | |
-| P3a | `/oauth/par` with a wrong secret | `401 invalid_client` | unchanged `authenticateClient` | |
-| P3b | `/oauth/par` from a public (SPA) client | `400 unauthorized_client` | `par` (Task 7) | |
-| P4a | A `request_uri` used a second time | Error page (HTTP 400), no redirect | `resolvePushed` (Task 6) | |
-| P4b | A `request_uri` after 30 s | Error page, no redirect | `resolvePushed` (Task 6) | |
-| P4c | A `request_uri` sent with another client's `client_id` | Error page, no redirect | `resolvePushed` (Task 6) | |
-| P5 | Client requires PAR, plain `/authorize` | Redirect `error=invalid_request` (subject to `redirection_policy`) | `ValidateRequest` (Task 6) | |
-| P6a | `request_uri` inside the PAR body | `400 invalid_request` | `par` (Task 7) | |
-| P6b | Tenant setting off: `/oauth/par`; `/authorize` with a `request_uri` | `/oauth/par`: `400 invalid_request`; `/authorize`: error page | `par` (Task 7), `resolvePushed` (Task 6) | |
-| P7 | Management API property of the tenant setting | `pushed_authorization_requests_supported` (top level of tenant settings) | yaml tag (Task 5), SQL column (Task 3), proto field (Task 4), docs | |
-| P8 | Discovery before and after enabling | `pushed_authorization_request_endpoint` only when enabled; no other PAR fields | `Discovery` (Task 7) | |
-| P9 | Strict third-party client calls `/oauth/par` | `400 invalid_request` | `par` (Task 7); seed rule (Task 5) | |
+| P1 | `/authorize` with `request_uri` plus other query parameters (`state`, `redirect_uri`, `scope`, an unknown one) | Only pushed parameters count; query parameters other than `client_id` and `request_uri` are ignored | `resolvePushed` (Task 6) | ignored (state, redirect_uri, response_type, scope, unknown) |
+| P2a | `/oauth/par` with an unregistered `redirect_uri` | `400 invalid_request` | `par` (Task 7) | `400 invalid_request` |
+| P2b | `/oauth/par` with `response_type=token` | `400 unsupported_response_type` | `ValidateRequest` codes (Task 7 maps them) | **`403 unauthorized_client` (no implicit grant); `bogus` → `501 unsupported_response_type`. Ruling: keep the code, use per-code statuses (D-0028) → change: `parStatus` in Task 7** |
+| P2c | `/oauth/par` with 11 `ext-*` parameters | `400 invalid_request` | `par` (Task 7) | `400 invalid_request`; 10 → 201 |
+| P2d | `/oauth/par` with a body over 10 KB | `400 invalid_request` | `parsePARRequest` (Task 7) | **`413 payload_too_large` → change (applied in Task 7)** |
+| P2e | `/oauth/par` with a JSON body | `400 invalid_request` | `parsePARRequest` (Task 7) | `400 invalid_request` |
+| P3a | `/oauth/par` with a wrong secret | `401 invalid_client` | unchanged `authenticateClient` | `401 invalid_client` |
+| P3b | `/oauth/par` from a public (SPA) client | `400 unauthorized_client` | `par` (Task 7) | **`400 invalid_request` → change (applied in Task 7)** |
+| P4a | A `request_uri` used a second time | Error page (HTTP 400), no redirect | `resolvePushed` (Task 6) | error page |
+| P4b | A `request_uri` after 30 s | Error page, no redirect | `resolvePushed` (Task 6) | error page |
+| P4c | A `request_uri` sent with another client's `client_id` | Error page, no redirect | `resolvePushed` (Task 6) | error page; the attempt uses the request up (matches consume-then-compare) |
+| P5 | Client requires PAR, plain `/authorize` | Redirect `error=invalid_request` (subject to `redirection_policy`) | `ValidateRequest` (Task 6) | redirect `invalid_request` + `state`; also with the tenant setting off |
+| P6a | `request_uri` inside the PAR body | `400 invalid_request` | `par` (Task 7) | `400 invalid_request` |
+| P6b | Tenant setting off: `/oauth/par`; `/authorize` with a `request_uri` | `/oauth/par`: `400 invalid_request`; `/authorize`: error page | `par` (Task 7), `resolvePushed` (Task 6) | `400 invalid_request`; error page |
+| P7 | Management API property of the tenant setting | `pushed_authorization_requests_supported` (top level of tenant settings) | yaml tag (Task 5), SQL column (Task 3), proto field (Task 4), docs | `pushed_authorization_requests_supported`, top level |
+| P8 | Discovery before and after enabling | `pushed_authorization_request_endpoint` only when enabled; no other PAR fields | `Discovery` (Task 7) | endpoint only when on; **`request_uri_parameter_supported: false` in both states → change (applied in Task 7)** |
+| P9 | Strict third-party client calls `/oauth/par` | `400 invalid_request` | `par` (Task 7); seed rule (Task 5) | **`400 invalid_request`; the refusal covers third-party clients generally → change: refuse every third-party client (applied in Tasks 5 and 7)** |
 
 ## Review Focus
 
@@ -78,6 +80,7 @@ Task 9 adds these to `docs/superpowers/plan-1-followups.md` under "Plan 10 follo
 - PAR for public clients (Auth0 does not support it today).
 - Actions access to `ext-*` parameters (sub-project 2).
 - A general Authentication API rate limiter covering `/oauth/par` (zeroauthy has per-identity throttles only).
+- The `iss` authorization response parameter (RFC 9207), which Auth0 sends (tenant setting `authorization_response_iss_parameter_supported`; observations/par.md).
 - Repeated query parameters on `/authorize` get a JSON 400 from the generated wrapper (existing item; it also applies to `request_uri`).
 
 ## File Structure
@@ -115,14 +118,16 @@ This task needs the maintainer. Claude runs Management API calls with auth0-cli 
 **Interfaces:**
 - Produces: observed values for P1–P9, used by Tasks 3–8.
 
-- [ ] **Step 1: Point auth0-cli at the trial tenant**
+**Status: done 2026-10-16** (inline, with the maintainer). Results: `docs/compat/observations/par.md`, D-0028–D-0030. The steps are kept as the procedure for repeating the observation; in practice each `/authorize` URL was created only when the maintainer said "go", because 30 seconds is too short for a chat round trip.
+
+- [x] **Step 1: Point auth0-cli at the trial tenant**
 
 Ask the maintainer to run `! auth0 login` and choose the **new trial tenant**, then:
 
 Run: `auth0 tenants list`
 Expected: the trial tenant is marked active. Never print tokens or the tenant domain into the repository. Keep the domain in a shell variable for this session only: `set -x OBS (auth0 tenants list --json | python3 -c 'import json,sys; print([t["name"] for t in json.load(sys.stdin) if t.get("active")][0])')` (fish syntax; the shell here is fish).
 
-- [ ] **Step 2: Settings and discovery before enabling PAR (P7, P8)**
+- [x] **Step 2: Settings and discovery before enabling PAR (P7, P8)**
 
 ```bash
 auth0 api get tenants/settings | python3 -c 'import json,sys; d=json.load(sys.stdin); print({k: v for k, v in d.items() if "push" in k.lower() or "par" == k.lower()}); print(sorted(d.get("flags", {}).keys()))' > /tmp/claude-1000/par-settings-before.txt
@@ -131,7 +136,7 @@ curl -s "https://$OBS/.well-known/openid-configuration" | python3 -c 'import jso
 
 Record the keys only. Then ask the maintainer to turn on **Dashboard → Settings → Advanced → "Allow Pushed Authorization Requests (PAR)"** and save. Run both commands again and diff. The key that changed is P7 (note whether it is top level or under `flags`); the discovery keys that appeared are P8. Also record the value of `require_pushed_authorization_requests` in discovery if present.
 
-- [ ] **Step 3: Create the test objects**
+- [x] **Step 3: Create the test objects**
 
 All names start with `za-obs-par-`. Scratch files go in `/tmp/claude-1000/`.
 
@@ -163,7 +168,7 @@ function par --argument-names file
 end
 ```
 
-- [ ] **Step 4: Back-channel checks (P2, P3, P6a, P9)**
+- [x] **Step 4: Back-channel checks (P2, P3, P6a, P9)**
 
 Each call uses `--data-urlencode response_type=code --data-urlencode redirect_uri=https://example.com/cb --data-urlencode scope=openid --data-urlencode state=s1` unless stated. Record HTTP status and `error` only.
 
@@ -180,7 +185,7 @@ Each call uses `--data-urlencode response_type=code --data-urlencode redirect_ur
 | P6a | add `request_uri=urn:ietf:params:oauth:request_uri:abc` |
 | P9 | the strict third-party client, with `code_challenge` (43 characters) and `code_challenge_method=S256` |
 
-- [ ] **Step 5: Browser checks (P1, P4, P5)**
+- [x] **Step 5: Browser checks (P1, P4, P5)**
 
 Before the timed checks, the maintainer logs in once on the trial tenant in a private window (any plain `/authorize` URL for `za-obs-par-web`), so later requests go straight back to `https://example.com/cb`. Claude pushes and immediately prints the `/authorize` URL; the maintainer opens it **within 30 seconds** in the same private window and replies with one of:
 - `REDIRECT <parameter names>, error=<value>, state=<value>`
@@ -196,17 +201,17 @@ Before the timed checks, the maintainer logs in once on the trial tenant in a pr
 | P4c | baseline for `za-obs-par-web` | `/authorize?client_id=<other>&request_uri=<uri>` |
 | P5 | none | plain `/authorize?client_id=<required>&response_type=code&redirect_uri=https://example.com/cb&scope=openid&state=s1` |
 
-- [ ] **Step 6: Tenant setting off (P6b)**
+- [x] **Step 6: Tenant setting off (P6b)**
 
 Push one baseline request, then ask the maintainer to turn the PAR setting **off**, then:
 - run the baseline `par` call again (status, `error`);
 - the maintainer opens the `/authorize` URL for the request pushed before the switch (screen or redirect).
 
-- [ ] **Step 7: Tear down**
+- [x] **Step 7: Tear down**
 
 Delete every `za-obs-par-*` client and the test user. Leave the PAR setting as the maintainer prefers. Run `auth0 apps list` and confirm nothing `za-obs-par` remains. Delete the scratch files.
 
-- [ ] **Step 8: Write the observation note**
+- [x] **Step 8: Write the observation note**
 
 Create `docs/compat/observations/par.md` in the README layout:
 
@@ -227,18 +232,18 @@ Create `docs/compat/observations/par.md` in the README layout:
 - …
 ```
 
-- [ ] **Step 9: Record decisions D-0028, D-0029 and D-0030**
+- [x] **Step 9: Record decisions D-0028, D-0029 and D-0030**
 
 Append to `docs/compat/decisions.md` in the existing format (Context, Sources, Decision, Rationale), each citing the two docs pages, RFC 9126 and `observations/par.md`:
 - **D-0028 `/oauth/par`:** form only, 10 KB, client-secret authentication, public and strict clients refused (P3b, P9), `request_uri` in the body (P6a), validation codes and statuses (P2), `ext-*` cap, the tenant setting off (P6b), 43-character opaque identifier stored hashed.
 - **D-0029 `request_uri` at `/authorize`:** extra query parameters (P1), reuse, expiry and client mismatch (P4), required PAR (P5), and the stored request surviving the login round trip.
 - **D-0030 Settings and discovery:** the tenant property name (P7), the client property, seed ordering rule, discovery fields (P8).
 
-- [ ] **Step 10: Fill the Observed column of this plan**
+- [x] **Step 10: Fill the Observed column of this plan**
 
 Where an observation differs from its default, write the observed value in bold and add "→ change" so later implementers see it. If P7 differs from `pushed_authorization_requests_supported`, replace that name everywhere in Tasks 3–9 of this plan before committing (column, yaml tag, proto field name).
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add docs/compat/observations/par.md docs/compat/decisions.md docs/superpowers/plans/2026-10-16-zeroauthy-plan-10-par.md
@@ -1144,7 +1149,7 @@ Add to the `cases` map in `TestValidation`:
 ```go
 		"par without tenant":   {`tenants: [{name: a, clients: [{client_id: c, app_type: regular_web, client_secret: s, require_pushed_authorization_requests: true}]}]`, `require_pushed_authorization_requests needs the tenant's pushed_authorization_requests_supported`},
 		"par on public client": {`tenants: [{name: a, pushed_authorization_requests_supported: true, clients: [{client_id: c, app_type: spa, require_pushed_authorization_requests: true}]}]`, `require_pushed_authorization_requests is only for confidential applications`},
-		"par on strict client": {`tenants: [{name: a, pushed_authorization_requests_supported: true, clients: [{client_id: c, app_type: regular_web, client_secret: s, is_first_party: false, require_pushed_authorization_requests: true}]}]`, `strict third-party applications cannot use pushed authorization requests`},
+		"par on third party":   {`tenants: [{name: a, pushed_authorization_requests_supported: true, clients: [{client_id: c, app_type: regular_web, client_secret: s, is_first_party: false, third_party_security_mode: permissive, require_pushed_authorization_requests: true}]}]`, `third-party applications cannot use pushed authorization requests`},
 ```
 
 Add a new test:
@@ -1218,8 +1223,8 @@ and to `Client` after `SkipNonVerifiableCallbackURIConfirmationPrompt`:
 				fail("client %q: require_pushed_authorization_requests needs the tenant's pushed_authorization_requests_supported", c.ClientID)
 			case public:
 				fail("client %q: require_pushed_authorization_requests is only for confidential applications", c.ClientID)
-			case !firstParty && c.ThirdPartySecurityMode == store.SecurityModeStrict:
-				fail("client %q: strict third-party applications cannot use pushed authorization requests", c.ClientID) // P9
+			case !firstParty:
+				fail("client %q: third-party applications cannot use pushed authorization requests", c.ClientID) // P9, D-0028
 			}
 		}
 ```
@@ -1790,7 +1795,7 @@ func TestPARStoresRequest(t *testing.T) {
 	}
 	uri, _ := body["request_uri"].(string)
 	id, ok := strings.CutPrefix(uri, authz.RequestURIPrefix)
-	if !ok || len(id) != 43 {
+	if !ok || len(id) != 64 {
 		t.Fatalf("request_uri = %q", uri)
 	}
 	p, err := f.st.PushedAuthRequests().Get(context.Background(), f.tenantID(t, "acme"), secrets.HashToken(id))
@@ -1836,16 +1841,18 @@ func TestPARRefusals(t *testing.T) {
 		code                    string
 	}{
 		{"P2a bad redirect_uri", "acme.example.test", formType, parForm("redirect_uri", "https://evil.test/cb").Encode(), 400, "invalid_request"},
-		{"P2b response_type", "acme.example.test", formType, parForm("response_type", "token").Encode(), 400, "unsupported_response_type"},
+		{"P2b response_type", "acme.example.test", formType, parForm("response_type", "token").Encode(), 501, "unsupported_response_type"},
+		{"unknown audience", "acme.example.test", formType, parForm("audience", "https://nope.test").Encode(), 403, "access_denied"},
 		{"P2c eleven ext", "acme.example.test", formType, elevenExt.Encode(), 400, "invalid_request"},
-		{"P2d oversized", "acme.example.test", formType, parForm("ext-big", strings.Repeat("x", 11000)).Encode(), 400, "invalid_request"},
+		{"P2d oversized", "acme.example.test", formType, parForm("ext-big", strings.Repeat("x", 11000)).Encode(), 413, "payload_too_large"},
 		{"P2e json", "acme.example.test", "application/json", `{"client_id":"par-web","client_secret":"par-web-secret","response_type":"code"}`, 400, "invalid_request"},
 		{"repeated", "acme.example.test", formType, parForm().Encode() + "&state=s2", 400, "invalid_request"},
 		{"P3a wrong secret", "acme.example.test", formType, parForm("client_secret", "nope").Encode(), 401, "invalid_client"},
-		{"P3b public", "acme.example.test", formType, public.Encode(), 400, "unauthorized_client"},
+		{"P3b public", "acme.example.test", formType, public.Encode(), 400, "invalid_request"},
 		{"P6a request_uri", "acme.example.test", formType, parForm("request_uri", authz.RequestURIPrefix+"x").Encode(), 400, "invalid_request"},
 		{"P6b tenant off", "globex.example.test", formType, url.Values{"client_id": {"globex-web"}, "client_secret": {"globex-web-secret"}, "response_type": {"code"}, "redirect_uri": {"https://web.globex.test/cb"}}.Encode(), 400, "invalid_request"},
 		{"P9 strict", "acme.example.test", formType, strict.Encode(), 400, "invalid_request"},
+		{"P9 permissive", "acme.example.test", formType, url.Values{"client_id": {"partner"}, "client_secret": {"partner-secret"}, "response_type": {"code"}, "redirect_uri": {"https://partner.acme.test/cb"}}.Encode(), 400, "invalid_request"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1874,13 +1881,13 @@ Create `internal/oauth/par.go`:
 package oauth
 
 import (
+	"errors"
 	"fmt"
 	"mime"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -1927,10 +1934,10 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 		return nil, oerr
 	}
 	if c.TokenEndpointAuthMethod == store.AuthMethodNone {
-		return nil, &Error{Status: http.StatusBadRequest, Code: "unauthorized_client", Description: "only confidential applications may push authorization requests"} // P3b
+		return nil, invalidRequest("only confidential applications may push authorization requests") // P3b
 	}
-	if access.Strict(c) {
-		return nil, invalidRequest("pushed authorization requests are not supported for this application") // P9
+	if !c.IsFirstParty {
+		return nil, invalidRequest("pushed authorization requests are not available to third-party applications") // P9
 	}
 	if form.Has("request_uri") {
 		return nil, invalidRequest("request_uri is not allowed in a pushed authorization request") // P6a
@@ -1951,10 +1958,10 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 		if verr.Code == "server_error" {
 			return nil, serverError()
 		}
-		return nil, &Error{Status: http.StatusBadRequest, Code: verr.Code, Description: verr.Description} // P2
+		return nil, &Error{Status: parStatus(verr.Code), Code: verr.Code, Description: verr.Description} // P2
 	}
 
-	id := secrets.RandomString(43)
+	id := secrets.RandomString(64)
 	now := h.now().UTC()
 	if err := h.Store.PushedAuthRequests().Create(ctx, &store.PushedAuthRequest{
 		TenantID: t.ID, IDHash: secrets.HashToken(id), ClientID: c.ClientID, Params: req.Params(),
@@ -1966,8 +1973,22 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 	return &parResponse{RequestURI: authz.RequestURIPrefix + id, ExpiresIn: int(authz.PARLifetime.Seconds())}, nil
 }
 
+// parStatus is the HTTP status Auth0 uses at /oauth/par for each
+// /authorize error code (D-0028).
+func parStatus(code string) int {
+	switch code {
+	case "unauthorized_client", "access_denied":
+		return http.StatusForbidden
+	case "unsupported_response_type":
+		return http.StatusNotImplemented
+	default:
+		return http.StatusBadRequest
+	}
+}
+
 // parsePARRequest reads a form-encoded body of at most 10 KB with no
-// repeated parameters (P2d, P2e).
+// repeated parameters (P2d, P2e). An oversized body is 413
+// payload_too_large, as on Auth0.
 func parsePARRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Error) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxPARRequestBytes)
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
@@ -1975,7 +1996,11 @@ func parsePARRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Error
 		return nil, invalidRequest("Content-Type must be application/x-www-form-urlencoded")
 	}
 	if err := r.ParseForm(); err != nil {
-		return nil, invalidRequest("malformed or oversized form body")
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			return nil, &Error{Status: http.StatusRequestEntityTooLarge, Code: "payload_too_large", Description: "the request body exceeds 10 KB"}
+		}
+		return nil, invalidRequest("malformed form body")
 	}
 	for k, vs := range r.PostForm {
 		if len(vs) > 1 {
@@ -1986,7 +2011,7 @@ func parsePARRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Error
 }
 ```
 
-If `authz` imports anything that imports `oauth`, `go build` reports an import cycle; it does not today (authz imports access, i18n, secrets, session, store, tenant, ui).
+`par.go` imports `errors` as well (for `errors.As`), and no longer needs `access`. If `authz` imports anything that imports `oauth`, `go build` reports an import cycle; it does not today (authz imports access, i18n, secrets, session, store, tenant, ui).
 
 - [ ] **Step 4: Contract and routing**
 
@@ -2031,8 +2056,14 @@ In `api/authentication.yaml`, after `/oauth/revoke`:
           $ref: "#/components/responses/OAuthErrorResponse"
         "401":
           $ref: "#/components/responses/OAuthErrorResponse"
+        "403":
+          $ref: "#/components/responses/OAuthErrorResponse"
         "404":
           $ref: "#/components/responses/UnknownTenant"
+        "413":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "501":
+          $ref: "#/components/responses/OAuthErrorResponse"
         default:
           $ref: "#/components/responses/ServerError"
 ```
@@ -2064,6 +2095,7 @@ In the `OpenIDConfiguration` schema properties, add (not required):
 
 ```yaml
         pushed_authorization_request_endpoint: {type: string, description: Present when the tenant allows pushed authorization requests.}
+        request_uri_parameter_supported: {type: boolean, description: "Always false: `request_uri` is accepted only from `/oauth/par`."}
 ```
 
 Run: `go generate ./internal/gen/...`
@@ -2083,6 +2115,9 @@ In `internal/oidc/handlers.go`, add to `Configuration` after `RevocationEndpoint
 
 ```go
 	PushedAuthorizationRequestEndpoint string `json:"pushed_authorization_request_endpoint,omitempty"`
+	// RequestURIParameterSupported is always false (D-0030): request_uri is
+	// accepted only from /oauth/par. OIDC Discovery defaults it to true.
+	RequestURIParameterSupported bool `json:"request_uri_parameter_supported"`
 ```
 
 In `Discovery`, build the value before writing:
@@ -2106,6 +2141,9 @@ func TestDiscoveryAdvertisesPAROnlyWhenEnabled(t *testing.T) {
 	}
 	if _, ok := off["pushed_authorization_request_endpoint"]; ok {
 		t.Fatalf("PAR endpoint advertised for a tenant without PAR: %v", off)
+	}
+	if v, ok := off["request_uri_parameter_supported"]; !ok || v != false {
+		t.Fatalf("request_uri_parameter_supported = %v (present %v); want false", v, ok)
 	}
 
 	ctx := context.Background()
