@@ -120,7 +120,9 @@ func (m *Minter) IDToken(ctx context.Context, p IDTokenParams) (string, error) {
 	c["aud"] = p.ClientID
 	c["iat"] = iat
 	c["exp"] = iat + int64(lifetime/time.Second)
-	c["auth_time"] = p.AuthTime.Unix()
+	if !p.AuthTime.IsZero() {
+		c["auth_time"] = p.AuthTime.Unix()
+	}
 	if p.Nonce != "" {
 		c["nonce"] = p.Nonce
 	}

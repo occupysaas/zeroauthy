@@ -1,0 +1,96 @@
+package oauth
+
+import (
+	"context"
+	"errors"
+	"net/url"
+	"slices"
+	"time"
+
+	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
+)
+
+// familyForDevice is the refresh token family started by a device code.
+func familyForDevice(deviceCodeHash string) string {
+	return "rtf_" + secrets.HashToken("family:device:" + deviceCodeHash)[:32]
+}
+
+// deviceCodeGrant implements RFC 8628 §3.4-3.5: the device polls until the
+// user decides.
+func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error) {
+	code := form.Get("device_code")
+	if code == "" {
+		return nil, invalidRequest("device_code is required")
+	}
+	tenantID := res.Tenant.ID
+	hash := secrets.HashToken(code)
+	// Check ownership before polling so another client cannot consume or
+	// advance the code.
+	d, err := h.Store.DeviceCodes().Get(ctx, tenantID, hash)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, deviceInvalidGrant("invalid device code")
+	}
+	if err != nil {
+		h.log().ErrorContext(ctx, "load device code", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	}
+	if d.ClientID != c.ClientID {
+		return nil, deviceInvalidGrant("invalid device code")
+	}
+	now := h.now()
+	poll, err := h.Store.DeviceCodes().Poll(ctx, tenantID, hash, now)
+	if err != nil {
+		h.log().ErrorContext(ctx, "poll device code", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	}
+	switch poll.Outcome {
+	case store.PollPending:
+		return nil, authorizationPending()
+	case store.PollSlowDown:
+		return nil, slowDown()
+	case store.PollDenied:
+		return nil, accessDenied("the user denied the request")
+	case store.PollExpired:
+		return nil, expiredToken()
+	case store.PollApproved:
+	default:
+		return nil, deviceInvalidGrant("invalid device code")
+	}
+
+	dc := poll.Code
+	user, oerr := h.activeUser(ctx, tenantID, dc.UserID)
+	if oerr != nil {
+		return nil, oerr
+	}
+	rs, lifetime, oerr := h.audienceFor(ctx, tenantID, dc.Audience)
+	if oerr != nil {
+		return nil, oerr
+	}
+	scopes := userScopes(dc.GrantedScopes, rs, offlineAllowed(c, rs))
+	// Device tokens belong to no browser session: no sid, no auth_time.
+	resp, oerr := h.mintUserTokens(ctx, res, c, userTokens{
+		user: user, rs: rs, lifetime: lifetime, scopes: scopes, omitAtHash: true,
+	})
+	if oerr != nil {
+		return nil, oerr
+	}
+	if slices.Contains(scopes, "offline_access") {
+		absolute, _ := refreshLifetimes(c.RefreshToken)
+		var expiresAt time.Time
+		if absolute > 0 {
+			expiresAt = now.UTC().Add(absolute)
+		}
+		rt, raw := h.newRefreshToken(c, tenantID, refreshGrant{
+			familyID: familyForDevice(hash), userID: user.UserID, audience: dc.Audience, scopes: scopes, expiresAt: expiresAt,
+		})
+		if err := h.Store.RefreshTokens().Create(ctx, rt); err != nil {
+			h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
+			return nil, serverError()
+		}
+		resp.RefreshToken = &raw
+	}
+	return resp, nil
+}

@@ -68,3 +68,22 @@ func writeError(w http.ResponseWriter, e *Error) {
 func invalidGrant(desc string) *Error {
 	return &Error{Status: http.StatusBadRequest, Code: "invalid_grant", Description: desc}
 }
+
+// authorizationPending, slowDown, expiredToken and deviceInvalidGrant are
+// the device flow's poll answers (RFC 8628 §3.5). Auth0 sends all but
+// slow_down with status 403 and invalid_grant here with 403, not 400.
+func authorizationPending() *Error {
+	return &Error{Status: http.StatusForbidden, Code: "authorization_pending", Description: "the user has not finished authorizing this device yet"}
+}
+
+func slowDown() *Error {
+	return &Error{Status: http.StatusTooManyRequests, Code: "slow_down", Description: "polling too fast; wait before asking again"}
+}
+
+func expiredToken() *Error {
+	return &Error{Status: http.StatusForbidden, Code: "expired_token", Description: "the device code has expired; start the flow again"}
+}
+
+func deviceInvalidGrant(desc string) *Error {
+	return &Error{Status: http.StatusForbidden, Code: "invalid_grant", Description: desc}
+}

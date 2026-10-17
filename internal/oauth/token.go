@@ -16,14 +16,14 @@ import (
 
 type grantHandler func(h *Handlers, ctx context.Context, res tenant.Resolved, c *store.Client, form url.Values) (*authapi.TokenResponse, *Error)
 
-// grantHandlers maps grant_type to its implementation. A later plan adds
-// device_code.
+// grantHandlers maps grant_type to its implementation.
 var grantHandlers = map[string]grantHandler{
 	"authorization_code": (*Handlers).authorizationCode,
 	"client_credentials": (*Handlers).clientCredentials,
 	"refresh_token":      (*Handlers).refreshToken,
 	"password":           (*Handlers).passwordGrant,
 	GrantPasswordRealm:   (*Handlers).passwordRealmGrant,
+	GrantDeviceCode:      (*Handlers).deviceCodeGrant,
 }
 
 // OauthToken implements POST /oauth/token.

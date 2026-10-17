@@ -78,6 +78,8 @@ type userTokens struct {
 	authTime  time.Time
 	// grantType becomes the access token's gty claim; empty omits it.
 	grantType string
+	// omitAtHash leaves at_hash out of the ID token.
+	omitAtHash bool
 }
 
 // mintUserTokens returns an access token and, with scope openid, an ID
@@ -109,9 +111,13 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		resp.Scope = &s
 	}
 	if openid {
+		atHashSource := accessToken
+		if ut.omitAtHash {
+			atHashSource = ""
+		}
 		idToken, err := h.Minter.IDToken(ctx, IDTokenParams{
 			TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: ut.scopes,
-			Nonce: ut.nonce, SessionID: ut.sessionID, AuthTime: ut.authTime, AccessToken: accessToken,
+			Nonce: ut.nonce, SessionID: ut.sessionID, AuthTime: ut.authTime, AccessToken: atHashSource,
 			Lifetime: time.Duration(c.IDTokenLifetime) * time.Second,
 		})
 		if err != nil {
