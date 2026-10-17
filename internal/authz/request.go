@@ -1,6 +1,8 @@
 package authz
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"net/url"
 	"strconv"
 	"strings"
@@ -31,6 +33,10 @@ type Request struct {
 	Ext map[string]string
 	// Pushed is true for a request that came from /oauth/par.
 	Pushed bool
+	// RequestObject is the raw request parameter. Request objects are not
+	// supported; it is read only to deliver request_not_supported. Not part
+	// of Params().
+	RequestObject string
 	// Present lists which strictUnsupported parameters the request carried.
 	// It is not part of Params(): a request that carries any of these never
 	// reaches a transaction for a strict client.
@@ -98,6 +104,7 @@ func ParseRequest(q url.Values) Request {
 	for _, name := range paramNames {
 		*r.field(name) = q.Get(name)
 	}
+	r.RequestObject = q.Get("request")
 	for _, n := range strictUnsupported {
 		if q.Has(n) {
 			r.Present = append(r.Present, n)
@@ -112,6 +119,28 @@ func ParseRequest(q url.Values) Request {
 		}
 	}
 	return r
+}
+
+// requestObjectDelivery reads state and response_mode from an unverified
+// request object, for delivering request_not_supported only (OpenID
+// Connect Core §6.1: its values take precedence over the query). It
+// returns empty strings for anything that is not a readable JWS.
+func requestObjectDelivery(raw string) (state, responseMode string) {
+	parts := strings.Split(raw, ".")
+	if len(parts) != 3 {
+		return "", ""
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", ""
+	}
+	var c map[string]any
+	if json.Unmarshal(payload, &c) != nil {
+		return "", ""
+	}
+	state, _ = c["state"].(string)
+	responseMode, _ = c["response_mode"].(string)
+	return state, responseMode
 }
 
 // Params flattens r for storage in a login transaction.

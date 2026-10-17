@@ -528,7 +528,7 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Context:** OpenID Connect Core §6 lets an OP either process the `request` parameter (a request object) or refuse it with `request_not_supported` (§3.1.2.6). zeroauthy ignored it silently, so the parameters inside it were lost (OIDF `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported`). Auth0 supports signed request objects (JAR) and its discovery lists `request_parameter_supported: true` (observations/par.md).
 - **Sources:** OpenID Connect Core §3.1.2.6, §6; OpenID Connect Discovery §3; observations/par.md; the Plan 12 conformance triage rulings (tests/conformance/triage-2026-10.md, row 2).
 - **Decision:**
-  - `/authorize` answers a `request` parameter with `request_not_supported`, delivered like other authorization errors (to a registered `redirect_uri`, with `state`; on the error page when the client or `redirect_uri` cannot be trusted).
+  - `/authorize` answers a `request` parameter with `request_not_supported`, delivered like other authorization errors (to a registered `redirect_uri`, with `state`; on the error page when the client or `redirect_uri` cannot be trusted). When the object is a readable JWS, its `state` and `response_mode` are used for this delivery (they take precedence over the query, §6.1). Its signature is not checked and nothing else in it is read; the `redirect_uri` is always the query's registered one.
   - Strict third-party clients keep D-0025's `invalid_request`.
   - `/oauth/par` refuses a pushed `request` the same way (`400 request_not_supported`).
   - Discovery lists `request_parameter_supported: false`.

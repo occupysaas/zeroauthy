@@ -3,6 +3,7 @@ package authz
 
 import (
 	"context"
+	"encoding/base64"
 	"html"
 	"net/http"
 	"net/http/httptest"
@@ -459,6 +460,26 @@ func TestRequestObjectNotSupported(t *testing.T) {
 	rec := e.get(t, with(goodQuery(), "request", "x", "redirect_uri", "https://evil.test/cb"))
 	if rec.Code != 400 || rec.Header().Get("Location") != "" {
 		t.Fatalf("unregistered redirect = %d %v", rec.Code, rec.Header())
+	}
+}
+
+// OIDF (Form Post plan): when state and response_mode are only inside the
+// request object, request_not_supported is still delivered with them
+// (OpenID Connect Core §6.1: request object values take precedence).
+func TestRequestObjectNotSupportedUsesObjectDelivery(t *testing.T) {
+	e := newEnv(t)
+	obj := "eyJhbGciOiJub25lIn0." + base64.RawURLEncoding.EncodeToString([]byte(`{"state":"obj-st","response_mode":"form_post","nonce":"n"}`)) + "."
+	q := with(goodQuery(), "state", "", "request", obj)
+	rec := e.get(t, q)
+	body := rec.Body.String()
+	if rec.Code != 200 || !strings.Contains(body, `action="https://app.acme.test/callback"`) ||
+		!strings.Contains(body, `value="request_not_supported"`) || !strings.Contains(body, `value="obj-st"`) {
+		t.Fatalf("form_post error = %d %s", rec.Code, body)
+	}
+	// An undecodable object leaves the query's delivery in place.
+	loc := location(t, e.get(t, with(goodQuery(), "request", "not-a-jwt")))
+	if loc.Query().Get("error") != "request_not_supported" || loc.Query().Get("state") != "st" {
+		t.Fatalf("Location = %s", loc)
 	}
 }
 

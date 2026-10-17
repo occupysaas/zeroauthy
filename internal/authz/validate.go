@@ -42,6 +42,20 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 		return client, errInvalidRequest("redirect_uri is not registered for this application"), false
 	}
 
+	// Request objects (JAR) are not supported (OpenID Connect Core §6,
+	// §3.1.2.6): the error is delivered with the object's state and
+	// response_mode, which take precedence over the query (§6.1). Strict
+	// third-party clients keep D-0025's invalid_request, checked below.
+	requestObject := slices.Contains(req.Present, "request") && !access.Strict(client)
+	if requestObject {
+		state, mode := requestObjectDelivery(req.RequestObject)
+		if state != "" {
+			req.State = state
+		}
+		if mode != "" {
+			req.ResponseMode = mode
+		}
+	}
 	if req.ResponseMode == "" {
 		req.ResponseMode = "query"
 	}
@@ -58,10 +72,7 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 		return client, errInvalidRequest("response_mode=form_post requires an http or https redirect_uri"), true
 	}
 
-	// Request objects (JAR) are not supported (OpenID Connect Core §6,
-	// §3.1.2.6). Strict third-party clients keep D-0025's invalid_request,
-	// checked below.
-	if slices.Contains(req.Present, "request") && !access.Strict(client) {
+	if requestObject {
 		return client, errRequestNotSupported(), true
 	}
 
