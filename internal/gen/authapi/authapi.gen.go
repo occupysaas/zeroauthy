@@ -13,6 +13,21 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for PushedAuthorizationResponseExpiresIn.
+const (
+	N30 PushedAuthorizationResponseExpiresIn = 30
+)
+
+// Valid indicates whether the value is a known member of the PushedAuthorizationResponseExpiresIn enum.
+func (e PushedAuthorizationResponseExpiresIn) Valid() bool {
+	switch e {
+	case N30:
+		return true
+	default:
+		return false
+	}
+}
+
 // ChangePasswordRequest defines model for ChangePasswordRequest.
 type ChangePasswordRequest struct {
 	ClientId *string `json:"client_id,omitempty"`
@@ -67,14 +82,20 @@ type OidcLogoutRequest struct {
 
 // OpenIDConfiguration defines model for OpenIDConfiguration.
 type OpenIDConfiguration struct {
-	AuthorizationEndpoint             string    `json:"authorization_endpoint"`
-	ClaimsSupported                   *[]string `json:"claims_supported,omitempty"`
-	CodeChallengeMethodsSupported     *[]string `json:"code_challenge_methods_supported,omitempty"`
-	EndSessionEndpoint                *string   `json:"end_session_endpoint,omitempty"`
-	GrantTypesSupported               *[]string `json:"grant_types_supported,omitempty"`
-	IdTokenSigningAlgValuesSupported  []string  `json:"id_token_signing_alg_values_supported"`
-	Issuer                            string    `json:"issuer"`
-	JwksUri                           string    `json:"jwks_uri"`
+	AuthorizationEndpoint            string    `json:"authorization_endpoint"`
+	ClaimsSupported                  *[]string `json:"claims_supported,omitempty"`
+	CodeChallengeMethodsSupported    *[]string `json:"code_challenge_methods_supported,omitempty"`
+	EndSessionEndpoint               *string   `json:"end_session_endpoint,omitempty"`
+	GrantTypesSupported              *[]string `json:"grant_types_supported,omitempty"`
+	IdTokenSigningAlgValuesSupported []string  `json:"id_token_signing_alg_values_supported"`
+	Issuer                           string    `json:"issuer"`
+	JwksUri                          string    `json:"jwks_uri"`
+
+	// PushedAuthorizationRequestEndpoint Present when the tenant allows pushed authorization requests.
+	PushedAuthorizationRequestEndpoint *string `json:"pushed_authorization_request_endpoint,omitempty"`
+
+	// RequestUriParameterSupported Always false: `request_uri` is accepted only from `/oauth/par`.
+	RequestUriParameterSupported      *bool     `json:"request_uri_parameter_supported,omitempty"`
 	ResponseModesSupported            *[]string `json:"response_modes_supported,omitempty"`
 	ResponseTypesSupported            []string  `json:"response_types_supported"`
 	RevocationEndpoint                *string   `json:"revocation_endpoint,omitempty"`
@@ -84,6 +105,29 @@ type OpenIDConfiguration struct {
 	TokenEndpointAuthMethodsSupported *[]string `json:"token_endpoint_auth_methods_supported,omitempty"`
 	UserinfoEndpoint                  *string   `json:"userinfo_endpoint,omitempty"`
 }
+
+// PushedAuthorizationRequest The `/authorize` parameters, plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
+type PushedAuthorizationRequest struct {
+	Audience             *string           `json:"audience,omitempty"`
+	ClientId             *string           `json:"client_id,omitempty"`
+	ClientSecret         *string           `json:"client_secret,omitempty"`
+	RedirectUri          *string           `json:"redirect_uri,omitempty"`
+	ResponseType         *string           `json:"response_type,omitempty"`
+	Scope                *string           `json:"scope,omitempty"`
+	State                *string           `json:"state,omitempty"`
+	AdditionalProperties map[string]string `json:"-"`
+}
+
+// PushedAuthorizationResponse defines model for PushedAuthorizationResponse.
+type PushedAuthorizationResponse struct {
+	ExpiresIn PushedAuthorizationResponseExpiresIn `json:"expires_in"`
+
+	// RequestUri `urn:ietf:params:oauth:request_uri:` followed by an opaque value.
+	RequestUri string `json:"request_uri"`
+}
+
+// PushedAuthorizationResponseExpiresIn defines model for PushedAuthorizationResponse.ExpiresIn.
+type PushedAuthorizationResponseExpiresIn int
 
 // RevokeRequest defines model for RevokeRequest.
 type RevokeRequest struct {
@@ -324,6 +368,9 @@ type DbconnectionsSignupJSONRequestBody = SignupRequest
 // DbconnectionsSignupFormdataRequestBody defines body for DbconnectionsSignup for application/x-www-form-urlencoded ContentType.
 type DbconnectionsSignupFormdataRequestBody = SignupFormRequest
 
+// OauthParFormdataRequestBody defines body for OauthPar for application/x-www-form-urlencoded ContentType.
+type OauthParFormdataRequestBody = PushedAuthorizationRequest
+
 // OauthRevokeJSONRequestBody defines body for OauthRevoke for application/json ContentType.
 type OauthRevokeJSONRequestBody = RevokeRequest
 
@@ -338,6 +385,164 @@ type OauthTokenFormdataRequestBody = TokenRequest
 
 // OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
 type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
+
+// Getter for additional properties for PushedAuthorizationRequest. Returns the specified
+// element and whether it was found
+func (a PushedAuthorizationRequest) Get(fieldName string) (value string, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for PushedAuthorizationRequest
+func (a *PushedAuthorizationRequest) Set(fieldName string, value string) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]string)
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for PushedAuthorizationRequest to handle AdditionalProperties
+func (a *PushedAuthorizationRequest) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["audience"]; found {
+		err = json.Unmarshal(raw, &a.Audience)
+		if err != nil {
+			return fmt.Errorf("error reading 'audience': %w", err)
+		}
+		delete(object, "audience")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["client_secret"]; found {
+		err = json.Unmarshal(raw, &a.ClientSecret)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_secret': %w", err)
+		}
+		delete(object, "client_secret")
+	}
+
+	if raw, found := object["redirect_uri"]; found {
+		err = json.Unmarshal(raw, &a.RedirectUri)
+		if err != nil {
+			return fmt.Errorf("error reading 'redirect_uri': %w", err)
+		}
+		delete(object, "redirect_uri")
+	}
+
+	if raw, found := object["response_type"]; found {
+		err = json.Unmarshal(raw, &a.ResponseType)
+		if err != nil {
+			return fmt.Errorf("error reading 'response_type': %w", err)
+		}
+		delete(object, "response_type")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if raw, found := object["state"]; found {
+		err = json.Unmarshal(raw, &a.State)
+		if err != nil {
+			return fmt.Errorf("error reading 'state': %w", err)
+		}
+		delete(object, "state")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]string)
+		for fieldName, fieldBuf := range object {
+			var fieldVal string
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for PushedAuthorizationRequest to handle AdditionalProperties
+func (a PushedAuthorizationRequest) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Audience != nil {
+		object["audience"], err = json.Marshal(a.Audience)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'audience': %w", err)
+		}
+	}
+
+	if a.ClientId != nil {
+		object["client_id"], err = json.Marshal(a.ClientId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+		}
+	}
+
+	if a.ClientSecret != nil {
+		object["client_secret"], err = json.Marshal(a.ClientSecret)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'client_secret': %w", err)
+		}
+	}
+
+	if a.RedirectUri != nil {
+		object["redirect_uri"], err = json.Marshal(a.RedirectUri)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'redirect_uri': %w", err)
+		}
+	}
+
+	if a.ResponseType != nil {
+		object["response_type"], err = json.Marshal(a.ResponseType)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'response_type': %w", err)
+		}
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	if a.State != nil {
+		object["state"], err = json.Marshal(a.State)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'state': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // Getter for additional properties for UserInfo. Returns the specified
 // element and whether it was found
@@ -512,6 +717,9 @@ type ServerInterface interface {
 	// DbconnectionsSignup Sign up a user
 	// (POST /dbconnections/signup)
 	DbconnectionsSignup(w http.ResponseWriter, r *http.Request)
+	// OauthPar Push an authorization request
+	// (POST /oauth/par)
+	OauthPar(w http.ResponseWriter, r *http.Request)
 	// OauthRevoke Revoke a refresh token
 	// (POST /oauth/revoke)
 	OauthRevoke(w http.ResponseWriter, r *http.Request)
@@ -566,6 +774,12 @@ func (_ Unimplemented) DbconnectionsChangePassword(w http.ResponseWriter, r *htt
 // DbconnectionsSignup Sign up a user
 // (POST /dbconnections/signup)
 func (_ Unimplemented) DbconnectionsSignup(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// OauthPar Push an authorization request
+// (POST /oauth/par)
+func (_ Unimplemented) OauthPar(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -943,6 +1157,20 @@ func (siw *ServerInterfaceWrapper) DbconnectionsSignup(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// OauthPar operation middleware
+func (siw *ServerInterfaceWrapper) OauthPar(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OauthPar(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // OauthRevoke operation middleware
 func (siw *ServerInterfaceWrapper) OauthRevoke(w http.ResponseWriter, r *http.Request) {
 
@@ -1297,6 +1525,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oauth/revoke", wrapper.OauthRevoke)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/oauth/par", wrapper.OauthPar)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/userinfo", wrapper.Userinfo)

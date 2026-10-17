@@ -36,10 +36,14 @@ func (h *Handlers) now() time.Time {
 // Configuration is OpenID Provider metadata (OpenID Connect Discovery 1.0
 // §3). It lists only what this server implements.
 type Configuration struct {
-	Issuer                            string   `json:"issuer"`
-	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
-	TokenEndpoint                     string   `json:"token_endpoint"`
-	RevocationEndpoint                string   `json:"revocation_endpoint"`
+	Issuer                             string `json:"issuer"`
+	AuthorizationEndpoint              string `json:"authorization_endpoint"`
+	TokenEndpoint                      string `json:"token_endpoint"`
+	RevocationEndpoint                 string `json:"revocation_endpoint"`
+	PushedAuthorizationRequestEndpoint string `json:"pushed_authorization_request_endpoint,omitempty"`
+	// RequestURIParameterSupported is always false (D-0030): request_uri is
+	// accepted only from /oauth/par. OIDC Discovery defaults it to true.
+	RequestURIParameterSupported      bool     `json:"request_uri_parameter_supported"`
 	UserinfoEndpoint                  string   `json:"userinfo_endpoint"`
 	JWKSURI                           string   `json:"jwks_uri"`
 	EndSessionEndpoint                string   `json:"end_session_endpoint"`
@@ -62,7 +66,7 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 	}
 	base := strings.TrimSuffix(res.Issuer(), "/")
 	w.Header().Set("Cache-Control", metadataCacheControl)
-	httpx.WriteJSON(w, http.StatusOK, Configuration{
+	cfg := Configuration{
 		Issuer:                            res.Issuer(),
 		AuthorizationEndpoint:             base + "/authorize",
 		TokenEndpoint:                     base + "/oauth/token",
@@ -80,7 +84,11 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		ScopesSupported:                   []string{"openid", "profile", "email", "offline_access"},
 		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce", "sid", "at_hash",
 			"name", "nickname", "picture", "updated_at", "email", "email_verified"},
-	})
+	}
+	if res.Tenant.PushedAuthorizationRequestsSupported {
+		cfg.PushedAuthorizationRequestEndpoint = base + "/oauth/par" // P8
+	}
+	httpx.WriteJSON(w, http.StatusOK, cfg)
 }
 
 func (h *Handlers) Jwks(w http.ResponseWriter, r *http.Request) {

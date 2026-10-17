@@ -57,6 +57,7 @@ func (a authAPI) Discovery(w http.ResponseWriter, r *http.Request)    { a.oidc.D
 func (a authAPI) Jwks(w http.ResponseWriter, r *http.Request)         { a.oidc.Jwks(w, r) }
 func (a authAPI) OauthToken(w http.ResponseWriter, r *http.Request)   { a.oauth.OauthToken(w, r) }
 func (a authAPI) OauthRevoke(w http.ResponseWriter, r *http.Request)  { a.oauth.OauthRevoke(w, r) }
+func (a authAPI) OauthPar(w http.ResponseWriter, r *http.Request)     { a.oauth.OauthPar(w, r) }
 func (a authAPI) Userinfo(w http.ResponseWriter, r *http.Request)     { a.oidc.Userinfo(w, r) }
 func (a authAPI) UserinfoPost(w http.ResponseWriter, r *http.Request) { a.oidc.Userinfo(w, r) }
 

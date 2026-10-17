@@ -124,3 +124,34 @@ func TestUnknownTenant(t *testing.T) {
 		t.Fatalf("status %d", rec.Code)
 	}
 }
+
+func TestDiscoveryAdvertisesPAROnlyWhenEnabled(t *testing.T) {
+	h, _ := setup(t)
+	var off map[string]any
+	if err := json.Unmarshal(get(h, "https://acme.example.test/.well-known/openid-configuration").Body.Bytes(), &off); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := off["pushed_authorization_request_endpoint"]; ok {
+		t.Fatalf("PAR endpoint advertised for a tenant without PAR: %v", off)
+	}
+	if v, ok := off["request_uri_parameter_supported"]; !ok || v != false {
+		t.Fatalf("request_uri_parameter_supported = %v (present %v); want false", v, ok)
+	}
+
+	ctx := context.Background()
+	st := memory.New()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_par", Name: "par", Domains: []string{"par.example.test"},
+		PushedAuthorizationRequestsSupported: true}); err != nil {
+		t.Fatal(err)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /.well-known/openid-configuration", (&Handlers{}).Discovery)
+	hp := contract.Wrap(t, tenant.NewResolver(st.Tenants(), "", false).Middleware(mux))
+	var on map[string]any
+	if err := json.Unmarshal(get(hp, "https://par.example.test/.well-known/openid-configuration").Body.Bytes(), &on); err != nil {
+		t.Fatal(err)
+	}
+	if on["pushed_authorization_request_endpoint"] != "https://par.example.test/oauth/par" {
+		t.Fatalf("pushed_authorization_request_endpoint = %v", on["pushed_authorization_request_endpoint"])
+	}
+}

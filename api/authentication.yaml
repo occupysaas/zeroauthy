@@ -263,6 +263,54 @@ paths:
           $ref: "#/components/responses/UnknownTenant"
         default:
           $ref: "#/components/responses/ServerError"
+  /oauth/par:
+    post:
+      operationId: oauthPar
+      tags: [Tokens]
+      summary: Push an authorization request
+      description: |
+        A confidential application sends its authorization parameters over
+        the back channel and receives a `request_uri` to use once at
+        `/authorize` within 30 seconds. The application authenticates as at
+        `/oauth/token` (client secret only). The tenant must allow pushed
+        authorization requests. The body is form-encoded, at most 10 KB, with
+        at most 10 `ext-` parameters; other unknown parameters are dropped.
+      x-source:
+        - https://www.rfc-editor.org/rfc/rfc9126
+        - https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par
+        - https://auth0.com/docs/get-started/applications/configure-par
+      security:
+        - clientSecretBasic: []
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/PushedAuthorizationRequest"
+      responses:
+        "201":
+          description: The request was stored.
+          headers:
+            Cache-Control: {schema: {type: string, const: no-store}}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushedAuthorizationResponse"
+        "400":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "401":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "403":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        "413":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "501":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        default:
+          $ref: "#/components/responses/ServerError"
   /userinfo:
     get:
       operationId: userinfo
@@ -671,6 +719,24 @@ components:
           examples: [invalid_client]
         error_description:
           type: string
+    PushedAuthorizationRequest:
+      type: object
+      description: The `/authorize` parameters, plus client authentication (`client_id`, `client_secret`) and up to 10 `ext-` parameters.
+      properties:
+        client_id: {type: string}
+        client_secret: {type: string}
+        response_type: {type: string}
+        redirect_uri: {type: string}
+        scope: {type: string}
+        state: {type: string}
+        audience: {type: string}
+      additionalProperties: {type: string}
+    PushedAuthorizationResponse:
+      type: object
+      required: [request_uri, expires_in]
+      properties:
+        request_uri: {type: string, description: "`urn:ietf:params:oauth:request_uri:` followed by an opaque value."}
+        expires_in: {type: integer, const: 30}
     RevokeRequest:
       type: object
       required: [token]
@@ -757,6 +823,8 @@ components:
         authorization_endpoint: {type: string, format: uri}
         token_endpoint: {type: string, format: uri}
         revocation_endpoint: {type: string, format: uri}
+        pushed_authorization_request_endpoint: {type: string, description: Present when the tenant allows pushed authorization requests.}
+        request_uri_parameter_supported: {type: boolean, description: "Always false: `request_uri` is accepted only from `/oauth/par`."}
         jwks_uri: {type: string, format: uri}
         end_session_endpoint: {type: string, format: uri}
         response_types_supported: {type: array, items: {type: string}}

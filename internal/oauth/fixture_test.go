@@ -24,6 +24,7 @@ const fixtureSeed = `
 tenants:
   - name: acme
     domains: [acme.example.test]
+    pushed_authorization_requests_supported: true
     default_audience: https://api.acme.test
     default_directory: Username-Password-Authentication
     resource_servers:
@@ -54,6 +55,9 @@ tenants:
       - {client_id: web, app_type: regular_web, client_secret: web-secret, grant_types: [authorization_code]}
       - {client_id: spa, app_type: spa, grant_types: [client_credentials]}
       - {client_id: code-spa, app_type: spa, grant_types: [authorization_code], callbacks: ["https://app.acme.test/cb"], id_token_lifetime: 600}
+      - {client_id: par-web, app_type: regular_web, client_secret: par-web-secret, grant_types: [authorization_code], callbacks: ["https://par.acme.test/cb"]}
+      - {client_id: par-basic, app_type: regular_web, client_secret: par-basic-secret, token_endpoint_auth_method: client_secret_basic, grant_types: [authorization_code], callbacks: ["https://par.acme.test/cb"]}
+      - {client_id: par-strict, app_type: regular_web, client_secret: par-strict-secret, is_first_party: false, grant_types: [authorization_code], callbacks: ["https://partner.acme.test/cb"]}
       - {client_id: code-web, app_type: regular_web, client_secret: code-web-secret, grant_types: [authorization_code], callbacks: ["https://web.acme.test/cb"]}
       - {client_id: rt-spa, app_type: spa, grant_types: [authorization_code, refresh_token], callbacks: ["https://rt.acme.test/cb"]}
       - client_id: rt-web
@@ -91,6 +95,7 @@ tenants:
     resource_servers:
       - {identifier: https://api.globex.test, skip_consent_for_verifiable_first_party_clients: true, name: Globex API, scopes: [{value: "read:things"}]}
     clients:
+      - {client_id: globex-web, app_type: regular_web, client_secret: globex-web-secret, grant_types: [authorization_code], callbacks: ["https://web.globex.test/cb"]}
       - {client_id: globex-m2m, app_type: non_interactive, client_secret: globex-secret, grant_types: [client_credentials]}
     client_grants:
       - {client_id: globex-m2m, audience: https://api.globex.test, scopes: ["read:things"]}
