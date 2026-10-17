@@ -30,10 +30,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"RefreshTokens":        testRefreshTokens,
 	"PasswordResetTickets": testPasswordResetTickets,
 	"Tx":                   testTx,
-	// DeviceCodes and TenantDeviceFlow are not in suiteOrder yet: the SQL and
-	// gRPC drivers pick them up in their own tasks.
-	"DeviceCodes":      testDeviceCodes,
-	"TenantDeviceFlow": testTenantDeviceFlow,
+	"DeviceCodes":          testDeviceCodes,
 }
 
 // suiteOrder is the order Run executes the suites in.
@@ -42,12 +39,47 @@ var suiteOrder = []string{
 	"Connections", "Users", "Sessions", "AuthTransactions", "AuthCodes",
 	"PushedAuthRequests",
 	"RefreshTokens", "PasswordResetTickets", "Tx",
+	"DeviceCodes",
 }
 
 // Run executes the conformance tests every driver passes against stores made
 // by newStore.
 func Run(t *testing.T, newStore Factory) {
 	RunSuites(t, newStore, suiteOrder...)
+}
+
+// RunExcept is Run minus the named parts. A name is a suite ("DeviceCodes") or
+// a suite and subtest ("Tenants/DeviceFlow"); each skipped part is reported
+// as skipped. It exists for drivers that do not implement something yet.
+func RunExcept(t *testing.T, newStore Factory, skip ...string) {
+	t.Helper()
+	skipped = map[string]bool{}
+	for _, n := range skip {
+		skipped[n] = true
+	}
+	t.Cleanup(func() { skipped = nil })
+	for _, name := range suiteOrder {
+		t.Run(name, func(t *testing.T) {
+			if skipped[name] {
+				t.Skipf("storetest: suite %s skipped by the driver", name)
+			}
+			Suites[name](t, newStore)
+		})
+	}
+}
+
+// skipped holds RunExcept's skip list; drivers' tests do not run in parallel.
+var skipped map[string]bool
+
+// subtest runs fn as subtest name of suite unless RunExcept skipped it.
+func subtest(t *testing.T, suite, name string, fn func(t *testing.T)) {
+	t.Helper()
+	t.Run(name, func(t *testing.T) {
+		if skipped[suite+"/"+name] {
+			t.Skipf("storetest: %s/%s skipped by the driver", suite, name)
+		}
+		fn(t)
+	})
 }
 
 // RunSuites executes only the named suites. An unknown name fails the test.

@@ -30,6 +30,8 @@ func newTenant(name string) *store.Tenant {
 func testTenants(t *testing.T, newStore Factory) {
 	ctx := context.Background()
 
+	subtest(t, "Tenants", "DeviceFlow", func(t *testing.T) { testTenantDeviceFlow(t, newStore) })
+
 	t.Run("ConcurrentCreateDistinct", func(t *testing.T) {
 		s := open(t, newStore)
 		for i, err := range parallel(16, func(i int) error {

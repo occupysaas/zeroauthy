@@ -194,6 +194,16 @@ func testDeviceCodes(t *testing.T, newStore Factory) {
 		mustEqual(t, p.Code.ExpiredReportedAt.Equal(d.ExpiresAt), true) // unchanged
 	})
 
+	t.Run("PollExpiredBeforeConsumption", func(t *testing.T) {
+		s := open(t, newStore)
+		d := newDeviceCode("ten_a", "d1", "u1")
+		mustNoErr(t, s.DeviceCodes().Create(ctx, d))
+		approve(t, s, "ten_a", "d1")
+		p := poll(t, s, "d1", d.ExpiresAt)
+		mustEqual(t, p.Outcome, store.PollExpired)
+		mustEqual(t, p.Code.Status, store.DeviceCodeApproved) // not consumed
+	})
+
 	t.Run("DeleteExpired", func(t *testing.T) {
 		s := open(t, newStore)
 		for i, c := range []struct {

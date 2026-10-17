@@ -11,5 +11,5 @@ import (
 func TestConformance(t *testing.T) {
 	newStore := func(*testing.T) store.Store { return memory.New() }
 	storetest.Run(t, newStore)
-	storetest.RunSuites(t, newStore, "DeviceCodes", "TenantDeviceFlow")
+
 }
