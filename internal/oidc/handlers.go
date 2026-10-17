@@ -44,7 +44,10 @@ type Configuration struct {
 	PushedAuthorizationRequestEndpoint string `json:"pushed_authorization_request_endpoint,omitempty"`
 	// RequestURIParameterSupported is always false (D-0030): request_uri is
 	// accepted only from /oauth/par. OIDC Discovery defaults it to true.
-	RequestURIParameterSupported      bool     `json:"request_uri_parameter_supported"`
+	RequestURIParameterSupported bool `json:"request_uri_parameter_supported"`
+	// RequestParameterSupported is always false: request objects are
+	// refused with request_not_supported. Auth0 advertises true (JAR).
+	RequestParameterSupported         bool     `json:"request_parameter_supported"`
 	UserinfoEndpoint                  string   `json:"userinfo_endpoint"`
 	JWKSURI                           string   `json:"jwks_uri"`
 	EndSessionEndpoint                string   `json:"end_session_endpoint"`

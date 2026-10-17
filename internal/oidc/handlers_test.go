@@ -92,6 +92,10 @@ func TestDiscovery(t *testing.T) {
 	if len(doc["claims_supported"].([]any)) == 0 {
 		t.Error("claims_supported is empty")
 	}
+	// OIDF oidcc-unsigned-request-object…: request objects are refused (Discovery §3).
+	if v, ok := doc["request_parameter_supported"]; !ok || v != false {
+		t.Errorf("request_parameter_supported = %v (present %v), want false", v, ok)
+	}
 	// OIDF oidcc-scope-profile: given_name and family_name are emitted for profile.
 	for _, c := range []string{"given_name", "family_name"} {
 		if !slices.Contains(doc["claims_supported"].([]any), any(c)) {

@@ -112,6 +112,7 @@ func TestPARRefusals(t *testing.T) {
 		{"P3b public", "acme.example.test", formType, public.Encode(), 400, "invalid_request"},
 		{"P6a request_uri", "acme.example.test", formType, parForm("request_uri", authz.RequestURIPrefix+"x").Encode(), 400, "invalid_request"},
 		{"P6b tenant off", "globex.example.test", formType, url.Values{"client_id": {"globex-web"}, "client_secret": {"globex-web-secret"}, "response_type": {"code"}, "redirect_uri": {"https://web.globex.test/cb"}}.Encode(), 400, "invalid_request"},
+		{"request object", "acme.example.test", formType, parForm("request", "eyJhbGciOiJub25lIn0.e30.").Encode(), 400, "request_not_supported"},
 		{"P9 strict", "acme.example.test", formType, strict.Encode(), 400, "invalid_request"},
 		{"P9 permissive", "acme.example.test", formType, url.Values{"client_id": {"partner"}, "client_secret": {"partner-secret"}, "response_type": {"code"}, "redirect_uri": {"https://partner.acme.test/cb"}}.Encode(), 400, "invalid_request"},
 	}

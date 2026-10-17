@@ -522,3 +522,14 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Sources:** the D-0031 docs; RFC 8628 §5.1 (user code brute forcing); design spec §5.
 - **Decision:** zeroauthy's own limits on wrong codes at `/activate`, each in-process: 5 per transaction (the transaction is then discarded), 10 per IP per 15 minutes, and 1,000 per tenant per 10 minutes with a 1-minute lockout. The IP limit buckets IPv6 clients by /64 (IPv4 and IPv4-mapped addresses by address). The IP and tenant limits can be turned off (0). Only misses count. Config keys are `security.device_activation_*`.
 - **Rationale:** a deliberate deviation in numbers, not in behaviour: Auth0 also throttles, and RFC 8628 requires protection against guessing. The defaults keep a slow or typo-prone user unaffected.
+
+## D-0035: Request objects are refused (deliberate, for now)
+
+- **Context:** OpenID Connect Core §6 lets an OP either process the `request` parameter (a request object) or refuse it with `request_not_supported` (§3.1.2.6). zeroauthy ignored it silently, so the parameters inside it were lost (OIDF `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported`). Auth0 supports signed request objects (JAR) and its discovery lists `request_parameter_supported: true` (observations/par.md).
+- **Sources:** OpenID Connect Core §3.1.2.6, §6; OpenID Connect Discovery §3; observations/par.md; the Plan 12 conformance triage rulings (tests/conformance/triage-2026-10.md, row 2).
+- **Decision:**
+  - `/authorize` answers a `request` parameter with `request_not_supported`, delivered like other authorization errors (to a registered `redirect_uri`, with `state`; on the error page when the client or `redirect_uri` cannot be trusted).
+  - Strict third-party clients keep D-0025's `invalid_request`.
+  - `/oauth/par` refuses a pushed `request` the same way (`400 request_not_supported`).
+  - Discovery lists `request_parameter_supported: false`.
+- **Rationale:** a deliberate, temporary deviation from Auth0's discovery value until request objects (JAR) are implemented, together with `private_key_jwt` (follow-up). Refusing is what the spec requires of an OP that does not process request objects; ignoring them broke clients that put `state`, `nonce` or `response_mode` only in the object.

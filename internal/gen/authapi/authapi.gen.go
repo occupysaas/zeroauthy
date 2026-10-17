@@ -155,6 +155,9 @@ type OpenIDConfiguration struct {
 	// PushedAuthorizationRequestEndpoint Present when the tenant allows pushed authorization requests.
 	PushedAuthorizationRequestEndpoint *string `json:"pushed_authorization_request_endpoint,omitempty"`
 
+	// RequestParameterSupported Always false: request objects are refused with `request_not_supported`.
+	RequestParameterSupported *bool `json:"request_parameter_supported,omitempty"`
+
 	// RequestUriParameterSupported Always false: `request_uri` is accepted only from `/oauth/par`.
 	RequestUriParameterSupported      *bool     `json:"request_uri_parameter_supported,omitempty"`
 	ResponseModesSupported            *[]string `json:"response_modes_supported,omitempty"`
@@ -378,6 +381,9 @@ type AuthorizeParams struct {
 
 	// RequestUri A `urn:ietf:params:oauth:request_uri:` value from `/oauth/par`. The pushed request replaces every other parameter except `client_id`, which must match.
 	RequestUri *string `form:"request_uri,omitempty" json:"request_uri,omitempty"`
+
+	// Request A request object (JAR). Not supported: refused with `request_not_supported` (`invalid_request` for strict third-party applications).
+	Request *string `form:"request,omitempty" json:"request,omitempty"`
 
 	// Organization Not supported yet; rejected.
 	Organization *string `form:"organization,omitempty" json:"organization,omitempty"`
@@ -1301,6 +1307,19 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "request_uri"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "request_uri", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "request" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "request", r.URL.Query(), &params.Request, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "request"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "request", Err: err})
 		}
 		return
 	}

@@ -14,6 +14,9 @@ func errAccessDenied(d string) *Error       { return &Error{"access_denied", d} 
 func errUnsupportedResponseType(d string) *Error {
 	return &Error{"unsupported_response_type", d}
 }
+func errRequestNotSupported() *Error {
+	return &Error{"request_not_supported", "the request parameter (request objects) is not supported"}
+}
 func errLoginRequired() *Error { return &Error{"login_required", "the user must log in"} }
 func errServer() *Error        { return &Error{"server_error", "internal error"} }
 

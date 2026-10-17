@@ -58,6 +58,13 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 		return client, errInvalidRequest("response_mode=form_post requires an http or https redirect_uri"), true
 	}
 
+	// Request objects (JAR) are not supported (OpenID Connect Core §6,
+	// §3.1.2.6). Strict third-party clients keep D-0025's invalid_request,
+	// checked below.
+	if slices.Contains(req.Present, "request") && !access.Strict(client) {
+		return client, errRequestNotSupported(), true
+	}
+
 	if client.RequirePushedAuthorizationRequests && !req.Pushed {
 		return client, errInvalidRequest("this application must use pushed authorization requests"), true // P5
 	}

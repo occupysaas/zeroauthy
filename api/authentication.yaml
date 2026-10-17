@@ -123,6 +123,7 @@ paths:
         - {name: screen_hint, in: query, schema: {type: string}, description: "`signup` opens the signup page."}
         - {name: ui_locales, in: query, schema: {type: string}, description: "Space-separated preferred languages; the first entry selects the hosted page language if the tenant enables it."}
         - {name: request_uri, in: query, schema: {type: string}, description: "A `urn:ietf:params:oauth:request_uri:` value from `/oauth/par`. The pushed request replaces every other parameter except `client_id`, which must match."}
+        - {name: request, in: query, schema: {type: string}, description: "A request object (JAR). Not supported: refused with `request_not_supported` (`invalid_request` for strict third-party applications)."}
         - {name: organization, in: query, schema: {type: string}, description: Not supported yet; rejected.}
         - {name: invitation, in: query, schema: {type: string}, description: Not supported yet; rejected.}
       responses:
@@ -275,6 +276,8 @@ paths:
         `/oauth/token` (client secret only). The tenant must allow pushed
         authorization requests. The body is form-encoded, at most 10 KB, with
         at most 10 `ext-` parameters; other unknown parameters are dropped.
+        A `request` parameter (request object) is refused with
+        `request_not_supported`.
       x-source:
         - https://www.rfc-editor.org/rfc/rfc9126
         - https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow/authorization-code-flow-with-par
@@ -917,6 +920,7 @@ components:
         device_authorization_endpoint: {type: string, format: uri}
         pushed_authorization_request_endpoint: {type: string, description: Present when the tenant allows pushed authorization requests.}
         request_uri_parameter_supported: {type: boolean, description: "Always false: `request_uri` is accepted only from `/oauth/par`."}
+        request_parameter_supported: {type: boolean, description: "Always false: request objects are refused with `request_not_supported`."}
         jwks_uri: {type: string, format: uri}
         end_session_endpoint: {type: string, format: uri}
         response_types_supported: {type: array, items: {type: string}}

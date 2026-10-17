@@ -409,6 +409,22 @@ func TestStrictRejectsParameters(t *testing.T) {
 	}
 }
 
+// OIDF oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported:
+// a request object is refused with request_not_supported, delivered like other
+// authorization errors (OpenID Connect Core §3.1.2.6, §6).
+func TestRequestObjectNotSupported(t *testing.T) {
+	e := newEnv(t)
+	loc := location(t, e.get(t, with(goodQuery(), "request", "eyJhbGciOiJub25lIn0.e30.")))
+	if loc.Host != "app.acme.test" || loc.Query().Get("error") != "request_not_supported" || loc.Query().Get("state") != "st" {
+		t.Fatalf("Location = %s", loc)
+	}
+	// An unregistered redirect_uri is still an error page.
+	rec := e.get(t, with(goodQuery(), "request", "x", "redirect_uri", "https://evil.test/cb"))
+	if rec.Code != 400 || rec.Header().Get("Location") != "" {
+		t.Fatalf("unregistered redirect = %d %v", rec.Code, rec.Header())
+	}
+}
+
 func TestStrictRequiresPKCE(t *testing.T) {
 	e := newEnv(t)
 	q := partnerQuery()
