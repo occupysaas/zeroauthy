@@ -532,4 +532,28 @@ them. Each entry: context, sources consulted, decision, rationale.
   - Strict third-party clients keep D-0025's `invalid_request`.
   - `/oauth/par` refuses a pushed `request` the same way (`400 request_not_supported`).
   - Discovery lists `request_parameter_supported: false`.
+  - An empty `request=` is also refused. An unsupported `response_mode` inside the request object yields `invalid_request` (unsupported response_mode) rather than `request_not_supported`.
 - **Rationale:** a deliberate, temporary deviation from Auth0's discovery value until request objects (JAR) are implemented, together with `private_key_jwt` (follow-up). Refusing is what the spec requires of an OP that does not process request objects; ignoring them broke clients that put `state`, `nonce` or `response_mode` only in the object.
+
+## D-0036: OpenID conformance accepted warnings and skips
+
+- **Context:** In the OIDF suite (release-v5.3.1) the Basic and Form Post plans finish with no failures, but some modules end with a warning or a skip. OIDF certification accepts warnings and skips; modules must finish without failures. Each is listed in `tests/conformance/expected-failures.json` or `expected-skips.json`, and the runner fails on any other warning or skip and on a stale entry.
+- **Sources:** tests/conformance/triage-2026-10.md (Rulings); https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes; D-0013; D-0035.
+- **Decision:** accepted, per plan (Basic and Form Post alike):
+  - **Warning `oidcc-scope-email`, `oidcc-alternate-happy-flow` (rows 3, 4):** keep Auth0's behaviour of putting the scope's claims (such as `email`) in the ID token. Auth0 documents this.
+  - **Warning `oidcc-codereuse-30seconds` (row 9):** access tokens issued before a code reuse are not revoked, because JWT access tokens are not revocable (D-0013), as on Auth0.
+  - **Warning `oidcc-ensure-request-with-acr-values-succeeds` (row 8):** no `acr` claim, as `acr` is unsupported. `acr` support is a follow-up.
+  - **Warning `oidcc-claims-essential` (row 7):** the `claims` request parameter is not supported. Follow-up.
+  - **Warning `oidcc-scope-profile` (row 5):** the extra `profile` attributes (`website`, `zoneinfo`, `birthdate`, and so on) are not emitted. Follow-up.
+  - **Skipped `oidcc-scope-address`, `oidcc-scope-phone`, `oidcc-scope-all` (rows 11 to 13):** the address and phone scopes and claims are not implemented. Follow-up.
+  - **Skipped `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported` (row 2):** refusing request objects with `request_not_supported` is permitted behaviour (D-0035).
+- **Rationale:** each item is either Auth0 parity (rows 3, 4, 9) or a feature that does not block certification, so it becomes a follow-up rather than a compatibility switch.
+
+## D-0037: Additive spec behaviours: POST /authorize and form-encoded access token at /userinfo
+
+- **Context:** The spec allows two request shapes that zeroauthy did not accept. The maintainer's rule: support both where Auth0 clients are unaffected.
+- **Sources:** OpenID Connect Core §3.1.2.1 (the Authorization Endpoint MUST support GET and MAY support POST with form serialization); RFC 6750 §2.2 (access token in a form-encoded body); OIDF `oidcc-ensure-post-request-succeeds` and `oidcc-userinfo-post-body`.
+- **Decision:**
+  - **`POST /authorize`:** parameters come from a form-encoded body only (a form content type, at most 64 KB), and then behave as the same parameters in a GET query. GET is unchanged.
+  - **`/userinfo`:** the access token may also be sent as `access_token` in a form-encoded POST body. The `Authorization` header is unchanged. Sending both is `400 invalid_request`.
+- **Rationale:** purely additive; requests that Auth0 clients already send behave as before.
