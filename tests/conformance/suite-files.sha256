@@ -1,0 +1,6 @@
+# sha256 of the files run.sh downloads from the suite at the tag in suite-version
+# (checked with sha256sum -c in .cache/<tag>/scripts). Update with the pin.
+2abe903a8458efabda79e19dcb8f2be08a158fbe65d9e9169f1d6140fa36820e  run-test-plan.py
+660214cc6ca9b3c09297f61908a575db7b1552e8f44eecd5740d1c27fa2cfca8  conformance.py
+2b00870b2dc46f1d44d047c715c0ef6978f24ece97a4a9d3b48ceeea8d01830f  test_plan_parser.py
+05176cbcaf1a221a8943f8534d14d70c45237b3f28d055f3a55d0633d63a3085  requirements.txt

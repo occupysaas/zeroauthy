@@ -17,6 +17,8 @@ You need podman with `podman-compose`, or docker with the compose plugin. You al
 | File | Purpose |
 |---|---|
 | `suite-version` | The pinned suite release tag (images and runner script). Bump it deliberately. |
+| `suite-files.sha256` | The sha256 of each file downloaded from the suite. |
+| `requirements.txt` | The runner's Python dependencies, pinned with hashes. |
 | `run.sh` | The entry point. It builds zeroauthy, makes the certificates, starts the compose project, runs the plans and tears everything down. |
 | `compose.yml` | The suite (mongodb, server, nginx) and zeroauthy on one network. |
 | `seed.yaml`, `config.yaml` | The `conformance` tenant, and zeroauthy's config for the run. |
@@ -28,7 +30,38 @@ You need podman with `podman-compose`, or docker with the compose plugin. You al
 
 `suite-version` names a release tag of the suite. Both `registry.gitlab.com/openid/conformance-suite:<tag>` and `.../nginx:<tag>` must exist for it. Pick the newest such tag that is at least two weeks old.
 
-`run.sh` downloads that tag's `scripts/run-test-plan.py`, its two imported modules (`conformance.py`, `test_plan_parser.py`) and `scripts/requirements.txt` into `.cache/<tag>/`. It builds a Python venv there. Before the certification run, bump the pin to the version the hosted suite runs, and repeat the local pass.
+`run.sh` downloads four files from that tag into `.cache/<tag>/scripts/`:
+- `scripts/run-test-plan.py`;
+- its two imported modules, `conformance.py` and `test_plan_parser.py`;
+- `scripts/requirements.txt`.
+
+Tags can move, so on every run each file is checked against `suite-files.sha256` with `sha256sum -c`. A mismatch stops the run before anything is executed.
+
+The venv installs our own `requirements.txt`, not the suite's unpinned list. It holds exact versions with hashes and is installed with `pip install --require-hashes`. The suite's `requirements.txt` is downloaded and hashed only so that a pin bump shows when its dependencies change.
+
+`.cache/<tag>/.ok` is written last. A cache without it is rebuilt from scratch.
+
+**Bumping the pin:**
+1. Change `suite-version`.
+2. Delete `.cache/`.
+3. Review the downloaded scripts.
+4. Regenerate `suite-files.sha256`, from `.cache/<tag>/scripts`:
+
+   ```bash
+   sha256sum run-test-plan.py conformance.py test_plan_parser.py requirements.txt
+   ```
+
+5. If the suite's `requirements.txt` changed, regenerate our hashed `requirements.txt`, for example with `pip download` and `sha256sum`.
+6. Before the certification run, bump the pin to the version the hosted suite runs, and repeat the local pass.
+
+## Teardown and failures
+
+- **Teardown:** an EXIT trap tears the run down after a normal end, an error, Ctrl-C (exit 130) or SIGTERM (exit 143). It runs `compose down -v` in its own session, so a second Ctrl-C cannot cut it short.
+- **Startup failures:** if the suite or zeroauthy cannot start, `run.sh` prints:
+  - the compose output;
+  - the last container logs;
+  - how to find and remove leftover `za-conformance-*` projects.
+- **Port 8443:** a listener already on 127.0.0.1:8443, such as the e2e suite or a leftover run, is reported before anything starts.
 
 ## Networking and TLS
 

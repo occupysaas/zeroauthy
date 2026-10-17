@@ -45,43 +45,78 @@ for p in "${plans[@]}"; do
   runner_args+=("$spec" "$here/configs/$cfg")
 done
 
-# The suite's runner script, from the pinned release (not vendored).
 tag="$(tr -d '[:space:]' <"$here/suite-version")"
 cache="$here/.cache/$tag"
-if [[ ! -x "$cache/venv/bin/python" || ! -f "$cache/scripts/run-test-plan.py" ]]; then
+work="$(mktemp -d)"
+results="$here/results/$(date -u +%Y%m%dT%H%M%SZ)"
+project="za-conformance-$$"
+started=0
+dc() { "${compose[@]}" -p "$project" -f "$here/compose.yml" "$@"; }
+# dc_detached: dc in its own session, so a Ctrl-C (sent to the whole
+# foreground process group) cannot kill a teardown in progress.
+dc_detached() { setsid -w "${compose[@]}" -p "$project" -f "$here/compose.yml" "$@" </dev/null; }
+
+cleanup() {
+  local status=$?
+  trap '' INT TERM # finish the teardown even if interrupted again
+  if [[ $started == 1 ]]; then
+    dc_detached logs --no-color zeroauthy >"$results/zeroauthy.log" 2>&1 || true
+    dc_detached logs --no-color server >"$results/suite-server.log" 2>&1 || true
+  fi
+  if [[ "${CONFORMANCE_KEEP:-0}" == 1 && $started == 1 ]]; then
+    echo "CONFORMANCE_KEEP=1: compose project $project and $work are still up."
+    echo "  tear down: CONFORMANCE_IMAGE_TAG=$tag CONFORMANCE_WORK=$work CONFORMANCE_REPO=$repo ZEROAUTHY_MASTER_KEY=x ${compose[*]} -p $project -f $here/compose.yml down -v; rm -rf $work"
+  else
+    [[ $started == 0 ]] || dc_detached down -v >/dev/null 2>&1 || true
+    rm -rf "$work" 2>/dev/null || true
+  fi
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+mkdir -p "$results" "$work/tls" "$work/data/mail"
+chmod 755 "$work"
+
+if (exec 3<>/dev/tcp/127.0.0.1/8443) 2>/dev/null; then
+  echo "conformance: something already listens on 127.0.0.1:8443" >&2
+  echo "Hints: stop the e2e suite or a leftover conformance run; see: $runtime ps -a --filter name=za-conformance-" >&2
+  exit 1
+fi
+
+# zeroauthy from the working tree: a compile error fails before anything is pulled.
+CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
+
+# The suite's runner script, from the pinned release (not vendored). Every
+# downloaded file is checked against suite-files.sha256 on every run, and the
+# venv installs only the hash-pinned requirements.txt. .ok marks a complete
+# cache; anything else is rebuilt from scratch.
+if [[ ! -f "$cache/.ok" ]]; then
+  echo "building the suite runner cache in ${cache#"$repo"/}"
   rm -rf "$cache"
   mkdir -p "$cache/scripts/certs-keys"
   for f in run-test-plan.py conformance.py test_plan_parser.py requirements.txt; do
     curl -sfL --retry 3 -o "$cache/scripts/$f" \
       "https://gitlab.com/openid/conformance-suite/-/raw/$tag/scripts/$f"
   done
+fi
+if ! (cd "$cache/scripts" && grep -v '^#' "$here/suite-files.sha256" | sha256sum -c --strict --quiet -); then
+  echo "suite files in ${cache#"$repo"/}/scripts do not match tests/conformance/suite-files.sha256." >&2
+  echo "If suite-version was bumped on purpose, update suite-files.sha256 after reviewing the new files;" >&2
+  echo "otherwise delete ${cache#"$repo"/} and retry." >&2
+  exit 1
+fi
+if [[ ! -f "$cache/.ok" ]]; then
   python3 -m venv "$cache/venv"
-  "$cache/venv/bin/pip" install --quiet --disable-pip-version-check -r "$cache/scripts/requirements.txt"
+  "$cache/venv/bin/pip" install --quiet --disable-pip-version-check --require-hashes --no-deps \
+    -r "$here/requirements.txt"
+  touch "$cache/.ok"
 fi
 
-work="$(mktemp -d)"
-results="$here/results/$(date -u +%Y%m%dT%H%M%SZ)"
-mkdir -p "$results" "$work/tls" "$work/data/mail"
-chmod 755 "$work"
-project="za-conformance-$$"
 export CONFORMANCE_IMAGE_TAG="$tag" CONFORMANCE_WORK="$work" CONFORMANCE_REPO="$repo"
-export ZEROAUTHY_MASTER_KEY="$(openssl rand -base64 32)"
-dc() { "${compose[@]}" -p "$project" -f "$here/compose.yml" "$@"; }
-
-cleanup() {
-  status=$?
-  dc logs --no-color zeroauthy >"$results/zeroauthy.log" 2>&1 || true
-  dc logs --no-color server >"$results/suite-server.log" 2>&1 || true
-  if [[ "${CONFORMANCE_KEEP:-0}" == 1 ]]; then
-    echo "CONFORMANCE_KEEP=1: compose project $project and $work are still up."
-    echo "  tear down: CONFORMANCE_IMAGE_TAG=$tag CONFORMANCE_WORK=$work CONFORMANCE_REPO=$repo ZEROAUTHY_MASTER_KEY=x ${compose[*]} -p $project -f $here/compose.yml down -v; rm -rf $work"
-  else
-    dc down -v >/dev/null 2>&1 || true
-    rm -rf "$work" 2>/dev/null || true
-  fi
-  exit $status
-}
-trap cleanup EXIT
+ZEROAUTHY_MASTER_KEY="$(openssl rand -base64 32)"
+export ZEROAUTHY_MASTER_KEY
 
 # Per-run CA, and a certificate for zeroauthy signed by it.
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=zeroauthy conformance CA" \
@@ -102,8 +137,6 @@ suite_image="registry.gitlab.com/openid/conformance-suite:$tag"
   keytool -importcert -noprompt -alias zeroauthy-conformance-ca -file /tls/ca.pem \
     -keystore /tls/truststore.p12 -storepass changeit >/dev/null'
 
-CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
-
 # wait_for NAME CMD...: retry CMD for up to ~3 minutes (the suite's JVM is slow to start).
 wait_for() {
   local name="$1"; shift
@@ -115,16 +148,34 @@ wait_for() {
   return 1
 }
 
-suite="https://localhost.emobix.co.uk:8443/"
-dc up -d mongodb server nginx >/dev/null
-wait_for "the suite at $suite" curl -skf "${suite}api/runner/available"
+# startup_failed WHAT: show what compose said and how to clean up, then fail.
+startup_failed() {
+  echo "conformance: $1" >&2
+  echo "--- compose output ---" >&2
+  cat "$work/compose-up.log" >&2 2>/dev/null || true
+  echo "--- container logs ---" >&2
+  dc logs --no-color --tail 30 server nginx zeroauthy >&2 2>&1 || true
+  echo "Hints: host port 8443 must be free (the e2e suite and leftover conformance runs use it)." >&2
+  echo "  leftover projects: $runtime ps -a --filter name=za-conformance-" >&2
+  echo "  remove them:       $runtime ps -aq --filter name=za-conformance- | xargs -r $runtime rm -f$([[ $runtime == podman ]] && echo ' --depend')" >&2
+  echo "  (then remove their networks: $runtime network ls -q --filter name=za-conformance- | xargs -r $runtime network rm)" >&2
+  exit 1
+}
 
-dc up -d zeroauthy >/dev/null
+suite="https://localhost.emobix.co.uk:8443/"
+started=1
+dc up -d mongodb server nginx >"$work/compose-up.log" 2>&1 || startup_failed "could not start the suite containers"
+wait_for "the suite at $suite" curl -skf "${suite}api/runner/available" ||
+  startup_failed "the suite did not answer at ${suite}api/runner/available"
+
+dc up -d zeroauthy >>"$work/compose-up.log" 2>&1 || startup_failed "could not start the zeroauthy container"
 in_suite() { dc exec -T server curl -sf --cacert /run/conformance/ca.pem "$@"; }
-wait_for zeroauthy in_suite -o /dev/null https://zeroauthy.conformance.test:8443/healthz
+wait_for zeroauthy in_suite -o /dev/null https://zeroauthy.conformance.test:8443/healthz ||
+  startup_failed "zeroauthy did not become healthy at https://zeroauthy.conformance.test:8443/healthz"
 # The suite's own view of zeroauthy: name resolution and CA trust.
 in_suite -o /dev/null -w 'suite -> zeroauthy discovery: HTTP %{http_code}\n' \
-  https://zeroauthy.conformance.test:8443/.well-known/openid-configuration
+  https://zeroauthy.conformance.test:8443/.well-known/openid-configuration ||
+  startup_failed "the suite could not fetch zeroauthy's discovery document"
 
 status=0
 CONFORMANCE_SERVER="$suite" CONFORMANCE_DEV_MODE=1 \
