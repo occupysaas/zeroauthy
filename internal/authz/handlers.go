@@ -5,13 +5,16 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"mime"
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -60,7 +63,7 @@ type ConsentView struct {
 	Device         bool // a device authorization; CallbackDomain and RedirectURI are empty
 }
 
-// Authorize implements GET /authorize.
+// Authorize implements GET and POST /authorize.
 func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	res, ok := tenant.FromContext(ctx)
@@ -68,7 +71,10 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	q := r.URL.Query()
+	q, ok := authorizeParams(w, r)
+	if !ok {
+		return
+	}
 	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, q.Get("ui_locales")))
 	req := ParseRequest(q)
 	if q.Has("request_uri") {
@@ -117,6 +123,37 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.finish(w, r, res, client, fr, sess, false, false)
+}
+
+// maxAuthorizeFormBytes bounds a POST /authorize body.
+const maxAuthorizeFormBytes = 64 << 10
+
+// authorizeParams returns the authorization request parameters: the query
+// of a GET, or the form-encoded body of a POST (OpenID Connect Core
+// §3.1.2.1; the query of a POST is not read). For GET the generated
+// wrapper has already refused repeated parameters; for POST the same rule
+// is applied here. On failure the JSON error has been written.
+func authorizeParams(w http.ResponseWriter, r *http.Request) (url.Values, bool) {
+	if r.Method != http.MethodPost {
+		return r.URL.Query(), true
+	}
+	fail := func(d string) (url.Values, bool) {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", d)
+		return nil, false
+	}
+	if ct, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); ct != "application/x-www-form-urlencoded" {
+		return fail("Content-Type must be application/x-www-form-urlencoded")
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxAuthorizeFormBytes)
+	if err := r.ParseForm(); err != nil {
+		return fail("malformed form body")
+	}
+	for _, name := range append([]string{"request_uri", "request"}, paramNames...) {
+		if len(r.PostForm[name]) > 1 {
+			return fail("parameter " + strconv.Quote(name) + " is repeated")
+		}
+	}
+	return r.PostForm, true
 }
 
 // ActiveSession returns the browser's session for res, or nil when there is

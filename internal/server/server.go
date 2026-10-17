@@ -79,6 +79,8 @@ func (a authAPI) Authorize(w http.ResponseWriter, r *http.Request, _ authapi.Aut
 	a.authz.Authorize(w, r)
 }
 
+func (a authAPI) AuthorizePost(w http.ResponseWriter, r *http.Request) { a.authz.Authorize(w, r) }
+
 func (a authAPI) Logout(w http.ResponseWriter, r *http.Request, _ authapi.LogoutParams) {
 	a.oidc.Logout(w, r)
 }

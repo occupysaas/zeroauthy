@@ -58,6 +58,30 @@ func (e PushedAuthorizationResponseExpiresIn) Valid() bool {
 	}
 }
 
+// AuthorizeRequest The parameters of `GET /authorize`, form-encoded.
+type AuthorizeRequest struct {
+	Audience            *string `json:"audience,omitempty"`
+	ClientId            *string `json:"client_id,omitempty"`
+	CodeChallenge       *string `json:"code_challenge,omitempty"`
+	CodeChallengeMethod *string `json:"code_challenge_method,omitempty"`
+	Connection          *string `json:"connection,omitempty"`
+	Invitation          *string `json:"invitation,omitempty"`
+	LoginHint           *string `json:"login_hint,omitempty"`
+	MaxAge              *string `json:"max_age,omitempty"`
+	Nonce               *string `json:"nonce,omitempty"`
+	Organization        *string `json:"organization,omitempty"`
+	Prompt              *string `json:"prompt,omitempty"`
+	RedirectUri         *string `json:"redirect_uri,omitempty"`
+	Request             *string `json:"request,omitempty"`
+	RequestUri          *string `json:"request_uri,omitempty"`
+	ResponseMode        *string `json:"response_mode,omitempty"`
+	ResponseType        *string `json:"response_type,omitempty"`
+	Scope               *string `json:"scope,omitempty"`
+	ScreenHint          *string `json:"screen_hint,omitempty"`
+	State               *string `json:"state,omitempty"`
+	UiLocales           *string `json:"ui_locales,omitempty"`
+}
+
 // ChangePasswordRequest defines model for ChangePasswordRequest.
 type ChangePasswordRequest struct {
 	ClientId *string `json:"client_id,omitempty"`
@@ -430,6 +454,9 @@ type LogoutParams struct {
 	// Federated Accepted and ignored; there are no upstream identity providers yet.
 	Federated *string `form:"federated,omitempty" json:"federated,omitempty"`
 }
+
+// AuthorizePostFormdataRequestBody defines body for AuthorizePost for application/x-www-form-urlencoded ContentType.
+type AuthorizePostFormdataRequestBody = AuthorizeRequest
 
 // DbconnectionsChangePasswordJSONRequestBody defines body for DbconnectionsChangePassword for application/json ContentType.
 type DbconnectionsChangePasswordJSONRequestBody = ChangePasswordRequest
@@ -921,6 +948,9 @@ type ServerInterface interface {
 	// Authorize Start an authorization (login) flow
 	// (GET /authorize)
 	Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams)
+	// AuthorizePost Start an authorization (login) flow (form post)
+	// (POST /authorize)
+	AuthorizePost(w http.ResponseWriter, r *http.Request)
 	// DbconnectionsChangePassword Request a password reset email
 	// (POST /dbconnections/change_password)
 	DbconnectionsChangePassword(w http.ResponseWriter, r *http.Request)
@@ -975,6 +1005,12 @@ func (_ Unimplemented) Discovery(w http.ResponseWriter, r *http.Request) {
 // Authorize Start an authorization (login) flow
 // (GET /authorize)
 func (_ Unimplemented) Authorize(w http.ResponseWriter, r *http.Request, params AuthorizeParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AuthorizePost Start an authorization (login) flow (form post)
+// (POST /authorize)
+func (_ Unimplemented) AuthorizePost(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1352,6 +1388,20 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Authorize(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AuthorizePost operation middleware
+func (siw *ServerInterfaceWrapper) AuthorizePost(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthorizePost(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1765,6 +1815,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/authorize", wrapper.Authorize)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/authorize", wrapper.AuthorizePost)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oauth/token", wrapper.OauthToken)

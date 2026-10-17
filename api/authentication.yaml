@@ -146,6 +146,42 @@ paths:
           $ref: "#/components/responses/UnknownTenant"
         default:
           $ref: "#/components/responses/ServerError"
+    post:
+      operationId: authorizePost
+      tags: [Login]
+      summary: Start an authorization (login) flow (form post)
+      description: |
+        Same as `GET /authorize` with the parameters in a form-encoded body
+        (OpenID Connect Core §3.1.2.1). Query parameters are not read. A
+        repeated parameter is a JSON `invalid_request`, as for GET.
+      x-source:
+        - https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/AuthorizeRequest"
+      responses:
+        "302":
+          description: Redirect to the login page, or to `redirect_uri` with `code` or `error` (query and fragment modes).
+        "200":
+          description: A `form_post` or `web_message` response page.
+          content:
+            text/html:
+              schema: {type: string}
+        "400":
+          description: Error page for an unknown client or unregistered redirect URI, or a JSON error for a malformed body or a repeated parameter.
+          content:
+            text/html:
+              schema: {type: string}
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        default:
+          $ref: "#/components/responses/ServerError"
   /oauth/token:
     post:
       operationId: oauthToken
@@ -704,6 +740,30 @@ components:
           schema:
             $ref: "#/components/schemas/OAuthError"
   schemas:
+    AuthorizeRequest:
+      type: object
+      description: The parameters of `GET /authorize`, form-encoded.
+      properties:
+        client_id: {type: string}
+        redirect_uri: {type: string}
+        response_type: {type: string}
+        response_mode: {type: string}
+        scope: {type: string}
+        state: {type: string}
+        nonce: {type: string}
+        audience: {type: string}
+        prompt: {type: string}
+        max_age: {type: string}
+        code_challenge: {type: string}
+        code_challenge_method: {type: string}
+        connection: {type: string}
+        login_hint: {type: string}
+        screen_hint: {type: string}
+        ui_locales: {type: string}
+        request_uri: {type: string}
+        request: {type: string}
+        organization: {type: string}
+        invitation: {type: string}
     OidcLogoutRequest:
       type: object
       properties:

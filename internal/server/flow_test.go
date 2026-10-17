@@ -409,3 +409,55 @@ func TestEndToEndDeviceFlow(t *testing.T) {
 		t.Fatalf("token = %d %v", resp.StatusCode, tok)
 	}
 }
+
+// OIDF oidcc-ensure-post-request-succeeds: /authorize accepts POST with a
+// form-encoded body (OpenID Connect Core §3.1.2.1) and behaves as GET.
+func TestEndToEndAuthorizePost(t *testing.T) {
+	e := newFlowEnv(t)
+	c := e.client(t)
+	post := func(form string) (*http.Response, string) {
+		req, _ := http.NewRequest("POST", e.base+"/authorize", strings.NewReader(form))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return mustDo(t, c, req)
+	}
+	params := func(extra ...string) string {
+		u, _ := url.Parse(authorizeURL(e.base, extra...))
+		return u.RawQuery
+	}
+
+	// Without a session: to the login page, then back with the code.
+	resp, body := post(params())
+	loginURL, _ := resp.Location()
+	if resp.StatusCode != 302 || loginURL == nil || loginURL.Path != "/u/login" {
+		t.Fatalf("POST /authorize = %d %v %s", resp.StatusCode, loginURL, body)
+	}
+	_, page := fetch(t, c, loginURL.String())
+	csrf := csrfRe.FindStringSubmatch(page)
+	if csrf == nil {
+		t.Fatalf("no csrf: %s", page)
+	}
+	form := url.Values{"state": {loginURL.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}}
+	req, _ := http.NewRequest("POST", e.base+"/u/login", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, body = mustDo(t, c, req)
+	cb, _ := resp.Location()
+	if resp.StatusCode != 302 || cb.Host != "app.flow.test" || cb.Query().Get("state") != "s1" || cb.Query().Get("code") == "" {
+		t.Fatalf("login = %d %v %s", resp.StatusCode, cb, body)
+	}
+
+	// With the session: the code is issued at once, in the requested mode.
+	resp, body = post(params("response_mode", "form_post"))
+	if resp.StatusCode != 200 || !strings.Contains(body, `action="https://app.flow.test/cb"`) || !strings.Contains(body, `name="code"`) {
+		t.Fatalf("POST /authorize with session = %d %s", resp.StatusCode, body)
+	}
+
+	// Errors are delivered as for GET.
+	resp, _ = post(params("response_type", "token"))
+	if loc, _ := resp.Location(); resp.StatusCode != 302 || loc == nil || loc.Query().Get("error") != "unsupported_response_type" || loc.Query().Get("state") != "s1" {
+		t.Fatalf("POST error = %d %v", resp.StatusCode, loc)
+	}
+	resp, body = post(params() + "&client_id=other")
+	if resp.StatusCode != 400 || !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") || !strings.Contains(body, `"invalid_request"`) {
+		t.Fatalf("repeated client_id = %d %v %s", resp.StatusCode, resp.Header, body)
+	}
+}

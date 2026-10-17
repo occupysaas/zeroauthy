@@ -66,6 +66,16 @@ func TestPushedRequestWithSessionIssuesCode(t *testing.T) {
 	}
 }
 
+// A pushed request may be used with POST /authorize as well.
+func TestPushedRequestByPost(t *testing.T) {
+	e := newEnv(t)
+	uri := e.push(t, e.tenant.ID, "par-web", parParams(), PARLifetime)
+	loc := location(t, e.post(t, parQuery("par-web", uri), e.login(t, fixedNow())))
+	if loc.Host != "par.acme.test" || loc.Query().Get("code") == "" || loc.Query().Get("state") != "pushed-state" {
+		t.Fatalf("Location = %s", loc)
+	}
+}
+
 // P1: SDKs add their own parameters next to request_uri; only the pushed
 // ones count.
 func TestPushedExtrasAreIgnored(t *testing.T) {

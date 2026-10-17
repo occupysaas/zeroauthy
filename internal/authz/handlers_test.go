@@ -31,12 +31,24 @@ func newEnv(t *testing.T) *env {
 	h := &Handlers{Store: f.st, Sessions: sm, Now: fixedNow}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /authorize", h.Authorize)
+	mux.HandleFunc("POST /authorize", h.Authorize)
 	return &env{fixture: f, h: h, srv: contract.Wrap(t, tenant.NewResolver(f.st.Tenants(), "", false).Middleware(mux))}
 }
 
 func (e *env) get(t *testing.T, q url.Values, cookies ...*http.Cookie) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptestRequest("https://acme.example.test/authorize?" + q.Encode())
+	for _, c := range cookies {
+		r.AddCookie(c)
+	}
+	return e.serve(t, r)
+}
+
+// post sends q as a form-encoded POST /authorize body.
+func (e *env) post(t *testing.T, q url.Values, cookies ...*http.Cookie) *httptest.ResponseRecorder {
+	t.Helper()
+	r := httptest.NewRequest("POST", "https://acme.example.test/authorize", strings.NewReader(q.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	for _, c := range cookies {
 		r.AddCookie(c)
 	}
@@ -130,6 +142,31 @@ func TestSessionIssuesCode(t *testing.T) {
 		strings.Join(ac.Scopes, " ") != "openid profile" || !ac.ExpiresAt.Equal(fixedNow().Add(CodeLifetime)) ||
 		!ac.AuthTime.Equal(fixedNow().Add(-time.Minute)) || ac.SessionID == "" {
 		t.Fatalf("code = %+v", ac)
+	}
+}
+
+// OIDF oidcc-ensure-post-request-succeeds: POST /authorize reads its form
+// body like GET reads its query (OpenID Connect Core §3.1.2.1).
+func TestAuthorizePost(t *testing.T) {
+	e := newEnv(t)
+	ck := e.login(t, fixedNow())
+	loc := location(t, e.post(t, with(goodQuery(), "nonce", "n1"), ck))
+	if loc.Host != "app.acme.test" || loc.Query().Get("code") == "" || loc.Query().Get("state") != "st" {
+		t.Fatalf("Location = %s", loc)
+	}
+	// The query of a POST is not read.
+	r := httptest.NewRequest("POST", "https://acme.example.test/authorize?"+goodQuery().Encode(), strings.NewReader("client_id=spa"))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if rec := e.serve(t, r); rec.Code != 400 || !strings.Contains(rec.Body.String(), "redirect_uri is required") {
+		t.Fatalf("query on POST = %d %s", rec.Code, rec.Body)
+	}
+	// A wrong content type is a JSON invalid_request.
+	r = httptest.NewRequest("POST", "https://acme.example.test/authorize", strings.NewReader(goodQuery().Encode()))
+	r.Header.Set("Content-Type", "text/plain")
+	rec := httptest.NewRecorder()
+	e.h.Authorize(rec, r.WithContext(tenant.WithResolved(r.Context(), e.res())))
+	if rec.Code != 400 || !strings.Contains(rec.Body.String(), `"invalid_request"`) {
+		t.Fatalf("text/plain = %d %s", rec.Code, rec.Body)
 	}
 }
 
