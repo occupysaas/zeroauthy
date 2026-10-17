@@ -10,6 +10,8 @@ import { Auth0Client } from '@auth0/nextjs-auth0/server';
 
 export const auth0 = new Auth0Client({
   allowInsecureRequests: true,
+  // run-browser.sh starts a second instance with E2E_PAR=1 for m10-par.
+  pushedAuthorizationRequests: process.env.E2E_PAR === '1',
   authorizationParameters: {
     audience: 'https://api.e2e.local',
     scope: 'openid profile email offline_access read:things',

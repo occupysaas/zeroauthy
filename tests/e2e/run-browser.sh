@@ -67,9 +67,15 @@ AUTH0_DOMAIN=https://localhost:8443 AUTH0_CLIENT_ID=e2e-next \
   NODE_EXTRA_CA_CERTS="$work/cert.pem" \
   npx next start next-app -p 3000 >"$work/next.log" 2>&1 &
 pids+=($!)
+AUTH0_DOMAIN=https://localhost:8443 AUTH0_CLIENT_ID=e2e-next-par \
+  AUTH0_CLIENT_SECRET=e2e-next-par-secret-not-for-production \
+  AUTH0_SECRET="$(openssl rand -hex 32)" APP_BASE_URL=http://localhost:3002 E2E_PAR=1 \
+  NODE_EXTRA_CA_CERTS="$work/cert.pem" \
+  npx next start next-app -p 3002 >"$work/next-par.log" 2>&1 &
+pids+=($!)
 
 status=0
-wait_for https://localhost:8443/healthz && wait_for https://localhost:3443/ && wait_for http://localhost:3000/ || status=$?
+wait_for https://localhost:8443/healthz && wait_for https://localhost:3443/ && wait_for http://localhost:3000/ && wait_for http://localhost:3002/ || status=$?
 
 if [[ $status -eq 0 ]]; then
   if [[ "${E2E_IN_CONTAINER:-0}" == 1 ]]; then

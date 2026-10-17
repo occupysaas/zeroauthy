@@ -9,6 +9,7 @@ tenants:
           login:
             title: "Connexion à ${companyName}"
             buttonText: "Continuer"
+    pushed_authorization_requests_supported: true
     domains: ["localhost:8443"]
     # Every existing E2E app uses a localhost callback; the default prompt would
     # change their flows. Individual clients opt back in.
@@ -89,6 +90,32 @@ tenants:
         callbacks: ["https://localhost:3443/confirm/"]
         web_origins: ["https://localhost:3443"]
         allowed_origins: ["https://localhost:3443"]
+      - client_id: e2e-par-web
+        name: E2E PAR express-openid-connect
+        app_type: regular_web
+        client_secret: e2e-par-web-secret-not-for-production
+        token_endpoint_auth_method: client_secret_basic # express-openid-connect's default
+        require_pushed_authorization_requests: true
+        grant_types: [authorization_code]
+        callbacks: ["http://localhost:3004/callback"]
+        allowed_logout_urls: ["http://localhost:3004"]
+      - client_id: e2e-next-par
+        name: E2E PAR Next.js
+        app_type: regular_web
+        client_secret: e2e-next-par-secret-not-for-production
+        token_endpoint_auth_method: client_secret_post
+        require_pushed_authorization_requests: true
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["http://localhost:3002/auth/callback"]
+        allowed_logout_urls: ["http://localhost:3002", "http://localhost:3002/"]
+      - client_id: e2e-par-authjs
+        name: E2E PAR auth0-auth-js
+        app_type: regular_web
+        client_secret: e2e-par-authjs-secret-not-for-production
+        token_endpoint_auth_method: client_secret_post
+        require_pushed_authorization_requests: true
+        grant_types: [authorization_code]
+        callbacks: ["https://par.e2e.invalid/cb"]
     client_grants:
       - client_id: e2e-m2m
         audience: https://api.e2e.local
@@ -97,7 +124,7 @@ tenants:
     connections:
       - name: Username-Password-Authentication
         is_domain_connection: true
-        enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node, e2e-confirm]
+        enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node, e2e-confirm, e2e-par-web, e2e-next-par, e2e-par-authjs]
       # Custom database connections backed by tests/e2e/legacy-store.mjs.
       - name: legacy-users
         enabledDatabaseCustomization: true

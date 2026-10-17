@@ -16,6 +16,9 @@ the maintainer asked on 2026-10-16. Versions are pinned in tests/e2e/package.jso
 | express-openid-connect | 519 | m10 | third-party consent (web app) |
 | express-oauth2-jwt-bearer | — | m3, m4 | access token verification |
 | auth0-auth-js | — | m6, m9 | password grant, dbconnections |
+| express-openid-connect (PAR) | 519 | m10-par | `pushedAuthorizationRequests: true`, client `e2e-par-web` (requires PAR): login succeeds only if the SDK pushed its request |
+| nextjs-auth0 (PAR) | 2.3k | m10-par | `pushedAuthorizationRequests: true`, client `e2e-next-par` on port 3002: login, session |
+| auth0-auth-js (PAR) | — | m10-par | `buildAuthorizationUrl({ pushedAuthorizationRequests: true })`, client `e2e-par-authjs`: request_uri URL, code exchange, reused request_uri refused |
 
 ## Not yet used (in star order), with the milestone that should pick them up
 
