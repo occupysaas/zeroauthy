@@ -156,6 +156,7 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		DefaultDirectory: t.DefaultDirectory, CreatedAt: tsToPB(t.CreatedAt),
 		SkipNonVerifiableCallbackUriConfirmationPrompt: t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		UseScopeDescriptionsForConsent:                 t.UseScopeDescriptionsForConsent,
+		PushedAuthorizationRequestsSupported:           t.PushedAuthorizationRequestsSupported,
 	}
 	if t.CustomText != nil {
 		b, err := json.Marshal(t.CustomText)
@@ -183,6 +184,7 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		DefaultDirectory: pb.DefaultDirectory, CreatedAt: tsFromPB(pb.CreatedAt),
 		SkipNonVerifiableCallbackURIConfirmationPrompt: pb.SkipNonVerifiableCallbackUriConfirmationPrompt,
 		UseScopeDescriptionsForConsent:                 pb.UseScopeDescriptionsForConsent,
+		PushedAuthorizationRequestsSupported:           pb.PushedAuthorizationRequestsSupported,
 	}
 	if pb.CustomTextJson != nil {
 		var ct store.CustomText
@@ -216,6 +218,7 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		IsFirstParty: proto.Bool(c.IsFirstParty), ThirdPartySecurityMode: c.ThirdPartySecurityMode,
 		RedirectionPolicy: c.RedirectionPolicy,
 		SkipNonVerifiableCallbackUriConfirmationPrompt: cloneBool(c.SkipNonVerifiableCallbackURIConfirmationPrompt),
+		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
 	}
 	if c.Secrets != nil {
 		pb.Secrets = &storev1.ClientSecretList{Values: make([]*storev1.ClientSecret, 0, len(c.Secrets))}
@@ -250,6 +253,7 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 		IsFirstParty: pb.IsFirstParty == nil || *pb.IsFirstParty, ThirdPartySecurityMode: pb.ThirdPartySecurityMode,
 		RedirectionPolicy: pb.RedirectionPolicy,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: cloneBool(pb.SkipNonVerifiableCallbackUriConfirmationPrompt),
+		RequirePushedAuthorizationRequests:             pb.RequirePushedAuthorizationRequests,
 	}
 	if pb.Secrets != nil {
 		c.Secrets = make([]store.ClientSecret, 0, len(pb.Secrets.Values))
@@ -597,6 +601,31 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 		Nonce: pb.Nonce, CodeChallenge: pb.CodeChallenge, CodeChallengeMethod: pb.CodeChallengeMethod,
 		AuthTime: tsFromPB(pb.AuthTime), ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
 		UsedAt: optTSFromPB(pb.UsedAt), ReplayedAt: optTSFromPB(pb.ReplayedAt),
+	}, nil
+}
+
+// ---- pushed auth request ----
+
+func pushedAuthRequestToPB(p *store.PushedAuthRequest) (*storev1.PushedAuthRequest, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return &storev1.PushedAuthRequest{
+		TenantId: p.TenantID, IdHash: p.IDHash, ClientId: p.ClientID, Params: stringMapToPB(p.Params),
+		ExpiresAt: tsToPB(p.ExpiresAt), CreatedAt: tsToPB(p.CreatedAt), UsedAt: optTSToPB(p.UsedAt),
+	}, nil
+}
+
+func pushedAuthRequestFromPB(pb *storev1.PushedAuthRequest) (*store.PushedAuthRequest, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	if err := checkTS(pb.ExpiresAt, pb.CreatedAt, pb.UsedAt); err != nil {
+		return nil, err
+	}
+	return &store.PushedAuthRequest{
+		TenantID: pb.TenantId, IDHash: pb.IdHash, ClientID: pb.ClientId, Params: stringMapFromPB(pb.Params),
+		ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt), UsedAt: optTSFromPB(pb.UsedAt),
 	}, nil
 }
 

@@ -145,6 +145,7 @@ func TestTenantRoundTrip(t *testing.T) {
 		Branding:         store.Branding{LogoURL: "https://l/logo.png", PrimaryColor: "#112233"},
 		DefaultDirectory: "Username-Password-Authentication", CreatedAt: nanoTime,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: true, UseScopeDescriptionsForConsent: true,
+		PushedAuthorizationRequestsSupported: true,
 	}, tenantToPB, tenantFromPB)
 	roundTrip(t, "empty", &store.Tenant{Domains: []string{}, AllowedLogoutURLs: []string{}, EnabledLocales: []string{}, CustomText: store.CustomText{}}, tenantToPB, tenantFromPB)
 	roundTrip(t, "zero", &store.Tenant{}, tenantToPB, tenantFromPB)
@@ -166,6 +167,7 @@ func TestClientRoundTrip(t *testing.T) {
 		IsFirstParty:    true, ThirdPartySecurityMode: store.SecurityModeStrict,
 		RedirectionPolicy: store.RedirectionPolicyAllowAlways,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: ptr(true),
+		RequirePushedAuthorizationRequests:             true,
 	}, clientToPB, clientFromPB)
 	roundTrip(t, "third party", &store.Client{
 		TenantID: "ten", ClientID: "tp", ThirdPartySecurityMode: store.SecurityModePermissive,
@@ -422,5 +424,40 @@ func TestErrorMapping(t *testing.T) {
 	other := errFromPB(errToPB(errors.New("next key must have status next")))
 	if other == nil || other.Error() != "next key must have status next" {
 		t.Fatalf("other error = %v", other)
+	}
+}
+
+func TestPushedAuthRequestCodecRoundTrip(t *testing.T) {
+	used := time.Date(2026, 1, 2, 3, 4, 5, 6000, time.UTC)
+	for _, in := range []*store.PushedAuthRequest{
+		{TenantID: "t", IDHash: "h", ClientID: "c", Params: map[string]string{"state": "s", "ext-a": "b"},
+			ExpiresAt: used.Add(30 * time.Second), CreatedAt: used.Add(-time.Second)},
+		{TenantID: "t", IDHash: "h", ClientID: "c", Params: map[string]string{},
+			ExpiresAt: used, CreatedAt: used, UsedAt: &used},
+	} {
+		pb, err := pushedAuthRequestToPB(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out, err := pushedAuthRequestFromPB(pb)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(out, in) {
+			t.Fatalf("round trip: got %+v, want %+v", out, in)
+		}
+	}
+}
+
+// Plugins built before fields 16 (tenant) and 19 (client) never set them:
+// PAR stays off and is never required.
+func TestPARFieldsDefaultOffForOldPlugins(t *testing.T) {
+	tn, err := tenantFromPB(&storev1.Tenant{Id: "t", Name: "t"})
+	if err != nil || tn.PushedAuthorizationRequestsSupported {
+		t.Fatalf("tenant = %+v, %v", tn, err)
+	}
+	c, err := clientFromPB(&storev1.Client{TenantId: "t", ClientId: "c"})
+	if err != nil || c.RequirePushedAuthorizationRequests {
+		t.Fatalf("client = %+v, %v", c, err)
 	}
 }

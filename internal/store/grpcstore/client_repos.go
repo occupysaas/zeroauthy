@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -435,6 +437,36 @@ func (a clientAuthCodes) Get(ctx context.Context, tenantID, codeHash string) (*s
 func (a clientAuthCodes) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
 	r, err := a.c.rpc.AuthCodesDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
 	return counted("AuthCodesDeleteExpired", r, err)
+}
+
+// ---- pushed auth requests ----
+
+type clientPushedAuthRequests struct{ c *Client }
+
+func (a clientPushedAuthRequests) Create(ctx context.Context, v *store.PushedAuthRequest) error {
+	return put("PushedAuthRequestsCreate", v, pushedAuthRequestToPB, func(pb *storev1.PushedAuthRequest) (result, error) {
+		return a.c.rpc.PushedAuthRequestsCreate(ctx, &storev1.PushedAuthRequestWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientPushedAuthRequests) Consume(ctx context.Context, tenantID, idHash string, at time.Time) (*store.PushedAuthRequest, error) {
+	r, err := a.c.rpc.PushedAuthRequestsConsume(ctx, &storev1.ConsumeRequest{TxId: a.c.txID, TenantId: tenantID, Hash: idHash, At: tsToPB(at)})
+	return decOne("PushedAuthRequestsConsume", err, r.GetError(), r.GetValue(), pushedAuthRequestFromPB)
+}
+
+func (a clientPushedAuthRequests) Get(ctx context.Context, tenantID, idHash string) (*store.PushedAuthRequest, error) {
+	r, err := a.c.rpc.PushedAuthRequestsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: idHash})
+	return decOne("PushedAuthRequestsGet", err, r.GetError(), r.GetValue(), pushedAuthRequestFromPB)
+}
+
+// DeleteExpired treats a plugin that predates the RPC as holding no pushed
+// requests: the sweeper calls it on every deployment.
+func (a clientPushedAuthRequests) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	r, err := a.c.rpc.PushedAuthRequestsDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
+	if status.Code(err) == codes.Unimplemented {
+		return 0, nil
+	}
+	return counted("PushedAuthRequestsDeleteExpired", r, err)
 }
 
 // ---- refresh tokens ----

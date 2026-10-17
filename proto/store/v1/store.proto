@@ -126,6 +126,10 @@ service StoreService {
   rpc AuthCodesConsume(ConsumeRequest) returns (AuthCodeResult);
   rpc AuthCodesGet(ScopedKey) returns (AuthCodeResult);
   rpc AuthCodesDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+  rpc PushedAuthRequestsCreate(PushedAuthRequestWrite) returns (Result);
+  rpc PushedAuthRequestsConsume(ConsumeRequest) returns (PushedAuthRequestResult);
+  rpc PushedAuthRequestsGet(ScopedKey) returns (PushedAuthRequestResult);
+  rpc PushedAuthRequestsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
 
   rpc RefreshTokensCreate(RefreshTokenWrite) returns (Result);
   rpc RefreshTokensGetByTokenHash(ScopedKey) returns (RefreshTokenResult);
@@ -208,6 +212,7 @@ message Tenant {
   google.protobuf.Timestamp created_at = 13;
   bool skip_non_verifiable_callback_uri_confirmation_prompt = 14;
   bool use_scope_descriptions_for_consent = 15;
+  bool pushed_authorization_requests_supported = 16; // absent = false
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 
@@ -240,6 +245,7 @@ message Client {
   string third_party_security_mode = 16;
   string redirection_policy = 17;
   optional bool skip_non_verifiable_callback_uri_confirmation_prompt = 18; // absent = nil
+  bool require_pushed_authorization_requests = 19;   // absent = false
 }
 
 message Scope { string value = 1; string description = 2; }
@@ -319,6 +325,11 @@ message AuthCode {
   google.protobuf.Timestamp used_at = 15;     // absent = nil
   google.protobuf.Timestamp replayed_at = 16; // absent = nil
 }
+message PushedAuthRequest {
+  string tenant_id = 1; string id_hash = 2; string client_id = 3; StringMap params = 4;
+  google.protobuf.Timestamp expires_at = 5; google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp used_at = 7; // absent = nil
+}
 
 message RefreshToken {
   string tenant_id = 1; string id = 2; string token_hash = 3; string family_id = 4;
@@ -388,6 +399,8 @@ message AuthTransactionResult { Error error = 1; AuthTransaction value = 2; }
 
 message AuthCodeWrite { string tx_id = 1; AuthCode value = 2; }
 message AuthCodeResult { Error error = 1; AuthCode value = 2; } // Consume may set both
+message PushedAuthRequestWrite { string tx_id = 1; PushedAuthRequest value = 2; }
+message PushedAuthRequestResult { Error error = 1; PushedAuthRequest value = 2; } // Consume may set both
 
 message RefreshTokenWrite { string tx_id = 1; RefreshToken value = 2; }
 message RefreshTokenResult { Error error = 1; RefreshToken value = 2; }

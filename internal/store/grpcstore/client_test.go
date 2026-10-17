@@ -3,13 +3,16 @@ package grpcstore
 import (
 	"context"
 	"errors"
+	"net"
 	"strings"
 	"testing"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
@@ -174,5 +177,42 @@ func TestFindIgnoresWrongSubjectType(t *testing.T) {
 	g, err := c.ClientGrants().Find(context.Background(), "t", "c", "a", store.SubjectTypeClient)
 	if err != nil || g.SubjectType != store.SubjectTypeClient {
 		t.Fatalf("matching type: %+v %v", g, err)
+	}
+}
+
+// oldPlugin answers every RPC with Unimplemented, like a plugin built before
+// the RPC existed.
+type oldPlugin struct {
+	storev1.UnimplementedStoreServiceServer
+}
+
+func serveOldPlugin(t *testing.T) *Client {
+	t.Helper()
+	lis := bufconn.Listen(1 << 20)
+	gs := grpc.NewServer()
+	storev1.RegisterStoreServiceServer(gs, oldPlugin{})
+	go func() { _ = gs.Serve(lis) }()
+	conn, err := grpc.NewClient("passthrough:///bufnet",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return lis.DialContext(ctx) }),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := NewClient(conn, func() error { err := conn.Close(); gs.Stop(); return err })
+	t.Cleanup(func() { _ = c.Close() })
+	return c
+}
+
+// The sweeper runs on every deployment. A plugin that predates PAR stores no
+// pushed requests, so there is nothing to sweep and nothing to report.
+func TestOldPluginPushedAuthRequestsSweep(t *testing.T) {
+	c := serveOldPlugin(t)
+	n, err := c.PushedAuthRequests().DeleteExpired(context.Background(), time.Now())
+	if n != 0 || err != nil {
+		t.Fatalf("DeleteExpired = %d, %v; want 0, nil", n, err)
+	}
+	// Other calls still fail: PAR cannot silently work without storage.
+	if _, err := c.PushedAuthRequests().Get(context.Background(), "t", "h"); err == nil {
+		t.Fatal("Get on an old plugin succeeded")
 	}
 }

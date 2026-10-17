@@ -492,6 +492,41 @@ func (s *Server) AuthCodesDeleteExpired(ctx context.Context, r *storev1.DeleteEx
 	return count(s, r.TxId, func(st store.Store) (int, error) { return st.AuthCodes().DeleteExpired(ctx, tsFromPB(r.Before)) }), nil
 }
 
+// ---- pushed auth requests ----
+
+func (s *Server) PushedAuthRequestsCreate(ctx context.Context, r *storev1.PushedAuthRequestWrite) (*storev1.Result, error) {
+	return write(s, r.TxId, r.Value, pushedAuthRequestFromPB, func(st store.Store, p *store.PushedAuthRequest) error {
+		return st.PushedAuthRequests().Create(ctx, p)
+	}), nil
+}
+
+// PushedAuthRequestsConsume returns the request together with ErrAlreadyUsed on reuse.
+func (s *Server) PushedAuthRequestsConsume(ctx context.Context, r *storev1.ConsumeRequest) (*storev1.PushedAuthRequestResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.PushedAuthRequest, error) {
+		return st.PushedAuthRequests().Consume(ctx, r.TenantId, r.Hash, tsFromPB(r.At))
+	}, pushedAuthRequestToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.PushedAuthRequestResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) PushedAuthRequestsGet(ctx context.Context, r *storev1.ScopedKey) (*storev1.PushedAuthRequestResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.PushedAuthRequest, error) {
+		return st.PushedAuthRequests().Get(ctx, r.TenantId, r.Key)
+	}, pushedAuthRequestToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.PushedAuthRequestResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) PushedAuthRequestsDeleteExpired(ctx context.Context, r *storev1.DeleteExpiredRequest) (*storev1.CountResult, error) {
+	return count(s, r.TxId, func(st store.Store) (int, error) {
+		return st.PushedAuthRequests().DeleteExpired(ctx, tsFromPB(r.Before))
+	}), nil
+}
+
 // ---- refresh tokens ----
 
 func (s *Server) RefreshTokensCreate(ctx context.Context, r *storev1.RefreshTokenWrite) (*storev1.Result, error) {

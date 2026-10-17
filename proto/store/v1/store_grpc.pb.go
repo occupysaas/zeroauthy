@@ -77,6 +77,10 @@ const (
 	StoreService_AuthCodesConsume_FullMethodName                   = "/zeroauthy.store.v1.StoreService/AuthCodesConsume"
 	StoreService_AuthCodesGet_FullMethodName                       = "/zeroauthy.store.v1.StoreService/AuthCodesGet"
 	StoreService_AuthCodesDeleteExpired_FullMethodName             = "/zeroauthy.store.v1.StoreService/AuthCodesDeleteExpired"
+	StoreService_PushedAuthRequestsCreate_FullMethodName           = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsCreate"
+	StoreService_PushedAuthRequestsConsume_FullMethodName          = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsConsume"
+	StoreService_PushedAuthRequestsGet_FullMethodName              = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsGet"
+	StoreService_PushedAuthRequestsDeleteExpired_FullMethodName    = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsDeleteExpired"
 	StoreService_RefreshTokensCreate_FullMethodName                = "/zeroauthy.store.v1.StoreService/RefreshTokensCreate"
 	StoreService_RefreshTokensGetByTokenHash_FullMethodName        = "/zeroauthy.store.v1.StoreService/RefreshTokensGetByTokenHash"
 	StoreService_RefreshTokensRotate_FullMethodName                = "/zeroauthy.store.v1.StoreService/RefreshTokensRotate"
@@ -208,6 +212,10 @@ type StoreServiceClient interface {
 	AuthCodesConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*AuthCodeResult, error)
 	AuthCodesGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*AuthCodeResult, error)
 	AuthCodesDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
+	PushedAuthRequestsCreate(ctx context.Context, in *PushedAuthRequestWrite, opts ...grpc.CallOption) (*Result, error)
+	PushedAuthRequestsConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*PushedAuthRequestResult, error)
+	PushedAuthRequestsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*PushedAuthRequestResult, error)
+	PushedAuthRequestsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
 	RefreshTokensCreate(ctx context.Context, in *RefreshTokenWrite, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error)
 	RefreshTokensRotate(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
@@ -810,6 +818,46 @@ func (c *storeServiceClient) AuthCodesDeleteExpired(ctx context.Context, in *Del
 	return out, nil
 }
 
+func (c *storeServiceClient) PushedAuthRequestsCreate(ctx context.Context, in *PushedAuthRequestWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_PushedAuthRequestsCreate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PushedAuthRequestsConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*PushedAuthRequestResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PushedAuthRequestResult)
+	err := c.cc.Invoke(ctx, StoreService_PushedAuthRequestsConsume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PushedAuthRequestsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*PushedAuthRequestResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PushedAuthRequestResult)
+	err := c.cc.Invoke(ctx, StoreService_PushedAuthRequestsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PushedAuthRequestsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_PushedAuthRequestsDeleteExpired_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) RefreshTokensCreate(ctx context.Context, in *RefreshTokenWrite, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -1047,6 +1095,10 @@ type StoreServiceServer interface {
 	AuthCodesConsume(context.Context, *ConsumeRequest) (*AuthCodeResult, error)
 	AuthCodesGet(context.Context, *ScopedKey) (*AuthCodeResult, error)
 	AuthCodesDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
+	PushedAuthRequestsCreate(context.Context, *PushedAuthRequestWrite) (*Result, error)
+	PushedAuthRequestsConsume(context.Context, *ConsumeRequest) (*PushedAuthRequestResult, error)
+	PushedAuthRequestsGet(context.Context, *ScopedKey) (*PushedAuthRequestResult, error)
+	PushedAuthRequestsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
 	RefreshTokensCreate(context.Context, *RefreshTokenWrite) (*Result, error)
 	RefreshTokensGetByTokenHash(context.Context, *ScopedKey) (*RefreshTokenResult, error)
 	RefreshTokensRotate(context.Context, *RefreshTokensRotateRequest) (*Result, error)
@@ -1242,6 +1294,18 @@ func (UnimplementedStoreServiceServer) AuthCodesGet(context.Context, *ScopedKey)
 }
 func (UnimplementedStoreServiceServer) AuthCodesDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method AuthCodesDeleteExpired not implemented")
+}
+func (UnimplementedStoreServiceServer) PushedAuthRequestsCreate(context.Context, *PushedAuthRequestWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method PushedAuthRequestsCreate not implemented")
+}
+func (UnimplementedStoreServiceServer) PushedAuthRequestsConsume(context.Context, *ConsumeRequest) (*PushedAuthRequestResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method PushedAuthRequestsConsume not implemented")
+}
+func (UnimplementedStoreServiceServer) PushedAuthRequestsGet(context.Context, *ScopedKey) (*PushedAuthRequestResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method PushedAuthRequestsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) PushedAuthRequestsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method PushedAuthRequestsDeleteExpired not implemented")
 }
 func (UnimplementedStoreServiceServer) RefreshTokensCreate(context.Context, *RefreshTokenWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensCreate not implemented")
@@ -2344,6 +2408,78 @@ func _StoreService_AuthCodesDeleteExpired_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_PushedAuthRequestsCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushedAuthRequestWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PushedAuthRequestsCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PushedAuthRequestsCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PushedAuthRequestsCreate(ctx, req.(*PushedAuthRequestWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PushedAuthRequestsConsume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConsumeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PushedAuthRequestsConsume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PushedAuthRequestsConsume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PushedAuthRequestsConsume(ctx, req.(*ConsumeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PushedAuthRequestsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PushedAuthRequestsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PushedAuthRequestsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PushedAuthRequestsGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PushedAuthRequestsDeleteExpired_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteExpiredRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PushedAuthRequestsDeleteExpired(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PushedAuthRequestsDeleteExpired_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PushedAuthRequestsDeleteExpired(ctx, req.(*DeleteExpiredRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_RefreshTokensCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshTokenWrite)
 	if err := dec(in); err != nil {
@@ -2798,6 +2934,22 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AuthCodesDeleteExpired",
 			Handler:    _StoreService_AuthCodesDeleteExpired_Handler,
+		},
+		{
+			MethodName: "PushedAuthRequestsCreate",
+			Handler:    _StoreService_PushedAuthRequestsCreate_Handler,
+		},
+		{
+			MethodName: "PushedAuthRequestsConsume",
+			Handler:    _StoreService_PushedAuthRequestsConsume_Handler,
+		},
+		{
+			MethodName: "PushedAuthRequestsGet",
+			Handler:    _StoreService_PushedAuthRequestsGet_Handler,
+		},
+		{
+			MethodName: "PushedAuthRequestsDeleteExpired",
+			Handler:    _StoreService_PushedAuthRequestsDeleteExpired_Handler,
 		},
 		{
 			MethodName: "RefreshTokensCreate",

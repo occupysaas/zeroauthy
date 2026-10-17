@@ -108,18 +108,19 @@ func (c *Client) WithTx(ctx context.Context, fn func(store.Store) error) (err er
 	return err
 }
 
-func (c *Client) Tenants() store.Tenants                   { return clientTenants{c} }
-func (c *Client) Clients() store.Clients                   { return clientClients{c} }
-func (c *Client) ResourceServers() store.ResourceServers   { return clientResourceServers{c} }
-func (c *Client) ClientGrants() store.ClientGrants         { return clientClientGrants{c} }
-func (c *Client) UserGrants() store.UserGrants             { return clientUserGrants{c} }
-func (c *Client) SigningKeys() store.SigningKeys           { return clientSigningKeys{c} }
-func (c *Client) Connections() store.Connections           { return clientConnections{c} }
-func (c *Client) Users() store.Users                       { return clientUsers{c} }
-func (c *Client) Sessions() store.Sessions                 { return clientSessions{c} }
-func (c *Client) AuthTransactions() store.AuthTransactions { return clientAuthTransactions{c} }
-func (c *Client) AuthCodes() store.AuthCodes               { return clientAuthCodes{c} }
-func (c *Client) RefreshTokens() store.RefreshTokens       { return clientRefreshTokens{c} }
+func (c *Client) Tenants() store.Tenants                       { return clientTenants{c} }
+func (c *Client) Clients() store.Clients                       { return clientClients{c} }
+func (c *Client) ResourceServers() store.ResourceServers       { return clientResourceServers{c} }
+func (c *Client) ClientGrants() store.ClientGrants             { return clientClientGrants{c} }
+func (c *Client) UserGrants() store.UserGrants                 { return clientUserGrants{c} }
+func (c *Client) SigningKeys() store.SigningKeys               { return clientSigningKeys{c} }
+func (c *Client) Connections() store.Connections               { return clientConnections{c} }
+func (c *Client) Users() store.Users                           { return clientUsers{c} }
+func (c *Client) Sessions() store.Sessions                     { return clientSessions{c} }
+func (c *Client) AuthTransactions() store.AuthTransactions     { return clientAuthTransactions{c} }
+func (c *Client) AuthCodes() store.AuthCodes                   { return clientAuthCodes{c} }
+func (c *Client) PushedAuthRequests() store.PushedAuthRequests { return clientPushedAuthRequests{c} }
+func (c *Client) RefreshTokens() store.RefreshTokens           { return clientRefreshTokens{c} }
 func (c *Client) PasswordResetTickets() store.PasswordResetTickets {
 	return clientPasswordResetTickets{c}
 }
