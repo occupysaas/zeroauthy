@@ -1,0 +1,15 @@
+{
+    "description": "zeroauthy: OpenID Connect Config OP",
+    "alias": "zeroauthy",
+    "server": {
+        "discoveryUrl": "https://zeroauthy.conformance.test:8443/.well-known/openid-configuration"
+    },
+    "client": {
+        "client_id": "za-conformance-1",
+        "client_secret": "za-conformance-1-secret-not-for-production"
+    },
+    "client2": {
+        "client_id": "za-conformance-2",
+        "client_secret": "za-conformance-2-secret-not-for-production"
+    }
+}

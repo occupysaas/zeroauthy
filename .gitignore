@@ -21,6 +21,8 @@ node_modules/
 tests/e2e/**/playwright-report/
 tests/e2e/**/test-results/
 tests/e2e/next-app/.next/
+tests/conformance/.cache/
+tests/conformance/results/
 .idea/
 .vscode/
 .DS_Store

@@ -1,0 +1,66 @@
+# tests/conformance/compose.yml: the OpenID Foundation conformance suite
+# (mongodb, server, nginx; modelled on the suite's docker-compose-prebuilt.yml)
+# plus zeroauthy, all on one network. run.sh sets the variables:
+#   CONFORMANCE_IMAGE_TAG  the pinned suite release (suite-version)
+#   CONFORMANCE_WORK       the per-run directory (binary, CA, certificate,
+#                          truststore, SQLite database)
+#   CONFORMANCE_REPO       the repository root, mounted read-only
+#   ZEROAUTHY_MASTER_KEY   a fresh master key per run
+# See README.md for the networking and TLS design.
+services:
+  mongodb:
+    image: docker.io/library/mongo:6.0.13
+    tmpfs:
+      - /data/db
+      - /data/configdb
+
+  server:
+    image: registry.gitlab.com/openid/conformance-suite:${CONFORMANCE_IMAGE_TAG:?}
+    environment:
+      BASE_URL: https://localhost.emobix.co.uk:8443
+      BASE_MTLS_URL: https://localhost.emobix.co.uk:8444
+      MONGODB_HOST: mongodb
+      SPRING_PROFILES_ACTIVE: dev
+      OIDC_GOOGLE_CLIENTID: google-client
+      OIDC_GOOGLE_SECRET: google-secret
+      OIDC_GITLAB_CLIENTID: gitlab-client
+      OIDC_GITLAB_SECRET: gitlab-secret
+      # The JDK's default CAs plus the per-run CA that signs zeroauthy's
+      # certificate (built by run.sh with keytool).
+      JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/run/conformance/truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12
+    volumes:
+      - ${CONFORMANCE_WORK:?}/tls:/run/conformance:ro
+    depends_on:
+      - mongodb
+
+  nginx:
+    image: registry.gitlab.com/openid/conformance-suite/nginx:${CONFORMANCE_IMAGE_TAG:?}
+    ports:
+      # run-test-plan.py on the host reaches the suite here;
+      # localhost.emobix.co.uk resolves to 127.0.0.1 in public DNS.
+      - "127.0.0.1:8443:8443"
+    networks:
+      default:
+        aliases:
+          # Inside the network the suite's own URLs (callbacks the browser
+          # follows after zeroauthy redirects) reach nginx, not 127.0.0.1.
+          - localhost.emobix.co.uk
+    depends_on:
+      - server
+
+  zeroauthy:
+    # zeroauthy is a static binary (CGO_ENABLED=0) built on the host and
+    # mounted in; the image only supplies a filesystem to run it from.
+    image: docker.io/library/alpine:3.22.2
+    command: ["/run/zeroauthy/zeroauthy", "serve", "--config", "/repo/tests/conformance/config.yaml"]
+    environment:
+      ZEROAUTHY_SECURITY__MASTER_KEY: ${ZEROAUTHY_MASTER_KEY:?}
+    volumes:
+      - ${CONFORMANCE_WORK:?}:/run/zeroauthy
+      - ${CONFORMANCE_REPO:?}:/repo:ro
+    networks:
+      default:
+        aliases:
+          # The one name in the discovery URL, the issuer and the tenant's
+          # domain; the suite (server container) resolves it to this container.
+          - zeroauthy.conformance.test

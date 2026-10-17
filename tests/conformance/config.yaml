@@ -1,0 +1,18 @@
+# tests/conformance/config.yaml: zeroauthy's config for the conformance run.
+# zeroauthy runs in the compose project (compose.yml) with the run directory
+# mounted at /run/zeroauthy and the repository at /repo. The master key comes
+# from ZEROAUTHY_SECURITY__MASTER_KEY, fresh per run.
+server:
+  listen: ":8443"
+  tls_cert_file: /run/zeroauthy/tls/cert.pem
+  tls_key_file: /run/zeroauthy/tls/key.pem
+storage:
+  dsn: sqlite:///run/zeroauthy/data/conformance.db
+  auto_migrate: true
+seed: /repo/tests/conformance/seed.yaml
+log:
+  level: info
+  format: text
+email:
+  driver: dir
+  dir: /run/zeroauthy/data/mail
