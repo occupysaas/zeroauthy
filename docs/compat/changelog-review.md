@@ -38,6 +38,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 | 2026-10-16 | 2026-10-12 (newest entry) | Claude (Plan 8 planning) | First review. Read the whole changelog page back to mid-2025 for entries that affect milestones 1–9 or later sub-projects. No entry changes a behavior zeroauthy already implements. Custom-database items are recorded below; most are later features. |
 | 2026-10-16 | 2026-10-12 (newest entry) | Claude (Plan 9 planning) | No entries since the previous review. Re-read entries on consent and third-party applications; the 2026 third-party security modes, access policies and confirmation prompt are taken from the current documentation into the Plan 9 design. |
 | 2026-10-16 | 2026-10-16 (newest entry) | Claude (Plan 10 planning) | No entries on PAR. One new entry since the previous review, recorded under Relevant entries: Universal Login identifier and phone controls (early access). |
+| 2026-10-17 | 2026-10-16 (newest entry) | Claude (Plan 11 planning) | No entries on the device flow. No new entries since the previous review. Device behaviour was taken from the current documentation and the tenant observation (observations/device-flow.md). |
 
 ## Relevant entries
 

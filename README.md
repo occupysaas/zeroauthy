@@ -12,7 +12,9 @@ and open standards. It is not affiliated with Auth0 or Okta. See
 > grant, login with the hosted page, the authorization code + PKCE flow,
 > rotating refresh tokens, `/oauth/revoke`, and logout through `/v2/logout`
 > and `/oidc/logout` work today (verified with auth0-spa-js, auth0-react and
-> nextjs-auth0). See the [compatibility matrix](docs/compat/matrix.md).
+> nextjs-auth0). Pushed authorization requests ([docs/par.md](docs/par.md)) and
+> the device authorization flow ([docs/device-flow.md](docs/device-flow.md))
+> are supported too. See the [compatibility matrix](docs/compat/matrix.md).
 
 ## Quick start
 

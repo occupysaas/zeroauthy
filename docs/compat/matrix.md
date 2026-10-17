@@ -29,6 +29,11 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | `request_uri` at `/authorize` | Implemented | From PAR only; replaces every other parameter except `client_id`; failures are error pages (D-0029). Strict third-party clients still refuse it (D-0025) |
 | Client `require_pushed_authorization_requests` and tenant `pushed_authorization_requests_supported` | Implemented | A plain `/authorize` from a requiring client redirects with `invalid_request`; the seed refuses the client setting without the tenant setting, on public clients and on third-party clients (D-0029, D-0030) |
 | Discovery: `pushed_authorization_request_endpoint`, `request_uri_parameter_supported` | Implemented | The endpoint appears only while the tenant setting is on; `request_uri_parameter_supported` is always `false` (D-0030) |
+| `POST /oauth/device/code` | Implemented | RFC 8628 for first-party native clients without a secret; guide: `docs/device-flow.md`. Decision D-0031. Verified with Auth0.AuthenticationApi (auth0.net) 7.49.0 and Chromium (m10-device). Form or JSON body; 15-minute codes, 5-second interval |
+| Grant `urn:ietf:params:oauth:grant-type:device_code` | Implemented | `authorization_pending`, `slow_down` (polls under 1 s apart), `access_denied` and `expired_token` as `403`/`429` per observation; tokens once; refresh tokens rotate and revoke as usual; no `sid` in the ID token (D-0031) |
+| Tenant `device_flow` (`charset`, `mask`) | Implemented | `base20` or `digits`; seed refuses invalid masks and device grants on non-native, secret-holding or third-party clients (D-0033). Management API access planned (sub-project 3) |
+| Device screens: `/activate`, `/device/confirmation`, `/device/success`, `/device/denied` | Implemented | Entry, confirmation (always shown), success and denied pages with the four `device-code-*` custom text prompts; login and consent reuse `/u/login` and `/u/consent` (D-0032). Activation limits are zeroauthy's own numbers (D-0034) |
+| Discovery: `device_authorization_endpoint` | Implemented | Advertised with the device grant in `grant_types_supported` (D-0033) |
 | Implicit/hybrid flows | Planned | Not part of Plan 5 |
 | Passwordless, MFA, social connections, Actions | Planned (sub-project 2) | |
 | Management API v2 | Planned (sub-project 3) | |

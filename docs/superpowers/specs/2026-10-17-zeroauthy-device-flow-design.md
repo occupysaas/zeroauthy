@@ -1,6 +1,6 @@
 # zeroauthy — Design: Device Authorization Flow (Plan 11)
 
-- **Status:** Draft, awaiting review
+- **Status:** Implemented (Plan 11)
 - **Date:** 2026-10-17
 - **Scope:** milestone 10, part 3 of 3 (spec §13). Plan 9 shipped consent, Plan 10 shipped PAR. This plan ships the RFC 8628 device authorization flow with Auth0 parity, server side only.
 
@@ -115,11 +115,11 @@ Guessing a user code does not leak tokens: tokens go only to the poller holding 
 
 - **Code space.** At least 20⁸ ≈ 2.6 × 10¹⁰ (base20) or 10⁹ (digits) codes.
 - **Lifetime.** 15 minutes. Slow users are unaffected because only misses count.
-- **Per transaction.** A miss counter stored on the device transaction. After 5 misses the transaction is deleted, and the user must start again from `/activate`. This is a counter, not a throttle.
+- **Per transaction.** An in-process throttle keyed by transaction ID, not a counter stored on the transaction. After 5 misses the transaction is deleted, and the user must start again from `/activate`.
 - **Per IP.** After 10 misses within 15 minutes, code entry from that IP is locked for 15 minutes.
 - **Per tenant.** After 1,000 misses within 10 minutes, code entry for the whole tenant is locked for 1 minute, which slows a bot spread over many IPs. This lets an attacker delay legitimate activations, so the ceiling is high and the lockout short. Operators can raise it or switch it off.
 
-The per-IP and per-tenant limits use `identity.Throttle`, so they are in-process: each server instance counts separately, as for login throttles today. `Attempt` runs before the lookup, as `Throttle` requires, and a successful lookup calls `Refund`, so only misses count. `Throttle` gains a disabled mode (a nil or zero-max throttle always allows). Config validation accepts 0 for the device thresholds to mean "off", and keeps rejecting negatives. Today `NewThrottle` turns a max below 1 into 1, which must not happen for these settings. Thresholds live in server config next to the login throttles (`security.device_activation_*`), not per tenant. They are zeroauthy's own defaults, recorded as a deliberate decision, because Auth0 publishes no numbers and the clean-room rules forbid probing the tenant with load.
+The per-IP and per-tenant limits use `identity.Throttle`, so they are in-process: each server instance counts separately, as for login throttles today. `Attempt` runs before the lookup, as `Throttle` requires, and a successful lookup calls `Refund`, so only misses count. Only real misses count: successful entries and empty submissions are refunded, and a request refused by the IP limit does not count against the tenant. `Throttle` gains a disabled mode (a nil or zero-max throttle always allows). Config validation accepts 0 for the device thresholds to mean "off", and keeps rejecting negatives. Today `NewThrottle` turns a max below 1 into 1, which must not happen for these settings. Thresholds live in server config next to the login throttles (`security.device_activation_*`), not per tenant. They are zeroauthy's own defaults, recorded as a deliberate decision, because Auth0 publishes no numbers and the clean-room rules forbid probing the tenant with load.
 
 Polling has its own protection through `slow_down` (§4.3). `POST /oauth/device/code` has no limit beyond the general follow-up for an Authentication API rate limiter (Plan 10 recorded the same gap).
 

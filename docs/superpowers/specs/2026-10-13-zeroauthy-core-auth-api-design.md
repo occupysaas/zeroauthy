@@ -194,7 +194,7 @@ The full contract is in `api/authentication.yaml`.
 | `POST /oauth/token` | See 6.3 |
 | `POST /oauth/revoke` | Revokes a refresh token (and its family). RFC 7009 semantics: `200` even when the token is unknown. |
 | `POST /oauth/par` | RFC 9126; see the PAR design (Plan 10) |
-| `POST /oauth/device/code` | RFC 8628; returns `device_code`, `user_code`, `verification_uri(_complete)`, `expires_in`, `interval` |
+| `POST /oauth/device/code` | Shipped in Plan 11. RFC 8628; returns `device_code`, `user_code`, `verification_uri(_complete)`, `expires_in`, `interval` |
 | `GET\|POST /userinfo` | Bearer access token whose audience includes `https://{domain}/userinfo`; returns OIDC standard claims according to scope |
 | `GET /v2/logout` | Ends the session; redirects to `returnTo` only if it matches the client's (or tenant's) allowed logout URLs |
 | `GET\|POST /oidc/logout` | OIDC RP-Initiated Logout (`id_token_hint`, `post_logout_redirect_uri`, `state`, `client_id`, `logout_hint`) |
@@ -403,7 +403,7 @@ Before each milestone's plan is written, review Auth0's public changelog since t
 7. SQL drivers (sqlite, postgres, mysql) passing `storetest`.
 8. gRPC plugin host and sample plugin.
 9. `custom-db` bridge with import mode.
-10. Device flow, PAR, consent. Consent, third-party applications and API access policies shipped in Plan 9 (see the consent design); PAR shipped in Plan 10; device flow remains (Plan 11).
+10. Device flow, PAR, consent. Consent, third-party applications and API access policies shipped in Plan 9 (see the consent design); PAR shipped in Plan 10 and the device flow in Plan 11, which completes this milestone.
 11. OIDF conformance in CI; compatibility matrix published.
 
 ## 14. Risks

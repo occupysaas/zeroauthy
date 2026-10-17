@@ -205,3 +205,12 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Repeated query parameters on `/authorize` get a JSON 400 from the generated wrapper (existing item; it also applies to `request_uri`).
 - Store failures during `/authorize` request validation or `request_uri` resolution render a 400 error page; they should be 500. This applies to the existing non-redirectable server errors at `/authorize` too.
 - `scripts/test-sql.sh` hardcodes host ports 55432 (PostgreSQL) and 53306 (MySQL), which collide with other local containers. Make them configurable (this repeats the Plan 9 item and is still open).
+
+## Plan 11 follow-ups
+
+- A sample Android TV app: the Android Studio TV emulator reaching zeroauthy at `10.0.2.2`, then a sideloaded Fire TV.
+- `auth0-cli` as a device-flow client. It hardcodes `auth0.auth0.com`, its client ID and issuer, so testing it needs that host mapped to zeroauthy in a container with a trusted test certificate.
+- Management API for `device_flow` (sub-project 3). Tenant log events `fdeaz`, `fdeac`, `fdecc`, `fede`, `sede`. Actions/Rules `oauth2-device-code` protocol.
+- An Authentication API rate limiter covering `/oauth/device/code`, and throttle state shared across instances.
+- Running `m10-device` with `E2E_IN_CONTAINER=1` (it needs podman on the host to start the .NET client).
+- OpenID Foundation certification: a local dry run of the open-source OIDF conformance suite against zeroauthy (Basic OP, Config OP, Form Post OP and RP-initiated logout; not Implicit, Hybrid or Dynamic, which zeroauthy lacks), then a fee-waiver request to certification@oidf.org under https://openid.net/certification/open-source-project-certification-policy/ (decided case by case; maintainers must not be paid by an employer for the project). Any Auth0-copied behaviour that fails a spec test becomes a parity-versus-spec decision for the maintainer. Planned as its own plan after Plan 11.
