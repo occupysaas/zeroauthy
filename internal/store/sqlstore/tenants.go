@@ -17,7 +17,7 @@ func (s *Store) Tenants() store.Tenants { return tenants{s} }
 
 const tenantCols = `id, name, friendly_name, default_audience, allowed_logout_urls, enabled_locales, custom_text,
  session_lifetime, idle_session_lifetime, logo_url, primary_color, default_directory, created_at,
- skip_non_verifiable_callback_uri_confirmation_prompt, use_scope_descriptions_for_consent`
+ skip_non_verifiable_callback_uri_confirmation_prompt, use_scope_descriptions_for_consent, pushed_authorization_requests_supported`
 
 // prefixed prefixes each comma-separated column name in cols with p.
 func prefixed(p, cols string) string {
@@ -34,7 +34,7 @@ func (r tenants) Create(ctx context.Context, t *store.Tenant) error {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
 		return tenants{tx}.putDomains(ctx, t.ID, t.Domains, false)
@@ -112,7 +112,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 		res, err := tx.exec(ctx, `UPDATE tenants SET name=?, friendly_name=?, default_audience=?, allowed_logout_urls=?,
  enabled_locales=?, custom_text=?, session_lifetime=?, idle_session_lifetime=?, logo_url=?, primary_color=?,
  default_directory=?, created_at=?, skip_non_verifiable_callback_uri_confirmation_prompt=?,
- use_scope_descriptions_for_consent=? WHERE id=?`, append(args[1:], t.ID)...)
+ use_scope_descriptions_for_consent=?, pushed_authorization_requests_supported=? WHERE id=?`, append(args[1:], t.ID)...)
 		if err != nil {
 			return tx.conflict(err)
 		}
@@ -198,7 +198,7 @@ func scanTenant(row scanner) (*store.Tenant, error) {
 	if err := row.Scan(&t.ID, &t.Name, &t.FriendlyName, &t.DefaultAudience, &logout, &locales, &text,
 		&t.SessionLifetime, &t.IdleSessionLifetime, &t.Branding.LogoURL, &t.Branding.PrimaryColor,
 		&t.DefaultDirectory, &created, &t.SkipNonVerifiableCallbackURIConfirmationPrompt,
-		&t.UseScopeDescriptionsForConsent); err != nil {
+		&t.UseScopeDescriptionsForConsent, &t.PushedAuthorizationRequestsSupported); err != nil {
 		return nil, err
 	}
 	for _, j := range []struct {
@@ -229,5 +229,5 @@ func tenantArgs(t *store.Tenant) ([]any, error) {
 	return []any{t.ID, t.Name, t.FriendlyName, t.DefaultAudience, logout, locales, text,
 		t.SessionLifetime, t.IdleSessionLifetime, t.Branding.LogoURL, t.Branding.PrimaryColor,
 		t.DefaultDirectory, micros(t.CreatedAt), t.SkipNonVerifiableCallbackURIConfirmationPrompt,
-		t.UseScopeDescriptionsForConsent}, nil
+		t.UseScopeDescriptionsForConsent, t.PushedAuthorizationRequestsSupported}, nil
 }

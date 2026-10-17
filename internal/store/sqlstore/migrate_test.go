@@ -172,10 +172,10 @@ func TestSchemaConstraints(t *testing.T) {
 	}
 }
 
-func TestLatestVersionIsThree(t *testing.T) {
+func TestLatestVersionIsFour(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 3 {
-			t.Errorf("%s LatestVersion = %d, want 3", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 4 {
+			t.Errorf("%s LatestVersion = %d, want 4", d.name, v)
 		}
 	}
 }
