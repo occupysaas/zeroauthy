@@ -65,14 +65,9 @@ func inProcessSQLite(t *testing.T) *Client {
 }
 
 func TestConformance(t *testing.T) {
-	storetest.RunExcept(t, func(t *testing.T) store.Store { return inProcess(t) }, skipUntilTask4...)
+	storetest.Run(t, func(t *testing.T) store.Store { return inProcess(t) })
 }
 
 func TestConformanceSQLite(t *testing.T) {
-	storetest.RunExcept(t, func(t *testing.T) store.Store { return inProcessSQLite(t) }, skipUntilTask4...)
+	storetest.Run(t, func(t *testing.T) store.Store { return inProcessSQLite(t) })
 }
-
-// TODO(Task 4): the gRPC driver does not carry device codes or the tenant
-// device flow settings yet. Delete this var and switch the two conformance
-// tests above back to storetest.Run.
-var skipUntilTask4 = []string{"DeviceCodes", "Tenants/DeviceFlow"}

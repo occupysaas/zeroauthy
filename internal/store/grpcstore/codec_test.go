@@ -62,11 +62,6 @@ func roundTrip[P any, PP interface {
 func assertNoZeroFields(t *testing.T, path string, v reflect.Value) {
 	t.Helper()
 	for _, p := range zeroPaths(path, v) {
-		// TODO(plan 11, task 4): the proto Tenant does not carry the device
-		// flow settings yet. Remove this skip when the codec does.
-		if p == ".DeviceFlowCharset" || p == ".DeviceFlowMask" {
-			continue
-		}
 		t.Errorf("full fixture: %s is zero, nil or empty", p)
 	}
 }
@@ -151,6 +146,7 @@ func TestTenantRoundTrip(t *testing.T) {
 		DefaultDirectory: "Username-Password-Authentication", CreatedAt: nanoTime,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: true, UseScopeDescriptionsForConsent: true,
 		PushedAuthorizationRequestsSupported: true,
+		DeviceFlowCharset:                    "digits", DeviceFlowMask: "###-###",
 	}, tenantToPB, tenantFromPB)
 	roundTrip(t, "empty", &store.Tenant{Domains: []string{}, AllowedLogoutURLs: []string{}, EnabledLocales: []string{}, CustomText: store.CustomText{}}, tenantToPB, tenantFromPB)
 	roundTrip(t, "zero", &store.Tenant{}, tenantToPB, tenantFromPB)
@@ -464,5 +460,31 @@ func TestPARFieldsDefaultOffForOldPlugins(t *testing.T) {
 	c, err := clientFromPB(&storev1.Client{TenantId: "t", ClientId: "c"})
 	if err != nil || c.RequirePushedAuthorizationRequests {
 		t.Fatalf("client = %+v, %v", c, err)
+	}
+}
+
+func TestDeviceCodeCodecRoundTrip(t *testing.T) {
+	roundTrip(t, "full", &store.DeviceCode{
+		TenantID: "ten", DeviceCodeHash: "dh", UserCodeHash: "uh", ClientID: "c",
+		Scopes: []string{"openid", "email"}, Audience: "https://api", Status: store.DeviceCodeApproved,
+		UserID: "u", GrantedScopes: []string{"openid"},
+		LastPolledAt: &nanoTime, ExpiredReportedAt: &nanoTime, ExpiresAt: nanoTime, CreatedAt: nanoTime,
+	}, deviceCodeToPB, deviceCodeFromPB)
+	roundTrip(t, "pending", &store.DeviceCode{
+		TenantID: "ten", DeviceCodeHash: "dh", UserCodeHash: "uh", ClientID: "c",
+		Status: store.DeviceCodePending, ExpiresAt: nanoTime, CreatedAt: nanoTime,
+	}, deviceCodeToPB, deviceCodeFromPB)
+}
+
+func TestDevicePollOutcomeFromPB(t *testing.T) {
+	for _, o := range []store.DevicePollOutcome{store.PollPending, store.PollSlowDown, store.PollApproved, store.PollDenied, store.PollExpired, store.PollInvalid} {
+		if got, err := devicePollOutcomeFromPB(string(o)); err != nil || got != o {
+			t.Fatalf("%q = %q, %v", o, got, err)
+		}
+	}
+	for _, bad := range []string{"", "Approved", "bogus"} {
+		if _, err := devicePollOutcomeFromPB(bad); err == nil {
+			t.Fatalf("%q accepted", bad)
+		}
 	}
 }

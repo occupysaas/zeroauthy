@@ -469,6 +469,66 @@ func (a clientPushedAuthRequests) DeleteExpired(ctx context.Context, before time
 	return counted("PushedAuthRequestsDeleteExpired", r, err)
 }
 
+// ---- device codes ----
+
+type clientDeviceCodes struct{ c *Client }
+
+func (a clientDeviceCodes) Create(ctx context.Context, v *store.DeviceCode) error {
+	return put("DeviceCodesCreate", v, deviceCodeToPB, func(pb *storev1.DeviceCode) (result, error) {
+		return a.c.rpc.DeviceCodesCreate(ctx, &storev1.DeviceCodeWrite{TxId: a.c.txID, Value: pb})
+	})
+}
+
+func (a clientDeviceCodes) Get(ctx context.Context, tenantID, deviceCodeHash string) (*store.DeviceCode, error) {
+	r, err := a.c.rpc.DeviceCodesGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: deviceCodeHash})
+	return decOne("DeviceCodesGet", err, r.GetError(), r.GetValue(), deviceCodeFromPB)
+}
+
+func (a clientDeviceCodes) GetByUserCode(ctx context.Context, tenantID, userCodeHash string) (*store.DeviceCode, error) {
+	r, err := a.c.rpc.DeviceCodesGetByUserCode(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userCodeHash})
+	return decOne("DeviceCodesGetByUserCode", err, r.GetError(), r.GetValue(), deviceCodeFromPB)
+}
+
+// Decide returns the record together with ErrAlreadyUsed.
+func (a clientDeviceCodes) Decide(ctx context.Context, tenantID, deviceCodeHash string, dec store.DeviceDecision) (*store.DeviceCode, error) {
+	r, err := a.c.rpc.DeviceCodesDecide(ctx, &storev1.DeviceDecisionRequest{
+		TxId: a.c.txID, TenantId: tenantID, DeviceCodeHash: deviceCodeHash,
+		Status: string(dec.Status), UserId: dec.UserID, GrantedScopes: stringsToPB(dec.GrantedScopes),
+	})
+	return decOne("DeviceCodesDecide", err, r.GetError(), r.GetValue(), deviceCodeFromPB)
+}
+
+func (a clientDeviceCodes) Poll(ctx context.Context, tenantID, deviceCodeHash string, at time.Time) (store.DevicePoll, error) {
+	r, err := a.c.rpc.DeviceCodesPoll(ctx, &storev1.DevicePollRequest{
+		TxId: a.c.txID, TenantId: tenantID, DeviceCodeHash: deviceCodeHash, At: tsToPB(at),
+	})
+	if err != nil {
+		return store.DevicePoll{}, rpcErr("DeviceCodesPoll", err)
+	}
+	if e := errFromPB(r.GetError()); e != nil {
+		return store.DevicePoll{}, e
+	}
+	code, err := deviceCodeFromPB(r.GetCode())
+	if err != nil {
+		return store.DevicePoll{}, err
+	}
+	outcome, err := devicePollOutcomeFromPB(r.GetOutcome())
+	if err != nil {
+		return store.DevicePoll{}, err
+	}
+	return store.DevicePoll{Code: code, Outcome: outcome}, nil
+}
+
+// DeleteExpired treats a plugin that predates the RPC as holding no device
+// codes: the sweeper calls it on every deployment.
+func (a clientDeviceCodes) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	r, err := a.c.rpc.DeviceCodesDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
+	if status.Code(err) == codes.Unimplemented {
+		return 0, nil
+	}
+	return counted("DeviceCodesDeleteExpired", r, err)
+}
+
 // ---- refresh tokens ----
 
 type clientRefreshTokens struct{ c *Client }

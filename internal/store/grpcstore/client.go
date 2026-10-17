@@ -120,6 +120,7 @@ func (c *Client) Sessions() store.Sessions                     { return clientSe
 func (c *Client) AuthTransactions() store.AuthTransactions     { return clientAuthTransactions{c} }
 func (c *Client) AuthCodes() store.AuthCodes                   { return clientAuthCodes{c} }
 func (c *Client) PushedAuthRequests() store.PushedAuthRequests { return clientPushedAuthRequests{c} }
+func (c *Client) DeviceCodes() store.DeviceCodes               { return clientDeviceCodes{c} }
 func (c *Client) RefreshTokens() store.RefreshTokens           { return clientRefreshTokens{c} }
 func (c *Client) PasswordResetTickets() store.PasswordResetTickets {
 	return clientPasswordResetTickets{c}

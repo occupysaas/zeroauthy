@@ -157,6 +157,7 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		SkipNonVerifiableCallbackUriConfirmationPrompt: t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		UseScopeDescriptionsForConsent:                 t.UseScopeDescriptionsForConsent,
 		PushedAuthorizationRequestsSupported:           t.PushedAuthorizationRequestsSupported,
+		DeviceFlowCharset:                              t.DeviceFlowCharset, DeviceFlowMask: t.DeviceFlowMask,
 	}
 	if t.CustomText != nil {
 		b, err := json.Marshal(t.CustomText)
@@ -185,6 +186,7 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: pb.SkipNonVerifiableCallbackUriConfirmationPrompt,
 		UseScopeDescriptionsForConsent:                 pb.UseScopeDescriptionsForConsent,
 		PushedAuthorizationRequestsSupported:           pb.PushedAuthorizationRequestsSupported,
+		DeviceFlowCharset:                              pb.DeviceFlowCharset, DeviceFlowMask: pb.DeviceFlowMask,
 	}
 	if pb.CustomTextJson != nil {
 		var ct store.CustomText
@@ -627,6 +629,47 @@ func pushedAuthRequestFromPB(pb *storev1.PushedAuthRequest) (*store.PushedAuthRe
 		TenantID: pb.TenantId, IDHash: pb.IdHash, ClientID: pb.ClientId, Params: stringMapFromPB(pb.Params),
 		ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt), UsedAt: optTSFromPB(pb.UsedAt),
 	}, nil
+}
+
+// ---- device code ----
+
+func deviceCodeToPB(d *store.DeviceCode) (*storev1.DeviceCode, error) {
+	if d == nil {
+		return nil, nil
+	}
+	return &storev1.DeviceCode{
+		TenantId: d.TenantID, DeviceCodeHash: d.DeviceCodeHash, UserCodeHash: d.UserCodeHash, ClientId: d.ClientID,
+		Scopes: stringsToPB(d.Scopes), Audience: d.Audience, Status: string(d.Status), UserId: d.UserID,
+		GrantedScopes: stringsToPB(d.GrantedScopes),
+		LastPolledAt:  optTSToPB(d.LastPolledAt), ExpiredReportedAt: optTSToPB(d.ExpiredReportedAt),
+		ExpiresAt: tsToPB(d.ExpiresAt), CreatedAt: tsToPB(d.CreatedAt),
+	}, nil
+}
+
+func deviceCodeFromPB(pb *storev1.DeviceCode) (*store.DeviceCode, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	if err := checkTS(pb.LastPolledAt, pb.ExpiredReportedAt, pb.ExpiresAt, pb.CreatedAt); err != nil {
+		return nil, err
+	}
+	return &store.DeviceCode{
+		TenantID: pb.TenantId, DeviceCodeHash: pb.DeviceCodeHash, UserCodeHash: pb.UserCodeHash, ClientID: pb.ClientId,
+		Scopes: stringsFromPB(pb.Scopes), Audience: pb.Audience, Status: store.DeviceCodeStatus(pb.Status), UserID: pb.UserId,
+		GrantedScopes: stringsFromPB(pb.GrantedScopes),
+		LastPolledAt:  optTSFromPB(pb.LastPolledAt), ExpiredReportedAt: optTSFromPB(pb.ExpiredReportedAt),
+		ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
+	}, nil
+}
+
+// devicePollOutcomeFromPB rejects an outcome this host does not know rather
+// than letting a misbehaving plugin steer the token endpoint with it.
+func devicePollOutcomeFromPB(s string) (store.DevicePollOutcome, error) {
+	switch o := store.DevicePollOutcome(s); o {
+	case store.PollPending, store.PollSlowDown, store.PollApproved, store.PollDenied, store.PollExpired, store.PollInvalid:
+		return o, nil
+	}
+	return "", fmt.Errorf("grpcstore: unknown device poll outcome %q", s)
 }
 
 // ---- refresh token ----

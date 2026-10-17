@@ -527,6 +527,68 @@ func (s *Server) PushedAuthRequestsDeleteExpired(ctx context.Context, r *storev1
 	}), nil
 }
 
+// ---- device codes ----
+
+func (s *Server) DeviceCodesCreate(ctx context.Context, r *storev1.DeviceCodeWrite) (*storev1.Result, error) {
+	return write(s, r.TxId, r.Value, deviceCodeFromPB, func(st store.Store, d *store.DeviceCode) error {
+		return st.DeviceCodes().Create(ctx, d)
+	}), nil
+}
+
+func (s *Server) DeviceCodesGet(ctx context.Context, r *storev1.ScopedKey) (*storev1.DeviceCodeResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.DeviceCode, error) {
+		return st.DeviceCodes().Get(ctx, r.TenantId, r.Key)
+	}, deviceCodeToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.DeviceCodeResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) DeviceCodesGetByUserCode(ctx context.Context, r *storev1.ScopedKey) (*storev1.DeviceCodeResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.DeviceCode, error) {
+		return st.DeviceCodes().GetByUserCode(ctx, r.TenantId, r.Key)
+	}, deviceCodeToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.DeviceCodeResult{Error: e, Value: v}, nil
+}
+
+// DeviceCodesDecide returns the record together with ErrAlreadyUsed.
+func (s *Server) DeviceCodesDecide(ctx context.Context, r *storev1.DeviceDecisionRequest) (*storev1.DeviceCodeResult, error) {
+	dec := store.DeviceDecision{Status: store.DeviceCodeStatus(r.Status), UserID: r.UserId, GrantedScopes: stringsFromPB(r.GrantedScopes)}
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.DeviceCode, error) {
+		return st.DeviceCodes().Decide(ctx, r.TenantId, r.DeviceCodeHash, dec)
+	}, deviceCodeToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.DeviceCodeResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) DeviceCodesPoll(ctx context.Context, r *storev1.DevicePollRequest) (*storev1.DevicePollResult, error) {
+	var p store.DevicePoll
+	err := s.with(r.TxId, func(st store.Store) (e error) {
+		p, e = st.DeviceCodes().Poll(ctx, r.TenantId, r.DeviceCodeHash, tsFromPB(r.At))
+		return e
+	})
+	if err != nil {
+		return &storev1.DevicePollResult{Error: errToPB(err)}, nil
+	}
+	code, encErr := deviceCodeToPB(p.Code)
+	if encErr != nil {
+		return nil, encodeFault(encErr)
+	}
+	return &storev1.DevicePollResult{Code: code, Outcome: string(p.Outcome)}, nil
+}
+
+func (s *Server) DeviceCodesDeleteExpired(ctx context.Context, r *storev1.DeleteExpiredRequest) (*storev1.CountResult, error) {
+	return count(s, r.TxId, func(st store.Store) (int, error) {
+		return st.DeviceCodes().DeleteExpired(ctx, tsFromPB(r.Before))
+	}), nil
+}
+
 // ---- refresh tokens ----
 
 func (s *Server) RefreshTokensCreate(ctx context.Context, r *storev1.RefreshTokenWrite) (*storev1.Result, error) {

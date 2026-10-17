@@ -81,6 +81,12 @@ const (
 	StoreService_PushedAuthRequestsConsume_FullMethodName          = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsConsume"
 	StoreService_PushedAuthRequestsGet_FullMethodName              = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsGet"
 	StoreService_PushedAuthRequestsDeleteExpired_FullMethodName    = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsDeleteExpired"
+	StoreService_DeviceCodesCreate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/DeviceCodesCreate"
+	StoreService_DeviceCodesGet_FullMethodName                     = "/zeroauthy.store.v1.StoreService/DeviceCodesGet"
+	StoreService_DeviceCodesGetByUserCode_FullMethodName           = "/zeroauthy.store.v1.StoreService/DeviceCodesGetByUserCode"
+	StoreService_DeviceCodesDecide_FullMethodName                  = "/zeroauthy.store.v1.StoreService/DeviceCodesDecide"
+	StoreService_DeviceCodesPoll_FullMethodName                    = "/zeroauthy.store.v1.StoreService/DeviceCodesPoll"
+	StoreService_DeviceCodesDeleteExpired_FullMethodName           = "/zeroauthy.store.v1.StoreService/DeviceCodesDeleteExpired"
 	StoreService_RefreshTokensCreate_FullMethodName                = "/zeroauthy.store.v1.StoreService/RefreshTokensCreate"
 	StoreService_RefreshTokensGetByTokenHash_FullMethodName        = "/zeroauthy.store.v1.StoreService/RefreshTokensGetByTokenHash"
 	StoreService_RefreshTokensRotate_FullMethodName                = "/zeroauthy.store.v1.StoreService/RefreshTokensRotate"
@@ -216,6 +222,12 @@ type StoreServiceClient interface {
 	PushedAuthRequestsConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*PushedAuthRequestResult, error)
 	PushedAuthRequestsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*PushedAuthRequestResult, error)
 	PushedAuthRequestsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
+	DeviceCodesCreate(ctx context.Context, in *DeviceCodeWrite, opts ...grpc.CallOption) (*Result, error)
+	DeviceCodesGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*DeviceCodeResult, error)
+	DeviceCodesGetByUserCode(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*DeviceCodeResult, error)
+	DeviceCodesDecide(ctx context.Context, in *DeviceDecisionRequest, opts ...grpc.CallOption) (*DeviceCodeResult, error)
+	DeviceCodesPoll(ctx context.Context, in *DevicePollRequest, opts ...grpc.CallOption) (*DevicePollResult, error)
+	DeviceCodesDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
 	RefreshTokensCreate(ctx context.Context, in *RefreshTokenWrite, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error)
 	RefreshTokensRotate(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
@@ -858,6 +870,66 @@ func (c *storeServiceClient) PushedAuthRequestsDeleteExpired(ctx context.Context
 	return out, nil
 }
 
+func (c *storeServiceClient) DeviceCodesCreate(ctx context.Context, in *DeviceCodeWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_DeviceCodesCreate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DeviceCodesGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*DeviceCodeResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeviceCodeResult)
+	err := c.cc.Invoke(ctx, StoreService_DeviceCodesGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DeviceCodesGetByUserCode(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*DeviceCodeResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeviceCodeResult)
+	err := c.cc.Invoke(ctx, StoreService_DeviceCodesGetByUserCode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DeviceCodesDecide(ctx context.Context, in *DeviceDecisionRequest, opts ...grpc.CallOption) (*DeviceCodeResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeviceCodeResult)
+	err := c.cc.Invoke(ctx, StoreService_DeviceCodesDecide_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DeviceCodesPoll(ctx context.Context, in *DevicePollRequest, opts ...grpc.CallOption) (*DevicePollResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DevicePollResult)
+	err := c.cc.Invoke(ctx, StoreService_DeviceCodesPoll_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) DeviceCodesDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_DeviceCodesDeleteExpired_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) RefreshTokensCreate(ctx context.Context, in *RefreshTokenWrite, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -1099,6 +1171,12 @@ type StoreServiceServer interface {
 	PushedAuthRequestsConsume(context.Context, *ConsumeRequest) (*PushedAuthRequestResult, error)
 	PushedAuthRequestsGet(context.Context, *ScopedKey) (*PushedAuthRequestResult, error)
 	PushedAuthRequestsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
+	DeviceCodesCreate(context.Context, *DeviceCodeWrite) (*Result, error)
+	DeviceCodesGet(context.Context, *ScopedKey) (*DeviceCodeResult, error)
+	DeviceCodesGetByUserCode(context.Context, *ScopedKey) (*DeviceCodeResult, error)
+	DeviceCodesDecide(context.Context, *DeviceDecisionRequest) (*DeviceCodeResult, error)
+	DeviceCodesPoll(context.Context, *DevicePollRequest) (*DevicePollResult, error)
+	DeviceCodesDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
 	RefreshTokensCreate(context.Context, *RefreshTokenWrite) (*Result, error)
 	RefreshTokensGetByTokenHash(context.Context, *ScopedKey) (*RefreshTokenResult, error)
 	RefreshTokensRotate(context.Context, *RefreshTokensRotateRequest) (*Result, error)
@@ -1306,6 +1384,24 @@ func (UnimplementedStoreServiceServer) PushedAuthRequestsGet(context.Context, *S
 }
 func (UnimplementedStoreServiceServer) PushedAuthRequestsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method PushedAuthRequestsDeleteExpired not implemented")
+}
+func (UnimplementedStoreServiceServer) DeviceCodesCreate(context.Context, *DeviceCodeWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeviceCodesCreate not implemented")
+}
+func (UnimplementedStoreServiceServer) DeviceCodesGet(context.Context, *ScopedKey) (*DeviceCodeResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeviceCodesGet not implemented")
+}
+func (UnimplementedStoreServiceServer) DeviceCodesGetByUserCode(context.Context, *ScopedKey) (*DeviceCodeResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeviceCodesGetByUserCode not implemented")
+}
+func (UnimplementedStoreServiceServer) DeviceCodesDecide(context.Context, *DeviceDecisionRequest) (*DeviceCodeResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeviceCodesDecide not implemented")
+}
+func (UnimplementedStoreServiceServer) DeviceCodesPoll(context.Context, *DevicePollRequest) (*DevicePollResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeviceCodesPoll not implemented")
+}
+func (UnimplementedStoreServiceServer) DeviceCodesDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeviceCodesDeleteExpired not implemented")
 }
 func (UnimplementedStoreServiceServer) RefreshTokensCreate(context.Context, *RefreshTokenWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensCreate not implemented")
@@ -2480,6 +2576,114 @@ func _StoreService_PushedAuthRequestsDeleteExpired_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_DeviceCodesCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceCodeWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeviceCodesCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeviceCodesCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeviceCodesCreate(ctx, req.(*DeviceCodeWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DeviceCodesGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeviceCodesGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeviceCodesGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeviceCodesGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DeviceCodesGetByUserCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeviceCodesGetByUserCode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeviceCodesGetByUserCode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeviceCodesGetByUserCode(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DeviceCodesDecide_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeviceDecisionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeviceCodesDecide(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeviceCodesDecide_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeviceCodesDecide(ctx, req.(*DeviceDecisionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DeviceCodesPoll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DevicePollRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeviceCodesPoll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeviceCodesPoll_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeviceCodesPoll(ctx, req.(*DevicePollRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_DeviceCodesDeleteExpired_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteExpiredRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).DeviceCodesDeleteExpired(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_DeviceCodesDeleteExpired_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).DeviceCodesDeleteExpired(ctx, req.(*DeleteExpiredRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_RefreshTokensCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshTokenWrite)
 	if err := dec(in); err != nil {
@@ -2950,6 +3154,30 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PushedAuthRequestsDeleteExpired",
 			Handler:    _StoreService_PushedAuthRequestsDeleteExpired_Handler,
+		},
+		{
+			MethodName: "DeviceCodesCreate",
+			Handler:    _StoreService_DeviceCodesCreate_Handler,
+		},
+		{
+			MethodName: "DeviceCodesGet",
+			Handler:    _StoreService_DeviceCodesGet_Handler,
+		},
+		{
+			MethodName: "DeviceCodesGetByUserCode",
+			Handler:    _StoreService_DeviceCodesGetByUserCode_Handler,
+		},
+		{
+			MethodName: "DeviceCodesDecide",
+			Handler:    _StoreService_DeviceCodesDecide_Handler,
+		},
+		{
+			MethodName: "DeviceCodesPoll",
+			Handler:    _StoreService_DeviceCodesPoll_Handler,
+		},
+		{
+			MethodName: "DeviceCodesDeleteExpired",
+			Handler:    _StoreService_DeviceCodesDeleteExpired_Handler,
 		},
 		{
 			MethodName: "RefreshTokensCreate",

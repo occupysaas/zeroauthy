@@ -216,3 +216,21 @@ func TestOldPluginPushedAuthRequestsSweep(t *testing.T) {
 		t.Fatal("Get on an old plugin succeeded")
 	}
 }
+
+// A plugin that predates device codes stores none, so the sweeper has nothing
+// to remove and nothing to report; the other jobs still run.
+func TestOldPluginDeviceCodesSweep(t *testing.T) {
+	c := serveOldPlugin(t)
+	ctx := context.Background()
+	n, err := c.DeviceCodes().DeleteExpired(ctx, time.Now())
+	if n != 0 || err != nil {
+		t.Fatalf("DeleteExpired = %d, %v; want 0, nil", n, err)
+	}
+	if n, err := c.PushedAuthRequests().DeleteExpired(ctx, time.Now()); n != 0 || err != nil {
+		t.Fatalf("PAR DeleteExpired = %d, %v; want 0, nil", n, err)
+	}
+	// Other calls still fail: the device flow cannot silently work without storage.
+	if _, err := c.DeviceCodes().Get(ctx, "t", "h"); err == nil {
+		t.Fatal("Get on an old plugin succeeded")
+	}
+}

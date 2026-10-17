@@ -131,6 +131,13 @@ service StoreService {
   rpc PushedAuthRequestsGet(ScopedKey) returns (PushedAuthRequestResult);
   rpc PushedAuthRequestsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
 
+  rpc DeviceCodesCreate(DeviceCodeWrite) returns (Result);
+  rpc DeviceCodesGet(ScopedKey) returns (DeviceCodeResult);
+  rpc DeviceCodesGetByUserCode(ScopedKey) returns (DeviceCodeResult);
+  rpc DeviceCodesDecide(DeviceDecisionRequest) returns (DeviceCodeResult);
+  rpc DeviceCodesPoll(DevicePollRequest) returns (DevicePollResult);
+  rpc DeviceCodesDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+
   rpc RefreshTokensCreate(RefreshTokenWrite) returns (Result);
   rpc RefreshTokensGetByTokenHash(ScopedKey) returns (RefreshTokenResult);
   rpc RefreshTokensRotate(RefreshTokensRotateRequest) returns (Result);
@@ -213,6 +220,8 @@ message Tenant {
   bool skip_non_verifiable_callback_uri_confirmation_prompt = 14;
   bool use_scope_descriptions_for_consent = 15;
   bool pushed_authorization_requests_supported = 16; // absent = false
+  string device_flow_charset = 17;                   // absent = "" (the host default)
+  string device_flow_mask = 18;                      // absent = ""
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 
@@ -331,6 +340,15 @@ message PushedAuthRequest {
   google.protobuf.Timestamp used_at = 7; // absent = nil
 }
 
+message DeviceCode {
+  string tenant_id = 1; string device_code_hash = 2; string user_code_hash = 3; string client_id = 4;
+  StringList scopes = 5; string audience = 6; string status = 7; string user_id = 8;
+  StringList granted_scopes = 9;
+  optional google.protobuf.Timestamp last_polled_at = 10;      // absent = nil
+  optional google.protobuf.Timestamp expired_reported_at = 11; // absent = nil
+  google.protobuf.Timestamp expires_at = 12; google.protobuf.Timestamp created_at = 13;
+}
+
 message RefreshToken {
   string tenant_id = 1; string id = 2; string token_hash = 3; string family_id = 4;
   string client_id = 5; string user_id = 6; string session_id = 7; StringList scopes = 8;
@@ -401,6 +419,18 @@ message AuthCodeWrite { string tx_id = 1; AuthCode value = 2; }
 message AuthCodeResult { Error error = 1; AuthCode value = 2; } // Consume may set both
 message PushedAuthRequestWrite { string tx_id = 1; PushedAuthRequest value = 2; }
 message PushedAuthRequestResult { Error error = 1; PushedAuthRequest value = 2; } // Consume may set both
+message DeviceCodeWrite { string tx_id = 1; DeviceCode value = 2; }
+message DeviceCodeResult { Error error = 1; DeviceCode value = 2; } // Decide may set both (ALREADY_USED)
+message DeviceDecisionRequest {
+  string tx_id = 1; string tenant_id = 2; string device_code_hash = 3;
+  string status = 4; string user_id = 5; StringList granted_scopes = 6;
+}
+message DevicePollRequest {
+  string tx_id = 1; string tenant_id = 2; string device_code_hash = 3; google.protobuf.Timestamp at = 4;
+}
+// outcome is a store.DevicePollOutcome: pending, slow_down, approved, denied,
+// expired or invalid. A host rejects any other value.
+message DevicePollResult { Error error = 1; DeviceCode code = 2; string outcome = 3; }
 
 message RefreshTokenWrite { string tx_id = 1; RefreshToken value = 2; }
 message RefreshTokenResult { Error error = 1; RefreshToken value = 2; }
