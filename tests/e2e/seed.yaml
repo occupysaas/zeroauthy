@@ -23,6 +23,13 @@ tenants:
         allow_offline_access: true
         scopes:
           - {value: "read:things", description: "Read things"}
+      # Device flow (m10-device): no skip, so the device flow shows consent.
+      - identifier: https://consent.e2e.local
+        name: E2E Consent API
+        token_lifetime: 3600
+        allow_offline_access: true
+        scopes:
+          - {value: "read:things", description: "Read things"}
       - identifier: https://locked.e2e.local
         name: E2E Locked API
         token_lifetime: 3600
@@ -116,6 +123,11 @@ tenants:
         require_pushed_authorization_requests: true
         grant_types: [authorization_code]
         callbacks: ["https://par.e2e.invalid/cb"]
+      - client_id: e2e-device
+        name: E2E Device
+        app_type: native
+        token_endpoint_auth_method: none
+        grant_types: ["urn:ietf:params:oauth:grant-type:device_code", refresh_token]
     client_grants:
       - client_id: e2e-m2m
         audience: https://api.e2e.local
@@ -124,7 +136,7 @@ tenants:
     connections:
       - name: Username-Password-Authentication
         is_domain_connection: true
-        enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node, e2e-confirm, e2e-par-web, e2e-next-par, e2e-par-authjs]
+        enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node, e2e-confirm, e2e-par-web, e2e-next-par, e2e-par-authjs, e2e-device]
       # Custom database connections backed by tests/e2e/legacy-store.mjs.
       - name: legacy-users
         enabledDatabaseCustomization: true

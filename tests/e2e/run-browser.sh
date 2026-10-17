@@ -3,7 +3,8 @@
 # TLS, and drive the browser SDK specs (m*-*.spec.mjs) with Playwright.
 # Storage is SQLite (auto-migrated), so the SQL driver is exercised end to end.
 # E2E_IN_CONTAINER=1 runs Playwright in the official container image
-# (docker or podman) instead of on the host.
+# (docker or podman) instead of on the host. Arguments are passed to
+# `playwright test` (for example a spec file name).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -79,14 +80,22 @@ wait_for https://localhost:8443/healthz && wait_for https://localhost:3443/ && w
 
 if [[ $status -eq 0 ]]; then
   if [[ "${E2E_IN_CONTAINER:-0}" == 1 ]]; then
+    echo "m10-device skipped: needs podman on the host"
     runtime="$(command -v docker || command -v podman)"
     "$runtime" run --rm --network host --ipc host \
       -v "$PWD:/e2e" -v "$work:$work:ro" -v "$work/mail:$work/mail" -w /e2e \
       -e NODE_EXTRA_CA_CERTS="$work/cert.pem" -e E2E_MAIL_DIR="$work/mail" \
-      mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test || status=$?
+      mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test "$@" || status=$?
   else
+    # m10-device's client (auth0.net) is built once here and run per test with
+    # podman; /src is read-only, so the build works on a copy.
+    mkdir -p "$work/dotnet"
+    podman run --rm -v "$PWD/dotnet-device:/src:ro" -v "$work/dotnet:/out" -v za-e2e-nuget:/root/.nuget \
+      mcr.microsoft.com/dotnet/sdk:10.0.400-noble sh -c 'cp -r /src /build && dotnet publish /build -c Release -o /out' \
+      >"$work/dotnet-build.log" 2>&1 || { cat "$work/dotnet-build.log"; exit 1; }
+    export E2E_DOTNET_DIR="$work/dotnet"
     npx playwright install chromium >/dev/null
-    NODE_EXTRA_CA_CERTS="$work/cert.pem" npx playwright test || status=$?
+    NODE_EXTRA_CA_CERTS="$work/cert.pem" E2E_CERT="$work/cert.pem" npx playwright test "$@" || status=$?
   fi
 fi
 if [[ $status -ne 0 ]]; then
