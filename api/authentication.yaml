@@ -931,6 +931,8 @@ components:
       properties:
         sub: {type: string}
         name: {type: string}
+        given_name: {type: string}
+        family_name: {type: string}
         nickname: {type: string}
         picture: {type: string}
         updated_at: {type: integer}

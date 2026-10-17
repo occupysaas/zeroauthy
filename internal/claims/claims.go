@@ -19,6 +19,12 @@ func ForUser(u *store.User, scopes []string) map[string]any {
 		if u.Picture != "" {
 			out["picture"] = u.Picture
 		}
+		if u.GivenName != "" {
+			out["given_name"] = u.GivenName
+		}
+		if u.FamilyName != "" {
+			out["family_name"] = u.FamilyName
+		}
 	}
 	if slices.Contains(scopes, "email") {
 		out["email"] = u.Email

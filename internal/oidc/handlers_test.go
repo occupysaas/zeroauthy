@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -90,6 +91,12 @@ func TestDiscovery(t *testing.T) {
 	}
 	if len(doc["claims_supported"].([]any)) == 0 {
 		t.Error("claims_supported is empty")
+	}
+	// OIDF oidcc-scope-profile: given_name and family_name are emitted for profile.
+	for _, c := range []string{"given_name", "family_name"} {
+		if !slices.Contains(doc["claims_supported"].([]any), any(c)) {
+			t.Errorf("claims_supported lacks %s", c)
+		}
 	}
 	if cc := rec.Header().Get("Cache-Control"); cc != "public, max-age=300" {
 		t.Errorf("Cache-Control = %q", cc)

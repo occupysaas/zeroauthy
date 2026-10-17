@@ -85,7 +85,7 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		CodeChallengeMethodsSupported:     []string{"S256"},
 		ScopesSupported:                   []string{"openid", "profile", "email", "offline_access"},
 		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce", "sid", "at_hash",
-			"name", "nickname", "picture", "updated_at", "email", "email_verified"},
+			"name", "given_name", "family_name", "nickname", "picture", "updated_at", "email", "email_verified"},
 	}
 	if res.Tenant.PushedAuthorizationRequestsSupported {
 		cfg.PushedAuthorizationRequestEndpoint = base + "/oauth/par" // P8

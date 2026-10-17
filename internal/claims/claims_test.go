@@ -40,3 +40,19 @@ func TestForUserFallbacks(t *testing.T) {
 		t.Fatal("empty picture must be omitted")
 	}
 }
+
+// OIDF oidcc-scope-profile: stored given_name and family_name are profile
+// scope claims (OpenID Connect Core §5.4; Auth0 lists both under profile).
+func TestForUserProfileNames(t *testing.T) {
+	u := &store.User{UserID: "auth0|3", Email: "c@example.com", GivenName: "Carol", FamilyName: "Jones"}
+	got := ForUser(u, []string{"openid", "profile"})
+	if got["given_name"] != "Carol" || got["family_name"] != "Jones" {
+		t.Fatalf("profile claims = %v, want given_name and family_name", got)
+	}
+	if got := ForUser(u, []string{"openid"}); got["given_name"] != nil || got["family_name"] != nil {
+		t.Fatalf("openid-only claims = %v, want no names", got)
+	}
+	if got := ForUser(&store.User{UserID: "auth0|4"}, []string{"profile"}); got["given_name"] != nil || got["family_name"] != nil {
+		t.Fatalf("empty names must be omitted: %v", got)
+	}
+}

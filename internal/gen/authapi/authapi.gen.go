@@ -307,6 +307,8 @@ type TokenResponse struct {
 type UserInfo struct {
 	Email                *string                `json:"email,omitempty"`
 	EmailVerified        *bool                  `json:"email_verified,omitempty"`
+	FamilyName           *string                `json:"family_name,omitempty"`
+	GivenName            *string                `json:"given_name,omitempty"`
 	Name                 *string                `json:"name,omitempty"`
 	Nickname             *string                `json:"nickname,omitempty"`
 	Picture              *string                `json:"picture,omitempty"`
@@ -748,6 +750,22 @@ func (a *UserInfo) UnmarshalJSON(b []byte) error {
 		delete(object, "email_verified")
 	}
 
+	if raw, found := object["family_name"]; found {
+		err = json.Unmarshal(raw, &a.FamilyName)
+		if err != nil {
+			return fmt.Errorf("error reading 'family_name': %w", err)
+		}
+		delete(object, "family_name")
+	}
+
+	if raw, found := object["given_name"]; found {
+		err = json.Unmarshal(raw, &a.GivenName)
+		if err != nil {
+			return fmt.Errorf("error reading 'given_name': %w", err)
+		}
+		delete(object, "given_name")
+	}
+
 	if raw, found := object["name"]; found {
 		err = json.Unmarshal(raw, &a.Name)
 		if err != nil {
@@ -818,6 +836,20 @@ func (a UserInfo) MarshalJSON() ([]byte, error) {
 		object["email_verified"], err = json.Marshal(a.EmailVerified)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'email_verified': %w", err)
+		}
+	}
+
+	if a.FamilyName != nil {
+		object["family_name"], err = json.Marshal(a.FamilyName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'family_name': %w", err)
+		}
+	}
+
+	if a.GivenName != nil {
+		object["given_name"], err = json.Marshal(a.GivenName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'given_name': %w", err)
 		}
 	}
 
