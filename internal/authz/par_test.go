@@ -188,3 +188,23 @@ func TestExtParamsRoundTrip(t *testing.T) {
 		t.Fatal("PAR constants changed")
 	}
 }
+
+// The stored binding wins over a client_id inside the pushed params.
+func TestPushedClientIDComesFromBinding(t *testing.T) {
+	e := newEnv(t)
+	id := secrets.RandomString(43)
+	if err := e.st.PushedAuthRequests().Create(context.Background(), &store.PushedAuthRequest{
+		TenantID: e.tenant.ID, IDHash: secrets.HashToken(id), ClientID: "par-web",
+		Params: map[string]string{
+			"client_id": "web", "redirect_uri": "https://par.acme.test/cb", "response_type": "code",
+			"scope": "openid", "za_pushed": "1",
+		},
+		ExpiresAt: fixedNow().Add(PARLifetime), CreatedAt: fixedNow(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	loc := location(t, e.get(t, parQuery("par-web", RequestURIPrefix+id), e.login(t, fixedNow())))
+	if loc.Host != "par.acme.test" || loc.Query().Get("code") == "" {
+		t.Fatalf("Location = %s", loc)
+	}
+}

@@ -70,6 +70,7 @@ func (h *Handlers) resolvePushed(ctx context.Context, t *store.Tenant, q url.Val
 	}
 	// P1: query parameters other than client_id and request_uri are ignored.
 	req := RequestFromParams(p.Params)
+	req.ClientID = p.ClientID // the stored binding wins over Params
 	req.Pushed = true
 	return &req, nil
 }

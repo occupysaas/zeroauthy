@@ -45,9 +45,6 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	if req.ResponseMode == "" {
 		req.ResponseMode = "query"
 	}
-	if client.RequirePushedAuthorizationRequests && !req.Pushed {
-		return client, errInvalidRequest("this application must use pushed authorization requests"), true // P5
-	}
 	if !slices.Contains(responseModes, req.ResponseMode) {
 		req.ResponseMode = "query"
 		return client, errInvalidRequest("unsupported response_mode"), true
@@ -59,6 +56,10 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 		// A browser form cannot post to a native app's private-use scheme.
 		req.ResponseMode = "query"
 		return client, errInvalidRequest("response_mode=form_post requires an http or https redirect_uri"), true
+	}
+
+	if client.RequirePushedAuthorizationRequests && !req.Pushed {
+		return client, errInvalidRequest("this application must use pushed authorization requests"), true // P5
 	}
 
 	switch req.ResponseType {
