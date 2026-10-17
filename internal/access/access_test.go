@@ -84,8 +84,6 @@ func TestDecide(t *testing.T) {
 			Decision{Scopes: []string{"openid", "profile"}, Consent: consentWithoutAudience}},
 		{"deny_all at authorize", Input{Flow: Interactive, Client: firstParty(), API: api(userPolicy(store.PolicyDenyAll)), Scopes: []string{"read"}, RedirectURI: web},
 			Decision{Err: &Error{Code: codeAuthorizeDenied}}},
-		{"device: deny_all", Input{Flow: Device, Client: firstParty(), API: api(userPolicy(store.PolicyDenyAll)), Scopes: []string{"read"}},
-			Decision{Err: &Error{Code: "invalid_request"}}},
 		{"require_client_grant without grant", Input{Flow: Interactive, Client: firstParty(), API: api(userPolicy(store.PolicyRequireClientGrant)), Scopes: []string{"read"}, RedirectURI: web},
 			Decision{Err: &Error{Code: codeAuthorizeDenied}}},
 		{"require_client_grant caps scopes", Input{Flow: Interactive, Client: firstParty(), API: api(userPolicy(store.PolicyRequireClientGrant)), ClientGrant: grant("write"), Scopes: []string{"read", "write"}, RedirectURI: web},
@@ -193,5 +191,55 @@ func TestGrantScopes(t *testing.T) {
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("GrantScopes = %v, want %v", got, want)
+	}
+}
+
+func TestDecideDeviceFirstPartySkipAPI(t *testing.T) {
+	d := Decide(Input{Flow: Device, Client: firstParty(), API: api(), Scopes: []string{"openid", "read"}})
+	if d.Err != nil || d.Consent || d.Confirmation || !slices.Equal(d.Scopes, []string{"openid", "read"}) {
+		t.Fatalf("got %+v", d)
+	}
+}
+
+func TestDecideDeviceFirstPartyNoSkipAPI(t *testing.T) {
+	d := Decide(Input{Flow: Device, Client: firstParty(), API: api(noSkip), Scopes: []string{"read"}})
+	if d.Err != nil || !d.Consent || d.Confirmation {
+		t.Fatalf("got %+v", d)
+	}
+}
+
+func TestDecideDeviceGrantCovers(t *testing.T) {
+	d := Decide(Input{Flow: Device, Client: firstParty(), API: api(noSkip), UserGrant: ugrant("read", "offline_access"), Scopes: []string{"read", "offline_access"}})
+	if d.Err != nil || d.Consent || d.Confirmation {
+		t.Fatalf("got %+v", d)
+	}
+}
+
+func TestDecideDeviceNoAudienceFirstParty(t *testing.T) {
+	d := Decide(Input{Flow: Device, Client: firstParty(), Scopes: []string{"openid", "profile"}})
+	if d.Err != nil || d.Consent || d.Confirmation {
+		t.Fatalf("got %+v", d)
+	}
+}
+
+// The device confirmation screen replaces the confirmation, and prompt=none
+// does not apply to the device flow.
+func TestDecideDeviceNeverConfirmation(t *testing.T) {
+	for _, in := range []Input{
+		{Flow: Device, Client: firstParty(), Scopes: []string{"openid"}},
+		{Flow: Device, Client: firstParty(), API: api(), Scopes: []string{"read"}},
+		{Flow: Device, Client: firstParty(), API: api(noSkip), Scopes: []string{"read"}, Prompts: []string{"none"}},
+	} {
+		d := Decide(in)
+		if d.Err != nil || d.Confirmation {
+			t.Fatalf("Decide(%+v) = %+v", in, d)
+		}
+	}
+}
+
+func TestDecideDeviceDenyAll(t *testing.T) {
+	d := Decide(Input{Flow: Device, Client: firstParty(), API: api(userPolicy(store.PolicyDenyAll)), Scopes: []string{"read"}})
+	if d.Err == nil || d.Err.Code != "invalid_request" {
+		t.Fatalf("got %+v", d)
 	}
 }

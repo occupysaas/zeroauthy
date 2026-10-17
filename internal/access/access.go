@@ -82,6 +82,11 @@ func Decide(in Input) Decision {
 		return d
 	}
 	d.Consent = needsConsent(in, d.Scopes)
+	if in.Flow == Device {
+		// The device confirmation screen replaces the confirmation, and
+		// prompt=none has no meaning on the device pages.
+		return d
+	}
 	d.Confirmation = !d.Consent && !in.ScreenShown && NonVerifiable(in.RedirectURI) && !skipConfirmation(in)
 	if slices.Contains(in.Prompts, "none") {
 		switch {
@@ -180,8 +185,10 @@ func needsConsent(in Input, scopes []string) bool {
 		if in.API == nil {
 			return false
 		}
+		// A device request has no redirect URI to verify: the API's
+		// setting alone decides (D4).
 		if in.API.SkipConsentForVerifiableFirstPartyClients &&
-			!(firstPartyNonVerifiableConsent && NonVerifiable(in.RedirectURI)) {
+			(in.Flow == Device || !(firstPartyNonVerifiableConsent && NonVerifiable(in.RedirectURI))) {
 			return false
 		}
 	} else if in.API == nil && !consentWithoutAudience {

@@ -57,6 +57,7 @@ type ConsentView struct {
 	APIName        string   // the API's name (identifier when unnamed); empty without an audience
 	Scopes         []string // labels: scope names, or descriptions per use_scope_descriptions_for_consent
 	RedirectURI    string
+	Device         bool // a device authorization; CallbackDomain and RedirectURI are empty
 }
 
 // Authorize implements GET /authorize.
@@ -90,6 +91,7 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		h.deny(w, r, res, client, req, verr)
 		return
 	}
+	fr := flowReq{Request: req}
 
 	sess, err := h.ActiveSession(ctx, r, res)
 	if err != nil {
@@ -111,10 +113,10 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 			h.deny(w, r, res, client, req, errLoginRequired())
 			return
 		}
-		h.startLogin(w, r, res, client, req)
+		h.startLogin(w, r, res, client, fr)
 		return
 	}
-	h.finish(w, r, res, client, req, sess, false, false)
+	h.finish(w, r, res, client, fr, sess, false, false)
 }
 
 // ActiveSession returns the browser's session for res, or nil when there is
@@ -164,10 +166,10 @@ func (h *Handlers) connectionDisabled(ctx context.Context, res tenant.Resolved, 
 
 // startLogin stores the request in a transaction bound to this browser and
 // sends the user to the hosted login (or signup) page.
-func (h *Handlers) startLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request) {
-	params := req.Params()
+func (h *Handlers) startLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq) {
+	params := fr.params()
 	var kept []string
-	for _, p := range req.Prompts() {
+	for _, p := range fr.Prompts() {
 		if p != "login" { // satisfied by this login
 			kept = append(kept, p)
 		}
@@ -178,28 +180,18 @@ func (h *Handlers) startLogin(w http.ResponseWriter, r *http.Request, res tenant
 		delete(params, "prompt")
 	}
 	page := "/u/login"
-	if req.ScreenHint == "signup" {
+	if fr.ScreenHint == "signup" {
 		page = "/u/signup"
 	}
-	h.startTxn(w, r, res, client, req, params, page)
+	h.startTxn(w, r, res, client, fr, params, page)
 }
 
-// stageKey marks a consent transaction in its Params. It is not a request
-// parameter: Params and RequestFromParams ignore it.
-const (
-	stageKey     = "za_stage"
-	stageConsent = "consent"
-	// sessionKey holds the ID of the session the consent transaction was
-	// created for. Like stageKey it is not a request parameter.
-	sessionKey = "za_session"
-)
-
 // startConsent sends an authenticated user to the consent page.
-func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession) {
-	params := req.Params()
-	params[stageKey] = stageConsent
+func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession) {
+	params := fr.params()
+	params[ParamStage] = stageConsent
 	params[sessionKey] = sess.ID
-	h.startTxn(w, r, res, client, req, params, "/u/consent")
+	h.startTxn(w, r, res, client, fr, params, "/u/consent")
 }
 
 // invalidTxn shows the generic error page for a transaction used at the
@@ -211,59 +203,40 @@ func (h *Handlers) invalidTxn(w http.ResponseWriter, r *http.Request, res tenant
 
 // startTxn stores params in a transaction bound to this browser and
 // redirects to page.
-func (h *Handlers) startTxn(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, params map[string]string, page string) {
-	ctx := r.Context()
-	now := h.now()
-	cookieValue := secrets.RandomString(43)
-	txn := &store.AuthTransaction{
-		TenantID:   res.Tenant.ID,
-		ID:         secrets.RandomString(24),
-		CookieHash: secrets.HashToken(cookieValue),
-		CSRFToken:  secrets.RandomString(32),
-		ClientID:   client.ClientID,
-		Params:     params,
-		ExpiresAt:  now.Add(TxnLifetime),
-		CreatedAt:  now,
-	}
-	if err := h.Store.AuthTransactions().Create(ctx, txn); err != nil {
-		h.log().ErrorContext(ctx, "create login transaction", "tenant", res.Tenant.ID, "err", err)
-		h.deny(w, r, res, client, req, errServer())
+func (h *Handlers) startTxn(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, params map[string]string, page string) {
+	txn, err := h.CreateTxn(w, r, res, client.ClientID, params, "/u")
+	if err != nil {
+		h.log().ErrorContext(r.Context(), "create login transaction", "tenant", res.Tenant.ID, "err", err)
+		h.refuse(w, r, res, client, fr, errServer())
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name: TxnCookiePrefix + txn.ID, Value: cookieValue, Path: "/u",
-		MaxAge: int(TxnLifetime / time.Second), HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode,
-	})
 	redirect(w, r, page+"?"+url.Values{"state": {txn.ID}}.Encode())
 }
 
 // Resume finishes a login transaction for an authenticated session. The
 // login pages call it after a successful login or signup.
 func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) {
-	ctx := r.Context()
-	if txn.Params[stageKey] == stageConsent {
+	// Only a login transaction resumes: consent and the device pages have
+	// their own steps.
+	if txn.Params[ParamStage] != "" {
 		h.invalidTxn(w, r, res, txn)
 		return
 	}
-	if err := h.Store.AuthTransactions().Delete(ctx, res.Tenant.ID, txn.ID); err != nil {
-		h.log().WarnContext(ctx, "delete login transaction", "tenant", res.Tenant.ID, "err", err)
-	}
-	http.SetCookie(w, &http.Cookie{Name: TxnCookiePrefix + txn.ID, Value: "", Path: "/u", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
-
-	req := RequestFromParams(txn.Params)
-	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
+	h.EndTxn(w, r, res, txn)
+	fr := flowFromParams(txn.Params)
+	client, verr, redirectable := h.validateFlow(r.Context(), res, &fr)
 	if verr != nil {
-		// The application changed while the user was logging in.
+		// The application (or the device code) changed while the user was
+		// logging in.
 		if !redirectable {
-			view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]))
-			ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), verr.Description)
+			h.flowError(w, r, res, fr, verr)
 			return
 		}
-		h.deny(w, r, res, client, req, verr)
+		h.refuse(w, r, res, client, fr, verr)
 		return
 	}
 	// The login or signup page was just shown, so no confirmation (D-0027).
-	h.finish(w, r, res, client, req, sess, false, true)
+	h.finish(w, r, res, client, fr, sess, false, true)
 }
 
 func (h *Handlers) issueCode(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, scopes []string) {
@@ -309,8 +282,9 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 	return code, nil
 }
 
-// deny delivers an authorization error, or shows it on an error page when
-// the client's redirection_policy protects it (D-0027).
+// deny delivers an /authorize error, or shows it on an error page when
+// the client's redirection_policy protects it (D-0027). Flows that may be
+// device flows use refuse.
 func (h *Handlers) deny(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, e *Error) {
 	if access.ShowErrorPage(client) {
 		view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
@@ -320,12 +294,16 @@ func (h *Handlers) deny(w http.ResponseWriter, r *http.Request, res tenant.Resol
 	writeResponse(w, r, req, errorParams(e, req.State))
 }
 
-// accessInput loads what access.Decide needs for an interactive request.
+// accessInput loads what access.Decide needs for an interactive or device request.
 // audienceKey is the audience a user grant is stored under.
-func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client *store.Client, req Request, userID string) (access.Input, string, error) {
+func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client *store.Client, fr flowReq, userID string) (access.Input, string, error) {
+	req := fr.Request
 	in := access.Input{
 		Flow: access.Interactive, Client: client, Scopes: req.Scopes(), Prompts: req.Prompts(),
 		RedirectURI: req.RedirectURI, TenantSkipConfirmation: res.Tenant.SkipNonVerifiableCallbackURIConfirmationPrompt,
+	}
+	if fr.device() {
+		in.Flow = access.Device
 	}
 	audienceKey := res.Issuer() + "userinfo" // O2
 	if req.Audience != "" {
@@ -352,26 +330,26 @@ func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client 
 	return in, audienceKey, nil
 }
 
-// finish runs the access decision for an authenticated request: it issues
-// the code, sends the browser to the consent page, or delivers an error.
+// finish runs the access decision for an authenticated request: it
+// approves it, sends the browser to the consent page, or refuses it.
 // accepted means the user just accepted the consent page for this request;
 // screenShown means a login or signup page was shown in this transaction.
-func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, accepted, screenShown bool) {
+func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, accepted, screenShown bool) {
 	ctx := r.Context()
-	in, audienceKey, err := h.accessInput(ctx, res, client, req, sess.UserID)
+	in, audienceKey, err := h.accessInput(ctx, res, client, fr, sess.UserID)
 	if err != nil {
 		h.log().ErrorContext(ctx, "load access decision input", "tenant", res.Tenant.ID, "err", err)
-		h.deny(w, r, res, client, req, errServer())
+		h.refuse(w, r, res, client, fr, errServer())
 		return
 	}
 	in.ScreenShown = screenShown || accepted
 	d := access.Decide(in)
 	switch {
 	case d.Err != nil:
-		h.deny(w, r, res, client, req, &Error{d.Err.Code, d.Err.Description})
+		h.refuse(w, r, res, client, fr, &Error{d.Err.Code, d.Err.Description})
 		return
 	case (d.Consent || d.Confirmation) && !accepted:
-		h.startConsent(w, r, res, client, req, sess)
+		h.startConsent(w, r, res, client, fr, sess)
 		return
 	case d.Consent: // accepted
 		now := h.now()
@@ -384,37 +362,34 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 			Audience: audienceKey, Scopes: access.GrantScopes(existing, d.Scopes), CreatedAt: now, UpdatedAt: now,
 		}); err != nil {
 			h.log().ErrorContext(ctx, "store user grant", "tenant", res.Tenant.ID, "err", err)
-			h.deny(w, r, res, client, req, errServer())
+			h.refuse(w, r, res, client, fr, errServer())
 			return
 		}
 	}
-	h.issueCode(w, r, res, client, req, sess, d.Scopes)
+	h.approve(w, r, res, client, fr, sess, d.Scopes)
 }
 
-// Consent finishes a consent-page transaction. Declining is access_denied.
+// Consent finishes a consent-page transaction. Declining is access_denied
+// (a denied code for the device flow).
 func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession, accepted bool) {
 	ctx := r.Context()
-	if txn.Params[stageKey] != stageConsent {
+	if txn.Params[ParamStage] != stageConsent {
 		h.invalidTxn(w, r, res, txn)
 		return
 	}
-	if err := h.Store.AuthTransactions().Delete(ctx, res.Tenant.ID, txn.ID); err != nil {
-		h.log().WarnContext(ctx, "delete consent transaction", "tenant", res.Tenant.ID, "err", err)
-	}
-	http.SetCookie(w, &http.Cookie{Name: TxnCookiePrefix + txn.ID, Value: "", Path: "/u", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
-	req := RequestFromParams(txn.Params)
-	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
+	h.EndTxn(w, r, res, txn)
+	fr := flowFromParams(txn.Params)
+	client, verr, redirectable := h.validateFlow(ctx, res, &fr)
 	if verr != nil {
 		if !redirectable {
-			view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]))
-			ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), verr.Description)
+			h.flowError(w, r, res, fr, verr)
 			return
 		}
-		h.deny(w, r, res, client, req, verr)
+		h.refuse(w, r, res, client, fr, verr)
 		return
 	}
 	if !accepted {
-		h.deny(w, r, res, client, req, errUserDeclined())
+		h.refuse(w, r, res, client, fr, errUserDeclined())
 		return
 	}
 	// Login freshness (prompt=login, max_age, connection) was settled before
@@ -425,29 +400,29 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 		var err error
 		if login, err = h.connectionDisabled(ctx, res, client, sess); err != nil {
 			h.log().ErrorContext(ctx, "load session connection", "tenant", res.Tenant.ID, "err", err)
-			h.deny(w, r, res, client, req, errServer())
+			h.refuse(w, r, res, client, fr, errServer())
 			return
 		}
 	}
 	if login {
-		h.startLogin(w, r, res, client, req)
+		h.startLogin(w, r, res, client, fr)
 		return
 	}
-	h.finish(w, r, res, client, req, sess, true, true)
+	h.finish(w, r, res, client, fr, sess, true, true)
 }
 
 // ConsentView describes the page for txn. It returns an error when the
 // request is no longer valid; the caller shows the generic error page.
 func (h *Handlers) ConsentView(ctx context.Context, res tenant.Resolved, txn *store.AuthTransaction, sess *store.LoginSession) (*ConsentView, error) {
-	if txn.Params[stageKey] != stageConsent {
+	if txn.Params[ParamStage] != stageConsent {
 		return nil, errors.New("not a consent transaction")
 	}
-	req := RequestFromParams(txn.Params)
-	client, verr, _ := ValidateRequest(ctx, h.Store, res.Tenant, &req)
+	fr := flowFromParams(txn.Params)
+	client, verr, _ := h.validateFlow(ctx, res, &fr)
 	if verr != nil {
 		return nil, errors.New(verr.Description)
 	}
-	in, _, err := h.accessInput(ctx, res, client, req, sess.UserID)
+	in, _, err := h.accessInput(ctx, res, client, fr, sess.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -455,11 +430,14 @@ func (h *Handlers) ConsentView(ctx context.Context, res tenant.Resolved, txn *st
 	if d.Err != nil {
 		return nil, errors.New(d.Err.Description)
 	}
-	v := &ConsentView{Confirmation: !d.Consent, ThirdParty: !client.IsFirstParty, RedirectURI: req.RedirectURI}
-	if u, err := url.Parse(req.RedirectURI); err == nil {
-		v.CallbackDomain = u.Hostname()
-		if v.CallbackDomain == "" {
-			v.CallbackDomain = u.Scheme + ":"
+	v := &ConsentView{ThirdParty: !client.IsFirstParty, Device: fr.device()}
+	if !v.Device { // the device flow has no confirmation variant and no callback
+		v.Confirmation, v.RedirectURI = !d.Consent, fr.RedirectURI
+		if u, err := url.Parse(fr.RedirectURI); err == nil {
+			v.CallbackDomain = u.Hostname()
+			if v.CallbackDomain == "" {
+				v.CallbackDomain = u.Scheme + ":"
+			}
 		}
 	}
 	if in.API != nil {

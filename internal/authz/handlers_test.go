@@ -485,7 +485,7 @@ func (e *env) txnFor(t *testing.T, q url.Values, consent bool) *store.AuthTransa
 	req := ParseRequest(q)
 	params := req.Params()
 	if consent {
-		params[stageKey] = stageConsent
+		params[ParamStage] = stageConsent
 	}
 	txn := &store.AuthTransaction{
 		TenantID: e.tenant.ID, ID: secrets.RandomString(24), CookieHash: "h", CSRFToken: "c",
@@ -517,7 +517,7 @@ func (e *env) consent(t *testing.T, txn *store.AuthTransaction, ck *http.Cookie,
 	rec := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "https://acme.example.test/u/consent", nil)
 	sess := e.session(t, ck)
-	if _, bound := txn.Params[sessionKey]; !bound && txn.Params[stageKey] == stageConsent {
+	if _, bound := txn.Params[sessionKey]; !bound && txn.Params[ParamStage] == stageConsent {
 		txn.Params[sessionKey] = sess.ID // as startConsent does
 	}
 	e.h.Consent(rec, r, e.res(), txn, sess, accepted)

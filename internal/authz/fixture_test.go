@@ -82,8 +82,11 @@ tenants:
         app_type: spa
         grant_types: [authorization_code]
         callbacks: ["http://localhost:5000/cb"]
+      - client_id: tv
+        app_type: native
+        grant_types: ["urn:ietf:params:oauth:grant-type:device_code", refresh_token]
     connections:
-      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, web, local, par-web, par-required]}
+      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, web, local, par-web, par-required, tv]}
       - {name: Other-DB, enabled_clients: [web]}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1", email_verified: true}

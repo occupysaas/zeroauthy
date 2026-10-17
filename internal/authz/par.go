@@ -23,7 +23,7 @@ const (
 )
 
 // pushedKey marks a request that came from /oauth/par in stored Params. Like
-// stageKey it is not a request parameter: ParseRequest never reads it.
+// ParamStage it is not a request parameter: ParseRequest never reads it.
 const pushedKey = "za_pushed"
 
 func errPushedUnusable() *Error {

@@ -17,7 +17,9 @@ const (
 	// client may use an allow_all API without a client grant.
 	permissiveFollowsPolicy = true
 	// O4: a first-party client of an API that skips consent gets the
-	// confirmation, not consent, for a non-verifiable callback.
+	// confirmation, not consent, for a non-verifiable callback. Device
+	// requests have no callback; D4 observed that they follow the API's
+	// skip_consent_for_verifiable_first_party_clients as /authorize does.
 	firstPartyNonVerifiableConsent = false
 	// O2 (not observable; permissive only): a third-party request with no
 	// audience asks consent.
