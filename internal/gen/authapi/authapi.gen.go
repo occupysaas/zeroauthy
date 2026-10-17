@@ -269,6 +269,9 @@ type AuthorizeParams struct {
 	// UiLocales Space-separated preferred languages; the first entry selects the hosted page language if the tenant enables it.
 	UiLocales *string `form:"ui_locales,omitempty" json:"ui_locales,omitempty"`
 
+	// RequestUri A `urn:ietf:params:oauth:request_uri:` value from `/oauth/par`. The pushed request replaces every other parameter except `client_id`, which must match.
+	RequestUri *string `form:"request_uri,omitempty" json:"request_uri,omitempty"`
+
 	// Organization Not supported yet; rejected.
 	Organization *string `form:"organization,omitempty" json:"organization,omitempty"`
 
@@ -858,6 +861,19 @@ func (siw *ServerInterfaceWrapper) Authorize(w http.ResponseWriter, r *http.Requ
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "ui_locales"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ui_locales", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "request_uri" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "request_uri", r.URL.Query(), &params.RequestUri, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "request_uri"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "request_uri", Err: err})
 		}
 		return
 	}

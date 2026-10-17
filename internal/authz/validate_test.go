@@ -39,7 +39,7 @@ func with(q url.Values, kv ...string) url.Values {
 func TestValidateOK(t *testing.T) {
 	f := newFixture(t)
 	req := ParseRequest(goodQuery())
-	c, err, _ := validate(context.Background(), f.st, f.tenant, &req)
+	c, err, _ := ValidateRequest(context.Background(), f.st, f.tenant, &req)
 	if err != nil {
 		t.Fatalf("unexpected error %+v", err)
 	}
@@ -98,7 +98,7 @@ func TestValidateErrors(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			req := ParseRequest(tc.q)
-			_, err, redirectable := validate(context.Background(), f.st, f.tenant, &req)
+			_, err, redirectable := ValidateRequest(context.Background(), f.st, f.tenant, &req)
 			if err == nil || err.Code != tc.code || redirectable != tc.redirectable {
 				t.Fatalf("got err=%+v redirectable=%v, want %s/%v", err, redirectable, tc.code, tc.redirectable)
 			}
@@ -122,7 +122,7 @@ func TestValidateAccepts(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			req := ParseRequest(q)
-			if _, err, _ := validate(context.Background(), f.st, f.tenant, &req); err != nil {
+			if _, err, _ := ValidateRequest(context.Background(), f.st, f.tenant, &req); err != nil {
 				t.Fatalf("unexpected error %+v", err)
 			}
 		})
@@ -133,7 +133,7 @@ func TestDefaultAudience(t *testing.T) {
 	f := newFixture(t)
 	f.tenant.DefaultAudience = "https://api.acme.test"
 	req := ParseRequest(goodQuery())
-	if _, err, _ := validate(context.Background(), f.st, f.tenant, &req); err != nil || req.Audience != "https://api.acme.test" {
+	if _, err, _ := ValidateRequest(context.Background(), f.st, f.tenant, &req); err != nil || req.Audience != "https://api.acme.test" {
 		t.Fatalf("audience = %q, err %+v", req.Audience, err)
 	}
 }

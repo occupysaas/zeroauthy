@@ -20,10 +20,11 @@ var (
 	s256Challenge = regexp.MustCompile(`^[A-Za-z0-9_-]{43}$`)
 )
 
-// validate checks an authorization request in the order of spec §6.2.
+// ValidateRequest checks an authorization request in the order of spec §6.2.
+// /oauth/par uses it too.
 // Errors with redirectable=false must be shown on an error page: the
 // client or redirect URI cannot be trusted.
-func validate(ctx context.Context, st store.Store, t *store.Tenant, req *Request) (*store.Client, *Error, bool) {
+func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *Request) (*store.Client, *Error, bool) {
 	if req.ClientID == "" {
 		return nil, errInvalidRequest("client_id is required"), false
 	}
@@ -43,6 +44,9 @@ func validate(ctx context.Context, st store.Store, t *store.Tenant, req *Request
 
 	if req.ResponseMode == "" {
 		req.ResponseMode = "query"
+	}
+	if client.RequirePushedAuthorizationRequests && !req.Pushed {
+		return client, errInvalidRequest("this application must use pushed authorization requests"), true // P5
 	}
 	if !slices.Contains(responseModes, req.ResponseMode) {
 		req.ResponseMode = "query"

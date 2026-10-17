@@ -122,6 +122,7 @@ paths:
         - {name: login_hint, in: query, schema: {type: string}, description: Prefills the login identifier.}
         - {name: screen_hint, in: query, schema: {type: string}, description: "`signup` opens the signup page."}
         - {name: ui_locales, in: query, schema: {type: string}, description: "Space-separated preferred languages; the first entry selects the hosted page language if the tenant enables it."}
+        - {name: request_uri, in: query, schema: {type: string}, description: "A `urn:ietf:params:oauth:request_uri:` value from `/oauth/par`. The pushed request replaces every other parameter except `client_id`, which must match."}
         - {name: organization, in: query, schema: {type: string}, description: Not supported yet; rejected.}
         - {name: invitation, in: query, schema: {type: string}, description: Not supported yet; rejected.}
       responses:

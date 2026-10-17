@@ -67,9 +67,21 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, r.URL.Query().Get("ui_locales")))
-	req := ParseRequest(r.URL.Query())
-	client, verr, redirectable := validate(ctx, h.Store, res.Tenant, &req)
+	q := r.URL.Query()
+	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, q.Get("ui_locales")))
+	req := ParseRequest(q)
+	if q.Has("request_uri") {
+		pushed, perr := h.resolvePushed(ctx, res.Tenant, q)
+		if perr != nil {
+			ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), perr.Description)
+			return
+		}
+		if pushed != nil {
+			req = *pushed
+			view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
+		}
+	}
+	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {
 			ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), verr.Description)
@@ -239,7 +251,7 @@ func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Res
 	http.SetCookie(w, &http.Cookie{Name: TxnCookiePrefix + txn.ID, Value: "", Path: "/u", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 
 	req := RequestFromParams(txn.Params)
-	client, verr, redirectable := validate(ctx, h.Store, res.Tenant, &req)
+	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		// The application changed while the user was logging in.
 		if !redirectable {
@@ -391,7 +403,7 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 	}
 	http.SetCookie(w, &http.Cookie{Name: TxnCookiePrefix + txn.ID, Value: "", Path: "/u", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 	req := RequestFromParams(txn.Params)
-	client, verr, redirectable := validate(ctx, h.Store, res.Tenant, &req)
+	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {
 			view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]))
@@ -431,7 +443,7 @@ func (h *Handlers) ConsentView(ctx context.Context, res tenant.Resolved, txn *st
 		return nil, errors.New("not a consent transaction")
 	}
 	req := RequestFromParams(txn.Params)
-	client, verr, _ := validate(ctx, h.Store, res.Tenant, &req)
+	client, verr, _ := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		return nil, errors.New(verr.Description)
 	}

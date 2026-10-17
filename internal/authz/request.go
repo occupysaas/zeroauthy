@@ -27,6 +27,10 @@ type Request struct {
 	Organization        string
 	Invitation          string
 	UILocales           string
+	// Ext holds ext-* parameters, kept for Actions (sub-project 2).
+	Ext map[string]string
+	// Pushed is true for a request that came from /oauth/par.
+	Pushed bool
 	// Present lists which strictUnsupported parameters the request carried.
 	// It is not part of Params(): a request that carries any of these never
 	// reaches a transaction for a strict client.
@@ -99,6 +103,14 @@ func ParseRequest(q url.Values) Request {
 			r.Present = append(r.Present, n)
 		}
 	}
+	for k := range q {
+		if strings.HasPrefix(k, ExtPrefix) {
+			if r.Ext == nil {
+				r.Ext = map[string]string{}
+			}
+			r.Ext[k] = q.Get(k)
+		}
+	}
 	return r
 }
 
@@ -110,6 +122,12 @@ func (r Request) Params() map[string]string {
 			out[name] = v
 		}
 	}
+	for k, v := range r.Ext {
+		out[k] = v
+	}
+	if r.Pushed {
+		out[pushedKey] = "1"
+	}
 	return out
 }
 
@@ -119,6 +137,15 @@ func RequestFromParams(p map[string]string) Request {
 	for _, name := range paramNames {
 		*r.field(name) = p[name]
 	}
+	for k, v := range p {
+		if strings.HasPrefix(k, ExtPrefix) {
+			if r.Ext == nil {
+				r.Ext = map[string]string{}
+			}
+			r.Ext[k] = v
+		}
+	}
+	r.Pushed = p[pushedKey] == "1"
 	return r
 }
 

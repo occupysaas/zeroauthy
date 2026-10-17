@@ -16,6 +16,7 @@ const fixtureSeed = `
 tenants:
   - name: acme
     domains: [acme.example.test]
+    pushed_authorization_requests_supported: true
     enabled_locales: [en, fr]
     custom_text:
       zeroauthy:
@@ -66,12 +67,23 @@ tenants:
         redirection_policy: allow_always
         grant_types: [authorization_code]
         callbacks: ["https://open.example/cb"]
+      - client_id: par-web
+        app_type: regular_web
+        client_secret: par-web-secret
+        grant_types: [authorization_code]
+        callbacks: ["https://par.acme.test/cb", "https://par.acme.test/cb2"]
+      - client_id: par-required
+        app_type: regular_web
+        client_secret: par-required-secret
+        require_pushed_authorization_requests: true
+        grant_types: [authorization_code]
+        callbacks: ["https://req.acme.test/cb"]
       - client_id: local
         app_type: spa
         grant_types: [authorization_code]
         callbacks: ["http://localhost:5000/cb"]
     connections:
-      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, web, local]}
+      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, web, local, par-web, par-required]}
       - {name: Other-DB, enabled_clients: [web]}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1", email_verified: true}

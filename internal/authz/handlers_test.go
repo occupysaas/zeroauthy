@@ -36,10 +36,17 @@ func newEnv(t *testing.T) *env {
 
 func (e *env) get(t *testing.T, q url.Values, cookies ...*http.Cookie) *httptest.ResponseRecorder {
 	t.Helper()
-	r := httptest.NewRequest("GET", "https://acme.example.test/authorize?"+q.Encode(), nil)
+	r := httptestRequest("https://acme.example.test/authorize?" + q.Encode())
 	for _, c := range cookies {
 		r.AddCookie(c)
 	}
+	return e.serve(t, r)
+}
+
+func httptestRequest(target string) *http.Request { return httptest.NewRequest("GET", target, nil) }
+
+func (e *env) serve(t *testing.T, r *http.Request) *httptest.ResponseRecorder {
+	t.Helper()
 	rec := httptest.NewRecorder()
 	e.srv.ServeHTTP(rec, r)
 	return rec
