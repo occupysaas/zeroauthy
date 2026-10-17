@@ -66,6 +66,7 @@ tenants:
         grant_types: [authorization_code, refresh_token]
         callbacks: ["https://rtweb.acme.test/cb"]
         refresh_token: {rotation_type: non-rotating, expiration_type: expiring, token_lifetime: 86400, idle_token_lifetime: 3600}
+      - {client_id: dev, app_type: native, token_endpoint_auth_method: none, grant_types: ["urn:ietf:params:oauth:grant-type:device_code", refresh_token]}
       - client_id: ropg
         app_type: regular_web
         client_secret: ropg-secret

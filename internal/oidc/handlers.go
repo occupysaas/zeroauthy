@@ -40,6 +40,7 @@ type Configuration struct {
 	AuthorizationEndpoint              string `json:"authorization_endpoint"`
 	TokenEndpoint                      string `json:"token_endpoint"`
 	RevocationEndpoint                 string `json:"revocation_endpoint"`
+	DeviceAuthorizationEndpoint        string `json:"device_authorization_endpoint,omitempty"`
 	PushedAuthorizationRequestEndpoint string `json:"pushed_authorization_request_endpoint,omitempty"`
 	// RequestURIParameterSupported is always false (D-0030): request_uri is
 	// accepted only from /oauth/par. OIDC Discovery defaults it to true.
@@ -71,6 +72,7 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		AuthorizationEndpoint:             base + "/authorize",
 		TokenEndpoint:                     base + "/oauth/token",
 		RevocationEndpoint:                base + "/oauth/revoke",
+		DeviceAuthorizationEndpoint:       base + "/oauth/device/code",
 		UserinfoEndpoint:                  base + "/userinfo",
 		JWKSURI:                           base + "/.well-known/jwks.json",
 		EndSessionEndpoint:                base + "/oidc/logout",
@@ -79,7 +81,7 @@ func (h *Handlers) Discovery(w http.ResponseWriter, r *http.Request) {
 		SubjectTypesSupported:             []string{"public"},
 		IDTokenSigningAlgValuesSupported:  []string{"RS256"},
 		TokenEndpointAuthMethodsSupported: []string{"client_secret_basic", "client_secret_post", "none"},
-		GrantTypesSupported:               []string{"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm"},
+		GrantTypesSupported:               []string{"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm", "urn:ietf:params:oauth:grant-type:device_code"},
 		CodeChallengeMethodsSupported:     []string{"S256"},
 		ScopesSupported:                   []string{"openid", "profile", "email", "offline_access"},
 		ClaimsSupported: []string{"sub", "iss", "aud", "exp", "iat", "auth_time", "nonce", "sid", "at_hash",

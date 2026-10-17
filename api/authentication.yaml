@@ -311,6 +311,57 @@ paths:
           $ref: "#/components/responses/OAuthErrorResponse"
         default:
           $ref: "#/components/responses/ServerError"
+  /oauth/device/code:
+    post:
+      operationId: oauthDeviceCode
+      tags: [Tokens]
+      summary: Start a device authorization
+      description: |
+        A public (`none`) native application with the
+        `urn:ietf:params:oauth:grant-type:device_code` grant asks for a device
+        code and a user code. The user enters the user code at
+        `verification_uri` (or opens `verification_uri_complete`) on another
+        device; the application polls `/oauth/token` with the device code. The
+        body may be form-encoded or JSON. An empty `audience` selects the
+        tenant default audience. The API's access policy is checked here.
+        Every client problem (unknown client, wrong application type or
+        grant, credentials sent, repeated `client_id`) is
+        `403 unauthorized_client`; an unknown audience or a refused policy is
+        `400 invalid_request`.
+      x-source:
+        - https://www.rfc-editor.org/rfc/rfc8628#section-3.1
+        - https://auth0.com/docs/api/authentication/device-authorization-flow/get-device-code
+        - https://auth0.com/docs/get-started/authentication-and-authorization-flow/device-authorization-flow
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/DeviceCodeRequest"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceCodeRequest"
+      responses:
+        "200":
+          description: The device authorization was created.
+          headers:
+            Cache-Control: {schema: {type: string, const: no-store}}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceCodeResponse"
+        "400":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "401":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "403":
+          $ref: "#/components/responses/OAuthErrorResponse"
+        "404":
+          $ref: "#/components/responses/UnknownTenant"
+        default:
+          $ref: "#/components/responses/ServerError"
   /userinfo:
     get:
       operationId: userinfo
@@ -731,6 +782,24 @@ components:
         state: {type: string}
         audience: {type: string}
       additionalProperties: {type: string}
+    DeviceCodeRequest:
+      type: object
+      required: [client_id]
+      properties:
+        client_id: {type: string}
+        scope: {type: string, description: Space-separated scopes; may be empty.}
+        audience: {type: string, description: The API identifier; empty selects the tenant default audience.}
+      additionalProperties: {type: string}
+    DeviceCodeResponse:
+      type: object
+      required: [device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval]
+      properties:
+        device_code: {type: string, description: An opaque 24-character value the application polls with.}
+        user_code: {type: string, description: "The code the user enters, formatted by the tenant's mask."}
+        verification_uri: {type: string, format: uri}
+        verification_uri_complete: {type: string, format: uri}
+        expires_in: {type: integer, const: 900}
+        interval: {type: integer, const: 5}
     PushedAuthorizationResponse:
       type: object
       required: [request_uri, expires_in]
@@ -823,6 +892,7 @@ components:
         authorization_endpoint: {type: string, format: uri}
         token_endpoint: {type: string, format: uri}
         revocation_endpoint: {type: string, format: uri}
+        device_authorization_endpoint: {type: string, format: uri}
         pushed_authorization_request_endpoint: {type: string, description: Present when the tenant allows pushed authorization requests.}
         request_uri_parameter_supported: {type: boolean, description: "Always false: `request_uri` is accepted only from `/oauth/par`."}
         jwks_uri: {type: string, format: uri}

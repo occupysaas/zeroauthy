@@ -41,6 +41,9 @@ func get(h http.Handler, url string) *httptest.ResponseRecorder {
 	return rec
 }
 
+// TestDiscoveryDeviceEndpoint is covered by TestDiscovery (device_authorization_endpoint and the device grant).
+func TestDiscoveryDeviceEndpoint(t *testing.T) { TestDiscovery(t) }
+
 func TestDiscovery(t *testing.T) {
 	h, _ := setup(t)
 	rec := get(h, "https://acme.example.test/.well-known/openid-configuration")
@@ -52,12 +55,13 @@ func TestDiscovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]string{
-		"issuer":                 "https://acme.example.test/",
-		"authorization_endpoint": "https://acme.example.test/authorize",
-		"token_endpoint":         "https://acme.example.test/oauth/token",
-		"revocation_endpoint":    "https://acme.example.test/oauth/revoke",
-		"jwks_uri":               "https://acme.example.test/.well-known/jwks.json",
-		"end_session_endpoint":   "https://acme.example.test/oidc/logout",
+		"issuer":                        "https://acme.example.test/",
+		"authorization_endpoint":        "https://acme.example.test/authorize",
+		"token_endpoint":                "https://acme.example.test/oauth/token",
+		"revocation_endpoint":           "https://acme.example.test/oauth/revoke",
+		"jwks_uri":                      "https://acme.example.test/.well-known/jwks.json",
+		"end_session_endpoint":          "https://acme.example.test/oidc/logout",
+		"device_authorization_endpoint": "https://acme.example.test/oauth/device/code",
 	}
 	for k, v := range want {
 		if doc[k] != v {
@@ -65,7 +69,7 @@ func TestDiscovery(t *testing.T) {
 		}
 	}
 	wantLists := map[string][]string{
-		"grant_types_supported":                 {"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm"},
+		"grant_types_supported":                 {"authorization_code", "client_credentials", "refresh_token", "password", "http://auth0.com/oauth/grant-type/password-realm", "urn:ietf:params:oauth:grant-type:device_code"},
 		"response_types_supported":              {"code"},
 		"response_modes_supported":              {"query", "fragment", "form_post", "web_message"},
 		"code_challenge_methods_supported":      {"S256"},

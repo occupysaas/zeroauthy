@@ -13,6 +13,36 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for DeviceCodeResponseExpiresIn.
+const (
+	N900 DeviceCodeResponseExpiresIn = 900
+)
+
+// Valid indicates whether the value is a known member of the DeviceCodeResponseExpiresIn enum.
+func (e DeviceCodeResponseExpiresIn) Valid() bool {
+	switch e {
+	case N900:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeviceCodeResponseInterval.
+const (
+	N5 DeviceCodeResponseInterval = 5
+)
+
+// Valid indicates whether the value is a known member of the DeviceCodeResponseInterval enum.
+func (e DeviceCodeResponseInterval) Valid() bool {
+	switch e {
+	case N5:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PushedAuthorizationResponseExpiresIn.
 const (
 	N30 PushedAuthorizationResponseExpiresIn = 30
@@ -36,6 +66,36 @@ type ChangePasswordRequest struct {
 	Connection string `json:"connection"`
 	Email      string `json:"email"`
 }
+
+// DeviceCodeRequest defines model for DeviceCodeRequest.
+type DeviceCodeRequest struct {
+	// Audience The API identifier; empty selects the tenant default audience.
+	Audience *string `json:"audience,omitempty"`
+	ClientId string  `json:"client_id"`
+
+	// Scope Space-separated scopes; may be empty.
+	Scope                *string           `json:"scope,omitempty"`
+	AdditionalProperties map[string]string `json:"-"`
+}
+
+// DeviceCodeResponse defines model for DeviceCodeResponse.
+type DeviceCodeResponse struct {
+	// DeviceCode An opaque 24-character value the application polls with.
+	DeviceCode string                      `json:"device_code"`
+	ExpiresIn  DeviceCodeResponseExpiresIn `json:"expires_in"`
+	Interval   DeviceCodeResponseInterval  `json:"interval"`
+
+	// UserCode The code the user enters, formatted by the tenant's mask.
+	UserCode                string `json:"user_code"`
+	VerificationUri         string `json:"verification_uri"`
+	VerificationUriComplete string `json:"verification_uri_complete"`
+}
+
+// DeviceCodeResponseExpiresIn defines model for DeviceCodeResponse.ExpiresIn.
+type DeviceCodeResponseExpiresIn int
+
+// DeviceCodeResponseInterval defines model for DeviceCodeResponse.Interval.
+type DeviceCodeResponseInterval int
 
 // JWK defines model for JWK.
 type JWK struct {
@@ -85,6 +145,7 @@ type OpenIDConfiguration struct {
 	AuthorizationEndpoint            string    `json:"authorization_endpoint"`
 	ClaimsSupported                  *[]string `json:"claims_supported,omitempty"`
 	CodeChallengeMethodsSupported    *[]string `json:"code_challenge_methods_supported,omitempty"`
+	DeviceAuthorizationEndpoint      *string   `json:"device_authorization_endpoint,omitempty"`
 	EndSessionEndpoint               *string   `json:"end_session_endpoint,omitempty"`
 	GrantTypesSupported              *[]string `json:"grant_types_supported,omitempty"`
 	IdTokenSigningAlgValuesSupported []string  `json:"id_token_signing_alg_values_supported"`
@@ -368,6 +429,12 @@ type DbconnectionsSignupJSONRequestBody = SignupRequest
 // DbconnectionsSignupFormdataRequestBody defines body for DbconnectionsSignup for application/x-www-form-urlencoded ContentType.
 type DbconnectionsSignupFormdataRequestBody = SignupFormRequest
 
+// OauthDeviceCodeJSONRequestBody defines body for OauthDeviceCode for application/json ContentType.
+type OauthDeviceCodeJSONRequestBody = DeviceCodeRequest
+
+// OauthDeviceCodeFormdataRequestBody defines body for OauthDeviceCode for application/x-www-form-urlencoded ContentType.
+type OauthDeviceCodeFormdataRequestBody = DeviceCodeRequest
+
 // OauthParFormdataRequestBody defines body for OauthPar for application/x-www-form-urlencoded ContentType.
 type OauthParFormdataRequestBody = PushedAuthorizationRequest
 
@@ -385,6 +452,102 @@ type OauthTokenFormdataRequestBody = TokenRequest
 
 // OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
 type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
+
+// Getter for additional properties for DeviceCodeRequest. Returns the specified
+// element and whether it was found
+func (a DeviceCodeRequest) Get(fieldName string) (value string, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for DeviceCodeRequest
+func (a *DeviceCodeRequest) Set(fieldName string, value string) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]string)
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for DeviceCodeRequest to handle AdditionalProperties
+func (a *DeviceCodeRequest) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["audience"]; found {
+		err = json.Unmarshal(raw, &a.Audience)
+		if err != nil {
+			return fmt.Errorf("error reading 'audience': %w", err)
+		}
+		delete(object, "audience")
+	}
+
+	if raw, found := object["client_id"]; found {
+		err = json.Unmarshal(raw, &a.ClientId)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_id': %w", err)
+		}
+		delete(object, "client_id")
+	}
+
+	if raw, found := object["scope"]; found {
+		err = json.Unmarshal(raw, &a.Scope)
+		if err != nil {
+			return fmt.Errorf("error reading 'scope': %w", err)
+		}
+		delete(object, "scope")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]string)
+		for fieldName, fieldBuf := range object {
+			var fieldVal string
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for DeviceCodeRequest to handle AdditionalProperties
+func (a DeviceCodeRequest) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Audience != nil {
+		object["audience"], err = json.Marshal(a.Audience)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'audience': %w", err)
+		}
+	}
+
+	object["client_id"], err = json.Marshal(a.ClientId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_id': %w", err)
+	}
+
+	if a.Scope != nil {
+		object["scope"], err = json.Marshal(a.Scope)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'scope': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // Getter for additional properties for PushedAuthorizationRequest. Returns the specified
 // element and whether it was found
@@ -717,6 +880,9 @@ type ServerInterface interface {
 	// DbconnectionsSignup Sign up a user
 	// (POST /dbconnections/signup)
 	DbconnectionsSignup(w http.ResponseWriter, r *http.Request)
+	// OauthDeviceCode Start a device authorization
+	// (POST /oauth/device/code)
+	OauthDeviceCode(w http.ResponseWriter, r *http.Request)
 	// OauthPar Push an authorization request
 	// (POST /oauth/par)
 	OauthPar(w http.ResponseWriter, r *http.Request)
@@ -774,6 +940,12 @@ func (_ Unimplemented) DbconnectionsChangePassword(w http.ResponseWriter, r *htt
 // DbconnectionsSignup Sign up a user
 // (POST /dbconnections/signup)
 func (_ Unimplemented) DbconnectionsSignup(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// OauthDeviceCode Start a device authorization
+// (POST /oauth/device/code)
+func (_ Unimplemented) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1157,6 +1329,20 @@ func (siw *ServerInterfaceWrapper) DbconnectionsSignup(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// OauthDeviceCode operation middleware
+func (siw *ServerInterfaceWrapper) OauthDeviceCode(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.OauthDeviceCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // OauthPar operation middleware
 func (siw *ServerInterfaceWrapper) OauthPar(w http.ResponseWriter, r *http.Request) {
 
@@ -1528,6 +1714,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/oauth/par", wrapper.OauthPar)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/oauth/device/code", wrapper.OauthDeviceCode)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/userinfo", wrapper.Userinfo)

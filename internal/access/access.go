@@ -19,6 +19,7 @@ const (
 	Password                      // password and password-realm grants
 	Refresh                       // refresh_token grant
 	ClientCredentials             // client_credentials grant
+	Device                        // device authorization request (RFC 8628)
 )
 
 type Input struct {
@@ -77,7 +78,7 @@ func Decide(in Input) Decision {
 		return Decision{}
 	}
 	d := Decision{Scopes: issuedScopes(in)}
-	if in.Flow != Interactive {
+	if in.Flow != Interactive && in.Flow != Device {
 		return d
 	}
 	d.Consent = needsConsent(in, d.Scopes)
@@ -98,7 +99,7 @@ func fail(code, desc string) Decision { return Decision{Err: &Error{Code: code, 
 func checkPolicy(in Input) *Error {
 	code := codeTokenDenied
 	switch in.Flow {
-	case Interactive:
+	case Interactive, Device:
 		code = codeAuthorizeDenied
 	case ClientCredentials:
 		code = "access_denied"
