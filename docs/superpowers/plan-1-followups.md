@@ -191,3 +191,16 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Consent page: a consent POST without a valid `action` is a generic failure that answers 500; it should be a 400 session-expired or invalid-request page. `postedFlow` now checks the CSRF token before the connection (an order change), and `TestConsentDeclineProtected`, `TestConsentWrongCookie` and the grant-absence check use weak assertions (any error passes).
 - Token endpoint: the client-credentials path repeats the client-grant lookup instead of calling `h.decide`; the `partner` fixture is unused; `TestRefreshGrantRechecksPolicy` needs a comment on rotation; `TestClientCredentialsDenyAll` does not assert the description; the `store` import in `token_test.go` sits in the standard-library group.
 - E2E (m10): the decline assertion cannot fail (the URL `/u/consent` with the main element visible is also true of the consent page); assert the error text, a 400 and no callback. The confirmation check only counts `ul.scopes` items (zero); add a positive assertion. `blackbox-clients.md` lists node-auth0 under m10 although its check runs in m3. The suite uses fixed port 3001, does not await `server.close` and leaves its `framenavigated` listener attached. Run evidence is a summary only.
+
+## Plan 10 follow-ups
+
+- `private_key_jwt` client authentication, with the 2025-10-10 changelog item (issuer string as the assertion `aud`).
+- JAR: signed `request` objects at `/authorize` and in PAR; the client's `signed_request_object` settings.
+- RAR: `authorization_details` and the resource server's `authorization_details` types.
+- mTLS client authentication and `mtls_endpoint_aliases`.
+- PAR for public clients (Auth0 does not support it today).
+- Actions access to `ext-*` parameters (sub-project 2).
+- A general Authentication API rate limiter covering `/oauth/par` (zeroauthy has per-identity throttles only).
+- The `iss` authorization response parameter (RFC 9207), which Auth0 sends (tenant setting `authorization_response_iss_parameter_supported`; observations/par.md).
+- Repeated query parameters on `/authorize` get a JSON 400 from the generated wrapper (existing item; it also applies to `request_uri`).
+- `scripts/test-sql.sh` hardcodes host ports 55432 (PostgreSQL) and 53306 (MySQL), which collide with other local containers. Make them configurable (this repeats the Plan 9 item and is still open).

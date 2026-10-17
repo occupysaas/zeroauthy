@@ -37,6 +37,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 |---|---|---|---|
 | 2026-10-16 | 2026-10-12 (newest entry) | Claude (Plan 8 planning) | First review. Read the whole changelog page back to mid-2025 for entries that affect milestones 1–9 or later sub-projects. No entry changes a behavior zeroauthy already implements. Custom-database items are recorded below; most are later features. |
 | 2026-10-16 | 2026-10-12 (newest entry) | Claude (Plan 9 planning) | No entries since the previous review. Re-read entries on consent and third-party applications; the 2026 third-party security modes, access policies and confirmation prompt are taken from the current documentation into the Plan 9 design. |
+| 2026-10-16 | 2026-10-16 (newest entry) | Claude (Plan 10 planning) | No entries on PAR. One new entry since the previous review, recorded under Relevant entries: Universal Login identifier and phone controls (early access). |
 
 ## Relevant entries
 
@@ -48,6 +49,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 | 2026-09-17 | A pre-registration Action can assign a custom `user_id` at signup, including on custom databases with migration (EA) | Signup, custom DB | backlog | Sub-project 2 (Actions) |
 | 2025-07-21 | Passkeys work on custom database connections with import mode off (EA) | Custom DB | backlog | Sub-project 2 (passkeys) |
 | 2025-10-28 | Callback URIs that cannot be verified (custom schemes, loopback) get a login confirmation step, and `prompt=none` is refused for them in some cases | `/authorize` | backlog | Milestone 10 (consent) — decide whether to follow |
+| 2026-10-16 | Universal Login gains identifier and phone number controls (early access) | Hosted login | backlog | Sub-project 2 |
 | 2026-01-21 | Editing a connection's `enabled_clients` through the connection object is deprecated in favor of dedicated endpoints | Management API | backlog | Sub-project 3 |
 
 ## Backlog (from the changelog)

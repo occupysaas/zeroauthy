@@ -1,6 +1,6 @@
 # zeroauthy — Design: Pushed Authorization Requests (Plan 10)
 
-- **Status:** Draft, awaiting review
+- **Status:** Implemented (Plan 10)
 - **Date:** 2026-10-16
 - **Scope:** milestone 10, part 2 of 3 (spec §13). Plan 9 shipped consent; Plan 11 is the device flow. The maintainer chose the PAR core only (scope A): client-secret authentication, no `private_key_jwt`, mTLS, JAR or RAR.
 

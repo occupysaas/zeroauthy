@@ -25,6 +25,10 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | `redirection_policy` (`open_redirect_protection`, `allow_always`) | Implemented | Decline error page verified in Chromium (m10); `allow_always` redirects are covered by server tests only (D-0027) |
 | Domain connections (`is_domain_connection`) | Implemented | Third-party clients log in only through them; covered by server tests (and used by the m10 E2E tenant). `/dbconnections/*` still checks `enabled_clients` only |
 | Storage drivers: memory, SQLite, PostgreSQL 14+, MySQL 8.0.17+ | Implemented | All pass `pkg/storetest` (SQLite in every test run; PostgreSQL 17 and MySQL 8.4 via `make test-sql` and CI); E2E runs on SQLite |
+| `POST /oauth/par` | Implemented | First-party confidential clients with client-secret authentication; guide: `docs/par.md`. Decision D-0028. Verified with express-openid-connect 3.4.0, @auth0/nextjs-auth0 4.32.0 and @auth0/auth0-auth-js 1.16.1 (`pushedAuthorizationRequests: true`). `response_type=token` is `501`, and `response_mode`/`prompt` are checked at PAR (differences from Auth0). `private_key_jwt`, mTLS, JAR and RAR are not supported |
+| `request_uri` at `/authorize` | Implemented | From PAR only; replaces every other parameter except `client_id`; failures are error pages (D-0029). Strict third-party clients still refuse it (D-0025) |
+| Client `require_pushed_authorization_requests` and tenant `pushed_authorization_requests_supported` | Implemented | A plain `/authorize` from a requiring client redirects with `invalid_request`; the seed refuses the client setting without the tenant setting, on public clients and on third-party clients (D-0029, D-0030) |
+| Discovery: `pushed_authorization_request_endpoint`, `request_uri_parameter_supported` | Implemented | The endpoint appears only while the tenant setting is on; `request_uri_parameter_supported` is always `false` (D-0030) |
 | Implicit/hybrid flows | Planned | Not part of Plan 5 |
 | Passwordless, MFA, social connections, Actions | Planned (sub-project 2) | |
 | Management API v2 | Planned (sub-project 3) | |
