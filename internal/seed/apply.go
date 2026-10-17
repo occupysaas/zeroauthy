@@ -61,6 +61,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 		tn.DefaultDirectory = in.DefaultDirectory
 		tn.SkipNonVerifiableCallbackURIConfirmationPrompt = in.SkipNonVerifiableCallbackURIConfirmationPrompt
 		tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
+		tn.PushedAuthorizationRequestsSupported = in.PushedAuthorizationRequestsSupported
 		if err := st.Tenants().Create(ctx, tn); err != nil {
 			return err
 		}
@@ -76,6 +77,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 		tn.DefaultDirectory = in.DefaultDirectory
 		tn.SkipNonVerifiableCallbackURIConfirmationPrompt = in.SkipNonVerifiableCallbackURIConfirmationPrompt
 		tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
+		tn.PushedAuthorizationRequestsSupported = in.PushedAuthorizationRequestsSupported
 		if err := st.Tenants().Update(ctx, tn); err != nil {
 			return err
 		}
@@ -146,6 +148,7 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	}
 	c.IsFirstParty, c.ThirdPartySecurityMode = *in.IsFirstParty, in.ThirdPartySecurityMode
 	c.RedirectionPolicy = in.RedirectionPolicy
+	c.RequirePushedAuthorizationRequests = in.RequirePushedAuthorizationRequests
 	c.SkipNonVerifiableCallbackURIConfirmationPrompt = nil
 	if p := in.SkipNonVerifiableCallbackURIConfirmationPrompt; p != nil {
 		v := *p

@@ -212,6 +212,16 @@ func (t *Tenant) validate() []error {
 		if !firstParty && c.ThirdPartySecurityMode != store.SecurityModeStrict && c.ThirdPartySecurityMode != store.SecurityModePermissive {
 			fail("client %q: third_party_security_mode %q must be strict or permissive", c.ClientID, c.ThirdPartySecurityMode)
 		}
+		if c.RequirePushedAuthorizationRequests {
+			switch {
+			case !t.PushedAuthorizationRequestsSupported:
+				fail("client %q: require_pushed_authorization_requests needs the tenant's pushed_authorization_requests_supported", c.ClientID)
+			case public:
+				fail("client %q: require_pushed_authorization_requests is only for confidential applications", c.ClientID)
+			case !firstParty:
+				fail("client %q: third-party applications cannot use pushed authorization requests", c.ClientID) // P9, D-0028
+			}
+		}
 		if c.RedirectionPolicy == "" {
 			c.RedirectionPolicy = store.RedirectionPolicyAllowAlways // O1d
 			if !firstParty {

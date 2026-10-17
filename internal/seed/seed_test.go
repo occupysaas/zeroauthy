@@ -181,6 +181,9 @@ func TestValidation(t *testing.T) {
 		"wildcard over TLD":         {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.com/cb"]}]}]`, "wildcard"},
 		"wildcard bare label":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*.localhost:3000/cb"]}]}]`, "wildcard"},
 		"wildcard empty host":       {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://*./cb"]}]}]`, "wildcard"},
+		"par without tenant":        {`tenants: [{name: a, clients: [{client_id: c, app_type: regular_web, client_secret: s, require_pushed_authorization_requests: true}]}]`, `require_pushed_authorization_requests needs the tenant's pushed_authorization_requests_supported`},
+		"par on public client":      {`tenants: [{name: a, pushed_authorization_requests_supported: true, clients: [{client_id: c, app_type: spa, require_pushed_authorization_requests: true}]}]`, `require_pushed_authorization_requests is only for confidential applications`},
+		"par on third party":        {`tenants: [{name: a, pushed_authorization_requests_supported: true, clients: [{client_id: c, app_type: regular_web, client_secret: s, is_first_party: false, third_party_security_mode: permissive, require_pushed_authorization_requests: true}]}]`, `third-party applications cannot use pushed authorization requests`},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -729,5 +732,49 @@ func TestOmittedSkipConsentAppliesAsFalse(t *testing.T) {
 	}
 	if x.SubjectTypeAuthorization != (store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyRequireClientGrant}) {
 		t.Errorf("default policies: %+v", x.SubjectTypeAuthorization)
+	}
+}
+
+func TestApplyPARFields(t *testing.T) {
+	const doc = `
+tenants:
+  - name: acme
+    pushed_authorization_requests_supported: true
+    clients:
+      - {client_id: web, app_type: regular_web, client_secret: s, require_pushed_authorization_requests: true}
+      - {client_id: other, app_type: regular_web, client_secret: s}
+`
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+		t.Fatal(err)
+	}
+	tn, err := st.Tenants().GetByName(ctx, "acme")
+	if err != nil || !tn.PushedAuthorizationRequestsSupported {
+		t.Fatalf("tenant = %+v, %v", tn, err)
+	}
+	for id, want := range map[string]bool{"web": true, "other": false} {
+		c, err := st.Clients().Get(ctx, tn.ID, id)
+		if err != nil || c.RequirePushedAuthorizationRequests != want {
+			t.Fatalf("%s: RequirePushedAuthorizationRequests = %v, %v; want %v", id, c.RequirePushedAuthorizationRequests, err, want)
+		}
+	}
+
+	// Applying again with the settings removed turns them off.
+	f, err = Parse([]byte(strings.ReplaceAll(strings.ReplaceAll(doc, "pushed_authorization_requests_supported: true", ""), ", require_pushed_authorization_requests: true", "")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ = st.Tenants().GetByName(ctx, "acme")
+	c, _ := st.Clients().Get(ctx, tn.ID, "web")
+	if tn.PushedAuthorizationRequestsSupported || c.RequirePushedAuthorizationRequests {
+		t.Fatalf("settings not cleared: tenant %v client %v", tn.PushedAuthorizationRequestsSupported, c.RequirePushedAuthorizationRequests)
 	}
 }

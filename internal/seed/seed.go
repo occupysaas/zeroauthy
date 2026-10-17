@@ -36,6 +36,7 @@ type Tenant struct {
 
 	SkipNonVerifiableCallbackURIConfirmationPrompt bool `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 	UseScopeDescriptionsForConsent                 bool `yaml:"use_scope_descriptions_for_consent"`
+	PushedAuthorizationRequestsSupported           bool `yaml:"pushed_authorization_requests_supported"`
 }
 
 type ResourceServer struct {
@@ -84,6 +85,7 @@ type Client struct {
 	ThirdPartySecurityMode                         string `yaml:"third_party_security_mode"`
 	RedirectionPolicy                              string `yaml:"redirection_policy"`
 	SkipNonVerifiableCallbackURIConfirmationPrompt *bool  `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
+	RequirePushedAuthorizationRequests             bool   `yaml:"require_pushed_authorization_requests"`
 }
 
 // RefreshToken is a client's refresh-token policy. Values follow Auth0's
