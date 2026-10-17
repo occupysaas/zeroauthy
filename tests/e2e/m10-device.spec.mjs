@@ -21,22 +21,27 @@ async function startDevice(audience, scope) {
     SDK_IMAGE, 'sh', '-c',
     'cp /certs/e2e.crt /usr/local/share/ca-certificates/ && update-ca-certificates >/dev/null 2>&1 && dotnet /app/DeviceE2E.dll "$@"', '--',
     'https://localhost:8443/', 'e2e-device', audience, scope], { stdio: ['ignore', 'pipe', 'inherit'] });
+  // A line that is not JSON rejects with the raw line instead of throwing
+  // from an event handler.
+  const parse = (l) => { try { return JSON.parse(l); } catch { throw new Error(`device client printed non-JSON: ${l}`); } };
   const lines = [];
-  let gotCode;
-  const code = new Promise((resolve, reject) => { gotCode = resolve; child.on('error', reject); });
+  let gotCode, badCode;
+  const code = new Promise((resolve, reject) => { gotCode = resolve; badCode = reject; child.on('error', reject); });
   createInterface({ input: child.stdout }).on('line', (l) => {
     lines.push(l);
-    if (lines.length === 1) gotCode(JSON.parse(l));
+    if (lines.length === 1) { try { gotCode(parse(l)); } catch (e) { badCode(e); } }
   });
-  const final = new Promise((resolve) => child.on('close', (exit) => {
+  const final = new Promise((resolve, reject) => child.on('close', (exit) => {
     gotCode(null);
-    resolve({ exit, last: lines.length > 1 ? JSON.parse(lines.at(-1)) : null });
+    try { resolve({ exit, last: lines.length > 1 ? parse(lines.at(-1)) : null }); } catch (e) { reject(e); }
   }));
+  final.catch(() => {}); // awaited by the test; avoid an unhandled rejection if it fails earlier
   const first = await code;
   expect(first?.event).toBe('code');
   return { code: first, final };
 }
 
+// Serial by design: tests share one login session, and test 2 proves its reuse (D10).
 test.describe.configure({ mode: 'serial', timeout: 180_000 });
 test.skip(!process.env.E2E_DOTNET_DIR, 'needs the auth0.net client built by run-browser.sh (podman on the host)');
 
@@ -53,6 +58,19 @@ test.afterAll(async () => {
 });
 
 const TOKENS = { event: 'tokens', access: true, id: true, refresh: true, refreshed: true };
+
+// mainNavigations runs fn and returns the main-frame URLs it navigated to.
+async function mainNavigations(fn) {
+  const seen = [];
+  const onNav = (f) => { if (f === page.mainFrame()) seen.push(f.url()); };
+  page.on('framenavigated', onNav);
+  try {
+    await fn();
+  } finally {
+    page.off('framenavigated', onNav);
+  }
+  return seen;
+}
 
 async function expectConfirmation(userCode) {
   await page.waitForURL(/localhost:8443\/device\/confirmation\?state=/);
@@ -75,12 +93,11 @@ test('typed code: confirmation, login, no consent, tokens', async () => {
   await page.waitForURL(/localhost:8443\/u\/login/);
   await page.fill('#username', 'alice@e2e.local');
   await page.fill('#password', 'Correct-Horse-Battery-9');
-  const seen = [];
-  page.on('framenavigated', (f) => { if (f === page.mainFrame()) seen.push(f.url()); });
-  await page.click('button[type=submit]');
-  await page.waitForURL('https://localhost:8443/device/success');
+  const seen = await mainNavigations(async () => {
+    await page.click('button[type=submit]');
+    await page.waitForURL('https://localhost:8443/device/success');
+  });
   expect(seen.filter((u) => u.includes('/u/consent'))).toEqual([]); // first party, skip consent (D4)
-  page.removeAllListeners('framenavigated');
   await expect(page.locator('[role=status]')).toHaveText('You can go back to your device now.');
 
   expect(await final).toEqual({ exit: 0, last: TOKENS });
@@ -88,17 +105,16 @@ test('typed code: confirmation, login, no consent, tokens', async () => {
 
 test('complete URI: confirmation first, session reused, consent, tokens', async () => {
   const { code, final } = await startDevice('https://consent.e2e.local', 'openid offline_access read:things');
-  const seen = [];
-  page.on('framenavigated', (f) => { if (f === page.mainFrame()) seen.push(f.url()); });
-  await page.goto(code.verification_uri_complete);
-  await expectConfirmation(code.user_code); // the first screen (D1)
-  await page.click('button[value=confirm]');
-  await page.waitForURL(/localhost:8443\/u\/consent/);
-  await expect(page.locator('ul.scopes')).toContainText(/read:things|Read things/);
-  await page.click('button[value=accept]');
-  await page.waitForURL('https://localhost:8443/device/success');
+  const seen = await mainNavigations(async () => {
+    await page.goto(code.verification_uri_complete);
+    await expectConfirmation(code.user_code); // the first screen (D1)
+    await page.click('button[value=confirm]');
+    await page.waitForURL(/localhost:8443\/u\/consent/);
+    await expect(page.locator('ul.scopes')).toContainText(/read:things|Read things/);
+    await page.click('button[value=accept]');
+    await page.waitForURL('https://localhost:8443/device/success');
+  });
   expect(seen.filter((u) => u.includes('/u/login'))).toEqual([]); // session reused (D10)
-  page.removeAllListeners('framenavigated');
 
   expect(await final).toEqual({ exit: 0, last: TOKENS });
 });

@@ -12,7 +12,12 @@ work="$(mktemp -d)"
 mkdir -p "$work/mail"
 export E2E_MAIL_DIR="$work/mail"
 pids=()
-cleanup() { for p in "${pids[@]}"; do kill "$p" 2>/dev/null || true; done; rm -rf "$work"; }
+cleanup() {
+  for p in "${pids[@]}"; do kill "$p" 2>/dev/null || true; done
+  # m10-device's client containers poll for up to 900 s if Playwright dies.
+  { podman ps -aq --filter name=za-e2e-device- | xargs -r podman rm -f; } >/dev/null 2>&1 || true
+  rm -rf "$work"
+}
 trap cleanup EXIT
 
 # wait_for URL: poll until it answers, failing fast after ~20 s.
