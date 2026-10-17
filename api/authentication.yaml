@@ -371,8 +371,10 @@ paths:
         Returns OpenID Connect claims about the user an access token was
         issued to. The access token must include `https://{tenant_domain}/userinfo`
         in its audience, which tokens requested with scope `openid` do. Claims
-        follow the token's scopes: `profile` adds name, nickname, picture and
-        updated_at; `email` adds email and email_verified.
+        follow the token's scopes: `profile` adds name, given_name,
+        family_name, nickname, picture and updated_at (each when set; name,
+        nickname and updated_at always); `email` adds email and
+        email_verified.
       x-source:
         - https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
         - https://www.rfc-editor.org/rfc/rfc6750#section-2.1
@@ -406,11 +408,25 @@ paths:
       operationId: userinfoPost
       tags: [Users]
       summary: Get the user's profile (POST)
-      description: Same as `GET /userinfo`.
+      description: |
+        Same as `GET /userinfo`. The access token may instead be sent as the
+        `access_token` parameter of a form-encoded body (RFC 6750 §2.2).
+        Sending it both ways, or more than once, is an `invalid_request`
+        (400).
       x-source:
         - https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
+        - https://www.rfc-editor.org/rfc/rfc6750#section-2.2
       security:
         - bearerAuth: []
+        - {}
+      requestBody:
+        required: false
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                access_token: {type: string, description: "The access token, when no Authorization header is sent."}
       responses:
         "200":
           description: The user's claims.
@@ -418,6 +434,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserInfo"
+        "400":
+          description: The access token was sent in more than one way, or the body could not be read.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
         "401":
           description: Missing or invalid access token.
           content:

@@ -160,3 +160,46 @@ func TestUserinfoStoreFailureIs500(t *testing.T) {
 		t.Fatalf("got %d %v", rec.Code, body)
 	}
 }
+
+func (e *uiEnv) postForm(authz, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "https://acme.example.test/userinfo", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if authz != "" {
+		r.Header.Set("Authorization", authz)
+	}
+	rec := httptest.NewRecorder()
+	e.srv.ServeHTTP(rec, r)
+	return rec
+}
+
+// OIDF oidcc-userinfo-post-body: an access token in a form-encoded POST
+// body is accepted (RFC 6750 §2.2, OpenID Connect Core §5.3.1).
+func TestUserinfoPostBodyToken(t *testing.T) {
+	e := newUserinfoEnv(t)
+	tok := e.token(t, "ten_a", nil)
+	rec := e.postForm("", "access_token="+tok)
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if rec.Code != 200 || body["sub"] != "auth0|1" || body["email"] != "alice@acme.test" {
+		t.Fatalf("body token = %d %v", rec.Code, body)
+	}
+	if rec := e.postForm("", "access_token=not-a-token"); rec.Code != 401 || !strings.Contains(rec.Header().Get("WWW-Authenticate"), `error="invalid_token"`) {
+		t.Fatalf("bad body token = %d %v", rec.Code, rec.Header())
+	}
+}
+
+// RFC 6750 §2: a client MUST NOT use more than one method to send the token.
+func TestUserinfoTwoTokenMethodsIs400(t *testing.T) {
+	e := newUserinfoEnv(t)
+	tok := e.token(t, "ten_a", nil)
+	for name, rec := range map[string]*httptest.ResponseRecorder{
+		"header and body": e.postForm("Bearer "+tok, "access_token="+tok),
+		"two body tokens": e.postForm("", "access_token="+tok+"&access_token="+tok),
+	} {
+		var body map[string]any
+		_ = json.Unmarshal(rec.Body.Bytes(), &body)
+		if rec.Code != 400 || body["error"] != "invalid_request" {
+			t.Errorf("%s = %d %v", name, rec.Code, body)
+		}
+	}
+}

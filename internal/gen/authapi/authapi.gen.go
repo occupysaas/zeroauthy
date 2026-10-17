@@ -407,6 +407,12 @@ type OidcLogoutParams struct {
 	UiLocales *string `form:"ui_locales,omitempty" json:"ui_locales,omitempty"`
 }
 
+// UserinfoPostFormdataBody defines parameters for UserinfoPost.
+type UserinfoPostFormdataBody struct {
+	// AccessToken The access token, when no Authorization header is sent.
+	AccessToken *string `form:"access_token,omitempty" json:"access_token,omitempty"`
+}
+
 // LogoutParams defines parameters for Logout.
 type LogoutParams struct {
 	// ReturnTo Where to send the browser after logout.
@@ -454,6 +460,9 @@ type OauthTokenFormdataRequestBody = TokenRequest
 
 // OidcLogoutPostFormdataRequestBody defines body for OidcLogoutPost for application/x-www-form-urlencoded ContentType.
 type OidcLogoutPostFormdataRequestBody = OidcLogoutRequest
+
+// UserinfoPostFormdataRequestBody defines body for UserinfoPost for application/x-www-form-urlencoded ContentType.
+type UserinfoPostFormdataRequestBody UserinfoPostFormdataBody
 
 // Getter for additional properties for DeviceCodeRequest. Returns the specified
 // element and whether it was found

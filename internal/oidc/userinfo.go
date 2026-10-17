@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"errors"
+	"mime"
 	"net/http"
 	"strings"
 
@@ -22,7 +23,12 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusInternalServerError, "server_error", "internal error")
 		return
 	}
-	raw, ok := bearerToken(r)
+	raw, ok, err := accessToken(w, r)
+	if err != nil {
+		w.Header().Set("WWW-Authenticate", `Bearer realm="userinfo", error="invalid_request"`)
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
 	if !ok {
 		w.Header().Set("WWW-Authenticate", `Bearer realm="userinfo"`)
 		httpx.WriteError(w, http.StatusUnauthorized, "invalid_request", "an access token is required")
@@ -74,6 +80,40 @@ func (h *Handlers) internalError(w http.ResponseWriter, r *http.Request, tenantI
 func invalidToken(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", `Bearer realm="userinfo", error="invalid_token"`)
 	httpx.WriteError(w, http.StatusUnauthorized, "invalid_token", "the access token is invalid or expired")
+}
+
+// maxUserinfoFormBytes bounds a form-encoded POST /userinfo body.
+const maxUserinfoFormBytes = 64 << 10
+
+// accessToken reads the access token from the Authorization header (RFC
+// 6750 §2.1) or, on a form-encoded POST, from the access_token body
+// parameter (§2.2). A request that uses both, repeats access_token or has
+// an unreadable body is an invalid_request (§2, §3.1).
+func accessToken(w http.ResponseWriter, r *http.Request) (string, bool, error) {
+	header, hasHeader := bearerToken(r)
+	if r.Method != http.MethodPost {
+		return header, hasHeader, nil
+	}
+	ct, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if ct != "application/x-www-form-urlencoded" {
+		return header, hasHeader, nil
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxUserinfoFormBytes)
+	if err := r.ParseForm(); err != nil {
+		return "", false, errors.New("the request body could not be read")
+	}
+	body, inBody := r.PostForm["access_token"]
+	switch {
+	case !inBody:
+		return header, hasHeader, nil
+	case len(body) != 1:
+		return "", false, errors.New("access_token must be sent once")
+	case r.Header.Get("Authorization") != "":
+		return "", false, errors.New("the access token must be sent in only one way")
+	case strings.TrimSpace(body[0]) == "":
+		return "", false, nil
+	}
+	return strings.TrimSpace(body[0]), true, nil
 }
 
 // bearerToken extracts an RFC 6750 §2.1 bearer token.
