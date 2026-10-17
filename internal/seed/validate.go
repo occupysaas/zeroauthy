@@ -55,12 +55,12 @@ var authMethods = []string{
 	store.AuthMethodNone, store.AuthMethodClientSecretPost, store.AuthMethodClientSecretBasic,
 }
 
-// strictGrantTypes are the only grant types a strict third-party
-// application may use.
 // deviceGrant is the device authorization grant type. It is spelled out
 // here because seed does not import internal/oauth.
 const deviceGrant = "urn:ietf:params:oauth:grant-type:device_code"
 
+// strictGrantTypes are the only grant types a strict third-party
+// application may use.
 var strictGrantTypes = []string{"authorization_code", "refresh_token", "client_credentials"}
 
 // defaultAuthMethod picks a method when the seed omits one. Browser and

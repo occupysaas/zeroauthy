@@ -69,7 +69,16 @@ func (h *Handlers) checkCode(w http.ResponseWriter, r *http.Request, f *flow, co
 	ctx := r.Context()
 	tenantID := f.res.Tenant.ID
 	data := ui.DeviceCodeData{State: f.txn.ID, CSRF: f.txn.CSRFToken, UserCode: code}
-	ipKey := identity.IPThrottleKey(tenantID, httpx.ClientIP(r, h.TrustProxyHeaders))
+	norm := devicecode.Normalize(code)
+	if norm == "" {
+		// Not a guess: it touches no limit, so it adds no throttle entry.
+		data.ErrorKey = i18n.KeyDeviceNoCode
+		ui.RenderDeviceCode(w, http.StatusBadRequest, f.view, data)
+		return
+	}
+	// IPv6 sources are bucketed by /64, so rotating addresses within one
+	// host's prefix does not escape the IP limit.
+	ipKey := identity.IPThrottleKey(tenantID, httpx.IPBucket(httpx.ClientIP(r, h.TrustProxyHeaders)))
 	// Attempt counts the try up front; a code that is found refunds it.
 	tenantOK := h.DeviceTenantThrottle.Attempt(tenantID)
 	ipOK := tenantOK && h.DeviceIPThrottle.Attempt(ipKey)
@@ -82,21 +91,17 @@ func (h *Handlers) checkCode(w http.ResponseWriter, r *http.Request, f *flow, co
 		ui.RenderDeviceCode(w, http.StatusTooManyRequests, f.view, data)
 		return
 	}
-	if !h.DeviceTxnThrottle.Attempt(f.txn.ID) {
-		h.Authz.EndTxn(w, r, f.res, f.txn)
-		h.fail(w, r, errTxn, f)
-		return
-	}
 	refund := func() {
 		h.DeviceTenantThrottle.Refund(tenantID)
 		h.DeviceIPThrottle.Refund(ipKey)
-		h.DeviceTxnThrottle.Refund(f.txn.ID)
 	}
-	norm := devicecode.Normalize(code)
-	if norm == "" {
-		refund() // not a guess
-		data.ErrorKey = i18n.KeyDeviceNoCode
-		ui.RenderDeviceCode(w, http.StatusBadRequest, f.view, data)
+	if !h.DeviceTxnThrottle.Attempt(f.txn.ID) {
+		// No lookup happens, so the tenant and IP are not charged; the
+		// transaction ends, so its throttle entry goes too.
+		refund()
+		h.DeviceTxnThrottle.Success(f.txn.ID)
+		h.Authz.EndTxn(w, r, f.res, f.txn)
+		h.fail(w, r, errTxn, f)
 		return
 	}
 	dc, err := h.Store.DeviceCodes().GetByUserCode(ctx, tenantID, secrets.HashToken(norm))
@@ -110,6 +115,8 @@ func (h *Handlers) checkCode(w http.ResponseWriter, r *http.Request, f *flow, co
 		return
 	}
 	refund()
+	// The entry transaction ends here; drop its throttle entry with it.
+	h.DeviceTxnThrottle.Success(f.txn.ID)
 	h.Authz.EndTxn(w, r, f.res, f.txn)
 
 	_, mask := devicecode.Settings(f.res.Tenant)

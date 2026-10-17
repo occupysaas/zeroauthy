@@ -74,7 +74,10 @@ func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant
 		h.log().ErrorContext(ctx, "load client", "tenant", t.ID, "client_id", clientID, "err", err)
 		return nil, serverError()
 	}
-	if c.TokenEndpointAuthMethod != store.AuthMethodNone || !slices.Contains(c.GrantTypes, GrantDeviceCode) {
+	// Seed validation already limits the grant to first-party native
+	// public clients; checking again here is defence in depth.
+	if c.TokenEndpointAuthMethod != store.AuthMethodNone || !slices.Contains(c.GrantTypes, GrantDeviceCode) ||
+		c.AppType != store.AppTypeNative || !c.IsFirstParty {
 		return nil, unauthorizedClient("the client is not allowed to use the device authorization flow")
 	}
 

@@ -200,7 +200,7 @@ func TestCORS(t *testing.T) {
 		resp, _ := mustDo(t, c, req)
 		return resp
 	}
-	for _, path := range []string{"/oauth/token", "/userinfo"} {
+	for _, path := range []string{"/oauth/token", "/oauth/device/code", "/userinfo"} {
 		resp := preflight(path, "https://app.flow.test")
 		h := resp.Header
 		if resp.StatusCode != 204 || h.Get("Access-Control-Allow-Origin") != "https://app.flow.test" ||

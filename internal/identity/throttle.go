@@ -102,6 +102,12 @@ func (t *Throttle) Attempt(key string) bool {
 // successful logins should not accumulate. It does not clear an active
 // lockout, except one set by the attempt being refunded (the most recent
 // attempt, with none refused since): that lockout is undone too.
+//
+// Refund does not know which window the refunded attempt was counted in.
+// If the window rolled over (and a newer attempt set a lockout) while the
+// refunded request was in flight, Refund lifts that newer lockout: at most
+// one extra miss gets through, and only behind a request that was in
+// flight for minutes.
 func (t *Throttle) Refund(key string) {
 	if t == nil {
 		return
@@ -128,6 +134,16 @@ func (t *Throttle) Success(key string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	delete(t.entries, key)
+}
+
+// Len returns the number of keys the throttle holds state for.
+func (t *Throttle) Len() int {
+	if t == nil {
+		return 0
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return len(t.entries)
 }
 
 // prune removes entries whose window and lockout have both passed. The

@@ -2,6 +2,7 @@ package login
 
 import (
 	"context"
+	"fmt"
 	"html"
 	"net/http"
 	"net/http/httptest"
@@ -193,6 +194,47 @@ func TestDeviceTxnLimit(t *testing.T) {
 	if _, err := e.st.AuthTransactions().Get(context.Background(), mustTenant(t, e, "acme").ID, state); err == nil {
 		t.Fatal("the transaction was not deleted")
 	}
+	if n := e.h.DeviceTxnThrottle.Len(); n != 0 {
+		t.Fatalf("the discarded transaction left %d throttle entries", n)
+	}
+}
+
+// The request the transaction limit refuses looks nothing up, so it is
+// not charged to the IP (or the tenant).
+func TestDeviceTxnLimitRefundsIP(t *testing.T) {
+	e := newEnv(t)
+	e.h.DeviceIPThrottle = identity.NewThrottle(7, 15*time.Minute, 15*time.Minute)
+	b := e.browser("acme.example.test")
+	state, csrf := b.entry(t)
+	form := url.Values{"state": {state}, "csrf": {csrf}, "code": {"wrongcode"}}
+	for i := 0; i < 5; i++ {
+		entryError(t, b.do(t, "POST", "/activate", form), http.StatusBadRequest, i18n.KeyDeviceInvalidExpiredCode)
+	}
+	sessionExpired(t, b.do(t, "POST", "/activate", form))
+	// Misses six and seven are within the IP limit of seven; the refused
+	// request would have made the seventh the eighth.
+	for i := 0; i < 2; i++ {
+		entryError(t, b.submitCode(t, "wrongcode"), http.StatusBadRequest, i18n.KeyDeviceInvalidExpiredCode)
+	}
+	entryError(t, b.submitCode(t, "wrongcode"), http.StatusTooManyRequests, i18n.KeyTooManyAttempts)
+}
+
+// Addresses in one IPv6 /64 share an IP limit; another /64 has its own.
+func TestDeviceIPLimitBucketsIPv6(t *testing.T) {
+	e := newEnv(t)
+	e.h.DeviceIPThrottle = identity.NewThrottle(3, 15*time.Minute, 15*time.Minute)
+	e.pendingCode(t, userCode)
+	for i := 0; i < 3; i++ {
+		b := e.browser("acme.example.test")
+		b.remoteAddr = fmt.Sprintf("[2001:db8:1:2::%x]:1234", i+1)
+		entryError(t, b.submitCode(t, "wrongcode"), http.StatusBadRequest, i18n.KeyDeviceInvalidExpiredCode)
+	}
+	same := e.browser("acme.example.test")
+	same.remoteAddr = "[2001:db8:1:2:ffff::9]:1234"
+	entryError(t, same.submitCode(t, userCode), http.StatusTooManyRequests, i18n.KeyTooManyAttempts)
+	other := e.browser("acme.example.test")
+	other.remoteAddr = "[2001:db8:1:3::1]:1234"
+	redirectTo(t, other.submitCode(t, userCode), "/device/confirmation")
 }
 
 func TestDeviceIPLimit(t *testing.T) {
@@ -242,6 +284,10 @@ func TestDeviceSuccessRefunds(t *testing.T) {
 	}
 	// The third attempt succeeds: it is refunded, and does not lock the IP.
 	redirectTo(t, b.submitCode(t, userCode), "/device/confirmation")
+	// The ended entry transaction leaves no throttle entry behind.
+	if n := e.h.DeviceTxnThrottle.Len(); n != 2 {
+		t.Fatalf("%d transaction throttle entries, want the 2 missed ones", n)
+	}
 	state, csrf := b.entry(t)
 	form := url.Values{"state": {state}, "csrf": {csrf}, "code": {"wrongcode"}}
 	entryError(t, b.do(t, "POST", "/activate", form), http.StatusBadRequest, i18n.KeyDeviceInvalidExpiredCode)
@@ -392,8 +438,20 @@ func TestDeviceNoCodeNotCounted(t *testing.T) {
 	for i := 0; i < 8; i++ {
 		rec := b.do(t, "POST", "/activate", url.Values{"state": {state}, "csrf": {csrf}, "code": {" - "}})
 		entryError(t, rec, http.StatusBadRequest, i18n.KeyDeviceNoCode)
+		entryError(t, b.do(t, "GET", "/activate?user_code=", nil), http.StatusBadRequest, i18n.KeyDeviceNoCode)
+	}
+	// Empty codes create no throttle state at all.
+	for name, th := range map[string]*identity.Throttle{
+		"txn": e.h.DeviceTxnThrottle, "ip": e.h.DeviceIPThrottle, "tenant": e.h.DeviceTenantThrottle,
+	} {
+		if n := th.Len(); n != 0 {
+			t.Fatalf("%s throttle has %d entries after empty codes", name, n)
+		}
 	}
 	redirectTo(t, b.do(t, "POST", "/activate", url.Values{"state": {state}, "csrf": {csrf}, "code": {userCode}}), "/device/confirmation")
+	if n := e.h.DeviceTxnThrottle.Len(); n != 0 {
+		t.Fatalf("a found code left %d transaction throttle entries", n)
+	}
 }
 
 // The client's name is shown outside the overridable text: the tenant's

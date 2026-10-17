@@ -40,7 +40,7 @@ type Handlers struct {
 	// Device code entry limits (/activate). Each counts misses; a code
 	// that is found refunds its attempt.
 	DeviceTxnThrottle    *identity.Throttle // key: transaction ID
-	DeviceIPThrottle     *identity.Throttle // key: identity.IPThrottleKey(tenant, ip); nil = off
+	DeviceIPThrottle     *identity.Throttle // key: identity.IPThrottleKey(tenant, httpx.IPBucket(ip)); nil = off
 	DeviceTenantThrottle *identity.Throttle // key: tenant ID; nil = off
 	TrustProxyHeaders    bool
 	Log                  *slog.Logger

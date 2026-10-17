@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -235,4 +237,81 @@ func TestNewWarnsWhenNodeIsMissing(t *testing.T) {
 	if rec.Code != 200 {
 		t.Fatalf("jwks = %d", rec.Code)
 	}
+}
+
+// TestDeviceThrottlesFromConfig: the app builds the device activation
+// limits from the security settings.
+func TestDeviceThrottlesFromConfig(t *testing.T) {
+	newApp := func(t *testing.T, sec config.Security) http.Handler {
+		t.Helper()
+		seedPath := filepath.Join(t.TempDir(), "seed.yaml")
+		if err := os.WriteFile(seedPath, []byte("tenants:\n  - name: acme\n    domains: [acme.example.test]\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		cfg := &config.Config{Storage: config.Storage{DSN: "memory://"}, Seed: seedPath, Security: sec}
+		a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = a.Close() })
+		return a.Handler()
+	}
+	check := func(t *testing.T, h http.Handler, remoteAddr string) int {
+		t.Helper()
+		req := httptest.NewRequest("GET", "https://acme.example.test/activate?user_code=BCDF-GHJK", nil)
+		req.RemoteAddr = remoteAddr
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	t.Run("ip", func(t *testing.T) {
+		h := newApp(t, config.Security{DeviceActivationTxnMaxMisses: 5, DeviceActivationIPMaxMisses: 2, DeviceActivationIPLockoutSeconds: 900})
+		for i, want := range []int{400, 400, 429} {
+			if got := check(t, h, "192.0.2.1:1234"); got != want {
+				t.Fatalf("miss %d from one IP = %d, want %d", i+1, got, want)
+			}
+		}
+		if got := check(t, h, "192.0.2.2:1234"); got != 400 {
+			t.Fatalf("another IP = %d, want 400", got)
+		}
+	})
+	t.Run("tenant", func(t *testing.T) {
+		h := newApp(t, config.Security{DeviceActivationTxnMaxMisses: 5,
+			DeviceActivationTenantMaxMisses: 2, DeviceActivationTenantWindowSeconds: 600, DeviceActivationTenantLockoutSeconds: 60})
+		for i, want := range []int{400, 400, 429} {
+			if got := check(t, h, fmt.Sprintf("192.0.2.%d:1234", i+1)); got != want {
+				t.Fatalf("miss %d from another IP = %d, want %d", i+1, got, want)
+			}
+		}
+	})
+	t.Run("transaction", func(t *testing.T) {
+		h := newApp(t, config.Security{DeviceActivationTxnMaxMisses: 1})
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("GET", "https://acme.example.test/activate", nil))
+		state := regexp.MustCompile(`name="state" value="([^"]+)"`).FindStringSubmatch(rec.Body.String())
+		csrf := regexp.MustCompile(`name="csrf" value="([^"]+)"`).FindStringSubmatch(rec.Body.String())
+		if rec.Code != 200 || state == nil || csrf == nil {
+			t.Fatalf("entry = %d %s", rec.Code, rec.Body)
+		}
+		cookies := rec.Result().Cookies()
+		post := func() (int, string) {
+			form := url.Values{"state": {state[1]}, "csrf": {csrf[1]}, "code": {"BCDF-GHJK"}}
+			req := httptest.NewRequest("POST", "https://acme.example.test/activate", strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			for _, c := range cookies {
+				req.AddCookie(c)
+			}
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+			return rec.Code, rec.Body.String()
+		}
+		// The one allowed miss shows the entry form again; the next
+		// request finds the transaction used up.
+		if got, body := post(); got != 400 || !strings.Contains(body, `action="/activate"`) {
+			t.Fatalf("first miss = %d\n%s", got, body)
+		}
+		if got, body := post(); got != 400 || strings.Contains(body, `action="/activate"`) {
+			t.Fatalf("second miss = %d, want the session-expired page\n%s", got, body)
+		}
+	})
 }

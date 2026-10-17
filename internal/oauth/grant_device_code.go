@@ -56,6 +56,7 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 	case store.PollExpired:
 		return nil, expiredToken()
 	case store.PollApproved:
+		// Approved and now consumed: mint the tokens below.
 	default:
 		return nil, deviceInvalidGrant("invalid device code")
 	}
@@ -63,11 +64,11 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 	dc := poll.Code
 	user, oerr := h.activeUser(ctx, tenantID, dc.UserID)
 	if oerr != nil {
-		return nil, oerr
+		return nil, deviceError(oerr)
 	}
 	rs, lifetime, oerr := h.audienceFor(ctx, tenantID, dc.Audience)
 	if oerr != nil {
-		return nil, oerr
+		return nil, deviceError(oerr)
 	}
 	scopes := userScopes(dc.GrantedScopes, rs, offlineAllowed(c, rs))
 	// Device tokens belong to no browser session: no sid, no auth_time.
@@ -93,4 +94,13 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 		resp.RefreshToken = &raw
 	}
 	return resp, nil
+}
+
+// deviceError gives a shared helper's invalid_grant the device flow's
+// status, 403, like every other invalid_grant the device grant returns.
+func deviceError(oerr *Error) *Error {
+	if oerr.Code == "invalid_grant" {
+		return deviceInvalidGrant(oerr.Description)
+	}
+	return oerr
 }

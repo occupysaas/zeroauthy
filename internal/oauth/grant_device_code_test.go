@@ -206,7 +206,6 @@ func TestDeviceGrantBlockedUser(t *testing.T) {
 	}
 	raw, _ := f.newDeviceCode(t, "dev", store.DeviceCodeApproved, carol.UserID, []string{"openid"})
 	code, body := f.pollAt(t, fixedNow(), deviceForm("dev", raw))
-	if code == 200 || body["error"] == nil {
-		t.Fatalf("got %d %v", code, body)
-	}
+	// Like every other device-grant invalid_grant, 403 rather than 400.
+	wantErr(t, code, body, 403, "invalid_grant")
 }

@@ -57,13 +57,15 @@ The device polls `POST /oauth/token` with `grant_type=urn:ietf:params:oauth:gran
 | Answer | Meaning |
 |---|---|
 | `403 authorization_pending` | The user has not finished. Poll again after `interval`. |
-| `429 slow_down` | The poll came less than 1 second after the previous one. |
+| `429 slow_down` | The poll came less than 1 second after the last poll that was not answered `slow_down`. |
 | `403 access_denied` | The user declined. Reported once; later polls are `invalid_grant`. |
 | `403 expired_token` | The code expired. Reported on the first poll after expiry; later polls are `invalid_grant`. |
 | `403 invalid_grant` | Unknown, wrong-client or already-used code. |
 | `200` | Tokens, once. |
 
-Device tokens are not tied to the browser session: the ID token has no `sid` or `auth_time`, and logging out in the browser does not sign the device out.
+Device tokens are not tied to the browser session: the ID token has no `sid` or `auth_time` (and no `at_hash`), and logging out in the browser does not sign the device out.
+
+Browser-based device software (for example a TV app built on web technology) can call `/oauth/device/code` and `/oauth/token` cross-origin if one of the tenant's clients lists the page's origin in `web_origins` or `allowed_origins`, as with Auth0's Allowed Web Origins.
 
 ## Refresh tokens for TV apps
 
@@ -76,10 +78,12 @@ A user code is only a pointer to a login the guesser would have to complete as t
 | Limit | Default | Config keys under `security` |
 |---|---|---|
 | Wrong codes per sign-in attempt (the transaction is then discarded) | 5 | `device_activation_txn_max_misses` |
-| Wrong codes per IP, then that IP is locked | 10, lockout 900 s | `device_activation_ip_max_misses`, `device_activation_ip_lockout_seconds` |
+| Wrong codes per IP, then that IP is locked | 10 per 900 s, lockout 900 s (the window equals the lockout) | `device_activation_ip_max_misses`, `device_activation_ip_lockout_seconds` |
 | Wrong codes per tenant, then the tenant is locked | 1,000 per 600 s, lockout 60 s | `device_activation_tenant_max_misses`, `device_activation_tenant_window_seconds`, `device_activation_tenant_lockout_seconds` |
 
-Set an IP or tenant maximum to 0 to switch that limit off. The transaction limit must be at least 1, and the other values must be positive while their limit is on. Behind a proxy, make sure the server sees the real client IP, or the IP limit counts everyone together. These numbers are zeroauthy's own (D-0034); Auth0 does not publish its.
+Set an IP or tenant maximum to 0 to switch that limit off. The transaction limit must be at least 1, and the other values must be positive while their limit is on. Behind a proxy, make sure the server sees the real client IP, or the IP limit counts everyone together.
+
+The IP limit counts IPv6 clients by their /64 prefix, since one host usually holds a whole /64 and could otherwise rotate addresses without limit; IPv4 addresses (including IPv4-mapped IPv6) count one by one. The tenant limit trades availability for guess resistance: many sources together can keep `/activate` locked for the whole tenant for the lockout period. Operators who prefer availability can switch it off with `device_activation_tenant_max_misses: 0` and rely on the per-IP and per-transaction limits. These numbers are zeroauthy's own (D-0034); Auth0 does not publish its.
 
 ## Using it from auth0.net
 

@@ -520,5 +520,5 @@ them. Each entry: context, sources consulted, decision, rationale.
 
 - **Context:** Auth0 says it rate-limits the device flow but publishes no numbers, and CLEAN_ROOM.md forbids load testing a tenant to find them.
 - **Sources:** the D-0031 docs; RFC 8628 §5.1 (user code brute forcing); design spec §5.
-- **Decision:** zeroauthy's own limits on wrong codes at `/activate`, each in-process: 5 per transaction (the transaction is then discarded), 10 per IP per 15 minutes, and 1,000 per tenant per 10 minutes with a 1-minute lockout. The IP and tenant limits can be turned off (0). Only misses count. Config keys are `security.device_activation_*`.
+- **Decision:** zeroauthy's own limits on wrong codes at `/activate`, each in-process: 5 per transaction (the transaction is then discarded), 10 per IP per 15 minutes, and 1,000 per tenant per 10 minutes with a 1-minute lockout. The IP limit buckets IPv6 clients by /64 (IPv4 and IPv4-mapped addresses by address). The IP and tenant limits can be turned off (0). Only misses count. Config keys are `security.device_activation_*`.
 - **Rationale:** a deliberate deviation in numbers, not in behaviour: Auth0 also throttles, and RFC 8628 requires protection against guessing. The defaults keep a slow or typo-prone user unaffected.

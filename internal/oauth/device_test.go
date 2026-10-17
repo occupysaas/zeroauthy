@@ -98,6 +98,34 @@ func TestDeviceCodeErrors(t *testing.T) {
 	}
 }
 
+// Seed validation rejects such clients; the endpoint checks again.
+func TestDeviceCodeRequiresFirstPartyNative(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		change func(*store.Client)
+	}{
+		{"spa", func(c *store.Client) { c.AppType = store.AppTypeSPA }},
+		{"third party", func(c *store.Client) { c.IsFirstParty = false }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			ctx := context.Background()
+			c, err := f.st.Clients().Get(ctx, f.tenantID(t, "acme"), "dev")
+			if err != nil {
+				t.Fatal(err)
+			}
+			tc.change(c)
+			if err := f.st.Clients().Update(ctx, c); err != nil {
+				t.Fatal(err)
+			}
+			rec, body := f.deviceCode(t, acmeHost, formType, "client_id=dev")
+			if rec.Code != 403 || body["error"] != "unauthorized_client" {
+				t.Fatalf("status %d body %v", rec.Code, body)
+			}
+		})
+	}
+}
+
 func TestDeviceCodeJSONBody(t *testing.T) {
 	f := newFixture(t)
 	rec, body := f.deviceCode(t, acmeHost, "application/json", `{"client_id":"dev","scope":"openid"}`)

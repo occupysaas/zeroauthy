@@ -75,6 +75,9 @@ func (r deviceCodes) Poll(_ context.Context, tenantID, deviceCodeHash string, at
 	case d.Status == store.DeviceCodeConsumed:
 		return out(store.PollInvalid)
 	case !at.Before(d.ExpiresAt):
+		// Expiry is checked before consumption, so an approval the device
+		// did not collect before expiry is lost: RFC 8628 treats an expired
+		// device code as invalid (Auth0's behaviour here is unobserved).
 		if d.ExpiredReportedAt != nil {
 			return out(store.PollInvalid)
 		}
