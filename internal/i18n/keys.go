@@ -39,3 +39,12 @@ const (
 	KeyResetErrGenericTitle = "reset-password.reset-password-error.eventTitleGeneric"
 	KeyResetErrGeneric      = "reset-password.reset-password-error.descriptionGeneric"
 )
+
+// Device code entry errors (Auth0's device-code-activation screen). One
+// message covers an unknown, expired or used code (D7); invalid-code is in
+// the catalog because Auth0 documents it, and is not shown.
+const (
+	KeyDeviceNoCode             = "device-flow.device-code-activation.no-code"
+	KeyDeviceInvalidCode        = "device-flow.device-code-activation.invalid-code"
+	KeyDeviceInvalidExpiredCode = "device-flow.device-code-activation.invalid-expired-code"
+)

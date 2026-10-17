@@ -46,8 +46,9 @@ tenants:
         allowed_logout_urls: ["https://app.flow.test/bye"]
         web_origins: ["https://app.flow.test"]
         allowed_origins: ["https://app.flow.test"]
+      - {client_id: tv, name: "Flow TV", app_type: native, grant_types: ["urn:ietf:params:oauth:grant-type:device_code"]}
     connections:
-      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa]}
+      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, tv]}
     users:
       - {connection: Username-Password-Authentication, email: alice@flow.test, password: "alice password 1", email_verified: true}
 `
@@ -357,5 +358,54 @@ func TestEndToEndConsentFlow(t *testing.T) {
 	_ = json.Unmarshal([]byte(body), &tok)
 	if resp.StatusCode != 200 || tok["scope"] != "read:things" || tok["id_token"] != nil {
 		t.Fatalf("token = %d %s", resp.StatusCode, body)
+	}
+}
+
+// The device flow over HTTP: the code request, the browser pages (with a
+// real cookie jar, so the Path=/ transaction cookies must reach /activate
+// and /device/confirmation) and the token poll.
+func TestEndToEndDeviceFlow(t *testing.T) {
+	e := newFlowEnv(t)
+	c := e.client(t)
+	resp, dev := e.postForm(t, c, "/oauth/device/code", url.Values{"client_id": {"tv"}, "scope": {"openid"}})
+	if resp.StatusCode != 200 {
+		t.Fatalf("device code = %d %v", resp.StatusCode, dev)
+	}
+	complete, _ := dev["verification_uri_complete"].(string)
+	u, err := url.Parse(complete)
+	if err != nil || u.Path != "/activate" {
+		t.Fatalf("verification_uri_complete = %q", complete)
+	}
+	resp, _ = fetch(t, c, e.base+u.RequestURI())
+	loc, _ := resp.Location()
+	if resp.StatusCode != 302 || loc == nil || loc.Path != "/device/confirmation" {
+		t.Fatalf("activate = %d %v", resp.StatusCode, loc)
+	}
+	resp, body := fetch(t, c, loc.String())
+	if resp.StatusCode != 200 || !strings.Contains(body, dev["user_code"].(string)) {
+		t.Fatalf("confirmation = %d\n%s", resp.StatusCode, body)
+	}
+	post := func(path string, form url.Values) (*http.Response, string) {
+		req, _ := http.NewRequest("POST", e.base+path, strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return mustDo(t, c, req)
+	}
+	resp, _ = post("/device/confirmation", url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrfRe.FindStringSubmatch(body)[1]}, "action": {"confirm"}})
+	loc, _ = resp.Location()
+	if resp.StatusCode != 302 || loc == nil || loc.Path != "/u/login" {
+		t.Fatalf("confirm = %d %v", resp.StatusCode, loc)
+	}
+	_, body = fetch(t, c, e.base+loc.RequestURI())
+	resp, _ = post("/u/login", url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrfRe.FindStringSubmatch(body)[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}})
+	loc, _ = resp.Location()
+	if resp.StatusCode != 302 || loc == nil || loc.Path != "/device/success" {
+		t.Fatalf("login = %d %v", resp.StatusCode, loc)
+	}
+	if resp, body = fetch(t, c, e.base+"/device/success"); resp.StatusCode != 200 {
+		t.Fatalf("success page = %d\n%s", resp.StatusCode, body)
+	}
+	resp, tok := e.postForm(t, c, "/oauth/token", url.Values{"grant_type": {"urn:ietf:params:oauth:grant-type:device_code"}, "client_id": {"tv"}, "device_code": {dev["device_code"].(string)}})
+	if resp.StatusCode != 200 || tok["id_token"] == nil || tok["access_token"] == nil {
+		t.Fatalf("token = %d %v", resp.StatusCode, tok)
 	}
 }

@@ -27,6 +27,11 @@ type throttleEntry struct {
 	count       int
 	windowStart time.Time
 	lockedUntil time.Time
+	// lockedByLast is set when the most recent attempt set the lockout
+	// and no attempt was refused since; prevWindow is the window start
+	// before it. Refund then undoes the lockout.
+	lockedByLast bool
+	prevWindow   time.Time
 }
 
 // NewThrottle returns a throttle that locks a key for lockout after
@@ -74,6 +79,7 @@ func (t *Throttle) Attempt(key string) bool {
 		e = &throttleEntry{windowStart: now}
 		t.entries[key] = e
 	} else if now.Before(e.lockedUntil) {
+		e.lockedByLast = false
 		return false
 	} else if now.Sub(e.windowStart) > t.window {
 		// The window expired. lockedUntil is left alone, so a lockout
@@ -82,7 +88,9 @@ func (t *Throttle) Attempt(key string) bool {
 		e.count = 0
 	}
 	e.count++
+	e.lockedByLast = false
 	if e.count >= t.max {
+		e.lockedByLast, e.prevWindow = true, e.windowStart
 		e.lockedUntil = now.Add(t.lockout)
 		e.count = 0
 		e.windowStart = now
@@ -90,15 +98,24 @@ func (t *Throttle) Attempt(key string) bool {
 	return true
 }
 
-// Refund undoes one counted attempt for key. It does not clear an active
-// lockout. Use it for a key whose successful logins should not accumulate.
+// Refund undoes one counted attempt for key. Use it for a key whose
+// successful logins should not accumulate. It does not clear an active
+// lockout, except one set by the attempt being refunded (the most recent
+// attempt, with none refused since): that lockout is undone too.
 func (t *Throttle) Refund(key string) {
 	if t == nil {
 		return
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if e, ok := t.entries[key]; ok && e.count > 0 {
+	e, ok := t.entries[key]
+	switch {
+	case !ok:
+	case e.lockedByLast:
+		e.lockedByLast = false
+		e.lockedUntil = time.Time{}
+		e.count, e.windowStart = t.max-1, e.prevWindow
+	case e.count > 0:
 		e.count--
 	}
 }

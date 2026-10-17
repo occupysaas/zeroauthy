@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"maps"
 	"net/http"
 	"strings"
 	"time"
@@ -11,9 +12,11 @@ import (
 )
 
 // CreateTxn stores a transaction bound to this browser (sets the za_txn
-// cookie, scoped to cookiePath) and returns it. startTxn uses it.
+// cookie, scoped to cookiePath) and returns it. startTxn uses it. The
+// transaction keeps a copy of params.
 func (h *Handlers) CreateTxn(w http.ResponseWriter, r *http.Request, res tenant.Resolved, clientID string, params map[string]string, cookiePath string) (*store.AuthTransaction, error) {
 	now := h.now()
+	params = maps.Clone(params)
 	if cookiePath != "/u" {
 		if params == nil {
 			params = map[string]string{}

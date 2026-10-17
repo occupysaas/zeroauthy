@@ -41,6 +41,12 @@ type Deps struct {
 	UserThrottle      *identity.Throttle
 	IPThrottle        *identity.Throttle
 	TrustProxyHeaders bool
+
+	// Device code entry limits; see login.Handlers. The IP and tenant
+	// throttles may be nil (off).
+	DeviceTxnThrottle    *identity.Throttle
+	DeviceIPThrottle     *identity.Throttle
+	DeviceTenantThrottle *identity.Throttle
 }
 
 // authAPI adapts the handler groups to the generated ServerInterface.
@@ -121,6 +127,7 @@ func New(d Deps) http.Handler {
 		Database:     db,
 		Resets:       dbconnHandlers,
 		UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
+		DeviceTxnThrottle: d.DeviceTxnThrottle, DeviceIPThrottle: d.DeviceIPThrottle, DeviceTenantThrottle: d.DeviceTenantThrottle,
 		TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 	}
 
@@ -160,6 +167,13 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/reset-password/request", lg.ResetRequestSubmit)
 		tr.Get("/u/reset-password", lg.ResetPasswordPage)
 		tr.Post("/u/reset-password", lg.ResetPasswordSubmit)
+		// Device flow pages, at the paths observed on Auth0.
+		tr.Get("/activate", lg.Activate)
+		tr.Post("/activate", lg.ActivateSubmit)
+		tr.Get("/device/confirmation", lg.DeviceConfirmPage)
+		tr.Post("/device/confirmation", lg.DeviceConfirmSubmit)
+		tr.Get("/device/success", lg.DeviceSuccess)
+		tr.Get("/device/denied", lg.DeviceDenied)
 	})
 	return r
 }

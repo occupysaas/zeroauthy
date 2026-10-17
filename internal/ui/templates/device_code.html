@@ -1,0 +1,14 @@
+{{define "doctitle"}}{{t .Tenant.L "device-flow.device-code-activation.pageTitle"}}{{end}}
+{{define "title"}}{{t .Tenant.L "device-flow.device-code-activation.title"}}{{end}}
+{{define "description"}}{{t .Tenant.L "device-flow.device-code-activation.description"}}{{end}}
+{{define "logoalt"}}{{t .Tenant.L "device-flow.device-code-activation.logoAltText"}}{{end}}
+{{define "content"}}
+{{if .Data.ErrorKey}}<p class="alert" role="alert">{{t .Tenant.L .Data.ErrorKey}}</p>{{end}}
+<form method="post" action="/activate" novalidate>
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<label for="code">{{t .Tenant.L "device-flow.device-code-activation.placeholder"}}</label>
+<input id="code" name="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" value="{{.Data.UserCode}}" required autofocus>
+<button type="submit">{{t .Tenant.L "device-flow.device-code-activation.buttonText"}}</button>
+</form>
+{{end}}

@@ -32,6 +32,7 @@ func (h *Handlers) ConsentPage(w http.ResponseWriter, r *http.Request) {
 	ui.RenderConsent(w, http.StatusOK, f.view, ui.ConsentData{
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Confirmation: v.Confirmation, ThirdParty: v.ThirdParty,
 		CallbackDomain: v.CallbackDomain, APIName: v.APIName, Scopes: v.Scopes, RedirectURI: v.RedirectURI,
+		Device: v.Device,
 	})
 }
 

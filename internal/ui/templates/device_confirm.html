@@ -1,0 +1,15 @@
+{{define "doctitle"}}{{t .Tenant.L "device-flow.device-code-confirmation.pageTitle"}}{{end}}
+{{define "title"}}{{t .Tenant.L "device-flow.device-code-confirmation.title"}}{{end}}
+{{define "description"}}{{t .Tenant.L "device-flow.device-code-confirmation.description"}}{{end}}
+{{define "logoalt"}}{{t .Tenant.L "device-flow.device-code-confirmation.logoAltText"}}{{end}}
+{{define "content"}}
+<label for="code">{{t .Tenant.L "device-flow.device-code-confirmation.inputCodeLabel"}}</label>
+<input id="code" type="text" value="{{.Data.UserCode}}" readonly>
+<p>{{t .Tenant.L "device-flow.device-code-confirmation.confirmationText"}}</p>
+<form method="post" action="/device/confirmation">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<button type="submit" name="action" value="confirm">{{t .Tenant.L "device-flow.device-code-confirmation.confirmButtonText"}}</button>
+<button type="submit" name="action" value="cancel" class="secondary">{{t .Tenant.L "device-flow.device-code-confirmation.cancelButtonText"}}</button>
+</form>
+{{end}}

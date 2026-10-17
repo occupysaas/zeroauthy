@@ -285,3 +285,27 @@ func TestValidateLocalesRejectsNonCanonicalAndSpecialTags(t *testing.T) {
 		}
 	}
 }
+
+// The device-flow prompt has every key Auth0 documents for its four screens.
+func TestDeviceFlowKeys(t *testing.T) {
+	screens := map[string][]string{
+		"device-code-activation": {"pageTitle", "title", "description", "placeholder", "buttonText", "logoAltText",
+			"invalid-code", "invalid-expired-code", "no-code"},
+		"device-code-confirmation": {"pageTitle", "title", "description", "inputCodeLabel", "confirmationText",
+			"confirmButtonText", "cancelButtonText", "logoAltText"},
+		"device-code-activation-allowed": {"pageTitle", "eventTitle", "description"},
+		"device-code-activation-denied":  {"pageTitle", "eventTitle", "description"},
+	}
+	for screen, keys := range screens {
+		for _, k := range keys {
+			if catalogs["en"]["device-flow."+screen+"."+k] == "" {
+				t.Errorf("device-flow.%s.%s missing from en.json", screen, k)
+			}
+		}
+	}
+	for _, k := range []string{KeyDeviceNoCode, KeyDeviceInvalidCode, KeyDeviceInvalidExpiredCode, "zeroauthy.consent.externalDeviceApp"} {
+		if catalogs["en"][k] == "" {
+			t.Errorf("key %q missing from en.json", k)
+		}
+	}
+}

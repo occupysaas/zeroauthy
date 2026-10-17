@@ -9,7 +9,7 @@
 <ul class="scopes">
 {{range .Data.Scopes}}<li>{{.}}</li>
 {{end}}</ul>
-{{if .Data.ThirdParty}}<p role="note">{{t .Tenant.L "zeroauthy.consent.externalApp" "callbackDomain" .Data.CallbackDomain}}</p>{{end}}
+{{if .Data.ThirdParty}}<p role="note">{{if .Data.Device}}{{t .Tenant.L "zeroauthy.consent.externalDeviceApp"}}{{else}}{{t .Tenant.L "zeroauthy.consent.externalApp" "callbackDomain" .Data.CallbackDomain}}{{end}}</p>{{end}}
 {{end}}
 <form method="post" action="/u/consent">
 <input type="hidden" name="state" value="{{.Data.State}}">

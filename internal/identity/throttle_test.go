@@ -142,3 +142,22 @@ func TestNewThrottleOrOffZero(t *testing.T) {
 		t.Fatal("max 3 should be on")
 	}
 }
+
+// Refunding the attempt that set a lockout undoes the lockout as well: a
+// success on the last allowed try does not lock the key.
+func TestThrottleRefundUndoesOwnLockout(t *testing.T) {
+	th := NewThrottle(3, time.Hour, time.Hour)
+	th.Attempt("k")
+	th.Attempt("k")
+	if !th.Attempt("k") {
+		t.Fatal("third attempt refused")
+	}
+	th.Refund("k") // the third attempt succeeded
+	if !th.Attempt("k") {
+		t.Fatal("refunded attempt left the key locked")
+	}
+	// That attempt (count 3 again) locks; without a refund it stays locked.
+	if th.Attempt("k") {
+		t.Fatal("key not locked after 3 counted attempts")
+	}
+}

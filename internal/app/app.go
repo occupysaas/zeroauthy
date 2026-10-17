@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
@@ -147,6 +148,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	}
 
 	lockout := time.Duration(cfg.Security.LoginLockoutSeconds) * time.Second
+	sec := cfg.Security
 	return &App{
 		cfg:    cfg,
 		log:    log,
@@ -164,6 +166,12 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			UserThrottle:      identity.NewThrottle(cfg.Security.LoginMaxAttempts, lockout, lockout),
 			IPThrottle:        identity.NewThrottle(10*cfg.Security.LoginMaxAttempts, lockout, lockout),
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
+
+			DeviceTxnThrottle: identity.NewThrottle(sec.DeviceActivationTxnMaxMisses, authz.TxnLifetime, authz.TxnLifetime),
+			DeviceIPThrottle: identity.NewThrottleOrOff(sec.DeviceActivationIPMaxMisses,
+				seconds(sec.DeviceActivationIPLockoutSeconds), seconds(sec.DeviceActivationIPLockoutSeconds)),
+			DeviceTenantThrottle: identity.NewThrottleOrOff(sec.DeviceActivationTenantMaxMisses,
+				seconds(sec.DeviceActivationTenantWindowSeconds), seconds(sec.DeviceActivationTenantLockoutSeconds)),
 		}),
 	}, nil
 }
@@ -240,3 +248,5 @@ func (a *App) Close() error {
 	}
 	return errors.Join(errRunner, a.store.Close())
 }
+
+func seconds(n int) time.Duration { return time.Duration(n) * time.Second }

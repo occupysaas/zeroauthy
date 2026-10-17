@@ -103,14 +103,17 @@ func (h *Handlers) validateFlow(ctx context.Context, res tenant.Resolved, fr *fl
 // session: the user starts over on the device page.
 func (h *Handlers) flowError(w http.ResponseWriter, r *http.Request, res tenant.Resolved, fr flowReq, e *Error) {
 	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, fr.UILocales))
-	detail := e.Description
+	status, title, detail := http.StatusBadRequest, i18n.KeyErrInvalidRequest, e.Description
 	switch {
 	case e == errCodeNotPending:
 		detail = view.L.T(i18n.KeyErrSessionExpired)
-	case fr.device() && e.Code == "server_error":
-		detail = view.L.T(i18n.KeyErrServer)
+	case e.Code == "server_error":
+		status, title = http.StatusInternalServerError, i18n.KeyErrServer
+		if fr.device() {
+			detail = ""
+		}
 	}
-	ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), detail)
+	ui.RenderErrorDetail(w, status, view, view.L.T(title), detail)
 }
 
 // approve completes fr for sess with scopes: an authorization code for

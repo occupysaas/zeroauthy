@@ -30,16 +30,21 @@ const maxFormBytes = 16 << 10
 var errTxn = errors.New("login: invalid or expired transaction")
 
 type Handlers struct {
-	Store             store.Store
-	Sessions          *session.Manager
-	Authz             *authz.Handlers
-	Database          *identity.Database
-	Resets            *dbconn.Handlers // nil disables the hosted password reset pages
-	UserThrottle      *identity.Throttle
-	IPThrottle        *identity.Throttle
-	TrustProxyHeaders bool
-	Log               *slog.Logger
-	Now               func() time.Time
+	Store        store.Store
+	Sessions     *session.Manager
+	Authz        *authz.Handlers
+	Database     *identity.Database
+	Resets       *dbconn.Handlers // nil disables the hosted password reset pages
+	UserThrottle *identity.Throttle
+	IPThrottle   *identity.Throttle
+	// Device code entry limits (/activate). Each counts misses; a code
+	// that is found refunds its attempt.
+	DeviceTxnThrottle    *identity.Throttle // key: transaction ID
+	DeviceIPThrottle     *identity.Throttle // key: identity.IPThrottleKey(tenant, ip); nil = off
+	DeviceTenantThrottle *identity.Throttle // key: tenant ID; nil = off
+	TrustProxyHeaders    bool
+	Log                  *slog.Logger
+	Now                  func() time.Time
 }
 
 func (h *Handlers) now() time.Time {

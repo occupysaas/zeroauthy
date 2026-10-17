@@ -2,6 +2,7 @@ package authz
 
 import (
 	"context"
+	"errors"
 	"html"
 	"net/http"
 	"net/http/httptest"
@@ -271,6 +272,50 @@ func TestDeviceDecideRaceKeepsFirst(t *testing.T) {
 	e.h.Store = staleStore{e.st}
 	e.sessionExpiredPage(t, e.continueDevice(t, dc, e.login(t, fixedNow())))
 	if got := e.storedCode(t, dc); got.Status != store.DeviceCodeDenied {
+		t.Fatalf("status = %s", got.Status)
+	}
+}
+
+// CreateTxn stores its own copy of params: the caller's map is not changed.
+func TestCreateTxnCopiesParams(t *testing.T) {
+	e := newEnv(t)
+	params := map[string]string{ParamFlow: FlowDevice}
+	txn, err := e.h.CreateTxn(httptest.NewRecorder(), httptest.NewRequest("GET", "/activate", nil), e.res(), "", params, "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(params) != 1 {
+		t.Fatalf("caller's params changed: %v", params)
+	}
+	if txn.Params[cookiePathKey] != "/" || txn.Params[ParamFlow] != FlowDevice {
+		t.Fatalf("stored params = %v", txn.Params)
+	}
+}
+
+// failingCodes fails every read, as a store outage would.
+type failingCodes struct{ store.DeviceCodes }
+
+func (failingCodes) Get(context.Context, string, string) (*store.DeviceCode, error) {
+	return nil, errors.New("store down")
+}
+
+type failingStore struct{ store.Store }
+
+func (s failingStore) DeviceCodes() store.DeviceCodes { return failingCodes{s.Store.DeviceCodes()} }
+
+// A store failure is a server error page (500), not an invalid request.
+func TestDeviceServerErrorPage(t *testing.T) {
+	e := newEnv(t)
+	dc := e.deviceCode(t)
+	e.h.Store = failingStore{e.st}
+	rec := e.continueDevice(t, dc, e.login(t, fixedNow()))
+	l := i18n.ForRequest(e.tenant, httptest.NewRequest("GET", "/", nil), "")
+	body := rec.Body.String()
+	if rec.Code != http.StatusInternalServerError || !strings.Contains(body, html.EscapeString(l.T(i18n.KeyErrServer))) ||
+		strings.Contains(body, html.EscapeString(l.T(i18n.KeyErrInvalidRequest))) {
+		t.Fatalf("status %d body %s", rec.Code, body)
+	}
+	if got := e.storedCode(t, dc); got.Status != store.DeviceCodePending {
 		t.Fatalf("status = %s", got.Status)
 	}
 }

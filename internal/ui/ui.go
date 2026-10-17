@@ -45,6 +45,9 @@ var (
 		"reset_password":   parsePage("templates/layout.html", "templates/reset_password.html"),
 		"reset_success":    parsePage("templates/layout.html", "templates/reset_success.html"),
 		"reset_error":      parsePage("templates/layout.html", "templates/reset_error.html"),
+		"device_code":      parsePage("templates/layout.html", "templates/device_code.html"),
+		"device_confirm":   parsePage("templates/layout.html", "templates/device_confirm.html"),
+		"device_result":    parsePage("templates/layout.html", "templates/device_result.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
 	webMessage = parsePage("templates/web_message.html")
@@ -356,9 +359,34 @@ type ConsentData struct {
 	APIName        string
 	Scopes         []string
 	RedirectURI    string // its origin is allowed as form-action
+	// Device marks a device flow: there is no callback domain to name.
+	Device bool
 }
 
 // RenderConsent shows the consent or confirmation page of a transaction.
 func RenderConsent(w http.ResponseWriter, status int, t Tenant, d ConsentData) {
 	render(w, status, "consent", t, d, formActionFor(d.RedirectURI))
+}
+
+// DeviceCodeData is the device code entry page (screen
+// device-code-activation). ErrorKey is a catalog key, or "" for no error.
+type DeviceCodeData struct{ State, CSRF, UserCode, ErrorKey string }
+
+// DeviceConfirmData is the device confirmation page (screen
+// device-code-confirmation). UserCode is the formatted code.
+type DeviceConfirmData struct{ State, CSRF, UserCode string }
+
+// RenderDeviceCode asks for the code a device shows.
+func RenderDeviceCode(w http.ResponseWriter, status int, t Tenant, d DeviceCodeData) {
+	render(w, status, "device_code", t, d, "'self'")
+}
+
+// RenderDeviceConfirm asks the user to confirm the device's code.
+func RenderDeviceConfirm(w http.ResponseWriter, t Tenant, d DeviceConfirmData) {
+	render(w, http.StatusOK, "device_confirm", t, d, "'self'")
+}
+
+// RenderDeviceResult tells the user whether the device was given access.
+func RenderDeviceResult(w http.ResponseWriter, t Tenant, allowed bool) {
+	render(w, http.StatusOK, "device_result", t, allowed, "'none'")
 }

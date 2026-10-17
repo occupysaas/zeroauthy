@@ -44,6 +44,10 @@ tenants:
           signup:
             title: "Créer un compte"
             password-policy-not-conformant: "Mot de passe trop faible."
+      device-flow:
+        en:
+          device-code-activation:
+            title: "Link your Acme device"
     resource_servers:
       - {identifier: "https://api.acme.test", name: API, scopes: [{value: "read:things"}]}
     client_grants:
@@ -56,8 +60,9 @@ tenants:
       - {client_id: spa, app_type: spa, grant_types: [authorization_code], callbacks: ["https://app.acme.test/cb"]}
       - {client_id: closed, app_type: spa, grant_types: [authorization_code], callbacks: ["https://closed.acme.test/cb"]}
       - {client_id: legacy, app_type: spa, grant_types: [authorization_code], callbacks: ["https://legacy.acme.test/cb"]}
+      - {client_id: tv, name: "Living Room TV", app_type: native, grant_types: ["urn:ietf:params:oauth:grant-type:device_code", refresh_token]}
     connections:
-      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, local]}
+      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, local, tv]}
       - {name: Invite-Only, enabled_clients: [closed], disable_signup: true}
       - name: Legacy-DB
         enabled_clients: [legacy]
@@ -122,6 +127,10 @@ func newEnv(t *testing.T) *env {
 		UserThrottle: identity.NewThrottle(3, 15*time.Minute, 15*time.Minute),
 		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),
 		Now:          fixedNow,
+
+		DeviceTxnThrottle:    identity.NewThrottle(5, authz.TxnLifetime, authz.TxnLifetime),
+		DeviceIPThrottle:     identity.NewThrottle(10, 15*time.Minute, 15*time.Minute),
+		DeviceTenantThrottle: identity.NewThrottle(1000, 10*time.Minute, time.Minute),
 	}
 	mail := &recorder{}
 	h.Resets = &dbconn.Handlers{
@@ -143,6 +152,12 @@ func newEnv(t *testing.T) *env {
 	mux.HandleFunc("POST /u/reset-password/request", h.ResetRequestSubmit)
 	mux.HandleFunc("GET /u/reset-password", h.ResetPasswordPage)
 	mux.HandleFunc("POST /u/reset-password", h.ResetPasswordSubmit)
+	mux.HandleFunc("GET /activate", h.Activate)
+	mux.HandleFunc("POST /activate", h.ActivateSubmit)
+	mux.HandleFunc("GET /device/confirmation", h.DeviceConfirmPage)
+	mux.HandleFunc("POST /device/confirmation", h.DeviceConfirmSubmit)
+	mux.HandleFunc("GET /device/success", h.DeviceSuccess)
+	mux.HandleFunc("GET /device/denied", h.DeviceDenied)
 	return &env{st: st, h: h, mail: mail, scripts: scripts, logs: logs, srv: tenant.NewResolver(st.Tenants(), "", false).Middleware(mux)}
 }
 

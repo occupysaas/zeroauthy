@@ -353,3 +353,49 @@ func TestRenderConsentConfirmation(t *testing.T) {
 		t.Errorf("confirmation page: %s", body)
 	}
 }
+
+// A third-party device application has no callback domain to name.
+func TestRenderConsentDevice(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderConsent(rec, http.StatusOK, Tenant{Name: "Acme"}, ConsentData{State: "st", CSRF: "tok", ThirdParty: true, Device: true, Scopes: []string{"openid"}})
+	body := rec.Body.String()
+	l := i18n.Default()
+	if !strings.Contains(body, l.T("zeroauthy.consent.externalDeviceApp")) || strings.Contains(body, "sent to") {
+		t.Errorf("device consent page: %s", body)
+	}
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'self';") {
+		t.Errorf("CSP = %q", csp)
+	}
+}
+
+func TestRenderDevicePages(t *testing.T) {
+	l := i18n.Default()
+	rec := httptest.NewRecorder()
+	RenderDeviceCode(rec, http.StatusBadRequest, Tenant{Name: "Acme"}, DeviceCodeData{State: "st", CSRF: "tok", UserCode: "<x>", ErrorKey: i18n.KeyDeviceNoCode})
+	body := rec.Body.String()
+	for _, want := range []string{`name="state" value="st"`, `name="csrf" value="tok"`, `action="/activate"`, "&lt;x&gt;", l.T(i18n.KeyDeviceNoCode)} {
+		if !strings.Contains(body, want) {
+			t.Errorf("entry page lacks %q:\n%s", want, body)
+		}
+	}
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status %d", rec.Code)
+	}
+
+	rec = httptest.NewRecorder()
+	RenderDeviceConfirm(rec, Tenant{Name: "Acme"}, DeviceConfirmData{State: "st", CSRF: "tok", UserCode: "BCDF-GHJK"})
+	body = rec.Body.String()
+	for _, want := range []string{`name="state" value="st"`, `name="csrf" value="tok"`, `action="/device/confirmation"`, "BCDF-GHJK", `value="confirm"`, `value="cancel"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("confirm page lacks %q:\n%s", want, body)
+		}
+	}
+
+	for allowed, key := range map[bool]string{true: "device-flow.device-code-activation-allowed.eventTitle", false: "device-flow.device-code-activation-denied.eventTitle"} {
+		rec = httptest.NewRecorder()
+		RenderDeviceResult(rec, Tenant{Name: "Acme"}, allowed)
+		if !strings.Contains(rec.Body.String(), l.T(key)) || strings.Contains(rec.Body.String(), "<form") {
+			t.Errorf("result page (allowed=%v): %s", allowed, rec.Body)
+		}
+	}
+}

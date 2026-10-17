@@ -1,0 +1,6 @@
+{{define "doctitle"}}{{if .Data}}{{t .Tenant.L "device-flow.device-code-activation-allowed.pageTitle"}}{{else}}{{t .Tenant.L "device-flow.device-code-activation-denied.pageTitle"}}{{end}}{{end}}
+{{define "title"}}{{if .Data}}{{t .Tenant.L "device-flow.device-code-activation-allowed.eventTitle"}}{{else}}{{t .Tenant.L "device-flow.device-code-activation-denied.eventTitle"}}{{end}}{{end}}
+{{define "description"}}{{.Tenant.Name}}{{end}}
+{{define "content"}}
+<p role="status">{{if .Data}}{{t .Tenant.L "device-flow.device-code-activation-allowed.description"}}{{else}}{{t .Tenant.L "device-flow.device-code-activation-denied.description"}}{{end}}</p>
+{{end}}

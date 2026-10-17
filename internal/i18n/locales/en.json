@@ -78,10 +78,44 @@
       "declineButtonText": "Deny"
     }
   },
+  "device-flow": {
+    "device-code-activation": {
+      "pageTitle": "Activate a device",
+      "title": "Connect a device",
+      "description": "Type the code your device is showing.",
+      "placeholder": "Device code",
+      "buttonText": "Continue",
+      "logoAltText": "${companyName}",
+      "invalid-code": "That code is not valid.",
+      "invalid-expired-code": "That code is not valid or has expired. Check the code on your device and try again.",
+      "no-code": "Type a code to continue."
+    },
+    "device-code-confirmation": {
+      "pageTitle": "Confirm your device",
+      "title": "Is this your device?",
+      "description": "Check that this code matches the one on your device.",
+      "inputCodeLabel": "Device code",
+      "confirmationText": "Confirm only if you started this on a device you own. ${clientName} will then be able to sign you in.",
+      "confirmButtonText": "Confirm",
+      "cancelButtonText": "Cancel",
+      "logoAltText": "${companyName}"
+    },
+    "device-code-activation-allowed": {
+      "pageTitle": "Device connected",
+      "eventTitle": "Your device is connected",
+      "description": "You can go back to your device now."
+    },
+    "device-code-activation-denied": {
+      "pageTitle": "Device not connected",
+      "eventTitle": "Device not connected",
+      "description": "Your device was not given access to your account. You can close this window."
+    }
+  },
   "zeroauthy": {
     "consent": {
       "description": "${clientName} is asking for permission to:",
       "externalApp": "${clientName} is not operated by ${companyName}. If you allow it, you will be sent to ${callbackDomain}.",
+      "externalDeviceApp": "${clientName} is not operated by ${companyName}. Allow it only if you trust it.",
       "confirmTitle": "Continue to ${clientName}?",
       "confirmDescription": "Continue only if you started this sign-in. You will be sent to ${callbackDomain}.",
       "confirmButtonText": "Continue",
