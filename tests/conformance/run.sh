@@ -21,13 +21,18 @@ case "$runtime" in
   *) echo "CONFORMANCE_RUNTIME must be podman or docker, not '$runtime'" >&2; exit 2 ;;
 esac
 
-# plan name -> "test-plan[variants] config-file". The Config plan fixes its
-# own variants (discovery, static_client) and rejects them if passed again.
+# plan name -> "test-plan[variants] config-file". Each plan fixes some
+# variants itself and rejects them if passed again (see the plan classes,
+# e.g. OIDCCBasicTestPlan.java at the pinned tag): Config fixes
+# server_metadata and client_registration; Basic and Form Post fix
+# response_type, client_auth_type (client_secret_basic, plus one
+# client_secret_post module) and response_mode; RP-initiated logout fixes
+# server_metadata, client_auth_type and response_mode.
 declare -A plan_spec=(
   [basic]="oidcc-basic-certification-test-plan[server_metadata=discovery][client_registration=static_client] basic.json"
   [config]="oidcc-config-certification-test-plan config.json"
   [formpost]="oidcc-formpost-basic-certification-test-plan[server_metadata=discovery][client_registration=static_client] formpost.json"
-  [logout]="oidcc-rp-initiated-logout-certification-test-plan[client_registration=static_client] logout.json"
+  [logout]="oidcc-rp-initiated-logout-certification-test-plan[response_type=code][client_registration=static_client] logout.json"
 )
 plans=("$@")
 [[ ${#plans[@]} -gt 0 ]] || plans=(basic config formpost logout)

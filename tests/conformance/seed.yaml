@@ -1,6 +1,7 @@
 # tests/conformance/seed.yaml: the tenant the OpenID Foundation conformance
 # suite tests (see README.md). Test-only credentials; never reuse them.
-# The callbacks name the suite's fixed alias "zeroauthy".
+# The callbacks name the suite's fixed alias "zeroauthy". za-conformance-post
+# is the Basic plan's client_secret_post client (oidcc-server-client-secret-post).
 tenants:
   - name: conformance
     friendly_name: OpenID Conformance
@@ -23,9 +24,17 @@ tenants:
         grant_types: [authorization_code, refresh_token]
         callbacks: ["https://localhost.emobix.co.uk:8443/test/a/zeroauthy/callback"]
         allowed_logout_urls: ["https://localhost.emobix.co.uk:8443/test/a/zeroauthy/post_logout_redirect"]
+      - client_id: za-conformance-post
+        name: Conformance client (client_secret_post)
+        app_type: regular_web
+        client_secret: za-conformance-post-secret-not-for-production
+        token_endpoint_auth_method: client_secret_post
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["https://localhost.emobix.co.uk:8443/test/a/zeroauthy/callback"]
+        allowed_logout_urls: ["https://localhost.emobix.co.uk:8443/test/a/zeroauthy/post_logout_redirect"]
     connections:
       - name: Username-Password-Authentication
-        enabled_clients: [za-conformance-1, za-conformance-2]
+        enabled_clients: [za-conformance-1, za-conformance-2, za-conformance-post]
     users:
       - connection: Username-Password-Authentication
         email: conformance@example.com

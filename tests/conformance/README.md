@@ -10,7 +10,7 @@ CONFORMANCE_RUNTIME=docker ./tests/conformance/run.sh   # docker instead of podm
 CONFORMANCE_KEEP=1 ./tests/conformance/run.sh config    # leave everything up to debug
 ```
 
-You need podman with `podman-compose`, or docker with the compose plugin. You also need `openssl`, `curl`, Go and Python 3. Nothing is installed system-wide.
+You need podman with `podman-compose`, or docker with the compose plugin. You also need `openssl`, `curl`, Go and Python 3. Nothing is installed system-wide. The harness is Linux-only: teardown uses util-linux `setsid`.
 
 ## Files
 
@@ -22,7 +22,8 @@ You need podman with `podman-compose`, or docker with the compose plugin. You al
 | `run.sh` | The entry point. It builds zeroauthy, makes the certificates, starts the compose project, runs the plans and tears everything down. |
 | `compose.yml` | The suite (mongodb, server, nginx) and zeroauthy on one network. |
 | `seed.yaml`, `config.yaml` | The `conformance` tenant, and zeroauthy's config for the run. |
-| `configs/<plan>.json` | One suite configuration per plan, in the suite's static-client format. |
+| `configs/<plan>.json` | One suite configuration per plan, in the suite's static-client format, with the browser steps. |
+| `triage-2026-10.md` | The dry-run triage: every failed, warning, skipped and review module, classified. |
 | `expected-failures.json`, `expected-skips.json` | The suite's own format. Every entry needs a recorded decision. |
 | `summarize.sh` | Turns the runner's output into one line per plan. |
 
@@ -98,6 +99,24 @@ Each run writes `results/<UTC timestamp>/`:
 - an expected failure or skip did not happen, or an entry matched no module at all.
 
 So stale entries in the expected files already fail the run, and the harness has no check of its own for them. This was verified by adding a deliberately stale entry. Review-status modules do not fail the run.
+
+## Plans and browser steps
+
+`run.sh` maps `basic`, `config`, `formpost` and `logout` to a plan name plus the variants the plan leaves open. Each plan fixes some variants itself (see the plan class, such as `OIDCCBasicTestPlan.java`, at the pinned tag) and the suite rejects a variant passed twice:
+
+| Plan | Fixed by the plan | Passed by `run.sh` |
+|---|---|---|
+| `oidcc-config-certification-test-plan` | `server_metadata`, `client_registration` | nothing |
+| `oidcc-basic-certification-test-plan` | `response_type=code`, `client_auth_type` (`client_secret_basic`; one module `client_secret_post`), `response_mode=default` | `server_metadata=discovery`, `client_registration=static_client` |
+| `oidcc-formpost-basic-certification-test-plan` | as Basic, with `response_mode=form_post` | as Basic |
+| `oidcc-rp-initiated-logout-certification-test-plan` | `server_metadata=discovery`, `client_auth_type=client_secret_basic`, `response_mode=default` | `response_type=code`, `client_registration=static_client` |
+
+Basic and Form Post need a third client for `oidcc-server-client-secret-post`, given as `client_secret_post` in the config (`za-conformance-post` in the seed).
+
+The `browser` block of each config drives the suite's HtmlUnit browser:
+- **/authorize:** fill `username` and `password` on `/u/login` and submit (optional); accept on `/u/consent` (optional); wait for the suite's callback page.
+- **/oidc/logout:** click the confirmation button if there is one, then expect the suite's post-logout page.
+- **`override`:** modules that expect a page rather than a redirect upload that page as their screenshot (`update-image-placeholder`): the redirect URI error pages, the second login page of `oidcc-prompt-login` and `oidcc-max-age-1`, and the logout error and logged-out pages. Those modules end in **REVIEW**, which does not fail the run; a person checks the screenshot (the page source is in the exported log).
 
 ## Expected failures and skips
 

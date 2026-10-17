@@ -1,0 +1,749 @@
+{
+    "description": "zeroauthy: RP-Initiated Logout OP",
+    "server": {
+        "discoveryUrl": "https://zeroauthy.conformance.test:8443/.well-known/openid-configuration"
+    },
+    "client": {
+        "client_id": "za-conformance-1",
+        "client_secret": "za-conformance-1-secret-not-for-production"
+    },
+    "client2": {
+        "client_id": "za-conformance-2",
+        "client_secret": "za-conformance-2-secret-not-for-production"
+    },
+    "alias": "zeroauthy",
+    "browser": [
+        {
+            "match": "https://zeroauthy.conformance.test:8443/authorize*",
+            "tasks": [
+                {
+                    "task": "Login",
+                    "optional": true,
+                    "match": "*/u/login*",
+                    "commands": [
+                        [
+                            "text",
+                            "id",
+                            "username",
+                            "conformance@example.com"
+                        ],
+                        [
+                            "text",
+                            "id",
+                            "password",
+                            "Conformance-Horse-9"
+                        ],
+                        [
+                            "click",
+                            "css",
+                            "button[type=submit]"
+                        ]
+                    ]
+                },
+                {
+                    "task": "Consent",
+                    "optional": true,
+                    "match": "*/u/consent*",
+                    "commands": [
+                        [
+                            "click",
+                            "css",
+                            "button[name=action][value=accept]"
+                        ]
+                    ]
+                },
+                {
+                    "task": "Verify Complete",
+                    "match": "*/test/*/callback*",
+                    "commands": [
+                        [
+                            "wait",
+                            "id",
+                            "submission_complete",
+                            10
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+            "tasks": [
+                {
+                    "task": "Confirm logout",
+                    "optional": true,
+                    "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                    "commands": [
+                        [
+                            "click",
+                            "css",
+                            "button[type=submit]",
+                            "optional"
+                        ]
+                    ]
+                },
+                {
+                    "task": "Verify Complete",
+                    "match": "*/test/*/post*"
+                }
+            ]
+        }
+    ],
+    "override": {
+        "oidcc-rp-initiated-logout-bad-post-logout-redirect-uri": {
+            "browser": [
+                {
+                    "match": "https://zeroauthy.conformance.test:8443/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "Conformance-Horse-9"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-query-added-to-post-logout-redirect-uri": {
+            "browser": [
+                {
+                    "match": "https://zeroauthy.conformance.test:8443/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "Conformance-Horse-9"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-modified-id-token-hint": {
+            "browser": [
+                {
+                    "match": "https://zeroauthy.conformance.test:8443/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "Conformance-Horse-9"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-bad-id-token-hint": {
+            "browser": [
+                {
+                    "match": "https://zeroauthy.conformance.test:8443/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "Conformance-Horse-9"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-no-id-token-hint": {
+            "browser": [
+                {
+                    "match": "https://zeroauthy.conformance.test:8443/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "Conformance-Horse-9"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-no-params": {
+            "browser": [
+                {
+                    "match": "https://zeroauthy.conformance.test:8443/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "Conformance-Horse-9"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "confirm, then expect the logged-out page",
+                    "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Confirm logout",
+                            "optional": true,
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]",
+                                    "optional"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Expect logged-out page",
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//h1",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-no-post-logout-redirect-uri": {
+            "browser": [
+                {
+                    "match": "https://zeroauthy.conformance.test:8443/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "Conformance-Horse-9"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "confirm, then expect the logged-out page",
+                    "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Confirm logout",
+                            "optional": true,
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]",
+                                    "optional"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Expect logged-out page",
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//h1",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-only-state": {
+            "browser": [
+                {
+                    "match": "https://zeroauthy.conformance.test:8443/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "Conformance-Horse-9"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "confirm, then expect the logged-out page",
+                    "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Confirm logout",
+                            "optional": true,
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]",
+                                    "optional"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Expect logged-out page",
+                            "match": "https://zeroauthy.conformance.test:8443/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//h1",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
