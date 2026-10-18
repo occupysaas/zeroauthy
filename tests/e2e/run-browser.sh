@@ -89,6 +89,11 @@ if [[ $status -eq 0 ]]; then
   E2E_ADMIN_SETUP_URL="$(cd ../.. && "$work/zeroauthy" admin create --email operator@e2e.local --config tests/e2e/config.yaml | grep '^https://')" || status=$?
   export E2E_ADMIN_SETUP_URL
 fi
+# m14-console's own operator, so it does not depend on m13-console's.
+if [[ $status -eq 0 ]]; then
+  E2E_ADMIN_SETUP_URL_M14="$(cd ../.. && "$work/zeroauthy" admin create --email operator-m14@e2e.local --config tests/e2e/config.yaml | grep '^https://')" || status=$?
+  export E2E_ADMIN_SETUP_URL_M14
+fi
 
 if [[ $status -eq 0 ]]; then
   if [[ "${E2E_IN_CONTAINER:-0}" == 1 ]]; then
@@ -111,7 +116,7 @@ if [[ $status -eq 0 ]]; then
     else
       echo "m10-device skipped: needs podman on the host"
     fi
-    npx playwright install chromium >/dev/null
+    [[ -n "${E2E_CHROMIUM:-}" ]] || npx playwright install chromium >/dev/null
     NODE_EXTRA_CA_CERTS="$work/cert.pem" E2E_CERT="$work/cert.pem" npx playwright test "$@" || status=$?
   fi
 fi

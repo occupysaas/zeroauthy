@@ -213,6 +213,9 @@ tenants:
   # connect-proxy.mjs.
   - name: e2ecli
     friendly_name: E2E auth0-cli
+    # m14-mgmt-cli creates this API, then deletes it to see what a missing
+    # default audience does.
+    default_audience: https://default.cli.e2e.test
     domains: ["cli.e2e.test"]
     clients:
       - client_id: e2e-cli-admin
@@ -223,4 +226,6 @@ tenants:
     client_grants:
       - client_id: e2e-cli-admin
         audience: "https://cli.e2e.test/api/v2/"
-        scopes: ["read:clients", "create:clients", "update:clients", "delete:clients", "read:client_keys", "update:client_keys"]
+        scopes: ["read:clients", "create:clients", "update:clients", "delete:clients", "read:client_keys", "update:client_keys",
+                 "read:resource_servers", "create:resource_servers", "update:resource_servers", "delete:resource_servers",
+                 "read:client_grants", "create:client_grants", "update:client_grants", "delete:client_grants"]

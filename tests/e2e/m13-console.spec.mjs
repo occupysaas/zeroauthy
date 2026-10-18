@@ -48,6 +48,8 @@ test('an operator manages applications in the console', async ({ page }) => {
   await page.waitForURL(/\/admin\/t\/e2e\/applications\/[A-Za-z0-9]{32}$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Console app');
   const detailURL = page.url();
+  // A new application opens on its Quick start; the settings are a tab.
+  await page.getByRole('tab', { name: 'Settings' }).click();
 
   // 4. Edit its callbacks; a bad one is reported on the field.
   await page.fill('#app-callbacks', 'not a url');
@@ -75,6 +77,7 @@ test('an operator manages applications in the console', async ({ page }) => {
   await page.reload();
   await page.waitForURL(detailURL);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Console app');
+  await page.getByRole('tab', { name: 'Settings' }).click();
   await expect(page.locator('#app-callbacks')).toHaveValue('https://console-app.e2e.test/callback');
 
   // 7. Delete it by typing its name.

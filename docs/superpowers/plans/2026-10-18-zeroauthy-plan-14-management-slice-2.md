@@ -153,9 +153,9 @@ Run by the controller session as the observer; implementers see only the notes. 
 
 **Files:** `tests/e2e/seed.yaml` (the `e2ecli` admin client gains the resource-server and client-grant scopes), `tests/e2e/m14-mgmt-cli.mjs` (new), `tests/e2e/m14-console.spec.mjs` (new), `tests/e2e/run-m3.sh`, `docs/compat/blackbox-clients.md`.
 
-- [ ] **Step 1: `auth0-cli`** (pinned v1.37.0, through `connect-proxy.mjs` as in Plan 13): `apis create/list/show/update/delete`, `apis scopes list`, `apis update --scopes`, `client-grants create/list/show/update/delete` (if v1.37.0 has them; otherwise `auth0 api post/get/patch/delete client-grants`). Then a client-credentials token for the new API through `/oauth/token` with exactly the granted scopes.
-- [ ] **Step 2: Playwright:** sign in; create an API with two permissions; create an M2M application; grant it the API with one scope; copy the quick-start `curl` and run its request from the test (Node `fetch`) to get a token whose `scope` is that one scope; remove a permission; delete the API; invite an operator and remove them.
-- [ ] **Step 3: Run** `make e2e`. **Step 4: Commit** with `test(e2e): APIs and client grants with auth0-cli and the console`.
+- [x] **Step 1: `auth0-cli`** (pinned v1.37.0, through `connect-proxy.mjs` as in Plan 13): `apis create/list/show/update/delete`, `apis scopes list`, `apis update --scopes`, `client-grants create/list/show/update/delete` (if v1.37.0 has them; otherwise `auth0 api post/get/patch/delete client-grants`). Then a client-credentials token for the new API through `/oauth/token` with exactly the granted scopes.
+- [x] **Step 2: Playwright:** sign in; create an API with two permissions; create an M2M application; grant it the API with one scope; copy the quick-start `curl` and run its request from the test (Node `fetch`) to get a token whose `scope` is that one scope; remove a permission; delete the API; invite an operator and remove them.
+- [x] **Step 3: Run** `make e2e`. **Step 4: Commit** with `test(e2e): APIs and client grants with auth0-cli and the console`.
 
 ---
 
