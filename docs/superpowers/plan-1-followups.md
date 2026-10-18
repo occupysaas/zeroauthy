@@ -15,10 +15,8 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - `oauth`: verify errors are logged as "bad secret" (log `secrets.Verify` errors separately); unknown-client timing differs from known-client; no-store not asserted on every error case; no nil-`Minter` guard.
 - `keys`: signer cache never evicts revoked keys; tests index keys by position; missing tamper / wrong-master / version / concurrent-Sign tests.
 - `config`: `MasterKey` would leak if the config struct were ever logged with `%+v` (it is not today).
-- `oidc`: JWKS leak test checks only `d` (also check `p`, `q`, `dp`, `dq`, `qi`).
-- `contract`: nil `r.Body` panics; `TestUndeclaredStatusIsReported` counts across a shared recorder.
-- `seed`: empty file reports `seed: EOF`; `Load` and update paths untested.
-- `tests/e2e/run-m3.sh`: readiness loop doesn't fail fast; port 8443 hardcoded in three files.
+- `seed`: `Load` and update paths untested.
+- `tests/e2e/run-m3.sh`: port 8443 hardcoded in three files.
 - Spec §1.2 item 3 sub-bullets still name node-auth0 methods.
 
 ## Plan 2 follow-ups
@@ -32,9 +30,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 ## Plan 2 deferred review findings
 
 - Login throttle pruning is O(n) and in-process.
-- Cap `password_policy.min_length`; a value over 256 makes signup impossible.
-- No test that `Verify` rejects `alg=none` and HS256 tokens.
-- CORS: negative-path tests and `Vary: Origin` are missing; OPTIONS/CORS are not in the OpenAPI contract.
+- CORS: OPTIONS/CORS are not in the OpenAPI contract.
 - Untested branches: fragment/form_post error delivery; `Resume` re-validation failure; public client without PKCE; deleted audience; default ID token lifetime; `auth_time` value; store-error throttle refund; signup error re-render CSP.
 
 ## Plan 3 follow-ups
@@ -56,15 +52,13 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Refresh tests: no deleted-user case; the leeway test does not assert the second successor's family or its revocation; test setup discards errors; the "family revoked" log line also fires on the already-revoked race.
 - The refresh grant does not re-check `allow_offline_access`, so tokens survive the API disabling offline access; undecided.
 - Revoked tokens that never expire are never purged; the memory store's hash lookups scan all tokens under the write lock.
-- Revoke tests: the unknown-token case does not assert an empty body; no test for HTTP Basic or a JSON body; no `OPTIONS /oauth/revoke` CORS test.
-- `/v2/logout` has no negative tests for a two-label wildcard, http against an https wildcard, a port, `//evil`, or a backslash host (all rejected today).
+- Revoke tests: no `OPTIONS /oauth/revoke` CORS test.
 - Repeated query parameters on the logout endpoints get a JSON 400 from the generated wrapper rather than the HTML error page.
 - A single `za_logout` confirmation cookie per browser means two tabs confirming at once fail closed.
 - `idTokenHint` accepts any tenant-signed single-audience JWT, including an access token; harmless, but token type is not checked.
 - The logout confirmation page has no "stay logged in" action.
 - `/oidc/logout` tests do not cover a hint with multiple `aud` values, a GET carrying `confirm=yes`, or a confirmed POST after the session is gone.
 - Flow test gaps: it does not check that logout leaves refresh tokens valid; it does not drive `/oidc/logout` through `server.New`; revoke asserts only the status code; there is an unchecked type assertion.
-- E2E runner: failures in `npm ci` or esbuild exit before the logs are dumped; `spa-server` crashes when `E2E_REACT_BUNDLE` is unset; `next start` is wrapped by `npx`, so its process may be orphaned on cleanup.
 - The nextjs E2E uses `AUTH0_DOMAIN=https://localhost:8443` with `allowInsecureRequests` because the SDK rejects a domain with a port or localhost; the documented production setup (port 443 with a real hostname) is not exercised.
 - A code replayed mid-exchange without `offline_access` still returns the first exchange's access and ID tokens (JWTs are not revocable); the `ReplayedAt` re-check runs only when a refresh token is issued.
 - The `server_error` branch for a failed `AuthCodes().Get` after the refresh token is stored has no test.
@@ -78,9 +72,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 ## Plan 4 deferred review findings
 
 - No tests for Accept-Language q ties, or for a key-specific variable (such as `${min}`) used in an override of a different key.
-- `i18n.Enabled` returns the tenant's own `EnabledLocales` slice rather than a copy.
 - `i18n.New` iterates custom-text languages in map order, so if duplicates that differ only by case ever bypassed validation, the winner would be arbitrary.
-- Seed apply shares the parsed `CustomText` map with the stored tenant instead of copying it.
 - Invalid `enabled_locales` also produce noisy duplicate errors from custom-text validation.
 - No re-apply test for the seed's locale and custom-text update branch.
 - The catalog test treats "used" as "present in keys.go", and keys written in template pipeline form are invisible to its regex.
@@ -92,7 +84,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - The store-error `fail` paths in the login package have no dedicated test.
 - `${clientName}` renders empty on the logout and error pages.
 - Languages are matched only exactly or by base language; there is no `zh-TW` → `zh-Hant` style matching.
-- Spaces around `q =` in Accept-Language are not tolerated.
 - The password-policy alias (`signup.signup.password-policy-not-conformant`) is not variable-checked; a value made only of unknown variables renders an empty alert. Fall back to the specific key when the rendered alias is blank.
 - The strict-key check for the `zeroauthy` prompt is case-sensitive, so `Zeroauthy`/`ZEROAUTHY` typos are accepted and ignored.
 
@@ -128,7 +119,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Tenant reads (`Tenants().Get`/`GetByName`/`GetByDomain` and `List`) take separate statements for the tenant rows and their domains, outside a transaction, so a read concurrent with `Update` can see the new row with the old domains (a torn read).
 - `storetest.Suites` and `RunSuites` are unused in the repository since the SQL drivers run the full suite; keep them for plugin authors bringing suites up one at a time, or unexport them.
 - Concurrent `SigningKeys.Rotate` calls for a tenant that does not exist are not serialized (the lock is the tenant row); acceptable because keys are only rotated for existing tenants.
-- Test nits: `TestAtomicRetry` sleeps through the real retry backoff; a stray `TestSchemaTables` doc comment sits in `internal/store/sqlstore/migrate_test.go`; the `LatestVersion` panic path is untested.
 
 ## Plan 7 follow-ups
 
@@ -136,7 +126,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Binary checksum pinning for plugins (go-plugin `SecureConfig`).
 - Plugin-side schema migration hooks (plugins are not `storage.Migrator`s).
 - A reference plugin in a language other than Go.
-- `pkg/storetest` does not pin the nil-versus-empty policy for list results (an empty list may come back as nil or as an empty slice, and the plugin path normalizes one way); decide the policy and pin it.
 - A closed plugin client reports `context.Canceled` for calls made after `Close`; a dedicated "store closed" error would be clearer.
 - Theoretical lost-`BeginTx`-response window: if the response is lost after the plugin registered the transaction, the host cannot name it, so it waits for the idle timer. Client-proposed transaction ids would close it; decide before protocol v1 is frozen.
 - Route plugin logs through `slog` instead of go-plugin's stderr logger, so levels and format match the host.
@@ -165,7 +154,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - The seed re-seals the configuration and updates the connection on every apply, even when nothing changed.
 - Test gaps: `Apply` with no wrapper plus a configuration (the error must not leak the value); exact boundary accepts (102400 bytes, 64 keys, 4096 bytes) and the config checks for an empty `node` and `idle_timeout <= 0`; `TestRunnerRequireAllowlist` accepts any error kind; `process._linkedBinding` is not probed by the isolation test; `TestImportConcurrentFirstLogin` does not assert that the conflict path ran; `TestLatestVersionIsTwo` hard-codes 2.
 - Cosmetic: an overlong comment line in `store.proto`; the constant `maxConfigValueBy` should be `maxConfigValueBytes`; the comment on `TestRunnerEscapedContextStillIsolated` overstates what it proves; a last stderr line without a newline.
-- E2E (m9): `LEGACY_PORT` is unused (8099 is hard-coded); the spec cannot be re-run against the same server; a missing legacy-store field prints "undefined"; the 409 check does not isolate the `get_user` path.
+- E2E (m9): `LEGACY_PORT` is used throughout `run-m3.sh` but stays 8099, because `seed.yaml`, `m9-custom-db.mjs` and `m9-import.spec.mjs` hard-code it; the spec cannot be re-run against the same server; a missing legacy-store field prints "undefined"; the 409 check does not isolate the `get_user` path.
 
 ## Plan 9 follow-ups
 
@@ -178,17 +167,16 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Device flow (`/activate`, which will reuse the consent page) and PAR, which strict clients reject (Plans 10 and 11).
 - Auth0 stored a user grant for a first-party client after a login that showed no screen (observation check 1). zeroauthy stores grants only on accepted consent (D-0026); revisit once the grants Management API exists.
 - Re-check the Management API defaults (O1) with a machine (client-credentials) login of auth0-cli; the observations used a user login.
-- `scripts/test-sql.sh` binds fixed host ports (55432 for PostgreSQL, 53306 for MySQL), which collide with other local containers. Make the ports overridable (for example `ZEROAUTHY_TEST_PG_PORT` and `ZEROAUTHY_TEST_MYSQL_PORT`).
 
 ## Plan 9 deferred review findings
 
-- Storage: `ClientGrants.Create` stores an empty `SubjectType` literally instead of normalizing it to `client` (the seed always sets it). `UserGrants.Upsert` inside an outer transaction cannot recover from a PostgreSQL unique violation (nothing calls it inside a transaction today). The MySQL `grant_key` column joins its parts with a newline, so identifiers containing newlines could collide. `TestMigration0003Defaults` does not check the tenant and connection defaults or the uniqueness constraint after migration.
-- Plugin protocol: the server's `UserGrantsUpsert` passes a nil grant to the store when the request has no value; it should answer with a domain error. No test covers the server mapping an empty `subject_type` to `client` (a host from before Plan 9). The signing-keys section banner in `client_repos.go` lost its title.
+- Storage: `UserGrants.Upsert` inside an outer transaction cannot recover from a PostgreSQL unique violation (nothing calls it inside a transaction today). The MySQL `grant_key` column joins its parts with a newline, so identifiers containing newlines could collide. `TestMigration0003Defaults` does not check the tenant and connection defaults or the uniqueness constraint after migration.
+- Plugin protocol: no test covers the server mapping an empty `subject_type` to `client` (a host from before Plan 9). The signing-keys section banner in `client_repos.go` lost its title.
 - Seed: `TestApplyRefusesPartyChange` covers only first-party to third-party; a security-mode change, the reverse flip and re-applying a tenant flag are untested.
 - Decision table (`internal/access`): no rows cover partial user-grant coverage, an empty `ThirdPartySecurityMode`, an unknown policy, a permissive client with a grant, client credentials under a stored `allow_all`, `prompt=none` with a screen shown, or empty scopes; the O4 expectations are derived from the constant rather than written as literals. `ShowErrorPage` redirects for an unknown `RedirectionPolicy` string (unreachable, because the seed validates it). `Decide` always passes `offline_access` through and relies on callers to gate it (`userScopes`, `offlineAllowed`); confirm this in a review of the token handlers.
 - Hosted login: protected error pages are all titled "access denied"; map the error code to a title key. `TestThirdPartySessionOnNonDomainConnectionLogsInAgain` does not tell old logic from new, the protected-page tests do not assert the description, and no login test covers domain-connection resolution for a third-party client. `ConsentView` sets `Confirmation` when nothing at all is needed. The scope-merge test requests the same scope twice (weak), and there is no `max_age` re-check test for the consent page.
 - Domain connections: `/dbconnections/signup`, `/dbconnections/change_password` and the password grant still check `enabled_clients` directly, so a third-party client on a domain connection is refused there. Auth0's behaviour is unknown; decide before the Management API.
-- Consent page: a consent POST without a valid `action` is a generic failure that answers 500; it should be a 400 session-expired or invalid-request page. `postedFlow` now checks the CSRF token before the connection (an order change), and `TestConsentDeclineProtected`, `TestConsentWrongCookie` and the grant-absence check use weak assertions (any error passes).
+- Consent page: `postedFlow` now checks the CSRF token before the connection (an order change), and `TestConsentDeclineProtected`, `TestConsentWrongCookie` and the grant-absence check use weak assertions (any error passes).
 - Token endpoint: the client-credentials path repeats the client-grant lookup instead of calling `h.decide`; the `partner` fixture is unused; `TestRefreshGrantRechecksPolicy` needs a comment on rotation; `TestClientCredentialsDenyAll` does not assert the description; the `store` import in `token_test.go` sits in the standard-library group.
 - E2E (m10): the decline assertion cannot fail (the URL `/u/consent` with the main element visible is also true of the consent page); assert the error text, a 400 and no callback. The confirmation check only counts `ul.scopes` items (zero); add a positive assertion. `blackbox-clients.md` lists node-auth0 under m10 although its check runs in m3. The suite uses fixed port 3001, does not await `server.close` and leaves its `framenavigated` listener attached. Run evidence is a summary only.
 
@@ -203,8 +191,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - A general Authentication API rate limiter covering `/oauth/par` (zeroauthy has per-identity throttles only).
 - The `iss` authorization response parameter (RFC 9207), which Auth0 sends (tenant setting `authorization_response_iss_parameter_supported`; observations/par.md).
 - Repeated query parameters on `/authorize` get a JSON 400 from the generated wrapper (existing item; it also applies to `request_uri`).
-- Store failures during `/authorize` request validation or `request_uri` resolution render a 400 error page; they should be 500. This applies to the existing non-redirectable server errors at `/authorize` too.
-- `scripts/test-sql.sh` hardcodes host ports 55432 (PostgreSQL) and 53306 (MySQL), which collide with other local containers. Make them configurable (this repeats the Plan 9 item and is still open).
 
 ## Plan 11 follow-ups
 
@@ -218,8 +204,8 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 ## Plan 11 deferred review findings
 
 - Storage: `DeviceCodes.Decide` does not validate `dec.Status` (callers pass only approved or denied). The memory driver looks user codes up by scanning. The SQL `Poll` returns full-precision times while the stored values are microseconds. No 4→5 upgrade test checks the new tenant columns' `''` default. The gRPC client does not validate a decoded `DeviceCode.status`, and no gRPC-level test covers `Decide` returning the record with `ErrAlreadyUsed` or an unknown poll outcome over the wire.
-- User codes and seed: the default-mask logic in seed validation duplicates `devicecode.Settings`. A strict third-party device client gets several overlapping errors. `devicecode.Generate` silently uses base20 for an unknown charset. `devicecode.Normalize` keeps any Unicode letter or digit; restricting it to ASCII `A-Z0-9` would avoid surprises such as full-width digits or `ß` becoming `SS`.
-- `/oauth/device/code`: a repeated `client_id` is recognised by matching `parseTokenRequest`'s error text (add a sentinel). Any `Authorization` header gives `403 unauthorized_client` (inferred, not observed). `TestDiscoveryDeviceEndpoint` only calls `TestDiscovery`. The stored `UserCodeHash` is only checked to differ from the plaintext. The no-default-audience branch is untested.
+- User codes and seed: the default-mask logic in seed validation duplicates `devicecode.Settings`. A strict third-party device client gets several overlapping errors. `devicecode.Normalize` keeps any Unicode letter or digit; restricting it to ASCII `A-Z0-9` would avoid surprises such as full-width digits or `ß` becoming `SS`.
+- `/oauth/device/code`: any `Authorization` header gives `403 unauthorized_client` (inferred, not observed). `TestDiscoveryDeviceEndpoint` only calls `TestDiscovery`. The stored `UserCodeHash` is only checked to differ from the plaintext. The no-default-audience branch is untested.
 - Device grant: a non-rotating device refresh token is untested, and so is the deleted-user case (it shares the blocked-user path).
 - Access and authz: `TestDecideDeviceDenyAll` cannot tell `codeAuthorizeDenied` from `codeTokenDenied` (both `invalid_request`). `Decide` on the device code does not recheck expiry after `validateFlow`, leaving a window of milliseconds. A device consent that fails on a server error ends the transaction, so the user starts again.
 - Throttle: under concurrent requests from one IP bucket, a `Refund` can lift a lockout that a parallel miss just set, letting one extra miss through per race. The `ClientIP` value from a trusted `X-Forwarded-For` that carries a port or brackets does not parse, so it is keyed raw rather than by /64.
@@ -236,7 +222,6 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - The `claims` request parameter; accepted warning in `oidcc-claims-essential`.
 - `acr` and `acr_values`; accepted warning in `oidcc-ensure-request-with-acr-values-succeeds`.
 - The `address` and `phone` scopes and claims; accepted skips of `oidcc-scope-address`, `-phone` and `-all`.
-- `413` for oversized `POST /authorize` and `POST /userinfo` bodies (a 64 KB limit exists today; its error status should become 413).
 - `run.sh` robustness: apply the expected-file filtering earlier (before the suite starts), and make the `PLANS` input safe against newlines.
 
 ## Plan 13 follow-ups
@@ -244,24 +229,29 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - **Slices 2–6** of the Management API and console (design §2): APIs and client grants, connections (including enabling applications on them: an application created in the console or through the API is enabled on no connection until slice 3), users with import and forced reset, tenant settings with an `auth0-deploy-cli` round trip, social connections.
 - **Pushed down the road** (design §2), each needing its own design: passwordless and phone reset, organizations and RBAC, MFA, branding and email-template editors, custom domains, logs and log streams, event streams, Actions and Forms, enterprise connections, the marketplace and integration catalogues.
 - **Per-tenant admins:** operators carry a tenant list already (`["*"]` today); the system API cannot set it yet, and tenant-scoped operator tokens need a design.
-- **A create-only seed mode**, so that console edits to seed-defined entities survive a restart (today the console shows a banner on seeded tenants).
 - **Store-level client pagination and filtering:** `GET /api/v2/clients` pages in memory over `Clients.List`; users (slice 4) need it in the store.
 - **Keeping client IDs and secrets on migration:** `auth0-deploy-cli` exports no secrets and Auth0 refuses a supplied `client_id` (D-0039, open for slice 5).
 - **Client fields** accepted and ignored today (`description`, `client_metadata`, `logo_uri`, organizations and others, D-0039) could be stored and returned.
 - **Rate-limit headers** on the Management API once a limiter exists.
 - **Tenant log** for Management API writes; they go to the server log today.
 - **Console:** translations beyond English; a Playwright accessibility audit (axe); `auth0 login` (device flow) against zeroauthy needs Auth0's host mapped and stays a follow-up.
-- **E2E:** `run-browser.sh` leaves `next start` children running when it is interrupted; m13-console cannot reach `cli.e2e.test` from the browser, so it switches to the system tenant.
+- **E2E:** m13-console cannot reach `cli.e2e.test` from the browser, so it switches to the system tenant.
 
 ## Plan 14 follow-ups
 
 - **SQL suite and conformance:** the cloud session ran the Postgres suite for migrations 0010 to 0012 (from installed binaries) but not MySQL, and could not run `make conformance` (no container runtime). Run `scripts/test-sql.sh` and `make conformance` where containers exist.
-- **Deleting the tenant's default audience:** deleting an API that is a tenant's `default_audience` leaves the tenant refusing requests that name no audience (`/oauth/token` answers 403; `/authorize` redirects with `access_denied` and "unknown audience"). Clear the setting on delete, or refuse the delete.
-- **Stale scopes in consents:** removing a scope from an API removes it from client grants but leaves it in users' stored grants (consents).
 - **Store plugins:** the `ResourceServers.Delete` cascade (client grants, user grants, refresh tokens for the audience) is part of the store contract; third-party store plugins must implement it.
 - **System API name:** the system Management API is "zeroauthy Management API" while `auth0-deploy-cli` excludes Auth0's by name, so a deploy-cli export includes it. Matching Auth0's name is a maintainer decision (D-0041).
 - **Signing algorithms:** `HS256` and `PS256` (and `signing_secret`) are not supported.
 - **Fields accepted but inert:** the organization, rich authorization, `consent_policy`, `proof_of_possession` and `token_encryption` fields; `token_lifetime_for_web`.
 - **Connections** for new applications: still slice 3; a console-created application logs no user in until then.
-- **E2E environment:** the browser specs need `E2E_CHROMIUM` (path to a Chromium) in a container without Playwright's own. `m10-consent` and `m10-par` ran on Node 20 and the others (including `m9-import`) on Node 22 in the cloud session; `run-browser.sh` should pick the Node version per spec.
-- **Task 9 (create-only seed mode, `seed.mode: create_only`):** not done; it stays a follow-up (see Plan 13 follow-ups).
+- **E2E environment:** the browser specs need `E2E_CHROMIUM` (path to a Chromium) in a container without Playwright's own. `scripts/test-sql.sh` (now with `ZEROAUTHY_TEST_PG_PORT` and `ZEROAUTHY_TEST_MYSQL_PORT`) and the podman branch of `m10-device` were not run in the cloud session.
+
+## Next: Plan 15 kickoff (slice 3, connections)
+
+Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connections`, the database connection and its settings, enabling clients, the custom-DB options). Slices 2–6 get a short design before their plan (design §9), so start with superpowers brainstorming, then writing-plans, in the format of Plans 13 and 14.
+
+- **Observation (CLEAN_ROOM.md):** the observer M2M application on the maintainer's dev tenant already holds the connection scopes (`read/create/update/delete:connections`, `read/update:connections_options`, `read:connections_keys`) and `read/update:tenant_settings`, and its credentials are the `OBS_AUTH0_*` environment secrets, so the observation task can run with option A as in Plan 14. Pace requests (a burst gave `429`), restore anything changed, and keep the observer session separate from the implementers.
+- **Black-box client:** `auth0-cli` v1.37.0 has `connections list/show/create/update/delete` and `connections enabled-clients show/update`; the E2E should cover them as m13/m14 do, plus `auth0 api` for anything those commands do not reach.
+- **Starting points:** `internal/store` connections and enabled clients, the seed's connection rules (`internal/seed/validate.go`), custom databases (Plan 8, D-0022), consent and domain connections (Plan 9), the console's application detail (an application is enabled on no connection until this slice).
+- **Open maintainer decisions carried over:** the system API name (D-0041), `HS256`/`PS256` support.
