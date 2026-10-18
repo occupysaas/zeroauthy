@@ -167,7 +167,7 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		UseScopeDescriptionsForConsent:                 t.UseScopeDescriptionsForConsent,
 		PushedAuthorizationRequestsSupported:           t.PushedAuthorizationRequestsSupported,
 		DeviceFlowCharset:                              t.DeviceFlowCharset, DeviceFlowMask: t.DeviceFlowMask,
-		Reserved: t.Reserved, Seeded: t.Seeded,
+		Reserved: t.Reserved, Seeded: t.Seeded, Origin: t.Origin,
 	}
 	if t.CustomText != nil {
 		b, err := json.Marshal(t.CustomText)
@@ -197,7 +197,7 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		UseScopeDescriptionsForConsent:                 pb.UseScopeDescriptionsForConsent,
 		PushedAuthorizationRequestsSupported:           pb.PushedAuthorizationRequestsSupported,
 		DeviceFlowCharset:                              pb.DeviceFlowCharset, DeviceFlowMask: pb.DeviceFlowMask,
-		Reserved: pb.Reserved, Seeded: pb.Seeded,
+		Reserved: pb.Reserved, Seeded: pb.Seeded, Origin: pb.Origin,
 	}
 	if pb.CustomTextJson != nil {
 		var ct store.CustomText

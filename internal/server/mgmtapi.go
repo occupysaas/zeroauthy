@@ -44,3 +44,23 @@ func (a mgmtAPI) DeleteClient(w http.ResponseWriter, r *http.Request, id string)
 func (a mgmtAPI) RotateClientSecret(w http.ResponseWriter, r *http.Request, id string) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RotateClientSecret(w, r, id) }, "update:client_keys")
 }
+
+// The system API: the router lets only operators reach it (operatorOnly).
+
+func (a mgmtAPI) GetTenants(w http.ResponseWriter, r *http.Request)   { a.h.GetTenants(w, r) }
+func (a mgmtAPI) CreateTenant(w http.ResponseWriter, r *http.Request) { a.h.CreateTenant(w, r) }
+
+func (a mgmtAPI) UpdateTenant(w http.ResponseWriter, r *http.Request, name string) {
+	a.h.UpdateTenant(w, r, name)
+}
+
+func (a mgmtAPI) DeleteTenant(w http.ResponseWriter, r *http.Request, name string, p mgmtapi.DeleteTenantParams) {
+	a.h.DeleteTenant(w, r, name, p)
+}
+
+func (a mgmtAPI) GetOperators(w http.ResponseWriter, r *http.Request)   { a.h.GetOperators(w, r) }
+func (a mgmtAPI) CreateOperator(w http.ResponseWriter, r *http.Request) { a.h.CreateOperator(w, r) }
+
+func (a mgmtAPI) DeleteOperator(w http.ResponseWriter, r *http.Request, id string) {
+	a.h.DeleteOperator(w, r, id)
+}

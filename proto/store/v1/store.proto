@@ -234,6 +234,7 @@ message Tenant {
   string device_flow_mask = 18;                      // absent = ""
   bool reserved = 19;                                // absent = false
   bool seeded = 20;                                  // absent = false
+  string origin = 21;                                // "api" or empty (seed)
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 

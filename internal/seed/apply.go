@@ -54,6 +54,10 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 }
 
 func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now time.Time, w keys.Wrapper) error {
+	if existing, err := st.Tenants().GetByName(ctx, in.Name); err == nil && existing.Origin == store.OriginAPI {
+		// Created through the system API: the seed never touches it.
+		return nil
+	}
 	domains := make([]string, len(in.Domains))
 	for i, d := range in.Domains {
 		domains[i] = tenant.NormalizeHost(d)
@@ -126,7 +130,7 @@ func applyResourceServer(ctx context.Context, st store.Store, tenantID string, i
 
 func applyClient(ctx context.Context, st store.Store, tenantID string, in Client, now time.Time, w keys.Wrapper) error {
 	c, err := st.Clients().Get(ctx, tenantID, in.ClientID)
-	if err == nil && c.Origin == store.ClientOriginAPI {
+	if err == nil && c.Origin == store.OriginAPI {
 		// Created through the Management API: the seed never touches it.
 		return nil
 	}

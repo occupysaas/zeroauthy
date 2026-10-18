@@ -1047,7 +1047,7 @@ func TestSeedSkipsAPIClients(t *testing.T) {
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
 	c, _ := st.Clients().Get(ctx, tn.ID, "m2m")
-	c.Name, c.Origin = "Edited in the console", store.ClientOriginAPI
+	c.Name, c.Origin = "Edited in the console", store.OriginAPI
 	c.Callbacks = []string{"https://edited.test/cb"}
 	if err := st.Clients().Update(ctx, c); err != nil {
 		t.Fatal(err)
@@ -1056,7 +1056,28 @@ func TestSeedSkipsAPIClients(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, _ := st.Clients().Get(ctx, tn.ID, "m2m")
-	if got.Name != "Edited in the console" || len(got.Callbacks) != 1 || got.Origin != store.ClientOriginAPI {
+	if got.Name != "Edited in the console" || len(got.Callbacks) != 1 || got.Origin != store.OriginAPI {
 		t.Fatalf("the seed changed an API client: %+v", got)
+	}
+}
+
+// Tenants created through the system API are never touched by the seed.
+func TestSeedSkipsAPITenants(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	api := &store.Tenant{ID: "ten_api", Name: "acme", FriendlyName: "From the console", Domains: []string{"console.acme.test"}, Origin: store.OriginAPI}
+	if err := st.Tenants().Create(ctx, api); err != nil {
+		t.Fatal(err)
+	}
+	f, _ := Parse([]byte(sample))
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.Tenants().GetByName(ctx, "acme")
+	if got.FriendlyName != "From the console" || got.Seeded {
+		t.Fatalf("the seed changed an API tenant: %+v", got)
+	}
+	if clients, _ := st.Clients().List(ctx, got.ID); len(clients) != 0 {
+		t.Fatalf("the seed added %d clients to an API tenant", len(clients))
 	}
 }

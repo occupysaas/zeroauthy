@@ -261,8 +261,8 @@ This task is run by the controller session as the observer. The implementers of 
 
   Operator tokens only.
 
-- [ ] **Step 1: Tests** for each, including refusing `system`, an invalid name, a clashing domain and the last operator, and rejecting M2M tokens.
-- [ ] **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat(mgmt): system API for tenants and operators`.
+- [x] **Step 1: Tests** for each, including refusing `system`, an invalid name, a clashing domain and the last operator, and rejecting M2M tokens.
+- [x] **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat(mgmt): system API for tenants and operators`.
 
 ---
 

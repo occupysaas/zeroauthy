@@ -51,6 +51,9 @@ type Tenant struct {
 	// Seeded marks a tenant defined by the seed file. The console shows a
 	// banner on it: the next start overwrites edits to what the seed defines.
 	Seeded bool
+	// Origin is OriginAPI for a tenant created through the system API,
+	// which the seed never touches; empty otherwise.
+	Origin string
 
 	CreatedAt time.Time
 }
@@ -130,14 +133,15 @@ type Client struct {
 	// do not name a pushed request. Only for confidential clients of a
 	// tenant that allows PAR.
 	RequirePushedAuthorizationRequests bool
-	// Origin records who created the client: ClientOriginAPI for the
-	// Management API (and the console), empty for the seed or zeroauthy
-	// itself. The seed never touches API-created clients.
+	// Origin records who created the client: OriginAPI for the Management
+	// API (and the console), empty for the seed or zeroauthy itself. The
+	// seed never touches API-created clients.
 	Origin string
 }
 
-// ClientOriginAPI marks a client created through the Management API.
-const ClientOriginAPI = "api"
+// OriginAPI marks a client or tenant created through the Management or
+// system API.
+const OriginAPI = "api"
 
 // Scope is a permission defined by a resource server.
 type Scope struct {

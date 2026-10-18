@@ -201,6 +201,171 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/system/tenants:
+    get:
+      operationId: getTenants
+      tags: [system]
+      summary: List tenants
+      description: Every tenant, ordered by name, the system tenant included (`reserved`).
+      x-source:
+        - https://auth0.com/docs/get-started/auth0-overview/create-tenants
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: The tenants.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/SystemTenant"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      operationId: createTenant
+      tags: [system]
+      summary: Create a tenant
+      description: |
+        Creates the tenant with signing keys, a database connection
+        `Username-Password-Authentication` and its Management API. Without a
+        base domain the tenant needs at least one domain.
+      x-source:
+        - https://auth0.com/docs/get-started/auth0-overview/create-tenants
+        - https://www.rfc-editor.org/rfc/rfc1123#section-2.1
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/TenantCreate"}
+      responses:
+        "201":
+          description: The new tenant.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SystemTenant"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/system/tenants/{name}:
+    parameters:
+      - name: name
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+    patch:
+      operationId: updateTenant
+      tags: [system]
+      summary: Update a tenant
+      description: Changes the friendly name or the domains. The system tenant cannot be changed.
+      x-source:
+        - https://auth0.com/docs/get-started/tenant-settings
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/TenantUpdate"}
+      responses:
+        "200":
+          description: The updated tenant.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SystemTenant"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+    delete:
+      operationId: deleteTenant
+      tags: [system]
+      summary: Delete a tenant
+      description: |
+        Deletes the tenant and all of its data. `confirm` must repeat the
+        name. The system tenant cannot be deleted.
+      x-source:
+        - https://auth0.com/docs/get-started/auth0-overview/create-tenants/delete-tenants
+      security: [{operatorToken: []}]
+      parameters:
+        - name: confirm
+          in: query
+          required: true
+          description: The tenant's name again.
+          schema: {type: string}
+      responses:
+        "204": {description: Deleted.}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/system/operators:
+    get:
+      operationId: getOperators
+      tags: [system]
+      summary: List operators
+      x-source:
+        - https://auth0.com/docs/get-started/manage-dashboard-access/add-dashboard-users
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: The operators, ordered by user ID.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Operator"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      operationId: createOperator
+      tags: [system]
+      summary: Invite an operator
+      description: |
+        Makes the address an operator of every tenant and returns a
+        one-time link, valid for one hour, where they choose a password.
+        Inviting an existing operator again issues a new link.
+      x-source:
+        - https://auth0.com/docs/get-started/manage-dashboard-access/add-dashboard-users
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/OperatorCreate"}
+      responses:
+        "201":
+          description: The operator and the setup link.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OperatorInvite"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/system/operators/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The operator's user ID in the system tenant.
+        schema: {type: string}
+    delete:
+      operationId: deleteOperator
+      tags: [system]
+      summary: Remove an operator
+      description: |
+        Removes the operator at once and ends their sessions and refresh
+        tokens. Their user stays. The last operator cannot be removed.
+      x-source:
+        - https://auth0.com/docs/get-started/manage-dashboard-access/add-dashboard-users
+      security: [{operatorToken: []}]
+      responses:
+        "204": {description: Removed.}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
 components:
   securitySchemes:
     managementToken:
@@ -415,6 +580,68 @@ components:
         global: {type: boolean, enum: [false]}
         callback_url_template: {type: boolean, enum: [false]}
         created_at: {type: string, format: date-time}
+    SystemTenant:
+      type: object
+      description: A tenant, as the system API reports it.
+      required: [name, friendly_name, domains, host, management_api_identifier, seeded, reserved, created_at]
+      properties:
+        name: {type: string, description: "The tenant's name: a DNS label, its subdomain under the base domain."}
+        friendly_name: {type: string}
+        domains: {type: array, items: {type: string}, description: Custom domains the tenant answers on.}
+        host:
+          type: string
+          description: The tenant's canonical host, where the console calls its Management API.
+        management_api_identifier:
+          type: string
+          description: The audience of the tenant's machine-to-machine Management API tokens.
+        seeded:
+          type: boolean
+          description: The seed file defines the tenant; the next start overwrites edits to what it defines.
+        reserved: {type: boolean, description: "The system tenant (operators sign in there)."}
+        created_at: {type: string, format: date-time}
+    TenantCreate:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
+          description: Lower-case letters, digits and hyphens, at most 63 characters; `system` is reserved.
+        friendly_name: {type: string, maxLength: 255}
+        domains: {type: array, items: {type: string}, description: Custom domains (hosts) the tenant answers on.}
+    TenantUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        friendly_name: {type: string, maxLength: 255}
+        domains: {type: array, items: {type: string}}
+    Operator:
+      type: object
+      required: [user_id, email, tenants, created_at]
+      properties:
+        user_id: {type: string, description: "The operator's user ID in the system tenant."}
+        email: {type: string}
+        tenants:
+          type: array
+          items: {type: string}
+          description: The tenants the operator manages; `*` means every tenant.
+        created_at: {type: string, format: date-time}
+    OperatorCreate:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: {type: string, format: email}
+    OperatorInvite:
+      allOf:
+        - $ref: "#/components/schemas/Operator"
+        - type: object
+          required: [setup_url]
+          properties:
+            setup_url:
+              type: string
+              description: One-time link, valid for one hour, where the operator chooses a password.
     ClientPage:
       description: A page of applications with `include_totals=true`.
       allOf:
@@ -465,6 +692,11 @@ components:
           schema: {$ref: "#/components/schemas/ManagementError"}
     Forbidden:
       description: The token lacks the scope the operation needs (`insufficient_scope`).
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    Conflict:
+      description: The name or a domain is already used, or the change would remove the last operator (`conflict`, `last_operator`).
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}

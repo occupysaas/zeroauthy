@@ -40,8 +40,10 @@ type Handlers struct {
 	Store store.Store
 	// Wrapper seals and opens client secrets (D-0038).
 	Wrapper keys.Wrapper
-	// BaseDomain is server.base_domain.
+	// BaseDomain is server.base_domain, and SystemHost the system tenant's
+	// canonical host, which no other tenant may claim.
 	BaseDomain string
+	SystemHost string
 	Log        *slog.Logger
 	Now        func() time.Time
 }
@@ -212,7 +214,7 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := h.now()
-	c := &store.Client{TenantID: tn.ID, ClientID: secrets.RandomString(clientIDLength), CreatedAt: now, Origin: store.ClientOriginAPI}
+	c := &store.Client{TenantID: tn.ID, ClientID: secrets.RandomString(clientIDLength), CreatedAt: now, Origin: store.OriginAPI}
 	clientrules.Apply(c, &spec)
 	if err := h.setSecret(c, in.secret, in.secretSet, now); err != nil {
 		Fail(w, err)
@@ -291,12 +293,7 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		return tx.Clients().Update(r.Context(), c)
 	})
 	if err != nil {
-		var e *Error
-		if errors.As(err, &e) {
-			Fail(w, e)
-			return
-		}
-		Fail(w, internalError(h, r, "update client", err))
+		h.failTx(w, r, "update client", err)
 		return
 	}
 	h.audit(r, "update client", "client_id", id)
@@ -375,12 +372,7 @@ func (h *Handlers) RotateClientSecret(w http.ResponseWriter, r *http.Request, id
 		return tx.Clients().Update(r.Context(), c)
 	})
 	if err != nil {
-		var e *Error
-		if errors.As(err, &e) {
-			Fail(w, e)
-			return
-		}
-		Fail(w, internalError(h, r, "rotate client secret", err))
+		h.failTx(w, r, "rotate client secret", err)
 		return
 	}
 	h.audit(r, "rotate client secret", "client_id", id)

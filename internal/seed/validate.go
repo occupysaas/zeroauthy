@@ -18,8 +18,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
 
-var dnsLabel = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
-
 var configKey = regexp.MustCompile(`^[A-Za-z0-9_]{1,128}$`)
 
 const (
@@ -47,7 +45,7 @@ func (f *File) validate() error {
 		if t.Name == tenant.SystemName {
 			errs = append(errs, fmt.Errorf("seed: tenant name %q is reserved for zeroauthy's own tenant", t.Name))
 		}
-		if !dnsLabel.MatchString(t.Name) {
+		if !tenant.ValidName(t.Name) {
 			errs = append(errs, fmt.Errorf("seed: tenant %q: name must be a valid DNS label (lowercase a-z, 0-9, '-', at most 63 characters)", t.Name))
 		}
 		errs = append(errs, t.validate()...)

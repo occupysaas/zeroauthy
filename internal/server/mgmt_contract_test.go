@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -29,7 +30,7 @@ func newMgmtContract(t *testing.T) *mgmtContract {
 		t.Fatal(err)
 	}
 	// Route on the test tenant's host instead of the spec's template.
-	doc.Servers = openapi3.Servers{{URL: "https://acme.example.test"}}
+	doc.Servers = openapi3.Servers{{URL: "https://acme.example.test"}, {URL: "https://" + mgmtSystemHost}}
 	router, err := gorillamux.NewRouter(doc)
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +76,7 @@ func (c *mgmtContract) do(h http.Handler, method, target, token string, body any
 }
 
 func TestManagementContract(t *testing.T) {
-	h := newMgmtServer(t)
+	h, st := newMgmtEnv(t)
 	c := newMgmtContract(t)
 	admin := clientToken(t, h, "acme.example.test", acmeMgmtAPI, "admin", "admin-s3cret")
 	reader := m2mToken(t, h, "acme.example.test", acmeMgmtAPI)
@@ -102,4 +103,22 @@ func TestManagementContract(t *testing.T) {
 	c.do(h, "POST", base+"/"+id+"/rotate-secret", admin, nil)
 	c.do(h, "DELETE", base+"/"+id, admin, nil)
 	c.do(h, "DELETE", base+"/"+id, admin, nil)
+
+	op, _ := operatorToken(t, st, "op@example.test")
+	sys := "https://" + mgmtSystemHost + "/api/system"
+	c.do(h, "GET", sys+"/tenants", op, nil)
+	c.do(h, "POST", sys+"/tenants", op, map[string]any{"name": "globex", "domains": []string{"login.globex.test"}})
+	c.do(h, "POST", sys+"/tenants", op, map[string]any{"name": "globex", "domains": []string{"login.globex.test"}})
+	c.do(h, "PATCH", sys+"/tenants/globex", op, map[string]any{"friendly_name": "Globex"})
+	c.do(h, "PATCH", sys+"/tenants/nope", op, map[string]any{"friendly_name": "Globex"})
+	c.do(h, "DELETE", sys+"/tenants/globex?confirm=globex", op, nil)
+	c.do(h, "GET", sys+"/operators", op, nil)
+	code, body = c.do(h, "POST", sys+"/operators", op, map[string]any{"email": "new@example.test"})
+	var invite map[string]any
+	_ = json.Unmarshal(body, &invite)
+	if code != 201 {
+		t.Fatalf("invite = %d %s", code, body)
+	}
+	c.do(h, "DELETE", sys+"/operators/"+url.PathEscape(invite["user_id"].(string)), op, nil)
+	c.do(h, "GET", sys+"/tenants", reader, nil)
 }

@@ -147,7 +147,7 @@ func TestTenantRoundTrip(t *testing.T) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: true, UseScopeDescriptionsForConsent: true,
 		PushedAuthorizationRequestsSupported: true,
 		DeviceFlowCharset:                    "digits", DeviceFlowMask: "###-###",
-		Reserved: true, Seeded: true,
+		Reserved: true, Seeded: true, Origin: store.OriginAPI,
 	}, tenantToPB, tenantFromPB)
 	roundTrip(t, "empty", &store.Tenant{Domains: []string{}, AllowedLogoutURLs: []string{}, EnabledLocales: []string{}, CustomText: store.CustomText{}}, tenantToPB, tenantFromPB)
 	roundTrip(t, "zero", &store.Tenant{}, tenantToPB, tenantFromPB)
@@ -171,7 +171,7 @@ func TestClientRoundTrip(t *testing.T) {
 		RedirectionPolicy: store.RedirectionPolicyAllowAlways,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: ptr(true),
 		RequirePushedAuthorizationRequests:             true,
-		Origin:                                         store.ClientOriginAPI,
+		Origin:                                         store.OriginAPI,
 	}, clientToPB, clientFromPB)
 	roundTrip(t, "third party", &store.Client{
 		TenantID: "ten", ClientID: "tp", ThirdPartySecurityMode: store.SecurityModePermissive,

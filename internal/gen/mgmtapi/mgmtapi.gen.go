@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for AppType.
@@ -733,6 +734,38 @@ type ManagementError struct {
 	StatusCode int `json:"statusCode"`
 }
 
+// Operator defines model for Operator.
+type Operator struct {
+	CreatedAt time.Time `json:"created_at"`
+	Email     string    `json:"email"`
+
+	// Tenants The tenants the operator manages; `*` means every tenant.
+	Tenants []string `json:"tenants"`
+
+	// UserId The operator's user ID in the system tenant.
+	UserId string `json:"user_id"`
+}
+
+// OperatorCreate defines model for OperatorCreate.
+type OperatorCreate struct {
+	Email openapi_types.Email `json:"email"`
+}
+
+// OperatorInvite defines model for OperatorInvite.
+type OperatorInvite struct {
+	CreatedAt time.Time `json:"created_at"`
+	Email     string    `json:"email"`
+
+	// SetupUrl One-time link, valid for one hour, where the operator chooses a password.
+	SetupUrl string `json:"setup_url"`
+
+	// Tenants The tenants the operator manages; `*` means every tenant.
+	Tenants []string `json:"tenants"`
+
+	// UserId The operator's user ID in the system tenant.
+	UserId string `json:"user_id"`
+}
+
 // RefreshTokenSettings The refresh tokens the application receives.
 type RefreshTokenSettings struct {
 	ExpirationType *RefreshTokenSettingsExpirationType `json:"expiration_type,omitempty"`
@@ -760,6 +793,46 @@ type RefreshTokenSettingsExpirationType string
 // RefreshTokenSettingsRotationType defines model for RefreshTokenSettings.RotationType.
 type RefreshTokenSettingsRotationType string
 
+// SystemTenant A tenant, as the system API reports it.
+type SystemTenant struct {
+	CreatedAt time.Time `json:"created_at"`
+
+	// Domains Custom domains the tenant answers on.
+	Domains      []string `json:"domains"`
+	FriendlyName string   `json:"friendly_name"`
+
+	// Host The tenant's canonical host, where the console calls its Management API.
+	Host string `json:"host"`
+
+	// ManagementApiIdentifier The audience of the tenant's machine-to-machine Management API tokens.
+	ManagementApiIdentifier string `json:"management_api_identifier"`
+
+	// Name The tenant's name: a DNS label, its subdomain under the base domain.
+	Name string `json:"name"`
+
+	// Reserved The system tenant (operators sign in there).
+	Reserved bool `json:"reserved"`
+
+	// Seeded The seed file defines the tenant; the next start overwrites edits to what it defines.
+	Seeded bool `json:"seeded"`
+}
+
+// TenantCreate defines model for TenantCreate.
+type TenantCreate struct {
+	// Domains Custom domains (hosts) the tenant answers on.
+	Domains      *[]string `json:"domains,omitempty"`
+	FriendlyName *string   `json:"friendly_name,omitempty"`
+
+	// Name Lower-case letters, digits and hyphens, at most 63 characters; `system` is reserved.
+	Name string `json:"name"`
+}
+
+// TenantUpdate defines model for TenantUpdate.
+type TenantUpdate struct {
+	Domains      *[]string `json:"domains,omitempty"`
+	FriendlyName *string   `json:"friendly_name,omitempty"`
+}
+
 // TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
 type TokenEndpointAuthMethod string
 
@@ -781,6 +854,9 @@ type PerPage = int
 // BadRequest Auth0's Management API error shape.
 type BadRequest = ManagementError
 
+// Conflict Auth0's Management API error shape.
+type Conflict = ManagementError
+
 // Forbidden Auth0's Management API error shape.
 type Forbidden = ManagementError
 
@@ -789,6 +865,12 @@ type NotFound = ManagementError
 
 // Unauthorized Auth0's Management API error shape.
 type Unauthorized = ManagementError
+
+// DeleteTenantParams defines parameters for DeleteTenant.
+type DeleteTenantParams struct {
+	// Confirm The tenant's name again.
+	Confirm string `form:"confirm" json:"confirm"`
+}
 
 // GetClientsParams defines parameters for GetClients.
 type GetClientsParams struct {
@@ -830,6 +912,15 @@ type GetClientParams struct {
 	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
+
+// CreateOperatorJSONRequestBody defines body for CreateOperator for application/json ContentType.
+type CreateOperatorJSONRequestBody = OperatorCreate
+
+// CreateTenantJSONRequestBody defines body for CreateTenant for application/json ContentType.
+type CreateTenantJSONRequestBody = TenantCreate
+
+// UpdateTenantJSONRequestBody defines body for UpdateTenant for application/json ContentType.
+type UpdateTenantJSONRequestBody = TenantUpdate
 
 // CreateClientJSONRequestBody defines body for CreateClient for application/json ContentType.
 type CreateClientJSONRequestBody = ClientCreate
@@ -901,6 +992,27 @@ func (t *GetClients200JSONResponseBody) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetOperators List operators
+	// (GET /api/system/operators)
+	GetOperators(w http.ResponseWriter, r *http.Request)
+	// CreateOperator Invite an operator
+	// (POST /api/system/operators)
+	CreateOperator(w http.ResponseWriter, r *http.Request)
+	// DeleteOperator Remove an operator
+	// (DELETE /api/system/operators/{id})
+	DeleteOperator(w http.ResponseWriter, r *http.Request, id string)
+	// GetTenants List tenants
+	// (GET /api/system/tenants)
+	GetTenants(w http.ResponseWriter, r *http.Request)
+	// CreateTenant Create a tenant
+	// (POST /api/system/tenants)
+	CreateTenant(w http.ResponseWriter, r *http.Request)
+	// DeleteTenant Delete a tenant
+	// (DELETE /api/system/tenants/{name})
+	DeleteTenant(w http.ResponseWriter, r *http.Request, name string, params DeleteTenantParams)
+	// UpdateTenant Update a tenant
+	// (PATCH /api/system/tenants/{name})
+	UpdateTenant(w http.ResponseWriter, r *http.Request, name string)
 	// GetClients List applications
 	// (GET /api/v2/clients)
 	GetClients(w http.ResponseWriter, r *http.Request, params GetClientsParams)
@@ -924,6 +1036,48 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// GetOperators List operators
+// (GET /api/system/operators)
+func (_ Unimplemented) GetOperators(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateOperator Invite an operator
+// (POST /api/system/operators)
+func (_ Unimplemented) CreateOperator(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteOperator Remove an operator
+// (DELETE /api/system/operators/{id})
+func (_ Unimplemented) DeleteOperator(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenants List tenants
+// (GET /api/system/tenants)
+func (_ Unimplemented) GetTenants(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateTenant Create a tenant
+// (POST /api/system/tenants)
+func (_ Unimplemented) CreateTenant(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteTenant Delete a tenant
+// (DELETE /api/system/tenants/{name})
+func (_ Unimplemented) DeleteTenant(w http.ResponseWriter, r *http.Request, name string, params DeleteTenantParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateTenant Update a tenant
+// (PATCH /api/system/tenants/{name})
+func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // GetClients List applications
 // (GET /api/v2/clients)
@@ -969,6 +1123,156 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetOperators operation middleware
+func (siw *ServerInterfaceWrapper) GetOperators(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOperators(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateOperator operation middleware
+func (siw *ServerInterfaceWrapper) CreateOperator(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateOperator(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteOperator operation middleware
+func (siw *ServerInterfaceWrapper) DeleteOperator(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteOperator(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTenants operation middleware
+func (siw *ServerInterfaceWrapper) GetTenants(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenants(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTenant operation middleware
+func (siw *ServerInterfaceWrapper) CreateTenant(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTenant(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTenant operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTenant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", chi.URLParam(r, "name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteTenantParams
+
+	// ------------- Required query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTenant(w, r, name, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateTenant operation middleware
+func (siw *ServerInterfaceWrapper) UpdateTenant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", chi.URLParam(r, "name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateTenant(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetClients operation middleware
 func (siw *ServerInterfaceWrapper) GetClients(w http.ResponseWriter, r *http.Request) {
@@ -1358,6 +1662,27 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/clients/{id}/rotate-secret", wrapper.RotateClientSecret)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants", wrapper.GetTenants)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants", wrapper.CreateTenant)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/system/tenants/{name}", wrapper.DeleteTenant)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/system/tenants/{name}", wrapper.UpdateTenant)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/operators", wrapper.GetOperators)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/operators", wrapper.CreateOperator)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/system/operators/{id}", wrapper.DeleteOperator)
 	})
 
 	return r

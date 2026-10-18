@@ -155,7 +155,7 @@ func TestCreateClientDefaults(t *testing.T) {
 		}
 	}
 	stored, err := e.st.Clients().Get(context.Background(), e.tn.ID, id)
-	if err != nil || stored.Origin != store.ClientOriginAPI || stored.Secrets != nil {
+	if err != nil || stored.Origin != store.OriginAPI || stored.Secrets != nil {
 		t.Fatalf("stored = %+v, %v", stored, err)
 	}
 

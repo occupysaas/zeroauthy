@@ -611,3 +611,16 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Open for slice 5:**
   - `auth0-deploy-cli` does not carry `client_secret`, and Auth0 refuses a caller-supplied `client_id`. A migration that keeps client IDs and secrets needs a dedicated step, for example zeroauthy accepting `client_id` on create as an extension.
   - That is a maintainer decision when slice 5 is designed.
+
+## D-0040: The system API for tenants and operators
+
+- **Context:** Auth0 has no API to create, list or delete tenants or dashboard administrators; the console needs one (design §4.3).
+- **Sources:** design `docs/superpowers/specs/2026-10-18-zeroauthy-management-design.md` §4.1, §4.3; Auth0's public docs on creating and deleting tenants and on dashboard administrators, for the vocabulary only.
+- **Decision:**
+  - `/api/system/tenants` (`GET`, `POST`, `PATCH /{name}`, `DELETE /{name}?confirm=<name>`) and `/api/system/operators` (`GET`, `POST`, `DELETE /{id}`), on the system host only, for operator tokens only. It uses the Management API's error shape.
+  - **Tenant names** are DNS labels (at most 63 characters); `system` is reserved. **Domains** are hosts with an optional port; the system host is refused. Without a base domain a tenant needs at least one domain, since it would otherwise have no host.
+  - **A new tenant** gets signing keys, a database connection `Username-Password-Authentication` (its default directory, enabled for no application yet) and its Management API. `PATCH` changes only the friendly name and domains.
+  - **Errors:** `404 inexistent_tenant` and `inexistent_operator`; `409 conflict` for a used name or domain; `409 last_operator`; `403 operation_not_supported` for changing or deleting the system tenant; `400 invalid_query_string` when `confirm` does not repeat the name.
+  - **Inviting** an operator returns a one-hour setup link (the password-reset ticket flow); inviting an existing operator issues a new link. **Removing** one deletes the operator record and ends their sessions and refresh tokens at once; their user stays. The last operator cannot be removed.
+  - **Seed coexistence:** tenants and clients created through the APIs carry `origin: api`; the seed never touches them, even when it names the same tenant or client ID.
+- **Rationale:** the smallest API the console needs, in the shape of the rest of the Management API.

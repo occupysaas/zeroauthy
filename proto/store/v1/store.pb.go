@@ -879,6 +879,7 @@ type Tenant struct {
 	DeviceFlowMask                                 string                 `protobuf:"bytes,18,opt,name=device_flow_mask,json=deviceFlowMask,proto3" json:"device_flow_mask,omitempty"`                                                                      // absent = ""
 	Reserved                                       bool                   `protobuf:"varint,19,opt,name=reserved,proto3" json:"reserved,omitempty"`                                                                                                         // absent = false
 	Seeded                                         bool                   `protobuf:"varint,20,opt,name=seeded,proto3" json:"seeded,omitempty"`                                                                                                             // absent = false
+	Origin                                         string                 `protobuf:"bytes,21,opt,name=origin,proto3" json:"origin,omitempty"`                                                                                                              // "api" or empty (seed)
 	unknownFields                                  protoimpl.UnknownFields
 	sizeCache                                      protoimpl.SizeCache
 }
@@ -1051,6 +1052,13 @@ func (x *Tenant) GetSeeded() bool {
 		return x.Seeded
 	}
 	return false
+}
+
+func (x *Tenant) GetOrigin() string {
+	if x != nil {
+		return x.Origin
+	}
+	return ""
 }
 
 type Branding struct {
@@ -6356,7 +6364,7 @@ const file_store_proto_rawDesc = "" +
 	"\x06values\x18\x01 \x03(\v2).zeroauthy.store.v1.StringMap.ValuesEntryR\x06values\x1a9\n" +
 	"\vValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb3\b\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcb\b\n" +
 	"\x06Tenant\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
@@ -6379,7 +6387,8 @@ const file_store_proto_rawDesc = "" +
 	"\x13device_flow_charset\x18\x11 \x01(\tR\x11deviceFlowCharset\x12(\n" +
 	"\x10device_flow_mask\x18\x12 \x01(\tR\x0edeviceFlowMask\x12\x1a\n" +
 	"\breserved\x18\x13 \x01(\bR\breserved\x12\x16\n" +
-	"\x06seeded\x18\x14 \x01(\bR\x06seededB\x13\n" +
+	"\x06seeded\x18\x14 \x01(\bR\x06seeded\x12\x16\n" +
+	"\x06origin\x18\x15 \x01(\tR\x06originB\x13\n" +
 	"\x11_custom_text_json\"J\n" +
 	"\bBranding\x12\x19\n" +
 	"\blogo_url\x18\x01 \x01(\tR\alogoUrl\x12#\n" +

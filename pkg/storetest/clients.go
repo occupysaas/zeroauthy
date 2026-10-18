@@ -47,7 +47,7 @@ func testClients(t *testing.T, newStore Factory) {
 
 		want.Name = "Renamed"
 		want.Secrets = want.Secrets[:1]
-		want.Origin = store.ClientOriginAPI
+		want.Origin = store.OriginAPI
 		mustNoErr(t, s.Clients().Update(ctx, want))
 		got, err = s.Clients().Get(ctx, "ten_a", "c1")
 		mustNoErr(t, err)

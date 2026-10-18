@@ -206,7 +206,7 @@ func New(d Deps) http.Handler {
 	mr := chi.NewRouter()
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, operatorOnly)
 	mgmtapi.HandlerWithOptions(mgmtAPI{&mgmt.Handlers{
-		Store: d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, Log: d.Log,
+		Store: d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 	}}, mgmtapi.ChiServerOptions{
 		BaseRouter: mr,
 		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {

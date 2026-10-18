@@ -163,12 +163,12 @@ func testTenantsDelete(t *testing.T, newStore Factory) {
 	t.Run("Flags", func(t *testing.T) {
 		s := open(t, newStore)
 		want := newTenant("system")
-		want.Reserved, want.Seeded = true, true
+		want.Reserved, want.Seeded, want.Origin = true, true, store.OriginAPI
 		mustNoErr(t, s.Tenants().Create(ctx, want))
 		got, err := s.Tenants().Get(ctx, want.ID)
 		mustNoErr(t, err)
 		mustEqual(t, got, want)
-		want.Reserved, want.Seeded = false, false
+		want.Reserved, want.Seeded, want.Origin = false, false, ""
 		mustNoErr(t, s.Tenants().Update(ctx, want))
 		got, err = s.Tenants().Get(ctx, want.ID)
 		mustNoErr(t, err)
