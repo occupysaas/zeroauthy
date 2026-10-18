@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"testing"
 	"time"
@@ -197,6 +198,41 @@ func TestVerify(t *testing.T) {
 	}
 	if err := m.Verify(ctx, "ten_a", raw, &got); err != nil {
 		t.Fatalf("Verify after rotation: %v", err)
+	}
+}
+
+// Verify accepts RS256 only: neither alg=none nor an HMAC token that names a
+// published kid may pass.
+func TestVerifyRejectsOtherAlgorithms(t *testing.T) {
+	m, _ := newManager(t)
+	ctx := context.Background()
+	if err := m.Ensure(ctx, "ten_a"); err != nil {
+		t.Fatal(err)
+	}
+	set, err := m.JWKS(ctx, "ten_a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	kid := set.Keys[0].KeyID
+	b64 := base64.RawURLEncoding.EncodeToString
+
+	none := b64([]byte(`{"alg":"none","typ":"JWT","kid":"`+kid+`"}`)) + "." + b64([]byte(`{"sub":"u1"}`)) + "."
+
+	opts := (&jose.SignerOptions{}).WithType("JWT").WithHeader("kid", kid)
+	hs, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: []byte("0123456789abcdef0123456789abcdef")}, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hs256, err := jwt.Signed(hs).Claims(map[string]any{"sub": "u1"}).Serialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for name, raw := range map[string]string{"none": none, "HS256": hs256} {
+		var got map[string]any
+		if err := m.Verify(ctx, "ten_a", raw, &got); !errors.Is(err, ErrInvalidToken) {
+			t.Errorf("%s: Verify err = %v, claims %v", name, err, got)
+		}
 	}
 }
 
