@@ -19,10 +19,10 @@
     "vue-router": "4.6.4"
   },
   "devDependencies": {
-    "@eslint/js": "9.39.5",
+    "@eslint/js": "10.0.1",
     "@vitejs/plugin-vue": "6.0.9",
     "@vue/test-utils": "2.5.1",
-    "eslint": "9.39.5",
+    "eslint": "10.12.0",
     "eslint-plugin-vue": "10.11.1",
     "happy-dom": "20.14.5",
     "openapi-typescript": "7.13.0",
