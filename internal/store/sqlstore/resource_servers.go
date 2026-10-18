@@ -55,6 +55,10 @@ func (r resourceServers) Delete(ctx context.Context, tenantID, id string) error 
 		if _, err := tx.exec(ctx, `DELETE FROM resource_servers WHERE tenant_id = ? AND id = ?`, tenantID, id); err != nil {
 			return err
 		}
+		// A tenant whose default audience was this API has none now (D-0041).
+		if _, err := tx.exec(ctx, `UPDATE tenants SET default_audience = '' WHERE id = ? AND default_audience = ?`, tenantID, rs.Identifier); err != nil {
+			return err
+		}
 		for _, table := range []string{"client_grants", "user_grants", "refresh_tokens"} {
 			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND audience = ?`, tenantID, rs.Identifier); err != nil {
 				return err

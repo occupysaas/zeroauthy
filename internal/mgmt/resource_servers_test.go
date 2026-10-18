@@ -687,6 +687,26 @@ func TestDeleteResourceServer(t *testing.T) {
 	}
 }
 
+// Deleting the API that is the tenant's default audience clears the default
+// (D-0041) and is not refused.
+func TestDeleteResourceServerClearsDefaultAudience(t *testing.T) {
+	e := newRSEnv(t)
+	ctx := context.Background()
+	id := e.mustCreate(t, map[string]any{"identifier": "https://default.test"})["id"].(string)
+	tn, _ := e.st.Tenants().Get(ctx, e.tn.ID)
+	tn.DefaultAudience = "https://default.test"
+	if err := e.st.Tenants().Update(ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	if rec := e.del(t, tn, id); rec.Code != 204 {
+		t.Fatalf("delete = %d %s", rec.Code, rec.Body)
+	}
+	got, _ := e.st.Tenants().Get(ctx, e.tn.ID)
+	if got.DefaultAudience != "" {
+		t.Errorf("default audience = %q, want none", got.DefaultAudience)
+	}
+}
+
 // Review focus 2: deleting an API takes its client grants and the user
 // grants for its audience with it, and refresh tokens issued for it stop
 // working; other APIs keep theirs.

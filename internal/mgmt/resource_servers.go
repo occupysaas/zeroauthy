@@ -207,11 +207,12 @@ func (h *Handlers) UpdateResourceServer(w http.ResponseWriter, r *http.Request, 
 }
 
 // DeleteResourceServer deletes an API with its client grants and user
-// grants, and ends its refresh tokens (the store cascades). Access tokens
+// grants, and ends its refresh tokens (the store cascades). When the API is the tenant's
+// default audience, the tenant has none afterwards (D-0041). Access tokens
 // already issued stay valid until they expire. An unknown ID is 204 too (A6).
 func (h *Handlers) DeleteResourceServer(w http.ResponseWriter, r *http.Request, id string) {
 	tn := resolved(r)
-	deleted := false
+	deleted, clearedDefault := false, false
 	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
 		rs, err := tx.ResourceServers().Get(r.Context(), tn.ID, id)
 		if errors.Is(err, store.ErrNotFound) {
@@ -222,6 +223,9 @@ func (h *Handlers) DeleteResourceServer(w http.ResponseWriter, r *http.Request, 
 		}
 		if rs.IsSystem {
 			return &Error{Status: http.StatusBadRequest, Code: "delete_system_resource_server", Message: "A system resource server cannot be deleted"}
+		}
+		if t, err := tx.Tenants().Get(r.Context(), tn.ID); err == nil && t.DefaultAudience == rs.Identifier {
+			clearedDefault = true
 		}
 		if err := tx.ResourceServers().Delete(r.Context(), tn.ID, rs.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
 			return err
@@ -235,6 +239,9 @@ func (h *Handlers) DeleteResourceServer(w http.ResponseWriter, r *http.Request, 
 	}
 	if deleted {
 		h.audit(r, "delete resource server", "id", id)
+		if clearedDefault {
+			h.log().InfoContext(r.Context(), "cleared the tenant default audience with its API", "tenant", tn.ID, "id", id)
+		}
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)

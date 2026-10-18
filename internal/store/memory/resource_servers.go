@@ -66,6 +66,10 @@ func (r resourceServers) Delete(_ context.Context, tenantID, id string) error {
 		return store.ErrNotFound
 	}
 	delete(r.s.resourceServers, k)
+	// A tenant whose default audience was this API has none now (D-0041).
+	if t, ok := r.s.tenants[tenantID]; ok && t.DefaultAudience == rs.Identifier {
+		t.DefaultAudience = ""
+	}
 	for gk, g := range r.s.clientGrants {
 		if gk.tenant == tenantID && g.Audience == rs.Identifier {
 			delete(r.s.clientGrants, gk)

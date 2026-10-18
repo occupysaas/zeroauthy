@@ -157,8 +157,9 @@ assert.ok(!auth0('apis', 'list', '--number', '100', '--json').some((a) => a.id =
 assert.equal(auth0('client-grants', 'list', '--audience', audience, '--json').length, 0);
 
 // 10. The tenant's default audience (seed: default_audience) is an API an
-//     operator can delete. Requests that leave the audience out then name an
-//     API that no longer exists: a clean refusal, not a crash.
+//     operator can delete. Deleting it clears the tenant's default audience
+//     (D-0041), so audience-less requests behave as for a tenant with none:
+//     client credentials need an audience, and /authorize carries on.
 const defaultAudience = 'https://default.cli.e2e.test';
 const defaultApi = auth0('apis', 'create', '--name', 'Default API', '--identifier', defaultAudience, '--scopes', 'read:default', '--json');
 const defaultApp = auth0('apps', 'create', '--name', 'cli-default-m2m', '--type', 'm2m', '--reveal-secrets', '--json');
@@ -183,10 +184,11 @@ function get(path) {
 const before = await get(authorizeURL);
 auth0('apis', 'delete', defaultApi.id, '--force');
 tok = await post('/oauth/token', noAudience);
-assert.equal(tok.status, 403, JSON.stringify(tok.body));
-assert.equal(tok.body.error, 'access_denied');
+assert.equal(tok.status, 400, JSON.stringify(tok.body));
+assert.equal(tok.body.error, 'invalid_request');
 const after = await get(authorizeURL);
-assert.ok(after.status < 500, `/authorize after deleting the default audience answered ${after.status}`);
+assert.equal(after.status, before.status, `/authorize after deleting the default audience answered ${after.status}`);
+assert.ok(after.status < 500);
 console.log(`m14-mgmt-cli: /authorize with the default audience present: ${before.status} ${before.location ?? ''}`);
 console.log(`m14-mgmt-cli: /authorize with the default audience deleted: ${after.status} ${after.location ?? ''}`);
 

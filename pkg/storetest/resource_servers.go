@@ -104,6 +104,31 @@ func testResourceServers(t *testing.T, newStore Factory) {
 		mustNoErr(t, err)
 	})
 
+	t.Run("DeleteClearsDefaultAudience", func(t *testing.T) {
+		s := open(t, newStore)
+		for _, name := range []string{"a", "b"} {
+			mustNoErr(t, s.Tenants().Create(ctx, newTenant(name)))
+		}
+		// ten_a's default audience is https://a.api.test; ten_b has the same
+		// identifier as an ordinary API and its own default.
+		mustNoErr(t, s.ResourceServers().Create(ctx, newResourceServer("ten_a", "dflt", "https://a.api.test")))
+		mustNoErr(t, s.ResourceServers().Create(ctx, newResourceServer("ten_a", "other", "https://other.test")))
+		mustNoErr(t, s.ResourceServers().Create(ctx, newResourceServer("ten_b", "dflt", "https://a.api.test")))
+
+		mustNoErr(t, s.ResourceServers().Delete(ctx, "ten_a", "other"))
+		got, err := s.Tenants().Get(ctx, "ten_a")
+		mustNoErr(t, err)
+		mustEqual(t, got.DefaultAudience, "https://a.api.test")
+
+		mustNoErr(t, s.ResourceServers().Delete(ctx, "ten_a", "dflt"))
+		got, err = s.Tenants().Get(ctx, "ten_a")
+		mustNoErr(t, err)
+		mustEqual(t, got.DefaultAudience, "")
+		got, err = s.Tenants().Get(ctx, "ten_b")
+		mustNoErr(t, err)
+		mustEqual(t, got.DefaultAudience, "https://b.api.test")
+	})
+
 	t.Run("ConsentAndPolicies", func(t *testing.T) {
 		s := open(t, newStore)
 		want := newResourceServer("ten_a", "rs1", "https://api.test")
