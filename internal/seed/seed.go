@@ -301,8 +301,12 @@ func (c *Connection) spec() connrules.Spec {
 	}
 	// The seed's own password policy owns the complexity half only.
 	lc := store.LegacyComplexity(c.PasswordPolicy.MinLength, c.PasswordPolicy.RequireCharacterClasses)
+	var minLength *int
+	if lc.MinLength > 0 {
+		minLength = &lc.MinLength
+	}
 	s.Options.PasswordOptions = &connrules.PasswordOptions{Complexity: &connrules.Complexity{
-		MinLength: lc.MinLength, CharacterTypes: lc.CharacterTypes, CharacterTypeRule: lc.CharacterTypeRule,
+		MinLength: minLength, CharacterTypes: lc.CharacterTypes, CharacterTypeRule: lc.CharacterTypeRule,
 		MinCharacterClasses: lc.MinCharacterClasses,
 	}}
 	return s

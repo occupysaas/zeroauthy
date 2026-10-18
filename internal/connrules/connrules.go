@@ -160,16 +160,40 @@ var typedOptionKeys = func() map[string]bool {
 	return keys
 }()
 
+// isTypedKey reports whether k is a typed option key in any letter case.
+func isTypedKey(k string) bool {
+	for t := range typedOptionKeys {
+		if strings.EqualFold(t, k) {
+			return true
+		}
+	}
+	return false
+}
+
 type plainOptions Options
 
 // UnmarshalJSON decodes the typed keys and collects the others into Extra.
 func (o *Options) UnmarshalJSON(data []byte) error {
-	var p plainOptions
-	if err := json.Unmarshal(data, &p); err != nil {
-		return err
-	}
+	// Keys are case-sensitive, as Auth0's JSON is: only the exact spelling of
+	// a typed key is typed. Any other spelling of one goes to Extra, where
+	// normalizeExtra refuses it, so nothing is stored twice or in plaintext.
 	var all map[string]json.RawMessage
 	if err := json.Unmarshal(data, &all); err != nil {
+		return err
+	}
+	typedOnly := map[string]json.RawMessage{}
+	for k, raw := range all {
+		if typedOptionKeys[k] {
+			typedOnly[k] = raw
+		}
+	}
+	filtered, err := json.Marshal(typedOnly)
+	if err != nil {
+		return err
+	}
+	var p plainOptions
+	dec0 := json.NewDecoder(bytes.NewReader(filtered))
+	if err := dec0.Decode(&p); err != nil {
 		return err
 	}
 	p.Extra = map[string]any{}
@@ -202,7 +226,7 @@ func (o Options) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	for k, v := range o.Extra {
-		if _, taken := m[k]; taken {
+		if isTypedKey(k) {
 			continue
 		}
 		raw, err := json.Marshal(v)
@@ -326,6 +350,11 @@ func normalizeExtra(o *Options) []error {
 	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
 	if _, reserved := o.Extra[topKey]; reserved {
 		fail("option %q is reserved", topKey)
+	}
+	for _, k := range slices.Sorted(maps.Keys(o.Extra)) {
+		if isTypedKey(k) {
+			fail("option %q is a named option; spell it exactly, in lower case as documented", k)
+		}
 	}
 	for _, k := range slices.Sorted(maps.Keys(ExtraSchema)) {
 		v, ok := o.Extra[k]

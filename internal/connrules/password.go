@@ -34,7 +34,9 @@ type PasswordOptions struct {
 
 // Complexity is password_options.complexity. Zero strings mean the default.
 type Complexity struct {
-	MinLength            int      `json:"min_length" yaml:"min_length"`
+	// MinLength is a pointer so that an explicit 0 is refused while an
+	// absent value takes the default.
+	MinLength            *int     `json:"min_length,omitempty" yaml:"min_length"`
 	CharacterTypes       []string `json:"character_types" yaml:"character_types"`
 	CharacterTypeRule    string   `json:"character_type_rule,omitempty" yaml:"character_type_rule"`
 	IdenticalCharacters  string   `json:"identical_characters,omitempty" yaml:"identical_characters"`
@@ -49,7 +51,7 @@ type Complexity struct {
 // History is password_options.history.
 type History struct {
 	Active bool `json:"active" yaml:"active"`
-	Size   int  `json:"size" yaml:"size"`
+	Size   *int `json:"size,omitempty" yaml:"size"`
 }
 
 // Dictionary is password_options.dictionary.
@@ -74,7 +76,7 @@ type (
 	// LegacyHistory is password_history.
 	LegacyHistory struct {
 		Enable bool `json:"enable"`
-		Size   int  `json:"size,omitempty"`
+		Size   *int `json:"size,omitempty"`
 	}
 	// LegacyDictionary is password_dictionary.
 	LegacyDictionary struct {
@@ -102,12 +104,12 @@ type (
 // An explicit password_complexity_options.min_length overrides the level's
 // length.
 var legacyLevels = map[string]Complexity{
-	"none": {MinLength: 1},
-	"low":  {MinLength: 6},
-	"fair": {MinLength: 8, CharacterTypes: []string{
+	"none": {MinLength: intp(1)},
+	"low":  {MinLength: intp(6)},
+	"fair": {MinLength: intp(8), CharacterTypes: []string{
 		store.CharacterTypeLowercase, store.CharacterTypeUppercase, store.CharacterTypeNumber}},
-	"good": {MinLength: 8, CharacterTypes: store.CharacterTypes, CharacterTypeRule: store.CharacterTypeRuleThreeOfFour},
-	"excellent": {MinLength: 10, CharacterTypes: store.CharacterTypes,
+	"good": {MinLength: intp(8), CharacterTypes: store.CharacterTypes, CharacterTypeRule: store.CharacterTypeRuleThreeOfFour},
+	"excellent": {MinLength: intp(10), CharacterTypes: store.CharacterTypes,
 		IdenticalCharacters: store.PasswordBlock},
 }
 
@@ -137,7 +139,7 @@ func mapLegacy(o *Options) (*PasswordOptions, []error) {
 		if cx == nil {
 			cx = &Complexity{}
 		}
-		cx.MinLength = lc.MinLength
+		cx.MinLength = intp(lc.MinLength)
 	}
 	po.Complexity = cx
 	if h := o.PasswordHistory; h != nil {
@@ -183,9 +185,9 @@ func normalizePasswords(o *Options, api bool) []error {
 	if c := po.Complexity; c != nil {
 		max := maxMinLength(api)
 		switch {
-		case c.MinLength == 0 && api:
-			c.MinLength = defaultMinLength
-		case c.MinLength < 0 || c.MinLength > max:
+		case c.MinLength == nil && api:
+			c.MinLength = intp(defaultMinLength)
+		case c.MinLength != nil && (*c.MinLength < 1 || *c.MinLength > max):
 			fail("password_options.complexity.min_length must be 1 to %d", max)
 		}
 		for i, t := range c.CharacterTypes {
@@ -229,10 +231,10 @@ func normalizePasswords(o *Options, api bool) []error {
 		po.History = &History{}
 	}
 	if h := po.History; h != nil {
-		if h.Size == 0 {
-			h.Size = defaultHistorySize
+		if h.Size == nil {
+			h.Size = intp(defaultHistorySize)
 		}
-		if h.Size < 1 || h.Size > 24 {
+		if *h.Size < 1 || *h.Size > 24 {
 			fail("password_options.history.size must be 1 to 24")
 		}
 	}
@@ -273,7 +275,7 @@ func applyPasswords(in *PasswordOptions, out *store.PasswordOptions) {
 	}
 	if c := in.Complexity; c != nil {
 		out.Complexity = store.PasswordComplexity{
-			MinLength:            c.MinLength,
+			MinLength:            deref(c.MinLength),
 			CharacterTypes:       nilIfEmpty(c.CharacterTypes),
 			CharacterTypeRule:    c.CharacterTypeRule,
 			IdenticalCharacters:  c.IdenticalCharacters,
@@ -283,7 +285,7 @@ func applyPasswords(in *PasswordOptions, out *store.PasswordOptions) {
 		}
 	}
 	if h := in.History; h != nil {
-		out.History = store.PasswordHistory{Active: h.Active, Size: h.Size}
+		out.History = store.PasswordHistory{Active: h.Active, Size: deref(h.Size)}
 	}
 	if d := in.Dictionary; d != nil {
 		out.Dictionary = store.PasswordDictionary{Active: d.Active, Default: d.Default, Custom: nilIfEmpty(d.Custom)}
@@ -298,7 +300,7 @@ func applyPasswords(in *PasswordOptions, out *store.PasswordOptions) {
 func fromPasswords(in *store.PasswordOptions) *PasswordOptions {
 	c := in.Complexity
 	cx := &Complexity{
-		MinLength:            c.MinLength,
+		MinLength:            intp(c.MinLength),
 		CharacterTypes:       orEmpty(c.CharacterTypes),
 		CharacterTypeRule:    c.CharacterTypeRule,
 		IdenticalCharacters:  c.IdenticalCharacters,
@@ -306,17 +308,17 @@ func fromPasswords(in *store.PasswordOptions) *PasswordOptions {
 		MaxLengthExceeded:    c.MaxLengthExceeded,
 		MinCharacterClasses:  c.MinCharacterClasses,
 	}
-	if cx.MinLength == 0 {
-		cx.MinLength = 8
+	if c.MinLength == 0 {
+		cx.MinLength = intp(8)
 	}
 	setDefault(&cx.CharacterTypeRule, store.CharacterTypeRuleAll)
 	setDefault(&cx.IdenticalCharacters, store.PasswordAllow)
 	setDefault(&cx.SequentialCharacters, store.PasswordAllow)
 	setDefault(&cx.MaxLengthExceeded, store.MaxLengthError)
 
-	h := &History{Active: in.History.Active, Size: in.History.Size}
-	if h.Size == 0 {
-		h.Size = defaultHistorySize
+	h := &History{Active: in.History.Active, Size: intp(in.History.Size)}
+	if in.History.Size == 0 {
+		h.Size = intp(defaultHistorySize)
 	}
 	d := &Dictionary{Active: in.Dictionary.Active, Default: in.Dictionary.Default, Custom: orEmpty(in.Dictionary.Custom)}
 	setDefault(&d.Default, store.DictionaryEn100k)
@@ -325,4 +327,13 @@ func fromPasswords(in *store.PasswordOptions) *PasswordOptions {
 		p.BlockedFields = slices.Clone(DefaultBlockedFields)
 	}
 	return &PasswordOptions{Complexity: cx, History: h, Dictionary: d, ProfileData: p}
+}
+
+func intp(n int) *int { return &n }
+
+func deref(p *int) int {
+	if p == nil {
+		return 0
+	}
+	return *p
 }

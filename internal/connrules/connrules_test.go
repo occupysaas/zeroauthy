@@ -50,12 +50,12 @@ func wantErr(t *testing.T, name string, s *Spec, api bool, want string) {
 func TestAPICreateDefaults(t *testing.T) {
 	s := mustAPI(t, `{"name":"My-DB","strategy":"auth0"}`)
 	c := s.Options.PasswordOptions.Complexity
-	if c.MinLength != 15 || len(c.CharacterTypes) != 0 || c.CharacterTypeRule != "all" ||
+	if deref(c.MinLength) != 15 || len(c.CharacterTypes) != 0 || c.CharacterTypeRule != "all" ||
 		c.IdenticalCharacters != "allow" || c.SequentialCharacters != "allow" || c.MaxLengthExceeded != "error" {
 		t.Errorf("complexity = %+v", c)
 	}
 	po := s.Options.PasswordOptions
-	if po.History.Active || po.History.Size != 3 || po.Dictionary.Active || po.Dictionary.Default != "en_100k" ||
+	if po.History.Active || deref(po.History.Size) != 3 || po.Dictionary.Active || po.Dictionary.Default != "en_100k" ||
 		len(po.Dictionary.Custom) != 0 || po.ProfileData.Active || !slices.Equal(po.ProfileData.BlockedFields, DefaultBlockedFields) {
 		t.Errorf("password options = %+v %+v %+v", po.History, po.Dictionary, po.ProfileData)
 	}
@@ -90,16 +90,16 @@ func TestSeedDefaultsStay(t *testing.T) {
 	if errs := Normalize(s); len(errs) > 0 {
 		t.Fatal(errs)
 	}
-	if s.Options.PasswordOptions.Complexity.MinLength != 0 || s.Options.PasswordOptions.History != nil {
+	if s.Options.PasswordOptions.Complexity.MinLength != nil || s.Options.PasswordOptions.History != nil {
 		t.Errorf("seed password options = %+v", s.Options.PasswordOptions)
 	}
 	// The seed's minimum length range is wider than Auth0's.
-	s = &Spec{Name: "db", Options: Options{PasswordOptions: &PasswordOptions{Complexity: &Complexity{MinLength: 200}}}}
+	s = &Spec{Name: "db", Options: Options{PasswordOptions: &PasswordOptions{Complexity: &Complexity{MinLength: intp(200)}}}}
 	if errs := Normalize(s); len(errs) > 0 {
 		t.Errorf("seed min length 200: %v", errs)
 	}
 	wantErr(t, "api min length 200", &Spec{Name: "db", Strategy: "auth0",
-		Options: Options{PasswordOptions: &PasswordOptions{Complexity: &Complexity{MinLength: 200}}}}, true, "min_length")
+		Options: Options{PasswordOptions: &PasswordOptions{Complexity: &Complexity{MinLength: intp(200)}}}}, true, "min_length")
 }
 
 func TestNameAndStrategy(t *testing.T) {
@@ -121,17 +121,17 @@ func TestPasswordLimits(t *testing.T) {
 	cx := func(c Complexity) *Spec {
 		return &Spec{Name: "a", Strategy: "auth0", Options: Options{PasswordOptions: &PasswordOptions{Complexity: &c}}}
 	}
-	wantErr(t, "min 73", cx(Complexity{MinLength: 73}), true, "min_length")
-	wantErr(t, "min -1", cx(Complexity{MinLength: -1}), true, "min_length")
-	wantErr(t, "bad type", cx(Complexity{MinLength: 8, CharacterTypes: []string{"emoji"}}), true, "character_types")
-	wantErr(t, "dup type", cx(Complexity{MinLength: 8, CharacterTypes: []string{"number", "number"}}), true, "twice")
-	wantErr(t, "three_of_four partial", cx(Complexity{MinLength: 8, CharacterTypeRule: "three_of_four", CharacterTypes: []string{"number"}}), true, "all four")
-	wantErr(t, "bad rule", cx(Complexity{MinLength: 8, CharacterTypeRule: "any"}), true, "character_type_rule")
-	wantErr(t, "bad identical", cx(Complexity{MinLength: 8, IdenticalCharacters: "maybe"}), true, "identical_characters")
-	wantErr(t, "bad sequential", cx(Complexity{MinLength: 8, SequentialCharacters: "maybe"}), true, "sequential_characters")
-	wantErr(t, "bad max", cx(Complexity{MinLength: 8, MaxLengthExceeded: "cut"}), true, "max_length_exceeded")
-	wantErr(t, "classes 3", cx(Complexity{MinLength: 8, MinCharacterClasses: 3}), true, "character classes")
-	ok := cx(Complexity{MinLength: 72, CharacterTypeRule: "three_of_four", CharacterTypes: store.CharacterTypes, MaxLengthExceeded: "truncate"})
+	wantErr(t, "min 73", cx(Complexity{MinLength: intp(73)}), true, "min_length")
+	wantErr(t, "min -1", cx(Complexity{MinLength: intp(-1)}), true, "min_length")
+	wantErr(t, "bad type", cx(Complexity{MinLength: intp(8), CharacterTypes: []string{"emoji"}}), true, "character_types")
+	wantErr(t, "dup type", cx(Complexity{MinLength: intp(8), CharacterTypes: []string{"number", "number"}}), true, "twice")
+	wantErr(t, "three_of_four partial", cx(Complexity{MinLength: intp(8), CharacterTypeRule: "three_of_four", CharacterTypes: []string{"number"}}), true, "all four")
+	wantErr(t, "bad rule", cx(Complexity{MinLength: intp(8), CharacterTypeRule: "any"}), true, "character_type_rule")
+	wantErr(t, "bad identical", cx(Complexity{MinLength: intp(8), IdenticalCharacters: "maybe"}), true, "identical_characters")
+	wantErr(t, "bad sequential", cx(Complexity{MinLength: intp(8), SequentialCharacters: "maybe"}), true, "sequential_characters")
+	wantErr(t, "bad max", cx(Complexity{MinLength: intp(8), MaxLengthExceeded: "cut"}), true, "max_length_exceeded")
+	wantErr(t, "classes 3", cx(Complexity{MinLength: intp(8), MinCharacterClasses: 3}), true, "character classes")
+	ok := cx(Complexity{MinLength: intp(72), CharacterTypeRule: "three_of_four", CharacterTypes: store.CharacterTypes, MaxLengthExceeded: "truncate"})
 	if errs := NormalizeAPI(ok); len(errs) > 0 {
 		t.Errorf("valid complexity: %v", errs)
 	}
@@ -139,10 +139,10 @@ func TestPasswordLimits(t *testing.T) {
 	hs := func(h History) *Spec {
 		return &Spec{Name: "a", Strategy: "auth0", Options: Options{PasswordOptions: &PasswordOptions{History: &h}}}
 	}
-	wantErr(t, "history 25", hs(History{Active: true, Size: 25}), true, "history.size")
-	wantErr(t, "history -1", hs(History{Size: -1}), true, "history.size")
+	wantErr(t, "history 25", hs(History{Active: true, Size: intp(25)}), true, "history.size")
+	wantErr(t, "history -1", hs(History{Size: intp(-1)}), true, "history.size")
 	for _, n := range []int{1, 24} {
-		if errs := NormalizeAPI(hs(History{Active: true, Size: n})); len(errs) > 0 {
+		if errs := NormalizeAPI(hs(History{Active: true, Size: intp(n)})); len(errs) > 0 {
 			t.Errorf("history %d: %v", n, errs)
 		}
 	}
@@ -153,7 +153,7 @@ func TestPasswordLimits(t *testing.T) {
 		t.Errorf("dictionary = %+v", d)
 	}
 	// Parts not sent take their defaults, even when others are.
-	if s.Options.PasswordOptions.Complexity.MinLength != 15 || s.Options.PasswordOptions.History.Size != 3 {
+	if deref(s.Options.PasswordOptions.Complexity.MinLength) != 15 || deref(s.Options.PasswordOptions.History.Size) != 3 {
 		t.Errorf("unsent parts = %+v", s.Options.PasswordOptions)
 	}
 }
@@ -174,7 +174,7 @@ func TestLegacyPasswordFields(t *testing.T) {
 	for _, tc := range cases {
 		s := mustAPI(t, `{"name":"a","strategy":"auth0","options":{"passwordPolicy":"`+tc.level+`"}}`)
 		c := s.Options.PasswordOptions.Complexity
-		if c.MinLength != tc.min || !slices.Equal(c.CharacterTypes, append([]string{}, tc.types...)) && !(len(tc.types) == 0 && len(c.CharacterTypes) == 0) ||
+		if deref(c.MinLength) != tc.min || !slices.Equal(c.CharacterTypes, append([]string{}, tc.types...)) && !(len(tc.types) == 0 && len(c.CharacterTypes) == 0) ||
 			c.CharacterTypeRule != tc.rule || c.IdenticalCharacters != tc.ident {
 			t.Errorf("%s: complexity = %+v", tc.level, c)
 		}
@@ -184,7 +184,7 @@ func TestLegacyPasswordFields(t *testing.T) {
 	}
 	// An explicit minimum length overrides the level's.
 	s := mustAPI(t, `{"name":"a","strategy":"auth0","options":{"passwordPolicy":"fair","password_complexity_options":{"min_length":12}}}`)
-	if s.Options.PasswordOptions.Complexity.MinLength != 12 || len(s.Options.PasswordOptions.Complexity.CharacterTypes) != 3 {
+	if deref(s.Options.PasswordOptions.Complexity.MinLength) != 12 || len(s.Options.PasswordOptions.Complexity.CharacterTypes) != 3 {
 		t.Errorf("override = %+v", s.Options.PasswordOptions.Complexity)
 	}
 	// Legacy history, dictionary and personal data map onto the new parts.
@@ -193,8 +193,8 @@ func TestLegacyPasswordFields(t *testing.T) {
 		"password_dictionary":{"enable":true,"dictionary":["acme","widgets"]},
 		"password_no_personal_info":{"enable":true}}}`)
 	po := s.Options.PasswordOptions
-	if !po.History.Active || po.History.Size != 5 || !po.Dictionary.Active || !slices.Equal(po.Dictionary.Custom, []string{"acme", "widgets"}) ||
-		po.Dictionary.Default != "en_100k" || !po.ProfileData.Active || len(po.ProfileData.BlockedFields) != 8 || po.Complexity.MinLength != 15 {
+	if !po.History.Active || deref(po.History.Size) != 5 || !po.Dictionary.Active || !slices.Equal(po.Dictionary.Custom, []string{"acme", "widgets"}) ||
+		po.Dictionary.Default != "en_100k" || !po.ProfileData.Active || len(po.ProfileData.BlockedFields) != 8 || deref(po.Complexity.MinLength) != 15 {
 		t.Errorf("legacy mapping = %+v %+v %+v %+v", po.Complexity, po.History, po.Dictionary, po.ProfileData)
 	}
 	if s.Options.PasswordHistory != nil || s.Options.PasswordDictionary != nil || s.Options.PasswordNoPersonalInfo != nil {
@@ -375,7 +375,7 @@ func TestFromConnectionRendering(t *testing.T) {
 		PasswordOptions: store.PasswordOptions{Complexity: store.LegacyComplexity(0, 2)}}
 	s := FromConnection(c)
 	cx := s.Options.PasswordOptions.Complexity
-	if cx.MinLength != 8 || cx.MinCharacterClasses != 2 || cx.CharacterTypeRule != "all" || cx.CharacterTypes == nil || len(cx.CharacterTypes) != 0 {
+	if deref(cx.MinLength) != 8 || cx.MinCharacterClasses != 2 || cx.CharacterTypeRule != "all" || cx.CharacterTypes == nil || len(cx.CharacterTypes) != 0 {
 		t.Errorf("complexity = %+v", cx)
 	}
 	if !slices.Equal(s.Realms, []string{"seeded"}) || s.EnabledClients == nil || s.Options.Extra == nil {
@@ -441,7 +441,7 @@ func TestApplyPartial(t *testing.T) {
 	c := &store.Connection{Name: "a", BruteForceProtection: true, UsernameMin: 2, UsernameMax: 9,
 		Extra:           map[string]any{"keep": true},
 		PasswordOptions: store.PasswordOptions{History: store.PasswordHistory{Active: true, Size: 7}}}
-	s := &Spec{Name: "a", Strategy: "auth0", Options: Options{PasswordOptions: &PasswordOptions{Complexity: &Complexity{MinLength: 10}}}}
+	s := &Spec{Name: "a", Strategy: "auth0", Options: Options{PasswordOptions: &PasswordOptions{Complexity: &Complexity{MinLength: intp(10)}}}}
 	Apply(s, c)
 	if !c.BruteForceProtection || c.UsernameMin != 2 || c.Extra["keep"] != true || !c.PasswordOptions.History.Active ||
 		c.PasswordOptions.Complexity.MinLength != 10 {
@@ -455,5 +455,63 @@ func TestApplyPartial(t *testing.T) {
 	Apply(api, c)
 	if c.UsernameMin != 0 || c.Extra != nil || c.PasswordOptions.History.Active || c.PasswordOptions.Complexity.MinLength != 15 {
 		t.Errorf("full apply = %+v", c)
+	}
+}
+
+// Option keys are case-sensitive: another spelling of a typed key is never
+// typed, never stored, and never marshalled back (configuration is sealed
+// and must not appear in plaintext).
+func TestOptionKeyCase(t *testing.T) {
+	for _, body := range []string{
+		`{"CONFIGURATION":{"secret":"x"}}`,
+		`{"Configuration":{"secret":"x"}}`,
+		`{"Brute_Force_Protection":false}`,
+		`{"PASSWORDPOLICY":"low"}`,
+	} {
+		s := decode(t, `{"name":"a","strategy":"auth0","options":`+body+`}`)
+		if s.Options.Configuration != nil || s.Options.BruteForceProtection != nil || s.Options.PasswordPolicy != "" {
+			t.Errorf("%s: typed field filled: %+v", body, s.Options)
+		}
+		errs := NormalizeAPI(s)
+		if len(errs) == 0 {
+			t.Errorf("%s: accepted", body)
+		}
+		out, err := json.Marshal(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(out), "secret") {
+			t.Errorf("%s: plaintext marshalled: %s", body, out)
+		}
+	}
+	// The exact spelling is typed and leaves Extra empty of it.
+	s := decode(t, `{"name":"a","strategy":"auth0","options":{"configuration":{"K":"secret"},"brute_force_protection":false}}`)
+	if s.Options.Configuration == nil || s.Options.BruteForceProtection == nil || len(s.Options.Extra) != 0 {
+		t.Errorf("exact keys: %+v", s.Options)
+	}
+	// MarshalJSON skips a case variant even if set programmatically.
+	o := Options{Extra: map[string]any{"CONFIGURATION": "secret", "Mfa": 1}}
+	out, _ := json.Marshal(o)
+	if strings.Contains(string(out), "secret") {
+		t.Errorf("marshalled variant: %s", out)
+	}
+}
+
+// An explicit 0 is refused where Auth0 refuses it; absence takes the default.
+func TestExplicitZeroLimits(t *testing.T) {
+	spec := func(po string) *Spec {
+		return decode(t, `{"name":"a","strategy":"auth0","options":{"password_options":`+po+`}}`)
+	}
+	wantErr(t, "min_length 0", spec(`{"complexity":{"min_length":0}}`), true, "min_length")
+	wantErr(t, "history size 0", spec(`{"history":{"active":true,"size":0}}`), true, "history.size")
+	wantErr(t, "legacy history size 0", decode(t, `{"name":"a","strategy":"auth0","options":{"password_history":{"enable":true,"size":0}}}`), true, "history.size")
+	wantErr(t, "seed min_length 0", &Spec{Name: "a", Options: Options{PasswordOptions: &PasswordOptions{Complexity: &Complexity{MinLength: intp(0)}}}}, false, "min_length")
+	s := mustAPI(t, `{"name":"a","strategy":"auth0","options":{"password_options":{"complexity":{"character_types":[]},"history":{"active":true}}}}`)
+	if deref(s.Options.PasswordOptions.Complexity.MinLength) != 15 || deref(s.Options.PasswordOptions.History.Size) != 3 {
+		t.Errorf("absent values = %+v %+v", s.Options.PasswordOptions.Complexity, s.Options.PasswordOptions.History)
+	}
+	s = mustAPI(t, `{"name":"a","strategy":"auth0","options":{"password_history":{"enable":true}}}`)
+	if deref(s.Options.PasswordOptions.History.Size) != 3 {
+		t.Errorf("legacy absent size = %+v", s.Options.PasswordOptions.History)
 	}
 }
