@@ -335,6 +335,12 @@ func (a clientConnections) Update(ctx context.Context, v *store.Connection) erro
 }
 
 func (a clientConnections) List(ctx context.Context, tenantID string, f store.ConnectionFilter, p store.Page) ([]*store.Connection, int, error) {
+	if f.Name == "" && len(f.Strategies) == 0 && p == (store.Page{}) {
+		// Everything, as plugins older than Plan 15 can serve it.
+		r, err := a.c.rpc.ConnectionsList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+		out, err := decList("ConnectionsList", err, r.GetError(), r.GetValues(), connectionFromPB)
+		return out, len(out), err
+	}
 	r, err := a.c.rpc.ConnectionsListPage(ctx, &storev1.ConnectionsListPageRequest{TxId: a.c.txID, TenantId: tenantID,
 		Name: f.Name, Strategies: f.Strategies, Offset: int64(p.Offset), Limit: int64(p.Limit)})
 	out, err := decList("ConnectionsListPage", tooOld(err), r.GetError(), r.GetValues(), connectionFromPB)

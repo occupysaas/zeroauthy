@@ -186,11 +186,20 @@ type oldPlugin struct {
 	storev1.UnimplementedStoreServiceServer
 }
 
-func serveOldPlugin(t *testing.T) *Client {
+// listingPlugin is a pre-Plan-15 plugin that can list connections.
+type listingPlugin struct{ oldPlugin }
+
+func (listingPlugin) ConnectionsList(context.Context, *storev1.TenantScope) (*storev1.ConnectionList, error) {
+	return &storev1.ConnectionList{Values: []*storev1.Connection{{TenantId: "t", Id: "c1", Name: "Db", CreatedAt: tsToPB(time.Unix(0, 0))}}}, nil
+}
+
+func serveOldPlugin(t *testing.T) *Client { return serveWith(t, oldPlugin{}) }
+
+func serveWith(t *testing.T, srv storev1.StoreServiceServer) *Client {
 	t.Helper()
 	lis := bufconn.Listen(1 << 20)
 	gs := grpc.NewServer()
-	storev1.RegisterStoreServiceServer(gs, oldPlugin{})
+	storev1.RegisterStoreServiceServer(gs, srv)
 	go func() { _ = gs.Serve(lis) }()
 	conn, err := grpc.NewClient("passthrough:///bufnet",
 		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return lis.DialContext(ctx) }),
@@ -248,12 +257,31 @@ func TestOldPluginListsTooOld(t *testing.T) {
 	}
 }
 
+// Login and startup list every connection; a plugin older than Plan 15 still
+// serves that. Filtered or paged lists need the new RPC.
+func TestOldPluginUnfilteredConnectionList(t *testing.T) {
+	c := serveWith(t, listingPlugin{})
+	ctx := context.Background()
+	got, total, err := c.Connections().List(ctx, "t", store.ConnectionFilter{}, store.Page{})
+	if err != nil || total != 1 || len(got) != 1 || got[0].ID != "c1" {
+		t.Fatalf("List = %v, %d, %v", got, total, err)
+	}
+	for _, tc := range []struct {
+		f store.ConnectionFilter
+		p store.Page
+	}{{store.ConnectionFilter{Name: "Db"}, store.Page{}}, {store.ConnectionFilter{Strategies: []string{"auth0"}}, store.Page{}}, {store.ConnectionFilter{}, store.Page{Limit: 5}}} {
+		if _, _, err := c.Connections().List(ctx, "t", tc.f, tc.p); !errors.Is(err, errPluginTooOld) {
+			t.Errorf("List(%+v, %+v) = %v, want errPluginTooOld", tc.f, tc.p, err)
+		}
+	}
+}
+
 // Filtered connection lists, connection deletion and password history need a
 // Plan 15 plugin.
 func TestOldPluginConnectionSettingsTooOld(t *testing.T) {
 	c := serveOldPlugin(t)
 	ctx := context.Background()
-	_, _, errList := c.Connections().List(ctx, "t", store.ConnectionFilter{}, store.Page{})
+	_, _, errList := c.Connections().List(ctx, "t", store.ConnectionFilter{Name: "x"}, store.Page{})
 	errDelete := c.Connections().Delete(ctx, "t", "con")
 	errAdd := c.PasswordHistories().Add(ctx, "t", "auth0|u", []byte("h"), 3)
 	_, errHistory := c.PasswordHistories().List(ctx, "t", "auth0|u")
