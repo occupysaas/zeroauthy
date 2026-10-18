@@ -62,16 +62,25 @@ func TestBadResponseIsReported(t *testing.T) {
 }
 
 func TestUndeclaredStatusIsReported(t *testing.T) {
+	// 418 falls under "default", which is declared, so it passes.
 	r := &recorder{TB: t}
-	h := Wrap(r, respond(418, `{"error":"teapot","error_description":"x"}`))
-	do(h, "GET", "https://acme.test/.well-known/jwks.json", "", "")
-	// 418 falls under "default", which is declared, so it passes. A
-	// response whose body doesn't match must still fail:
-	h = Wrap(r, respond(418, `{"oops":true}`))
-	do(h, "GET", "https://acme.test/.well-known/jwks.json", "", "")
+	do(Wrap(r, respond(418, `{"error":"teapot","error_description":"x"}`)), "GET", "https://acme.test/.well-known/jwks.json", "", "")
+	if len(r.errs) != 0 {
+		t.Fatalf("declared default status reported: %v", r.errs)
+	}
+	// A response whose body doesn't match must still fail.
+	r = &recorder{TB: t}
+	do(Wrap(r, respond(418, `{"oops":true}`)), "GET", "https://acme.test/.well-known/jwks.json", "", "")
 	if len(r.errs) != 1 {
 		t.Fatalf("violations = %v", r.errs)
 	}
+}
+
+func TestNilBodyDoesNotPanic(t *testing.T) {
+	r := &recorder{TB: t}
+	req := httptest.NewRequest("GET", "https://acme.test/.well-known/jwks.json", nil)
+	req.Body = nil
+	Wrap(r, respond(200, `{"keys":[]}`)).ServeHTTP(httptest.NewRecorder(), req)
 }
 
 func TestBadRequestReportedOnlyByWrap(t *testing.T) {

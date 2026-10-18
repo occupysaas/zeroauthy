@@ -70,7 +70,10 @@ func wrap(t testing.TB, h http.Handler, checkRequest bool) http.Handler {
 			h.ServeHTTP(w, r)
 			return
 		}
-		body, _ := io.ReadAll(r.Body)
+		var body []byte
+		if r.Body != nil {
+			body, _ = io.ReadAll(r.Body)
+		}
 		r.Body = io.NopCloser(bytes.NewReader(body))
 		in := &openapi3filter.RequestValidationInput{Request: r, PathParams: params, Route: route, Options: opts}
 		if checkRequest {
