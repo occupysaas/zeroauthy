@@ -49,7 +49,9 @@ func (c *Client) run(ctx context.Context, conn *store.Connection, script string,
 	if err != nil {
 		return nil, err
 	}
-	return c.Exec.Execute(ctx, req)
+	raw, err := c.Exec.Execute(ctx, req)
+	// The caller logs a script's error message, so mask it here too.
+	return raw, NewRedactor(req.Config).RedactError(err)
 }
 
 // request builds the execution of script of conn with args: the script's
@@ -71,14 +73,23 @@ func (c *Client) request(conn *store.Connection, script string, args []any) (Req
 // Try runs script of conn with args exactly as a login or sign-up would,
 // whether or not the connection has custom database scripts switched on,
 // and returns the callback value or the script's error. onLogs, when set,
-// receives the script's console output. Nothing is stored.
+// receives the script's console output. Configuration values are masked
+// (see Redactor) in the console output, the result and a script error.
+// Nothing is stored.
 func (c *Client) Try(ctx context.Context, conn *store.Connection, script string, args []any, onLogs func([]string)) (json.RawMessage, error) {
 	req, err := c.request(conn, script, args)
 	if err != nil {
 		return nil, err
 	}
-	req.OnLogs = onLogs
-	return c.Exec.Execute(ctx, req)
+	red := NewRedactor(req.Config)
+	if onLogs != nil {
+		req.OnLogs = func(l []string) { onLogs(red.RedactAll(l)) }
+	}
+	raw, err := c.Exec.Execute(ctx, req)
+	if err != nil {
+		return nil, red.RedactError(err)
+	}
+	return red.RedactJSON(raw), nil
 }
 
 // ScriptArgCounts is the number of arguments the runner passes to each

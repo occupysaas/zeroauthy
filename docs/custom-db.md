@@ -96,7 +96,7 @@ A script is one function. Name it as you like; zeroauthy also recognizes the usu
 - `new WrongUsernameOrPasswordError(identifier)`: the credentials are wrong. The user sees the ordinary wrong-credentials answer.
 - `new ValidationError(code, message)`: the input was rejected. On sign-up the code `user_exists` means the user exists; other codes are shown as a rejected sign-up with your message.
 - `new UnauthorizedError(message)`: refuse with a message the user should see. Its message is shown to the user, on every surface. The one other message that reaches users is a `create` script's `ValidationError` on sign-up, which is shown like a rejected sign-up field.
-- Any other `Error`, a thrown exception, or an invalid profile is a script failure: the user sees a generic error and the details go to the server log (tenant, connection, script, kind and message). zeroauthy itself never logs passwords or configuration; messages your scripts produce (error messages, console output) are logged as they are, so don't put secrets in them.
+- Any other `Error`, a thrown exception, or an invalid profile is a script failure: the user sees a generic error and the details go to the server log (tenant, connection, script, kind and message). zeroauthy itself never logs passwords or configuration, and it replaces any configuration value in a script's console output and error messages with `■■■■■■■■` before logging (and in the try endpoint's response). Other secrets your scripts print (passwords, tokens fetched at run time) are logged as they are.
 
 How each surface answers is in D-0023.
 

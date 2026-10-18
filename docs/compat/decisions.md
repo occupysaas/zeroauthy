@@ -359,7 +359,7 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Sources:** https://auth0.com/docs/authenticate/database-connections/custom-db/error-handling; RFC 6749 §5.2.
 - **Decision:**
   - A login script's `WrongUsernameOrPasswordError` is the same wrong-credentials answer as for a local user.
-  - Only `UnauthorizedError` shows the script's message, because Auth0 documents it as the way to send a message to the front end. Every other failure (another error class, a thrown exception, a timeout, an unavailable Node.js, a missing script, an invalid profile) is logged in `identity` with the tenant, connection, script, kind and the script's message, and the user sees a generic error. zeroauthy itself never logs passwords or configuration; messages your scripts produce (error messages, console output) are logged as they are, so don't put secrets in them.
+  - Only `UnauthorizedError` shows the script's message, because Auth0 documents it as the way to send a message to the front end. Every other failure (another error class, a thrown exception, a timeout, an unavailable Node.js, a missing script, an invalid profile) is logged in `identity` with the tenant, connection, script, kind and the script's message, and the user sees a generic error. zeroauthy itself never logs passwords or configuration, and it replaces any configuration value in a script's console output and error messages with `■■■■■■■■` before logging, as Auth0 does. Other secrets your scripts print are logged as they are.
   - Per surface:
 
     | Surface | `UnauthorizedError` | Other script failure | `change_password` returns false |

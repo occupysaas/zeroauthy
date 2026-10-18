@@ -214,6 +214,11 @@ type proc struct {
 	nextID   int64
 	lastUsed time.Time
 	retired  bool // takes no new requests; no longer in NodeRunner.procs
+	// reds masks each connection's configuration values in the script
+	// console lines logged for it. Entries stay after a request ends: the
+	// runner's stderr is read apart from its answers, so a line can be
+	// logged after the answer.
+	reds map[string]*Redactor
 }
 
 func (p *proc) write(line []byte) error {
@@ -281,6 +286,10 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 		wire.ID = p.nextID
 		ch := make(chan response, 1)
 		p.pending[wire.ID] = ch
+		if p.reds == nil {
+			p.reds = map[string]*Redactor{}
+		}
+		p.reds[req.ConnectionID] = NewRedactor(req.Config)
 		p.lastUsed = time.Now()
 		p.mu.Unlock()
 
@@ -513,9 +522,16 @@ func (r *NodeRunner) logLine(p *proc, b []byte) {
 	}
 	var l logLine
 	if err := json.Unmarshal(b, &l); err != nil || l.Level == "" {
-		r.log.Warn("custom database runner output", "tenant", p.tenant, "output", truncate(string(b), maxLogMsg))
+		// Unstructured output could carry any connection's values.
+		out := string(b)
+		for _, red := range p.redactors() {
+			out = red.Redact(out)
+		}
+		r.log.Warn("custom database runner output", "tenant", p.tenant, "output", truncate(out, maxLogMsg))
 		return
 	}
+	// Mask before truncating, so a cut never leaves a prefix of a value.
+	msg := p.redactorFor(l.Conn).Redact(l.Msg)
 	level := slog.LevelInfo
 	switch l.Level {
 	case "debug":
@@ -527,7 +543,23 @@ func (r *NodeRunner) logLine(p *proc, b []byte) {
 	}
 	// "output", not "msg": the record's own message already uses that key.
 	r.log.Log(context.Background(), level, "custom database script",
-		"tenant", p.tenant, "connection", l.Conn, "output", truncate(l.Msg, maxLogMsg))
+		"tenant", p.tenant, "connection", l.Conn, "output", truncate(msg, maxLogMsg))
+}
+
+func (p *proc) redactorFor(conn string) *Redactor {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.reds[conn]
+}
+
+func (p *proc) redactors() []*Redactor {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	out := make([]*Redactor, 0, len(p.reds))
+	for _, r := range p.reds {
+		out = append(out, r)
+	}
+	return out
 }
 
 func truncate(s string, n int) string {
