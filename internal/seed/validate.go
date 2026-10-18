@@ -272,8 +272,8 @@ func (t *Tenant) validate() []error {
 				fail("connection %q: third-party application %q cannot be enabled on a connection; use is_domain_connection", c.Name, id)
 			}
 		}
-		if p := c.PasswordPolicy; p.MinLength < 0 || p.RequireCharacterClasses < 0 || p.RequireCharacterClasses > 4 {
-			fail("connection %q: password_policy.min_length must be >= 0 and require_character_classes 0-4", c.Name)
+		if p := c.PasswordPolicy; p.MinLength < 0 || p.MinLength > identity.MaxPasswordBytes || p.RequireCharacterClasses < 0 || p.RequireCharacterClasses > 4 {
+			fail("connection %q: password_policy.min_length must be 0 to %d and require_character_classes 0-4", c.Name, identity.MaxPasswordBytes)
 		}
 		t.validateCustomDB(c, fail)
 	}

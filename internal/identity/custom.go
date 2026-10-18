@@ -93,7 +93,7 @@ func (d *Database) scripts(ctx context.Context, conn *store.Connection, script s
 // check a password.
 func (d *Database) customLogin(ctx context.Context, conn *store.Connection, login, password string) (*store.User, error) {
 	login = strings.TrimSpace(login)
-	if len(password) > maxPasswordBytes || len(login) > maxLoginLength {
+	if len(password) > MaxPasswordBytes || len(login) > maxLoginLength {
 		return nil, ErrInvalidCredentials
 	}
 	c, err := d.scripts(ctx, conn, store.ScriptLogin)

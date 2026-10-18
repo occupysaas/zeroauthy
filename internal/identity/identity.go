@@ -48,8 +48,9 @@ func (e *PolicyError) Error() string { return "identity: " + e.Reason }
 
 const (
 	defaultMinPasswordLength = 8
-	// maxPasswordBytes bounds hashing work per request.
-	maxPasswordBytes = 256
+	// MaxPasswordBytes bounds hashing work per request; it is also the most a
+	// password_policy min_length can ask for.
+	MaxPasswordBytes = 256
 )
 
 // NormalizeLogin trims and lowercases an email or username.
@@ -61,7 +62,7 @@ func CheckPassword(p store.PasswordPolicy, password string) error {
 	if minLen <= 0 {
 		minLen = defaultMinPasswordLength
 	}
-	if len(password) > maxPasswordBytes {
+	if len(password) > MaxPasswordBytes {
 		return &PolicyError{Reason: "password is too long", Key: i18n.KeyPasswordTooLong}
 	}
 	if utf8.RuneCountInString(password) < minLen {

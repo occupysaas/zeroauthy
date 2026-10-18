@@ -284,6 +284,7 @@ func TestValidateConnectionsAndUsers(t *testing.T) {
 		"unknown client":     {`{name: DB, enabled_clients: [nope]}`, ``, `unknown client "nope"`},
 		"dup connection":     {conn + `, ` + conn, ``, `duplicate connection "DB"`},
 		"bad policy":         {`{name: DB, password_policy: {require_character_classes: 5}}`, ``, "require_character_classes"},
+		"min length too big": {`{name: DB, password_policy: {min_length: 257}}`, ``, "min_length must be 0 to 256"},
 		"user unknown conn":  {conn, `{connection: Nope, email: a@b.test, password: "long enough 1"}`, `unknown connection "Nope"`},
 		"user bad email":     {conn, `{connection: DB, email: nope, password: "long enough 1"}`, "valid email"},
 		"user long email":    {conn, `{connection: DB, email: ` + strings.Repeat("e", 250) + `@b.test, password: "long enough 1"}`, "valid email"},

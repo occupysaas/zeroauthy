@@ -27,7 +27,7 @@ func TestCheckPassword(t *testing.T) {
 		{store.PasswordPolicy{RequireCharacterClasses: 3}, "alllowercase", false},
 		{store.PasswordPolicy{RequireCharacterClasses: 3}, "Lower1upper", true},
 		{store.PasswordPolicy{RequireCharacterClasses: 4}, "Lower1upper!", true},
-		{store.PasswordPolicy{}, strings.Repeat("a", maxPasswordBytes+1), false},
+		{store.PasswordPolicy{}, strings.Repeat("a", MaxPasswordBytes+1), false},
 	}
 	for _, tc := range cases {
 		err := CheckPassword(tc.policy, tc.password)

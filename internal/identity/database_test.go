@@ -68,7 +68,7 @@ func TestLoginFailures(t *testing.T) {
 	if _, err := db.Login(ctx, conn, "bob@example.com", "wrong"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("wrong password err = %v", err)
 	}
-	if _, err := db.Login(ctx, conn, "bob@example.com", strings.Repeat("x", maxPasswordBytes+1)); !errors.Is(err, ErrInvalidCredentials) {
+	if _, err := db.Login(ctx, conn, "bob@example.com", strings.Repeat("x", MaxPasswordBytes+1)); !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("over-long password err = %v", err)
 	}
 	if _, err := db.Login(ctx, conn, "nobody@example.com", "x"); !errors.Is(err, ErrInvalidCredentials) {

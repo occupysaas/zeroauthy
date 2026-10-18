@@ -93,7 +93,7 @@ func (d *Database) Login(ctx context.Context, conn *store.Connection, login, pas
 	}
 	norm := NormalizeLogin(login)
 	// An over-long login matches no user; it is not sent to the store.
-	if len(password) > maxPasswordBytes || len(norm) > maxLoginLength {
+	if len(password) > MaxPasswordBytes || len(norm) > maxLoginLength {
 		_, _ = secrets.Verify(dummyHash(), password)
 		return nil, ErrInvalidCredentials
 	}
