@@ -47,22 +47,22 @@ Run by the controller session as the observer (option A of Plan 14: the observer
 
 | # | Question | Observed |
 |---|---|---|
-| C1 | Defaults of `POST /connections` with only `name` and `strategy: auth0`: every `options` field returned, `enabled_clients`, `realms`, `is_domain_connection`, `display_name` | |
-| C2 | Name rules (pattern, length), duplicate name error, strategies refused | |
-| C3 | `options` on PATCH: replaced whole or merged? `configuration` returned or hidden? `strategy`/`name` immutable? | |
-| C4 | Password options: `passwordPolicy` values, `password_complexity_options`, `password_history` (size range), `password_dictionary` (custom list limits), `password_no_personal_info`, `validation.username` min/max ranges | |
-| C5 | Custom DB: `enabledDatabaseCustomization`, `customScripts` names and size limits, `import_mode`, `configuration` key/value limits | |
-| C6 | `attributes`, `authentication_methods` (passkeys), `precedence`, `non_persistent_attrs`, `disable_self_service_change_password`, `brute_force_protection` (here or tenant-level?), and every other key C1 shows | |
-| C7 | `GET/PATCH /connections/{id}/clients`: body shape, paging, unknown client IDs, limits; `enabled_clients` field still accepted? | |
-| C8 | `GET /connections`: order, paging shape, filters (`strategy`, `name`), checkpoint paging | |
-| C9 | `DELETE`: status; are the connection's users deleted (create one first)? unknown ID; the tenant's `default_directory` afterwards | |
-| C10 | Errors: unknown ID, malformed ID, missing scope, unknown property | |
-| C11 | Which fields `auth0-cli` v1.37.0 `connections create/update` and `auth0-deploy-cli` 9.1.0 send and strip for connections (field names only, from source) | |
-| C12 | A permissively licensed common-password list for the dictionary (source, licence, size) | |
+| C1 | Defaults of `POST /connections` with only `name` and `strategy: auth0`: every `options` field returned, `enabled_clients`, `realms`, `is_domain_connection`, `display_name` || see note: `password_options` (min 15, history size 3 off, dictionary `en_100k` off, profile data off), `brute_force_protection: true`, `realms:[name]`, IDs `con_`+16 |
+| C2 | Name rules (pattern, length), duplicate name error, strategies refused || pattern `^[a-zA-Z0-9](-[a-zA-Z0-9]|[a-zA-Z0-9])*$`, ≤128; `409 connection_conflict`; unknown strategy `400 invalid_body`; unknown `options` keys kept |
+| C3 | `options` on PATCH: replaced whole or merged? `configuration` returned or hidden? `strategy`/`name` immutable? || `options` replaced whole; `name`/`strategy`/`enabled_clients` unknown on PATCH; configuration returned as encrypted blobs, a blob sent back keeps the value |
+| C4 | Password options: `passwordPolicy` values, `password_complexity_options`, `password_history` (size range), `password_dictionary` (custom list limits), `password_no_personal_info`, `validation.username` min/max ranges || `password_options` (complexity, history 1–24, dictionary `en_10k`/`en_100k`, profile_data) vs legacy fields, never both; history/dictionary/profile data need an entitlement the dev tenant lacks |
+| C5 | Custom DB: `enabledDatabaseCustomization`, `customScripts` names and size limits, `import_mode`, `configuration` key/value limits || script names enforced, no size limit hit (1.1 MB); `import_mode` needs custom DB; configuration string|null |
+| C6 | `attributes`, `authentication_methods` (passkeys), `precedence`, `non_persistent_attrs`, `disable_self_service_change_password`, `brute_force_protection` (here or tenant-level?), and every other key C1 shows || `brute_force_protection` is a connection boolean (thresholds tenant-level); `validation.username` 1–128; `precedence` ≥3; attributes/passkeys stored |
+| C7 | `GET/PATCH /connections/{id}/clients`: body shape, paging, unknown client IDs, limits; `enabled_clients` field still accepted? || `{clients:[{client_id}]}` with checkpoint paging; PATCH `[{client_id,status}]` → 204; `400 inexistent_client`; `enabled_clients` only on POST |
+| C8 | `GET /connections`: order, paging shape, filters (`strategy`, `name`), checkpoint paging || case-insensitive name order; D-0039 paging + checkpoint; filters `name`, `strategy` |
+| C9 | `DELETE`: status; are the connection's users deleted (create one first)? unknown ID; the tenant's `default_directory` afterwards || `202 {deleted_at}`, then `204`; users deleted; `default_directory` cleared; malformed ID `400 invalid_uri` |
+| C10 | Errors: unknown ID, malformed ID, missing scope, unknown property || `404 inexistent_connection`, `400 invalid_uri`, `400 invalid_body`; missing scope per D-0039 (not re-observed) |
+| C11 | Which fields `auth0-cli` v1.37.0 `connections create/update` and `auth0-deploy-cli` 9.1.0 send and strip for connections (field names only, from source) || cli: name, strategy, `--data`; deploy-cli: strips name/strategy on update, merges current options, clients via `/clients` |
+| C12 | A permissively licensed common-password list for the dictionary (source, licence, size) || SecLists (MIT) `10k-most-common.txt`; `100k-most-used-passwords-NCSC.txt` (NCSC licence, verify for NOTICE) |
 
-- [ ] **Step 1:** Run C1–C12 (one connection at a time, cleaned up).
-- [ ] **Step 2:** Write the observation note (facts in our own words, no secrets, IDs or tenant names) and D-0042, including the "stored, not enforced" option list and the "try script" extension.
-- [ ] **Step 3:** Fill the Observed column. Commit with `docs(compat): observe the Management API for connections`.
+- [x] **Step 1:** Run C1–C12 (one connection at a time, cleaned up).
+- [x] **Step 2:** Write the observation note (facts in our own words, no secrets, IDs or tenant names) and D-0042, including the "stored, not enforced" option list and the "try script" extension.
+- [x] **Step 3:** Fill the Observed column. Commit with `docs(compat): observe the Management API for connections`.
 
 ---
 
