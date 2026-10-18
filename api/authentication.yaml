@@ -144,6 +144,14 @@ paths:
                 $ref: "#/components/schemas/OAuthError"
         "404":
           $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page for a store failure while validating the request, or a JSON error.
+          content:
+            text/html:
+              schema: {type: string}
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
         default:
           $ref: "#/components/responses/ServerError"
     post:
@@ -186,6 +194,14 @@ paths:
                 $ref: "#/components/schemas/OAuthError"
         "404":
           $ref: "#/components/responses/UnknownTenant"
+        "500":
+          description: Error page for a store failure while validating the request, or a JSON error.
+          content:
+            text/html:
+              schema: {type: string}
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
         default:
           $ref: "#/components/responses/ServerError"
   /oauth/token:

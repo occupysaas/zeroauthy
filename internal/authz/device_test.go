@@ -6,6 +6,7 @@ import (
 	"html"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"strings"
 	"testing"
@@ -320,14 +321,38 @@ func TestDeviceServerErrorPage(t *testing.T) {
 	}
 }
 
-// /authorize keeps its 400 page for a server error; only device flows
-// render 500.
-func TestFlowErrorAuthorizeServerErrorStays400(t *testing.T) {
+// A server error on /authorize's error page is a 500 as well.
+func TestFlowErrorAuthorizeServerError500(t *testing.T) {
 	e := newEnv(t)
 	rec := httptest.NewRecorder()
 	e.h.flowError(rec, httptest.NewRequest("GET", "https://acme.example.test/u/login", nil), e.res(), flowReq{}, errServer())
 	l := i18n.ForRequest(e.tenant, httptest.NewRequest("GET", "/", nil), "")
-	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), html.EscapeString(l.T(i18n.KeyErrInvalidRequest))) {
+	if rec.Code != http.StatusInternalServerError || !strings.Contains(rec.Body.String(), html.EscapeString(l.T(i18n.KeyErrServer))) {
 		t.Fatalf("status %d body %s", rec.Code, rec.Body)
+	}
+}
+
+// failingClients fails every read, as a store outage would.
+type failingClients struct{ store.Clients }
+
+func (failingClients) Get(context.Context, string, string) (*store.Client, error) {
+	return nil, errors.New("store down")
+}
+
+type failingClientStore struct{ store.Store }
+
+func (s failingClientStore) Clients() store.Clients { return failingClients{s.Store.Clients()} }
+
+// A store failure while validating /authorize or resolving a request_uri
+// is a 500 error page, not a 400 invalid request.
+func TestAuthorizeStoreFailureIs500(t *testing.T) {
+	e := newEnv(t)
+	e.h.Store = failingClientStore{e.st}
+	if rec := e.get(t, goodQuery()); rec.Code != http.StatusInternalServerError {
+		t.Fatalf("validation failure = %d %s", rec.Code, rec.Body)
+	}
+	q := url.Values{"client_id": {"spa"}, "request_uri": {RequestURIPrefix + "abc"}}
+	if rec := e.get(t, q); rec.Code != http.StatusInternalServerError {
+		t.Fatalf("request_uri failure = %d %s", rec.Code, rec.Body)
 	}
 }

@@ -63,6 +63,17 @@ type ConsentView struct {
 	Device         bool // a device authorization; CallbackDomain and RedirectURI are empty
 }
 
+// renderPageError shows e on the error page of an /authorize request that
+// cannot be redirected: a store failure is a 500 page, anything else a 400
+// invalid-request page.
+func renderPageError(w http.ResponseWriter, view ui.Tenant, e *Error) {
+	if e.Code == "server_error" {
+		ui.RenderErrorDetail(w, http.StatusInternalServerError, view, view.L.T(i18n.KeyErrServer), "")
+		return
+	}
+	ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), e.Description)
+}
+
 // Authorize implements GET and POST /authorize.
 func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -80,7 +91,7 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	if q.Has("request_uri") {
 		pushed, perr := h.resolvePushed(ctx, res.Tenant, q)
 		if perr != nil {
-			ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), perr.Description)
+			renderPageError(w, view, perr)
 			return
 		}
 		if pushed != nil {
@@ -91,7 +102,7 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
 	if verr != nil {
 		if !redirectable {
-			ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), verr.Description)
+			renderPageError(w, view, verr)
 			return
 		}
 		h.deny(w, r, res, client, req, verr)
@@ -330,6 +341,10 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 func (h *Handlers) deny(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, e *Error) {
 	if access.ShowErrorPage(client) {
 		view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
+		if e.Code == "server_error" {
+			renderPageError(w, view, e)
+			return
+		}
 		ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrAccessDenied), e.Description)
 		return
 	}

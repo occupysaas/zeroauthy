@@ -107,8 +107,7 @@ func (h *Handlers) flowError(w http.ResponseWriter, r *http.Request, res tenant.
 	switch {
 	case e == errCodeNotPending:
 		detail = view.L.T(i18n.KeyErrSessionExpired)
-	case fr.device() && e.Code == "server_error":
-		// /authorize keeps its 400 page for every error.
+	case e.Code == "server_error":
 		status, title, detail = http.StatusInternalServerError, i18n.KeyErrServer, ""
 	}
 	ui.RenderErrorDetail(w, status, view, view.L.T(title), detail)
