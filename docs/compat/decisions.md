@@ -624,3 +624,28 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Inviting** an operator returns a one-hour setup link (the password-reset ticket flow); inviting an existing operator issues a new link. **Removing** one deletes the operator record and ends their sessions and refresh tokens at once; their user stays. The last operator cannot be removed.
   - **Seed coexistence:** tenants and clients created through the APIs carry `origin: api`; the seed never touches them, even when it names the same tenant or client ID.
 - **Rationale:** the smallest API the console needs, in the shape of the rest of the Management API.
+
+## D-0041: Management API for resource servers and client grants
+
+- **Context:** Auth0 documents `/api/v2/resource-servers` and `/api/v2/client-grants`, but not all defaults, limits, statuses and cascades.
+- **Sources:** the Management API docs for both; observations/management-apis.md; `auth0-deploy-cli` 9.1.0, `auth0-cli` v1.37.0 and `go-auth0` v3.6.0 source.
+- **Decision** (observed values, matched):
+  - **Errors:** the D-0039 shape.
+    - Resource servers: `404 inexistent_resource_server`; `409 resource_server_conflict` for a duplicate identifier; `400 reserved_identifier` for the tenant's Management API identifier; `400 delete_system_resource_server`.
+    - Client grants: `404 inexistent_client` and `404 inexistent_resource_server` on create; `409 client_grant_conflict`; `404 inexistent_client_grant` on `PATCH`; `400 invalid_uri` for a malformed grant ID.
+    - Validation failures: `400 invalid_body`; unknown properties are refused.
+  - **Resource server create defaults:** `token_lifetime` 86400, `token_lifetime_for_web` 7200, `signing_alg` `RS256`, `allow_offline_access` and `skip_consent_for_verifiable_first_party_clients` false, `subject_type_authorization` client `require_client_grant` and user `allow_all`. `name` is optional and absent when not given.
+  - **Limits:** identifier 1–600 characters, any string, compared case-sensitively; name 1–200 characters without `<` or `>`; scope value 1–280, description at most 500, values unique; `token_lifetime` 1–2592000; `token_lifetime_for_web`, when sent, at most `token_lifetime`.
+  - **Immutable:** `identifier` (and `id`, `is_system`) are unknown properties on `PATCH`. A grant's `client_id`, `audience` and `subject_type` likewise.
+  - **System APIs:** listed first; `name` cannot be patched; other settings can; `DELETE` is `400 delete_system_resource_server`.
+  - **Scopes:** `PATCH` replaces the list. Removing a scope removes it from every client grant that carries it.
+  - **Delete:** `204`, also for an unknown ID; an API's client grants are deleted with it. A grant `DELETE` is `204`, also for an unknown ID in the right format.
+  - **Reading by identifier:** `GET /resource-servers/{id}` also accepts the URL-encoded identifier (auth0-cli relies on it).
+  - **Listing:** resource servers in creation order, client grants in ID order. Offset paging as D-0039 (keys `resource_servers`, `client_grants`). `identifiers` is a repeated parameter. Client grants also support checkpoint paging (`from`/`take`, at most 100, default 50, `{client_grants, next}`, `next` absent on the last page); it wins over `page` and `include_totals`. Filters `client_id`, `audience`, `subject_type`; `subject_type` alone is `400`.
+  - **Client grants:** `subject_type` defaults to `client`; one grant per client, audience and subject type; `scope` or `allow_all_scopes` required; scopes the API does not define are refused on `PATCH`.
+- **Differences from Auth0:**
+  - **Scopes on create:** Auth0 accepts a grant scope the API does not define on `POST` but refuses it on `PATCH`. zeroauthy refuses it on both (`400 invalid_body`), as its seed does, so no grant names a scope its API does not define (Plan 14 review focus 3).
+  - **Signing:** zeroauthy signs access tokens with RS256 only. `HS256` and `PS256` are `400 invalid_body`; `signing_secret` is refused.
+  - **Grants to a Management API:** only that tenant's own identifier, `subject_type` client, Management API scopes only (Plan 14 review focus 1).
+  - **To settle in Plan 14 Task 3** (accepted and stored, or refused): `token_lifetime_for_web`, `enforce_policies`, `token_dialect`, `consent_policy`, `proof_of_possession`, `authorization_details`, `token_encryption`; and on grants `organization_usage`, `allow_any_organization`, `authorization_details_types`, `default_for`.
+- **Open for the maintainer:** Auth0 names the system API "Auth0 Management API", and `auth0-deploy-cli` leaves it out of exports by that name. zeroauthy's is "zeroauthy Management API", so deploy-cli exports it as an ordinary API (its `is_system` flag still limits what deploy-cli updates). Matching the name would use Auth0's trademark beyond a nominative statement (CLEAN_ROOM.md).

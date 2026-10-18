@@ -55,21 +55,21 @@ Run by the controller session as the observer; implementers see only the notes. 
 
 | # | Question | Observed |
 |---|---|---|
-| A1 | Defaults of `POST /resource-servers` with only `identifier` (and `name`): `token_lifetime`, `token_lifetime_for_web`, `signing_alg`, `allow_offline_access`, `skip_consent_for_verifiable_first_party_clients`, `scopes`, `subject_type_authorization` | |
-| A2 | Is `name` required? Identifier rules (must be a URL? length?) and the error for a duplicate identifier | |
-| A3 | `PATCH` of `identifier`: refused? Which other fields are immutable? | |
-| A4 | `PATCH` / `DELETE` of the system Management API: statuses and `errorCode`s | |
-| A5 | `scopes` on `PATCH`: replaced whole or merged? Removing a scope that client grants carry: refused, or removed from the grants? | |
-| A6 | `DELETE` of an API with client grants: are the grants deleted? Second `DELETE`? Unknown ID? | |
-| A7 | `GET /resource-servers`: order, paging shape (`resource_servers` key), `identifiers` filter | |
-| A8 | `POST /client-grants`: defaults (`subject_type`), an unknown `client_id` or `audience`, a scope the API does not define, a duplicate | |
-| A9 | `GET /client-grants`: filters (`client_id`, `audience`, `subject_type`), paging shape, checkpoint paging (`from`/`take`)? | |
-| A10 | `PATCH /client-grants/{id}`: which fields may change; `DELETE`: status, unknown ID | |
-| A11 | Which fields `auth0-deploy-cli` exports and sends for resource servers and client grants (field names only, from its source) | |
+| A1 | Defaults of `POST /resource-servers` with only `identifier` (and `name`): `token_lifetime`, `token_lifetime_for_web`, `signing_alg`, `allow_offline_access`, `skip_consent_for_verifiable_first_party_clients`, `scopes`, `subject_type_authorization` || 86400 / 7200; `RS256`; both flags false; no scopes; client `require_client_grant`, user `allow_all`; `name` absent |
+| A2 | Is `name` required? Identifier rules (must be a URL? length?) and the error for a duplicate identifier || `name` optional (1–200, no `<>`); identifier any string 1–600, case-sensitive; duplicate `409 resource_server_conflict`; Management API identifier `400 reserved_identifier` |
+| A3 | `PATCH` of `identifier`: refused? Which other fields are immutable? || `identifier`, `id`, `is_system` are unknown properties on `PATCH` (`400 invalid_body`) |
+| A4 | `PATCH` / `DELETE` of the system Management API: statuses and `errorCode`s || `PATCH name` `400 invalid_body`; other settings patchable; `DELETE` `400 delete_system_resource_server` |
+| A5 | `scopes` on `PATCH`: replaced whole or merged? Removing a scope that client grants carry: refused, or removed from the grants? || replaced whole; removing a scope removes it from the grants |
+| A6 | `DELETE` of an API with client grants: are the grants deleted? Second `DELETE`? Unknown ID? || grants deleted; `204`, also for a second `DELETE` and unknown IDs |
+| A7 | `GET /resource-servers`: order, paging shape (`resource_servers` key), `identifiers` filter || creation order; `{total,start,limit,resource_servers}`; `identifiers` repeated param; no checkpoint paging |
+| A8 | `POST /client-grants`: defaults (`subject_type`), an unknown `client_id` or `audience`, a scope the API does not define, a duplicate || `subject_type` `client`; `404 inexistent_client` / `inexistent_resource_server`; undefined scope accepted on create (refused on `PATCH`); `409 client_grant_conflict` |
+| A9 | `GET /client-grants`: filters (`client_id`, `audience`, `subject_type`), paging shape, checkpoint paging (`from`/`take`)? || all three filters (`subject_type` alone `400`); `client_grants` key; checkpoint paging yes (`take` ≤100, `next`), used by auth0-cli |
+| A10 | `PATCH /client-grants/{id}`: which fields may change; `DELETE`: status, unknown ID || `scope`, `allow_all_scopes`, organization fields; unknown `404 inexistent_client_grant` on `PATCH`, `204` on `DELETE` |
+| A11 | Which fields `auth0-deploy-cli` exports and sends for resource servers and client grants (field names only, from its source) || see the note: matched by ID then identifier / (client, audience, subject type); read-only fields stripped |
 
-- [ ] **Step 1:** Pick A, B or C with the maintainer; run A1–A11 (or read the sources for C).
-- [ ] **Step 2:** Write the observation note (facts in our own words, no secrets, IDs or tenant names), then D-0041.
-- [ ] **Step 3:** Fill the Observed column. Commit with `docs(compat): observe the Management API for APIs and client grants`.
+- [x] **Step 1:** Pick A, B or C with the maintainer; run A1–A11 (or read the sources for C).
+- [x] **Step 2:** Write the observation note (facts in our own words, no secrets, IDs or tenant names), then D-0041.
+- [x] **Step 3:** Fill the Observed column. Commit with `docs(compat): observe the Management API for APIs and client grants`.
 
 ---
 
