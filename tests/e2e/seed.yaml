@@ -207,3 +207,20 @@ tenants:
         password: "Correct-Horse-Battery-9"
         email_verified: true
         name: Reset Example
+  # Plan 13: auth0-cli manages this tenant's applications through the
+  # Management API (m13-mgmt-cli.mjs). auth0-cli talks to https://<domain>
+  # on port 443 only, so run-m3.sh routes cli.e2e.test to zeroauthy through
+  # connect-proxy.mjs.
+  - name: e2ecli
+    friendly_name: E2E auth0-cli
+    domains: ["cli.e2e.test"]
+    clients:
+      - client_id: e2e-cli-admin
+        name: E2E auth0-cli
+        app_type: non_interactive
+        client_secret: e2e-cli-admin-secret-not-for-production
+        grant_types: [client_credentials]
+    client_grants:
+      - client_id: e2e-cli-admin
+        audience: "https://cli.e2e.test/api/v2/"
+        scopes: ["read:clients", "create:clients", "update:clients", "delete:clients", "read:client_keys", "update:client_keys"]

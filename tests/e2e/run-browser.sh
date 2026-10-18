@@ -31,7 +31,7 @@ wait_for() {
 }
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost" \
+  -addext "subjectAltName=DNS:localhost,DNS:system.localhost" \
   -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
 chmod 644 "$work/key.pem"
 
@@ -52,10 +52,10 @@ if ! curl -sf -H "Authorization: Bearer e2e-legacy-token" http://127.0.0.1:8099/
 fi
 
 CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
-ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
+export ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
   ZEROAUTHY_EMAIL__DIR="$work/mail" ZEROAUTHY_STORAGE__DSN="sqlite://$work/e2e.db" \
-  ZEROAUTHY_STORAGE__AUTO_MIGRATE=true ZEROAUTHY_SECURITY__MASTER_KEY="$(openssl rand -base64 32)" \
-  "$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1 &
+  ZEROAUTHY_STORAGE__AUTO_MIGRATE=true ZEROAUTHY_SECURITY__MASTER_KEY="$(openssl rand -base64 32)"
+"$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1 &
 pids+=($!)
 
 cd tests/e2e
@@ -82,6 +82,13 @@ pids+=($!)
 
 status=0
 wait_for https://localhost:8443/healthz && wait_for https://localhost:3443/ && wait_for http://localhost:3000/ && wait_for http://localhost:3002/ || status=$?
+
+# The console's first operator (m13-console), as an operator would create
+# it: same config and storage as the server.
+if [[ $status -eq 0 ]]; then
+  E2E_ADMIN_SETUP_URL="$(cd ../.. && "$work/zeroauthy" admin create --email operator@e2e.local --config tests/e2e/config.yaml | grep '^https://')" || status=$?
+  export E2E_ADMIN_SETUP_URL
+fi
 
 if [[ $status -eq 0 ]]; then
   if [[ "${E2E_IN_CONTAINER:-0}" == 1 ]]; then

@@ -19,6 +19,7 @@ the maintainer asked on 2026-10-16. Versions are pinned in tests/e2e/package.jso
 | express-openid-connect (PAR) | 519 | m10-par | `pushedAuthorizationRequests: true`, client `e2e-par-web` (requires PAR): login succeeds only if the SDK pushed its request |
 | nextjs-auth0 (PAR) | 2.3k | m10-par | `pushedAuthorizationRequests: true`, client `e2e-next-par` on port 3002: login, session |
 | auth0.net (Auth0.AuthenticationApi 7.49.0) | 364 (2026-10-17) | m10-device | `StartDeviceFlowAsync`, device_code polling (`authorization_pending`, `slow_down`, `access_denied` via `ApiError.Error`), ID token validation (issuer, audience, RS256 via JWKS), refresh; client `e2e-device` (native, public), run with podman from tests/e2e/dotnet-device; Chromium does /activate (typed code and `verification_uri_complete`), confirmation, login, consent, cancel, and the per-transaction miss limit |
+| auth0-cli (v1.37.0, built by run-m3.sh with `go install`) | 343 | m13-mgmt-cli | Management API for applications with client credentials (`AUTH0_CLI_AUTH_MODE=env`, audience `https://cli.e2e.test/api/v2/`): `apps create` (all four types), `apps show --reveal-secrets`, `apps update`, `apps list` across two pages (more than 100 applications), `apps delete`, `api get clients`. It only speaks to `https://<domain>:443`, so `connect-proxy.mjs` tunnels `cli.e2e.test` to zeroauthy |
 | auth0-auth-js (PAR) | — | m10-par | `buildAuthorizationUrl({ pushedAuthorizationRequests: true })`, client `e2e-par-authjs`: request_uri URL, code exchange, reused request_uri refused |
 
 ## Not yet used (in star order), with the milestone that should pick them up
@@ -33,6 +34,6 @@ the maintainer asked on 2026-10-16. Versions are pinned in tests/e2e/package.jso
 | auth0-python | 578 | milestone 11 (Authentication API client) |
 | react-native-auth0, Auth0.swift, Auth0.Android | 551 / 465 / 301 | device flow plan (Plan 11) or later: native redirect handling |
 | auth0-PHP, auth0-java, ruby-auth0, laravel-auth0 | 410 … 205 | milestone 11 (one per language as an Authentication API client) |
-| auth0-cli | 343 | sub-project 3 (Management API); follow-up: `auth0 login` uses the device flow, so it can also drive the device login against zeroauthy once its Management API calls are served |
-| auth0-deploy-cli, terraform-provider-auth0, go-auth0 | 282 / 222 / 197 | sub-project 3 (Management API) |
+| auth0-cli (`auth0 login`) | 343 | follow-up: the device login, which hardcodes Auth0's own host |
+| auth0-deploy-cli, terraform-provider-auth0, go-auth0 | 282 / 222 / 197 | sub-project 3 (Management API): auth0-deploy-cli in slice 5 |
 | passport-auth0 | 305 | milestone 11 |

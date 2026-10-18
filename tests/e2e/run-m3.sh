@@ -10,15 +10,17 @@ mkdir -p "$work/mail"
 export E2E_MAIL_DIR="$work/mail"
 pid=""
 legacy_pid=""
+proxy_pid=""
 cleanup() {
   [[ -n "$pid" ]] && kill "$pid" 2>/dev/null || true
   [[ -n "$legacy_pid" ]] && kill "$legacy_pid" 2>/dev/null || true
+  [[ -n "$proxy_pid" ]] && kill "$proxy_pid" 2>/dev/null || true
   rm -rf "$work"
 }
 trap cleanup EXIT
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost" \
+  -addext "subjectAltName=DNS:localhost,DNS:cli.e2e.test" \
   -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
 
 if curl -sf -H "Authorization: Bearer e2e-legacy-token" http://127.0.0.1:8099/stats >/dev/null; then
@@ -38,6 +40,11 @@ if ! curl -sf -H "Authorization: Bearer e2e-legacy-token" http://127.0.0.1:8099/
 fi
 
 CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
+# The pinned auth0-cli (m13-mgmt-cli.mjs), built from its module.
+AUTH0_CLI_VERSION=v1.37.0
+GOBIN="$work/bin" go install "github.com/auth0/auth0-cli/cmd/auth0@$AUTH0_CLI_VERSION"
+node tests/e2e/connect-proxy.mjs >"$work/proxy.log" 2>&1 &
+proxy_pid=$!
 
 ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" \
 ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
@@ -57,11 +64,14 @@ status=0
 (cd tests/e2e && npm ci --no-audit --no-fund --silent && \
   NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m3-client-credentials.mjs && \
   NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m3-db-flows.mjs && \
-  NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m9-custom-db.mjs) || status=$?
+  NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m9-custom-db.mjs && \
+  AUTH0_BIN="$work/bin/auth0" E2E_CERT="$work/cert.pem" node m13-mgmt-cli.mjs) || status=$?
 if [[ $status -ne 0 ]]; then
   echo "--- zeroauthy server log ---"
   cat "$work/server.log"
   echo "--- legacy store log ---"
   cat "$work/legacy.log"
+  echo "--- connect proxy log ---"
+  cat "$work/proxy.log"
 fi
 exit $status

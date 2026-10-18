@@ -310,7 +310,7 @@ This task is run by the controller session as the observer. The implementers of 
 
 **Files:** `tests/e2e/seed.yaml` (a tenant with an M2M client granted the Management API audience and all client scopes), `tests/e2e/m13-mgmt-cli.mjs` (new, driving the pinned `auth0-cli` with `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` and `AUTH0_CLIENT_SECRET` against zeroauthy), `tests/e2e/m13-console.spec.mjs` (new), `tests/e2e/run-browser.sh` (config `server.system_host`, bootstrap admin), `docs/compat/blackbox-clients.md`.
 
-- [ ] **Step 1: The `auth0-cli` flow** (Review Focus 4):
+- [x] **Step 1: The `auth0-cli` flow** (Review Focus 4):
   - `auth0 apps create` for each type;
   - `auth0 apps list` across more than one page (`--number`);
   - `auth0 apps show --reveal-secrets`;
@@ -319,14 +319,14 @@ This task is run by the controller session as the observer. The implementers of 
   - `auth0 api get clients`.
 
   Assert the exit codes and key fields.
-- [ ] **Step 2: Playwright** (Review Focus 5):
+- [x] **Step 2: Playwright** (Review Focus 5):
   - run `zeroauthy admin create`, open the link, set a password, sign in;
   - create an application, edit its callbacks, reveal and rotate its secret, delete it;
   - do a hard refresh on a deep link;
   - switch tenant;
   - sign out.
-- [ ] **Step 3: Run** `./tests/e2e/run-browser.sh` and `make e2e`. Expected: all suites pass.
-- [ ] **Step 4: Commit** with `test(e2e): Management API with auth0-cli and the console`.
+- [x] **Step 3: Run** `./tests/e2e/run-browser.sh` and `make e2e`. Expected: all suites pass.
+- [x] **Step 4: Commit** with `test(e2e): Management API with auth0-cli and the console`.
 
 ---
 
