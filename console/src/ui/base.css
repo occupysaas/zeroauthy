@@ -1,0 +1,248 @@
+/* zeroauthy console: design tokens and base styles. Light by default,
+   dark with the system preference or an explicit choice. */
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --border: #d5dbe1;
+  --text: #17202a;
+  --text-2: #4f5b67;
+  --accent: #0b6e69;
+  --accent-text: #ffffff;
+  --accent-soft: #e0f2f0;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --warn-soft: #fff4d6;
+  --warn-border: #e5b84a;
+  --focus: #2563eb;
+  --radius: 8px;
+  --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0f1418;
+    --surface: #161d23;
+    --surface-2: #1d262e;
+    --border: #2e3a45;
+    --text: #e6ebef;
+    --text-2: #a3afba;
+    --accent: #3cc4b9;
+    --accent-text: #062321;
+    --accent-soft: #123532;
+    --danger: #ff8a7f;
+    --danger-soft: #3a1714;
+    --warn-soft: #3a2e10;
+    --warn-border: #a37f22;
+    --focus: #7aa7ff;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0f1418;
+  --surface: #161d23;
+  --surface-2: #1d262e;
+  --border: #2e3a45;
+  --text: #e6ebef;
+  --text-2: #a3afba;
+  --accent: #3cc4b9;
+  --accent-text: #062321;
+  --accent-soft: #123532;
+  --danger: #ff8a7f;
+  --danger-soft: #3a1714;
+  --warn-soft: #3a2e10;
+  --warn-border: #a37f22;
+  --focus: #7aa7ff;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+code,
+.mono {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.muted {
+  color: var(--text-2);
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+
+input[type='text'],
+input[type='number'],
+input[type='password'],
+select,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  width: 100%;
+}
+
+textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+input[aria-invalid='true'],
+textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+table.data th,
+table.data td {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+table.data th {
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface-2);
+}
+
+table.data tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Dialogs and menus (reka-ui parts). */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 45%);
+}
+
+.dialog {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  translate: -50% 0;
+  width: min(32rem, calc(100vw - 2rem));
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 25%);
+}
+
+.dialog h2 {
+  margin-top: 0;
+}
+
+.menu {
+  min-width: 14rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.3rem;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  z-index: 10;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 5px;
+  cursor: pointer;
+  outline: none;
+}
+
+.menu-item[data-highlighted] {
+  background: var(--accent-soft);
+}
+
+.menu-label {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.menu-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 0.3rem 0;
+}

@@ -281,10 +281,10 @@ This task is run by the controller session as the observer. The implementers of 
 - **Routes:** `/admin/` (Home), `/admin/callback`, and `/admin/t/:tenant/…` for tenant-scoped pages.
 - **Home:** the tenant's domains, discovery URL, application count, seeded-tenant banner, and links to `docs/`.
 
-- [ ] **Step 1: Tests** (Vitest): the auth module (PKCE parameters, refresh, no storage writes); the router guards (unauthenticated → login); the tenant switcher (lists, creates, and the API error path).
-- [ ] **Step 2: Implement.** Generate the types from `api/management.yaml`, and add a check that the generated file is current. Build `dist/`. Serve it from Go.
-- [ ] **Step 3: Run** `make console` (lint, typecheck, test, build), `go test ./internal/server/`, and a manual smoke (bootstrap an admin, sign in, switch tenant).
-- [ ] **Step 4: Commit** with `feat(console): scaffold, sign-in and shell`.
+- [x] **Step 1: Tests** (Vitest): the auth module (PKCE parameters, refresh, no storage writes); the router guards (unauthenticated → login); the tenant switcher (lists, creates, and the API error path).
+- [x] **Step 2: Implement.** Generate the types from `api/management.yaml`, and add a check that the generated file is current. Build `dist/`. Serve it from Go.
+- [x] **Step 3: Run** `make console` (lint, typecheck, test, build), `go test ./internal/server/`, and a manual smoke (bootstrap an admin, sign in, switch tenant).
+- [x] **Step 4: Commit** with `feat(console): scaffold, sign-in and shell`.
 
 ---
 

@@ -1,0 +1,62 @@
+// Every string the console shows, in one catalog so that translation can
+// follow (design §4.4). English only for now.
+export const t = {
+  product: 'zeroauthy',
+  docs: 'Docs',
+  source: 'Source',
+  docsURL: 'https://github.com/zeroauthy/zeroauthy/tree/main/docs',
+  sourceURL: 'https://github.com/zeroauthy/zeroauthy',
+  skipToContent: 'Skip to content',
+  loading: 'Loading…',
+  retry: 'Try again',
+  cancel: 'Cancel',
+  close: 'Close',
+  copy: 'Copy',
+  copied: 'Copied',
+  save: 'Save changes',
+  saving: 'Saving…',
+  saved: 'Saved',
+
+  account: 'Account',
+  signOut: 'Sign out',
+  signingIn: 'Signing you in…',
+  signInFailed: 'Sign-in failed',
+  signInAgain: 'Sign in again',
+  themeLight: 'Light theme',
+  themeDark: 'Dark theme',
+  themeSystem: 'System theme',
+
+  tenant: 'Tenant',
+  switchTenant: 'Switch tenant',
+  createTenant: 'Create tenant',
+  tenantName: 'Name',
+  tenantNameHint: 'Lower-case letters, digits and hyphens; it becomes the tenant’s subdomain.',
+  tenantDomains: 'Domains',
+  tenantDomainsHint: 'Optional, one per line. Needed when the server has no base domain.',
+  create: 'Create',
+  creating: 'Creating…',
+  noTenants: 'There are no tenants yet.',
+
+  navHome: 'Home',
+  navApplications: 'Applications',
+
+  homeTitle: 'Home',
+  seededBanner:
+    'The seed file defines this tenant. Changes you make here to what the seed defines are overwritten the next time zeroauthy starts.',
+  domain: 'Domain',
+  domains: 'Domains',
+  discoveryURL: 'Discovery URL',
+  managementAPI: 'Management API identifier',
+  applicationCount: 'Applications',
+  learnMore: 'Learn more',
+  docLinks: [
+    { title: 'Management API', href: 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/management-api.md' },
+    { title: 'The console', href: 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/console.md' },
+    { title: 'Compatibility with Auth0', href: 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/compat/matrix.md' },
+  ],
+
+  notFoundTitle: 'Page not found',
+  notFoundBody: 'There is nothing at this address.',
+  backHome: 'Back to home',
+  unknownTenant: 'This tenant does not exist, or you do not manage it.',
+}

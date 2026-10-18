@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zeroauthy/zeroauthy/api"
+	"github.com/zeroauthy/zeroauthy/console"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
@@ -55,6 +57,9 @@ type Deps struct {
 	// origin CORS allows on /api/v2 and /api/system.
 	BaseDomain string
 	SystemHost string
+
+	// Console is the built admin console; nil means the embedded one.
+	Console fs.FS
 
 	// Device code entry limits; see login.Handlers. The IP and tenant
 	// throttles may be nil (off).
@@ -221,6 +226,19 @@ func New(d Deps) http.Handler {
 	})
 	r.Handle("/api/v2/*", own)
 	r.Handle("/api/system/*", own)
+
+	// The console, on the system host only.
+	files := d.Console
+	if files == nil {
+		files = console.Files()
+	}
+	r.Group(func(ar chi.Router) {
+		ar.Use(d.Resolver.Middleware)
+		a := admin{files: files, store: d.Store, baseDomain: d.BaseDomain}
+		ar.Method(http.MethodGet, "/admin", a)
+		ar.Method(http.MethodGet, "/admin/*", a)
+		ar.Method(http.MethodHead, "/admin/*", a)
+	})
 	return r
 }
 
