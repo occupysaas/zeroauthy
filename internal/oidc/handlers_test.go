@@ -117,6 +117,11 @@ func TestJWKS(t *testing.T) {
 		Keys []struct {
 			Kid string `json:"kid"`
 			D   string `json:"d"`
+			P   string `json:"p"`
+			Q   string `json:"q"`
+			DP  string `json:"dp"`
+			DQ  string `json:"dq"`
+			QI  string `json:"qi"`
 		} `json:"keys"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
@@ -127,7 +132,7 @@ func TestJWKS(t *testing.T) {
 		t.Fatalf("keys = %+v", body.Keys)
 	}
 	for _, k := range body.Keys {
-		if k.D != "" {
+		if k.D != "" || k.P != "" || k.Q != "" || k.DP != "" || k.DQ != "" || k.QI != "" {
 			t.Fatal("private key material published")
 		}
 	}
