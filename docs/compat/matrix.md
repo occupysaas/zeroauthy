@@ -36,7 +36,10 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Discovery: `device_authorization_endpoint` | Implemented | Advertised with the device grant in `grant_types_supported` (D-0033) |
 | Implicit/hybrid flows | Planned | Not part of Plan 5 |
 | Passwordless, MFA, social connections, Actions | Planned (sub-project 2) | |
-| Management API v2 | Planned (sub-project 3) | |
+| Management API v2: authentication (machine-to-machine tokens for the canonical `https://<tenant>/api/v2/` audience, operator tokens), errors, pagination, `fields` | Implemented | Guide: `docs/management-api.md`. Decisions D-0038 to D-0040 |
+| Management API v2: `/api/v2/clients` (list, create, get, update, delete, `rotate-secret`) | Implemented | Verified with auth0-cli 1.37.0 (m13-mgmt-cli: `apps create/list/show/update/delete`, `api get clients`) and a contract test against `api/management.yaml`. Secrets encrypted and revealed with `read:client_keys` (D-0038); defaults and differences in D-0039 |
+| Management API v2: other resources (APIs, client grants, connections, users, tenant settings, …) | Planned (sub-project 3, slices 2–6) | |
+| Admin console (`/admin` on the system host) and system API (`/api/system/tenants`, `/api/system/operators`) | Implemented | zeroauthy extension, not an Auth0 surface. Guide: `docs/console.md`; D-0040. Verified in Chromium (m13-console) |
 | SAML, WS-Federation | Planned (sub-project 4) | |
 | Deprecated endpoints (`/oauth/ro`, `/delegation`, `/tokeninfo`, `/oauth/access_token`, impersonation) | Not planned | Deprecated by Auth0 |
 | Hosted page languages (`ui_locales`, `Accept-Language`, `enabled_locales`, per-tenant `custom_text`) | Implemented | English catalog only; verified with @auth0/auth0-spa-js 2.28.3 (`ui_locales`) and browser `Accept-Language`; custom-text Management API planned (sub-project 3) |

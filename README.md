@@ -14,7 +14,10 @@ and open standards. It is not affiliated with Auth0 or Okta. See
 > and `/oidc/logout` work today (verified with auth0-spa-js, auth0-react and
 > nextjs-auth0). Pushed authorization requests ([docs/par.md](docs/par.md)) and
 > the device authorization flow ([docs/device-flow.md](docs/device-flow.md))
-> are supported too. See the [compatibility matrix](docs/compat/matrix.md).
+> are supported too, and so are Auth0's Management API for applications
+> ([docs/management-api.md](docs/management-api.md), verified with auth0-cli)
+> and an admin console ([docs/console.md](docs/console.md)). See the
+> [compatibility matrix](docs/compat/matrix.md).
 
 ## Quick start
 
@@ -57,11 +60,14 @@ API reference: `https://localhost:8443/docs`. The raw contract is at
 YAML file (`--config`) plus `ZEROAUTHY_*` environment variables. `__`
 separates levels: `ZEROAUTHY_STORAGE__DSN=memory://` sets `storage.dsn`.
 See [internal/config/config.go](internal/config/config.go) for every
-setting. Tenants, APIs, applications and grants come from a declarative
-[seed file](tests/e2e/seed.yaml) until the Management API exists.
+setting. Tenants, APIs, applications and grants can come from a declarative
+[seed file](tests/e2e/seed.yaml); tenants and applications can also be
+managed in the [console](docs/console.md) or through the
+[Management API](docs/management-api.md). The seed never touches what the
+console or the API created.
 Unknown configuration keys are rejected at startup.
 
-**Master key.** Signing keys are stored envelope-encrypted under a 32-byte
+**Master key.** Signing keys and client secrets are stored envelope-encrypted under a 32-byte
 master key. Generate one with `openssl rand -base64 32` and set it as
 `ZEROAUTHY_SECURITY__MASTER_KEY` (or point `security.master_key_file` at a
 file containing it). It is required for persistent storage; with
@@ -105,7 +111,8 @@ which prints a one-time setup link (valid for one hour) where the operator
 chooses a password. Automated installs may set
 `ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL` instead: on a start that finds no
 operator, the server creates that one and logs the link once. No password is
-ever taken from configuration.
+ever taken from configuration. Operators sign in to the
+[admin console](docs/console.md) at `/admin/` on that host.
 
 **Proxies.** Enable `server.trust_proxy_headers` only behind a proxy that
 sets `X-Forwarded-Host`; otherwise clients could choose their own tenant.
@@ -125,7 +132,8 @@ notes for hosting untrusted tenants.
 ```bash
 make test           # unit + contract + storage conformance tests (memory and SQLite)
 make test-sql       # SQL driver tests against PostgreSQL 17 and MySQL 8.4 containers (needs podman or docker)
-make generate       # regenerate code from api/authentication.yaml
+make generate       # regenerate code from api/authentication.yaml and api/management.yaml
+make console        # lint, test and rebuild the admin console (needs Node 22+)
 make e2e            # Auth0 SDKs against a live zeroauthy on SQLite (needs Node 22+, openssl)
 make check-sources  # verify every x-source provenance link
 make conformance    # OpenID conformance suite against zeroauthy (podman or docker, Linux; ~10-20 min)

@@ -369,7 +369,6 @@ paths:
         `400 invalid_request`.
       x-source:
         - https://www.rfc-editor.org/rfc/rfc8628#section-3.1
-        - https://auth0.com/docs/api/authentication/device-authorization-flow/get-device-code
         - https://auth0.com/docs/get-started/authentication-and-authorization-flow/device-authorization-flow
       security:
         - {}

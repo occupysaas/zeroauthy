@@ -238,3 +238,18 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - The `address` and `phone` scopes and claims; accepted skips of `oidcc-scope-address`, `-phone` and `-all`.
 - `413` for oversized `POST /authorize` and `POST /userinfo` bodies (a 64 KB limit exists today; its error status should become 413).
 - `run.sh` robustness: apply the expected-file filtering earlier (before the suite starts), and make the `PLANS` input safe against newlines.
+
+## Plan 13 follow-ups
+
+- **Slices 2–6** of the Management API and console (design §2): APIs and client grants, connections (including enabling applications on them: an application created in the console or through the API is enabled on no connection until slice 3), users with import and forced reset, tenant settings with an `auth0-deploy-cli` round trip, social connections.
+- **Pushed down the road** (design §2), each needing its own design: passwordless and phone reset, organizations and RBAC, MFA, branding and email-template editors, custom domains, logs and log streams, event streams, Actions and Forms, enterprise connections, the marketplace and integration catalogues.
+- **Per-tenant admins:** operators carry a tenant list already (`["*"]` today); the system API cannot set it yet, and tenant-scoped operator tokens need a design.
+- **A create-only seed mode**, so that console edits to seed-defined entities survive a restart (today the console shows a banner on seeded tenants).
+- **Store-level client pagination and filtering:** `GET /api/v2/clients` pages in memory over `Clients.List`; users (slice 4) need it in the store.
+- **Keeping client IDs and secrets on migration:** `auth0-deploy-cli` exports no secrets and Auth0 refuses a supplied `client_id` (D-0039, open for slice 5).
+- **Client fields** accepted and ignored today (`description`, `client_metadata`, `logo_uri`, organizations and others, D-0039) could be stored and returned.
+- **Rate-limit headers** on the Management API once a limiter exists.
+- **Tenant log** for Management API writes; they go to the server log today.
+- **Console:** translations beyond English; a Playwright accessibility audit (axe); `auth0 login` (device flow) against zeroauthy needs Auth0's host mapped and stays a follow-up.
+- **E2E:** `run-browser.sh` leaves `next start` children running when it is interrupted; m13-console cannot reach `cli.e2e.test` from the browser, so it switches to the system tenant.
+

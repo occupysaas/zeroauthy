@@ -26,6 +26,10 @@ func TestCheckedInSeeds(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// As serve does; the test harnesses run without a base domain.
+			if err := f.CheckManagementAPI(""); err != nil {
+				t.Fatal(err)
+			}
 			if err := Apply(context.Background(), memory.New(), f, fixedNow, testWrapper(t)); err != nil {
 				t.Fatal(err)
 			}

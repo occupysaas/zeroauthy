@@ -18,6 +18,7 @@ generate:
 
 check-sources:
 	./scripts/check-sources.sh api/authentication.yaml
+	./scripts/check-sources.sh api/management.yaml
 
 e2e:
 	./tests/e2e/run-m3.sh

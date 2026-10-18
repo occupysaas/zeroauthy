@@ -286,7 +286,7 @@ paths:
         Deletes the tenant and all of its data. `confirm` must repeat the
         name. The system tenant cannot be deleted.
       x-source:
-        - https://auth0.com/docs/get-started/auth0-overview/create-tenants/delete-tenants
+        - https://auth0.com/docs/troubleshoot/customer-support/manage-subscriptions/delete-or-reset-tenant
       security: [{operatorToken: []}]
       parameters:
         - name: confirm
