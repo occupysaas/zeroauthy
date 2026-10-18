@@ -1,6 +1,6 @@
 # zeroauthy — Design: OpenID conformance testing and certification (Plan 12)
 
-- **Status:** Draft, awaiting review
+- **Status:** Approved; local harness and records implemented (Plan 12, Tasks 1-6); hosted certification run pending (Task 7)
 - **Date:** 2026-10-17
 - **Scope:** run the OpenID Foundation (OIDF) conformance suite against zeroauthy, locally and on demand in CI. Reach a clean pass for four OpenID Provider certification profiles. Certify those profiles with OIDF under its open-source fee-waiver policy.
 

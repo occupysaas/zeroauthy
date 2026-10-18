@@ -41,3 +41,7 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Deprecated endpoints (`/oauth/ro`, `/delegation`, `/tokeninfo`, `/oauth/access_token`, impersonation) | Not planned | Deprecated by Auth0 |
 | Hosted page languages (`ui_locales`, `Accept-Language`, `enabled_locales`, per-tenant `custom_text`) | Implemented | English catalog only; verified with @auth0/auth0-spa-js 2.28.3 (`ui_locales`) and browser `Accept-Language`; custom-text Management API planned (sub-project 3) |
 | Storage plugins (`plugin://` DSN, gRPC) | Implemented | zeroauthy extension, not an Auth0 surface; Go SDK in `pkg/storeplugin`; see D-0021 |
+| OpenID conformance: Basic OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-basic-certification-test-plan`; see `docs/conformance.md` |
+| OpenID conformance: Config OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-config-certification-test-plan`; see `docs/conformance.md` |
+| OpenID conformance: Form Post OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-formpost-basic-certification-test-plan`; see `docs/conformance.md` |
+| OpenID conformance: RP-Initiated OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-rp-initiated-logout-certification-test-plan`; see `docs/conformance.md` |

@@ -114,7 +114,12 @@ make test-sql       # SQL driver tests against PostgreSQL 17 and MySQL 8.4 conta
 make generate       # regenerate code from api/authentication.yaml
 make e2e            # Auth0 SDKs against a live zeroauthy on SQLite (needs Node 22+, openssl)
 make check-sources  # verify every x-source provenance link
+make conformance    # OpenID conformance suite against zeroauthy (podman or docker, Linux; ~10-20 min)
 ```
+
+## OpenID conformance
+
+zeroauthy is tested against the OpenID Foundation conformance suite for the Basic OP, Config OP, Form Post OP and RP-Initiated Logout OP profiles. `make conformance` runs all four locally in containers (Linux, podman or docker). Local results pass, with a few accepted warnings and skips; formal certification is pending. See [docs/conformance.md](docs/conformance.md).
 
 ## License
 

@@ -224,3 +224,17 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - Access and authz: `TestDecideDeviceDenyAll` cannot tell `codeAuthorizeDenied` from `codeTokenDenied` (both `invalid_request`). `Decide` on the device code does not recheck expiry after `validateFlow`, leaving a window of milliseconds. A device consent that fails on a server error ends the transaction, so the user starts again.
 - Throttle: under concurrent requests from one IP bucket, a `Refund` can lift a lockout that a parallel miss just set, letting one extra miss through per race. The `ClientIP` value from a trusted `X-Forwarded-For` that carries a port or brackets does not parse, so it is keyed raw rather than by /64.
 - E2E (`m10-device`): the spec pins `interval` and `expires_in`. A failed .NET build does not print the server logs. The container-branch skip message always prints. The wrong-codes test uses 6 of the 10 per-IP misses. The `za-e2e-device-` cleanup filter applies to the whole host. The `afterAll` `podman rm` has no timeout.
+
+## Plan 12 follow-ups
+
+- Release pipeline: a conformance gate (`make conformance` must exit 0) as the last milestone, after the management UI.
+- A `client_secret_post` variant run of Basic and Form Post (the certification runs use `client_secret_basic`).
+- Future profiles once the features exist: Implicit and Hybrid, Dynamic OP (client registration), front-channel and back-channel logout.
+- Recertify when the suite or zeroauthy changes significantly.
+- Request objects (JAR), together with `private_key_jwt` client authentication. Until then `request` is refused with `request_not_supported` (D-0035).
+- The extra `profile` attributes (`website`, `zoneinfo`, `birthdate`, and so on); accepted warning in `oidcc-scope-profile` (D-0036).
+- The `claims` request parameter; accepted warning in `oidcc-claims-essential`.
+- `acr` and `acr_values`; accepted warning in `oidcc-ensure-request-with-acr-values-succeeds`.
+- The `address` and `phone` scopes and claims; accepted skips of `oidcc-scope-address`, `-phone` and `-all`.
+- `413` for oversized `POST /authorize` and `POST /userinfo` bodies (a 64 KB limit exists today; its error status should become 413).
+- `run.sh` robustness: apply the expected-file filtering earlier (before the suite starts), and make the `PLANS` input safe against newlines.
