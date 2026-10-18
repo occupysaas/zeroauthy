@@ -55,7 +55,7 @@ func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant
 	t := res.Tenant
 	form, oerr := parseTokenRequest(w, r)
 	if oerr != nil {
-		if oerr.Description == `parameter "client_id" is repeated` {
+		if oerr.repeated == "client_id" {
 			return nil, unauthorizedClient("client_id must not be repeated") // D3
 		}
 		return nil, oerr
@@ -105,7 +105,11 @@ func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant
 	now := h.now().UTC()
 	for range deviceCreateAttempts {
 		deviceCode := secrets.RandomString(24)
-		userCode := devicecode.Generate(charset, mask)
+		userCode, gerr := devicecode.Generate(charset, mask)
+		if gerr != nil {
+			h.log().ErrorContext(ctx, "generate user code", "tenant", t.ID, "err", gerr)
+			return nil, serverError()
+		}
 		err = h.Store.DeviceCodes().Create(ctx, &store.DeviceCode{
 			TenantID: t.ID, DeviceCodeHash: secrets.HashToken(deviceCode),
 			UserCodeHash: secrets.HashToken(devicecode.Normalize(userCode)),

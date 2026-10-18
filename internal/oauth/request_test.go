@@ -7,6 +7,22 @@ import (
 	"testing"
 )
 
+// A repeated parameter is named on the error, so callers need not match
+// its text.
+func TestParseTokenRequestNamesRepeatedParam(t *testing.T) {
+	for name, tc := range map[string]struct{ ct, body string }{
+		"form": {"application/x-www-form-urlencoded", "client_id=a&client_id=b"},
+		"json": {"application/json", `{"client_id":"a","client_id":"b"}`},
+	} {
+		r := httptest.NewRequest("POST", "/oauth/device/code", strings.NewReader(tc.body))
+		r.Header.Set("Content-Type", tc.ct)
+		_, oerr := parseTokenRequest(httptest.NewRecorder(), r)
+		if oerr == nil || oerr.repeated != "client_id" {
+			t.Errorf("%s: error = %+v, want repeated client_id", name, oerr)
+		}
+	}
+}
+
 func TestParseTokenRequest(t *testing.T) {
 	cases := []struct {
 		name, contentType, body string

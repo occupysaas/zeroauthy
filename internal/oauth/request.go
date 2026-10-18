@@ -30,7 +30,7 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Err
 		}
 		for k, vs := range r.PostForm {
 			if len(vs) > 1 {
-				return nil, invalidRequest(fmt.Sprintf("parameter %q is repeated", k))
+				return nil, repeatedParam(k)
 			}
 		}
 		return r.PostForm, nil
@@ -49,7 +49,7 @@ func parseTokenRequest(w http.ResponseWriter, r *http.Request) (url.Values, *Err
 				return nil, bad
 			}
 			if seen[key] {
-				return nil, invalidRequest(fmt.Sprintf("parameter %q is repeated", key))
+				return nil, repeatedParam(key)
 			}
 			seen[key] = true
 			var v any

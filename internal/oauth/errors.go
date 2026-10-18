@@ -2,6 +2,7 @@
 package oauth
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -15,12 +16,21 @@ type Error struct {
 	// basicChallenge adds WWW-Authenticate. RFC 6749 §5.2 requires it when
 	// a client that used HTTP Basic fails to authenticate.
 	basicChallenge bool
+	// repeated names the parameter a request sent more than once.
+	repeated string
 }
 
 func (e *Error) Error() string { return e.Code + ": " + e.Description }
 
 func invalidRequest(desc string) *Error {
 	return &Error{Status: http.StatusBadRequest, Code: "invalid_request", Description: desc}
+}
+
+// repeatedParam is the invalid_request for a parameter sent more than once.
+func repeatedParam(name string) *Error {
+	e := invalidRequest(fmt.Sprintf("parameter %q is repeated", name))
+	e.repeated = name
+	return e
 }
 
 func invalidClient(desc string, basic bool) *Error {

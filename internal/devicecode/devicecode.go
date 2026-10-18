@@ -76,7 +76,11 @@ func ValidateMask(charset, mask string) error {
 
 // Generate returns a random code shaped by mask, '*' replaced by a
 // crypto/rand character from charset.
-func Generate(charset, mask string) string {
+// An unknown charset is an error.
+func Generate(charset, mask string) (string, error) {
+	if charset != CharsetBase20 && charset != CharsetDigits {
+		return "", fmt.Errorf("devicecode: unknown charset %q", charset)
+	}
 	chars := alphabet(charset)
 	max := big.NewInt(int64(len(chars)))
 	var b strings.Builder
@@ -91,7 +95,7 @@ func Generate(charset, mask string) string {
 		}
 		b.WriteByte(chars[n.Int64()])
 	}
-	return b.String()
+	return b.String(), nil
 }
 
 // Normalize upper-cases s and drops every character that is not a letter

@@ -8,12 +8,18 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
+func TestGenerateUnknownCharset(t *testing.T) {
+	if c, err := Generate("hex", "****-****"); err == nil {
+		t.Fatalf("Generate with an unknown charset = %q, want an error", c)
+	}
+}
+
 func TestGenerate(t *testing.T) {
 	re := regexp.MustCompile(`^[BCDFGHJKLMNPQRSTVWXZ]{4}-[BCDFGHJKLMNPQRSTVWXZ]{4}$`)
 	seen := map[string]bool{}
 	for range 1000 {
-		c := Generate(CharsetBase20, "****-****")
-		if !re.MatchString(c) {
+		c, err := Generate(CharsetBase20, "****-****")
+		if err != nil || !re.MatchString(c) {
 			t.Fatalf("bad code %q", c)
 		}
 		if seen[c] {
@@ -23,7 +29,7 @@ func TestGenerate(t *testing.T) {
 	}
 	d := regexp.MustCompile(`^\d{3}-\d{3}-\d{3}$`)
 	for range 1000 {
-		if c := Generate(CharsetDigits, "***-***-***"); !d.MatchString(c) {
+		if c, err := Generate(CharsetDigits, "***-***-***"); err != nil || !d.MatchString(c) {
 			t.Fatalf("bad code %q", c)
 		}
 	}
