@@ -50,6 +50,12 @@ func newMgmtServer(t *testing.T) http.Handler {
 
 func newMgmtEnv(t *testing.T) (http.Handler, store.Store) {
 	t.Helper()
+	return newMgmtEnvWith(t, nil)
+}
+
+// newMgmtEnvWith is newMgmtEnv with adjust applied to the server's Deps.
+func newMgmtEnvWith(t *testing.T, adjust func(*Deps)) (http.Handler, store.Store) {
+	t.Helper()
 	ctx := context.Background()
 	st := memory.New()
 	f, err := seed.Parse([]byte(mgmtSeed))
@@ -71,7 +77,7 @@ func newMgmtEnv(t *testing.T) (http.Handler, store.Store) {
 	if err := km.Ensure(ctx, tn.ID); err != nil {
 		t.Fatal(err)
 	}
-	return New(Deps{
+	d := Deps{
 		Store: st, Keys: km, Wrapper: w,
 		Resolver: tenant.NewResolver(st.Tenants(), "", false),
 		Sessions: &session.Manager{Store: st}, Mailer: discardMailer{},
@@ -79,7 +85,11 @@ func newMgmtEnv(t *testing.T) (http.Handler, store.Store) {
 		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
 		IPThrottle:   identity.NewThrottle(100, time.Minute, time.Minute),
 		SystemHost:   mgmtSystemHost,
-	}), st
+	}
+	if adjust != nil {
+		adjust(&d)
+	}
+	return New(d), st
 }
 
 func send(h http.Handler, method, target string, header map[string]string) (*httptest.ResponseRecorder, map[string]any) {

@@ -45,17 +45,49 @@ func (u CreateUser) arg() map[string]any {
 // run executes one script of conn. A script the connection does not define
 // is ErrNoScript, without calling Exec.
 func (c *Client) run(ctx context.Context, conn *store.Connection, script string, args ...any) (json.RawMessage, error) {
+	req, err := c.request(conn, script, args)
+	if err != nil {
+		return nil, err
+	}
+	return c.Exec.Execute(ctx, req)
+}
+
+// request builds the execution of script of conn with args: the script's
+// source and the connection's opened configuration.
+func (c *Client) request(conn *store.Connection, script string, args []any) (Request, error) {
 	src := conn.CustomScripts[script]
 	if src == "" {
-		return nil, ErrNoScript
+		return Request{}, ErrNoScript
 	}
 	cfg, err := keys.OpenConnectionConfig(c.Wrapper, conn.TenantID, conn.ID, conn.ConfigurationSealed)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrConfig, err)
+		return Request{}, fmt.Errorf("%w: %w", ErrConfig, err)
 	}
-	return c.Exec.Execute(ctx, Request{
+	return Request{
 		TenantID: conn.TenantID, ConnectionID: conn.ID, Script: script, Source: src, Config: cfg, Args: args,
-	})
+	}, nil
+}
+
+// Try runs script of conn with args exactly as a login or sign-up would,
+// whether or not the connection has custom database scripts switched on,
+// and returns the callback value or the script's error. onLogs, when set,
+// receives the script's console output. Nothing is stored.
+func (c *Client) Try(ctx context.Context, conn *store.Connection, script string, args []any, onLogs func([]string)) (json.RawMessage, error) {
+	req, err := c.request(conn, script, args)
+	if err != nil {
+		return nil, err
+	}
+	req.OnLogs = onLogs
+	return c.Exec.Execute(ctx, req)
+}
+
+// ScriptArgCounts is the number of arguments the runner passes to each
+// script before its callback (Auth0's signatures): login(email, password),
+// getUser(email), create(user), verify(email), changePassword(email,
+// newPassword), delete(id) and changeEmail(email, newEmail, verified).
+var ScriptArgCounts = map[string]int{
+	store.ScriptLogin: 2, store.ScriptGetUser: 1, store.ScriptCreate: 1, store.ScriptVerify: 1,
+	store.ScriptChangePassword: 2, store.ScriptDelete: 1, store.ScriptChangeEmail: 3,
 }
 
 // Login runs the login script. It returns the profile, or a *ScriptError,

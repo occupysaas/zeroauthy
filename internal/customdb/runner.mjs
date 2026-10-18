@@ -12,6 +12,7 @@ import { createRequire, builtinModules } from 'node:module';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 // Node's permission model does not stop signals to other processes of the
 // same uid (zeroauthy itself, other tenants' runners). Lock those APIs before
@@ -128,18 +129,27 @@ function wireError(err) {
 
 function respond(obj) { process.stdout.write(JSON.stringify(obj) + '\n'); }
 
+// Console output of a request that asked for it (capture), returned in its
+// response. The store follows the script's asynchronous calls.
+const captured = new AsyncLocalStorage();
+const maxCaptured = 50;
+
 function run(req) {
+  captured.run(req.capture ? [] : null, () => runIn(req, captured.getStore()));
+}
+
+function runIn(req, logs) {
   let done = false;
   const finish = (err, value) => {
     if (done) { log(req.conn, 'warn', [`${req.name}: callback called more than once; ignored`]); return; }
     done = true;
     // Nothing below may throw: done is set, so a throw would leave the request unanswered.
-    if (err) { respond({ id: req.id, ok: false, error: toWireError(err) }); return; }
+    if (err) { respond({ id: req.id, ok: false, error: toWireError(err), logs }); return; }
     let line;
     try {
-      line = JSON.stringify({ id: req.id, ok: true, result: value === undefined ? null : value });
+      line = JSON.stringify({ id: req.id, ok: true, result: value === undefined ? null : value, logs });
     } catch (e) {
-      respond({ id: req.id, ok: false, error: { kind: 'error', code: '', message: `${req.name}: the callback value is not JSON` } });
+      respond({ id: req.id, ok: false, error: { kind: 'error', code: '', message: `${req.name}: the callback value is not JSON` }, logs });
       return;
     }
     process.stdout.write(line + '\n');
@@ -153,6 +163,8 @@ function run(req) {
 
 function log(conn, level, args) {
   const msg = args.map((a) => (typeof a === 'string' ? a : safeJSON(a))).join(' ').slice(0, 2048);
+  const sink = captured.getStore();
+  if (sink && sink.length < maxCaptured) sink.push(level === 'info' ? msg : level + ': ' + msg);
   process.stderr.write(JSON.stringify({ conn, level, msg }) + '\n');
 }
 function safeJSON(v) { try { const s = JSON.stringify(v); return s === undefined ? str(v) : s; } catch { return str(v); } }

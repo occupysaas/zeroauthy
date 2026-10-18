@@ -557,3 +557,30 @@ func TestRunnerTinyIdleTimeout(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestRunnerCapturesConsoleOutput(t *testing.T) {
+	r := newRunner(t, config.CustomDB{})
+	src := `function login(e, p, cb) {
+	  console.log("first", {a: 1});
+	  setTimeout(() => { console.warn("later"); cb(null, {user_id: "1"}); }, 10);
+	}`
+	var got []string
+	_, err := r.Execute(context.Background(), Request{TenantID: "t1", ConnectionID: "c1", Script: "login", Source: src,
+		Args: []any{"a", "b"}, OnLogs: func(l []string) { got = l }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[0] != `first {"a":1}` || got[1] != "warn: later" {
+		t.Errorf("logs = %q", got)
+	}
+	// An error answer carries its console output too, and a request that did
+	// not ask captures nothing.
+	got = nil
+	_, err = r.Execute(context.Background(), Request{TenantID: "t1", ConnectionID: "c1", Script: "login",
+		Source: `function login(e, p, cb) { console.log("x"); throw new Error("boom"); }`, Args: []any{"a", "b"},
+		OnLogs: func(l []string) { got = l }})
+	scriptErr(t, err, KindError)
+	if len(got) != 1 || got[0] != "x" {
+		t.Errorf("logs on error = %q", got)
+	}
+}

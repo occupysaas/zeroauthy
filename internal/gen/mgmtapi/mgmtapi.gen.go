@@ -1492,6 +1492,32 @@ type ResourceServerSettingsTokenDialect string
 // among them. An empty body changes nothing.
 type ResourceServerUpdate = ResourceServerSettings
 
+// ScriptTry defines model for ScriptTry.
+type ScriptTry struct {
+	// Args The script's arguments, without the callback.
+	Args []interface{} `json:"args"`
+}
+
+// ScriptTryResult defines model for ScriptTryResult.
+type ScriptTryResult struct {
+	// DurationMs How long the run took.
+	DurationMs int `json:"duration_ms"`
+
+	// Error The error the script threw or passed to its callback; null on success.
+	Error *struct {
+		Message string `json:"message"`
+
+		// Name The error's class: `Error`, `ValidationError`, `UnauthorizedError`, `WrongUsernameOrPasswordError` or `TimeoutError`.
+		Name string `json:"name"`
+	} `json:"error"`
+
+	// Logs The script's console output, at most 50 lines.
+	Logs []string `json:"logs"`
+
+	// Result The value the script passed to its callback; null when it failed or passed none.
+	Result interface{} `json:"result"`
+}
+
 // SubjectTypeAuthorization Who may get access tokens for the API. `user` is `allow_all`,
 // `require_client_grant` or `deny_all`; `client` is `require_client_grant`
 // or `deny_all`. On update the two subject types merge.
@@ -1761,6 +1787,9 @@ type CreateTenantJSONRequestBody = TenantCreate
 
 // UpdateTenantJSONRequestBody defines body for UpdateTenant for application/json ContentType.
 type UpdateTenantJSONRequestBody = TenantUpdate
+
+// TryConnectionScriptJSONRequestBody defines body for TryConnectionScript for application/json ContentType.
+type TryConnectionScriptJSONRequestBody = ScriptTry
 
 // CreateClientGrantJSONRequestBody defines body for CreateClientGrant for application/json ContentType.
 type CreateClientGrantJSONRequestBody = ClientGrantCreate
@@ -2112,6 +2141,9 @@ type ServerInterface interface {
 	// UpdateTenant Update a tenant
 	// (PATCH /api/system/tenants/{name})
 	UpdateTenant(w http.ResponseWriter, r *http.Request, name string)
+	// TryConnectionScript Try a custom database script
+	// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
+	TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string)
 	// GetClientGrants List client grants
 	// (GET /api/v2/client-grants)
 	GetClientGrants(w http.ResponseWriter, r *http.Request, params GetClientGrantsParams)
@@ -2226,6 +2258,12 @@ func (_ Unimplemented) DeleteTenant(w http.ResponseWriter, r *http.Request, name
 // UpdateTenant Update a tenant
 // (PATCH /api/system/tenants/{name})
 func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TryConnectionScript Try a custom database script
+// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
+func (_ Unimplemented) TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2517,6 +2555,50 @@ func (siw *ServerInterfaceWrapper) UpdateTenant(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateTenant(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TryConnectionScript operation middleware
+func (siw *ServerInterfaceWrapper) TryConnectionScript(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", chi.URLParam(r, "name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TryConnectionScript(w, r, tenant, id, name)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3760,6 +3842,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/system/operators/{id}", wrapper.DeleteOperator)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try", wrapper.TryConnectionScript)
 	})
 
 	return r

@@ -918,6 +918,88 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
+  /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try:
+    parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+      - name: id
+        in: path
+        required: true
+        description: The connection's ID (`con_` and up to 64 letters or digits).
+        schema: {type: string}
+      - name: name
+        in: path
+        required: true
+        description: "The script: `login`, `get_user`, `create`, `verify`, `change_password`, `delete` or `change_email`."
+        schema: {type: string}
+    post:
+      operationId: tryConnectionScript
+      tags: [system]
+      summary: Try a custom database script
+      description: |
+        A zeroauthy extension (Auth0 has no such API; decision D-0042 in
+        docs/compat/decisions.md, and section 5.4 of
+        docs/superpowers/specs/2026-10-18-zeroauthy-connections-design.md). Runs one of the connection's custom database scripts
+        through the same runner a login uses, with the connection's real
+        configuration and the arguments in the body, and returns what the
+        script answered. Nothing is stored and no user is created or changed
+        by zeroauthy, but the script itself may change the external database
+        it talks to.
+
+        `args` are the script's arguments as JSON values, in the order of
+        Auth0's script signatures, without the callback: `login` (email,
+        password), `get_user` (email), `create` (user object),
+        `verify` (email), `change_password` (email, new password),
+        `delete` (user ID) and `change_email` (email, new email, verified).
+        A wrong number of arguments, an unknown script name or a script the
+        connection has no source for is `invalid_body`.
+
+        The connection need not have `enabledDatabaseCustomization` on, so
+        an operator can test scripts before enabling them.
+
+        A script that ran answers 200 even when it failed: `error` is set
+        with the error's `name` and `message` (`TimeoutError` when the
+        script ran too long) and `result` is null. 503 means the script
+        runtime could not start. At most 10 calls a minute per operator
+        (`too_many_requests`, with `Retry-After`). The server log records
+        the tenant, connection, script, operator, duration and outcome, never
+        the arguments, the result, the console output or the configuration.
+      x-source:
+        - https://auth0.com/docs/authenticate/database-connections/custom-db/templates
+        - https://auth0.com/docs/authenticate/database-connections/custom-db
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ScriptTry"}
+      responses:
+        "200":
+          description: The script ran; its answer or its error.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ScriptTryResult"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429":
+          description: Too many calls (`too_many_requests`); `Retry-After` gives the seconds to wait.
+          headers:
+            Retry-After:
+              description: Seconds until the next call is accepted.
+              schema: {type: integer}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "503":
+          description: The script runtime is not available (`script_runtime_unavailable`).
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
 components:
   securitySchemes:
     managementToken:
@@ -1483,6 +1565,32 @@ components:
       properties:
         friendly_name: {type: string, maxLength: 255}
         domains: {type: array, items: {type: string}}
+    ScriptTry:
+      type: object
+      additionalProperties: false
+      required: [args]
+      properties:
+        args:
+          type: array
+          description: The script's arguments, without the callback.
+          items: {}
+    ScriptTryResult:
+      type: object
+      required: [result, error, logs, duration_ms]
+      properties:
+        result: {description: "The value the script passed to its callback; null when it failed or passed none."}
+        error:
+          type: [object, "null"]
+          description: The error the script threw or passed to its callback; null on success.
+          required: [name, message]
+          properties:
+            name: {type: string, description: "The error's class: `Error`, `ValidationError`, `UnauthorizedError`, `WrongUsernameOrPasswordError` or `TimeoutError`."}
+            message: {type: string}
+        logs:
+          type: array
+          description: The script's console output, at most 50 lines.
+          items: {type: string}
+        duration_ms: {type: integer, description: How long the run took.}
     Operator:
       type: object
       required: [user_id, email, tenants, created_at]

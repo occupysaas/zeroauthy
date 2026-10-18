@@ -13,10 +13,13 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
+	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -46,6 +49,12 @@ type Handlers struct {
 	SystemHost string
 	Log        *slog.Logger
 	Now        func() time.Time
+	// Scripts runs custom database scripts for the system API's script
+	// try; nil answers 503.
+	Scripts *customdb.Client
+
+	tryOnce     sync.Once
+	tryThrottle *identity.Throttle
 }
 
 func (h *Handlers) now() time.Time {

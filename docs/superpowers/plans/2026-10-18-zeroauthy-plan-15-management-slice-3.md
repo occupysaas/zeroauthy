@@ -129,8 +129,8 @@ Run by the controller session as the observer (option A of Plan 14: the observer
 - Produces: `POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try` with body `{"args": [...]}` (the script's arguments as JSON, matching the runner's signature for that script name), response `{"result": <value>|null, "error": {"name","message"}|null, "logs": [string], "duration_ms": int}`. Operators only, system host only; rate limit 10 per minute per operator (`429 too_many_requests`); logged without arguments or result.
 - Consumes: the existing runner (`customdb.Executor.Execute`) with the connection's sealed configuration.
 
-- [ ] **Step 1: Tests:** each script name with a stub script; a thrown error and a timeout; non-operator and M2M tokens refused; rate limit; arguments and results absent from the log.
-- [ ] **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat(system): try a custom database script`.
+- [x] **Step 1: Tests:** each script name with a stub script; a thrown error and a timeout; non-operator and M2M tokens refused; rate limit; arguments and results absent from the log.
+- [x] **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat(system): try a custom database script`.
 
 ---
 

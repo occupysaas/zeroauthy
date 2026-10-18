@@ -3,6 +3,7 @@ package customdb
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 )
 
@@ -10,6 +11,8 @@ import (
 // callback value or an error (a *ScriptError, ErrTimeout, …).
 type FuncExecutor struct {
 	Funcs map[string]func(args []any) (any, error)
+	// Logs[script] is the console output reported to a request's OnLogs.
+	Logs  map[string][]string
 	Calls []Request // recorded under a mutex; read with Requests()
 
 	mu sync.Mutex
@@ -25,6 +28,9 @@ func (f *FuncExecutor) Execute(_ context.Context, req Request) (json.RawMessage,
 		return nil, ErrNoScript
 	}
 	v, err := fn(req.Args)
+	if req.OnLogs != nil && !errors.Is(err, ErrTimeout) && !errors.Is(err, ErrUnavailable) {
+		req.OnLogs(f.Logs[req.Script])
+	}
 	if err != nil {
 		return nil, err
 	}

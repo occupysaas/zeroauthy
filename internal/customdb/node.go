@@ -41,6 +41,10 @@ type Request struct {
 	Source       string
 	Config       map[string]string // plaintext configuration
 	Args         []any             // JSON-encodable, without the callback
+	// OnLogs, when set, receives the console output the script wrote during
+	// this execution (at most maxCapturedLogs lines), once the script has
+	// answered. It is not called when the execution fails without an answer.
+	OnLogs func([]string)
 }
 
 // Executor runs custom database scripts. Result is the JSON value passed
@@ -171,6 +175,8 @@ type wireRequest struct {
 	Source string            `json:"source"`
 	Config map[string]string `json:"config"`
 	Args   []any             `json:"args"`
+	// Capture asks the runner to return the script's console output.
+	Capture bool `json:"capture,omitempty"`
 }
 
 type wireError struct {
@@ -184,6 +190,7 @@ type response struct {
 	OK     bool            `json:"ok"`
 	Result json.RawMessage `json:"result"`
 	Error  *wireError      `json:"error"`
+	Logs   []string        `json:"logs"`
 }
 
 type logLine struct {
@@ -236,7 +243,7 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 	}
 	sum := sha256.Sum256([]byte(req.Source))
 	wire := wireRequest{Conn: req.ConnectionID, Hash: hex.EncodeToString(sum[:]), Name: req.Script,
-		Source: req.Source, Config: req.Config, Args: req.Args}
+		Source: req.Source, Config: req.Config, Args: req.Args, Capture: req.OnLogs != nil}
 	if wire.Config == nil {
 		wire.Config = map[string]string{}
 	}
@@ -306,7 +313,7 @@ func (r *NodeRunner) await(ctx context.Context, p *proc, req Request, wire wireR
 	for {
 		select {
 		case resp := <-ch:
-			return toResult(resp)
+			return deliver(req, resp)
 		case err := <-errc:
 			if err != nil {
 				p.unregister(wire.ID)
@@ -316,7 +323,7 @@ func (r *NodeRunner) await(ctx context.Context, p *proc, req Request, wire wireR
 		case <-p.done:
 			select {
 			case resp := <-ch:
-				return toResult(resp)
+				return deliver(req, resp)
 			default:
 				return nil, fmt.Errorf("%w: runner process exited", ErrUnavailable)
 			}
@@ -364,6 +371,14 @@ func (r *NodeRunner) timedOut(p *proc, req Request, id int64) {
 	r.log.Warn("custom database script timed out; killing the tenant's runner",
 		"tenant", req.TenantID, "connection", req.ConnectionID, "script", req.Script)
 	r.kill(p)
+}
+
+// deliver hands resp's console output to req.OnLogs, then returns its result.
+func deliver(req Request, resp response) (json.RawMessage, error) {
+	if req.OnLogs != nil {
+		req.OnLogs(resp.Logs)
+	}
+	return toResult(resp)
 }
 
 func toResult(resp response) (json.RawMessage, error) {
