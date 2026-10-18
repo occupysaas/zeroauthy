@@ -334,6 +334,6 @@ This task is run by the controller session as the observer. The implementers of 
 
 **Files:** `docs/console.md` (new: install, first admin, sign-in, the screens), `docs/management-api.md` (new: endpoints, tokens, scopes, M2M setup, what's supported), `docs/compat/matrix.md` (rows), core spec §8 (secrets encrypted; points to D-0038), `docs/superpowers/plan-1-followups.md` ("Plan 13 follow-ups": slices 2–6, everything pushed down the road from design §2, per-tenant admins, a create-only seed mode, store-level client pagination), README.
 
-- [ ] **Step 1: Write the docs.**
-- [ ] **Step 2: Verify:** gofmt, vet, `go test -race ./...`, `go generate` with no diff, `make console`, the SQL suite, `./tests/e2e/run-browser.sh`, and `make conformance` (exit 0).
-- [ ] **Step 3: Commit** with `docs: console and Management API guides; Plan 13 records`.
+- [x] **Step 1: Write the docs.**
+- [x] **Step 2: Verify:** gofmt, vet, `go test -race ./...`, `go generate` with no diff, `make console`, the SQL suite, `./tests/e2e/run-browser.sh`, and `make conformance` (exit 0).
+- [x] **Step 3: Commit** with `docs: console and Management API guides; Plan 13 records`.
