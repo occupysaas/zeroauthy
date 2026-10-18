@@ -285,7 +285,7 @@ func (h *Handlers) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
 	}
 	tn := resolved(r)
 	own := tenant.ManagementAPIIdentifier(tn, h.BaseDomain)
-	if err := checkGrantAudience(in.audience, own); err != nil {
+	if err := checkGrantAudience(in.audience); err != nil {
 		Fail(w, err)
 		return
 	}
@@ -306,6 +306,12 @@ func (h *Handlers) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
 			// The tenant's Management API is created with its first token;
 			// an operator may grant it before then.
 			rs, err = tenantsetup.ManagementAPI(ctx, tx, tn, h.BaseDomain, h.now())
+		}
+		if errors.Is(err, store.ErrNotFound) && apirules.IsManagementAPIIdentifier(in.audience) {
+			// No API of this tenant has the identifier of a Management API
+			// (Plan 14 review focus 1): it is another tenant's, which a
+			// token of this tenant cannot reach.
+			return badBody("audience: only this tenant's Management API (%s) can be granted", own)
 		}
 		if errors.Is(err, store.ErrNotFound) {
 			return errResourceServerNotFound
@@ -337,16 +343,13 @@ func (h *Handlers) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, clientGrantView(g))
 }
 
-// checkGrantAudience refuses the audiences no application may be granted:
-// the system tenant's operator API, and the Management API of any tenant
-// but the caller's own (Plan 14 review focus 1). own is the caller's
-// Management API identifier.
-func checkGrantAudience(audience, own string) error {
-	switch {
-	case audience == tenant.OperatorAudience:
+// checkGrantAudience refuses the audience no application may be granted:
+// the system tenant's operator API. Another tenant's Management API is
+// refused where the API is looked up (see CreateClientGrant), since the
+// tenant may define an ordinary API whose identifier has that form.
+func checkGrantAudience(audience string) error {
+	if audience == tenant.OperatorAudience {
 		return badBody("audience: %s is for console operators and cannot be granted to applications", audience)
-	case audience != own && apirules.IsManagementAPIIdentifier(audience):
-		return badBody("audience: only this tenant's Management API (%s) can be granted", own)
 	}
 	return nil
 }

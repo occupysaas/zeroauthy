@@ -385,12 +385,15 @@ func TestClientGrantManagementAPI(t *testing.T) {
 			rec, _ := e.create(t, map[string]any{"client_id": c, "audience": aud, "scope": []string{"read:clients"}})
 			wantError(t, rec, 400, "invalid_body")
 		}
-		// Even when the tenant defines an API with such an identifier.
-		if err := e.st.ResourceServers().Create(context.Background(), &store.ResourceServer{TenantID: e.tn.ID, ID: "rs_x", Identifier: "https://globex.example.com/api/v2/",
-			Scopes: []store.Scope{{Value: "read:clients"}}, CreatedAt: now}); err != nil {
-			t.Fatal(err)
+	})
+	t.Run("an ordinary API with such an identifier", func(t *testing.T) {
+		const aud = "https://api.example.com/api/v2/"
+		e.rsEnv.mustCreate(t, map[string]any{"identifier": aud, "scopes": []map[string]any{{"value": "read:things"}}})
+		out := e.mustCreate(t, map[string]any{"client_id": c, "audience": aud, "scope": []string{"read:things"}})
+		if !slices.Equal(strs(out["scope"]), []string{"read:things"}) {
+			t.Errorf("grant = %v", out)
 		}
-		rec, _ := e.create(t, map[string]any{"client_id": c, "audience": "https://globex.example.com/api/v2/", "scope": []string{"read:clients"}})
+		rec, _ := e.create(t, map[string]any{"client_id": e.newClient(t), "audience": aud, "scope": []string{"read:clients"}})
 		wantError(t, rec, 400, "invalid_body")
 	})
 	t.Run("the operator API", func(t *testing.T) {

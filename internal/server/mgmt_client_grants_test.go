@@ -176,3 +176,25 @@ func TestManagementAPIGrantThroughServer(t *testing.T) {
 		t.Errorf("list clients with the new token = %d %s", rec.Code, rec.Body)
 	}
 }
+
+// An ordinary API whose identifier has the form of a Management API's can be
+// granted like any other, and serves tokens.
+func TestManagementClientGrantLookalikeAPI(t *testing.T) {
+	h, _ := newMgmtEnv(t)
+	admin := clientToken(t, h, "login.acme.test", acmeMgmtAPI, "admin", "admin-s3cret")
+	const aud = "https://api.example.com/api/v2/"
+	if rec, _ := sendJSON(h, "POST", "https://acme.example.test/api/v2/resource-servers", admin, map[string]any{"identifier": aud, "scopes": []map[string]any{{"value": "read:things"}}}); rec.Code != 201 {
+		t.Fatalf("create API = %d %s", rec.Code, rec.Body)
+	}
+	rec, app := sendJSON(h, "POST", "https://acme.example.test/api/v2/clients", admin, map[string]any{"name": "Worker", "app_type": "non_interactive"})
+	cid, secret := app["client_id"].(string), app["client_secret"].(string)
+	if rec.Code != 201 {
+		t.Fatal(rec.Body)
+	}
+	if rec, _ := sendJSON(h, "POST", "https://acme.example.test/api/v2/client-grants", admin, map[string]any{"client_id": cid, "audience": aud, "scope": []string{"read:things"}}); rec.Code != 201 {
+		t.Fatalf("grant = %d %s", rec.Code, rec.Body)
+	}
+	if code, tok := grantToken(h, cid, secret, aud, ""); code != 200 || tok["scope"] != "read:things" {
+		t.Errorf("token = %d %v", code, tok)
+	}
+}
