@@ -48,3 +48,27 @@ export function fakeServices(handler: (c: Call) => { status: number; body?: unkn
 export function memoryRouter(): Router {
   return createRouter({ history: createMemoryHistory('/admin/'), routes })
 }
+
+export function client(id: string, extra: Partial<import('../api/client').Client> = {}): import('../api/client').Client {
+  return {
+    tenant: 'acme',
+    client_id: id,
+    name: 'App ' + id,
+    app_type: 'regular_web',
+    is_first_party: true,
+    oidc_conformant: true,
+    callbacks: [],
+    allowed_logout_urls: [],
+    web_origins: [],
+    allowed_origins: [],
+    grant_types: ['authorization_code', 'refresh_token', 'client_credentials'],
+    token_endpoint_auth_method: 'client_secret_post',
+    jwt_configuration: { alg: 'RS256', lifetime_in_seconds: 36000 },
+    refresh_token: { rotation_type: 'non-rotating', expiration_type: 'non-expiring' },
+    global: false,
+    callback_url_template: false,
+    require_pushed_authorization_requests: false,
+    client_secret: 'S'.repeat(64),
+    ...extra,
+  }
+}

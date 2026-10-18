@@ -300,9 +300,9 @@ This task is run by the controller session as the observer. The implementers of 
   - **Advanced tab:** grant types, token endpoint auth method, ID token lifetime, refresh token rotation, PAR requirement, first-party versus third-party (read-only after creation).
   - **Danger zone:** rotate the secret (confirm), delete (type the name to confirm).
 
-- [ ] **Step 1: Tests** (Vitest) for each screen's states: loading, empty, error, validation and success.
-- [ ] **Step 2: Implement.** Rebuild `dist/`.
-- [ ] **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): applications`.
+- [x] **Step 1: Tests** (Vitest) for each screen's states: loading, empty, error, validation and success.
+- [x] **Step 2: Implement.** Rebuild `dist/`.
+- [x] **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): applications`.
 
 ---
 
