@@ -115,6 +115,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err != nil {
 			return nil, err
 		}
+		f.Mode = seed.Mode(cfg.SeedMode)
 		if err := f.CheckSystemHost(systemHost); err != nil {
 			return nil, err
 		}
@@ -124,7 +125,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := seed.Apply(ctx, st, f, time.Now, wrapper); err != nil {
 			return nil, err
 		}
-		log.Info("applied seed", "file", cfg.Seed, "tenants", len(f.Tenants))
+		log.Info("applied seed", "file", cfg.Seed, "mode", cfg.SeedMode, "tenants", len(f.Tenants))
 	}
 	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, Wrapper: wrapper}); err != nil {
 		return nil, err

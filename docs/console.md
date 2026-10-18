@@ -51,7 +51,8 @@ session.
 - **Home:** the tenant's domain, discovery URL and Management API
   identifier, the number of applications, and a banner when the seed file
   defines the tenant: edits to what the seed defines are overwritten at the
-  next start.
+  next start. With `seed_mode: create_only` the seed never overwrites, so
+  there is no banner.
 - **APIs:** a paged list of the tenant's APIs, system ones marked. **Create
   API** asks for a name and an identifier (fixed afterwards). Each API has
   - **Settings:** name, identifier, signing algorithm (RS256, fixed), token

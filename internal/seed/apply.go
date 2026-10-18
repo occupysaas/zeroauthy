@@ -19,7 +19,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
 
-// Apply upserts everything in f. It never deletes.
+// Apply upserts everything in f. It never deletes. With f.Mode set to
+// ModeCreateOnly it only creates what does not exist yet and leaves every
+// existing entity as it is, so edits made in the console survive a restart.
 //
 // A transaction that fails with store.ErrConflict is retried once: two
 // replicas seeding a fresh shared database both see a tenant (or client, or
@@ -55,31 +57,52 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 }
 
 func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now time.Time, w keys.Wrapper) error {
-	if existing, err := st.Tenants().GetByName(ctx, in.Name); err == nil && existing.Origin == store.OriginAPI {
+	createOnly := f.Mode == ModeCreateOnly
+	existing, err := st.Tenants().GetByName(ctx, in.Name)
+	if err == nil && existing.Origin == store.OriginAPI {
 		// Created through the system API: the seed never touches it.
 		return nil
 	}
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return err
+	}
+	exists := err == nil
 	domains := make([]string, len(in.Domains))
 	for i, d := range in.Domains {
 		domains[i] = tenant.NormalizeHost(d)
 	}
-	tn, err := tenantsetup.UpsertTenant(ctx, st, in.Name, now, func(tn *store.Tenant) error {
-		tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
-		tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
-		tn.EnabledLocales = slices.Clone(in.EnabledLocales)
-		tn.CustomText = in.CustomText
-		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
-		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
-		tn.DefaultDirectory = in.DefaultDirectory
-		tn.SkipNonVerifiableCallbackURIConfirmationPrompt = in.SkipNonVerifiableCallbackURIConfirmationPrompt
-		tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
-		tn.PushedAuthorizationRequestsSupported = in.PushedAuthorizationRequestsSupported
-		tn.DeviceFlowCharset, tn.DeviceFlowMask = in.DeviceFlow.Charset, in.DeviceFlow.Mask
-		tn.Seeded = true
-		return nil
-	})
-	if err != nil {
-		return err
+	var tn *store.Tenant
+	if createOnly && exists {
+		tn = existing
+		if tn.Seeded {
+			// The seed no longer overwrites this tenant, so the console must
+			// not warn that it does. Only the marker changes.
+			tn.Seeded = false
+			if err := st.Tenants().Update(ctx, tn); err != nil {
+				return err
+			}
+		}
+	} else {
+		tn, err = tenantsetup.UpsertTenant(ctx, st, in.Name, now, func(tn *store.Tenant) error {
+			tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
+			tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
+			tn.EnabledLocales = slices.Clone(in.EnabledLocales)
+			tn.CustomText = in.CustomText
+			tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
+			tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
+			tn.DefaultDirectory = in.DefaultDirectory
+			tn.SkipNonVerifiableCallbackURIConfirmationPrompt = in.SkipNonVerifiableCallbackURIConfirmationPrompt
+			tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
+			tn.PushedAuthorizationRequestsSupported = in.PushedAuthorizationRequestsSupported
+			tn.DeviceFlowCharset, tn.DeviceFlowMask = in.DeviceFlow.Charset, in.DeviceFlow.Mask
+			// In create-only mode nothing is overwritten later, so there is
+			// nothing to warn about.
+			tn.Seeded = !createOnly
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	if f.mgmtChecked && tenant.ManagementAPIIdentifier(tn, f.baseDomain) != "" {
@@ -88,36 +111,37 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		}
 	}
 	for _, rs := range in.ResourceServers {
-		if err := applyResourceServer(ctx, st, tn.ID, rs, now); err != nil {
+		if err := applyResourceServer(ctx, st, tn.ID, rs, now, createOnly); err != nil {
 			return fmt.Errorf("resource server %q: %w", rs.Identifier, err)
 		}
 	}
 	for _, c := range in.Clients {
-		if err := applyClient(ctx, st, tn.ID, c, now, w); err != nil {
+		if err := applyClient(ctx, st, tn.ID, c, now, w, createOnly); err != nil {
 			return fmt.Errorf("client %q: %w", c.ClientID, err)
 		}
 	}
 	for _, g := range in.ClientGrants {
-		if err := applyClientGrant(ctx, st, tn.ID, g, now); err != nil {
+		if err := applyClientGrant(ctx, st, tn.ID, g, now, createOnly); err != nil {
 			return fmt.Errorf("client grant %q → %q: %w", g.ClientID, g.Audience, err)
 		}
 	}
 	for _, c := range in.Connections {
-		if err := applyConnection(ctx, st, tn.ID, c, now, w); err != nil {
+		if err := applyConnection(ctx, st, tn.ID, c, now, w, createOnly); err != nil {
 			return fmt.Errorf("connection %q: %w", c.Name, err)
 		}
 	}
 	for _, u := range in.Users {
-		if err := applyUser(ctx, st, tn.ID, u, now); err != nil {
+		if err := applyUser(ctx, st, tn.ID, u, now, createOnly); err != nil {
 			return fmt.Errorf("user %q: %w", u.Email, err)
 		}
 	}
 	return nil
 }
 
-func applyResourceServer(ctx context.Context, st store.Store, tenantID string, in ResourceServer, now time.Time) error {
-	if rs, err := st.ResourceServers().GetByIdentifier(ctx, tenantID, in.Identifier); err == nil && rs.Origin == store.OriginAPI {
-		// Created through the Management API: the seed never touches it.
+func applyResourceServer(ctx context.Context, st store.Store, tenantID string, in ResourceServer, now time.Time, createOnly bool) error {
+	if rs, err := st.ResourceServers().GetByIdentifier(ctx, tenantID, in.Identifier); err == nil && (createOnly || rs.Origin == store.OriginAPI) {
+		// Created through the Management API, or create-only mode: the seed
+		// never touches it.
 		return nil
 	}
 	spec := in.normalized
@@ -130,10 +154,11 @@ func applyResourceServer(ctx context.Context, st store.Store, tenantID string, i
 	})
 }
 
-func applyClient(ctx context.Context, st store.Store, tenantID string, in Client, now time.Time, w keys.Wrapper) error {
+func applyClient(ctx context.Context, st store.Store, tenantID string, in Client, now time.Time, w keys.Wrapper, createOnly bool) error {
 	c, err := st.Clients().Get(ctx, tenantID, in.ClientID)
-	if err == nil && c.Origin == store.OriginAPI {
-		// Created through the Management API: the seed never touches it.
+	if err == nil && (createOnly || c.Origin == store.OriginAPI) {
+		// Created through the Management API, or create-only mode: the seed
+		// never touches it.
 		return nil
 	}
 	return tenantsetup.UpsertClient(ctx, st, tenantID, in.ClientID, now, func(c *store.Client, create bool) error {
@@ -192,11 +217,12 @@ func sealedSecretMatches(w keys.Wrapper, c *store.Client, plaintext string) bool
 	return false
 }
 
-func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in ClientGrant, now time.Time) error {
+func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in ClientGrant, now time.Time, createOnly bool) error {
 	g, err := st.ClientGrants().Find(ctx, tenantID, in.ClientID, in.Audience, in.SubjectType)
 	switch {
-	case err == nil && g.Origin == store.OriginAPI:
-		// Created through the Management API: the seed never touches it.
+	case err == nil && (createOnly || g.Origin == store.OriginAPI):
+		// Created through the Management API, or create-only mode: the seed
+		// never touches it.
 		return nil
 	case errors.Is(err, store.ErrNotFound):
 		// "cgr_" and 16 letters and digits, the shape of Auth0's grant IDs.
@@ -213,7 +239,14 @@ func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in C
 	}
 }
 
-func applyConnection(ctx context.Context, st store.Store, tenantID string, in Connection, now time.Time, w keys.Wrapper) error {
+func applyConnection(ctx context.Context, st store.Store, tenantID string, in Connection, now time.Time, w keys.Wrapper, createOnly bool) error {
+	if createOnly {
+		if _, err := st.Connections().GetByName(ctx, tenantID, in.Name); err == nil {
+			return nil
+		} else if !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+	}
 	return tenantsetup.UpsertConnection(ctx, st, tenantID, in.Name, now, func(c *store.Connection) error {
 		return setConnection(c, in, w)
 	})
@@ -245,8 +278,11 @@ func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
 	return nil
 }
 
-func applyUser(ctx context.Context, st store.Store, tenantID string, in User, now time.Time) error {
+func applyUser(ctx context.Context, st store.Store, tenantID string, in User, now time.Time, createOnly bool) error {
 	u, err := st.Users().FindByLogin(ctx, tenantID, in.Connection, in.Email)
+	if err == nil && createOnly {
+		return nil
+	}
 	create := errors.Is(err, store.ErrNotFound)
 	if err != nil && !create {
 		return err

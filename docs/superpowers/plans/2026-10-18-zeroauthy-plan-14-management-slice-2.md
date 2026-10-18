@@ -173,7 +173,7 @@ Run by the controller session as the observer; implementers see only the notes. 
 
 ---
 
-### Task 9 (optional): Create-only seed mode
+### Task 9: Create-only seed mode (done in the follow-ups; the config key is `seed_mode`)
 
 Only if Tasks 1–8 leave room; otherwise it stays a follow-up.
 
@@ -181,4 +181,4 @@ Only if Tasks 1–8 leave room; otherwise it stays a follow-up.
 
 - With `create_only`, the seed creates tenants, clients, APIs, grants, connections and users that do not exist and changes nothing that does; tenants it would have created are still marked `seeded` only when created. The console's seeded banner says which mode is on (from a new `seed_mode` field of `GET /api/system/tenants`, or by not showing the banner in `create_only`).
 
-- [ ] **Step 1: Tests:** a second apply after console edits changes nothing; new entities in the seed are created. **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat(seed): create-only mode`.
+- [x] **Step 1: Tests:** a second apply after console edits changes nothing; new entities in the seed are created. **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat(seed): create-only mode`.

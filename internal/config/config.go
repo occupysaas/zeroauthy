@@ -35,6 +35,10 @@ type Config struct {
 	Bootstrap Bootstrap `koanf:"bootstrap"`
 	// Seed is an optional path to a declarative seed file applied at startup.
 	Seed string `koanf:"seed"`
+	// SeedMode is "apply" (the default: the seed overwrites what it
+	// defines at every start) or "create_only" (it only creates what is
+	// missing, so edits made in the console survive a restart).
+	SeedMode string `koanf:"seed_mode"`
 }
 
 type Server struct {
@@ -126,8 +130,9 @@ type SMTP struct {
 
 func defaults() *Config {
 	return &Config{
-		Server: Server{Listen: ":8080"},
-		Log:    Log{Level: "info", Format: "json"},
+		Server:   Server{Listen: ":8080"},
+		Log:      Log{Level: "info", Format: "json"},
+		SeedMode: "apply",
 		Security: Security{
 			LoginMaxAttempts: 10, LoginLockoutSeconds: 900,
 			DeviceActivationTxnMaxMisses: 5, DeviceActivationIPMaxMisses: 10, DeviceActivationIPLockoutSeconds: 900,
@@ -201,6 +206,9 @@ func (c *Config) validate() error {
 	if bd, h := tenant.NormalizeHost(c.Server.BaseDomain), tenant.NormalizeHost(c.Server.SystemHost); bd != "" && h != "" &&
 		strings.HasSuffix(h, "."+bd) && h != tenant.SystemName+"."+bd {
 		errs = append(errs, fmt.Errorf("server.system_host %q is under server.base_domain, so it must be %s.%s (or a host outside the base domain)", c.Server.SystemHost, tenant.SystemName, bd))
+	}
+	if c.SeedMode != "apply" && c.SeedMode != "create_only" {
+		errs = append(errs, fmt.Errorf("seed_mode %q must be apply or create_only", c.SeedMode))
 	}
 	if e := c.Bootstrap.AdminEmail; e != "" {
 		if a, err := mail.ParseAddress(e); err != nil || a.Address != e {

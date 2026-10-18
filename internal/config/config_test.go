@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -283,5 +284,20 @@ func TestSystemHostUnderBaseDomain(t *testing.T) {
 		if _, err := Load("", append(base, "ZEROAUTHY_SERVER__SYSTEM_HOST="+host)); err != nil {
 			t.Errorf("system_host %q: %v", host, err)
 		}
+	}
+}
+
+func TestSeedMode(t *testing.T) {
+	base := []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost}
+	cfg, err := Load("", base)
+	if err != nil || cfg.SeedMode != "apply" {
+		t.Fatalf("default = %q, %v; want apply", cfg.SeedMode, err)
+	}
+	cfg, err = Load("", append(slices.Clone(base), "ZEROAUTHY_SEED_MODE=create_only"))
+	if err != nil || cfg.SeedMode != "create_only" {
+		t.Fatalf("env = %q, %v", cfg.SeedMode, err)
+	}
+	if _, err := Load("", append(slices.Clone(base), "ZEROAUTHY_SEED_MODE=sometimes")); err == nil {
+		t.Error("an unknown seed_mode was accepted")
 	}
 }

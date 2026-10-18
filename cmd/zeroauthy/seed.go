@@ -41,6 +41,7 @@ func newSeedCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			f.Mode = seed.Mode(cfg.SeedMode)
 			if err := f.CheckSystemHost(tenant.SystemHost(cfg.Server.BaseDomain, cfg.Server.SystemHost)); err != nil {
 				return err
 			}

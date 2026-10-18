@@ -64,7 +64,13 @@ setting. Tenants, APIs, applications and grants can come from a declarative
 [seed file](tests/e2e/seed.yaml); tenants and applications can also be
 managed in the [console](docs/console.md) or through the
 [Management API](docs/management-api.md). The seed never touches what the
-console or the API created.
+console or the API created. By default the seed is applied at every start and
+overwrites what it defines. Set `seed_mode: create_only`
+(`ZEROAUTHY_SEED_MODE=create_only`) to have it only create what does not
+exist yet (tenants, APIs, applications, grants, connections, users) and change
+nothing that does, so edits made in the console survive a restart. In that
+mode the console shows no "defined by the seed" banner. `zeroauthy seed`
+follows the same setting.
 Unknown configuration keys are rejected at startup.
 
 **Master key.** Signing keys and client secrets are stored envelope-encrypted under a 32-byte

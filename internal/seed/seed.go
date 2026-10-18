@@ -14,8 +14,27 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+// Mode says how Apply treats what already exists.
+type Mode string
+
+const (
+	// ModeApply (the default) makes the store match the seed: existing
+	// entities the seed names are updated.
+	ModeApply Mode = "apply"
+	// ModeCreateOnly creates what the seed names and the store lacks, and
+	// changes nothing that exists, so console edits survive a restart.
+	ModeCreateOnly Mode = "create_only"
+)
+
+// Valid reports whether m is a mode ("" means ModeApply).
+func (m Mode) Valid() bool { return m == "" || m == ModeApply || m == ModeCreateOnly }
+
 type File struct {
 	Tenants []Tenant `yaml:"tenants"`
+
+	// Mode is set by the caller from the server's configuration; it is not
+	// part of the seed file.
+	Mode Mode `yaml:"-"`
 
 	// Set by CheckManagementAPI: the server's base domain, which names each
 	// tenant's Management API identifier.
