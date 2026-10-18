@@ -146,6 +146,11 @@ func authorizeParams(w http.ResponseWriter, r *http.Request) (url.Values, bool) 
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxAuthorizeFormBytes)
 	if err := r.ParseForm(); err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			httpx.WriteError(w, http.StatusRequestEntityTooLarge, "payload_too_large", "the request body exceeds 64 KB")
+			return nil, false
+		}
 		return fail("malformed form body")
 	}
 	for _, name := range append([]string{"request_uri", "request"}, paramNames...) {

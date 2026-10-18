@@ -24,6 +24,10 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	raw, ok, err := accessToken(w, r)
+	if errors.Is(err, errBodyTooLarge) {
+		httpx.WriteError(w, http.StatusRequestEntityTooLarge, "payload_too_large", "the request body exceeds 64 KB")
+		return
+	}
 	if err != nil {
 		w.Header().Set("WWW-Authenticate", `Bearer realm="userinfo", error="invalid_request"`)
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
@@ -85,6 +89,8 @@ func invalidToken(w http.ResponseWriter) {
 // maxUserinfoFormBytes bounds a form-encoded POST /userinfo body.
 const maxUserinfoFormBytes = 64 << 10
 
+var errBodyTooLarge = errors.New("the request body is too large")
+
 // accessToken reads the access token from the Authorization header (RFC
 // 6750 §2.1) or, on a form-encoded POST, from the access_token body
 // parameter (§2.2). A request that uses both, repeats access_token or has
@@ -100,6 +106,10 @@ func accessToken(w http.ResponseWriter, r *http.Request) (string, bool, error) {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUserinfoFormBytes)
 	if err := r.ParseForm(); err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			return "", false, errBodyTooLarge
+		}
 		return "", false, errors.New("the request body could not be read")
 	}
 	body, inBody := r.PostForm["access_token"]

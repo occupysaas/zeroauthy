@@ -771,3 +771,14 @@ func TestConsentFromAnotherSessionRestartsLogin(t *testing.T) {
 		t.Fatalf("grant stored: %v", g)
 	}
 }
+
+// An oversized POST body is 413 payload_too_large, not a generic 400.
+func TestAuthorizePostOversizedBodyIs413(t *testing.T) {
+	e := newEnv(t)
+	r := httptest.NewRequest("POST", "https://acme.example.test/authorize", strings.NewReader("state="+strings.Repeat("a", maxAuthorizeFormBytes+1)))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := e.serve(t, r)
+	if rec.Code != 413 || !strings.Contains(rec.Body.String(), `"payload_too_large"`) {
+		t.Fatalf("oversized = %d %s", rec.Code, rec.Body)
+	}
+}

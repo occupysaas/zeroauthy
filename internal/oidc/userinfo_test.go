@@ -203,3 +203,14 @@ func TestUserinfoTwoTokenMethodsIs400(t *testing.T) {
 		}
 	}
 }
+
+// An oversized form body is 413 payload_too_large, not a generic 400.
+func TestUserinfoOversizedBodyIs413(t *testing.T) {
+	e := newUserinfoEnv(t)
+	rec := e.postForm("", "access_token="+strings.Repeat("a", maxUserinfoFormBytes+1))
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if rec.Code != 413 || body["error"] != "payload_too_large" {
+		t.Fatalf("oversized = %d %v", rec.Code, body)
+	}
+}

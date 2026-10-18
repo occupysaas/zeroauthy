@@ -178,6 +178,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OAuthError"
+        "413":
+          description: The form body is larger than 64 KB.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
         "404":
           $ref: "#/components/responses/UnknownTenant"
         default:
@@ -480,6 +486,12 @@ paths:
                 $ref: "#/components/schemas/OAuthError"
         "401":
           description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        "413":
+          description: The form body is larger than 64 KB.
           content:
             application/json:
               schema:
