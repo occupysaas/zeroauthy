@@ -2,6 +2,7 @@
 package oauth
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
 	"net/http"
@@ -108,6 +109,8 @@ type fixture struct {
 	h    *Handlers
 	// scripts runs the Legacy-DB connection's scripts; tests set Funcs.
 	scripts *customdb.FuncExecutor
+	// wrapper seals the seeded client secrets.
+	wrapper keys.Wrapper
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -117,7 +120,11 @@ func newFixture(t *testing.T) *fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := seed.Apply(context.Background(), st, f, fixedNow, nil); err != nil {
+	wrapper, err := keys.NewLocalWrapper(bytes.Repeat([]byte{3}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := seed.Apply(context.Background(), st, f, fixedNow, wrapper); err != nil {
 		t.Fatal(err)
 	}
 	km := newTestKeys(t)
@@ -129,8 +136,8 @@ func newFixture(t *testing.T) *fixture {
 	}
 	scripts := &customdb.FuncExecutor{Funcs: map[string]func([]any) (any, error){}}
 	log := slog.New(slog.DiscardHandler)
-	return &fixture{st: st, keys: km, scripts: scripts, h: &Handlers{
-		Store: st, Now: fixedNow, Minter: &Minter{Keys: km, Now: fixedNow}, Log: log,
+	return &fixture{st: st, keys: km, scripts: scripts, wrapper: wrapper, h: &Handlers{
+		Store: st, Now: fixedNow, Wrapper: wrapper, Minter: &Minter{Keys: km, Now: fixedNow}, Log: log,
 		Database:     &identity.Database{Store: st, Now: fixedNow, Log: log, Scripts: &customdb.Client{Exec: scripts}},
 		UserThrottle: identity.NewThrottle(3, 15*time.Minute, 15*time.Minute),
 		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),

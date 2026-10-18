@@ -39,6 +39,7 @@ func cloneClient(c *store.Client) *store.Client {
 	out.Secrets = make([]store.ClientSecret, len(c.Secrets))
 	for i, sec := range c.Secrets {
 		out.Secrets[i] = sec
+		out.Secrets[i].Sealed = bytes.Clone(sec.Sealed)
 		if sec.ExpiresAt != nil {
 			exp := *sec.ExpiresAt
 			out.Secrets[i].ExpiresAt = &exp

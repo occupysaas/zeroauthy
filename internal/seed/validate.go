@@ -223,9 +223,9 @@ func (t *Tenant) validate() []error {
 		if public && c.ClientSecret != "" {
 			fail("client %q: public clients must not have a client_secret", c.ClientID)
 		}
-		if !public && c.ClientSecret == "" {
-			fail("client %q: client_secret is required for %s", c.ClientID, c.TokenEndpointAuthMethod)
-		}
+		// A confidential client may omit client_secret: an existing client
+		// then keeps its stored secret (Plan 13). Creating one without a
+		// secret fails when the seed is applied.
 		firstParty := c.IsFirstParty == nil || *c.IsFirstParty
 		c.IsFirstParty = &firstParty
 		thirdParty[c.ClientID] = !firstParty

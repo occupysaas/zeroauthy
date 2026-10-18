@@ -3,10 +3,13 @@ package oauth
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
 	"errors"
 	"net/http"
 	"net/url"
 
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -66,17 +69,34 @@ func (h *Handlers) authenticateClient(ctx context.Context, r *http.Request, form
 			"tenant", tenantID, "client_id", clientID, "registered", c.TokenEndpointAuthMethod, "used", method)
 		return nil, invalidClient(authFailed, hasBasic)
 	}
-	if method != store.AuthMethodNone && !h.secretValid(c, secret) {
+	if method != store.AuthMethodNone && !h.secretValid(ctx, c, secret) {
 		h.log().InfoContext(ctx, "client authentication failed: bad secret", "tenant", tenantID, "client_id", clientID)
 		return nil, invalidClient(authFailed, hasBasic)
 	}
 	return c, nil
 }
 
-func (h *Handlers) secretValid(c *store.Client, secret string) bool {
+// secretValid checks secret against the client's unexpired secrets: a sealed
+// one is opened and compared in constant time, a legacy one is verified
+// against its hash. A sealed secret that does not open (wrong master key,
+// corrupt row) fails closed and is logged.
+func (h *Handlers) secretValid(ctx context.Context, c *store.Client, secret string) bool {
 	now := h.now()
 	for _, s := range c.Secrets {
 		if s.ExpiresAt != nil && !now.Before(*s.ExpiresAt) {
+			continue
+		}
+		if s.Sealed != nil {
+			plain, err := keys.OpenClientSecret(h.Wrapper, c.TenantID, c.ClientID, s.Sealed)
+			if err != nil {
+				h.log().ErrorContext(ctx, "open client secret", "tenant", c.TenantID, "client_id", c.ClientID, "err", err)
+				continue
+			}
+			// Comparing digests keeps the time independent of the length too.
+			want, got := sha256.Sum256([]byte(plain)), sha256.Sum256([]byte(secret))
+			if subtle.ConstantTimeCompare(want[:], got[:]) == 1 {
+				return true
+			}
 			continue
 		}
 		if ok, err := secrets.Verify(s.Hash, secret); err == nil && ok {

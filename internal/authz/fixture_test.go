@@ -1,10 +1,12 @@
 package authz
 
 import (
+	"bytes"
 	"context"
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
@@ -108,7 +110,11 @@ func newFixture(t *testing.T) *fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := seed.Apply(context.Background(), st, f, fixedNow, nil); err != nil {
+	wrapper, err := keys.NewLocalWrapper(bytes.Repeat([]byte{6}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := seed.Apply(context.Background(), st, f, fixedNow, wrapper); err != nil {
 		t.Fatal(err)
 	}
 	tn, err := st.Tenants().GetByName(context.Background(), "acme")

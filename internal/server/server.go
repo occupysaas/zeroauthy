@@ -34,6 +34,10 @@ type Deps struct {
 	Log      *slog.Logger
 	Mailer   email.Mailer
 
+	// Wrapper opens sealed client secrets at the token endpoint. It must be
+	// the master key wrapper the seed and the Management API seal with.
+	Wrapper keys.Wrapper
+
 	// Scripts runs custom database scripts; nil makes customized
 	// connections fail.
 	Scripts *customdb.Client
@@ -139,7 +143,7 @@ func New(d Deps) http.Handler {
 		authapi.HandlerWithOptions(authAPI{
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
-				Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys},
+				Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
 				Database:     db,
 				UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
 				TrustProxyHeaders: d.TrustProxyHeaders,

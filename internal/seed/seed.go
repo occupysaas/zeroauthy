@@ -78,8 +78,10 @@ type Client struct {
 	ClientID string `yaml:"client_id"`
 	Name     string `yaml:"name"`
 	AppType  string `yaml:"app_type"`
-	// ClientSecret is plaintext in the seed file and hashed when applied.
-	// Protect seed files like any other credential store.
+	// ClientSecret is plaintext in the seed file and sealed under the master
+	// key when applied (D-0038). Protect seed files like any other credential
+	// store. A confidential client may omit it once it exists: its stored
+	// secret is then kept.
 	ClientSecret            string       `yaml:"client_secret"`
 	TokenEndpointAuthMethod string       `yaml:"token_endpoint_auth_method"`
 	GrantTypes              []string     `yaml:"grant_types"`

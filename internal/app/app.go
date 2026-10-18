@@ -161,6 +161,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Sessions: &session.Manager{Store: st},
 			Log:      log,
 			Mailer:   mailer,
+			Wrapper:  wrapper,
 			Scripts:  &customdb.Client{Exec: runner, Wrapper: wrapper},
 
 			UserThrottle:      identity.NewThrottle(cfg.Security.LoginMaxAttempts, lockout, lockout),

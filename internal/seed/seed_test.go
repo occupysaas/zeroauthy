@@ -53,7 +53,7 @@ func TestApply(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -83,8 +83,8 @@ func TestApply(t *testing.T) {
 	if len(m2m.Secrets) != 1 {
 		t.Fatalf("secrets = %d", len(m2m.Secrets))
 	}
-	if ok, _ := secrets.Verify(m2m.Secrets[0].Hash, "first-secret"); !ok {
-		t.Error("stored hash does not verify against seed secret")
+	if got, err := keys.OpenClientSecret(testWrapper(t), tn.ID, "m2m", m2m.Secrets[0].Sealed); err != nil || got != "first-secret" {
+		t.Errorf("stored secret opens to %q, %v", got, err)
 	}
 
 	spa, _ := st.Clients().Get(ctx, tn.ID, "spa")
@@ -102,29 +102,29 @@ func TestApplyIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	st := memory.New()
 	f, _ := Parse([]byte(sample))
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn1, _ := st.Tenants().GetByName(ctx, "acme")
 	c1, _ := st.Clients().Get(ctx, tn1.ID, "m2m")
 	rs1, _ := st.ResourceServers().GetByIdentifier(ctx, tn1.ID, "https://api.acme.test")
 
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn2, _ := st.Tenants().GetByName(ctx, "acme")
 	c2, _ := st.Clients().Get(ctx, tn2.ID, "m2m")
 	rs2, _ := st.ResourceServers().GetByIdentifier(ctx, tn2.ID, "https://api.acme.test")
-	if tn1.ID != tn2.ID || rs1.ID != rs2.ID || c1.Secrets[0].Hash != c2.Secrets[0].Hash {
-		t.Fatal("second Apply changed IDs or re-hashed an unchanged secret")
+	if tn1.ID != tn2.ID || rs1.ID != rs2.ID || !bytes.Equal(c1.Secrets[0].Sealed, c2.Secrets[0].Sealed) {
+		t.Fatal("second Apply changed IDs or re-sealed an unchanged secret")
 	}
 
 	changed, _ := Parse([]byte(strings.Replace(sample, "first-secret", "second-secret", 1)))
-	if err := Apply(ctx, st, changed, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, changed, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	c3, _ := st.Clients().Get(ctx, tn2.ID, "m2m")
-	if ok, _ := secrets.Verify(c3.Secrets[0].Hash, "second-secret"); !ok || len(c3.Secrets) != 1 {
+	if got, _ := keys.OpenClientSecret(testWrapper(t), tn2.ID, "m2m", c3.Secrets[0].Sealed); got != "second-secret" || len(c3.Secrets) != 1 {
 		t.Fatal("changed secret was not applied")
 	}
 }
@@ -179,7 +179,6 @@ func TestValidation(t *testing.T) {
 		"dup domain within":          {`tenants: [{name: a, domains: [x.test, x.test.]}]`, "duplicate domain"},
 		"dup tenant":                 {`tenants: [{name: a}, {name: a}]`, `duplicate tenant "a"`},
 		"bad app type":               {`tenants: [{name: a, clients: [{client_id: c, app_type: robot}]}]`, `app_type "robot"`},
-		"secret missing":             {`tenants: [{name: a, clients: [{client_id: c, app_type: non_interactive}]}]`, "client_secret is required"},
 		"secret on public":           {`tenants: [{name: a, clients: [{client_id: c, app_type: spa, client_secret: x}]}]`, "must not have a client_secret"},
 		"grant unknown client":       {`tenants: [{name: a, resource_servers: [{identifier: "https://x"}], client_grants: [{client_id: nope, audience: "https://x"}]}]`, `unknown client "nope"`},
 		"grant unknown api":          {`tenants: [{name: a, clients: [{client_id: c, app_type: non_interactive, client_secret: s}], client_grants: [{client_id: c, audience: "https://nope"}]}]`, `unknown audience "https://nope"`},
@@ -232,7 +231,7 @@ func TestApplyConnectionsAndUsers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
@@ -259,7 +258,7 @@ func TestApplyConnectionsAndUsers(t *testing.T) {
 	}
 
 	// Idempotent: same user ID and hash on re-apply; a changed password is re-hashed.
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	u2, _ := st.Users().FindByLogin(ctx, tn.ID, conn.Name, "alice@acme.test")
@@ -267,7 +266,7 @@ func TestApplyConnectionsAndUsers(t *testing.T) {
 		t.Fatal("re-apply changed the user")
 	}
 	f2, _ := Parse([]byte(strings.Replace(sampleWithUsers, "alice password 1", "alice password 2", 1)))
-	if err := Apply(ctx, st, f2, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f2, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	u3, _ := st.Users().FindByLogin(ctx, tn.ID, conn.Name, "alice@acme.test")
@@ -340,7 +339,7 @@ tenants:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
@@ -375,7 +374,7 @@ tenants:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
@@ -404,7 +403,7 @@ tenants:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
@@ -495,7 +494,7 @@ func TestApplyRetriesOnceOnConflict(t *testing.T) {
 
 	st := memory.New()
 	calls, conflicts := 0, 1
-	if err := Apply(ctx, conflictStore{st, &calls, &conflicts}, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, conflictStore{st, &calls, &conflicts}, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatalf("Apply after one conflict: %v", err)
 	}
 	if calls != 2 {
@@ -675,7 +674,7 @@ tenants:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, nil, nil); err != nil {
+	if err := Apply(ctx, st, f, nil, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "a")
@@ -712,7 +711,7 @@ func TestApplyRefusesPartyChange(t *testing.T) {
 	ctx := context.Background()
 	st := memory.New()
 	first, _ := Parse([]byte(`tenants: [{name: a, clients: [{client_id: c, app_type: spa, callbacks: ["https://c.test/cb"]}]}]`))
-	if err := Apply(ctx, st, first, nil, nil); err != nil {
+	if err := Apply(ctx, st, first, nil, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	third, _ := Parse([]byte(`tenants: [{name: a, clients: [{client_id: c, app_type: spa, is_first_party: false, callbacks: ["https://c.test/cb"]}]}]`))
@@ -729,7 +728,7 @@ func TestOmittedSkipConsentAppliesAsFalse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, nil, nil); err != nil {
+	if err := Apply(ctx, st, f, nil, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "a")
@@ -758,7 +757,7 @@ tenants:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn, err := st.Tenants().GetByName(ctx, "acme")
@@ -777,7 +776,7 @@ tenants:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ = st.Tenants().GetByName(ctx, "acme")
@@ -794,11 +793,110 @@ func TestDeviceFlowSeed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "a")
 	if tn.DeviceFlowCharset != "digits" || tn.DeviceFlowMask != "***-***-***" {
 		t.Fatalf("tenant = %+v", tn)
+	}
+}
+
+// TestSeedKeepsHashedSecret: a confidential client that already exists with
+// a legacy hashed secret, named by a seed without client_secret, keeps that
+// secret (Plan 13 review focus 2).
+func TestSeedKeepsHashedSecret(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, _ := Parse([]byte(sample))
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	c, _ := st.Clients().Get(ctx, tn.ID, "m2m")
+	h, _ := secrets.Hash("legacy-secret")
+	legacy := []store.ClientSecret{{Hash: h, CreatedAt: fixedNow().Add(-time.Hour)}}
+	c.Secrets = legacy
+	if err := st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+
+	noSecret, err := Parse([]byte(strings.Replace(sample, "        client_secret: first-secret\n", "", 1)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, noSecret, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.Clients().Get(ctx, tn.ID, "m2m")
+	if len(got.Secrets) != 1 || got.Secrets[0].Hash != h || got.Secrets[0].Sealed != nil {
+		t.Fatalf("secrets after seed without client_secret = %+v", got.Secrets)
+	}
+	if ok, _ := secrets.Verify(got.Secrets[0].Hash, "legacy-secret"); !ok {
+		t.Fatal("legacy secret no longer verifies")
+	}
+
+	// A sealed secret is kept the same way.
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	sealed, _ := st.Clients().Get(ctx, tn.ID, "m2m")
+	if err := Apply(ctx, st, noSecret, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	again, _ := st.Clients().Get(ctx, tn.ID, "m2m")
+	if len(again.Secrets) != 1 || !bytes.Equal(again.Secrets[0].Sealed, sealed.Secrets[0].Sealed) {
+		t.Fatalf("sealed secret changed: %+v", again.Secrets)
+	}
+}
+
+// TestSeedEncryptsSeedSecret: a seed that carries a secret converts a client
+// with a legacy hash to the sealed form, with no hash left.
+func TestSeedEncryptsSeedSecret(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, _ := Parse([]byte(sample))
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	c, _ := st.Clients().Get(ctx, tn.ID, "m2m")
+	h, _ := secrets.Hash("first-secret") // same plaintext as the seed
+	c.Secrets = []store.ClientSecret{{Hash: h, CreatedAt: fixedNow()}}
+	if err := st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.Clients().Get(ctx, tn.ID, "m2m")
+	if len(got.Secrets) != 1 || got.Secrets[0].Hash != "" || got.Secrets[0].Sealed == nil {
+		t.Fatalf("secrets = %+v, want one sealed entry with no hash", got.Secrets)
+	}
+	if plain, err := keys.OpenClientSecret(testWrapper(t), tn.ID, "m2m", got.Secrets[0].Sealed); err != nil || plain != "first-secret" {
+		t.Fatalf("opens to %q, %v", plain, err)
+	}
+}
+
+// TestSeedSecretNeedsWrapper: sealing needs the master key, so a seed with a
+// secret and no wrapper fails rather than storing a weaker form.
+func TestSeedSecretNeedsWrapper(t *testing.T) {
+	f, _ := Parse([]byte(sample))
+	if err := Apply(context.Background(), memory.New(), f, fixedNow, nil); err == nil {
+		t.Fatal("applied a client secret without a master key wrapper")
+	}
+}
+
+// TestSeedNewClientNeedsSecret: a confidential client that does not exist yet
+// cannot be created without a secret.
+func TestSeedNewClientNeedsSecret(t *testing.T) {
+	f, err := Parse([]byte(strings.Replace(sample, "        client_secret: first-secret\n", "", 1)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = Apply(context.Background(), memory.New(), f, fixedNow, testWrapper(t))
+	if err == nil || !strings.Contains(err.Error(), "client_secret is required") {
+		t.Fatalf("err = %v, want client_secret is required", err)
 	}
 }

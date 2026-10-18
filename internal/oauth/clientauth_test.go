@@ -2,6 +2,7 @@
 package oauth
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -128,5 +130,83 @@ func TestWriteErrorHeaders(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), `"error":"invalid_client"`) {
 		t.Fatalf("body = %s", rec.Body)
+	}
+}
+
+func TestAuthenticateSealedSecret(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	acme := f.tenantID(t, "acme")
+	c, err := f.st.Clients().Get(ctx, acme, "m2m")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c.Secrets) != 1 || c.Secrets[0].Sealed == nil || c.Secrets[0].Hash != "" {
+		t.Fatalf("seeded secret is not sealed: %+v", c.Secrets)
+	}
+	req, form := authRequest(t, url.Values{"client_id": {"m2m"}, "client_secret": {"m2m-secret"}}, "", "")
+	if _, oerr := f.h.authenticateClient(ctx, req, form, acme); oerr != nil {
+		t.Fatalf("sealed secret rejected: %+v", oerr)
+	}
+	for _, bad := range []string{"m2m-secreT", "m2m-secret ", "m2m", "m2m-secret-and-more"} {
+		req, form = authRequest(t, url.Values{"client_id": {"m2m"}, "client_secret": {bad}}, "", "")
+		if _, oerr := f.h.authenticateClient(ctx, req, form, acme); oerr == nil || oerr.Code != "invalid_client" {
+			t.Fatalf("wrong secret %q accepted: %+v", bad, oerr)
+		}
+	}
+	// A blob sealed for one client does not authenticate another.
+	other, _ := f.st.Clients().Get(ctx, acme, "web")
+	other.Secrets = c.Secrets
+	if err := f.st.Clients().Update(ctx, other); err != nil {
+		t.Fatal(err)
+	}
+	req, form = authRequest(t, url.Values{"client_id": {"web"}, "client_secret": {"m2m-secret"}}, "", "")
+	if _, oerr := f.h.authenticateClient(ctx, req, form, acme); oerr == nil {
+		t.Fatal("secret sealed for m2m authenticated web")
+	}
+}
+
+func TestAuthenticateLegacyHashedSecret(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	acme := f.tenantID(t, "acme")
+	c, _ := f.st.Clients().Get(ctx, acme, "m2m")
+	h, _ := secrets.Hash("legacy-secret")
+	c.Secrets = []store.ClientSecret{{Hash: h, CreatedAt: fixedNow()}}
+	if err := f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	req, form := authRequest(t, url.Values{"client_id": {"m2m"}, "client_secret": {"legacy-secret"}}, "", "")
+	if _, oerr := f.h.authenticateClient(ctx, req, form, acme); oerr != nil {
+		t.Fatalf("legacy hashed secret rejected: %+v", oerr)
+	}
+	req, form = authRequest(t, url.Values{"client_id": {"m2m"}, "client_secret": {"m2m-secret"}}, "", "")
+	if _, oerr := f.h.authenticateClient(ctx, req, form, acme); oerr == nil {
+		t.Fatal("replaced secret accepted")
+	}
+}
+
+func TestSealedSecretWrongKeyFailsClosed(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	acme := f.tenantID(t, "acme")
+	otherKey, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{4}, 32))
+	for name, w := range map[string]keys.Wrapper{"wrong key": otherKey, "no wrapper": nil} {
+		f.h.Wrapper = w
+		req, form := authRequest(t, url.Values{"client_id": {"m2m"}, "client_secret": {"m2m-secret"}}, "", "")
+		if _, oerr := f.h.authenticateClient(ctx, req, form, acme); oerr == nil || oerr.Code != "invalid_client" {
+			t.Fatalf("%s: authenticated: %+v", name, oerr)
+		}
+	}
+	// Corrupt blob.
+	f.h.Wrapper = f.wrapper
+	c, _ := f.st.Clients().Get(ctx, acme, "m2m")
+	c.Secrets[0].Sealed = []byte("not an envelope")
+	if err := f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	req, form := authRequest(t, url.Values{"client_id": {"m2m"}, "client_secret": {"m2m-secret"}}, "", "")
+	if _, oerr := f.h.authenticateClient(ctx, req, form, acme); oerr == nil || oerr.Code != "invalid_client" {
+		t.Fatalf("corrupt blob: authenticated: %+v", oerr)
 	}
 }

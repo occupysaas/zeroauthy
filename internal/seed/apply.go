@@ -2,6 +2,7 @@ package seed
 
 import (
 	"context"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"maps"
@@ -91,7 +92,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 		}
 	}
 	for _, c := range in.Clients {
-		if err := applyClient(ctx, st, tn.ID, c, now); err != nil {
+		if err := applyClient(ctx, st, tn.ID, c, now, w); err != nil {
 			return fmt.Errorf("client %q: %w", c.ClientID, err)
 		}
 	}
@@ -136,7 +137,7 @@ func applyResourceServer(ctx context.Context, st store.Store, tenantID string, i
 	return st.ResourceServers().Update(ctx, rs)
 }
 
-func applyClient(ctx context.Context, st store.Store, tenantID string, in Client, now time.Time) error {
+func applyClient(ctx context.Context, st store.Store, tenantID string, in Client, now time.Time, w keys.Wrapper) error {
 	c, err := st.Clients().Get(ctx, tenantID, in.ClientID)
 	create := errors.Is(err, store.ErrNotFound)
 	if err != nil && !create {
@@ -170,15 +171,25 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 		IdleTokenLifetime: in.RefreshToken.IdleTokenLifetime,
 	}
 
+	public := c.TokenEndpointAuthMethod == store.AuthMethodNone
 	switch {
-	case in.ClientSecret == "":
+	case public:
 		c.Secrets = nil
-	case !secretMatches(c.Secrets, in.ClientSecret):
-		h, err := secrets.Hash(in.ClientSecret)
+	case in.ClientSecret == "":
+		// Keep whatever is stored: a seed without client_secret must not
+		// wipe a secret set earlier or through the Management API.
+		// A client with no stored secret (new, or public until now) needs one.
+		if len(c.Secrets) == 0 {
+			return fmt.Errorf("client_secret is required for %s when the client has no stored secret", c.TokenEndpointAuthMethod)
+		}
+	case !sealedSecretMatches(w, c, in.ClientSecret):
+		// A matching legacy hash is replaced too: the seed carries the
+		// plaintext, so the client moves to the sealed form (D-0038).
+		sealed, err := keys.SealClientSecret(w, tenantID, c.ClientID, in.ClientSecret)
 		if err != nil {
 			return err
 		}
-		c.Secrets = []store.ClientSecret{{Hash: h, CreatedAt: now}}
+		c.Secrets = []store.ClientSecret{{Sealed: sealed, CreatedAt: now}}
 	}
 	if create {
 		return st.Clients().Create(ctx, c)
@@ -186,9 +197,16 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	return st.Clients().Update(ctx, c)
 }
 
-func secretMatches(existing []store.ClientSecret, plaintext string) bool {
-	for _, s := range existing {
-		if ok, err := secrets.Verify(s.Hash, plaintext); err == nil && ok {
+// sealedSecretMatches reports whether one of the client's sealed secrets
+// opens to plaintext, so an unchanged seed does not re-seal on every apply.
+// Expiry is ignored: a secret named in the seed is the client's secret.
+func sealedSecretMatches(w keys.Wrapper, c *store.Client, plaintext string) bool {
+	for _, s := range c.Secrets {
+		if s.Sealed == nil {
+			continue
+		}
+		got, err := keys.OpenClientSecret(w, c.TenantID, c.ClientID, s.Sealed)
+		if err == nil && subtle.ConstantTimeCompare([]byte(got), []byte(plaintext)) == 1 {
 			return true
 		}
 	}

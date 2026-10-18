@@ -20,6 +20,7 @@ const clientCols = `tenant_id, client_id, name, app_type, secrets, token_endpoin
 // everywhere else.
 type secretJSON struct {
 	Hash      string `json:"hash"`
+	Sealed    []byte `json:"sealed,omitempty"` // base64 in the JSON
 	CreatedAt int64  `json:"created_at"`
 	ExpiresAt *int64 `json:"expires_at"`
 }
@@ -105,7 +106,7 @@ func scanClient(row scanner) (*store.Client, error) {
 	if ss != nil {
 		c.Secrets = make([]store.ClientSecret, len(ss))
 		for i, s := range ss {
-			c.Secrets[i] = store.ClientSecret{Hash: s.Hash, CreatedAt: fromMicros(s.CreatedAt)}
+			c.Secrets[i] = store.ClientSecret{Hash: s.Hash, Sealed: s.Sealed, CreatedAt: fromMicros(s.CreatedAt)}
 			if s.ExpiresAt != nil {
 				t := fromMicros(*s.ExpiresAt)
 				c.Secrets[i].ExpiresAt = &t
@@ -122,7 +123,7 @@ func clientArgs(c *store.Client) ([]any, error) {
 	if c.Secrets != nil {
 		ss = make([]secretJSON, len(c.Secrets))
 		for i, s := range c.Secrets {
-			ss[i] = secretJSON{Hash: s.Hash, CreatedAt: micros(s.CreatedAt)}
+			ss[i] = secretJSON{Hash: s.Hash, Sealed: s.Sealed, CreatedAt: micros(s.CreatedAt)}
 			if s.ExpiresAt != nil {
 				v := micros(*s.ExpiresAt)
 				ss[i].ExpiresAt = &v

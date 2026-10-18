@@ -1,0 +1,9 @@
+-- Management API, slice 1 (Plan 13). Later tasks of the plan append their
+-- statements to this file before it ships.
+--
+-- Client secrets (D-0038): a secret is now sealed under the master key
+-- instead of hashed. Each entry of clients.secrets (a JSON list) gains an
+-- optional "sealed" member, base64 of the keys.SealClientSecret envelope;
+-- legacy entries keep "hash". The list is JSON, so no column changes: this
+-- version marks that the rows may hold sealed entries, which binaries older
+-- than this schema cannot verify.

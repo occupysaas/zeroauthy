@@ -106,6 +106,15 @@ func cloneBytes(b []byte) []byte {
 	return append([]byte{}, b...)
 }
 
+// optBytes copies b, mapping empty to nil: proto3 bytes cannot tell the two
+// apart, so the store side always sees nil for "unset".
+func optBytes(b []byte) []byte {
+	if len(b) == 0 {
+		return nil
+	}
+	return cloneBytes(b)
+}
+
 // ---- errors ----
 
 func errToPB(err error) *storev1.Error {
@@ -226,7 +235,7 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		pb.Secrets = &storev1.ClientSecretList{Values: make([]*storev1.ClientSecret, 0, len(c.Secrets))}
 		for _, s := range c.Secrets {
 			pb.Secrets.Values = append(pb.Secrets.Values, &storev1.ClientSecret{
-				Hash: s.Hash, CreatedAt: tsToPB(s.CreatedAt), ExpiresAt: optTSToPB(s.ExpiresAt)})
+				Hash: s.Hash, Sealed: optBytes(s.Sealed), CreatedAt: tsToPB(s.CreatedAt), ExpiresAt: optTSToPB(s.ExpiresAt)})
 		}
 	}
 	return pb, nil
@@ -264,7 +273,7 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 				return nil, err
 			}
 			c.Secrets = append(c.Secrets, store.ClientSecret{
-				Hash: s.GetHash(), CreatedAt: tsFromPB(s.GetCreatedAt()), ExpiresAt: optTSFromPB(s.GetExpiresAt())})
+				Hash: s.GetHash(), Sealed: optBytes(s.GetSealed()), CreatedAt: tsFromPB(s.GetCreatedAt()), ExpiresAt: optTSFromPB(s.GetExpiresAt())})
 		}
 	}
 	return c, nil

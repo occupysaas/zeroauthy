@@ -1094,6 +1094,7 @@ type ClientSecret struct {
 	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // absent = nil
+	Sealed        []byte                 `protobuf:"bytes,4,opt,name=sealed,proto3" json:"sealed,omitempty"`                        // keys.SealClientSecret envelope; empty when hash is set
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1145,6 +1146,13 @@ func (x *ClientSecret) GetCreatedAt() *timestamppb.Timestamp {
 func (x *ClientSecret) GetExpiresAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *ClientSecret) GetSealed() []byte {
+	if x != nil {
+		return x.Sealed
 	}
 	return nil
 }
@@ -6107,13 +6115,14 @@ const file_store_proto_rawDesc = "" +
 	"\x11_custom_text_json\"J\n" +
 	"\bBranding\x12\x19\n" +
 	"\blogo_url\x18\x01 \x01(\tR\alogoUrl\x12#\n" +
-	"\rprimary_color\x18\x02 \x01(\tR\fprimaryColor\"\x98\x01\n" +
+	"\rprimary_color\x18\x02 \x01(\tR\fprimaryColor\"\xb0\x01\n" +
 	"\fClientSecret\x12\x12\n" +
 	"\x04hash\x18\x01 \x01(\tR\x04hash\x129\n" +
 	"\n" +
 	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"L\n" +
+	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x16\n" +
+	"\x06sealed\x18\x04 \x01(\fR\x06sealed\"L\n" +
 	"\x10ClientSecretList\x128\n" +
 	"\x06values\x18\x01 \x03(\v2 .zeroauthy.store.v1.ClientSecretR\x06values\"\xbb\x01\n" +
 	"\x12RefreshTokenPolicy\x12\x1a\n" +

@@ -43,10 +43,10 @@ func newTestServer(t *testing.T) http.Handler {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := seed.Apply(ctx, st, f, nil, nil); err != nil {
+	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{5}, 32))
+	if err := seed.Apply(ctx, st, f, nil, w); err != nil {
 		t.Fatal(err)
 	}
-	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{5}, 32))
 	km := keys.NewManager(st.SigningKeys(), w)
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
 	if err := km.Ensure(ctx, tn.ID); err != nil {
@@ -55,6 +55,7 @@ func newTestServer(t *testing.T) http.Handler {
 	return New(Deps{
 		Store:    st,
 		Keys:     km,
+		Wrapper:  w,
 		Resolver: tenant.NewResolver(st.Tenants(), "", false),
 		Sessions: &session.Manager{Store: st},
 		Mailer:   discardMailer{},

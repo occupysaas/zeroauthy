@@ -70,7 +70,7 @@ func newFlowEnv(t *testing.T) *flowEnv {
 	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{8}, 32))
 	km := keys.NewManager(st.SigningKeys(), w)
 	srv := httptest.NewTLSServer(New(Deps{
-		Store: st, Keys: km, Resolver: tenant.NewResolver(st.Tenants(), "", false),
+		Store: st, Keys: km, Wrapper: w, Resolver: tenant.NewResolver(st.Tenants(), "", false),
 		Log:          slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Sessions:     &session.Manager{Store: st},
 		Mailer:       discardMailer{},
@@ -83,7 +83,7 @@ func newFlowEnv(t *testing.T) *flowEnv {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := seed.Apply(ctx, st, f, nil, nil); err != nil {
+	if err := seed.Apply(ctx, st, f, nil, w); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "flow")

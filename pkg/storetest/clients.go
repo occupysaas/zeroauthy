@@ -97,6 +97,34 @@ func testClients(t *testing.T, newStore Factory) {
 		mustEqual(t, got, c)
 	})
 
+	t.Run("SealedSecrets", func(t *testing.T) {
+		s := open(t, newStore)
+		exp := ts(72 * time.Hour)
+		c := newClient("ten_a", "sealed")
+		c.Secrets = []store.ClientSecret{
+			{Sealed: []byte{0x00, 0xff, '{', '"', 0x80, 0x7f}, CreatedAt: ts(0)},
+			{Hash: "$argon2id$v=19$m=19456,t=2,p=1$c2FsdA$aGFzaA", CreatedAt: ts(time.Hour), ExpiresAt: &exp},
+		}
+		mustNoErr(t, s.Clients().Create(ctx, c))
+		got, err := s.Clients().Get(ctx, "ten_a", "sealed")
+		mustNoErr(t, err)
+		mustEqual(t, got, c)
+
+		// A returned blob is a copy.
+		got.Secrets[0].Sealed[0] = 0x42
+		again, err := s.Clients().Get(ctx, "ten_a", "sealed")
+		mustNoErr(t, err)
+		mustEqual(t, again.Secrets[0].Sealed, []byte{0x00, 0xff, '{', '"', 0x80, 0x7f})
+
+		// Converting to the sealed form drops the hash.
+		c.Secrets = []store.ClientSecret{{Sealed: []byte("sealed-v2"), CreatedAt: ts(2 * time.Hour)}}
+		mustNoErr(t, s.Clients().Update(ctx, c))
+		got, err = s.Clients().Get(ctx, "ten_a", "sealed")
+		mustNoErr(t, err)
+		mustEqual(t, got, c)
+		mustEqual(t, got.Secrets[0].Hash, "")
+	})
+
 	t.Run("TenantIsolation", func(t *testing.T) {
 		s := open(t, newStore)
 		a := newClient("ten_a", "same-id")

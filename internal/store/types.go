@@ -67,9 +67,12 @@ const (
 )
 
 // ClientSecret is one credential of a confidential client. Several can be
-// valid at once to allow rotation.
+// valid at once to allow rotation. Exactly one of Hash and Sealed is set:
+// Sealed is the current form (D-0038), Hash the legacy one, which keeps
+// authenticating but cannot be revealed.
 type ClientSecret struct {
-	Hash      string // argon2id PHC string, see internal/secrets
+	Hash      string // legacy argon2id PHC string, see internal/secrets
+	Sealed    []byte // envelope from keys.SealClientSecret
 	CreatedAt time.Time
 	ExpiresAt *time.Time // nil means the secret does not expire
 }

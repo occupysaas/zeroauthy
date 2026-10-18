@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -18,6 +19,10 @@ type Handlers struct {
 	Now   func() time.Time
 
 	Minter *Minter
+
+	// Wrapper opens sealed client secrets (D-0038). Nil makes every
+	// sealed secret fail to authenticate; legacy hashes still work.
+	Wrapper keys.Wrapper
 
 	// Database, UserThrottle and IPThrottle serve the password grants.
 	// The throttles are the hosted login's, so both paths share limits.

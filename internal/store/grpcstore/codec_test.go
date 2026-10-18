@@ -158,6 +158,7 @@ func TestClientRoundTrip(t *testing.T) {
 		Secrets: []store.ClientSecret{
 			{Hash: "h1", CreatedAt: nanoTime},
 			{Hash: "h2", CreatedAt: nanoTime, ExpiresAt: ptr(nanoTime.Add(time.Hour))},
+			{Sealed: []byte{0x00, 0xff, 0x80}, CreatedAt: nanoTime},
 		},
 		TokenEndpointAuthMethod: store.AuthMethodClientSecretPost,
 		GrantTypes:              []string{"authorization_code"}, Callbacks: []string{"https://cb"},
