@@ -6,6 +6,11 @@
 //
 // Drivers return copies: mutating a value passed to or returned from a
 // driver never changes stored state.
+//
+// A list method with no matches returns no error and a result of length 0,
+// but drivers differ on whether that result is nil or an empty slice (the
+// plugin path may normalize either way). Callers must test len and never
+// compare a list against nil.
 package store
 
 import (
