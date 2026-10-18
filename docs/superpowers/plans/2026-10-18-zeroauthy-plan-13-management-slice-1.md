@@ -135,9 +135,9 @@ This task is run by the controller session as the observer. The implementers of 
 | M10 | Which client fields `auth0-deploy-cli` exports and sends on import | run `a0deploy export` (pinned version) on the tenant; record field names only || export drops `client_secret` and other read-only fields; Auth0 refuses a supplied `client_id` (403 `operation_not_supported`) → keeping IDs and secrets needs a slice-5 decision |
 | M11 | The Management API's audience and token `iss` when a custom domain exists | from the docs, and from the tenant's resource-server identifier || `https://<tenant domain>/api/v2/`, a system API |
 
-- [ ] **Step 1:** Run M1–M11 with `auth0 api` and `a0deploy`, keeping all output in the scratchpad.
-- [ ] **Step 2:** Write the observation note: facts only, no secrets, IDs or tenant names. Then D-0038 and D-0039.
-- [ ] **Step 3:** Fill the Observed column. Commit with `docs(compat): observe the Management API for clients`.
+- [x] **Step 1:** Run M1–M11 with `auth0 api` and `a0deploy`, keeping all output in the scratchpad.
+- [x] **Step 2:** Write the observation note: facts only, no secrets, IDs or tenant names. Then D-0038 and D-0039.
+- [x] **Step 3:** Fill the Observed column. Commit with `docs(compat): observe the Management API for clients`.
 
 ---
 
@@ -152,16 +152,16 @@ This task is run by the controller session as the observer. The implementers of 
   - `ClientSecret{Hash string; Sealed []byte; CreatedAt; ExpiresAt}`, where exactly one of `Hash` and `Sealed` is set
   - `oauth` verification: open `Sealed` and compare in constant time, or fall back to `secrets.Verify(Hash, …)`
 
-- [ ] **Step 1: Tests.**
+- [x] **Step 1: Tests.**
   - seal and open round-trip; the AAD binds the tenant and the client, so the wrong tenant fails;
   - client authentication with a sealed secret and with a legacy hashed secret;
   - `TestSeedKeepsHashedSecret`: the seed client has no `client_secret`, so the stored hash stays and authentication works;
   - `TestSeedEncryptsSeedSecret`: the seed carries a secret, so it is stored sealed with no hash;
   - storetest round-trip of `Sealed` on all drivers;
   - a gRPC codec test.
-- [ ] **Step 2: Implement.** The seed sets `Sealed` when it carries a secret. When it carries none, it leaves `Secrets` untouched, which changes the current behaviour that wipes them. Migration 0006 adds the nullable column.
-- [ ] **Step 3: Run** `go test -race ./...` and `./scripts/test-sql.sh ./internal/store/sqlstore/ ./pkg/storetest/...`. Expected: PASS.
-- [ ] **Step 4: Commit** with `feat: client secrets encrypted with the master key (D-0038)`.
+- [x] **Step 2: Implement.** The seed sets `Sealed` when it carries a secret. When it carries none, it leaves `Secrets` untouched, which changes the current behaviour that wipes them. Migration 0006 adds the nullable column.
+- [x] **Step 3: Run** `go test -race ./...` and `./scripts/test-sql.sh ./internal/store/sqlstore/ ./pkg/storetest/...`. Expected: PASS.
+- [x] **Step 4: Commit** with `feat: client secrets encrypted with the master key (D-0038)`.
 
 ---
 
@@ -182,7 +182,7 @@ This task is run by the controller session as the observer. The implementers of 
   - the server runs `system.Ensure` at start;
   - with `bootstrap.admin_email` set and no operators, the server creates that operator and logs the setup URL once.
 
-- [ ] **Step 1: Tests.**
+- [x] **Step 1: Tests.**
   - `Ensure` is idempotent;
   - `CreateOperator` returns a working link, and setting the password through it leaves a user who can log in on the `system` tenant;
   - the seed refuses `system` and a clashing domain;
@@ -190,8 +190,8 @@ This task is run by the controller session as the observer. The implementers of 
   - the bootstrap env var creates an operator once and never again;
   - `Tenants.Delete` cascades (storetest);
   - the resolver resolves the system host.
-- [ ] **Step 2: Implement.** Reuse the seed's tenant set-up code for keys and connections; do not duplicate it.
-- [ ] **Step 3: Run** the Go suite and the SQL suite. **Step 4: Commit** with `feat: system tenant, operators and admin bootstrap`.
+- [x] **Step 2: Implement.** Reuse the seed's tenant set-up code for keys and connections; do not duplicate it.
+- [x] **Step 3: Run** the Go suite and the SQL suite. **Step 4: Commit** with `feat: system tenant, operators and admin bootstrap`.
 
 ---
 
@@ -209,7 +209,7 @@ This task is run by the controller session as the observer. The implementers of 
   - A per-tenant system resource server for the canonical identifier with Auth0's scope list, created on first use or with `system.Ensure` for new tenants, and visible to the client-grant logic, so a client credentials grant for that audience works.
 - **Operator claim:** when the `system` tenant mints an access token for `urn:zeroauthy:management` for a user who is an operator, it adds `https://zeroauthy.dev/operator: [tenants]`. Non-operators get `access_denied` at the token step, as for any policy refusal.
 
-- [ ] **Step 1: Tests.**
+- [x] **Step 1: Tests.**
   - an M2M token with the canonical audience passes on every host of the tenant;
   - the wrong audience, wrong tenant (`TestMgmtAuthCrossTenant`), expired token, bad signature, or missing scope fails with 401 or 403 in Auth0's error shape;
   - an operator token passes on any tenant, and an operator token with a forged `iss` or missing claim fails;
@@ -217,8 +217,8 @@ This task is run by the controller session as the observer. The implementers of 
   - paging parameters and their limits (from M6);
   - projection (from M7);
   - CORS only from the system origin.
-- [ ] **Step 2: Implement.** Verification uses `keys.Manager.Verify` with the resolved tenant (M2M) or the `system` tenant (operator).
-- [ ] **Step 3: Run** `go test -race ./...` and `go generate ./... && git diff --exit-code`. **Step 4: Commit** with `feat(mgmt): Management API foundation: tokens, scopes, errors, paging`.
+- [x] **Step 2: Implement.** Verification uses `keys.Manager.Verify` with the resolved tenant (M2M) or the `system` tenant (operator).
+- [x] **Step 3: Run** `go test -race ./...` and `go generate ./... && git diff --exit-code`. **Step 4: Commit** with `feat(mgmt): Management API foundation: tokens, scopes, errors, paging`.
 
 ---
 
