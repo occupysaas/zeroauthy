@@ -51,6 +51,22 @@ func testClientGrants(t *testing.T, newStore Factory) {
 		mustErrIs(t, s.ClientGrants().Update(ctx, want), store.ErrNotFound)
 	})
 
+	t.Run("EmptySubjectTypeIsClient", func(t *testing.T) {
+		s := open(t, newStore)
+		in := newClientGrant("ten_a", "cg1", "c1", "https://api.test")
+		in.SubjectType = ""
+		mustNoErr(t, s.ClientGrants().Create(ctx, in))
+
+		got, err := s.ClientGrants().Find(ctx, "ten_a", "c1", "https://api.test", store.SubjectTypeClient)
+		mustNoErr(t, err)
+		if got.SubjectType != store.SubjectTypeClient {
+			t.Fatalf("SubjectType = %q, want %q", got.SubjectType, store.SubjectTypeClient)
+		}
+		// It is the client grant for the pair, so a second one conflicts.
+		dup := newClientGrant("ten_a", "cg2", "c1", "https://api.test")
+		mustErrIs(t, s.ClientGrants().Create(ctx, dup), store.ErrConflict)
+	})
+
 	t.Run("ReturnsCopies", func(t *testing.T) {
 		s := open(t, newStore)
 		in := newClientGrant("ten_a", "cg1", "c1", "https://api.test")

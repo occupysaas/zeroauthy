@@ -37,6 +37,38 @@ func TestServerDomainErrorsInResponse(t *testing.T) {
 	}
 }
 
+// A request without a value is a domain error, not a nil pointer.
+func TestServerWriteWithoutValueIsAnError(t *testing.T) {
+	ctx := context.Background()
+	srv := NewServer(memory.New())
+	defer srv.Close()
+	up, err := srv.UserGrantsUpsert(ctx, &storev1.UserGrantWrite{})
+	if err != nil || up.GetError() == nil || up.GetValue() != nil {
+		t.Fatalf("UserGrantsUpsert = %v, %v; want an error in the response", up, err)
+	}
+	cr, err := srv.ClientGrantsCreate(ctx, &storev1.ClientGrantWrite{})
+	if err != nil || cr.GetError() == nil {
+		t.Fatalf("ClientGrantsCreate = %v, %v; want an error in the response", cr, err)
+	}
+}
+
+// A host from before Plan 9 sends a client grant without subject_type: the
+// server stores it as a client grant.
+func TestServerClientGrantEmptySubjectTypeIsClient(t *testing.T) {
+	ctx := context.Background()
+	srv := NewServer(memory.New())
+	defer srv.Close()
+	res, err := srv.ClientGrantsCreate(ctx, &storev1.ClientGrantWrite{Value: &storev1.ClientGrant{
+		TenantId: "t", Id: "g", ClientId: "c", Audience: "a", CreatedAt: tsToPB(time.Unix(0, 0))}})
+	if err != nil || res.GetError() != nil {
+		t.Fatalf("create = %v, %v", res, err)
+	}
+	got, err := srv.ClientGrantsFind(ctx, &storev1.ClientGrantsFindRequest{TenantId: "t", ClientId: "c", Audience: "a", SubjectType: store.SubjectTypeClient})
+	if err != nil || got.GetError() != nil || got.GetValue().GetSubjectType() != store.SubjectTypeClient {
+		t.Fatalf("find = %v, %v", got, err)
+	}
+}
+
 func TestServerTxCommitAndRollback(t *testing.T) {
 	ctx := context.Background()
 	mem := memory.New()

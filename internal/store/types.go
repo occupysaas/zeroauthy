@@ -205,6 +205,16 @@ const (
 	SubjectTypeClient = "client"
 )
 
+// WithDefaults returns a copy of g with an empty SubjectType read as a
+// client grant. Drivers apply it in Create and Update.
+func (g *ClientGrant) WithDefaults() *ClientGrant {
+	out := *g
+	if out.SubjectType == "" {
+		out.SubjectType = SubjectTypeClient
+	}
+	return &out
+}
+
 // SubjectTypeAuthorization is an API's access policy for user flows and
 // for client credentials (Auth0's subject_type_authorization). An empty
 // policy means the default: allow_all for User, require_client_grant for

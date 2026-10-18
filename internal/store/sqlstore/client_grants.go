@@ -18,6 +18,7 @@ func (s *Store) ClientGrants() store.ClientGrants { return clientGrants{s} }
 const clientGrantCols = `tenant_id, id, client_id, audience, scopes, created_at, subject_type, origin, allow_all_scopes`
 
 func (r clientGrants) Create(ctx context.Context, g *store.ClientGrant) error {
+	g = g.WithDefaults()
 	scopes, err := toJSON(g.Scopes)
 	if err != nil {
 		return err
@@ -51,6 +52,7 @@ func scanClientGrant(row scanner) (*store.ClientGrant, error) {
 }
 
 func (r clientGrants) Update(ctx context.Context, g *store.ClientGrant) error {
+	g = g.WithDefaults()
 	scopes, err := toJSON(g.Scopes)
 	if err != nil {
 		return err

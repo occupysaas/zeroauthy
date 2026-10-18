@@ -2,6 +2,7 @@ package grpcstore
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -24,11 +25,17 @@ func encodeFault(err error) error { return status.Error(codes.Internal, err.Erro
 // write decodes pb and runs call with the decoded value.
 func write[P, T any](s *Server, txID string, pb P, dec func(P) (*T, error), call func(store.Store, *T) error) *storev1.Result {
 	v, err := dec(pb)
+	if err == nil && v == nil {
+		err = errMissingValue
+	}
 	if err == nil {
 		err = s.with(txID, func(st store.Store) error { return call(st, v) })
 	}
 	return &storev1.Result{Error: errToPB(err)}
 }
+
+// errMissingValue answers a write request that carries no value.
+var errMissingValue = errors.New("grpcstore: the request has no value")
 
 // exec runs a call that returns only an error.
 func exec(s *Server, txID string, call func(store.Store) error) *storev1.Result {
@@ -275,6 +282,9 @@ func (s *Server) UserGrantsFind(ctx context.Context, r *storev1.UserGrantsFindRe
 
 func (s *Server) UserGrantsUpsert(ctx context.Context, r *storev1.UserGrantWrite) (*storev1.UserGrantResult, error) {
 	g, err := userGrantFromPB(r.Value)
+	if err == nil && g == nil {
+		err = errMissingValue
+	}
 	if err != nil {
 		return &storev1.UserGrantResult{Error: errToPB(err)}, nil
 	}
