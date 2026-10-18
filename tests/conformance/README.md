@@ -98,6 +98,8 @@ Each run writes `results/<UTC timestamp>/`:
 - there is an unexpected failure, warning or skip;
 - an expected failure or skip did not happen, or an entry matched no module at all.
 
+When you run a subset of plans, `run.sh` passes filtered copies of the expected files (written to the results directory) that keep only the entries for the selected plans' configs; otherwise the unrun plans' entries would count as stale. A full run uses the checked-in files.
+
 So stale entries in the expected files already fail the run, and the harness has no check of its own for them. This was verified by adding a deliberately stale entry. Review-status modules do not fail the run.
 
 ## Plans and browser steps

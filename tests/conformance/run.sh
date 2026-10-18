@@ -182,12 +182,32 @@ in_suite -o /dev/null -w 'suite -> zeroauthy discovery: HTTP %{http_code}\n' \
   https://zeroauthy.conformance.test:8443/.well-known/openid-configuration ||
   startup_failed "the suite could not fetch zeroauthy's discovery document"
 
+# The runner fails on expected entries that match no module, so a subset of
+# plans gets copies holding only the entries for the selected configs.
+expected_failures="$here/expected-failures.json"
+expected_skips="$here/expected-skips.json"
+if [[ $# -gt 0 ]]; then
+  cfgs=()
+  for p in "${plans[@]}"; do read -r _ cfg <<<"${plan_spec[$p]}"; cfgs+=("$here/configs/$cfg"); done
+  for f in expected-failures expected-skips; do
+    python3 - "$here/$f.json" "$results/$f.json" "${cfgs[@]}" <<'PY'
+import fnmatch, json, sys
+src, dst, *cfgs = sys.argv[1:]
+keep = [e for e in json.load(open(src))
+        if any(fnmatch.fnmatchcase(c, e["configuration-filename"]) for c in cfgs)]
+json.dump(keep, open(dst, "w"), indent=4)
+PY
+  done
+  expected_failures="$results/expected-failures.json"
+  expected_skips="$results/expected-skips.json"
+fi
+
 status=0
 CONFORMANCE_SERVER="$suite" CONFORMANCE_DEV_MODE=1 \
   "$cache/venv/bin/python" "$cache/scripts/run-test-plan.py" --verbose \
   --export-dir "$results" \
-  --expected-failures-file "$here/expected-failures.json" \
-  --expected-skips-file "$here/expected-skips.json" \
+  --expected-failures-file "$expected_failures" \
+  --expected-skips-file "$expected_skips" \
   "${runner_args[@]}" 2>&1 | tee "$results/runner.log" || status=$? # pipefail: the runner's status
 
 echo
