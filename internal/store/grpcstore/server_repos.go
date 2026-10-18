@@ -206,6 +206,16 @@ func (s *Server) ResourceServersDelete(ctx context.Context, r *storev1.ScopedKey
 
 // ---- client grants ----
 
+func (s *Server) ResourceServersList(ctx context.Context, r *storev1.TenantScope) (*storev1.ResourceServerList, error) {
+	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.ResourceServer, error) {
+		return st.ResourceServers().List(ctx, r.TenantId)
+	}, resourceServerToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.ResourceServerList{Error: e, Values: vs}, nil
+}
+
 func (s *Server) ClientGrantsCreate(ctx context.Context, r *storev1.ClientGrantWrite) (*storev1.Result, error) {
 	return write(s, r.TxId, r.Value, clientGrantFromPB, func(st store.Store, g *store.ClientGrant) error {
 		return st.ClientGrants().Create(ctx, g)
@@ -231,6 +241,20 @@ func (s *Server) ClientGrantsUpdate(ctx context.Context, r *storev1.ClientGrantW
 	return write(s, r.TxId, r.Value, clientGrantFromPB, func(st store.Store, g *store.ClientGrant) error {
 		return st.ClientGrants().Update(ctx, g)
 	}), nil
+}
+
+func (s *Server) ClientGrantsList(ctx context.Context, r *storev1.ClientGrantsListRequest) (*storev1.ClientGrantList, error) {
+	var total int
+	vs, e, err := many(s, r.TxId, func(st store.Store) (out []*store.ClientGrant, e error) {
+		out, total, e = st.ClientGrants().List(ctx, r.TenantId,
+			store.ClientGrantFilter{ClientID: r.ClientId, Audience: r.Audience, SubjectType: r.SubjectType},
+			store.Page{Offset: int(r.Offset), Limit: int(r.Limit)})
+		return out, e
+	}, clientGrantToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.ClientGrantList{Error: e, Values: vs, Total: int64(total)}, nil
 }
 
 func (s *Server) ClientGrantsDelete(ctx context.Context, r *storev1.ScopedKey) (*storev1.Result, error) {

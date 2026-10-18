@@ -139,7 +139,7 @@ type Client struct {
 	Origin string
 }
 
-// OriginAPI marks a client or tenant created through the Management or
+// OriginAPI marks a client, tenant, resource server or client grant created through the Management or
 // system API.
 const OriginAPI = "api"
 
@@ -170,6 +170,10 @@ type ResourceServer struct {
 	// IsSystem marks an API zeroauthy defines itself, such as a tenant's
 	// Management API (Auth0's is_system). The store does not act on it.
 	IsSystem bool
+	// Origin records who created the API: OriginAPI for the Management API
+	// (and the console), empty for the seed or zeroauthy itself. The seed
+	// never touches API-created resource servers.
+	Origin string
 }
 
 // Security modes of third-party applications.
@@ -217,6 +221,24 @@ type ClientGrant struct {
 	Scopes      []string
 	SubjectType string // SubjectTypeUser or SubjectTypeClient
 	CreatedAt   time.Time
+	// Origin records who created the grant: OriginAPI for the Management
+	// API (and the console), empty for the seed or zeroauthy itself. The
+	// seed never touches API-created grants.
+	Origin string
+}
+
+// ClientGrantFilter narrows ClientGrants.List; an empty field matches all.
+type ClientGrantFilter struct {
+	ClientID    string
+	Audience    string
+	SubjectType string
+}
+
+// Page selects a window of an ordered list: Offset rows are skipped and at
+// most Limit are returned. Limit 0 means no limit.
+type Page struct {
+	Offset int
+	Limit  int
 }
 
 // UserGrant records the scopes a user consented to for a client and an

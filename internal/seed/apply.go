@@ -194,8 +194,9 @@ func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in C
 	g, err := st.ClientGrants().Find(ctx, tenantID, in.ClientID, in.Audience, in.SubjectType)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
+		// "cgr_" and 16 letters and digits, the shape of Auth0's grant IDs.
 		return st.ClientGrants().Create(ctx, &store.ClientGrant{
-			TenantID: tenantID, ID: "cgr_" + secrets.RandomString(24),
+			TenantID: tenantID, ID: "cgr_" + secrets.RandomString(16),
 			ClientID: in.ClientID, Audience: in.Audience, Scopes: slices.Clone(in.Scopes),
 			SubjectType: in.SubjectType, CreatedAt: now,
 		})

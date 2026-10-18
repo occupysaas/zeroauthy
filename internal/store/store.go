@@ -118,6 +118,9 @@ type ResourceServers interface {
 	// Identifier is used by another resource server in the tenant.
 	Update(ctx context.Context, rs *ResourceServer) error
 	Delete(ctx context.Context, tenantID, id string) error
+	// List returns the tenant's resource servers ordered by CreatedAt,
+	// then ID.
+	List(ctx context.Context, tenantID string) ([]*ResourceServer, error)
 }
 
 // ClientGrants stores API authorizations of clients, keyed by
@@ -131,6 +134,11 @@ type ClientGrants interface {
 	// SubjectType must not change; drivers return ErrConflict if they do.
 	Update(ctx context.Context, g *ClientGrant) error
 	Delete(ctx context.Context, tenantID, id string) error
+	// List returns one page of the tenant's grants that match f, ordered by
+	// ID (byte order, so a cursor can name the last ID it returned), and
+	// the number of grants that match f before paging. A page past the end
+	// is empty.
+	List(ctx context.Context, tenantID string, f ClientGrantFilter, p Page) ([]*ClientGrant, int, error)
 }
 
 // UserGrants stores consent, keyed by (TenantID, ID). (ClientID, UserID,

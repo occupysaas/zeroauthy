@@ -1,7 +1,10 @@
 package memory
 
 import (
+	"cmp"
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -63,6 +66,21 @@ func (r resourceServers) Delete(_ context.Context, tenantID, id string) error {
 	}
 	delete(r.s.resourceServers, k)
 	return nil
+}
+
+func (r resourceServers) List(_ context.Context, tenantID string) ([]*store.ResourceServer, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	var out []*store.ResourceServer
+	for k, rs := range r.s.resourceServers {
+		if k.tenant == tenantID {
+			out = append(out, cloneResourceServer(rs))
+		}
+	}
+	slices.SortFunc(out, func(a, b *store.ResourceServer) int {
+		return cmp.Or(a.CreatedAt.Compare(b.CreatedAt), strings.Compare(a.ID, b.ID))
+	})
+	return out, nil
 }
 
 // identifierTaken reports whether another resource server in the tenant

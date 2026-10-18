@@ -235,6 +235,19 @@ func TestOldPluginDeviceCodesSweep(t *testing.T) {
 	}
 }
 
+// Listing resource servers and client grants needs a Plan 14 plugin.
+func TestOldPluginListsTooOld(t *testing.T) {
+	c := serveOldPlugin(t)
+	ctx := context.Background()
+	_, errRS := c.ResourceServers().List(ctx, "t")
+	_, _, errCG := c.ClientGrants().List(ctx, "t", store.ClientGrantFilter{}, store.Page{})
+	for name, err := range map[string]error{"ResourceServers.List": errRS, "ClientGrants.List": errCG} {
+		if !errors.Is(err, errPluginTooOld) || !strings.Contains(err.Error(), "too old") {
+			t.Errorf("%s: err = %v, want errPluginTooOld", name, err)
+		}
+	}
+}
+
 // Operators and tenant deletion need a Plan 13 plugin; an older one gets a
 // clear error instead of a bare Unimplemented status.
 func TestOldPluginOperatorsTooOld(t *testing.T) {

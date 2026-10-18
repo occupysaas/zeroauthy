@@ -79,11 +79,11 @@ Run by the controller session as the observer; implementers see only the notes. 
 
 **Interfaces:**
 - `ResourceServers.List(ctx, tenantID string) ([]*ResourceServer, error)`: ordered by `CreatedAt`, then `ID`. Tenants hold tens of APIs, so no store paging.
-- `ClientGrants.List(ctx, tenantID string, f ClientGrantFilter, p Page) ([]*ClientGrant, int, error)`: filter on any of `ClientID`, `Audience`, `SubjectType`; `Page{Offset, Limit}`; returns the page and the total; ordered by `CreatedAt`, then `ID`.
+- `ClientGrants.List(ctx, tenantID string, f ClientGrantFilter, p Page) ([]*ClientGrant, int, error)`: filter on any of `ClientID`, `Audience`, `SubjectType`; `Page{Offset, Limit}`; returns the page and the total; ordered by grant `ID` in byte order (D-0041: Auth0 lists grants by ID, and checkpoint cursors in Task 4 name the last ID).
 - `ResourceServer.Origin`, `ClientGrant.Origin` (`store.OriginAPI` or empty).
 
-- [ ] **Step 1: Tests** (storetest): ordering; every filter alone and combined; a page past the end; `Limit` 0 meaning none; tenant isolation; `Origin` round trip; gRPC codec round trips.
-- [ ] **Step 2: Implement** in every driver. **Step 3: Run** the Go suite and the SQL suite. **Step 4: Commit** with `feat(store): list resource servers and client grants`.
+- [x] **Step 1: Tests** (storetest): ordering; every filter alone and combined; a page past the end; `Limit` 0 meaning none; tenant isolation; `Origin` round trip; gRPC codec round trips.
+- [x] **Step 2: Implement** in every driver. **Step 3: Run** the Go suite and the SQL suite. **Step 4: Commit** with `feat(store): list resource servers and client grants`.
 
 ---
 

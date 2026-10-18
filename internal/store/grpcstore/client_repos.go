@@ -197,6 +197,11 @@ func (a clientResourceServers) Delete(ctx context.Context, tenantID, id string) 
 	return do("ResourceServersDelete", r, err)
 }
 
+func (a clientResourceServers) List(ctx context.Context, tenantID string) ([]*store.ResourceServer, error) {
+	r, err := a.c.rpc.ResourceServersList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+	return decList("ResourceServersList", tooOld(err), r.GetError(), r.GetValues(), resourceServerFromPB)
+}
+
 // ---- client grants ----
 
 type clientClientGrants struct{ c *Client }
@@ -231,6 +236,16 @@ func (a clientClientGrants) Update(ctx context.Context, v *store.ClientGrant) er
 func (a clientClientGrants) Delete(ctx context.Context, tenantID, id string) error {
 	r, err := a.c.rpc.ClientGrantsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
 	return do("ClientGrantsDelete", r, err)
+}
+
+func (a clientClientGrants) List(ctx context.Context, tenantID string, f store.ClientGrantFilter, p store.Page) ([]*store.ClientGrant, int, error) {
+	r, err := a.c.rpc.ClientGrantsList(ctx, &storev1.ClientGrantsListRequest{TxId: a.c.txID, TenantId: tenantID,
+		ClientId: f.ClientID, Audience: f.Audience, SubjectType: f.SubjectType, Offset: int64(p.Offset), Limit: int64(p.Limit)})
+	out, err := decList("ClientGrantsList", tooOld(err), r.GetError(), r.GetValues(), clientGrantFromPB)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, int(r.GetTotal()), nil
 }
 
 // ---- user grants ----

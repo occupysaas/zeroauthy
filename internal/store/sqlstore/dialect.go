@@ -16,11 +16,14 @@ type dialect struct {
 	driver    string // database/sql driver name
 	numbered  bool   // $1-style placeholders
 	forUpdate string // row-lock suffix for SELECT inside a transaction
+	// byteOrder is appended to an ORDER BY column that must sort in byte
+	// order; PostgreSQL otherwise follows the database's collation.
+	byteOrder string
 }
 
 var (
 	dSQLite   = dialect{name: "sqlite", driver: "sqlite"}
-	dPostgres = dialect{name: "postgres", driver: "pgx", numbered: true, forUpdate: " FOR UPDATE"}
+	dPostgres = dialect{name: "postgres", driver: "pgx", numbered: true, forUpdate: " FOR UPDATE", byteOrder: ` COLLATE "C"`}
 	dMySQL    = dialect{name: "mysql", driver: "mysql", forUpdate: " FOR UPDATE"}
 )
 

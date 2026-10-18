@@ -2,6 +2,8 @@ package memory
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -56,6 +58,29 @@ func (r clientGrants) Delete(_ context.Context, tenantID, id string) error {
 	}
 	delete(r.s.clientGrants, k)
 	return nil
+}
+
+func (r clientGrants) List(_ context.Context, tenantID string, f store.ClientGrantFilter, p store.Page) ([]*store.ClientGrant, int, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	var all []*store.ClientGrant
+	for k, g := range r.s.clientGrants {
+		if k.tenant == tenantID && (f.ClientID == "" || g.ClientID == f.ClientID) &&
+			(f.Audience == "" || g.Audience == f.Audience) && (f.SubjectType == "" || g.SubjectType == f.SubjectType) {
+			all = append(all, g)
+		}
+	}
+	slices.SortFunc(all, func(a, b *store.ClientGrant) int { return strings.Compare(a.ID, b.ID) })
+	total := len(all)
+	all = all[min(max(p.Offset, 0), total):]
+	if p.Limit > 0 && len(all) > p.Limit {
+		all = all[:p.Limit]
+	}
+	out := make([]*store.ClientGrant, len(all))
+	for i, g := range all {
+		out[i] = cloneClientGrant(g)
+	}
+	return out, total, nil
 }
 
 // find is called with the lock held.

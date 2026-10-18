@@ -192,6 +192,7 @@ func TestResourceServerRoundTrip(t *testing.T) {
 		SkipConsentForVerifiableFirstPartyClients: true,
 		SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyRequireClientGrant},
 		IsSystem:                                  true,
+		Origin:                                    store.OriginAPI,
 	}, resourceServerToPB, resourceServerFromPB)
 	roundTrip(t, "skip off", &store.ResourceServer{
 		SubjectTypeAuthorization: store.SubjectTypeAuthorization{User: store.PolicyDenyAll},
@@ -203,7 +204,7 @@ func TestResourceServerRoundTrip(t *testing.T) {
 func TestClientGrantRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.ClientGrant{
 		TenantID: "ten", ID: "g", ClientID: "cid", Audience: "https://api", Scopes: []string{"a", "b"}, CreatedAt: nanoTime,
-		SubjectType: store.SubjectTypeUser,
+		SubjectType: store.SubjectTypeUser, Origin: store.OriginAPI,
 	}, clientGrantToPB, clientGrantFromPB)
 	roundTrip(t, "empty", &store.ClientGrant{Scopes: []string{}, SubjectType: store.SubjectTypeClient}, clientGrantToPB, clientGrantFromPB)
 	roundTrip(t, "zero", &store.ClientGrant{SubjectType: store.SubjectTypeClient}, clientGrantToPB, clientGrantFromPB)

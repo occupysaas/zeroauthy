@@ -35,6 +35,8 @@ type (
 	Scope                    = store.Scope
 	ResourceServer           = store.ResourceServer
 	ClientGrant              = store.ClientGrant
+	ClientGrantFilter        = store.ClientGrantFilter
+	Page                     = store.Page
 	UserGrant                = store.UserGrant
 	SubjectTypeAuthorization = store.SubjectTypeAuthorization
 	KeyStatus                = store.KeyStatus

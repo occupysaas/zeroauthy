@@ -83,11 +83,13 @@ service StoreService {
   rpc ResourceServersGetByIdentifier(ScopedKey) returns (ResourceServerResult);
   rpc ResourceServersUpdate(ResourceServerWrite) returns (Result);
   rpc ResourceServersDelete(ScopedKey) returns (Result);
+  rpc ResourceServersList(TenantScope) returns (ResourceServerList);
 
   rpc ClientGrantsCreate(ClientGrantWrite) returns (Result);
   rpc ClientGrantsFind(ClientGrantsFindRequest) returns (ClientGrantResult);
   rpc ClientGrantsUpdate(ClientGrantWrite) returns (Result);
   rpc ClientGrantsDelete(ScopedKey) returns (Result);
+  rpc ClientGrantsList(ClientGrantsListRequest) returns (ClientGrantList);
 
   rpc UserGrantsFind(UserGrantsFindRequest) returns (UserGrantResult);
   rpc UserGrantsUpsert(UserGrantWrite) returns (UserGrantResult);
@@ -284,12 +286,14 @@ message ResourceServer {
   string user_policy = 11;
   string client_policy = 12;
   bool is_system = 13;
+  string origin = 14;                                // "api" or empty (seed)
 }
 
 message ClientGrant {
   string tenant_id = 1; string id = 2; string client_id = 3; string audience = 4;
   StringList scopes = 5; google.protobuf.Timestamp created_at = 6;
   string subject_type = 7; // empty = "client" (plugins older than Plan 9)
+  string origin = 8;       // "api" or empty (seed)
 }
 
 message UserGrant {
@@ -405,10 +409,21 @@ message ClientList { Error error = 1; repeated Client values = 2; }
 
 message ResourceServerWrite { string tx_id = 1; ResourceServer value = 2; }
 message ResourceServerResult { Error error = 1; ResourceServer value = 2; }
+// ResourceServersList returns the tenant's resource servers ordered by
+// created_at, then id.
+message ResourceServerList { Error error = 1; repeated ResourceServer values = 2; }
 
 message ClientGrantWrite { string tx_id = 1; ClientGrant value = 2; }
 message ClientGrantsFindRequest { string tx_id = 1; string tenant_id = 2; string client_id = 3; string audience = 4; string subject_type = 5; }
 message ClientGrantResult { Error error = 1; ClientGrant value = 2; }
+// ClientGrantsList filters on the non-empty client_id, audience and
+// subject_type, orders by id (byte order), skips offset rows and returns at
+// most limit (0 = no limit). total counts the matches before paging.
+message ClientGrantsListRequest {
+  string tx_id = 1; string tenant_id = 2; string client_id = 3; string audience = 4; string subject_type = 5;
+  int64 offset = 6; int64 limit = 7;
+}
+message ClientGrantList { Error error = 1; repeated ClientGrant values = 2; int64 total = 3; }
 
 message UserGrantWrite { string tx_id = 1; UserGrant value = 2; }
 message UserGrantsFindRequest { string tx_id = 1; string tenant_id = 2; string client_id = 3; string user_id = 4; string audience = 5; }

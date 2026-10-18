@@ -301,7 +301,7 @@ func resourceServerToPB(r *store.ResourceServer) (*storev1.ResourceServer, error
 		AllowOfflineAccess: r.AllowOfflineAccess, CreatedAt: tsToPB(r.CreatedAt),
 		SkipConsentForVerifiableFirstPartyClients: proto.Bool(r.SkipConsentForVerifiableFirstPartyClients),
 		UserPolicy: r.SubjectTypeAuthorization.User, ClientPolicy: r.SubjectTypeAuthorization.Client,
-		IsSystem: r.IsSystem,
+		IsSystem: r.IsSystem, Origin: r.Origin,
 	}
 	if r.Scopes != nil {
 		pb.Scopes = &storev1.ScopeList{Values: make([]*storev1.Scope, 0, len(r.Scopes))}
@@ -326,6 +326,7 @@ func resourceServerFromPB(pb *storev1.ResourceServer) (*store.ResourceServer, er
 		SkipConsentForVerifiableFirstPartyClients: pb.SkipConsentForVerifiableFirstPartyClients == nil || *pb.SkipConsentForVerifiableFirstPartyClients,
 		SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: pb.UserPolicy, Client: pb.ClientPolicy},
 		IsSystem:                                  pb.IsSystem,
+		Origin:                                    pb.Origin,
 	}
 	if pb.Scopes != nil {
 		r.Scopes = make([]store.Scope, 0, len(pb.Scopes.Values))
@@ -344,7 +345,7 @@ func clientGrantToPB(g *store.ClientGrant) (*storev1.ClientGrant, error) {
 	}
 	return &storev1.ClientGrant{
 		TenantId: g.TenantID, Id: g.ID, ClientId: g.ClientID, Audience: g.Audience,
-		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), SubjectType: g.SubjectType,
+		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), SubjectType: g.SubjectType, Origin: g.Origin,
 	}, nil
 }
 
@@ -362,7 +363,7 @@ func clientGrantFromPB(pb *storev1.ClientGrant) (*store.ClientGrant, error) {
 	}
 	return &store.ClientGrant{
 		TenantID: pb.TenantId, ID: pb.Id, ClientID: pb.ClientId, Audience: pb.Audience,
-		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), SubjectType: subjectType,
+		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), SubjectType: subjectType, Origin: pb.Origin,
 	}, nil
 }
 

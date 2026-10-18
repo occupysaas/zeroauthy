@@ -13,14 +13,14 @@ type resourceServers struct{ s *Store }
 func (s *Store) ResourceServers() store.ResourceServers { return resourceServers{s} }
 
 const resourceServerCols = `tenant_id, id, identifier, name, scopes, signing_alg, token_lifetime, allow_offline_access, created_at,
- skip_consent_for_verifiable_first_party_clients, user_policy, client_policy, is_system`
+ skip_consent_for_verifiable_first_party_clients, user_policy, client_policy, is_system, origin`
 
 func (r resourceServers) Create(ctx context.Context, rs *store.ResourceServer) error {
 	args, err := resourceServerArgs(rs)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO resource_servers (`+resourceServerCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO resource_servers (`+resourceServerCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -39,7 +39,7 @@ func (r resourceServers) Update(ctx context.Context, rs *store.ResourceServer) e
 	}
 	res, err := r.s.write(ctx, nil, `UPDATE resource_servers SET identifier=?, name=?, scopes=?, signing_alg=?, token_lifetime=?,
  allow_offline_access=?, created_at=?, skip_consent_for_verifiable_first_party_clients=?, user_policy=?,
- client_policy=?, is_system=? WHERE tenant_id=? AND id=?`, append(args[2:], rs.TenantID, rs.ID)...)
+ client_policy=?, is_system=?, origin=? WHERE tenant_id=? AND id=?`, append(args[2:], rs.TenantID, rs.ID)...)
 	if err != nil {
 		return r.s.conflict(err)
 	}
@@ -54,16 +54,38 @@ func (r resourceServers) Delete(ctx context.Context, tenantID, id string) error 
 	return expectRow(res)
 }
 
+func (r resourceServers) List(ctx context.Context, tenantID string) ([]*store.ResourceServer, error) {
+	rows, err := r.s.query(ctx, `SELECT `+resourceServerCols+` FROM resource_servers WHERE tenant_id = ? ORDER BY created_at, id`+r.s.d.byteOrder, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*store.ResourceServer
+	for rows.Next() {
+		rs, err := scanResourceServer(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, rs)
+	}
+	return out, rows.Err()
+}
+
 func (r resourceServers) one(ctx context.Context, q string, args ...any) (*store.ResourceServer, error) {
-	var rs store.ResourceServer
-	var scopes string
-	var created int64
-	err := r.s.queryRow(ctx, q, args...).Scan(&rs.TenantID, &rs.ID, &rs.Identifier, &rs.Name, &scopes, &rs.SigningAlg,
-		&rs.TokenLifetime, &rs.AllowOfflineAccess, &created, &rs.SkipConsentForVerifiableFirstPartyClients,
-		&rs.SubjectTypeAuthorization.User, &rs.SubjectTypeAuthorization.Client, &rs.IsSystem)
+	rs, err := scanResourceServer(r.s.queryRow(ctx, q, args...))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
 	}
+	return rs, err
+}
+
+func scanResourceServer(row scanner) (*store.ResourceServer, error) {
+	var rs store.ResourceServer
+	var scopes string
+	var created int64
+	err := row.Scan(&rs.TenantID, &rs.ID, &rs.Identifier, &rs.Name, &scopes, &rs.SigningAlg,
+		&rs.TokenLifetime, &rs.AllowOfflineAccess, &created, &rs.SkipConsentForVerifiableFirstPartyClients,
+		&rs.SubjectTypeAuthorization.User, &rs.SubjectTypeAuthorization.Client, &rs.IsSystem, &rs.Origin)
 	if err != nil {
 		return nil, err
 	}
@@ -81,5 +103,5 @@ func resourceServerArgs(rs *store.ResourceServer) ([]any, error) {
 	}
 	return []any{rs.TenantID, rs.ID, rs.Identifier, rs.Name, scopes, rs.SigningAlg, rs.TokenLifetime,
 		rs.AllowOfflineAccess, micros(rs.CreatedAt), rs.SkipConsentForVerifiableFirstPartyClients,
-		rs.SubjectTypeAuthorization.User, rs.SubjectTypeAuthorization.Client, rs.IsSystem}, nil
+		rs.SubjectTypeAuthorization.User, rs.SubjectTypeAuthorization.Client, rs.IsSystem, rs.Origin}, nil
 }
