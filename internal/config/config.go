@@ -18,6 +18,8 @@ import (
 	"github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 const envPrefix = "ZEROAUTHY_"
@@ -192,6 +194,13 @@ func (c *Config) validate() error {
 	}
 	if h := c.Server.SystemHost; h != "" && (strings.ContainsAny(h, "/?#@ ") || strings.Contains(h, "://")) {
 		errs = append(errs, fmt.Errorf("server.system_host %q must be a host name with an optional port, not a URL", h))
+	}
+	// The resolver maps <name>.<base_domain> to the tenant called name
+	// before it looks at domains, so any other host under the base domain
+	// could be captured by a tenant with a matching name.
+	if bd, h := tenant.NormalizeHost(c.Server.BaseDomain), tenant.NormalizeHost(c.Server.SystemHost); bd != "" && h != "" &&
+		strings.HasSuffix(h, "."+bd) && h != tenant.SystemName+"."+bd {
+		errs = append(errs, fmt.Errorf("server.system_host %q is under server.base_domain, so it must be %s.%s (or a host outside the base domain)", c.Server.SystemHost, tenant.SystemName, bd))
 	}
 	if e := c.Bootstrap.AdminEmail; e != "" {
 		if a, err := mail.ParseAddress(e); err != nil || a.Address != e {

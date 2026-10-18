@@ -29,7 +29,7 @@ const (
 	OperatorsConnection = "Operators"
 	// ManagementAudience is the API whose tokens operators present to every
 	// tenant's Management API.
-	ManagementAudience = "urn:zeroauthy:management"
+	ManagementAudience = tenant.ManagementAudience
 	// SetupLinkLifetime is how long an operator's setup link works.
 	SetupLinkLifetime = time.Hour
 	// operatorPasswordMinLength is the Operators connection's password policy.
@@ -191,6 +191,15 @@ func Tenant(ctx context.Context, st store.Store) (*store.Tenant, error) {
 // same address keeps the user and the operator's tenants and issues a new
 // link; earlier unused links stay valid until they expire.
 func CreateOperator(ctx context.Context, st store.Store, email string) (string, error) {
+	return createOperator(ctx, st, email, false)
+}
+
+// errBootstrapped ends a bootstrap transaction that finds an operator.
+var errBootstrapped = errors.New("system: an operator already exists")
+
+// createOperator is CreateOperator. With onlyFirst it creates nothing when
+// the system tenant has an operator, checked inside the same transaction.
+func createOperator(ctx context.Context, st store.Store, email string, onlyFirst bool) (string, error) {
 	email = identity.NormalizeLogin(strings.TrimSpace(email))
 	if err := identity.CheckEmail(email); err != nil {
 		return "", fmt.Errorf("system: %q is not a valid email address", email)
@@ -202,6 +211,25 @@ func CreateOperator(ctx context.Context, st store.Store, email string) (string, 
 	now := time.Now().UTC()
 	var raw string
 	err = st.WithTx(ctx, func(tx store.Store) error {
+		if onlyFirst {
+			// Rewriting the tenant row unchanged locks it, so concurrent
+			// bootstraps run one after another and the second sees the
+			// first one's operator.
+			locked, err := tx.Tenants().Get(ctx, tn.ID)
+			if err != nil {
+				return err
+			}
+			if err := tx.Tenants().Update(ctx, locked); err != nil {
+				return err
+			}
+			ops, err := tx.Operators().List(ctx, tn.ID)
+			if err != nil {
+				return err
+			}
+			if len(ops) > 0 {
+				return errBootstrapped
+			}
+		}
 		u, err := tx.Users().FindByLogin(ctx, tn.ID, OperatorsConnection, email)
 		if errors.Is(err, store.ErrNotFound) {
 			id := secrets.RandomHex(12)
@@ -230,6 +258,9 @@ func CreateOperator(ctx context.Context, st store.Store, email string) (string, 
 		return err
 	})
 	if err != nil {
+		if errors.Is(err, errBootstrapped) {
+			return "", err
+		}
 		return "", fmt.Errorf("system: create operator: %w", err)
 	}
 	return dbconn.ResetLink(tenant.Resolved{Tenant: tn, Host: tn.Domains[0]}.Issuer(), raw), nil
@@ -237,21 +268,16 @@ func CreateOperator(ctx context.Context, st store.Store, email string) (string, 
 
 // Bootstrap creates the operator email and returns its setup link when the
 // system tenant has no operator yet. Otherwise, or when email is empty, it
-// returns "" and does nothing, so it runs at every start.
+// returns "" and does nothing, so it runs at every start. The check and the
+// creation share one transaction; a conflict there means another replica
+// bootstrapped at the same moment, which is also "" and no error.
 func Bootstrap(ctx context.Context, st store.Store, email string) (string, error) {
 	if email == "" {
 		return "", nil
 	}
-	tn, err := Tenant(ctx, st)
-	if err != nil {
-		return "", err
-	}
-	ops, err := st.Operators().List(ctx, tn.ID)
-	if err != nil {
-		return "", fmt.Errorf("system: list operators: %w", err)
-	}
-	if len(ops) > 0 {
+	link, err := createOperator(ctx, st, email, true)
+	if errors.Is(err, errBootstrapped) || errors.Is(err, store.ErrConflict) {
 		return "", nil
 	}
-	return CreateOperator(ctx, st, email)
+	return link, err
 }

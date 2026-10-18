@@ -267,3 +267,21 @@ func TestBootstrapAdminEmail(t *testing.T) {
 		t.Fatal("bootstrap.admin_password was accepted")
 	}
 }
+
+// The resolver matches <name>.<base_domain> by tenant name before domains,
+// so a system host under the base domain other than system.<base_domain>
+// could be captured by a tenant with that name.
+func TestSystemHostUnderBaseDomain(t *testing.T) {
+	base := []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SERVER__BASE_DOMAIN=Example.com"}
+	for _, host := range []string{"acme.example.com", "ACME.Example.com.", "acme.example.com:443", "a.b.example.com"} {
+		_, err := Load("", append(base, "ZEROAUTHY_SERVER__SYSTEM_HOST="+host))
+		if err == nil || !strings.Contains(err.Error(), "system.example.com") {
+			t.Errorf("system_host %q: err = %v", host, err)
+		}
+	}
+	for _, host := range []string{"system.example.com", "System.Example.com:443", "admin.other.test", "example.com:8443"} {
+		if _, err := Load("", append(base, "ZEROAUTHY_SERVER__SYSTEM_HOST="+host)); err != nil {
+			t.Errorf("system_host %q: %v", host, err)
+		}
+	}
+}

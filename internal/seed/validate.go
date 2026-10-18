@@ -182,6 +182,9 @@ func (t *Tenant) validate() []error {
 		if apis[rs.Identifier] != nil {
 			fail("duplicate resource server %q", rs.Identifier)
 		}
+		if rs.Identifier == tenant.ManagementAudience {
+			fail("resource server identifier %q is reserved for zeroauthy's system tenant", rs.Identifier)
+		}
 		apis[rs.Identifier] = rs
 		if rs.SkipConsentForVerifiableFirstPartyClients == nil {
 			skip := false // O1a: Auth0's default for new APIs (D-0026)

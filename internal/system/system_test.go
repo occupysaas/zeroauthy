@@ -9,6 +9,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
+	"github.com/zeroauthy/zeroauthy/internal/store/sqlstore"
 	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -227,6 +229,15 @@ func TestCreateOperatorLinkWorks(t *testing.T) {
 	if resp.StatusCode != 200 || csrf == nil {
 		t.Fatalf("reset page = %d %s", resp.StatusCode, page)
 	}
+	// The Operators connection requires at least 12 characters; the ticket
+	// stays usable after a refused password.
+	resp, page = post(base+"/u/reset-password", url.Values{"ticket": {lu.Query().Get("ticket")}, "csrf": {csrf[1]}, "password": {"short pw 1"}, "password_confirm": {"short pw 1"}})
+	if resp.StatusCode != 400 || !strings.Contains(page, "12") {
+		t.Fatalf("short password = %d %s", resp.StatusCode, page)
+	}
+	if u, _ := st.Users().Get(ctx, tn.ID, u.UserID); u.Identities[0].PasswordHash != "" {
+		t.Fatal("a refused password was stored")
+	}
 	const pw = "operator password 1"
 	resp, page = post(base+"/u/reset-password", url.Values{"ticket": {lu.Query().Get("ticket")}, "csrf": {csrf[1]}, "password": {pw}, "password_confirm": {pw}})
 	if resp.StatusCode != 200 {
@@ -330,3 +341,78 @@ func TestEnsureNeedsReservedFlag(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+// Concurrent bootstraps (replicas starting together) create one operator
+// and one link; the others are no-ops, not failed starts.
+func TestBootstrapConcurrent(t *testing.T) {
+	t.Run("memory", func(t *testing.T) { testBootstrapConcurrent(t, memory.New()) })
+	t.Run("sqlite", func(t *testing.T) {
+		st, err := sqlstore.Open(context.Background(), "sqlite://"+filepath.Join(t.TempDir(), "z.db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = st.Close() })
+		if err := st.Migrate(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		testBootstrapConcurrent(t, st)
+	})
+}
+
+func testBootstrapConcurrent(t *testing.T, st store.Store) {
+	ctx := context.Background()
+	if _, err := system.Ensure(ctx, st, system.Config{Host: "admin.example.test", Wrapper: wrapper(t)}); err != nil {
+		t.Fatal(err)
+	}
+	links := make(chan string, 8)
+	errs := make(chan error, 8)
+	for i := range 8 {
+		go func() {
+			email := "first@example.test"
+			if i%2 == 1 {
+				email = "other@example.test"
+			}
+			l, err := system.Bootstrap(ctx, st, email)
+			links <- l
+			errs <- err
+		}()
+	}
+	n := 0
+	for range 8 {
+		if err := <-errs; err != nil {
+			t.Errorf("bootstrap: %v", err)
+		}
+		if <-links != "" {
+			n++
+		}
+	}
+	tn, _ := st.Tenants().GetByName(ctx, tenant.SystemName)
+	ops, _ := st.Operators().List(ctx, tn.ID)
+	if n != 1 || len(ops) != 1 {
+		t.Fatalf("links = %d, operators = %d; want 1 and 1", n, len(ops))
+	}
+}
+
+// A conflict while bootstrapping (another replica created the same user
+// first) means the install is already bootstrapped.
+func TestBootstrapConflictIsNoOp(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	if _, err := system.Ensure(ctx, st, system.Config{Host: "admin.example.test", Wrapper: wrapper(t)}); err != nil {
+		t.Fatal(err)
+	}
+	l, err := system.Bootstrap(ctx, conflictingUsers{st}, "first@example.test")
+	if err != nil || l != "" {
+		t.Fatalf("bootstrap on conflict = %q, %v; want no link and no error", l, err)
+	}
+}
+
+// conflictingUsers makes every user creation lose a race.
+type conflictingUsers struct{ store.Store }
+type conflictingUsersRepo struct{ store.Users }
+
+func (c conflictingUsers) Users() store.Users { return conflictingUsersRepo{c.Store.Users()} }
+func (c conflictingUsers) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return c.Store.WithTx(ctx, func(tx store.Store) error { return fn(conflictingUsers{tx}) })
+}
+func (conflictingUsersRepo) Create(context.Context, *store.User) error { return store.ErrConflict }

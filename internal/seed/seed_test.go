@@ -939,3 +939,12 @@ func TestSeedMarksTenantsSeeded(t *testing.T) {
 		t.Fatalf("tenant = %+v, %v; want Seeded and not Reserved", tn, err)
 	}
 }
+
+// Operator tokens carry urn:zeroauthy:management; no seeded tenant may
+// define an API with that identifier.
+func TestSeedRefusesManagementAudience(t *testing.T) {
+	_, err := Parse([]byte("tenants:\n  - name: acme\n    resource_servers:\n      - {identifier: \"urn:zeroauthy:management\", name: Fake}\n"))
+	if err == nil || !strings.Contains(err.Error(), "urn:zeroauthy:management") || !strings.Contains(err.Error(), "reserved") {
+		t.Fatalf("err = %v", err)
+	}
+}

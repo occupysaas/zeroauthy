@@ -96,7 +96,8 @@ objects it created by hand before running `zeroauthy migrate` again.
 **System tenant and operators.** zeroauthy keeps a reserved tenant named
 `system` for itself: its users are the console operators. It is reachable at
 `system.<server.base_domain>`, or at `server.system_host`, which is required
-when `server.base_domain` is empty (for example `system.localhost:8443`). The
+when `server.base_domain` is empty (for example `system.localhost:8443`). A `server.system_host` under the base domain must be exactly
+`system.<server.base_domain>`. The
 server creates it at every start; no other tenant may use the name `system`
 or that host. Create an operator with
 `zeroauthy admin create --email you@example.com --config zeroauthy.yaml`,
