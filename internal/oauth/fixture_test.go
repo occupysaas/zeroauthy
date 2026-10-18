@@ -61,6 +61,7 @@ tenants:
       - {client_id: par-strict, app_type: regular_web, client_secret: par-strict-secret, is_first_party: false, grant_types: [authorization_code], callbacks: ["https://partner.acme.test/cb"]}
       - {client_id: code-web, app_type: regular_web, client_secret: code-web-secret, grant_types: [authorization_code], callbacks: ["https://web.acme.test/cb"]}
       - {client_id: rt-spa, app_type: spa, grant_types: [authorization_code, refresh_token], callbacks: ["https://rt.acme.test/cb"]}
+      - {client_id: rt-basic, app_type: regular_web, client_secret: rt-basic-secret, token_endpoint_auth_method: client_secret_basic, grant_types: [authorization_code, refresh_token], callbacks: ["https://rtbasic.acme.test/cb"]}
       - client_id: rt-web
         app_type: regular_web
         client_secret: rt-web-secret
@@ -76,7 +77,7 @@ tenants:
         app_type: native
         grant_types: [password]
     connections:
-      - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web, rt-spa, rt-web, ropg, ropg-public, other-ropg]}
+      - {name: Username-Password-Authentication, enabled_clients: [code-spa, code-web, rt-spa, rt-web, rt-basic, ropg, ropg-public, other-ropg]}
       - {name: Other-DB, enabled_clients: [ropg]}
       - name: Legacy-DB
         enabled_clients: [ropg]

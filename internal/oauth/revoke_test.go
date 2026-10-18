@@ -69,3 +69,56 @@ func TestRevokeVariants(t *testing.T) {
 		t.Fatalf("a failed revocation changed the token: %+v", got)
 	}
 }
+
+// revokeRaw posts a revoke request with an arbitrary content type, body and
+// optional HTTP Basic credentials.
+func (f *fixture) revokeRaw(t *testing.T, contentType, body string, basic ...string) *httptest.ResponseRecorder {
+	t.Helper()
+	h := contract.WrapResponses(t, tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(f.h.OauthRevoke)))
+	req := httptest.NewRequest("POST", "https://acme.example.test/oauth/revoke", strings.NewReader(body))
+	req.Header.Set("Content-Type", contentType)
+	if len(basic) == 2 {
+		req.SetBasicAuth(basic[0], basic[1])
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestRevokeWithHTTPBasic(t *testing.T) {
+	f := newFixture(t)
+	raw, _ := f.issueRefresh(t, "rt-basic", []string{"openid", "offline_access"}, "")
+	form := "application/x-www-form-urlencoded"
+
+	rec := f.revokeRaw(t, form, url.Values{"token": {raw}}.Encode(), "rt-basic", "wrong")
+	if rec.Code != 401 || f.storedRT(t, raw).RevokedAt != nil {
+		t.Fatalf("bad Basic secret = %d; token %+v", rec.Code, f.storedRT(t, raw))
+	}
+	rec = f.revokeRaw(t, form, url.Values{"token": {raw}}.Encode(), "rt-basic", "rt-basic-secret")
+	if rec.Code != 200 || rec.Body.Len() != 0 {
+		t.Fatalf("Basic revoke = %d %q", rec.Code, rec.Body)
+	}
+	if f.storedRT(t, raw).RevokedAt == nil {
+		t.Fatal("token not revoked through HTTP Basic")
+	}
+}
+
+func TestRevokeWithJSONBody(t *testing.T) {
+	f := newFixture(t)
+	raw, _ := f.issueRefresh(t, "rt-spa", []string{"openid", "offline_access"}, "")
+	rec := f.revokeRaw(t, "application/json", `{"client_id":"rt-spa","token":"`+raw+`"}`)
+	if rec.Code != 200 || rec.Body.Len() != 0 {
+		t.Fatalf("JSON revoke = %d %q", rec.Code, rec.Body)
+	}
+	if f.storedRT(t, raw).RevokedAt == nil {
+		t.Fatal("token not revoked through a JSON body")
+	}
+}
+
+func TestRevokeUnknownTokenHasEmptyBody(t *testing.T) {
+	f := newFixture(t)
+	rec := f.revokeRaw(t, "application/x-www-form-urlencoded", url.Values{"client_id": {"rt-spa"}, "token": {"no-such-token"}}.Encode())
+	if rec.Code != 200 || rec.Body.Len() != 0 {
+		t.Fatalf("unknown token = %d %q", rec.Code, rec.Body)
+	}
+}
