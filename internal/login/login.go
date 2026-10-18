@@ -116,7 +116,9 @@ func (h *Handlers) load(r *http.Request, state string) (*flow, error) {
 var errNoConnection = errors.New("login: no enabled connection")
 
 // connection picks the requested connection, or the first database
-// connection (by name) enabled for the client.
+// connection enabled for the client, by name in byte order. The store lists
+// connections case-insensitively (the Management API's order), so the order
+// is fixed here: which connection a tenant's login uses must not depend on it.
 func (h *Handlers) connection(ctx context.Context, tenantID string, txn *store.AuthTransaction) (*store.Connection, error) {
 	client, err := h.Store.Clients().Get(ctx, tenantID, txn.ClientID)
 	if errors.Is(err, store.ErrNotFound) {
@@ -129,6 +131,7 @@ func (h *Handlers) connection(ctx context.Context, tenantID string, txn *store.A
 	if err != nil {
 		return nil, err
 	}
+	conns = slices.SortedFunc(slices.Values(conns), func(a, b *store.Connection) int { return strings.Compare(a.Name, b.Name) })
 	want := txn.Params["connection"]
 	for _, c := range conns {
 		if c.Strategy != store.StrategyDatabase || !access.ConnectionUsable(client, c) {

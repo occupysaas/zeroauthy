@@ -833,3 +833,29 @@ func TestImportLogin(t *testing.T) {
 		t.Fatalf("script calls = %d, want 1", n)
 	}
 }
+
+// A tenant with several database connections enabled for a client signs in
+// on the first by name in byte order, whatever order the store lists them
+// in (the Management API lists them case-insensitively).
+func TestHostedLoginPicksFirstConnectionByByteOrder(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	tn := mustTenant(t, e, "acme")
+	if err := e.st.Connections().Create(ctx, &store.Connection{
+		TenantID: tn.ID, ID: "con_lowercase0000001", Name: "another-db", Strategy: store.StrategyDatabase,
+		EnabledClients: []string{"spa"}, BruteForceProtection: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	c, err := e.h.connection(ctx, tn.ID, &store.AuthTransaction{ClientID: "spa", Params: map[string]string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Name != "Username-Password-Authentication" {
+		t.Fatalf("connection = %q, want the first in byte order", c.Name)
+	}
+	c, err = e.h.connection(ctx, tn.ID, &store.AuthTransaction{ClientID: "spa", Params: map[string]string{"connection": "another-db"}})
+	if err != nil || c.Name != "another-db" {
+		t.Fatalf("requested connection = %v, %v", c, err)
+	}
+}
