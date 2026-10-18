@@ -14,6 +14,11 @@ import (
 
 type File struct {
 	Tenants []Tenant `yaml:"tenants"`
+
+	// Set by CheckManagementAPI: the server's base domain, which names each
+	// tenant's Management API identifier.
+	mgmtChecked bool
+	baseDomain  string
 }
 
 type Tenant struct {
@@ -39,6 +44,11 @@ type Tenant struct {
 	SkipNonVerifiableCallbackURIConfirmationPrompt bool `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 	UseScopeDescriptionsForConsent                 bool `yaml:"use_scope_descriptions_for_consent"`
 	PushedAuthorizationRequestsSupported           bool `yaml:"pushed_authorization_requests_supported"`
+
+	// mgmtAudiences are client grant audiences that name a Management API
+	// (https://<host>/api/v2/), which the seed does not define; checked
+	// against the server configuration by CheckManagementAPI.
+	mgmtAudiences []string
 }
 
 // DeviceFlow shapes the user codes of the device authorization grant.

@@ -97,9 +97,14 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	default:
 		audiences = []string{userinfo}
 	}
+	operator, oerr := h.operatorClaim(ctx, res, ut)
+	if oerr != nil {
+		return nil, oerr
+	}
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
 		ClientID: c.ClientID, Scopes: ut.scopes, Lifetime: ut.lifetime, GrantType: ut.grantType,
+		Operator: operator,
 	})
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
@@ -127,4 +132,23 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		resp.IdToken = &idToken
 	}
 	return resp, nil
+}
+
+// operatorClaim is the tenant.OperatorClaim of a system-tenant access token
+// for tenant.OperatorAudience: the operator's tenants. A user who is not an
+// operator gets access_denied, at every grant (refresh included), so
+// removing an operator stops new tokens. Other tokens get no claim.
+func (h *Handlers) operatorClaim(ctx context.Context, res tenant.Resolved, ut userTokens) ([]string, *Error) {
+	if !res.Tenant.Reserved || ut.rs == nil || ut.rs.Identifier != tenant.OperatorAudience {
+		return nil, nil
+	}
+	op, err := h.Store.Operators().Get(ctx, res.Tenant.ID, ut.user.UserID)
+	if errors.Is(err, store.ErrNotFound) || (err == nil && len(op.Tenants) == 0) {
+		return nil, accessDenied("the user is not a zeroauthy operator")
+	}
+	if err != nil {
+		h.log().ErrorContext(ctx, "load operator", "tenant", res.Tenant.ID, "err", err)
+		return nil, serverError()
+	}
+	return slices.Clone(op.Tenants), nil
 }

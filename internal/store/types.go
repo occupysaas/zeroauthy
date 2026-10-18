@@ -155,6 +155,10 @@ type ResourceServer struct {
 	// for first-party clients with verifiable callback URIs.
 	SkipConsentForVerifiableFirstPartyClients bool
 	SubjectTypeAuthorization                  SubjectTypeAuthorization
+
+	// IsSystem marks an API zeroauthy defines itself, such as a tenant's
+	// Management API (Auth0's is_system). The store does not act on it.
+	IsSystem bool
 }
 
 // Security modes of third-party applications.

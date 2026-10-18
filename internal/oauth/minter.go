@@ -35,6 +35,9 @@ type AccessTokenParams struct {
 	GrantType string
 	// Lifetime defaults to DefaultAccessTokenLifetime when zero.
 	Lifetime time.Duration
+	// Operator, when not empty, is the tenant.OperatorClaim: the tenants a
+	// console operator manages.
+	Operator []string
 }
 
 type accessTokenClaims struct {
@@ -47,6 +50,7 @@ type accessTokenClaims struct {
 	AuthorizedParty string   `json:"azp"`
 	GrantType       string   `json:"gty,omitempty"`
 	ID              string   `json:"jti"`
+	Operator        []string `json:"https://zeroauthy.dev/operator,omitempty"`
 }
 
 // audience encodes as a string when it has one element and as an array
@@ -80,6 +84,7 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 		AuthorizedParty: p.ClientID,
 		GrantType:       p.GrantType,
 		ID:              secrets.RandomString(24),
+		Operator:        p.Operator,
 	})
 }
 

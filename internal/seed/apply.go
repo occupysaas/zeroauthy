@@ -35,9 +35,16 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 	if now == nil {
 		now = time.Now
 	}
+	if !f.mgmtChecked {
+		for _, t := range f.Tenants {
+			if len(t.mgmtAudiences) > 0 {
+				return fmt.Errorf("seed: tenant %q: client grants for the Management API need the server's base domain (File.CheckManagementAPI)", t.Name)
+			}
+		}
+	}
 	return st.WithTx(ctx, func(tx store.Store) error {
 		for _, t := range f.Tenants {
-			if err := applyTenant(ctx, tx, t, now().UTC(), w); err != nil {
+			if err := applyTenant(ctx, tx, f, t, now().UTC(), w); err != nil {
 				return fmt.Errorf("seed: tenant %q: %w", t.Name, err)
 			}
 		}
@@ -45,7 +52,7 @@ func apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w
 	})
 }
 
-func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, w keys.Wrapper) error {
+func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now time.Time, w keys.Wrapper) error {
 	domains := make([]string, len(in.Domains))
 	for i, d := range in.Domains {
 		domains[i] = tenant.NormalizeHost(d)
@@ -69,6 +76,11 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 		return err
 	}
 
+	if f.mgmtChecked && tenant.ManagementAPIIdentifier(tn, f.baseDomain) != "" {
+		if _, err := tenantsetup.ManagementAPI(ctx, st, tn, f.baseDomain, now); err != nil {
+			return fmt.Errorf("management API: %w", err)
+		}
+	}
 	for _, rs := range in.ResourceServers {
 		if err := applyResourceServer(ctx, st, tn.ID, rs, now); err != nil {
 			return fmt.Errorf("resource server %q: %w", rs.Identifier, err)

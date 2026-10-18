@@ -64,7 +64,7 @@ config file), so only someone with access to it can create operators.`,
 				}
 			}
 			host := tenant.SystemHost(cfg.Server.BaseDomain, cfg.Server.SystemHost)
-			if _, err := system.Ensure(ctx, st, system.Config{Host: host, Wrapper: wrapper}); err != nil {
+			if _, err := system.Ensure(ctx, st, system.Config{Host: host, BaseDomain: cfg.Server.BaseDomain, Wrapper: wrapper}); err != nil {
 				return err
 			}
 			link, err := system.CreateOperator(ctx, st, email)

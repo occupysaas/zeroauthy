@@ -23,6 +23,7 @@ func newResourceServer(tenantID, id, identifier string) *store.ResourceServer {
 		CreatedAt:          ts(0),
 
 		SkipConsentForVerifiableFirstPartyClients: true,
+		IsSystem: true,
 	}
 }
 

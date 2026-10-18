@@ -190,6 +190,7 @@ func TestResourceServerRoundTrip(t *testing.T) {
 		SigningAlg: "RS256", TokenLifetime: 7200, AllowOfflineAccess: true, CreatedAt: nanoTime,
 		SkipConsentForVerifiableFirstPartyClients: true,
 		SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyRequireClientGrant},
+		IsSystem:                                  true,
 	}, resourceServerToPB, resourceServerFromPB)
 	roundTrip(t, "skip off", &store.ResourceServer{
 		SubjectTypeAuthorization: store.SubjectTypeAuthorization{User: store.PolicyDenyAll},

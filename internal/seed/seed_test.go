@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -942,9 +943,95 @@ func TestSeedMarksTenantsSeeded(t *testing.T) {
 
 // Operator tokens carry urn:zeroauthy:management; no seeded tenant may
 // define an API with that identifier.
-func TestSeedRefusesManagementAudience(t *testing.T) {
+func TestSeedRefusesOperatorAudience(t *testing.T) {
 	_, err := Parse([]byte("tenants:\n  - name: acme\n    resource_servers:\n      - {identifier: \"urn:zeroauthy:management\", name: Fake}\n"))
 	if err == nil || !strings.Contains(err.Error(), "urn:zeroauthy:management") || !strings.Contains(err.Error(), "reserved") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+const mgmtGrantSeed = `
+tenants:
+  - name: acme
+    domains: [login.acme.test]
+    clients:
+      - {client_id: cli, app_type: non_interactive, client_secret: cli-secret, grant_types: [client_credentials]}
+    client_grants:
+      - {client_id: cli, audience: "AUD", scopes: ["read:clients", "create:clients"]}
+  - name: other
+    domains: [other.test]
+`
+
+// A client grant may name the tenant's Management API, which the seed does
+// not define: it is created with the tenant (this is how auth0-cli and
+// auth0-deploy-cli get access).
+func TestSeedManagementAPIGrant(t *testing.T) {
+	ctx := context.Background()
+	for _, tc := range []struct{ base, aud string }{
+		{"example.com", "https://acme.example.com/api/v2/"},
+		{"", "https://login.acme.test/api/v2/"},
+	} {
+		st := memory.New()
+		f, err := Parse([]byte(strings.Replace(mgmtGrantSeed, "AUD", tc.aud, 1)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := f.CheckManagementAPI(tc.base); err != nil {
+			t.Fatalf("base %q: %v", tc.base, err)
+		}
+		if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+			t.Fatalf("base %q: %v", tc.base, err)
+		}
+		tn, _ := st.Tenants().GetByName(ctx, "acme")
+		rs, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, tc.aud)
+		if err != nil || !rs.IsSystem {
+			t.Fatalf("base %q: management API = %+v, %v", tc.base, rs, err)
+		}
+		g, err := st.ClientGrants().Find(ctx, tn.ID, "cli", tc.aud, store.SubjectTypeClient)
+		if err != nil || !slices.Equal(g.Scopes, []string{"read:clients", "create:clients"}) {
+			t.Fatalf("base %q: grant = %+v, %v", tc.base, g, err)
+		}
+		// Every seeded tenant gets its Management API, grant or not.
+		other, _ := st.Tenants().GetByName(ctx, "other")
+		want := "https://other.test/api/v2/"
+		if tc.base != "" {
+			want = "https://other." + tc.base + "/api/v2/"
+		}
+		if _, err := st.ResourceServers().GetByIdentifier(ctx, other.ID, want); err != nil {
+			t.Errorf("base %q: other's management API %q: %v", tc.base, want, err)
+		}
+	}
+}
+
+func TestSeedManagementAPIRefusals(t *testing.T) {
+	// A scope the Management API does not define.
+	if _, err := Parse([]byte(strings.Replace(strings.Replace(mgmtGrantSeed, "AUD", "https://acme.example.com/api/v2/", 1), "create:clients", "fly:clients", 1))); err == nil || !strings.Contains(err.Error(), "fly:clients") {
+		t.Errorf("unknown scope: err = %v", err)
+	}
+	// Another tenant's, or a non-canonical, identifier.
+	for _, aud := range []string{"https://other.example.com/api/v2/", "https://login.acme.test/api/v2/"} {
+		f, err := Parse([]byte(strings.Replace(mgmtGrantSeed, "AUD", aud, 1)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := f.CheckManagementAPI("example.com"); err == nil || !strings.Contains(err.Error(), aud) {
+			t.Errorf("aud %q: err = %v", aud, err)
+		}
+	}
+	// Apply refuses a Management API grant the server has not checked.
+	f, err := Parse([]byte(strings.Replace(mgmtGrantSeed, "AUD", "https://acme.example.com/api/v2/", 1)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(context.Background(), memory.New(), f, fixedNow, testWrapper(t)); err == nil {
+		t.Error("Apply without CheckManagementAPI: err nil")
+	}
+	// The seed may not define the Management API itself.
+	f, err = Parse([]byte("tenants:\n  - name: acme\n    resource_servers:\n      - {identifier: \"https://acme.example.com/api/v2/\", name: Fake}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.CheckManagementAPI("example.com"); err == nil || !strings.Contains(err.Error(), "reserved") {
+		t.Errorf("redefined: err = %v", err)
 	}
 }

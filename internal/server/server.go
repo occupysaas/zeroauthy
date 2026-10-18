@@ -19,6 +19,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -45,6 +46,13 @@ type Deps struct {
 	UserThrottle      *identity.Throttle
 	IPThrottle        *identity.Throttle
 	TrustProxyHeaders bool
+
+	// BaseDomain is server.base_domain, and SystemHost the system tenant's
+	// canonical host (tenant.SystemHost). They name the tenants'
+	// Management API identifiers, the operator-token issuer and the only
+	// origin CORS allows on /api/v2 and /api/system.
+	BaseDomain string
+	SystemHost string
 
 	// Device code entry limits; see login.Handlers. The IP and tenant
 	// throttles may be nil (off).
@@ -144,6 +152,7 @@ func New(d Deps) http.Handler {
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
 				Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
+				BaseDomain:   d.BaseDomain,
 				Database:     db,
 				UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
 				TrustProxyHeaders: d.TrustProxyHeaders,
@@ -181,5 +190,41 @@ func New(d Deps) http.Handler {
 		tr.Get("/device/success", lg.DeviceSuccess)
 		tr.Get("/device/denied", lg.DeviceDenied)
 	})
+
+	// The Management API, on every host of every tenant, and the system
+	// API, on the system tenant only. CORS runs before authentication so
+	// that preflights need no token.
+	auth := mgmt.Auth(mgmt.Config{Store: d.Store, Keys: d.Keys, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log})
+	systemOrigin := ""
+	if d.SystemHost != "" {
+		systemOrigin = "https://" + tenant.NormalizeHost(d.SystemHost)
+	}
+	r.Route("/api/v2", func(mr chi.Router) {
+		mr.Use(d.Resolver.Middleware, mgmtCORS(systemOrigin), auth)
+		// A catch-all route, so that the middlewares run for unknown
+		// paths too (chi skips them for a router with no routes).
+		mr.HandleFunc("/*", mgmtNotFound)
+		mr.MethodNotAllowed(mgmtNotFound)
+	})
+	r.Route("/api/system", func(sr chi.Router) {
+		sr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mgmt.RequireOperator)
+		sr.HandleFunc("/*", mgmtNotFound)
+		sr.MethodNotAllowed(mgmtNotFound)
+	})
 	return r
+}
+
+func mgmtNotFound(w http.ResponseWriter, _ *http.Request) {
+	mgmt.WriteError(w, http.StatusNotFound, "", "Not Found")
+}
+
+// systemOnly answers 404 on every tenant but the system tenant.
+func systemOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if res, ok := tenant.FromContext(r.Context()); !ok || !res.Tenant.Reserved || res.Tenant.Name != tenant.SystemName {
+			mgmtNotFound(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

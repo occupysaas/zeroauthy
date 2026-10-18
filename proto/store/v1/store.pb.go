@@ -1593,6 +1593,7 @@ type ResourceServer struct {
 	SkipConsentForVerifiableFirstPartyClients *bool                  `protobuf:"varint,10,opt,name=skip_consent_for_verifiable_first_party_clients,json=skipConsentForVerifiableFirstPartyClients,proto3,oneof" json:"skip_consent_for_verifiable_first_party_clients,omitempty"` // absent = true
 	UserPolicy                                string                 `protobuf:"bytes,11,opt,name=user_policy,json=userPolicy,proto3" json:"user_policy,omitempty"`
 	ClientPolicy                              string                 `protobuf:"bytes,12,opt,name=client_policy,json=clientPolicy,proto3" json:"client_policy,omitempty"`
+	IsSystem                                  bool                   `protobuf:"varint,13,opt,name=is_system,json=isSystem,proto3" json:"is_system,omitempty"`
 	unknownFields                             protoimpl.UnknownFields
 	sizeCache                                 protoimpl.SizeCache
 }
@@ -1709,6 +1710,13 @@ func (x *ResourceServer) GetClientPolicy() string {
 		return x.ClientPolicy
 	}
 	return ""
+}
+
+func (x *ResourceServer) GetIsSystem() bool {
+	if x != nil {
+		return x.IsSystem
+	}
+	return false
 }
 
 type ClientGrant struct {
@@ -6413,7 +6421,7 @@ const file_store_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\">\n" +
 	"\tScopeList\x121\n" +
-	"\x06values\x18\x01 \x03(\v2\x19.zeroauthy.store.v1.ScopeR\x06values\"\xc0\x04\n" +
+	"\x06values\x18\x01 \x03(\v2\x19.zeroauthy.store.v1.ScopeR\x06values\"\xdd\x04\n" +
 	"\x0eResourceServer\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1e\n" +
@@ -6432,7 +6440,8 @@ const file_store_proto_rawDesc = "" +
 	" \x01(\bH\x00R)skipConsentForVerifiableFirstPartyClients\x88\x01\x01\x12\x1f\n" +
 	"\vuser_policy\x18\v \x01(\tR\n" +
 	"userPolicy\x12#\n" +
-	"\rclient_policy\x18\f \x01(\tR\fclientPolicyB2\n" +
+	"\rclient_policy\x18\f \x01(\tR\fclientPolicy\x12\x1b\n" +
+	"\tis_system\x18\r \x01(\bR\bisSystemB2\n" +
 	"0_skip_consent_for_verifiable_first_party_clients\"\x89\x02\n" +
 	"\vClientGrant\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +

@@ -299,6 +299,7 @@ func resourceServerToPB(r *store.ResourceServer) (*storev1.ResourceServer, error
 		AllowOfflineAccess: r.AllowOfflineAccess, CreatedAt: tsToPB(r.CreatedAt),
 		SkipConsentForVerifiableFirstPartyClients: proto.Bool(r.SkipConsentForVerifiableFirstPartyClients),
 		UserPolicy: r.SubjectTypeAuthorization.User, ClientPolicy: r.SubjectTypeAuthorization.Client,
+		IsSystem: r.IsSystem,
 	}
 	if r.Scopes != nil {
 		pb.Scopes = &storev1.ScopeList{Values: make([]*storev1.Scope, 0, len(r.Scopes))}
@@ -322,6 +323,7 @@ func resourceServerFromPB(pb *storev1.ResourceServer) (*store.ResourceServer, er
 		AllowOfflineAccess: pb.AllowOfflineAccess, CreatedAt: tsFromPB(pb.CreatedAt),
 		SkipConsentForVerifiableFirstPartyClients: pb.SkipConsentForVerifiableFirstPartyClients == nil || *pb.SkipConsentForVerifiableFirstPartyClients,
 		SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: pb.UserPolicy, Client: pb.ClientPolicy},
+		IsSystem:                                  pb.IsSystem,
 	}
 	if pb.Scopes != nil {
 		r.Scopes = make([]store.Scope, 0, len(pb.Scopes.Values))

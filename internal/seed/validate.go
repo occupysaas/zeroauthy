@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
 
 var dnsLabel = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
@@ -115,6 +116,44 @@ func (f *File) validate() error {
 	return errors.Join(errs...)
 }
 
+// isManagementAPIURL reports whether aud has the form of a Management API
+// identifier, https://<host>/api/v2/.
+func isManagementAPIURL(aud string) bool {
+	u, err := url.Parse(aud)
+	return err == nil && u.Scheme == "https" && u.Host != "" && u.Path == "/api/v2/" &&
+		u.RawQuery == "" && u.Fragment == "" && u.User == nil
+}
+
+// CheckManagementAPI checks the seed against each tenant's Management API
+// identifier, which depends on the server's base domain
+// (tenant.ManagementAPIIdentifier): no resource server may redefine it, and
+// every client grant for a Management API must name the tenant's own. On
+// success it records baseDomain, so that Apply creates each seeded
+// tenant's Management API. Load cannot check this, since the base domain
+// comes from the server configuration.
+func (f *File) CheckManagementAPI(baseDomain string) error {
+	var errs []error
+	for i := range f.Tenants {
+		t := &f.Tenants[i]
+		id := tenant.ManagementAPIIdentifier(&store.Tenant{Name: t.Name, Domains: t.Domains}, baseDomain)
+		for _, rs := range t.ResourceServers {
+			if id != "" && rs.Identifier == id {
+				errs = append(errs, fmt.Errorf("seed: tenant %q: resource server identifier %q is reserved for the tenant's Management API", t.Name, rs.Identifier))
+			}
+		}
+		for _, aud := range t.mgmtAudiences {
+			if aud != id {
+				errs = append(errs, fmt.Errorf("seed: tenant %q: client grant audience %q is not a defined resource server or the tenant's Management API (%q)", t.Name, aud, id))
+			}
+		}
+	}
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+	f.mgmtChecked, f.baseDomain = true, baseDomain
+	return nil
+}
+
 // CheckSystemHost reports a seeded tenant whose domains include host, the
 // system tenant's host (tenant.SystemHost). Load cannot check this, since the
 // host comes from the server configuration.
@@ -182,7 +221,7 @@ func (t *Tenant) validate() []error {
 		if apis[rs.Identifier] != nil {
 			fail("duplicate resource server %q", rs.Identifier)
 		}
-		if rs.Identifier == tenant.ManagementAudience {
+		if rs.Identifier == tenant.OperatorAudience {
 			fail("resource server identifier %q is reserved for zeroauthy's system tenant", rs.Identifier)
 		}
 		apis[rs.Identifier] = rs
@@ -360,7 +399,8 @@ func (t *Tenant) validate() []error {
 			fail("client grant references unknown client %q", g.ClientID)
 		}
 		rs := apis[g.Audience]
-		if rs == nil {
+		mgmt := rs == nil && isManagementAPIURL(g.Audience)
+		if rs == nil && !mgmt {
 			fail("client grant references unknown audience %q", g.Audience)
 			continue
 		}
@@ -369,6 +409,20 @@ func (t *Tenant) validate() []error {
 			fail("duplicate client grant %q → %q (%s)", g.ClientID, g.Audience, g.SubjectType)
 		}
 		seenGrants[k] = true
+		if mgmt {
+			if g.SubjectType != store.SubjectTypeClient {
+				fail("client grant %q → %q: the Management API accepts machine-to-machine (client) grants only", g.ClientID, g.Audience)
+			}
+			if !slices.Contains(t.mgmtAudiences, g.Audience) {
+				t.mgmtAudiences = append(t.mgmtAudiences, g.Audience)
+			}
+			for _, s := range g.Scopes {
+				if !tenantsetup.IsManagementAPIScope(s) {
+					fail("client grant %q → %q: scope %q is not a Management API scope", g.ClientID, g.Audience, s)
+				}
+			}
+			continue
+		}
 		for _, s := range g.Scopes {
 			if !slices.ContainsFunc(rs.Scopes, func(d Scope) bool { return d.Value == s }) {
 				fail("client grant %q → %q: scope %q is not defined by the resource server", g.ClientID, g.Audience, s)

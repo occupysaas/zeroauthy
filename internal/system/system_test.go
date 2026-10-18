@@ -3,6 +3,7 @@ package system_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -71,20 +72,37 @@ func TestEnsureCreatesSystemTenant(t *testing.T) {
 	if conn.Strategy != store.StrategyDatabase || !conn.DisableSignup || !slices.Equal(conn.EnabledClients, []string{system.ConsoleClientID}) {
 		t.Errorf("connection = %+v", conn)
 	}
-	rs, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, system.ManagementAudience)
+	rs, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, system.OperatorAudience)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !rs.AllowOfflineAccess || rs.SubjectTypeAuthorization.Client != store.PolicyDenyAll {
+	if !rs.AllowOfflineAccess || rs.SubjectTypeAuthorization.Client != store.PolicyDenyAll || !rs.IsSystem {
 		t.Errorf("resource server = %+v", rs)
 	}
 	ks, err := st.SigningKeys().List(ctx, tn.ID)
 	if err != nil || len(ks) != 2 {
 		t.Errorf("signing keys = %d, %v", len(ks), err)
 	}
+	// Like every tenant, the system tenant has its own Management API.
+	mapi, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://admin.example.test/api/v2/")
+	if err != nil || !mapi.IsSystem {
+		t.Errorf("management API = %+v, %v", mapi, err)
+	}
 	r := tenant.NewResolver(st.Tenants(), "", false)
 	if got, err := r.Resolve(ctx, "Admin.Example.TEST:443"); err != nil || got.Tenant.ID != tn.ID {
 		t.Errorf("resolve system host = %+v, %v", got, err)
+	}
+}
+
+func TestEnsureManagementAPIUnderBaseDomain(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	tn, err := system.Ensure(ctx, st, system.Config{Host: "admin.other.test", BaseDomain: "example.com", Wrapper: wrapper(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://system.example.com/api/v2/"); err != nil {
+		t.Errorf("management API: %v", err)
 	}
 }
 
@@ -161,16 +179,19 @@ func TestCreateOperatorLinkWorks(t *testing.T) {
 	st := memory.New()
 	w := wrapper(t)
 	km := keys.NewManager(st.SigningKeys(), w)
-	srv := httptest.NewTLSServer(server.New(server.Deps{
+	srv := httptest.NewUnstartedServer(nil)
+	host := srv.Listener.Addr().String()
+	srv.Config.Handler = server.New(server.Deps{
 		Store: st, Keys: km, Wrapper: w, Resolver: tenant.NewResolver(st.Tenants(), "", false),
 		Log:          slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Sessions:     &session.Manager{Store: st},
 		Mailer:       discardMailer{},
 		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
 		IPThrottle:   identity.NewThrottle(100, time.Minute, time.Minute),
-	}))
+		SystemHost:   host,
+	})
+	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	host := srv.Listener.Addr().String()
 	base := "https://" + host
 	tn, err := system.Ensure(ctx, st, system.Config{Host: host, Wrapper: w})
 	if err != nil {
@@ -246,7 +267,7 @@ func TestCreateOperatorLinkWorks(t *testing.T) {
 
 	// 2. Sign in to the console.
 	q := url.Values{"client_id": {system.ConsoleClientID}, "redirect_uri": {base + "/admin/callback"}, "response_type": {"code"},
-		"scope": {"openid offline_access"}, "audience": {system.ManagementAudience}, "state": {"s1"},
+		"scope": {"openid offline_access"}, "audience": {system.OperatorAudience}, "state": {"s1"},
 		"code_challenge": {challenge}, "code_challenge_method": {"S256"}}
 	resp, _ = get(base + "/authorize?" + q.Encode())
 	loginURL, _ := resp.Location()
@@ -267,6 +288,25 @@ func TestCreateOperatorLinkWorks(t *testing.T) {
 		"code": {cb.Query().Get("code")}, "redirect_uri": {base + "/admin/callback"}, "code_verifier": {verifier}})
 	if resp.StatusCode != 200 || !strings.Contains(page, "access_token") || !strings.Contains(page, "refresh_token") {
 		t.Fatalf("token = %d %s", resp.StatusCode, page)
+	}
+
+	// 3. The operator token passes the Management API's authentication
+	// (no endpoints yet: 404 rather than 401).
+	var tokens struct {
+		AccessToken string `json:"access_token"`
+	}
+	if err := json.Unmarshal([]byte(page), &tokens); err != nil {
+		t.Fatal(err)
+	}
+	req, _ := http.NewRequest("GET", base+"/api/v2/nothing", nil)
+	req.Header.Set("Authorization", "Bearer "+tokens.AccessToken)
+	resp, err = c.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("operator token at /api/v2 = %d", resp.StatusCode)
 	}
 }
 

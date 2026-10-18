@@ -1,0 +1,139 @@
+# api/management.yaml
+openapi: 3.1.0
+info:
+  title: zeroauthy Management API
+  version: 0.1.0
+  summary: Auth0-compatible Management API served by every zeroauthy tenant, and zeroauthy's system API.
+  description: |
+    The Management API of a zeroauthy tenant, at `https://{tenant_domain}/api/v2/`
+    on every host of the tenant. It is wire-compatible with the Auth0
+    Management API for the operations it lists.
+
+    Callers present a bearer access token of one of two kinds:
+
+    - `managementToken`: a client credentials token of the tenant whose
+      audience is the tenant's canonical Management API identifier,
+      `https://{name}.{base_domain}/api/v2/` (or the first of the tenant's
+      domains when there is no base domain), with scopes from a client grant.
+    - `operatorToken`: a token of the `system` tenant for the audience
+      `urn:zeroauthy:management`, carrying the
+      `https://zeroauthy.dev/operator` claim. It holds every scope on the
+      tenants the operator manages.
+
+    The system API, at `/api/system/` on the system host only, accepts
+    operator tokens only. It has no Auth0 equivalent.
+
+    Errors have Auth0's shape (`ManagementError`). Lists page with `page`,
+    `per_page` and `include_totals`: a bare array without totals, an object
+    with the list, `start`, `limit` and `total` with them.
+
+    Every operation lists the public documents it was derived from in
+    `x-source`. zeroauthy is a clean-room implementation; see `CLEAN_ROOM.md`.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://{tenant_domain}
+    variables:
+      tenant_domain:
+        default: tenant.example.com
+        description: Any domain of the tenant.
+tags:
+  - name: system
+    description: zeroauthy's own API for tenants and operators (operator tokens only).
+security:
+  - managementToken: []
+  - operatorToken: []
+paths: {}
+components:
+  securitySchemes:
+    managementToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        A client credentials access token of this tenant for its Management
+        API identifier, with the scopes the operation names.
+    operatorToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        A console operator's access token from the `system` tenant, audience
+        `urn:zeroauthy:management`, with the `https://zeroauthy.dev/operator`
+        claim.
+  parameters:
+    page:
+      name: page
+      in: query
+      description: Page index of the results, from 0.
+      schema: {type: integer, minimum: 0, default: 0}
+    per_page:
+      name: per_page
+      in: query
+      description: Number of results per page; more than 100 is refused (`invalid_query_string`).
+      schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+    include_totals:
+      name: include_totals
+      in: query
+      description: Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+      schema: {type: boolean, default: false}
+    fields:
+      name: fields
+      in: query
+      description: Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned.
+      schema: {type: string}
+    include_fields:
+      name: include_fields
+      in: query
+      description: Whether `fields` lists the fields to include (true) or to leave out (false).
+      schema: {type: boolean, default: true}
+  schemas:
+    ManagementError:
+      type: object
+      description: Auth0's Management API error shape.
+      required: [statusCode, error, message]
+      properties:
+        statusCode:
+          type: integer
+          description: The HTTP status code.
+        error:
+          type: string
+          description: The HTTP status text, such as `Bad Request`.
+        message:
+          type: string
+          description: A human-readable explanation.
+        errorCode:
+          type: string
+          description: A machine-readable code, such as `invalid_body`, `invalid_query_string`, `insufficient_scope` or `inexistent_client`.
+    ListTotals:
+      type: object
+      description: |
+        The paging members of a list returned with `include_totals=true`; the
+        list itself is under the resource's plural name.
+      required: [start, limit, total]
+      properties:
+        start: {type: integer, description: Index of the first result.}
+        limit: {type: integer, description: The page size.}
+        total: {type: integer, description: The number of results on all pages.}
+  responses:
+    BadRequest:
+      description: The request is invalid (`invalid_body`, `invalid_query_string`).
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    Unauthorized:
+      description: No token, or an invalid, expired or foreign one (`invalid_token`).
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    Forbidden:
+      description: The token lacks the scope the operation needs (`insufficient_scope`).
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    NotFound:
+      description: The resource does not exist.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}

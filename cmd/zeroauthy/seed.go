@@ -44,6 +44,9 @@ func newSeedCmd() *cobra.Command {
 			if err := f.CheckSystemHost(tenant.SystemHost(cfg.Server.BaseDomain, cfg.Server.SystemHost)); err != nil {
 				return err
 			}
+			if err := f.CheckManagementAPI(cfg.Server.BaseDomain); err != nil {
+				return err
+			}
 			masterKey, err := app.MasterKey(cfg, slog.Default())
 			if err != nil {
 				return err

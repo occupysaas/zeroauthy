@@ -1,0 +1,8 @@
+package: mgmtapi
+output: mgmtapi.gen.go
+generate:
+  models: true
+  chi-server: true
+output-options:
+  # Keep the shared schemas and parameters before operations use them.
+  skip-prune: true

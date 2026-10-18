@@ -67,3 +67,38 @@ func originAllowed(r *http.Request, st store.Store, tenantID, origin string) boo
 	}
 	return false
 }
+
+// mgmtCORS applies CORS to the Management and system APIs: only the system
+// host's origin (the console) is allowed, on every tenant (design §6).
+// A preflight from any other origin is 403; other requests from it get no
+// CORS headers, so the browser blocks the response.
+func mgmtCORS(systemOrigin string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			w.Header().Add("Vary", "Origin")
+			preflight := r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != ""
+			if systemOrigin == "" || origin != systemOrigin {
+				if preflight {
+					w.WriteHeader(http.StatusForbidden)
+					return
+				}
+				next.ServeHTTP(w, r)
+				return
+			}
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			if preflight {
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE")
+				w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+				w.Header().Set("Access-Control-Max-Age", "600")
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}

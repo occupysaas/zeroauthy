@@ -118,12 +118,15 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := f.CheckSystemHost(systemHost); err != nil {
 			return nil, err
 		}
+		if err := f.CheckManagementAPI(cfg.Server.BaseDomain); err != nil {
+			return nil, err
+		}
 		if err := seed.Apply(ctx, st, f, time.Now, wrapper); err != nil {
 			return nil, err
 		}
 		log.Info("applied seed", "file", cfg.Seed, "tenants", len(f.Tenants))
 	}
-	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, Wrapper: wrapper}); err != nil {
+	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, BaseDomain: cfg.Server.BaseDomain, Wrapper: wrapper}); err != nil {
 		return nil, err
 	}
 	if err := bootstrapOperator(ctx, st, cfg.Bootstrap.AdminEmail, log); err != nil {
@@ -178,6 +181,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			UserThrottle:      identity.NewThrottle(cfg.Security.LoginMaxAttempts, lockout, lockout),
 			IPThrottle:        identity.NewThrottle(10*cfg.Security.LoginMaxAttempts, lockout, lockout),
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
+			BaseDomain:        cfg.Server.BaseDomain,
+			SystemHost:        systemHost,
 
 			DeviceTxnThrottle: identity.NewThrottle(sec.DeviceActivationTxnMaxMisses, authz.TxnLifetime, authz.TxnLifetime),
 			DeviceIPThrottle: identity.NewThrottleOrOff(sec.DeviceActivationIPMaxMisses,

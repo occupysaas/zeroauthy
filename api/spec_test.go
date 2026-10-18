@@ -9,20 +9,60 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-func TestAuthenticationSpecIsValid(t *testing.T) {
-	doc, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+var specs = map[string][]byte{"authentication.yaml": AuthenticationYAML, "management.yaml": ManagementYAML}
+
+func TestSpecsAreValid(t *testing.T) {
+	for name, data := range specs {
+		doc, err := openapi3.NewLoader().LoadFromData(data)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if err := doc.Validate(context.Background()); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+	}
+}
+
+// The shared Management API parts later operations reference.
+func TestManagementSpecShared(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromData(ManagementYAML)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := doc.Validate(context.Background()); err != nil {
-		t.Fatal(err)
+	for _, p := range []string{"page", "per_page", "include_totals", "fields", "include_fields"} {
+		if doc.Components.Parameters[p] == nil {
+			t.Errorf("parameter %q missing", p)
+		}
+	}
+	if pp := doc.Components.Parameters["per_page"]; pp != nil && (pp.Value.Schema.Value.Max == nil || *pp.Value.Schema.Value.Max != 100) {
+		t.Error("per_page maximum is not 100")
+	}
+	e := doc.Components.Schemas["ManagementError"]
+	if e == nil {
+		t.Fatal("ManagementError missing")
+	}
+	for _, f := range []string{"statusCode", "error", "message", "errorCode"} {
+		if e.Value.Properties[f] == nil {
+			t.Errorf("ManagementError.%s missing", f)
+		}
+	}
+	for _, s := range []string{"managementToken", "operatorToken"} {
+		if doc.Components.SecuritySchemes[s] == nil {
+			t.Errorf("security scheme %q missing", s)
+		}
 	}
 }
 
 // Every operation must cite the public sources it was derived from
 // (CLEAN_ROOM.md, "Provenance").
 func TestEveryOperationHasProvenance(t *testing.T) {
-	doc, err := openapi3.NewLoader().LoadFromData(AuthenticationYAML)
+	for name, data := range specs {
+		t.Run(name, func(t *testing.T) { checkProvenance(t, data) })
+	}
+}
+
+func checkProvenance(t *testing.T, data []byte) {
+	doc, err := openapi3.NewLoader().LoadFromData(data)
 	if err != nil {
 		t.Fatal(err)
 	}

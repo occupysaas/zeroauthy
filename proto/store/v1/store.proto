@@ -281,6 +281,7 @@ message ResourceServer {
   optional bool skip_consent_for_verifiable_first_party_clients = 10;      // absent = true
   string user_policy = 11;
   string client_policy = 12;
+  bool is_system = 13;
 }
 
 message ClientGrant {

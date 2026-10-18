@@ -18,6 +18,10 @@ type Handlers struct {
 	Log   *slog.Logger
 	Now   func() time.Time
 
+	// BaseDomain is server.base_domain; it names each tenant's Management
+	// API identifier (tenant.ManagementAPIIdentifier).
+	BaseDomain string
+
 	Minter *Minter
 
 	// Wrapper opens sealed client secrets (D-0038). Nil makes every

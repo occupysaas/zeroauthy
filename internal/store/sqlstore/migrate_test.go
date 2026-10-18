@@ -174,8 +174,8 @@ func TestSchemaConstraints(t *testing.T) {
 
 func TestLatestVersion(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 7 {
-			t.Errorf("%s LatestVersion = %d, want 7", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 8 {
+			t.Errorf("%s LatestVersion = %d, want 8", d.name, v)
 		}
 	}
 }
