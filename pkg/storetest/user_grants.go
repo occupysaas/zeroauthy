@@ -79,6 +79,26 @@ func testUserGrants(t *testing.T, newStore Factory) {
 		mustNoErr(t, err) // other user untouched
 	})
 
+	t.Run("ListByAudience", func(t *testing.T) {
+		s := open(t, newStore)
+		for _, g := range []*store.UserGrant{
+			newUserGrant("ten_a", "ug2", "c1", "auth0|u2", "https://api.test", "read"),
+			newUserGrant("ten_a", "ug1", "c1", "auth0|u1", "https://api.test", "read"),
+			newUserGrant("ten_a", "ug3", "c1", "auth0|u1", "https://other.test", "read"),
+			newUserGrant("ten_b", "ug4", "c1", "auth0|u1", "https://api.test", "read"),
+		} {
+			_, err := s.UserGrants().Upsert(ctx, g)
+			mustNoErr(t, err)
+		}
+		list, err := s.UserGrants().ListByAudience(ctx, "ten_a", "https://api.test")
+		mustNoErr(t, err)
+		var ids []string
+		for _, g := range list {
+			ids = append(ids, g.ID)
+		}
+		mustEqual(t, ids, []string{"ug1", "ug2"})
+	})
+
 	t.Run("ReturnsCopies", func(t *testing.T) {
 		s := open(t, newStore)
 		in := newUserGrant("ten_a", "ug1", "c1", "auth0|u1", "https://api.test", "read:things")

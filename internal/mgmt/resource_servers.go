@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
@@ -191,7 +192,7 @@ func (h *Handlers) UpdateResourceServer(w http.ResponseWriter, r *http.Request, 
 			return err
 		}
 		if len(removed) > 0 {
-			if err := removeGrantScopes(r.Context(), tx, tn.ID, rs.Identifier, removed); err != nil {
+			if err := removeGrantScopes(r.Context(), tx, tn.ID, rs.Identifier, removed, h.now().UTC()); err != nil {
 				return err
 			}
 		}
@@ -248,9 +249,10 @@ func (h *Handlers) DeleteResourceServer(w http.ResponseWriter, r *http.Request, 
 }
 
 // removeGrantScopes takes the removed scopes out of every client grant for
-// audience, so no grant names a scope its API no longer defines (Plan 14
-// review focus 3). The grants stay, even with no scope left.
-func removeGrantScopes(ctx context.Context, st store.Store, tenantID, audience string, removed []string) error {
+// audience, and from every user grant (consent) for it, so nothing names a
+// scope its API no longer defines (Plan 14 review focus 3). The grants stay,
+// even with no scope left.
+func removeGrantScopes(ctx context.Context, st store.Store, tenantID, audience string, removed []string, now time.Time) error {
 	grants, _, err := st.ClientGrants().List(ctx, tenantID, store.ClientGrantFilter{Audience: audience}, store.Page{})
 	if err != nil {
 		return err
@@ -262,6 +264,21 @@ func removeGrantScopes(ctx context.Context, st store.Store, tenantID, audience s
 		}
 		g.Scopes = kept
 		if err := st.ClientGrants().Update(ctx, g); err != nil {
+			return err
+		}
+	}
+	consents, err := st.UserGrants().ListByAudience(ctx, tenantID, audience)
+	if err != nil {
+		return err
+	}
+	for _, g := range consents {
+		kept := slices.DeleteFunc(slices.Clone(g.Scopes), func(s string) bool { return slices.Contains(removed, s) })
+		if len(kept) == len(g.Scopes) {
+			continue
+		}
+		g.Scopes = kept
+		g.UpdatedAt = now
+		if _, err := st.UserGrants().Upsert(ctx, g); err != nil {
 			return err
 		}
 	}

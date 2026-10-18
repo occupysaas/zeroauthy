@@ -297,6 +297,16 @@ func (s *Server) UserGrantsListByUser(ctx context.Context, r *storev1.ScopedKey)
 	return &storev1.UserGrantList{Error: e, Values: vs}, nil
 }
 
+func (s *Server) UserGrantsListByAudience(ctx context.Context, r *storev1.ScopedKey) (*storev1.UserGrantList, error) {
+	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.UserGrant, error) {
+		return st.UserGrants().ListByAudience(ctx, r.TenantId, r.Key)
+	}, userGrantToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.UserGrantList{Error: e, Values: vs}, nil
+}
+
 func (s *Server) UserGrantsDelete(ctx context.Context, r *storev1.ScopedKey) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error { return st.UserGrants().Delete(ctx, r.TenantId, r.Key) }), nil
 }

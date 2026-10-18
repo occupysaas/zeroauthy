@@ -98,6 +98,23 @@ func (r userGrants) ListByUser(ctx context.Context, tenantID, userID string) ([]
 	return out, rows.Err()
 }
 
+func (r userGrants) ListByAudience(ctx context.Context, tenantID, audience string) ([]*store.UserGrant, error) {
+	rows, err := r.s.query(ctx, `SELECT `+userGrantCols+` FROM user_grants WHERE tenant_id = ? AND audience = ? ORDER BY id`+r.s.d.byteOrder, tenantID, audience)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*store.UserGrant
+	for rows.Next() {
+		g, err := scanUserGrant(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
+
 func (r userGrants) Delete(ctx context.Context, tenantID, id string) error {
 	res, err := r.s.write(ctx, nil, `DELETE FROM user_grants WHERE tenant_id = ? AND id = ?`, tenantID, id)
 	if err != nil {

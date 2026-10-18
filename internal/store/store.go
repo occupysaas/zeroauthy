@@ -157,6 +157,9 @@ type UserGrants interface {
 	Upsert(ctx context.Context, g *UserGrant) (*UserGrant, error)
 	// ListByUser returns the user's grants ordered by ClientID, then Audience.
 	ListByUser(ctx context.Context, tenantID, userID string) ([]*UserGrant, error)
+	// ListByAudience returns the grants for audience, every user and client,
+	// ordered by ID.
+	ListByAudience(ctx context.Context, tenantID, audience string) ([]*UserGrant, error)
 	// Delete returns ErrNotFound if absent.
 	Delete(ctx context.Context, tenantID, id string) error
 	// DeleteByUser removes all of the user's grants and returns how many.

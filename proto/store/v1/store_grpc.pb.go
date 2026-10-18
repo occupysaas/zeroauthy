@@ -49,6 +49,7 @@ const (
 	StoreService_UserGrantsFind_FullMethodName                     = "/zeroauthy.store.v1.StoreService/UserGrantsFind"
 	StoreService_UserGrantsUpsert_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UserGrantsUpsert"
 	StoreService_UserGrantsListByUser_FullMethodName               = "/zeroauthy.store.v1.StoreService/UserGrantsListByUser"
+	StoreService_UserGrantsListByAudience_FullMethodName           = "/zeroauthy.store.v1.StoreService/UserGrantsListByAudience"
 	StoreService_UserGrantsDelete_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UserGrantsDelete"
 	StoreService_UserGrantsDeleteByUser_FullMethodName             = "/zeroauthy.store.v1.StoreService/UserGrantsDeleteByUser"
 	StoreService_SigningKeysCreate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SigningKeysCreate"
@@ -199,6 +200,7 @@ type StoreServiceClient interface {
 	UserGrantsFind(ctx context.Context, in *UserGrantsFindRequest, opts ...grpc.CallOption) (*UserGrantResult, error)
 	UserGrantsUpsert(ctx context.Context, in *UserGrantWrite, opts ...grpc.CallOption) (*UserGrantResult, error)
 	UserGrantsListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantList, error)
+	UserGrantsListByAudience(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantList, error)
 	UserGrantsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
 	UserGrantsDeleteByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*CountResult, error)
 	SigningKeysCreate(ctx context.Context, in *SigningKeyWrite, opts ...grpc.CallOption) (*Result, error)
@@ -562,6 +564,16 @@ func (c *storeServiceClient) UserGrantsListByUser(ctx context.Context, in *Scope
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UserGrantList)
 	err := c.cc.Invoke(ctx, StoreService_UserGrantsListByUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UserGrantsListByAudience(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserGrantList)
+	err := c.cc.Invoke(ctx, StoreService_UserGrantsListByAudience_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1229,6 +1241,7 @@ type StoreServiceServer interface {
 	UserGrantsFind(context.Context, *UserGrantsFindRequest) (*UserGrantResult, error)
 	UserGrantsUpsert(context.Context, *UserGrantWrite) (*UserGrantResult, error)
 	UserGrantsListByUser(context.Context, *ScopedKey) (*UserGrantList, error)
+	UserGrantsListByAudience(context.Context, *ScopedKey) (*UserGrantList, error)
 	UserGrantsDelete(context.Context, *ScopedKey) (*Result, error)
 	UserGrantsDeleteByUser(context.Context, *ScopedKey) (*CountResult, error)
 	SigningKeysCreate(context.Context, *SigningKeyWrite) (*Result, error)
@@ -1387,6 +1400,9 @@ func (UnimplementedStoreServiceServer) UserGrantsUpsert(context.Context, *UserGr
 }
 func (UnimplementedStoreServiceServer) UserGrantsListByUser(context.Context, *ScopedKey) (*UserGrantList, error) {
 	return nil, status.Error(codes.Unimplemented, "method UserGrantsListByUser not implemented")
+}
+func (UnimplementedStoreServiceServer) UserGrantsListByAudience(context.Context, *ScopedKey) (*UserGrantList, error) {
+	return nil, status.Error(codes.Unimplemented, "method UserGrantsListByAudience not implemented")
 }
 func (UnimplementedStoreServiceServer) UserGrantsDelete(context.Context, *ScopedKey) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method UserGrantsDelete not implemented")
@@ -2116,6 +2132,24 @@ func _StoreService_UserGrantsListByUser_Handler(srv interface{}, ctx context.Con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).UserGrantsListByUser(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UserGrantsListByAudience_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UserGrantsListByAudience(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UserGrantsListByAudience_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UserGrantsListByAudience(ctx, req.(*ScopedKey))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3272,6 +3306,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UserGrantsListByUser",
 			Handler:    _StoreService_UserGrantsListByUser_Handler,
+		},
+		{
+			MethodName: "UserGrantsListByAudience",
+			Handler:    _StoreService_UserGrantsListByAudience_Handler,
 		},
 		{
 			MethodName: "UserGrantsDelete",

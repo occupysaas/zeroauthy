@@ -272,6 +272,11 @@ func (a clientUserGrants) ListByUser(ctx context.Context, tenantID, userID strin
 	return decList("UserGrantsListByUser", err, r.GetError(), r.GetValues(), userGrantFromPB)
 }
 
+func (a clientUserGrants) ListByAudience(ctx context.Context, tenantID, audience string) ([]*store.UserGrant, error) {
+	r, err := a.c.rpc.UserGrantsListByAudience(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: audience})
+	return decList("UserGrantsListByAudience", err, r.GetError(), r.GetValues(), userGrantFromPB)
+}
+
 func (a clientUserGrants) Delete(ctx context.Context, tenantID, id string) error {
 	r, err := a.c.rpc.UserGrantsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
 	return do("UserGrantsDelete", r, err)

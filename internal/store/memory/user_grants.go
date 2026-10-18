@@ -61,6 +61,19 @@ func (r userGrants) ListByUser(_ context.Context, tenantID, userID string) ([]*s
 	return out, nil
 }
 
+func (r userGrants) ListByAudience(_ context.Context, tenantID, audience string) ([]*store.UserGrant, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	var out []*store.UserGrant
+	for k, g := range r.s.userGrants {
+		if k.tenant == tenantID && g.Audience == audience {
+			out = append(out, cloneUserGrant(g))
+		}
+	}
+	slices.SortFunc(out, func(a, b *store.UserGrant) int { return cmp.Compare(a.ID, b.ID) })
+	return out, nil
+}
+
 func (r userGrants) Delete(_ context.Context, tenantID, id string) error {
 	r.s.mu.Lock()
 	defer r.s.mu.Unlock()

@@ -94,6 +94,7 @@ service StoreService {
   rpc UserGrantsFind(UserGrantsFindRequest) returns (UserGrantResult);
   rpc UserGrantsUpsert(UserGrantWrite) returns (UserGrantResult);
   rpc UserGrantsListByUser(ScopedKey) returns (UserGrantList);   // key = user_id
+  rpc UserGrantsListByAudience(ScopedKey) returns (UserGrantList); // key = audience
   rpc UserGrantsDelete(ScopedKey) returns (Result);
   rpc UserGrantsDeleteByUser(ScopedKey) returns (CountResult);   // key = user_id
 

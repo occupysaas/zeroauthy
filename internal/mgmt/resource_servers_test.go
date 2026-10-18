@@ -523,6 +523,15 @@ func TestUpdateResourceServerScopes(t *testing.T) {
 	grant("cg_2", "c2", "https://api.test", store.SubjectTypeClient, "admin")
 	grant("cg_3", "c1", "https://api.test", store.SubjectTypeUser, "read")
 	grant("cg_4", "c1", "https://other.test", store.SubjectTypeClient, "read", "admin")
+	consent := func(id, user, aud string, scopes ...string) {
+		t.Helper()
+		if _, err := e.st.UserGrants().Upsert(ctx, &store.UserGrant{TenantID: e.tn.ID, ID: id, ClientID: "c1", UserID: user, Audience: aud, Scopes: scopes, CreatedAt: now, UpdatedAt: now}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	consent("ug_1", "auth0|u1", "https://api.test", "read", "write", "admin")
+	consent("ug_2", "auth0|u2", "https://api.test", "admin")
+	consent("ug_3", "auth0|u1", "https://other.test", "read", "admin")
 
 	rec, out := e.patch(t, id, map[string]any{"scopes": []map[string]any{{"value": "read", "description": "Read"}, {"value": "extra"}}})
 	if rec.Code != 200 || !slices.Equal(scopeValues(out["scopes"]), []string{"read", "extra"}) {
@@ -541,6 +550,16 @@ func TestUpdateResourceServerScopes(t *testing.T) {
 		}
 		if got == nil || !slices.Equal(got.Scopes, want) && !(len(got.Scopes) == 0 && len(want) == 0) {
 			t.Errorf("grant %s scopes = %+v, want %v", id, got, want)
+		}
+	}
+	// Consents lose the removed scopes too, and only for this API.
+	for _, c := range []struct {
+		user, aud string
+		want      []string
+	}{{"auth0|u1", "https://api.test", []string{"read"}}, {"auth0|u2", "https://api.test", nil}, {"auth0|u1", "https://other.test", []string{"read", "admin"}}} {
+		g, err := e.st.UserGrants().Find(ctx, e.tn.ID, "c1", c.user, c.aud)
+		if err != nil || len(g.Scopes) != len(c.want) || (len(c.want) > 0 && !slices.Equal(g.Scopes, c.want)) {
+			t.Errorf("consent %s %s = %+v, %v, want %v", c.user, c.aud, g, err, c.want)
 		}
 	}
 	// The grants stay, even with no scope left.
