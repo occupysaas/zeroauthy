@@ -16,7 +16,7 @@ func Enabled(t *store.Tenant) []string {
 	if t == nil || len(t.EnabledLocales) == 0 {
 		return []string{"en"}
 	}
-	return t.EnabledLocales
+	return slices.Clone(t.EnabledLocales)
 }
 
 // Negotiate picks the page language and returns it as written in the
@@ -66,7 +66,8 @@ func acceptedTags(header string) []string {
 		q := 1.0
 		for _, p := range fields[1:] {
 			p = strings.TrimSpace(p)
-			if name, v, ok := strings.Cut(p, "="); ok && strings.EqualFold(name, "q") {
+			if name, v, ok := strings.Cut(p, "="); ok && strings.EqualFold(strings.TrimSpace(name), "q") {
+				v = strings.TrimSpace(v)
 				f, err := strconv.ParseFloat(v, 64)
 				if err != nil || f < 0 || f > 1 {
 					q = 0

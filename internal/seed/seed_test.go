@@ -415,6 +415,34 @@ tenants:
 	}
 }
 
+// The stored tenant does not share the parsed file's custom text.
+func TestApplyCopiesCustomText(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(`
+tenants:
+  - name: acme
+    enabled_locales: [en, fr]
+    custom_text:
+      login:
+        fr:
+          login:
+            title: "Connexion"
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	got := f.Tenants[0].CustomText
+	got["login"]["fr"]["login"]["title"] = "changed"
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	if tn.CustomText["login"]["fr"]["login"]["title"] != "Connexion" {
+		t.Fatalf("stored custom text follows the file: %v", tn.CustomText)
+	}
+}
+
 // failingStore makes Clients().Create fail for client ID "boom".
 type failingStore struct{ store.Store }
 

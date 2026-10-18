@@ -13,25 +13,8 @@ func cloneTenant(t *store.Tenant) *store.Tenant {
 	c.Domains = slices.Clone(t.Domains)
 	c.AllowedLogoutURLs = slices.Clone(t.AllowedLogoutURLs)
 	c.EnabledLocales = slices.Clone(t.EnabledLocales)
-	c.CustomText = cloneCustomText(t.CustomText)
+	c.CustomText = t.CustomText.Clone()
 	return &c
-}
-
-func cloneCustomText(ct store.CustomText) store.CustomText {
-	if ct == nil {
-		return nil
-	}
-	out := store.CustomText{}
-	for p, langs := range ct {
-		out[p] = map[string]map[string]map[string]string{}
-		for l, screens := range langs {
-			out[p][l] = map[string]map[string]string{}
-			for s, keys := range screens {
-				out[p][l][s] = maps.Clone(keys)
-			}
-		}
-	}
-	return out
 }
 
 func cloneClient(c *store.Client) *store.Client {

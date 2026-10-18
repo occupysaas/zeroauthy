@@ -15,6 +15,15 @@ func withCatalog(t *testing.T, tag string, texts map[string]string) {
 	t.Cleanup(func() { delete(catalogs, tag) })
 }
 
+// Enabled returns a copy: changing it must not change the tenant.
+func TestEnabledReturnsACopy(t *testing.T) {
+	tn := &store.Tenant{EnabledLocales: []string{"en", "fr"}}
+	Enabled(tn)[0] = "xx"
+	if tn.EnabledLocales[0] != "en" {
+		t.Fatalf("tenant locales changed: %v", tn.EnabledLocales)
+	}
+}
+
 func TestNegotiate(t *testing.T) {
 	tn := &store.Tenant{EnabledLocales: []string{"en", "fr", "pt-BR"}}
 	cases := []struct {
@@ -36,6 +45,8 @@ func TestNegotiate(t *testing.T) {
 		{"entries past 1024 ignored", "", strings.Repeat("xx-YY, ", 1024) + "fr", "en"},
 		{"q name is case-insensitive", "", "fr;Q=0", "en"},
 		{"Q weight orders entries", "", "fr;Q=0.1, pt-BR;Q=0.5", "pt-BR"},
+		{"spaces around q =", "", "fr;q = 0.1, pt-BR ; q = 0.5", "pt-BR"},
+		{"spaces around q = 0", "", "fr ; q = 0", "en"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

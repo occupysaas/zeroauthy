@@ -87,7 +87,7 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
 			tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
 			tn.EnabledLocales = slices.Clone(in.EnabledLocales)
-			tn.CustomText = in.CustomText
+			tn.CustomText = in.CustomText.Clone()
 			tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
 			tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
 			tn.DefaultDirectory = in.DefaultDirectory

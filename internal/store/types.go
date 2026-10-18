@@ -2,7 +2,10 @@
 
 package store
 
-import "time"
+import (
+	"maps"
+	"time"
+)
 
 // Tenant is an isolated identity domain with its own clients, users,
 // connections and signing keys.
@@ -580,6 +583,24 @@ type RefreshTokenPolicy struct {
 // CustomText holds a tenant's text overrides, shaped like Auth0's
 // documented prompt custom text: prompt → language → screen → key → text.
 type CustomText map[string]map[string]map[string]map[string]string
+
+// Clone returns a deep copy of ct; a nil map stays nil.
+func (ct CustomText) Clone() CustomText {
+	if ct == nil {
+		return nil
+	}
+	out := make(CustomText, len(ct))
+	for p, langs := range ct {
+		out[p] = make(map[string]map[string]map[string]string, len(langs))
+		for l, screens := range langs {
+			out[p][l] = make(map[string]map[string]string, len(screens))
+			for s, keys := range screens {
+				out[p][l][s] = maps.Clone(keys)
+			}
+		}
+	}
+	return out
+}
 
 // PasswordResetTicket is an issued password-reset link. Only the hash of
 // the ticket token is stored.
