@@ -334,9 +334,44 @@ func (a clientConnections) Update(ctx context.Context, v *store.Connection) erro
 	})
 }
 
-func (a clientConnections) List(ctx context.Context, tenantID string) ([]*store.Connection, error) {
-	r, err := a.c.rpc.ConnectionsList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
-	return decList("ConnectionsList", err, r.GetError(), r.GetValues(), connectionFromPB)
+func (a clientConnections) List(ctx context.Context, tenantID string, f store.ConnectionFilter, p store.Page) ([]*store.Connection, int, error) {
+	r, err := a.c.rpc.ConnectionsListPage(ctx, &storev1.ConnectionsListPageRequest{TxId: a.c.txID, TenantId: tenantID,
+		Name: f.Name, Strategies: f.Strategies, Offset: int64(p.Offset), Limit: int64(p.Limit)})
+	out, err := decList("ConnectionsListPage", tooOld(err), r.GetError(), r.GetValues(), connectionFromPB)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, int(r.GetTotal()), nil
+}
+
+func (a clientConnections) Delete(ctx context.Context, tenantID, id string) error {
+	r, err := a.c.rpc.ConnectionsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return do("ConnectionsDelete", r, tooOld(err))
+}
+
+// ---- password histories ----
+
+type clientPasswordHistories struct{ c *Client }
+
+func (a clientPasswordHistories) Add(ctx context.Context, tenantID, userID string, hash []byte, keep int) error {
+	r, err := a.c.rpc.PasswordHistoriesAdd(ctx, &storev1.PasswordHistoryAdd{TxId: a.c.txID, TenantId: tenantID,
+		UserId: userID, Hash: hash, Keep: int64(keep)})
+	return do("PasswordHistoriesAdd", r, tooOld(err))
+}
+
+func (a clientPasswordHistories) List(ctx context.Context, tenantID, userID string) ([][]byte, error) {
+	r, err := a.c.rpc.PasswordHistoriesList(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	if err = tooOld(err); err != nil {
+		return nil, rpcErr("PasswordHistoriesList", err)
+	}
+	if e := errFromPB(r.GetError()); e != nil {
+		return nil, e
+	}
+	out := make([][]byte, 0, len(r.GetValues()))
+	for _, h := range r.GetValues() {
+		out = append(out, cloneBytes(h))
+	}
+	return out, nil
 }
 
 // ---- users ----

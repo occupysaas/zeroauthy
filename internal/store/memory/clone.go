@@ -73,6 +73,10 @@ func cloneConnection(c *store.Connection) *store.Connection {
 	out.EnabledClients = slices.Clone(c.EnabledClients)
 	out.CustomScripts = maps.Clone(c.CustomScripts)
 	out.ConfigurationSealed = bytes.Clone(c.ConfigurationSealed)
+	out.PasswordOptions.Complexity.CharacterTypes = slices.Clone(c.PasswordOptions.Complexity.CharacterTypes)
+	out.PasswordOptions.Dictionary.Custom = slices.Clone(c.PasswordOptions.Dictionary.Custom)
+	out.PasswordOptions.ProfileData.BlockedFields = slices.Clone(c.PasswordOptions.ProfileData.BlockedFields)
+	out.Extra = cloneJSON(c.Extra)
 	return &out
 }
 

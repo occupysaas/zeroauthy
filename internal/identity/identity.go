@@ -56,8 +56,9 @@ const (
 // NormalizeLogin trims and lowercases an email or username.
 func NormalizeLogin(s string) string { return loginid.Normalize(s) }
 
-// CheckPassword enforces a connection's password policy.
-func CheckPassword(p store.PasswordPolicy, password string) error {
+// CheckPassword enforces a connection's password complexity: the minimum
+// length, the required kinds of character and the longest password.
+func CheckPassword(p store.PasswordComplexity, password string) error {
 	minLen := p.MinLength
 	if minLen <= 0 {
 		minLen = defaultMinPasswordLength
@@ -71,33 +72,42 @@ func CheckPassword(p store.PasswordPolicy, password string) error {
 			Key:    i18n.KeyPasswordTooShort, Vars: []string{"min", strconv.Itoa(minLen)},
 		}
 	}
-	if p.RequireCharacterClasses > 0 {
-		var lower, upper, digit, other bool
-		for _, r := range password {
-			switch {
-			case unicode.IsLower(r):
-				lower = true
-			case unicode.IsUpper(r):
-				upper = true
-			case unicode.IsDigit(r):
-				digit = true
-			default:
-				other = true
+	if len(p.CharacterTypes) == 0 && p.MinCharacterClasses <= 0 {
+		return nil
+	}
+	has := map[string]bool{}
+	for _, r := range password {
+		switch {
+		case unicode.IsLower(r):
+			has[store.CharacterTypeLowercase] = true
+		case unicode.IsUpper(r):
+			has[store.CharacterTypeUppercase] = true
+		case unicode.IsDigit(r):
+			has[store.CharacterTypeNumber] = true
+		default:
+			has[store.CharacterTypeSpecial] = true
+		}
+	}
+	// need is how many kinds the password must hold; missing is how many
+	// it is short of the kinds that are required by name.
+	need, short := p.MinCharacterClasses, false
+	if len(p.CharacterTypes) > 0 {
+		if p.CharacterTypeRule == store.CharacterTypeRuleThreeOfFour {
+			need = max(need, 3)
+		} else {
+			// Every listed type. The message for a subset of the types
+			// names the count only.
+			need = max(need, len(p.CharacterTypes))
+			for _, t := range p.CharacterTypes {
+				short = short || !has[t]
 			}
 		}
-		n := 0
-		for _, b := range []bool{lower, upper, digit, other} {
-			if b {
-				n++
-			}
-		}
-		if n < p.RequireCharacterClasses {
-			return &PolicyError{
-				Reason: fmt.Sprintf(
-					"password must contain at least %d of: lowercase letters, uppercase letters, digits, symbols",
-					p.RequireCharacterClasses),
-				Key: i18n.KeyPasswordClasses, Vars: []string{"count", strconv.Itoa(p.RequireCharacterClasses)},
-			}
+	}
+	if short || len(has) < need {
+		return &PolicyError{
+			Reason: fmt.Sprintf(
+				"password must contain at least %d of: lowercase letters, uppercase letters, digits, symbols", need),
+			Key: i18n.KeyPasswordClasses, Vars: []string{"count", strconv.Itoa(need)},
 		}
 	}
 	return nil

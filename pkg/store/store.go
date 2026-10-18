@@ -15,6 +15,7 @@ type (
 	UserGrants           = store.UserGrants
 	SigningKeys          = store.SigningKeys
 	Connections          = store.Connections
+	PasswordHistories    = store.PasswordHistories
 	Users                = store.Users
 	Sessions             = store.Sessions
 	AuthTransactions     = store.AuthTransactions
@@ -41,7 +42,12 @@ type (
 	SubjectTypeAuthorization = store.SubjectTypeAuthorization
 	KeyStatus                = store.KeyStatus
 	SigningKey               = store.SigningKey
-	PasswordPolicy           = store.PasswordPolicy
+	PasswordOptions          = store.PasswordOptions
+	PasswordComplexity       = store.PasswordComplexity
+	PasswordHistory          = store.PasswordHistory
+	PasswordDictionary       = store.PasswordDictionary
+	PasswordProfileData      = store.PasswordProfileData
+	ConnectionFilter         = store.ConnectionFilter
 	Connection               = store.Connection
 	Identity                 = store.Identity
 	User                     = store.User
@@ -64,7 +70,9 @@ var (
 	ErrConflict    = store.ErrConflict
 	ErrAlreadyUsed = store.ErrAlreadyUsed
 
-	ScriptNames = store.ScriptNames
+	ScriptNames      = store.ScriptNames
+	CharacterTypes   = store.CharacterTypes
+	LegacyComplexity = store.LegacyComplexity
 )
 
 const (
@@ -125,4 +133,21 @@ const (
 
 	RootAttributesOnEachLogin  = store.RootAttributesOnEachLogin
 	RootAttributesOnFirstLogin = store.RootAttributesOnFirstLogin
+
+	CharacterTypeUppercase = store.CharacterTypeUppercase
+	CharacterTypeLowercase = store.CharacterTypeLowercase
+	CharacterTypeNumber    = store.CharacterTypeNumber
+	CharacterTypeSpecial   = store.CharacterTypeSpecial
+
+	CharacterTypeRuleAll         = store.CharacterTypeRuleAll
+	CharacterTypeRuleThreeOfFour = store.CharacterTypeRuleThreeOfFour
+
+	PasswordAllow = store.PasswordAllow
+	PasswordBlock = store.PasswordBlock
+
+	MaxLengthError    = store.MaxLengthError
+	MaxLengthTruncate = store.MaxLengthTruncate
+
+	DictionaryEn10k  = store.DictionaryEn10k
+	DictionaryEn100k = store.DictionaryEn100k
 )

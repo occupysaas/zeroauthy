@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"bytes"
 	"context"
 	"maps"
 
@@ -58,6 +59,7 @@ func (s *Store) snapshot() *Store {
 		userGrants:         cloneMap(s.userGrants, cloneUserGrant),
 		signingKeys:        cloneMap(s.signingKeys, cloneSigningKey),
 		connections:        cloneMap(s.connections, cloneConnection),
+		passwordHistories:  clonePasswordHistories(s.passwordHistories),
 		users:              cloneMap(s.users, cloneUser),
 		sessions:           cloneMap(s.sessions, cloneSession),
 		transactions:       cloneMap(s.transactions, cloneAuthTransaction),
@@ -80,13 +82,25 @@ func (s *Store) restore(snap *Store) {
 	s.users, s.sessions, s.transactions = snap.users, snap.sessions, snap.transactions
 	s.authCodes, s.refreshTokens, s.resetTickets = snap.authCodes, snap.refreshTokens, snap.resetTickets
 	s.pushedAuthRequests, s.deviceCodes = snap.pushedAuthRequests, snap.deviceCodes
-	s.operators = snap.operators
+	s.operators, s.passwordHistories = snap.operators, snap.passwordHistories
 }
 
 func cloneMap[K comparable, V any](m map[K]*V, clone func(*V) *V) map[K]*V {
 	out := make(map[K]*V, len(m))
 	for k, v := range maps.All(m) {
 		out[k] = clone(v)
+	}
+	return out
+}
+
+func clonePasswordHistories(m map[key][][]byte) map[key][][]byte {
+	out := make(map[key][][]byte, len(m))
+	for k, h := range m {
+		c := make([][]byte, len(h))
+		for i, b := range h {
+			c[i] = bytes.Clone(b)
+		}
+		out[k] = c
 	}
 	return out
 }

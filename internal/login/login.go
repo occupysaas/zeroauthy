@@ -125,7 +125,7 @@ func (h *Handlers) connection(ctx context.Context, tenantID string, txn *store.A
 	if err != nil {
 		return nil, err
 	}
-	conns, err := h.Store.Connections().List(ctx, tenantID)
+	conns, _, err := h.Store.Connections().List(ctx, tenantID, store.ConnectionFilter{}, store.Page{})
 	if err != nil {
 		return nil, err
 	}

@@ -24,6 +24,7 @@ type Store struct {
 	userGrants         map[key]*store.UserGrant           // by (tenant, ID)
 	signingKeys        map[key]*store.SigningKey          // by (tenant, KID)
 	connections        map[key]*store.Connection          // by (tenant, ID)
+	passwordHistories  map[key][][]byte                   // by (tenant, UserID), oldest first
 	users              map[key]*store.User                // by (tenant, UserID)
 	sessions           map[key]*store.LoginSession        // by (tenant, ID)
 	transactions       map[key]*store.AuthTransaction     // by (tenant, ID)
@@ -45,6 +46,7 @@ func New() *Store {
 		userGrants:         map[key]*store.UserGrant{},
 		signingKeys:        map[key]*store.SigningKey{},
 		connections:        map[key]*store.Connection{},
+		passwordHistories:  map[key][][]byte{},
 		users:              map[key]*store.User{},
 		sessions:           map[key]*store.LoginSession{},
 		transactions:       map[key]*store.AuthTransaction{},
@@ -64,6 +66,7 @@ func (s *Store) ClientGrants() store.ClientGrants                 { return clien
 func (s *Store) UserGrants() store.UserGrants                     { return userGrants{s} }
 func (s *Store) SigningKeys() store.SigningKeys                   { return signingKeys{s} }
 func (s *Store) Connections() store.Connections                   { return connections{s} }
+func (s *Store) PasswordHistories() store.PasswordHistories       { return passwordHistories{s} }
 func (s *Store) Users() store.Users                               { return users{s} }
 func (s *Store) Sessions() store.Sessions                         { return sessions{s} }
 func (s *Store) AuthTransactions() store.AuthTransactions         { return authTransactions{s} }

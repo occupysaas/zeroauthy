@@ -40,9 +40,10 @@ func testEmptyLists(t *testing.T, newStore Factory) {
 	mustNoErr(t, err)
 	mustEqual(t, len(ugs), 0)
 
-	conns, err := s.Connections().List(ctx, id)
+	conns, total, err := s.Connections().List(ctx, id, store.ConnectionFilter{}, store.Page{Limit: 10})
 	mustNoErr(t, err)
 	mustEqual(t, len(conns), 0)
+	mustEqual(t, total, 0)
 
 	ops, err := s.Operators().List(ctx, id)
 	mustNoErr(t, err)

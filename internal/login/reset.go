@@ -211,7 +211,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var pe *identity.PolicyError
-	if err := identity.CheckPassword(conn.PasswordPolicy, pw); errors.As(err, &pe) {
+	if err := identity.CheckPassword(conn.PasswordOptions.Complexity, pw); errors.As(err, &pe) {
 		form.Error = policyMessage(view.L, pe)
 		ui.RenderResetForm(w, http.StatusBadRequest, view, form)
 		return

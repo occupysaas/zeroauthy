@@ -172,8 +172,8 @@ func TestSchemaConstraints(t *testing.T) {
 
 func TestLatestVersion(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 12 {
-			t.Errorf("%s LatestVersion = %d, want 12", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 13 {
+			t.Errorf("%s LatestVersion = %d, want 13", d.name, v)
 		}
 	}
 }
@@ -260,6 +260,42 @@ func TestMigration0004Defaults(t *testing.T) {
 			c, err := s.Clients().Get(ctx, "t", "c")
 			if err != nil || c.RequirePushedAuthorizationRequests {
 				t.Fatalf("client after migration: %+v %v", c, err)
+			}
+		})
+	}
+}
+
+// Migration 0013 turns the two password policy columns into
+// password_options as store.LegacyComplexity maps them, keeps the login
+// throttle on, and leaves the new settings at their zero values.
+func TestMigration0013ConvertsPasswordPolicy(t *testing.T) {
+	ctx := context.Background()
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := openAtVersion(t, mk(t), 12)
+			type row struct{ minLength, classes int }
+			rows := map[string]row{"c0": {0, 0}, "c1": {10, 1}, "c2": {6, 2}, "c3": {12, 3}, "c4": {8, 4}}
+			for id, r := range rows {
+				mustExec(t, s, `INSERT INTO connections (tenant_id, id, name, strategy, enabled_clients, disable_signup, requires_username,
+ password_min_length, password_character_classes, created_at) VALUES ('t', ?, ?, 'auth0', '["spa"]', false, false, ?, ?, 0)`,
+					id, id, r.minLength, r.classes)
+			}
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			for id, r := range rows {
+				c, err := s.Connections().Get(ctx, "t", id)
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := store.PasswordOptions{Complexity: store.LegacyComplexity(r.minLength, r.classes)}
+				if !reflect.DeepEqual(c.PasswordOptions, want) {
+					t.Errorf("%s: PasswordOptions = %+v, want %+v", id, c.PasswordOptions, want)
+				}
+				if !c.BruteForceProtection || c.UsernameMin != 0 || c.UsernameMax != 0 || c.Origin != "" || c.Extra != nil ||
+					!reflect.DeepEqual(c.EnabledClients, []string{"spa"}) {
+					t.Errorf("%s: unexpected settings %+v", id, c)
+				}
 			}
 		})
 	}

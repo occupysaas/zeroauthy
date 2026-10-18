@@ -318,7 +318,7 @@ func (h *Handlers) DeleteClient(w http.ResponseWriter, r *http.Request, id strin
 			return err
 		}
 		deleted = true
-		conns, err := tx.Connections().List(r.Context(), tn.ID)
+		conns, _, err := tx.Connections().List(r.Context(), tn.ID, store.ConnectionFilter{}, store.Page{})
 		if err != nil {
 			return err
 		}

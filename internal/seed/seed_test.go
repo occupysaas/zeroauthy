@@ -244,7 +244,7 @@ func TestApplyConnectionsAndUsers(t *testing.T) {
 		t.Errorf("id_token_lifetime = %d", c.IDTokenLifetime)
 	}
 	conn, err := st.Connections().GetByName(ctx, tn.ID, "Username-Password-Authentication")
-	if err != nil || conn.Strategy != store.StrategyDatabase || conn.PasswordPolicy.MinLength != 10 || len(conn.EnabledClients) != 1 {
+	if err != nil || conn.Strategy != store.StrategyDatabase || conn.PasswordOptions.Complexity.MinLength != 10 || len(conn.EnabledClients) != 1 {
 		t.Fatalf("connection = %+v, %v", conn, err)
 	}
 	u, err := st.Users().FindByLogin(ctx, tn.ID, conn.Name, "alice@acme.test")

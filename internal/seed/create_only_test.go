@@ -98,7 +98,7 @@ func TestCreateOnlyMode(t *testing.T) {
 	must(st.ClientGrants().Update(ctx, g))
 	conn, err := st.Connections().GetByName(ctx, tn.ID, "Db")
 	must(err)
-	conn.PasswordPolicy.MinLength = 8
+	conn.PasswordOptions.Complexity.MinLength = 8
 	must(st.Connections().Update(ctx, conn))
 	u, err := st.Users().FindByLogin(ctx, tn.ID, "Db", "alice@acme.test")
 	must(err)
@@ -120,7 +120,7 @@ func TestCreateOnlyMode(t *testing.T) {
 	if got, _ := st.ClientGrants().Find(ctx, tn.ID, "m2m", "https://api.acme.test", store.SubjectTypeClient); !slices.Equal(got.Scopes, []string{"read:things", "write:things"}) {
 		t.Errorf("client grant scopes = %v", got.Scopes)
 	}
-	if got, _ := st.Connections().GetByName(ctx, tn.ID, "Db"); got.PasswordPolicy.MinLength != 8 {
+	if got, _ := st.Connections().GetByName(ctx, tn.ID, "Db"); got.PasswordOptions.Complexity.MinLength != 8 {
 		t.Errorf("connection = %+v", got)
 	}
 	if got, _ := st.Users().FindByLogin(ctx, tn.ID, "Db", "alice@acme.test"); got.Name != "Edited Alice" {

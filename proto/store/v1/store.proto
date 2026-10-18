@@ -106,7 +106,12 @@ service StoreService {
   rpc ConnectionsGet(ScopedKey) returns (ConnectionResult);
   rpc ConnectionsGetByName(ScopedKey) returns (ConnectionResult);
   rpc ConnectionsUpdate(ConnectionWrite) returns (Result);
-  rpc ConnectionsList(TenantScope) returns (ConnectionList);
+  rpc ConnectionsList(TenantScope) returns (ConnectionList); // before Plan 15: every connection, by name
+  rpc ConnectionsListPage(ConnectionsListPageRequest) returns (ConnectionPage);
+  rpc ConnectionsDelete(ScopedKey) returns (Result);
+
+  rpc PasswordHistoriesAdd(PasswordHistoryAdd) returns (Result);
+  rpc PasswordHistoriesList(ScopedKey) returns (PasswordHistoryList); // key = user ID
 
   rpc UsersCreate(UserWrite) returns (Result);
   rpc UsersGet(ScopedKey) returns (UserResult);
@@ -311,7 +316,31 @@ message SigningKey {
   google.protobuf.Timestamp created_at = 7;
 }
 
+// PasswordPolicy is the password policy of plugins older than Plan 15: a
+// minimum length and a number of required character classes. Connection
+// still carries it, derived from password_options, so that such a plugin
+// keeps the minimum length; password_options wins when both are present.
 message PasswordPolicy { int64 min_length = 1; int64 require_character_classes = 2; }
+
+message PasswordComplexity {
+  int64 min_length = 1;
+  optional StringList character_types = 2;  // absent = nil
+  string character_type_rule = 3;
+  string identical_characters = 4;
+  string sequential_characters = 5;
+  string max_length_exceeded = 6;
+  int64 min_character_classes = 7;
+}
+message PasswordHistorySettings { bool active = 1; int64 size = 2; }
+message PasswordDictionary { bool active = 1; string default = 2; optional StringList custom = 3; }
+message PasswordProfileData { bool active = 1; optional StringList blocked_fields = 2; }
+message PasswordOptions {
+  PasswordComplexity complexity = 1;
+  PasswordHistorySettings history = 2;
+  PasswordDictionary dictionary = 3;
+  PasswordProfileData profile_data = 4;
+}
+
 message Connection {
   string tenant_id = 1; string id = 2; string name = 3; string strategy = 4;
   StringList enabled_clients = 5; bool disable_signup = 6; bool requires_username = 7;
@@ -321,6 +350,12 @@ message Connection {
   optional bytes configuration_sealed = 13; // absent = nil
   string set_user_root_attributes = 14;
   bool is_domain_connection = 15;
+  PasswordOptions password_options = 16;
+  bool brute_force_protection = 17;
+  int64 username_min = 18;
+  int64 username_max = 19;
+  string origin = 20;                 // "api" or empty (seed)
+  optional bytes extra_json = 21;     // absent = nil map; any JSON object
 }
 
 message Identity { string connection = 1; string provider = 2; string user_id = 3; string password_hash = 4; }
@@ -442,6 +477,18 @@ message SigningKeysRotateRequest { string tx_id = 1; string tenant_id = 2; Signi
 message ConnectionWrite { string tx_id = 1; Connection value = 2; }
 message ConnectionResult { Error error = 1; Connection value = 2; }
 message ConnectionList { Error error = 1; repeated Connection values = 2; }
+// ConnectionsListPage filters on a non-empty name (exact) and, when
+// strategies is not empty, on any of them; orders by lower-cased name, then
+// id; skips offset rows and returns at most limit (0 = no limit). total
+// counts the matches before paging.
+message ConnectionsListPageRequest {
+  string tx_id = 1; string tenant_id = 2; string name = 3; repeated string strategies = 4;
+  int64 offset = 5; int64 limit = 6;
+}
+message ConnectionPage { Error error = 1; repeated Connection values = 2; int64 total = 3; }
+
+message PasswordHistoryAdd { string tx_id = 1; string tenant_id = 2; string user_id = 3; bytes hash = 4; int64 keep = 5; }
+message PasswordHistoryList { Error error = 1; repeated bytes values = 2; } // newest first
 
 message UserWrite { string tx_id = 1; User value = 2; }
 message UserResult { Error error = 1; User value = 2; }

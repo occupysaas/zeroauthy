@@ -4,6 +4,7 @@ package store
 
 import (
 	"maps"
+	"slices"
 	"time"
 )
 
@@ -328,12 +329,120 @@ type Branding struct {
 // connections.
 const StrategyDatabase = "auth0"
 
-// PasswordPolicy constrains passwords on a database connection.
-type PasswordPolicy struct {
-	MinLength int // zero means 8
-	// RequireCharacterClasses is how many of lowercase, uppercase, digits
-	// and other characters a password must contain (0-4).
-	RequireCharacterClasses int
+// Values of PasswordComplexity.CharacterTypes.
+const (
+	CharacterTypeUppercase = "uppercase"
+	CharacterTypeLowercase = "lowercase"
+	CharacterTypeNumber    = "number"
+	CharacterTypeSpecial   = "special"
+)
+
+// CharacterTypes lists the four kinds of character a password can be
+// required to contain.
+var CharacterTypes = []string{CharacterTypeUppercase, CharacterTypeLowercase, CharacterTypeNumber, CharacterTypeSpecial}
+
+// Values of PasswordComplexity.CharacterTypeRule.
+const (
+	CharacterTypeRuleAll         = "all"
+	CharacterTypeRuleThreeOfFour = "three_of_four"
+)
+
+// Values of PasswordComplexity.IdenticalCharacters and SequentialCharacters.
+const (
+	PasswordAllow = "allow"
+	PasswordBlock = "block"
+)
+
+// Values of PasswordComplexity.MaxLengthExceeded.
+const (
+	MaxLengthError    = "error"
+	MaxLengthTruncate = "truncate"
+)
+
+// Values of PasswordDictionary.Default.
+const (
+	DictionaryEn10k  = "en_10k"
+	DictionaryEn100k = "en_100k"
+)
+
+// PasswordComplexity is the complexity half of a connection's password
+// options (Auth0's password_options.complexity). The zero value of every
+// string field means the default named below; the store keeps what it is
+// given.
+type PasswordComplexity struct {
+	MinLength int // zero means 8, zeroauthy's long-standing default
+	// CharacterTypes lists the kinds a password must contain: any of
+	// CharacterTypeUppercase, CharacterTypeLowercase, CharacterTypeNumber
+	// and CharacterTypeSpecial.
+	CharacterTypes []string
+	// CharacterTypeRule is CharacterTypeRuleAll (every listed type; the
+	// default) or CharacterTypeRuleThreeOfFour (at least three of the four
+	// types, with all four listed).
+	CharacterTypeRule string
+	// IdenticalCharacters and SequentialCharacters are PasswordAllow (the
+	// default) or PasswordBlock.
+	IdenticalCharacters, SequentialCharacters string
+	// MaxLengthExceeded is MaxLengthError (the default) or
+	// MaxLengthTruncate.
+	MaxLengthExceeded string
+	// MinCharacterClasses is a zeroauthy extension that keeps the seed's
+	// require_character_classes of 1 or 2: a password must contain at least
+	// this many of the four kinds of character, whichever they are.
+	// Auth0's model has no such rule. Zero means none; 3 and 4 are
+	// expressed with CharacterTypes and CharacterTypeRule instead.
+	MinCharacterClasses int
+}
+
+// LegacyComplexity converts the seed's password_policy (a minimum length and
+// a number of required character classes, 0-4) into PasswordComplexity: 4
+// classes are all four types, 3 are three of the four, 1 and 2 use
+// MinCharacterClasses. Migration 0013 applies the same mapping to stored
+// connections.
+func LegacyComplexity(minLength, classes int) PasswordComplexity {
+	c := PasswordComplexity{MinLength: minLength}
+	switch {
+	case classes >= 4:
+		c.CharacterTypes = slices.Clone(CharacterTypes)
+		c.CharacterTypeRule = CharacterTypeRuleAll
+	case classes == 3:
+		c.CharacterTypes = slices.Clone(CharacterTypes)
+		c.CharacterTypeRule = CharacterTypeRuleThreeOfFour
+	case classes > 0:
+		c.MinCharacterClasses = classes
+	}
+	return c
+}
+
+// PasswordHistory is the history rule of a connection's password options:
+// when Active, a new password must differ from the user's last Size.
+type PasswordHistory struct {
+	Active bool
+	Size   int
+}
+
+// PasswordDictionary is the dictionary rule: when Active, a password found in
+// the Default list (DictionaryEn10k or DictionaryEn100k) or in Custom is
+// refused.
+type PasswordDictionary struct {
+	Active  bool
+	Default string
+	Custom  []string
+}
+
+// PasswordProfileData is the personal data rule: when Active, a password
+// containing the value of one of BlockedFields is refused.
+type PasswordProfileData struct {
+	Active        bool
+	BlockedFields []string
+}
+
+// PasswordOptions constrains passwords on a database connection (Auth0's
+// password_options).
+type PasswordOptions struct {
+	Complexity  PasswordComplexity
+	History     PasswordHistory
+	Dictionary  PasswordDictionary
+	ProfileData PasswordProfileData
 }
 
 // Connection is a source of user identities for a tenant.
@@ -345,8 +454,21 @@ type Connection struct {
 	EnabledClients   []string
 	DisableSignup    bool
 	RequiresUsername bool
-	PasswordPolicy   PasswordPolicy
-	CreatedAt        time.Time
+	PasswordOptions  PasswordOptions
+	// BruteForceProtection switches the login throttle for the connection.
+	BruteForceProtection bool
+	// UsernameMin and UsernameMax bound usernames on the connection
+	// (Auth0's options.validation.username); zero means no limit was set.
+	UsernameMin, UsernameMax int
+	// Origin records who created the connection: OriginAPI for the
+	// Management API (and the console), empty for the seed or zeroauthy
+	// itself. The seed never touches API-created connections.
+	Origin string
+	// Extra holds the options zeroauthy stores but does not interpret
+	// (Auth0's unknown option keys): a JSON object, any depth. Nil means
+	// none. Numbers come back as float64.
+	Extra     map[string]any
+	CreatedAt time.Time
 
 	// EnabledDatabaseCustomization makes the connection use CustomScripts
 	// (Auth0's custom database). ImportMode copies users into zeroauthy on
@@ -361,6 +483,14 @@ type Connection struct {
 	// IsDomainConnection marks a domain-level connection (Auth0's
 	// is_domain_connection).
 	IsDomainConnection bool
+}
+
+// ConnectionFilter narrows Connections.List. An empty Name matches all; Name
+// is an exact, case-sensitive match. Strategies, when not empty, keeps the
+// connections whose Strategy is any of them.
+type ConnectionFilter struct {
+	Name       string
+	Strategies []string
 }
 
 // Custom database script names.

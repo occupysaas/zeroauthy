@@ -4,7 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -14,15 +17,16 @@ type connections struct{ s *Store }
 func (s *Store) Connections() store.Connections { return connections{s} }
 
 const connectionCols = `tenant_id, id, name, strategy, enabled_clients, disable_signup, requires_username,
- password_min_length, password_character_classes, created_at,
- enabled_database_customization, import_mode, custom_scripts, configuration_sealed, set_user_root_attributes, is_domain_connection`
+ password_options, created_at,
+ enabled_database_customization, import_mode, custom_scripts, configuration_sealed, set_user_root_attributes, is_domain_connection,
+ brute_force_protection, username_min, username_max, origin, extra`
 
 func (r connections) Create(ctx context.Context, c *store.Connection) error {
 	args, err := connectionArgs(c)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO connections (`+connectionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO connections (`+connectionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -48,8 +52,9 @@ func (r connections) Update(ctx context.Context, c *store.Connection) error {
 		return err
 	}
 	res, err := r.s.write(ctx, nil, `UPDATE connections SET name=?, strategy=?, enabled_clients=?, disable_signup=?, requires_username=?,
- password_min_length=?, password_character_classes=?, created_at=?,
- enabled_database_customization=?, import_mode=?, custom_scripts=?, configuration_sealed=?, set_user_root_attributes=?, is_domain_connection=?
+ password_options=?, created_at=?,
+ enabled_database_customization=?, import_mode=?, custom_scripts=?, configuration_sealed=?, set_user_root_attributes=?, is_domain_connection=?,
+ brute_force_protection=?, username_min=?, username_max=?, origin=?, extra=?
  WHERE tenant_id=? AND id=?`, append(slices.Clone(args[2:]), c.TenantID, c.ID)...)
 	if err != nil {
 		return r.s.conflict(err)
@@ -57,19 +62,104 @@ func (r connections) Update(ctx context.Context, c *store.Connection) error {
 	return expectRow(res)
 }
 
-func (r connections) List(ctx context.Context, tenantID string) ([]*store.Connection, error) {
-	rows, err := r.s.query(ctx, `SELECT `+connectionCols+` FROM connections WHERE tenant_id = ? ORDER BY name`, tenantID)
+func (r connections) List(ctx context.Context, tenantID string, f store.ConnectionFilter, p store.Page) ([]*store.Connection, int, error) {
+	where, args := []string{"tenant_id = ?"}, []any{tenantID}
+	if f.Name != "" {
+		where = append(where, "name = ?")
+		args = append(args, f.Name)
+	}
+	if len(f.Strategies) > 0 {
+		where = append(where, "strategy IN ("+strings.TrimSuffix(strings.Repeat("?,", len(f.Strategies)), ",")+")")
+		for _, st := range f.Strategies {
+			args = append(args, st)
+		}
+	}
+	cond := strings.Join(where, " AND ")
+	var total int
+	if err := r.s.queryRow(ctx, `SELECT COUNT(*) FROM connections WHERE `+cond, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	// LOWER(name) then id, both in byte order, so the order is the same on
+	// every database. Offset and limit are integers built here, never
+	// caller text. SQLite and MySQL want a LIMIT with an OFFSET, so "no
+	// limit" is the largest BIGINT.
+	q := `SELECT ` + connectionCols + ` FROM connections WHERE ` + cond +
+		` ORDER BY LOWER(name)` + r.s.d.byteOrder + `, id` + r.s.d.byteOrder
+	limit, offset := int64(p.Limit), int64(max(p.Offset, 0))
+	if limit <= 0 {
+		limit = math.MaxInt64
+	}
+	q += ` LIMIT ` + strconv.FormatInt(limit, 10) + ` OFFSET ` + strconv.FormatInt(offset, 10)
+	rows, err := r.s.query(ctx, q, args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var out []*store.Connection
 	for rows.Next() {
 		c, err := scanConnection(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		out = append(out, c)
+	}
+	return out, total, rows.Err()
+}
+
+// Delete removes the connection, then its users and what hangs off them.
+// The users are those with an identity on the connection, found by reading
+// the identities of the tenant's users (the identities are JSON, so no index
+// helps); only their IDs are kept.
+func (r connections) Delete(ctx context.Context, tenantID, id string) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		var name string
+		err := tx.queryRow(ctx, `SELECT name FROM connections WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate, tenantID, id).Scan(&name)
+		if errors.Is(err, sql.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		userIDs, err := usersOnConnection(ctx, tx, tenantID, name)
+		if err != nil {
+			return err
+		}
+		for _, uid := range userIDs {
+			for _, table := range []string{"sessions", "refresh_tokens", "user_grants", "password_reset_tickets", "password_history", "user_logins", "users"} {
+				if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND user_id = ?`, tenantID, uid); err != nil {
+					return err
+				}
+			}
+		}
+		if _, err := tx.exec(ctx, `UPDATE tenants SET default_directory = '' WHERE id = ? AND default_directory = ?`, tenantID, name); err != nil {
+			return err
+		}
+		_, err = tx.exec(ctx, `DELETE FROM connections WHERE tenant_id = ? AND id = ?`, tenantID, id)
+		return err
+	})
+}
+
+// usersOnConnection returns the IDs of the tenant's users with an identity
+// on the connection called name.
+func usersOnConnection(ctx context.Context, tx *Store, tenantID, name string) ([]string, error) {
+	rows, err := tx.query(ctx, `SELECT user_id, identities FROM users WHERE tenant_id = ?`, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close() // also on the early returns; SQLite has one connection
+	var out []string
+	for rows.Next() {
+		var uid, raw string
+		if err := rows.Scan(&uid, &raw); err != nil {
+			return nil, err
+		}
+		var ids []store.Identity
+		if err := fromJSON(raw, &ids); err != nil {
+			return nil, err
+		}
+		if slices.ContainsFunc(ids, func(i store.Identity) bool { return i.Connection == name }) {
+			out = append(out, uid)
+		}
 	}
 	return out, rows.Err()
 }
@@ -80,9 +170,19 @@ func scanConnection(row scanner) (*store.Connection, error) {
 	var created int64
 	var scripts string
 	var sealed []byte
+	var options, extra string
 	if err := row.Scan(&c.TenantID, &c.ID, &c.Name, &c.Strategy, &enabled, &c.DisableSignup, &c.RequiresUsername,
-		&c.PasswordPolicy.MinLength, &c.PasswordPolicy.RequireCharacterClasses, &created,
-		&c.EnabledDatabaseCustomization, &c.ImportMode, &scripts, &sealed, &c.SetUserRootAttributes, &c.IsDomainConnection); err != nil {
+		&options, &created,
+		&c.EnabledDatabaseCustomization, &c.ImportMode, &scripts, &sealed, &c.SetUserRootAttributes, &c.IsDomainConnection,
+		&c.BruteForceProtection, &c.UsernameMin, &c.UsernameMax, &c.Origin, &extra); err != nil {
+		return nil, err
+	}
+	var po passwordOptionsJSON
+	if err := fromJSON(options, &po); err != nil {
+		return nil, err
+	}
+	c.PasswordOptions = po.toStore()
+	if err := fromJSON(extra, &c.Extra); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(scripts, &c.CustomScripts); err != nil {
@@ -107,11 +207,81 @@ func connectionArgs(c *store.Connection) ([]any, error) {
 	if err != nil {
 		return nil, err
 	}
+	options, err := toJSON(passwordOptionsToJSON(c.PasswordOptions))
+	if err != nil {
+		return nil, err
+	}
+	extra, err := toJSON(c.Extra)
+	if err != nil {
+		return nil, err
+	}
 	var sealed any // SQL NULL when there is no sealed configuration
 	if len(c.ConfigurationSealed) > 0 {
 		sealed = c.ConfigurationSealed
 	}
 	return []any{c.TenantID, c.ID, c.Name, c.Strategy, enabled, c.DisableSignup, c.RequiresUsername,
-		c.PasswordPolicy.MinLength, c.PasswordPolicy.RequireCharacterClasses, micros(c.CreatedAt),
-		c.EnabledDatabaseCustomization, c.ImportMode, scripts, sealed, c.SetUserRootAttributes, c.IsDomainConnection}, nil
+		options, micros(c.CreatedAt),
+		c.EnabledDatabaseCustomization, c.ImportMode, scripts, sealed, c.SetUserRootAttributes, c.IsDomainConnection,
+		c.BruteForceProtection, c.UsernameMin, c.UsernameMax, c.Origin, extra}, nil
+}
+
+// passwordOptionsJSON is the stored form of store.PasswordOptions (the
+// password_options column). Its keys are Auth0's; migration 0013 writes the
+// same keys. A key that is absent reads as the zero value; lists keep the
+// difference between null and [].
+type passwordOptionsJSON struct {
+	Complexity struct {
+		MinLength            int      `json:"min_length"`
+		CharacterTypes       []string `json:"character_types"`
+		CharacterTypeRule    string   `json:"character_type_rule"`
+		IdenticalCharacters  string   `json:"identical_characters"`
+		SequentialCharacters string   `json:"sequential_characters"`
+		MaxLengthExceeded    string   `json:"max_length_exceeded"`
+		MinCharacterClasses  int      `json:"min_character_classes"`
+	} `json:"complexity"`
+	History struct {
+		Active bool `json:"active"`
+		Size   int  `json:"size"`
+	} `json:"history"`
+	Dictionary struct {
+		Active  bool     `json:"active"`
+		Default string   `json:"default"`
+		Custom  []string `json:"custom"`
+	} `json:"dictionary"`
+	ProfileData struct {
+		Active        bool     `json:"active"`
+		BlockedFields []string `json:"blocked_fields"`
+	} `json:"profile_data"`
+}
+
+func passwordOptionsToJSON(o store.PasswordOptions) passwordOptionsJSON {
+	var j passwordOptionsJSON
+	j.Complexity.MinLength = o.Complexity.MinLength
+	j.Complexity.CharacterTypes = o.Complexity.CharacterTypes
+	j.Complexity.CharacterTypeRule = o.Complexity.CharacterTypeRule
+	j.Complexity.IdenticalCharacters = o.Complexity.IdenticalCharacters
+	j.Complexity.SequentialCharacters = o.Complexity.SequentialCharacters
+	j.Complexity.MaxLengthExceeded = o.Complexity.MaxLengthExceeded
+	j.Complexity.MinCharacterClasses = o.Complexity.MinCharacterClasses
+	j.History.Active, j.History.Size = o.History.Active, o.History.Size
+	j.Dictionary.Active, j.Dictionary.Default, j.Dictionary.Custom = o.Dictionary.Active, o.Dictionary.Default, o.Dictionary.Custom
+	j.ProfileData.Active, j.ProfileData.BlockedFields = o.ProfileData.Active, o.ProfileData.BlockedFields
+	return j
+}
+
+func (j passwordOptionsJSON) toStore() store.PasswordOptions {
+	return store.PasswordOptions{
+		Complexity: store.PasswordComplexity{
+			MinLength:            j.Complexity.MinLength,
+			CharacterTypes:       j.Complexity.CharacterTypes,
+			CharacterTypeRule:    j.Complexity.CharacterTypeRule,
+			IdenticalCharacters:  j.Complexity.IdenticalCharacters,
+			SequentialCharacters: j.Complexity.SequentialCharacters,
+			MaxLengthExceeded:    j.Complexity.MaxLengthExceeded,
+			MinCharacterClasses:  j.Complexity.MinCharacterClasses,
+		},
+		History:     store.PasswordHistory{Active: j.History.Active, Size: j.History.Size},
+		Dictionary:  store.PasswordDictionary{Active: j.Dictionary.Active, Default: j.Dictionary.Default, Custom: j.Dictionary.Custom},
+		ProfileData: store.PasswordProfileData{Active: j.ProfileData.Active, BlockedFields: j.ProfileData.BlockedFields},
+	}
 }

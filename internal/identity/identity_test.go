@@ -16,18 +16,29 @@ func TestNormalizeLogin(t *testing.T) {
 
 func TestCheckPassword(t *testing.T) {
 	cases := []struct {
-		policy   store.PasswordPolicy
+		policy   store.PasswordComplexity
 		password string
 		ok       bool
 	}{
-		{store.PasswordPolicy{}, "1234567", false}, // default minimum is 8
-		{store.PasswordPolicy{}, "12345678", true},
-		{store.PasswordPolicy{MinLength: 12}, "abcdefghijk", false},
-		{store.PasswordPolicy{MinLength: 4}, "ééééé", true}, // runes, not bytes
-		{store.PasswordPolicy{RequireCharacterClasses: 3}, "alllowercase", false},
-		{store.PasswordPolicy{RequireCharacterClasses: 3}, "Lower1upper", true},
-		{store.PasswordPolicy{RequireCharacterClasses: 4}, "Lower1upper!", true},
-		{store.PasswordPolicy{}, strings.Repeat("a", MaxPasswordBytes+1), false},
+		{store.PasswordComplexity{}, "1234567", false}, // default minimum is 8
+		{store.PasswordComplexity{}, "12345678", true},
+		{store.PasswordComplexity{MinLength: 12}, "abcdefghijk", false},
+		{store.PasswordComplexity{MinLength: 4}, "ééééé", true}, // runes, not bytes
+		{store.LegacyComplexity(0, 3), "alllowercase", false},
+		{store.LegacyComplexity(0, 3), "Lower1upper", true},
+		{store.LegacyComplexity(0, 4), "Lower1upper!", true},
+		{store.PasswordComplexity{}, strings.Repeat("a", MaxPasswordBytes+1), false},
+		{store.LegacyComplexity(0, 1), "12345678", true}, // any one class
+		{store.LegacyComplexity(0, 2), "12345678", false},
+		{store.LegacyComplexity(0, 2), "abcdef12", true},
+		{store.LegacyComplexity(0, 4), "Lower1upper", false},
+		{store.LegacyComplexity(0, 3), "Lower1upper", true},
+		{store.LegacyComplexity(0, 3), "lower1upper!", true},
+		// Required types by name.
+		{store.PasswordComplexity{CharacterTypes: []string{"number"}}, "abcdefgh", false},
+		{store.PasswordComplexity{CharacterTypes: []string{"number"}}, "abcdefg1", true},
+		{store.PasswordComplexity{CharacterTypes: []string{"uppercase", "special"}, CharacterTypeRule: "all"}, "Abcdefgh1", false},
+		{store.PasswordComplexity{CharacterTypes: []string{"uppercase", "special"}, CharacterTypeRule: "all"}, "Abcdefgh!", true},
 	}
 	for _, tc := range cases {
 		err := CheckPassword(tc.policy, tc.password)

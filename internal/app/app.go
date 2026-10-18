@@ -211,7 +211,7 @@ func bootstrapOperator(ctx context.Context, st store.Store, email string, log *s
 // connections keep working, and those connections fail per request.
 func checkCustomDB(ctx context.Context, st store.Store, tenants []*store.Tenant, runner *customdb.NodeRunner, log *slog.Logger) error {
 	for _, tn := range tenants {
-		conns, err := st.Connections().List(ctx, tn.ID)
+		conns, _, err := st.Connections().List(ctx, tn.ID, store.ConnectionFilter{}, store.Page{})
 		if err != nil {
 			return err
 		}

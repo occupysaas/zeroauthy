@@ -115,6 +115,7 @@ func (c *Client) ClientGrants() store.ClientGrants             { return clientCl
 func (c *Client) UserGrants() store.UserGrants                 { return clientUserGrants{c} }
 func (c *Client) SigningKeys() store.SigningKeys               { return clientSigningKeys{c} }
 func (c *Client) Connections() store.Connections               { return clientConnections{c} }
+func (c *Client) PasswordHistories() store.PasswordHistories   { return clientPasswordHistories{c} }
 func (c *Client) Users() store.Users                           { return clientUsers{c} }
 func (c *Client) Sessions() store.Sessions                     { return clientSessions{c} }
 func (c *Client) AuthTransactions() store.AuthTransactions     { return clientAuthTransactions{c} }

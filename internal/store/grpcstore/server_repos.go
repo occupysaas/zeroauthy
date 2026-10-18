@@ -384,13 +384,52 @@ func (s *Server) ConnectionsUpdate(ctx context.Context, r *storev1.ConnectionWri
 }
 
 func (s *Server) ConnectionsList(ctx context.Context, r *storev1.TenantScope) (*storev1.ConnectionList, error) {
-	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.Connection, error) {
-		return st.Connections().List(ctx, r.TenantId)
+	vs, e, err := many(s, r.TxId, func(st store.Store) (out []*store.Connection, e error) {
+		out, _, e = st.Connections().List(ctx, r.TenantId, store.ConnectionFilter{}, store.Page{})
+		return out, e
 	}, connectionToPB)
 	if err != nil {
 		return nil, err
 	}
 	return &storev1.ConnectionList{Error: e, Values: vs}, nil
+}
+
+func (s *Server) ConnectionsListPage(ctx context.Context, r *storev1.ConnectionsListPageRequest) (*storev1.ConnectionPage, error) {
+	var total int
+	vs, e, err := many(s, r.TxId, func(st store.Store) (out []*store.Connection, e error) {
+		out, total, e = st.Connections().List(ctx, r.TenantId,
+			store.ConnectionFilter{Name: r.Name, Strategies: r.Strategies},
+			store.Page{Offset: int(r.Offset), Limit: int(r.Limit)})
+		return out, e
+	}, connectionToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.ConnectionPage{Error: e, Values: vs, Total: int64(total)}, nil
+}
+
+func (s *Server) ConnectionsDelete(ctx context.Context, r *storev1.ScopedKey) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error { return st.Connections().Delete(ctx, r.TenantId, r.Key) }), nil
+}
+
+func (s *Server) PasswordHistoriesAdd(ctx context.Context, r *storev1.PasswordHistoryAdd) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.PasswordHistories().Add(ctx, r.TenantId, r.UserId, r.Hash, int(r.Keep))
+	}), nil
+}
+
+func (s *Server) PasswordHistoriesList(ctx context.Context, r *storev1.ScopedKey) (*storev1.PasswordHistoryList, error) {
+	var hs [][]byte
+	err := s.with(r.TxId, func(st store.Store) (e error) {
+		hs, e = st.PasswordHistories().List(ctx, r.TenantId, r.Key)
+		return e
+	})
+	var fault *storev1.Error
+	if err != nil {
+		fault = errToPB(err)
+		hs = nil
+	}
+	return &storev1.PasswordHistoryList{Error: fault, Values: hs}, nil
 }
 
 // ---- users ----

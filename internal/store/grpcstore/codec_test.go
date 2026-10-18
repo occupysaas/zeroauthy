@@ -256,7 +256,19 @@ func TestConnectionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Connection{
 		TenantID: "ten", ID: "c1", Name: "Username-Password-Authentication", Strategy: store.StrategyDatabase,
 		EnabledClients: []string{"cid1", "cid2"}, DisableSignup: true, RequiresUsername: true,
-		PasswordPolicy: store.PasswordPolicy{MinLength: 12, RequireCharacterClasses: 3}, CreatedAt: nanoTime,
+		PasswordOptions: store.PasswordOptions{
+			Complexity: store.PasswordComplexity{
+				MinLength: 12, CharacterTypes: []string{"uppercase", "number"}, CharacterTypeRule: store.CharacterTypeRuleAll,
+				IdenticalCharacters: store.PasswordBlock, SequentialCharacters: store.PasswordAllow,
+				MaxLengthExceeded: store.MaxLengthTruncate, MinCharacterClasses: 2,
+			},
+			History:     store.PasswordHistory{Active: true, Size: 4},
+			Dictionary:  store.PasswordDictionary{Active: true, Default: store.DictionaryEn10k, Custom: []string{"acme"}},
+			ProfileData: store.PasswordProfileData{Active: true, BlockedFields: []string{"name"}},
+		},
+		BruteForceProtection: true, UsernameMin: 3, UsernameMax: 40, Origin: store.OriginAPI,
+		Extra:                        map[string]any{"a": map[string]any{"b": []any{"c", float64(1)}}},
+		CreatedAt:                    nanoTime,
 		EnabledDatabaseCustomization: true, ImportMode: true,
 		CustomScripts:         map[string]string{store.ScriptLogin: "function login() {}", store.ScriptCreate: ""},
 		ConfigurationSealed:   []byte{0x01, 0x00, 0xff},
@@ -266,6 +278,15 @@ func TestConnectionRoundTrip(t *testing.T) {
 	// An empty (non-nil) script map stays distinct from nil.
 	roundTrip(t, "empty scripts", &store.Connection{CustomScripts: map[string]string{}}, connectionToPB, connectionFromPB)
 	roundTrip(t, "empty", &store.Connection{EnabledClients: []string{}}, connectionToPB, connectionFromPB)
+	// Empty lists and an empty Extra stay distinct from nil.
+	roundTrip(t, "empty options", &store.Connection{
+		PasswordOptions: store.PasswordOptions{
+			Complexity:  store.PasswordComplexity{CharacterTypes: []string{}},
+			Dictionary:  store.PasswordDictionary{Custom: []string{}},
+			ProfileData: store.PasswordProfileData{BlockedFields: []string{}},
+		},
+		Extra: map[string]any{},
+	}, connectionToPB, connectionFromPB)
 	roundTrip(t, "zero", &store.Connection{}, connectionToPB, connectionFromPB)
 }
 
@@ -508,6 +529,46 @@ func TestDevicePollOutcomeFromPB(t *testing.T) {
 	for _, bad := range []string{"", "Approved", "bogus"} {
 		if _, err := devicePollOutcomeFromPB(bad); err == nil {
 			t.Fatalf("%q accepted", bad)
+		}
+	}
+}
+
+// A plugin older than Plan 15 stores only the legacy password_policy, so
+// that is what a connection read back from it carries.
+func TestConnectionLegacyPasswordPolicy(t *testing.T) {
+	for classes, want := range map[int64]store.PasswordComplexity{
+		0: {MinLength: 12},
+		2: {MinLength: 12, MinCharacterClasses: 2},
+		3: {MinLength: 12, CharacterTypes: store.CharacterTypes, CharacterTypeRule: store.CharacterTypeRuleThreeOfFour},
+		4: {MinLength: 12, CharacterTypes: store.CharacterTypes, CharacterTypeRule: store.CharacterTypeRuleAll},
+	} {
+		c, err := connectionFromPB(&storev1.Connection{
+			CreatedAt:      tsToPB(time.Unix(0, 0)),
+			PasswordPolicy: &storev1.PasswordPolicy{MinLength: 12, RequireCharacterClasses: classes},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(want, c.PasswordOptions.Complexity); diff != "" {
+			t.Errorf("classes %d (-want +got):\n%s", classes, diff)
+		}
+	}
+}
+
+// And such a plugin keeps the minimum length and class count it understands.
+func TestConnectionWritesLegacyPasswordPolicy(t *testing.T) {
+	for want, c := range map[int64]store.PasswordComplexity{
+		0: {MinLength: 12},
+		1: {MinLength: 12, MinCharacterClasses: 1},
+		3: store.LegacyComplexity(12, 3),
+		4: store.LegacyComplexity(12, 4),
+	} {
+		pb, err := connectionToPB(&store.Connection{PasswordOptions: store.PasswordOptions{Complexity: c}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := pb.PasswordPolicy; got.MinLength != 12 || got.RequireCharacterClasses != want {
+			t.Errorf("%+v: policy = %+v, want 12 and %d", c, got, want)
 		}
 	}
 }

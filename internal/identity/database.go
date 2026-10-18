@@ -193,7 +193,7 @@ func checkSignup(conn *store.Connection, in SignupInput) (email, username string
 	if err := checkProfile(in); err != nil {
 		return "", "", err
 	}
-	if err := CheckPassword(conn.PasswordPolicy, in.Password); err != nil {
+	if err := CheckPassword(conn.PasswordOptions.Complexity, in.Password); err != nil {
 		return "", "", err
 	}
 	return email, username, nil

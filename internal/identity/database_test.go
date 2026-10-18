@@ -96,7 +96,7 @@ func TestSignupRules(t *testing.T) {
 	ctx := context.Background()
 	db, conn := newDB(t)
 
-	conn.PasswordPolicy = store.PasswordPolicy{MinLength: 10}
+	conn.PasswordOptions.Complexity = store.PasswordComplexity{MinLength: 10}
 	var pe *PolicyError
 	if _, err := db.Signup(ctx, conn, SignupInput{Email: "c@example.com", Username: "", Password: "short"}); !errors.As(err, &pe) {
 		t.Errorf("weak password err = %v", err)

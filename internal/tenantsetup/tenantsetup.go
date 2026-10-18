@@ -61,7 +61,8 @@ func UpsertConnection(ctx context.Context, st store.Store, tenantID, name string
 		return err
 	}
 	if create {
-		c = &store.Connection{TenantID: tenantID, ID: "con_" + secrets.RandomString(16), Name: name, CreatedAt: now}
+		// Brute force protection is on: zeroauthy always throttled logins.
+		c = &store.Connection{TenantID: tenantID, ID: "con_" + secrets.RandomString(16), Name: name, CreatedAt: now, BruteForceProtection: true}
 	}
 	if err := set(c); err != nil {
 		return err

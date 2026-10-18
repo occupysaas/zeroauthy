@@ -257,7 +257,8 @@ func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
 	c.IsDomainConnection = in.IsDomainConnection
 	c.EnabledClients = slices.Clone(in.EnabledClients)
 	c.DisableSignup, c.RequiresUsername = in.DisableSignup, in.RequiresUsername
-	c.PasswordPolicy = store.PasswordPolicy{MinLength: in.PasswordPolicy.MinLength, RequireCharacterClasses: in.PasswordPolicy.RequireCharacterClasses}
+	// The seed owns the complexity half of the password options only.
+	c.PasswordOptions.Complexity = store.LegacyComplexity(in.PasswordPolicy.MinLength, in.PasswordPolicy.RequireCharacterClasses)
 	c.EnabledDatabaseCustomization, c.ImportMode = in.EnabledDatabaseCustomization, in.ImportMode
 	c.SetUserRootAttributes = in.SetUserRootAttributes
 	c.CustomScripts = maps.Clone(in.CustomScripts)

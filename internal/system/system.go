@@ -160,8 +160,8 @@ func ensure(ctx context.Context, st store.Store, host string, now time.Time, w k
 		c.IsDomainConnection = false
 		c.DisableSignup = true // operators are invited, never self-registered
 		c.RequiresUsername = false
-		if c.PasswordPolicy.MinLength < operatorPasswordMinLength {
-			c.PasswordPolicy.MinLength = operatorPasswordMinLength
+		if c.PasswordOptions.Complexity.MinLength < operatorPasswordMinLength {
+			c.PasswordOptions.Complexity.MinLength = operatorPasswordMinLength
 		}
 		c.EnabledDatabaseCustomization, c.ImportMode = false, false
 		c.CustomScripts, c.ConfigurationSealed = nil, nil

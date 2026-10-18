@@ -60,6 +60,10 @@ const (
 	StoreService_ConnectionsGetByName_FullMethodName               = "/zeroauthy.store.v1.StoreService/ConnectionsGetByName"
 	StoreService_ConnectionsUpdate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ConnectionsUpdate"
 	StoreService_ConnectionsList_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ConnectionsList"
+	StoreService_ConnectionsListPage_FullMethodName                = "/zeroauthy.store.v1.StoreService/ConnectionsListPage"
+	StoreService_ConnectionsDelete_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ConnectionsDelete"
+	StoreService_PasswordHistoriesAdd_FullMethodName               = "/zeroauthy.store.v1.StoreService/PasswordHistoriesAdd"
+	StoreService_PasswordHistoriesList_FullMethodName              = "/zeroauthy.store.v1.StoreService/PasswordHistoriesList"
 	StoreService_UsersCreate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UsersCreate"
 	StoreService_UsersGet_FullMethodName                           = "/zeroauthy.store.v1.StoreService/UsersGet"
 	StoreService_UsersFindByLogin_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UsersFindByLogin"
@@ -211,6 +215,10 @@ type StoreServiceClient interface {
 	ConnectionsGetByName(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ConnectionResult, error)
 	ConnectionsUpdate(ctx context.Context, in *ConnectionWrite, opts ...grpc.CallOption) (*Result, error)
 	ConnectionsList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*ConnectionList, error)
+	ConnectionsListPage(ctx context.Context, in *ConnectionsListPageRequest, opts ...grpc.CallOption) (*ConnectionPage, error)
+	ConnectionsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
+	PasswordHistoriesAdd(ctx context.Context, in *PasswordHistoryAdd, opts ...grpc.CallOption) (*Result, error)
+	PasswordHistoriesList(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*PasswordHistoryList, error)
 	UsersCreate(ctx context.Context, in *UserWrite, opts ...grpc.CallOption) (*Result, error)
 	UsersGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserResult, error)
 	UsersFindByLogin(ctx context.Context, in *UsersFindByLoginRequest, opts ...grpc.CallOption) (*UserResult, error)
@@ -674,6 +682,46 @@ func (c *storeServiceClient) ConnectionsList(ctx context.Context, in *TenantScop
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ConnectionList)
 	err := c.cc.Invoke(ctx, StoreService_ConnectionsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ConnectionsListPage(ctx context.Context, in *ConnectionsListPageRequest, opts ...grpc.CallOption) (*ConnectionPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConnectionPage)
+	err := c.cc.Invoke(ctx, StoreService_ConnectionsListPage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ConnectionsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_ConnectionsDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PasswordHistoriesAdd(ctx context.Context, in *PasswordHistoryAdd, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_PasswordHistoriesAdd_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) PasswordHistoriesList(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*PasswordHistoryList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PasswordHistoryList)
+	err := c.cc.Invoke(ctx, StoreService_PasswordHistoriesList_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1252,6 +1300,10 @@ type StoreServiceServer interface {
 	ConnectionsGetByName(context.Context, *ScopedKey) (*ConnectionResult, error)
 	ConnectionsUpdate(context.Context, *ConnectionWrite) (*Result, error)
 	ConnectionsList(context.Context, *TenantScope) (*ConnectionList, error)
+	ConnectionsListPage(context.Context, *ConnectionsListPageRequest) (*ConnectionPage, error)
+	ConnectionsDelete(context.Context, *ScopedKey) (*Result, error)
+	PasswordHistoriesAdd(context.Context, *PasswordHistoryAdd) (*Result, error)
+	PasswordHistoriesList(context.Context, *ScopedKey) (*PasswordHistoryList, error)
 	UsersCreate(context.Context, *UserWrite) (*Result, error)
 	UsersGet(context.Context, *ScopedKey) (*UserResult, error)
 	UsersFindByLogin(context.Context, *UsersFindByLoginRequest) (*UserResult, error)
@@ -1433,6 +1485,18 @@ func (UnimplementedStoreServiceServer) ConnectionsUpdate(context.Context, *Conne
 }
 func (UnimplementedStoreServiceServer) ConnectionsList(context.Context, *TenantScope) (*ConnectionList, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConnectionsList not implemented")
+}
+func (UnimplementedStoreServiceServer) ConnectionsListPage(context.Context, *ConnectionsListPageRequest) (*ConnectionPage, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConnectionsListPage not implemented")
+}
+func (UnimplementedStoreServiceServer) ConnectionsDelete(context.Context, *ScopedKey) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConnectionsDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) PasswordHistoriesAdd(context.Context, *PasswordHistoryAdd) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method PasswordHistoriesAdd not implemented")
+}
+func (UnimplementedStoreServiceServer) PasswordHistoriesList(context.Context, *ScopedKey) (*PasswordHistoryList, error) {
+	return nil, status.Error(codes.Unimplemented, "method PasswordHistoriesList not implemented")
 }
 func (UnimplementedStoreServiceServer) UsersCreate(context.Context, *UserWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method UsersCreate not implemented")
@@ -2330,6 +2394,78 @@ func _StoreService_ConnectionsList_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).ConnectionsList(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ConnectionsListPage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnectionsListPageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ConnectionsListPage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ConnectionsListPage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ConnectionsListPage(ctx, req.(*ConnectionsListPageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ConnectionsDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ConnectionsDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ConnectionsDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ConnectionsDelete(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PasswordHistoriesAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PasswordHistoryAdd)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PasswordHistoriesAdd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PasswordHistoriesAdd_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PasswordHistoriesAdd(ctx, req.(*PasswordHistoryAdd))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_PasswordHistoriesList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).PasswordHistoriesList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_PasswordHistoriesList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).PasswordHistoriesList(ctx, req.(*ScopedKey))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3350,6 +3486,22 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ConnectionsList",
 			Handler:    _StoreService_ConnectionsList_Handler,
+		},
+		{
+			MethodName: "ConnectionsListPage",
+			Handler:    _StoreService_ConnectionsListPage_Handler,
+		},
+		{
+			MethodName: "ConnectionsDelete",
+			Handler:    _StoreService_ConnectionsDelete_Handler,
+		},
+		{
+			MethodName: "PasswordHistoriesAdd",
+			Handler:    _StoreService_PasswordHistoriesAdd_Handler,
+		},
+		{
+			MethodName: "PasswordHistoriesList",
+			Handler:    _StoreService_PasswordHistoriesList_Handler,
 		},
 		{
 			MethodName: "UsersCreate",

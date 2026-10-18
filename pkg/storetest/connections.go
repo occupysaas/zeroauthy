@@ -16,8 +16,26 @@ func newConnection(tenantID, id, name string) *store.Connection {
 		EnabledClients:   []string{"c1", "c2"},
 		DisableSignup:    true,
 		RequiresUsername: true,
-		PasswordPolicy:   store.PasswordPolicy{MinLength: 10, RequireCharacterClasses: 3},
-		CreatedAt:        ts(0),
+		PasswordOptions: store.PasswordOptions{
+			Complexity: store.PasswordComplexity{
+				MinLength:            10,
+				CharacterTypes:       []string{"uppercase", "lowercase", "number", "special"},
+				CharacterTypeRule:    store.CharacterTypeRuleThreeOfFour,
+				IdenticalCharacters:  store.PasswordBlock,
+				SequentialCharacters: store.PasswordAllow,
+				MaxLengthExceeded:    store.MaxLengthTruncate,
+				MinCharacterClasses:  2,
+			},
+			History:     store.PasswordHistory{Active: true, Size: 5},
+			Dictionary:  store.PasswordDictionary{Active: true, Default: store.DictionaryEn10k, Custom: []string{"acme", "Pa55word"}},
+			ProfileData: store.PasswordProfileData{Active: true, BlockedFields: []string{"name", "user_metadata.first"}},
+		},
+		BruteForceProtection: true,
+		UsernameMin:          3,
+		UsernameMax:          40,
+		Origin:               store.OriginAPI,
+		Extra:                map[string]any{"display_name": "Db", "nested": map[string]any{"list": []any{"a", map[string]any{"b": true}}, "n": float64(7)}},
+		CreatedAt:            ts(0),
 
 		EnabledDatabaseCustomization: true,
 		ImportMode:                   true,
@@ -66,9 +84,10 @@ func testConnections(t *testing.T, newStore Factory) {
 		got, err = s.Connections().GetByName(ctx, "ten_a", "Database")
 		mustNoErr(t, err)
 		mustEqual(t, got, want)
-		list, err := s.Connections().List(ctx, "ten_a")
+		list, total, err := s.Connections().List(ctx, "ten_a", store.ConnectionFilter{}, store.Page{})
 		mustNoErr(t, err)
 		mustEqual(t, list, []*store.Connection{want})
+		mustEqual(t, total, 1)
 	})
 
 	t.Run("NameUniquePerTenant", func(t *testing.T) {
@@ -81,20 +100,9 @@ func testConnections(t *testing.T, newStore Factory) {
 		mustErrIs(t, s.Connections().Update(ctx, newConnection("ten_a", "con3", "Database")), store.ErrConflict)
 	})
 
-	t.Run("ListOrderedByName", func(t *testing.T) {
-		s := open(t, newStore)
-		for _, n := range []string{"b", "c", "a"} {
-			mustNoErr(t, s.Connections().Create(ctx, newConnection("ten_a", "con-"+n, n)))
-		}
-		mustNoErr(t, s.Connections().Create(ctx, newConnection("ten_b", "x", "zz")))
-		got, err := s.Connections().List(ctx, "ten_a")
-		mustNoErr(t, err)
-		var names []string
-		for _, c := range got {
-			names = append(names, c.Name)
-		}
-		mustEqual(t, names, []string{"a", "b", "c"})
-	})
+	t.Run("Settings", func(t *testing.T) { testConnectionSettings(t, newStore) })
+	t.Run("List", func(t *testing.T) { testConnectionList(t, newStore) })
+	t.Run("Delete", func(t *testing.T) { testConnectionDelete(t, newStore) })
 
 	t.Run("PlainConnectionHasNoScripts", func(t *testing.T) {
 		s := open(t, newStore)

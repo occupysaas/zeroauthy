@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"cmp"
 	"context"
 	"slices"
 	"strings"
@@ -56,17 +57,72 @@ func (r connections) Update(_ context.Context, c *store.Connection) error {
 	return nil
 }
 
-func (r connections) List(_ context.Context, tenantID string) ([]*store.Connection, error) {
+func (r connections) List(_ context.Context, tenantID string, f store.ConnectionFilter, p store.Page) ([]*store.Connection, int, error) {
 	r.s.mu.RLock()
 	defer r.s.mu.RUnlock()
-	var out []*store.Connection
+	var all []*store.Connection
 	for k, c := range r.s.connections {
-		if k.tenant == tenantID {
-			out = append(out, cloneConnection(c))
+		if k.tenant == tenantID && (f.Name == "" || c.Name == f.Name) &&
+			(len(f.Strategies) == 0 || slices.Contains(f.Strategies, c.Strategy)) {
+			all = append(all, c)
 		}
 	}
-	slices.SortFunc(out, func(a, b *store.Connection) int { return strings.Compare(a.Name, b.Name) })
-	return out, nil
+	slices.SortFunc(all, func(a, b *store.Connection) int {
+		return cmp.Or(strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name)), strings.Compare(a.ID, b.ID))
+	})
+	total := len(all)
+	all = all[min(max(p.Offset, 0), total):]
+	if p.Limit > 0 && len(all) > p.Limit {
+		all = all[:p.Limit]
+	}
+	out := make([]*store.Connection, len(all))
+	for i, c := range all {
+		out[i] = cloneConnection(c)
+	}
+	return out, total, nil
+}
+
+func (r connections) Delete(_ context.Context, tenantID, id string) error {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	k := key{tenantID, id}
+	c, ok := r.s.connections[k]
+	if !ok {
+		return store.ErrNotFound
+	}
+	delete(r.s.connections, k)
+	if t, ok := r.s.tenants[tenantID]; ok && t.DefaultDirectory == c.Name {
+		t.DefaultDirectory = ""
+	}
+	gone := map[string]bool{}
+	for uk, u := range r.s.users {
+		if uk.tenant == tenantID && onConnection(u, c.Name) {
+			gone[uk.id] = true
+			delete(r.s.users, uk)
+			delete(r.s.passwordHistories, uk)
+		}
+	}
+	for sk, s := range r.s.sessions {
+		if sk.tenant == tenantID && gone[s.UserID] {
+			delete(r.s.sessions, sk)
+		}
+	}
+	for tk, t := range r.s.refreshTokens {
+		if tk.tenant == tenantID && gone[t.UserID] {
+			delete(r.s.refreshTokens, tk)
+		}
+	}
+	for gk, g := range r.s.userGrants {
+		if gk.tenant == tenantID && gone[g.UserID] {
+			delete(r.s.userGrants, gk)
+		}
+	}
+	for tk, t := range r.s.resetTickets {
+		if tk.tenant == tenantID && gone[t.UserID] {
+			delete(r.s.resetTickets, tk)
+		}
+	}
+	return nil
 }
 
 // nameTaken is called with the lock held.

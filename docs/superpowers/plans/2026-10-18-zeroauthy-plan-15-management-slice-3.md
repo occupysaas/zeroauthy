@@ -71,15 +71,15 @@ Run by the controller session as the observer (option A of Plan 14: the observer
 **Files:** `internal/store/{types,store}.go`, memory, sqlstore (migration 0013 in sqlite, postgres, mysql), grpcstore and proto, `pkg/store`, `pkg/storetest`.
 
 **Interfaces:**
-- Produces:
-  - `store.Connection` fields `PasswordHistorySize int`, `PasswordDictionary store.PasswordDictionary{Enable bool; Words []string}`, `PasswordNoPersonalInfo bool`, `UsernameMin, UsernameMax int`, `Origin string`, `Extra map[string]any` (JSON object; nil means none).
-  - `Connections.Delete(ctx, tenantID, id string) error`: `ErrNotFound` if absent; deletes the connection's users and their sessions, refresh tokens, user grants, password history; removes the connection ID from every client's enabled list; clears the tenant's `DefaultDirectory` if it names the connection (or not, per C9 — Task 1 decides; storetest pins it).
-  - `PasswordHistory` repository: `Add(ctx, tenantID, userID string, hash []byte, keep int) error` (appends, then trims to the newest `keep`), `List(ctx, tenantID, userID string) ([][]byte, error)` (newest first); deleted with the user.
-  - `ConnectionFilter{Strategy, Name string}` and `Connections.List(ctx, tenantID, f ConnectionFilter, p Page) ([]*Connection, int, error)` replacing the unfiltered list (callers that want all pass zero values), ordered per C8.
+- Produces (as built, after the D-0042 password model):
+  - `store.Connection` fields `PasswordOptions store.PasswordOptions{Complexity, History, Dictionary, ProfileData}` (replacing `PasswordPolicy`), `BruteForceProtection bool`, `UsernameMin, UsernameMax int`, `Origin string`, `Extra map[string]any` (JSON object; nil means none). `PasswordComplexity{MinLength, CharacterTypes, CharacterTypeRule, IdenticalCharacters, SequentialCharacters, MaxLengthExceeded, MinCharacterClasses}`; `MinCharacterClasses` keeps the seed's `require_character_classes` 1 and 2; `store.LegacyComplexity(minLength, classes)` maps the seed's policy (4 = all four types, 3 = `three_of_four`).
+  - `Connections.Delete(ctx, tenantID, id string) error`: `ErrNotFound` if absent; deletes the users with an identity on the connection and their sessions, refresh tokens, user grants, reset tickets, password history; clears the tenant's `DefaultDirectory` if it names the connection (C9). The enabled-clients list lives on the connection, so it goes with the row.
+  - `PasswordHistories` repository (`Store.PasswordHistories()`): `Add(ctx, tenantID, userID string, hash []byte, keep int) error` (appends, then trims to the newest `keep`; `keep <= 0` stores nothing), `List(ctx, tenantID, userID string) ([][]byte, error)` (newest first); removed with the connection's users and with the tenant.
+  - `ConnectionFilter{Name string; Strategies []string}` and `Connections.List(ctx, tenantID, f ConnectionFilter, p Page) ([]*Connection, int, error)` replacing the unfiltered list (callers that want all pass zero values), ordered by name case-insensitively, then ID (C8).
 
-- [ ] **Step 1: Tests** (storetest): field and `Extra` round trips (nested objects, arrays); `Delete` cascade (users, sessions, refresh tokens, grants, history, enabled lists, default directory); unknown ID; history add/trim/list order; history deleted with the user; list filters and paging; tenant isolation; gRPC codec round trips.
-- [ ] **Step 2: Implement** in every driver; regenerate with `go generate ./...`. Plugins without the new RPCs answer Unimplemented, reported as "plugin too old".
-- [ ] **Step 3: Run** the Go suite and the SQL suite (Postgres from installed binaries if containers are unavailable). **Step 4: Commit** with `feat(store): connection settings, delete cascade and password history`.
+- [x] **Step 1: Tests** (storetest): field and `Extra` round trips (nested objects, arrays); `Delete` cascade (users, sessions, refresh tokens, grants, history, enabled lists, default directory); unknown ID; history add/trim/list order; history deleted with the user; list filters and paging; tenant isolation; gRPC codec round trips.
+- [x] **Step 2: Implement** in every driver; regenerate with `go generate ./...`. Plugins without the new RPCs answer Unimplemented, reported as "plugin too old".
+- [x] **Step 3: Run** the Go suite and the SQL suite (Postgres from installed binaries if containers are unavailable). **Step 4: Commit** with `feat(store): connection settings, delete cascade and password history`.
 
 ---
 

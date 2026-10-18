@@ -38,6 +38,7 @@ type Store interface {
 	UserGrants() UserGrants
 	SigningKeys() SigningKeys
 	Connections() Connections
+	PasswordHistories() PasswordHistories
 	Users() Users
 	Sessions() Sessions
 	AuthTransactions() AuthTransactions
@@ -198,8 +199,28 @@ type Connections interface {
 	// Update returns ErrNotFound if absent and ErrConflict if the new Name
 	// is used by another connection in the tenant.
 	Update(ctx context.Context, c *Connection) error
-	// List returns the tenant's connections ordered by Name.
-	List(ctx context.Context, tenantID string) ([]*Connection, error)
+	// Delete removes the connection and everything that depends on it, in
+	// one step: its users (the users with an identity on it) with their
+	// sessions, refresh tokens, user grants, password reset tickets and
+	// password history; and the tenant's DefaultDirectory when it names the
+	// connection. The enabled-clients list goes with the connection. It
+	// returns ErrNotFound if the connection is absent.
+	Delete(ctx context.Context, tenantID, id string) error
+	// List returns one page of the tenant's connections that match f,
+	// ordered by Name compared case-insensitively, then ID, and the number
+	// that match f before paging. A page past the end is empty.
+	List(ctx context.Context, tenantID string, f ConnectionFilter, p Page) ([]*Connection, int, error)
+}
+
+// PasswordHistories stores the hashes of the passwords a user had, for a
+// connection's password history rule. It is keyed by (TenantID, UserID);
+// Connections.Delete and Tenants.Delete remove it.
+type PasswordHistories interface {
+	// Add stores hash as the user's newest entry, then drops all but the
+	// newest keep entries. A keep of zero or less drops them all.
+	Add(ctx context.Context, tenantID, userID string, hash []byte, keep int) error
+	// List returns the user's stored hashes, newest first.
+	List(ctx context.Context, tenantID, userID string) ([][]byte, error)
 }
 
 // Users stores people, keyed by (TenantID, UserID). Within one connection,

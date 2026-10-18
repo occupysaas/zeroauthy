@@ -248,6 +248,23 @@ func TestOldPluginListsTooOld(t *testing.T) {
 	}
 }
 
+// Filtered connection lists, connection deletion and password history need a
+// Plan 15 plugin.
+func TestOldPluginConnectionSettingsTooOld(t *testing.T) {
+	c := serveOldPlugin(t)
+	ctx := context.Background()
+	_, _, errList := c.Connections().List(ctx, "t", store.ConnectionFilter{}, store.Page{})
+	errDelete := c.Connections().Delete(ctx, "t", "con")
+	errAdd := c.PasswordHistories().Add(ctx, "t", "auth0|u", []byte("h"), 3)
+	_, errHistory := c.PasswordHistories().List(ctx, "t", "auth0|u")
+	for name, err := range map[string]error{"Connections.List": errList, "Connections.Delete": errDelete,
+		"PasswordHistories.Add": errAdd, "PasswordHistories.List": errHistory} {
+		if !errors.Is(err, errPluginTooOld) || !strings.Contains(err.Error(), "too old") {
+			t.Errorf("%s: err = %v, want errPluginTooOld", name, err)
+		}
+	}
+}
+
 // Operators and tenant deletion need a Plan 13 plugin; an older one gets a
 // clear error instead of a bare Unimplemented status.
 func TestOldPluginOperatorsTooOld(t *testing.T) {

@@ -500,9 +500,9 @@ func TestSignupIPThrottle(t *testing.T) {
 // before localization.
 func TestPolicyMessagesKeepEnglishWording(t *testing.T) {
 	errs := []error{
-		identity.CheckPassword(store.PasswordPolicy{}, strings.Repeat("x", 300)),
-		identity.CheckPassword(store.PasswordPolicy{MinLength: 12}, "short"),
-		identity.CheckPassword(store.PasswordPolicy{RequireCharacterClasses: 3}, "alllowercase"),
+		identity.CheckPassword(store.PasswordComplexity{}, strings.Repeat("x", 300)),
+		identity.CheckPassword(store.PasswordComplexity{MinLength: 12}, "short"),
+		identity.CheckPassword(store.LegacyComplexity(0, 3), "alllowercase"),
 		identity.CheckUsername("not valid!"),
 	}
 	for _, err := range errs {
@@ -568,7 +568,7 @@ func TestPostVerificationErrorPagesKeepUILocales(t *testing.T) {
 	// Drop the connection's enablement so load fails with errNoConnection
 	// after the transaction itself verifies.
 	tn := mustTenant(t, e, "acme")
-	conns, err := e.st.Connections().List(context.Background(), tn.ID)
+	conns, _, err := e.st.Connections().List(context.Background(), tn.ID, store.ConnectionFilter{}, store.Page{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -608,9 +608,9 @@ func TestPolicyTextAlias(t *testing.T) {
 	}}
 	fr, en := i18n.New(tn, "fr"), i18n.New(tn, "en")
 	for _, err := range []error{
-		identity.CheckPassword(store.PasswordPolicy{}, strings.Repeat("x", 300)),
-		identity.CheckPassword(store.PasswordPolicy{MinLength: 12}, "short"),
-		identity.CheckPassword(store.PasswordPolicy{RequireCharacterClasses: 3}, "alllowercase"),
+		identity.CheckPassword(store.PasswordComplexity{}, strings.Repeat("x", 300)),
+		identity.CheckPassword(store.PasswordComplexity{MinLength: 12}, "short"),
+		identity.CheckPassword(store.LegacyComplexity(0, 3), "alllowercase"),
 	} {
 		pe := err.(*identity.PolicyError)
 		if got := policyText(fr, pe); got != "Trop faible." {

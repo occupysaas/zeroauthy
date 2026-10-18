@@ -427,13 +427,22 @@ func connectionToPB(c *store.Connection) (*storev1.Connection, error) {
 	pb := &storev1.Connection{
 		TenantId: c.TenantID, Id: c.ID, Name: c.Name, Strategy: c.Strategy,
 		EnabledClients: stringsToPB(c.EnabledClients), DisableSignup: c.DisableSignup,
-		RequiresUsername: c.RequiresUsername,
-		PasswordPolicy: &storev1.PasswordPolicy{
-			MinLength: int64(c.PasswordPolicy.MinLength), RequireCharacterClasses: int64(c.PasswordPolicy.RequireCharacterClasses)},
+		RequiresUsername:             c.RequiresUsername,
+		PasswordPolicy:               legacyPolicyToPB(c.PasswordOptions.Complexity),
+		PasswordOptions:              passwordOptionsToPB(c.PasswordOptions),
 		CreatedAt:                    tsToPB(c.CreatedAt),
 		EnabledDatabaseCustomization: c.EnabledDatabaseCustomization, ImportMode: c.ImportMode,
 		CustomScripts: stringMapToPB(c.CustomScripts), SetUserRootAttributes: c.SetUserRootAttributes,
-		IsDomainConnection: c.IsDomainConnection,
+		IsDomainConnection:   c.IsDomainConnection,
+		BruteForceProtection: c.BruteForceProtection, UsernameMin: int64(c.UsernameMin), UsernameMax: int64(c.UsernameMax),
+		Origin: c.Origin,
+	}
+	if c.Extra != nil {
+		b, err := json.Marshal(c.Extra)
+		if err != nil {
+			return nil, err
+		}
+		pb.ExtraJson = b
 	}
 	// Empty sealed bytes normalize to absent (nil): the SQL drivers store
 	// them as NULL too.
@@ -453,18 +462,81 @@ func connectionFromPB(pb *storev1.Connection) (*store.Connection, error) {
 	c := &store.Connection{
 		TenantID: pb.TenantId, ID: pb.Id, Name: pb.Name, Strategy: pb.Strategy,
 		EnabledClients: stringsFromPB(pb.EnabledClients), DisableSignup: pb.DisableSignup,
-		RequiresUsername: pb.RequiresUsername,
-		PasswordPolicy: store.PasswordPolicy{
-			MinLength: int(pb.GetPasswordPolicy().GetMinLength()), RequireCharacterClasses: int(pb.GetPasswordPolicy().GetRequireCharacterClasses())},
+		RequiresUsername:             pb.RequiresUsername,
+		PasswordOptions:              passwordOptionsFromPB(pb),
 		CreatedAt:                    tsFromPB(pb.CreatedAt),
 		EnabledDatabaseCustomization: pb.EnabledDatabaseCustomization, ImportMode: pb.ImportMode,
 		CustomScripts: stringMapFromPB(pb.CustomScripts), SetUserRootAttributes: pb.SetUserRootAttributes,
-		IsDomainConnection: pb.IsDomainConnection,
+		IsDomainConnection:   pb.IsDomainConnection,
+		BruteForceProtection: pb.BruteForceProtection, UsernameMin: int(pb.UsernameMin), UsernameMax: int(pb.UsernameMax),
+		Origin: pb.Origin,
+	}
+	if pb.ExtraJson != nil {
+		var m map[string]any
+		if err := json.Unmarshal(pb.ExtraJson, &m); err != nil {
+			return nil, err
+		}
+		c.Extra = m
 	}
 	if len(pb.ConfigurationSealed) > 0 {
 		c.ConfigurationSealed = cloneBytes(pb.ConfigurationSealed)
 	}
 	return c, nil
+}
+
+func passwordOptionsToPB(o store.PasswordOptions) *storev1.PasswordOptions {
+	return &storev1.PasswordOptions{
+		Complexity: &storev1.PasswordComplexity{
+			MinLength:            int64(o.Complexity.MinLength),
+			CharacterTypes:       stringsToPB(o.Complexity.CharacterTypes),
+			CharacterTypeRule:    o.Complexity.CharacterTypeRule,
+			IdenticalCharacters:  o.Complexity.IdenticalCharacters,
+			SequentialCharacters: o.Complexity.SequentialCharacters,
+			MaxLengthExceeded:    o.Complexity.MaxLengthExceeded,
+			MinCharacterClasses:  int64(o.Complexity.MinCharacterClasses),
+		},
+		History:     &storev1.PasswordHistorySettings{Active: o.History.Active, Size: int64(o.History.Size)},
+		Dictionary:  &storev1.PasswordDictionary{Active: o.Dictionary.Active, Default: o.Dictionary.Default, Custom: stringsToPB(o.Dictionary.Custom)},
+		ProfileData: &storev1.PasswordProfileData{Active: o.ProfileData.Active, BlockedFields: stringsToPB(o.ProfileData.BlockedFields)},
+	}
+}
+
+// passwordOptionsFromPB reads password_options; a connection from a plugin
+// older than Plan 15 has only the legacy password_policy.
+func passwordOptionsFromPB(pb *storev1.Connection) store.PasswordOptions {
+	o := pb.PasswordOptions
+	if o == nil {
+		return store.PasswordOptions{Complexity: store.LegacyComplexity(
+			int(pb.GetPasswordPolicy().GetMinLength()), int(pb.GetPasswordPolicy().GetRequireCharacterClasses()))}
+	}
+	return store.PasswordOptions{
+		Complexity: store.PasswordComplexity{
+			MinLength:            int(o.GetComplexity().GetMinLength()),
+			CharacterTypes:       stringsFromPB(o.GetComplexity().GetCharacterTypes()),
+			CharacterTypeRule:    o.GetComplexity().GetCharacterTypeRule(),
+			IdenticalCharacters:  o.GetComplexity().GetIdenticalCharacters(),
+			SequentialCharacters: o.GetComplexity().GetSequentialCharacters(),
+			MaxLengthExceeded:    o.GetComplexity().GetMaxLengthExceeded(),
+			MinCharacterClasses:  int(o.GetComplexity().GetMinCharacterClasses()),
+		},
+		History:     store.PasswordHistory{Active: o.GetHistory().GetActive(), Size: int(o.GetHistory().GetSize())},
+		Dictionary:  store.PasswordDictionary{Active: o.GetDictionary().GetActive(), Default: o.GetDictionary().GetDefault(), Custom: stringsFromPB(o.GetDictionary().GetCustom())},
+		ProfileData: store.PasswordProfileData{Active: o.GetProfileData().GetActive(), BlockedFields: stringsFromPB(o.GetProfileData().GetBlockedFields())},
+	}
+}
+
+// legacyPolicyToPB is the password policy as a plugin older than Plan 15
+// understands it: the minimum length and a class count (4 for all four
+// types, 3 for three of the four, else MinCharacterClasses).
+func legacyPolicyToPB(c store.PasswordComplexity) *storev1.PasswordPolicy {
+	classes := c.MinCharacterClasses
+	switch {
+	case c.CharacterTypeRule == store.CharacterTypeRuleThreeOfFour && len(c.CharacterTypes) == len(store.CharacterTypes):
+		classes = 3
+	case len(c.CharacterTypes) == len(store.CharacterTypes):
+		classes = 4
+	}
+	return &storev1.PasswordPolicy{MinLength: int64(c.MinLength), RequireCharacterClasses: int64(classes)}
 }
 
 // ---- user ----

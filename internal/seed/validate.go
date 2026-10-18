@@ -323,9 +323,8 @@ func (t *Tenant) validate() []error {
 			}
 			seenUsernames[uk] = true
 		}
-		if err := identity.CheckPassword(store.PasswordPolicy{
-			MinLength: c.PasswordPolicy.MinLength, RequireCharacterClasses: c.PasswordPolicy.RequireCharacterClasses,
-		}, u.Password); err != nil {
+		if err := identity.CheckPassword(store.LegacyComplexity(
+			c.PasswordPolicy.MinLength, c.PasswordPolicy.RequireCharacterClasses), u.Password); err != nil {
 			fail("user %q: %v", u.Email, err)
 		}
 	}
