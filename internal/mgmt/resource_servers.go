@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -80,6 +81,13 @@ func (h *Handlers) GetResourceServer(w http.ResponseWriter, r *http.Request, id 
 	rs, err := h.Store.ResourceServers().Get(r.Context(), tn.ID, id)
 	if errors.Is(err, store.ErrNotFound) {
 		rs, err = h.Store.ResourceServers().GetByIdentifier(r.Context(), tn.ID, id)
+	}
+	if errors.Is(err, store.ErrNotFound) {
+		// auth0-cli escapes the identifier and its HTTP client escapes the
+		// path again, so the server sees it still percent-encoded once.
+		if once, uerr := url.PathUnescape(id); uerr == nil && once != id {
+			rs, err = h.Store.ResourceServers().GetByIdentifier(r.Context(), tn.ID, once)
+		}
 	}
 	if errors.Is(err, store.ErrNotFound) {
 		Fail(w, errResourceServerNotFound)

@@ -267,6 +267,11 @@ func TestGetResourceServer(t *testing.T) {
 	if rec.Code != 200 || out["id"] != id {
 		t.Fatalf("get by identifier = %d %v", rec.Code, out)
 	}
+	// auth0-cli's client escapes the escaped identifier a second time.
+	rec, out = e.get(t, "https:%2F%2Fapi.test%2Fv1", "")
+	if rec.Code != 200 || out["id"] != id {
+		t.Fatalf("get by a doubly escaped identifier = %d %v", rec.Code, out)
+	}
 	// An ID wins over an identifier that looks like it.
 	other := e.mustCreate(t, map[string]any{"identifier": id})
 	if _, out = e.get(t, id, ""); out["id"] != id || other["id"] == id {
