@@ -32,8 +32,9 @@ again for a new link. Automated installs can set
 server creates that one and logs the link once. Passwords are never taken
 from configuration.
 
-More operators can be invited from the system API
-(`POST /api/system/operators`); every operator manages every tenant for now.
+More operators can be invited from the **Operators** screen (system tenant
+only) or the system API (`POST /api/system/operators`); every operator
+manages every tenant for now.
 
 ## Signing in
 
@@ -51,6 +52,20 @@ session.
   identifier, the number of applications, and a banner when the seed file
   defines the tenant: edits to what the seed defines are overwritten at the
   next start.
+- **APIs:** a paged list of the tenant's APIs, system ones marked. **Create
+  API** asks for a name and an identifier (fixed afterwards). Each API has
+  - **Settings:** name, identifier, signing algorithm (RS256, fixed), token
+    lifetimes, offline access, skipping consent, and the user and application
+    access policies;
+  - **Permissions:** the scopes the API defines; removing one that is
+    granted to applications asks first and removes it from those grants;
+  - **Machine-to-machine applications:** a switch per application of that
+    type that authorizes it for the API, the permissions it gets (or all of
+    them, including ones added later), and a shortcut to create an
+    application;
+  - **Danger zone:** delete (type the name or identifier), which also
+    deletes the API's grants and users' consents. The tenant's own
+    Management API shows only the token lifetimes and cannot be deleted.
 - **Applications:** a paged list with a type filter; **Create** asks for a
   name and a type (native, single-page, regular web, machine to machine)
   and applies defaults for that type; each application has
@@ -60,8 +75,20 @@ session.
   - **Advanced:** grant types, token endpoint authentication, ID token
     lifetime, refresh token rotation and expiration, PAR, and whether it is
     a first- or third-party application (fixed at creation);
+  - **APIs:** the APIs the application may request tokens for, with the
+    permissions it has for each; authorize another, change permissions or
+    revoke;
+  - **Quick start:** snippets with the application's details filled in. A
+    machine-to-machine application gets the token request and a call with it
+    for each API it is authorized for; other types get the authorization URL
+    and configuration for auth0-spa-js, auth0-react, nextjs-auth0 and
+    express-openid-connect. The secret appears only after you reveal it. The
+    panel notes that no connection can be enabled from the console yet, so no
+    user can sign in with a new application until a later release;
   - **Danger zone:** rotate the secret (the old one stops working at once)
     and delete (type the name to confirm).
+- **Operators** (system tenant): the operators, **Invite operator** (shows a
+  one-hour link once) and remove (never the last one).
 
 Applications created in the console are never touched by the seed.
 

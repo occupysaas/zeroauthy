@@ -163,9 +163,13 @@ Run by the controller session as the observer; implementers see only the notes. 
 
 **Files:** `docs/management-api.md` (resource servers, client grants, setting up M2M without the seed), `docs/console.md` (APIs, quick start, operators), `docs/compat/matrix.md`, `docs/superpowers/plan-1-followups.md` ("Plan 14 follow-ups"), README.
 
-- [ ] **Step 1: Write the docs.**
-- [ ] **Step 2: Verify:** gofmt, vet, `go test -race ./...`, `go generate` with no diff, `make console` with no diff, the SQL suite, `make e2e`, `make check-sources`, `make conformance` (exit 0).
-- [ ] **Step 3: Commit** with `docs: APIs and client grants; Plan 14 records`.
+- [x] **Step 1: Write the docs.**
+- [x] **Step 2: Verify:** gofmt, vet, `go test -race ./...`, `go generate` with no diff, `make console` with no diff, the SQL suite, `make e2e`, `make check-sources`, `make conformance` (exit 0). Done except `make conformance` and MySQL, which this session could not run (see the completion note below).
+- [x] **Step 3: Commit** with `docs: APIs and client grants; Plan 14 records`.
+
+---
+
+**Plan 14 completion note (Tasks 1 to 8).** `gofmt`, `go vet`, `go test -race ./...`, `go generate`, `make console` and `make check-sources` pass with no diff. The Postgres 16 suite (`internal/store/sqlstore`, migrations up to 0012) passed against a server started from the installed binaries; MySQL has no binaries here and was not run. `make conformance` could not run: it needs a container runtime and this session has no Docker daemon. E2E: `run-m3.sh` passed (including m13 and m14 auth0-cli flows); the browser specs passed on Node 22 (m13-console, m14-console, m4, m5, m6, m7, m9-import) and on Node 20 (m10-consent, m10-par); m10-device skipped (needs podman). Open items are in "Plan 14 follow-ups" of `docs/superpowers/plan-1-followups.md`. Task 9 is not done.
 
 ---
 

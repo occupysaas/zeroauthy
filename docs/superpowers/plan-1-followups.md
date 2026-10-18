@@ -253,3 +253,15 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - **Console:** translations beyond English; a Playwright accessibility audit (axe); `auth0 login` (device flow) against zeroauthy needs Auth0's host mapped and stays a follow-up.
 - **E2E:** `run-browser.sh` leaves `next start` children running when it is interrupted; m13-console cannot reach `cli.e2e.test` from the browser, so it switches to the system tenant.
 
+## Plan 14 follow-ups
+
+- **SQL suite and conformance:** the cloud session ran the Postgres suite for migrations 0010 to 0012 (from installed binaries) but not MySQL, and could not run `make conformance` (no container runtime). Run `scripts/test-sql.sh` and `make conformance` where containers exist.
+- **Deleting the tenant's default audience:** deleting an API that is a tenant's `default_audience` leaves the tenant refusing requests that name no audience (`/oauth/token` answers 403; `/authorize` redirects with `access_denied` and "unknown audience"). Clear the setting on delete, or refuse the delete.
+- **Stale scopes in consents:** removing a scope from an API removes it from client grants but leaves it in users' stored grants (consents).
+- **Store plugins:** the `ResourceServers.Delete` cascade (client grants, user grants, refresh tokens for the audience) is part of the store contract; third-party store plugins must implement it.
+- **System API name:** the system Management API is "zeroauthy Management API" while `auth0-deploy-cli` excludes Auth0's by name, so a deploy-cli export includes it. Matching Auth0's name is a maintainer decision (D-0041).
+- **Signing algorithms:** `HS256` and `PS256` (and `signing_secret`) are not supported.
+- **Fields accepted but inert:** the organization, rich authorization, `consent_policy`, `proof_of_possession` and `token_encryption` fields; `token_lifetime_for_web`.
+- **Connections** for new applications: still slice 3; a console-created application logs no user in until then.
+- **E2E environment:** the browser specs need `E2E_CHROMIUM` (path to a Chromium) in a container without Playwright's own. `m10-consent` and `m10-par` ran on Node 20 and the others (including `m9-import`) on Node 22 in the cloud session; `run-browser.sh` should pick the Node version per spec.
+- **Task 9 (create-only seed mode, `seed.mode: create_only`):** not done; it stays a follow-up (see Plan 13 follow-ups).
