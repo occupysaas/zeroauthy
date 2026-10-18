@@ -114,7 +114,7 @@ func TestTryMasksTopLevelStringAndError(t *testing.T) {
 	}, nil)
 	_, err = c.Try(context.Background(), conn, store.ScriptLogin, []any{"a", "b"}, nil)
 	se := scriptErr(t, err, KindError)
-	if se.Message != "cannot reach db with "+Mask || se.Code != "c-"+Mask || strings.Contains(err.Error(), secret) {
+	if se.Message != "cannot reach db with "+Mask || se.Code != "c-"+secret {
 		t.Errorf("error = %+v", se)
 	}
 }
@@ -184,12 +184,80 @@ func TestServerLogMasksConfigurationValues(t *testing.T) {
 	}
 }
 
-func TestLoginErrorMessageMasked(t *testing.T) {
+func TestLoginErrorUnmodified(t *testing.T) {
 	c, conn := tryClient(t, map[string]string{"k": secret}, func([]any) (any, error) {
 		return nil, &ScriptError{Kind: KindError, Message: "bad " + secret}
 	}, nil)
 	_, err := c.Login(context.Background(), conn, "a", "b")
-	if se := scriptErr(t, err, KindError); se.Message != "bad "+Mask || strings.Contains(err.Error(), secret) {
+	// Login returns the script's error as it is; callers mask what they log.
+	if se := scriptErr(t, err, KindError); se.Message != "bad "+secret {
 		t.Errorf("error = %v", err)
+	}
+}
+
+func TestRedactLineMasksValuePrefixAtCut(t *testing.T) {
+	d := NewRedactor(map[string]string{"k": "hunter2-s3cret"})
+	long := strings.Repeat("x", 2048-5)
+	if got, want := d.RedactLine(long+"hunte"), long+Mask; got != want {
+		t.Errorf("cut prefix not masked: ...%q", got[len(got)-12:])
+	}
+	if got := d.RedactLine("short line h"); got != "short line h" {
+		t.Errorf("short line changed: %q", got)
+	}
+	if got := d.RedactLine(long + "hunte!"); got != long+"hunte!" {
+		t.Errorf("non-suffix changed")
+	}
+}
+
+func TestServerLogMasksSecretAtTruncation(t *testing.T) {
+	var buf syncBuffer
+	r := newRunnerLog(t, config.CustomDB{}, slog.New(slog.NewJSONHandler(&buf, nil)))
+	c := &Client{Exec: r, Wrapper: testWrapper(t)}
+	conn := &store.Connection{TenantID: "ten_a", ID: "con_1", Name: "L", Strategy: store.StrategyDatabase,
+		CustomScripts: map[string]string{store.ScriptLogin: `function login(e, p, cb) {
+			console.log("x".repeat(2040) + configuration.dbPassword);
+			cb(null, {user_id: "1", email: e}); }`}}
+	conn.ConfigurationSealed, _ = keys.SealConnectionConfig(c.Wrapper, conn.TenantID, conn.ID, map[string]string{"dbPassword": secret})
+	var logs []string
+	if _, err := c.Try(context.Background(), conn, store.ScriptLogin, []any{"a@x.test", "pw"}, func(l []string) { logs = l }); err != nil {
+		t.Fatal(err)
+	}
+	waitLog(t, &buf, "custom database script")
+	time.Sleep(100 * time.Millisecond)
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if len(logs) != 1 || !strings.HasSuffix(logs[0], Mask) || strings.Contains(logs[0], "hunter") {
+		t.Errorf("captured line ends %q", logs[0][len(logs[0])-20:])
+	}
+	if out := buf.String(); strings.Contains(out, "hunter") || !strings.Contains(out, "■") {
+		t.Errorf("server log:\n%s", out)
+	}
+}
+
+func TestServerLogMasksOldValueAfterRotation(t *testing.T) {
+	var buf syncBuffer
+	r := newRunnerLog(t, config.CustomDB{}, slog.New(slog.NewJSONHandler(&buf, nil)))
+	// The script logs the old value late, after the configuration changed.
+	src := `function login(e, p, cb) {
+		const old = globalThis.__old ??= "OLDVAL-" + "s3cret";
+		if (p === "first") { cb(null, {user_id: "1", email: e}); }
+		else { cb(null, {user_id: "1", email: e}); setTimeout(() => console.log("late", old), 200); }
+	}`
+	run := func(cfg map[string]string, pw string) {
+		if _, err := r.Execute(context.Background(), Request{TenantID: "t1", ConnectionID: "c1", Script: "login", Source: src,
+			Config: cfg, Args: []any{"a", pw}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run(map[string]string{"k": "OLDVAL-s3cret"}, "first")
+	run(map[string]string{"k": "newval"}, "second")
+	waitLog(t, &buf, "late")
+	if out := buf.String(); strings.Contains(out, "OLDVAL") || !strings.Contains(out, "late "+Mask) {
+		t.Errorf("server log:\n%s", out)
+	}
+	// A line with no connection (an uncaught error) is masked with every value seen.
+	if got := (&proc{all: NewRedactor(map[string]string{"a": "one"}).Union(NewRedactor(map[string]string{"b": "two"}))}).redactorFor("").Redact("one two"); got != Mask+" "+Mask {
+		t.Errorf("union = %q", got)
 	}
 }

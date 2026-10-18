@@ -25,6 +25,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -55,9 +56,10 @@ type Executor interface {
 }
 
 const (
-	maxInFlight     = 64      // concurrent requests per tenant process
-	maxResponseLine = 1 << 20 // bytes; a longer response kills the process
-	maxLogMsg       = 2048    // bytes of one logged runner line
+	maxInFlight     = 64       // concurrent requests per tenant process
+	maxResponseLine = 1 << 20  // bytes; a longer response kills the process
+	maxLogMsg       = 2048     // bytes of one logged runner line
+	maxLogLine      = 16 << 10 // bytes of a runner log line read; the runner keeps 2048 characters of a message, at most 6 bytes each once JSON-escaped
 	minReapTick     = 100 * time.Millisecond
 )
 
@@ -218,7 +220,11 @@ type proc struct {
 	// console lines logged for it. Entries stay after a request ends: the
 	// runner's stderr is read apart from its answers, so a line can be
 	// logged after the answer.
+	// Each is the union of the values the connection has had in this
+	// process, so a late line from before a configuration change is still
+	// masked; all is the union over every connection.
 	reds map[string]*Redactor
+	all  *Redactor
 }
 
 func (p *proc) write(line []byte) error {
@@ -289,7 +295,9 @@ func (r *NodeRunner) Execute(ctx context.Context, req Request) (json.RawMessage,
 		if p.reds == nil {
 			p.reds = map[string]*Redactor{}
 		}
-		p.reds[req.ConnectionID] = NewRedactor(req.Config)
+		red := NewRedactor(req.Config)
+		p.reds[req.ConnectionID] = red.Union(p.reds[req.ConnectionID])
+		p.all = p.all.Union(red)
 		p.lastUsed = time.Now()
 		p.mu.Unlock()
 
@@ -502,7 +510,7 @@ func (r *NodeRunner) readLogs(p *proc, rd io.Reader) {
 	var buf []byte
 	for {
 		chunk, isPrefix, err := br.ReadLine()
-		if len(buf) < maxLogMsg*4 {
+		if len(buf) < maxLogLine {
 			buf = append(buf, chunk...)
 		}
 		if err != nil {
@@ -523,15 +531,12 @@ func (r *NodeRunner) logLine(p *proc, b []byte) {
 	var l logLine
 	if err := json.Unmarshal(b, &l); err != nil || l.Level == "" {
 		// Unstructured output could carry any connection's values.
-		out := string(b)
-		for _, red := range p.redactors() {
-			out = red.Redact(out)
-		}
+		out := p.redactorFor("").RedactLine(string(b))
 		r.log.Warn("custom database runner output", "tenant", p.tenant, "output", truncate(out, maxLogMsg))
 		return
 	}
 	// Mask before truncating, so a cut never leaves a prefix of a value.
-	msg := p.redactorFor(l.Conn).Redact(l.Msg)
+	msg := p.redactorFor(l.Conn).RedactLine(l.Msg)
 	level := slog.LevelInfo
 	switch l.Level {
 	case "debug":
@@ -546,25 +551,24 @@ func (r *NodeRunner) logLine(p *proc, b []byte) {
 		"tenant", p.tenant, "connection", l.Conn, "output", truncate(msg, maxLogMsg))
 }
 
+// redactorFor returns the masker for a connection's console lines: the
+// values it has had in this process, or every value the process has seen
+// for a line with no or an unknown connection.
 func (p *proc) redactorFor(conn string) *Redactor {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.reds[conn]
-}
-
-func (p *proc) redactors() []*Redactor {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	out := make([]*Redactor, 0, len(p.reds))
-	for _, r := range p.reds {
-		out = append(out, r)
+	if r := p.reds[conn]; r != nil {
+		return r
 	}
-	return out
+	return p.all
 }
 
 func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
 	}
 	return s[:n]
 }

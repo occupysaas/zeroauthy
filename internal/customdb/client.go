@@ -49,9 +49,18 @@ func (c *Client) run(ctx context.Context, conn *store.Connection, script string,
 	if err != nil {
 		return nil, err
 	}
-	raw, err := c.Exec.Execute(ctx, req)
-	// The caller logs a script's error message, so mask it here too.
-	return raw, NewRedactor(req.Config).RedactError(err)
+	return c.Exec.Execute(ctx, req)
+}
+
+// Redactor returns the masker for conn's configuration values, for a caller
+// that logs script output. It masks nothing when the configuration cannot be
+// opened.
+func (c *Client) Redactor(conn *store.Connection) *Redactor {
+	cfg, err := keys.OpenConnectionConfig(c.Wrapper, conn.TenantID, conn.ID, conn.ConfigurationSealed)
+	if err != nil {
+		return &Redactor{}
+	}
+	return NewRedactor(cfg)
 }
 
 // request builds the execution of script of conn with args: the script's
@@ -74,7 +83,8 @@ func (c *Client) request(conn *store.Connection, script string, args []any) (Req
 // whether or not the connection has custom database scripts switched on,
 // and returns the callback value or the script's error. onLogs, when set,
 // receives the script's console output. Configuration values are masked
-// (see Redactor) in the console output, the result and a script error.
+// (see Redactor) in the console output, the result and a script error's
+// message.
 // Nothing is stored.
 func (c *Client) Try(ctx context.Context, conn *store.Connection, script string, args []any, onLogs func([]string)) (json.RawMessage, error) {
 	req, err := c.request(conn, script, args)

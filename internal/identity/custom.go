@@ -58,7 +58,7 @@ func (d *Database) scriptErr(ctx context.Context, conn *store.Connection, script
 		kind, msg = se.Kind, se.Message
 		if se.Kind == customdb.KindUnauthorized {
 			d.log().InfoContext(ctx, "custom database script refused the user",
-				"tenant", conn.TenantID, "connection", conn.Name, "script", script, "kind", kind, "message", msg)
+				"tenant", conn.TenantID, "connection", conn.Name, "script", script, "kind", kind, "message", d.logText(conn, msg))
 			return &UnauthorizedError{Message: se.Message}
 		}
 	} else {
@@ -73,11 +73,20 @@ func (d *Database) scriptErr(ctx context.Context, conn *store.Connection, script
 		}
 	}
 	d.log().ErrorContext(ctx, "custom database script failed",
-		"tenant", conn.TenantID, "connection", conn.Name, "script", script, "kind", kind, "message", msg)
+		"tenant", conn.TenantID, "connection", conn.Name, "script", script, "kind", kind, "message", d.logText(conn, msg))
 	if unavailable {
 		return fmt.Errorf("%w: %w: %w", ErrScript, ErrScriptUnavailable, err)
 	}
 	return fmt.Errorf("%w: %w", ErrScript, err)
+}
+
+// logText masks the connection's configuration values in a script's message
+// before it is logged. What is returned to callers is not masked.
+func (d *Database) logText(conn *store.Connection, msg string) string {
+	if d.Scripts == nil {
+		return msg
+	}
+	return d.Scripts.Redactor(conn).RedactLine(msg)
 }
 
 // scripts returns the client, or an ErrScript when there is none.

@@ -1505,16 +1505,17 @@ type ScriptTryResult struct {
 
 	// Error The error the script threw or passed to its callback; null on success.
 	Error *struct {
+		// Message The error's message, with configuration values masked.
 		Message string `json:"message"`
 
 		// Name The error's class: `Error`, `ValidationError`, `UnauthorizedError`, `WrongUsernameOrPasswordError` or `TimeoutError`.
 		Name string `json:"name"`
 	} `json:"error"`
 
-	// Logs The script's console output, at most 50 lines.
+	// Logs The script's console output, at most 50 lines, with configuration values masked.
 	Logs []string `json:"logs"`
 
-	// Result The value the script passed to its callback; null when it failed or passed none.
+	// Result The value the script passed to its callback; null when it failed or passed none. Configuration values in it are masked.
 	Result interface{} `json:"result"`
 }
 

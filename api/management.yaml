@@ -964,9 +964,11 @@ paths:
         with the error's `name` and `message` (`TimeoutError` when the
         script ran too long) and `result` is null. 503 means the script
         runtime could not start. At most 10 calls a minute per operator
-        (`too_many_requests`, with `Retry-After`). The server log records
-        the tenant, connection, script, operator, duration and outcome, never
-        the arguments, the result, the console output or the configuration.
+        (`too_many_requests`, with `Retry-After`). The try call's own
+        server-log record carries the tenant, connection, script, operator,
+        duration and outcome, never the arguments, the result or the output.
+        Script console lines forwarded to the server log (for a try and for
+        real logins) have configuration values masked.
 
         Configuration values are masked, as Auth0 masks the secrets a script
         logs: every value of the connection's configuration that appears in
@@ -1587,17 +1589,17 @@ components:
       type: object
       required: [result, error, logs, duration_ms]
       properties:
-        result: {description: "The value the script passed to its callback; null when it failed or passed none."}
+        result: {description: "The value the script passed to its callback; null when it failed or passed none. Configuration values in it are masked."}
         error:
           type: [object, "null"]
           description: The error the script threw or passed to its callback; null on success.
           required: [name, message]
           properties:
             name: {type: string, description: "The error's class: `Error`, `ValidationError`, `UnauthorizedError`, `WrongUsernameOrPasswordError` or `TimeoutError`."}
-            message: {type: string}
+            message: {type: string, description: "The error's message, with configuration values masked."}
         logs:
           type: array
-          description: The script's console output, at most 50 lines.
+          description: The script's console output, at most 50 lines, with configuration values masked.
           items: {type: string}
         duration_ms: {type: integer, description: How long the run took.}
     Operator:
