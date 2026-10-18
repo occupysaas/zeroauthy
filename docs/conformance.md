@@ -31,7 +31,7 @@ Prerequisites:
 - about 2 GB of RAM;
 - 10 to 20 minutes for a full run.
 
-Port 8443 on 127.0.0.1 is shared with the browser E2E suite, so never run the two at once; `run.sh` reports a listener already there. Exit status 0 means every module finished and nothing unexpected happened.
+Port 8443 on 127.0.0.1 is shared with the browser E2E suite, so never run the two at once; `run.sh` reports a listener already there. `run.sh` passes through `run-test-plan.py`'s exit status; 0 means every module finished and nothing unexpected happened.
 
 On demand in CI: the `conformance` workflow (`.github/workflows/conformance.yml`, `workflow_dispatch` only) runs the same script and uploads the results directory.
 
@@ -61,7 +61,7 @@ The current entries are accepted warnings and skips, recorded in D-0036 (with D-
 
 ## Non-compliant switches
 
-Spec-compliant behaviour is the default. Where the maintainer rules that Auth0's behaviour must stay available, it goes behind a server-wide environment variable `ZEROAUTHY_COMPAT__NONCOMPLIANT_<BEHAVIOUR>` (default off, a startup warning when on, and the conformance run uses the defaults). Each case is decided by the maintainer.
+Spec-compliant behaviour is the default. Where the maintainer rules that Auth0's behaviour must stay available, it goes behind a server-wide environment variable `ZEROAUTHY_COMPAT__NONCOMPLIANT_<BEHAVIOUR>` (default off; a startup warning naming each switch that is on is planned, since no switches exist yet; the conformance run uses the defaults). Each case is decided by the maintainer.
 
 | Switch | Auth0 behaviour it restores | Decision |
 |---|---|---|
@@ -73,8 +73,8 @@ No such switch exists today.
 
 Steps 2 to 6 need the maintainer's hands (deploying, signing, emailing). Fill the placeholders in during the hosted run.
 
-1. **Local pass.** All four plans exit 0 locally with the approved expected lists. Bump `suite-version` to the version the hosted suite runs and repeat. Hosted suite version: TBD. Date of last local pass: TBD.
-2. **Public deployment** (by hand). Deploy zeroauthy on a DigitalOcean droplet on a subdomain with a valid public TLS certificate. Seed the conformance tenant with fresh, throwaway client secrets, signing key and test user; certification logs are published, so use nothing else. Notes to be completed with the deployment: binary and config, seed, TLS, firewall. Hostname: TBD.
+1. **Local pass.** All four plans exit 0 locally with the approved expected lists. Bump `suite-version` to the version the hosted suite runs, update `tests/conformance/suite-files.sha256` (and `requirements.txt` if the suite's dependencies changed; see the harness README), and repeat. Hosted suite version: TBD. Date of last local pass: TBD.
+2. **Public deployment** (by hand). Deploy zeroauthy on a DigitalOcean droplet on a subdomain with a valid public TLS certificate. Seed the conformance tenant with fresh, throwaway client secrets, signing key and test user; OIDF publishes the submitted logs; treat everything in them as public (https://openid.net/certification/op_submission/). Notes to be completed with the deployment: binary and config, seed, TLS, firewall. Hostname: TBD.
 3. **Hosted run** on www.certification.openid.net against the public deployment, using the same configs with the public URLs. The maintainer completes screenshot and review modules in the suite's UI. Every module must reach FINISHED; warnings are acceptable. Plan IDs and dates: TBD. Before the run, confirm in OIDF's current instructions whether results from a locally run suite are acceptable; the hosted run is preferred either way.
 4. **Packages.** One per profile, each with the exported logs and the signed "OpenID Certification of Conformance" document (needs the maintainer's signature). Package status: TBD.
 5. **Waiver and submission.** The maintainer emails certification@oidf.org to ask for the open-source fee waiver, stating that zeroauthy's primary maintainers are not paid by an employer for the project (https://openid.net/certification/open-source-project-certification-policy/). Submit per https://openid.net/certification/instructions/ once answered. Waiver and submission dates: TBD.

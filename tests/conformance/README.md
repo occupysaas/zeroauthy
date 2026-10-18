@@ -1,6 +1,6 @@
 # OpenID conformance harness
 
-Runs the OpenID Foundation conformance suite (https://gitlab.com/openid/conformance-suite) against a zeroauthy built from the working tree. It runs on demand, not on every push. The design is in `docs/superpowers/specs/2026-10-17-zeroauthy-oidf-conformance-design.md`.
+Runs the OpenID Foundation conformance suite (https://gitlab.com/openid/conformance-suite) against a zeroauthy built from the working tree. It runs on demand, not on every push. User guide, expected-failure process and certification checklist: `docs/conformance.md`. The design is in `docs/superpowers/specs/2026-10-17-zeroauthy-oidf-conformance-design.md`.
 
 ```bash
 make conformance                 # all four plans

@@ -537,8 +537,8 @@ them. Each entry: context, sources consulted, decision, rationale.
 
 ## D-0036: OpenID conformance accepted warnings and skips
 
-- **Context:** In the OIDF suite (release-v5.3.1) the Basic and Form Post plans finish with no failures, but some modules end with a warning or a skip. OIDF certification accepts warnings and skips; modules must finish without failures. Each is listed in `tests/conformance/expected-failures.json` or `expected-skips.json`, and the runner fails on any other warning or skip and on a stale entry.
-- **Sources:** tests/conformance/triage-2026-10.md (Rulings); https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes; D-0013; D-0035.
+- **Context:** In the OIDF suite (release-v5.3.1) the Basic and Form Post plans finish with no failures, but some modules end with a warning or a skip. OIDF certification accepts warnings and skips; modules must finish without failures (https://openid.net/certification/op_submission/). Each is listed in `tests/conformance/expected-failures.json` or `expected-skips.json`, and the runner fails on any other warning or skip and on a stale entry.
+- **Sources:** tests/conformance/triage-2026-10.md (Rulings); https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes; https://openid.net/certification/op_submission/; D-0013; D-0035.
 - **Decision:** accepted, per plan (Basic and Form Post alike):
   - **Warning `oidcc-scope-email`, `oidcc-alternate-happy-flow` (rows 3, 4):** keep Auth0's behaviour of putting the scope's claims (such as `email`) in the ID token, per Auth0's scope documentation (https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes).
   - **Warning `oidcc-codereuse-30seconds` (row 9):** access tokens issued before a code reuse are not revoked, because JWT access tokens are not revocable (D-0013's reasoning: a JWT access token is self-contained and verified without a server lookup; no Auth0 public doc was found that states this either way).
@@ -548,7 +548,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Skipped `oidcc-scope-address`, `oidcc-scope-phone`, `oidcc-scope-all` (rows 11 to 13):** the address and phone scopes and claims are not implemented. Follow-up.
   - **Skipped `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported` (row 2):** refusing request objects with `request_not_supported` is permitted behaviour (D-0035).
   - Expected-skip entries cannot pin a reason: the suite's skip format has no condition field, so an entry matches the module whatever caused the skip.
-- **Rationale:** each item is either Auth0 parity (rows 3, 4, 9) or a feature that does not block certification, so it becomes a follow-up rather than a compatibility switch.
+- **Rationale:** each item is either Auth0 parity (rows 3, 4), a choice following D-0013 (row 9), or a feature that does not block certification, so it becomes a follow-up rather than a compatibility switch.
 
 ## D-0037: Additive spec behaviours: POST /authorize and form-encoded access token at /userinfo
 
