@@ -123,17 +123,17 @@ This task is run by the controller session as the observer. The implementers of 
 
 | # | Question | How | Observed |
 |---|---|---|---|
-| M1 | Defaults per `app_type` for a `POST /api/v2/clients` with only `name` and `app_type` (grant types, auth method, `is_first_party`, `oidc_conformant`, `jwt_configuration`, `refresh_token`, `token_endpoint_auth_method`) | create one each of `native`, `spa`, `regular_web`, `non_interactive`; record the field names and values that matter; delete them | |
-| M2 | Is `client_secret` present in `POST` and `GET` responses with and without `read:client_keys`? | A user token from `auth0-cli` (all scopes) versus an M2M token with only `read:clients` | |
-| M3 | Is a caller-supplied `client_secret` accepted on `POST` and on `PATCH`? Minimum length? | try both; record statuses | |
-| M4 | `rotate-secret`: status, response, and whether the old secret stops working immediately | rotate, then a client-credentials call with the old secret | |
-| M5 | Errors: unknown client ID; bad `app_type`; unknown field; malformed callback URL; missing scope | record `statusCode`, `error`, `errorCode` | |
-| M6 | Pagination: the shape with `include_totals=true`; maximum `per_page`; the default page size; the ordering | `GET` with variations | |
-| M7 | `fields` and `include_fields=false` behaviour | `GET` with variations | |
-| M8 | Changing `is_first_party` or `third_party_security_mode` by `PATCH` | try it | |
-| M9 | `DELETE` status, and a second `DELETE` | record | |
-| M10 | Which client fields `auth0-deploy-cli` exports and sends on import | run `a0deploy export` (pinned version) on the tenant; record field names only | |
-| M11 | The Management API's audience and token `iss` when a custom domain exists | from the docs, and from the tenant's resource-server identifier | |
+| M1 | Defaults per `app_type` for a `POST /api/v2/clients` with only `name` and `app_type` (grant types, auth method, `is_first_party`, `oidc_conformant`, `jwt_configuration`, `refresh_token`, `token_endpoint_auth_method`) | create one each of `native`, `spa`, `regular_web`, `non_interactive`; record the field names and values that matter; delete them || same defaults for every app_type (grants auth_code, implicit, refresh, client_credentials; is_first_party true; oidc_conformant false; jwt lifetime 36000; non-rotating RT); no per-type defaults from the API → **console applies per-type defaults** (D-0039) |
+| M2 | Is `client_secret` present in `POST` and `GET` responses with and without `read:client_keys`? | A user token from `auth0-cli` (all scopes) versus an M2M token with only `read:clients` || secret only with `read:client_keys`; 64 chars |
+| M3 | Is a caller-supplied `client_secret` accepted on `POST` and on `PATCH`? Minimum length? | try both; record statuses || accepted on POST; PATCH needs `update:client_keys`; min length 48 (`400 invalid_body`) |
+| M4 | `rotate-secret`: status, response, and whether the old secret stops working immediately | rotate, then a client-credentials call with the old secret || 200 with the client and a new secret; old secret refused immediately |
+| M5 | Errors: unknown client ID; bad `app_type`; unknown field; malformed callback URL; missing scope | record `statusCode`, `error`, `errorCode` || 404 `inexistent_client`; 400 `invalid_body` for validation, unknown properties **refused**; 403 `insufficient_scope`; 401 no or bad token |
+| M6 | Pagination: the shape with `include_totals=true`; maximum `per_page`; the default page size; the ordering | `GET` with variations || bare array without totals; `{clients,start,limit,total}` with; per_page max 100 (`400 invalid_query_string`); creation order |
+| M7 | `fields` and `include_fields=false` behaviour | `GET` with variations || `fields` with `include_fields` true/false; `tenant` always present |
+| M8 | Changing `is_first_party` or `third_party_security_mode` by `PATCH` | try it || both refused with 400 (immutable) |
+| M9 | `DELETE` status, and a second `DELETE` | record || 204, and 204 again for a missing ID |
+| M10 | Which client fields `auth0-deploy-cli` exports and sends on import | run `a0deploy export` (pinned version) on the tenant; record field names only || export drops `client_secret` and other read-only fields; Auth0 refuses a supplied `client_id` (403 `operation_not_supported`) → keeping IDs and secrets needs a slice-5 decision |
+| M11 | The Management API's audience and token `iss` when a custom domain exists | from the docs, and from the tenant's resource-server identifier || `https://<tenant domain>/api/v2/`, a system API |
 
 - [ ] **Step 1:** Run M1–M11 with `auth0 api` and `a0deploy`, keeping all output in the scratchpad.
 - [ ] **Step 2:** Write the observation note: facts only, no secrets, IDs or tenant names. Then D-0038 and D-0039.

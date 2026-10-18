@@ -558,3 +558,47 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **`POST /authorize`:** parameters come from a form-encoded body only (a form content type, at most 64 KB), and then behave as the same parameters in a GET query. GET is unchanged.
   - **`/userinfo`:** the access token may also be sent as `access_token` in a form-encoded POST body. The `Authorization` header is unchanged. Sending both is `400 invalid_request`.
 - **Rationale:** purely additive; requests that Auth0 clients already send behave as before.
+
+## D-0038: Client secrets are encrypted, not hashed
+
+- **Context:**
+  - Auth0 returns a client's secret to Management API callers holding `read:client_keys` and shows it in its dashboard.
+  - Core spec §8 stored secrets only as argon2id hashes.
+- **Sources:** observations/management-clients.md (M2); design `docs/superpowers/specs/2026-10-18-zeroauthy-management-design.md` §8; maintainer's decision, 2026-10-18.
+- **Decision:**
+  - Secrets are sealed with AES-256-GCM under the master key, through the same envelope as signing keys. The AAD binds tenant and client.
+  - Secrets are returned only to callers with `read:client_keys`.
+  - Existing hash-only secrets keep authenticating. Their plaintext is unknown, so no secret is returned until the client is rotated or its secret is set again.
+- **Rationale:** drop-in parity with Auth0. The master key already protects the more sensitive signing keys.
+
+## D-0039: Management API for clients
+
+- **Context:** Auth0 documents `/api/v2/clients`, but not all defaults, statuses and limits.
+- **Sources:** the Management API docs for clients; observations/management-clients.md; `auth0-deploy-cli` 9.1.0 source.
+- **Decision** (observed values):
+  - **Error shape:** `{statusCode, error, message, errorCode}`.
+    - Unknown ID: `404 inexistent_client`.
+    - Validation failures: `400 invalid_body`. Unknown properties are refused.
+    - Missing scope: `403 insufficient_scope`.
+    - No token or a bad token: `401`.
+  - **Pagination:**
+    - a bare array without `include_totals`, or `{clients, start, limit, total}` with it;
+    - `per_page` at most 100, otherwise `400 invalid_query_string`;
+    - creation order.
+  - **Projection:** `fields` plus `include_fields`, with `tenant` always included.
+  - **Secrets:**
+    - returned only with `read:client_keys`;
+    - can be set on `POST`, or on `PATCH` with `update:client_keys`;
+    - at least 48 characters; generated secrets are 64;
+    - rotation replaces the secret immediately.
+  - **Immutable fields:** `is_first_party` and `third_party_security_mode` cannot be changed after creation.
+  - **Delete:** `204`, and also `204` for an ID that does not exist.
+  - **Create defaults:** the API applies the same defaults to every `app_type`; per-type defaults are the caller's job.
+  - **Differences from Auth0:**
+    - zeroauthy is always OIDC-conformant. `oidc_conformant` is reported as `true` and cannot be set to `false`.
+    - The implicit grant is not offered, so it is not in the defaults.
+    - The console applies per-type defaults on create, as Auth0's dashboard does, through the same API.
+- **Rationale:** observed values are matched. The differences follow from features zeroauthy does not have.
+- **Open for slice 5:**
+  - `auth0-deploy-cli` does not carry `client_secret`, and Auth0 refuses a caller-supplied `client_id`. A migration that keeps client IDs and secrets needs a dedicated step, for example zeroauthy accepting `client_id` on create as an extension.
+  - That is a maintainer decision when slice 5 is designed.
