@@ -187,6 +187,59 @@ func TestManagementContract(t *testing.T) {
 	c.do(h, "DELETE", cgBase+"/"+gid, admin, nil)
 	c.do(h, "DELETE", cgBase+"/nope", admin, nil)
 
+	cnBase := "https://acme.example.test/api/v2/connections"
+	code, body = c.do(h, "POST", cnBase, admin, map[string]any{"name": "Contract-Db", "strategy": "auth0", "enabled_clients": []string{"m2m"}, "options": map[string]any{
+		"enabledDatabaseCustomization": true, "customScripts": map[string]any{"login": "function login(e,p,cb){cb(null,{})}"}, "configuration": map[string]any{"K": "v"}, "unknown_key": []any{1, "a"},
+	}})
+	var conn map[string]any
+	_ = json.Unmarshal(body, &conn)
+	cnID, _ := conn["id"].(string)
+	if code != 201 || cnID == "" {
+		t.Fatalf("create connection = %d %s", code, body)
+	}
+	c.do(h, "POST", cnBase, admin, map[string]any{"name": "Contract-Plain", "strategy": "auth0"})
+	c.do(h, "POST", cnBase, admin, map[string]any{"name": "Contract-Db", "strategy": "auth0"})
+	c.do(h, "POST", cnBase, admin, map[string]any{"name": "Other", "strategy": "samlp"})
+	c.do(h, "POST", cnBase, admin, map[string]any{"name": "Ghosts", "strategy": "auth0", "enabled_clients": []string{"ghost"}})
+	c.do(h, "POST", cnBase, reader, map[string]any{"name": "Reader", "strategy": "auth0"})
+	c.do(h, "GET", cnBase, admin, nil)
+	c.do(h, "GET", cnBase+"?include_totals=true&per_page=1&name=Contract-Db&strategy=auth0&strategy=samlp", admin, nil)
+	c.do(h, "GET", cnBase+"?fields=name&include_fields=true", admin, nil)
+	c.do(h, "GET", cnBase+"?per_page=101", admin, nil)
+	code, body = c.do(h, "GET", cnBase+"?take=1", admin, nil)
+	cp = nil
+	_ = json.Unmarshal(body, &cp)
+	next, _ = cp["next"].(string)
+	if code != 200 || next == "" {
+		t.Fatalf("connection checkpoint page = %d %s", code, body)
+	}
+	c.do(h, "GET", cnBase+"?take=1&from="+next, admin, nil)
+	c.do(h, "GET", cnBase+"?from=garbage", admin, nil)
+	c.do(h, "GET", cnBase+"/"+cnID, reader, nil)
+	c.do(h, "GET", cnBase+"/"+cnID, admin, nil)
+	c.do(h, "GET", cnBase+"/"+cnID+"?fields=options&include_fields=false", admin, nil)
+	c.do(h, "GET", cnBase+"/con_0000000000000000", admin, nil)
+	c.do(h, "GET", cnBase+"/nope", admin, nil)
+	c.do(h, "PATCH", cnBase+"/"+cnID, admin, map[string]any{"options": map[string]any{"disable_signup": true}})
+	c.do(h, "PATCH", cnBase+"/"+cnID, admin, map[string]any{"display_name": "Contract"})
+	c.do(h, "PATCH", cnBase+"/"+cnID, admin, map[string]any{"name": "Renamed"})
+	c.do(h, "PATCH", cnBase+"/"+cnID, admin, map[string]any{})
+	c.do(h, "PATCH", cnBase+"/con_0000000000000000", admin, map[string]any{"display_name": "x"})
+	c.do(h, "PATCH", cnBase+"/nope", admin, map[string]any{"display_name": "x"})
+	c.do(h, "PATCH", cnBase+"/"+cnID, reader, map[string]any{"display_name": "x"})
+	c.do(h, "GET", cnBase+"/"+cnID+"/clients", admin, nil)
+	c.do(h, "GET", cnBase+"/"+cnID+"/clients?take=1&from=garbage", admin, nil)
+	c.do(h, "GET", cnBase+"/con_0000000000000000/clients", admin, nil)
+	c.do(h, "PATCH", cnBase+"/"+cnID+"/clients", admin, []map[string]any{{"client_id": "admin", "status": true}})
+	c.do(h, "PATCH", cnBase+"/"+cnID+"/clients", admin, []map[string]any{{"client_id": "ghost", "status": true}})
+	c.do(h, "PATCH", cnBase+"/"+cnID+"/clients", admin, []map[string]any{})
+	c.do(h, "PATCH", cnBase+"/"+cnID+"/clients", reader, []map[string]any{{"client_id": "admin", "status": true}})
+	c.do(h, "PATCH", cnBase+"/nope/clients", admin, []map[string]any{{"client_id": "admin", "status": true}})
+	c.do(h, "DELETE", cnBase+"/"+cnID, reader, nil)
+	c.do(h, "DELETE", cnBase+"/"+cnID, admin, nil)
+	c.do(h, "DELETE", cnBase+"/"+cnID, admin, nil)
+	c.do(h, "DELETE", cnBase+"/nope", admin, nil)
+
 	op, _ := operatorToken(t, st, "op@example.test")
 	sys := "https://" + mgmtSystemHost + "/api/system"
 	c.do(h, "GET", sys+"/tenants", op, nil)

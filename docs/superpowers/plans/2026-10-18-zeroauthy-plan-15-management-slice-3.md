@@ -32,7 +32,7 @@
 ## Review Focus
 
 1. **Deleting the tenant's default directory:** deleting the connection named by the tenant's `default_directory` clears it (or is refused, per Task 1), so the password grant and `/dbconnections/*` never point at a missing connection. Pinned in Task 5 (`TestDeleteConnectionDefaultDirectory`).
-2. **PATCH without `options.configuration`:** a PATCH that omits `configuration`, or sends `options` without it, keeps the stored sealed values (Auth0 replaces `options` whole, per Task 1: then the console must send the merged object and the API test pins whichever rule applies). Pinned in Task 5 (`TestPatchConnectionKeepsConfiguration`).
+2. **PATCH without `options.configuration`:** a PATCH that omits `configuration`, or sends `options` without it, keeps the stored sealed values (Auth0 replaces `options` whole, per Task 1: then the console must send the merged object and the API test pins whichever rule applies). Pinned in Task 5 (`TestPatchConnectionKeepsConfiguration`). **Superseded by D-0042:** Auth0 replaces `options` whole, so a PATCH that leaves `configuration` out drops it; a blob sent back keeps its secret. `TestPatchConnectionKeepsConfiguration` pins that rule.
 3. **Enabled clients that do not exist or belong to another tenant:** `enabled_clients` and `PATCH /connections/{id}/clients` refuse unknown client IDs with Task 1's error; deleting a client already removes it (Plan 13). Pinned in Task 5.
 4. **Shrinking password history:** lowering `password_history.size` trims stored history on the next password set and never blocks a password older than the new size; size 0 deletes nothing but checks nothing. Pinned in Task 4 (`TestHistoryShrink`).
 5. **Personal info and dictionary edge cases:** comparisons are case-insensitive and Unicode-aware; email local parts and name parts shorter than 3 characters are ignored (so a user named "Al" can still use passwords containing "al"); custom words are trimmed and deduplicated. Pinned in Task 4.
@@ -116,7 +116,7 @@ Run by the controller session as the observer (option A of Plan 14: the observer
 - Consumes: Tasks 2–3.
 - Operations: `GET /connections` (filters, paging, `fields` per C8), `POST`, `GET /{id}`, `PATCH /{id}` (per C3), `DELETE /{id}` (per C9), `GET /{id}/clients`, `PATCH /{id}/clients` (per C7).
 
-- [ ] **Step 1: Tests:** per operation and field from C1–C10; Review Focus 1 (`TestDeleteConnectionDefaultDirectory`), 2 (`TestPatchConnectionKeepsConfiguration`), 3 (unknown and foreign client IDs); `configuration` never in a response; API-created connections carry `origin: api` and the seed skips them; the contract test extended; an application enabled through the API can log a user in through hosted login.
+- [x] **Step 1: Tests:** per operation and field from C1–C10; Review Focus 1 (`TestDeleteConnectionDefaultDirectory`), 2 (`TestPatchConnectionKeepsConfiguration`), 3 (unknown and foreign client IDs); `configuration` never in a response; API-created connections carry `origin: api` and the seed skips them; the contract test extended; an application enabled through the API can log a user in through hosted login.
 - [ ] **Step 2: Implement. Step 3: Run** the Go suite, `go generate` with no diff, `make check-sources`. **Step 4: Commit** with `feat(mgmt): /api/v2/connections`.
 
 ---

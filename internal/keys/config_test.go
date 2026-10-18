@@ -50,3 +50,30 @@ func TestConnectionConfigEmpty(t *testing.T) {
 		t.Fatalf("nil opened to %v, %v; want empty non-nil map", out, err)
 	}
 }
+
+func TestConfigValueBlob(t *testing.T) {
+	w, _ := NewLocalWrapper(testMasterKey(1))
+	blob, err := SealConfigValue(w, "ten_1", "con_1", "API_TOKEN", "s3cret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !IsConfigValueBlob(blob) || bytes.Contains([]byte(blob), []byte("s3cret")) {
+		t.Fatalf("blob %q is not an opaque blob", blob)
+	}
+	got, err := OpenConfigValue(w, "ten_1", "con_1", "API_TOKEN", blob)
+	if err != nil || got != "s3cret" {
+		t.Fatalf("open = %q, %v", got, err)
+	}
+	// Bound to tenant, connection and key.
+	for _, c := range [][3]string{{"ten_2", "con_1", "API_TOKEN"}, {"ten_1", "con_2", "API_TOKEN"}, {"ten_1", "con_1", "OTHER"}} {
+		if _, err := OpenConfigValue(w, c[0], c[1], c[2], blob); err == nil {
+			t.Errorf("opened under %v", c)
+		}
+	}
+	if IsConfigValueBlob("plain") {
+		t.Error("plain text taken for a blob")
+	}
+	if _, err := OpenConfigValue(w, "ten_1", "con_1", "API_TOKEN", "zcv1.not-base64!"); err == nil {
+		t.Error("opened garbage")
+	}
+}

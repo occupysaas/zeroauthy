@@ -45,6 +45,8 @@ tags:
     description: APIs (Auth0's `/api/v2/resource-servers`).
   - name: client-grants
     description: Applications' access to APIs (Auth0's `/api/v2/client-grants`).
+  - name: connections
+    description: Database connections (Auth0's `/api/v2/connections`).
   - name: system
     description: zeroauthy's own API for tenants and operators (operator tokens only).
 security:
@@ -505,6 +507,252 @@ paths:
         "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/connections:
+    get:
+      operationId: getConnections
+      tags: [connections]
+      summary: List connections
+      description: |
+        The tenant's connections ordered by name (case-insensitive). Requires
+        `read:connections`. `enabled_clients` is not part of the list; use
+        `/connections/{id}/clients`.
+
+        Offset paging (`page`, `per_page` 1 to 100, 100 by default,
+        `include_totals`) answers a bare array, or with totals an object with
+        `connections`, `start`, `limit` and `total`. Checkpoint paging, when
+        `take` or `from` is present, answers `{connections, next}`: `take` is
+        the page size (1 to 100, 50 by default) and `next`, an opaque cursor
+        to pass back as `from`, is absent on the last page. It wins over
+        `page`, `per_page` and `include_totals`. A `from` that is not a
+        cursor this API issued is `400 invalid_query_string`.
+
+        `name` (exact) and `strategy` (repeatable) filter. `fields` always
+        returns `id` and `is_domain_connection` too.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/connections/get-connections
+      parameters:
+        - name: page
+          in: query
+          description: Page index of the results, from 0.
+          schema: {type: integer, minimum: 0, default: 0}
+        - name: per_page
+          in: query
+          description: Number of results per page, 1 to 100.
+          schema: {type: integer, minimum: 1, maximum: 100, default: 100}
+        - $ref: "#/components/parameters/include_totals"
+        - name: take
+          in: query
+          description: Checkpoint paging page size, 1 to 100 (50 by default).
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: from
+          in: query
+          description: Checkpoint paging cursor, the `next` of the previous page.
+          schema: {type: string}
+        - name: name
+          in: query
+          description: Only the connection with exactly this name.
+          schema: {type: string}
+        - name: strategy
+          in: query
+          description: Only connections of these strategies. Repeat the parameter for several.
+          style: form
+          explode: true
+          schema: {type: array, items: {type: string}}
+        - name: fields
+          in: query
+          description: Comma-separated fields to include or, with `include_fields=false`, to leave out. `id` and `is_domain_connection` are always returned.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: The page of connections.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: array
+                    items: {$ref: "#/components/schemas/Connection"}
+                  - $ref: "#/components/schemas/ConnectionPage"
+                  - $ref: "#/components/schemas/ConnectionCheckpointPage"
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      operationId: createConnection
+      tags: [connections]
+      summary: Create a connection
+      description: |
+        Requires `create:connections`. Only the `auth0` (database) strategy is
+        supported. Auth0's create defaults apply to what the body leaves out.
+        `enabled_clients` is accepted here only, and every ID must be an
+        application of the tenant (`400 inexistent_client`). A used name is
+        `409 connection_conflict`. Unknown properties are `400 invalid_body`;
+        unknown keys inside `options` are stored and returned as sent.
+        `options.configuration` values are sealed at rest and returned as
+        opaque blobs, never as plaintext.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/connections/post-connections
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ConnectionCreate"}
+      responses:
+        "201":
+          description: The new connection, with `enabled_clients`.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Connection"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/connections/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The connection's ID, `con_` followed by letters and digits; anything else is `400 invalid_uri`.
+        schema: {type: string}
+    get:
+      operationId: getConnection
+      tags: [connections]
+      summary: Get a connection
+      description: |
+        Requires `read:connections`. A well-formed unknown ID is
+        `404 inexistent_connection`. The body has no `enabled_clients`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/connections/get-connections
+      parameters:
+        - name: fields
+          in: query
+          description: Comma-separated fields to include or, with `include_fields=false`, to leave out. `id` and `is_domain_connection` are always returned.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: The connection.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Connection"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      operationId: updateConnection
+      tags: [connections]
+      summary: Update a connection
+      description: |
+        Requires `update:connections`. `options`, when sent, is replaced
+        whole: keys not sent are dropped (`configuration` and the scripts
+        included), and the parts of `password_options` not sent take their
+        defaults. `name`, `strategy` and `enabled_clients` are unknown
+        properties (`400 invalid_body`), as is an empty body. A
+        `configuration` value equal to the blob the API returned for that key
+        keeps the stored secret; any other string is new plaintext, and
+        `null` removes the key.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/connections/patch-connections-by-id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ConnectionUpdate"}
+      responses:
+        "200":
+          description: The updated connection.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Connection"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteConnection
+      tags: [connections]
+      summary: Delete a connection
+      description: |
+        Requires `delete:connections`. Answers `202` with the deletion time;
+        the connection is gone at once, with its users (their sessions,
+        refresh tokens, grants and password history). The tenant's
+        `default_directory` is cleared when it names the connection. A
+        second delete of a well-formed ID answers `204`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/connections/delete-connections-by-id
+      responses:
+        "202":
+          description: Deleted.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConnectionDeleted"}
+        "204": {description: "Already deleted."}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/connections/{id}/clients:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The connection's ID, `con_` followed by letters and digits; anything else is `400 invalid_uri`.
+        schema: {type: string}
+    get:
+      operationId: getConnectionClients
+      tags: [connections]
+      summary: List the applications enabled on a connection
+      description: |
+        Requires `read:connections`. Checkpoint paging: `take` (1 to 100, 50
+        by default) and `from` (the `next` of the previous page; anything else
+        is `400 invalid_query_string`). `next` is absent on the last page.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/connections/get-connection-clients
+      parameters:
+        - name: take
+          in: query
+          description: Page size, 1 to 100 (50 by default).
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: from
+          in: query
+          description: Cursor, the `next` of the previous page.
+          schema: {type: string}
+      responses:
+        "200":
+          description: The enabled applications.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ConnectionClients"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      operationId: updateConnectionClients
+      tags: [connections]
+      summary: Enable or disable applications on a connection
+      description: |
+        Requires `update:connections`. A non-empty array of
+        `{client_id, status}`: `true` enables, `false` disables. An unknown
+        application, or one of another tenant, is `400 inexistent_client`; a
+        malformed client ID or an empty array is `400 invalid_body`. Nothing
+        changes when any entry is refused.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/connections/patch-clients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items: {$ref: "#/components/schemas/ConnectionClientStatus"}
+      responses:
+        "204": {description: Updated.}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /api/system/tenants:
     get:
       operationId: getTenants
@@ -1095,6 +1343,109 @@ components:
         client_grants:
           type: array
           items: {$ref: "#/components/schemas/ClientGrant"}
+        next: {type: string, description: Pass as `from` for the next page; absent on the last page.}
+    ConnectionSettings:
+      type: object
+      description: |
+        The properties of a connection that can be created and updated.
+        Unknown properties are refused (`invalid_body`).
+      properties:
+        options:
+          type: object
+          additionalProperties: true
+          description: |
+            The connection's options in Auth0's shape (`password_options`,
+            `brute_force_protection`, `validation`, `customScripts`,
+            `configuration`, ...). Unknown keys are stored and returned as
+            sent. `configuration` values are strings or null; they are
+            returned as opaque blobs.
+        is_domain_connection: {type: boolean}
+        display_name: {type: string}
+        realms: {type: array, items: {type: string}}
+        metadata: {type: object, additionalProperties: {type: string}}
+        show_as_button: {type: boolean}
+        connected_accounts: {type: object, additionalProperties: true}
+        authentication: {type: object, additionalProperties: true}
+    ConnectionCreate:
+      description: A new connection. `name` and `strategy` are required.
+      allOf:
+        - $ref: "#/components/schemas/ConnectionSettings"
+        - type: object
+          required: [name, strategy]
+          properties:
+            name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
+            strategy: {type: string, enum: [auth0]}
+            enabled_clients:
+              type: array
+              items: {type: string}
+              description: Applications to enable on the connection; accepted on create only.
+    ConnectionUpdate:
+      description: |
+        Fields to change; at least one is required. `name`, `strategy` and
+        `enabled_clients` are unknown properties.
+      allOf:
+        - $ref: "#/components/schemas/ConnectionSettings"
+    Connection:
+      type: object
+      description: |
+        A connection. `options.configuration` values are opaque blobs, never
+        plaintext. `enabled_clients` is returned by create only. `fields`
+        can leave out any property but `id` and `is_domain_connection`.
+      required: [id, is_domain_connection]
+      properties:
+        id: {type: string, description: "`con_` and 16 letters and digits for connections created through the API."}
+        name: {type: string}
+        strategy: {type: string}
+        options: {type: object, additionalProperties: true}
+        enabled_clients: {type: array, items: {type: string}}
+        is_domain_connection: {type: boolean}
+        realms: {type: array, items: {type: string}}
+        display_name: {type: string}
+        metadata: {type: object, additionalProperties: {type: string}}
+        show_as_button: {type: boolean}
+        connected_accounts: {type: object, additionalProperties: true}
+        authentication: {type: object, additionalProperties: true}
+    ConnectionPage:
+      description: A page of connections with `include_totals=true`.
+      allOf:
+        - $ref: "#/components/schemas/ListTotals"
+        - type: object
+          required: [connections]
+          properties:
+            connections:
+              type: array
+              items: {$ref: "#/components/schemas/Connection"}
+    ConnectionCheckpointPage:
+      type: object
+      description: A page of connections from checkpoint paging.
+      required: [connections]
+      properties:
+        connections:
+          type: array
+          items: {$ref: "#/components/schemas/Connection"}
+        next: {type: string, description: Pass as `from` for the next page; absent on the last page.}
+    ConnectionDeleted:
+      type: object
+      required: [deleted_at]
+      properties:
+        deleted_at: {type: string, format: date-time}
+    ConnectionClientStatus:
+      type: object
+      required: [client_id, status]
+      properties:
+        client_id: {type: string, minLength: 1}
+        status: {type: boolean, description: "True enables the application on the connection, false disables it."}
+    ConnectionClients:
+      type: object
+      required: [clients]
+      properties:
+        clients:
+          type: array
+          items:
+            type: object
+            required: [client_id]
+            properties:
+              client_id: {type: string}
         next: {type: string, description: Pass as `from` for the next page; absent on the last page.}
     SystemTenant:
       type: object

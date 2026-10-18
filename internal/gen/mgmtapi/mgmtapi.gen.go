@@ -327,6 +327,21 @@ func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
 	}
 }
 
+// Defines values for ConnectionCreateStrategy.
+const (
+	Auth0 ConnectionCreateStrategy = "auth0"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionCreateStrategy enum.
+func (e ConnectionCreateStrategy) Valid() bool {
+	switch e {
+	case Auth0:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JwtConfigurationAlg.
 const (
 	JwtConfigurationAlgRS256 JwtConfigurationAlg = "RS256"
@@ -1070,6 +1085,122 @@ type ClientUpdateRedirectionPolicy string
 // ClientUpdateThirdPartySecurityMode defines model for ClientUpdate.ThirdPartySecurityMode.
 type ClientUpdateThirdPartySecurityMode string
 
+// Connection A connection. `options.configuration` values are opaque blobs, never
+// plaintext. `enabled_clients` is returned by create only. `fields`
+// can leave out any property but `id` and `is_domain_connection`.
+type Connection struct {
+	Authentication    *map[string]interface{} `json:"authentication,omitempty"`
+	ConnectedAccounts *map[string]interface{} `json:"connected_accounts,omitempty"`
+	DisplayName       *string                 `json:"display_name,omitempty"`
+	EnabledClients    *[]string               `json:"enabled_clients,omitempty"`
+
+	// Id `con_` and 16 letters and digits for connections created through the API.
+	Id                 string                  `json:"id"`
+	IsDomainConnection bool                    `json:"is_domain_connection"`
+	Metadata           *map[string]string      `json:"metadata,omitempty"`
+	Name               *string                 `json:"name,omitempty"`
+	Options            *map[string]interface{} `json:"options,omitempty"`
+	Realms             *[]string               `json:"realms,omitempty"`
+	ShowAsButton       *bool                   `json:"show_as_button,omitempty"`
+	Strategy           *string                 `json:"strategy,omitempty"`
+}
+
+// ConnectionCheckpointPage A page of connections from checkpoint paging.
+type ConnectionCheckpointPage struct {
+	Connections []Connection `json:"connections"`
+
+	// Next Pass as `from` for the next page; absent on the last page.
+	Next *string `json:"next,omitempty"`
+}
+
+// ConnectionClientStatus defines model for ConnectionClientStatus.
+type ConnectionClientStatus struct {
+	ClientId string `json:"client_id"`
+
+	// Status True enables the application on the connection, false disables it.
+	Status bool `json:"status"`
+}
+
+// ConnectionClients defines model for ConnectionClients.
+type ConnectionClients struct {
+	Clients []struct {
+		ClientId string `json:"client_id"`
+	} `json:"clients"`
+
+	// Next Pass as `from` for the next page; absent on the last page.
+	Next *string `json:"next,omitempty"`
+}
+
+// ConnectionCreate A new connection. `name` and `strategy` are required.
+type ConnectionCreate struct {
+	Authentication    *map[string]interface{} `json:"authentication,omitempty"`
+	ConnectedAccounts *map[string]interface{} `json:"connected_accounts,omitempty"`
+	DisplayName       *string                 `json:"display_name,omitempty"`
+
+	// EnabledClients Applications to enable on the connection; accepted on create only.
+	EnabledClients     *[]string          `json:"enabled_clients,omitempty"`
+	IsDomainConnection *bool              `json:"is_domain_connection,omitempty"`
+	Metadata           *map[string]string `json:"metadata,omitempty"`
+
+	// Name Letters and digits with single hyphens between them.
+	Name string `json:"name"`
+
+	// Options The connection's options in Auth0's shape (`password_options`,
+	// `brute_force_protection`, `validation`, `customScripts`,
+	// `configuration`, ...). Unknown keys are stored and returned as
+	// sent. `configuration` values are strings or null; they are
+	// returned as opaque blobs.
+	Options      *map[string]interface{}  `json:"options,omitempty"`
+	Realms       *[]string                `json:"realms,omitempty"`
+	ShowAsButton *bool                    `json:"show_as_button,omitempty"`
+	Strategy     ConnectionCreateStrategy `json:"strategy"`
+}
+
+// ConnectionCreateStrategy defines model for ConnectionCreate.Strategy.
+type ConnectionCreateStrategy string
+
+// ConnectionDeleted defines model for ConnectionDeleted.
+type ConnectionDeleted struct {
+	DeletedAt time.Time `json:"deleted_at"`
+}
+
+// ConnectionPage A page of connections with `include_totals=true`.
+type ConnectionPage struct {
+	Connections []Connection `json:"connections"`
+
+	// Limit The page size.
+	Limit int `json:"limit"`
+
+	// Start Index of the first result.
+	Start int `json:"start"`
+
+	// Total The number of results on all pages.
+	Total int `json:"total"`
+}
+
+// ConnectionSettings The properties of a connection that can be created and updated.
+// Unknown properties are refused (`invalid_body`).
+type ConnectionSettings struct {
+	Authentication     *map[string]interface{} `json:"authentication,omitempty"`
+	ConnectedAccounts  *map[string]interface{} `json:"connected_accounts,omitempty"`
+	DisplayName        *string                 `json:"display_name,omitempty"`
+	IsDomainConnection *bool                   `json:"is_domain_connection,omitempty"`
+	Metadata           *map[string]string      `json:"metadata,omitempty"`
+
+	// Options The connection's options in Auth0's shape (`password_options`,
+	// `brute_force_protection`, `validation`, `customScripts`,
+	// `configuration`, ...). Unknown keys are stored and returned as
+	// sent. `configuration` values are strings or null; they are
+	// returned as opaque blobs.
+	Options      *map[string]interface{} `json:"options,omitempty"`
+	Realms       *[]string               `json:"realms,omitempty"`
+	ShowAsButton *bool                   `json:"show_as_button,omitempty"`
+}
+
+// ConnectionUpdate Fields to change; at least one is required. `name`, `strategy` and
+// `enabled_clients` are unknown properties.
+type ConnectionUpdate = ConnectionSettings
+
 // JwtConfiguration ID token settings.
 type JwtConfiguration struct {
 	// Alg The signing algorithm; zeroauthy signs with RS256 only.
@@ -1524,6 +1655,65 @@ type GetClientParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// GetConnectionsParams defines parameters for GetConnections.
+type GetConnectionsParams struct {
+	// Page Page index of the results, from 0.
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page, 1 to 100.
+	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *IncludeTotals `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// Take Checkpoint paging page size, 1 to 100 (50 by default).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// From Checkpoint paging cursor, the `next` of the previous page.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Name Only the connection with exactly this name.
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
+
+	// Strategy Only connections of these strategies. Repeat the parameter for several.
+	Strategy *[]string `form:"strategy,omitempty" json:"strategy,omitempty"`
+
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `id` and `is_domain_connection` are always returned.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
+// GetConnections200JSONResponseBody0 defines parameters for GetConnections.
+type GetConnections200JSONResponseBody0 = []Connection
+
+// GetConnections200JSONResponseBody defines parameters for GetConnections.
+type GetConnections200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetConnectionParams defines parameters for GetConnection.
+type GetConnectionParams struct {
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `id` and `is_domain_connection` are always returned.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
+// GetConnectionClientsParams defines parameters for GetConnectionClients.
+type GetConnectionClientsParams struct {
+	// Take Page size, 1 to 100 (50 by default).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// From Cursor, the `next` of the previous page.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+}
+
+// UpdateConnectionClientsJSONBody defines parameters for UpdateConnectionClients.
+type UpdateConnectionClientsJSONBody = []ConnectionClientStatus
+
 // GetResourceServersParams defines parameters for GetResourceServers.
 type GetResourceServersParams struct {
 	// Page Page index of the results, from 0.
@@ -1583,6 +1773,15 @@ type CreateClientJSONRequestBody = ClientCreate
 
 // UpdateClientJSONRequestBody defines body for UpdateClient for application/json ContentType.
 type UpdateClientJSONRequestBody = ClientUpdate
+
+// CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
+type CreateConnectionJSONRequestBody = ConnectionCreate
+
+// UpdateConnectionJSONRequestBody defines body for UpdateConnection for application/json ContentType.
+type UpdateConnectionJSONRequestBody = ConnectionUpdate
+
+// UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
+type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
 
 // CreateResourceServerJSONRequestBody defines body for CreateResourceServer for application/json ContentType.
 type CreateResourceServerJSONRequestBody = ResourceServerCreate
@@ -1740,6 +1939,94 @@ func (t *GetClients200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsGetConnections200JSONResponseBody0 returns the union data inside the GetConnections200JSONResponseBody as a GetConnections200JSONResponseBody0
+func (t GetConnections200JSONResponseBody) AsGetConnections200JSONResponseBody0() (GetConnections200JSONResponseBody0, error) {
+	var body GetConnections200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetConnections200JSONResponseBody0 overwrites any union data inside the GetConnections200JSONResponseBody as the provided GetConnections200JSONResponseBody0
+func (t *GetConnections200JSONResponseBody) FromGetConnections200JSONResponseBody0(v GetConnections200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetConnections200JSONResponseBody0 performs a merge with any union data inside the GetConnections200JSONResponseBody, using the provided GetConnections200JSONResponseBody0
+func (t *GetConnections200JSONResponseBody) MergeGetConnections200JSONResponseBody0(v GetConnections200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionPage returns the union data inside the GetConnections200JSONResponseBody as a ConnectionPage
+func (t GetConnections200JSONResponseBody) AsConnectionPage() (ConnectionPage, error) {
+	var body ConnectionPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionPage overwrites any union data inside the GetConnections200JSONResponseBody as the provided ConnectionPage
+func (t *GetConnections200JSONResponseBody) FromConnectionPage(v ConnectionPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionPage performs a merge with any union data inside the GetConnections200JSONResponseBody, using the provided ConnectionPage
+func (t *GetConnections200JSONResponseBody) MergeConnectionPage(v ConnectionPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsConnectionCheckpointPage returns the union data inside the GetConnections200JSONResponseBody as a ConnectionCheckpointPage
+func (t GetConnections200JSONResponseBody) AsConnectionCheckpointPage() (ConnectionCheckpointPage, error) {
+	var body ConnectionCheckpointPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromConnectionCheckpointPage overwrites any union data inside the GetConnections200JSONResponseBody as the provided ConnectionCheckpointPage
+func (t *GetConnections200JSONResponseBody) FromConnectionCheckpointPage(v ConnectionCheckpointPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeConnectionCheckpointPage performs a merge with any union data inside the GetConnections200JSONResponseBody, using the provided ConnectionCheckpointPage
+func (t *GetConnections200JSONResponseBody) MergeConnectionCheckpointPage(v ConnectionCheckpointPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetConnections200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetConnections200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsGetResourceServers200JSONResponseBody0 returns the union data inside the GetResourceServers200JSONResponseBody as a GetResourceServers200JSONResponseBody0
 func (t GetResourceServers200JSONResponseBody) AsGetResourceServers200JSONResponseBody0() (GetResourceServers200JSONResponseBody0, error) {
 	var body GetResourceServers200JSONResponseBody0
@@ -1858,6 +2145,27 @@ type ServerInterface interface {
 	// RotateClientSecret Rotate an application's secret
 	// (POST /api/v2/clients/{id}/rotate-secret)
 	RotateClientSecret(w http.ResponseWriter, r *http.Request, id string)
+	// GetConnections List connections
+	// (GET /api/v2/connections)
+	GetConnections(w http.ResponseWriter, r *http.Request, params GetConnectionsParams)
+	// CreateConnection Create a connection
+	// (POST /api/v2/connections)
+	CreateConnection(w http.ResponseWriter, r *http.Request)
+	// DeleteConnection Delete a connection
+	// (DELETE /api/v2/connections/{id})
+	DeleteConnection(w http.ResponseWriter, r *http.Request, id string)
+	// GetConnection Get a connection
+	// (GET /api/v2/connections/{id})
+	GetConnection(w http.ResponseWriter, r *http.Request, id string, params GetConnectionParams)
+	// UpdateConnection Update a connection
+	// (PATCH /api/v2/connections/{id})
+	UpdateConnection(w http.ResponseWriter, r *http.Request, id string)
+	// GetConnectionClients List the applications enabled on a connection
+	// (GET /api/v2/connections/{id}/clients)
+	GetConnectionClients(w http.ResponseWriter, r *http.Request, id string, params GetConnectionClientsParams)
+	// UpdateConnectionClients Enable or disable applications on a connection
+	// (PATCH /api/v2/connections/{id}/clients)
+	UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string)
 	// GetResourceServers List APIs
 	// (GET /api/v2/resource-servers)
 	GetResourceServers(w http.ResponseWriter, r *http.Request, params GetResourceServersParams)
@@ -1984,6 +2292,48 @@ func (_ Unimplemented) UpdateClient(w http.ResponseWriter, r *http.Request, id s
 // RotateClientSecret Rotate an application's secret
 // (POST /api/v2/clients/{id}/rotate-secret)
 func (_ Unimplemented) RotateClientSecret(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnections List connections
+// (GET /api/v2/connections)
+func (_ Unimplemented) GetConnections(w http.ResponseWriter, r *http.Request, params GetConnectionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateConnection Create a connection
+// (POST /api/v2/connections)
+func (_ Unimplemented) CreateConnection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteConnection Delete a connection
+// (DELETE /api/v2/connections/{id})
+func (_ Unimplemented) DeleteConnection(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnection Get a connection
+// (GET /api/v2/connections/{id})
+func (_ Unimplemented) GetConnection(w http.ResponseWriter, r *http.Request, id string, params GetConnectionParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateConnection Update a connection
+// (PATCH /api/v2/connections/{id})
+func (_ Unimplemented) UpdateConnection(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetConnectionClients List the applications enabled on a connection
+// (GET /api/v2/connections/{id}/clients)
+func (_ Unimplemented) GetConnectionClients(w http.ResponseWriter, r *http.Request, id string, params GetConnectionClientsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateConnectionClients Enable or disable applications on a connection
+// (PATCH /api/v2/connections/{id}/clients)
+func (_ Unimplemented) UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2650,6 +3000,345 @@ func (siw *ServerInterfaceWrapper) RotateClientSecret(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// GetConnections operation middleware
+func (siw *ServerInterfaceWrapper) GetConnections(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetConnectionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "name" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "name", r.URL.Query(), &params.Name, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "strategy" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "strategy", r.URL.Query(), &params.Strategy, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "strategy"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "strategy", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnections(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateConnection operation middleware
+func (siw *ServerInterfaceWrapper) CreateConnection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateConnection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteConnection operation middleware
+func (siw *ServerInterfaceWrapper) DeleteConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteConnection(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConnection operation middleware
+func (siw *ServerInterfaceWrapper) GetConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetConnectionParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnection(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateConnection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateConnection(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConnectionClients operation middleware
+func (siw *ServerInterfaceWrapper) GetConnectionClients(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetConnectionClientsParams
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnectionClients(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateConnectionClients operation middleware
+func (siw *ServerInterfaceWrapper) UpdateConnectionClients(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateConnectionClients(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetResourceServers operation middleware
 func (siw *ServerInterfaceWrapper) GetResourceServers(w http.ResponseWriter, r *http.Request) {
 
@@ -3029,6 +3718,27 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v2/client-grants/{id}", wrapper.UpdateClientGrant)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections", wrapper.GetConnections)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/connections", wrapper.CreateConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/connections/{id}", wrapper.DeleteConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}", wrapper.GetConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/connections/{id}", wrapper.UpdateConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/connections/{id}/clients", wrapper.GetConnectionClients)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/connections/{id}/clients", wrapper.UpdateConnectionClients)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants", wrapper.GetTenants)

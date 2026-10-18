@@ -85,6 +85,34 @@ func (a mgmtAPI) DeleteClientGrant(w http.ResponseWriter, r *http.Request, id st
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteClientGrant(w, r, id) }, "delete:client_grants")
 }
 
+func (a mgmtAPI) GetConnections(w http.ResponseWriter, r *http.Request, p mgmtapi.GetConnectionsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetConnections(w, r, p) }, "read:connections")
+}
+
+func (a mgmtAPI) CreateConnection(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateConnection, "create:connections")
+}
+
+func (a mgmtAPI) GetConnection(w http.ResponseWriter, r *http.Request, id string, p mgmtapi.GetConnectionParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetConnection(w, r, id, p) }, "read:connections")
+}
+
+func (a mgmtAPI) UpdateConnection(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateConnection(w, r, id) }, "update:connections")
+}
+
+func (a mgmtAPI) DeleteConnection(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteConnection(w, r, id) }, "delete:connections")
+}
+
+func (a mgmtAPI) GetConnectionClients(w http.ResponseWriter, r *http.Request, id string, p mgmtapi.GetConnectionClientsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetConnectionClients(w, r, id, p) }, "read:connections")
+}
+
+func (a mgmtAPI) UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateConnectionClients(w, r, id) }, "update:connections")
+}
+
 // The system API: the router lets only operators reach it (operatorOnly).
 
 func (a mgmtAPI) GetTenants(w http.ResponseWriter, r *http.Request)   { a.h.GetTenants(w, r) }

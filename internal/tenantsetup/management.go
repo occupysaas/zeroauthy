@@ -36,6 +36,8 @@ var ManagementAPIScopes = []store.Scope{
 	{Value: "create:connections", Description: "Create connections"},
 	{Value: "update:connections", Description: "Update connections"},
 	{Value: "delete:connections", Description: "Delete connections"},
+	{Value: "read:connections_options", Description: "Read connection options"},
+	{Value: "update:connections_options", Description: "Update connection options"},
 	{Value: "read:users", Description: "Read users"},
 	{Value: "create:users", Description: "Create users"},
 	{Value: "update:users", Description: "Update users"},
