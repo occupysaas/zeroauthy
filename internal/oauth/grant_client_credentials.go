@@ -31,8 +31,9 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 	}
 
 	rs, err := h.Store.ResourceServers().GetByIdentifier(ctx, tenantID, aud)
-	if errors.Is(err, store.ErrNotFound) && aud == tenant.ManagementAPIIdentifier(res.Tenant, h.BaseDomain) {
-		// The tenant's Management API is created on first use.
+	if errors.Is(err, store.ErrNotFound) && !res.Tenant.Reserved && aud == tenant.ManagementAPIIdentifier(res.Tenant, h.BaseDomain) {
+		// The tenant's Management API is created on first use. The system
+		// tenant has none: only operators manage it.
 		rs, err = tenantsetup.ManagementAPI(ctx, h.Store, res.Tenant, h.BaseDomain, h.now().UTC())
 		if errors.Is(err, store.ErrConflict) {
 			rs, err = h.Store.ResourceServers().GetByIdentifier(ctx, tenantID, aud)

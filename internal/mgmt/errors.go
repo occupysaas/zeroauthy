@@ -14,7 +14,17 @@ import (
 
 // WriteError writes an error in Auth0's Management API shape: error is the
 // status text, errorCode is left out when empty.
+//
+// A 401 also gets `WWW-Authenticate: Bearer error="invalid_token"` and a 403
+// insufficient_scope `Bearer error="insufficient_scope"` (RFC 6750 §3; not
+// observed on Auth0, and harmless to its clients).
 func WriteError(w http.ResponseWriter, status int, errorCode, message string) {
+	switch {
+	case status == http.StatusUnauthorized:
+		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+	case status == http.StatusForbidden && errorCode == "insufficient_scope":
+		w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_scope"`)
+	}
 	body := mgmtapi.ManagementError{StatusCode: status, Error: http.StatusText(status), Message: message}
 	if errorCode != "" {
 		body.ErrorCode = &errorCode

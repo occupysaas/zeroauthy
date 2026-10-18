@@ -41,9 +41,6 @@ type Config struct {
 	// Host is the system tenant's host, tenant.SystemHost(base_domain,
 	// system_host). It is stored as the tenant's only domain.
 	Host string
-	// BaseDomain is server.base_domain; it names the system tenant's own
-	// Management API identifier (tenant.ManagementAPIIdentifier).
-	BaseDomain string
 	// Wrapper seals the tenant's signing keys.
 	Wrapper keys.Wrapper
 	// Now defaults to time.Now.
@@ -53,8 +50,9 @@ type Config struct {
 // Ensure creates the system tenant, or brings it back to its defined state:
 // the domain Config.Host, signing keys, the Operators connection (enabled
 // only for the console, no sign-up), the console client and the
-// urn:zeroauthy:management resource server, and the tenant's own Management
-// API (tenantsetup.ManagementAPI). It is idempotent. Operators and
+// urn:zeroauthy:management resource server. It is idempotent. Unlike other
+// tenants it gets no machine-to-machine Management API
+// (tenantsetup.ManagementAPI): only operators manage it. Operators and
 // their users are never touched.
 //
 // It refuses a tenant named `system` that zeroauthy did not create
@@ -71,7 +69,7 @@ func Ensure(ctx context.Context, st store.Store, cfg Config) (*store.Tenant, err
 	var out *store.Tenant
 	apply := func() error {
 		return st.WithTx(ctx, func(tx store.Store) error {
-			tn, err := ensure(ctx, tx, host, cfg.BaseDomain, now().UTC(), cfg.Wrapper)
+			tn, err := ensure(ctx, tx, host, now().UTC(), cfg.Wrapper)
 			out = tn
 			return err
 		})
@@ -92,7 +90,7 @@ func Ensure(ctx context.Context, st store.Store, cfg Config) (*store.Tenant, err
 	return out, nil
 }
 
-func ensure(ctx context.Context, st store.Store, host, baseDomain string, now time.Time, w keys.Wrapper) (*store.Tenant, error) {
+func ensure(ctx context.Context, st store.Store, host string, now time.Time, w keys.Wrapper) (*store.Tenant, error) {
 	if existing, err := st.Tenants().GetByName(ctx, tenant.SystemName); err == nil && !existing.Reserved {
 		return nil, fmt.Errorf("a tenant named %q exists that is not zeroauthy's system tenant; rename or delete it", tenant.SystemName)
 	} else if err != nil && !errors.Is(err, store.ErrNotFound) {
@@ -136,9 +134,6 @@ func ensure(ctx context.Context, st store.Store, host, baseDomain string, now ti
 		return nil
 	})
 	if err != nil {
-		return nil, err
-	}
-	if _, err := tenantsetup.ManagementAPI(ctx, st, tn, baseDomain, now); err != nil {
 		return nil, err
 	}
 	err = tenantsetup.UpsertClient(ctx, st, tn.ID, ConsoleClientID, now, func(c *store.Client, _ bool) error {

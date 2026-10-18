@@ -25,12 +25,12 @@ func cors(st store.Store) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
+			w.Header().Add("Vary", "Origin")
 			origin := r.Header.Get("Origin")
 			if origin == "" {
 				next.ServeHTTP(w, r)
 				return
 			}
-			w.Header().Add("Vary", "Origin")
 			res, ok := tenant.FromContext(r.Context())
 			if !ok || !originAllowed(r, st, res.Tenant.ID, origin) {
 				if r.Method == http.MethodOptions {
@@ -75,12 +75,12 @@ func originAllowed(r *http.Request, st store.Store, tenantID, origin string) boo
 func mgmtCORS(systemOrigin string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Add("Vary", "Origin")
 			origin := r.Header.Get("Origin")
 			if origin == "" {
 				next.ServeHTTP(w, r)
 				return
 			}
-			w.Header().Add("Vary", "Origin")
 			preflight := r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != ""
 			if systemOrigin == "" || origin != systemOrigin {
 				if preflight {

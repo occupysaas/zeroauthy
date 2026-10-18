@@ -13,6 +13,7 @@ import (
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
@@ -161,8 +162,8 @@ func (cfg Config) authenticate(r *http.Request, res tenant.Resolved) (Caller, er
 	return cfg.m2m(r.Context(), res, raw)
 }
 
-// verify checks raw's signature with tenantID's keys and its time claims,
-// audience and, when issuers is not empty, issuer.
+// verify checks raw's signature with tenantID's keys, its time claims (exp
+// required), its audience, and that its issuer is one of issuers.
 func (cfg Config) verify(ctx context.Context, tenantID, raw, aud string, issuers []string) (jwt.Claims, tokenClaims, error) {
 	var std jwt.Claims
 	var extra tokenClaims
@@ -204,6 +205,11 @@ func (cfg Config) m2m(ctx context.Context, res tenant.Resolved, raw string) (Cal
 	if extra.GrantType != "client-credentials" || extra.AZP == "" || std.Subject != extra.AZP+"@clients" {
 		return Caller{}, invalidToken("Invalid token: only client credentials tokens are accepted")
 	}
+	// Only operators manage the system tenant (it defines no M2M
+	// Management API; this guards against one appearing anyway).
+	if res.Tenant.Reserved {
+		return Caller{}, &Error{Status: http.StatusForbidden, Code: "insufficient_scope", Message: "Only console operators may manage the system tenant"}
+	}
 	return Caller{Kind: M2M, ClientID: extra.AZP, Scopes: strings.Fields(extra.Scope)}, nil
 }
 
@@ -225,6 +231,10 @@ func (cfg Config) operator(ctx context.Context, res tenant.Resolved, raw string)
 	}
 	if extra.Operator == nil || std.Subject == "" {
 		return Caller{}, invalidToken("Invalid token: not an operator token")
+	}
+	// Operator tokens are bound to the console client.
+	if extra.AZP != system.ConsoleClientID {
+		return Caller{}, invalidToken("Invalid token: operator tokens are issued to the console only")
 	}
 	op, err := cfg.Store.Operators().Get(ctx, sys.ID, std.Subject)
 	if errors.Is(err, store.ErrNotFound) {

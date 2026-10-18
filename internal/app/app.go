@@ -126,7 +126,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		}
 		log.Info("applied seed", "file", cfg.Seed, "tenants", len(f.Tenants))
 	}
-	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, BaseDomain: cfg.Server.BaseDomain, Wrapper: wrapper}); err != nil {
+	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, Wrapper: wrapper}); err != nil {
 		return nil, err
 	}
 	if err := bootstrapOperator(ctx, st, cfg.Bootstrap.AdminEmail, log); err != nil {

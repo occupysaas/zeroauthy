@@ -9,6 +9,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
@@ -97,7 +98,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	default:
 		audiences = []string{userinfo}
 	}
-	operator, oerr := h.operatorClaim(ctx, res, ut)
+	operator, oerr := h.operatorClaim(ctx, res, c, ut)
 	if oerr != nil {
 		return nil, oerr
 	}
@@ -136,11 +137,15 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 
 // operatorClaim is the tenant.OperatorClaim of a system-tenant access token
 // for tenant.OperatorAudience: the operator's tenants. A user who is not an
-// operator gets access_denied, at every grant (refresh included), so
+// operator, or a client other than the console, gets access_denied, at every grant (refresh included), so
 // removing an operator stops new tokens. Other tokens get no claim.
-func (h *Handlers) operatorClaim(ctx context.Context, res tenant.Resolved, ut userTokens) ([]string, *Error) {
+func (h *Handlers) operatorClaim(ctx context.Context, res tenant.Resolved, c *store.Client, ut userTokens) ([]string, *Error) {
 	if !res.Tenant.Reserved || ut.rs == nil || ut.rs.Identifier != tenant.OperatorAudience {
 		return nil, nil
+	}
+	// Operator tokens are bound to the console client.
+	if c.ClientID != system.ConsoleClientID {
+		return nil, accessDenied("only the zeroauthy console may request operator tokens")
 	}
 	op, err := h.Store.Operators().Get(ctx, res.Tenant.ID, ut.user.UserID)
 	if errors.Is(err, store.ErrNotFound) || (err == nil && len(op.Tenants) == 0) {

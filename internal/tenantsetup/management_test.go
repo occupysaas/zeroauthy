@@ -57,6 +57,10 @@ func TestManagementAPI(t *testing.T) {
 		t.Fatalf("again = %+v, %v", again, err)
 	}
 
+	// Nor does the system tenant.
+	if _, err := ManagementAPI(ctx, st, &store.Tenant{ID: "sys", Name: "system", Reserved: true}, "example.com", now); err == nil {
+		t.Error("system tenant: err nil")
+	}
 	// A tenant with no host has no Management API.
 	if _, err := ManagementAPI(ctx, st, tn, "", now); err == nil {
 		t.Error("no host: err nil")

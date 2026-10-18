@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -83,26 +84,13 @@ func TestEnsureCreatesSystemTenant(t *testing.T) {
 	if err != nil || len(ks) != 2 {
 		t.Errorf("signing keys = %d, %v", len(ks), err)
 	}
-	// Like every tenant, the system tenant has its own Management API.
-	mapi, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://admin.example.test/api/v2/")
-	if err != nil || !mapi.IsSystem {
-		t.Errorf("management API = %+v, %v", mapi, err)
+	// Only operators manage the system tenant: it has no M2M Management API.
+	if _, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://admin.example.test/api/v2/"); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("system tenant has an M2M management API: %v", err)
 	}
 	r := tenant.NewResolver(st.Tenants(), "", false)
 	if got, err := r.Resolve(ctx, "Admin.Example.TEST:443"); err != nil || got.Tenant.ID != tn.ID {
 		t.Errorf("resolve system host = %+v, %v", got, err)
-	}
-}
-
-func TestEnsureManagementAPIUnderBaseDomain(t *testing.T) {
-	ctx := context.Background()
-	st := memory.New()
-	tn, err := system.Ensure(ctx, st, system.Config{Host: "admin.other.test", BaseDomain: "example.com", Wrapper: wrapper(t)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://system.example.com/api/v2/"); err != nil {
-		t.Errorf("management API: %v", err)
 	}
 }
 

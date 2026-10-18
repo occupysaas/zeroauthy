@@ -13,6 +13,8 @@ import (
 const (
 	DefaultPerPage = 50
 	MaxPerPage     = 100
+	// MaxPage bounds page so that page*per_page fits any int.
+	MaxPage = 1<<31/MaxPerPage - 1
 )
 
 func badQuery(format string, args ...any) *Error {
@@ -27,8 +29,8 @@ func Page(r *http.Request) (page, perPage int, includeTotals bool, err error) {
 	page, perPage = 0, DefaultPerPage
 	if v := q.Get("page"); v != "" {
 		n, err := strconv.Atoi(v)
-		if err != nil || n < 0 {
-			return 0, 0, false, badQuery("Query validation error: page must be an integer of at least 0")
+		if err != nil || n < 0 || n > MaxPage {
+			return 0, 0, false, badQuery("Query validation error: page must be an integer from 0 to %d", MaxPage)
 		}
 		page = n
 	}
@@ -109,10 +111,8 @@ func Project(v any, fields []string, include bool) map[string]any {
 // WriteList writes one page of items: a bare JSON array, or with
 // includeTotals {<plural>, start, limit, total} (M6).
 func WriteList[T any](w http.ResponseWriter, plural string, items []T, page, perPage int, includeTotals bool) {
-	start := len(items)
-	if page < len(items) { // also keeps page*perPage from overflowing
-		start = min(page*perPage, len(items))
-	}
+	page, perPage = min(max(page, 0), MaxPage), min(max(perPage, 1), MaxPerPage)
+	start := min(page*perPage, len(items))
 	end := min(start+perPage, len(items))
 	out := items[start:end]
 	if out == nil {

@@ -59,8 +59,12 @@ var ManagementAPIScopes = []store.Scope{
 // server: the canonical identifier (tenant.ManagementAPIIdentifier), the
 // scopes above, marked IsSystem. Machine-to-machine clients reach it
 // through client grants; tenant users cannot get tokens for it (operators
-// use the system tenant's API instead). It returns the stored API.
+// use the system tenant's API instead). It returns the stored API. The
+// reserved system tenant has none.
 func ManagementAPI(ctx context.Context, st store.Store, t *store.Tenant, baseDomain string, now time.Time) (*store.ResourceServer, error) {
+	if t.Reserved {
+		return nil, errors.New("tenantsetup: the system tenant has no machine-to-machine Management API; only operators manage it")
+	}
 	id := tenant.ManagementAPIIdentifier(t, baseDomain)
 	if id == "" {
 		return nil, errors.New("tenantsetup: the tenant has no host, so no Management API identifier")

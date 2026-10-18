@@ -153,3 +153,25 @@ func TestManagementCORS(t *testing.T) {
 		}
 	}
 }
+
+// Responses on the CORS-handled paths vary by Origin, with or without one,
+// so a cache never serves one origin's answer to another.
+func TestCORSVaryOrigin(t *testing.T) {
+	srv := newMgmtServer(t)
+	for _, target := range []string{"https://acme.example.test/api/v2/clients", "https://" + mgmtSystemHost + "/api/system/tenants", "https://acme.example.test/oauth/token"} {
+		for _, origin := range []string{"", "https://evil.test", "https://" + mgmtSystemHost} {
+			h := map[string]string{}
+			if origin != "" {
+				h["Origin"] = origin
+			}
+			method := "GET"
+			if strings.HasSuffix(target, "/oauth/token") {
+				method = "POST"
+			}
+			rec, _ := send(srv, method, target, h)
+			if !strings.Contains(rec.Header().Get("Vary"), "Origin") {
+				t.Errorf("%s from %q: Vary = %q", target, origin, rec.Header().Get("Vary"))
+			}
+		}
+	}
+}

@@ -2,10 +2,12 @@ package oauth
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"slices"
 	"testing"
 
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -138,5 +140,42 @@ func TestOperatorClaimOnlyFromSystemTenant(t *testing.T) {
 	claims, _ := verifyToken(t, f.keys, tn.ID, resp.AccessToken)
 	if _, ok := claims[tenant.OperatorClaim]; ok || !slices.Contains([]string{tenant.OperatorAudience}, claims["aud"].(string)) {
 		t.Errorf("claims = %v", claims)
+	}
+}
+
+// Operator tokens are bound to the console: another client of the system
+// tenant cannot obtain one, even for an operator.
+func TestOperatorAudienceOnlyForConsole(t *testing.T) {
+	f, res, c, rs := operatorFixture(t)
+	ctx := context.Background()
+	other := *c
+	other.ClientID = "another-spa"
+	user, _ := f.st.Users().Get(ctx, res.Tenant.ID, "auth0|op")
+	_, oerr := f.h.mintUserTokens(ctx, res, &other, userTokens{user: user, rs: rs, lifetime: 3600e9})
+	if oerr == nil || oerr.Code != "access_denied" {
+		t.Fatalf("another client: %v", oerr)
+	}
+}
+
+// The system tenant has no M2M Management API, not even on first use.
+func TestClientCredentialsNoManagementAPIOnSystemTenant(t *testing.T) {
+	f, res, _, _ := operatorFixture(t)
+	ctx := context.Background()
+	h, err := secrets.Hash("sys-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.st.Clients().Create(ctx, &store.Client{TenantID: res.Tenant.ID, ClientID: "sys-m2m", AppType: store.AppTypeNonInteractive,
+		TokenEndpointAuthMethod: store.AuthMethodClientSecretPost, GrantTypes: []string{"client_credentials"},
+		Secrets: []store.ClientSecret{{Hash: h}}}); err != nil {
+		t.Fatal(err)
+	}
+	aud := "https://admin.example.test/api/v2/"
+	rec, body := f.call(t, true, tokenCall{host: "admin.example.test", form: cc("sys-m2m", "sys-secret", "audience", aud)})
+	if rec.Code != http.StatusForbidden || body["error_description"] != "unknown audience" {
+		t.Fatalf("system tenant: %d %v", rec.Code, body)
+	}
+	if _, err := f.st.ResourceServers().GetByIdentifier(ctx, res.Tenant.ID, aud); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("created on the system tenant: %v", err)
 	}
 }

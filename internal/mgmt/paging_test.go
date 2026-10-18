@@ -28,7 +28,8 @@ func TestPage(t *testing.T) {
 		}
 	}
 	// M6: per_page at most 100; anything else malformed is the same error.
-	for _, q := range []string{"per_page=101", "per_page=0", "per_page=-1", "per_page=x", "page=-1", "page=1.5", "include_totals=yes"} {
+	for _, q := range []string{"per_page=101", "per_page=0", "per_page=-1", "per_page=x", "page=-1", "page=1.5", "include_totals=yes",
+		"page=2147483648", "page=9223372036854775807", "page=99999999999999999999"} {
 		r := httptest.NewRequest("GET", "/api/v2/clients?"+q, nil)
 		_, _, _, err := Page(r)
 		e, ok := err.(*Error)
@@ -103,5 +104,18 @@ func TestWriteList(t *testing.T) {
 	WriteList(rec, "clients", items, 9, 2, false)
 	if strings.TrimSpace(rec.Body.String()) != `[]` {
 		t.Errorf("past the end: %s", rec.Body)
+	}
+}
+
+// A huge page never overflows the reported start or the slice bounds.
+func TestWriteListHugePage(t *testing.T) {
+	rec := httptest.NewRecorder()
+	WriteList(rec, "clients", []any{"a"}, MaxPage, MaxPerPage, true)
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if l, _ := body["clients"].([]any); len(l) != 0 || body["start"] != float64(MaxPage)*MaxPerPage || body["total"] != float64(1) {
+		t.Errorf("huge page: %s", rec.Body)
 	}
 }
