@@ -188,6 +188,16 @@ func TestV2LogoutRefusesUnlistedReturnTo(t *testing.T) {
 		"javascript":             {"client_id": {"spa"}, "returnTo": {"javascript:alert(1)"}},
 		"userinfo":               {"client_id": {"spa"}, "returnTo": {"https://evil.test@app.acme.test/bye"}},
 		"unknown client":         {"client_id": {"nope"}, "returnTo": {"https://app.acme.test/bye"}},
+		"two-label wildcard":     {"client_id": {"spa"}, "returnTo": {"https://a.b.preview.acme.test/bye"}},
+		"bare wildcard suffix":   {"client_id": {"spa"}, "returnTo": {"https://preview.acme.test/bye"}},
+		"http against https":     {"client_id": {"spa"}, "returnTo": {"http://app.acme.test/bye"}},
+		"http against wildcard":  {"client_id": {"spa"}, "returnTo": {"http://pr-7.preview.acme.test/bye"}},
+		"port":                   {"client_id": {"spa"}, "returnTo": {"https://app.acme.test:8443/bye"}},
+		"port on wildcard":       {"client_id": {"spa"}, "returnTo": {"https://pr-7.preview.acme.test:8443/bye"}},
+		"scheme-relative":        {"client_id": {"spa"}, "returnTo": {"//evil.test/bye"}},
+		"slashes only":           {"client_id": {"spa"}, "returnTo": {"//evil"}},
+		"backslash host":         {"client_id": {"spa"}, "returnTo": {`https://evil.test\@app.acme.test/bye`}},
+		"backslash after host":   {"client_id": {"spa"}, "returnTo": {`https://app.acme.test\.evil.test/bye`}},
 	}
 	for name, q := range cases {
 		t.Run(name, func(t *testing.T) {
