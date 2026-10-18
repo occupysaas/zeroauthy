@@ -45,6 +45,26 @@ func (a mgmtAPI) RotateClientSecret(w http.ResponseWriter, r *http.Request, id s
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RotateClientSecret(w, r, id) }, "update:client_keys")
 }
 
+func (a mgmtAPI) GetResourceServers(w http.ResponseWriter, r *http.Request, p mgmtapi.GetResourceServersParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetResourceServers(w, r, p) }, "read:resource_servers")
+}
+
+func (a mgmtAPI) CreateResourceServer(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateResourceServer, "create:resource_servers")
+}
+
+func (a mgmtAPI) GetResourceServer(w http.ResponseWriter, r *http.Request, id string, p mgmtapi.GetResourceServerParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetResourceServer(w, r, id, p) }, "read:resource_servers")
+}
+
+func (a mgmtAPI) UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateResourceServer(w, r, id) }, "update:resource_servers")
+}
+
+func (a mgmtAPI) DeleteResourceServer(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteResourceServer(w, r, id) }, "delete:resource_servers")
+}
+
 // The system API: the router lets only operators reach it (operatorOnly).
 
 func (a mgmtAPI) GetTenants(w http.ResponseWriter, r *http.Request)   { a.h.GetTenants(w, r) }

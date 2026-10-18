@@ -84,6 +84,23 @@ func TestProject(t *testing.T) {
 	}
 }
 
+// D-0041: APIs keep no member when fields names none of them.
+func TestProjectKeeping(t *testing.T) {
+	v := sample{ClientID: "c1", Name: "App", Tenant: "acme"}
+	if got := ProjectKeeping(v, []string{"name"}, true, nil); len(got) != 1 || got["name"] != "App" {
+		t.Errorf("include = %v", got)
+	}
+	if got := ProjectKeeping(v, []string{"nope"}, true, nil); len(got) != 0 {
+		t.Errorf("unknown field = %v", got)
+	}
+	if got := ProjectKeeping(v, []string{"name", "tenant"}, false, nil); len(got) != 1 || got["client_id"] != "c1" {
+		t.Errorf("exclude = %v", got)
+	}
+	if got := ProjectKeeping(v, []string{"name"}, true, []string{"client_id"}); len(got) != 2 || got["client_id"] != "c1" {
+		t.Errorf("always = %v", got)
+	}
+}
+
 // M6: a bare array without include_totals; {<plural>, start, limit, total}
 // with it.
 func TestWriteList(t *testing.T) {

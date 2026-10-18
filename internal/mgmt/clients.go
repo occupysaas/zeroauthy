@@ -433,7 +433,7 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 	if idTTL == 0 {
 		idTTL = clientrules.DefaultIDTTL
 	}
-	alg := mgmtapi.RS256
+	alg := mgmtapi.JwtConfigurationAlgRS256
 	secretEncoded := false
 	spec := clientrules.FromClient(c)
 	rotation := mgmtapi.RefreshTokenSettingsRotationType(spec.RefreshToken.RotationType)

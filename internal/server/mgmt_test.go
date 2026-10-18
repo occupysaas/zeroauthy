@@ -31,10 +31,11 @@ tenants:
       - {client_id: m2m, app_type: non_interactive, client_secret: s3cret, grant_types: [client_credentials]}
       - {client_id: admin, app_type: non_interactive, client_secret: admin-s3cret, grant_types: [client_credentials]}
     client_grants:
-      - {client_id: m2m, audience: "https://acme.example.test/api/v2/", scopes: ["read:clients"]}
+      - {client_id: m2m, audience: "https://acme.example.test/api/v2/", scopes: ["read:clients", "read:resource_servers"]}
       - client_id: admin
         audience: "https://acme.example.test/api/v2/"
-        scopes: ["read:clients", "create:clients", "update:clients", "delete:clients", "read:client_keys", "update:client_keys"]
+        scopes: ["read:clients", "create:clients", "update:clients", "delete:clients", "read:client_keys", "update:client_keys",
+                  "read:resource_servers", "create:resource_servers", "update:resource_servers", "delete:resource_servers"]
 `
 
 const mgmtSystemHost = "admin.example.test"

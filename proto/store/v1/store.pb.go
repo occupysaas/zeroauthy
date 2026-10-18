@@ -1610,7 +1610,8 @@ type ResourceServer struct {
 	UserPolicy                                string                 `protobuf:"bytes,11,opt,name=user_policy,json=userPolicy,proto3" json:"user_policy,omitempty"`
 	ClientPolicy                              string                 `protobuf:"bytes,12,opt,name=client_policy,json=clientPolicy,proto3" json:"client_policy,omitempty"`
 	IsSystem                                  bool                   `protobuf:"varint,13,opt,name=is_system,json=isSystem,proto3" json:"is_system,omitempty"`
-	Origin                                    string                 `protobuf:"bytes,14,opt,name=origin,proto3" json:"origin,omitempty"` // "api" or empty (seed)
+	Origin                                    string                 `protobuf:"bytes,14,opt,name=origin,proto3" json:"origin,omitempty"`                                                           // "api" or empty (seed)
+	TokenLifetimeForWeb                       int64                  `protobuf:"varint,15,opt,name=token_lifetime_for_web,json=tokenLifetimeForWeb,proto3" json:"token_lifetime_for_web,omitempty"` // 0 = the default
 	unknownFields                             protoimpl.UnknownFields
 	sizeCache                                 protoimpl.SizeCache
 }
@@ -1741,6 +1742,13 @@ func (x *ResourceServer) GetOrigin() string {
 		return x.Origin
 	}
 	return ""
+}
+
+func (x *ResourceServer) GetTokenLifetimeForWeb() int64 {
+	if x != nil {
+		return x.TokenLifetimeForWeb
+	}
+	return 0
 }
 
 type ClientGrant struct {
@@ -6664,7 +6672,7 @@ const file_store_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\">\n" +
 	"\tScopeList\x121\n" +
-	"\x06values\x18\x01 \x03(\v2\x19.zeroauthy.store.v1.ScopeR\x06values\"\xf5\x04\n" +
+	"\x06values\x18\x01 \x03(\v2\x19.zeroauthy.store.v1.ScopeR\x06values\"\xaa\x05\n" +
 	"\x0eResourceServer\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1e\n" +
@@ -6685,7 +6693,8 @@ const file_store_proto_rawDesc = "" +
 	"userPolicy\x12#\n" +
 	"\rclient_policy\x18\f \x01(\tR\fclientPolicy\x12\x1b\n" +
 	"\tis_system\x18\r \x01(\bR\bisSystem\x12\x16\n" +
-	"\x06origin\x18\x0e \x01(\tR\x06originB2\n" +
+	"\x06origin\x18\x0e \x01(\tR\x06origin\x123\n" +
+	"\x16token_lifetime_for_web\x18\x0f \x01(\x03R\x13tokenLifetimeForWebB2\n" +
 	"0_skip_consent_for_verifiable_first_party_clients\"\xa1\x02\n" +
 	"\vClientGrant\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +

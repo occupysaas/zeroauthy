@@ -117,6 +117,9 @@ type ResourceServers interface {
 	// Update returns ErrNotFound if absent and ErrConflict if the new
 	// Identifier is used by another resource server in the tenant.
 	Update(ctx context.Context, rs *ResourceServer) error
+	// Delete removes the resource server together with the client grants,
+	// user grants and refresh tokens for its identifier. It returns
+	// ErrNotFound if absent.
 	Delete(ctx context.Context, tenantID, id string) error
 	// List returns the tenant's resource servers ordered by CreatedAt,
 	// then ID.

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"go.yaml.in/yaml/v3"
@@ -68,6 +69,25 @@ type ResourceServer struct {
 
 	SkipConsentForVerifiableFirstPartyClients *bool                    `yaml:"skip_consent_for_verifiable_first_party_clients"`
 	SubjectTypeAuthorization                  SubjectTypeAuthorization `yaml:"subject_type_authorization"`
+
+	// normalized is the API after apirules.Normalize, set by validate.
+	normalized *apirules.Spec
+}
+
+// spec returns the API's settings for apirules.
+func (rs *ResourceServer) spec() apirules.Spec {
+	scopes := make([]store.Scope, len(rs.Scopes))
+	for i, s := range rs.Scopes {
+		scopes[i] = store.Scope{Value: s.Value, Description: s.Description}
+	}
+	return apirules.Spec{
+		Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes,
+		TokenLifetime: rs.TokenLifetime, AllowOfflineAccess: rs.AllowOfflineAccess,
+		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
+		SubjectTypeAuthorization: store.SubjectTypeAuthorization{
+			User: rs.SubjectTypeAuthorization.User.Policy, Client: rs.SubjectTypeAuthorization.Client.Policy,
+		},
+	}
 }
 
 // SubjectTypeAuthorization is Auth0's API access policy object.

@@ -287,6 +287,7 @@ message ResourceServer {
   string client_policy = 12;
   bool is_system = 13;
   string origin = 14;                                // "api" or empty (seed)
+  int64 token_lifetime_for_web = 15;                 // 0 = the default
 }
 
 message ClientGrant {

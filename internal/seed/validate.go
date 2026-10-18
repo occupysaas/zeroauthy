@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
@@ -90,8 +91,8 @@ func (f *File) CheckManagementAPI(baseDomain string) error {
 		t := &f.Tenants[i]
 		id := tenant.ManagementAPIIdentifier(&store.Tenant{Name: t.Name, Domains: t.Domains}, baseDomain)
 		for _, rs := range t.ResourceServers {
-			if id != "" && rs.Identifier == id {
-				errs = append(errs, fmt.Errorf("seed: tenant %q: resource server identifier %q is reserved for the tenant's Management API", t.Name, rs.Identifier))
+			if err := apirules.Reserved(rs.Identifier, id); err != nil {
+				errs = append(errs, fmt.Errorf("seed: tenant %q: resource server: %w", t.Name, err))
 			}
 		}
 		for _, aud := range t.mgmtAudiences {
@@ -174,27 +175,15 @@ func (t *Tenant) validate() []error {
 		if apis[rs.Identifier] != nil {
 			fail("duplicate resource server %q", rs.Identifier)
 		}
-		if rs.Identifier == tenant.OperatorAudience {
-			fail("resource server identifier %q is reserved for zeroauthy's system tenant", rs.Identifier)
-		}
 		apis[rs.Identifier] = rs
-		if rs.SkipConsentForVerifiableFirstPartyClients == nil {
-			skip := false // O1a: Auth0's default for new APIs (D-0026)
-			rs.SkipConsentForVerifiableFirstPartyClients = &skip
+		if err := apirules.Reserved(rs.Identifier, ""); err != nil {
+			fail("resource server: %v", err)
 		}
-		sta := &rs.SubjectTypeAuthorization
-		if sta.User.Policy == "" {
-			sta.User.Policy = store.PolicyAllowAll
+		spec := rs.spec()
+		for _, err := range apirules.Normalize(&spec) {
+			fail("resource server %q: %v", rs.Identifier, err)
 		}
-		if sta.Client.Policy == "" {
-			sta.Client.Policy = store.PolicyRequireClientGrant
-		}
-		if !slices.Contains([]string{store.PolicyAllowAll, store.PolicyRequireClientGrant, store.PolicyDenyAll}, sta.User.Policy) {
-			fail("resource server %q: subject_type_authorization.user.policy %q must be allow_all, require_client_grant or deny_all", rs.Identifier, sta.User.Policy)
-		}
-		if !slices.Contains([]string{store.PolicyRequireClientGrant, store.PolicyDenyAll}, sta.Client.Policy) {
-			fail("resource server %q: subject_type_authorization.client.policy %q must be require_client_grant or deny_all", rs.Identifier, sta.Client.Policy)
-		}
+		rs.normalized = &spec
 	}
 
 	clients := map[string]bool{}

@@ -61,10 +61,26 @@ func (r resourceServers) Delete(_ context.Context, tenantID, id string) error {
 	r.s.mu.Lock()
 	defer r.s.mu.Unlock()
 	k := key{tenantID, id}
-	if _, ok := r.s.resourceServers[k]; !ok {
+	rs, ok := r.s.resourceServers[k]
+	if !ok {
 		return store.ErrNotFound
 	}
 	delete(r.s.resourceServers, k)
+	for gk, g := range r.s.clientGrants {
+		if gk.tenant == tenantID && g.Audience == rs.Identifier {
+			delete(r.s.clientGrants, gk)
+		}
+	}
+	for gk, g := range r.s.userGrants {
+		if gk.tenant == tenantID && g.Audience == rs.Identifier {
+			delete(r.s.userGrants, gk)
+		}
+	}
+	for tk, t := range r.s.refreshTokens {
+		if tk.tenant == tenantID && t.Audience == rs.Identifier {
+			delete(r.s.refreshTokens, tk)
+		}
+	}
 	return nil
 }
 

@@ -152,15 +152,19 @@ type Scope struct {
 // ResourceServer is an API that access tokens are issued for. Identifier
 // is the value of the audience parameter and aud claim.
 type ResourceServer struct {
-	TenantID           string
-	ID                 string
-	Identifier         string
-	Name               string
-	Scopes             []Scope
-	SigningAlg         string
-	TokenLifetime      int // seconds; 0 means the default
-	AllowOfflineAccess bool
-	CreatedAt          time.Time
+	TenantID      string
+	ID            string
+	Identifier    string
+	Name          string
+	Scopes        []Scope
+	SigningAlg    string
+	TokenLifetime int // seconds; 0 means the default
+	// TokenLifetimeForWeb is Auth0's lifetime for tokens issued by implicit
+	// and hybrid flows. zeroauthy has neither, so it only stores and reports
+	// it; 0 means the default.
+	TokenLifetimeForWeb int
+	AllowOfflineAccess  bool
+	CreatedAt           time.Time
 
 	// SkipConsentForVerifiableFirstPartyClients skips the consent prompt
 	// for first-party clients with verifiable callback URIs.

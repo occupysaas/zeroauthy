@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -115,15 +116,16 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 }
 
 func applyResourceServer(ctx context.Context, st store.Store, tenantID string, in ResourceServer, now time.Time) error {
-	scopes := make([]store.Scope, len(in.Scopes))
-	for i, s := range in.Scopes {
-		scopes[i] = store.Scope{Value: s.Value, Description: s.Description}
+	if rs, err := st.ResourceServers().GetByIdentifier(ctx, tenantID, in.Identifier); err == nil && rs.Origin == store.OriginAPI {
+		// Created through the Management API: the seed never touches it.
+		return nil
+	}
+	spec := in.normalized
+	if spec == nil {
+		return errors.New("the resource server was not validated")
 	}
 	return tenantsetup.UpsertResourceServer(ctx, st, tenantID, in.Identifier, now, func(rs *store.ResourceServer) error {
-		rs.Name, rs.Scopes, rs.SigningAlg = in.Name, scopes, "RS256"
-		rs.TokenLifetime, rs.AllowOfflineAccess = in.TokenLifetime, in.AllowOfflineAccess
-		rs.SkipConsentForVerifiableFirstPartyClients = *in.SkipConsentForVerifiableFirstPartyClients
-		rs.SubjectTypeAuthorization = store.SubjectTypeAuthorization{User: in.SubjectTypeAuthorization.User.Policy, Client: in.SubjectTypeAuthorization.Client.Policy}
+		apirules.Apply(rs, spec)
 		return nil
 	})
 }

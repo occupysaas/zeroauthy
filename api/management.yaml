@@ -41,6 +41,8 @@ servers:
 tags:
   - name: clients
     description: Applications (Auth0's `/api/v2/clients`).
+  - name: resource-servers
+    description: APIs (Auth0's `/api/v2/resource-servers`).
   - name: system
     description: zeroauthy's own API for tenants and operators (operator tokens only).
 security:
@@ -201,6 +203,147 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/resource-servers:
+    get:
+      operationId: getResourceServers
+      tags: [resource-servers]
+      summary: List APIs
+      description: |
+        The tenant's APIs in creation order, the tenant's Management API
+        first. Requires `read:resource_servers`. Checkpoint paging (`from`,
+        `take`) is not supported (`invalid_query_string`).
+      x-source:
+        - https://auth0.com/docs/api/management/v2/resource-servers/get-resource-servers
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/per_page"
+        - $ref: "#/components/parameters/include_totals"
+        - name: identifiers
+          in: query
+          description: |
+            Return only the APIs with these identifiers. Repeat the parameter
+            for several; a comma does not separate identifiers.
+          style: form
+          explode: true
+          schema: {type: array, items: {type: string}}
+        - name: fields
+          in: query
+          description: Comma-separated fields to include or, with `include_fields=false`, to leave out. No field is always returned.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: The page of APIs.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items: {$ref: "#/components/schemas/ResourceServer"}
+                  - $ref: "#/components/schemas/ResourceServerPage"
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      operationId: createResourceServer
+      tags: [resource-servers]
+      summary: Create an API
+      description: |
+        Requires `create:resource_servers`. Fields left out get the defaults
+        described in `ResourceServerCreate`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/resource-servers/post-resource-servers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ResourceServerCreate"}
+      responses:
+        "201":
+          description: The new API.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ResourceServer"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/resource-servers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The API's ID. `GET` also accepts its URL-encoded identifier.
+        schema: {type: string}
+    get:
+      operationId: getResourceServer
+      tags: [resource-servers]
+      summary: Get an API
+      description: Requires `read:resource_servers`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/resource-servers/get-resource-servers-by-id
+      parameters:
+        - name: fields
+          in: query
+          description: Comma-separated fields to include or, with `include_fields=false`, to leave out. No field is always returned.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: The API.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ResourceServer"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      operationId: updateResourceServer
+      tags: [resource-servers]
+      summary: Update an API
+      description: |
+        Requires `update:resource_servers`. `identifier`, `id` and
+        `is_system` are not accepted. `scopes` replaces the whole list, and
+        a removed scope is removed from every client grant that carries it.
+        A system API (a tenant's Management API, the system tenant's
+        `urn:zeroauthy:management`) accepts no `name`, and keeps its scopes
+        and the settings zeroauthy depends on; naming one of those with its
+        current value is accepted.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/resource-servers/patch-resource-servers-by-id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ResourceServerUpdate"}
+      responses:
+        "200":
+          description: The updated API.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ResourceServer"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteResourceServer
+      tags: [resource-servers]
+      summary: Delete an API
+      description: |
+        Requires `delete:resource_servers`. The API's client grants and the
+        user grants (consents) for it are deleted with it, and refresh tokens
+        issued for it stop working; access tokens already issued stay valid
+        until they expire. Deleting an unknown or malformed ID also answers
+        204. A system API cannot be deleted (`delete_system_resource_server`).
+      x-source:
+        - https://auth0.com/docs/api/management/v2/resource-servers/delete-resource-servers-by-id
+      responses:
+        "204": {description: "Deleted, or did not exist."}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /api/system/tenants:
     get:
       operationId: getTenants
@@ -580,6 +723,135 @@ components:
         global: {type: boolean, enum: [false]}
         callback_url_template: {type: boolean, enum: [false]}
         created_at: {type: string, format: date-time}
+    ResourceServerScope:
+      type: object
+      additionalProperties: false
+      required: [value]
+      properties:
+        value: {type: string, minLength: 1, maxLength: 280, description: "The permission, such as `read:orders`. Unique within the API."}
+        description: {type: string, maxLength: 500}
+    AccessPolicy:
+      type: object
+      additionalProperties: false
+      properties:
+        policy: {type: string, enum: [allow_all, require_client_grant, deny_all]}
+    SubjectTypeAuthorization:
+      type: object
+      additionalProperties: false
+      description: |
+        Who may get access tokens for the API. `user` is `allow_all`,
+        `require_client_grant` or `deny_all`; `client` is `require_client_grant`
+        or `deny_all`. On update the two subject types merge.
+      properties:
+        user: {$ref: "#/components/schemas/AccessPolicy"}
+        client: {$ref: "#/components/schemas/AccessPolicy"}
+    ResourceServerSettings:
+      type: object
+      description: The writable settings of an API.
+      properties:
+        name: {type: string, minLength: 1, maxLength: 200, pattern: "^[^<>]+$", description: "The API's name. Optional; absent when not given."}
+        scopes:
+          type: array
+          items: {$ref: "#/components/schemas/ResourceServerScope"}
+          description: The API's permissions. Values are unique.
+        signing_alg:
+          type: string
+          enum: [RS256]
+          description: The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+        token_lifetime: {type: integer, minimum: 1, maximum: 2592000, description: "Access token lifetime in seconds; 86400 by default."}
+        token_lifetime_for_web:
+          type: integer
+          minimum: 1
+          maximum: 2592000
+          description: |
+            Stored and reported (7200 by default). zeroauthy has no implicit or
+            hybrid flow, so nothing uses it. When sent, it must not exceed
+            `token_lifetime`.
+        allow_offline_access: {type: boolean, description: Whether clients may get refresh tokens for the API.}
+        skip_consent_for_verifiable_first_party_clients: {type: boolean}
+        subject_type_authorization: {$ref: "#/components/schemas/SubjectTypeAuthorization"}
+        enforce_policies:
+          type: boolean
+          description: zeroauthy has no role-based access control, so only `false` is accepted.
+        token_dialect:
+          type: string
+          enum: [access_token]
+          description: zeroauthy issues one access token format, `access_token`.
+        consent_policy: {description: "Only null is accepted (transactional authorization is not supported)."}
+        proof_of_possession: {description: "Only null is accepted (mTLS and DPoP are not supported)."}
+        authorization_details: {description: "Only null or an empty list is accepted (rich authorization requests are not supported)."}
+        token_encryption: {description: "Only null is accepted (token encryption is not supported)."}
+    ResourceServerCreate:
+      description: |
+        A new API. Unknown fields are refused (`invalid_body`). Defaults:
+        `token_lifetime` 86400, `token_lifetime_for_web` 7200, `signing_alg`
+        `RS256`, `allow_offline_access` and
+        `skip_consent_for_verifiable_first_party_clients` false, no scopes,
+        `subject_type_authorization` client `require_client_grant` and user
+        `allow_all`. The identifier may be any string, but not the tenant's
+        Management API identifier or `urn:zeroauthy:management`
+        (`reserved_identifier`); it cannot change later.
+      allOf:
+        - $ref: "#/components/schemas/ResourceServerSettings"
+        - type: object
+          required: [identifier]
+          properties:
+            identifier:
+              type: string
+              minLength: 1
+              maxLength: 600
+              description: The API's identifier, the `audience` of its tokens. Case-sensitive, unique within the tenant.
+    ResourceServerUpdate:
+      description: |
+        Fields to change; the others keep their values. Unknown fields are
+        refused (`invalid_body`), `identifier`, `id` and `is_system`
+        among them. An empty body changes nothing.
+      allOf:
+        - $ref: "#/components/schemas/ResourceServerSettings"
+    ResourceServer:
+      type: object
+      description: An API.
+      required: [id, identifier, signing_alg, token_lifetime, token_lifetime_for_web, allow_offline_access, skip_consent_for_verifiable_first_party_clients, subject_type_authorization, enforce_policies, token_dialect]
+      properties:
+        id: {type: string, description: "The API's ID: 24 hexadecimal characters for APIs created through the API."}
+        identifier: {type: string}
+        name: {type: string, description: Absent when the API has no name.}
+        is_system: {type: boolean, description: "True for a system API (a tenant's Management API); absent otherwise."}
+        scopes:
+          type: array
+          items: {$ref: "#/components/schemas/ResourceServerScope"}
+          description: Absent when the API defines none.
+        signing_alg: {type: string, enum: [RS256]}
+        token_lifetime: {type: integer}
+        token_lifetime_for_web: {type: integer}
+        allow_offline_access: {type: boolean}
+        skip_consent_for_verifiable_first_party_clients: {type: boolean}
+        subject_type_authorization:
+          type: object
+          required: [user, client]
+          properties:
+            user:
+              type: object
+              required: [policy]
+              properties:
+                policy: {type: string, enum: [allow_all, require_client_grant, deny_all]}
+            client:
+              type: object
+              required: [policy]
+              properties:
+                policy: {type: string, enum: [require_client_grant, deny_all]}
+        enforce_policies: {type: boolean, enum: [false]}
+        token_dialect: {type: string, enum: [access_token]}
+    ResourceServerPage:
+      description: A page of APIs with `include_totals=true`.
+      allOf:
+        - $ref: "#/components/schemas/ListTotals"
+        - type: object
+          required: [resource_servers]
+          properties:
+            resource_servers:
+              type: array
+              items: {$ref: "#/components/schemas/ResourceServer"}
     SystemTenant:
       type: object
       description: A tenant, as the system API reports it.
@@ -668,7 +940,7 @@ components:
           description: A human-readable explanation.
         errorCode:
           type: string
-          description: A machine-readable code, such as `invalid_body`, `invalid_query_string`, `insufficient_scope` or `inexistent_client`.
+          description: A machine-readable code, such as `invalid_body`, `invalid_query_string`, `insufficient_scope`, `inexistent_client` or `inexistent_resource_server`.
     ListTotals:
       type: object
       description: |
@@ -696,7 +968,7 @@ components:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}
     Conflict:
-      description: The name or a domain is already used, or the change would remove the last operator (`conflict`, `last_operator`).
+      description: The name, a domain or an identifier is already used, or the change would remove the last operator (`conflict`, `last_operator`, `resource_server_conflict`).
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}

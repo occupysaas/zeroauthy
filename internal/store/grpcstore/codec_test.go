@@ -188,7 +188,7 @@ func TestResourceServerRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.ResourceServer{
 		TenantID: "ten", ID: "rs", Identifier: "https://api", Name: "API",
 		Scopes:     []store.Scope{{Value: "read", Description: "Read"}, {Value: "write"}},
-		SigningAlg: "RS256", TokenLifetime: 7200, AllowOfflineAccess: true, CreatedAt: nanoTime,
+		SigningAlg: "RS256", TokenLifetime: 7200, TokenLifetimeForWeb: 3600, AllowOfflineAccess: true, CreatedAt: nanoTime,
 		SkipConsentForVerifiableFirstPartyClients: true,
 		SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyRequireClientGrant},
 		IsSystem:                                  true,

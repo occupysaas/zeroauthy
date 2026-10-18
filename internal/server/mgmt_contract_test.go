@@ -104,6 +104,39 @@ func TestManagementContract(t *testing.T) {
 	c.do(h, "DELETE", base+"/"+id, admin, nil)
 	c.do(h, "DELETE", base+"/"+id, admin, nil)
 
+	rsBase := "https://acme.example.test/api/v2/resource-servers"
+	code, body = c.do(h, "POST", rsBase, admin, map[string]any{"identifier": "https://api.contract.test/", "name": "Contract", "scopes": []map[string]any{{"value": "read:x", "description": "Read"}}})
+	var api map[string]any
+	_ = json.Unmarshal(body, &api)
+	rsID, _ := api["id"].(string)
+	if code != 201 || rsID == "" {
+		t.Fatalf("create API = %d %s", code, body)
+	}
+	c.do(h, "POST", rsBase, admin, map[string]any{"identifier": "bare"})
+	c.do(h, "POST", rsBase, admin, map[string]any{"identifier": "https://api.contract.test/"})
+	c.do(h, "POST", rsBase, admin, map[string]any{"identifier": acmeMgmtAPI})
+	c.do(h, "POST", rsBase, admin, map[string]any{"identifier": "x", "signing_alg": "HS256"})
+	c.do(h, "POST", rsBase, reader, map[string]any{"identifier": "y"})
+	c.do(h, "GET", rsBase, admin, nil)
+	c.do(h, "GET", rsBase+"?include_totals=true&per_page=1&identifiers=bare&identifiers=nope", admin, nil)
+	c.do(h, "GET", rsBase+"?fields=name&include_fields=false", admin, nil)
+	c.do(h, "GET", rsBase+"?take=5", admin, nil)
+	c.do(h, "GET", rsBase+"/"+rsID, reader, nil)
+	c.do(h, "GET", rsBase+"/"+url.PathEscape("https://api.contract.test/"), reader, nil)
+	c.do(h, "GET", rsBase+"/nope", reader, nil)
+	c.do(h, "PATCH", rsBase+"/"+rsID, admin, map[string]any{"token_lifetime": 600, "scopes": []map[string]any{{"value": "read:y"}}})
+	c.do(h, "PATCH", rsBase+"/"+rsID, admin, map[string]any{"identifier": "https://elsewhere.test"})
+	c.do(h, "PATCH", rsBase+"/nope", admin, map[string]any{})
+	c.do(h, "DELETE", rsBase+"/"+rsID, reader, nil)
+	c.do(h, "DELETE", rsBase+"/"+rsID, admin, nil)
+	c.do(h, "DELETE", rsBase+"/"+rsID, admin, nil)
+	code, body = c.do(h, "GET", rsBase+"/"+url.PathEscape(acmeMgmtAPI), admin, nil)
+	_ = json.Unmarshal(body, &api)
+	if code != 200 || api["is_system"] != true {
+		t.Fatalf("get the Management API = %d %s", code, body)
+	}
+	c.do(h, "DELETE", rsBase+"/"+api["id"].(string), admin, nil)
+
 	op, _ := operatorToken(t, st, "op@example.test")
 	sys := "https://" + mgmtSystemHost + "/api/system"
 	c.do(h, "GET", sys+"/tenants", op, nil)

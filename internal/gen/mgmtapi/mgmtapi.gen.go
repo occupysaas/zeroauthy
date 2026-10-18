@@ -15,6 +15,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AccessPolicyPolicy.
+const (
+	AccessPolicyPolicyAllowAll           AccessPolicyPolicy = "allow_all"
+	AccessPolicyPolicyDenyAll            AccessPolicyPolicy = "deny_all"
+	AccessPolicyPolicyRequireClientGrant AccessPolicyPolicy = "require_client_grant"
+)
+
+// Valid indicates whether the value is a known member of the AccessPolicyPolicy enum.
+func (e AccessPolicyPolicy) Valid() bool {
+	switch e {
+	case AccessPolicyPolicyAllowAll:
+		return true
+	case AccessPolicyPolicyDenyAll:
+		return true
+	case AccessPolicyPolicyRequireClientGrant:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AppType.
 const (
 	Native         AppType = "native"
@@ -212,13 +233,13 @@ func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
 
 // Defines values for JwtConfigurationAlg.
 const (
-	RS256 JwtConfigurationAlg = "RS256"
+	JwtConfigurationAlgRS256 JwtConfigurationAlg = "RS256"
 )
 
 // Valid indicates whether the value is a known member of the JwtConfigurationAlg enum.
 func (e JwtConfigurationAlg) Valid() bool {
 	switch e {
-	case RS256:
+	case JwtConfigurationAlgRS256:
 		return true
 	default:
 		return false
@@ -261,6 +282,150 @@ func (e RefreshTokenSettingsRotationType) Valid() bool {
 	}
 }
 
+// Defines values for ResourceServerEnforcePolicies.
+const (
+	ResourceServerEnforcePoliciesFalse ResourceServerEnforcePolicies = false
+)
+
+// Valid indicates whether the value is a known member of the ResourceServerEnforcePolicies enum.
+func (e ResourceServerEnforcePolicies) Valid() bool {
+	switch e {
+	case ResourceServerEnforcePoliciesFalse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResourceServerSigningAlg.
+const (
+	ResourceServerSigningAlgRS256 ResourceServerSigningAlg = "RS256"
+)
+
+// Valid indicates whether the value is a known member of the ResourceServerSigningAlg enum.
+func (e ResourceServerSigningAlg) Valid() bool {
+	switch e {
+	case ResourceServerSigningAlgRS256:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResourceServerSubjectTypeAuthorizationClientPolicy.
+const (
+	ResourceServerSubjectTypeAuthorizationClientPolicyDenyAll            ResourceServerSubjectTypeAuthorizationClientPolicy = "deny_all"
+	ResourceServerSubjectTypeAuthorizationClientPolicyRequireClientGrant ResourceServerSubjectTypeAuthorizationClientPolicy = "require_client_grant"
+)
+
+// Valid indicates whether the value is a known member of the ResourceServerSubjectTypeAuthorizationClientPolicy enum.
+func (e ResourceServerSubjectTypeAuthorizationClientPolicy) Valid() bool {
+	switch e {
+	case ResourceServerSubjectTypeAuthorizationClientPolicyDenyAll:
+		return true
+	case ResourceServerSubjectTypeAuthorizationClientPolicyRequireClientGrant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResourceServerSubjectTypeAuthorizationUserPolicy.
+const (
+	ResourceServerSubjectTypeAuthorizationUserPolicyAllowAll           ResourceServerSubjectTypeAuthorizationUserPolicy = "allow_all"
+	ResourceServerSubjectTypeAuthorizationUserPolicyDenyAll            ResourceServerSubjectTypeAuthorizationUserPolicy = "deny_all"
+	ResourceServerSubjectTypeAuthorizationUserPolicyRequireClientGrant ResourceServerSubjectTypeAuthorizationUserPolicy = "require_client_grant"
+)
+
+// Valid indicates whether the value is a known member of the ResourceServerSubjectTypeAuthorizationUserPolicy enum.
+func (e ResourceServerSubjectTypeAuthorizationUserPolicy) Valid() bool {
+	switch e {
+	case ResourceServerSubjectTypeAuthorizationUserPolicyAllowAll:
+		return true
+	case ResourceServerSubjectTypeAuthorizationUserPolicyDenyAll:
+		return true
+	case ResourceServerSubjectTypeAuthorizationUserPolicyRequireClientGrant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResourceServerTokenDialect.
+const (
+	ResourceServerTokenDialectAccessToken ResourceServerTokenDialect = "access_token"
+)
+
+// Valid indicates whether the value is a known member of the ResourceServerTokenDialect enum.
+func (e ResourceServerTokenDialect) Valid() bool {
+	switch e {
+	case ResourceServerTokenDialectAccessToken:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResourceServerCreateSigningAlg.
+const (
+	ResourceServerCreateSigningAlgRS256 ResourceServerCreateSigningAlg = "RS256"
+)
+
+// Valid indicates whether the value is a known member of the ResourceServerCreateSigningAlg enum.
+func (e ResourceServerCreateSigningAlg) Valid() bool {
+	switch e {
+	case ResourceServerCreateSigningAlgRS256:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResourceServerCreateTokenDialect.
+const (
+	ResourceServerCreateTokenDialectAccessToken ResourceServerCreateTokenDialect = "access_token"
+)
+
+// Valid indicates whether the value is a known member of the ResourceServerCreateTokenDialect enum.
+func (e ResourceServerCreateTokenDialect) Valid() bool {
+	switch e {
+	case ResourceServerCreateTokenDialectAccessToken:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResourceServerSettingsSigningAlg.
+const (
+	ResourceServerSettingsSigningAlgRS256 ResourceServerSettingsSigningAlg = "RS256"
+)
+
+// Valid indicates whether the value is a known member of the ResourceServerSettingsSigningAlg enum.
+func (e ResourceServerSettingsSigningAlg) Valid() bool {
+	switch e {
+	case ResourceServerSettingsSigningAlgRS256:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResourceServerSettingsTokenDialect.
+const (
+	ResourceServerSettingsTokenDialectAccessToken ResourceServerSettingsTokenDialect = "access_token"
+)
+
+// Valid indicates whether the value is a known member of the ResourceServerSettingsTokenDialect enum.
+func (e ResourceServerSettingsTokenDialect) Valid() bool {
+	switch e {
+	case ResourceServerSettingsTokenDialectAccessToken:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TokenEndpointAuthMethod.
 const (
 	ClientSecretBasic TokenEndpointAuthMethod = "client_secret_basic"
@@ -281,6 +446,14 @@ func (e TokenEndpointAuthMethod) Valid() bool {
 		return false
 	}
 }
+
+// AccessPolicy defines model for AccessPolicy.
+type AccessPolicy struct {
+	Policy *AccessPolicyPolicy `json:"policy,omitempty"`
+}
+
+// AccessPolicyPolicy defines model for AccessPolicy.Policy.
+type AccessPolicyPolicy string
 
 // AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
 // (server-side web) or `non_interactive` (machine to machine).
@@ -724,7 +897,7 @@ type ManagementError struct {
 	// Error The HTTP status text, such as `Bad Request`.
 	Error string `json:"error"`
 
-	// ErrorCode A machine-readable code, such as `invalid_body`, `invalid_query_string`, `insufficient_scope` or `inexistent_client`.
+	// ErrorCode A machine-readable code, such as `invalid_body`, `invalid_query_string`, `insufficient_scope`, `inexistent_client` or `inexistent_resource_server`.
 	ErrorCode *string `json:"errorCode,omitempty"`
 
 	// Message A human-readable explanation.
@@ -792,6 +965,203 @@ type RefreshTokenSettingsExpirationType string
 
 // RefreshTokenSettingsRotationType defines model for RefreshTokenSettings.RotationType.
 type RefreshTokenSettingsRotationType string
+
+// ResourceServer An API.
+type ResourceServer struct {
+	AllowOfflineAccess bool                          `json:"allow_offline_access"`
+	EnforcePolicies    ResourceServerEnforcePolicies `json:"enforce_policies"`
+
+	// Id The API's ID: 24 hexadecimal characters for APIs created through the API.
+	Id         string `json:"id"`
+	Identifier string `json:"identifier"`
+
+	// IsSystem True for a system API (a tenant's Management API); absent otherwise.
+	IsSystem *bool `json:"is_system,omitempty"`
+
+	// Name Absent when the API has no name.
+	Name *string `json:"name,omitempty"`
+
+	// Scopes Absent when the API defines none.
+	Scopes                                    *[]ResourceServerScope   `json:"scopes,omitempty"`
+	SigningAlg                                ResourceServerSigningAlg `json:"signing_alg"`
+	SkipConsentForVerifiableFirstPartyClients bool                     `json:"skip_consent_for_verifiable_first_party_clients"`
+	SubjectTypeAuthorization                  struct {
+		Client struct {
+			Policy ResourceServerSubjectTypeAuthorizationClientPolicy `json:"policy"`
+		} `json:"client"`
+		User struct {
+			Policy ResourceServerSubjectTypeAuthorizationUserPolicy `json:"policy"`
+		} `json:"user"`
+	} `json:"subject_type_authorization"`
+	TokenDialect        ResourceServerTokenDialect `json:"token_dialect"`
+	TokenLifetime       int                        `json:"token_lifetime"`
+	TokenLifetimeForWeb int                        `json:"token_lifetime_for_web"`
+}
+
+// ResourceServerEnforcePolicies defines model for ResourceServer.EnforcePolicies.
+type ResourceServerEnforcePolicies bool
+
+// ResourceServerSigningAlg defines model for ResourceServer.SigningAlg.
+type ResourceServerSigningAlg string
+
+// ResourceServerSubjectTypeAuthorizationClientPolicy defines model for ResourceServer.SubjectTypeAuthorization.Client.Policy.
+type ResourceServerSubjectTypeAuthorizationClientPolicy string
+
+// ResourceServerSubjectTypeAuthorizationUserPolicy defines model for ResourceServer.SubjectTypeAuthorization.User.Policy.
+type ResourceServerSubjectTypeAuthorizationUserPolicy string
+
+// ResourceServerTokenDialect defines model for ResourceServer.TokenDialect.
+type ResourceServerTokenDialect string
+
+// ResourceServerCreate A new API. Unknown fields are refused (`invalid_body`). Defaults:
+// `token_lifetime` 86400, `token_lifetime_for_web` 7200, `signing_alg`
+// `RS256`, `allow_offline_access` and
+// `skip_consent_for_verifiable_first_party_clients` false, no scopes,
+// `subject_type_authorization` client `require_client_grant` and user
+// `allow_all`. The identifier may be any string, but not the tenant's
+// Management API identifier or `urn:zeroauthy:management`
+// (`reserved_identifier`); it cannot change later.
+type ResourceServerCreate struct {
+	// AllowOfflineAccess Whether clients may get refresh tokens for the API.
+	AllowOfflineAccess *bool `json:"allow_offline_access,omitempty"`
+
+	// AuthorizationDetails Only null or an empty list is accepted (rich authorization requests are not supported).
+	AuthorizationDetails interface{} `json:"authorization_details,omitempty"`
+
+	// ConsentPolicy Only null is accepted (transactional authorization is not supported).
+	ConsentPolicy interface{} `json:"consent_policy,omitempty"`
+
+	// EnforcePolicies zeroauthy has no role-based access control, so only `false` is accepted.
+	EnforcePolicies *bool `json:"enforce_policies,omitempty"`
+
+	// Identifier The API's identifier, the `audience` of its tokens. Case-sensitive, unique within the tenant.
+	Identifier string `json:"identifier"`
+
+	// Name The API's name. Optional; absent when not given.
+	Name *string `json:"name,omitempty"`
+
+	// ProofOfPossession Only null is accepted (mTLS and DPoP are not supported).
+	ProofOfPossession interface{} `json:"proof_of_possession,omitempty"`
+
+	// Scopes The API's permissions. Values are unique.
+	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
+
+	// SigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+	SigningAlg                                *ResourceServerCreateSigningAlg `json:"signing_alg,omitempty"`
+	SkipConsentForVerifiableFirstPartyClients *bool                           `json:"skip_consent_for_verifiable_first_party_clients,omitempty"`
+
+	// SubjectTypeAuthorization Who may get access tokens for the API. `user` is `allow_all`,
+	// `require_client_grant` or `deny_all`; `client` is `require_client_grant`
+	// or `deny_all`. On update the two subject types merge.
+	SubjectTypeAuthorization *SubjectTypeAuthorization `json:"subject_type_authorization,omitempty"`
+
+	// TokenDialect zeroauthy issues one access token format, `access_token`.
+	TokenDialect *ResourceServerCreateTokenDialect `json:"token_dialect,omitempty"`
+
+	// TokenEncryption Only null is accepted (token encryption is not supported).
+	TokenEncryption interface{} `json:"token_encryption,omitempty"`
+
+	// TokenLifetime Access token lifetime in seconds; 86400 by default.
+	TokenLifetime *int `json:"token_lifetime,omitempty"`
+
+	// TokenLifetimeForWeb Stored and reported (7200 by default). zeroauthy has no implicit or
+	// hybrid flow, so nothing uses it. When sent, it must not exceed
+	// `token_lifetime`.
+	TokenLifetimeForWeb *int `json:"token_lifetime_for_web,omitempty"`
+}
+
+// ResourceServerCreateSigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+type ResourceServerCreateSigningAlg string
+
+// ResourceServerCreateTokenDialect zeroauthy issues one access token format, `access_token`.
+type ResourceServerCreateTokenDialect string
+
+// ResourceServerPage A page of APIs with `include_totals=true`.
+type ResourceServerPage struct {
+	// Limit The page size.
+	Limit           int              `json:"limit"`
+	ResourceServers []ResourceServer `json:"resource_servers"`
+
+	// Start Index of the first result.
+	Start int `json:"start"`
+
+	// Total The number of results on all pages.
+	Total int `json:"total"`
+}
+
+// ResourceServerScope defines model for ResourceServerScope.
+type ResourceServerScope struct {
+	Description *string `json:"description,omitempty"`
+
+	// Value The permission, such as `read:orders`. Unique within the API.
+	Value string `json:"value"`
+}
+
+// ResourceServerSettings The writable settings of an API.
+type ResourceServerSettings struct {
+	// AllowOfflineAccess Whether clients may get refresh tokens for the API.
+	AllowOfflineAccess *bool `json:"allow_offline_access,omitempty"`
+
+	// AuthorizationDetails Only null or an empty list is accepted (rich authorization requests are not supported).
+	AuthorizationDetails interface{} `json:"authorization_details,omitempty"`
+
+	// ConsentPolicy Only null is accepted (transactional authorization is not supported).
+	ConsentPolicy interface{} `json:"consent_policy,omitempty"`
+
+	// EnforcePolicies zeroauthy has no role-based access control, so only `false` is accepted.
+	EnforcePolicies *bool `json:"enforce_policies,omitempty"`
+
+	// Name The API's name. Optional; absent when not given.
+	Name *string `json:"name,omitempty"`
+
+	// ProofOfPossession Only null is accepted (mTLS and DPoP are not supported).
+	ProofOfPossession interface{} `json:"proof_of_possession,omitempty"`
+
+	// Scopes The API's permissions. Values are unique.
+	Scopes *[]ResourceServerScope `json:"scopes,omitempty"`
+
+	// SigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+	SigningAlg                                *ResourceServerSettingsSigningAlg `json:"signing_alg,omitempty"`
+	SkipConsentForVerifiableFirstPartyClients *bool                             `json:"skip_consent_for_verifiable_first_party_clients,omitempty"`
+
+	// SubjectTypeAuthorization Who may get access tokens for the API. `user` is `allow_all`,
+	// `require_client_grant` or `deny_all`; `client` is `require_client_grant`
+	// or `deny_all`. On update the two subject types merge.
+	SubjectTypeAuthorization *SubjectTypeAuthorization `json:"subject_type_authorization,omitempty"`
+
+	// TokenDialect zeroauthy issues one access token format, `access_token`.
+	TokenDialect *ResourceServerSettingsTokenDialect `json:"token_dialect,omitempty"`
+
+	// TokenEncryption Only null is accepted (token encryption is not supported).
+	TokenEncryption interface{} `json:"token_encryption,omitempty"`
+
+	// TokenLifetime Access token lifetime in seconds; 86400 by default.
+	TokenLifetime *int `json:"token_lifetime,omitempty"`
+
+	// TokenLifetimeForWeb Stored and reported (7200 by default). zeroauthy has no implicit or
+	// hybrid flow, so nothing uses it. When sent, it must not exceed
+	// `token_lifetime`.
+	TokenLifetimeForWeb *int `json:"token_lifetime_for_web,omitempty"`
+}
+
+// ResourceServerSettingsSigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+type ResourceServerSettingsSigningAlg string
+
+// ResourceServerSettingsTokenDialect zeroauthy issues one access token format, `access_token`.
+type ResourceServerSettingsTokenDialect string
+
+// ResourceServerUpdate Fields to change; the others keep their values. Unknown fields are
+// refused (`invalid_body`), `identifier`, `id` and `is_system`
+// among them. An empty body changes nothing.
+type ResourceServerUpdate = ResourceServerSettings
+
+// SubjectTypeAuthorization Who may get access tokens for the API. `user` is `allow_all`,
+// `require_client_grant` or `deny_all`; `client` is `require_client_grant`
+// or `deny_all`. On update the two subject types merge.
+type SubjectTypeAuthorization struct {
+	Client *AccessPolicy `json:"client,omitempty"`
+	User   *AccessPolicy `json:"user,omitempty"`
+}
 
 // SystemTenant A tenant, as the system API reports it.
 type SystemTenant struct {
@@ -913,6 +1283,45 @@ type GetClientParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// GetResourceServersParams defines parameters for GetResourceServers.
+type GetResourceServersParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *IncludeTotals `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// Identifiers Return only the APIs with these identifiers. Repeat the parameter
+	// for several; a comma does not separate identifiers.
+	Identifiers *[]string `form:"identifiers,omitempty" json:"identifiers,omitempty"`
+
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. No field is always returned.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
+// GetResourceServers200JSONResponseBody0 defines parameters for GetResourceServers.
+type GetResourceServers200JSONResponseBody0 = []ResourceServer
+
+// GetResourceServers200JSONResponseBody defines parameters for GetResourceServers.
+type GetResourceServers200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetResourceServerParams defines parameters for GetResourceServer.
+type GetResourceServerParams struct {
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. No field is always returned.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
 // CreateOperatorJSONRequestBody defines body for CreateOperator for application/json ContentType.
 type CreateOperatorJSONRequestBody = OperatorCreate
 
@@ -927,6 +1336,12 @@ type CreateClientJSONRequestBody = ClientCreate
 
 // UpdateClientJSONRequestBody defines body for UpdateClient for application/json ContentType.
 type UpdateClientJSONRequestBody = ClientUpdate
+
+// CreateResourceServerJSONRequestBody defines body for CreateResourceServer for application/json ContentType.
+type CreateResourceServerJSONRequestBody = ResourceServerCreate
+
+// UpdateResourceServerJSONRequestBody defines body for UpdateResourceServer for application/json ContentType.
+type UpdateResourceServerJSONRequestBody = ResourceServerUpdate
 
 // AsGetClients200JSONResponseBody0 returns the union data inside the GetClients200JSONResponseBody as a GetClients200JSONResponseBody0
 func (t GetClients200JSONResponseBody) AsGetClients200JSONResponseBody0() (GetClients200JSONResponseBody0, error) {
@@ -990,6 +1405,68 @@ func (t *GetClients200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsGetResourceServers200JSONResponseBody0 returns the union data inside the GetResourceServers200JSONResponseBody as a GetResourceServers200JSONResponseBody0
+func (t GetResourceServers200JSONResponseBody) AsGetResourceServers200JSONResponseBody0() (GetResourceServers200JSONResponseBody0, error) {
+	var body GetResourceServers200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetResourceServers200JSONResponseBody0 overwrites any union data inside the GetResourceServers200JSONResponseBody as the provided GetResourceServers200JSONResponseBody0
+func (t *GetResourceServers200JSONResponseBody) FromGetResourceServers200JSONResponseBody0(v GetResourceServers200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetResourceServers200JSONResponseBody0 performs a merge with any union data inside the GetResourceServers200JSONResponseBody, using the provided GetResourceServers200JSONResponseBody0
+func (t *GetResourceServers200JSONResponseBody) MergeGetResourceServers200JSONResponseBody0(v GetResourceServers200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsResourceServerPage returns the union data inside the GetResourceServers200JSONResponseBody as a ResourceServerPage
+func (t GetResourceServers200JSONResponseBody) AsResourceServerPage() (ResourceServerPage, error) {
+	var body ResourceServerPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResourceServerPage overwrites any union data inside the GetResourceServers200JSONResponseBody as the provided ResourceServerPage
+func (t *GetResourceServers200JSONResponseBody) FromResourceServerPage(v ResourceServerPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResourceServerPage performs a merge with any union data inside the GetResourceServers200JSONResponseBody, using the provided ResourceServerPage
+func (t *GetResourceServers200JSONResponseBody) MergeResourceServerPage(v ResourceServerPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetResourceServers200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetResourceServers200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetOperators List operators
@@ -1031,6 +1508,21 @@ type ServerInterface interface {
 	// RotateClientSecret Rotate an application's secret
 	// (POST /api/v2/clients/{id}/rotate-secret)
 	RotateClientSecret(w http.ResponseWriter, r *http.Request, id string)
+	// GetResourceServers List APIs
+	// (GET /api/v2/resource-servers)
+	GetResourceServers(w http.ResponseWriter, r *http.Request, params GetResourceServersParams)
+	// CreateResourceServer Create an API
+	// (POST /api/v2/resource-servers)
+	CreateResourceServer(w http.ResponseWriter, r *http.Request)
+	// DeleteResourceServer Delete an API
+	// (DELETE /api/v2/resource-servers/{id})
+	DeleteResourceServer(w http.ResponseWriter, r *http.Request, id string)
+	// GetResourceServer Get an API
+	// (GET /api/v2/resource-servers/{id})
+	GetResourceServer(w http.ResponseWriter, r *http.Request, id string, params GetResourceServerParams)
+	// UpdateResourceServer Update an API
+	// (PATCH /api/v2/resource-servers/{id})
+	UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -1112,6 +1604,36 @@ func (_ Unimplemented) UpdateClient(w http.ResponseWriter, r *http.Request, id s
 // RotateClientSecret Rotate an application's secret
 // (POST /api/v2/clients/{id}/rotate-secret)
 func (_ Unimplemented) RotateClientSecret(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetResourceServers List APIs
+// (GET /api/v2/resource-servers)
+func (_ Unimplemented) GetResourceServers(w http.ResponseWriter, r *http.Request, params GetResourceServersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateResourceServer Create an API
+// (POST /api/v2/resource-servers)
+func (_ Unimplemented) CreateResourceServer(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteResourceServer Delete an API
+// (DELETE /api/v2/resource-servers/{id})
+func (_ Unimplemented) DeleteResourceServer(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetResourceServer Get an API
+// (GET /api/v2/resource-servers/{id})
+func (_ Unimplemented) GetResourceServer(w http.ResponseWriter, r *http.Request, id string, params GetResourceServerParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateResourceServer Update an API
+// (PATCH /api/v2/resource-servers/{id})
+func (_ Unimplemented) UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1532,6 +2054,225 @@ func (siw *ServerInterfaceWrapper) RotateClientSecret(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// GetResourceServers operation middleware
+func (siw *ServerInterfaceWrapper) GetResourceServers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetResourceServersParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "identifiers" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "identifiers", r.URL.Query(), &params.Identifiers, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "identifiers"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifiers", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetResourceServers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateResourceServer operation middleware
+func (siw *ServerInterfaceWrapper) CreateResourceServer(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateResourceServer(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteResourceServer operation middleware
+func (siw *ServerInterfaceWrapper) DeleteResourceServer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteResourceServer(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetResourceServer operation middleware
+func (siw *ServerInterfaceWrapper) GetResourceServer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetResourceServerParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetResourceServer(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateResourceServer operation middleware
+func (siw *ServerInterfaceWrapper) UpdateResourceServer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateResourceServer(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -1662,6 +2403,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/clients/{id}/rotate-secret", wrapper.RotateClientSecret)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/resource-servers", wrapper.GetResourceServers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/resource-servers", wrapper.CreateResourceServer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/resource-servers/{id}", wrapper.DeleteResourceServer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/resource-servers/{id}", wrapper.GetResourceServer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/resource-servers/{id}", wrapper.UpdateResourceServer)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants", wrapper.GetTenants)

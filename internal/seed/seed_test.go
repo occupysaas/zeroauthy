@@ -1061,6 +1061,47 @@ func TestSeedSkipsAPIClients(t *testing.T) {
 	}
 }
 
+// APIs created through the Management API are never touched by the seed,
+// even when it defines the same identifier.
+func TestSeedSkipsAPIResourceServers(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, _ := Parse([]byte(sample))
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	rs, _ := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://api.acme.test")
+	if rs.Origin != "" {
+		t.Fatalf("a seeded API has origin %q", rs.Origin)
+	}
+	rs.Name, rs.Origin, rs.TokenLifetime = "Edited in the console", store.OriginAPI, 60
+	rs.Scopes = []store.Scope{{Value: "read:things"}}
+	if err := st.ResourceServers().Update(ctx, rs); err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.ResourceServers().GetByIdentifier(ctx, tn.ID, "https://api.acme.test")
+	if got.Name != "Edited in the console" || got.TokenLifetime != 60 || len(got.Scopes) != 1 || got.Origin != store.OriginAPI {
+		t.Fatalf("the seed changed an API resource server: %+v", got)
+	}
+}
+
+// The seed holds APIs to the rules the Management API enforces.
+func TestSeedAppliesAPIRules(t *testing.T) {
+	for name, tc := range map[string]struct{ yaml, want string }{
+		"name with <":       {`tenants: [{name: a, resource_servers: [{identifier: "https://x", name: "a<b"}]}]`, "name must not contain"},
+		"duplicate scope":   {`tenants: [{name: a, resource_servers: [{identifier: "https://x", scopes: [{value: r}, {value: r}]}]}]`, `duplicate scope "r"`},
+		"lifetime too long": {`tenants: [{name: a, resource_servers: [{identifier: "https://x", token_lifetime: 2592001}]}]`, "token_lifetime"},
+	} {
+		if _, err := Parse([]byte(tc.yaml)); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: err = %v, want %q", name, err, tc.want)
+		}
+	}
+}
+
 // Tenants created through the system API are never touched by the seed.
 func TestSeedSkipsAPITenants(t *testing.T) {
 	ctx := context.Background()

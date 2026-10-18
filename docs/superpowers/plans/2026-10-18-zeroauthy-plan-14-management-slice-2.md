@@ -27,7 +27,7 @@
   - Field names as in Auth0's Management API; error body, pagination (`page`, `per_page`, `include_totals`) and `fields` as in slice 1 (D-0039).
   - Scopes `read:resource_servers`, `create:resource_servers`, `update:resource_servers`, `delete:resource_servers`, `read:client_grants`, `create:client_grants`, `update:client_grants`, `delete:client_grants` (already in `tenantsetup.ManagementAPIScopes`).
   - Exact defaults, statuses and error codes come from Task 1.
-- **System APIs are read-only:** each tenant's "zeroauthy Management API" (`is_system: true`) can be read and granted, never changed or deleted. The system tenant's `urn:zeroauthy:management` likewise.
+- **System APIs are protected:** each tenant's "zeroauthy Management API" (`is_system: true`) can be read and granted and never deleted; its name, scopes and the settings zeroauthy depends on never change (D-0041 lists which). The system tenant's `urn:zeroauthy:management` likewise.
 - **One set of rules:** the seed, the API and the console enforce the same resource-server and client-grant validation (scope names, policies, Management API scopes for grants to it, subject types).
 - **Seed coexistence:** resource servers and client grants created through the API are never touched by the seed.
 - **Console:** as Plan 13 (original look, light and dark, keyboard accessible, its own CSP, tokens in memory, strings in the catalog).
@@ -94,10 +94,10 @@ Run by the controller session as the observer; implementers see only the notes. 
 **Interfaces:**
 - `apirules.Spec`, `apirules.Normalize(*Spec) []error`, `apirules.Apply`, `apirules.FromResourceServer` (the pattern of `clientrules`).
 - `GET /resource-servers` (paging, `fields`, `identifiers` if A7 shows it), `POST`, `GET /{id}`, `PATCH /{id}`, `DELETE /{id}`. `{id}` is the resource server's ID; per Auth0's docs, the identifier is accepted too (to be confirmed in A4/A7).
-- Rules: identifier fixed after creation (A3); system APIs read-only (A4); scope removal per A5; delete cascades per A6 (Review Focus 2), plus user grants and refresh tokens for the audience; the seed skips `Origin == api`; the identifiers `urn:zeroauthy:management` and the tenant's Management API identifier are reserved.
+- Rules: identifier fixed after creation (A3); system APIs protected (A4, D-0041); scope removal per A5; delete cascades per A6 (Review Focus 2), plus user grants and refresh tokens for the audience; the seed skips `Origin == api`; the identifiers `urn:zeroauthy:management` and the tenant's Management API identifier are reserved.
 
-- [ ] **Step 1: Tests:** per operation and field from A1–A7; `TestDeleteResourceServerCascades`; the seed skipping API-created APIs; the existing seed tests unchanged against `apirules`; the contract test extended to the new operations.
-- [ ] **Step 2: Implement. Step 3: Run** the Go suite, `go generate` with no diff. **Step 4: Commit** with `feat(mgmt): /api/v2/resource-servers`.
+- [x] **Step 1: Tests:** per operation and field from A1–A7; `TestDeleteResourceServerCascades`; the seed skipping API-created APIs; the existing seed tests unchanged against `apirules`; the contract test extended to the new operations.
+- [x] **Step 2: Implement. Step 3: Run** the Go suite, `go generate` with no diff. **Step 4: Commit** with `feat(mgmt): /api/v2/resource-servers`.
 
 ---
 

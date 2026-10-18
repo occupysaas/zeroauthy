@@ -18,10 +18,11 @@ func newResourceServer(tenantID, id, identifier string) *store.ResourceServer {
 			{Value: "read:things", Description: "Read things"},
 			{Value: "write:things", Description: "Write things"},
 		},
-		SigningAlg:         "RS256",
-		TokenLifetime:      3600,
-		AllowOfflineAccess: true,
-		CreatedAt:          ts(0),
+		SigningAlg:          "RS256",
+		TokenLifetime:       3600,
+		TokenLifetimeForWeb: 1800,
+		AllowOfflineAccess:  true,
+		CreatedAt:           ts(0),
 
 		SkipConsentForVerifiableFirstPartyClients: true,
 		IsSystem: true,
@@ -58,6 +59,49 @@ func testResourceServers(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 		mustErrIs(t, s.ResourceServers().Delete(ctx, "ten_a", "rs1"), store.ErrNotFound)
 		mustErrIs(t, s.ResourceServers().Update(ctx, want), store.ErrNotFound)
+	})
+
+	t.Run("DeleteCascades", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.ResourceServers().Create(ctx, newResourceServer("ten_a", "gone", "https://gone.test")))
+		mustNoErr(t, s.ResourceServers().Create(ctx, newResourceServer("ten_a", "kept", "https://kept.test")))
+		mustNoErr(t, s.ResourceServers().Create(ctx, newResourceServer("ten_b", "gone", "https://gone.test")))
+		for _, tn := range []string{"ten_a", "ten_b"} {
+			mustNoErr(t, s.ClientGrants().Create(ctx, newClientGrant(tn, "cg_gone", "c1", "https://gone.test")))
+			_, err := s.UserGrants().Upsert(ctx, newUserGrant(tn, "ug_gone", "c1", "auth0|u1", "https://gone.test", "read"))
+			mustNoErr(t, err)
+			rt := newRefreshToken(tn, "rt_gone", "h_gone", "f_gone")
+			rt.Audience = "https://gone.test"
+			mustNoErr(t, s.RefreshTokens().Create(ctx, rt))
+		}
+		mustNoErr(t, s.ClientGrants().Create(ctx, newClientGrant("ten_a", "cg_kept", "c1", "https://kept.test")))
+		_, err := s.UserGrants().Upsert(ctx, newUserGrant("ten_a", "ug_kept", "c1", "auth0|u1", "https://kept.test", "read"))
+		mustNoErr(t, err)
+		rt := newRefreshToken("ten_a", "rt_kept", "h_kept", "f_kept")
+		rt.Audience = "https://kept.test"
+		mustNoErr(t, s.RefreshTokens().Create(ctx, rt))
+
+		mustNoErr(t, s.ResourceServers().Delete(ctx, "ten_a", "gone"))
+
+		_, err = s.ClientGrants().Find(ctx, "ten_a", "c1", "https://gone.test", store.SubjectTypeClient)
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.UserGrants().Find(ctx, "ten_a", "c1", "auth0|u1", "https://gone.test")
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.RefreshTokens().GetByTokenHash(ctx, "ten_a", "h_gone")
+		mustErrIs(t, err, store.ErrNotFound)
+		// Other APIs, and the same identifier in another tenant, keep theirs.
+		_, err = s.ClientGrants().Find(ctx, "ten_a", "c1", "https://kept.test", store.SubjectTypeClient)
+		mustNoErr(t, err)
+		_, err = s.UserGrants().Find(ctx, "ten_a", "c1", "auth0|u1", "https://kept.test")
+		mustNoErr(t, err)
+		_, err = s.RefreshTokens().GetByTokenHash(ctx, "ten_a", "h_kept")
+		mustNoErr(t, err)
+		_, err = s.ClientGrants().Find(ctx, "ten_b", "c1", "https://gone.test", store.SubjectTypeClient)
+		mustNoErr(t, err)
+		_, err = s.UserGrants().Find(ctx, "ten_b", "c1", "auth0|u1", "https://gone.test")
+		mustNoErr(t, err)
+		_, err = s.RefreshTokens().GetByTokenHash(ctx, "ten_b", "h_gone")
+		mustNoErr(t, err)
 	})
 
 	t.Run("ConsentAndPolicies", func(t *testing.T) {

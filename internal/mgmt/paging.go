@@ -82,6 +82,12 @@ var alwaysProjected = []string{"tenant"}
 // only those listed, otherwise all but those. tenant is always kept (M7).
 // No fields returns every member. v must encode as a JSON object.
 func Project(v any, fields []string, include bool) map[string]any {
+	return ProjectKeeping(v, fields, include, alwaysProjected)
+}
+
+// ProjectKeeping is Project with its own list of members that are always
+// kept; none for APIs, whose responses name no tenant (D-0041).
+func ProjectKeeping(v any, fields []string, include bool, always []string) map[string]any {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return nil
@@ -97,7 +103,7 @@ func Project(v any, fields []string, include bool) map[string]any {
 	for _, f := range fields {
 		listed[f] = true
 	}
-	for _, f := range alwaysProjected {
+	for _, f := range always {
 		listed[f] = include
 	}
 	for k := range all {
