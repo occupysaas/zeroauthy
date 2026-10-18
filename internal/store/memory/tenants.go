@@ -62,6 +62,42 @@ func (r tenants) List(context.Context) ([]*store.Tenant, error) {
 	return out, nil
 }
 
+// Delete removes the tenant and every entity scoped to it.
+func (r tenants) Delete(_ context.Context, id string) error {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	if _, ok := r.s.tenants[id]; !ok {
+		return store.ErrNotFound
+	}
+	delete(r.s.tenants, id)
+	s := r.s
+	purge(s.clients, id)
+	purge(s.resourceServers, id)
+	purge(s.clientGrants, id)
+	purge(s.userGrants, id)
+	purge(s.signingKeys, id)
+	purge(s.connections, id)
+	purge(s.users, id)
+	purge(s.sessions, id)
+	purge(s.transactions, id)
+	purge(s.authCodes, id)
+	purge(s.pushedAuthRequests, id)
+	purge(s.deviceCodes, id)
+	purge(s.refreshTokens, id)
+	purge(s.resetTickets, id)
+	purge(s.operators, id)
+	return nil
+}
+
+// purge deletes the entries of one tenant from m.
+func purge[V any](m map[key]V, tenantID string) {
+	for k := range m {
+		if k.tenant == tenantID {
+			delete(m, k)
+		}
+	}
+}
+
 func (r tenants) find(match func(*store.Tenant) bool) (*store.Tenant, error) {
 	r.s.mu.RLock()
 	defer r.s.mu.RUnlock()

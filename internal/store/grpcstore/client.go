@@ -122,6 +122,7 @@ func (c *Client) AuthCodes() store.AuthCodes                   { return clientAu
 func (c *Client) PushedAuthRequests() store.PushedAuthRequests { return clientPushedAuthRequests{c} }
 func (c *Client) DeviceCodes() store.DeviceCodes               { return clientDeviceCodes{c} }
 func (c *Client) RefreshTokens() store.RefreshTokens           { return clientRefreshTokens{c} }
+func (c *Client) Operators() store.Operators                   { return clientOperators{c} }
 func (c *Client) PasswordResetTickets() store.PasswordResetTickets {
 	return clientPasswordResetTickets{c}
 }

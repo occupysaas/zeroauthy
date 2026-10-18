@@ -4,6 +4,8 @@
 # from ZEROAUTHY_SECURITY__MASTER_KEY, fresh per run.
 server:
   listen: ":8443"
+  # The system tenant (console, operators); required without base_domain.
+  system_host: system.localhost:8443
   tls_cert_file: /run/zeroauthy/tls/cert.pem
   tls_key_file: /run/zeroauthy/tls/key.pem
 storage:

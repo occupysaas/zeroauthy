@@ -20,13 +20,16 @@ import (
 	"github.com/zeroauthy/zeroauthy/pkg/storeplugin"
 )
 
+// testServer gives the system tenant a host (server.system_host).
+var testServer = config.Server{SystemHost: "system.localhost"}
+
 func TestNewSeedsAndServes(t *testing.T) {
 	dir := t.TempDir()
 	seedPath := filepath.Join(dir, "seed.yaml")
 	if err := os.WriteFile(seedPath, []byte("tenants:\n  - name: acme\n    domains: [acme.example.test]\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	cfg := &config.Config{Storage: config.Storage{DSN: "memory://"}, Seed: seedPath}
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}, Seed: seedPath}
 	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +44,7 @@ func TestNewSeedsAndServes(t *testing.T) {
 }
 
 func TestNewRejectsBadSeed(t *testing.T) {
-	cfg := &config.Config{Storage: config.Storage{DSN: "memory://"}, Seed: "/nonexistent/seed.yaml"}
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}, Seed: "/nonexistent/seed.yaml"}
 	if _, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil))); err == nil {
 		t.Fatal("expected error for missing seed file")
 	}
@@ -62,7 +65,7 @@ func TestHTTPServerTimeouts(t *testing.T) {
 func TestNewWarnsAboutLogEmailDriver(t *testing.T) {
 	for driver, want := range map[string]bool{"log": true, "dir": false} {
 		var buf strings.Builder
-		cfg := &config.Config{Storage: config.Storage{DSN: "memory://"}, Email: config.Email{Driver: driver, Dir: t.TempDir()}}
+		cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}, Email: config.Email{Driver: driver, Dir: t.TempDir()}}
 		a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(&buf, nil)))
 		if err != nil {
 			t.Fatal(err)
@@ -79,6 +82,7 @@ func TestNewWarnsAboutLogEmailDriver(t *testing.T) {
 func sqliteConfig(t *testing.T, autoMigrate bool) *config.Config {
 	t.Helper()
 	return &config.Config{
+		Server:   testServer,
 		Storage:  config.Storage{DSN: "sqlite://" + filepath.Join(t.TempDir(), "z.db"), AutoMigrate: autoMigrate},
 		Security: config.Security{MasterKey: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="},
 	}
@@ -148,6 +152,7 @@ tenants:
 		t.Fatal(err)
 	}
 	cfg := &config.Config{
+		Server:   testServer,
 		Storage:  config.Storage{DSN: "plugin://" + bin},
 		Security: config.Security{MasterKey: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="},
 		Seed:     seedPath,
@@ -195,7 +200,7 @@ tenants:
 // A plugin store is persistent, so it needs the master key like the SQL
 // drivers, and nothing is started without it.
 func TestPluginStorageNeedsMasterKey(t *testing.T) {
-	cfg := &config.Config{Storage: config.Storage{DSN: "plugin:///nonexistent/plugin"}}
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "plugin:///nonexistent/plugin"}}
 	_, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if err == nil || !strings.Contains(err.Error(), "security.master_key or security.master_key_file is required") {
 		t.Fatalf("err = %v, want the master-key error", err)
@@ -221,7 +226,7 @@ func TestNewWarnsWhenNodeIsMissing(t *testing.T) {
 	if err := os.WriteFile(seedPath, []byte(seedYAML), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	cfg := &config.Config{Storage: config.Storage{DSN: "memory://"}, Seed: seedPath,
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}, Seed: seedPath,
 		CustomDB: config.CustomDB{Node: filepath.Join(dir, "no-node")}}
 	var logs strings.Builder
 	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(&logs, nil)))
@@ -248,7 +253,7 @@ func TestDeviceThrottlesFromConfig(t *testing.T) {
 		if err := os.WriteFile(seedPath, []byte("tenants:\n  - name: acme\n    domains: [acme.example.test]\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		cfg := &config.Config{Storage: config.Storage{DSN: "memory://"}, Seed: seedPath, Security: sec}
+		cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}, Seed: seedPath, Security: sec}
 		a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
 		if err != nil {
 			t.Fatal(err)
@@ -314,4 +319,60 @@ func TestDeviceThrottlesFromConfig(t *testing.T) {
 			t.Fatalf("second miss = %d, want the session-expired page\n%s", got, body)
 		}
 	})
+}
+
+// The server creates the system tenant at start and serves it on the
+// system host.
+func TestNewEnsuresSystemTenant(t *testing.T) {
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}}
+	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	rec := httptest.NewRecorder()
+	a.Handler().ServeHTTP(rec, httptest.NewRequest("GET", "https://system.localhost/.well-known/openid-configuration", nil))
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"issuer":"https://system.localhost/"`) {
+		t.Fatalf("discovery on the system host = %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestNewRefusesSeedOnSystemHost(t *testing.T) {
+	seedPath := filepath.Join(t.TempDir(), "seed.yaml")
+	if err := os.WriteFile(seedPath, []byte("tenants:\n  - name: acme\n    domains: [System.Localhost]\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}, Seed: seedPath}
+	_, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err == nil || !strings.Contains(err.Error(), "system host") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// bootstrap.admin_email creates the first operator once: a later start
+// with an operator present creates nothing and logs no link.
+func TestBootstrapAdminEmailOnce(t *testing.T) {
+	cfg := sqliteConfig(t, true)
+	cfg.Bootstrap.AdminEmail = "root@example.test"
+	setupLink := regexp.MustCompile(`setup_url="?https://system\.localhost/u/reset-password\?ticket=\S+`)
+	start := func() string {
+		t.Helper()
+		var buf strings.Builder
+		a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(&buf, nil)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Close(); err != nil {
+			t.Fatal(err)
+		}
+		return buf.String()
+	}
+	if log := start(); len(setupLink.FindAllString(log, -1)) != 1 || !strings.Contains(log, "root@example.test") {
+		t.Fatalf("first start log has no single setup link:\n%s", log)
+	}
+	for range 2 {
+		if log := start(); setupLink.MatchString(log) {
+			t.Fatalf("a later start logged a setup link again:\n%s", log)
+		}
+	}
 }

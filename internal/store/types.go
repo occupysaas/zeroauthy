@@ -45,8 +45,28 @@ type Tenant struct {
 	// "****-****".
 	DeviceFlowCharset string
 	DeviceFlowMask    string
+	// Reserved marks the tenant zeroauthy runs for itself (`system`, whose
+	// users are the console operators). The store does not act on it.
+	Reserved bool
+	// Seeded marks a tenant defined by the seed file. The console shows a
+	// banner on it: the next start overwrites edits to what the seed defines.
+	Seeded bool
 
 	CreatedAt time.Time
+}
+
+// OperatorAllTenants in Operator.Tenants grants every tenant.
+const OperatorAllTenants = "*"
+
+// Operator flags a user of the system tenant as a console operator.
+type Operator struct {
+	TenantID string // the system tenant's ID
+	UserID   string
+	// Tenants are the names of the tenants the operator manages;
+	// ["*"] (OperatorAllTenants) means every tenant.
+	Tenants   []string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // AppType is the kind of application a client represents.

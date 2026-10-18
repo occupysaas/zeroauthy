@@ -900,3 +900,42 @@ func TestSeedNewClientNeedsSecret(t *testing.T) {
 		t.Fatalf("err = %v, want client_secret is required", err)
 	}
 }
+
+// The name `system` is zeroauthy's own tenant (Plan 13).
+func TestSeedRefusesSystemTenant(t *testing.T) {
+	_, err := Parse([]byte("tenants:\n  - name: system\n"))
+	if err == nil || !strings.Contains(err.Error(), `"system" is reserved`) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// No seeded tenant may claim the system tenant's host.
+func TestSeedRefusesSystemHost(t *testing.T) {
+	f, err := Parse([]byte("tenants:\n  - name: acme\n    domains: [\"Admin.Example.TEST:443\"]\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = f.CheckSystemHost("admin.example.test")
+	if err == nil || !strings.Contains(err.Error(), "system host") {
+		t.Fatalf("err = %v", err)
+	}
+	if err := f.CheckSystemHost("system.example.test"); err != nil {
+		t.Fatalf("other host: %v", err)
+	}
+}
+
+func TestSeedMarksTenantsSeeded(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(sample))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, err := st.Tenants().GetByName(ctx, "acme")
+	if err != nil || !tn.Seeded || tn.Reserved {
+		t.Fatalf("tenant = %+v, %v; want Seeded and not Reserved", tn, err)
+	}
+}

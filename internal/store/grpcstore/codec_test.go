@@ -147,6 +147,7 @@ func TestTenantRoundTrip(t *testing.T) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: true, UseScopeDescriptionsForConsent: true,
 		PushedAuthorizationRequestsSupported: true,
 		DeviceFlowCharset:                    "digits", DeviceFlowMask: "###-###",
+		Reserved: true, Seeded: true,
 	}, tenantToPB, tenantFromPB)
 	roundTrip(t, "empty", &store.Tenant{Domains: []string{}, AllowedLogoutURLs: []string{}, EnabledLocales: []string{}, CustomText: store.CustomText{}}, tenantToPB, tenantFromPB)
 	roundTrip(t, "zero", &store.Tenant{}, tenantToPB, tenantFromPB)
@@ -349,6 +350,15 @@ func TestPasswordResetTicketRoundTrip(t *testing.T) {
 		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
 	}, passwordResetTicketToPB, passwordResetTicketFromPB)
 	roundTrip(t, "zero", &store.PasswordResetTicket{}, passwordResetTicketToPB, passwordResetTicketFromPB)
+}
+
+func TestOperatorRoundTrip(t *testing.T) {
+	roundTrip(t, "full", &store.Operator{
+		TenantID: "ten", UserID: "auth0|u1", Tenants: []string{"acme", "globex"},
+		CreatedAt: nanoTime, UpdatedAt: nanoTime.Add(time.Second),
+	}, operatorToPB, operatorFromPB)
+	roundTrip(t, "empty", &store.Operator{Tenants: []string{}}, operatorToPB, operatorFromPB)
+	roundTrip(t, "zero", &store.Operator{}, operatorToPB, operatorFromPB)
 }
 
 func TestNilEntities(t *testing.T) {

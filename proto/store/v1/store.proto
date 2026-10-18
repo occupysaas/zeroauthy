@@ -68,6 +68,9 @@ service StoreService {
   rpc TenantsGetByDomain(TenantsGetRequest) returns (TenantResult);
   rpc TenantsUpdate(TenantWrite) returns (Result);
   rpc TenantsList(TenantsListRequest) returns (TenantList);
+  // TenantsDelete removes the tenant and all of its data (key = id).
+  // Hosts report Unimplemented as "plugin too old".
+  rpc TenantsDelete(TenantsGetRequest) returns (Result);
 
   rpc ClientsCreate(ClientWrite) returns (Result);
   rpc ClientsGet(ScopedKey) returns (ClientResult);
@@ -151,6 +154,13 @@ service StoreService {
   rpc PasswordResetTicketsConsume(ConsumeRequest) returns (PasswordResetTicketResult);
   rpc PasswordResetTicketsDeleteByUser(ScopedKey) returns (CountResult);
   rpc PasswordResetTicketsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+
+  // Console operators (Plan 13), keyed by (tenant_id, user_id). Hosts
+  // report Unimplemented as "plugin too old".
+  rpc OperatorsGet(ScopedKey) returns (OperatorResult);   // key = user_id
+  rpc OperatorsUpsert(OperatorWrite) returns (Result);
+  rpc OperatorsList(TenantScope) returns (OperatorList);
+  rpc OperatorsDelete(ScopedKey) returns (Result);        // key = user_id
 }
 
 // ---- errors and generic results ----
@@ -222,6 +232,8 @@ message Tenant {
   bool pushed_authorization_requests_supported = 16; // absent = false
   string device_flow_charset = 17;                   // absent = "" (the host default)
   string device_flow_mask = 18;                      // absent = ""
+  bool reserved = 19;                                // absent = false
+  bool seeded = 20;                                  // absent = false
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 
@@ -370,6 +382,12 @@ message PasswordResetTicket {
   google.protobuf.Timestamp created_at = 10;
 }
 
+message Operator {
+  string tenant_id = 1; string user_id = 2;
+  StringList tenants = 3; // tenant names, or ["*"] for every tenant
+  google.protobuf.Timestamp created_at = 4; google.protobuf.Timestamp updated_at = 5;
+}
+
 // ---- per-entity requests and results ----
 
 message TenantWrite { string tx_id = 1; Tenant value = 2; }
@@ -444,3 +462,7 @@ message RefreshTokensRotateRequest {
 
 message PasswordResetTicketWrite { string tx_id = 1; PasswordResetTicket value = 2; }
 message PasswordResetTicketResult { Error error = 1; PasswordResetTicket value = 2; }
+
+message OperatorWrite { string tx_id = 1; Operator value = 2; }
+message OperatorResult { Error error = 1; Operator value = 2; }
+message OperatorList { Error error = 1; repeated Operator values = 2; }

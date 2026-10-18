@@ -23,6 +23,7 @@ type (
 	DeviceCodes          = store.DeviceCodes
 	RefreshTokens        = store.RefreshTokens
 	PasswordResetTickets = store.PasswordResetTickets
+	Operators            = store.Operators
 
 	Tenant                   = store.Tenant
 	Branding                 = store.Branding
@@ -53,6 +54,7 @@ type (
 	DevicePollOutcome        = store.DevicePollOutcome
 	RefreshToken             = store.RefreshToken
 	PasswordResetTicket      = store.PasswordResetTicket
+	Operator                 = store.Operator
 )
 
 var (
@@ -106,6 +108,8 @@ const (
 	KeyRevoked  = store.KeyRevoked
 
 	StrategyDatabase = store.StrategyDatabase
+
+	OperatorAllTenants = store.OperatorAllTenants
 
 	ScriptLogin          = store.ScriptLogin
 	ScriptGetUser        = store.ScriptGetUser

@@ -88,6 +88,9 @@ func (f *File) validate() error {
 			errs = append(errs, fmt.Errorf("seed: duplicate tenant %q", t.Name))
 		}
 		seenTenants[t.Name] = true
+		if t.Name == tenant.SystemName {
+			errs = append(errs, fmt.Errorf("seed: tenant name %q is reserved for zeroauthy's own tenant", t.Name))
+		}
 		if !dnsLabel.MatchString(t.Name) {
 			errs = append(errs, fmt.Errorf("seed: tenant %q: name must be a valid DNS label (lowercase a-z, 0-9, '-', at most 63 characters)", t.Name))
 		}
@@ -107,6 +110,24 @@ func (f *File) validate() error {
 				continue
 			}
 			domainOwner[nd] = t.Name
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// CheckSystemHost reports a seeded tenant whose domains include host, the
+// system tenant's host (tenant.SystemHost). Load cannot check this, since the
+// host comes from the server configuration.
+func (f *File) CheckSystemHost(host string) error {
+	if host == "" {
+		return nil
+	}
+	var errs []error
+	for _, t := range f.Tenants {
+		for _, d := range t.Domains {
+			if tenant.NormalizeHost(d) == host {
+				errs = append(errs, fmt.Errorf("seed: tenant %q: domain %q is the system host, reserved for zeroauthy's own tenant", t.Name, d))
+			}
 		}
 	}
 	return errors.Join(errs...)

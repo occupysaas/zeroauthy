@@ -32,6 +32,7 @@ type Store struct {
 	deviceCodes        map[key]*store.DeviceCode          // by (tenant, DeviceCodeHash)
 	refreshTokens      map[key]*store.RefreshToken        // by (tenant, ID)
 	resetTickets       map[key]*store.PasswordResetTicket // by (tenant, ID)
+	operators          map[key]*store.Operator            // by (tenant, UserID)
 }
 
 // New returns an empty store.
@@ -52,6 +53,7 @@ func New() *Store {
 		deviceCodes:        map[key]*store.DeviceCode{},
 		refreshTokens:      map[key]*store.RefreshToken{},
 		resetTickets:       map[key]*store.PasswordResetTicket{},
+		operators:          map[key]*store.Operator{},
 	}
 }
 
@@ -70,6 +72,7 @@ func (s *Store) PushedAuthRequests() store.PushedAuthRequests     { return pushe
 func (s *Store) DeviceCodes() store.DeviceCodes                   { return deviceCodes{s} }
 func (s *Store) RefreshTokens() store.RefreshTokens               { return refreshTokens{s} }
 func (s *Store) PasswordResetTickets() store.PasswordResetTickets { return resetTickets{s} }
+func (s *Store) Operators() store.Operators                       { return operators{s} }
 func (s *Store) Ping(context.Context) error                       { return nil }
 func (s *Store) Close() error                                     { return nil }
 

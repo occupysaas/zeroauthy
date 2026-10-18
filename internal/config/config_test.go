@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// sysHost satisfies the system host requirement in tests about other settings.
+const sysHost = "ZEROAUTHY_SERVER__SYSTEM_HOST=system.localhost"
+
 func writeFile(t *testing.T, name, body string) string {
 	t.Helper()
 	p := filepath.Join(t.TempDir(), name)
@@ -51,7 +54,7 @@ seed: /etc/zeroauthy/seed.yaml
 }
 
 func TestLoadEnvOnly(t *testing.T) {
-	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://"})
+	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +66,7 @@ func TestLoadEnvOnly(t *testing.T) {
 func TestLoadIgnoresConfigPathVariable(t *testing.T) {
 	_, err := Load("", []string{
 		"ZEROAUTHY_CONFIG=/some/path.yaml",
-		"ZEROAUTHY_STORAGE__DSN=memory://",
+		"ZEROAUTHY_STORAGE__DSN=memory://", sysHost,
 	})
 	if err != nil {
 		t.Fatalf("ZEROAUTHY_CONFIG must not be treated as a setting: %v", err)
@@ -77,12 +80,12 @@ func TestLoadErrors(t *testing.T) {
 		want string
 	}{
 		"missing dsn":      {env: nil, want: "storage.dsn is required"},
-		"half tls":         {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SERVER__TLS_CERT_FILE=/c.pem"}, want: "tls_cert_file and server.tls_key_file"},
-		"bad level":        {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_LOG__LEVEL=loud"}, want: "log.level"},
-		"bad format":       {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_LOG__FORMAT=xml"}, want: "log.format"},
-		"both master keys": {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SECURITY__MASTER_KEY=x", "ZEROAUTHY_SECURITY__MASTER_KEY_FILE=/k"}, want: "only one of"},
-		"unknown env key":  {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SECURITY__MASTERKEY=x"}, want: "masterkey"},
-		"unknown top env":  {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_BOGUS=1"}, want: "bogus"},
+		"half tls":         {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_SERVER__TLS_CERT_FILE=/c.pem"}, want: "tls_cert_file and server.tls_key_file"},
+		"bad level":        {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_LOG__LEVEL=loud"}, want: "log.level"},
+		"bad format":       {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_LOG__FORMAT=xml"}, want: "log.format"},
+		"both master keys": {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_SECURITY__MASTER_KEY=x", "ZEROAUTHY_SECURITY__MASTER_KEY_FILE=/k"}, want: "only one of"},
+		"unknown env key":  {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_SECURITY__MASTERKEY=x"}, want: "masterkey"},
+		"unknown top env":  {env: []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_BOGUS=1"}, want: "bogus"},
 		"unknown file key": {file: writeFile(t, "bad.yaml", "storage:\n  dsn: memory://\nserver:\n  listn: \":1\"\n"), want: "listn"},
 		"missing file":     {file: "/nonexistent/zeroauthy.yaml", want: "no such file"},
 	}
@@ -124,26 +127,26 @@ func TestMasterKeyBytes(t *testing.T) {
 	}
 }
 func TestLoginThrottleSettings(t *testing.T) {
-	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://"})
+	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost})
 	if err != nil || cfg.Security.LoginMaxAttempts != 10 || cfg.Security.LoginLockoutSeconds != 900 {
 		t.Fatalf("defaults = %+v, %v", cfg.Security, err)
 	}
-	cfg, err = Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SECURITY__LOGIN_MAX_ATTEMPTS=5", "ZEROAUTHY_SECURITY__LOGIN_LOCKOUT_SECONDS=60"})
+	cfg, err = Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_SECURITY__LOGIN_MAX_ATTEMPTS=5", "ZEROAUTHY_SECURITY__LOGIN_LOCKOUT_SECONDS=60"})
 	if err != nil || cfg.Security.LoginMaxAttempts != 5 || cfg.Security.LoginLockoutSeconds != 60 {
 		t.Fatalf("overrides = %+v, %v", cfg.Security, err)
 	}
-	if _, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SECURITY__LOGIN_MAX_ATTEMPTS=0"}); err == nil {
+	if _, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_SECURITY__LOGIN_MAX_ATTEMPTS=0"}); err == nil {
 		t.Fatal("zero attempts accepted")
 	}
 }
 
 func TestEmailSettings(t *testing.T) {
 	base := "ZEROAUTHY_STORAGE__DSN=memory://"
-	cfg, err := Load("", []string{base})
+	cfg, err := Load("", []string{base, sysHost})
 	if err != nil || cfg.Email.Driver != "log" || cfg.Email.From != "zeroauthy@localhost" || cfg.Email.SMTP.Port != 587 {
 		t.Fatalf("defaults = %+v, %v", cfg.Email, err)
 	}
-	cfg, err = Load("", []string{base, "ZEROAUTHY_EMAIL__SMTP__PORT=2525"})
+	cfg, err = Load("", []string{base, sysHost, "ZEROAUTHY_EMAIL__SMTP__PORT=2525"})
 	if err != nil || cfg.Email.SMTP.Port != 2525 {
 		t.Fatalf("port override = %+v, %v", cfg.Email, err)
 	}
@@ -151,12 +154,12 @@ func TestEmailSettings(t *testing.T) {
 		env  []string
 		want string
 	}{
-		"dir without dir":   {[]string{base, "ZEROAUTHY_EMAIL__DRIVER=dir"}, "email.dir is required"},
-		"smtp without host": {[]string{base, "ZEROAUTHY_EMAIL__DRIVER=smtp"}, "email.smtp.host"},
-		"port zero":         {[]string{base, "ZEROAUTHY_EMAIL__DRIVER=smtp", "ZEROAUTHY_EMAIL__SMTP__HOST=h", "ZEROAUTHY_EMAIL__SMTP__PORT=0"}, "email.smtp.port"},
-		"port too large":    {[]string{base, "ZEROAUTHY_EMAIL__DRIVER=smtp", "ZEROAUTHY_EMAIL__SMTP__HOST=h", "ZEROAUTHY_EMAIL__SMTP__PORT=70000"}, "email.smtp.port"},
-		"bad driver":        {[]string{base, "ZEROAUTHY_EMAIL__DRIVER=pigeon"}, "email.driver"},
-		"from with newline": {[]string{base, "ZEROAUTHY_EMAIL__FROM=a@x.test\nBcc: b@x.test"}, "email.from"},
+		"dir without dir":   {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=dir"}, "email.dir is required"},
+		"smtp without host": {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=smtp"}, "email.smtp.host"},
+		"port zero":         {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=smtp", "ZEROAUTHY_EMAIL__SMTP__HOST=h", "ZEROAUTHY_EMAIL__SMTP__PORT=0"}, "email.smtp.port"},
+		"port too large":    {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=smtp", "ZEROAUTHY_EMAIL__SMTP__HOST=h", "ZEROAUTHY_EMAIL__SMTP__PORT=70000"}, "email.smtp.port"},
+		"bad driver":        {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=pigeon"}, "email.driver"},
+		"from with newline": {[]string{base, sysHost, "ZEROAUTHY_EMAIL__FROM=a@x.test\nBcc: b@x.test"}, "email.from"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -169,14 +172,14 @@ func TestEmailSettings(t *testing.T) {
 }
 
 func TestStorageAutoMigrate(t *testing.T) {
-	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=sqlite:///tmp/z.db"})
+	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=sqlite:///tmp/z.db", sysHost})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.Storage.AutoMigrate {
 		t.Error("auto_migrate defaults to true, want false")
 	}
-	cfg, err = Load("", []string{"ZEROAUTHY_STORAGE__DSN=sqlite:///tmp/z.db", "ZEROAUTHY_STORAGE__AUTO_MIGRATE=true"})
+	cfg, err = Load("", []string{"ZEROAUTHY_STORAGE__DSN=sqlite:///tmp/z.db", sysHost, "ZEROAUTHY_STORAGE__AUTO_MIGRATE=true"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,32 +190,32 @@ func TestStorageAutoMigrate(t *testing.T) {
 
 func TestCustomDBSettings(t *testing.T) {
 	base := "ZEROAUTHY_STORAGE__DSN=memory://"
-	cfg, err := Load("", []string{base})
+	cfg, err := Load("", []string{base, sysHost})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.CustomDB.Node != "node" || cfg.CustomDB.MaxMemoryMB != 256 || cfg.CustomDB.IdleTimeout != 5*time.Minute {
 		t.Errorf("defaults = %+v", cfg.CustomDB)
 	}
-	cfg, err = Load("", []string{base, "ZEROAUTHY_CUSTOM_DB__IDLE_TIMEOUT=30s", "ZEROAUTHY_CUSTOM_DB__MODULES_DIR=/opt/mods"})
+	cfg, err = Load("", []string{base, sysHost, "ZEROAUTHY_CUSTOM_DB__IDLE_TIMEOUT=30s", "ZEROAUTHY_CUSTOM_DB__MODULES_DIR=/opt/mods"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if cfg.CustomDB.IdleTimeout != 30*time.Second || cfg.CustomDB.ModulesDir != "/opt/mods" {
 		t.Errorf("env not applied: %+v", cfg.CustomDB)
 	}
-	_, err = Load("", []string{base, "ZEROAUTHY_CUSTOM_DB__MODULES_DIR=mods"})
+	_, err = Load("", []string{base, sysHost, "ZEROAUTHY_CUSTOM_DB__MODULES_DIR=mods"})
 	if err == nil || !strings.Contains(err.Error(), "custom_db.modules_dir must be an absolute path") {
 		t.Errorf("relative modules_dir: err = %v", err)
 	}
-	if _, err = Load("", []string{base, "ZEROAUTHY_CUSTOM_DB__MAX_MEMORY_MB=31"}); err == nil {
+	if _, err = Load("", []string{base, sysHost, "ZEROAUTHY_CUSTOM_DB__MAX_MEMORY_MB=31"}); err == nil {
 		t.Error("max_memory_mb 31 accepted")
 	}
 }
 
 func TestDeviceActivationSettings(t *testing.T) {
 	base := "ZEROAUTHY_STORAGE__DSN=memory://"
-	cfg, err := Load("", []string{base})
+	cfg, err := Load("", []string{base, sysHost})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,12 +224,46 @@ func TestDeviceActivationSettings(t *testing.T) {
 		s.DeviceActivationTenantMaxMisses != 1000 || s.DeviceActivationTenantWindowSeconds != 600 || s.DeviceActivationTenantLockoutSeconds != 60 {
 		t.Fatalf("defaults = %+v", s)
 	}
-	if _, err := Load("", []string{base, "ZEROAUTHY_SECURITY__DEVICE_ACTIVATION_IP_MAX_MISSES=0", "ZEROAUTHY_SECURITY__DEVICE_ACTIVATION_TENANT_MAX_MISSES=0"}); err != nil {
+	if _, err := Load("", []string{base, sysHost, "ZEROAUTHY_SECURITY__DEVICE_ACTIVATION_IP_MAX_MISSES=0", "ZEROAUTHY_SECURITY__DEVICE_ACTIVATION_TENANT_MAX_MISSES=0"}); err != nil {
 		t.Fatalf("zero (off) rejected: %v", err)
 	}
 	for _, bad := range []string{"DEVICE_ACTIVATION_IP_MAX_MISSES=-1", "DEVICE_ACTIVATION_TENANT_MAX_MISSES=-1", "DEVICE_ACTIVATION_TXN_MAX_MISSES=0"} {
-		if _, err := Load("", []string{base, "ZEROAUTHY_SECURITY__" + bad}); err == nil {
+		if _, err := Load("", []string{base, sysHost, "ZEROAUTHY_SECURITY__" + bad}); err == nil {
 			t.Errorf("%s accepted", bad)
 		}
+	}
+}
+
+// Without a base domain the system tenant needs an explicit host (Plan 13).
+func TestSystemHost(t *testing.T) {
+	_, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://"})
+	if err == nil || !strings.Contains(err.Error(), "server.system_host is required") {
+		t.Fatalf("no base domain, no system host: err = %v", err)
+	}
+	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SERVER__BASE_DOMAIN=auth.example.test"})
+	if err != nil || cfg.Server.SystemHost != "" {
+		t.Fatalf("base domain only: %+v, %v", cfg, err)
+	}
+	cfg, err = Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SERVER__SYSTEM_HOST=admin.localhost:8443"})
+	if err != nil || cfg.Server.SystemHost != "admin.localhost:8443" {
+		t.Fatalf("system host only: %+v, %v", cfg, err)
+	}
+	if _, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SERVER__SYSTEM_HOST=https://admin.test/"}); err == nil {
+		t.Fatal("a URL was accepted as system_host")
+	}
+}
+
+func TestBootstrapAdminEmail(t *testing.T) {
+	base := []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SERVER__SYSTEM_HOST=system.localhost"}
+	cfg, err := Load("", append(base, "ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL=Admin@Example.test"))
+	if err != nil || cfg.Bootstrap.AdminEmail != "Admin@Example.test" {
+		t.Fatalf("%+v, %v", cfg.Bootstrap, err)
+	}
+	if _, err := Load("", append(base, "ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL=not an address")); err == nil {
+		t.Fatal("a bad admin email was accepted")
+	}
+	// The bootstrap never takes a password.
+	if _, err := Load("", append(base, "ZEROAUTHY_BOOTSTRAP__ADMIN_PASSWORD=x")); err == nil {
+		t.Fatal("bootstrap.admin_password was accepted")
 	}
 }

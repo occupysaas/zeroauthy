@@ -2,6 +2,8 @@ package grpcstore
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"google.golang.org/grpc"
@@ -125,6 +127,12 @@ func (a clientTenants) Update(ctx context.Context, t *store.Tenant) error {
 func (a clientTenants) List(ctx context.Context) ([]*store.Tenant, error) {
 	r, err := a.c.rpc.TenantsList(ctx, &storev1.TenantsListRequest{TxId: a.c.txID})
 	return decList("TenantsList", err, r.GetError(), r.GetValues(), tenantFromPB)
+}
+
+// Delete needs a plugin built against Plan 13's protocol.
+func (a clientTenants) Delete(ctx context.Context, id string) error {
+	r, err := a.c.rpc.TenantsDelete(ctx, &storev1.TenantsGetRequest{TxId: a.c.txID, Key: id})
+	return do("TenantsDelete", r, tooOld(err))
 }
 
 // ---- clients ----
@@ -600,4 +608,42 @@ func (a clientPasswordResetTickets) DeleteByUser(ctx context.Context, tenantID, 
 func (a clientPasswordResetTickets) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
 	r, err := a.c.rpc.PasswordResetTicketsDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
 	return counted("PasswordResetTicketsDeleteExpired", r, err)
+}
+
+// ---- operators ----
+
+// errPluginTooOld wraps the Unimplemented status of a plugin that predates
+// an RPC the host needs.
+var errPluginTooOld = errors.New("the storage plugin is too old for this zeroauthy version (missing RPC); upgrade the plugin")
+
+// tooOld turns Unimplemented into errPluginTooOld, keeping the status.
+func tooOld(err error) error {
+	if status.Code(err) == codes.Unimplemented {
+		return fmt.Errorf("%w: %w", errPluginTooOld, err)
+	}
+	return err
+}
+
+type clientOperators struct{ c *Client }
+
+func (a clientOperators) Get(ctx context.Context, tenantID, userID string) (*store.Operator, error) {
+	r, err := a.c.rpc.OperatorsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return decOne("OperatorsGet", tooOld(err), r.GetError(), r.GetValue(), operatorFromPB)
+}
+
+func (a clientOperators) Upsert(ctx context.Context, o *store.Operator) error {
+	return put("OperatorsUpsert", o, operatorToPB, func(pb *storev1.Operator) (result, error) {
+		r, err := a.c.rpc.OperatorsUpsert(ctx, &storev1.OperatorWrite{TxId: a.c.txID, Value: pb})
+		return r, tooOld(err)
+	})
+}
+
+func (a clientOperators) List(ctx context.Context, tenantID string) ([]*store.Operator, error) {
+	r, err := a.c.rpc.OperatorsList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+	return decList("OperatorsList", tooOld(err), r.GetError(), r.GetValues(), operatorFromPB)
+}
+
+func (a clientOperators) Delete(ctx context.Context, tenantID, userID string) error {
+	r, err := a.c.rpc.OperatorsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return do("OperatorsDelete", r, tooOld(err))
 }

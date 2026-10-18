@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/storage"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 func newSeedCmd() *cobra.Command {
@@ -38,6 +39,9 @@ func newSeedCmd() *cobra.Command {
 			}
 			f, err := seed.Load(path)
 			if err != nil {
+				return err
+			}
+			if err := f.CheckSystemHost(tenant.SystemHost(cfg.Server.BaseDomain, cfg.Server.SystemHost)); err != nil {
 				return err
 			}
 			masterKey, err := app.MasterKey(cfg, slog.Default())

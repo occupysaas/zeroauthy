@@ -128,6 +128,10 @@ func (s *Server) TenantsList(ctx context.Context, r *storev1.TenantsListRequest)
 	return &storev1.TenantList{Error: e, Values: vs}, nil
 }
 
+func (s *Server) TenantsDelete(ctx context.Context, r *storev1.TenantsGetRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error { return st.Tenants().Delete(ctx, r.Key) }), nil
+}
+
 // ---- clients ----
 
 func (s *Server) ClientsCreate(ctx context.Context, r *storev1.ClientWrite) (*storev1.Result, error) {
@@ -681,4 +685,32 @@ func (s *Server) PasswordResetTicketsDeleteExpired(ctx context.Context, r *store
 	return count(s, r.TxId, func(st store.Store) (int, error) {
 		return st.PasswordResetTickets().DeleteExpired(ctx, tsFromPB(r.Before))
 	}), nil
+}
+
+// ---- operators ----
+
+func (s *Server) OperatorsGet(ctx context.Context, r *storev1.ScopedKey) (*storev1.OperatorResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.Operator, error) { return st.Operators().Get(ctx, r.TenantId, r.Key) }, operatorToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.OperatorResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) OperatorsUpsert(ctx context.Context, r *storev1.OperatorWrite) (*storev1.Result, error) {
+	return write(s, r.TxId, r.Value, operatorFromPB, func(st store.Store, o *store.Operator) error {
+		return st.Operators().Upsert(ctx, o)
+	}), nil
+}
+
+func (s *Server) OperatorsList(ctx context.Context, r *storev1.TenantScope) (*storev1.OperatorList, error) {
+	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.Operator, error) { return st.Operators().List(ctx, r.TenantId) }, operatorToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.OperatorList{Error: e, Values: vs}, nil
+}
+
+func (s *Server) OperatorsDelete(ctx context.Context, r *storev1.ScopedKey) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error { return st.Operators().Delete(ctx, r.TenantId, r.Key) }), nil
 }

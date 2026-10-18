@@ -234,3 +234,23 @@ func TestOldPluginDeviceCodesSweep(t *testing.T) {
 		t.Fatal("Get on an old plugin succeeded")
 	}
 }
+
+// Operators and tenant deletion need a Plan 13 plugin; an older one gets a
+// clear error instead of a bare Unimplemented status.
+func TestOldPluginOperatorsTooOld(t *testing.T) {
+	c := serveOldPlugin(t)
+	ctx := context.Background()
+	_, errGet := c.Operators().Get(ctx, "t", "u")
+	_, errList := c.Operators().List(ctx, "t")
+	for name, err := range map[string]error{
+		"Get":            errGet,
+		"List":           errList,
+		"Upsert":         c.Operators().Upsert(ctx, &store.Operator{TenantID: "t", UserID: "u"}),
+		"Delete":         c.Operators().Delete(ctx, "t", "u"),
+		"Tenants.Delete": c.Tenants().Delete(ctx, "t"),
+	} {
+		if !errors.Is(err, errPluginTooOld) || !strings.Contains(err.Error(), "too old") {
+			t.Errorf("%s: err = %v, want errPluginTooOld", name, err)
+		}
+	}
+}

@@ -41,6 +41,7 @@ type Store interface {
 	DeviceCodes() DeviceCodes
 	RefreshTokens() RefreshTokens
 	PasswordResetTickets() PasswordResetTickets
+	Operators() Operators
 	// WithTx runs fn against a transactional view of the store. If fn
 	// returns an error, none of its writes persist. Drivers serialize
 	// transactions; the memory driver's isolation from concurrent
@@ -69,6 +70,25 @@ type Tenants interface {
 	Update(ctx context.Context, t *Tenant) error
 	// List returns all tenants ordered by Name.
 	List(ctx context.Context) ([]*Tenant, error)
+	// Delete removes the tenant and all of its data: domains, clients,
+	// resource servers, grants, signing keys, connections, users, sessions,
+	// transactions, codes, pushed requests, device codes, refresh tokens,
+	// reset tickets and operators. It returns ErrNotFound if absent. The
+	// store does not protect Reserved tenants; callers refuse to delete them.
+	Delete(ctx context.Context, id string) error
+}
+
+// Operators stores console operators, keyed by (TenantID, UserID), where
+// TenantID is the system tenant and UserID one of its users.
+type Operators interface {
+	Get(ctx context.Context, tenantID, userID string) (*Operator, error)
+	// Upsert creates o or replaces the operator with the same key. An
+	// existing operator keeps its CreatedAt.
+	Upsert(ctx context.Context, o *Operator) error
+	// List returns the tenant's operators ordered by UserID.
+	List(ctx context.Context, tenantID string) ([]*Operator, error)
+	// Delete returns ErrNotFound if absent.
+	Delete(ctx context.Context, tenantID, userID string) error
 }
 
 // Clients stores applications, keyed by (TenantID, ClientID).

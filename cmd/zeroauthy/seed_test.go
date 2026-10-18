@@ -13,7 +13,7 @@ func TestSeedCommand(t *testing.T) {
 	seedPath := filepath.Join(dir, "seed.yaml")
 	cfgPath := filepath.Join(dir, "zeroauthy.yaml")
 	_ = os.WriteFile(seedPath, []byte("tenants:\n  - name: acme\n  - name: globex\n"), 0o600)
-	_ = os.WriteFile(cfgPath, []byte("storage:\n  dsn: memory://\n"), 0o600)
+	_ = os.WriteFile(cfgPath, []byte("server:\n  system_host: system.localhost\nstorage:\n  dsn: memory://\n"), 0o600)
 
 	cmd := newRootCmd()
 	var out bytes.Buffer
@@ -30,7 +30,7 @@ func TestSeedCommand(t *testing.T) {
 func TestSeedCommandNeedsFile(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "zeroauthy.yaml")
-	_ = os.WriteFile(cfgPath, []byte("storage:\n  dsn: memory://\n"), 0o600)
+	_ = os.WriteFile(cfgPath, []byte("server:\n  system_host: system.localhost\nstorage:\n  dsn: memory://\n"), 0o600)
 	cmd := newRootCmd()
 	cmd.SetArgs([]string{"seed", "--config", cfgPath})
 	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "no seed file") {

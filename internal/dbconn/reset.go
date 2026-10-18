@@ -18,20 +18,37 @@ import (
 // TicketLifetime is how long a password reset link works (D-0019).
 const TicketLifetime = 24 * time.Hour
 
+// IssueTicket stores a single-use password-reset ticket for the user's
+// identity on connection, valid for lifetime from now, and returns the raw
+// token for the link. Only its hash is stored.
+func IssueTicket(ctx context.Context, st store.Store, tenantID, userID, connection, clientID, lang string, now time.Time, lifetime time.Duration) (string, error) {
+	now = now.UTC()
+	raw := secrets.RandomString(43)
+	tk := &store.PasswordResetTicket{
+		TenantID: tenantID, ID: "prt_" + secrets.RandomString(24), TokenHash: secrets.HashToken(raw),
+		UserID: userID, Connection: connection, ClientID: clientID, Lang: lang,
+		ExpiresAt: now.Add(lifetime), CreatedAt: now,
+	}
+	if err := st.PasswordResetTickets().Create(ctx, tk); err != nil {
+		return "", err
+	}
+	return raw, nil
+}
+
+// ResetLink is the hosted new-password page for a raw ticket, under the
+// tenant's issuer (https://<host>/).
+func ResetLink(issuer, raw string) string {
+	return issuer + "u/reset-password?" + url.Values{"ticket": {raw}}.Encode()
+}
+
 // StartReset creates a single-use ticket for user and emails the reset link.
 // It sends synchronously; callers run it through h.goRun.
 func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *store.Connection, user *store.User, clientID, lang string) error {
-	now := h.now().UTC()
-	raw := secrets.RandomString(43)
-	tk := &store.PasswordResetTicket{
-		TenantID: res.Tenant.ID, ID: "prt_" + secrets.RandomString(24), TokenHash: secrets.HashToken(raw),
-		UserID: user.UserID, Connection: conn.Name, ClientID: clientID, Lang: lang,
-		ExpiresAt: now.Add(TicketLifetime), CreatedAt: now,
-	}
-	if err := h.Store.PasswordResetTickets().Create(ctx, tk); err != nil {
+	raw, err := IssueTicket(ctx, h.Store, res.Tenant.ID, user.UserID, conn.Name, clientID, lang, h.now(), TicketLifetime)
+	if err != nil {
 		return err
 	}
-	link := res.Issuer() + "u/reset-password?" + url.Values{"ticket": {raw}}.Encode()
+	link := ResetLink(res.Issuer(), raw)
 	m := email.ResetPassword(i18n.New(res.Tenant, lang), link)
 	m.To = user.Email
 	return h.Mailer.Send(ctx, m)

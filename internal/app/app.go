@@ -22,6 +22,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/storage"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
@@ -108,15 +109,25 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	}
 	km := keys.NewManager(st.SigningKeys(), wrapper)
 
+	systemHost := tenant.SystemHost(cfg.Server.BaseDomain, cfg.Server.SystemHost)
 	if cfg.Seed != "" {
 		f, err := seed.Load(cfg.Seed)
 		if err != nil {
+			return nil, err
+		}
+		if err := f.CheckSystemHost(systemHost); err != nil {
 			return nil, err
 		}
 		if err := seed.Apply(ctx, st, f, time.Now, wrapper); err != nil {
 			return nil, err
 		}
 		log.Info("applied seed", "file", cfg.Seed, "tenants", len(f.Tenants))
+	}
+	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, Wrapper: wrapper}); err != nil {
+		return nil, err
+	}
+	if err := bootstrapOperator(ctx, st, cfg.Bootstrap.AdminEmail, log); err != nil {
+		return nil, err
 	}
 
 	tenants, err := st.Tenants().List(ctx)
@@ -175,6 +186,18 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 				seconds(sec.DeviceActivationTenantWindowSeconds), seconds(sec.DeviceActivationTenantLockoutSeconds)),
 		}),
 	}, nil
+}
+
+// bootstrapOperator creates the first operator from bootstrap.admin_email
+// when the system tenant has none, and logs its one-time setup link.
+func bootstrapOperator(ctx context.Context, st store.Store, email string, log *slog.Logger) error {
+	link, err := system.Bootstrap(ctx, st, email)
+	if err != nil || link == "" {
+		return err
+	}
+	log.Warn("created the first console operator from bootstrap.admin_email; open the one-time setup link within an hour to choose a password",
+		"email", email, "setup_url", link, "expires_in", system.SetupLinkLifetime.String())
+	return nil
 }
 
 // checkCustomDB warns once when a tenant has a customized connection and

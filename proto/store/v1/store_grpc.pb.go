@@ -29,6 +29,7 @@ const (
 	StoreService_TenantsGetByDomain_FullMethodName                 = "/zeroauthy.store.v1.StoreService/TenantsGetByDomain"
 	StoreService_TenantsUpdate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/TenantsUpdate"
 	StoreService_TenantsList_FullMethodName                        = "/zeroauthy.store.v1.StoreService/TenantsList"
+	StoreService_TenantsDelete_FullMethodName                      = "/zeroauthy.store.v1.StoreService/TenantsDelete"
 	StoreService_ClientsCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ClientsCreate"
 	StoreService_ClientsGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ClientsGet"
 	StoreService_ClientsUpdate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ClientsUpdate"
@@ -99,6 +100,10 @@ const (
 	StoreService_PasswordResetTicketsConsume_FullMethodName        = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsConsume"
 	StoreService_PasswordResetTicketsDeleteByUser_FullMethodName   = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteByUser"
 	StoreService_PasswordResetTicketsDeleteExpired_FullMethodName  = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteExpired"
+	StoreService_OperatorsGet_FullMethodName                       = "/zeroauthy.store.v1.StoreService/OperatorsGet"
+	StoreService_OperatorsUpsert_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OperatorsUpsert"
+	StoreService_OperatorsList_FullMethodName                      = "/zeroauthy.store.v1.StoreService/OperatorsList"
+	StoreService_OperatorsDelete_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OperatorsDelete"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -170,6 +175,9 @@ type StoreServiceClient interface {
 	TenantsGetByDomain(ctx context.Context, in *TenantsGetRequest, opts ...grpc.CallOption) (*TenantResult, error)
 	TenantsUpdate(ctx context.Context, in *TenantWrite, opts ...grpc.CallOption) (*Result, error)
 	TenantsList(ctx context.Context, in *TenantsListRequest, opts ...grpc.CallOption) (*TenantList, error)
+	// TenantsDelete removes the tenant and all of its data (key = id).
+	// Hosts report Unimplemented as "plugin too old".
+	TenantsDelete(ctx context.Context, in *TenantsGetRequest, opts ...grpc.CallOption) (*Result, error)
 	ClientsCreate(ctx context.Context, in *ClientWrite, opts ...grpc.CallOption) (*Result, error)
 	ClientsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ClientResult, error)
 	ClientsUpdate(ctx context.Context, in *ClientWrite, opts ...grpc.CallOption) (*Result, error)
@@ -240,6 +248,12 @@ type StoreServiceClient interface {
 	PasswordResetTicketsConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*PasswordResetTicketResult, error)
 	PasswordResetTicketsDeleteByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*CountResult, error)
 	PasswordResetTicketsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
+	// Console operators (Plan 13), keyed by (tenant_id, user_id). Hosts
+	// report Unimplemented as "plugin too old".
+	OperatorsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*OperatorResult, error)
+	OperatorsUpsert(ctx context.Context, in *OperatorWrite, opts ...grpc.CallOption) (*Result, error)
+	OperatorsList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*OperatorList, error)
+	OperatorsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
 }
 
 type storeServiceClient struct {
@@ -344,6 +358,16 @@ func (c *storeServiceClient) TenantsList(ctx context.Context, in *TenantsListReq
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TenantList)
 	err := c.cc.Invoke(ctx, StoreService_TenantsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TenantsDelete(ctx context.Context, in *TenantsGetRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_TenantsDelete_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1050,6 +1074,46 @@ func (c *storeServiceClient) PasswordResetTicketsDeleteExpired(ctx context.Conte
 	return out, nil
 }
 
+func (c *storeServiceClient) OperatorsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*OperatorResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OperatorResult)
+	err := c.cc.Invoke(ctx, StoreService_OperatorsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OperatorsUpsert(ctx context.Context, in *OperatorWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_OperatorsUpsert_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OperatorsList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*OperatorList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OperatorList)
+	err := c.cc.Invoke(ctx, StoreService_OperatorsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OperatorsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_OperatorsDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -1119,6 +1183,9 @@ type StoreServiceServer interface {
 	TenantsGetByDomain(context.Context, *TenantsGetRequest) (*TenantResult, error)
 	TenantsUpdate(context.Context, *TenantWrite) (*Result, error)
 	TenantsList(context.Context, *TenantsListRequest) (*TenantList, error)
+	// TenantsDelete removes the tenant and all of its data (key = id).
+	// Hosts report Unimplemented as "plugin too old".
+	TenantsDelete(context.Context, *TenantsGetRequest) (*Result, error)
 	ClientsCreate(context.Context, *ClientWrite) (*Result, error)
 	ClientsGet(context.Context, *ScopedKey) (*ClientResult, error)
 	ClientsUpdate(context.Context, *ClientWrite) (*Result, error)
@@ -1189,6 +1256,12 @@ type StoreServiceServer interface {
 	PasswordResetTicketsConsume(context.Context, *ConsumeRequest) (*PasswordResetTicketResult, error)
 	PasswordResetTicketsDeleteByUser(context.Context, *ScopedKey) (*CountResult, error)
 	PasswordResetTicketsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
+	// Console operators (Plan 13), keyed by (tenant_id, user_id). Hosts
+	// report Unimplemented as "plugin too old".
+	OperatorsGet(context.Context, *ScopedKey) (*OperatorResult, error)
+	OperatorsUpsert(context.Context, *OperatorWrite) (*Result, error)
+	OperatorsList(context.Context, *TenantScope) (*OperatorList, error)
+	OperatorsDelete(context.Context, *ScopedKey) (*Result, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -1228,6 +1301,9 @@ func (UnimplementedStoreServiceServer) TenantsUpdate(context.Context, *TenantWri
 }
 func (UnimplementedStoreServiceServer) TenantsList(context.Context, *TenantsListRequest) (*TenantList, error) {
 	return nil, status.Error(codes.Unimplemented, "method TenantsList not implemented")
+}
+func (UnimplementedStoreServiceServer) TenantsDelete(context.Context, *TenantsGetRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method TenantsDelete not implemented")
 }
 func (UnimplementedStoreServiceServer) ClientsCreate(context.Context, *ClientWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClientsCreate not implemented")
@@ -1439,6 +1515,18 @@ func (UnimplementedStoreServiceServer) PasswordResetTicketsDeleteByUser(context.
 func (UnimplementedStoreServiceServer) PasswordResetTicketsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method PasswordResetTicketsDeleteExpired not implemented")
 }
+func (UnimplementedStoreServiceServer) OperatorsGet(context.Context, *ScopedKey) (*OperatorResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method OperatorsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) OperatorsUpsert(context.Context, *OperatorWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method OperatorsUpsert not implemented")
+}
+func (UnimplementedStoreServiceServer) OperatorsList(context.Context, *TenantScope) (*OperatorList, error) {
+	return nil, status.Error(codes.Unimplemented, "method OperatorsList not implemented")
+}
+func (UnimplementedStoreServiceServer) OperatorsDelete(context.Context, *ScopedKey) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method OperatorsDelete not implemented")
+}
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
 
@@ -1636,6 +1724,24 @@ func _StoreService_TenantsList_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).TenantsList(ctx, req.(*TenantsListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TenantsDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantsGetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TenantsDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TenantsDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TenantsDelete(ctx, req.(*TenantsGetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2900,6 +3006,78 @@ func _StoreService_PasswordResetTicketsDeleteExpired_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_OperatorsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OperatorsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OperatorsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OperatorsGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OperatorsUpsert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OperatorWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OperatorsUpsert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OperatorsUpsert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OperatorsUpsert(ctx, req.(*OperatorWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OperatorsList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OperatorsList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OperatorsList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OperatorsList(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OperatorsDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OperatorsDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OperatorsDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OperatorsDelete(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -2946,6 +3124,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TenantsList",
 			Handler:    _StoreService_TenantsList_Handler,
+		},
+		{
+			MethodName: "TenantsDelete",
+			Handler:    _StoreService_TenantsDelete_Handler,
 		},
 		{
 			MethodName: "ClientsCreate",
@@ -3226,6 +3408,22 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PasswordResetTicketsDeleteExpired",
 			Handler:    _StoreService_PasswordResetTicketsDeleteExpired_Handler,
+		},
+		{
+			MethodName: "OperatorsGet",
+			Handler:    _StoreService_OperatorsGet_Handler,
+		},
+		{
+			MethodName: "OperatorsUpsert",
+			Handler:    _StoreService_OperatorsUpsert_Handler,
+		},
+		{
+			MethodName: "OperatorsList",
+			Handler:    _StoreService_OperatorsList_Handler,
+		},
+		{
+			MethodName: "OperatorsDelete",
+			Handler:    _StoreService_OperatorsDelete_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

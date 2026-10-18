@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
 
 // Apply upserts everything in f. It never deletes.
@@ -49,10 +50,7 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 	for i, d := range in.Domains {
 		domains[i] = tenant.NormalizeHost(d)
 	}
-	tn, err := st.Tenants().GetByName(ctx, in.Name)
-	switch {
-	case errors.Is(err, store.ErrNotFound):
-		tn = &store.Tenant{ID: "ten_" + secrets.RandomString(16), Name: in.Name, CreatedAt: now}
+	tn, err := tenantsetup.UpsertTenant(ctx, st, in.Name, now, func(tn *store.Tenant) error {
 		tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
 		tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
 		tn.EnabledLocales = slices.Clone(in.EnabledLocales)
@@ -64,26 +62,11 @@ func applyTenant(ctx context.Context, st store.Store, in Tenant, now time.Time, 
 		tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
 		tn.PushedAuthorizationRequestsSupported = in.PushedAuthorizationRequestsSupported
 		tn.DeviceFlowCharset, tn.DeviceFlowMask = in.DeviceFlow.Charset, in.DeviceFlow.Mask
-		if err := st.Tenants().Create(ctx, tn); err != nil {
-			return err
-		}
-	case err != nil:
+		tn.Seeded = true
+		return nil
+	})
+	if err != nil {
 		return err
-	default:
-		tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
-		tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
-		tn.EnabledLocales = slices.Clone(in.EnabledLocales)
-		tn.CustomText = in.CustomText
-		tn.SessionLifetime, tn.IdleSessionLifetime = in.SessionLifetime, in.IdleSessionLifetime
-		tn.Branding = store.Branding{LogoURL: in.Branding.LogoURL, PrimaryColor: strings.ToLower(in.Branding.PrimaryColor)}
-		tn.DefaultDirectory = in.DefaultDirectory
-		tn.SkipNonVerifiableCallbackURIConfirmationPrompt = in.SkipNonVerifiableCallbackURIConfirmationPrompt
-		tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
-		tn.PushedAuthorizationRequestsSupported = in.PushedAuthorizationRequestsSupported
-		tn.DeviceFlowCharset, tn.DeviceFlowMask = in.DeviceFlow.Charset, in.DeviceFlow.Mask
-		if err := st.Tenants().Update(ctx, tn); err != nil {
-			return err
-		}
 	}
 
 	for _, rs := range in.ResourceServers {
@@ -119,33 +102,22 @@ func applyResourceServer(ctx context.Context, st store.Store, tenantID string, i
 	for i, s := range in.Scopes {
 		scopes[i] = store.Scope{Value: s.Value, Description: s.Description}
 	}
-	rs, err := st.ResourceServers().GetByIdentifier(ctx, tenantID, in.Identifier)
-	create := errors.Is(err, store.ErrNotFound)
-	if err != nil && !create {
-		return err
-	}
-	if create {
-		rs = &store.ResourceServer{TenantID: tenantID, ID: "rs_" + secrets.RandomString(24), Identifier: in.Identifier, CreatedAt: now}
-	}
-	rs.Name, rs.Scopes, rs.SigningAlg = in.Name, scopes, "RS256"
-	rs.TokenLifetime, rs.AllowOfflineAccess = in.TokenLifetime, in.AllowOfflineAccess
-	rs.SkipConsentForVerifiableFirstPartyClients = *in.SkipConsentForVerifiableFirstPartyClients
-	rs.SubjectTypeAuthorization = store.SubjectTypeAuthorization{User: in.SubjectTypeAuthorization.User.Policy, Client: in.SubjectTypeAuthorization.Client.Policy}
-	if create {
-		return st.ResourceServers().Create(ctx, rs)
-	}
-	return st.ResourceServers().Update(ctx, rs)
+	return tenantsetup.UpsertResourceServer(ctx, st, tenantID, in.Identifier, now, func(rs *store.ResourceServer) error {
+		rs.Name, rs.Scopes, rs.SigningAlg = in.Name, scopes, "RS256"
+		rs.TokenLifetime, rs.AllowOfflineAccess = in.TokenLifetime, in.AllowOfflineAccess
+		rs.SkipConsentForVerifiableFirstPartyClients = *in.SkipConsentForVerifiableFirstPartyClients
+		rs.SubjectTypeAuthorization = store.SubjectTypeAuthorization{User: in.SubjectTypeAuthorization.User.Policy, Client: in.SubjectTypeAuthorization.Client.Policy}
+		return nil
+	})
 }
 
 func applyClient(ctx context.Context, st store.Store, tenantID string, in Client, now time.Time, w keys.Wrapper) error {
-	c, err := st.Clients().Get(ctx, tenantID, in.ClientID)
-	create := errors.Is(err, store.ErrNotFound)
-	if err != nil && !create {
-		return err
-	}
-	if create {
-		c = &store.Client{TenantID: tenantID, ClientID: in.ClientID, CreatedAt: now}
-	}
+	return tenantsetup.UpsertClient(ctx, st, tenantID, in.ClientID, now, func(c *store.Client, create bool) error {
+		return setClient(c, create, in, now, w)
+	})
+}
+
+func setClient(c *store.Client, create bool, in Client, now time.Time, w keys.Wrapper) error {
 	if !create && (c.IsFirstParty != *in.IsFirstParty || c.ThirdPartySecurityMode != in.ThirdPartySecurityMode) {
 		return errors.New("is_first_party and third_party_security_mode cannot change after creation; use a new client_id")
 	}
@@ -185,16 +157,13 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 	case !sealedSecretMatches(w, c, in.ClientSecret):
 		// A matching legacy hash is replaced too: the seed carries the
 		// plaintext, so the client moves to the sealed form (D-0038).
-		sealed, err := keys.SealClientSecret(w, tenantID, c.ClientID, in.ClientSecret)
+		sealed, err := keys.SealClientSecret(w, c.TenantID, c.ClientID, in.ClientSecret)
 		if err != nil {
 			return err
 		}
 		c.Secrets = []store.ClientSecret{{Sealed: sealed, CreatedAt: now}}
 	}
-	if create {
-		return st.Clients().Create(ctx, c)
-	}
-	return st.Clients().Update(ctx, c)
+	return nil
 }
 
 // sealedSecretMatches reports whether one of the client's sealed secrets
@@ -231,14 +200,12 @@ func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in C
 }
 
 func applyConnection(ctx context.Context, st store.Store, tenantID string, in Connection, now time.Time, w keys.Wrapper) error {
-	c, err := st.Connections().GetByName(ctx, tenantID, in.Name)
-	create := errors.Is(err, store.ErrNotFound)
-	if err != nil && !create {
-		return err
-	}
-	if create {
-		c = &store.Connection{TenantID: tenantID, ID: "con_" + secrets.RandomString(16), Name: in.Name, CreatedAt: now}
-	}
+	return tenantsetup.UpsertConnection(ctx, st, tenantID, in.Name, now, func(c *store.Connection) error {
+		return setConnection(c, in, w)
+	})
+}
+
+func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
 	c.Strategy = in.Strategy
 	c.IsDomainConnection = in.IsDomainConnection
 	c.EnabledClients = slices.Clone(in.EnabledClients)
@@ -255,16 +222,13 @@ func applyConnection(ctx context.Context, st store.Store, tenantID string, in Co
 		if w == nil {
 			return errors.New("a master key wrapper is required to seal configuration")
 		}
-		sealed, err := keys.SealConnectionConfig(w, tenantID, c.ID, in.Configuration)
+		sealed, err := keys.SealConnectionConfig(w, c.TenantID, c.ID, in.Configuration)
 		if err != nil {
 			return err
 		}
 		c.ConfigurationSealed = sealed
 	}
-	if create {
-		return st.Connections().Create(ctx, c)
-	}
-	return st.Connections().Update(ctx, c)
+	return nil
 }
 
 func applyUser(ctx context.Context, st store.Store, tenantID string, in User, now time.Time) error {

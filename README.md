@@ -93,6 +93,19 @@ requires a migrated database and ignores `storage.auto_migrate`. MySQL
 commits DDL implicitly, so if a migration fails part-way there, clean up the
 objects it created by hand before running `zeroauthy migrate` again.
 
+**System tenant and operators.** zeroauthy keeps a reserved tenant named
+`system` for itself: its users are the console operators. It is reachable at
+`system.<server.base_domain>`, or at `server.system_host`, which is required
+when `server.base_domain` is empty (for example `system.localhost:8443`). The
+server creates it at every start; no other tenant may use the name `system`
+or that host. Create an operator with
+`zeroauthy admin create --email you@example.com --config zeroauthy.yaml`,
+which prints a one-time setup link (valid for one hour) where the operator
+chooses a password. Automated installs may set
+`ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL` instead: on a start that finds no
+operator, the server creates that one and logs the link once. No password is
+ever taken from configuration.
+
 **Proxies.** Enable `server.trust_proxy_headers` only behind a proxy that
 sets `X-Forwarded-Host`; otherwise clients could choose their own tenant.
 

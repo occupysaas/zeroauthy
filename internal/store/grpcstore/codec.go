@@ -167,6 +167,7 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		UseScopeDescriptionsForConsent:                 t.UseScopeDescriptionsForConsent,
 		PushedAuthorizationRequestsSupported:           t.PushedAuthorizationRequestsSupported,
 		DeviceFlowCharset:                              t.DeviceFlowCharset, DeviceFlowMask: t.DeviceFlowMask,
+		Reserved: t.Reserved, Seeded: t.Seeded,
 	}
 	if t.CustomText != nil {
 		b, err := json.Marshal(t.CustomText)
@@ -196,6 +197,7 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		UseScopeDescriptionsForConsent:                 pb.UseScopeDescriptionsForConsent,
 		PushedAuthorizationRequestsSupported:           pb.PushedAuthorizationRequestsSupported,
 		DeviceFlowCharset:                              pb.DeviceFlowCharset, DeviceFlowMask: pb.DeviceFlowMask,
+		Reserved: pb.Reserved, Seeded: pb.Seeded,
 	}
 	if pb.CustomTextJson != nil {
 		var ct store.CustomText
@@ -742,5 +744,30 @@ func passwordResetTicketFromPB(pb *storev1.PasswordResetTicket) (*store.Password
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
+	}, nil
+}
+
+// ---- operator ----
+
+func operatorToPB(o *store.Operator) (*storev1.Operator, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return &storev1.Operator{
+		TenantId: o.TenantID, UserId: o.UserID, Tenants: stringsToPB(o.Tenants),
+		CreatedAt: tsToPB(o.CreatedAt), UpdatedAt: tsToPB(o.UpdatedAt),
+	}, nil
+}
+
+func operatorFromPB(pb *storev1.Operator) (*store.Operator, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	if err := checkTS(pb.CreatedAt, pb.UpdatedAt); err != nil {
+		return nil, err
+	}
+	return &store.Operator{
+		TenantID: pb.TenantId, UserID: pb.UserId, Tenants: stringsFromPB(pb.Tenants),
+		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt),
 	}, nil
 }

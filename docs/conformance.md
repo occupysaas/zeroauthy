@@ -135,6 +135,8 @@ chmod 755 /usr/local/bin/zeroauthy
 server:
   listen: "127.0.0.1:8080"     # loopback only: Caddy is the only client
   trust_proxy_headers: true    # Caddy sets X-Forwarded-Host and X-Forwarded-For
+  system_host: system.localhost # the console's tenant; required without base_domain.
+                                # Caddy never sends this host, so the console stays unreachable.
 storage:
   dsn: sqlite:///var/lib/zeroauthy/zeroauthy.db
   auto_migrate: true

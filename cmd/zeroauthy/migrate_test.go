@@ -24,7 +24,7 @@ func runMigrate(t *testing.T, cfgPath string) string {
 func TestMigrateCommand(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "zeroauthy.yaml")
-	_ = os.WriteFile(cfgPath, []byte("storage:\n  dsn: sqlite://"+filepath.Join(dir, "z.db")+"\n"), 0o600)
+	_ = os.WriteFile(cfgPath, []byte("server:\n  system_host: system.localhost\nstorage:\n  dsn: sqlite://"+filepath.Join(dir, "z.db")+"\n"), 0o600)
 
 	if out := runMigrate(t, cfgPath); !strings.Contains(out, "migrated schema from version 0 to ") {
 		t.Fatalf("first run output = %q", out)
@@ -37,7 +37,7 @@ func TestMigrateCommand(t *testing.T) {
 func TestMigrateCommandMemory(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "zeroauthy.yaml")
-	_ = os.WriteFile(cfgPath, []byte("storage:\n  dsn: memory://\n"), 0o600)
+	_ = os.WriteFile(cfgPath, []byte("server:\n  system_host: system.localhost\nstorage:\n  dsn: memory://\n"), 0o600)
 	if out := runMigrate(t, cfgPath); !strings.Contains(out, "nothing to migrate") {
 		t.Fatalf("output = %q", out)
 	}
@@ -50,7 +50,7 @@ func TestSeedCommandRefusesUnmigratedDatabase(t *testing.T) {
 	_ = os.WriteFile(seedPath, []byte("tenants:\n  - name: acme\n"), 0o600)
 	// seed loads the master key to seal connection configuration.
 	key := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32))
-	_ = os.WriteFile(cfgPath, []byte("storage:\n  dsn: sqlite://"+filepath.Join(dir, "z.db")+"\nsecurity:\n  master_key: "+key+"\n"), 0o600)
+	_ = os.WriteFile(cfgPath, []byte("server:\n  system_host: system.localhost\nstorage:\n  dsn: sqlite://"+filepath.Join(dir, "z.db")+"\nsecurity:\n  master_key: "+key+"\n"), 0o600)
 	cmd := newRootCmd()
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetArgs([]string{"seed", "--config", cfgPath, "--file", seedPath})
@@ -67,7 +67,7 @@ func TestMigrateCommandIgnoresTestDSNVariables(t *testing.T) {
 	t.Setenv("ZA_TEST_MYSQL_DSN", "mysql://root:zeroauthy@127.0.0.1:53306/")
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "zeroauthy.yaml")
-	_ = os.WriteFile(cfgPath, []byte("storage:\n  dsn: sqlite://"+filepath.Join(dir, "z.db")+"\n"), 0o600)
+	_ = os.WriteFile(cfgPath, []byte("server:\n  system_host: system.localhost\nstorage:\n  dsn: sqlite://"+filepath.Join(dir, "z.db")+"\n"), 0o600)
 	if out := runMigrate(t, cfgPath); !strings.Contains(out, "migrated schema from version 0 to ") {
 		t.Fatalf("output = %q", out)
 	}

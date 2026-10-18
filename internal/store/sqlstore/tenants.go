@@ -18,7 +18,7 @@ func (s *Store) Tenants() store.Tenants { return tenants{s} }
 const tenantCols = `id, name, friendly_name, default_audience, allowed_logout_urls, enabled_locales, custom_text,
  session_lifetime, idle_session_lifetime, logo_url, primary_color, default_directory, created_at,
  skip_non_verifiable_callback_uri_confirmation_prompt, use_scope_descriptions_for_consent, pushed_authorization_requests_supported,
- device_flow_charset, device_flow_mask`
+ device_flow_charset, device_flow_mask, reserved, seeded`
 
 // prefixed prefixes each comma-separated column name in cols with p.
 func prefixed(p, cols string) string {
@@ -35,7 +35,7 @@ func (r tenants) Create(ctx context.Context, t *store.Tenant) error {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
 		return tenants{tx}.putDomains(ctx, t.ID, t.Domains, false)
@@ -114,7 +114,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
  enabled_locales=?, custom_text=?, session_lifetime=?, idle_session_lifetime=?, logo_url=?, primary_color=?,
  default_directory=?, created_at=?, skip_non_verifiable_callback_uri_confirmation_prompt=?,
  use_scope_descriptions_for_consent=?, pushed_authorization_requests_supported=?,
- device_flow_charset=?, device_flow_mask=? WHERE id=?`, append(args[1:], t.ID)...)
+ device_flow_charset=?, device_flow_mask=?, reserved=?, seeded=? WHERE id=?`, append(args[1:], t.ID)...)
 		if err != nil {
 			return tx.conflict(err)
 		}
@@ -122,6 +122,37 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 			return err
 		}
 		return tenants{tx}.putDomains(ctx, t.ID, t.Domains, true)
+	})
+}
+
+// tenantTables are the tables whose rows belong to one tenant, by
+// tenant_id. Delete empties them before it deletes the tenant row.
+var tenantTables = []string{
+	"operators", "password_reset_tickets", "refresh_tokens", "device_codes", "pushed_auth_requests",
+	"auth_codes", "auth_transactions", "sessions", "user_grants", "user_logins", "users",
+	"connections", "signing_keys", "client_grants", "resource_servers", "clients", "tenant_domains",
+}
+
+// Delete locks the tenant row, removes everything scoped to the tenant, then
+// the row itself. Retried on deadlock: the range DELETEs can meet the
+// sweepers' on MySQL.
+func (r tenants) Delete(ctx context.Context, id string) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		var one int
+		err := tx.queryRow(ctx, `SELECT 1 FROM tenants WHERE id = ?`+tx.d.forUpdate, id).Scan(&one)
+		if errors.Is(err, sql.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		for _, table := range tenantTables {
+			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ?`, id); err != nil {
+				return err
+			}
+		}
+		_, err = tx.exec(ctx, `DELETE FROM tenants WHERE id = ?`, id)
+		return err
 	})
 }
 
@@ -201,7 +232,7 @@ func scanTenant(row scanner) (*store.Tenant, error) {
 		&t.SessionLifetime, &t.IdleSessionLifetime, &t.Branding.LogoURL, &t.Branding.PrimaryColor,
 		&t.DefaultDirectory, &created, &t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		&t.UseScopeDescriptionsForConsent, &t.PushedAuthorizationRequestsSupported,
-		&t.DeviceFlowCharset, &t.DeviceFlowMask); err != nil {
+		&t.DeviceFlowCharset, &t.DeviceFlowMask, &t.Reserved, &t.Seeded); err != nil {
 		return nil, err
 	}
 	for _, j := range []struct {
@@ -233,5 +264,5 @@ func tenantArgs(t *store.Tenant) ([]any, error) {
 		t.SessionLifetime, t.IdleSessionLifetime, t.Branding.LogoURL, t.Branding.PrimaryColor,
 		t.DefaultDirectory, micros(t.CreatedAt), t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		t.UseScopeDescriptionsForConsent, t.PushedAuthorizationRequestsSupported,
-		t.DeviceFlowCharset, t.DeviceFlowMask}, nil
+		t.DeviceFlowCharset, t.DeviceFlowMask, t.Reserved, t.Seeded}, nil
 }

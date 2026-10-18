@@ -31,6 +31,8 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"PasswordResetTickets": testPasswordResetTickets,
 	"Tx":                   testTx,
 	"DeviceCodes":          testDeviceCodes,
+	"Operators":            testOperators,
+	"TenantsDelete":        testTenantsDelete,
 }
 
 // suiteOrder is the order Run executes the suites in.
@@ -39,7 +41,7 @@ var suiteOrder = []string{
 	"Connections", "Users", "Sessions", "AuthTransactions", "AuthCodes",
 	"PushedAuthRequests",
 	"RefreshTokens", "PasswordResetTickets", "Tx",
-	"DeviceCodes",
+	"DeviceCodes", "Operators", "TenantsDelete",
 }
 
 // Run executes the conformance tests every driver passes against stores made

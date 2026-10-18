@@ -151,3 +151,36 @@ func TestBaseDomainHostBeatsCustomDomain(t *testing.T) {
 		t.Fatalf("got %+v, %v; want ten_acme", got.Tenant, err)
 	}
 }
+
+func TestSystemHost(t *testing.T) {
+	for _, tc := range []struct{ base, host, want string }{
+		{"", "Admin.Localhost:8443", "admin.localhost:8443"},
+		{"Auth.Example.TEST", "", "system.auth.example.test"},
+		{"auth.example.test", "console.example.test", "console.example.test"},
+		{"", "", ""},
+	} {
+		if got := SystemHost(tc.base, tc.host); got != tc.want {
+			t.Errorf("SystemHost(%q, %q) = %q, want %q", tc.base, tc.host, got, tc.want)
+		}
+	}
+}
+
+// The system tenant is found by its stored host (server.system_host) and,
+// with a base domain, by system.<base domain>.
+func TestResolveSystemHost(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_sys", Name: SystemName, Reserved: true, Domains: []string{"admin.localhost:8443"}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ base, host string }{
+		{"", "Admin.Localhost:8443"},
+		{"auth.example.test", "admin.localhost:8443"},
+		{"auth.example.test", "system.auth.example.test"},
+	} {
+		got, err := NewResolver(st.Tenants(), tc.base, false).Resolve(ctx, tc.host)
+		if err != nil || got.Tenant.ID != "ten_sys" {
+			t.Errorf("base %q, host %q: %+v, %v", tc.base, tc.host, got, err)
+		}
+	}
+}

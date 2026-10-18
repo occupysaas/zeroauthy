@@ -29,6 +29,8 @@ type Config struct {
 	Log      Log      `koanf:"log"`
 	Email    Email    `koanf:"email"`
 	CustomDB CustomDB `koanf:"custom_db"`
+	// Bootstrap creates the first console operator on an empty install.
+	Bootstrap Bootstrap `koanf:"bootstrap"`
 	// Seed is an optional path to a declarative seed file applied at startup.
 	Seed string `koanf:"seed"`
 }
@@ -37,11 +39,23 @@ type Server struct {
 	Listen string `koanf:"listen"`
 	// BaseDomain makes tenant "acme" reachable at acme.<BaseDomain>.
 	BaseDomain string `koanf:"base_domain"`
+	// SystemHost is the host of the system tenant, which serves the console
+	// at /admin. It defaults to system.<BaseDomain> and is required when
+	// BaseDomain is empty. No other tenant may use it.
+	SystemHost string `koanf:"system_host"`
 	// TrustProxyHeaders honors X-Forwarded-Host. Enable it only behind a
 	// proxy that sets the header.
 	TrustProxyHeaders bool   `koanf:"trust_proxy_headers"`
 	TLSCertFile       string `koanf:"tls_cert_file"`
 	TLSKeyFile        string `koanf:"tls_key_file"`
+}
+
+// Bootstrap configures the first console operator for automated installs.
+type Bootstrap struct {
+	// AdminEmail, when set and the system tenant has no operator, makes
+	// the server create that operator at start and log a one-time setup
+	// link. It never takes a password.
+	AdminEmail string `koanf:"admin_email"`
 }
 
 type Storage struct {
@@ -172,6 +186,17 @@ func (c *Config) validate() error {
 	var errs []error
 	if c.Storage.DSN == "" {
 		errs = append(errs, errors.New("storage.dsn is required"))
+	}
+	if c.Server.BaseDomain == "" && c.Server.SystemHost == "" {
+		errs = append(errs, errors.New("server.system_host is required when server.base_domain is empty (the console's host, e.g. system.localhost:8443)"))
+	}
+	if h := c.Server.SystemHost; h != "" && (strings.ContainsAny(h, "/?#@ ") || strings.Contains(h, "://")) {
+		errs = append(errs, fmt.Errorf("server.system_host %q must be a host name with an optional port, not a URL", h))
+	}
+	if e := c.Bootstrap.AdminEmail; e != "" {
+		if a, err := mail.ParseAddress(e); err != nil || a.Address != e {
+			errs = append(errs, fmt.Errorf("bootstrap.admin_email %q is not a valid address", e))
+		}
 	}
 	if (c.Server.TLSCertFile == "") != (c.Server.TLSKeyFile == "") {
 		errs = append(errs, errors.New("set both server.tls_cert_file and server.tls_key_file, or neither"))
