@@ -16,7 +16,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
-	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
 
 var configKey = regexp.MustCompile(`^[A-Za-z0-9_]{1,128}$`)
@@ -68,14 +67,6 @@ func (f *File) validate() error {
 		}
 	}
 	return errors.Join(errs...)
-}
-
-// isManagementAPIURL reports whether aud has the form of a Management API
-// identifier, https://<host>/api/v2/.
-func isManagementAPIURL(aud string) bool {
-	u, err := url.Parse(aud)
-	return err == nil && u.Scheme == "https" && u.Host != "" && u.Path == "/api/v2/" &&
-		u.RawQuery == "" && u.Fragment == "" && u.User == nil
 }
 
 // CheckManagementAPI checks the seed against each tenant's Management API
@@ -220,14 +211,11 @@ func (t *Tenant) validate() []error {
 		if g.SubjectType == "" {
 			g.SubjectType = store.SubjectTypeClient // O1e
 		}
-		if g.SubjectType != store.SubjectTypeClient && g.SubjectType != store.SubjectTypeUser {
-			fail("client grant %q → %q: subject_type %q must be client or user", g.ClientID, g.Audience, g.SubjectType)
-		}
 		if !clients[g.ClientID] {
 			fail("client grant references unknown client %q", g.ClientID)
 		}
 		rs := apis[g.Audience]
-		mgmt := rs == nil && isManagementAPIURL(g.Audience)
+		mgmt := rs == nil && apirules.IsManagementAPIIdentifier(g.Audience)
 		if rs == nil && !mgmt {
 			fail("client grant references unknown audience %q", g.Audience)
 			continue
@@ -237,24 +225,14 @@ func (t *Tenant) validate() []error {
 			fail("duplicate client grant %q → %q (%s)", g.ClientID, g.Audience, g.SubjectType)
 		}
 		seenGrants[k] = true
-		if mgmt {
-			if g.SubjectType != store.SubjectTypeClient {
-				fail("client grant %q → %q: the Management API accepts machine-to-machine (client) grants only", g.ClientID, g.Audience)
-			}
-			if !slices.Contains(t.mgmtAudiences, g.Audience) {
-				t.mgmtAudiences = append(t.mgmtAudiences, g.Audience)
-			}
-			for _, s := range g.Scopes {
-				if !tenantsetup.IsManagementAPIScope(s) {
-					fail("client grant %q → %q: scope %q is not a Management API scope", g.ClientID, g.Audience, s)
-				}
-			}
-			continue
+		if mgmt && !slices.Contains(t.mgmtAudiences, g.Audience) {
+			t.mgmtAudiences = append(t.mgmtAudiences, g.Audience)
 		}
-		for _, s := range g.Scopes {
-			if !slices.ContainsFunc(rs.Scopes, func(d Scope) bool { return d.Value == s }) {
-				fail("client grant %q → %q: scope %q is not defined by the resource server", g.ClientID, g.Audience, s)
-			}
+		defined := func(s string) bool {
+			return rs != nil && slices.ContainsFunc(rs.Scopes, func(d Scope) bool { return d.Value == s })
+		}
+		for _, err := range apirules.CheckGrant(g.SubjectType, mgmt, g.Scopes, defined) {
+			fail("client grant %q → %q: %v", g.ClientID, g.Audience, err)
 		}
 	}
 

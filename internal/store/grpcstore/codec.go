@@ -346,7 +346,7 @@ func clientGrantToPB(g *store.ClientGrant) (*storev1.ClientGrant, error) {
 	}
 	return &storev1.ClientGrant{
 		TenantId: g.TenantID, Id: g.ID, ClientId: g.ClientID, Audience: g.Audience,
-		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), SubjectType: g.SubjectType, Origin: g.Origin,
+		Scopes: stringsToPB(g.Scopes), CreatedAt: tsToPB(g.CreatedAt), SubjectType: g.SubjectType, Origin: g.Origin, AllowAllScopes: g.AllowAllScopes,
 	}, nil
 }
 
@@ -364,7 +364,7 @@ func clientGrantFromPB(pb *storev1.ClientGrant) (*store.ClientGrant, error) {
 	}
 	return &store.ClientGrant{
 		TenantID: pb.TenantId, ID: pb.Id, ClientID: pb.ClientId, Audience: pb.Audience,
-		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), SubjectType: subjectType, Origin: pb.Origin,
+		Scopes: stringsFromPB(pb.Scopes), CreatedAt: tsFromPB(pb.CreatedAt), SubjectType: subjectType, Origin: pb.Origin, AllowAllScopes: pb.AllowAllScopes,
 	}, nil
 }
 

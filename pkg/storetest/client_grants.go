@@ -111,6 +111,23 @@ func testClientGrants(t *testing.T, newStore Factory) {
 		mustEqual(t, got[1].Origin, "")
 	})
 
+	t.Run("AllowAllScopesRoundTrip", func(t *testing.T) {
+		s := open(t, newStore)
+		g := newClientGrant("ten_a", "cg1", "c1", "https://api.test")
+		g.Scopes, g.AllowAllScopes = nil, true
+		mustNoErr(t, s.ClientGrants().Create(ctx, g))
+		got, err := s.ClientGrants().Find(ctx, "ten_a", "c1", "https://api.test", store.SubjectTypeClient)
+		mustNoErr(t, err)
+		mustEqual(t, got.AllowAllScopes, true)
+		mustEqual(t, len(got.Scopes), 0)
+		got.AllowAllScopes, got.Scopes = false, []string{"a"}
+		mustNoErr(t, s.ClientGrants().Update(ctx, got))
+		got, err = s.ClientGrants().Find(ctx, "ten_a", "c1", "https://api.test", store.SubjectTypeClient)
+		mustNoErr(t, err)
+		mustEqual(t, got.AllowAllScopes, false)
+		mustEqual(t, got.Scopes, []string{"a"})
+	})
+
 	t.Run("List", func(t *testing.T) {
 		s := open(t, newStore)
 		// Created out of order, with IDs that sort differently by byte
@@ -170,6 +187,13 @@ func testClientGrants(t *testing.T, newStore Factory) {
 		check("LimitZeroIsNoLimit", store.ClientGrantFilter{}, store.Page{Offset: 0, Limit: 0}, all, 6)
 		check("PageExactEnd", store.ClientGrantFilter{}, store.Page{Offset: 6, Limit: 3}, []string{}, 6)
 		check("PagePastEnd", store.ClientGrantFilter{}, store.Page{Offset: 40, Limit: 3}, []string{}, 6)
+		check("ByID", store.ClientGrantFilter{ID: "cgr_b"}, store.Page{}, []string{"cgr_b"}, 1)
+		check("ByIDNone", store.ClientGrantFilter{ID: "cgr_x"}, store.Page{}, []string{}, 0)
+		check("ByIDOtherTenant", store.ClientGrantFilter{ID: "cgr_x", ClientID: "c1"}, store.Page{}, []string{}, 0)
+		check("AfterID", store.ClientGrantFilter{AfterID: "cgr_B"}, store.Page{}, all[3:], 3)
+		check("AfterIDByteOrder", store.ClientGrantFilter{AfterID: "cgr_A"}, store.Page{Limit: 1}, []string{"cgr_B"}, 4)
+		check("AfterLast", store.ClientGrantFilter{AfterID: "cgr_c"}, store.Page{}, []string{}, 0)
+		check("AfterIDAndFilter", store.ClientGrantFilter{ClientID: "c1", AfterID: "cgr_a"}, store.Page{}, []string{"cgr_b", "cgr_c"}, 2)
 		check("FilteredPage", store.ClientGrantFilter{ClientID: "c1"}, store.Page{Offset: 1, Limit: 1}, []string{"cgr_b"}, 3)
 		check("LimitLargerThanRest", store.ClientGrantFilter{ClientID: "c1"}, store.Page{Offset: 2, Limit: 50}, []string{"cgr_c"}, 3)
 

@@ -1122,3 +1122,36 @@ func TestSeedSkipsAPITenants(t *testing.T) {
 		t.Fatalf("the seed added %d clients to an API tenant", len(clients))
 	}
 }
+
+// Client grants created through the Management API are never touched by
+// the seed, even when it names the same client and audience.
+func TestSeedSkipsAPIClientGrants(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, _ := Parse([]byte(sample))
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	grants, _, _ := st.ClientGrants().List(ctx, tn.ID, store.ClientGrantFilter{}, store.Page{})
+	if len(grants) == 0 {
+		t.Fatal("the sample seeds no client grant")
+	}
+	for _, g := range grants {
+		if g.Origin != "" || !strings.HasPrefix(g.ID, "cgr_") || len(g.ID) != len("cgr_")+16 {
+			t.Fatalf("a seeded grant has origin %q, ID %q", g.Origin, g.ID)
+		}
+	}
+	g := grants[0]
+	g.Origin, g.Scopes = store.OriginAPI, []string{"edited"}
+	if err := st.ClientGrants().Update(ctx, g); err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.ClientGrants().Find(ctx, tn.ID, g.ClientID, g.Audience, g.SubjectType)
+	if got.ID != g.ID || got.Origin != store.OriginAPI || !slices.Equal(got.Scopes, []string{"edited"}) {
+		t.Fatalf("the seed changed an API client grant: %+v", got)
+	}
+}

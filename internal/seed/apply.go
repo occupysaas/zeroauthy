@@ -195,6 +195,9 @@ func sealedSecretMatches(w keys.Wrapper, c *store.Client, plaintext string) bool
 func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in ClientGrant, now time.Time) error {
 	g, err := st.ClientGrants().Find(ctx, tenantID, in.ClientID, in.Audience, in.SubjectType)
 	switch {
+	case err == nil && g.Origin == store.OriginAPI:
+		// Created through the Management API: the seed never touches it.
+		return nil
 	case errors.Is(err, store.ErrNotFound):
 		// "cgr_" and 16 letters and digits, the shape of Auth0's grant IDs.
 		return st.ClientGrants().Create(ctx, &store.ClientGrant{

@@ -225,10 +225,27 @@ type ClientGrant struct {
 	Scopes      []string
 	SubjectType string // SubjectTypeUser or SubjectTypeClient
 	CreatedAt   time.Time
+	// AllowAllScopes grants every scope the API defines when a token is
+	// issued, so scopes added later are covered; Scopes is then empty
+	// (Auth0's allow_all_scopes).
+	AllowAllScopes bool
 	// Origin records who created the grant: OriginAPI for the Management
 	// API (and the console), empty for the seed or zeroauthy itself. The
 	// seed never touches API-created grants.
 	Origin string
+}
+
+// EffectiveScopes returns the scopes the grant allows for an API that
+// defines defined: every defined scope for AllowAllScopes, else Scopes.
+func (g *ClientGrant) EffectiveScopes(defined []Scope) []string {
+	if !g.AllowAllScopes {
+		return g.Scopes
+	}
+	out := make([]string, len(defined))
+	for i, s := range defined {
+		out[i] = s.Value
+	}
+	return out
 }
 
 // ClientGrantFilter narrows ClientGrants.List; an empty field matches all.
@@ -236,6 +253,11 @@ type ClientGrantFilter struct {
 	ClientID    string
 	Audience    string
 	SubjectType string
+	// ID keeps only the grant with this ID: a lookup by ID.
+	ID string
+	// AfterID keeps only grants whose ID sorts after it in byte order: the
+	// cursor of checkpoint paging.
+	AfterID string
 }
 
 // Page selects a window of an ordered list: Offset rows are skipped and at

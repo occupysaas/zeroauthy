@@ -137,6 +137,56 @@ func TestManagementContract(t *testing.T) {
 	}
 	c.do(h, "DELETE", rsBase+"/"+api["id"].(string), admin, nil)
 
+	cgBase := "https://acme.example.test/api/v2/client-grants"
+	code, body = c.do(h, "POST", rsBase, admin, map[string]any{"identifier": "https://api.grants.test/", "scopes": []map[string]any{{"value": "read:x"}, {"value": "write:x"}}})
+	if code != 201 {
+		t.Fatalf("create API = %d %s", code, body)
+	}
+	code, body = c.do(h, "POST", cgBase, admin, map[string]any{"client_id": "m2m", "audience": "https://api.grants.test/", "scope": []string{"read:x"}})
+	var grant map[string]any
+	_ = json.Unmarshal(body, &grant)
+	gid, _ := grant["id"].(string)
+	if code != 201 || gid == "" {
+		t.Fatalf("create grant = %d %s", code, body)
+	}
+	c.do(h, "POST", cgBase, admin, map[string]any{"client_id": "admin", "audience": "https://api.grants.test/", "allow_all_scopes": true})
+	c.do(h, "POST", cgBase, admin, map[string]any{"client_id": "m2m", "audience": "https://api.grants.test/", "subject_type": "user", "scope": []string{}})
+	c.do(h, "POST", cgBase, admin, map[string]any{"client_id": "m2m", "audience": "https://api.grants.test/", "scope": []string{}})
+	c.do(h, "POST", cgBase, admin, map[string]any{"client_id": "nope", "audience": "https://api.grants.test/", "scope": []string{}})
+	c.do(h, "POST", cgBase, admin, map[string]any{"client_id": "m2m", "audience": "https://nope.test", "scope": []string{}})
+	c.do(h, "POST", cgBase, admin, map[string]any{"client_id": "m2m", "audience": "https://api.grants.test/", "subject_type": "user", "scope": []string{"nope"}})
+	c.do(h, "POST", cgBase, admin, map[string]any{"client_id": "m2m"})
+	c.do(h, "POST", cgBase, reader, map[string]any{"client_id": "m2m", "audience": "https://api.grants.test/", "scope": []string{}})
+	c.do(h, "GET", cgBase, admin, nil)
+	c.do(h, "GET", cgBase+"?include_totals=true&per_page=1&client_id=m2m&audience="+url.QueryEscape("https://api.grants.test/"), admin, nil)
+	code, body = c.do(h, "GET", cgBase+"?take=1", admin, nil)
+	var cp map[string]any
+	_ = json.Unmarshal(body, &cp)
+	next, _ := cp["next"].(string)
+	if code != 200 || next == "" {
+		t.Fatalf("checkpoint page = %d %s", code, body)
+	}
+	c.do(h, "GET", cgBase+"?take=1&from="+next, admin, nil)
+	c.do(h, "GET", cgBase+"?take=100&include_totals=true", admin, nil)
+	c.do(h, "GET", cgBase+"?from=garbage", admin, nil)
+	c.do(h, "GET", cgBase+"?take=0", admin, nil)
+	c.do(h, "GET", cgBase+"?subject_type=client", admin, nil)
+	c.do(h, "GET", cgBase+"?subject_type=robot&client_id=m2m", admin, nil)
+	c.do(h, "GET", cgBase+"/"+gid, reader, nil)
+	c.do(h, "GET", cgBase+"/cgr_0000000000000000", admin, nil)
+	c.do(h, "GET", cgBase+"/nope", admin, nil)
+	c.do(h, "PATCH", cgBase+"/"+gid, admin, map[string]any{"scope": []string{"read:x", "write:x"}})
+	c.do(h, "PATCH", cgBase+"/"+gid, admin, map[string]any{"allow_all_scopes": true})
+	c.do(h, "PATCH", cgBase+"/"+gid, admin, map[string]any{"scope": []string{"nope"}})
+	c.do(h, "PATCH", cgBase+"/"+gid, admin, map[string]any{})
+	c.do(h, "PATCH", cgBase+"/"+gid, admin, map[string]any{"audience": "x"})
+	c.do(h, "PATCH", cgBase+"/cgr_0000000000000000", admin, map[string]any{"scope": []string{}})
+	c.do(h, "PATCH", cgBase+"/nope", admin, map[string]any{"scope": []string{}})
+	c.do(h, "DELETE", cgBase+"/"+gid, reader, nil)
+	c.do(h, "DELETE", cgBase+"/"+gid, admin, nil)
+	c.do(h, "DELETE", cgBase+"/"+gid, admin, nil)
+	c.do(h, "DELETE", cgBase+"/nope", admin, nil)
+
 	op, _ := operatorToken(t, st, "op@example.test")
 	sys := "https://" + mgmtSystemHost + "/api/system"
 	c.do(h, "GET", sys+"/tenants", op, nil)

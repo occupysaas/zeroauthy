@@ -65,6 +65,26 @@ func (a mgmtAPI) DeleteResourceServer(w http.ResponseWriter, r *http.Request, id
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteResourceServer(w, r, id) }, "delete:resource_servers")
 }
 
+func (a mgmtAPI) GetClientGrants(w http.ResponseWriter, r *http.Request, p mgmtapi.GetClientGrantsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetClientGrants(w, r, p) }, "read:client_grants")
+}
+
+func (a mgmtAPI) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateClientGrant, "create:client_grants")
+}
+
+func (a mgmtAPI) GetClientGrant(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetClientGrant(w, r, id) }, "read:client_grants")
+}
+
+func (a mgmtAPI) UpdateClientGrant(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateClientGrant(w, r, id) }, "update:client_grants")
+}
+
+func (a mgmtAPI) DeleteClientGrant(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteClientGrant(w, r, id) }, "delete:client_grants")
+}
+
 // The system API: the router lets only operators reach it (operatorOnly).
 
 func (a mgmtAPI) GetTenants(w http.ResponseWriter, r *http.Request)   { a.h.GetTenants(w, r) }

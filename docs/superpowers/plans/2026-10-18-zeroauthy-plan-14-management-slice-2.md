@@ -109,8 +109,8 @@ Run by the controller session as the observer; implementers see only the notes. 
 - `GET /client-grants` (filters `client_id`, `audience`, `subject_type` per A9, store paging), `POST`, `PATCH /{id}` (scopes, per A10), `DELETE /{id}`.
 - Rules: the client and the audience must exist in the tenant; every scope must be defined by the API, or be a Management API scope for the tenant's own Management API (Review Focus 1); `subject_type` user is refused for the Management API; duplicates per A8; the seed skips `Origin == api`.
 
-- [ ] **Step 1: Tests:** per operation from A8–A10; `TestClientGrantManagementAPI`; filters and paging through the API; a grant created through the API makes `/oauth/token` client credentials succeed with exactly its scopes.
-- [ ] **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat(mgmt): /api/v2/client-grants`.
+- [x] **Step 1: Tests:** per operation from A8–A10; `TestClientGrantManagementAPI`; filters and paging through the API; a grant created through the API makes `/oauth/token` client credentials succeed with exactly its scopes.
+- [x] **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat(mgmt): /api/v2/client-grants`.
 
 ---
 

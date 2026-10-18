@@ -15,15 +15,15 @@ type clientGrants struct{ s *Store }
 
 func (s *Store) ClientGrants() store.ClientGrants { return clientGrants{s} }
 
-const clientGrantCols = `tenant_id, id, client_id, audience, scopes, created_at, subject_type, origin`
+const clientGrantCols = `tenant_id, id, client_id, audience, scopes, created_at, subject_type, origin, allow_all_scopes`
 
 func (r clientGrants) Create(ctx context.Context, g *store.ClientGrant) error {
 	scopes, err := toJSON(g.Scopes)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO client_grants (`+clientGrantCols+`) VALUES (?,?,?,?,?,?,?,?)`,
-		g.TenantID, g.ID, g.ClientID, g.Audience, scopes, micros(g.CreatedAt), g.SubjectType, g.Origin)
+	_, err = r.s.write(ctx, nil, `INSERT INTO client_grants (`+clientGrantCols+`) VALUES (?,?,?,?,?,?,?,?,?)`,
+		g.TenantID, g.ID, g.ClientID, g.Audience, scopes, micros(g.CreatedAt), g.SubjectType, g.Origin, g.AllowAllScopes)
 	return r.s.conflict(err)
 }
 
@@ -40,7 +40,7 @@ func scanClientGrant(row scanner) (*store.ClientGrant, error) {
 	var g store.ClientGrant
 	var scopes string
 	var created int64
-	if err := row.Scan(&g.TenantID, &g.ID, &g.ClientID, &g.Audience, &scopes, &created, &g.SubjectType, &g.Origin); err != nil {
+	if err := row.Scan(&g.TenantID, &g.ID, &g.ClientID, &g.Audience, &scopes, &created, &g.SubjectType, &g.Origin, &g.AllowAllScopes); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(scopes, &g.Scopes); err != nil {
@@ -68,8 +68,8 @@ func (r clientGrants) Update(ctx context.Context, g *store.ClientGrant) error {
 		if clientID != g.ClientID || audience != g.Audience || subjectType != g.SubjectType {
 			return store.ErrConflict
 		}
-		_, err = tx.exec(ctx, `UPDATE client_grants SET scopes = ?, created_at = ?, origin = ? WHERE tenant_id = ? AND id = ?`,
-			scopes, micros(g.CreatedAt), g.Origin, g.TenantID, g.ID)
+		_, err = tx.exec(ctx, `UPDATE client_grants SET scopes = ?, created_at = ?, origin = ?, allow_all_scopes = ? WHERE tenant_id = ? AND id = ?`,
+			scopes, micros(g.CreatedAt), g.Origin, g.AllowAllScopes, g.TenantID, g.ID)
 		return err
 	})
 }
@@ -84,11 +84,15 @@ func (r clientGrants) Delete(ctx context.Context, tenantID, id string) error {
 
 func (r clientGrants) List(ctx context.Context, tenantID string, f store.ClientGrantFilter, p store.Page) ([]*store.ClientGrant, int, error) {
 	where, args := []string{"tenant_id = ?"}, []any{tenantID}
-	for _, c := range []struct{ col, val string }{{"client_id", f.ClientID}, {"audience", f.Audience}, {"subject_type", f.SubjectType}} {
+	for _, c := range []struct{ col, val string }{{"client_id", f.ClientID}, {"audience", f.Audience}, {"subject_type", f.SubjectType}, {"id", f.ID}} {
 		if c.val != "" {
 			where = append(where, c.col+" = ?")
 			args = append(args, c.val)
 		}
+	}
+	if f.AfterID != "" {
+		where = append(where, "id"+r.s.d.byteOrder+" > ?")
+		args = append(args, f.AfterID)
 	}
 	cond := strings.Join(where, " AND ")
 	var total int

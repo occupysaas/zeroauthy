@@ -60,7 +60,7 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 	if grant == nil {
 		return nil, accessDenied("client is not authorized for this audience")
 	}
-	scopes, oerr := resolveScopes(form.Get("scope"), grant.Scopes, rs.Scopes)
+	scopes, oerr := resolveScopes(form.Get("scope"), grant.EffectiveScopes(rs.Scopes), rs.Scopes)
 	if oerr != nil {
 		return nil, oerr
 	}

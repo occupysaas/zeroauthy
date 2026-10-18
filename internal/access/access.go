@@ -171,7 +171,7 @@ func issuedScopes(in Input) []string {
 			if in.API == nil || !slices.ContainsFunc(in.API.Scopes, func(d store.Scope) bool { return d.Value == s }) {
 				continue
 			}
-			if in.ClientGrant != nil && !slices.Contains(in.ClientGrant.Scopes, s) {
+			if in.ClientGrant != nil && !slices.Contains(in.ClientGrant.EffectiveScopes(in.API.Scopes), s) {
 				continue
 			}
 		}

@@ -1752,17 +1752,18 @@ func (x *ResourceServer) GetTokenLifetimeForWeb() int64 {
 }
 
 type ClientGrant struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	ClientId      string                 `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	Audience      string                 `protobuf:"bytes,4,opt,name=audience,proto3" json:"audience,omitempty"`
-	Scopes        *StringList            `protobuf:"bytes,5,opt,name=scopes,proto3" json:"scopes,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	SubjectType   string                 `protobuf:"bytes,7,opt,name=subject_type,json=subjectType,proto3" json:"subject_type,omitempty"` // empty = "client" (plugins older than Plan 9)
-	Origin        string                 `protobuf:"bytes,8,opt,name=origin,proto3" json:"origin,omitempty"`                              // "api" or empty (seed)
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TenantId       string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Id             string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	ClientId       string                 `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	Audience       string                 `protobuf:"bytes,4,opt,name=audience,proto3" json:"audience,omitempty"`
+	Scopes         *StringList            `protobuf:"bytes,5,opt,name=scopes,proto3" json:"scopes,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	SubjectType    string                 `protobuf:"bytes,7,opt,name=subject_type,json=subjectType,proto3" json:"subject_type,omitempty"`             // empty = "client" (plugins older than Plan 9)
+	Origin         string                 `protobuf:"bytes,8,opt,name=origin,proto3" json:"origin,omitempty"`                                          // "api" or empty (seed)
+	AllowAllScopes bool                   `protobuf:"varint,9,opt,name=allow_all_scopes,json=allowAllScopes,proto3" json:"allow_all_scopes,omitempty"` // every scope the API defines; absent = false
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ClientGrant) Reset() {
@@ -1849,6 +1850,13 @@ func (x *ClientGrant) GetOrigin() string {
 		return x.Origin
 	}
 	return ""
+}
+
+func (x *ClientGrant) GetAllowAllScopes() bool {
+	if x != nil {
+		return x.AllowAllScopes
+	}
+	return false
 }
 
 type UserGrant struct {
@@ -4257,8 +4265,8 @@ func (x *ClientGrantResult) GetValue() *ClientGrant {
 	return nil
 }
 
-// ClientGrantsList filters on the non-empty client_id, audience and
-// subject_type, orders by id (byte order), skips offset rows and returns at
+// ClientGrantsList filters on the non-empty client_id, audience,
+// subject_type, id and after_id, orders by id (byte order), skips offset rows and returns at
 // most limit (0 = no limit). total counts the matches before paging.
 type ClientGrantsListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -4269,6 +4277,8 @@ type ClientGrantsListRequest struct {
 	SubjectType   string                 `protobuf:"bytes,5,opt,name=subject_type,json=subjectType,proto3" json:"subject_type,omitempty"`
 	Offset        int64                  `protobuf:"varint,6,opt,name=offset,proto3" json:"offset,omitempty"`
 	Limit         int64                  `protobuf:"varint,7,opt,name=limit,proto3" json:"limit,omitempty"`
+	AfterId       string                 `protobuf:"bytes,8,opt,name=after_id,json=afterId,proto3" json:"after_id,omitempty"` // keep only ids that sort after it (byte order)
+	Id            string                 `protobuf:"bytes,9,opt,name=id,proto3" json:"id,omitempty"`                          // keep only this id
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4350,6 +4360,20 @@ func (x *ClientGrantsListRequest) GetLimit() int64 {
 		return x.Limit
 	}
 	return 0
+}
+
+func (x *ClientGrantsListRequest) GetAfterId() string {
+	if x != nil {
+		return x.AfterId
+	}
+	return ""
+}
+
+func (x *ClientGrantsListRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
 }
 
 type ClientGrantList struct {
@@ -6695,7 +6719,7 @@ const file_store_proto_rawDesc = "" +
 	"\tis_system\x18\r \x01(\bR\bisSystem\x12\x16\n" +
 	"\x06origin\x18\x0e \x01(\tR\x06origin\x123\n" +
 	"\x16token_lifetime_for_web\x18\x0f \x01(\x03R\x13tokenLifetimeForWebB2\n" +
-	"0_skip_consent_for_verifiable_first_party_clients\"\xa1\x02\n" +
+	"0_skip_consent_for_verifiable_first_party_clients\"\xcb\x02\n" +
 	"\vClientGrant\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1b\n" +
@@ -6705,7 +6729,8 @@ const file_store_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12!\n" +
 	"\fsubject_type\x18\a \x01(\tR\vsubjectType\x12\x16\n" +
-	"\x06origin\x18\b \x01(\tR\x06origin\"\xb8\x02\n" +
+	"\x06origin\x18\b \x01(\tR\x06origin\x12(\n" +
+	"\x10allow_all_scopes\x18\t \x01(\bR\x0eallowAllScopes\"\xb8\x02\n" +
 	"\tUserGrant\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1b\n" +
@@ -6971,7 +6996,7 @@ const file_store_proto_rawDesc = "" +
 	"\fsubject_type\x18\x05 \x01(\tR\vsubjectType\"{\n" +
 	"\x11ClientGrantResult\x12/\n" +
 	"\x05error\x18\x01 \x01(\v2\x19.zeroauthy.store.v1.ErrorR\x05error\x125\n" +
-	"\x05value\x18\x02 \x01(\v2\x1f.zeroauthy.store.v1.ClientGrantR\x05value\"\xd5\x01\n" +
+	"\x05value\x18\x02 \x01(\v2\x1f.zeroauthy.store.v1.ClientGrantR\x05value\"\x80\x02\n" +
 	"\x17ClientGrantsListRequest\x12\x13\n" +
 	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x1b\n" +
@@ -6979,7 +7004,9 @@ const file_store_proto_rawDesc = "" +
 	"\baudience\x18\x04 \x01(\tR\baudience\x12!\n" +
 	"\fsubject_type\x18\x05 \x01(\tR\vsubjectType\x12\x16\n" +
 	"\x06offset\x18\x06 \x01(\x03R\x06offset\x12\x14\n" +
-	"\x05limit\x18\a \x01(\x03R\x05limit\"\x91\x01\n" +
+	"\x05limit\x18\a \x01(\x03R\x05limit\x12\x19\n" +
+	"\bafter_id\x18\b \x01(\tR\aafterId\x12\x0e\n" +
+	"\x02id\x18\t \x01(\tR\x02id\"\x91\x01\n" +
 	"\x0fClientGrantList\x12/\n" +
 	"\x05error\x18\x01 \x01(\v2\x19.zeroauthy.store.v1.ErrorR\x05error\x127\n" +
 	"\x06values\x18\x02 \x03(\v2\x1f.zeroauthy.store.v1.ClientGrantR\x06values\x12\x14\n" +

@@ -204,7 +204,7 @@ func TestResourceServerRoundTrip(t *testing.T) {
 func TestClientGrantRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.ClientGrant{
 		TenantID: "ten", ID: "g", ClientID: "cid", Audience: "https://api", Scopes: []string{"a", "b"}, CreatedAt: nanoTime,
-		SubjectType: store.SubjectTypeUser, Origin: store.OriginAPI,
+		SubjectType: store.SubjectTypeUser, Origin: store.OriginAPI, AllowAllScopes: true,
 	}, clientGrantToPB, clientGrantFromPB)
 	roundTrip(t, "empty", &store.ClientGrant{Scopes: []string{}, SubjectType: store.SubjectTypeClient}, clientGrantToPB, clientGrantFromPB)
 	roundTrip(t, "zero", &store.ClientGrant{SubjectType: store.SubjectTypeClient}, clientGrantToPB, clientGrantFromPB)

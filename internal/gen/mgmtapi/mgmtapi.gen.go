@@ -177,6 +177,102 @@ func (e ClientCreateThirdPartySecurityMode) Valid() bool {
 	}
 }
 
+// Defines values for ClientGrantSubjectType.
+const (
+	ClientGrantSubjectTypeClient ClientGrantSubjectType = "client"
+	ClientGrantSubjectTypeUser   ClientGrantSubjectType = "user"
+)
+
+// Valid indicates whether the value is a known member of the ClientGrantSubjectType enum.
+func (e ClientGrantSubjectType) Valid() bool {
+	switch e {
+	case ClientGrantSubjectTypeClient:
+		return true
+	case ClientGrantSubjectTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientGrantCreateAllowAnyOrganization.
+const (
+	ClientGrantCreateAllowAnyOrganizationFalse ClientGrantCreateAllowAnyOrganization = false
+)
+
+// Valid indicates whether the value is a known member of the ClientGrantCreateAllowAnyOrganization enum.
+func (e ClientGrantCreateAllowAnyOrganization) Valid() bool {
+	switch e {
+	case ClientGrantCreateAllowAnyOrganizationFalse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientGrantCreateOrganizationUsage.
+const (
+	ClientGrantCreateOrganizationUsageDeny ClientGrantCreateOrganizationUsage = "deny"
+)
+
+// Valid indicates whether the value is a known member of the ClientGrantCreateOrganizationUsage enum.
+func (e ClientGrantCreateOrganizationUsage) Valid() bool {
+	switch e {
+	case ClientGrantCreateOrganizationUsageDeny:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientGrantCreateSubjectType.
+const (
+	ClientGrantCreateSubjectTypeClient ClientGrantCreateSubjectType = "client"
+	ClientGrantCreateSubjectTypeUser   ClientGrantCreateSubjectType = "user"
+)
+
+// Valid indicates whether the value is a known member of the ClientGrantCreateSubjectType enum.
+func (e ClientGrantCreateSubjectType) Valid() bool {
+	switch e {
+	case ClientGrantCreateSubjectTypeClient:
+		return true
+	case ClientGrantCreateSubjectTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientGrantSettingsAllowAnyOrganization.
+const (
+	ClientGrantSettingsAllowAnyOrganizationFalse ClientGrantSettingsAllowAnyOrganization = false
+)
+
+// Valid indicates whether the value is a known member of the ClientGrantSettingsAllowAnyOrganization enum.
+func (e ClientGrantSettingsAllowAnyOrganization) Valid() bool {
+	switch e {
+	case ClientGrantSettingsAllowAnyOrganizationFalse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientGrantSettingsOrganizationUsage.
+const (
+	ClientGrantSettingsOrganizationUsageDeny ClientGrantSettingsOrganizationUsage = "deny"
+)
+
+// Valid indicates whether the value is a known member of the ClientGrantSettingsOrganizationUsage enum.
+func (e ClientGrantSettingsOrganizationUsage) Valid() bool {
+	switch e {
+	case ClientGrantSettingsOrganizationUsageDeny:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientSettingsRedirectionPolicy.
 const (
 	ClientSettingsRedirectionPolicyAllowAlways            ClientSettingsRedirectionPolicy = "allow_always"
@@ -633,6 +729,116 @@ type ClientCreateRedirectionPolicy string
 
 // ClientCreateThirdPartySecurityMode Third-party applications only; `strict` by default.
 type ClientCreateThirdPartySecurityMode string
+
+// ClientGrant An application's access to an API. The organization fields are not
+// reported.
+type ClientGrant struct {
+	// AllowAllScopes True when set; absent otherwise.
+	AllowAllScopes *bool  `json:"allow_all_scopes,omitempty"`
+	Audience       string `json:"audience"`
+	ClientId       string `json:"client_id"`
+
+	// Id `cgr_` and 16 letters and digits for grants created through the API.
+	Id string `json:"id"`
+
+	// Scope Absent when the grant has `allow_all_scopes`.
+	Scope       *[]string              `json:"scope,omitempty"`
+	SubjectType ClientGrantSubjectType `json:"subject_type"`
+}
+
+// ClientGrantSubjectType defines model for ClientGrant.SubjectType.
+type ClientGrantSubjectType string
+
+// ClientGrantCheckpointPage A page of client grants from checkpoint paging.
+type ClientGrantCheckpointPage struct {
+	ClientGrants []ClientGrant `json:"client_grants"`
+
+	// Next Pass as `from` for the next page; absent on the last page.
+	Next *string `json:"next,omitempty"`
+}
+
+// ClientGrantCreate A new client grant. Unknown properties are refused (`invalid_body`).
+// `scope` or `allow_all_scopes` is required. `default_for` is not
+// supported: only null is accepted.
+type ClientGrantCreate struct {
+	// AllowAllScopes Grant every scope the API defines, at the time a token is issued,
+	// so scopes added later are covered. Stored without a `scope`;
+	// for the tenant's Management API it means every Management API
+	// scope. Not together with a non-empty `scope`.
+	AllowAllScopes *bool `json:"allow_all_scopes,omitempty"`
+
+	// AllowAnyOrganization zeroauthy has no organizations; only false (or null) is accepted.
+	AllowAnyOrganization *ClientGrantCreateAllowAnyOrganization `json:"allow_any_organization,omitempty"`
+
+	// Audience The API's identifier.
+	Audience string `json:"audience"`
+
+	// AuthorizationDetailsTypes zeroauthy has no rich authorization requests; only an empty list (or null) is accepted.
+	AuthorizationDetailsTypes *[]string `json:"authorization_details_types,omitempty"`
+	ClientId                  string    `json:"client_id"`
+
+	// OrganizationUsage zeroauthy has no organizations; only `deny` (or null) is accepted.
+	OrganizationUsage *ClientGrantCreateOrganizationUsage `json:"organization_usage,omitempty"`
+
+	// Scope The scopes granted; each must be one the API defines. `[]` is valid.
+	Scope       *[]string                     `json:"scope,omitempty"`
+	SubjectType *ClientGrantCreateSubjectType `json:"subject_type,omitempty"`
+}
+
+// ClientGrantCreateAllowAnyOrganization zeroauthy has no organizations; only false (or null) is accepted.
+type ClientGrantCreateAllowAnyOrganization bool
+
+// ClientGrantCreateOrganizationUsage zeroauthy has no organizations; only `deny` (or null) is accepted.
+type ClientGrantCreateOrganizationUsage string
+
+// ClientGrantCreateSubjectType defines model for ClientGrantCreate.SubjectType.
+type ClientGrantCreateSubjectType string
+
+// ClientGrantPage A page of client grants with `include_totals=true`.
+type ClientGrantPage struct {
+	ClientGrants []ClientGrant `json:"client_grants"`
+
+	// Limit The page size.
+	Limit int `json:"limit"`
+
+	// Start Index of the first result.
+	Start int `json:"start"`
+
+	// Total The number of results on all pages.
+	Total int `json:"total"`
+}
+
+// ClientGrantSettings defines model for ClientGrantSettings.
+type ClientGrantSettings struct {
+	// AllowAllScopes Grant every scope the API defines, at the time a token is issued,
+	// so scopes added later are covered. Stored without a `scope`;
+	// for the tenant's Management API it means every Management API
+	// scope. Not together with a non-empty `scope`.
+	AllowAllScopes *bool `json:"allow_all_scopes,omitempty"`
+
+	// AllowAnyOrganization zeroauthy has no organizations; only false (or null) is accepted.
+	AllowAnyOrganization *ClientGrantSettingsAllowAnyOrganization `json:"allow_any_organization,omitempty"`
+
+	// AuthorizationDetailsTypes zeroauthy has no rich authorization requests; only an empty list (or null) is accepted.
+	AuthorizationDetailsTypes *[]string `json:"authorization_details_types,omitempty"`
+
+	// OrganizationUsage zeroauthy has no organizations; only `deny` (or null) is accepted.
+	OrganizationUsage *ClientGrantSettingsOrganizationUsage `json:"organization_usage,omitempty"`
+
+	// Scope The scopes granted; each must be one the API defines. `[]` is valid.
+	Scope *[]string `json:"scope,omitempty"`
+}
+
+// ClientGrantSettingsAllowAnyOrganization zeroauthy has no organizations; only false (or null) is accepted.
+type ClientGrantSettingsAllowAnyOrganization bool
+
+// ClientGrantSettingsOrganizationUsage zeroauthy has no organizations; only `deny` (or null) is accepted.
+type ClientGrantSettingsOrganizationUsage string
+
+// ClientGrantUpdate Fields to change; at least one property is required. Unknown
+// properties are refused (`invalid_body`), `client_id`, `audience` and
+// `subject_type` among them.
+type ClientGrantUpdate = ClientGrantSettings
 
 // ClientPage A page of applications with `include_totals=true`.
 type ClientPage struct {
@@ -1242,6 +1448,41 @@ type DeleteTenantParams struct {
 	Confirm string `form:"confirm" json:"confirm"`
 }
 
+// GetClientGrantsParams defines parameters for GetClientGrants.
+type GetClientGrantsParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *IncludeTotals `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// Take Checkpoint paging page size, 1 to 100 (50 by default).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// From Checkpoint paging cursor, the `next` of the previous page.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// ClientId Only the grants of this application.
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
+
+	// Audience Only the grants for this API identifier (case-sensitive).
+	Audience *string `form:"audience,omitempty" json:"audience,omitempty"`
+
+	// SubjectType Only grants of this subject type; needs `client_id` or `audience`.
+	SubjectType *string `form:"subject_type,omitempty" json:"subject_type,omitempty"`
+}
+
+// GetClientGrants200JSONResponseBody0 defines parameters for GetClientGrants.
+type GetClientGrants200JSONResponseBody0 = []ClientGrant
+
+// GetClientGrants200JSONResponseBody defines parameters for GetClientGrants.
+type GetClientGrants200JSONResponseBody struct {
+	union json.RawMessage
+}
+
 // GetClientsParams defines parameters for GetClients.
 type GetClientsParams struct {
 	// Page Page index of the results, from 0.
@@ -1331,6 +1572,12 @@ type CreateTenantJSONRequestBody = TenantCreate
 // UpdateTenantJSONRequestBody defines body for UpdateTenant for application/json ContentType.
 type UpdateTenantJSONRequestBody = TenantUpdate
 
+// CreateClientGrantJSONRequestBody defines body for CreateClientGrant for application/json ContentType.
+type CreateClientGrantJSONRequestBody = ClientGrantCreate
+
+// UpdateClientGrantJSONRequestBody defines body for UpdateClientGrant for application/json ContentType.
+type UpdateClientGrantJSONRequestBody = ClientGrantUpdate
+
 // CreateClientJSONRequestBody defines body for CreateClient for application/json ContentType.
 type CreateClientJSONRequestBody = ClientCreate
 
@@ -1342,6 +1589,94 @@ type CreateResourceServerJSONRequestBody = ResourceServerCreate
 
 // UpdateResourceServerJSONRequestBody defines body for UpdateResourceServer for application/json ContentType.
 type UpdateResourceServerJSONRequestBody = ResourceServerUpdate
+
+// AsGetClientGrants200JSONResponseBody0 returns the union data inside the GetClientGrants200JSONResponseBody as a GetClientGrants200JSONResponseBody0
+func (t GetClientGrants200JSONResponseBody) AsGetClientGrants200JSONResponseBody0() (GetClientGrants200JSONResponseBody0, error) {
+	var body GetClientGrants200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetClientGrants200JSONResponseBody0 overwrites any union data inside the GetClientGrants200JSONResponseBody as the provided GetClientGrants200JSONResponseBody0
+func (t *GetClientGrants200JSONResponseBody) FromGetClientGrants200JSONResponseBody0(v GetClientGrants200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetClientGrants200JSONResponseBody0 performs a merge with any union data inside the GetClientGrants200JSONResponseBody, using the provided GetClientGrants200JSONResponseBody0
+func (t *GetClientGrants200JSONResponseBody) MergeGetClientGrants200JSONResponseBody0(v GetClientGrants200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsClientGrantPage returns the union data inside the GetClientGrants200JSONResponseBody as a ClientGrantPage
+func (t GetClientGrants200JSONResponseBody) AsClientGrantPage() (ClientGrantPage, error) {
+	var body ClientGrantPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromClientGrantPage overwrites any union data inside the GetClientGrants200JSONResponseBody as the provided ClientGrantPage
+func (t *GetClientGrants200JSONResponseBody) FromClientGrantPage(v ClientGrantPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeClientGrantPage performs a merge with any union data inside the GetClientGrants200JSONResponseBody, using the provided ClientGrantPage
+func (t *GetClientGrants200JSONResponseBody) MergeClientGrantPage(v ClientGrantPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsClientGrantCheckpointPage returns the union data inside the GetClientGrants200JSONResponseBody as a ClientGrantCheckpointPage
+func (t GetClientGrants200JSONResponseBody) AsClientGrantCheckpointPage() (ClientGrantCheckpointPage, error) {
+	var body ClientGrantCheckpointPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromClientGrantCheckpointPage overwrites any union data inside the GetClientGrants200JSONResponseBody as the provided ClientGrantCheckpointPage
+func (t *GetClientGrants200JSONResponseBody) FromClientGrantCheckpointPage(v ClientGrantCheckpointPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeClientGrantCheckpointPage performs a merge with any union data inside the GetClientGrants200JSONResponseBody, using the provided ClientGrantCheckpointPage
+func (t *GetClientGrants200JSONResponseBody) MergeClientGrantCheckpointPage(v ClientGrantCheckpointPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetClientGrants200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetClientGrants200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsGetClients200JSONResponseBody0 returns the union data inside the GetClients200JSONResponseBody as a GetClients200JSONResponseBody0
 func (t GetClients200JSONResponseBody) AsGetClients200JSONResponseBody0() (GetClients200JSONResponseBody0, error) {
@@ -1490,6 +1825,21 @@ type ServerInterface interface {
 	// UpdateTenant Update a tenant
 	// (PATCH /api/system/tenants/{name})
 	UpdateTenant(w http.ResponseWriter, r *http.Request, name string)
+	// GetClientGrants List client grants
+	// (GET /api/v2/client-grants)
+	GetClientGrants(w http.ResponseWriter, r *http.Request, params GetClientGrantsParams)
+	// CreateClientGrant Create a client grant
+	// (POST /api/v2/client-grants)
+	CreateClientGrant(w http.ResponseWriter, r *http.Request)
+	// DeleteClientGrant Delete a client grant
+	// (DELETE /api/v2/client-grants/{id})
+	DeleteClientGrant(w http.ResponseWriter, r *http.Request, id string)
+	// GetClientGrant Get a client grant
+	// (GET /api/v2/client-grants/{id})
+	GetClientGrant(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateClientGrant Update a client grant
+	// (PATCH /api/v2/client-grants/{id})
+	UpdateClientGrant(w http.ResponseWriter, r *http.Request, id string)
 	// GetClients List applications
 	// (GET /api/v2/clients)
 	GetClients(w http.ResponseWriter, r *http.Request, params GetClientsParams)
@@ -1568,6 +1918,36 @@ func (_ Unimplemented) DeleteTenant(w http.ResponseWriter, r *http.Request, name
 // UpdateTenant Update a tenant
 // (PATCH /api/system/tenants/{name})
 func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetClientGrants List client grants
+// (GET /api/v2/client-grants)
+func (_ Unimplemented) GetClientGrants(w http.ResponseWriter, r *http.Request, params GetClientGrantsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateClientGrant Create a client grant
+// (POST /api/v2/client-grants)
+func (_ Unimplemented) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteClientGrant Delete a client grant
+// (DELETE /api/v2/client-grants/{id})
+func (_ Unimplemented) DeleteClientGrant(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetClientGrant Get a client grant
+// (GET /api/v2/client-grants/{id})
+func (_ Unimplemented) GetClientGrant(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateClientGrant Update a client grant
+// (PATCH /api/v2/client-grants/{id})
+func (_ Unimplemented) UpdateClientGrant(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1787,6 +2167,222 @@ func (siw *ServerInterfaceWrapper) UpdateTenant(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateTenant(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetClientGrants operation middleware
+func (siw *ServerInterfaceWrapper) GetClientGrants(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetClientGrantsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "client_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "client_id", r.URL.Query(), &params.ClientId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "client_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "audience" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "audience", r.URL.Query(), &params.Audience, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "audience"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "audience", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "subject_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subject_type", r.URL.Query(), &params.SubjectType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subject_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject_type", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetClientGrants(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateClientGrant operation middleware
+func (siw *ServerInterfaceWrapper) CreateClientGrant(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateClientGrant(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteClientGrant operation middleware
+func (siw *ServerInterfaceWrapper) DeleteClientGrant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteClientGrant(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetClientGrant operation middleware
+func (siw *ServerInterfaceWrapper) GetClientGrant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetClientGrant(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateClientGrant operation middleware
+func (siw *ServerInterfaceWrapper) UpdateClientGrant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateClientGrant(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2418,6 +3014,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v2/resource-servers/{id}", wrapper.UpdateResourceServer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/client-grants", wrapper.GetClientGrants)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/client-grants", wrapper.CreateClientGrant)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/client-grants/{id}", wrapper.DeleteClientGrant)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/client-grants/{id}", wrapper.GetClientGrant)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/client-grants/{id}", wrapper.UpdateClientGrant)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants", wrapper.GetTenants)

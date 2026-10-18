@@ -103,3 +103,57 @@ func TestReserved(t *testing.T) {
 		t.Errorf("empty: %v", err)
 	}
 }
+
+func TestCheckGrant(t *testing.T) {
+	defined := func(s string) bool { return s == "read:orders" || s == "write:orders" }
+	cases := []struct {
+		name    string
+		subject string
+		mgmt    bool
+		scopes  []string
+		want    string // substring of the one expected error; empty for none
+	}{
+		{"defined scopes", "client", false, []string{"read:orders", "write:orders"}, ""},
+		{"no scopes", "user", false, nil, ""},
+		{"undefined scope", "client", false, []string{"read:orders", "nope"}, `scope "nope" is not defined`},
+		{"bad subject type", "robot", false, nil, "must be client or user"},
+		{"empty scope", "client", false, []string{""}, "must be 1 to"},
+		{"long scope", "client", false, []string{strings.Repeat("a", MaxGrantScope+1)}, "must be 1 to"},
+		{"management scope", "client", true, []string{"read:clients"}, ""},
+		{"not a management scope", "client", true, []string{"read:orders"}, "not a Management API scope"},
+		{"management user grant", "user", true, []string{"read:clients"}, "machine-to-machine"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			errs := CheckGrant(tc.subject, tc.mgmt, tc.scopes, defined)
+			switch {
+			case tc.want == "" && len(errs) != 0:
+				t.Errorf("errors %v", errs)
+			case tc.want != "" && (len(errs) != 1 || !strings.Contains(errs[0].Error(), tc.want)):
+				t.Errorf("errors %v, want one containing %q", errs, tc.want)
+			}
+		})
+	}
+}
+
+func TestIsManagementAPIIdentifier(t *testing.T) {
+	for aud, want := range map[string]bool{
+		"https://acme.example.com/api/v2/": true, "https://login.acme.test/api/v2/": true,
+		"https://acme.example.com/api/v2": false, "http://acme.example.com/api/v2/": false,
+		"https://acme.example.com/api/v2/x": false, "https://acme.example.com/api/v2/?a=b": false,
+		"urn:zeroauthy:management": false, "https://api.orders.test/v1": false, "": false,
+	} {
+		if got := IsManagementAPIIdentifier(aud); got != want {
+			t.Errorf("IsManagementAPIIdentifier(%q) = %v", aud, got)
+		}
+	}
+}
+
+func TestDedupeScopes(t *testing.T) {
+	if got := DedupeScopes([]string{"b", "a", "b", "a", "c"}); !reflect.DeepEqual(got, []string{"b", "a", "c"}) {
+		t.Errorf("DedupeScopes = %v", got)
+	}
+	if got := DedupeScopes(nil); got == nil || len(got) != 0 {
+		t.Errorf("DedupeScopes(nil) = %#v", got)
+	}
+}

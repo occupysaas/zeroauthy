@@ -243,3 +243,17 @@ func TestDecideDeviceDenyAll(t *testing.T) {
 		t.Fatalf("got %+v", d)
 	}
 }
+
+// A grant with AllowAllScopes covers every scope the API defines, in user
+// flows as in client credentials.
+func TestIssuedScopesAllowAllScopes(t *testing.T) {
+	g := &store.ClientGrant{Audience: "https://api", SubjectType: store.SubjectTypeUser, AllowAllScopes: true}
+	in := Input{Flow: Interactive, Client: firstParty(), API: api(), ClientGrant: g, Scopes: []string{"read", "write", "undefined"}}
+	if got := issuedScopes(in); !slices.Equal(got, []string{"read", "write"}) {
+		t.Errorf("issuedScopes = %v", got)
+	}
+	g.AllowAllScopes, g.Scopes = false, []string{"read"}
+	if got := issuedScopes(in); !slices.Equal(got, []string{"read"}) {
+		t.Errorf("issuedScopes without allow_all_scopes = %v", got)
+	}
+}

@@ -43,6 +43,8 @@ tags:
     description: Applications (Auth0's `/api/v2/clients`).
   - name: resource-servers
     description: APIs (Auth0's `/api/v2/resource-servers`).
+  - name: client-grants
+    description: Applications' access to APIs (Auth0's `/api/v2/client-grants`).
   - name: system
     description: zeroauthy's own API for tenants and operators (operator tokens only).
 security:
@@ -339,6 +341,165 @@ paths:
         204. A system API cannot be deleted (`delete_system_resource_server`).
       x-source:
         - https://auth0.com/docs/api/management/v2/resource-servers/delete-resource-servers-by-id
+      responses:
+        "204": {description: "Deleted, or did not exist."}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/client-grants:
+    get:
+      operationId: getClientGrants
+      tags: [client-grants]
+      summary: List client grants
+      description: |
+        The tenant's client grants in grant ID order (byte order). Requires
+        `read:client_grants`.
+
+        Offset paging (`page`, `per_page`, `include_totals`) answers a bare
+        array, or with totals an object with `client_grants`, `start`,
+        `limit` and `total`. Checkpoint paging, when `take` or `from` is
+        present, answers `{client_grants, next}`: `take` is the page size
+        (1 to 100, 50 by default) and `next`, an opaque cursor to pass back
+        as `from`, is absent on the last page. It wins over `page`,
+        `per_page` and `include_totals`. A `from` that is not a cursor this
+        API issued is `400` without an `errorCode`.
+
+        `client_id`, `audience` and `subject_type` filter and combine;
+        `subject_type` (`client` or `user`) needs `client_id` or `audience`
+        too, otherwise the answer is `400` without an `errorCode`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/client-grants/get-client-grants
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/per_page"
+        - $ref: "#/components/parameters/include_totals"
+        - name: take
+          in: query
+          description: Checkpoint paging page size, 1 to 100 (50 by default).
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: from
+          in: query
+          description: Checkpoint paging cursor, the `next` of the previous page.
+          schema: {type: string}
+        - name: client_id
+          in: query
+          description: Only the grants of this application.
+          schema: {type: string}
+        - name: audience
+          in: query
+          description: Only the grants for this API identifier (case-sensitive).
+          schema: {type: string}
+        - name: subject_type
+          in: query
+          description: Only grants of this subject type; needs `client_id` or `audience`.
+          schema: {type: string}
+      responses:
+        "200":
+          description: The page of client grants.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: array
+                    items: {$ref: "#/components/schemas/ClientGrant"}
+                  - $ref: "#/components/schemas/ClientGrantPage"
+                  - $ref: "#/components/schemas/ClientGrantCheckpointPage"
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      operationId: createClientGrant
+      tags: [client-grants]
+      summary: Create a client grant
+      description: |
+        Requires `create:client_grants`. The application and the API (by
+        identifier, case-sensitive) must exist in the tenant
+        (`inexistent_client`, `inexistent_resource_server`). One grant per
+        application, API and subject type (`client_grant_conflict`). Every
+        scope must be one the API defines (`invalid_body`); this differs
+        from Auth0, which checks only on update. A grant to the tenant's own
+        Management API carries Management API scopes only and has
+        `subject_type` `client`; a grant to another tenant's Management API
+        or to `urn:zeroauthy:management` is refused (`invalid_body`).
+      x-source:
+        - https://auth0.com/docs/api/management/v2/client-grants/post-client-grants
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ClientGrantCreate"}
+      responses:
+        "201":
+          description: The new client grant.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ClientGrant"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/client-grants/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The grant's ID, `cgr_` followed by letters and digits; anything else is `400 invalid_uri`.
+        schema: {type: string}
+    get:
+      operationId: getClientGrant
+      tags: [client-grants]
+      summary: Get a client grant
+      description: Requires `read:client_grants`. An unknown ID is `404 inexistent_client_grant`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/client-grants/get-client-grants
+      responses:
+        "200":
+          description: The client grant.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ClientGrant"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      operationId: updateClientGrant
+      tags: [client-grants]
+      summary: Update a client grant
+      description: |
+        Requires `update:client_grants`. Changes `scope` (replaced whole) or
+        `allow_all_scopes`; `client_id`, `audience` and `subject_type` are
+        unknown properties. An empty body is `invalid_body`. A scope the API
+        does not define is `invalid_body`. An unknown ID in the right format
+        is `404 inexistent_client_grant`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/client-grants/patch-client-grants-by-id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ClientGrantUpdate"}
+      responses:
+        "200":
+          description: The updated client grant.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ClientGrant"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteClientGrant
+      tags: [client-grants]
+      summary: Delete a client grant
+      description: |
+        Requires `delete:client_grants`. An unknown ID in the right format,
+        and a second delete, also answer 204. Tokens already issued stay
+        valid until they expire; refresh tokens stop refreshing.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/client-grants/delete-client-grants-by-id
       responses:
         "204": {description: "Deleted, or did not exist."}
         "400": {$ref: "#/components/responses/BadRequest"}
@@ -852,6 +1013,89 @@ components:
             resource_servers:
               type: array
               items: {$ref: "#/components/schemas/ResourceServer"}
+    ClientGrantSettings:
+      type: object
+      additionalProperties: false
+      properties:
+        scope:
+          type: array
+          items: {type: string, minLength: 1, maxLength: 280}
+          description: The scopes granted; each must be one the API defines. `[]` is valid.
+        allow_all_scopes:
+          type: boolean
+          description: |
+            Grant every scope the API defines, at the time a token is issued,
+            so scopes added later are covered. Stored without a `scope`;
+            for the tenant's Management API it means every Management API
+            scope. Not together with a non-empty `scope`.
+        organization_usage:
+          type: string
+          enum: [deny]
+          description: zeroauthy has no organizations; only `deny` (or null) is accepted.
+        allow_any_organization:
+          type: boolean
+          enum: [false]
+          description: zeroauthy has no organizations; only false (or null) is accepted.
+        authorization_details_types:
+          type: array
+          maxItems: 0
+          items: {type: string}
+          description: zeroauthy has no rich authorization requests; only an empty list (or null) is accepted.
+    ClientGrantCreate:
+      description: |
+        A new client grant. Unknown properties are refused (`invalid_body`).
+        `scope` or `allow_all_scopes` is required. `default_for` is not
+        supported: only null is accepted.
+      allOf:
+        - $ref: "#/components/schemas/ClientGrantSettings"
+        - type: object
+          required: [client_id, audience]
+          properties:
+            client_id: {type: string, minLength: 1}
+            audience: {type: string, minLength: 1, description: The API's identifier.}
+            subject_type: {type: string, enum: [client, user], default: client}
+    ClientGrantUpdate:
+      description: |
+        Fields to change; at least one property is required. Unknown
+        properties are refused (`invalid_body`), `client_id`, `audience` and
+        `subject_type` among them.
+      allOf:
+        - $ref: "#/components/schemas/ClientGrantSettings"
+    ClientGrant:
+      type: object
+      description: |
+        An application's access to an API. The organization fields are not
+        reported.
+      required: [id, client_id, audience, subject_type]
+      properties:
+        id: {type: string, description: "`cgr_` and 16 letters and digits for grants created through the API."}
+        client_id: {type: string}
+        audience: {type: string}
+        scope:
+          type: array
+          items: {type: string}
+          description: Absent when the grant has `allow_all_scopes`.
+        allow_all_scopes: {type: boolean, description: "True when set; absent otherwise."}
+        subject_type: {type: string, enum: [client, user]}
+    ClientGrantPage:
+      description: A page of client grants with `include_totals=true`.
+      allOf:
+        - $ref: "#/components/schemas/ListTotals"
+        - type: object
+          required: [client_grants]
+          properties:
+            client_grants:
+              type: array
+              items: {$ref: "#/components/schemas/ClientGrant"}
+    ClientGrantCheckpointPage:
+      type: object
+      description: A page of client grants from checkpoint paging.
+      required: [client_grants]
+      properties:
+        client_grants:
+          type: array
+          items: {$ref: "#/components/schemas/ClientGrant"}
+        next: {type: string, description: Pass as `from` for the next page; absent on the last page.}
     SystemTenant:
       type: object
       description: A tenant, as the system API reports it.

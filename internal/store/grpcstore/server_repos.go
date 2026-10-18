@@ -247,7 +247,7 @@ func (s *Server) ClientGrantsList(ctx context.Context, r *storev1.ClientGrantsLi
 	var total int
 	vs, e, err := many(s, r.TxId, func(st store.Store) (out []*store.ClientGrant, e error) {
 		out, total, e = st.ClientGrants().List(ctx, r.TenantId,
-			store.ClientGrantFilter{ClientID: r.ClientId, Audience: r.Audience, SubjectType: r.SubjectType},
+			store.ClientGrantFilter{ClientID: r.ClientId, Audience: r.Audience, SubjectType: r.SubjectType, AfterID: r.AfterId, ID: r.Id},
 			store.Page{Offset: int(r.Offset), Limit: int(r.Limit)})
 		return out, e
 	}, clientGrantToPB)

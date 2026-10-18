@@ -240,7 +240,7 @@ func (a clientClientGrants) Delete(ctx context.Context, tenantID, id string) err
 
 func (a clientClientGrants) List(ctx context.Context, tenantID string, f store.ClientGrantFilter, p store.Page) ([]*store.ClientGrant, int, error) {
 	r, err := a.c.rpc.ClientGrantsList(ctx, &storev1.ClientGrantsListRequest{TxId: a.c.txID, TenantId: tenantID,
-		ClientId: f.ClientID, Audience: f.Audience, SubjectType: f.SubjectType, Offset: int64(p.Offset), Limit: int64(p.Limit)})
+		ClientId: f.ClientID, Audience: f.Audience, SubjectType: f.SubjectType, AfterId: f.AfterID, Id: f.ID, Offset: int64(p.Offset), Limit: int64(p.Limit)})
 	out, err := decList("ClientGrantsList", tooOld(err), r.GetError(), r.GetValues(), clientGrantFromPB)
 	if err != nil {
 		return nil, 0, err

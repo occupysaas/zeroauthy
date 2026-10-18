@@ -35,7 +35,8 @@ tenants:
       - client_id: admin
         audience: "https://acme.example.test/api/v2/"
         scopes: ["read:clients", "create:clients", "update:clients", "delete:clients", "read:client_keys", "update:client_keys",
-                  "read:resource_servers", "create:resource_servers", "update:resource_servers", "delete:resource_servers"]
+                  "read:resource_servers", "create:resource_servers", "update:resource_servers", "delete:resource_servers",
+                  "read:client_grants", "create:client_grants", "update:client_grants", "delete:client_grants"]
 `
 
 const mgmtSystemHost = "admin.example.test"
