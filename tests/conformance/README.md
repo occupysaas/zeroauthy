@@ -26,6 +26,7 @@ You need podman with `podman-compose`, or docker with the compose plugin. You al
 | `triage-2026-10.md` | The dry-run triage: every failed, warning, skipped and review module, classified. |
 | `expected-failures.json`, `expected-skips.json` | The suite's own format. Every entry needs a recorded decision. |
 | `summarize.sh` | Turns the runner's output into one line per plan. |
+| `public/` | The hosted certification kit: `seed.yaml.tmpl`, `configs/*.json.tmpl` and `make-seed.sh HOST ALIAS OUTDIR`, which renders them with fresh throwaway secrets outside the repository. See the certification section of `docs/conformance.md`. |
 
 ## Pinned suite version
 

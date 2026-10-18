@@ -1,0 +1,54 @@
+# tests/conformance/public/seed.yaml.tmpl: the tenant for the hosted OpenID
+# certification run (see docs/conformance.md, "Certification").
+# make-seed.sh fills in the placeholders (between double @ signs) with the
+# public host, the hosted suite's alias and fresh random secrets, and writes
+# the result outside the repository. Never commit a rendered copy: the hosted suite
+# publishes its logs, so every secret in it must be throwaway.
+#
+# Callbacks: the hosted suite's base URL is
+# https://www.certification.openid.net/test/a/<alias>, with /callback and
+# /post_logout_redirect appended (CreateRedirectUri.java and
+# CreatePostLogoutRedirectUri.java in the suite). za-cert-post is the
+# client_secret_post client for oidcc-server-client-secret-post.
+tenants:
+  - name: certification
+    friendly_name: zeroauthy OpenID Certification
+    domains: ["@@HOST@@"]
+    default_directory: Username-Password-Authentication
+    clients:
+      - client_id: za-cert-1
+        name: Certification client 1
+        app_type: regular_web
+        client_secret: "@@CLIENT1_SECRET@@"
+        token_endpoint_auth_method: client_secret_basic
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["https://www.certification.openid.net/test/a/@@ALIAS@@/callback"]
+        allowed_logout_urls: ["https://www.certification.openid.net/test/a/@@ALIAS@@/post_logout_redirect"]
+      - client_id: za-cert-2
+        name: Certification client 2
+        app_type: regular_web
+        client_secret: "@@CLIENT2_SECRET@@"
+        token_endpoint_auth_method: client_secret_basic
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["https://www.certification.openid.net/test/a/@@ALIAS@@/callback"]
+        allowed_logout_urls: ["https://www.certification.openid.net/test/a/@@ALIAS@@/post_logout_redirect"]
+      - client_id: za-cert-post
+        name: Certification client (client_secret_post)
+        app_type: regular_web
+        client_secret: "@@CLIENT_POST_SECRET@@"
+        token_endpoint_auth_method: client_secret_post
+        grant_types: [authorization_code, refresh_token]
+        callbacks: ["https://www.certification.openid.net/test/a/@@ALIAS@@/callback"]
+        allowed_logout_urls: ["https://www.certification.openid.net/test/a/@@ALIAS@@/post_logout_redirect"]
+    connections:
+      - name: Username-Password-Authentication
+        enabled_clients: [za-cert-1, za-cert-2, za-cert-post]
+    users:
+      - connection: Username-Password-Authentication
+        email: conformance@example.com
+        password: "@@USER_PASSWORD@@"
+        email_verified: true
+        name: Conformance User
+        given_name: Conformance
+        family_name: User
+        nickname: conformance

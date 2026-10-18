@@ -1,0 +1,749 @@
+{
+    "description": "zeroauthy: RP-Initiated Logout OP",
+    "server": {
+        "discoveryUrl": "https://@@HOST@@/.well-known/openid-configuration"
+    },
+    "client": {
+        "client_id": "za-cert-1",
+        "client_secret": "@@CLIENT1_SECRET@@"
+    },
+    "client2": {
+        "client_id": "za-cert-2",
+        "client_secret": "@@CLIENT2_SECRET@@"
+    },
+    "alias": "@@ALIAS@@",
+    "browser": [
+        {
+            "match": "https://@@HOST@@/authorize*",
+            "tasks": [
+                {
+                    "task": "Login",
+                    "optional": true,
+                    "match": "*/u/login*",
+                    "commands": [
+                        [
+                            "text",
+                            "id",
+                            "username",
+                            "conformance@example.com"
+                        ],
+                        [
+                            "text",
+                            "id",
+                            "password",
+                            "@@USER_PASSWORD@@"
+                        ],
+                        [
+                            "click",
+                            "css",
+                            "button[type=submit]"
+                        ]
+                    ]
+                },
+                {
+                    "task": "Consent",
+                    "optional": true,
+                    "match": "*/u/consent*",
+                    "commands": [
+                        [
+                            "click",
+                            "css",
+                            "button[name=action][value=accept]"
+                        ]
+                    ]
+                },
+                {
+                    "task": "Verify Complete",
+                    "match": "*/test/*/callback*",
+                    "commands": [
+                        [
+                            "wait",
+                            "id",
+                            "submission_complete",
+                            10
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "match": "https://@@HOST@@/oidc/logout*",
+            "tasks": [
+                {
+                    "task": "Confirm logout",
+                    "optional": true,
+                    "match": "https://@@HOST@@/oidc/logout*",
+                    "commands": [
+                        [
+                            "click",
+                            "css",
+                            "button[type=submit]",
+                            "optional"
+                        ]
+                    ]
+                },
+                {
+                    "task": "Verify Complete",
+                    "match": "*/test/*/post*"
+                }
+            ]
+        }
+    ],
+    "override": {
+        "oidcc-rp-initiated-logout-bad-post-logout-redirect-uri": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://@@HOST@@/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-query-added-to-post-logout-redirect-uri": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://@@HOST@@/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-modified-id-token-hint": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://@@HOST@@/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-bad-id-token-hint": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://@@HOST@@/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-no-id-token-hint": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "expect an error page",
+                    "match": "https://@@HOST@@/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-no-params": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "confirm, then expect the logged-out page",
+                    "match": "https://@@HOST@@/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Confirm logout",
+                            "optional": true,
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]",
+                                    "optional"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Expect logged-out page",
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//h1",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-no-post-logout-redirect-uri": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "confirm, then expect the logged-out page",
+                    "match": "https://@@HOST@@/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Confirm logout",
+                            "optional": true,
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]",
+                                    "optional"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Expect logged-out page",
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//h1",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-rp-initiated-logout-only-state": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "comment": "confirm, then expect the logged-out page",
+                    "match": "https://@@HOST@@/oidc/logout*",
+                    "tasks": [
+                        {
+                            "task": "Confirm logout",
+                            "optional": true,
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]",
+                                    "optional"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Expect logged-out page",
+                            "match": "https://@@HOST@@/oidc/logout*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//h1",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

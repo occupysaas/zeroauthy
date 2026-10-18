@@ -1,0 +1,254 @@
+{
+    "description": "zeroauthy: OpenID Connect Basic OP",
+    "server": {
+        "discoveryUrl": "https://@@HOST@@/.well-known/openid-configuration"
+    },
+    "client": {
+        "client_id": "za-cert-1",
+        "client_secret": "@@CLIENT1_SECRET@@"
+    },
+    "client2": {
+        "client_id": "za-cert-2",
+        "client_secret": "@@CLIENT2_SECRET@@"
+    },
+    "alias": "@@ALIAS@@",
+    "client_secret_post": {
+        "client_id": "za-cert-post",
+        "client_secret": "@@CLIENT_POST_SECRET@@"
+    },
+    "browser": [
+        {
+            "match": "https://@@HOST@@/authorize*",
+            "tasks": [
+                {
+                    "task": "Login",
+                    "optional": true,
+                    "match": "*/u/login*",
+                    "commands": [
+                        [
+                            "text",
+                            "id",
+                            "username",
+                            "conformance@example.com"
+                        ],
+                        [
+                            "text",
+                            "id",
+                            "password",
+                            "@@USER_PASSWORD@@"
+                        ],
+                        [
+                            "click",
+                            "css",
+                            "button[type=submit]"
+                        ]
+                    ]
+                },
+                {
+                    "task": "Consent",
+                    "optional": true,
+                    "match": "*/u/consent*",
+                    "commands": [
+                        [
+                            "click",
+                            "css",
+                            "button[name=action][value=accept]"
+                        ]
+                    ]
+                },
+                {
+                    "task": "Verify Complete",
+                    "match": "*/test/*/callback*",
+                    "commands": [
+                        [
+                            "wait",
+                            "id",
+                            "submission_complete",
+                            10
+                        ]
+                    ]
+                }
+            ]
+        }
+    ],
+    "override": {
+        "oidcc-ensure-registered-redirect-uri": {
+            "browser": [
+                {
+                    "comment": "expect an error page",
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://@@HOST@@/authorize*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-ensure-request-object-with-redirect-uri": {
+            "browser": [
+                {
+                    "comment": "expect an error page",
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Expect error page",
+                            "match": "https://@@HOST@@/authorize*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "xpath",
+                                    "//*[@role='alert']",
+                                    10,
+                                    ".",
+                                    "update-image-placeholder"
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-prompt-login": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "username",
+                                    10,
+                                    ".*",
+                                    "update-image-placeholder-optional"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "oidcc-max-age-1": {
+            "browser": [
+                {
+                    "match": "https://@@HOST@@/authorize*",
+                    "tasks": [
+                        {
+                            "task": "Login",
+                            "optional": true,
+                            "match": "*/u/login*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "username",
+                                    10,
+                                    ".*",
+                                    "update-image-placeholder-optional"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "username",
+                                    "conformance@example.com"
+                                ],
+                                [
+                                    "text",
+                                    "id",
+                                    "password",
+                                    "@@USER_PASSWORD@@"
+                                ],
+                                [
+                                    "click",
+                                    "css",
+                                    "button[type=submit]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Consent",
+                            "optional": true,
+                            "match": "*/u/consent*",
+                            "commands": [
+                                [
+                                    "click",
+                                    "css",
+                                    "button[name=action][value=accept]"
+                                ]
+                            ]
+                        },
+                        {
+                            "task": "Verify Complete",
+                            "match": "*/test/*/callback*",
+                            "commands": [
+                                [
+                                    "wait",
+                                    "id",
+                                    "submission_complete",
+                                    10
+                                ]
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
