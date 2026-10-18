@@ -111,7 +111,7 @@ The simplest setup is Caddy in front for automatic Let's Encrypt certificates, w
 
 ```bash
 make build                       # CGO_ENABLED=0: bin/zeroauthy is static
-openssl rand -base64 32 > ~/zeroauthy-cert-kit/master.key
+(umask 077; openssl rand -base64 32 > ~/zeroauthy-cert-kit/master.key)
 scp bin/zeroauthy root@<droplet-ip>:/usr/local/bin/zeroauthy
 scp ~/zeroauthy-cert-kit/seed.yaml ~/zeroauthy-cert-kit/master.key root@<droplet-ip>:/root/
 ```
@@ -238,7 +238,7 @@ Package status: TBD. Waiver email date: TBD. Submission date: TBD.
 ### 6. Teardown
 
 1. `systemctl disable --now zeroauthy caddy`, then `rm -rf /var/lib/zeroauthy /etc/zeroauthy` (the database holds the clients, the user and the signing key).
-2. Destroy the droplet and remove the `A` record.
+2. Destroy the droplet (required, not optional) and remove the `A` record. The directory cleanup does not remove the journald logs or Caddy's access logs, and those hold `/authorize` query strings and other request details from the run.
 3. Delete the local kit (`rm -rf ~/zeroauthy-cert-kit`). Reuse nothing from it.
 4. Record below the date, the suite version and the zeroauthy commit that was certified.
 

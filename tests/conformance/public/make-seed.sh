@@ -31,7 +31,9 @@ if [[ ! "$alias" =~ ^[A-Za-z0-9_-]+$ ]]; then
   echo "ALIAS may contain only letters, digits, '-' and '_', not '$alias'" >&2
   exit 2
 fi
-command -v openssl >/dev/null || { echo "openssl is required" >&2; exit 1; }
+for tool in openssl python3; do
+  command -v "$tool" >/dev/null || { echo "$tool is required" >&2; exit 1; }
+done
 
 # OUTDIR must not be inside the repository (or be the repository itself).
 out_abs="$(realpath -m -- "$out")"
@@ -51,21 +53,27 @@ done
 umask 077
 mkdir -p "$out_abs/configs"
 
-# Hex keeps the values safe in YAML, JSON and sed. The password prefix adds
+# Hex keeps the values safe in YAML and JSON. The password prefix adds
 # an upper-case letter and a symbol for the default password policy.
 client1_secret="$(openssl rand -hex 32)"
 client2_secret="$(openssl rand -hex 32)"
 client_post_secret="$(openssl rand -hex 32)"
 user_password="Za-$(openssl rand -hex 12)"
 
+# The secrets reach the substitution through the environment of one child
+# process, never its command line, so they do not show up in ps.
 render() {
-  sed -e "s/@@HOST@@/$host/g" \
-      -e "s/@@ALIAS@@/$alias/g" \
-      -e "s/@@CLIENT1_SECRET@@/$client1_secret/g" \
-      -e "s/@@CLIENT2_SECRET@@/$client2_secret/g" \
-      -e "s/@@CLIENT_POST_SECRET@@/$client_post_secret/g" \
-      -e "s/@@USER_PASSWORD@@/$user_password/g" \
-      "$1" >"$2"
+  ZA_HOST="$host" ZA_ALIAS="$alias" ZA_CLIENT1_SECRET="$client1_secret" \
+    ZA_CLIENT2_SECRET="$client2_secret" ZA_CLIENT_POST_SECRET="$client_post_secret" \
+    ZA_USER_PASSWORD="$user_password" python3 -I - "$1" "$2" <<'PY'
+import os, sys
+src, dst = sys.argv[1:]
+text = open(src).read()
+for name in ("HOST", "ALIAS", "CLIENT1_SECRET", "CLIENT2_SECRET", "CLIENT_POST_SECRET", "USER_PASSWORD"):
+    text = text.replace("@@" + name + "@@", os.environ["ZA_" + name])
+with open(dst, "w") as f:
+    f.write(text)
+PY
   if grep -q '@@[A-Z0-9_]*@@' "$2"; then
     echo "unreplaced placeholder in $2" >&2
     exit 1
