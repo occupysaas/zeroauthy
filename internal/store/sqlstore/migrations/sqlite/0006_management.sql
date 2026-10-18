@@ -1,5 +1,5 @@
--- Management API, slice 1 (Plan 13). Later tasks of the plan append their
--- statements to this file before it ships.
+-- Management API, slice 1 (Plan 13): client secrets. This version is final;
+-- later schema changes go in new versions (0007 onward).
 --
 -- Client secrets (D-0038): a secret is now sealed under the master key
 -- instead of hashed. Each entry of clients.secrets (a JSON list) gains an

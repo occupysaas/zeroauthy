@@ -43,6 +43,17 @@ func TestClientSecretAADBinding(t *testing.T) {
 	}
 }
 
+func TestClientSecretAADIsInjective(t *testing.T) {
+	if bytes.Equal(clientSecretAAD("a|b", "c"), clientSecretAAD("a", "b|c")) {
+		t.Fatal("AAD is ambiguous across the field boundary")
+	}
+	w, _ := NewLocalWrapper(testMasterKey(1))
+	sealed, _ := SealClientSecret(w, "ten_1", "x|y", "s")
+	if _, err := OpenClientSecret(w, "ten_1|x", "y", sealed); err == nil {
+		t.Error("opened with the boundary shifted")
+	}
+}
+
 func TestClientSecretRejectsEmpty(t *testing.T) {
 	w, _ := NewLocalWrapper(testMasterKey(1))
 	if _, err := SealClientSecret(w, "t", "c", ""); err == nil {

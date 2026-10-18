@@ -1090,11 +1090,13 @@ func (x *Branding) GetPrimaryColor() string {
 }
 
 type ClientSecret struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Hash          string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // absent = nil
-	Sealed        []byte                 `protobuf:"bytes,4,opt,name=sealed,proto3" json:"sealed,omitempty"`                        // keys.SealClientSecret envelope; empty when hash is set
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Hash      string                 `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // absent = nil
+	// keys.SealClientSecret envelope; empty when hash is set. Requires an
+	// up-to-date plugin: one that drops this field fails the codec's check.
+	Sealed        []byte `protobuf:"bytes,4,opt,name=sealed,proto3" json:"sealed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

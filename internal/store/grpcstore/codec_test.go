@@ -372,8 +372,17 @@ func TestInvalidInputs(t *testing.T) {
 		t.Fatal("invalid timestamp accepted")
 	}
 	if _, err := clientFromPB(&storev1.Client{Secrets: &storev1.ClientSecretList{
-		Values: []*storev1.ClientSecret{{ExpiresAt: bad}}}}); err == nil {
+		Values: []*storev1.ClientSecret{{Hash: "h", ExpiresAt: bad}}}}); err == nil {
 		t.Fatal("invalid secret timestamp accepted")
+	}
+	for name, sec := range map[string]*storev1.ClientSecret{
+		"neither": {},
+		"both":    {Hash: "h", Sealed: []byte{1}},
+	} {
+		if _, err := clientFromPB(&storev1.Client{Secrets: &storev1.ClientSecretList{
+			Values: []*storev1.ClientSecret{sec}}}); err == nil {
+			t.Errorf("client secret with %s of hash and sealed accepted", name)
+		}
 	}
 	if _, err := userFromPB(&storev1.User{UserMetadataJson: []byte("{")}); err == nil {
 		t.Fatal("bad metadata JSON accepted")

@@ -7,6 +7,12 @@ import (
 
 // connectionConfigAAD binds a sealed configuration to its tenant and
 // connection, so a blob copied between rows does not open.
+//
+// The '|'-joined form is unambiguous only because both IDs are generated:
+// "ten_" and "con_" followed by alphanumerics (secrets.RandomString), never
+// containing '|'. Configurations sealed this way exist in deployed databases
+// (Plan 8), so the format is kept as is; new sealed values use
+// lengthPrefixed (see clientSecretAAD).
 func connectionConfigAAD(tenantID, connectionID string) []byte {
 	return []byte("connection-config|" + tenantID + "|" + connectionID)
 }

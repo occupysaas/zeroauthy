@@ -272,6 +272,12 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 			if err := checkTS(s.GetCreatedAt(), s.GetExpiresAt()); err != nil {
 				return nil, err
 			}
+			// Exactly one form is set. Neither means a plugin dropped the
+			// sealed field (built before it existed): fail loudly instead
+			// of storing or returning an unusable secret.
+			if (s.GetHash() == "") == (len(s.GetSealed()) == 0) {
+				return nil, fmt.Errorf("grpcstore: client %q: a client secret needs exactly one of hash and sealed (is the store plugin up to date?)", pb.ClientId)
+			}
 			c.Secrets = append(c.Secrets, store.ClientSecret{
 				Hash: s.GetHash(), Sealed: optBytes(s.GetSealed()), CreatedAt: tsFromPB(s.GetCreatedAt()), ExpiresAt: optTSFromPB(s.GetExpiresAt())})
 		}

@@ -229,7 +229,9 @@ message ClientSecret {
   string hash = 1;
   google.protobuf.Timestamp created_at = 2;
   google.protobuf.Timestamp expires_at = 3; // absent = nil
-  bytes sealed = 4; // keys.SealClientSecret envelope; empty when hash is set
+  // keys.SealClientSecret envelope; empty when hash is set. Requires an
+  // up-to-date plugin: one that drops this field fails the codec's check.
+  bytes sealed = 4;
 }
 message ClientSecretList { repeated ClientSecret values = 1; }
 message RefreshTokenPolicy {

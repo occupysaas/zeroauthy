@@ -1,12 +1,33 @@
 package keys
 
-import "errors"
+import (
+	"encoding/binary"
+	"errors"
+)
 
 // clientSecretAAD binds a sealed secret to its tenant and client, so a blob
-// copied between clients or tenants does not open. The prefix keeps it
-// distinct from other sealed values for the same IDs.
+// copied between clients or tenants does not open. Client IDs come from
+// seeds and API callers and may contain any character, so a separator alone
+// would be ambiguous ("a|b"+"c" vs "a"+"b|c"): each field is length-prefixed,
+// which makes the encoding injective. The label keeps it distinct from other
+// sealed values for the same IDs.
 func clientSecretAAD(tenantID, clientID string) []byte {
-	return []byte("client-secret|" + tenantID + "|" + clientID)
+	return lengthPrefixed("client-secret/v1", tenantID, clientID)
+}
+
+// lengthPrefixed encodes each field as a 4-byte big-endian length followed
+// by its bytes.
+func lengthPrefixed(fields ...string) []byte {
+	n := 0
+	for _, f := range fields {
+		n += 4 + len(f)
+	}
+	out := make([]byte, 0, n)
+	for _, f := range fields {
+		out = binary.BigEndian.AppendUint32(out, uint32(len(f)))
+		out = append(out, f...)
+	}
+	return out
 }
 
 // SealClientSecret envelope-encrypts a client secret under the master key
