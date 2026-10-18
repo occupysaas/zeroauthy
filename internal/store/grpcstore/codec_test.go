@@ -171,6 +171,7 @@ func TestClientRoundTrip(t *testing.T) {
 		RedirectionPolicy: store.RedirectionPolicyAllowAlways,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: ptr(true),
 		RequirePushedAuthorizationRequests:             true,
+		Origin:                                         store.ClientOriginAPI,
 	}, clientToPB, clientFromPB)
 	roundTrip(t, "third party", &store.Client{
 		TenantID: "ten", ClientID: "tp", ThirdPartySecurityMode: store.SecurityModePermissive,

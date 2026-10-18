@@ -50,6 +50,21 @@ func (r clients) Delete(_ context.Context, tenantID, clientID string) error {
 		return store.ErrNotFound
 	}
 	delete(r.s.clients, k)
+	for gk, g := range r.s.clientGrants {
+		if gk.tenant == tenantID && g.ClientID == clientID {
+			delete(r.s.clientGrants, gk)
+		}
+	}
+	for gk, g := range r.s.userGrants {
+		if gk.tenant == tenantID && g.ClientID == clientID {
+			delete(r.s.userGrants, gk)
+		}
+	}
+	for tk, t := range r.s.refreshTokens {
+		if tk.tenant == tenantID && t.ClientID == clientID {
+			delete(r.s.refreshTokens, tk)
+		}
+	}
 	return nil
 }
 

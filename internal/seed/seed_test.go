@@ -1035,3 +1035,28 @@ func TestSeedManagementAPIRefusals(t *testing.T) {
 		t.Errorf("redefined: err = %v", err)
 	}
 }
+
+// Clients created through the Management API are never touched by the
+// seed, even when it defines the same client ID (design §5.4).
+func TestSeedSkipsAPIClients(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, _ := Parse([]byte(sample))
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	c, _ := st.Clients().Get(ctx, tn.ID, "m2m")
+	c.Name, c.Origin = "Edited in the console", store.ClientOriginAPI
+	c.Callbacks = []string{"https://edited.test/cb"}
+	if err := st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.Clients().Get(ctx, tn.ID, "m2m")
+	if got.Name != "Edited in the console" || len(got.Callbacks) != 1 || got.Origin != store.ClientOriginAPI {
+		t.Fatalf("the seed changed an API client: %+v", got)
+	}
+}

@@ -19,6 +19,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/session"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -47,8 +48,13 @@ tenants:
         web_origins: ["https://app.flow.test"]
         allowed_origins: ["https://app.flow.test"]
       - {client_id: tv, name: "Flow TV", app_type: native, grant_types: ["urn:ietf:params:oauth:grant-type:device_code"]}
+      - client_id: spa2
+        app_type: spa
+        grant_types: [authorization_code]
+        callbacks: ["https://app2.flow.test/cb"]
+        allowed_logout_urls: ["https://app2.flow.test/bye"]
     connections:
-      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, tv]}
+      - {name: Username-Password-Authentication, is_domain_connection: true, enabled_clients: [spa, tv, spa2]}
     users:
       - {connection: Username-Password-Authentication, email: alice@flow.test, password: "alice password 1", email_verified: true}
 `
@@ -61,6 +67,8 @@ const (
 type flowEnv struct {
 	srv  *httptest.Server
 	base string
+	st   store.Store
+	w    keys.Wrapper
 }
 
 func newFlowEnv(t *testing.T) *flowEnv {
@@ -90,7 +98,7 @@ func newFlowEnv(t *testing.T) *flowEnv {
 	if err := km.Ensure(ctx, tn.ID); err != nil {
 		t.Fatal(err)
 	}
-	return &flowEnv{srv: srv, base: "https://" + host}
+	return &flowEnv{srv: srv, base: "https://" + host, st: st, w: w}
 }
 
 func (e *flowEnv) client(t *testing.T) *http.Client {

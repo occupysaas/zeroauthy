@@ -130,7 +130,14 @@ type Client struct {
 	// do not name a pushed request. Only for confidential clients of a
 	// tenant that allows PAR.
 	RequirePushedAuthorizationRequests bool
+	// Origin records who created the client: ClientOriginAPI for the
+	// Management API (and the console), empty for the seed or zeroauthy
+	// itself. The seed never touches API-created clients.
+	Origin string
 }
+
+// ClientOriginAPI marks a client created through the Management API.
+const ClientOriginAPI = "api"
 
 // Scope is a permission defined by a resource server.
 type Scope struct {

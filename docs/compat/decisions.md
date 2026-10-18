@@ -598,6 +598,15 @@ them. Each entry: context, sources consulted, decision, rationale.
     - zeroauthy is always OIDC-conformant. `oidc_conformant` is reported as `true` and cannot be set to `false`.
     - The implicit grant is not offered, so it is not in the defaults.
     - The console applies per-type defaults on create, as Auth0's dashboard does, through the same API.
+    - **API create defaults** (Plan 13 Task 5): `app_type` `regular_web` when absent (zeroauthy stores a type for every client); `token_endpoint_auth_method` `none` for `spa` and `native`, `client_secret_post` otherwise; `grant_types` `authorization_code` and `refresh_token`, plus `client_credentials` for confidential clients; refresh tokens rotating and expiring for `spa`, non-rotating and non-expiring otherwise (an SPA must have expiring tokens).
+    - **Public clients have no secret:** `client_secret` is refused for `token_endpoint_auth_method` `none`, and `rotate-secret` on a public client is `400 invalid_body`. Switching a client to a confidential method generates a secret.
+    - **Grant types:** Auth0's names are accepted and stored, including `implicit` and the MFA grants that `auth0-cli` sends by default; the token endpoint serves only the grants zeroauthy implements. Unknown names are `400 invalid_body`.
+    - **Origins:** `web_origins` and `allowed_origins` must be origins (scheme and host, no path).
+    - **`update:client_keys`:** needed to set `client_secret` on `PATCH`; a body with only `client_secret` needs no `update:clients`.
+    - **Accepted and ignored** (sent by `auth0-cli` or exported by `auth0-deploy-cli`): `description`, `logo_uri`, `client_metadata`, `sso`, `sso_disabled`, `cross_origin_authentication`, `cross_origin_auth`, `cross_origin_loc`, `custom_login_page_on`, `custom_login_page`, `initiate_login_uri`, `native_social_login`, `mobile`, `organization_usage`, `organization_require_behavior`, `is_token_endpoint_ip_header_trusted`, `allowed_clients`; also `jwt_configuration.secret_encoded` and `refresh_token.infinite_idle_token_lifetime`. `refresh_token.infinite_token_lifetime` sets the expiration type when `expiration_type` is absent.
+    - **Read-only fields** in a body (`tenant`, `global`, `callback_url_template`, `signing_keys`, `created_at`) are unknown properties. `client_id` is `403 operation_not_supported` on `POST` (M10) and allowed on `PATCH` only unchanged.
+    - **The console's own client** (`zeroauthy-console` in the system tenant) cannot be changed, rotated or deleted through the API (`403 operation_not_supported`).
+    - **Deleting** a client deletes its client grants, user grants and refresh tokens and removes it from every connection's enabled clients; login sessions stay.
 - **Rationale:** observed values are matched. The differences follow from features zeroauthy does not have.
 - **Open for slice 5:**
   - `auth0-deploy-cli` does not carry `client_secret`, and Auth0 refuses a caller-supplied `client_id`. A migration that keeps client IDs and secrets needs a dedicated step, for example zeroauthy accepting `client_id` on create as an extension.

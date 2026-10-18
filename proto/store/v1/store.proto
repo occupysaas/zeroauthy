@@ -270,6 +270,7 @@ message Client {
   string redirection_policy = 17;
   optional bool skip_non_verifiable_callback_uri_confirmation_prompt = 18; // absent = nil
   bool require_pushed_authorization_requests = 19;   // absent = false
+  string origin = 20;                                // "api" or empty (seed)
 }
 
 message Scope { string value = 1; string description = 2; }

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -19,24 +20,6 @@ import (
 
 var dnsLabel = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
 
-// checkURL reports why raw cannot be registered as a redirect target: it
-// must parse, be absolute, have no fragment, and http(s) URLs need a host.
-// Wildcard hosts (https://*.example.com/cb) parse like any other host.
-func checkURL(raw string) error {
-	u, err := url.Parse(raw)
-	switch {
-	case err != nil:
-		return fmt.Errorf("%q is not a valid URL", raw)
-	case u.Scheme == "":
-		return fmt.Errorf("%q must be an absolute URL", raw)
-	case strings.Contains(raw, "#"):
-		return fmt.Errorf("%q must not contain a fragment", raw)
-	case (u.Scheme == "http" || u.Scheme == "https") && u.Host == "":
-		return fmt.Errorf("%q has no host", raw)
-	}
-	return nil
-}
-
 var configKey = regexp.MustCompile(`^[A-Za-z0-9_]{1,128}$`)
 
 const (
@@ -46,34 +29,6 @@ const (
 )
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
-
-var appTypes = []string{
-	string(store.AppTypeSPA), string(store.AppTypeRegularWeb),
-	string(store.AppTypeNative), string(store.AppTypeNonInteractive),
-}
-
-var authMethods = []string{
-	store.AuthMethodNone, store.AuthMethodClientSecretPost, store.AuthMethodClientSecretBasic,
-}
-
-// deviceGrant is the device authorization grant type. It is spelled out
-// here because seed does not import internal/oauth.
-const deviceGrant = "urn:ietf:params:oauth:grant-type:device_code"
-
-// strictGrantTypes are the only grant types a strict third-party
-// application may use.
-var strictGrantTypes = []string{"authorization_code", "refresh_token", "client_credentials"}
-
-// defaultAuthMethod picks a method when the seed omits one. Browser and
-// native apps cannot keep secrets, so they are public clients.
-func defaultAuthMethod(appType string) string {
-	switch store.AppType(appType) {
-	case store.AppTypeSPA, store.AppTypeNative:
-		return store.AuthMethodNone
-	default:
-		return store.AuthMethodClientSecretPost
-	}
-}
 
 func (f *File) validate() error {
 	var errs []error
@@ -178,7 +133,7 @@ func (t *Tenant) validate() []error {
 		errs = append(errs, fmt.Errorf("seed: tenant %q: "+format, append([]any{t.Name}, args...)...))
 	}
 	for _, u := range t.AllowedLogoutURLs {
-		if err := checkURL(u); err != nil {
+		if err := clientrules.CheckURL(u); err != nil {
 			fail("allowed_logout_urls: %v", err)
 		}
 	}
@@ -256,134 +211,20 @@ func (t *Tenant) validate() []error {
 			fail("duplicate client %q", c.ClientID)
 		}
 		clients[c.ClientID] = true
-		if !slices.Contains(appTypes, c.AppType) {
-			fail("client %q: app_type %q must be one of %v", c.ClientID, c.AppType, appTypes)
-		}
-		if c.TokenEndpointAuthMethod == "" {
-			c.TokenEndpointAuthMethod = defaultAuthMethod(c.AppType)
-		}
-		if !slices.Contains(authMethods, c.TokenEndpointAuthMethod) {
-			fail("client %q: token_endpoint_auth_method %q must be one of %v", c.ClientID, c.TokenEndpointAuthMethod, authMethods)
-		}
-		for _, cb := range c.Callbacks {
-			if err := checkURL(cb); err != nil {
-				fail("client %q: callback %v", c.ClientID, err)
-				continue
-			}
-			if rest, ok := strings.CutPrefix(cb, "https://*."); ok {
-				host := rest[:strings.IndexAny(rest+"/", "/:?")]
-				if len(strings.Split(host, ".")) < 2 || slices.Contains(strings.Split(host, "."), "") {
-					fail("client %q: wildcard callback %q must cover a domain of at least two labels", c.ClientID, cb)
-				}
-			}
-		}
-		for _, u := range c.AllowedLogoutURLs {
-			if err := checkURL(u); err != nil {
-				fail("client %q: allowed_logout_urls: %v", c.ClientID, err)
-			}
-		}
-		public := c.TokenEndpointAuthMethod == store.AuthMethodNone
+		public := c.TokenEndpointAuthMethod == store.AuthMethodNone ||
+			(c.TokenEndpointAuthMethod == "" && clientrules.DefaultAuthMethod(c.AppType) == store.AuthMethodNone)
 		if public && c.ClientSecret != "" {
 			fail("client %q: public clients must not have a client_secret", c.ClientID)
 		}
 		// A confidential client may omit client_secret: an existing client
 		// then keeps its stored secret (Plan 13). Creating one without a
 		// secret fails when the seed is applied.
-		firstParty := c.IsFirstParty == nil || *c.IsFirstParty
-		c.IsFirstParty = &firstParty
-		thirdParty[c.ClientID] = !firstParty
-		switch {
-		case firstParty && c.ThirdPartySecurityMode != "":
-			fail("client %q: third_party_security_mode is only for third-party applications", c.ClientID)
-		case !firstParty && c.ThirdPartySecurityMode == "":
-			c.ThirdPartySecurityMode = store.SecurityModeStrict // O1c
+		spec := c.spec()
+		for _, err := range clientrules.Normalize(&spec, t.PushedAuthorizationRequestsSupported) {
+			fail("client %q: %v", c.ClientID, err)
 		}
-		if !firstParty && c.ThirdPartySecurityMode != store.SecurityModeStrict && c.ThirdPartySecurityMode != store.SecurityModePermissive {
-			fail("client %q: third_party_security_mode %q must be strict or permissive", c.ClientID, c.ThirdPartySecurityMode)
-		}
-		if c.RequirePushedAuthorizationRequests {
-			switch {
-			case !t.PushedAuthorizationRequestsSupported:
-				fail("client %q: require_pushed_authorization_requests needs the tenant's pushed_authorization_requests_supported", c.ClientID)
-			case public:
-				fail("client %q: require_pushed_authorization_requests is only for confidential applications", c.ClientID)
-			case !firstParty:
-				fail("client %q: third-party applications cannot use pushed authorization requests", c.ClientID) // P9, D-0028
-			}
-		}
-		if c.RedirectionPolicy == "" {
-			c.RedirectionPolicy = store.RedirectionPolicyAllowAlways // O1d
-			if !firstParty {
-				c.RedirectionPolicy = store.RedirectionPolicyOpenRedirectProtection
-			}
-		}
-		if c.RedirectionPolicy != store.RedirectionPolicyAllowAlways && c.RedirectionPolicy != store.RedirectionPolicyOpenRedirectProtection {
-			fail("client %q: redirection_policy %q must be %s or %s", c.ClientID, c.RedirectionPolicy,
-				store.RedirectionPolicyOpenRedirectProtection, store.RedirectionPolicyAllowAlways)
-		}
-		strict := !firstParty && c.ThirdPartySecurityMode == store.SecurityModeStrict
-		for _, gt := range c.GrantTypes {
-			switch {
-			case !firstParty && (gt == "password" || gt == "http://auth0.com/oauth/grant-type/password-realm"):
-				fail("client %q: grant type %q is not available to third-party applications", c.ClientID, gt)
-			case strict && !slices.Contains(strictGrantTypes, gt):
-				fail("client %q: grant type %q is not available to strict third-party applications", c.ClientID, gt)
-			}
-		}
-		if slices.Contains(c.GrantTypes, deviceGrant) {
-			// Observed on Auth0: the Management API accepts the device
-			// grant only for first-party native public clients.
-			if store.AppType(c.AppType) != store.AppTypeNative {
-				fail("client %q: device grant requires app_type native", c.ClientID)
-			}
-			if c.TokenEndpointAuthMethod != store.AuthMethodNone {
-				fail("client %q: device grant requires token_endpoint_auth_method none", c.ClientID)
-			}
-			if !firstParty {
-				fail("client %q: device grant is not available to third-party applications", c.ClientID)
-			}
-		}
-		if strict && slices.Contains(c.GrantTypes, "client_credentials") && c.TokenEndpointAuthMethod == store.AuthMethodNone {
-			fail("client %q: client_credentials requires a confidential client", c.ClientID)
-		}
-		if strict && store.AppType(c.AppType) == store.AppTypeNative && c.RefreshToken.RotationType == "" {
-			c.RefreshToken.RotationType = "rotating" // strict default for native apps
-		}
-		rt := &c.RefreshToken
-		if strict && rt.ExpirationType == "" {
-			rt.ExpirationType = "expiring" // Auth0 requires strict refresh tokens to expire
-		}
-		if rt.RotationType == "" {
-			rt.RotationType = "non-rotating"
-			if store.AppType(c.AppType) == store.AppTypeSPA {
-				rt.RotationType = "rotating"
-			}
-		}
-		if rt.ExpirationType == "" {
-			rt.ExpirationType = "non-expiring"
-			if rt.RotationType == "rotating" {
-				rt.ExpirationType = "expiring"
-			}
-		}
-		switch {
-		case rt.RotationType != "rotating" && rt.RotationType != "non-rotating":
-			fail("client %q: refresh_token.rotation_type %q must be rotating or non-rotating", c.ClientID, rt.RotationType)
-		case rt.ExpirationType != "expiring" && rt.ExpirationType != "non-expiring":
-			fail("client %q: refresh_token.expiration_type %q must be expiring or non-expiring", c.ClientID, rt.ExpirationType)
-		case rt.RotationType == "rotating" && rt.ExpirationType != "expiring":
-			fail("client %q: refresh_token rotation requires expiration_type expiring", c.ClientID)
-		case store.AppType(c.AppType) == store.AppTypeSPA && rt.ExpirationType != "expiring":
-			fail("client %q: single-page applications require expiring refresh tokens", c.ClientID)
-		}
-		if strict && rt.ExpirationType != "expiring" {
-			fail("client %q: strict third-party applications require expiring refresh tokens", c.ClientID)
-		}
-		if rt.Leeway < 0 || rt.TokenLifetime < 0 || rt.IdleTokenLifetime < 0 {
-			fail("client %q: refresh_token leeway and lifetimes must not be negative", c.ClientID)
-		}
-		if rt.TokenLifetime > 0 && rt.IdleTokenLifetime > rt.TokenLifetime {
-			fail("client %q: refresh_token.idle_token_lifetime must not exceed token_lifetime", c.ClientID)
-		}
+		c.normalized = &spec
+		thirdParty[c.ClientID] = !*spec.IsFirstParty
 	}
 
 	seenGrants := map[[3]string]bool{}

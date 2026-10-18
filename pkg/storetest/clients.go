@@ -47,6 +47,7 @@ func testClients(t *testing.T, newStore Factory) {
 
 		want.Name = "Renamed"
 		want.Secrets = want.Secrets[:1]
+		want.Origin = store.ClientOriginAPI
 		mustNoErr(t, s.Clients().Update(ctx, want))
 		got, err = s.Clients().Get(ctx, "ten_a", "c1")
 		mustNoErr(t, err)
@@ -57,6 +58,49 @@ func testClients(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 		mustErrIs(t, s.Clients().Delete(ctx, "ten_a", "c1"), store.ErrNotFound)
 		mustErrIs(t, s.Clients().Update(ctx, want), store.ErrNotFound)
+	})
+
+	t.Run("DeleteCascades", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Clients().Create(ctx, newClient("ten_a", "gone")))
+		mustNoErr(t, s.Clients().Create(ctx, newClient("ten_a", "kept")))
+		mustNoErr(t, s.Clients().Create(ctx, newClient("ten_b", "gone")))
+		for _, tn := range []string{"ten_a", "ten_b"} {
+			mustNoErr(t, s.ClientGrants().Create(ctx, newClientGrant(tn, "cg_gone", "gone", "https://api.test")))
+			_, err := s.UserGrants().Upsert(ctx, newUserGrant(tn, "ug_gone", "gone", "auth0|u1", "https://api.test", "read"))
+			mustNoErr(t, err)
+			rt := newRefreshToken(tn, "rt_gone", "h_gone", "f_gone")
+			rt.ClientID = "gone"
+			mustNoErr(t, s.RefreshTokens().Create(ctx, rt))
+		}
+		mustNoErr(t, s.ClientGrants().Create(ctx, newClientGrant("ten_a", "cg_kept", "kept", "https://api.test")))
+		_, err := s.UserGrants().Upsert(ctx, newUserGrant("ten_a", "ug_kept", "kept", "auth0|u1", "https://api.test", "read"))
+		mustNoErr(t, err)
+		rt := newRefreshToken("ten_a", "rt_kept", "h_kept", "f_kept")
+		rt.ClientID = "kept"
+		mustNoErr(t, s.RefreshTokens().Create(ctx, rt))
+
+		mustNoErr(t, s.Clients().Delete(ctx, "ten_a", "gone"))
+
+		_, err = s.ClientGrants().Find(ctx, "ten_a", "gone", "https://api.test", store.SubjectTypeClient)
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.UserGrants().Find(ctx, "ten_a", "gone", "auth0|u1", "https://api.test")
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.RefreshTokens().GetByTokenHash(ctx, "ten_a", "h_gone")
+		mustErrIs(t, err, store.ErrNotFound)
+		// Other clients and the same client ID in another tenant keep theirs.
+		_, err = s.ClientGrants().Find(ctx, "ten_a", "kept", "https://api.test", store.SubjectTypeClient)
+		mustNoErr(t, err)
+		_, err = s.UserGrants().Find(ctx, "ten_a", "kept", "auth0|u1", "https://api.test")
+		mustNoErr(t, err)
+		_, err = s.RefreshTokens().GetByTokenHash(ctx, "ten_a", "h_kept")
+		mustNoErr(t, err)
+		_, err = s.ClientGrants().Find(ctx, "ten_b", "gone", "https://api.test", store.SubjectTypeClient)
+		mustNoErr(t, err)
+		_, err = s.UserGrants().Find(ctx, "ten_b", "gone", "auth0|u1", "https://api.test")
+		mustNoErr(t, err)
+		_, err = s.RefreshTokens().GetByTokenHash(ctx, "ten_b", "h_gone")
+		mustNoErr(t, err)
 	})
 
 	t.Run("ThirdPartyFields", func(t *testing.T) {

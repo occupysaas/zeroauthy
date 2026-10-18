@@ -232,6 +232,7 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		RedirectionPolicy: c.RedirectionPolicy,
 		SkipNonVerifiableCallbackUriConfirmationPrompt: cloneBool(c.SkipNonVerifiableCallbackURIConfirmationPrompt),
 		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
+		Origin:                                         c.Origin,
 	}
 	if c.Secrets != nil {
 		pb.Secrets = &storev1.ClientSecretList{Values: make([]*storev1.ClientSecret, 0, len(c.Secrets))}
@@ -267,6 +268,7 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 		RedirectionPolicy: pb.RedirectionPolicy,
 		SkipNonVerifiableCallbackURIConfirmationPrompt: cloneBool(pb.SkipNonVerifiableCallbackUriConfirmationPrompt),
 		RequirePushedAuthorizationRequests:             pb.RequirePushedAuthorizationRequests,
+		Origin:                                         pb.Origin,
 	}
 	if pb.Secrets != nil {
 		c.Secrets = make([]store.ClientSecret, 0, len(pb.Secrets.Values))

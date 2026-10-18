@@ -98,7 +98,10 @@ type Clients interface {
 	Get(ctx context.Context, tenantID, clientID string) (*Client, error)
 	// Update returns ErrNotFound if the client does not exist.
 	Update(ctx context.Context, c *Client) error
-	// Delete returns ErrNotFound if the client does not exist.
+	// Delete removes the client together with its client grants, user
+	// grants and refresh tokens. It returns ErrNotFound if the client does
+	// not exist. Connections and login sessions that name the client are
+	// left alone.
 	Delete(ctx context.Context, tenantID, clientID string) error
 	// List returns the tenant's clients ordered by ClientID.
 	List(ctx context.Context, tenantID string) ([]*Client, error)

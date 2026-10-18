@@ -17,6 +17,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/session"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -26,13 +27,25 @@ const mgmtSeed = `
 tenants:
   - name: acme
     domains: [acme.example.test, login.acme.test]
-    clients: [{client_id: m2m, app_type: non_interactive, client_secret: s3cret, grant_types: [client_credentials]}]
-    client_grants: [{client_id: m2m, audience: "https://acme.example.test/api/v2/", scopes: ["read:clients"]}]
+    clients:
+      - {client_id: m2m, app_type: non_interactive, client_secret: s3cret, grant_types: [client_credentials]}
+      - {client_id: admin, app_type: non_interactive, client_secret: admin-s3cret, grant_types: [client_credentials]}
+    client_grants:
+      - {client_id: m2m, audience: "https://acme.example.test/api/v2/", scopes: ["read:clients"]}
+      - client_id: admin
+        audience: "https://acme.example.test/api/v2/"
+        scopes: ["read:clients", "create:clients", "update:clients", "delete:clients", "read:client_keys", "update:client_keys"]
 `
 
 const mgmtSystemHost = "admin.example.test"
 
 func newMgmtServer(t *testing.T) http.Handler {
+	t.Helper()
+	h, _ := newMgmtEnv(t)
+	return h
+}
+
+func newMgmtEnv(t *testing.T) (http.Handler, store.Store) {
 	t.Helper()
 	ctx := context.Background()
 	st := memory.New()
@@ -63,7 +76,7 @@ func newMgmtServer(t *testing.T) http.Handler {
 		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
 		IPThrottle:   identity.NewThrottle(100, time.Minute, time.Minute),
 		SystemHost:   mgmtSystemHost,
-	})
+	}), st
 }
 
 func send(h http.Handler, method, target string, header map[string]string) (*httptest.ResponseRecorder, map[string]any) {
@@ -80,7 +93,12 @@ func send(h http.Handler, method, target string, header map[string]string) (*htt
 
 func m2mToken(t *testing.T, h http.Handler, host, aud string) string {
 	t.Helper()
-	form := url.Values{"grant_type": {"client_credentials"}, "client_id": {"m2m"}, "client_secret": {"s3cret"}, "audience": {aud}}
+	return clientToken(t, h, host, aud, "m2m", "s3cret")
+}
+
+func clientToken(t *testing.T, h http.Handler, host, aud, id, secret string) string {
+	t.Helper()
+	form := url.Values{"grant_type": {"client_credentials"}, "client_id": {id}, "client_secret": {secret}, "audience": {aud}}
 	req := httptest.NewRequest("POST", "https://"+host+"/oauth/token", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rec := httptest.NewRecorder()

@@ -4,11 +4,706 @@
 package mgmtapi
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 )
+
+// Defines values for AppType.
+const (
+	Native         AppType = "native"
+	NonInteractive AppType = "non_interactive"
+	RegularWeb     AppType = "regular_web"
+	Spa            AppType = "spa"
+)
+
+// Valid indicates whether the value is a known member of the AppType enum.
+func (e AppType) Valid() bool {
+	switch e {
+	case Native:
+		return true
+	case NonInteractive:
+		return true
+	case RegularWeb:
+		return true
+	case Spa:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientCallbackUrlTemplate.
+const (
+	ClientCallbackUrlTemplateFalse ClientCallbackUrlTemplate = false
+)
+
+// Valid indicates whether the value is a known member of the ClientCallbackUrlTemplate enum.
+func (e ClientCallbackUrlTemplate) Valid() bool {
+	switch e {
+	case ClientCallbackUrlTemplateFalse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientGlobal.
+const (
+	ClientGlobalFalse ClientGlobal = false
+)
+
+// Valid indicates whether the value is a known member of the ClientGlobal enum.
+func (e ClientGlobal) Valid() bool {
+	switch e {
+	case ClientGlobalFalse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientOidcConformant.
+const (
+	True ClientOidcConformant = true
+)
+
+// Valid indicates whether the value is a known member of the ClientOidcConformant enum.
+func (e ClientOidcConformant) Valid() bool {
+	switch e {
+	case True:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientRedirectionPolicy.
+const (
+	ClientRedirectionPolicyAllowAlways            ClientRedirectionPolicy = "allow_always"
+	ClientRedirectionPolicyOpenRedirectProtection ClientRedirectionPolicy = "open_redirect_protection"
+)
+
+// Valid indicates whether the value is a known member of the ClientRedirectionPolicy enum.
+func (e ClientRedirectionPolicy) Valid() bool {
+	switch e {
+	case ClientRedirectionPolicyAllowAlways:
+		return true
+	case ClientRedirectionPolicyOpenRedirectProtection:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientThirdPartySecurityMode.
+const (
+	ClientThirdPartySecurityModePermissive ClientThirdPartySecurityMode = "permissive"
+	ClientThirdPartySecurityModeStrict     ClientThirdPartySecurityMode = "strict"
+)
+
+// Valid indicates whether the value is a known member of the ClientThirdPartySecurityMode enum.
+func (e ClientThirdPartySecurityMode) Valid() bool {
+	switch e {
+	case ClientThirdPartySecurityModePermissive:
+		return true
+	case ClientThirdPartySecurityModeStrict:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientCreateRedirectionPolicy.
+const (
+	ClientCreateRedirectionPolicyAllowAlways            ClientCreateRedirectionPolicy = "allow_always"
+	ClientCreateRedirectionPolicyOpenRedirectProtection ClientCreateRedirectionPolicy = "open_redirect_protection"
+)
+
+// Valid indicates whether the value is a known member of the ClientCreateRedirectionPolicy enum.
+func (e ClientCreateRedirectionPolicy) Valid() bool {
+	switch e {
+	case ClientCreateRedirectionPolicyAllowAlways:
+		return true
+	case ClientCreateRedirectionPolicyOpenRedirectProtection:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientCreateThirdPartySecurityMode.
+const (
+	ClientCreateThirdPartySecurityModePermissive ClientCreateThirdPartySecurityMode = "permissive"
+	ClientCreateThirdPartySecurityModeStrict     ClientCreateThirdPartySecurityMode = "strict"
+)
+
+// Valid indicates whether the value is a known member of the ClientCreateThirdPartySecurityMode enum.
+func (e ClientCreateThirdPartySecurityMode) Valid() bool {
+	switch e {
+	case ClientCreateThirdPartySecurityModePermissive:
+		return true
+	case ClientCreateThirdPartySecurityModeStrict:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientSettingsRedirectionPolicy.
+const (
+	ClientSettingsRedirectionPolicyAllowAlways            ClientSettingsRedirectionPolicy = "allow_always"
+	ClientSettingsRedirectionPolicyOpenRedirectProtection ClientSettingsRedirectionPolicy = "open_redirect_protection"
+)
+
+// Valid indicates whether the value is a known member of the ClientSettingsRedirectionPolicy enum.
+func (e ClientSettingsRedirectionPolicy) Valid() bool {
+	switch e {
+	case ClientSettingsRedirectionPolicyAllowAlways:
+		return true
+	case ClientSettingsRedirectionPolicyOpenRedirectProtection:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientUpdateRedirectionPolicy.
+const (
+	ClientUpdateRedirectionPolicyAllowAlways            ClientUpdateRedirectionPolicy = "allow_always"
+	ClientUpdateRedirectionPolicyOpenRedirectProtection ClientUpdateRedirectionPolicy = "open_redirect_protection"
+)
+
+// Valid indicates whether the value is a known member of the ClientUpdateRedirectionPolicy enum.
+func (e ClientUpdateRedirectionPolicy) Valid() bool {
+	switch e {
+	case ClientUpdateRedirectionPolicyAllowAlways:
+		return true
+	case ClientUpdateRedirectionPolicyOpenRedirectProtection:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ClientUpdateThirdPartySecurityMode.
+const (
+	ClientUpdateThirdPartySecurityModePermissive ClientUpdateThirdPartySecurityMode = "permissive"
+	ClientUpdateThirdPartySecurityModeStrict     ClientUpdateThirdPartySecurityMode = "strict"
+)
+
+// Valid indicates whether the value is a known member of the ClientUpdateThirdPartySecurityMode enum.
+func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
+	switch e {
+	case ClientUpdateThirdPartySecurityModePermissive:
+		return true
+	case ClientUpdateThirdPartySecurityModeStrict:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JwtConfigurationAlg.
+const (
+	RS256 JwtConfigurationAlg = "RS256"
+)
+
+// Valid indicates whether the value is a known member of the JwtConfigurationAlg enum.
+func (e JwtConfigurationAlg) Valid() bool {
+	switch e {
+	case RS256:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RefreshTokenSettingsExpirationType.
+const (
+	Expiring    RefreshTokenSettingsExpirationType = "expiring"
+	NonExpiring RefreshTokenSettingsExpirationType = "non-expiring"
+)
+
+// Valid indicates whether the value is a known member of the RefreshTokenSettingsExpirationType enum.
+func (e RefreshTokenSettingsExpirationType) Valid() bool {
+	switch e {
+	case Expiring:
+		return true
+	case NonExpiring:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RefreshTokenSettingsRotationType.
+const (
+	NonRotating RefreshTokenSettingsRotationType = "non-rotating"
+	Rotating    RefreshTokenSettingsRotationType = "rotating"
+)
+
+// Valid indicates whether the value is a known member of the RefreshTokenSettingsRotationType enum.
+func (e RefreshTokenSettingsRotationType) Valid() bool {
+	switch e {
+	case NonRotating:
+		return true
+	case Rotating:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TokenEndpointAuthMethod.
+const (
+	ClientSecretBasic TokenEndpointAuthMethod = "client_secret_basic"
+	ClientSecretPost  TokenEndpointAuthMethod = "client_secret_post"
+	None              TokenEndpointAuthMethod = "none"
+)
+
+// Valid indicates whether the value is a known member of the TokenEndpointAuthMethod enum.
+func (e TokenEndpointAuthMethod) Valid() bool {
+	switch e {
+	case ClientSecretBasic:
+		return true
+	case ClientSecretPost:
+		return true
+	case None:
+		return true
+	default:
+		return false
+	}
+}
+
+// AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
+// (server-side web) or `non_interactive` (machine to machine).
+type AppType string
+
+// Client An application.
+type Client struct {
+	AllowedLogoutUrls []string `json:"allowed_logout_urls"`
+	AllowedOrigins    []string `json:"allowed_origins"`
+
+	// AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
+	// (server-side web) or `non_interactive` (machine to machine).
+	AppType             AppType                   `json:"app_type"`
+	CallbackUrlTemplate ClientCallbackUrlTemplate `json:"callback_url_template"`
+	Callbacks           []string                  `json:"callbacks"`
+	ClientId            string                    `json:"client_id"`
+
+	// ClientSecret Only with `read:client_keys`, and only for confidential
+	// applications whose secret zeroauthy can reveal (not for secrets
+	// stored before D-0038 until they are rotated).
+	ClientSecret *string      `json:"client_secret,omitempty"`
+	CreatedAt    *time.Time   `json:"created_at,omitempty"`
+	Global       ClientGlobal `json:"global"`
+	GrantTypes   []string     `json:"grant_types"`
+	IsFirstParty bool         `json:"is_first_party"`
+
+	// JwtConfiguration ID token settings.
+	JwtConfiguration  JwtConfiguration         `json:"jwt_configuration"`
+	Name              string                   `json:"name"`
+	OidcConformant    ClientOidcConformant     `json:"oidc_conformant"`
+	RedirectionPolicy *ClientRedirectionPolicy `json:"redirection_policy,omitempty"`
+
+	// RefreshToken The refresh tokens the application receives.
+	RefreshToken                                   RefreshTokenSettings `json:"refresh_token"`
+	RequirePushedAuthorizationRequests             bool                 `json:"require_pushed_authorization_requests"`
+	SkipNonVerifiableCallbackUriConfirmationPrompt *bool                `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
+
+	// Tenant The tenant's name.
+	Tenant                 string                        `json:"tenant"`
+	ThirdPartySecurityMode *ClientThirdPartySecurityMode `json:"third_party_security_mode,omitempty"`
+
+	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
+	TokenEndpointAuthMethod TokenEndpointAuthMethod `json:"token_endpoint_auth_method"`
+	WebOrigins              []string                `json:"web_origins"`
+}
+
+// ClientCallbackUrlTemplate defines model for Client.CallbackUrlTemplate.
+type ClientCallbackUrlTemplate bool
+
+// ClientGlobal defines model for Client.Global.
+type ClientGlobal bool
+
+// ClientOidcConformant defines model for Client.OidcConformant.
+type ClientOidcConformant bool
+
+// ClientRedirectionPolicy defines model for Client.RedirectionPolicy.
+type ClientRedirectionPolicy string
+
+// ClientThirdPartySecurityMode defines model for Client.ThirdPartySecurityMode.
+type ClientThirdPartySecurityMode string
+
+// ClientCreate A new application. Unknown fields are refused (`invalid_body`).
+// Defaults: `app_type` `regular_web`,
+// `token_endpoint_auth_method` `none` for `spa` and `native` and
+// `client_secret_post` otherwise, `grant_types` authorization_code and
+// refresh_token (plus client_credentials for confidential clients),
+// `is_first_party` true, refresh tokens rotating for `spa` and
+// non-rotating otherwise.
+type ClientCreate struct {
+	// AllowedClients Accepted and ignored.
+	AllowedClients interface{} `json:"allowed_clients,omitempty"`
+
+	// AllowedLogoutUrls Where logout may return to.
+	AllowedLogoutUrls *[]string `json:"allowed_logout_urls,omitempty"`
+
+	// AllowedOrigins Origins allowed for cross-origin requests.
+	AllowedOrigins *[]string `json:"allowed_origins,omitempty"`
+
+	// AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
+	// (server-side web) or `non_interactive` (machine to machine).
+	AppType *AppType `json:"app_type,omitempty"`
+
+	// Callbacks Allowed redirect URIs.
+	Callbacks *[]string `json:"callbacks,omitempty"`
+
+	// ClientMetadata Accepted and ignored.
+	ClientMetadata interface{} `json:"client_metadata,omitempty"`
+
+	// ClientSecret A secret to set instead of a generated one (confidential applications only).
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// CrossOriginAuth Accepted and ignored.
+	CrossOriginAuth interface{} `json:"cross_origin_auth,omitempty"`
+
+	// CrossOriginAuthentication Accepted and ignored.
+	CrossOriginAuthentication interface{} `json:"cross_origin_authentication,omitempty"`
+
+	// CrossOriginLoc Accepted and ignored.
+	CrossOriginLoc interface{} `json:"cross_origin_loc,omitempty"`
+
+	// CustomLoginPage Accepted and ignored.
+	CustomLoginPage interface{} `json:"custom_login_page,omitempty"`
+
+	// CustomLoginPageOn Accepted and ignored.
+	CustomLoginPageOn interface{} `json:"custom_login_page_on,omitempty"`
+
+	// Description Accepted and ignored.
+	Description interface{} `json:"description,omitempty"`
+
+	// GrantTypes Grant types the application may use. zeroauthy serves
+	// authorization_code, refresh_token, client_credentials, password,
+	// password-realm and device_code; implicit and the MFA grants are
+	// stored but not served.
+	GrantTypes *[]string `json:"grant_types,omitempty"`
+
+	// InitiateLoginUri Accepted and ignored.
+	InitiateLoginUri interface{} `json:"initiate_login_uri,omitempty"`
+
+	// IsFirstParty First-party (true) or third-party application.
+	IsFirstParty *bool `json:"is_first_party,omitempty"`
+
+	// IsTokenEndpointIpHeaderTrusted Accepted and ignored.
+	IsTokenEndpointIpHeaderTrusted interface{} `json:"is_token_endpoint_ip_header_trusted,omitempty"`
+
+	// JwtConfiguration ID token settings.
+	JwtConfiguration *JwtConfiguration `json:"jwt_configuration,omitempty"`
+
+	// LogoUri Accepted and ignored.
+	LogoUri interface{} `json:"logo_uri,omitempty"`
+
+	// Mobile Accepted and ignored.
+	Mobile interface{} `json:"mobile,omitempty"`
+
+	// Name The application's name.
+	Name string `json:"name"`
+
+	// NativeSocialLogin Accepted and ignored.
+	NativeSocialLogin interface{} `json:"native_social_login,omitempty"`
+
+	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
+	OidcConformant *bool `json:"oidc_conformant,omitempty"`
+
+	// OrganizationRequireBehavior Accepted and ignored.
+	OrganizationRequireBehavior interface{} `json:"organization_require_behavior,omitempty"`
+
+	// OrganizationUsage Accepted and ignored.
+	OrganizationUsage interface{}                    `json:"organization_usage,omitempty"`
+	RedirectionPolicy *ClientCreateRedirectionPolicy `json:"redirection_policy,omitempty"`
+
+	// RefreshToken The refresh tokens the application receives.
+	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+
+	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
+	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
+
+	// SkipNonVerifiableCallbackUriConfirmationPrompt Overrides the tenant's setting; null inherits it.
+	SkipNonVerifiableCallbackUriConfirmationPrompt *bool `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
+
+	// Sso Accepted and ignored.
+	Sso interface{} `json:"sso,omitempty"`
+
+	// SsoDisabled Accepted and ignored.
+	SsoDisabled interface{} `json:"sso_disabled,omitempty"`
+
+	// ThirdPartySecurityMode Third-party applications only; `strict` by default.
+	ThirdPartySecurityMode *ClientCreateThirdPartySecurityMode `json:"third_party_security_mode,omitempty"`
+
+	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
+	TokenEndpointAuthMethod *TokenEndpointAuthMethod `json:"token_endpoint_auth_method,omitempty"`
+
+	// WebOrigins Origins allowed for web message and silent authentication.
+	WebOrigins *[]string `json:"web_origins,omitempty"`
+}
+
+// ClientCreateRedirectionPolicy defines model for ClientCreate.RedirectionPolicy.
+type ClientCreateRedirectionPolicy string
+
+// ClientCreateThirdPartySecurityMode Third-party applications only; `strict` by default.
+type ClientCreateThirdPartySecurityMode string
+
+// ClientPage A page of applications with `include_totals=true`.
+type ClientPage struct {
+	Clients []Client `json:"clients"`
+
+	// Limit The page size.
+	Limit int `json:"limit"`
+
+	// Start Index of the first result.
+	Start int `json:"start"`
+
+	// Total The number of results on all pages.
+	Total int `json:"total"`
+}
+
+// ClientSettings The writable settings of an application.
+type ClientSettings struct {
+	// AllowedClients Accepted and ignored.
+	AllowedClients interface{} `json:"allowed_clients,omitempty"`
+
+	// AllowedLogoutUrls Where logout may return to.
+	AllowedLogoutUrls *[]string `json:"allowed_logout_urls,omitempty"`
+
+	// AllowedOrigins Origins allowed for cross-origin requests.
+	AllowedOrigins *[]string `json:"allowed_origins,omitempty"`
+
+	// AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
+	// (server-side web) or `non_interactive` (machine to machine).
+	AppType *AppType `json:"app_type,omitempty"`
+
+	// Callbacks Allowed redirect URIs.
+	Callbacks *[]string `json:"callbacks,omitempty"`
+
+	// ClientMetadata Accepted and ignored.
+	ClientMetadata interface{} `json:"client_metadata,omitempty"`
+
+	// ClientSecret A secret to set instead of a generated one (confidential applications only).
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// CrossOriginAuth Accepted and ignored.
+	CrossOriginAuth interface{} `json:"cross_origin_auth,omitempty"`
+
+	// CrossOriginAuthentication Accepted and ignored.
+	CrossOriginAuthentication interface{} `json:"cross_origin_authentication,omitempty"`
+
+	// CrossOriginLoc Accepted and ignored.
+	CrossOriginLoc interface{} `json:"cross_origin_loc,omitempty"`
+
+	// CustomLoginPage Accepted and ignored.
+	CustomLoginPage interface{} `json:"custom_login_page,omitempty"`
+
+	// CustomLoginPageOn Accepted and ignored.
+	CustomLoginPageOn interface{} `json:"custom_login_page_on,omitempty"`
+
+	// Description Accepted and ignored.
+	Description interface{} `json:"description,omitempty"`
+
+	// GrantTypes Grant types the application may use. zeroauthy serves
+	// authorization_code, refresh_token, client_credentials, password,
+	// password-realm and device_code; implicit and the MFA grants are
+	// stored but not served.
+	GrantTypes *[]string `json:"grant_types,omitempty"`
+
+	// InitiateLoginUri Accepted and ignored.
+	InitiateLoginUri interface{} `json:"initiate_login_uri,omitempty"`
+
+	// IsTokenEndpointIpHeaderTrusted Accepted and ignored.
+	IsTokenEndpointIpHeaderTrusted interface{} `json:"is_token_endpoint_ip_header_trusted,omitempty"`
+
+	// JwtConfiguration ID token settings.
+	JwtConfiguration *JwtConfiguration `json:"jwt_configuration,omitempty"`
+
+	// LogoUri Accepted and ignored.
+	LogoUri interface{} `json:"logo_uri,omitempty"`
+
+	// Mobile Accepted and ignored.
+	Mobile interface{} `json:"mobile,omitempty"`
+
+	// Name The application's name.
+	Name *string `json:"name,omitempty"`
+
+	// NativeSocialLogin Accepted and ignored.
+	NativeSocialLogin interface{} `json:"native_social_login,omitempty"`
+
+	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
+	OidcConformant *bool `json:"oidc_conformant,omitempty"`
+
+	// OrganizationRequireBehavior Accepted and ignored.
+	OrganizationRequireBehavior interface{} `json:"organization_require_behavior,omitempty"`
+
+	// OrganizationUsage Accepted and ignored.
+	OrganizationUsage interface{}                      `json:"organization_usage,omitempty"`
+	RedirectionPolicy *ClientSettingsRedirectionPolicy `json:"redirection_policy,omitempty"`
+
+	// RefreshToken The refresh tokens the application receives.
+	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+
+	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
+	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
+
+	// SkipNonVerifiableCallbackUriConfirmationPrompt Overrides the tenant's setting; null inherits it.
+	SkipNonVerifiableCallbackUriConfirmationPrompt *bool `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
+
+	// Sso Accepted and ignored.
+	Sso interface{} `json:"sso,omitempty"`
+
+	// SsoDisabled Accepted and ignored.
+	SsoDisabled interface{} `json:"sso_disabled,omitempty"`
+
+	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
+	TokenEndpointAuthMethod *TokenEndpointAuthMethod `json:"token_endpoint_auth_method,omitempty"`
+
+	// WebOrigins Origins allowed for web message and silent authentication.
+	WebOrigins *[]string `json:"web_origins,omitempty"`
+}
+
+// ClientSettingsRedirectionPolicy defines model for ClientSettings.RedirectionPolicy.
+type ClientSettingsRedirectionPolicy string
+
+// ClientUpdate Fields to change; the others keep their values. Unknown fields are
+// refused (`invalid_body`). `is_first_party` and
+// `third_party_security_mode` may be sent only with their current
+// values.
+type ClientUpdate struct {
+	// AllowedClients Accepted and ignored.
+	AllowedClients interface{} `json:"allowed_clients,omitempty"`
+
+	// AllowedLogoutUrls Where logout may return to.
+	AllowedLogoutUrls *[]string `json:"allowed_logout_urls,omitempty"`
+
+	// AllowedOrigins Origins allowed for cross-origin requests.
+	AllowedOrigins *[]string `json:"allowed_origins,omitempty"`
+
+	// AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
+	// (server-side web) or `non_interactive` (machine to machine).
+	AppType *AppType `json:"app_type,omitempty"`
+
+	// Callbacks Allowed redirect URIs.
+	Callbacks *[]string `json:"callbacks,omitempty"`
+
+	// ClientMetadata Accepted and ignored.
+	ClientMetadata interface{} `json:"client_metadata,omitempty"`
+
+	// ClientSecret A secret to set instead of a generated one (confidential applications only).
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// CrossOriginAuth Accepted and ignored.
+	CrossOriginAuth interface{} `json:"cross_origin_auth,omitempty"`
+
+	// CrossOriginAuthentication Accepted and ignored.
+	CrossOriginAuthentication interface{} `json:"cross_origin_authentication,omitempty"`
+
+	// CrossOriginLoc Accepted and ignored.
+	CrossOriginLoc interface{} `json:"cross_origin_loc,omitempty"`
+
+	// CustomLoginPage Accepted and ignored.
+	CustomLoginPage interface{} `json:"custom_login_page,omitempty"`
+
+	// CustomLoginPageOn Accepted and ignored.
+	CustomLoginPageOn interface{} `json:"custom_login_page_on,omitempty"`
+
+	// Description Accepted and ignored.
+	Description interface{} `json:"description,omitempty"`
+
+	// GrantTypes Grant types the application may use. zeroauthy serves
+	// authorization_code, refresh_token, client_credentials, password,
+	// password-realm and device_code; implicit and the MFA grants are
+	// stored but not served.
+	GrantTypes *[]string `json:"grant_types,omitempty"`
+
+	// InitiateLoginUri Accepted and ignored.
+	InitiateLoginUri interface{} `json:"initiate_login_uri,omitempty"`
+	IsFirstParty     *bool       `json:"is_first_party,omitempty"`
+
+	// IsTokenEndpointIpHeaderTrusted Accepted and ignored.
+	IsTokenEndpointIpHeaderTrusted interface{} `json:"is_token_endpoint_ip_header_trusted,omitempty"`
+
+	// JwtConfiguration ID token settings.
+	JwtConfiguration *JwtConfiguration `json:"jwt_configuration,omitempty"`
+
+	// LogoUri Accepted and ignored.
+	LogoUri interface{} `json:"logo_uri,omitempty"`
+
+	// Mobile Accepted and ignored.
+	Mobile interface{} `json:"mobile,omitempty"`
+
+	// Name The application's name.
+	Name *string `json:"name,omitempty"`
+
+	// NativeSocialLogin Accepted and ignored.
+	NativeSocialLogin interface{} `json:"native_social_login,omitempty"`
+
+	// OidcConformant zeroauthy is always OIDC-conformant; `false` is refused.
+	OidcConformant *bool `json:"oidc_conformant,omitempty"`
+
+	// OrganizationRequireBehavior Accepted and ignored.
+	OrganizationRequireBehavior interface{} `json:"organization_require_behavior,omitempty"`
+
+	// OrganizationUsage Accepted and ignored.
+	OrganizationUsage interface{}                    `json:"organization_usage,omitempty"`
+	RedirectionPolicy *ClientUpdateRedirectionPolicy `json:"redirection_policy,omitempty"`
+
+	// RefreshToken The refresh tokens the application receives.
+	RefreshToken *RefreshTokenSettings `json:"refresh_token,omitempty"`
+
+	// RequirePushedAuthorizationRequests Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
+	RequirePushedAuthorizationRequests *bool `json:"require_pushed_authorization_requests,omitempty"`
+
+	// SkipNonVerifiableCallbackUriConfirmationPrompt Overrides the tenant's setting; null inherits it.
+	SkipNonVerifiableCallbackUriConfirmationPrompt *bool `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
+
+	// Sso Accepted and ignored.
+	Sso interface{} `json:"sso,omitempty"`
+
+	// SsoDisabled Accepted and ignored.
+	SsoDisabled            interface{}                         `json:"sso_disabled,omitempty"`
+	ThirdPartySecurityMode *ClientUpdateThirdPartySecurityMode `json:"third_party_security_mode,omitempty"`
+
+	// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
+	TokenEndpointAuthMethod *TokenEndpointAuthMethod `json:"token_endpoint_auth_method,omitempty"`
+
+	// WebOrigins Origins allowed for web message and silent authentication.
+	WebOrigins *[]string `json:"web_origins,omitempty"`
+}
+
+// ClientUpdateRedirectionPolicy defines model for ClientUpdate.RedirectionPolicy.
+type ClientUpdateRedirectionPolicy string
+
+// ClientUpdateThirdPartySecurityMode defines model for ClientUpdate.ThirdPartySecurityMode.
+type ClientUpdateThirdPartySecurityMode string
+
+// JwtConfiguration ID token settings.
+type JwtConfiguration struct {
+	// Alg The signing algorithm; zeroauthy signs with RS256 only.
+	Alg *JwtConfigurationAlg `json:"alg,omitempty"`
+
+	// LifetimeInSeconds ID token lifetime; 36000 by default.
+	LifetimeInSeconds *int `json:"lifetime_in_seconds,omitempty"`
+
+	// SecretEncoded Accepted and ignored (HS256 is not offered).
+	SecretEncoded *bool `json:"secret_encoded,omitempty"`
+}
+
+// JwtConfigurationAlg The signing algorithm; zeroauthy signs with RS256 only.
+type JwtConfigurationAlg string
 
 // ListTotals The paging members of a list returned with `include_totals=true`; the
 // list itself is under the resource's plural name.
@@ -38,6 +733,36 @@ type ManagementError struct {
 	StatusCode int `json:"statusCode"`
 }
 
+// RefreshTokenSettings The refresh tokens the application receives.
+type RefreshTokenSettings struct {
+	ExpirationType *RefreshTokenSettingsExpirationType `json:"expiration_type,omitempty"`
+
+	// IdleTokenLifetime Inactivity lifetime in seconds.
+	IdleTokenLifetime *int `json:"idle_token_lifetime,omitempty"`
+
+	// InfiniteIdleTokenLifetime True for non-expiring tokens; derived from `expiration_type`.
+	InfiniteIdleTokenLifetime *bool `json:"infinite_idle_token_lifetime,omitempty"`
+
+	// InfiniteTokenLifetime True for non-expiring tokens; derived from `expiration_type`.
+	InfiniteTokenLifetime *bool `json:"infinite_token_lifetime,omitempty"`
+
+	// Leeway Seconds a rotated token may still be used.
+	Leeway       *int                              `json:"leeway,omitempty"`
+	RotationType *RefreshTokenSettingsRotationType `json:"rotation_type,omitempty"`
+
+	// TokenLifetime Absolute lifetime in seconds.
+	TokenLifetime *int `json:"token_lifetime,omitempty"`
+}
+
+// RefreshTokenSettingsExpirationType defines model for RefreshTokenSettings.ExpirationType.
+type RefreshTokenSettingsExpirationType string
+
+// RefreshTokenSettingsRotationType defines model for RefreshTokenSettings.RotationType.
+type RefreshTokenSettingsRotationType string
+
+// TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
+type TokenEndpointAuthMethod string
+
 // Fields defines model for fields.
 type Fields = string
 
@@ -65,13 +790,176 @@ type NotFound = ManagementError
 // Unauthorized Auth0's Management API error shape.
 type Unauthorized = ManagementError
 
+// GetClientsParams defines parameters for GetClients.
+type GetClientsParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *IncludeTotals `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned.
+	Fields *Fields `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+
+	// AppType Comma-separated application types to return.
+	AppType *string `form:"app_type,omitempty" json:"app_type,omitempty"`
+
+	// IsFirstParty Return only first-party (true) or third-party (false) applications.
+	IsFirstParty *bool `form:"is_first_party,omitempty" json:"is_first_party,omitempty"`
+}
+
+// GetClients200JSONResponseBody0 defines parameters for GetClients.
+type GetClients200JSONResponseBody0 = []Client
+
+// GetClients200JSONResponseBody defines parameters for GetClients.
+type GetClients200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetClientParams defines parameters for GetClient.
+type GetClientParams struct {
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned.
+	Fields *Fields `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
+// CreateClientJSONRequestBody defines body for CreateClient for application/json ContentType.
+type CreateClientJSONRequestBody = ClientCreate
+
+// UpdateClientJSONRequestBody defines body for UpdateClient for application/json ContentType.
+type UpdateClientJSONRequestBody = ClientUpdate
+
+// AsGetClients200JSONResponseBody0 returns the union data inside the GetClients200JSONResponseBody as a GetClients200JSONResponseBody0
+func (t GetClients200JSONResponseBody) AsGetClients200JSONResponseBody0() (GetClients200JSONResponseBody0, error) {
+	var body GetClients200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetClients200JSONResponseBody0 overwrites any union data inside the GetClients200JSONResponseBody as the provided GetClients200JSONResponseBody0
+func (t *GetClients200JSONResponseBody) FromGetClients200JSONResponseBody0(v GetClients200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetClients200JSONResponseBody0 performs a merge with any union data inside the GetClients200JSONResponseBody, using the provided GetClients200JSONResponseBody0
+func (t *GetClients200JSONResponseBody) MergeGetClients200JSONResponseBody0(v GetClients200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsClientPage returns the union data inside the GetClients200JSONResponseBody as a ClientPage
+func (t GetClients200JSONResponseBody) AsClientPage() (ClientPage, error) {
+	var body ClientPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromClientPage overwrites any union data inside the GetClients200JSONResponseBody as the provided ClientPage
+func (t *GetClients200JSONResponseBody) FromClientPage(v ClientPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeClientPage performs a merge with any union data inside the GetClients200JSONResponseBody, using the provided ClientPage
+func (t *GetClients200JSONResponseBody) MergeClientPage(v ClientPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetClients200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetClients200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetClients List applications
+	// (GET /api/v2/clients)
+	GetClients(w http.ResponseWriter, r *http.Request, params GetClientsParams)
+	// CreateClient Create an application
+	// (POST /api/v2/clients)
+	CreateClient(w http.ResponseWriter, r *http.Request)
+	// DeleteClient Delete an application
+	// (DELETE /api/v2/clients/{id})
+	DeleteClient(w http.ResponseWriter, r *http.Request, id string)
+	// GetClient Get an application
+	// (GET /api/v2/clients/{id})
+	GetClient(w http.ResponseWriter, r *http.Request, id string, params GetClientParams)
+	// UpdateClient Update an application
+	// (PATCH /api/v2/clients/{id})
+	UpdateClient(w http.ResponseWriter, r *http.Request, id string)
+	// RotateClientSecret Rotate an application's secret
+	// (POST /api/v2/clients/{id}/rotate-secret)
+	RotateClientSecret(w http.ResponseWriter, r *http.Request, id string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// GetClients List applications
+// (GET /api/v2/clients)
+func (_ Unimplemented) GetClients(w http.ResponseWriter, r *http.Request, params GetClientsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateClient Create an application
+// (POST /api/v2/clients)
+func (_ Unimplemented) CreateClient(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteClient Delete an application
+// (DELETE /api/v2/clients/{id})
+func (_ Unimplemented) DeleteClient(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetClient Get an application
+// (GET /api/v2/clients/{id})
+func (_ Unimplemented) GetClient(w http.ResponseWriter, r *http.Request, id string, params GetClientParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateClient Update an application
+// (PATCH /api/v2/clients/{id})
+func (_ Unimplemented) UpdateClient(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RotateClientSecret Rotate an application's secret
+// (POST /api/v2/clients/{id}/rotate-secret)
+func (_ Unimplemented) RotateClientSecret(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
@@ -81,6 +969,264 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetClients operation middleware
+func (siw *ServerInterfaceWrapper) GetClients(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetClientsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "app_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "app_type", r.URL.Query(), &params.AppType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "app_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "is_first_party" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "is_first_party", r.URL.Query(), &params.IsFirstParty, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "is_first_party"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "is_first_party", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetClients(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateClient operation middleware
+func (siw *ServerInterfaceWrapper) CreateClient(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateClient(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteClient operation middleware
+func (siw *ServerInterfaceWrapper) DeleteClient(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteClient(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetClient operation middleware
+func (siw *ServerInterfaceWrapper) GetClient(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetClientParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetClient(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateClient operation middleware
+func (siw *ServerInterfaceWrapper) UpdateClient(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateClient(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RotateClientSecret operation middleware
+func (siw *ServerInterfaceWrapper) RotateClientSecret(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RotateClientSecret(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 type UnescapedCookieParamError struct {
 	ParamName string
@@ -189,6 +1335,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	}
+	wrapper := ServerInterfaceWrapper{
+		Handler:            si,
+		HandlerMiddlewares: options.Middlewares,
+		ErrorHandlerFunc:   options.ErrorHandlerFunc,
+	}
+
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/clients", wrapper.GetClients)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/clients", wrapper.CreateClient)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/clients/{id}", wrapper.DeleteClient)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/clients/{id}", wrapper.GetClient)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/clients/{id}", wrapper.UpdateClient)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/clients/{id}/rotate-secret", wrapper.RotateClientSecret)
+	})
 
 	return r
 }

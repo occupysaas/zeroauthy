@@ -239,9 +239,9 @@ This task is run by the controller session as the observer. The implementers of 
   - a delete cascades (Review Focus 3);
   - the seed skips clients with `Origin == api`.
 
-- [ ] **Step 1: Tests:** per operation and field, from the M1–M9 table values; `TestDeleteClientCascades`; the seed skipping API-created clients; and the existing seed tests passing unchanged against clientrules.
-- [ ] **Step 2: Implement.**
-- [ ] **Step 3: Run** the Go suite, `go generate` with no diff, and the SQL suite if store methods changed. **Step 4: Commit** with `feat(mgmt): /api/v2/clients`.
+- [x] **Step 1: Tests:** per operation and field, from the M1–M9 table values; `TestDeleteClientCascades`; the seed skipping API-created clients; and the existing seed tests passing unchanged against clientrules.
+- [x] **Step 2: Implement.**
+- [x] **Step 3: Run** the Go suite, `go generate` with no diff, and the SQL suite if store methods changed. **Step 4: Commit** with `feat(mgmt): /api/v2/clients`.
 
 ---
 

@@ -1316,6 +1316,7 @@ type Client struct {
 	RedirectionPolicy                              string                 `protobuf:"bytes,17,opt,name=redirection_policy,json=redirectionPolicy,proto3" json:"redirection_policy,omitempty"`
 	SkipNonVerifiableCallbackUriConfirmationPrompt *bool                  `protobuf:"varint,18,opt,name=skip_non_verifiable_callback_uri_confirmation_prompt,json=skipNonVerifiableCallbackUriConfirmationPrompt,proto3,oneof" json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"` // absent = nil
 	RequirePushedAuthorizationRequests             bool                   `protobuf:"varint,19,opt,name=require_pushed_authorization_requests,json=requirePushedAuthorizationRequests,proto3" json:"require_pushed_authorization_requests,omitempty"`                                                 // absent = false
+	Origin                                         string                 `protobuf:"bytes,20,opt,name=origin,proto3" json:"origin,omitempty"`                                                                                                                                                        // "api" or empty (seed)
 	unknownFields                                  protoimpl.UnknownFields
 	sizeCache                                      protoimpl.SizeCache
 }
@@ -1481,6 +1482,13 @@ func (x *Client) GetRequirePushedAuthorizationRequests() bool {
 		return x.RequirePushedAuthorizationRequests
 	}
 	return false
+}
+
+func (x *Client) GetOrigin() string {
+	if x != nil {
+		return x.Origin
+	}
+	return ""
 }
 
 type Scope struct {
@@ -6390,7 +6398,7 @@ const file_store_proto_rawDesc = "" +
 	"\x06leeway\x18\x02 \x01(\x03R\x06leeway\x12\x1a\n" +
 	"\bexpiring\x18\x03 \x01(\bR\bexpiring\x12%\n" +
 	"\x0etoken_lifetime\x18\x04 \x01(\x03R\rtokenLifetime\x12.\n" +
-	"\x13idle_token_lifetime\x18\x05 \x01(\x03R\x11idleTokenLifetime\"\xa2\t\n" +
+	"\x13idle_token_lifetime\x18\x05 \x01(\x03R\x11idleTokenLifetime\"\xba\t\n" +
 	"\x06Client\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
 	"\tclient_id\x18\x02 \x01(\tR\bclientId\x12\x12\n" +
@@ -6414,7 +6422,8 @@ const file_store_proto_rawDesc = "" +
 	"\x19third_party_security_mode\x18\x10 \x01(\tR\x16thirdPartySecurityMode\x12-\n" +
 	"\x12redirection_policy\x18\x11 \x01(\tR\x11redirectionPolicy\x12q\n" +
 	"4skip_non_verifiable_callback_uri_confirmation_prompt\x18\x12 \x01(\bH\x01R.skipNonVerifiableCallbackUriConfirmationPrompt\x88\x01\x01\x12Q\n" +
-	"%require_pushed_authorization_requests\x18\x13 \x01(\bR\"requirePushedAuthorizationRequestsB\x11\n" +
+	"%require_pushed_authorization_requests\x18\x13 \x01(\bR\"requirePushedAuthorizationRequests\x12\x16\n" +
+	"\x06origin\x18\x14 \x01(\tR\x06originB\x11\n" +
 	"\x0f_is_first_partyB7\n" +
 	"5_skip_non_verifiable_callback_uri_confirmation_prompt\"?\n" +
 	"\x05Scope\x12\x14\n" +

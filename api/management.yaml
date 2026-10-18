@@ -39,12 +39,168 @@ servers:
         default: tenant.example.com
         description: Any domain of the tenant.
 tags:
+  - name: clients
+    description: Applications (Auth0's `/api/v2/clients`).
   - name: system
     description: zeroauthy's own API for tenants and operators (operator tokens only).
 security:
   - managementToken: []
   - operatorToken: []
-paths: {}
+paths:
+  /api/v2/clients:
+    get:
+      operationId: getClients
+      tags: [clients]
+      summary: List applications
+      description: |
+        The tenant's applications in creation order. Requires `read:clients`;
+        `client_secret` is returned only with `read:client_keys`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/get-clients
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/per_page"
+        - $ref: "#/components/parameters/include_totals"
+        - $ref: "#/components/parameters/fields"
+        - $ref: "#/components/parameters/include_fields"
+        - name: app_type
+          in: query
+          description: Comma-separated application types to return.
+          schema: {type: string}
+        - name: is_first_party
+          in: query
+          description: Return only first-party (true) or third-party (false) applications.
+          schema: {type: boolean}
+      responses:
+        "200":
+          description: The page of applications.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items: {$ref: "#/components/schemas/Client"}
+                  - $ref: "#/components/schemas/ClientPage"
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      operationId: createClient
+      tags: [clients]
+      summary: Create an application
+      description: |
+        Requires `create:clients`. Fields left out get the defaults described
+        in `ClientCreate`; `client_secret` is returned only with
+        `read:client_keys`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/post-clients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ClientCreate"}
+      responses:
+        "201":
+          description: The new application.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Client"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/clients/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The application's client ID.
+        schema: {type: string}
+    get:
+      operationId: getClient
+      tags: [clients]
+      summary: Get an application
+      description: Requires `read:clients`; `client_secret` is returned only with `read:client_keys`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/get-clients-by-id
+      parameters:
+        - $ref: "#/components/parameters/fields"
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: The application.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Client"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      operationId: updateClient
+      tags: [clients]
+      summary: Update an application
+      description: |
+        Requires `update:clients`; setting `client_secret` requires
+        `update:client_keys` (alone, for a body with only `client_secret`).
+        `is_first_party` and `third_party_security_mode` cannot change after
+        creation.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ClientUpdate"}
+      responses:
+        "200":
+          description: The updated application.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Client"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteClient
+      tags: [clients]
+      summary: Delete an application
+      description: |
+        Requires `delete:clients`. The application's refresh tokens, client
+        grants and user grants are deleted with it, and it is removed from
+        every connection. Deleting an unknown ID also answers 204.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/delete-clients-by-id
+      responses:
+        "204": {description: "Deleted, or did not exist."}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/clients/{id}/rotate-secret:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The application's client ID.
+        schema: {type: string}
+    post:
+      operationId: rotateClientSecret
+      tags: [clients]
+      summary: Rotate an application's secret
+      description: |
+        Requires `update:client_keys`. The old secret stops working at once.
+        The response carries the new secret.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/clients/post-rotate-secret
+      responses:
+        "200":
+          description: The application with its new secret.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Client"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
 components:
   securitySchemes:
     managementToken:
@@ -89,6 +245,186 @@ components:
       description: Whether `fields` lists the fields to include (true) or to leave out (false).
       schema: {type: boolean, default: true}
   schemas:
+    AppType:
+      type: string
+      enum: [native, spa, regular_web, non_interactive]
+      description: |
+        `native` (mobile and desktop), `spa` (single-page), `regular_web`
+        (server-side web) or `non_interactive` (machine to machine).
+    TokenEndpointAuthMethod:
+      type: string
+      enum: [none, client_secret_post, client_secret_basic]
+      description: How the application authenticates at `/oauth/token`; `none` for public clients.
+    JwtConfiguration:
+      type: object
+      description: ID token settings.
+      properties:
+        alg:
+          type: string
+          enum: [RS256]
+          description: The signing algorithm; zeroauthy signs with RS256 only.
+        lifetime_in_seconds:
+          type: integer
+          minimum: 0
+          description: ID token lifetime; 36000 by default.
+        secret_encoded:
+          type: boolean
+          description: Accepted and ignored (HS256 is not offered).
+    RefreshTokenSettings:
+      type: object
+      description: The refresh tokens the application receives.
+      properties:
+        rotation_type:
+          type: string
+          enum: [rotating, non-rotating]
+        expiration_type:
+          type: string
+          enum: [expiring, non-expiring]
+        leeway:
+          type: integer
+          minimum: 0
+          description: Seconds a rotated token may still be used.
+        token_lifetime:
+          type: integer
+          minimum: 0
+          description: Absolute lifetime in seconds.
+        idle_token_lifetime:
+          type: integer
+          minimum: 0
+          description: Inactivity lifetime in seconds.
+        infinite_token_lifetime:
+          type: boolean
+          description: True for non-expiring tokens; derived from `expiration_type`.
+        infinite_idle_token_lifetime:
+          type: boolean
+          description: True for non-expiring tokens; derived from `expiration_type`.
+    ClientSettings:
+      type: object
+      description: The writable settings of an application.
+      properties:
+        name: {type: string, minLength: 1, description: The application's name.}
+        app_type: {$ref: "#/components/schemas/AppType"}
+        token_endpoint_auth_method: {$ref: "#/components/schemas/TokenEndpointAuthMethod"}
+        grant_types:
+          type: array
+          items: {type: string}
+          description: |
+            Grant types the application may use. zeroauthy serves
+            authorization_code, refresh_token, client_credentials, password,
+            password-realm and device_code; implicit and the MFA grants are
+            stored but not served.
+        callbacks: {type: array, items: {type: string}, description: Allowed redirect URIs.}
+        allowed_logout_urls: {type: array, items: {type: string}, description: Where logout may return to.}
+        web_origins: {type: array, items: {type: string}, description: Origins allowed for web message and silent authentication.}
+        allowed_origins: {type: array, items: {type: string}, description: Origins allowed for cross-origin requests.}
+        jwt_configuration: {$ref: "#/components/schemas/JwtConfiguration"}
+        refresh_token: {$ref: "#/components/schemas/RefreshTokenSettings"}
+        oidc_conformant:
+          type: boolean
+          description: zeroauthy is always OIDC-conformant; `false` is refused.
+        redirection_policy:
+          type: string
+          enum: [open_redirect_protection, allow_always]
+        skip_non_verifiable_callback_uri_confirmation_prompt:
+          type: [boolean, "null"]
+          description: Overrides the tenant's setting; null inherits it.
+        require_pushed_authorization_requests:
+          type: boolean
+          description: Refuse authorization requests that were not pushed (confidential first-party applications of a tenant that allows PAR).
+        client_secret:
+          type: string
+          minLength: 48
+          description: A secret to set instead of a generated one (confidential applications only).
+        description: {description: Accepted and ignored.}
+        logo_uri: {description: Accepted and ignored.}
+        client_metadata: {description: Accepted and ignored.}
+        sso: {description: Accepted and ignored.}
+        sso_disabled: {description: Accepted and ignored.}
+        cross_origin_authentication: {description: Accepted and ignored.}
+        cross_origin_auth: {description: Accepted and ignored.}
+        cross_origin_loc: {description: Accepted and ignored.}
+        custom_login_page_on: {description: Accepted and ignored.}
+        custom_login_page: {description: Accepted and ignored.}
+        initiate_login_uri: {description: Accepted and ignored.}
+        native_social_login: {description: Accepted and ignored.}
+        mobile: {description: Accepted and ignored.}
+        organization_usage: {description: Accepted and ignored.}
+        organization_require_behavior: {description: Accepted and ignored.}
+        is_token_endpoint_ip_header_trusted: {description: Accepted and ignored.}
+        allowed_clients: {description: Accepted and ignored.}
+    ClientCreate:
+      description: |
+        A new application. Unknown fields are refused (`invalid_body`).
+        Defaults: `app_type` `regular_web`,
+        `token_endpoint_auth_method` `none` for `spa` and `native` and
+        `client_secret_post` otherwise, `grant_types` authorization_code and
+        refresh_token (plus client_credentials for confidential clients),
+        `is_first_party` true, refresh tokens rotating for `spa` and
+        non-rotating otherwise.
+      allOf:
+        - $ref: "#/components/schemas/ClientSettings"
+        - type: object
+          required: [name]
+          properties:
+            is_first_party: {type: boolean, description: First-party (true) or third-party application.}
+            third_party_security_mode:
+              type: string
+              enum: [strict, permissive]
+              description: Third-party applications only; `strict` by default.
+    ClientUpdate:
+      description: |
+        Fields to change; the others keep their values. Unknown fields are
+        refused (`invalid_body`). `is_first_party` and
+        `third_party_security_mode` may be sent only with their current
+        values.
+      allOf:
+        - $ref: "#/components/schemas/ClientSettings"
+        - type: object
+          properties:
+            is_first_party: {type: boolean}
+            third_party_security_mode: {type: string, enum: [strict, permissive]}
+    Client:
+      type: object
+      description: An application.
+      required: [tenant, client_id, name, app_type, is_first_party, oidc_conformant, callbacks, allowed_logout_urls, web_origins, allowed_origins, grant_types, token_endpoint_auth_method, jwt_configuration, refresh_token, global, callback_url_template, require_pushed_authorization_requests]
+      properties:
+        tenant: {type: string, description: The tenant's name.}
+        client_id: {type: string}
+        client_secret:
+          type: string
+          description: |
+            Only with `read:client_keys`, and only for confidential
+            applications whose secret zeroauthy can reveal (not for secrets
+            stored before D-0038 until they are rotated).
+        name: {type: string}
+        app_type: {$ref: "#/components/schemas/AppType"}
+        is_first_party: {type: boolean}
+        third_party_security_mode: {type: string, enum: [strict, permissive]}
+        oidc_conformant: {type: boolean, enum: [true]}
+        callbacks: {type: array, items: {type: string}}
+        allowed_logout_urls: {type: array, items: {type: string}}
+        web_origins: {type: array, items: {type: string}}
+        allowed_origins: {type: array, items: {type: string}}
+        grant_types: {type: array, items: {type: string}}
+        token_endpoint_auth_method: {$ref: "#/components/schemas/TokenEndpointAuthMethod"}
+        jwt_configuration: {$ref: "#/components/schemas/JwtConfiguration"}
+        refresh_token: {$ref: "#/components/schemas/RefreshTokenSettings"}
+        redirection_policy: {type: string, enum: [open_redirect_protection, allow_always]}
+        skip_non_verifiable_callback_uri_confirmation_prompt: {type: boolean}
+        require_pushed_authorization_requests: {type: boolean}
+        global: {type: boolean, enum: [false]}
+        callback_url_template: {type: boolean, enum: [false]}
+        created_at: {type: string, format: date-time}
+    ClientPage:
+      description: A page of applications with `include_totals=true`.
+      allOf:
+        - $ref: "#/components/schemas/ListTotals"
+        - type: object
+          required: [clients]
+          properties:
+            clients:
+              type: array
+              items: {$ref: "#/components/schemas/Client"}
     ManagementError:
       type: object
       description: Auth0's Management API error shape.

@@ -111,6 +111,8 @@ const (
 
 	OperatorAllTenants = store.OperatorAllTenants
 
+	ClientOriginAPI = store.ClientOriginAPI
+
 	ScriptLogin          = store.ScriptLogin
 	ScriptGetUser        = store.ScriptGetUser
 	ScriptCreate         = store.ScriptCreate

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -124,36 +125,27 @@ func applyResourceServer(ctx context.Context, st store.Store, tenantID string, i
 }
 
 func applyClient(ctx context.Context, st store.Store, tenantID string, in Client, now time.Time, w keys.Wrapper) error {
+	c, err := st.Clients().Get(ctx, tenantID, in.ClientID)
+	if err == nil && c.Origin == store.ClientOriginAPI {
+		// Created through the Management API: the seed never touches it.
+		return nil
+	}
 	return tenantsetup.UpsertClient(ctx, st, tenantID, in.ClientID, now, func(c *store.Client, create bool) error {
 		return setClient(c, create, in, now, w)
 	})
 }
 
 func setClient(c *store.Client, create bool, in Client, now time.Time, w keys.Wrapper) error {
-	if !create && (c.IsFirstParty != *in.IsFirstParty || c.ThirdPartySecurityMode != in.ThirdPartySecurityMode) {
-		return errors.New("is_first_party and third_party_security_mode cannot change after creation; use a new client_id")
+	spec := in.normalized
+	if spec == nil {
+		return errors.New("the client was not validated")
 	}
-	c.IsFirstParty, c.ThirdPartySecurityMode = *in.IsFirstParty, in.ThirdPartySecurityMode
-	c.RedirectionPolicy = in.RedirectionPolicy
-	c.RequirePushedAuthorizationRequests = in.RequirePushedAuthorizationRequests
-	c.SkipNonVerifiableCallbackURIConfirmationPrompt = nil
-	if p := in.SkipNonVerifiableCallbackURIConfirmationPrompt; p != nil {
-		v := *p
-		c.SkipNonVerifiableCallbackURIConfirmationPrompt = &v
+	if !create {
+		if err := clientrules.CheckImmutable(c, spec); err != nil {
+			return fmt.Errorf("%w; use a new client_id", err)
+		}
 	}
-	c.Name, c.AppType = in.Name, store.AppType(in.AppType)
-	c.TokenEndpointAuthMethod = in.TokenEndpointAuthMethod
-	c.GrantTypes = slices.Clone(in.GrantTypes)
-	c.Callbacks, c.AllowedLogoutURLs = slices.Clone(in.Callbacks), slices.Clone(in.AllowedLogoutURLs)
-	c.WebOrigins, c.AllowedOrigins = slices.Clone(in.WebOrigins), slices.Clone(in.AllowedOrigins)
-	c.IDTokenLifetime = in.IDTokenLifetime
-	c.RefreshToken = store.RefreshTokenPolicy{
-		Rotating:          in.RefreshToken.RotationType == "rotating",
-		Leeway:            in.RefreshToken.Leeway,
-		Expiring:          in.RefreshToken.ExpirationType == "expiring",
-		TokenLifetime:     in.RefreshToken.TokenLifetime,
-		IdleTokenLifetime: in.RefreshToken.IdleTokenLifetime,
-	}
+	clientrules.Apply(c, spec)
 
 	public := c.TokenEndpointAuthMethod == store.AuthMethodNone
 	switch {

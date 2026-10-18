@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"go.yaml.in/yaml/v3"
 )
@@ -107,6 +108,27 @@ type Client struct {
 	RedirectionPolicy                              string `yaml:"redirection_policy"`
 	SkipNonVerifiableCallbackURIConfirmationPrompt *bool  `yaml:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 	RequirePushedAuthorizationRequests             bool   `yaml:"require_pushed_authorization_requests"`
+
+	// normalized is the client after clientrules.Normalize, set by validate.
+	normalized *clientrules.Spec
+}
+
+// spec returns the client's settings for clientrules.
+func (c *Client) spec() clientrules.Spec {
+	return clientrules.Spec{
+		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: c.TokenEndpointAuthMethod,
+		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,
+		WebOrigins: c.WebOrigins, AllowedOrigins: c.AllowedOrigins, IDTokenLifetime: c.IDTokenLifetime,
+		RefreshToken: clientrules.RefreshToken{
+			RotationType: c.RefreshToken.RotationType, ExpirationType: c.RefreshToken.ExpirationType,
+			Leeway: c.RefreshToken.Leeway, TokenLifetime: c.RefreshToken.TokenLifetime,
+			IdleTokenLifetime: c.RefreshToken.IdleTokenLifetime,
+		},
+		IsFirstParty: c.IsFirstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode,
+		RedirectionPolicy: c.RedirectionPolicy,
+		SkipNonVerifiableCallbackURIConfirmationPrompt: c.SkipNonVerifiableCallbackURIConfirmationPrompt,
+		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
+	}
 }
 
 // RefreshToken is a client's refresh-token policy. Values follow Auth0's

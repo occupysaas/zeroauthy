@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -15,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
+	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -192,25 +194,33 @@ func New(d Deps) http.Handler {
 	})
 
 	// The Management API, on every host of every tenant, and the system
-	// API, on the system tenant only. CORS runs before authentication so
-	// that preflights need no token.
+	// API, on the system tenant only, share one router built from
+	// api/management.yaml. Its middlewares run for every request, preflights
+	// and unknown paths included; CORS runs before authentication so that
+	// preflights need no token.
 	auth := mgmt.Auth(mgmt.Config{Store: d.Store, Keys: d.Keys, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log})
 	systemOrigin := ""
 	if d.SystemHost != "" {
 		systemOrigin = "https://" + tenant.NormalizeHost(d.SystemHost)
 	}
-	r.Route("/api/v2", func(mr chi.Router) {
-		mr.Use(d.Resolver.Middleware, mgmtCORS(systemOrigin), auth)
-		// A catch-all route, so that the middlewares run for unknown
-		// paths too (chi skips them for a router with no routes).
-		mr.HandleFunc("/*", mgmtNotFound)
-		mr.MethodNotAllowed(mgmtNotFound)
+	mr := chi.NewRouter()
+	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, operatorOnly)
+	mgmtapi.HandlerWithOptions(mgmtAPI{&mgmt.Handlers{
+		Store: d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, Log: d.Log,
+	}}, mgmtapi.ChiServerOptions{
+		BaseRouter: mr,
+		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
+			mgmt.WriteError(w, http.StatusBadRequest, "invalid_query_string", "Query validation error: "+err.Error())
+		},
 	})
-	r.Route("/api/system", func(sr chi.Router) {
-		sr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, mgmt.RequireOperator)
-		sr.HandleFunc("/*", mgmtNotFound)
-		sr.MethodNotAllowed(mgmtNotFound)
+	mr.NotFound(mgmtNotFound)
+	mr.MethodNotAllowed(mgmtNotFound)
+	// mr routes on the full path, independently of r.
+	own := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		mr.ServeHTTP(w, req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, nil)))
 	})
+	r.Handle("/api/v2/*", own)
+	r.Handle("/api/system/*", own)
 	return r
 }
 
@@ -218,11 +228,30 @@ func mgmtNotFound(w http.ResponseWriter, _ *http.Request) {
 	mgmt.WriteError(w, http.StatusNotFound, "", "Not Found")
 }
 
-// systemOnly answers 404 on every tenant but the system tenant.
+func isSystemAPI(r *http.Request) bool { return strings.HasPrefix(r.URL.Path, "/api/system/") }
+
+// systemOnly answers 404 to the system API on every tenant but the system
+// tenant.
 func systemOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !isSystemAPI(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
 		if res, ok := tenant.FromContext(r.Context()); !ok || !res.Tenant.Reserved || res.Tenant.Name != tenant.SystemName {
 			mgmtNotFound(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// operatorOnly refuses every caller but an operator on the system API.
+func operatorOnly(next http.Handler) http.Handler {
+	operators := mgmt.RequireOperator(next)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isSystemAPI(r) {
+			operators.ServeHTTP(w, r)
 			return
 		}
 		next.ServeHTTP(w, r)
