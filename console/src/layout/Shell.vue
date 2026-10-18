@@ -13,6 +13,7 @@ const sections = computed(() =>
     ? [
         { name: 'home', label: t.navHome },
         { name: 'applications', label: t.navApplications },
+        { name: 'apis', label: t.navApis },
       ]
     : [],
 )

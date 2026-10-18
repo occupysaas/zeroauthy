@@ -19,6 +19,8 @@ export function tenant(name: string, extra: Partial<SystemTenant> = {}): SystemT
   }
 }
 
+export type Reply = { status: number; body?: unknown }
+
 export interface Call {
   method: string
   url: string
@@ -26,12 +28,12 @@ export interface Call {
 }
 
 // fakeServices answers API calls with handler, signed in, with no guards.
-export function fakeServices(handler: (c: Call) => { status: number; body?: unknown }) {
+export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>) {
   const calls: Call[] = []
   const fetchFn = async (url: RequestInfo | URL, init?: RequestInit) => {
     const c = { method: init?.method ?? 'GET', url: String(url), body: init?.body ? JSON.parse(String(init.body)) : undefined }
     calls.push(c)
-    const r = handler(c)
+    const r = await handler(c)
     return new Response(r.body === undefined ? null : JSON.stringify(r.body), { status: r.status })
   }
   const api = new Api('https://admin.example.test', async () => 'token', fetchFn as typeof fetch)
@@ -71,4 +73,25 @@ export function client(id: string, extra: Partial<import('../api/client').Client
     client_secret: 'S'.repeat(64),
     ...extra,
   }
+}
+
+export function resourceServer(id: string, extra: Partial<import('../api/client').ResourceServer> = {}): import('../api/client').ResourceServer {
+  return {
+    id,
+    identifier: `https://api.example.test/${id}`,
+    name: 'API ' + id,
+    signing_alg: 'RS256',
+    token_lifetime: 86400,
+    token_lifetime_for_web: 7200,
+    allow_offline_access: false,
+    skip_consent_for_verifiable_first_party_clients: false,
+    subject_type_authorization: { user: { policy: 'allow_all' }, client: { policy: 'require_client_grant' } },
+    enforce_policies: false,
+    token_dialect: 'access_token',
+    ...extra,
+  }
+}
+
+export function clientGrant(id: string, clientID: string, audience: string, extra: Partial<import('../api/client').ClientGrant> = {}): import('../api/client').ClientGrant {
+  return { id, client_id: clientID, audience, subject_type: 'client', scope: [], ...extra }
 }

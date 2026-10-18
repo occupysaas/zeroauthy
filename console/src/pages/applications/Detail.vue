@@ -7,6 +7,7 @@ import { errorMessage, useServices, useTenant } from '../../context'
 import { t } from '../../strings'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
+import ApisTab from './ApisTab.vue'
 import AdvancedTab from './AdvancedTab.vue'
 import DangerZone from './DangerZone.vue'
 import SettingsTab from './SettingsTab.vue'
@@ -57,6 +58,7 @@ function rotated(c: Client) {
         <TabsList class="tabs" :aria-label="client.name">
           <TabsTrigger class="tab" value="settings">{{ t.apps.settings }}</TabsTrigger>
           <TabsTrigger class="tab" value="advanced">{{ t.apps.advanced }}</TabsTrigger>
+          <TabsTrigger class="tab" value="apis">{{ t.grants.tab }}</TabsTrigger>
           <TabsTrigger class="tab" value="danger">{{ t.apps.danger }}</TabsTrigger>
         </TabsList>
         <TabsContent value="settings">
@@ -64,6 +66,9 @@ function rotated(c: Client) {
         </TabsContent>
         <TabsContent value="advanced">
           <AdvancedTab :tenant="tenant" :client="client" @saved="client = $event" />
+        </TabsContent>
+        <TabsContent value="apis">
+          <ApisTab :tenant="tenant" :client="client" />
         </TabsContent>
         <TabsContent value="danger">
           <DangerZone :tenant="tenant" :client="client" @rotated="rotated" />

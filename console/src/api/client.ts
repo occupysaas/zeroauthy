@@ -10,6 +10,15 @@ export type ClientPage = components['schemas']['ClientPage']
 export type AppType = components['schemas']['AppType']
 export type SystemTenant = components['schemas']['SystemTenant']
 export type TenantCreate = components['schemas']['TenantCreate']
+export type ResourceServer = components['schemas']['ResourceServer']
+export type ResourceServerCreate = components['schemas']['ResourceServerCreate']
+export type ResourceServerUpdate = components['schemas']['ResourceServerUpdate']
+export type ResourceServerPage = components['schemas']['ResourceServerPage']
+export type ResourceServerScope = components['schemas']['ResourceServerScope']
+export type ClientGrant = components['schemas']['ClientGrant']
+export type ClientGrantCreate = components['schemas']['ClientGrantCreate']
+export type ClientGrantUpdate = components['schemas']['ClientGrantUpdate']
+export type ClientGrantPage = components['schemas']['ClientGrantPage']
 export type ManagementError = components['schemas']['ManagementError']
 
 export class ApiError extends Error {
@@ -82,11 +91,73 @@ export class Api {
     return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/clients/' + encodeURIComponent(id) + '/rotate-secret')
   }
 
+  listResourceServers(t: SystemTenant, q: { page: number; per_page: number }): Promise<ResourceServerPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/resource-servers', { query: { ...q, include_totals: true } })
+  }
+
+  getResourceServer(t: SystemTenant, id: string): Promise<ResourceServer> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/resource-servers/' + encodeURIComponent(id))
+  }
+
+  createResourceServer(t: SystemTenant, body: ResourceServerCreate): Promise<ResourceServer> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/resource-servers', { body })
+  }
+
+  updateResourceServer(t: SystemTenant, id: string, body: ResourceServerUpdate): Promise<ResourceServer> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/resource-servers/' + encodeURIComponent(id), { body })
+  }
+
+  deleteResourceServer(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/resource-servers/' + encodeURIComponent(id))
+  }
+
+  listClientGrants(t: SystemTenant, q: { page: number; per_page: number; client_id?: string; audience?: string }): Promise<ClientGrantPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/client-grants', { query: { ...q, include_totals: true } })
+  }
+
+  createClientGrant(t: SystemTenant, body: ClientGrantCreate): Promise<ClientGrant> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/client-grants', { body })
+  }
+
+  updateClientGrant(t: SystemTenant, id: string, body: ClientGrantUpdate): Promise<ClientGrant> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/client-grants/' + encodeURIComponent(id), { body })
+  }
+
+  deleteClientGrant(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/client-grants/' + encodeURIComponent(id))
+  }
+
+  // The *All methods read every page (100 at a time) of a listing that the
+  // screens need whole: the APIs and machine-to-machine applications to
+  // pick from, and the grants for one API or application.
+  async allResourceServers(t: SystemTenant): Promise<ResourceServer[]> {
+    return collect((page) => this.listResourceServers(t, { page, per_page: ALL_PER_PAGE }).then((r) => ({ items: r.resource_servers, total: r.total })))
+  }
+
+  async allMachineClients(t: SystemTenant): Promise<Client[]> {
+    return collect((page) => this.listClients(t, { page, per_page: ALL_PER_PAGE, app_type: 'non_interactive' }).then((r) => ({ items: r.clients, total: r.total })))
+  }
+
+  async allClientGrants(t: SystemTenant, filter: { client_id?: string; audience?: string }): Promise<ClientGrant[]> {
+    return collect((page) => this.listClientGrants(t, { page, per_page: ALL_PER_PAGE, ...filter }).then((r) => ({ items: r.client_grants, total: r.total })))
+  }
+
   listTenants(): Promise<SystemTenant[]> {
     return this.request(this.systemOrigin, 'GET', '/api/system/tenants')
   }
 
   createTenant(body: TenantCreate): Promise<SystemTenant> {
     return this.request(this.systemOrigin, 'POST', '/api/system/tenants', { body })
+  }
+}
+
+const ALL_PER_PAGE = 100
+
+async function collect<T>(fetchPage: (page: number) => Promise<{ items: T[]; total: number }>): Promise<T[]> {
+  const out: T[] = []
+  for (let page = 0; ; page++) {
+    const r = await fetchPage(page)
+    out.push(...r.items)
+    if (r.items.length === 0 || out.length >= r.total) return out
   }
 }

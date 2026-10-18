@@ -128,8 +128,8 @@ Run by the controller session as the observer; implementers see only the notes. 
   - **Danger zone:** delete by typing the name; hidden for system APIs.
 - **Application detail** gains an **APIs** tab: the APIs this application may call (client grants for it), with their scopes, editable, and "Authorize another API".
 
-- [ ] **Step 1: Tests** (Vitest): each screen's loading, empty, error, validation and success states; the grant switch and scope picker; system APIs read-only.
-- [ ] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): APIs and their machine-to-machine applications`.
+- [x] **Step 1: Tests** (Vitest): each screen's loading, empty, error, validation and success states; the grant switch and scope picker; system APIs read-only.
+- [x] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): APIs and their machine-to-machine applications`.
 
 ---
 

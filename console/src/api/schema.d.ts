@@ -91,6 +91,157 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/resource-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List APIs
+         * @description The tenant's APIs in creation order, the tenant's Management API
+         *     first. Requires `read:resource_servers`. Checkpoint paging (`from`,
+         *     `take`) is not supported (`invalid_query_string`).
+         */
+        get: operations["getResourceServers"];
+        put?: never;
+        /**
+         * Create an API
+         * @description Requires `create:resource_servers`. Fields left out get the defaults
+         *     described in `ResourceServerCreate`.
+         */
+        post: operations["createResourceServer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/resource-servers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The API's ID. `GET` also accepts its URL-encoded identifier. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get an API
+         * @description Requires `read:resource_servers`.
+         */
+        get: operations["getResourceServer"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete an API
+         * @description Requires `delete:resource_servers`. The API's client grants and the
+         *     user grants (consents) for it are deleted with it, and refresh tokens
+         *     issued for it stop working; access tokens already issued stay valid
+         *     until they expire. Deleting an unknown or malformed ID also answers
+         *     204. A system API cannot be deleted (`delete_system_resource_server`).
+         */
+        delete: operations["deleteResourceServer"];
+        options?: never;
+        head?: never;
+        /**
+         * Update an API
+         * @description Requires `update:resource_servers`. `identifier`, `id` and
+         *     `is_system` are not accepted. `scopes` replaces the whole list, and
+         *     a removed scope is removed from every client grant that carries it.
+         *     A system API (a tenant's Management API, the system tenant's
+         *     `urn:zeroauthy:management`) accepts no `name`, and keeps its scopes
+         *     and the settings zeroauthy depends on; naming one of those with its
+         *     current value is accepted.
+         */
+        patch: operations["updateResourceServer"];
+        trace?: never;
+    };
+    "/api/v2/client-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List client grants
+         * @description The tenant's client grants in grant ID order (byte order). Requires
+         *     `read:client_grants`.
+         *
+         *     Offset paging (`page`, `per_page`, `include_totals`) answers a bare
+         *     array, or with totals an object with `client_grants`, `start`,
+         *     `limit` and `total`. Checkpoint paging, when `take` or `from` is
+         *     present, answers `{client_grants, next}`: `take` is the page size
+         *     (1 to 100, 50 by default) and `next`, an opaque cursor to pass back
+         *     as `from`, is absent on the last page. It wins over `page`,
+         *     `per_page` and `include_totals`. A `from` that is not a cursor this
+         *     API issued is `400` without an `errorCode`.
+         *
+         *     `client_id`, `audience` and `subject_type` filter and combine;
+         *     `subject_type` (`client` or `user`) needs `client_id` or `audience`
+         *     too, otherwise the answer is `400` without an `errorCode`.
+         */
+        get: operations["getClientGrants"];
+        put?: never;
+        /**
+         * Create a client grant
+         * @description Requires `create:client_grants`. The application and the API (by
+         *     identifier, case-sensitive) must exist in the tenant
+         *     (`inexistent_client`, `inexistent_resource_server`). One grant per
+         *     application, API and subject type (`client_grant_conflict`). Every
+         *     scope must be one the API defines (`invalid_body`); this differs
+         *     from Auth0, which checks only on update. A grant to the tenant's own
+         *     Management API carries Management API scopes only and has
+         *     `subject_type` `client`; a grant to another tenant's Management API
+         *     or to `urn:zeroauthy:management` is refused (`invalid_body`).
+         */
+        post: operations["createClientGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/client-grants/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The grant's ID, `cgr_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a client grant
+         * @description Requires `read:client_grants`. An unknown ID is `404 inexistent_client_grant`.
+         */
+        get: operations["getClientGrant"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a client grant
+         * @description Requires `delete:client_grants`. An unknown ID in the right format,
+         *     and a second delete, also answer 204. Tokens already issued stay
+         *     valid until they expire; refresh tokens stop refreshing.
+         */
+        delete: operations["deleteClientGrant"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a client grant
+         * @description Requires `update:client_grants`. Changes `scope` (replaced whole) or
+         *     `allow_all_scopes`; `client_id`, `audience` and `subject_type` are
+         *     unknown properties. An empty body is `invalid_body`. A scope the API
+         *     does not define is `invalid_body`. An unknown ID in the right format
+         *     is `404 inexistent_client_grant`.
+         */
+        patch: operations["updateClientGrant"];
+        trace?: never;
+    };
     "/api/system/tenants": {
         parameters: {
             query?: never;
@@ -370,6 +521,189 @@ export interface components {
             /** Format: date-time */
             created_at?: string;
         };
+        ResourceServerScope: {
+            /** @description The permission, such as `read:orders`. Unique within the API. */
+            value: string;
+            description?: string;
+        };
+        AccessPolicy: {
+            /** @enum {string} */
+            policy?: "allow_all" | "require_client_grant" | "deny_all";
+        };
+        /**
+         * @description Who may get access tokens for the API. `user` is `allow_all`,
+         *     `require_client_grant` or `deny_all`; `client` is `require_client_grant`
+         *     or `deny_all`. On update the two subject types merge.
+         */
+        SubjectTypeAuthorization: {
+            user?: components["schemas"]["AccessPolicy"];
+            client?: components["schemas"]["AccessPolicy"];
+        };
+        /** @description The writable settings of an API. */
+        ResourceServerSettings: {
+            /** @description The API's name. Optional; absent when not given. */
+            name?: string;
+            /** @description The API's permissions. Values are unique. */
+            scopes?: components["schemas"]["ResourceServerScope"][];
+            /**
+             * @description The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
+             * @enum {string}
+             */
+            signing_alg?: "RS256";
+            /** @description Access token lifetime in seconds; 86400 by default. */
+            token_lifetime?: number;
+            /**
+             * @description Stored and reported (7200 by default). zeroauthy has no implicit or
+             *     hybrid flow, so nothing uses it. When sent, it must not exceed
+             *     `token_lifetime`.
+             */
+            token_lifetime_for_web?: number;
+            /** @description Whether clients may get refresh tokens for the API. */
+            allow_offline_access?: boolean;
+            skip_consent_for_verifiable_first_party_clients?: boolean;
+            subject_type_authorization?: components["schemas"]["SubjectTypeAuthorization"];
+            /** @description zeroauthy has no role-based access control, so only `false` is accepted. */
+            enforce_policies?: boolean;
+            /**
+             * @description zeroauthy issues one access token format, `access_token`.
+             * @enum {string}
+             */
+            token_dialect?: "access_token";
+            /** @description Only null is accepted (transactional authorization is not supported). */
+            consent_policy?: unknown;
+            /** @description Only null is accepted (mTLS and DPoP are not supported). */
+            proof_of_possession?: unknown;
+            /** @description Only null or an empty list is accepted (rich authorization requests are not supported). */
+            authorization_details?: unknown;
+            /** @description Only null is accepted (token encryption is not supported). */
+            token_encryption?: unknown;
+        };
+        /**
+         * @description A new API. Unknown fields are refused (`invalid_body`). Defaults:
+         *     `token_lifetime` 86400, `token_lifetime_for_web` 7200, `signing_alg`
+         *     `RS256`, `allow_offline_access` and
+         *     `skip_consent_for_verifiable_first_party_clients` false, no scopes,
+         *     `subject_type_authorization` client `require_client_grant` and user
+         *     `allow_all`. The identifier may be any string, but not the tenant's
+         *     Management API identifier or `urn:zeroauthy:management`
+         *     (`reserved_identifier`); it cannot change later.
+         */
+        ResourceServerCreate: components["schemas"]["ResourceServerSettings"] & {
+            /** @description The API's identifier, the `audience` of its tokens. Case-sensitive, unique within the tenant. */
+            identifier: string;
+        };
+        /**
+         * @description Fields to change; the others keep their values. Unknown fields are
+         *     refused (`invalid_body`), `identifier`, `id` and `is_system`
+         *     among them. An empty body changes nothing.
+         */
+        ResourceServerUpdate: components["schemas"]["ResourceServerSettings"];
+        /** @description An API. */
+        ResourceServer: {
+            /** @description The API's ID: 24 hexadecimal characters for APIs created through the API. */
+            id: string;
+            identifier: string;
+            /** @description Absent when the API has no name. */
+            name?: string;
+            /** @description True for a system API (a tenant's Management API); absent otherwise. */
+            is_system?: boolean;
+            /** @description Absent when the API defines none. */
+            scopes?: components["schemas"]["ResourceServerScope"][];
+            /** @enum {string} */
+            signing_alg: "RS256";
+            token_lifetime: number;
+            token_lifetime_for_web: number;
+            allow_offline_access: boolean;
+            skip_consent_for_verifiable_first_party_clients: boolean;
+            subject_type_authorization: {
+                user: {
+                    /** @enum {string} */
+                    policy: "allow_all" | "require_client_grant" | "deny_all";
+                };
+                client: {
+                    /** @enum {string} */
+                    policy: "require_client_grant" | "deny_all";
+                };
+            };
+            /** @enum {boolean} */
+            enforce_policies: false;
+            /** @enum {string} */
+            token_dialect: "access_token";
+        };
+        /** @description A page of APIs with `include_totals=true`. */
+        ResourceServerPage: components["schemas"]["ListTotals"] & {
+            resource_servers: components["schemas"]["ResourceServer"][];
+        };
+        ClientGrantSettings: {
+            /** @description The scopes granted; each must be one the API defines. `[]` is valid. */
+            scope?: string[];
+            /**
+             * @description Grant every scope the API defines, at the time a token is issued,
+             *     so scopes added later are covered. Stored without a `scope`;
+             *     for the tenant's Management API it means every Management API
+             *     scope. Not together with a non-empty `scope`.
+             */
+            allow_all_scopes?: boolean;
+            /**
+             * @description zeroauthy has no organizations; only `deny` (or null) is accepted.
+             * @enum {string}
+             */
+            organization_usage?: "deny";
+            /**
+             * @description zeroauthy has no organizations; only false (or null) is accepted.
+             * @enum {boolean}
+             */
+            allow_any_organization?: false;
+            /** @description zeroauthy has no rich authorization requests; only an empty list (or null) is accepted. */
+            authorization_details_types?: string[];
+        };
+        /**
+         * @description A new client grant. Unknown properties are refused (`invalid_body`).
+         *     `scope` or `allow_all_scopes` is required. `default_for` is not
+         *     supported: only null is accepted.
+         */
+        ClientGrantCreate: components["schemas"]["ClientGrantSettings"] & {
+            client_id: string;
+            /** @description The API's identifier. */
+            audience: string;
+            /**
+             * @default client
+             * @enum {string}
+             */
+            subject_type: "client" | "user";
+        };
+        /**
+         * @description Fields to change; at least one property is required. Unknown
+         *     properties are refused (`invalid_body`), `client_id`, `audience` and
+         *     `subject_type` among them.
+         */
+        ClientGrantUpdate: components["schemas"]["ClientGrantSettings"];
+        /**
+         * @description An application's access to an API. The organization fields are not
+         *     reported.
+         */
+        ClientGrant: {
+            /** @description `cgr_` and 16 letters and digits for grants created through the API. */
+            id: string;
+            client_id: string;
+            audience: string;
+            /** @description Absent when the grant has `allow_all_scopes`. */
+            scope?: string[];
+            /** @description True when set; absent otherwise. */
+            allow_all_scopes?: boolean;
+            /** @enum {string} */
+            subject_type: "client" | "user";
+        };
+        /** @description A page of client grants with `include_totals=true`. */
+        ClientGrantPage: components["schemas"]["ListTotals"] & {
+            client_grants: components["schemas"]["ClientGrant"][];
+        };
+        /** @description A page of client grants from checkpoint paging. */
+        ClientGrantCheckpointPage: {
+            client_grants: components["schemas"]["ClientGrant"][];
+            /** @description Pass as `from` for the next page; absent on the last page. */
+            next?: string;
+        };
         /** @description A tenant, as the system API reports it. */
         SystemTenant: {
             /** @description The tenant's name: a DNS label, its subdomain under the base domain. */
@@ -428,7 +762,7 @@ export interface components {
             error: string;
             /** @description A human-readable explanation. */
             message: string;
-            /** @description A machine-readable code, such as `invalid_body`, `invalid_query_string`, `insufficient_scope` or `inexistent_client`. */
+            /** @description A machine-readable code, such as `invalid_body`, `invalid_query_string`, `insufficient_scope`, `inexistent_client` or `inexistent_resource_server`. */
             errorCode?: string;
         };
         /**
@@ -472,7 +806,7 @@ export interface components {
                 "application/json": components["schemas"]["ManagementError"];
             };
         };
-        /** @description The name or a domain is already used, or the change would remove the last operator (`conflict`, `last_operator`). */
+        /** @description The name, a domain or an identifier is already used, or the change would remove the last operator (`conflict`, `last_operator`, `resource_server_conflict`). */
         Conflict: {
             headers: {
                 [name: string]: unknown;
@@ -679,6 +1013,311 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Client"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getResourceServers: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0. */
+                page?: components["parameters"]["page"];
+                /** @description Number of results per page; more than 100 is refused (`invalid_query_string`). */
+                per_page?: components["parameters"]["per_page"];
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: components["parameters"]["include_totals"];
+                /**
+                 * @description Return only the APIs with these identifiers. Repeat the parameter
+                 *     for several; a comma does not separate identifiers.
+                 */
+                identifiers?: string[];
+                /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. No field is always returned. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page of APIs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceServer"][] | components["schemas"]["ResourceServerPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createResourceServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourceServerCreate"];
+            };
+        };
+        responses: {
+            /** @description The new API. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceServer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getResourceServer: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. No field is always returned. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
+            header?: never;
+            path: {
+                /** @description The API's ID. `GET` also accepts its URL-encoded identifier. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The API. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceServer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteResourceServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The API's ID. `GET` also accepts its URL-encoded identifier. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted, or did not exist. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    updateResourceServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The API's ID. `GET` also accepts its URL-encoded identifier. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResourceServerUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated API. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceServer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getClientGrants: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0. */
+                page?: components["parameters"]["page"];
+                /** @description Number of results per page; more than 100 is refused (`invalid_query_string`). */
+                per_page?: components["parameters"]["per_page"];
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: components["parameters"]["include_totals"];
+                /** @description Checkpoint paging page size, 1 to 100 (50 by default). */
+                take?: number;
+                /** @description Checkpoint paging cursor, the `next` of the previous page. */
+                from?: string;
+                /** @description Only the grants of this application. */
+                client_id?: string;
+                /** @description Only the grants for this API identifier (case-sensitive). */
+                audience?: string;
+                /** @description Only grants of this subject type; needs `client_id` or `audience`. */
+                subject_type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page of client grants. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientGrant"][] | components["schemas"]["ClientGrantPage"] | components["schemas"]["ClientGrantCheckpointPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createClientGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientGrantCreate"];
+            };
+        };
+        responses: {
+            /** @description The new client grant. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientGrant"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getClientGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The grant's ID, `cgr_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The client grant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientGrant"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteClientGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The grant's ID, `cgr_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted, or did not exist. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    updateClientGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The grant's ID, `cgr_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientGrantUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated client grant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientGrant"];
                 };
             };
             400: components["responses"]["BadRequest"];
