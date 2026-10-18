@@ -227,6 +227,48 @@ func TestCORS(t *testing.T) {
 	}
 }
 
+// Origins are matched exactly: near-misses and unlisted origins get no
+// Access-Control-* headers, and every response varies by Origin.
+func TestCORSNegative(t *testing.T) {
+	e := newFlowEnv(t)
+	c := e.client(t)
+	for _, origin := range []string{
+		"https://evil.test", "http://app.flow.test", "https://app.flow.test:8443",
+		"https://app.flow.test/", "https://sub.app.flow.test", "https://APP.flow.test", "null",
+	} {
+		for _, method := range []string{"OPTIONS", "POST"} {
+			req, _ := http.NewRequest(method, e.base+"/oauth/token", strings.NewReader("grant_type=x"))
+			req.Header.Set("Origin", origin)
+			req.Header.Set("Access-Control-Request-Method", "POST")
+			resp, _ := mustDo(t, c, req)
+			for k := range resp.Header {
+				if strings.HasPrefix(k, "Access-Control-") {
+					t.Errorf("%s from %q: got %s", method, origin, k)
+				}
+			}
+			if method == "OPTIONS" && resp.StatusCode != 403 {
+				t.Errorf("preflight from %q = %d", origin, resp.StatusCode)
+			}
+			if !strings.Contains(resp.Header.Get("Vary"), "Origin") {
+				t.Errorf("%s from %q: Vary = %q", method, origin, resp.Header.Get("Vary"))
+			}
+		}
+	}
+	// A request without an Origin gets no CORS headers either.
+	req, _ := http.NewRequest("POST", e.base+"/oauth/token", strings.NewReader("grant_type=x"))
+	resp, _ := mustDo(t, c, req)
+	if resp.Header.Get("Access-Control-Allow-Origin") != "" || !strings.Contains(resp.Header.Get("Vary"), "Origin") {
+		t.Errorf("no-origin response headers = %v", resp.Header)
+	}
+	// Paths outside the CORS set never get the allow header.
+	req, _ = http.NewRequest("GET", e.base+"/authorize", nil)
+	req.Header.Set("Origin", "https://app.flow.test")
+	resp, _ = mustDo(t, c, req)
+	if resp.Header.Get("Access-Control-Allow-Origin") != "" {
+		t.Errorf("/authorize ACAO = %q", resp.Header.Get("Access-Control-Allow-Origin"))
+	}
+}
+
 // postForm posts a form from the SPA's origin and decodes a JSON reply.
 func (e *flowEnv) postForm(t *testing.T, c *http.Client, path string, form url.Values) (*http.Response, map[string]any) {
 	t.Helper()
