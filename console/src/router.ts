@@ -9,6 +9,7 @@ import ApplicationList from './pages/applications/List.vue'
 import Callback from './pages/Callback.vue'
 import Home from './pages/Home.vue'
 import NotFound from './pages/NotFound.vue'
+import OperatorList from './pages/operators/List.vue'
 import Root from './pages/Root.vue'
 
 declare module 'vue-router' {
@@ -29,6 +30,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/apis', name: 'apis', component: ApiList },
   { path: '/t/:tenant/apis/new', name: 'api-new', component: ApiCreate },
   { path: '/t/:tenant/apis/:id', name: 'api', component: ApiDetail },
+  { path: '/t/:tenant/operators', name: 'operators', component: OperatorList },
   { path: '/:rest(.*)*', name: 'not-found', component: NotFound },
 ]
 

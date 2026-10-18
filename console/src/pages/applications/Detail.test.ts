@@ -16,6 +16,8 @@ function tabTo(name: string) {
 describe('Application detail', () => {
   it('loads, masks the secret, and reveals it', async () => {
     const { wrapper } = await mountAt(Detail, path, () => ({ status: 200, body: client('abc', { name: 'Billing' }) }))
+    tabTo('Settings')
+    await flushPromises()
     expect(wrapper.find('h1').text()).toBe('Billing')
     expect(wrapper.find('[data-testid="client-id"]').text()).toBe('abc')
     const secret = wrapper.find('[data-testid="secret"]')
@@ -28,6 +30,8 @@ describe('Application detail', () => {
   it('offers rotate to reveal for a secret it cannot show, and nothing for a public client', async () => {
     let c: Client = client('abc', { client_secret: undefined })
     const { wrapper, router } = await mountAt(Detail, path, () => ({ status: 200, body: c }))
+    tabTo('Settings')
+    await flushPromises()
     expect(wrapper.find('[data-testid="rotate-to-reveal"]').exists()).toBe(true)
     c = client('spa', { client_secret: undefined, token_endpoint_auth_method: 'none', app_type: 'spa' })
     await router.push('/t/acme/applications/spa')
@@ -47,6 +51,8 @@ describe('Application detail', () => {
       }
       return { status: 200, body: client('abc') }
     })
+    tabTo('Settings')
+    await flushPromises()
     await wrapper.find('#app-callbacks').setValue('nope')
     await wrapper.find('#app-webOrigins').setValue('x')
     await wrapper.find('form:not(.danger-zone form)').trigger('submit')

@@ -19,6 +19,8 @@ export type ClientGrant = components['schemas']['ClientGrant']
 export type ClientGrantCreate = components['schemas']['ClientGrantCreate']
 export type ClientGrantUpdate = components['schemas']['ClientGrantUpdate']
 export type ClientGrantPage = components['schemas']['ClientGrantPage']
+export type Operator = components['schemas']['Operator']
+export type OperatorInvite = components['schemas']['OperatorInvite']
 export type ManagementError = components['schemas']['ManagementError']
 
 export class ApiError extends Error {
@@ -144,6 +146,18 @@ export class Api {
 
   listTenants(): Promise<SystemTenant[]> {
     return this.request(this.systemOrigin, 'GET', '/api/system/tenants')
+  }
+
+  listOperators(): Promise<Operator[]> {
+    return this.request(this.systemOrigin, 'GET', '/api/system/operators')
+  }
+
+  inviteOperator(email: string): Promise<OperatorInvite> {
+    return this.request(this.systemOrigin, 'POST', '/api/system/operators', { body: { email } })
+  }
+
+  deleteOperator(id: string): Promise<void> {
+    return this.request(this.systemOrigin, 'DELETE', '/api/system/operators/' + encodeURIComponent(id))
   }
 
   createTenant(body: TenantCreate): Promise<SystemTenant> {

@@ -8,12 +8,14 @@ import TenantSwitcher from './TenantSwitcher.vue'
 // The frame of every signed-in page: a header with the tenant switcher and
 // account menu, a sidebar with the sections this slice ships, and the page.
 const tenant = useTenant()
+// Operators belong to the system tenant, where the console signs in.
 const sections = computed(() =>
   tenant.value
     ? [
         { name: 'home', label: t.navHome },
         { name: 'applications', label: t.navApplications },
         { name: 'apis', label: t.navApis },
+        ...(tenant.value.reserved ? [{ name: 'operators', label: t.navOperators }] : []),
       ]
     : [],
 )

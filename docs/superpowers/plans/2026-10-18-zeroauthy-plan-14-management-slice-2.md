@@ -144,8 +144,8 @@ Run by the controller session as the observer; implementers see only the notes. 
   - A note while connections cannot be enabled from the console (slice 3): which connection the application can use today, or that it can use none.
 - **Operators:** list (email, tenants, created), invite (shows the one-time setup link once, with copy and the one-hour expiry), remove (confirm; the last operator cannot be removed, and the console says so).
 
-- [ ] **Step 1: Tests** (Vitest): the snippets for each type and for hosts with and without a port; the invite link shown once; removal states.
-- [ ] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): application quick start and operators`.
+- [x] **Step 1: Tests** (Vitest): the snippets for each type and for hosts with and without a port; the invite link shown once; removal states.
+- [x] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): application quick start and operators`.
 
 ---
 

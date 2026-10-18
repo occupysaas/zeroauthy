@@ -10,6 +10,7 @@ import Button from '../../ui/Button.vue'
 import ApisTab from './ApisTab.vue'
 import AdvancedTab from './AdvancedTab.vue'
 import DangerZone from './DangerZone.vue'
+import QuickStart from './QuickStart.vue'
 import SettingsTab from './SettingsTab.vue'
 
 const { api } = useServices()
@@ -18,7 +19,7 @@ const route = useRoute()
 const client = ref<Client | null>(null)
 const error = ref('')
 const notFound = ref(false)
-const tab = ref('settings')
+const tab = ref('quickstart')
 
 async function load() {
   const tn = tenant.value
@@ -56,11 +57,15 @@ function rotated(c: Client) {
       <p class="muted">{{ t.apps.types[client.app_type]?.label ?? client.app_type }}</p>
       <TabsRoot v-model="tab">
         <TabsList class="tabs" :aria-label="client.name">
+          <TabsTrigger class="tab" value="quickstart">{{ t.quick.tab }}</TabsTrigger>
           <TabsTrigger class="tab" value="settings">{{ t.apps.settings }}</TabsTrigger>
           <TabsTrigger class="tab" value="advanced">{{ t.apps.advanced }}</TabsTrigger>
           <TabsTrigger class="tab" value="apis">{{ t.grants.tab }}</TabsTrigger>
           <TabsTrigger class="tab" value="danger">{{ t.apps.danger }}</TabsTrigger>
         </TabsList>
+        <TabsContent value="quickstart">
+          <QuickStart :tenant="tenant" :client="client" />
+        </TabsContent>
         <TabsContent value="settings">
           <SettingsTab :tenant="tenant" :client="client" @saved="client = $event" />
         </TabsContent>
