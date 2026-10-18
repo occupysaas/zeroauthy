@@ -5,7 +5,9 @@ package seed
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
@@ -207,6 +209,9 @@ func Parse(data []byte) (*File, error) {
 	dec.KnownFields(true)
 	var f File
 	if err := dec.Decode(&f); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil, errors.New("seed: the file is empty; expected a tenants list")
+		}
 		return nil, fmt.Errorf("seed: %w", err)
 	}
 	if err := f.validate(); err != nil {

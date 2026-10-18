@@ -415,6 +415,16 @@ tenants:
 	}
 }
 
+// An empty file (or one with only comments) says so, not "EOF".
+func TestParseEmptyFile(t *testing.T) {
+	for _, in := range []string{"", "  \n", "# only a comment\n"} {
+		_, err := Parse([]byte(in))
+		if err == nil || strings.Contains(err.Error(), "EOF") || !strings.Contains(err.Error(), "empty") {
+			t.Errorf("Parse(%q) error = %v, want a message about an empty file", in, err)
+		}
+	}
+}
+
 // The stored tenant does not share the parsed file's custom text.
 func TestApplyCopiesCustomText(t *testing.T) {
 	ctx := context.Background()
