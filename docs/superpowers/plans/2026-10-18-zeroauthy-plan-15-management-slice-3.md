@@ -149,9 +149,9 @@ Run by the controller session as the observer (option A of Plan 14: the observer
 
 **Files:** `tests/e2e/m15-mgmt-cli.mjs`, `tests/e2e/m15-console.spec.mjs`, `tests/e2e/run-m3.sh`, `tests/e2e/seed.yaml`.
 
-- [ ] **Step 1: `auth0-cli`** (v1.37.0): `connections create/list/show/update/delete`, `connections enabled-clients show/update`; then a user signs up through `/dbconnections/signup` on the new connection, with a refused and an accepted password.
-- [ ] **Step 2: Playwright:** sign in; create a connection; enable an application; set history 2, dictionary on with a custom word, no personal info; sign up through hosted login with a dictionary word (refused, rule named), then a good password (accepted); try a custom-DB `login` script with a stub (result shown); delete the connection (its user is gone).
-- [ ] **Step 3: Run** `make e2e`. **Step 4: Commit** with `test(e2e): connections with auth0-cli and the console`.
+- [x] **Step 1: `auth0-cli`** (v1.37.0): `connections create/list/show/update/delete`, `connections enabled-clients show/update`; then a user signs up through `/dbconnections/signup` on the new connection, with a refused and an accepted password.
+- [x] **Step 2: Playwright:** sign in; create a connection; enable an application; set history 2, dictionary on with a custom word, no personal info; sign up through hosted login with a dictionary word (refused, rule named), then a good password (accepted); try a custom-DB `login` script with a stub (result shown); delete the connection (its user is gone).
+- [x] **Step 3: Run** `make e2e`. **Step 4: Commit** with `test(e2e): connections with auth0-cli and the console`.
 
 ---
 

@@ -123,6 +123,16 @@ tenants:
         require_pushed_authorization_requests: true
         grant_types: [authorization_code]
         callbacks: ["https://localhost:3443/par-cb"]
+      # m15-console: the console enables this application on a connection it
+      # creates, and users sign up through the hosted pages on it. No seeded
+      # connection lists it.
+      - client_id: e2e-m15
+        name: E2E Connections
+        app_type: spa
+        grant_types: [authorization_code]
+        callbacks: ["https://localhost:3443/m15-callback"]
+        web_origins: ["https://localhost:3443"]
+        allowed_origins: ["https://localhost:3443"]
       - client_id: e2e-device
         name: E2E Device
         app_type: native
@@ -228,4 +238,6 @@ tenants:
         audience: "https://cli.e2e.test/api/v2/"
         scopes: ["read:clients", "create:clients", "update:clients", "delete:clients", "read:client_keys", "update:client_keys",
                  "read:resource_servers", "create:resource_servers", "update:resource_servers", "delete:resource_servers",
-                 "read:client_grants", "create:client_grants", "update:client_grants", "delete:client_grants"]
+                 "read:client_grants", "create:client_grants", "update:client_grants", "delete:client_grants",
+                 "read:connections", "create:connections", "update:connections", "delete:connections",
+                 "read:connections_options", "update:connections_options"]

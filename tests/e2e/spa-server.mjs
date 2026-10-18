@@ -23,8 +23,8 @@ const server = createServer(
   async (req, res) => {
     const path = new URL(req.url, 'https://localhost').pathname;
     // A landing page for redirects that a test reads from the request URL
-    // (m10-par): any page will do, so long as the browser finishes loading it.
-    if (path === '/par-cb') {
+    // (m10-par, m15-console): any page will do, so long as the browser finishes loading it.
+    if (path === '/par-cb' || path === '/m15-callback') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
       res.end('<!doctype html><title>callback</title>');
       return;
