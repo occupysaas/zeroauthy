@@ -5,13 +5,13 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
+	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -240,12 +240,12 @@ func applyClientGrant(ctx context.Context, st store.Store, tenantID string, in C
 }
 
 func applyConnection(ctx context.Context, st store.Store, tenantID string, in Connection, now time.Time, w keys.Wrapper, createOnly bool) error {
-	if createOnly {
-		if _, err := st.Connections().GetByName(ctx, tenantID, in.Name); err == nil {
-			return nil
-		} else if !errors.Is(err, store.ErrNotFound) {
-			return err
-		}
+	if c, err := st.Connections().GetByName(ctx, tenantID, in.Name); err == nil && (createOnly || c.Origin == store.OriginAPI) {
+		// Created through the Management API, or create-only mode: the seed
+		// never touches it.
+		return nil
+	} else if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return err
 	}
 	return tenantsetup.UpsertConnection(ctx, st, tenantID, in.Name, now, func(c *store.Connection) error {
 		return setConnection(c, in, w)
@@ -253,15 +253,13 @@ func applyConnection(ctx context.Context, st store.Store, tenantID string, in Co
 }
 
 func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
-	c.Strategy = in.Strategy
-	c.IsDomainConnection = in.IsDomainConnection
-	c.EnabledClients = slices.Clone(in.EnabledClients)
-	c.DisableSignup, c.RequiresUsername = in.DisableSignup, in.RequiresUsername
-	// The seed owns the complexity half of the password options only.
-	c.PasswordOptions.Complexity = store.LegacyComplexity(in.PasswordPolicy.MinLength, in.PasswordPolicy.RequireCharacterClasses)
-	c.EnabledDatabaseCustomization, c.ImportMode = in.EnabledDatabaseCustomization, in.ImportMode
-	c.SetUserRootAttributes = in.SetUserRootAttributes
-	c.CustomScripts = maps.Clone(in.CustomScripts)
+	spec := in.normalized
+	if spec == nil {
+		return errors.New("the connection was not validated")
+	}
+	// The seed owns the complexity half of the password options unless it
+	// names password_options; fields it does not name are left alone.
+	connrules.Apply(spec, c)
 	// The ID is final here (generated or existing), so the AAD stays valid
 	// across re-applies. Configuration is always re-sealed: sealing is
 	// randomized, so there is nothing to compare, and removing it clears it.

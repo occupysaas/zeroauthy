@@ -8,10 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
+	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
+	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"go.yaml.in/yaml/v3"
 )
@@ -232,6 +235,10 @@ type Connection struct {
 	DisableSignup    bool           `yaml:"disable_signup"`
 	RequiresUsername bool           `yaml:"requires_username"`
 	PasswordPolicy   PasswordPolicy `yaml:"password_policy"`
+	// PasswordOptions is Auth0's password_options. It replaces
+	// password_policy, which stays for existing seeds; naming both is an
+	// error.
+	PasswordOptions *connrules.PasswordOptions `yaml:"password_options"`
 
 	// Custom database options keep Auth0's names.
 	EnabledDatabaseCustomization bool              `yaml:"enabledDatabaseCustomization"`
@@ -242,6 +249,63 @@ type Connection struct {
 	SetUserRootAttributes string            `yaml:"set_user_root_attributes"`
 
 	IsDomainConnection bool `yaml:"is_domain_connection"`
+
+	// normalized is the connection after connrules.Normalize, set by
+	// validate.
+	normalized *connrules.Spec
+}
+
+// spec returns the connection's settings for connrules. It copies, so that
+// Normalize leaves the parsed seed alone.
+func (c *Connection) spec() connrules.Spec {
+	s := connrules.Spec{
+		Name: c.Name, Strategy: c.Strategy,
+		EnabledClients:     slices.Clone(c.EnabledClients),
+		IsDomainConnection: c.IsDomainConnection,
+		Options: connrules.Options{
+			DisableSignup: c.DisableSignup, RequiresUsername: c.RequiresUsername,
+			EnabledDatabaseCustomization: c.EnabledDatabaseCustomization, ImportMode: c.ImportMode,
+			CustomScripts:         maps.Clone(c.CustomScripts),
+			SetUserRootAttributes: c.SetUserRootAttributes,
+		},
+	}
+	if c.Configuration != nil {
+		s.Options.Configuration = make(map[string]*string, len(c.Configuration))
+		for k, v := range c.Configuration {
+			s.Options.Configuration[k] = &v
+		}
+	}
+	if po := c.PasswordOptions; po != nil {
+		cp := connrules.PasswordOptions{}
+		if po.Complexity != nil {
+			v := *po.Complexity
+			v.CharacterTypes = slices.Clone(v.CharacterTypes)
+			cp.Complexity = &v
+		}
+		if po.History != nil {
+			v := *po.History
+			cp.History = &v
+		}
+		if po.Dictionary != nil {
+			v := *po.Dictionary
+			v.Custom = slices.Clone(v.Custom)
+			cp.Dictionary = &v
+		}
+		if po.ProfileData != nil {
+			v := *po.ProfileData
+			v.BlockedFields = slices.Clone(v.BlockedFields)
+			cp.ProfileData = &v
+		}
+		s.Options.PasswordOptions = &cp
+		return s
+	}
+	// The seed's own password policy owns the complexity half only.
+	lc := store.LegacyComplexity(c.PasswordPolicy.MinLength, c.PasswordPolicy.RequireCharacterClasses)
+	s.Options.PasswordOptions = &connrules.PasswordOptions{Complexity: &connrules.Complexity{
+		MinLength: lc.MinLength, CharacterTypes: lc.CharacterTypes, CharacterTypeRule: lc.CharacterTypeRule,
+		MinCharacterClasses: lc.MinCharacterClasses,
+	}}
+	return s
 }
 
 type PasswordPolicy struct {

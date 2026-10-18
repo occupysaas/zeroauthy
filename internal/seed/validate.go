@@ -3,7 +3,6 @@ package seed
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"net/url"
 	"regexp"
 	"slices"
@@ -11,19 +10,12 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
+	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
-)
-
-var configKey = regexp.MustCompile(`^[A-Za-z0-9_]{1,128}$`)
-
-const (
-	maxScriptBytes   = 102400
-	maxConfigKeys    = 64
-	maxConfigValueBy = 4096
 )
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -256,12 +248,6 @@ func (t *Tenant) validate() []error {
 			fail("duplicate connection %q", c.Name)
 		}
 		conns[c.Name] = c
-		if c.Strategy == "" {
-			c.Strategy = store.StrategyDatabase
-		}
-		if c.Strategy != store.StrategyDatabase {
-			fail("connection %q: strategy %q is not supported (only %q)", c.Name, c.Strategy, store.StrategyDatabase)
-		}
 		for _, id := range c.EnabledClients {
 			switch {
 			case !clients[id]:
@@ -274,8 +260,15 @@ func (t *Tenant) validate() []error {
 		}
 		if p := c.PasswordPolicy; p.MinLength < 0 || p.MinLength > identity.MaxPasswordBytes || p.RequireCharacterClasses < 0 || p.RequireCharacterClasses > 4 {
 			fail("connection %q: password_policy.min_length must be 0 to %d and require_character_classes 0-4", c.Name, identity.MaxPasswordBytes)
+		} else if c.PasswordOptions != nil && p != (PasswordPolicy{}) {
+			fail("connection %q: password_policy and password_options cannot both be set", c.Name)
 		}
-		t.validateCustomDB(c, fail)
+		spec := c.spec()
+		for _, err := range connrules.Normalize(&spec) {
+			fail("connection %q: %v", c.Name, err)
+		}
+		c.normalized = &spec
+		c.Strategy = spec.Strategy
 	}
 
 	if d := t.DefaultDirectory; d != "" {
@@ -323,49 +316,11 @@ func (t *Tenant) validate() []error {
 			}
 			seenUsernames[uk] = true
 		}
-		if err := identity.CheckPassword(store.LegacyComplexity(
-			c.PasswordPolicy.MinLength, c.PasswordPolicy.RequireCharacterClasses), u.Password); err != nil {
+		var stored store.Connection
+		connrules.Apply(c.normalized, &stored)
+		if err := identity.CheckPassword(stored.PasswordOptions.Complexity, u.Password); err != nil {
 			fail("user %q: %v", u.Email, err)
 		}
 	}
 	return errs
-}
-
-// validateCustomDB checks a connection's custom database options.
-func (t *Tenant) validateCustomDB(c *Connection, fail func(string, ...any)) {
-	switch c.SetUserRootAttributes {
-	case "", store.RootAttributesOnEachLogin, store.RootAttributesOnFirstLogin:
-	default:
-		fail("connection %q: set_user_root_attributes %q must be %s or %s", c.Name, c.SetUserRootAttributes,
-			store.RootAttributesOnEachLogin, store.RootAttributesOnFirstLogin)
-	}
-	if !c.EnabledDatabaseCustomization {
-		if len(c.CustomScripts) > 0 || len(c.Configuration) > 0 || c.ImportMode {
-			fail("connection %q: customScripts, configuration and import_mode require enabledDatabaseCustomization", c.Name)
-		}
-		return
-	}
-	for _, name := range slices.Sorted(maps.Keys(c.CustomScripts)) {
-		if !slices.Contains(store.ScriptNames, name) {
-			fail("connection %q: unknown customScripts key %q", c.Name, name)
-			continue
-		}
-		if len(c.CustomScripts[name]) > maxScriptBytes {
-			fail("connection %q: customScripts.%s is larger than %d bytes", c.Name, name, maxScriptBytes)
-		}
-	}
-	if strings.TrimSpace(c.CustomScripts[store.ScriptLogin]) == "" {
-		fail("connection %q: enabledDatabaseCustomization requires a login script", c.Name)
-	}
-	if len(c.Configuration) > maxConfigKeys {
-		fail("connection %q: configuration has %d keys, at most %d allowed", c.Name, len(c.Configuration), maxConfigKeys)
-	}
-	for _, k := range slices.Sorted(maps.Keys(c.Configuration)) {
-		if !configKey.MatchString(k) {
-			fail("connection %q: configuration key %q must be 1-128 characters of A-Za-z0-9_", c.Name, k)
-		}
-		if len(c.Configuration[k]) > maxConfigValueBy {
-			fail("connection %q: configuration value for %q is larger than %d bytes", c.Name, k, maxConfigValueBy)
-		}
-	}
 }

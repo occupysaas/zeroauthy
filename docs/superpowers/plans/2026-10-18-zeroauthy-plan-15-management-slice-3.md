@@ -90,8 +90,8 @@ Run by the controller session as the observer (option A of Plan 14: the observer
 **Interfaces:**
 - Produces: `connrules.Spec` (the API/seed view of a connection: name, strategy, options typed and extra, enabled clients), `connrules.Normalize(*Spec) []error` (defaults from C1, every limit from C2–C6), `connrules.Apply(*Spec, *store.Connection)`, `connrules.FromConnection(*store.Connection) *Spec`, and `connrules.ExtraSchema` (option name → JSON type, from C6) used to validate `Extra`.
 
-- [ ] **Step 1: Tests:** each limit and default; unknown `options` keys refused (or kept in `Extra`, per C6); the existing seed tests unchanged; a seed with the new password options round-trips.
-- [ ] **Step 2: Implement;** move the seed's connection checks here. **Step 3: Run. Step 4: Commit** with `feat(connrules): shared connection rules`.
+- [x] **Step 1: Tests:** each limit and default; unknown `options` keys refused (or kept in `Extra`, per C6); the existing seed tests unchanged; a seed with the new password options round-trips.
+- [x] **Step 2: Implement;** move the seed's connection checks here. **Step 3: Run. Step 4: Commit** with `feat(connrules): shared connection rules`.
 
 ---
 

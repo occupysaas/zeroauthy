@@ -1194,3 +1194,129 @@ func TestSeedSkipsAPIClientGrants(t *testing.T) {
 		t.Fatalf("the seed changed an API client grant: %+v", got)
 	}
 }
+
+const passwordOptionsDoc = `
+tenants:
+  - name: acme
+    connections:
+      - name: strict
+        password_options:
+          complexity:
+            min_length: 12
+            character_types: [uppercase, number]
+            identical_characters: block
+          history: {active: true, size: 5}
+          dictionary: {active: true, default: en_10k, custom: [acme]}
+          profile_data: {active: true, blocked_fields: [email, username]}
+`
+
+// A seed's password_options reach the store whole, and a re-apply keeps them.
+func TestSeedPasswordOptionsRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(passwordOptionsDoc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	c, err := st.Connections().GetByName(ctx, tn.ID, "strict")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := c.PasswordOptions
+	if p.Complexity.MinLength != 12 || !slices.Equal(p.Complexity.CharacterTypes, []string{"uppercase", "number"}) ||
+		p.Complexity.IdenticalCharacters != store.PasswordBlock || p.Complexity.CharacterTypeRule != store.CharacterTypeRuleAll ||
+		!p.History.Active || p.History.Size != 5 ||
+		!p.Dictionary.Active || p.Dictionary.Default != store.DictionaryEn10k || !slices.Equal(p.Dictionary.Custom, []string{"acme"}) ||
+		!p.ProfileData.Active || !slices.Equal(p.ProfileData.BlockedFields, []string{"email", "username"}) {
+		t.Fatalf("password options = %+v", p)
+	}
+	if !c.BruteForceProtection || c.Origin != "" {
+		t.Errorf("seeded connection = %+v", c)
+	}
+}
+
+// password_policy alone still owns just the complexity half, so the history
+// and the rest set elsewhere survive a re-apply.
+func TestSeedPasswordPolicyKeepsOtherOptions(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte("tenants:\n  - name: acme\n    connections:\n      - {name: db, password_policy: {min_length: 10, require_character_classes: 2}}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	c, _ := st.Connections().GetByName(ctx, tn.ID, "db")
+	if c.PasswordOptions.Complexity.MinLength != 10 || c.PasswordOptions.Complexity.MinCharacterClasses != 2 {
+		t.Fatalf("complexity = %+v", c.PasswordOptions.Complexity)
+	}
+	c.PasswordOptions.History = store.PasswordHistory{Active: true, Size: 4}
+	c.UsernameMin, c.UsernameMax, c.Extra = 3, 9, map[string]any{"mfa": map[string]any{"active": true}}
+	if err := st.Connections().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.Connections().GetByName(ctx, tn.ID, "db")
+	if !got.PasswordOptions.History.Active || got.UsernameMax != 9 || got.Extra["mfa"] == nil || !got.BruteForceProtection {
+		t.Errorf("the seed changed what it does not own: %+v", got)
+	}
+}
+
+func TestSeedPasswordOptionsRefusals(t *testing.T) {
+	for name, tc := range map[string]struct{ conn, want string }{
+		"both models":     {`{name: db, password_policy: {min_length: 9}, password_options: {history: {active: true, size: 3}}}`, "password_policy and password_options"},
+		"history too big": {`{name: db, password_options: {history: {active: true, size: 25}}}`, "history.size"},
+		"three of four":   {`{name: db, password_options: {complexity: {character_type_rule: three_of_four, character_types: [number]}}}`, "all four"},
+		"bad dictionary":  {`{name: db, password_options: {dictionary: {default: en_1m}}}`, "dictionary.default"},
+		"unknown key":     {`{name: db, password_options: {bogus: 1}}`, "bogus"},
+		"strategy":        {`{name: db, strategy: samlp}`, "not supported"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte("tenants:\n  - name: a\n    connections: [" + tc.conn + "]\n"))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("err = %v, want containing %q", err, tc.want)
+			}
+		})
+	}
+}
+
+// Connections created through the Management API are never touched by the
+// seed, even when it defines the same name.
+func TestSeedSkipsAPIConnections(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(sampleWithUsers))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	c, _ := st.Connections().GetByName(ctx, tn.ID, "Username-Password-Authentication")
+	if c.Origin != "" {
+		t.Fatalf("a seeded connection has origin %q", c.Origin)
+	}
+	c.Origin, c.DisableSignup, c.EnabledClients = store.OriginAPI, true, nil
+	c.PasswordOptions.Complexity.MinLength = 33
+	if err := st.Connections().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.Connections().GetByName(ctx, tn.ID, "Username-Password-Authentication")
+	if got.Origin != store.OriginAPI || !got.DisableSignup || len(got.EnabledClients) != 0 || got.PasswordOptions.Complexity.MinLength != 33 {
+		t.Fatalf("the seed changed an API connection: %+v", got)
+	}
+}
