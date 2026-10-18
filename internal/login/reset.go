@@ -210,18 +210,9 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		ui.RenderResetForm(w, http.StatusBadRequest, view, form)
 		return
 	}
-	var pe *identity.PolicyError
-	if err := identity.CheckPassword(conn.PasswordOptions.Complexity, pw); errors.As(err, &pe) {
-		form.Error = policyMessage(view.L, pe)
-		ui.RenderResetForm(w, http.StatusBadRequest, view, form)
-		return
-	} else if err != nil {
-		h.fail(w, r, err, nil)
-		return
-	}
-
 	// 4. The user must still exist and not be blocked. The ticket is not
-	// spent otherwise.
+	// spent otherwise. The user is needed to check the password (history,
+	// personal data), so this comes first.
 	user, err := h.Store.Users().Get(ctx, res.Tenant.ID, tk.UserID)
 	if errors.Is(err, store.ErrNotFound) || (err == nil && user.Blocked) {
 		h.renderResetError(w, view, resetInvalid)
@@ -230,6 +221,21 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, nil)
 		return
 	}
+	history, err := identity.LoadHistory(ctx, h.Store, conn, user.UserID)
+	if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	var pe *identity.PolicyError
+	if err := identity.CheckPassword(conn, identity.PersonOf(user), pw, history); errors.As(err, &pe) {
+		form.Error = policyMessage(view.L, pe)
+		ui.RenderResetForm(w, http.StatusBadRequest, view, form)
+		return
+	} else if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	pw = identity.EffectivePassword(conn, pw)
 
 	// 5. Set the password in the legacy store, or hash it, before using
 	// the ticket, so a failure does not spend it.
@@ -295,7 +301,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 8. Set the password. A legacy store already has it (step 5), so
-	// nothing is stored locally.
+	// nothing is stored locally but the history.
 	if !legacy {
 		if err := h.Store.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); errors.Is(err, store.ErrNotFound) {
 			h.renderResetError(w, view, resetInvalid)
@@ -304,6 +310,13 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 			h.fail(w, r, err, nil)
 			return
 		}
+		err = identity.RecordPassword(ctx, h.Store, conn, tk.UserID, hash)
+	} else {
+		err = h.Database.RecordLegacyPassword(ctx, conn, tk.UserID, pw)
+	}
+	if err != nil {
+		h.fail(w, r, err, nil)
+		return
 	}
 	h.log().InfoContext(ctx, "password reset", "tenant", res.Tenant.ID, "user_id", tk.UserID)
 

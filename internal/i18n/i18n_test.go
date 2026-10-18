@@ -199,6 +199,8 @@ func TestGoKeysExist(t *testing.T) {
 	for _, k := range []string{
 		KeyWrongCredentials, KeyUserBlocked, KeyEmailInUse, KeyInvalidUsername,
 		KeyTooManyAttempts, KeyPasswordTooLong, KeyPasswordTooShort, KeyPasswordClasses,
+		KeyPasswordTypes, KeyPasswordIdentical, KeyPasswordSequential, KeyPasswordInHistory, KeyPasswordDictionary,
+		KeyPasswordPersonalInfo, KeyUsernameTooShort, KeyUsernameTooLong,
 		KeyErrSessionExpired, KeyErrNoConnection, KeyErrSignupDisabled, KeyErrServer,
 		KeyErrInvalidRequest, KeyErrLogoutUnknownClient, KeyErrLogoutURL, KeyErrLogoutInvalid,
 		KeyResetPasswordMismatch, KeyResetErrExpiredTitle, KeyResetErrExpired, KeyResetErrUsedTitle,

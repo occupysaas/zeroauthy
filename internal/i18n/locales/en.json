@@ -134,7 +134,15 @@
       "description-no-client": "Sign up for ${companyName} to continue.",
       "password-too-long": "Password is too long.",
       "password-too-short": "Password must be at least ${min} characters.",
-      "password-character-classes": "Password must contain at least ${count} of: lowercase letters, uppercase letters, digits, symbols."
+      "password-character-classes": "Password must contain at least ${count} of: lowercase letters, uppercase letters, digits, symbols.",
+      "password-character-types": "Password must contain ${types}.",
+      "password-identical-characters": "Password must not contain three or more identical characters in a row.",
+      "password-sequential-characters": "Password must not contain three or more sequential characters, such as abc or 321.",
+      "password-in-history": "Password was used recently.",
+      "password-in-dictionary": "Password is too common.",
+      "password-personal-info": "Password must not contain personal information.",
+      "username-too-short": "Username must be at least ${min} characters.",
+      "username-too-long": "Username must be at most ${max} characters."
     },
     "email-reset-password": {
       "subject": "Reset your ${companyName} password",

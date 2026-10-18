@@ -3,6 +3,8 @@ package identity
 import (
 	"sync"
 	"time"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 // maxThrottleEntries is the map size at which Attempt prunes expired
@@ -164,3 +166,13 @@ func UserThrottleKey(tenantID, connection, login string) string {
 }
 
 func IPThrottleKey(tenantID, ip string) string { return "ip|" + tenantID + "|" + ip }
+
+// ThrottleFor returns t for logins on conn, or nil (no throttling) when the
+// connection's brute-force protection is off. A nil *Throttle lets every
+// attempt through.
+func ThrottleFor(conn *store.Connection, t *Throttle) *Throttle {
+	if !conn.BruteForceProtection {
+		return nil
+	}
+	return t
+}

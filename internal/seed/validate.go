@@ -306,8 +306,10 @@ func (t *Tenant) validate() []error {
 		if c.RequiresUsername && u.Username == "" {
 			fail("user %q: username is required by connection %q", u.Email, c.Name)
 		}
+		var stored store.Connection
+		connrules.Apply(c.normalized, &stored)
 		if u.Username != "" {
-			if err := identity.CheckUsername(u.Username); err != nil {
+			if err := identity.CheckUsername(&stored, u.Username); err != nil {
 				fail("user %q: %v", u.Email, err)
 			}
 			uk := [2]string{u.Connection, u.Username}
@@ -316,9 +318,11 @@ func (t *Tenant) validate() []error {
 			}
 			seenUsernames[uk] = true
 		}
-		var stored store.Connection
-		connrules.Apply(c.normalized, &stored)
-		if err := identity.CheckPassword(stored.PasswordOptions.Complexity, u.Password); err != nil {
+		person := identity.Person{
+			Email: u.Email, Username: u.Username, Name: u.Name, GivenName: u.GivenName,
+			FamilyName: u.FamilyName, Nickname: u.Nickname,
+		}
+		if err := identity.CheckPassword(&stored, person, u.Password, nil); err != nil {
 			fail("user %q: %v", u.Email, err)
 		}
 	}

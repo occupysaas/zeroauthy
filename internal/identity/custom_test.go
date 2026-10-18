@@ -990,3 +990,47 @@ func TestImportBlocked(t *testing.T) {
 		t.Fatalf("via hash = %v", err)
 	}
 }
+
+// Migrating a user on first login records the password in the history.
+func TestImportFirstLoginRecordsHistory(t *testing.T) {
+	users := map[string]*legacyUser{"alice@legacy.test": {"legacy pw", map[string]any{"user_id": "42", "email": "alice@legacy.test"}}}
+	db, conn, _ := importConn(t, memory.New(), scripts{store.ScriptLogin: checkLogin(users)})
+	conn.PasswordOptions.History = store.PasswordHistory{Active: true, Size: 3}
+	ctx := context.Background()
+	if _, err := db.Login(ctx, conn, "alice@legacy.test", "legacy pw"); err != nil {
+		t.Fatal(err)
+	}
+	hist, err := LoadHistory(ctx, db.Store, conn, "auth0|42")
+	if err != nil || len(hist) != 1 {
+		t.Fatalf("history = %d, %v", len(hist), err)
+	}
+	if err := CheckPassword(conn, Person{}, "legacy pw", hist); !errors.Is(err, ErrPasswordInHistory) {
+		t.Errorf("err = %v", err)
+	}
+}
+
+// A connection that truncates long passwords hashes and verifies the
+// truncation, so a long password and its first MaxPasswordBytes bytes are
+// the same password.
+func TestTruncatedPasswordsSignupAndLogin(t *testing.T) {
+	ctx := context.Background()
+	db, conn := newDB(t)
+	conn.PasswordOptions.Complexity.MaxLengthExceeded = store.MaxLengthTruncate
+	base := strings.Repeat("a1", MaxPasswordBytes/2)
+	if _, err := db.Signup(ctx, conn, SignupInput{Email: "t@example.com", Password: base + "-extra"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, pw := range []string{base, base + "-other", base + "-extra"} {
+		if _, err := db.Login(ctx, conn, "t@example.com", pw); err != nil {
+			t.Errorf("login with %d bytes: %v", len(pw), err)
+		}
+	}
+	if _, err := db.Login(ctx, conn, "t@example.com", base[:len(base)-1]); !errors.Is(err, ErrInvalidCredentials) {
+		t.Errorf("shorter password: %v", err)
+	}
+	// With "error" the same signup is refused.
+	conn.PasswordOptions.Complexity.MaxLengthExceeded = store.MaxLengthError
+	if _, err := db.Signup(ctx, conn, SignupInput{Email: "u@example.com", Password: base + "-extra"}); err == nil {
+		t.Error("an overlong password was accepted")
+	}
+}

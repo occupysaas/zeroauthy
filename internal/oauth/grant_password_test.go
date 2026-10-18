@@ -424,3 +424,27 @@ func TestPasswordGrantThirdPartyRefusedBeforeLogin(t *testing.T) {
 		t.Fatalf("throttle was charged: %d %v", code, body)
 	}
 }
+
+// A connection with brute-force protection off is not throttled.
+func TestPasswordGrantThrottleOffWithoutBruteForceProtection(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	c, err := f.st.Connections().GetByName(ctx, f.tenantID(t, "acme"), "Username-Password-Authentication")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.BruteForceProtection {
+		t.Fatal("the seeded connection must have brute-force protection on")
+	}
+	c.BruteForceProtection = false
+	if err := f.st.Connections().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	for range 6 {
+		f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "alice@acme.test", "nope")})
+	}
+	rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1")})
+	if rec.Code != 200 {
+		t.Fatalf("after 6 failures with protection off = %d %v", rec.Code, body)
+	}
+}

@@ -153,6 +153,9 @@ func (d *Database) importLogin(ctx context.Context, conn *store.Connection, logi
 			return nil, err
 		}
 		if created {
+			if err := RecordPassword(ctx, d.Store, conn, u.UserID, hash); err != nil {
+				return nil, err
+			}
 			return u, nil
 		}
 		// A concurrent first login migrated the user first: its hash
@@ -174,6 +177,9 @@ func (d *Database) importLogin(ctx context.Context, conn *store.Connection, logi
 		}
 	}
 	u.UpdatedAt = now
+	if err := RecordPassword(ctx, d.Store, conn, u.UserID, hash); err != nil {
+		return nil, err
+	}
 	if u.Blocked {
 		return nil, ErrUserBlocked
 	}
@@ -298,6 +304,7 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 	if err != nil {
 		return nil, err
 	}
+	in.Password = EffectivePassword(conn, in.Password)
 	err = c.Create(ctx, conn, customdb.CreateUser{
 		Tenant: tn.Name, ClientID: in.ClientID, Connection: conn.Name,
 		Email: email, Password: in.Password, Username: username, UserMetadata: in.UserMetadata,
@@ -323,10 +330,28 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 	if err != nil {
 		return nil, err
 	}
+	// The password lives in the legacy store; the history is zeroauthy's.
+	if err := d.RecordLegacyPassword(ctx, conn, u.UserID, in.Password); err != nil {
+		return nil, err
+	}
 	if u.Blocked {
 		return nil, ErrUserBlocked
 	}
 	return u, nil
+}
+
+// RecordLegacyPassword adds password, which a legacy store now holds for the
+// user, to the user's password history. It hashes only when the connection's
+// history rule is active.
+func (d *Database) RecordLegacyPassword(ctx context.Context, conn *store.Connection, userID, password string) error {
+	if h := conn.PasswordOptions.History; !h.Active || h.Size <= 0 {
+		return nil
+	}
+	hash, err := secrets.Hash(EffectivePassword(conn, password))
+	if err != nil {
+		return err
+	}
+	return RecordPassword(ctx, d.Store, conn, userID, hash)
 }
 
 // legacyFindForReset asks the get_user script about email. Only a profile
@@ -352,6 +377,7 @@ func (d *Database) legacyFindForReset(ctx context.Context, conn *store.Connectio
 // ChangeLegacyPassword sets user's password in the legacy store through
 // the change_password script.
 func (d *Database) ChangeLegacyPassword(ctx context.Context, conn *store.Connection, user *store.User, newPassword string) error {
+	newPassword = EffectivePassword(conn, newPassword)
 	c, err := d.scripts(ctx, conn, store.ScriptChangePassword)
 	if err != nil {
 		return err

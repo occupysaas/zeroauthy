@@ -89,7 +89,9 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 
 	userKey := identity.UserThrottleKey(tenantID, conn.Name, username)
 	ipKey := identity.IPThrottleKey(tenantID, clientIPFrom(ctx))
-	if !h.IPThrottle.Attempt(ipKey) || !h.UserThrottle.Attempt(userKey) {
+	// A connection with brute-force protection off is not throttled.
+	userThrottle, ipThrottle := identity.ThrottleFor(conn, h.UserThrottle), identity.ThrottleFor(conn, h.IPThrottle)
+	if !ipThrottle.Attempt(ipKey) || !userThrottle.Attempt(userKey) {
 		return nil, tooManyRequests()
 	}
 	user, err := h.Database.Login(ctx, conn, username, password)
@@ -99,8 +101,8 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		h.log().InfoContext(ctx, "password grant failed", "tenant", tenantID, "client_id", c.ClientID, "connection", conn.Name)
 		return nil, invalidGrant(wrongCredentials)
 	case errors.Is(err, identity.ErrUserBlocked):
-		h.UserThrottle.Success(userKey)
-		h.IPThrottle.Refund(ipKey)
+		userThrottle.Success(userKey)
+		ipThrottle.Refund(ipKey)
 		return nil, invalidGrant("the user is blocked")
 	case errors.As(err, &ue):
 		// A custom database script refused the user; its message is meant
@@ -110,14 +112,14 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		// A failure the script raised counts as a failed attempt; one that
 		// kept the script from answering does not (D-0023).
 		if !identity.ScriptRaised(err) {
-			h.UserThrottle.Refund(userKey)
-			h.IPThrottle.Refund(ipKey)
+			userThrottle.Refund(userKey)
+			ipThrottle.Refund(ipKey)
 		}
 		h.log().ErrorContext(ctx, "password grant", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
-	h.UserThrottle.Success(userKey)
-	h.IPThrottle.Refund(ipKey)
+	userThrottle.Success(userKey)
+	ipThrottle.Refund(ipKey)
 	now := h.now().UTC()
 	if err := h.Store.Users().RecordLogin(ctx, tenantID, user.UserID, now); err != nil {
 		h.log().WarnContext(ctx, "record login", "tenant", tenantID, "err", err)

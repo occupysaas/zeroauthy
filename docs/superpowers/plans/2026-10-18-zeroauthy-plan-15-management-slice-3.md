@@ -103,8 +103,8 @@ Run by the controller session as the observer (option A of Plan 14: the observer
 - Consumes: Task 2 fields and `PasswordHistory`.
 - Produces: `identity.CheckPassword(c *store.Connection, u identity.Person, candidate string, history [][]byte) error` where `identity.Person{Email, Username, Name, GivenName, FamilyName, Nickname string}`; returns `*identity.PolicyError{Reason, Key}` with new keys `KeyPasswordInHistory`, `KeyPasswordInDictionary`, `KeyPasswordHasPersonalInfo`; `identity.CheckUsername(c *store.Connection, username string) error` with `KeyUsernameTooShort`/`KeyUsernameTooLong`; `identity.RecordPassword(ctx, st, c, userID, hash)` writing history with `keep = c.PasswordHistorySize`.
 
-- [ ] **Step 1: Tests:** each rule alone and combined; Review Focus 4 (`TestHistoryShrink`) and 5 (case-insensitive and Unicode comparisons, parts under 3 characters ignored, custom words trimmed and deduplicated); a reused password refused through signup → reset; dictionary hit from the embedded list and from custom words; username limits at signup; localized messages render.
-- [ ] **Step 2: Implement;** every password set goes through `CheckPassword` then `RecordPassword`. **Step 3: Run. Step 4: Commit** with `feat(identity): password history, dictionary, personal info and username rules`.
+- [x] **Step 1: Tests:** each rule alone and combined; Review Focus 4 (`TestHistoryShrink`) and 5 (case-insensitive and Unicode comparisons, parts under 3 characters ignored, custom words trimmed and deduplicated); a reused password refused through signup → reset; dictionary hit from the embedded list and from custom words; username limits at signup; localized messages render.
+- [x] **Step 2: Implement;** every password set goes through `CheckPassword` then `RecordPassword`. **Step 3: Run. Step 4: Commit** with `feat(identity): password history, dictionary, personal info and username rules`.
 
 ---
 

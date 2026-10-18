@@ -20,6 +20,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -499,11 +500,25 @@ func TestSignupIPThrottle(t *testing.T) {
 // Localized policy messages keep the English wording that Reason produced
 // before localization.
 func TestPolicyMessagesKeepEnglishWording(t *testing.T) {
+	pw := func(o store.PasswordOptions, person identity.Person, candidate string, history [][]byte) error {
+		return identity.CheckPassword(&store.Connection{PasswordOptions: o}, person, candidate, history)
+	}
+	cx := func(c store.PasswordComplexity) store.PasswordOptions { return store.PasswordOptions{Complexity: c} }
+	hist, _ := secrets.Hash("used-before-1")
 	errs := []error{
-		identity.CheckPassword(store.PasswordComplexity{}, strings.Repeat("x", 300)),
-		identity.CheckPassword(store.PasswordComplexity{MinLength: 12}, "short"),
-		identity.CheckPassword(store.LegacyComplexity(0, 3), "alllowercase"),
-		identity.CheckUsername("not valid!"),
+		pw(cx(store.PasswordComplexity{}), identity.Person{}, strings.Repeat("x", 300), nil),
+		pw(cx(store.PasswordComplexity{MinLength: 12}), identity.Person{}, "short", nil),
+		pw(cx(store.LegacyComplexity(0, 3)), identity.Person{}, "alllowercase", nil),
+		pw(cx(store.PasswordComplexity{CharacterTypes: []string{"number", "special"}}), identity.Person{}, "alllowercase", nil),
+		pw(cx(store.PasswordComplexity{IdenticalCharacters: "block"}), identity.Person{}, "aaaxxxxxx", nil),
+		pw(cx(store.PasswordComplexity{SequentialCharacters: "block"}), identity.Person{}, "xxabcxxxx", nil),
+		pw(store.PasswordOptions{Dictionary: store.PasswordDictionary{Active: true, Default: "en_10k"}}, identity.Person{}, "password", nil),
+		pw(store.PasswordOptions{ProfileData: store.PasswordProfileData{Active: true, BlockedFields: []string{"name"}}},
+			identity.Person{Name: "Marguerite"}, "xmargueritex", nil),
+		pw(store.PasswordOptions{History: store.PasswordHistory{Active: true, Size: 1}}, identity.Person{}, "used-before-1", [][]byte{[]byte(hist)}),
+		identity.CheckUsername(&store.Connection{}, "not valid!"),
+		identity.CheckUsername(&store.Connection{UsernameMin: 5}, "abc"),
+		identity.CheckUsername(&store.Connection{UsernameMax: 2}, "abc"),
 	}
 	for _, err := range errs {
 		pe, ok := err.(*identity.PolicyError)
@@ -608,9 +623,9 @@ func TestPolicyTextAlias(t *testing.T) {
 	}}
 	fr, en := i18n.New(tn, "fr"), i18n.New(tn, "en")
 	for _, err := range []error{
-		identity.CheckPassword(store.PasswordComplexity{}, strings.Repeat("x", 300)),
-		identity.CheckPassword(store.PasswordComplexity{MinLength: 12}, "short"),
-		identity.CheckPassword(store.LegacyComplexity(0, 3), "alllowercase"),
+		identity.CheckPassword(&store.Connection{}, identity.Person{}, strings.Repeat("x", 300), nil),
+		identity.CheckPassword(&store.Connection{PasswordOptions: store.PasswordOptions{Complexity: store.PasswordComplexity{MinLength: 12}}}, identity.Person{}, "short", nil),
+		identity.CheckPassword(&store.Connection{PasswordOptions: store.PasswordOptions{Complexity: store.LegacyComplexity(0, 3)}}, identity.Person{}, "alllowercase", nil),
 	} {
 		pe := err.(*identity.PolicyError)
 		if got := policyText(fr, pe); got != "Trop faible." {
@@ -620,7 +635,7 @@ func TestPolicyTextAlias(t *testing.T) {
 			t.Errorf("%s in en = %q, want %q", pe.Key, got, want)
 		}
 	}
-	pe := identity.CheckUsername("not valid!").(*identity.PolicyError)
+	pe := identity.CheckUsername(&store.Connection{}, "not valid!").(*identity.PolicyError)
 	if got := policyText(fr, pe); got == "Trop faible." {
 		t.Error("the alias must not replace the username message")
 	}

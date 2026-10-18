@@ -4,14 +4,8 @@ package identity
 
 import (
 	"errors"
-	"fmt"
-	"strconv"
-	"unicode"
-	"unicode/utf8"
 
-	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
-	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 var (
@@ -28,6 +22,9 @@ var (
 	ErrScriptUnavailable = errors.New("identity: custom database script unavailable")
 	// ErrPasswordNotChanged is a change_password script reporting false.
 	ErrPasswordNotChanged = errors.New("identity: the legacy store did not change the password")
+	// ErrPasswordInHistory is the Err of the PolicyError for a password the
+	// user had recently.
+	ErrPasswordInHistory = errors.New("identity: password was used recently")
 )
 
 // UnauthorizedError carries the message of a script's UnauthorizedError,
@@ -42,9 +39,13 @@ func (e *UnauthorizedError) Error() string { return "identity: unauthorized: " +
 type PolicyError struct {
 	Reason, Key string
 	Vars        []string
+	// Err, when set, is the sentinel that names the rule (ErrPasswordInHistory).
+	Err error
 }
 
 func (e *PolicyError) Error() string { return "identity: " + e.Reason }
+
+func (e *PolicyError) Unwrap() error { return e.Err }
 
 const (
 	defaultMinPasswordLength = 8
@@ -55,60 +56,3 @@ const (
 
 // NormalizeLogin trims and lowercases an email or username.
 func NormalizeLogin(s string) string { return loginid.Normalize(s) }
-
-// CheckPassword enforces a connection's password complexity: the minimum
-// length, the required kinds of character and the longest password.
-func CheckPassword(p store.PasswordComplexity, password string) error {
-	minLen := p.MinLength
-	if minLen <= 0 {
-		minLen = defaultMinPasswordLength
-	}
-	if len(password) > MaxPasswordBytes {
-		return &PolicyError{Reason: "password is too long", Key: i18n.KeyPasswordTooLong}
-	}
-	if utf8.RuneCountInString(password) < minLen {
-		return &PolicyError{
-			Reason: fmt.Sprintf("password must be at least %d characters", minLen),
-			Key:    i18n.KeyPasswordTooShort, Vars: []string{"min", strconv.Itoa(minLen)},
-		}
-	}
-	if len(p.CharacterTypes) == 0 && p.MinCharacterClasses <= 0 {
-		return nil
-	}
-	has := map[string]bool{}
-	for _, r := range password {
-		switch {
-		case unicode.IsLower(r):
-			has[store.CharacterTypeLowercase] = true
-		case unicode.IsUpper(r):
-			has[store.CharacterTypeUppercase] = true
-		case unicode.IsDigit(r):
-			has[store.CharacterTypeNumber] = true
-		default:
-			has[store.CharacterTypeSpecial] = true
-		}
-	}
-	// need is how many kinds the password must hold; missing is how many
-	// it is short of the kinds that are required by name.
-	need, short := p.MinCharacterClasses, false
-	if len(p.CharacterTypes) > 0 {
-		if p.CharacterTypeRule == store.CharacterTypeRuleThreeOfFour {
-			need = max(need, 3)
-		} else {
-			// Every listed type. The message for a subset of the types
-			// names the count only.
-			need = max(need, len(p.CharacterTypes))
-			for _, t := range p.CharacterTypes {
-				short = short || !has[t]
-			}
-		}
-	}
-	if short || len(has) < need {
-		return &PolicyError{
-			Reason: fmt.Sprintf(
-				"password must contain at least %d of: lowercase letters, uppercase letters, digits, symbols", need),
-			Key: i18n.KeyPasswordClasses, Vars: []string{"count", strconv.Itoa(need)},
-		}
-	}
-	return nil
-}

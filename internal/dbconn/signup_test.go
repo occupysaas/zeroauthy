@@ -351,3 +351,40 @@ func TestImportSignup(t *testing.T) {
 		t.Fatalf("local user = %+v, %v", u, err)
 	}
 }
+
+// The connection's dictionary, personal data and username rules apply to
+// /dbconnections/signup.
+func TestSignupPasswordAndUsernameRules(t *testing.T) {
+	e := newEnv(t)
+	e.strict = false
+	ctx := context.Background()
+	c, err := e.st.Connections().GetByName(ctx, e.tenantID, "Username-Password-Authentication")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.PasswordOptions.Dictionary = store.PasswordDictionary{Active: true, Default: store.DictionaryEn10k, Custom: []string{"Acme-House-1"}}
+	c.PasswordOptions.ProfileData = store.PasswordProfileData{Active: true, BlockedFields: []string{"email"}}
+	c.RequiresUsername, c.UsernameMin = true, 4
+	if err := e.st.Connections().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	post := func(email, username, password string) (int, map[string]any) {
+		body := `{"client_id":"app","connection":"Username-Password-Authentication","email":"` + email +
+			`","username":"` + username + `","password":"` + password + `"}`
+		code, out, _ := e.post(t, "/dbconnections/signup", "application/json", body)
+		return code, out
+	}
+	for name, tc := range map[string]struct{ email, user, pw, code string }{
+		"dictionary":    {"x@acme.test", "xavier", "password1", "invalid_password"},
+		"custom word":   {"x@acme.test", "xavier", "ACME-house-1", "invalid_password"},
+		"personal data": {"zelda@acme.test", "zed1", "my-ZELDA-pass", "invalid_password"},
+		"short name":    {"x@acme.test", "xyz", "a good password 1", "invalid_signup"},
+	} {
+		if code, out := post(tc.email, tc.user, tc.pw); code != 400 || out["error"] != tc.code {
+			t.Errorf("%s: %d %v", name, code, out)
+		}
+	}
+	if code, out := post("x@acme.test", "xavier", "a good password 1"); code != 200 {
+		t.Fatalf("valid signup = %d %v", code, out)
+	}
+}

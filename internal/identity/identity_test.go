@@ -41,7 +41,7 @@ func TestCheckPassword(t *testing.T) {
 		{store.PasswordComplexity{CharacterTypes: []string{"uppercase", "special"}, CharacterTypeRule: "all"}, "Abcdefgh!", true},
 	}
 	for _, tc := range cases {
-		err := CheckPassword(tc.policy, tc.password)
+		err := CheckPassword(connWith(store.PasswordOptions{Complexity: tc.policy}), Person{}, tc.password, nil)
 		if (err == nil) != tc.ok {
 			t.Errorf("CheckPassword(%+v, %q) = %v, want ok=%v", tc.policy, tc.password, err, tc.ok)
 		}
@@ -54,13 +54,13 @@ func TestCheckPassword(t *testing.T) {
 
 func TestCheckUsername(t *testing.T) {
 	for _, ok := range []string{"alice", "a.b_c+d-e", strings.Repeat("a", 64)} {
-		if err := CheckUsername(ok); err != nil {
+		if err := CheckUsername(&store.Connection{}, ok); err != nil {
 			t.Errorf("CheckUsername(%q) = %v, want nil", ok, err)
 		}
 	}
 	for _, bad := range []string{"", "victim@acme.test", "has space", strings.Repeat("a", 65)} {
 		var pe *PolicyError
-		if err := CheckUsername(bad); !errors.As(err, &pe) {
+		if err := CheckUsername(&store.Connection{}, bad); !errors.As(err, &pe) {
 			t.Errorf("CheckUsername(%q) = %v, want a PolicyError", bad, err)
 		}
 	}

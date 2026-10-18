@@ -9,3 +9,12 @@ describe API compatibility.
 Portions of the API description in api/ were informed by
 "auth0-openapi" (https://github.com/aminya/auth0-openapi),
 licensed under the Apache License, Version 2.0.
+
+The embedded password dictionaries in internal/identity/dictionary/ are
+copied from SecLists (https://github.com/danielmiessler/SecLists, commit
+60e43f4d2b0251330ff18ea4fa76aabec0515dcb), licensed under the MIT License,
+Copyright (c) 2018 Daniel Miessler:
+  - en_10k.txt  is Passwords/Common-Credentials/10k-most-common.txt
+  - en_100k.txt is Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt
+    (the 100,000 most common passwords of Mark Burnett's 10 million
+    password release, as packaged by SecLists)

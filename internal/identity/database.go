@@ -3,7 +3,9 @@ package identity
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -17,10 +19,24 @@ import (
 )
 
 // CheckUsername validates a normalized username. Usernames never contain
-// '@', so a login that contains one can only be an email.
-func CheckUsername(username string) error {
+// '@', so a login that contains one can only be an email. A connection's
+// UsernameMin and UsernameMax, when set, narrow the length further.
+func CheckUsername(c *store.Connection, username string) error {
 	if !loginid.ValidUsername(username) {
 		return &PolicyError{Reason: "username must be 1-64 characters: letters, digits, and _ . + -", Key: i18n.KeyInvalidUsername}
+	}
+	n := utf8.RuneCountInString(username)
+	if c.UsernameMin > 0 && n < c.UsernameMin {
+		return &PolicyError{
+			Reason: fmt.Sprintf("username must be at least %d characters", c.UsernameMin),
+			Key:    i18n.KeyUsernameTooShort, Vars: []string{"min", strconv.Itoa(c.UsernameMin)},
+		}
+	}
+	if c.UsernameMax > 0 && n > c.UsernameMax {
+		return &PolicyError{
+			Reason: fmt.Sprintf("username must be at most %d characters", c.UsernameMax),
+			Key:    i18n.KeyUsernameTooLong, Vars: []string{"max", strconv.Itoa(c.UsernameMax)},
+		}
 	}
 	return nil
 }
@@ -88,6 +104,7 @@ func (d *Database) now() time.Time {
 // or created by a reset lookup) is checked by the login script and
 // migrated; every other user is checked locally.
 func (d *Database) Login(ctx context.Context, conn *store.Connection, login, password string) (*store.User, error) {
+	password = EffectivePassword(conn, password)
 	if IsLegacy(conn) {
 		return d.customLogin(ctx, conn, login, password)
 	}
@@ -184,7 +201,7 @@ func checkSignup(conn *store.Connection, in SignupInput) (email, username string
 	}
 	username = NormalizeLogin(in.Username)
 	if conn.RequiresUsername {
-		if err := CheckUsername(username); err != nil {
+		if err := CheckUsername(conn, username); err != nil {
 			return "", "", err
 		}
 	} else {
@@ -193,7 +210,14 @@ func checkSignup(conn *store.Connection, in SignupInput) (email, username string
 	if err := checkProfile(in); err != nil {
 		return "", "", err
 	}
-	if err := CheckPassword(conn.PasswordOptions.Complexity, in.Password); err != nil {
+	person := Person{
+		Email: email, Username: username, Name: in.Name, GivenName: in.GivenName,
+		FamilyName: in.FamilyName, Nickname: in.Nickname, UserMetadata: in.UserMetadata,
+	}
+	// A new user has no history. The names a signup leaves out default as
+	// they do when the user is stored, so the rule sees what will be held.
+	person.Name, person.Nickname = defaultNames(in.Name, in.Nickname, email, username)
+	if err := CheckPassword(conn, person, in.Password, nil); err != nil {
 		return "", "", err
 	}
 	return email, username, nil
@@ -236,7 +260,7 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 		}
 	}
 	name, nickname := defaultNames(in.Name, in.Nickname, email, username)
-	hash, err := secrets.Hash(in.Password)
+	hash, err := secrets.Hash(EffectivePassword(conn, in.Password))
 	if err != nil {
 		return nil, err
 	}
@@ -264,6 +288,9 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 		if errors.Is(err, store.ErrConflict) {
 			return nil, ErrUserExists
 		}
+		return nil, err
+	}
+	if err := RecordPassword(ctx, d.Store, conn, u.UserID, hash); err != nil {
 		return nil, err
 	}
 	return u, nil

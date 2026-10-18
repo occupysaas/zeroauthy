@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
+	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -303,21 +304,34 @@ func applyUser(ctx context.Context, st store.Store, tenantID string, in User, no
 		u.Nickname = strings.SplitN(in.Email, "@", 2)[0]
 	}
 	u.UpdatedAt = now
+	conn, err := st.Connections().GetByName(ctx, tenantID, in.Connection)
+	if err != nil {
+		return err
+	}
+	password := identity.EffectivePassword(conn, in.Password)
+	var newHash string
 	for i := range u.Identities {
 		if u.Identities[i].Connection != in.Connection {
 			continue
 		}
-		if ok, err := secrets.Verify(u.Identities[i].PasswordHash, in.Password); err == nil && ok {
+		if ok, err := secrets.Verify(u.Identities[i].PasswordHash, password); err == nil && ok {
 			continue
 		}
-		h, err := secrets.Hash(in.Password)
+		h, err := secrets.Hash(password)
 		if err != nil {
 			return err
 		}
 		u.Identities[i].PasswordHash = h
+		newHash = h
 	}
 	if create {
-		return st.Users().Create(ctx, u)
+		err = st.Users().Create(ctx, u)
+	} else {
+		err = st.Users().Update(ctx, u)
 	}
-	return st.Users().Update(ctx, u)
+	if err != nil || newHash == "" {
+		return err
+	}
+	// A password the seed sets counts as the user's newest.
+	return identity.RecordPassword(ctx, st, conn, u.UserID, newHash)
 }

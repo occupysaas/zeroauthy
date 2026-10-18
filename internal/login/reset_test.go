@@ -542,3 +542,68 @@ func TestImportResetMigrates(t *testing.T) {
 		t.Fatalf("login with the new password = %d %s", rec.Code, rec.Body)
 	}
 }
+
+// A connection with brute-force protection off is not throttled.
+func TestLoginThrottleOffWithoutBruteForceProtection(t *testing.T) {
+	e := newEnv(t)
+	c := e.conn(t)
+	if !c.BruteForceProtection {
+		t.Fatal("the seeded connection must have brute-force protection on")
+	}
+	c.BruteForceProtection = false
+	if err := e.st.Connections().Update(context.Background(), c); err != nil {
+		t.Fatal(err)
+	}
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	login := func(pw string) int {
+		return b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {pw}}).Code
+	}
+	for range 6 {
+		login("wrong")
+	}
+	if code := login("alice password 1"); code != http.StatusFound {
+		t.Fatalf("login after 6 failures with protection off = %d", code)
+	}
+}
+
+// A password used recently is refused by signup and by reset, and a reset
+// records the new password in the history.
+func TestResetRefusesHistoryAndPersonalData(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	c := e.conn(t)
+	c.PasswordOptions.History = store.PasswordHistory{Active: true, Size: 2}
+	c.PasswordOptions.ProfileData = store.PasswordProfileData{Active: true, BlockedFields: []string{"username"}}
+	if err := e.st.Connections().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	b := e.browser("acme.example.test")
+	reset := func(pw string) *httptest.ResponseRecorder {
+		return completeReset(t, b, e.issueTicket(t, "alice@acme.test", time.Hour), pw)
+	}
+	if rec := reset("xx-alice1-xx"); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Password must not contain personal information.") {
+		t.Fatalf("personal data = %d %s", rec.Code, rec.Body)
+	}
+	for _, pw := range []string{"first new password", "second new password"} {
+		if rec := reset(pw); rec.Code != 200 {
+			t.Fatalf("reset to %q = %d %s", pw, rec.Code, rec.Body)
+		}
+	}
+	for _, pw := range []string{"first new password", "second new password"} {
+		if rec := reset(pw); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Password was used recently.") {
+			t.Fatalf("reuse of %q = %d %s", pw, rec.Code, rec.Body)
+		}
+	}
+	// A third password pushes the first out of a history of two.
+	if rec := reset("third new password"); rec.Code != 200 {
+		t.Fatalf("third = %d %s", rec.Code, rec.Body)
+	}
+	if rec := reset("first new password"); rec.Code != 200 {
+		t.Fatalf("a password older than the history size = %d %s", rec.Code, rec.Body)
+	}
+	hist, _ := e.st.PasswordHistories().List(ctx, c.TenantID, e.user(t, "alice@acme.test").UserID)
+	if len(hist) != 2 {
+		t.Fatalf("stored history = %d, want 2", len(hist))
+	}
+}

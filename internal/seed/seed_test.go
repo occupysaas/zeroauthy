@@ -225,6 +225,37 @@ tenants:
         family_name: Liddell
 `
 
+// A seeded user's password is the newest of the connection's history.
+func TestApplyRecordsPasswordHistory(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, err := Parse([]byte(sampleWithUsers))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// History is off in the sample: nothing is recorded.
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	u, _ := st.Users().FindByLogin(ctx, tn.ID, "Username-Password-Authentication", "alice@acme.test")
+	if h, _ := st.PasswordHistories().List(ctx, tn.ID, u.UserID); len(h) != 0 {
+		t.Fatalf("history with the rule off = %d", len(h))
+	}
+	conn, _ := st.Connections().GetByName(ctx, tn.ID, "Username-Password-Authentication")
+	conn.PasswordOptions.History = store.PasswordHistory{Active: true, Size: 2}
+	if err := st.Connections().Update(ctx, conn); err != nil {
+		t.Fatal(err)
+	}
+	f2, _ := Parse([]byte(strings.Replace(sampleWithUsers, "alice password 1", "alice password 2", 1)))
+	if err := Apply(ctx, st, f2, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	if h, _ := st.PasswordHistories().List(ctx, tn.ID, u.UserID); len(h) != 1 {
+		t.Fatalf("history after a changed seed password = %d, want 1", len(h))
+	}
+}
+
 func TestApplyConnectionsAndUsers(t *testing.T) {
 	ctx := context.Background()
 	st := memory.New()
@@ -291,6 +322,8 @@ func TestValidateConnectionsAndUsers(t *testing.T) {
 		"user weak password": {conn, `{connection: DB, email: a@b.test, password: short}`, "at least 8"},
 		"user dup email":     {conn, `{connection: DB, email: a@b.test, password: "long enough 1"}, {connection: DB, email: A@B.test, password: "long enough 2"}`, `duplicate user "a@b.test"`},
 		"username required":  {`{name: DB, requires_username: true}`, `{connection: DB, email: a@b.test, password: "long enough 1"}`, "username is required"},
+		"seed sequential":    {`{name: DB, password_options: {complexity: {sequential_characters: block}}}`, `{connection: DB, email: a@b.test, password: "xxabcxxx"}`, "sequential"},
+		"seed dictionary":    {`{name: DB, password_options: {dictionary: {active: true, default: en_10k}}}`, `{connection: DB, email: a@b.test, password: "password1"}`, "too common"},
 		"username with at":   {conn, `{connection: DB, email: a@b.test, username: "a@b.test", password: "long enough 1"}`, "username"},
 		"dup username":       {conn, `{connection: DB, email: a@b.test, username: alice, password: "long enough 1"}, {connection: DB, email: c@b.test, username: ALICE, password: "long enough 2"}`, `duplicate username "alice" on connection "DB"`},
 	}

@@ -234,9 +234,11 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	userKey := identity.UserThrottleKey(f.res.Tenant.ID, f.conn.Name, login)
 	ipKey := identity.IPThrottleKey(f.res.Tenant.ID, httpx.ClientIP(r, h.TrustProxyHeaders))
+	// A connection with brute-force protection off is not throttled.
+	userThrottle, ipThrottle := identity.ThrottleFor(f.conn, h.UserThrottle), identity.ThrottleFor(f.conn, h.IPThrottle)
 	// Attempt counts the try up front; it is undone or cleared below once
 	// the password turns out to be correct.
-	if !h.IPThrottle.Attempt(ipKey) || !h.UserThrottle.Attempt(userKey) {
+	if !ipThrottle.Attempt(ipKey) || !userThrottle.Attempt(userKey) {
 		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
 		ui.RenderLogin(w, http.StatusTooManyRequests, f.view, data)
 		return
@@ -251,8 +253,8 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		ui.RenderLogin(w, http.StatusUnauthorized, f.view, data)
 		return
 	case errors.Is(err, identity.ErrUserBlocked):
-		h.UserThrottle.Success(userKey)
-		h.IPThrottle.Refund(ipKey)
+		userThrottle.Success(userKey)
+		ipThrottle.Refund(ipKey)
 		data.Error = f.view.L.T(i18n.KeyUserBlocked)
 		ui.RenderLogin(w, http.StatusForbidden, f.view, data)
 		return
@@ -266,14 +268,14 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		// A failure the script raised counts as a failed attempt; one that
 		// kept the script from answering does not (D-0023).
 		if !identity.ScriptRaised(err) {
-			h.UserThrottle.Refund(userKey)
-			h.IPThrottle.Refund(ipKey)
+			userThrottle.Refund(userKey)
+			ipThrottle.Refund(ipKey)
 		}
 		h.fail(w, r, err, f)
 		return
 	}
-	h.UserThrottle.Success(userKey)
-	h.IPThrottle.Refund(ipKey)
+	userThrottle.Success(userKey)
+	ipThrottle.Refund(ipKey)
 	h.complete(w, r, f, user)
 }
 
@@ -371,8 +373,12 @@ func policyMessage(l *i18n.Localizer, pe *identity.PolicyError) string {
 }
 
 // passwordPolicyKeys are the messages Auth0's password-policy-not-conformant
-// key stands for.
-var passwordPolicyKeys = []string{i18n.KeyPasswordTooShort, i18n.KeyPasswordTooLong, i18n.KeyPasswordClasses}
+// key stands for: the complexity messages. History, dictionary and personal
+// data have their own.
+var passwordPolicyKeys = []string{
+	i18n.KeyPasswordTooShort, i18n.KeyPasswordTooLong, i18n.KeyPasswordClasses, i18n.KeyPasswordTypes,
+	i18n.KeyPasswordIdentical, i18n.KeyPasswordSequential,
+}
 
 // policyText localizes a keyed policy error. A password policy message uses
 // the tenant's custom text for Auth0's password-policy-not-conformant key
