@@ -10,7 +10,7 @@ const { auth: oidc, requiresAuth } = oidcSdk;
 import { AuthClient } from '@auth0/auth0-auth-js';
 
 const IDP = 'https://localhost:8443';
-const CALLBACK = 'https://par.e2e.invalid/cb';
+const CALLBACK = 'https://localhost:3443/par-cb';
 
 async function login(page) {
   await page.waitForURL(/localhost:8443\/u\/login/);
@@ -19,9 +19,10 @@ async function login(page) {
   await page.click('button[type=submit]');
 }
 
-// The browser never reaches the made-up callback host (Playwright cannot
-// fulfil a redirect target, so the navigation ends in a network error). The
-// redirect itself is observable as a request, and that is all the tests need.
+// The callback is a blank page on the SPA server, so the redirect ends on
+// a real page. A made-up host left the browser on its
+// network-error page, which could commit after the test's next goto had
+// started and interrupt it. The redirect request carries the code.
 function callbackRequest(page) {
   return page.waitForRequest((r) => r.url().startsWith(CALLBACK));
 }
@@ -81,7 +82,9 @@ test('auth0-auth-js: PAR URL, code exchange, and a used request_uri is refused',
   const callback = callbackRequest(page);
   await page.goto(authorizationUrl.toString());
   await login(page);
-  const tokens = await client.getTokenByCode(new URL((await callback).url()), { codeVerifier });
+  const callbackURL = new URL((await callback).url());
+  await page.waitForURL((u) => u.href.startsWith(CALLBACK));
+  const tokens = await client.getTokenByCode(callbackURL, { codeVerifier });
   expect(tokens.idToken).toBeTruthy();
 
   // The same request_uri a second time: an error page at zeroauthy, no redirect.
@@ -94,7 +97,7 @@ test('a client that requires PAR cannot use a plain /authorize', async ({ page }
   const callback = callbackRequest(page);
   await page.goto(`${IDP}/authorize?` + new URLSearchParams({
     client_id: 'e2e-par-authjs', redirect_uri: CALLBACK, response_type: 'code', scope: 'openid', state: 's1',
-  })).catch(() => {}); // the redirect to the made-up host fails to load
+  }));
   const u = new URL((await callback).url());
   expect(u.searchParams.get('error')).toBe('invalid_request');
   expect(u.searchParams.get('state')).toBe('s1');

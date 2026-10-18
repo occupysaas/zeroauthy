@@ -21,7 +21,15 @@ const routes = {
 const server = createServer(
   { cert: await readFile(process.env.E2E_CERT), key: await readFile(process.env.E2E_KEY) },
   async (req, res) => {
-    const route = routes[new URL(req.url, 'https://localhost').pathname];
+    const path = new URL(req.url, 'https://localhost').pathname;
+    // A landing page for redirects that a test reads from the request URL
+    // (m10-par): any page will do, so long as the browser finishes loading it.
+    if (path === '/par-cb') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+      res.end('<!doctype html><title>callback</title>');
+      return;
+    }
+    const route = routes[path];
     if (!route) {
       res.writeHead(404).end();
       return;
