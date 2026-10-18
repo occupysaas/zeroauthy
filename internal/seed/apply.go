@@ -264,6 +264,7 @@ func applyUser(ctx context.Context, st store.Store, tenantID string, in User, no
 	}
 	u.Email, u.EmailVerified, u.Username = in.Email, in.EmailVerified, in.Username
 	u.Name, u.Nickname, u.Picture, u.Blocked = in.Name, in.Nickname, in.Picture, in.Blocked
+	u.GivenName, u.FamilyName = in.GivenName, in.FamilyName
 	if u.Name == "" {
 		u.Name = in.Email
 	}

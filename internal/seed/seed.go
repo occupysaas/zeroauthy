@@ -180,6 +180,8 @@ type User struct {
 	EmailVerified bool   `yaml:"email_verified"`
 	Name          string `yaml:"name"`
 	Nickname      string `yaml:"nickname"`
+	GivenName     string `yaml:"given_name"`
+	FamilyName    string `yaml:"family_name"`
 	Picture       string `yaml:"picture"`
 	Blocked       bool   `yaml:"blocked"`
 }

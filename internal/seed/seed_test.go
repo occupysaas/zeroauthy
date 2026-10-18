@@ -221,6 +221,8 @@ tenants:
         password: "alice password 1"
         email_verified: true
         name: Alice
+        given_name: Alice
+        family_name: Liddell
 `
 
 func TestApplyConnectionsAndUsers(t *testing.T) {
@@ -249,7 +251,7 @@ func TestApplyConnectionsAndUsers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !u.EmailVerified || u.Name != "Alice" || u.Nickname != "alice" || !strings.HasPrefix(u.UserID, "auth0|") {
+	if !u.EmailVerified || u.Name != "Alice" || u.Nickname != "alice" || u.GivenName != "Alice" || u.FamilyName != "Liddell" || !strings.HasPrefix(u.UserID, "auth0|") {
 		t.Errorf("user = %+v", u)
 	}
 	if ok, _ := secrets.Verify(u.Identities[0].PasswordHash, "alice password 1"); !ok {
