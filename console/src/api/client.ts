@@ -21,6 +21,12 @@ export type ClientGrantUpdate = components['schemas']['ClientGrantUpdate']
 export type ClientGrantPage = components['schemas']['ClientGrantPage']
 export type Operator = components['schemas']['Operator']
 export type OperatorInvite = components['schemas']['OperatorInvite']
+export type Connection = components['schemas']['Connection']
+export type ConnectionCreate = components['schemas']['ConnectionCreate']
+export type ConnectionUpdate = components['schemas']['ConnectionUpdate']
+export type ConnectionPage = components['schemas']['ConnectionPage']
+export type ConnectionClientStatus = components['schemas']['ConnectionClientStatus']
+export type ScriptTryResult = components['schemas']['ScriptTryResult']
 export type ManagementError = components['schemas']['ManagementError']
 
 export class ApiError extends Error {
@@ -28,6 +34,8 @@ export class ApiError extends Error {
     readonly status: number,
     readonly errorCode: string,
     message: string,
+    // retryAfter is the Retry-After header of a 429, in seconds.
+    readonly retryAfter?: number,
   ) {
     super(message)
   }
@@ -59,7 +67,8 @@ export class Api {
     const body = (await res.json().catch(() => null)) as unknown
     if (!res.ok) {
       const e = (body ?? {}) as Partial<ManagementError>
-      throw new ApiError(res.status, e.errorCode ?? '', e.message ?? res.statusText ?? 'Request failed')
+      const wait = Number(res.headers.get('Retry-After'))
+      throw new ApiError(res.status, e.errorCode ?? '', e.message ?? res.statusText ?? 'Request failed', wait > 0 ? wait : undefined)
     }
     return body as T
   }
@@ -129,6 +138,43 @@ export class Api {
     return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/client-grants/' + encodeURIComponent(id))
   }
 
+  listConnections(t: SystemTenant, q: { page: number; per_page: number }): Promise<ConnectionPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections', { query: { ...q, include_totals: true } })
+  }
+
+  getConnection(t: SystemTenant, id: string): Promise<Connection> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections/' + encodeURIComponent(id))
+  }
+
+  createConnection(t: SystemTenant, body: ConnectionCreate): Promise<Connection> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/connections', { body })
+  }
+
+  updateConnection(t: SystemTenant, id: string, body: ConnectionUpdate): Promise<Connection> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/connections/' + encodeURIComponent(id), { body })
+  }
+
+  deleteConnection(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/connections/' + encodeURIComponent(id))
+  }
+
+  // Enabled applications are read and changed only through the clients
+  // endpoint, never through enabled_clients on PATCH.
+  getConnectionClients(t: SystemTenant, id: string, q: { take: number; from?: string }): Promise<{ clients: { client_id: string }[]; next?: string }> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections/' + encodeURIComponent(id) + '/clients', { query: q })
+  }
+
+  updateConnectionClients(t: SystemTenant, id: string, body: ConnectionClientStatus[]): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/connections/' + encodeURIComponent(id) + '/clients', { body })
+  }
+
+  // tryScript runs one custom database script with test arguments (system
+  // API). The answer is for the page only; callers must not keep it.
+  tryScript(t: Pick<SystemTenant, 'name'>, id: string, script: string, args: unknown[]): Promise<ScriptTryResult> {
+    const path = `/api/system/tenants/${encodeURIComponent(t.name)}/connections/${encodeURIComponent(id)}/scripts/${encodeURIComponent(script)}/try`
+    return this.request(this.systemOrigin, 'POST', path, { body: { args } })
+  }
+
   // The *All methods read every page (100 at a time) of a listing that the
   // screens need whole: the APIs and machine-to-machine applications to
   // pick from, and the grants for one API or application.
@@ -142,6 +188,22 @@ export class Api {
 
   async allClientGrants(t: SystemTenant, filter: { client_id?: string; audience?: string }): Promise<ClientGrant[]> {
     return collect((page) => this.listClientGrants(t, { page, per_page: ALL_PER_PAGE, ...filter }).then((r) => ({ items: r.client_grants, total: r.total })))
+  }
+
+  async allConnections(t: SystemTenant): Promise<Connection[]> {
+    return collect((page) => this.listConnections(t, { page, per_page: ALL_PER_PAGE }).then((r) => ({ items: r.connections, total: r.total })))
+  }
+
+  // allConnectionClients follows the checkpoint cursor to the end.
+  async allConnectionClients(t: SystemTenant, id: string): Promise<string[]> {
+    const out: string[] = []
+    let from: string | undefined
+    do {
+      const r = await this.getConnectionClients(t, id, { take: ALL_PER_PAGE, from })
+      out.push(...r.clients.map((c) => c.client_id))
+      from = r.next
+    } while (from)
+    return out
   }
 
   listTenants(): Promise<SystemTenant[]> {

@@ -8,6 +8,7 @@ import { t } from '../../strings'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import ApisTab from './ApisTab.vue'
+import ConnectionsTab from './ConnectionsTab.vue'
 import AdvancedTab from './AdvancedTab.vue'
 import DangerZone from './DangerZone.vue'
 import QuickStart from './QuickStart.vue'
@@ -61,6 +62,7 @@ function rotated(c: Client) {
           <TabsTrigger class="tab" value="settings">{{ t.apps.settings }}</TabsTrigger>
           <TabsTrigger class="tab" value="advanced">{{ t.apps.advanced }}</TabsTrigger>
           <TabsTrigger class="tab" value="apis">{{ t.grants.tab }}</TabsTrigger>
+          <TabsTrigger class="tab" value="connections">{{ t.appConns.tab }}</TabsTrigger>
           <TabsTrigger class="tab" value="danger">{{ t.apps.danger }}</TabsTrigger>
         </TabsList>
         <TabsContent value="quickstart">
@@ -74,6 +76,9 @@ function rotated(c: Client) {
         </TabsContent>
         <TabsContent value="apis">
           <ApisTab :tenant="tenant" :client="client" />
+        </TabsContent>
+        <TabsContent value="connections">
+          <ConnectionsTab :tenant="tenant" :client="client" />
         </TabsContent>
         <TabsContent value="danger">
           <DangerZone :tenant="tenant" :client="client" @rotated="rotated" />

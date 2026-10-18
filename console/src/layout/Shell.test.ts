@@ -20,7 +20,7 @@ async function sidebar(path: string): Promise<string[]> {
 
 describe('Shell sidebar', () => {
   it('lists Operators only on the system tenant', async () => {
-    expect(await sidebar('/t/acme/')).toEqual(['Home', 'Applications', 'APIs'])
-    expect(await sidebar('/t/system/')).toEqual(['Home', 'Applications', 'APIs', 'Operators'])
+    expect(await sidebar('/t/acme/')).toEqual(['Home', 'Applications', 'APIs', 'Connections'])
+    expect(await sidebar('/t/system/')).toEqual(['Home', 'Applications', 'APIs', 'Connections', 'Operators'])
   })
 })

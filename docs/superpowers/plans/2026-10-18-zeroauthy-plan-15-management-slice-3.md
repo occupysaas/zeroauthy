@@ -140,8 +140,8 @@ Run by the controller session as the observer (option A of Plan 14: the observer
 
 **Screens** (spec §5.5): list (paged, strategy, enabled-application count); create; detail with Settings (stored-not-enforced options in their own labelled group, marked "saved, not enforced yet"), Password policy (with the live checker computed in the browser from the same rules: a TypeScript port of the length, class, dictionary-custom-words and personal-info checks, the embedded list excepted), Custom database (script editor textarea with line numbers, configuration key/values write-only after save, "Try" per script calling Task 6), Applications (switch per application), Danger zone (type the name; shows the user count); application detail gains Connections.
 
-- [ ] **Step 1: Tests** (Vitest): each screen's loading, empty, error, validation and success states; the live checker per rule; configuration values never rendered after save; Try success, error and rate-limit states; PATCH sends the merged `options` if C3 shows Auth0 replaces it whole.
-- [ ] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): database connections`.
+- [x] **Step 1: Tests** (Vitest): each screen's loading, empty, error, validation and success states; the live checker per rule; configuration values never rendered after save; Try success, error and rate-limit states; PATCH sends the merged `options` if C3 shows Auth0 replaces it whole.
+- [x] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): database connections`.
 
 ---
 

@@ -6,6 +6,9 @@ import ApiList from './pages/apis/List.vue'
 import ApplicationCreate from './pages/applications/Create.vue'
 import ApplicationDetail from './pages/applications/Detail.vue'
 import ApplicationList from './pages/applications/List.vue'
+import ConnectionCreate from './pages/connections/Create.vue'
+import ConnectionDetail from './pages/connections/Detail.vue'
+import ConnectionList from './pages/connections/List.vue'
 import Callback from './pages/Callback.vue'
 import Home from './pages/Home.vue'
 import NotFound from './pages/NotFound.vue'
@@ -30,6 +33,9 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/apis', name: 'apis', component: ApiList },
   { path: '/t/:tenant/apis/new', name: 'api-new', component: ApiCreate },
   { path: '/t/:tenant/apis/:id', name: 'api', component: ApiDetail },
+  { path: '/t/:tenant/connections', name: 'connections', component: ConnectionList },
+  { path: '/t/:tenant/connections/new', name: 'connection-new', component: ConnectionCreate },
+  { path: '/t/:tenant/connections/:id', name: 'connection', component: ConnectionDetail },
   { path: '/t/:tenant/operators', name: 'operators', component: OperatorList },
   { path: '/:rest(.*)*', name: 'not-found', component: NotFound },
 ]

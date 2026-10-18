@@ -19,7 +19,7 @@ export function tenant(name: string, extra: Partial<SystemTenant> = {}): SystemT
   }
 }
 
-export type Reply = { status: number; body?: unknown }
+export type Reply = { status: number; body?: unknown; headers?: Record<string, string> }
 
 export interface Call {
   method: string
@@ -34,7 +34,7 @@ export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>) {
     const c = { method: init?.method ?? 'GET', url: String(url), body: init?.body ? JSON.parse(String(init.body)) : undefined }
     calls.push(c)
     const r = await handler(c)
-    return new Response(r.body === undefined ? null : JSON.stringify(r.body), { status: r.status })
+    return new Response(r.body === undefined ? null : JSON.stringify(r.body), { status: r.status, headers: r.headers })
   }
   const api = new Api('https://admin.example.test', async () => 'token', fetchFn as typeof fetch)
   const auth = {
@@ -94,4 +94,28 @@ export function resourceServer(id: string, extra: Partial<import('../api/client'
 
 export function clientGrant(id: string, clientID: string, audience: string, extra: Partial<import('../api/client').ClientGrant> = {}): import('../api/client').ClientGrant {
   return { id, client_id: clientID, audience, subject_type: 'client', scope: [], ...extra }
+}
+
+export function connection(id: string, extra: Partial<import('../api/client').Connection> = {}): import('../api/client').Connection {
+  return {
+    id,
+    name: 'Users ' + id,
+    strategy: 'auth0',
+    is_domain_connection: false,
+    realms: ['Users ' + id],
+    options: {
+      strategy_version: 2,
+      brute_force_protection: true,
+      mfa: { active: true, return_enroll_settings: true },
+      authentication_methods: { password: { enabled: true } },
+      password_options: {
+        complexity: { min_length: 15, character_types: [], character_type_rule: 'all', identical_characters: 'allow', sequential_characters: 'allow', max_length_exceeded: 'error' },
+        history: { active: false, size: 3 },
+        dictionary: { active: false, default: 'en_100k', custom: [] },
+        profile_data: { active: false, blocked_fields: ['name', 'email'] },
+      },
+      acme_custom_flag: { keep: ['me'] },
+    },
+    ...extra,
+  }
 }

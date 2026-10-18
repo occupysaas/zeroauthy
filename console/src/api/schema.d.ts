@@ -242,6 +242,127 @@ export interface paths {
         patch: operations["updateClientGrant"];
         trace?: never;
     };
+    "/api/v2/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List connections
+         * @description The tenant's connections ordered by name (case-insensitive). Requires
+         *     `read:connections`. `enabled_clients` is not part of the list; use
+         *     `/connections/{id}/clients`.
+         *
+         *     Offset paging (`page`, `per_page` 1 to 100, 100 by default,
+         *     `include_totals`) answers a bare array, or with totals an object with
+         *     `connections`, `start`, `limit` and `total`. Checkpoint paging, when
+         *     `take` or `from` is present, answers `{connections, next}`: `take` is
+         *     the page size (1 to 100, 50 by default) and `next`, an opaque cursor
+         *     to pass back as `from`, is absent on the last page. It wins over
+         *     `page`, `per_page` and `include_totals`. A `from` that is not a
+         *     cursor this API issued is `400 invalid_query_string`.
+         *
+         *     `name` (exact) and `strategy` (repeatable) filter. `fields` always
+         *     returns `id` and `is_domain_connection` too.
+         */
+        get: operations["getConnections"];
+        put?: never;
+        /**
+         * Create a connection
+         * @description Requires `create:connections`. Only the `auth0` (database) strategy is
+         *     supported. Auth0's create defaults apply to what the body leaves out.
+         *     `enabled_clients` is accepted here only, and every ID must be an
+         *     application of the tenant (`400 inexistent_client`). A used name is
+         *     `409 connection_conflict`. Unknown properties are `400 invalid_body`;
+         *     unknown keys inside `options` are stored and returned as sent.
+         *     `options.configuration` values are sealed at rest and returned as
+         *     opaque blobs, never as plaintext.
+         */
+        post: operations["createConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection's ID, `con_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a connection
+         * @description Requires `read:connections`. A well-formed unknown ID is
+         *     `404 inexistent_connection`. The body has no `enabled_clients`.
+         */
+        get: operations["getConnection"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a connection
+         * @description Requires `delete:connections`. Answers `202` with the deletion time;
+         *     the connection is gone at once, with its users (their sessions,
+         *     refresh tokens, grants and password history). The tenant's
+         *     `default_directory` is cleared when it names the connection. A
+         *     second delete of a well-formed ID answers `204`.
+         */
+        delete: operations["deleteConnection"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a connection
+         * @description Requires `update:connections`. `options`, when sent, is replaced
+         *     whole: keys not sent are dropped (`configuration` and the scripts
+         *     included), and the parts of `password_options` not sent take their
+         *     defaults. `name`, `strategy` and `enabled_clients` are unknown
+         *     properties (`400 invalid_body`), as is an empty body. A
+         *     `configuration` value equal to the blob the API returned for that key
+         *     keeps the stored secret; any other string is new plaintext, and
+         *     `null` removes the key.
+         */
+        patch: operations["updateConnection"];
+        trace?: never;
+    };
+    "/api/v2/connections/{id}/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection's ID, `con_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List the applications enabled on a connection
+         * @description Requires `read:connections`. Checkpoint paging: `take` (1 to 100, 50
+         *     by default) and `from` (the `next` of the previous page; anything else
+         *     is `400 invalid_query_string`). `next` is absent on the last page.
+         */
+        get: operations["getConnectionClients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Enable or disable applications on a connection
+         * @description Requires `update:connections`. A non-empty array of
+         *     `{client_id, status}`: `true` enables, `false` disables. An unknown
+         *     application, or one of another tenant, is `400 inexistent_client`; a
+         *     malformed client ID or an empty array is `400 invalid_body`. Nothing
+         *     changes when any entry is refused.
+         */
+        patch: operations["updateConnectionClients"];
+        trace?: never;
+    };
     "/api/system/tenants": {
         parameters: {
             query?: never;
@@ -338,6 +459,59 @@ export interface paths {
          *     tokens. Their user stays. The last operator cannot be removed.
          */
         delete: operations["deleteOperator"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The connection's ID (`con_` and up to 64 letters or digits). */
+                id: string;
+                /** @description The script: `login`, `get_user`, `create`, `verify`, `change_password`, `delete` or `change_email`. */
+                name: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Try a custom database script
+         * @description A zeroauthy extension (Auth0 has no such API; decision D-0042 in
+         *     docs/compat/decisions.md, and section 5.4 of
+         *     docs/superpowers/specs/2026-10-18-zeroauthy-connections-design.md). Runs one of the connection's custom database scripts
+         *     through the same runner a login uses, with the connection's real
+         *     configuration and the arguments in the body, and returns what the
+         *     script answered. Nothing is stored and no user is created or changed
+         *     by zeroauthy, but the script itself may change the external database
+         *     it talks to.
+         *
+         *     `args` are the script's arguments as JSON values, in the order of
+         *     Auth0's script signatures, without the callback: `login` (email,
+         *     password), `get_user` (email), `create` (user object),
+         *     `verify` (email), `change_password` (email, new password),
+         *     `delete` (user ID) and `change_email` (email, new email, verified).
+         *     A wrong number of arguments, an unknown script name or a script the
+         *     connection has no source for is `invalid_body`.
+         *
+         *     The connection need not have `enabledDatabaseCustomization` on, so
+         *     an operator can test scripts before enabling them.
+         *
+         *     A script that ran answers 200 even when it failed: `error` is set
+         *     with the error's `name` and `message` (`TimeoutError` when the
+         *     script ran too long) and `result` is null. 503 means the script
+         *     runtime could not start. At most 10 calls a minute per operator
+         *     (`too_many_requests`, with `Retry-After`). The server log records
+         *     the tenant, connection, script, operator, duration and outcome, never
+         *     the arguments, the result, the console output or the configuration.
+         */
+        post: operations["tryConnectionScript"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -704,6 +878,103 @@ export interface components {
             /** @description Pass as `from` for the next page; absent on the last page. */
             next?: string;
         };
+        /**
+         * @description The properties of a connection that can be created and updated.
+         *     Unknown properties are refused (`invalid_body`).
+         */
+        ConnectionSettings: {
+            /**
+             * @description The connection's options in Auth0's shape (`password_options`,
+             *     `brute_force_protection`, `validation`, `customScripts`,
+             *     `configuration`, ...). Unknown keys are stored and returned as
+             *     sent. `configuration` values are strings or null; they are
+             *     returned as opaque blobs.
+             */
+            options?: {
+                [key: string]: unknown;
+            };
+            is_domain_connection?: boolean;
+            display_name?: string;
+            realms?: string[];
+            metadata?: {
+                [key: string]: string;
+            };
+            show_as_button?: boolean;
+            connected_accounts?: {
+                [key: string]: unknown;
+            };
+            authentication?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description A new connection. `name` and `strategy` are required. */
+        ConnectionCreate: components["schemas"]["ConnectionSettings"] & {
+            /** @description Letters and digits with single hyphens between them. */
+            name: string;
+            /** @enum {string} */
+            strategy: "auth0";
+            /** @description Applications to enable on the connection; accepted on create only. */
+            enabled_clients?: string[];
+        };
+        /**
+         * @description Fields to change; at least one is required. `name`, `strategy` and
+         *     `enabled_clients` are unknown properties.
+         */
+        ConnectionUpdate: components["schemas"]["ConnectionSettings"];
+        /**
+         * @description A connection. `options.configuration` values are opaque blobs, never
+         *     plaintext. `enabled_clients` is returned by create only. `fields`
+         *     can leave out any property but `id` and `is_domain_connection`.
+         */
+        Connection: {
+            /** @description `con_` and 16 letters and digits for connections created through the API. */
+            id: string;
+            name?: string;
+            strategy?: string;
+            options?: {
+                [key: string]: unknown;
+            };
+            enabled_clients?: string[];
+            is_domain_connection: boolean;
+            realms?: string[];
+            display_name?: string;
+            metadata?: {
+                [key: string]: string;
+            };
+            show_as_button?: boolean;
+            connected_accounts?: {
+                [key: string]: unknown;
+            };
+            authentication?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description A page of connections with `include_totals=true`. */
+        ConnectionPage: components["schemas"]["ListTotals"] & {
+            connections: components["schemas"]["Connection"][];
+        };
+        /** @description A page of connections from checkpoint paging. */
+        ConnectionCheckpointPage: {
+            connections: components["schemas"]["Connection"][];
+            /** @description Pass as `from` for the next page; absent on the last page. */
+            next?: string;
+        };
+        ConnectionDeleted: {
+            /** Format: date-time */
+            deleted_at: string;
+        };
+        ConnectionClientStatus: {
+            client_id: string;
+            /** @description True enables the application on the connection, false disables it. */
+            status: boolean;
+        };
+        ConnectionClients: {
+            clients: {
+                client_id: string;
+            }[];
+            /** @description Pass as `from` for the next page; absent on the last page. */
+            next?: string;
+        };
         /** @description A tenant, as the system API reports it. */
         SystemTenant: {
             /** @description The tenant's name: a DNS label, its subdomain under the base domain. */
@@ -732,6 +1003,24 @@ export interface components {
         TenantUpdate: {
             friendly_name?: string;
             domains?: string[];
+        };
+        ScriptTry: {
+            /** @description The script's arguments, without the callback. */
+            args: unknown[];
+        };
+        ScriptTryResult: {
+            /** @description The value the script passed to its callback; null when it failed or passed none. */
+            result: unknown;
+            /** @description The error the script threw or passed to its callback; null on success. */
+            error: {
+                /** @description The error's class: `Error`, `ValidationError`, `UnauthorizedError`, `WrongUsernameOrPasswordError` or `TimeoutError`. */
+                name: string;
+                message: string;
+            } | null;
+            /** @description The script's console output, at most 50 lines. */
+            logs: string[];
+            /** @description How long the run took. */
+            duration_ms: number;
         };
         Operator: {
             /** @description The operator's user ID in the system tenant. */
@@ -1326,6 +1615,233 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    getConnections: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0. */
+                page?: number;
+                /** @description Number of results per page, 1 to 100. */
+                per_page?: number;
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: components["parameters"]["include_totals"];
+                /** @description Checkpoint paging page size, 1 to 100 (50 by default). */
+                take?: number;
+                /** @description Checkpoint paging cursor, the `next` of the previous page. */
+                from?: string;
+                /** @description Only the connection with exactly this name. */
+                name?: string;
+                /** @description Only connections of these strategies. Repeat the parameter for several. */
+                strategy?: string[];
+                /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. `id` and `is_domain_connection` are always returned. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page of connections. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Connection"][] | components["schemas"]["ConnectionPage"] | components["schemas"]["ConnectionCheckpointPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionCreate"];
+            };
+        };
+        responses: {
+            /** @description The new connection, with `enabled_clients`. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Connection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getConnection: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. `id` and `is_domain_connection` are always returned. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
+            header?: never;
+            path: {
+                /** @description The connection's ID, `con_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Connection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection's ID, `con_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionDeleted"];
+                };
+            };
+            /** @description Already deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    updateConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection's ID, `con_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated connection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Connection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getConnectionClients: {
+        parameters: {
+            query?: {
+                /** @description Page size, 1 to 100 (50 by default). */
+                take?: number;
+                /** @description Cursor, the `next` of the previous page. */
+                from?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The connection's ID, `con_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The enabled applications. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionClients"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateConnectionClients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The connection's ID, `con_` followed by letters and digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionClientStatus"][];
+            };
+        };
+        responses: {
+            /** @description Updated. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     getTenants: {
         parameters: {
             query?: never;
@@ -1508,6 +2024,61 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    tryConnectionScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+                /** @description The connection's ID (`con_` and up to 64 letters or digits). */
+                id: string;
+                /** @description The script: `login`, `get_user`, `create`, `verify`, `change_password`, `delete` or `change_email`. */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScriptTry"];
+            };
+        };
+        responses: {
+            /** @description The script ran; its answer or its error. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScriptTryResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description Too many calls (`too_many_requests`); `Retry-After` gives the seconds to wait. */
+            429: {
+                headers: {
+                    /** @description Seconds until the next call is accepted. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The script runtime is not available (`script_runtime_unavailable`). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
         };
     };
 }
