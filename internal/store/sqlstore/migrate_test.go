@@ -121,8 +121,6 @@ func TestMigrateConcurrent(t *testing.T) {
 	}
 }
 
-// TestSchemaTables checks the full DDL applies and that the signing-key
-// current/next invariant is enforced by the database.
 // TestTrailingSpaceKeys: keys differing only by a trailing space are distinct
 // on every dialect (MySQL needs a NO PAD collation for this).
 func TestTrailingSpaceKeys(t *testing.T) {
@@ -178,6 +176,17 @@ func TestLatestVersion(t *testing.T) {
 			t.Errorf("%s LatestVersion = %d, want 12", d.name, v)
 		}
 	}
+}
+
+// A dialect with no embedded migrations is a build defect: LatestVersion
+// panics rather than reporting a wrong version.
+func TestLatestVersionPanicsWithoutMigrations(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("LatestVersion did not panic")
+		}
+	}()
+	(&Store{d: dialect{name: "nope"}}).LatestVersion()
 }
 
 // openAtVersion opens a fresh database and applies only the migrations up to

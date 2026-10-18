@@ -284,6 +284,11 @@ func (s *Store) atomicRetry(ctx context.Context, opts *sql.TxOptions, fn func(t 
 	return s.retry(ctx, func() error { return s.atomic(ctx, opts, fn) })
 }
 
+// retryBackoff is the jittered wait after failed attempt i; tests replace it.
+var retryBackoff = func(i int) time.Duration {
+	return time.Duration(5+rand.IntN(20*i)) * time.Millisecond
+}
+
 // retry runs op up to 3 times while it fails as a deadlock or serialization
 // failure, with a short jittered backoff. After the last attempt the error is
 // wrapped ("after 3 attempts: …"); a context that ends during the backoff
@@ -301,7 +306,7 @@ func (s *Store) retry(ctx context.Context, op func() error) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(time.Duration(5+rand.IntN(20*i)) * time.Millisecond):
+		case <-time.After(retryBackoff(i)):
 		}
 	}
 }

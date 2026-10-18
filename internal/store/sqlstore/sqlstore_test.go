@@ -244,6 +244,9 @@ func TestAtomic(t *testing.T) {
 // atomicRetry gives up after three deadlocks with a wrapped error, and stops
 // with ctx.Err() when the context ends during the backoff.
 func TestAtomicRetry(t *testing.T) {
+	old := retryBackoff
+	retryBackoff = func(int) time.Duration { return time.Microsecond }
+	t.Cleanup(func() { retryBackoff = old })
 	s := mustOpen(t, "sqlite://"+filepath.Join(t.TempDir(), "z.db"))
 	deadlock := &mysql.MySQLError{Number: 1213, Message: "Deadlock found"}
 
