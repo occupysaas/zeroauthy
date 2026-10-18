@@ -76,6 +76,7 @@ All failures below are `400 invalid_body` unless noted.
 - `DELETE` gives `204` with an empty body. The API's client grants are deleted with it.
 - A second `DELETE`, an unknown ID and a malformed ID also give `204`.
 - `GET /resource-servers/{id}` for an unknown or malformed ID gives `404 inexistent_resource_server`.
+- **The tenant's default audience** (observed 2026-10-18 with `read:tenant_settings` and `update:tenant_settings`, setting restored afterwards): when the deleted API's identifier is the tenant's `default_audience`, the setting is cleared; `GET /api/v2/tenants/settings` no longer carries the field.
 - `GET /resource-servers/{id}` also accepts the URL-encoded identifier in place of the ID. `auth0-cli` relies on this (it reads an API by audience).
 
 ## Listing resource servers (A7)
