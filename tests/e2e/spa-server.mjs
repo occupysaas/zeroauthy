@@ -3,6 +3,11 @@
 import { createServer } from 'node:https';
 import { readFile } from 'node:fs/promises';
 
+if (!process.env.E2E_REACT_BUNDLE) {
+  console.error('E2E_REACT_BUNDLE is required: path to the esbuild bundle of react/app.jsx (see run-browser.sh)');
+  process.exit(1);
+}
+
 const routes = {
   '/': ['spa/index.html', 'text/html; charset=utf-8'],
   '/confirm/': ['spa/index.html', 'text/html; charset=utf-8'],
