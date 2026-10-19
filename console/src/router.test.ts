@@ -5,8 +5,8 @@ import { installGuards, routes } from './router'
 
 function fakes(authenticated: boolean) {
   const auth = { user: reactive({ authenticated, email: '', sub: '' }), login: vi.fn(async () => undefined) }
-  const tenants = { state: reactive({ list: [], loaded: false, error: '' }), load: vi.fn(async () => undefined) }
-  return { auth, tenants }
+  const tenants = reactive({ loaded: false, load: vi.fn(async () => undefined) })
+  return { auth, tenants, api: {} }
 }
 
 function router(f: ReturnType<typeof fakes>) {
@@ -35,7 +35,7 @@ describe('router guards', () => {
 
   it('loads the tenants once for a signed-in operator', async () => {
     const f = fakes(true)
-    f.tenants.load.mockImplementation(async () => void (f.tenants.state.loaded = true))
+    f.tenants.load.mockImplementation(async () => void (f.tenants.loaded = true))
     const r = router(f)
     await r.push('/t/acme/')
     expect(r.currentRoute.value.name).toBe('home')
@@ -47,7 +47,7 @@ describe('router guards', () => {
 
   it('names the routes of a deep link', async () => {
     const f = fakes(true)
-    f.tenants.state.loaded = true
+    f.tenants.loaded = true
     const r = router(f)
     await r.push('/t/acme/applications/new')
     expect(r.currentRoute.value.name).toBe('application-new')

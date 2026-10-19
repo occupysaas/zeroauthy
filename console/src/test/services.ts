@@ -1,9 +1,9 @@
+import { createPinia, setActivePinia } from 'pinia'
 import { reactive } from 'vue'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { Api, type SystemTenant } from '../api/client'
 import type { Services } from '../context'
 import { routes } from '../router'
-import { Tenants } from '../tenants'
 
 export function tenant(name: string, extra: Partial<SystemTenant> = {}): SystemTenant {
   return {
@@ -43,8 +43,10 @@ export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>) {
     logout: () => undefined,
     accessToken: async () => 'token',
   }
-  const services = { auth, api, tenants: new Tenants(api) } as unknown as Services
-  return { services, calls }
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  const services = { auth, api } as unknown as Services
+  return { services, calls, pinia }
 }
 
 export function memoryRouter(): Router {

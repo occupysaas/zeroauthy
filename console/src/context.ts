@@ -2,12 +2,11 @@ import { computed, inject, type ComputedRef, type InjectionKey } from 'vue'
 import { useRoute } from 'vue-router'
 import type { Api, SystemTenant } from './api/client'
 import type { Auth } from './auth/auth'
-import type { Tenants } from './tenants'
+import { useTenantsStore } from './stores/tenants'
 
 export interface Services {
   auth: Auth
   api: Api
-  tenants: Tenants
 }
 
 export const servicesKey: InjectionKey<Services> = Symbol('services')
@@ -22,7 +21,7 @@ export function useServices(): Services {
 // manages it.
 export function useTenant(): ComputedRef<SystemTenant | undefined> {
   const route = useRoute()
-  const { tenants } = useServices()
+  const tenants = useTenantsStore()
   return computed(() => {
     const name = route.params.tenant
     return typeof name === 'string' ? tenants.find(name) : undefined

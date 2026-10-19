@@ -10,11 +10,12 @@ import {
 } from 'reka-ui'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useServices, useTenant } from '../context'
+import { useTenant } from '../context'
+import { useTenantsStore } from '../stores/tenants'
 import { t } from '../strings'
 import CreateTenantDialog from './CreateTenantDialog.vue'
 
-const { tenants } = useServices()
+const tenants = useTenantsStore()
 const tenant = useTenant()
 const route = useRoute()
 const router = useRouter()
@@ -37,10 +38,10 @@ function switchTo(name: string) {
     <DropdownMenuPortal>
       <DropdownMenuContent class="menu" align="start" :side-offset="6">
         <DropdownMenuLabel class="menu-label">{{ t.switchTenant }}</DropdownMenuLabel>
-        <p v-if="tenants.state.error" class="menu-label" role="alert">{{ tenants.state.error }}</p>
-        <p v-else-if="tenants.state.list.length === 0" class="menu-label">{{ t.noTenants }}</p>
+        <p v-if="tenants.error" class="menu-label" role="alert">{{ tenants.error }}</p>
+        <p v-else-if="tenants.list.length === 0" class="menu-label">{{ t.noTenants }}</p>
         <DropdownMenuItem
-          v-for="item in tenants.state.list"
+          v-for="item in tenants.list"
           :key="item.name"
           class="menu-item"
           :data-current="item.name === tenant?.name || undefined"

@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw, type Router, type RouterHistory } from 'vue-router'
+import type { Api } from './api/client'
+import type { Auth } from './auth/auth'
 import type { Services } from './context'
 import ApiCreate from './pages/apis/Create.vue'
 import ApiDetail from './pages/apis/Detail.vue'
@@ -14,6 +16,7 @@ import Home from './pages/Home.vue'
 import NotFound from './pages/NotFound.vue'
 import OperatorList from './pages/operators/List.vue'
 import Root from './pages/Root.vue'
+import { useTenantsStore, type TenantsStore } from './stores/tenants'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -42,20 +45,23 @@ export const routes: RouteRecordRaw[] = [
 
 // installGuards signs the operator in before any page but the callback,
 // and loads the tenants once.
-export function installGuards(router: Router, s: Pick<Services, 'auth' | 'tenants'>): void {
+export function installGuards(
+  router: Router,
+  s: { auth: Pick<Auth, 'user' | 'login'>; tenants: Pick<TenantsStore, 'loaded' | 'load'>; api: Api },
+): void {
   router.beforeEach(async (to) => {
     if (to.meta.public) return true
     if (!s.auth.user.authenticated) {
       await s.auth.login(to.fullPath, true)
       return false
     }
-    if (!s.tenants.state.loaded) await s.tenants.load()
+    if (!s.tenants.loaded) await s.tenants.load(s.api)
     return true
   })
 }
 
 export function createConsoleRouter(s: Services, history: RouterHistory = createWebHistory('/admin/')): Router {
   const router = createRouter({ history, routes })
-  installGuards(router, s)
+  installGuards(router, { auth: s.auth, tenants: useTenantsStore(), api: s.api })
   return router
 }

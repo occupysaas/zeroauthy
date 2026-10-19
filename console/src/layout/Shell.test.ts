@@ -1,17 +1,18 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { servicesKey } from '../context'
+import { useTenantsStore } from '../stores/tenants'
 import { fakeServices, memoryRouter, tenant } from '../test/services'
 import Shell from './Shell.vue'
 
 async function sidebar(path: string): Promise<string[]> {
-  const { services } = fakeServices((c) =>
+  const { services, pinia } = fakeServices((c) =>
     c.url.endsWith('/api/system/tenants') ? { status: 200, body: [tenant('acme'), tenant('system', { reserved: true })] } : { status: 404 },
   )
-  await services.tenants.load()
+  await useTenantsStore().load(services.api)
   const router = memoryRouter()
   await router.push(path)
-  const wrapper = mount(Shell, { attachTo: document.body, global: { plugins: [router], provide: { [servicesKey as symbol]: services } } })
+  const wrapper = mount(Shell, { attachTo: document.body, global: { plugins: [router, pinia], provide: { [servicesKey as symbol]: services } } })
   await flushPromises()
   const labels = Array.from(wrapper.findAll('nav[aria-label="Sections"] a')).map((a) => a.text())
   wrapper.unmount()

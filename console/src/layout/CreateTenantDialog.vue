@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { errorMessage, useServices } from '../context'
+import { useTenantsStore } from '../stores/tenants'
 import { t } from '../strings'
 import Banner from '../ui/Banner.vue'
 import Button from '../ui/Button.vue'
@@ -9,7 +10,8 @@ import Field from '../ui/Field.vue'
 import Modal from '../ui/Modal.vue'
 
 const open = defineModel<boolean>('open', { required: true })
-const { tenants } = useServices()
+const { api } = useServices()
+const tenants = useTenantsStore()
 const router = useRouter()
 const name = ref('')
 const domains = ref('')
@@ -32,7 +34,7 @@ async function submit() {
       .split(/\s+/)
       .map((d) => d.trim())
       .filter(Boolean)
-    const created = await tenants.create({ name: name.value.trim(), ...(list.length ? { domains: list } : {}) })
+    const created = await tenants.create(api, { name: name.value.trim(), ...(list.length ? { domains: list } : {}) })
     open.value = false
     await router.push({ name: 'home', params: { tenant: created.name } })
   } catch (e) {

@@ -10,26 +10,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from 'reka-ui'
-import { ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useServices } from '../context'
 import { t } from '../strings'
-import { applyTheme, savedTheme, type Theme } from '../theme'
+import type { Theme } from '../theme'
+import { usePreferencesStore } from '../stores/preferences'
+import { useSessionStore } from '../stores/session'
 
 const { auth } = useServices()
-const theme = ref<Theme>(savedTheme())
-watch(theme, applyTheme)
+const prefs = usePreferencesStore()
+const session = useSessionStore()
+const { theme } = storeToRefs(prefs)
 </script>
 
 <template>
   <DropdownMenuRoot>
     <DropdownMenuTrigger class="trigger" :aria-label="t.account">
-      {{ auth.user.email || t.account }} <span aria-hidden="true">▾</span>
+      {{ session.email || t.account }} <span aria-hidden="true">▾</span>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent class="menu" align="end" :side-offset="6">
-        <DropdownMenuLabel class="menu-label">{{ auth.user.email }}</DropdownMenuLabel>
+        <DropdownMenuLabel class="menu-label">{{ session.email }}</DropdownMenuLabel>
         <DropdownMenuSeparator class="menu-sep" />
-        <DropdownMenuRadioGroup v-model="theme">
+        <DropdownMenuRadioGroup :model-value="theme" @update:model-value="prefs.setTheme($event as Theme)">
           <DropdownMenuRadioItem class="menu-item" value="system">{{ t.themeSystem }}</DropdownMenuRadioItem>
           <DropdownMenuRadioItem class="menu-item" value="light">{{ t.themeLight }}</DropdownMenuRadioItem>
           <DropdownMenuRadioItem class="menu-item" value="dark">{{ t.themeDark }}</DropdownMenuRadioItem>
