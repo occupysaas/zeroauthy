@@ -16,6 +16,12 @@ describe('mergeConfiguration', () => {
   })
 })
 
+describe('mergeConfiguration re-added keys', () => {
+  it('applies removed to the current keys only, never to new plaintext', () => {
+    expect(mergeConfiguration({ A: 'zcv1.blobA' }, { A: 'again' }, ['A'])).toEqual({ A: 'again' })
+  })
+})
+
 describe('unknownOptions', () => {
   it('lists the keys no control owns', () => {
     expect(unknownOptions({ brute_force_protection: true, mfa: {}, strategy_version: 2, zzz: 1 })).toEqual({ strategy_version: 2, zzz: 1 })

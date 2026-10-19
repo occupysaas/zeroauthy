@@ -64,7 +64,7 @@ export function mergeConfiguration(current: Record<string, string | null> | unde
     if (!removed.includes(k)) out[k] = v
   }
   for (const [k, v] of Object.entries(replaced)) {
-    if (!removed.includes(k)) out[k] = v
+    out[k] = v
   }
   return out
 }

@@ -107,7 +107,8 @@ async function save() {
 
   // The unchanged keys go back as the blobs the last GET returned; only
   // keys the operator set or replaced carry plaintext.
-  const plain: Record<string, string> = { ...replaced }
+  // A replacement left empty counts as cancelled: the stored value stays.
+  const plain: Record<string, string> = Object.fromEntries(Object.entries(replaced).filter(([, v]) => v !== ''))
   for (const a of added) plain[a.key.trim()] = a.value
   const config = mergeConfiguration(asRecord(o.configuration) as Record<string, string | null>, plain, removed.value)
   edits.configuration = Object.keys(config).length ? config : undefined

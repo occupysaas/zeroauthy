@@ -353,6 +353,38 @@ describe('connection detail', () => {
       wrapper.unmount()
     })
 
+    it('sends the new value of a key that was removed and added again', async () => {
+      const b = backend({ conn: withScripts() })
+      const { wrapper, calls } = await mountAt(Detail, path, b.handler)
+      tabTo('Custom database')
+      await flushPromises()
+      button('Remove', q('[data-testid="config-DB_URL"]')).click()
+      await flushPromises()
+      button('Add a value').click()
+      await flushPromises()
+      setInput(q<HTMLInputElement>('input[aria-label="Key"]'), 'DB_URL')
+      setInput(q<HTMLInputElement>('input[aria-label="Value"]'), 'postgres://new')
+      await q<HTMLFormElement>('form').dispatchEvent(new Event('submit'))
+      await flushPromises()
+      const sent = patches(calls)[0]!.body as { options: Opts }
+      expect(sent.options.configuration).toEqual({ API_KEY: BLOB, DB_URL: 'postgres://new' })
+      wrapper.unmount()
+    })
+
+    it('keeps the stored value of a key whose replacement was left empty', async () => {
+      const b = backend({ conn: withScripts() })
+      const { wrapper, calls } = await mountAt(Detail, path, b.handler)
+      tabTo('Custom database')
+      await flushPromises()
+      button('Replace', q('[data-testid="config-API_KEY"]')).click()
+      await flushPromises()
+      await q<HTMLFormElement>('form').dispatchEvent(new Event('submit'))
+      await flushPromises()
+      const sent = patches(calls)[0]!.body as { options: Opts }
+      expect(sent.options.configuration).toEqual({ API_KEY: BLOB, DB_URL: BLOB_B })
+      wrapper.unmount()
+    })
+
     it('validates configuration keys', async () => {
       const { wrapper, calls } = await mountAt(Detail, path, backend({ conn: withScripts() }).handler)
       tabTo('Custom database')
