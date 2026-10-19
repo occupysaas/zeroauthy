@@ -47,7 +47,6 @@ const en = {
   plannedWhen: { slice4: 'slice 4', slice5: 'slice 5', slice6: 'slice 6', later: 'later' },
   plannedBanner: {
     label: 'Planned · {when}',
-    needs: 'Needs',
     note: 'The controls below preview the page.',
     placeholder: 'This section is planned. Its page will be designed when its API is built.',
   },

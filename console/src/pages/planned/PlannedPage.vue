@@ -23,10 +23,11 @@ const planned = computed(() => {
       <div class="flex gap-2"><slot name="actions" /></div>
     </div>
     <Banner kind="planned">
-      <b class="mr-2 tracking-wide uppercase">{{ t('plannedBanner.label', { when: t(plannedWhenKey(planned)) }) }}</b>
-      {{ t('plannedBanner.needs') }}
-      <template v-for="(api, i) in planned.api" :key="api"><code>{{ api }}</code>{{ i < planned.api.length - 1 ? ', ' : '' }}</template>.
-      {{ t('plannedBanner.note') }}
+      <div class="font-bold tracking-wide text-accent uppercase">{{ t('plannedBanner.label', { when: t(plannedWhenKey(planned)) }) }}</div>
+      <ul class="m-0 my-1 flex list-none flex-wrap gap-x-3 p-0">
+        <li v-for="api in planned.api" :key="api"><code>{{ api }}</code></li>
+      </ul>
+      <div>{{ t('plannedBanner.note') }}</div>
     </Banner>
     <slot v-if="$slots.default" />
     <p v-else class="my-3 text-muted">{{ t('plannedBanner.placeholder') }}</p>
