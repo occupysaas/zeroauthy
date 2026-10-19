@@ -34,7 +34,7 @@
 ## Review Focus
 
 1. **Metadata search on values of mixed types:** `app_metadata.plan:pro` must match the same users on memory, SQLite, Postgres and MySQL, including users whose `plan` is a number, a boolean, an array containing `"pro"` or absent. JSON path quirks differ by driver. Pinned in Task 3 (`storetest` `TestUserQueryMetadataTypes`).
-2. **Unlinking restores a usable user:** after link and then unlink, the secondary user can log in with its own password, keeps its metadata and gets a fresh `Version`. Its sessions and refresh tokens from before the link are gone. Pinned in Task 8 (`TestUnlinkRestoresLogin`).
+2. **Unlinking restores a usable user:** after link and then unlink, the secondary user can log in with its own password and gets a fresh `Version`. As on Auth0 (D-0043), it comes back with only `email` and `email_verified` and a new `created_at`. Its sessions and refresh tokens from before the link are gone. Pinned in Task 8 (`TestUnlinkRestoresLogin`).
 3. **PATCH with an email change on a connection where another user has that email:** `409 user_exists` (or U3's code). Nothing is half-applied: no custom-DB `change_email` runs, and the password is not changed in the same request. Pinned in Task 7 (`TestPatchUserEmailConflictAtomic`).
 4. **Deleting a user who is mid-login or mid-reset:** an open reset ticket, a verification ticket, an auth code and a device code for the user all stop working (`invalid_grant` or the expired-link page), and a later refresh fails. Pinned in Task 2 (storetest cascade) and Task 7 (`TestDeleteUserMidFlow`).
 5. **Search input users type in a console box:** a bare word (`alice`), an email with `+` or `@`, a trailing space, unbalanced quotes or parentheses. Each gives either Auth0's result for that input (U4) or `400 invalid_query_string`, never a 500, and never a SQL error text in the message. Pinned in Task 5 (parser fuzz test `FuzzParse`, no panics) and Task 7 (`TestSearchBadInputIs400`).
@@ -49,23 +49,23 @@ The controller session runs this as the observer, with the observer M2M applicat
 
 | # | Question | Observed |
 |---|---|---|
-| U1 | Full `GET /users/{id}` for a database user: every field, defaults for `picture`, `nickname`, `name`, `identities[]` shape, `last_ip`, `phone_*` presence | |
-| U2 | `POST /users`: defaults; errors for duplicate email, weak password, missing `connection`, bad email, supplied `user_id` (prefixing, allowed characters, length), `email_verified` + `verify_email` combinations, unknown properties | |
-| U3 | `PATCH`: metadata merge (top level, `null` deletes, nested objects replaced?), fields that need `connection`, fields refused together (email + password), whether password change or `blocked: true` revokes sessions or refresh tokens, `app_metadata` without `update:users_app_metadata` | |
-| U4 | v3 search: bare words, bare space, wildcard rules and minimum length, unknown field, `v1`/`v2`, `sort` syntax, the paging depth limit and its error, metadata value types, case sensitivity per field, `fields` with `q` | |
-| U5 | `users-by-email`: case sensitivity, order, `fields`, unknown email (empty array?) | |
-| U6 | Tickets: `ttl_sec` default and maximum, ticket URL path and query names, `result_url` and `includeEmailInRedirect` after success, `mark_email_as_verified`, `email` + `connection_id` form, the email-verification page path and its success screen | |
-| U7 | Link and unlink: request forms (`provider`+`user_id`+`connection_id`, `link_with`), response bodies, errors (self link, already linked, other connection types), what happens to the secondary's metadata | |
-| U8 | Sessions and refresh tokens: response shapes (`device`, `clients`, `authentication`, timestamps), offset vs checkpoint paging, errors for unknown IDs, status codes of the DELETEs | |
-| U9 | `GET /grants` after a first-party login with no consent screen (Plan 9 open point); the grant shape and filters | |
-| U10 | (Plan 18) Import limits (file size, concurrent jobs), job and error shapes, upsert field rules, hash algorithm parameter names | |
-| U11 | (Plan 18) Export file shape, `location` lifetime | |
-| U12 | Delete: status, cascade visible through the API (sessions, grants, refresh tokens of the user), unknown/malformed ID errors | |
-| O1 | Re-check of the Plan 9 Management API defaults with a client-credentials token | |
+| U1 | Full `GET /users/{id}` for a database user: every field, defaults for `picture`, `nickname`, `name`, `identities[]` shape, `last_ip`, `phone_*` presence | `auth0|`+24 hex; `name`=email, `nickname`=local part, Gravatar `picture`; `blocked`, names, metadata absent until set; login fields after first login |
+| U2 | `POST /users`: defaults; errors for duplicate email, weak password, missing `connection`, bad email, supplied `user_id` (prefixing, allowed characters, length), `email_verified` + `verify_email` combinations, unknown properties | dup `409 auth0_idp_error`; weak pw `400` no errorCode; username/phone without support `400 operation_not_supported`/`invalid_body`; `user_id` `^\S*$` ≤255, always prefixed `auth0|` |
+| U3 | `PATCH`: metadata merge (top level, `null` deletes, nested objects replaced?), fields that need `connection`, fields refused together (email + password), whether password change or `blocked: true` revokes sessions or refresh tokens, `app_metadata` without `update:users_app_metadata` | top-level merge, `null` deletes, nested replaced, `{}` empties; email change clears `email_verified`; email+password `400 operation_not_supported`; password change and block revoke nothing (block refuses grants) |
+| U4 | v3 search: bare words, bare space, wildcard rules and minimum length, unknown field, `v1`/`v2`, `sort` syntax, the paging depth limit and its error, metadata value types, case sensitivity per field, `fields` with `q` | see note: case-insensitive exact on root fields, case-sensitive metadata; bare terms over names/nickname/email parts; space = OR; leading/trailing wildcards on root only; errors `400` no errorCode; `invalid_paging` past 1000; default order `last_login` desc |
+| U5 | `users-by-email`: case sensitivity, order, `fields`, unknown email (empty array?) | case-sensitive; unknown `200 []`; bad email `400 invalid_query_string` |
+| U6 | Tickets: `ttl_sec` default and maximum, ticket URL path and query names, `result_url` and `includeEmailInRedirect` after success, `mark_email_as_verified`, `email` + `connection_id` form, the email-verification page path and its success screen | `/u/reset-verify?ticket=…#`, `/u/email-verification?ticket=…#`; TTL default 432000; `result_url`+`client_id` `400`; verification consumes on open, redirect params `success`,`code`,`message`,`email`; reset success page does not redirect |
+| U7 | Link and unlink: request forms (`provider`+`user_id`+`connection_id`, `link_with`), response bodies, errors (self link, already linked, other connection types), what happens to the secondary's metadata | link `201`, secondary removed, logins resolve to primary; unlink `200`, secondary recreated from `profileData` {email, email_verified} only; `409 identity_conflict`, self `400 operation_not_supported` |
+| U8 | Sessions and refresh tokens: response shapes (`device`, `clients`, `authentication`, timestamps), offset vs checkpoint paging, errors for unknown IDs, status codes of the DELETEs | newest first, checkpoint only (`take` ≤100, `next` on every non-empty page); deletes `202 {}`; deleting sessions leaves refresh tokens; unknown ID `404` no errorCode |
+| U9 | `GET /grants` after a first-party login with no consent screen (Plan 9 open point); the grant shape and filters | grant stored with no screen (skip-consent API, https callback); object uses `clientID`, sorted `scope` |
+| U10 | (Plan 18) Import limits (file size, concurrent jobs), job and error shapes, upsert field rules, hash algorithm parameter names | `202`; `job_`+16; errors `PATTERN`/`INVALID_FORMAT`/`DUPLICATED_USER`, hash masked `*****`; errors `204` when none |
+| U11 | (Plan 18) Export file shape, `location` lifetime | `200`; `location` pre-signed, 60 s; NDJSON / CSV with `'`-prefixed strings, gzipped |
+| U12 | Delete: status, cascade visible through the API (sessions, grants, refresh tokens of the user), unknown/malformed ID errors | `204` (also for already deleted); refresh tokens and grants gone; malformed ID `400 invalid_uri` |
+| O1 | Re-check of the Plan 9 Management API defaults with a client-credentials token | confirmed: same defaults with client credentials |
 
-- [ ] **Step 1:** Run U1–U12 and O1 (one user at a time, cleaned up).
-- [ ] **Step 2:** Write the observation note and the decisions. Facts go in our own words, with no secrets, IDs or tenant names. The decisions cover the observed behaviour, immediate-consistency search, and anything that changes the "need" lists below.
-- [ ] **Step 3:** Fill the Observed column. Commit with `docs(compat): observe the Management API for users`.
+- [x] **Step 1:** Run U1–U12 and O1 (one user at a time, cleaned up).
+- [x] **Step 2:** Write the observation note and the decisions. Facts go in our own words, with no secrets, IDs or tenant names. The decisions cover the observed behaviour, immediate-consistency search, and anything that changes the "need" lists below.
+- [x] **Step 3:** Fill the Observed column. Commit with `docs(compat): observe the Management API for users`.
 
 ---
 
@@ -195,7 +195,7 @@ The controller session runs this as the observer, with the observer M2M applicat
 **Interfaces:**
 - Consumes: Task 7's `UserJSON`.
 - Produces: `POST /users/{id}/identities` (`provider` + `user_id` (+ `connection_id`), or `link_with`, which is an ID token verified against the tenant's keys and audience per U7) and `DELETE /users/{id}/identities/{provider}/{user_id}`, both with U7's response bodies (the primary's `identities` array).
-- Model: linking moves the secondary's `Identity` (with its `PasswordHash`) into the primary's `Identities`, keeps the secondary's profile and metadata in that identity's `ProfileData map[string]any` (a new `Identity` field, stored as JSON), and deletes the secondary user row with the Task 2 cascade. Unlink recreates the secondary user from `ProfileData`. `Users.FindByLogin` already searches identities by connection, so a linked identity resolves to the primary. Bump both users' `Version`.
+- Model (D-0043): linking moves the secondary's `Identity` (with its `PasswordHash`) into the primary's `Identities`, records `{email, email_verified}` in that identity's `ProfileData map[string]any` (a new `Identity` field, stored as JSON), and deletes the secondary user row with the Task 2 cascade. Unlink recreates the secondary user from `ProfileData` only (default name and nickname, new `created_at`, no metadata). `Users.FindByLogin` already searches identities by connection, so a linked identity resolves to the primary. Bump both users' `Version`.
 
 - [ ] **Step 1: Tests:** link by `user_id` and by `link_with`; U7's errors (self link, already linked, unknown secondary, a token from another tenant); login through the linked identity returns the primary; `TestUnlinkRestoresLogin` (Review Focus 2); storetest round trip of `ProfileData`.
 - [ ] **Step 2: Implement. Step 3: Run** the Go and SQL suites. **Step 4: Commit** with `feat(mgmt): link and unlink user identities`.
