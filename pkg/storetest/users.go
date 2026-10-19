@@ -319,8 +319,8 @@ func testUsers(t *testing.T, newStore Factory) {
 
 	t.Run("FindByEmail", func(t *testing.T) {
 		s := open(t, newStore)
-		a := newUser("ten_a", "b", "shared@example.test", "")
-		b := newUser("ten_a", "a", "shared@example.test", "")
+		a := newUser("ten_a", "a", "shared@example.test", "")
+		b := newUser("ten_a", "B", "shared@example.test", "")
 		b.Identities[0].Connection = "Other"
 		c := newUser("ten_a", "c", "different@example.test", "")
 		d := newUser("ten_b", "a", "shared@example.test", "")
@@ -330,8 +330,8 @@ func testUsers(t *testing.T, newStore Factory) {
 		got, err := s.Users().FindByEmail(ctx, "ten_a", "shared@example.test")
 		mustNoErr(t, err)
 		mustEqual(t, len(got), 2)
-		mustEqual(t, got[0].UserID, "auth0|a")
-		mustEqual(t, got[1].UserID, "auth0|b")
+		mustEqual(t, got[0].UserID, "auth0|B") // byte order: upper case first
+		mustEqual(t, got[1].UserID, "auth0|a")
 		got, err = s.Users().FindByEmail(ctx, "ten_a", "nobody@example.test")
 		mustNoErr(t, err)
 		mustEqual(t, len(got), 0)

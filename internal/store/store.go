@@ -260,7 +260,8 @@ type Users interface {
 	BumpVersion(ctx context.Context, tenantID, userID string) (int64, error)
 	// Delete removes the user and, in the same step, everything that
 	// names it: sessions, refresh tokens, user grants, password reset
-	// tickets, password history, auth codes and device codes. It returns
+	// tickets, password history, auth codes, device codes and the user's operator
+	// row. It returns
 	// ErrNotFound if the user is absent.
 	Delete(ctx context.Context, tenantID, userID string) error
 }

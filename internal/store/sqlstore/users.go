@@ -248,7 +248,7 @@ func (r users) FindByEmail(ctx context.Context, tenantID, email string) ([]*stor
 	if email == "" {
 		return nil, nil
 	}
-	rows, err := r.s.query(ctx, `SELECT `+userCols+` FROM users WHERE tenant_id=? AND email=? ORDER BY user_id`, tenantID, email)
+	rows, err := r.s.query(ctx, `SELECT `+userCols+` FROM users WHERE tenant_id=? AND email=? ORDER BY user_id`+r.s.d.byteOrder, tenantID, email)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func (r users) FindByEmail(ctx context.Context, tenantID, email string) ([]*stor
 // userDependents are the tables whose rows name a user by (tenant_id,
 // user_id), in the order deleteUser clears them; users itself goes last.
 var userDependents = []string{"sessions", "refresh_tokens", "user_grants", "password_reset_tickets", "password_history",
-	"auth_codes", "device_codes", "user_logins", "users"}
+	"auth_codes", "device_codes", "operators", "user_logins", "users"}
 
 // deleteUser removes the user and every row that names it. Connections.Delete
 // uses it for each of the connection's users.

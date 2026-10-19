@@ -34,6 +34,7 @@ func testUserDelete(t *testing.T, newStore Factory) {
 			tk.UserID, tk.Connection = uid, "Database"
 			mustNoErr(t, s.PasswordResetTickets().Create(ctx, tk))
 			mustNoErr(t, s.PasswordHistories().Add(ctx, tenant, uid, []byte("hash-"+id), 5))
+			mustNoErr(t, s.Operators().Upsert(ctx, newOperator(tenant, uid, "*")))
 			ac := newAuthCode(tenant, "ac-"+id)
 			ac.UserID = uid
 			mustNoErr(t, s.AuthCodes().Create(ctx, ac))
@@ -44,7 +45,7 @@ func testUserDelete(t *testing.T, newStore Factory) {
 			mustNoErr(t, err)
 		}
 	}
-	type left struct{ User, Session, Token, Grant, Ticket, History, AuthCode, DeviceCode bool }
+	type left struct{ User, Session, Token, Grant, Ticket, History, AuthCode, DeviceCode, Operator bool }
 	probe := func(t *testing.T, s store.Store, tenant, id string) left {
 		t.Helper()
 		uid := "auth0|" + id
@@ -67,9 +68,11 @@ func testUserDelete(t *testing.T, newStore Factory) {
 		l.AuthCode = err == nil
 		_, err = s.DeviceCodes().Get(ctx, tenant, "dc-"+id)
 		l.DeviceCode = err == nil
+		_, err = s.Operators().Get(ctx, tenant, uid)
+		l.Operator = err == nil
 		return l
 	}
-	all := left{true, true, true, true, true, true, true, true}
+	all := left{true, true, true, true, true, true, true, true, true}
 
 	t.Run("Cascade", func(t *testing.T) {
 		s := open(t, newStore)
@@ -86,6 +89,16 @@ func testUserDelete(t *testing.T, newStore Factory) {
 		mustNoErr(t, err)
 		mustEqual(t, len(got), 0)
 		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "u1", "u1@x.test", "name-u1")))
+	})
+
+	t.Run("OperatorRow", func(t *testing.T) {
+		s := open(t, newStore)
+		seed(t, s, "ten_a", "u1", "u2")
+		mustNoErr(t, s.Users().Delete(ctx, "ten_a", "auth0|u1"))
+		_, err := s.Operators().Get(ctx, "ten_a", "auth0|u1")
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.Operators().Get(ctx, "ten_a", "auth0|u2")
+		mustNoErr(t, err)
 	})
 
 	t.Run("ConsumedAuthCodeGoesToo", func(t *testing.T) {

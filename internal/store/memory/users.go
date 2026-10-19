@@ -181,6 +181,9 @@ func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
 			delete(s.authCodes, k)
 		}
 	}
+	for id := range gone {
+		delete(s.operators, key{tenantID, id})
+	}
 	for k, v := range s.deviceCodes {
 		if k.tenant == tenantID && gone[v.UserID] {
 			delete(s.deviceCodes, k)

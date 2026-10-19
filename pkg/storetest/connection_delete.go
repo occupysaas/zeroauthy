@@ -42,6 +42,7 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 			tk.UserID, tk.Connection = uid, sp.conn
 			mustNoErr(t, s.PasswordResetTickets().Create(ctx, tk))
 			mustNoErr(t, s.PasswordHistories().Add(ctx, tenant, uid, []byte("hash-"+sp.id), 5))
+			mustNoErr(t, s.Operators().Upsert(ctx, newOperator(tenant, uid, "*")))
 			ac := newAuthCode(tenant, "ac-"+sp.id)
 			ac.UserID = uid
 			mustNoErr(t, s.AuthCodes().Create(ctx, ac))
@@ -52,7 +53,7 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		}
 	}
 	// present reports which of the three users' rows still exist.
-	type left struct{ User, Session, Token, Grant, Ticket, History, AuthCode, DeviceCode bool }
+	type left struct{ User, Session, Token, Grant, Ticket, History, AuthCode, DeviceCode, Operator bool }
 	probe := func(t *testing.T, s store.Store, tenant, id string) left {
 		t.Helper()
 		uid := "auth0|" + id
@@ -75,9 +76,11 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		l.AuthCode = err == nil
 		_, err = s.DeviceCodes().Get(ctx, tenant, "dc-"+id)
 		l.DeviceCode = err == nil
+		_, err = s.Operators().Get(ctx, tenant, uid)
+		l.Operator = err == nil
 		return l
 	}
-	all := left{true, true, true, true, true, true, true, true}
+	all := left{true, true, true, true, true, true, true, true, true}
 
 	t.Run("Cascade", func(t *testing.T) {
 		s := open(t, newStore)
