@@ -1,5 +1,7 @@
 # zeroauthy
 
+[![Listed on Remade](docs/pics/listed-on-remade.svg)](https://remade.wiki/)
+
 An open-source, self-hostable identity server that speaks the Auth0
 Authentication API. Point an existing Auth0 SDK at a zeroauthy tenant
 domain and it works with no code changes.
@@ -18,6 +20,49 @@ and open standards. It is not affiliated with Auth0 or Okta. See
 > ([docs/management-api.md](docs/management-api.md), verified with auth0-cli)
 > and an admin console ([docs/console.md](docs/console.md)). See the
 > [compatibility matrix](docs/compat/matrix.md).
+
+![The zeroauthy admin console: a tenant's applications](docs/pics/console-applications.png)
+
+## Roadmap
+
+The goal is a 1:1, drop-in replacement for Auth0's Authentication API and
+Management API. The Authentication API side is complete apart from what the
+features below add. The Management API is being built resource by resource,
+each with its console screens; the full breakdown is in the
+[Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
+
+**Done** (Plans 1–16)
+
+- Core server, signing keys, discovery and JWKS, hosted login and signup,
+  authorization code with PKCE, client credentials, password grants, rotating
+  refresh tokens, logout, password reset, hosted-page languages
+- Storage: memory, SQLite, PostgreSQL, MySQL, gRPC storage plugins
+- Custom database connections (Auth0 scripts, import mode)
+- Consent and third-party applications, PAR, device flow
+- OpenID conformance in CI (Basic, Config, Form Post, RP-Initiated Logout)
+- Management API and console: applications, APIs, client grants, database
+  connections
+
+**Next** (Plans 17–18, specified)
+
+- Users, user search, tickets, grants, sessions and refresh tokens
+- User import (with Auth0's password-hash formats) and export jobs
+
+**Later** (Plans 19–38)
+
+| Plans | Area |
+|---|---|
+| 19–21 | Tenant settings and attack protection; signing keys and an `auth0-deploy-cli` round trip; email provider and templates |
+| 22–23 | Branding and Universal Login page templates; custom domains with automatic certificates |
+| 24–25 | Social connections (generic OAuth 2 and OIDC, Google, Apple, Facebook, Microsoft, …) |
+| 26–28 | Roles and permissions; Actions |
+| 29–32 | Organizations; logs, log streams and stats; event streams |
+| 33–35 | MFA; passwordless and SMS; `private_key_jwt`, JAR and token exchange |
+| 36–38 | Enterprise connections (OIDC, Okta, Entra ID, SAML, WS-Federation, AD/LDAP), SCIM, Forms and Flows |
+
+Of Auth0's roughly 40 Management API resource groups, 4 are done, 6 are
+specified, 28 are planned and 4 are not planned (Rules, Hooks and
+rules-configs, which Auth0 is retiring, and customer-managed encryption keys).
 
 ## Quick start
 
