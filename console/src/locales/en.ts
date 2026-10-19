@@ -24,6 +24,8 @@ const en = {
   themeSystem: 'System theme',
 
   tenant: 'Tenant',
+  tenantLabel: 'Tenant:',
+  currentTenant: '(current)',
   switchTenant: 'Switch tenant',
   createTenant: 'Create tenant',
   tenantName: 'Name',
@@ -34,6 +36,10 @@ const en = {
   creating: 'Creating…',
   noTenants: 'There are no tenants yet.',
 
+  navSections: 'Sections',
+  navProject: 'Project',
+  navPages: 'Pages',
+  appCount: '{count} applications',
   navHome: 'Home',
   navApplications: 'Applications',
   navApis: 'APIs',
@@ -189,6 +195,7 @@ const en = {
     scopeDescription: 'Description',
     scopeAdd: 'Add permission',
     scopeRemove: 'Remove',
+    scopeRemoveLabel: 'Remove {value}',
     scopesEmpty: 'This API defines no permissions yet.',
     scopeValueRequired: 'Enter a permission.',
     scopeValueTooLong: 'A permission can have at most 280 characters.',
@@ -239,6 +246,7 @@ const en = {
     authorize: 'Authorize',
     noneLeft: 'Every API in this tenant is already authorized.',
     revoke: 'Revoke',
+    revokeLabel: 'Revoke {audience}',
   },
 
   appConns: {
@@ -481,7 +489,7 @@ const en = {
     emailInvalid: 'Enter a valid email address.',
     sendInvite: 'Create invitation',
     inviting: 'Creating…',
-    linkTitle: 'Invitation for',
+    linkTitle: 'Invitation for {email}',
     linkHint: 'Send this link to the new operator. It works once and expires in one hour. It is shown only now: close this and it is gone, and you would issue a new one by inviting the same address again.',
     link: 'Setup link',
     done: 'Done',

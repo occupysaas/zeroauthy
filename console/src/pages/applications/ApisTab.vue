@@ -96,7 +96,7 @@ function replaced(g: ClientGrant) {
               <strong v-else>{{ t('grants.unknownApi') }}</strong>
               <code class="id">{{ r.grant.audience }}</code>
             </div>
-            <Button variant="danger" :aria-label="t('grants.revoke') + ' ' + r.grant.audience" @click="revoke(r.grant)">{{ t('grants.revoke') }}</Button>
+            <Button variant="danger" :aria-label="t('grants.revokeLabel', { audience: r.grant.audience })" @click="revoke(r.grant)">{{ t('grants.revoke') }}</Button>
           </div>
           <GrantForm v-if="r.server" :tenant="tenant" :api="r.server" :grant="r.grant" @saved="replaced" />
         </li>

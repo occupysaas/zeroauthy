@@ -66,7 +66,11 @@ watch(
     <p v-if="countError" class="muted" role="alert">{{ countError }}</p>
     <p v-else>
       <RouterLink :to="{ name: 'applications', params: { tenant: tenant.name } }">
-        <strong data-testid="app-count">{{ count ?? '…' }}</strong> {{ t('navApplications').toLowerCase() }}
+        <i18n-t keypath="appCount" scope="global" tag="span">
+          <template #count>
+            <strong data-testid="app-count">{{ count ?? '…' }}</strong>
+          </template>
+        </i18n-t>
       </RouterLink>
     </p>
     <h2>{{ t('learnMore') }}</h2>

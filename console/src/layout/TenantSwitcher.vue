@@ -33,7 +33,7 @@ function switchTo(name: string) {
 <template>
   <DropdownMenuRoot>
     <DropdownMenuTrigger class="trigger" :aria-label="t('switchTenant')">
-      <span class="muted">{{ t('tenant') }}:</span>
+      <span class="muted">{{ t('tenantLabel') }}</span>
       <strong>{{ tenant?.name ?? '—' }}</strong>
       <span aria-hidden="true">▾</span>
     </DropdownMenuTrigger>
@@ -51,7 +51,7 @@ function switchTo(name: string) {
         >
           <span>{{ item.name }}</span>
           <span v-if="item.friendly_name && item.friendly_name !== item.name" class="muted">{{ item.friendly_name }}</span>
-          <span v-if="item.name === tenant?.name" class="visually-hidden">(current)</span>
+          <span v-if="item.name === tenant?.name" class="visually-hidden">{{ t('currentTenant') }}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator class="menu-sep" />
         <DropdownMenuItem class="menu-item" @select="creating = true">+ {{ t('createTenant') }}</DropdownMenuItem>

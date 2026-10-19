@@ -32,14 +32,14 @@ const sections = computed(() =>
     <RouterLink class="brand" to="/">{{ product }}</RouterLink>
     <TenantSwitcher />
     <span class="spacer" />
-    <nav class="links" aria-label="Project">
+    <nav class="links" :aria-label="t('navProject')">
       <a :href="docsURL" target="_blank" rel="noopener noreferrer">{{ t('docs') }}</a>
       <a :href="sourceURL" target="_blank" rel="noopener noreferrer">{{ t('source') }}</a>
     </nav>
     <AccountMenu />
   </header>
   <div class="frame">
-    <nav v-if="tenant" class="sidebar" aria-label="Sections">
+    <nav v-if="tenant" class="sidebar" :aria-label="t('navSections')">
       <ul>
         <li v-for="s in sections" :key="s.name">
           <RouterLink :to="{ name: s.name, params: { tenant: tenant.name } }" active-class="" exact-active-class="active">

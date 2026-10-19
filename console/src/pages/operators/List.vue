@@ -171,7 +171,7 @@ async function remove() {
       </tbody>
     </table>
 
-    <Modal :open="inviting" :title="invite ? t('operators.linkTitle') + ' ' + invite.email : t('operators.inviteTitle')" :description="invite ? t('operators.linkHint') : t('operators.inviteBody')" @update:open="closeInvite">
+    <Modal :open="inviting" :title="invite ? t('operators.linkTitle', { email: invite.email }) : t('operators.inviteTitle')" :description="invite ? t('operators.linkHint') : t('operators.inviteBody')" @update:open="closeInvite">
       <div v-if="invite" class="stack" data-testid="invite-link">
         <Field id="invite-url" :label="t('operators.link')">
           <input id="invite-url" type="text" readonly :value="invite.setup_url" />

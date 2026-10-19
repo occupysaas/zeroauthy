@@ -98,7 +98,7 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
           </tr>
         </tbody>
       </table>
-      <nav class="row pager" aria-label="Pages">
+      <nav class="row pager" :aria-label="t('navPages')">
         <span class="muted" aria-live="polite">{{ t('conns.range', { from, to, total }) }}</span>
         <span class="spacer" />
         <Button :disabled="page === 0" @click="goto(page - 1)">{{ t('conns.previous') }}</Button>

@@ -119,7 +119,7 @@ async function commit() {
             <td><code>{{ s.value }}</code></td>
             <td>{{ s.description }}</td>
             <td v-if="!server.is_system">
-              <Button variant="ghost" :aria-label="t('apis.scopeRemove') + ' ' + s.value" @click="remove(s.value)">{{ t('apis.scopeRemove') }}</Button>
+              <Button variant="ghost" :aria-label="t('apis.scopeRemoveLabel', { value: s.value })" @click="remove(s.value)">{{ t('apis.scopeRemove') }}</Button>
             </td>
           </tr>
         </tbody>

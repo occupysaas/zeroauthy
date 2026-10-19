@@ -32,6 +32,13 @@ describe('English catalog', () => {
     }
   })
 
+  it('renders text without placeholders exactly as written', () => {
+    // vue-i18n syntax characters (| @ $) in English must stay literal.
+    for (const { key, text } of all.filter((l) => !l.text.includes('{'))) {
+      expect({ key, out: i18n.global.t(key) }).toEqual({ key, out: text })
+    }
+  })
+
   it('has every key the source asks for by a literal', () => {
     const files: string[] = []
     const walk = (dir: string) => {
