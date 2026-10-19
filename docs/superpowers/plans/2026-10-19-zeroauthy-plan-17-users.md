@@ -98,21 +98,21 @@ The controller session runs this as the observer, with the observer M2M applicat
 **Interfaces:**
 - Produces:
   ```go
-  type QueryOp int // QueryAll, QueryAnd, QueryOr, QueryNot, QueryTerm, QueryPrefix, QueryRange, QueryExists
+  type QueryOp int // QueryAll, QueryAnd, QueryOr, QueryNot, QueryTerm, QueryWildcard, QueryRange, QueryExists
   type ValueKind int // KindString, KindBool, KindNumber, KindDate
   type UserQuery struct {
       Op     QueryOp
       Kids   []*UserQuery // And, Or (2+); Not (1)
       Field  string       // "email", "identities.connection", "app_metadata.plan", …
       Kind   ValueKind
-      Value  string       // Term, Prefix (without the "*")
+      Value  string       // Term; Wildcard: a glob, `*` anywhere, `\*` a literal star
       Lo, Hi *string      // Range; nil = open
       LoIncl, HiIncl bool
   }
   type UserSort struct { Field string; Desc bool } // zero = Auth0's default order from U4
   ```
   `Users.List(ctx, tenantID string, q *UserQuery, s UserSort, p Page) ([]*User, int, error)`. A nil `q` means all users. The int is the match count before paging.
-- Semantics (copy them into the doc comment): a term on a string field compares case-insensitively unless U4 says a field is case-sensitive. A term on a metadata path matches a scalar equal to the value, or an array containing it (Review Focus 1). `Exists` is true when the field is present and not null. `identities.*` matches if any identity matches. Ranges compare numbers as numbers and dates as RFC 3339 instants.
+- Semantics (D-0043; copy them into the doc comment): terms and wildcards on root string fields compare case-insensitively; on metadata paths case-sensitively, and only values of the term's `Kind` match (number 2 is not string "2"). A metadata term matches a scalar equal to the value, or an array containing it (Review Focus 1). Wildcards and ranges are root-field only (the parser refuses others). `Exists` is true when the field is present and not null. `Not` is plain negation; an absent field never matches a term (the parser adds `Exists` where Auth0 excludes absent fields). `identities.*` matches if any identity matches. Ranges compare numbers as numbers and dates as instants. Zero `UserSort` is `last_login` descending with never-logged-in users last; an explicit sort puts users without the value first ascending and last descending; ties break on `user_id`.
 
 - [ ] **Step 1: Tests** (storetest `TestUserList*`): a shared table of about 40 query trees over a fixed set of 12 users, including every documented searchable field (spec §5.2), And/Or/Not nesting, prefix, open and closed ranges on `logins_count` and `created_at`, `_exists_`, and `TestUserQueryMetadataTypes` (Review Focus 1). Also cover sort on each sortable field in both directions, with ties broken by `user_id`; paging and totals; and tenant isolation.
 - [ ] **Step 2: Implement.** SQL indexing of metadata is the builder's choice, as long as every driver passes the same table.
@@ -145,6 +145,7 @@ The controller session runs this as the observer, with the observer M2M applicat
 
 **Interfaces:**
 - Consumes: `store.UserQuery`, `store.UserSort` (Task 3).
+- Rewrites (D-0043): a bare term `t` becomes `Or(name:t, given_name:t, family_name:t, nickname:t, email:t@*, email:*@t)`; juxtaposition is `Or`; `NOT f:v` on a root string field becomes `And(Exists f, Not f:v)`; metadata literal kinds come from the literal (quoted → string, `true`/`false` → bool, numeric → number); `logins_count:abc` is 0 and a non-`true` boolean literal is false; wildcards and ranges on metadata and `app_metadata:v` without a key are errors with U4's messages.
 - Produces: `usersearch.Parse(q string) (*store.UserQuery, error)` and `usersearch.ParseSort(s string) (store.UserSort, error)`. Errors are `*usersearch.Error{Message string}` carrying Auth0's message text from U4. The handler maps them to `400 invalid_query_string`. `usersearch.Fields` maps each searchable field (spec §5.2) to its `ValueKind`, and to whether it is sortable and whether it allows a prefix.
 
 - [ ] **Step 1: Tests:** a table of Auth0's documented query examples, each with its expected tree; every U4 edge case (bare words, bare space, wildcard minimum, unknown field, quoted phrases with escaped quotes, `NOT` precedence, `[a TO *]`); sort strings `field:1` and `field:-1`; `FuzzParse` (no panic, and every error is a `*usersearch.Error`) with a seed corpus of the Review Focus 5 inputs.
@@ -181,7 +182,7 @@ The controller session runs this as the observer, with the observer M2M applicat
   - Operations: `GET /users` (`q`, `search_engine`, `sort`, `connection`, paging, `fields`; depth limit per U4), `POST /users`, `GET/PATCH/DELETE /users/{id}`, and `GET /users-by-email`.
   - `mgmt.UserJSON(u *store.User) map[string]any` is the one response renderer (U1 shape, never a hash). Tasks 8–10 reuse it.
   - `customdb.Client` gains `Delete(ctx, conn, userID string) error`, `ChangeEmail(ctx, conn, email, newEmail string, verified bool) (bool, error)` and `Verify(ctx, conn, email string) (bool, error)`. Their argument order is Auth0's, as the runner already defines for these scripts.
-- Rules: `app_metadata` is left out of reads without `read:users_app_metadata`, unless U3/U4 shows otherwise, and writes to it need `update:users_app_metadata`. `PATCH`'s password change goes through `CheckPassword` and `RecordPassword`. Revocation on password change or block follows U3. On a custom-DB connection that is not in import mode, create, delete, email change and password change call their scripts before the store write, and script failures map to Auth0's errors (U2/U3). `verify_email: true` sends the verification email (Task 10 provides the sender; until then the handler takes it through an interface `VerificationSender` that Task 10 implements).
+- Rules: reads include `app_metadata` with `read:users` (D-0043); writes to it need `update:users_app_metadata`. `PATCH`'s password change goes through `CheckPassword` and `RecordPassword`. Revocation on password change or block follows U3. On a custom-DB connection that is not in import mode, create, delete, email change and password change call their scripts before the store write, and script failures map to Auth0's errors (U2/U3). `verify_email: true` sends the verification email (Task 10 provides the sender; until then the handler takes it through an interface `VerificationSender` that Task 10 implements).
 
 - [ ] **Step 1: Tests:** each operation and field from U1–U5 and U12; `TestPatchUserEmailConflictAtomic` (Review Focus 3); `TestDeleteUserMidFlow` (Review Focus 4: a reset link, an auth code, a device code and a refresh token taken before the delete all fail after it); `TestSearchBadInputIs400` (Review Focus 5); the scope split for `app_metadata`; custom-DB create, delete, change email and change password with a stub script, including a thrown error; and the contract test extended.
 - [ ] **Step 2: Implement. Step 3: Run** the Go suite, `go generate` with no diff, `make check-sources`. **Step 4: Commit** with `feat(mgmt): /api/v2/users and users-by-email`.
