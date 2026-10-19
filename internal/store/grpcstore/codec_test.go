@@ -555,6 +555,25 @@ func TestConnectionLegacyPasswordPolicy(t *testing.T) {
 	}
 }
 
+// A plugin older than Plan 15 sends no brute-force field either; protection
+// is on for the connections it stores, as it was before the option existed.
+func TestConnectionLegacyKeepsBruteForceProtection(t *testing.T) {
+	c, err := connectionFromPB(&storev1.Connection{CreatedAt: tsToPB(time.Unix(0, 0))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.BruteForceProtection {
+		t.Fatal("brute-force protection off for a connection from an old plugin")
+	}
+	c, err = connectionFromPB(&storev1.Connection{CreatedAt: tsToPB(time.Unix(0, 0)), PasswordOptions: &storev1.PasswordOptions{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.BruteForceProtection {
+		t.Fatal("an explicit off was turned on")
+	}
+}
+
 // And such a plugin keeps the minimum length and class count it understands.
 func TestConnectionWritesLegacyPasswordPolicy(t *testing.T) {
 	for want, c := range map[int64]store.PasswordComplexity{

@@ -471,6 +471,11 @@ func connectionFromPB(pb *storev1.Connection) (*store.Connection, error) {
 		BruteForceProtection: pb.BruteForceProtection, UsernameMin: int(pb.UsernameMin), UsernameMax: int(pb.UsernameMax),
 		Origin: pb.Origin,
 	}
+	if pb.PasswordOptions == nil {
+		// A plugin older than Plan 15 knows no such field; protection
+		// was always on for what it stores.
+		c.BruteForceProtection = true
+	}
 	if pb.ExtraJson != nil {
 		var m map[string]any
 		if err := json.Unmarshal(pb.ExtraJson, &m); err != nil {
