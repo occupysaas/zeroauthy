@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
+import { locales } from '../../i18n'
 import Field from '../../ui/Field.vue'
 import PlannedPage from './PlannedPage.vue'
 
@@ -36,10 +37,10 @@ const tab = ref('general')
       </TabsContent>
       <TabsContent value="languages" class="grid max-w-xl gap-3">
         <Field id="ts-locales" :label="t('plannedPreview.tenant.enabledLocales')">
-          <select id="ts-locales" multiple disabled><option>English</option></select>
+          <select id="ts-locales" multiple disabled><option v-for="l in locales" :key="l.code">{{ l.name }}</option></select>
         </Field>
         <Field id="ts-default-locale" :label="t('plannedPreview.tenant.defaultLocale')">
-          <select id="ts-default-locale" disabled><option>English</option></select>
+          <select id="ts-default-locale" disabled><option v-for="l in locales" :key="l.code">{{ l.name }}</option></select>
         </Field>
       </TabsContent>
       <TabsContent value="login" class="grid max-w-xl gap-3">
