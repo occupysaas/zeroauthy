@@ -267,6 +267,7 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 - **Name ordering:** names with non-ASCII characters can sort differently between store drivers (Unicode in memory, ASCII `LOWER` in SQLite), and the checkpoint cursor uses Go's lower-casing against SQL's, so page boundaries can differ. The checkpoint list also reads the whole set into memory.
 - **Unrelated `PATCH`:** a `PATCH` that does not send `options` still re-validates the stored options under the API's limits, which a seeded connection might not meet.
 - **Explicit empty lists:** `blocked_fields` or `custom` sent empty come back as the defaults.
-- **Console:** re-adding a removed configuration key drops the new value, and a replaced key left empty sends `''` as plaintext (both planned for the final fix wave; remove this line when fixed). The application quick start shows its connection note whether or not a connection is enabled.
+- **Console:** The application quick start shows its connection note whether or not a connection is enabled.
+- **Connection option scopes:** `read:connections_options` and `update:connections_options` are not enforced by any operation yet; enforce them (connection routes that touch `options`).
 - **Script try:** a missing script runtime (503) still uses a rate-limit slot; console output is lost on a timeout.
 - **Masking:** matching is by exact substring (encoded or split secrets pass), and a long line ending in the first byte of a value may be over-masked.

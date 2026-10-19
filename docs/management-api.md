@@ -201,7 +201,7 @@ or `user`).
 A connection is a way for users to sign in. zeroauthy has one kind, the
 database connection (strategy `auth0`): users with passwords stored by
 zeroauthy, or users checked by a custom database script. Other strategies are
-`400 invalid_body` until a later slice. Decision D-0042.
+`400 invalid_body` until a later slice. Decision D-0042. The scopes `read:connections_options` and `update:connections_options` are accepted in tokens but no operation requires them; the connection routes use `read:connections` and `update:connections`.
 
 Fields: `id` (`con_` and 16 letters and digits), `name`, `strategy`, `options`,
 `realms`, `is_domain_connection`, `display_name`, `metadata`. `enabled_clients`
