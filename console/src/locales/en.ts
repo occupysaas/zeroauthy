@@ -44,7 +44,13 @@ const en = {
   appCount: '{count} applications',
   planned: 'Planned',
   menu: 'Menu',
-  plannedWhen: { slice4: 'Slice 4', slice5: 'Slice 5', slice6: 'Slice 6', later: 'Later' },
+  plannedWhen: { slice4: 'slice 4', slice5: 'slice 5', slice6: 'slice 6', later: 'later' },
+  plannedBanner: {
+    label: 'Planned · {when}',
+    needs: 'Needs',
+    note: 'The controls below preview the page.',
+    placeholder: 'This section is planned. Its page will be designed when its API is built.',
+  },
   plannedTip: '{when}: {apis}',
   nav: {
     home: 'Home',

@@ -1,8 +1,17 @@
-import type { Component } from 'vue'
+import { h, type Component } from 'vue'
 import { isPlanned, sections } from '../../layout/sections'
-import Placeholder from './Placeholder.vue'
+import Actions from './Actions.vue'
+import PlannedPage from './PlannedPage.vue'
+
+/** A planned page with no preview of its own: just the frame for the section. */
+function bare(key: string): Component {
+  return { name: `Planned_${key}`, render: () => h(PlannedPage, { sectionKey: key }) }
+}
+
+/** Dedicated pages by section key; the rest use the bare frame until designed. */
+const dedicated: Record<string, Component> = { actions: Actions }
 
 /** The page behind each planned route, by section key. */
 export const plannedPages: Record<string, Component> = Object.fromEntries(
-  sections.filter(isPlanned).map((s) => [s.key, Placeholder]),
+  sections.filter(isPlanned).map((s) => [s.key, dedicated[s.key] ?? bare(s.key)]),
 )

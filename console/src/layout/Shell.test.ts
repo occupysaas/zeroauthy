@@ -46,8 +46,8 @@ describe('Shell sidebar', () => {
     const { wrapper } = await mountShell('/t/acme/')
     const link = (name: string) => wrapper.findAll(`${nav} a`).find((a) => a.get('span').text() === name)!
     expect(link('Users').text()).toContain('Planned')
-    expect(link('Users').attributes('title')).toMatch(/^Slice 4: \/api\/v2\/users/)
-    expect(link('Roles').attributes('title')).toBe('Later: /api/v2/roles')
+    expect(link('Users').attributes('title')).toMatch(/^slice 4: \/api\/v2\/users/)
+    expect(link('Roles').attributes('title')).toBe('later: /api/v2/roles')
     expect(link('Applications').text()).not.toContain('Planned')
     wrapper.unmount()
   })
