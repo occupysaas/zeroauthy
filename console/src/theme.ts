@@ -1,7 +1,8 @@
 // The colour theme: the system's, or one the operator picked. The choice
 // is a per-browser convenience, so it may be lost.
 
-export type Theme = 'system' | 'light' | 'dark'
+export const themes = ['system', 'light', 'dark'] as const
+export type Theme = (typeof themes)[number]
 
 const KEY = 'zeroauthy.console.theme'
 

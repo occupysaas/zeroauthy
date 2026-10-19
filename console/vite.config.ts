@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vitest/config'
 
@@ -6,7 +7,7 @@ import { defineConfig } from 'vitest/config'
 // styles: the console's CSP allows only its own files.
 export default defineConfig({
   base: '/admin/',
-  plugins: [vue()],
+  plugins: [vue(), tailwindcss()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,

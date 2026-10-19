@@ -8,7 +8,7 @@ import { applyLocale, createConsoleI18n, savedLocale } from './i18n'
 import { createConsoleRouter } from './router'
 import { useSessionStore } from './stores/session'
 import { applyTheme, savedTheme } from './theme'
-import './ui/base.css'
+import './ui/app.css'
 
 applyTheme(savedTheme())
 

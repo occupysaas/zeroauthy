@@ -18,3 +18,9 @@ Copyright (c) 2018 Daniel Miessler:
   - en_100k.txt is Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt
     (the 100,000 most common passwords of Mark Burnett's 10 million
     password release, as packaged by SecLists)
+
+The admin console embeds the font Glacial Indifference (Regular and Bold,
+converted to WOFF2) in console/src/assets/fonts/. Copyright 2019 Alfredo
+Marco Pradil (https://hanken.co/, Hanken Design Co.), with Reserved Font
+Name "Glacial Indifference", licensed under the SIL Open Font License,
+Version 1.1; the license text is console/src/assets/fonts/OFL.txt.
