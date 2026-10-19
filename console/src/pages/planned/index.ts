@@ -1,6 +1,12 @@
 import { h, type Component } from 'vue'
 import { isPlanned, sections } from '../../layout/sections'
 import Actions from './Actions.vue'
+import CustomDomains from './CustomDomains.vue'
+import Logs from './Logs.vue'
+import Organizations from './Organizations.vue'
+import Roles from './Roles.vue'
+import Social from './Social.vue'
+import Users from './Users.vue'
 import PlannedPage from './PlannedPage.vue'
 
 /** A planned page with no preview of its own: just the frame for the section. */
@@ -9,7 +15,15 @@ function bare(key: string): Component {
 }
 
 /** Dedicated pages by section key; the rest use the bare frame until designed. */
-const dedicated: Record<string, Component> = { actions: Actions }
+const dedicated: Record<string, Component> = {
+  actions: Actions,
+  users: Users,
+  social: Social,
+  roles: Roles,
+  organizations: Organizations,
+  'custom-domains': CustomDomains,
+  logs: Logs,
+}
 
 /** The page behind each planned route, by section key. */
 export const plannedPages: Record<string, Component> = Object.fromEntries(
