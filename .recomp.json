@@ -1,0 +1,22 @@
+{
+  "$schema": "https://recomp.fyi/schema/v1.json",
+  "project": "zeroauthy",
+  "status": "in-progress",
+  "approach": "Clean-room implementation of the Auth0 Authentication API from public documentation and open standards.",
+  "links": [
+    {
+      "label": "Repository",
+      "url": "https://github.com/occupysaas/zeroauthy"
+    },
+    {
+      "label": "Compatibility matrix",
+      "url": "https://github.com/occupysaas/zeroauthy/blob/main/docs/compat/matrix.md"
+    },
+    {
+      "label": "Clean-room policy",
+      "url": "https://github.com/occupysaas/zeroauthy/blob/main/CLEAN_ROOM.md"
+    }
+  ],
+  "tags": ["identity", "authentication", "auth0-compatible", "self-hosted", "go"],
+  "notes": "An open-source, self-hostable, multi-tenant identity server licensed under Apache-2.0. Early-stage support includes hosted login, authorization code with PKCE, client credentials, rotating refresh tokens, pushed authorization requests, device authorization, selected Auth0 Management API endpoints, and an admin console. This is an identity server, not a game recompilation or decompilation project. It is not affiliated with Auth0 or Okta."
+}
