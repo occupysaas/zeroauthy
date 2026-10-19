@@ -86,15 +86,15 @@ function replaced(g: ClientGrant) {
     <template v-else>
       <Banner v-if="actionError" kind="error">{{ actionError }}</Banner>
       <div v-if="rows.length === 0" class="card"><p>{{ t('grants.empty') }}</p></div>
-      <ul v-else class="stack rows">
+      <ul v-else class="stack m-0 list-none p-0">
         <li v-for="r in rows" :key="r.grant.id" class="card stack" :data-testid="'grant-' + r.grant.audience">
-          <div class="row item">
+          <div class="row justify-between">
             <div>
               <strong v-if="r.server">
                 <RouterLink :to="{ name: 'api', params: { tenant: tenant.name, id: r.server.id } }">{{ r.server.name || t('apis.unnamed') }}</RouterLink>
               </strong>
               <strong v-else>{{ t('grants.unknownApi') }}</strong>
-              <code class="id">{{ r.grant.audience }}</code>
+              <code class="ml-2.5">{{ r.grant.audience }}</code>
             </div>
             <Button variant="danger" :aria-label="t('grants.revokeLabel', { audience: r.grant.audience })" @click="revoke(r.grant)">{{ t('grants.revoke') }}</Button>
           </div>
@@ -103,7 +103,7 @@ function replaced(g: ClientGrant) {
       </ul>
 
       <form class="card stack" novalidate @submit.prevent="authorize">
-        <h2>{{ t('grants.authorizeAnother') }}</h2>
+        <h2 class="m-0 text-[1.05rem]">{{ t('grants.authorizeAnother') }}</h2>
         <p v-if="unauthorized.length === 0" class="muted">{{ t('grants.noneLeft') }}</p>
         <template v-else>
           <Field id="grant-api" :label="t('grants.authorizeLabel')">
@@ -120,21 +120,3 @@ function replaced(g: ClientGrant) {
     </template>
   </div>
 </template>
-
-<style scoped>
-.rows {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.item {
-  justify-content: space-between;
-}
-.id {
-  margin-left: 0.6rem;
-}
-h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-</style>

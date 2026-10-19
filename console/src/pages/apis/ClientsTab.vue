@@ -70,18 +70,18 @@ function replaced(g: ClientGrant) {
       <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
     <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
-    <div v-else-if="clients.length === 0" class="card empty">
+    <div v-else-if="clients.length === 0" class="card empty [&_p]:my-1">
       <p>{{ t('apis.machineEmpty') }}</p>
       <RouterLink :to="{ name: 'application-new', params: { tenant: tenant.name } }">{{ t('apis.machineCreate') }}</RouterLink>
     </div>
-    <ul v-else class="stack rows">
+    <ul v-else class="stack m-0 list-none p-0">
       <li v-for="c in clients" :key="c.client_id" class="card stack" :data-testid="'m2m-' + c.client_id">
-        <div class="row item">
+        <div class="row justify-between">
           <div>
             <RouterLink :to="{ name: 'application', params: { tenant: tenant.name, id: c.client_id } }">{{ c.name }}</RouterLink>
-            <code class="id">{{ c.client_id }}</code>
+            <code class="ml-2.5">{{ c.client_id }}</code>
           </div>
-          <label class="switch">
+          <label class="flex items-center gap-1.5">
             <input
               type="checkbox"
               role="switch"
@@ -101,25 +101,3 @@ function replaced(g: ClientGrant) {
     </ul>
   </div>
 </template>
-
-<style scoped>
-.rows {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.item {
-  justify-content: space-between;
-}
-.id {
-  margin-left: 0.6rem;
-}
-.switch {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-.empty p {
-  margin: 0.25rem 0;
-}
-</style>

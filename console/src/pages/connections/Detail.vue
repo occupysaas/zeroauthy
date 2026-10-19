@@ -58,7 +58,7 @@ watch([tenant, () => route.params.id], load, { immediate: true })
     </Banner>
     <p v-else-if="!connection" class="muted" role="status">{{ t('loading') }}</p>
     <template v-else>
-      <h1>{{ connection.name }}</h1>
+      <h1 class="mt-3 mb-0">{{ connection.name }}</h1>
       <p class="muted">
         {{ strategyLabel(connection.strategy) }} · <code>{{ connection.id }}</code>
       </p>
@@ -91,30 +91,3 @@ watch([tenant, () => route.params.id], load, { immediate: true })
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>
-
-<style scoped>
-h1 {
-  margin: 0.75rem 0 0;
-}
-.tabs {
-  display: flex;
-  gap: 0.25rem;
-  border-bottom: 1px solid var(--border);
-  margin: 1rem 0;
-  flex-wrap: wrap;
-}
-.tab {
-  font: inherit;
-  background: transparent;
-  color: var(--text-2);
-  border: 0;
-  border-bottom: 2px solid transparent;
-  padding: 0.5rem 0.9rem;
-  cursor: pointer;
-}
-.tab[data-state='active'] {
-  color: var(--text);
-  border-bottom-color: var(--accent);
-  font-weight: 600;
-}
-</style>

@@ -60,12 +60,12 @@ onMounted(load)
 
 <template>
   <div class="stack">
-    <p class="muted">{{ t('quick.intro') }}</p>
+    <p class="m-0 muted">{{ t('quick.intro') }}</p>
 
     <div v-if="hasSecret && type !== 'spa' && type !== 'native'" class="card stack">
-      <p v-if="!client.client_secret" class="muted" data-testid="no-secret">{{ t('quick.noSecretToReveal') }}</p>
+      <p v-if="!client.client_secret" class="m-0 muted" data-testid="no-secret">{{ t('quick.noSecretToReveal') }}</p>
       <template v-else>
-        <p v-if="!revealed" class="muted" data-testid="secret-hidden">{{ t('quick.secretHidden') }}</p>
+        <p v-if="!revealed" class="m-0 muted" data-testid="secret-hidden">{{ t('quick.secretHidden') }}</p>
         <div class="row">
           <Button variant="ghost" :aria-pressed="revealed" data-testid="reveal" @click="revealed = !revealed">
             {{ revealed ? t('quick.hideSecret') : t('quick.revealSecret') }}
@@ -79,12 +79,12 @@ onMounted(load)
         {{ error }}
         <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
       </Banner>
-      <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
+      <p v-else-if="loading" class="m-0 muted" role="status">{{ t('loading') }}</p>
       <div v-else-if="grants.length === 0" class="card" data-testid="m2m-empty">
-        <p>{{ t('quick.m2mNoGrants') }}</p>
+        <p class="m-0">{{ t('quick.m2mNoGrants') }}</p>
       </div>
       <template v-else>
-        <p v-if="!hasSecret" class="muted">{{ t('quick.m2mPublic') }}</p>
+        <p v-if="!hasSecret" class="m-0 muted">{{ t('quick.m2mPublic') }}</p>
         <section v-for="g in grants" :key="g.id" class="card stack" :data-testid="'m2m-' + g.audience">
           <CodeBlock :title="t('quick.m2mStep1', { audience: g.audience })" :code="tokenCurl(facts, g.audience, secret)" />
           <CodeBlock :title="t('quick.m2mStep2')" :code="callCurl(g.audience)" />
@@ -94,7 +94,7 @@ onMounted(load)
 
     <template v-else-if="isBrowserOrNative">
       <section class="card stack">
-        <p class="muted">{{ t('quick.authorizeHint') }}</p>
+        <p class="m-0 muted">{{ t('quick.authorizeHint') }}</p>
         <CodeBlock :title="t('quick.authorizeTitle')" :code="authorizeURL(facts)" />
       </section>
       <section class="card stack">
@@ -111,18 +111,8 @@ onMounted(load)
     </template>
 
     <section v-if="wantsConnections" class="card" data-testid="connections-note">
-      <h2>{{ t('quick.connectionTitle') }}</h2>
-      <p class="muted">{{ t('quick.connectionNone') }}</p>
+      <h2 class="m-0 mb-1.5 text-[1.05rem]">{{ t('quick.connectionTitle') }}</h2>
+      <p class="m-0 muted">{{ t('quick.connectionNone') }}</p>
     </section>
   </div>
 </template>
-
-<style scoped>
-h2 {
-  margin: 0 0 0.35rem;
-  font-size: 1.05rem;
-}
-p {
-  margin: 0;
-}
-</style>

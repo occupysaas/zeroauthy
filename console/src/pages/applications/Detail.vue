@@ -61,7 +61,7 @@ function rotated(c: Client) {
     </Banner>
     <p v-else-if="!client" class="muted" role="status">{{ t('loading') }}</p>
     <template v-else>
-      <h1>{{ client.name }}</h1>
+      <h1 class="mt-3 mb-0">{{ client.name }}</h1>
       <p class="muted">{{ typeLabel(client.app_type) }}</p>
       <TabsRoot v-model="tab">
         <TabsList class="tabs" :aria-label="client.name">
@@ -95,29 +95,3 @@ function rotated(c: Client) {
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>
-
-<style scoped>
-h1 {
-  margin: 0.75rem 0 0;
-}
-.tabs {
-  display: flex;
-  gap: 0.25rem;
-  border-bottom: 1px solid var(--border);
-  margin: 1rem 0;
-}
-.tab {
-  font: inherit;
-  background: transparent;
-  color: var(--text-2);
-  border: 0;
-  border-bottom: 2px solid transparent;
-  padding: 0.5rem 0.9rem;
-  cursor: pointer;
-}
-.tab[data-state='active'] {
-  color: var(--text);
-  border-bottom-color: var(--accent);
-  font-weight: 600;
-}
-</style>

@@ -136,12 +136,12 @@ async function remove() {
 
 <template>
   <div v-if="tenant && onSystem">
-    <div class="row head">
-      <h1>{{ t('operators.title') }}</h1>
-      <span class="spacer" />
+    <div class="row mb-4">
+      <h1 class="m-0">{{ t('operators.title') }}</h1>
+      <span class="flex-1" />
       <Button variant="primary" @click="openInvite">{{ t('operators.invite') }}</Button>
     </div>
-    <p class="muted">{{ t('operators.hint') }}</p>
+    <p class="muted mt-1 mb-4">{{ t('operators.hint') }}</p>
 
     <p v-if="status" role="status" data-testid="status">{{ status }}</p>
     <Banner v-if="error" kind="error">
@@ -206,15 +206,3 @@ async function remove() {
   <Banner v-else-if="tenant" kind="error">{{ t('notFoundBody') }}</Banner>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>
-
-<style scoped>
-.head h1 {
-  margin: 0;
-}
-.spacer {
-  flex: 1;
-}
-p {
-  margin: 0.25rem 0 1rem;
-}
-</style>

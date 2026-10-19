@@ -41,15 +41,6 @@
   --warn-border: #e5b84a;
   --focus: #2563eb;
   color-scheme: light;
-
-  /* Aliases for scoped component styles not yet migrated to utilities. */
-  --border: var(--hair);
-  --accent-soft: var(--active);
-  --surface-2: var(--tag);
-  --text-2: var(--muted);
-  --radius: 4px;
-  --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  --sans: 'Glacial Indifference', system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -197,7 +188,7 @@
   .card {
     background: var(--surface);
     border: 1px solid var(--rule);
-    border-radius: var(--radius);
+    border-radius: 4px;
     padding: 1.25rem;
   }
 
@@ -226,7 +217,7 @@
     color: var(--text);
     background: var(--surface);
     border: 1px solid var(--rule);
-    border-radius: var(--radius);
+    border-radius: 4px;
     padding: 0.45rem 0.6rem;
     width: 100%;
   }
@@ -254,7 +245,7 @@
     border-collapse: collapse;
     background: var(--surface);
     border: 1px solid var(--rule);
-    border-radius: var(--radius);
+    border-radius: 4px;
     overflow: hidden;
   }
 
@@ -292,7 +283,7 @@
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--rule);
-    border-radius: var(--radius);
+    border-radius: 4px;
     padding: 1.25rem;
     box-shadow: 0 12px 32px rgb(0 0 0 / 25%);
   }
@@ -306,7 +297,7 @@
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--rule);
-    border-radius: var(--radius);
+    border-radius: 4px;
     padding: 0.3rem;
     box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
     z-index: 10;
@@ -317,7 +308,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.4rem 0.6rem;
-    border-radius: var(--radius);
+    border-radius: 4px;
     cursor: pointer;
     outline: none;
   }
@@ -340,5 +331,46 @@
     height: 1px;
     background: var(--hair);
     margin: 0.3rem 0;
+  }
+
+  /* Tab strip (reka-ui TabsList / TabsTrigger). */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-bottom: 2px solid var(--rule);
+    margin: 1rem 0;
+  }
+
+  .tab {
+    font: inherit;
+    background: transparent;
+    color: var(--muted);
+    border: 0;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+  }
+
+  .tab[data-state='active'] {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Checkbox row with a label and a hint stacked beside the box. */
+  .check {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+
+  .check > span {
+    display: grid;
+  }
+
+  .check input {
+    margin-top: 0.3rem;
   }
 }

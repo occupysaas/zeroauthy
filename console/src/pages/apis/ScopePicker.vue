@@ -16,15 +16,15 @@ function toggle(value: string, on: boolean) {
 </script>
 
 <template>
-  <fieldset class="picker">
+  <fieldset class="m-0 grid gap-1.5 border-0 p-0">
     <legend class="visually-hidden">{{ t('apis.permissions') }}</legend>
     <p v-if="scopes.length === 0" class="muted">{{ t('apis.grantNoScopes') }}</p>
     <template v-else>
-      <label class="opt">
+      <label class="flex items-start gap-2 [&_input]:mt-1.5">
         <input v-model="all" type="checkbox" :disabled="disabled" :data-testid="id + '-all'" />
         <span>{{ t('apis.allScopes') }}</span>
       </label>
-      <label v-for="s in scopes" :key="s.value" class="opt">
+      <label v-for="s in scopes" :key="s.value" class="flex items-start gap-2 [&_input]:mt-1.5">
         <input
           type="checkbox"
           :value="s.value"
@@ -40,21 +40,3 @@ function toggle(value: string, on: boolean) {
     </template>
   </fieldset>
 </template>
-
-<style scoped>
-.picker {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.35rem;
-}
-.opt {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-}
-.opt input {
-  margin-top: 0.3rem;
-}
-</style>

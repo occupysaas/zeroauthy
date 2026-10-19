@@ -78,8 +78,8 @@ async function submit() {
       <Field id="conn-strategy" :label="t('conns.strategy')" :hint="t('conns.strategyHint')">
         <input id="conn-strategy" :value="t('conns.strategies.auth0')" type="text" readonly aria-describedby="conn-strategy-hint" />
       </Field>
-      <fieldset class="stack apps">
-        <legend>{{ t('conns.enableOnCreate') }}</legend>
+      <fieldset class="stack m-0 border-0 p-0">
+        <legend class="p-0 font-bold">{{ t('conns.enableOnCreate') }}</legend>
         <p class="muted">{{ t('conns.enableOnCreateHint') }}</p>
         <Banner v-if="clientsError" kind="error">{{ clientsError }}</Banner>
         <p v-else-if="clients.length === 0" class="muted">{{ t('conns.noApps') }}</p>
@@ -95,20 +95,3 @@ async function submit() {
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>
-
-<style scoped>
-.apps {
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-.apps legend {
-  font-weight: 600;
-  padding: 0;
-}
-.check {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-</style>

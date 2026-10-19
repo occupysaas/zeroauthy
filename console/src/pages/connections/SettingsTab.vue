@@ -164,7 +164,7 @@ async function save() {
     <Banner v-if="general" kind="error">{{ general }}</Banner>
 
     <section class="card stack" :aria-label="t('conns.enforcedGroup')">
-      <h2>{{ t('conns.enforcedGroup') }}</h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.enforcedGroup') }}</h2>
       <label class="check">
         <input v-model="form.brute" type="checkbox" />
         <span><strong>{{ t('conns.bruteForce') }}</strong><span class="muted">{{ t('conns.bruteForceHint') }}</span></span>
@@ -190,7 +190,7 @@ async function save() {
     </section>
 
     <section class="card stack" :aria-label="t('conns.storedGroup')" data-testid="stored-group">
-      <h2>{{ t('conns.storedGroup') }} <StoredMark /></h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.storedGroup') }} <StoredMark /></h2>
       <p class="muted">{{ t('conns.storedHint') }}</p>
       <template v-for="s in stored" :key="s.key">
         <label v-if="s.kind === 'bool'" class="check">
@@ -200,7 +200,7 @@ async function save() {
             <span v-if="t(`conns.stored.${s.key}.hint`)" class="muted">{{ t(`conns.stored.${s.key}.hint`) }}</span>
           </span>
         </label>
-        <div v-else class="field">
+        <div v-else class="grid gap-1.5 [&>label]:font-bold">
           <label :for="'stored-' + s.key">{{ t(`conns.stored.${s.key}.label`) }} <StoredMark /></label>
           <input v-if="s.kind === 'text'" :id="'stored-' + s.key" v-model="values[s.key] as string" type="text" />
           <textarea
@@ -213,17 +213,17 @@ async function save() {
             :aria-invalid="!!errors[s.key]"
             :aria-describedby="s.key + '-hint'"
           />
-          <p :id="s.key + '-hint'" class="muted hint">{{ t(`conns.stored.${s.key}.hint`) }}</p>
-          <p v-if="errors[s.key]" class="error" role="alert">{{ errors[s.key] }}</p>
+          <p :id="s.key + '-hint'" class="muted m-0 text-sm">{{ t(`conns.stored.${s.key}.hint`) }}</p>
+          <p v-if="errors[s.key]" class="m-0 text-sm text-danger" role="alert">{{ errors[s.key] }}</p>
         </div>
       </template>
     </section>
 
     <section class="card stack" :aria-label="t('conns.unknownGroup')" data-testid="unknown-group">
-      <h2>{{ t('conns.unknownGroup') }} <StoredMark /></h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.unknownGroup') }} <StoredMark /></h2>
       <p class="muted">{{ t('conns.unknownHint') }}</p>
       <p v-if="Object.keys(unknown).length === 0" class="muted">{{ t('conns.unknownNone') }}</p>
-      <pre v-else class="json" data-testid="unknown-json">{{ pretty(unknown) }}</pre>
+      <pre v-else class="m-0 overflow-auto rounded bg-tag p-2.5 font-mono" data-testid="unknown-json">{{ pretty(unknown) }}</pre>
     </section>
 
     <div class="row">
@@ -232,48 +232,3 @@ async function save() {
     </div>
   </form>
 </template>
-
-<style scoped>
-h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-.check {
-  display: flex;
-  gap: 0.6rem;
-  align-items: flex-start;
-}
-.check > span {
-  display: grid;
-}
-.check input {
-  margin-top: 0.3rem;
-}
-.field {
-  display: grid;
-  gap: 0.3rem;
-}
-.field label {
-  font-weight: 600;
-}
-.hint {
-  margin: 0;
-  font-size: 0.875rem;
-}
-.error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 0.875rem;
-}
-.mono,
-.json {
-  font-family: var(--mono);
-}
-.json {
-  margin: 0;
-  padding: 0.6rem;
-  background: var(--surface-2);
-  border-radius: 6px;
-  overflow: auto;
-}
-</style>

@@ -94,15 +94,15 @@ function describedBy(id: string, key: string): string {
     <Banner v-if="server.is_system" kind="info">{{ t('apis.systemNote') }}</Banner>
     <section class="card stack" :aria-label="t('apis.identifier')">
       <div>
-        <span class="label">{{ t('apis.identifier') }}</span>
+        <span class="font-bold">{{ t('apis.identifier') }}</span>
         <div class="row">
           <code data-testid="identifier">{{ server.identifier }}</code>
           <CopyButton :value="server.identifier" :label="t('apis.identifier')" />
         </div>
-        <p class="muted hint">{{ t('apis.identifierHint') }}</p>
+        <p class="muted m-0 mt-1">{{ t('apis.identifierHint') }}</p>
       </div>
       <div>
-        <span class="label">{{ t('apis.signingAlg') }}</span>
+        <span class="font-bold">{{ t('apis.signingAlg') }}</span>
         <div><code>{{ server.signing_alg }}</code></div>
       </div>
     </section>
@@ -156,23 +156,3 @@ function describedBy(id: string, key: string): string {
     </form>
   </div>
 </template>
-
-<style scoped>
-.label {
-  font-weight: 600;
-}
-.hint {
-  margin: 0.25rem 0 0;
-}
-.check {
-  display: flex;
-  gap: 0.6rem;
-  align-items: flex-start;
-}
-.check span {
-  display: grid;
-}
-.check input {
-  margin-top: 0.3rem;
-}
-</style>

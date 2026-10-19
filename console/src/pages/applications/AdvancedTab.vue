@@ -89,9 +89,9 @@ async function save() {
 <template>
   <form class="card stack" novalidate @submit.prevent="save">
     <Banner v-if="error" kind="error">{{ error }}</Banner>
-    <fieldset>
-      <legend>{{ t('apps.grantTypes') }}</legend>
-      <p class="muted">{{ t('apps.grantTypesHint') }}</p>
+    <fieldset class="m-0 grid gap-1.5 border-0 p-0">
+      <legend class="p-0 font-bold">{{ t('apps.grantTypes') }}</legend>
+      <p class="m-0 muted">{{ t('apps.grantTypesHint') }}</p>
       <label v-for="g in grantChoices" :key="g" class="check">
         <input v-model="form.grants" type="checkbox" :value="g" />
         {{ grantLabel(g) }}
@@ -105,7 +105,7 @@ async function save() {
     <Field id="app-id-ttl" :label="t('apps.idTokenLifetime')">
       <input id="app-id-ttl" v-model.number="form.idTokenLifetime" type="number" min="0" step="1" />
     </Field>
-    <div class="row two">
+    <div class="row [&>*]:min-w-48 [&>*]:flex-1">
       <Field id="app-rotation" :label="t('apps.rotation')">
         <select id="app-rotation" v-model="form.rotation">
           <option value="rotating">{{ t('apps.rotating') }}</option>
@@ -124,11 +124,11 @@ async function save() {
       {{ t('apps.requirePAR') }}
     </label>
     <div>
-      <span class="label">{{ t('apps.party') }}</span>
-      <p data-testid="party">
+      <span class="font-bold">{{ t('apps.party') }}</span>
+      <p data-testid="party" class="m-0">
         {{ client.is_first_party ? t('apps.firstParty') : t('apps.thirdParty', { mode: client.third_party_security_mode ?? 'strict' }) }}
       </p>
-      <p class="muted">{{ t('apps.partyFixed') }}</p>
+      <p class="m-0 muted">{{ t('apps.partyFixed') }}</p>
     </div>
     <div class="row">
       <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('saving') : t('save') }}</Button>
@@ -136,30 +136,3 @@ async function save() {
     </div>
   </form>
 </template>
-
-<style scoped>
-fieldset {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.35rem;
-}
-legend,
-.label {
-  font-weight: 600;
-}
-fieldset p,
-div > p {
-  margin: 0;
-}
-.check {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-.two > * {
-  flex: 1;
-  min-width: 12rem;
-}
-</style>

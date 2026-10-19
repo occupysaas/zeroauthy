@@ -409,6 +409,7 @@ const en = {
     configurationHint: 'Values the scripts read from configuration. They are stored sealed and are never shown again: after you save, replace a value to change it.',
     configurationNone: 'There are no configuration values.',
     masked: '••••••••',
+    hiddenValue: 'hidden value',
     replace: 'Replace',
     remove: 'Remove',
     removeKey: 'Remove {key}',

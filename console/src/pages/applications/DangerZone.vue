@@ -54,20 +54,20 @@ async function remove() {
 </script>
 
 <template>
-  <div class="card stack danger-zone">
+  <div class="card stack border-danger">
     <Banner v-if="error && !confirmRotate && !confirmDelete" kind="error">{{ error }}</Banner>
     <p v-if="status" role="status">{{ status }}</p>
-    <div v-if="client.token_endpoint_auth_method !== 'none'" class="row item">
+    <div v-if="client.token_endpoint_auth_method !== 'none'" class="row flex-nowrap justify-between">
       <div>
         <strong>{{ t('apps.rotate') }}</strong>
-        <p class="muted">{{ t('apps.rotateBody') }}</p>
+        <p class="muted m-0 mt-1">{{ t('apps.rotateBody') }}</p>
       </div>
       <Button variant="danger" @click="(error = ''), (confirmRotate = true)">{{ t('apps.rotate') }}</Button>
     </div>
-    <div class="row item">
+    <div class="row flex-nowrap justify-between">
       <div>
         <strong>{{ t('apps.deleteApp') }}</strong>
-        <p class="muted">{{ t('apps.deleteBody', { name: client.name }) }}</p>
+        <p class="muted m-0 mt-1">{{ t('apps.deleteBody', { name: client.name }) }}</p>
       </div>
       <Button variant="danger" @click="(error = ''), (typed = ''), (confirmDelete = true)">{{ t('apps.deleteApp') }}</Button>
     </div>
@@ -96,16 +96,3 @@ async function remove() {
     </Modal>
   </div>
 </template>
-
-<style scoped>
-.danger-zone {
-  border-color: var(--danger);
-}
-.item {
-  justify-content: space-between;
-  flex-wrap: nowrap;
-}
-.item p {
-  margin: 0.2rem 0 0;
-}
-</style>

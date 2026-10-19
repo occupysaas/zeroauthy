@@ -59,15 +59,15 @@ async function toggle(c: Connection, status: boolean) {
       <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
     <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
-    <div v-else-if="connections.length === 0" class="card empty">
+    <div v-else-if="connections.length === 0" class="card empty [&_p]:my-1">
       <p>{{ t('appConns.empty') }}</p>
       <RouterLink :to="{ name: 'connection-new', params: { tenant: tenant.name } }">{{ t('conns.create') }}</RouterLink>
     </div>
-    <ul v-else class="stack rows">
+    <ul v-else class="stack m-0 list-none p-0">
       <li v-for="c in connections" :key="c.id" class="card stack" :data-testid="'conn-' + c.id">
-        <div class="row item">
+        <div class="row justify-between">
           <RouterLink :to="{ name: 'connection', params: { tenant: tenant.name, id: c.id } }">{{ c.name }}</RouterLink>
-          <label class="switch">
+          <label class="flex items-center gap-1.5">
             <input
               type="checkbox"
               role="switch"
@@ -84,22 +84,3 @@ async function toggle(c: Connection, status: boolean) {
     </ul>
   </div>
 </template>
-
-<style scoped>
-.rows {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.item {
-  justify-content: space-between;
-}
-.switch {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-.empty p {
-  margin: 0.25rem 0;
-}
-</style>

@@ -148,17 +148,17 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
   <div class="stack">
     <form class="card stack" novalidate @submit.prevent="save">
       <Banner v-if="general" kind="error">{{ general }}</Banner>
-      <h2>{{ t('conns.complexity') }}</h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.complexity') }}</h2>
       <Field id="pw-min" :label="t('conns.minLength')" :hint="t('conns.minLengthHint')" :error="errors.minLength">
         <input id="pw-min" v-model="form.minLength" type="text" inputmode="numeric" :aria-invalid="!!errors.minLength" :aria-describedby="'pw-min-hint' + (errors.minLength ? ' pw-min-error' : '')" />
       </Field>
-      <fieldset class="stack plain">
-        <legend>{{ t('conns.characterTypes') }}</legend>
+      <fieldset class="stack m-0 border-0 p-0">
+        <legend class="p-0 font-bold">{{ t('conns.characterTypes') }}</legend>
         <label v-for="ct in CHARACTER_TYPES" :key="ct" class="check">
           <input v-model="form.types" type="checkbox" :value="ct" />
           <span>{{ t(`conns.typeNames.${ct}`) }}</span>
         </label>
-        <p v-if="errors.types" class="error" role="alert">{{ errors.types }}</p>
+        <p v-if="errors.types" class="m-0 text-sm text-danger" role="alert">{{ errors.types }}</p>
       </fieldset>
       <Field id="pw-rule" :label="t('conns.typeRule')" :hint="t('conns.typeRuleHint')">
         <select id="pw-rule" v-model="form.rule" aria-describedby="pw-rule-hint">
@@ -185,7 +185,7 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
         </select>
       </Field>
 
-      <h2>{{ t('conns.history') }}</h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.history') }}</h2>
       <label class="check">
         <input v-model="form.historyActive" type="checkbox" />
         <span><strong>{{ t('conns.historyActive') }}</strong><span class="muted">{{ t('conns.historyHint') }}</span></span>
@@ -194,7 +194,7 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
         <input id="pw-history-size" v-model="form.historySize" type="text" inputmode="numeric" :aria-invalid="!!errors.historySize" />
       </Field>
 
-      <h2>{{ t('conns.dictionary') }}</h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.dictionary') }}</h2>
       <label class="check">
         <input id="pw-dict-active" v-model="form.dictActive" type="checkbox" />
         <span><strong>{{ t('conns.dictActive') }}</strong><span class="muted">{{ t('conns.dictHint') }}</span></span>
@@ -209,7 +209,7 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
         <textarea id="pw-dict-custom" v-model="form.dictCustom" rows="3" spellcheck="false" aria-describedby="pw-dict-custom-hint" />
       </Field>
 
-      <h2>{{ t('conns.personal') }}</h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.personal') }}</h2>
       <label class="check">
         <input id="pw-profile-active" v-model="form.profileActive" type="checkbox" />
         <span><strong>{{ t('conns.personalActive') }}</strong><span class="muted">{{ t('conns.personalHint') }}</span></span>
@@ -225,7 +225,7 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
     </form>
 
     <section class="card stack" :aria-label="t('conns.checker.title')" data-testid="checker">
-      <h2>{{ t('conns.checker.title') }}</h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.checker.title') }}</h2>
       <p class="muted">{{ t('conns.checker.intro') }}</p>
       <Banner kind="info">{{ t('conns.checker.serverOnly') }}</Banner>
       <Field id="pw-sample" :label="t('conns.checker.sample')" :hint="t('conns.checker.sampleHint')">
@@ -234,13 +234,13 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
       <details>
         <summary>{{ t('conns.checker.profile') }}</summary>
         <p class="muted">{{ t('conns.checker.profileHint') }}</p>
-        <div class="grid">
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-3">
           <Field v-for="f in profileFields" :id="'pw-profile-' + f.key" :key="f.key" :label="f.label">
             <input :id="'pw-profile-' + f.key" v-model="profile[f.key]" type="text" autocomplete="off" />
           </Field>
         </div>
       </details>
-      <ul class="results" aria-live="polite">
+      <ul class="m-0 grid list-none gap-1.5 p-0 [&_li[data-state=fail]_strong]:text-danger [&_li[data-state=off]]:text-muted [&_li[data-state=pass]_strong]:text-accent" aria-live="polite">
         <li v-for="r in results" :key="r.rule" :data-testid="'rule-' + r.rule" :data-state="!r.checked ? 'off' : r.ok ? 'pass' : 'fail'">
           <strong>{{ verdict(r) }}</strong> {{ ruleLabel(r) }}
         </li>
@@ -250,56 +250,3 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
     </section>
   </div>
 </template>
-
-<style scoped>
-h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-.check {
-  display: flex;
-  gap: 0.6rem;
-  align-items: flex-start;
-}
-.check > span {
-  display: grid;
-}
-.check input {
-  margin-top: 0.3rem;
-}
-.plain {
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-.plain legend {
-  font-weight: 600;
-  padding: 0;
-}
-.error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 0.875rem;
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 0.75rem;
-}
-.results {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.35rem;
-}
-.results li[data-state='pass'] strong {
-  color: var(--accent);
-}
-.results li[data-state='fail'] strong {
-  color: var(--danger);
-}
-.results li[data-state='off'] {
-  color: var(--text-2);
-}
-</style>

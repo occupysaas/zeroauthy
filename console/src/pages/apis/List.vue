@@ -6,6 +6,7 @@ import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
+import Tag from '../../ui/Tag.vue'
 
 const { t } = useI18n()
 
@@ -48,10 +49,10 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
 
 <template>
   <div v-if="tenant">
-    <div class="row head">
-      <h1>{{ t('apis.title') }}</h1>
-      <span class="spacer" />
-      <RouterLink class="create" :to="{ name: 'api-new', params: { tenant: tenant.name } }">{{ t('apis.create') }}</RouterLink>
+    <div class="row mb-4">
+      <h1 class="m-0">{{ t('apis.title') }}</h1>
+      <span class="flex-1" />
+      <RouterLink class="create rounded border border-accent bg-accent px-3.5 py-1.5 font-bold text-accent-text no-underline hover:border-accent-hover hover:bg-accent-hover hover:text-accent-text" :to="{ name: 'api-new', params: { tenant: tenant.name } }">{{ t('apis.create') }}</RouterLink>
     </div>
 
     <Banner v-if="error" kind="error">
@@ -59,7 +60,7 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
       <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
     <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
-    <div v-else-if="servers.length === 0" class="card empty">
+    <div v-else-if="servers.length === 0" class="card empty [&_p]:my-1">
       <p>{{ t('apis.empty') }}</p>
       <p class="muted">{{ t('apis.emptyHint') }}</p>
     </div>
@@ -75,15 +76,15 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
           <tr v-for="s in servers" :key="s.id">
             <td>
               <RouterLink :to="{ name: 'api', params: { tenant: tenant.name, id: s.id } }">{{ s.name || t('apis.unnamed') }}</RouterLink>
-              <span v-if="s.is_system" class="badge" data-testid="system-badge">{{ t('apis.system') }}</span>
+              <Tag v-if="s.is_system" class="ml-2" data-testid="system-badge">{{ t('apis.system') }}</Tag>
             </td>
             <td><code>{{ s.identifier }}</code></td>
           </tr>
         </tbody>
       </table>
-      <nav class="row pager" :aria-label="t('navPages')">
+      <nav class="row mt-3" :aria-label="t('navPages')">
         <span class="muted" aria-live="polite">{{ t('apis.range', { from, to, total }) }}</span>
-        <span class="spacer" />
+        <span class="flex-1" />
         <Button :disabled="page === 0" @click="goto(page - 1)">{{ t('apis.previous') }}</Button>
         <Button :disabled="to >= total" @click="goto(page + 1)">{{ t('apis.next') }}</Button>
       </nav>
@@ -91,38 +92,3 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>
-
-<style scoped>
-.head h1 {
-  margin: 0;
-}
-.head {
-  margin-bottom: 1rem;
-}
-.spacer {
-  flex: 1;
-}
-.create {
-  background: var(--accent);
-  color: var(--accent-text);
-  font-weight: 600;
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
-  text-decoration: none;
-}
-.empty p {
-  margin: 0.25rem 0;
-}
-.pager {
-  margin-top: 0.75rem;
-}
-.badge {
-  margin-left: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-  color: var(--text-2);
-}
-</style>

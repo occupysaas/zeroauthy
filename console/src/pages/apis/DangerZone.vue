@@ -38,11 +38,11 @@ async function remove() {
 </script>
 
 <template>
-  <div class="card stack danger-zone">
-    <div class="row item">
+  <div class="card stack border-danger">
+    <div class="row flex-nowrap justify-between">
       <div>
         <strong>{{ t('apis.deleteApi') }}</strong>
-        <p class="muted">{{ t('apis.deleteSummary') }}</p>
+        <p class="muted m-0 mt-1">{{ t('apis.deleteSummary') }}</p>
       </div>
       <Button variant="danger" @click="(error = ''), (typed = ''), (open = true)">{{ t('apis.deleteApi') }}</Button>
     </div>
@@ -61,16 +61,3 @@ async function remove() {
     </Modal>
   </div>
 </template>
-
-<style scoped>
-.danger-zone {
-  border-color: var(--danger);
-}
-.item {
-  justify-content: space-between;
-  flex-wrap: nowrap;
-}
-.item p {
-  margin: 0.2rem 0 0;
-}
-</style>

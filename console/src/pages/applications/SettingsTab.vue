@@ -78,14 +78,14 @@ function describedBy(id: string, hint: boolean): string {
   <div class="stack">
     <section class="card stack" :aria-label="t('apps.clientID')">
       <div>
-        <span class="label">{{ t('apps.domain') }}</span>
+        <span class="font-bold">{{ t('apps.domain') }}</span>
         <div class="row">
           <code>{{ tenant.host }}</code>
           <CopyButton :value="tenant.host" :label="t('apps.domain')" />
         </div>
       </div>
       <div>
-        <span class="label">{{ t('apps.clientID') }}</span>
+        <span class="font-bold">{{ t('apps.clientID') }}</span>
         <div class="row">
           <code data-testid="client-id">{{ client.client_id }}</code>
           <CopyButton :value="client.client_id" :label="t('apps.clientID')" />
@@ -118,9 +118,3 @@ function describedBy(id: string, hint: boolean): string {
     </form>
   </div>
 </template>
-
-<style scoped>
-.label {
-  font-weight: 600;
-}
-</style>

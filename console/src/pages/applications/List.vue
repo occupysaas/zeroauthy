@@ -59,12 +59,12 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
 
 <template>
   <div v-if="tenant">
-    <div class="row head">
-      <h1>{{ t('apps.title') }}</h1>
-      <span class="spacer" />
-      <RouterLink class="create" :to="{ name: 'application-new', params: { tenant: tenant.name } }">{{ t('apps.create') }}</RouterLink>
+    <div class="row mb-4">
+      <h1 class="m-0">{{ t('apps.title') }}</h1>
+      <span class="flex-1" />
+      <RouterLink class="create rounded border border-accent bg-accent px-3.5 py-1.5 font-bold text-accent-text no-underline hover:border-accent-hover hover:bg-accent-hover hover:text-accent-text" :to="{ name: 'application-new', params: { tenant: tenant.name } }">{{ t('apps.create') }}</RouterLink>
     </div>
-    <div class="row filters">
+    <div class="row mb-4 [&_select]:w-auto">
       <label for="type-filter">{{ t('apps.filter') }}</label>
       <select id="type-filter" :value="type" @change="setQuery({ page: 0, type: ($event.target as HTMLSelectElement).value })">
         <option value="">{{ t('apps.allTypes') }}</option>
@@ -77,7 +77,7 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
       <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
     <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
-    <div v-else-if="clients.length === 0" class="card empty">
+    <div v-else-if="clients.length === 0" class="card empty [&_p]:my-1">
       <p>{{ type ? t('apps.emptyFiltered') : t('apps.empty') }}</p>
       <p v-if="!type" class="muted">{{ t('apps.emptyHint') }}</p>
     </div>
@@ -100,9 +100,9 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
           </tr>
         </tbody>
       </table>
-      <nav class="row pager" :aria-label="t('navPages')">
+      <nav class="row mt-3" :aria-label="t('navPages')">
         <span class="muted" aria-live="polite">{{ t('apps.range', { from, to, total }) }}</span>
-        <span class="spacer" />
+        <span class="flex-1" />
         <Button :disabled="page === 0" @click="setQuery({ page: page - 1 })">{{ t('apps.previous') }}</Button>
         <Button :disabled="to >= total" @click="setQuery({ page: page + 1 })">{{ t('apps.next') }}</Button>
       </nav>
@@ -110,35 +110,3 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>
-
-<style scoped>
-.head h1 {
-  margin: 0;
-}
-.head {
-  margin-bottom: 1rem;
-}
-.spacer {
-  flex: 1;
-}
-.create {
-  background: var(--accent);
-  color: var(--accent-text);
-  font-weight: 600;
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
-  text-decoration: none;
-}
-.filters {
-  margin-bottom: 1rem;
-}
-.filters select {
-  width: auto;
-}
-.empty p {
-  margin: 0.25rem 0;
-}
-.pager {
-  margin-top: 0.75rem;
-}
-</style>

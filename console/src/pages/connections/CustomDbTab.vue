@@ -141,7 +141,7 @@ async function save() {
         <input v-model="importMode" type="checkbox" />
         <span><strong>{{ t('conns.importMode') }}</strong><span class="muted">{{ t('conns.importModeHint') }}</span></span>
       </label>
-      <div class="field">
+      <div class="grid gap-1.5 [&>label]:font-bold">
         <label for="custom-root">{{ t('conns.rootAttrs') }}</label>
         <select id="custom-root" v-model="rootAttrs" aria-describedby="custom-root-hint">
           <option value="">{{ t('conns.rootNone') }}</option>
@@ -149,7 +149,7 @@ async function save() {
           <option value="on_first_login">{{ t('conns.rootFirst') }}</option>
           <option value="never_on_login">{{ t('conns.rootNever') }}</option>
         </select>
-        <p id="custom-root-hint" class="muted hint">
+        <p id="custom-root-hint" class="muted m-0 text-sm">
           {{ t('conns.rootHint') }}
           <StoredMark v-if="rootAttrs === 'never_on_login'" />
         </p>
@@ -157,14 +157,14 @@ async function save() {
     </section>
 
     <section class="card stack" :aria-label="t('conns.scripts')">
-      <h2>{{ t('conns.scripts') }}</h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.scripts') }}</h2>
       <p class="muted">{{ t('conns.scriptsHint') }}</p>
-      <details v-for="n in SCRIPT_NAMES" :key="n" class="script" :data-testid="'script-' + n">
+      <details v-for="n in SCRIPT_NAMES" :key="n" class="rounded border border-hair px-3 py-2 [&_summary]:cursor-pointer" :data-testid="'script-' + n">
         <summary>
           <code>{{ n }}</code>
           <span v-if="scripts[n]!.trim()" class="muted"> · {{ t('conns.scriptSet') }}</span>
         </summary>
-        <div class="stack body">
+        <div class="stack mt-3">
           <CodeEditor :id="'script-src-' + n" v-model="scripts[n]!" :label="t('conns.scriptLabel', { name: n })" />
           <ScriptTry :tenant="tenant" :connection-id="connection.id" :script="n" :dirty="scripts[n] !== savedScripts[n]" />
         </div>
@@ -172,16 +172,16 @@ async function save() {
     </section>
 
     <section class="card stack" :aria-label="t('conns.configuration')" data-testid="configuration">
-      <h2>{{ t('conns.configuration') }}</h2>
+      <h2 class="m-0 text-[1.05rem]">{{ t('conns.configuration') }}</h2>
       <p class="muted">{{ t('conns.configurationHint') }}</p>
-      <p v-if="errors.config" class="error" role="alert">{{ errors.config }}</p>
+      <p v-if="errors.config" class="m-0 text-sm text-danger" role="alert">{{ errors.config }}</p>
       <p v-if="liveKeys.length === 0 && added.length === 0" class="muted">{{ t('conns.configurationNone') }}</p>
-      <ul class="keys">
+      <ul class="m-0 grid list-none gap-2.5 p-0">
         <li v-for="k in liveKeys" :key="k" class="stack" :data-testid="'config-' + k">
           <div class="row">
             <code>{{ k }}</code>
-            <span v-if="!replacing[k]" class="muted" aria-label="hidden value">{{ t('conns.masked') }}</span>
-            <span class="spacer" />
+            <span v-if="!replacing[k]" class="muted" :aria-label="t('conns.hiddenValue')">{{ t('conns.masked') }}</span>
+            <span class="flex-1" />
             <template v-if="!replacing[k]">
               <Button @click="startReplace(k)">{{ t('conns.replace') }}</Button>
             </template>
@@ -190,7 +190,7 @@ async function save() {
           </div>
           <template v-if="replacing[k]">
             <input v-model="replaced[k]" type="password" autocomplete="new-password" :aria-label="t('conns.newValueFor', { key: k })" />
-            <p v-if="errors['replace-' + k]" class="error" role="alert">{{ errors['replace-' + k] }}</p>
+            <p v-if="errors['replace-' + k]" class="m-0 text-sm text-danger" role="alert">{{ errors['replace-' + k] }}</p>
           </template>
         </li>
         <li v-for="(a, i) in added" :key="'new' + i" class="stack" :data-testid="'config-new-' + i">
@@ -199,7 +199,7 @@ async function save() {
             <input v-model="a.value" type="password" :aria-label="t('conns.configValue')" autocomplete="new-password" />
             <Button variant="ghost" @click="added.splice(i, 1)">{{ t('conns.remove') }}</Button>
           </div>
-          <p v-if="errors['added' + i]" class="error" role="alert">{{ errors['added' + i] }}</p>
+          <p v-if="errors['added' + i]" class="m-0 text-sm text-danger" role="alert">{{ errors['added' + i] }}</p>
         </li>
       </ul>
       <div class="row">
@@ -213,58 +213,3 @@ async function save() {
     </div>
   </form>
 </template>
-
-<style scoped>
-h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-.check {
-  display: flex;
-  gap: 0.6rem;
-  align-items: flex-start;
-}
-.check > span {
-  display: grid;
-}
-.check input {
-  margin-top: 0.3rem;
-}
-.field {
-  display: grid;
-  gap: 0.3rem;
-}
-.field label {
-  font-weight: 600;
-}
-.hint {
-  margin: 0;
-  font-size: 0.875rem;
-}
-.script {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
-}
-.script summary {
-  cursor: pointer;
-}
-.body {
-  margin-top: 0.75rem;
-}
-.keys {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.6rem;
-}
-.spacer {
-  flex: 1;
-}
-.error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 0.875rem;
-}
-</style>
