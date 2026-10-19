@@ -50,7 +50,8 @@ session.
   (with "Create tenant"), links to the docs and the source, the language
   menu (globe icon) and the account menu (theme, sign out). Below 768px the
   sidebar moves behind a Menu button in the header (a drawer; Escape or a
-  link closes it).
+  link closes it); the Docs and Source links move to the bottom of the drawer and
+  the tenant and account chips shorten, so the header never scrolls sideways.
 - **Sidebar:** one list of sections in groups: Home; Applications
   (Applications, APIs); Authentication (Database, Social); User management
   (Users, Roles, Organizations); Security (Attack protection, Multi-factor);

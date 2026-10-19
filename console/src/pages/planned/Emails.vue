@@ -23,13 +23,12 @@ const heading = computed(() => templates.value.find((x) => x.id === current.valu
 <template>
   <PlannedPage section-key="emails">
     <div class="my-3 grid gap-4 md:grid-cols-[14rem_1fr]">
-      <div data-preview-nav role="radiogroup" :aria-label="t('plannedPreview.emails.picker')" class="grid content-start gap-1">
+      <div data-preview-nav role="group" :aria-label="t('plannedPreview.emails.picker')" class="grid content-start gap-1">
         <button
           v-for="tpl in templates"
           :key="tpl.id"
           type="button"
-          role="radio"
-          :aria-checked="current === tpl.id"
+          :aria-pressed="current === tpl.id"
           :class="['cursor-pointer rounded border-0 px-3 py-1.5 text-left font-sans', current === tpl.id ? 'bg-active font-bold text-text' : 'bg-transparent text-muted hover:bg-active']"
           @click="current = tpl.id"
         >
@@ -39,8 +38,8 @@ const heading = computed(() => templates.value.find((x) => x.id === current.valu
       <section class="grid max-w-xl gap-3" aria-labelledby="em-heading">
         <h2 id="em-heading" class="m-0">{{ heading }}</h2>
         <Toggle :label="t('plannedPreview.emails.enabled')" disabled />
-        <Field id="em-from" :label="t('plannedPreview.emails.from')"><input id="em-from" disabled /></Field>
-        <Field id="em-subject" :label="t('plannedPreview.emails.subject')"><input id="em-subject" disabled /></Field>
+        <Field id="em-from" :label="t('plannedPreview.emails.from')"><input id="em-from" type="text" disabled /></Field>
+        <Field id="em-subject" :label="t('plannedPreview.emails.subject')"><input id="em-subject" type="text" disabled /></Field>
         <Field id="em-result" :label="t('plannedPreview.emails.resultUrl')"><input id="em-result" type="url" disabled /></Field>
         <Field id="em-life" :label="t('plannedPreview.emails.urlLifetime')" :hint="t('plannedPreview.emails.urlLifetimeHint')">
           <input id="em-life" type="number" aria-describedby="em-life-hint" disabled />

@@ -35,6 +35,13 @@ describe.skipIf(!built)('built bundle', () => {
     expect(assets.some((f) => f.endsWith('.woff2'))).toBe(true)
   })
 
+  it('styles email, url and date inputs like text ones', () => {
+    const css = text.filter((t) => t.f.endsWith('.css')).map((t) => t.s).join('')
+    // The field rule matches every input except these kinds, not a list of
+    // text-like types (Tailwind's preflight strips borders from the rest).
+    expect(css).toMatch(/input:not\(\[type=checkbox\],\s*\[type=radio\],\s*\[type=color\]/)
+  })
+
   it('ships the font license next to the fonts', () => {
     expect(assets).toContain('OFL.txt')
   })

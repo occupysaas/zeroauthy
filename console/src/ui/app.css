@@ -208,9 +208,7 @@
     gap: 1rem;
   }
 
-  input[type='text'],
-  input[type='number'],
-  input[type='password'],
+  input:not([type='checkbox'], [type='radio'], [type='color'], [type='range'], [type='file']),
   select,
   textarea {
     font: inherit;
@@ -220,6 +218,15 @@
     border-radius: 4px;
     padding: 0.45rem 0.6rem;
     width: 100%;
+  }
+
+  input[type='color'] {
+    width: 3rem;
+    height: 2.25rem;
+    padding: 0.2rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
   }
 
   input:disabled,

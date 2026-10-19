@@ -32,9 +32,9 @@ function switchTo(name: string) {
 
 <template>
   <DropdownMenuRoot>
-    <DropdownMenuTrigger class="inline-flex items-center gap-1.5 cursor-pointer rounded border border-transparent bg-header-chip px-3 py-1 font-sans text-header-text hover:border-header-text" :aria-label="t('switchTenant')">
-      <span class="opacity-70">{{ t('tenantLabel') }}</span>
-      <strong>{{ tenant?.name ?? '—' }}</strong>
+    <DropdownMenuTrigger class="inline-flex min-w-0 items-center gap-1.5 cursor-pointer rounded border border-transparent bg-header-chip px-3 py-1 font-sans text-header-text hover:border-header-text" :aria-label="t('switchTenant')">
+      <span class="opacity-70 max-md:hidden">{{ t('tenantLabel') }}</span>
+      <strong class="truncate max-md:max-w-24">{{ tenant?.name ?? '—' }}</strong>
       <span aria-hidden="true">▾</span>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>

@@ -27,8 +27,8 @@ const { theme } = storeToRefs(prefs)
 
 <template>
   <DropdownMenuRoot>
-    <DropdownMenuTrigger class="cursor-pointer rounded border border-transparent bg-header-chip px-3 py-1 font-sans text-header-text hover:border-header-text" :aria-label="t('account')">
-      {{ session.email || t('account') }} <span aria-hidden="true">▾</span>
+    <DropdownMenuTrigger class="inline-flex min-w-0 cursor-pointer items-center gap-1 rounded border border-transparent bg-header-chip px-3 py-1 font-sans text-header-text hover:border-header-text" :aria-label="t('account')">
+      <span class="truncate max-md:max-w-20">{{ session.email || t('account') }}</span> <span aria-hidden="true">▾</span>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent class="menu" align="end" :side-offset="6">

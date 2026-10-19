@@ -51,7 +51,7 @@ function close() {
 }
 
 function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') close()
+  if (e.key === 'Escape' && !e.defaultPrevented) close()
 }
 onMounted(() => document.addEventListener('keydown', onKey))
 onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
@@ -60,7 +60,7 @@ watch(() => route.fullPath, close)
 
 <template>
   <a class="absolute -left-[999px] z-20 bg-surface px-3 py-1.5 focus:top-2 focus:left-4" href="#main">{{ t('skipToContent') }}</a>
-  <header class="flex items-center gap-4 bg-header px-5 py-2.5 text-header-text">
+  <header class="flex items-center gap-4 bg-header px-5 py-2.5 text-header-text max-md:gap-2 max-md:px-3">
     <button
       v-if="tenant"
       ref="menuButton"
@@ -75,7 +75,7 @@ watch(() => route.fullPath, close)
     <RouterLink class="text-lg font-bold tracking-widest text-header-text uppercase no-underline hover:text-header-text" to="/">{{ productParts[0] }}<span class="text-accent">{{ productParts[1] }}</span></RouterLink>
     <TenantSwitcher />
     <span class="flex-1" />
-    <nav class="flex gap-4" :aria-label="t('navProject')">
+    <nav class="flex gap-4 max-md:hidden" :aria-label="t('navProject')">
       <a class="text-header-text no-underline hover:underline" :href="docsURL" target="_blank" rel="noopener noreferrer">{{ t('docs') }}</a>
       <a class="text-header-text no-underline hover:underline" :href="sourceURL" target="_blank" rel="noopener noreferrer">{{ t('source') }}</a>
     </nav>
@@ -109,6 +109,10 @@ watch(() => route.fullPath, close)
             </RouterLink>
           </li>
         </template>
+        <li class="mt-4 border-t border-rule pt-2 md:hidden">
+          <a class="block px-3 py-2 font-bold text-text no-underline hover:bg-active" :href="docsURL" target="_blank" rel="noopener noreferrer">{{ t('docs') }}</a>
+          <a class="block px-3 py-2 font-bold text-text no-underline hover:bg-active" :href="sourceURL" target="_blank" rel="noopener noreferrer">{{ t('source') }}</a>
+        </li>
       </ul>
     </nav>
     <main id="main" tabindex="-1" class="max-w-6xl min-w-0 flex-1 px-8 py-6 focus:outline-none max-md:p-4">

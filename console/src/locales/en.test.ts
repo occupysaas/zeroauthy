@@ -15,7 +15,7 @@ function leaves(node: unknown, prefix: string, out: Leaf[] = []): Leaf[] {
 
 const i18n = createConsoleI18n('en')
 const all = leaves(en, '')
-const names = ['from', 'to', 'total', 'name', 'mode', 'values', 'grants', 'seconds', 'n', 'key', 'ms', 'audience', 'what', 'email', 'confirmWith', 'when', 'apis']
+const names = ['from', 'to', 'total', 'name', 'mode', 'values', 'grants', 'seconds', 'n', 'key', 'ms', 'audience', 'what', 'email', 'confirmWith', 'when', 'apis', 'count', 'value']
 
 describe('English catalog', () => {
   it('has strings', () => {

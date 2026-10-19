@@ -55,11 +55,15 @@ export function savedLocale(): Locale {
   return 'en'
 }
 
-// applyLocale switches the instance to l, marks the page's language and
-// remembers the choice.
+// applyLocale switches the instance to l and marks the page's language. It
+// does not remember anything: startup uses it with the detected locale.
 export function applyLocale(i18n: ConsoleI18n, l: Locale): void {
   i18n.global.locale.value = l
   document.documentElement.lang = l
+}
+
+// rememberLocale saves the operator's explicit choice.
+export function rememberLocale(l: Locale): void {
   try {
     window.localStorage.setItem(KEY, l)
   } catch {

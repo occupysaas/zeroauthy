@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { activeI18n, applyLocale, savedLocale, type Locale } from '../i18n'
+import { activeI18n, applyLocale, rememberLocale, savedLocale, type Locale } from '../i18n'
 import { applyTheme, savedTheme, type Theme } from '../theme'
 
 // Per-browser conveniences: the colour theme and the display language.
@@ -18,6 +18,7 @@ export const usePreferencesStore = defineStore('preferences', {
       this.locale = l
       const i18n = activeI18n()
       if (i18n) applyLocale(i18n, l)
+      rememberLocale(l)
     },
   },
 })

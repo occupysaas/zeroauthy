@@ -22,7 +22,7 @@ const tab = ref('general')
         </TabsList>
       </div>
       <TabsContent value="general" class="grid max-w-xl gap-3">
-        <Field id="ts-name" :label="t('plannedPreview.tenant.friendlyName')"><input id="ts-name" disabled /></Field>
+        <Field id="ts-name" :label="t('plannedPreview.tenant.friendlyName')"><input id="ts-name" type="text" disabled /></Field>
         <Field id="ts-logo" :label="t('plannedPreview.tenant.logoUrl')"><input id="ts-logo" type="url" disabled /></Field>
         <Field id="ts-email" :label="t('plannedPreview.tenant.supportEmail')"><input id="ts-email" type="email" disabled /></Field>
         <Field id="ts-url" :label="t('plannedPreview.tenant.supportUrl')"><input id="ts-url" type="url" disabled /></Field>
