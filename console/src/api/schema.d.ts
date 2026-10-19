@@ -512,8 +512,7 @@ export interface paths {
          *     Script console lines forwarded to the server log (for a try and for
          *     real logins) have configuration values masked.
          *
-         *     Configuration values are masked, as Auth0 masks the secrets a script
-         *     logs: every value of the connection's configuration that appears in
+         *     Configuration values are masked: every value of the connection's configuration that appears in
          *     `logs`, in `result` (in any string or object key, however deeply
          *     nested) or in `error.message` is replaced by `■■■■■■■■`, whatever the
          *     value's length. A value matches as an exact, case-sensitive substring,

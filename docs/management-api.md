@@ -223,7 +223,8 @@ is accepted on create and is not part of a `GET`; use the clients endpoint.
   `PATCH` takes a non-empty `[{"client_id", "status"}]` and answers `204`.
   Only enabled applications can sign in with the connection.
 - **Deleting** answers `202` with `{"deleted_at": …}`, and `204` once it is
-  gone, also for an ID that never existed. The connection's users go with it,
+  gone, also for an ID that never existed (inferred from APIs and client
+  grants; not observed for connections). The connection's users go with it,
   with their sessions, refresh tokens, grants and password history, and the
   tenant's `default_directory` is cleared when it names the connection.
 
