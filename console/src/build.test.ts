@@ -34,4 +34,8 @@ describe.skipIf(!built)('built bundle', () => {
   it('ships a woff2 font', () => {
     expect(assets.some((f) => f.endsWith('.woff2'))).toBe(true)
   })
+
+  it('ships the font license next to the fonts', () => {
+    expect(assets).toContain('OFL.txt')
+  })
 })

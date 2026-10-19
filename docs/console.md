@@ -46,8 +46,26 @@ session.
 
 ## Screens
 
-- **Header:** the tenant switcher (with "Create tenant"), links to the docs
-  and the source, and the account menu (theme, sign out).
+- **Header:** the brand (black bar, "authy" in red), the tenant switcher
+  (with "Create tenant"), links to the docs and the source, the language
+  menu (globe icon) and the account menu (theme, sign out). Below 768px the
+  sidebar moves behind a Menu button in the header (a drawer; Escape or a
+  link closes it).
+- **Sidebar:** one list of sections in groups: Home; Applications
+  (Applications, APIs); Authentication (Database, Social); User management
+  (Users, Roles, Organizations); Security (Attack protection, Multi-factor);
+  Actions; Branding (Universal Login, Email templates, Custom domains);
+  Monitoring (Logs); Settings (Tenant settings); System (Operators, system
+  tenant only). Items read black and bold; sections that are not built yet
+  carry a "Planned" tag.
+- **Planned sections:** every section that is not built yet has its own
+  page (a direct link works), showing a banner with the slice that will
+  deliver it and the Management API it will use, and a disabled preview of
+  the page: the fields and tables Auth0's reference lists, with empty states
+  and no sample data. Controls do nothing and the pages make no requests;
+  only in-page navigation (the Tenant settings tabs, the Email templates
+  picker) works. Actions is a placeholder only: triggers, the code editor and
+  the deploy flow need their own design.
 - **Home:** the tenant's domain, discovery URL and Management API
   identifier, the number of applications, and a banner when the seed file
   defines the tenant: edits to what the seed defines are overwritten at the
@@ -127,14 +145,28 @@ Applications created in the console are never touched by the seed.
 - Operator tokens are bound to the console client and checked against the
   stored operator on every request, so removing an operator takes effect
   at once.
-- Light and dark themes; every control is keyboard-accessible (target: WCAG
-  2.2 AA). English only; the strings live in `console/src/strings.ts`.
+- Light and dark themes (system, light or dark, chosen in the account menu
+  and kept in the browser); every control is keyboard-accessible (target:
+  WCAG 2.2 AA).
+- Language: English only for now. The strings live in the vue-i18n catalog
+  `console/src/locales/en.ts`; the globe menu lists the available languages
+  and keeps the choice in the browser, so a second language is a new
+  catalog file (the parity test checks it has every key).
+- Font: Glacial Indifference (Regular and Bold) by Alfredo Marco Pradil,
+  SIL Open Font License 1.1, converted to WOFF2 and bundled; the license
+  text ships as `assets/OFL.txt` next to the fonts and is listed in `NOTICE`.
 
 ## Developing
 
 ```bash
 make console      # npm ci, lint, typecheck, Vitest, regenerate API types, build dist/
 ```
+
+State lives in Pinia stores (tenants, preferences, session; tokens are never
+stored in one), styling is Tailwind v4 over theme tokens, and the sections
+are defined once in `console/src/layout/sections.ts`, which drives the
+sidebar and the routes. To ship a planned section, set its status to live
+and replace its preview.
 
 The console signs in against the origin it is served from, so try changes
 by rebuilding and restarting zeroauthy, then opening `/admin/` on the system

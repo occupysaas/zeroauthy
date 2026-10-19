@@ -71,16 +71,16 @@
   - `Services` becomes `{ auth: Auth; api: Api }`. `installGuards(router, s: { auth: Pick<Auth, 'user' | 'login'>; tenants: Pick<TenantsStore, 'loaded' | 'load'>; api: Api })`.
   - Test helper: `fakeServices` returns `{ services, calls, pinia }` with a fresh `createPinia()` already `setActivePinia`'d and the tenants store usable; `mountAt` installs that pinia.
 
-- [ ] **Step 1: Write failing tests** in `src/stores/stores.test.ts`:
+- [x] **Step 1: Write failing tests** in `src/stores/stores.test.ts`:
   - `tenants.load` stores the list and sets `loaded`; on a 500 it sets `error` to the message and `loaded` true.
   - `tenants.create` inserts sorted: list `[b, d]` + create `c` → names `['b','c','d']`.
   - `tenants.first()` returns the first non-reserved tenant, else the system tenant.
   - `preferences.setTheme('dark')` sets `document.documentElement.dataset.theme === 'dark'` and `localStorage['zeroauthy.console.theme'] === 'dark'`.
   - `session.attach(user)` then `user.email = 'x@y.test'` → `session.email === 'x@y.test'`.
-- [ ] **Step 2: Run** `cd console && npx vitest run src/stores` — expect FAIL (modules missing).
-- [ ] **Step 3: Install** `npm i pinia@3.0` (exact version pinned in package.json like the others). **Implement** the three stores and move all `services.tenants` users onto `useTenantsStore()`; `main.ts` does `app.use(createPinia())`, `useSessionStore().attach(auth.user)`, and the guard receives the store and `api`. AccountMenu reads email from the session store and theme from the preferences store.
-- [ ] **Step 4: Run** the full suite and typecheck — all pass, including the updated `router.test.ts` fakes (`tenants: { loaded, load }`).
-- [ ] **Step 5: Build and commit** — `feat(console): Pinia stores for tenants, preferences and session`.
+- [x] **Step 2: Run** `cd console && npx vitest run src/stores` — expect FAIL (modules missing).
+- [x] **Step 3: Install** `npm i pinia@3.0` (exact version pinned in package.json like the others). **Implement** the three stores and move all `services.tenants` users onto `useTenantsStore()`; `main.ts` does `app.use(createPinia())`, `useSessionStore().attach(auth.user)`, and the guard receives the store and `api`. AccountMenu reads email from the session store and theme from the preferences store.
+- [x] **Step 4: Run** the full suite and typecheck — all pass, including the updated `router.test.ts` fakes (`tenants: { loaded, load }`).
+- [x] **Step 5: Build and commit** — `feat(console): Pinia stores for tenants, preferences and session`.
 
 ---
 
@@ -108,12 +108,12 @@ Conversion rules (decided here, apply everywhere):
 - Arrays of `{ title, href }` move to `links.ts` with `titleKey`.
 - Literal `{ } @ $ |` in English text are escaped with literal interpolation (`{'@'}`).
 
-- [ ] **Step 1: Write the parity test** `src/locales/parity.test.ts`: walk the old `t` from `strings.ts`; for every string leaf assert `i18n.global.t(path) === leaf` (paths mapped where the rules above moved them; a small explicit map for moved keys); for each function leaf, a table of sample args → expected old output vs the new key(s), e.g. `apps.deleteBody('Shop')` vs `t('apps.deleteBody', { name: 'Shop' })`, `apis.range(1, 20, 45)` → `'1–20 of 45'`, `rateLimited(undefined)` and `rateLimited(30)`. Also `src/locales/en.test.ts`: every leaf key in `en` renders without throwing and the output contains no unescaped `{` (catches broken syntax).
-- [ ] **Step 2: Run** — FAIL (no catalog).
-- [ ] **Step 3: Install** `npm i vue-i18n@11` (pin exact). Write `en.ts` from `strings.ts` by the rules; write `i18n.ts`; convert call sites. If the build contains `new Function` (checked in Task 4, but check now with `grep -l "new Function" dist/assets/*.js`), alias `vue-i18n` to its runtime-only ESM build and keep JIT compilation on per vue-i18n's CSP docs.
-- [ ] **Step 4: Run** full suite + typecheck — parity and all page tests pass.
-- [ ] **Step 5: Delete** `strings.ts` and `parity.test.ts`; run suite again — pass.
-- [ ] **Step 6: Build and commit** — `feat(console): vue-i18n English catalog`.
+- [x] **Step 1: Write the parity test** `src/locales/parity.test.ts`: walk the old `t` from `strings.ts`; for every string leaf assert `i18n.global.t(path) === leaf` (paths mapped where the rules above moved them; a small explicit map for moved keys); for each function leaf, a table of sample args → expected old output vs the new key(s), e.g. `apps.deleteBody('Shop')` vs `t('apps.deleteBody', { name: 'Shop' })`, `apis.range(1, 20, 45)` → `'1–20 of 45'`, `rateLimited(undefined)` and `rateLimited(30)`. Also `src/locales/en.test.ts`: every leaf key in `en` renders without throwing and the output contains no unescaped `{` (catches broken syntax).
+- [x] **Step 2: Run** — FAIL (no catalog).
+- [x] **Step 3: Install** `npm i vue-i18n@11` (pin exact). Write `en.ts` from `strings.ts` by the rules; write `i18n.ts`; convert call sites. If the build contains `new Function` (checked in Task 4, but check now with `grep -l "new Function" dist/assets/*.js`), alias `vue-i18n` to its runtime-only ESM build and keep JIT compilation on per vue-i18n's CSP docs.
+- [x] **Step 4: Run** full suite + typecheck — parity and all page tests pass.
+- [x] **Step 5: Delete** `strings.ts` and `parity.test.ts`; run suite again — pass.
+- [x] **Step 6: Build and commit** — `feat(console): vue-i18n English catalog`.
 
 ---
 
@@ -127,9 +127,9 @@ Conversion rules (decided here, apply everywhere):
 - Consumes: `locales`, `usePreferencesStore().setLocale` (Task 2).
 - Produces: `<LanguageMenu />` — reka-ui `DropdownMenu` with a trigger button `aria-label="Language"` containing `<GlobeIcon aria-hidden="true" />`, and a radio group of `locales` showing each `name`.
 
-- [ ] **Step 1: Test:** trigger has accessible name "Language" and contains an `svg`; opening lists exactly `['English']`; selecting it sets `document.documentElement.lang === 'en'` and `localStorage['zeroauthy.console.locale'] === 'en'`.
-- [ ] **Step 2: Run** — FAIL. **Step 3: Implement.** Inline SVG globe (circle, meridian ellipse, two parallels), `currentColor`, 18px.
-- [ ] **Step 4: Run** — PASS. **Step 5: Build and commit** — `feat(console): globe language menu`.
+- [x] **Step 1: Test:** trigger has accessible name "Language" and contains an `svg`; opening lists exactly `['English']`; selecting it sets `document.documentElement.lang === 'en'` and `localStorage['zeroauthy.console.locale'] === 'en'`.
+- [x] **Step 2: Run** — FAIL. **Step 3: Implement.** Inline SVG globe (circle, meridian ellipse, two parallels), `currentColor`, 18px.
+- [x] **Step 4: Run** — PASS. **Step 5: Build and commit** — `feat(console): globe language menu`.
 
 ---
 
@@ -165,12 +165,12 @@ Token values (three blocks, same pattern as old `base.css`: `:root`, `@media (pr
 | warn-soft / warn-border | `#fff4d6` / `#e5b84a` | `#3a2e10` / `#a37f22` |
 | focus | `#2563eb` | `#7aa7ff` |
 
-- [ ] **Step 1: Fetch the font.** Download Glacial Indifference from its Font Library page (`https://fontlibrary.org/en/font/glacial-indifference`) into a fresh scratch directory. Confirm the license is SIL OFL 1.1; **if not, stop and ask the maintainer** (spec §4) and continue the task with `--font-sans` set to the system stack. Convert regular and bold to woff2 (`fonttools ttLib.woff2 compress -o out.woff2 in.otf`; needs the `brotli` Python module), copy with `OFL.txt` into `src/assets/fonts/`, and add a NOTICE entry (name, author Hanken Design Co., license, path).
-- [ ] **Step 2: Write failing tests.** `src/ui/app.test.ts` reads `app.css` as text and asserts: the three theme blocks exist; light `--accent: #d7141a`, `--bg: #ffffff`, dark `--bg: #121212`, `--accent: #ff3b40`; the string `f5f2eb` does not appear; no `http://` or `https://` URLs; `@font-face` for weights 400 and 700 with `font-display: swap`. `src/build.test.ts` (skips with a message if `dist/` is absent) reads `dist/index.html` and `dist/assets/*`: no `new Function(`, no `eval(`, no `<style` in `index.html`, no `fonts.googleapis`/`cdnfonts`/`http` font URLs in CSS, at least one `.woff2` in `dist/assets`.
-- [ ] **Step 3: Run** — FAIL.
-- [ ] **Step 4: Install** `tailwindcss@4.3 @tailwindcss/vite@4.3` (pin exact); add the plugin; write `app.css` (`@import 'tailwindcss';`, `@font-face`, tokens, `@theme inline`, `@layer base` for body/headings/links/focus ring `outline-2 outline-focus`, `@layer components` for the classes above); delete `base.css`.
-- [ ] **Step 5: Build, then run** the full suite — PASS (scoped component styles still exist and use old variable names like `--border`, `--accent-soft`; keep aliases `--border: var(--hair)`, `--accent-soft: var(--active)`, `--surface-2: var(--tag)`, `--text-2: var(--muted)`, `--radius: 4px` in `app.css` until Task 6 removes the last user, so pages don't break mid-plan).
-- [ ] **Step 6: Commit** — `feat(console): Tailwind v4, theme tokens and Glacial Indifference`.
+- [x] **Step 1: Fetch the font.** Download Glacial Indifference from its Font Library page (`https://fontlibrary.org/en/font/glacial-indifference`) into a fresh scratch directory. Confirm the license is SIL OFL 1.1; **if not, stop and ask the maintainer** (spec §4) and continue the task with `--font-sans` set to the system stack. Convert regular and bold to woff2 (`fonttools ttLib.woff2 compress -o out.woff2 in.otf`; needs the `brotli` Python module), copy with `OFL.txt` into `src/assets/fonts/`, and add a NOTICE entry (name, author Hanken Design Co., license, path).
+- [x] **Step 2: Write failing tests.** `src/ui/app.test.ts` reads `app.css` as text and asserts: the three theme blocks exist; light `--accent: #d7141a`, `--bg: #ffffff`, dark `--bg: #121212`, `--accent: #ff3b40`; the string `f5f2eb` does not appear; no `http://` or `https://` URLs; `@font-face` for weights 400 and 700 with `font-display: swap`. `src/build.test.ts` (skips with a message if `dist/` is absent) reads `dist/index.html` and `dist/assets/*`: no `new Function(`, no `eval(`, no `<style` in `index.html`, no `fonts.googleapis`/`cdnfonts`/`http` font URLs in CSS, at least one `.woff2` in `dist/assets`.
+- [x] **Step 3: Run** — FAIL.
+- [x] **Step 4: Install** `tailwindcss@4.3 @tailwindcss/vite@4.3` (pin exact); add the plugin; write `app.css` (`@import 'tailwindcss';`, `@font-face`, tokens, `@theme inline`, `@layer base` for body/headings/links/focus ring `outline-2 outline-focus`, `@layer components` for the classes above); delete `base.css`.
+- [x] **Step 5: Build, then run** the full suite — PASS (scoped component styles still exist and use old variable names like `--border`, `--accent-soft`; keep aliases `--border: var(--hair)`, `--accent-soft: var(--active)`, `--surface-2: var(--tag)`, `--text-2: var(--muted)`, `--radius: 4px` in `app.css` until Task 6 removes the last user, so pages don't break mid-plan).
+- [x] **Step 6: Commit** — `feat(console): Tailwind v4, theme tokens and Glacial Indifference`.
 
 ---
 
@@ -184,10 +184,10 @@ Token values (three blocks, same pattern as old `base.css`: `:root`, `@media (pr
 - Produces: `<Button variant>` keeps its props (`primary` = `bg-accent text-accent-text hover:bg-accent-hover`, disabled = `bg-disabled text-disabled-text cursor-not-allowed`); `<Banner kind>` keeps props and adds `kind: 'planned'` (white, `border-2 border-rule`); `<Tag>` slot-only, `text-[10px] uppercase tracking-wide bg-tag text-muted rounded-sm px-1.5`.
 - Shell header: `bg-header text-header-text`; brand renders `ZERO` + `<span class="text-accent">AUTHY</span>` from `links.product`, uppercase, bold, letter-spaced; tenant switcher trigger `bg-header-chip`. Sidebar markup is replaced in Task 7; restyle only the header and frame here.
 
-- [ ] **Step 1: Restyle** each file; no behavior or markup-role changes.
-- [ ] **Step 2: Run** the full suite — PASS (tests select by role/text, not scoped classes; fix any that relied on a removed class).
-- [ ] **Step 3: Visual check** with `npm run dev` against a local `zeroauthy serve` (see `docs/console.md`), light and dark: header black, brand red AUTHY, body white.
-- [ ] **Step 4: Build and commit** — `style(console): hybrid look for shared UI and layout`.
+- [x] **Step 1: Restyle** each file; no behavior or markup-role changes.
+- [x] **Step 2: Run** the full suite — PASS (tests select by role/text, not scoped classes; fix any that relied on a removed class).
+- [x] **Step 3: Visual check** with `npm run dev` against a local `zeroauthy serve` (see `docs/console.md`), light and dark: header black, brand red AUTHY, body white.
+- [x] **Step 4: Build and commit** — `style(console): hybrid look for shared UI and layout`.
 
 ---
 
@@ -197,11 +197,11 @@ Token values (three blocks, same pattern as old `base.css`: `:root`, `@media (pr
 - Modify (remove `<style>`): all of `src/pages/applications/*.vue`, `src/pages/apis/*.vue`, `src/pages/connections/*.vue`, `src/pages/operators/List.vue`; `src/ui/app.css` (drop the temporary aliases from Task 4)
 - Create: `src/ui/nostyle.test.ts`
 
-- [ ] **Step 1: Write the failing test** `nostyle.test.ts`: glob `src/**/*.vue`; assert none contains `<style`; assert no file under `src/` contains `var(--border)`, `var(--accent-soft)`, `var(--surface-2)`, `var(--text-2)`.
-- [ ] **Step 2: Run** — FAIL (lists the remaining files).
-- [ ] **Step 3: Restyle** page by page; headings use the base-layer uppercase style; keep every role/label the tests and E2E use.
-- [ ] **Step 4: Run** full suite — PASS.
-- [ ] **Step 5: Build and commit** — `style(console): hybrid look for applications, APIs, connections and operators`.
+- [x] **Step 1: Write the failing test** `nostyle.test.ts`: glob `src/**/*.vue`; assert none contains `<style`; assert no file under `src/` contains `var(--border)`, `var(--accent-soft)`, `var(--surface-2)`, `var(--text-2)`.
+- [x] **Step 2: Run** — FAIL (lists the remaining files).
+- [x] **Step 3: Restyle** page by page; headings use the base-layer uppercase style; keep every role/label the tests and E2E use.
+- [x] **Step 4: Run** full suite — PASS.
+- [x] **Step 5: Build and commit** — `style(console): hybrid look for applications, APIs, connections and operators`.
 
 ---
 
@@ -235,14 +235,14 @@ Token values (three blocks, same pattern as old `base.css`: `:root`, `@media (pr
 
 Sidebar: groups render as small uppercase muted headings; items `font-bold text-text`; active `border-l-[3px] border-accent bg-active`; planned items append `<Tag>` with `t('planned')` and `title` = slice + APIs; sidebar `border-r-[3px] border-rule`. Below `md`: sidebar hidden behind a header button (`aria-expanded`, `aria-controls`, label `Menu`); opening moves focus to the first link; Escape or a route change closes it and returns focus to the button.
 
-- [ ] **Step 1: Write failing tests.**
+- [x] **Step 1: Write failing tests.**
   - `sections.test.ts`: every section key is a route name in `routes`; every `/t/:tenant/…` route that isn't a `-new` or `:id` route is a section; keys are unique; `visibleSections(false)` excludes `operators`, `visibleSections(true)` includes it last.
   - `router.test.ts`: unauthenticated push to `/t/acme/users` calls `login('/t/acme/users', true)`; authenticated push resolves name `users`; `/t/acme/users/x` → `not-found`.
   - `Shell.test.ts` (replace the old label test): on `/t/acme/` the sidebar's link texts (tags stripped) are `['Home','Applications','APIs','Database','Social','Users','Roles','Organizations','Attack protection','Multi-factor','Actions','Universal Login','Email templates','Custom domains','Logs','Tenant settings']`; on `/t/system/` the same plus `'Operators'`; the `Users` link contains a tag with text `Planned`; group headings in order `['Applications','Authentication','User management','Security','Actions','Branding','Monitoring','Settings']` (+ `'System'` on system); menu button toggles `aria-expanded`, Escape sets it to `false` and focuses the button, a route push closes it.
-- [ ] **Step 2: Run** — FAIL.
-- [ ] **Step 3: Implement** `sections.ts`, routes, Shell sidebar and drawer; delete `planned.ts`; update E2E specs for the `Database` label.
-- [ ] **Step 4: Run** — PASS.
-- [ ] **Step 5: Build and commit** — `feat(console): grouped sidebar with routed planned sections`.
+- [x] **Step 2: Run** — FAIL.
+- [x] **Step 3: Implement** `sections.ts`, routes, Shell sidebar and drawer; delete `planned.ts`; update E2E specs for the `Database` label.
+- [x] **Step 4: Run** — PASS.
+- [x] **Step 5: Build and commit** — `feat(console): grouped sidebar with routed planned sections`.
 
 ---
 
@@ -262,9 +262,9 @@ Sidebar: groups render as small uppercase muted headings; items `font-bold text-
   - `src/pages/planned/preview.ts`: `export function assertPreviewInert(wrapper: VueWrapper): void` for tests — every `button, input, select, textarea, [role=switch]` that is **not** inside `[data-preview-nav]` is `disabled` (or `aria-disabled="true"` for reka-ui switches).
   - Actions page = `<PlannedPage section-key="actions" />` with no preview.
 
-- [ ] **Step 1: Write failing tests** in `planned.test.ts` using `mountAt` at `/t/acme/actions`: `h1` text `Actions`; banner text contains `Planned · later` and `/api/v2/actions`; placeholder sentence present; `calls` is empty. A synthetic page with a slot containing a disabled input and a `data-preview-nav` tab button passes `assertPreviewInert`; one with an enabled input outside nav fails it.
-- [ ] **Step 2: Run** — FAIL. **Step 3: Implement.** **Step 4: Run** — PASS.
-- [ ] **Step 5: Build and commit** — `feat(console): planned page layout and preview primitives`.
+- [x] **Step 1: Write failing tests** in `planned.test.ts` using `mountAt` at `/t/acme/actions`: `h1` text `Actions`; banner text contains `Planned · later` and `/api/v2/actions`; placeholder sentence present; `calls` is empty. A synthetic page with a slot containing a disabled input and a `data-preview-nav` tab button passes `assertPreviewInert`; one with an enabled input outside nav fails it.
+- [x] **Step 2: Run** — FAIL. **Step 3: Implement.** **Step 4: Run** — PASS.
+- [x] **Step 5: Build and commit** — `feat(console): planned page layout and preview primitives`.
 
 ---
 
@@ -276,9 +276,9 @@ Sidebar: groups render as small uppercase muted headings; items `font-bold text-
 
 Contents exactly per spec §7 table rows for these six. Social tiles in slice-6 order: Generic OAuth 2 / OIDC, Google, Apple, Facebook, Microsoft (each a disabled button-card). Logs: type select and date-range inputs, secondary disabled "Log streams" button.
 
-- [ ] **Step 1: Write failing tests** — for each of the six, `mountAt('/t/acme/<path>')` then: `h1` is the section label; `assertPreviewInert(wrapper)`; `calls.length === 0`; and one content assertion each — Users column headers `['Name','Connection','Logins','Last login']` and buttons `Create user`, `Import users`, `Send reset emails`; Social tile names in the order above; Roles headers `['Name','Description']`; Organizations headers `['Name','Display name']`; Custom domains headers `['Domain','Status','Type']`; Logs headers `['Event','Description','Date','Connection','Application']`. Every table shows its empty-state text and no other rows.
-- [ ] **Step 2: Run** — FAIL. **Step 3: Implement.** **Step 4: Run** — PASS.
-- [ ] **Step 5: Build and commit** — `feat(console): planned previews for users, social, roles, organizations, domains and logs`.
+- [x] **Step 1: Write failing tests** — for each of the six, `mountAt('/t/acme/<path>')` then: `h1` is the section label; `assertPreviewInert(wrapper)`; `calls.length === 0`; and one content assertion each — Users column headers `['Name','Connection','Logins','Last login']` and buttons `Create user`, `Import users`, `Send reset emails`; Social tile names in the order above; Roles headers `['Name','Description']`; Organizations headers `['Name','Display name']`; Custom domains headers `['Domain','Status','Type']`; Logs headers `['Event','Description','Date','Connection','Application']`. Every table shows its empty-state text and no other rows.
+- [x] **Step 2: Run** — FAIL. **Step 3: Implement.** **Step 4: Run** — PASS.
+- [x] **Step 5: Build and commit** — `feat(console): planned previews for users, social, roles, organizations, domains and logs`.
 
 ---
 
@@ -290,9 +290,9 @@ Contents exactly per spec §7 table rows for these six. Social tiles in slice-6 
 
 Contents exactly per spec §7 rows. Tenant settings tabs (General, Session, Languages, Login) and the Email templates picker are wrapped in `data-preview-nav` and switch the visible panel; reka-ui `Tabs` for the former, a listbox or radio-tab list for the latter. Branding color fields are disabled `input type="color"` with default values `#d7141a` (primary) and `#ffffff` (background); the optional static login-box preview is the builder's call (spec §11).
 
-- [ ] **Step 1: Write failing tests** — for each of the five: `h1`, `assertPreviewInert`, `calls.length === 0`, plus — Attack protection has three panel headings `['Brute-force protection','Breached password detection','Suspicious IP throttling']`; Multi-factor lists the eight factors of spec §7 and policy options `Never`, `Always`, `Adaptive`; Tenant settings: clicking the `Session` tab shows the `Inactivity timeout` field and hides `Friendly name`, all four tabs reachable; Email templates: selecting `Welcome` changes the panel heading to `Welcome`, the seven templates of spec §7 are listed, the body is a disabled `textarea`; Branding shows the four fields of spec §7 and both color inputs disabled.
-- [ ] **Step 2: Run** — FAIL. **Step 3: Implement.** **Step 4: Run** — PASS.
-- [ ] **Step 5: Build and commit** — `feat(console): planned previews for attack protection, MFA, tenant settings, branding and emails`.
+- [x] **Step 1: Write failing tests** — for each of the five: `h1`, `assertPreviewInert`, `calls.length === 0`, plus — Attack protection has three panel headings `['Brute-force protection','Breached password detection','Suspicious IP throttling']`; Multi-factor lists the eight factors of spec §7 and policy options `Never`, `Always`, `Adaptive`; Tenant settings: clicking the `Session` tab shows the `Inactivity timeout` field and hides `Friendly name`, all four tabs reachable; Email templates: selecting `Welcome` changes the panel heading to `Welcome`, the seven templates of spec §7 are listed, the body is a disabled `textarea`; Branding shows the four fields of spec §7 and both color inputs disabled.
+- [x] **Step 2: Run** — FAIL. **Step 3: Implement.** **Step 4: Run** — PASS.
+- [x] **Step 5: Build and commit** — `feat(console): planned previews for attack protection, MFA, tenant settings, branding and emails`.
 
 ---
 
@@ -301,7 +301,11 @@ Contents exactly per spec §7 rows. Tenant settings tabs (General, Session, Lang
 **Files:**
 - Modify: `docs/console.md` (sidebar groups, planned pages, language menu, themes, font credit), `docs/superpowers/plan-1-followups.md` ("Plan 16 follow-ups": second language, more themes, Actions design, any preview fields trimmed), `.gitignore` (add `.superpowers/`), this plan (completion note)
 
-- [ ] **Step 1: Write the docs.**
-- [ ] **Step 2: Verify:** `make console` with no `dist` diff afterwards; `go test ./internal/server/...`; `make check-sources`; `tests/e2e/run-browser.sh` console specs (m13, m14, m15) pass — or state exactly why they cannot run.
-- [ ] **Step 3: Visual check** in a browser, light and dark, at desktop and 375px width: a live page (Applications), a list preview (Users), a tabbed preview (Tenant settings), the placeholder (Actions), the globe menu, the mobile drawer. Sidebar items read black and bold; no off-white anywhere.
-- [ ] **Step 4: Commit** — `docs: console frame; Plan 16 records`.
+- [x] **Step 1: Write the docs.**
+- [x] **Step 2: Verify:** `make console` with no `dist` diff afterwards; `go test ./internal/server/...`; `make check-sources`; `tests/e2e/run-browser.sh` console specs (m13, m14, m15) pass — or state exactly why they cannot run.
+- [x] **Step 3: Visual check** in a browser, light and dark, at desktop and 375px width: a live page (Applications), a list preview (Users), a tabbed preview (Tenant settings), the placeholder (Actions), the globe menu, the mobile drawer. Sidebar items read black and bold; no off-white anywhere.
+- [x] **Step 4: Commit** — `docs: console frame; Plan 16 records`.
+
+---
+
+**Plan 16 completion note (Tasks 1 to 11).** Shipped: the console on Pinia (tenants, preferences, session), a typed vue-i18n English catalog with a globe language menu, and Tailwind v4 over per-theme tokens in the hybrid look (black header with brand red, white pages, black bold sidebar items, bundled Glacial Indifference with `OFL.txt` now emitted to `dist/assets`); one section list (`src/layout/sections.ts`) driving the grouped sidebar, the mobile drawer and the routes; routed planned pages with disabled previews (Users, Social, Roles, Organizations, Attack protection, Multi-factor, Universal Login, Email templates, Custom domains, Logs, Tenant settings) and the Actions placeholder; docs in `docs/console.md` and "Plan 16 follow-ups". Checks: `make console` (lint, typecheck, 202 Vitest tests, API types, build) passed and left `console/dist` differing only by the new `assets/OFL.txt`, which is committed; `go test ./internal/server/...` ok; `make check-sources` ok; `tests/e2e/run-browser.sh m13-console m14-console m15-console` with `E2E_CHROMIUM=/usr/bin/chromium` passed 3 of 3. A visual check ran against a local server (SQLite, TLS) with Chromium screenshots in light and dark at 1280px and 375px: no CSP violations, a cold load of `/admin/t/e2e/users` renders Users, sidebar items computed `#111111` and bold 700 in light and `#f2f2f2` in dark, the toggle track has a 1px ink border. Not run: the rest of the browser suite, `make e2e`, the SQL suite and `make conformance` (they need podman or network and are outside this task's checks). Open items are in "Plan 16 follow-ups" of `docs/superpowers/plan-1-followups.md`.

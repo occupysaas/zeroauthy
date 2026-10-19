@@ -271,3 +271,17 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 - **Connection option scopes:** `read:connections_options` and `update:connections_options` are not enforced by any operation yet; enforce them (connection routes that touch `options`).
 - **Script try:** a missing script runtime (503) still uses a rate-limit slot; console output is lost on a timeout.
 - **Masking:** matching is by exact substring (encoded or split secrets pass), and a long line ending in the first byte of a value may be over-masked.
+
+## Plan 16 follow-ups
+
+- **Second language:** only English ships. A second catalog (`console/src/locales/<tag>.ts`) plus an entry in `console/src/i18n.ts` adds one; locale display names stay endonyms outside the catalog. The tenant settings preview lists languages from the same list.
+- **More themes:** only light, dark and system exist; further themes are new token sets in `app.css`.
+- **Actions design:** Actions is a placeholder. Triggers, the code editor and the deploy flow need their own design before a slice.
+- **Preview fields:** the previews follow spec section 7; none were trimmed. Confirm field names against Auth0's reference as each slice ships.
+- **Font name:** the WOFF2 files keep the family name "Glacial Indifference", which the OFL's Reserved Font Name clause may cover for a modified version; maintainer to decide whether to rename the family. `OFL.txt` now ships in `dist/assets`.
+- **Brand contrast:** the brand red on the black header is about 3.6:1 in light mode, which is AA only as large bold text.
+- **Email templates picker:** `role=radiogroup` on buttons without roving tabindex or arrow keys.
+- **Disabled radios (Multi-factor policy):** the disabled radios are very faint, and the fieldset legend sits on the border.
+- **Mobile breakpoint:** the drawer starts below 768px (Tailwind `md`), not the spec's 720px.
+- **Deferred minors:** the Escape handler that closes the drawer also fires when a menu popup handled Escape; the theme radio and `savedLocale` paths lack tests; `typeLabel` and `strategyLabel` are duplicated in the List and Detail pages; `activeI18n()` is a module singleton, so the store locale and `i18n.global.locale` are two sources of truth; `main.ts` applies the theme twice (also in the preferences store); the CSS URL check in `build.test.ts` matches only `url(http...)`.
+- **E2E:** the console specs use the section links by text (`Database`); the sidebar now has more items, and the E2E does not yet cover the planned pages or the language menu.
