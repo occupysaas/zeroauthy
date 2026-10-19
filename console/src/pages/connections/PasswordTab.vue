@@ -240,7 +240,7 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
           </Field>
         </div>
       </details>
-      <ul class="m-0 grid list-none gap-1.5 p-0 [&_li[data-state=fail]_strong]:text-danger [&_li[data-state=off]]:text-muted [&_li[data-state=pass]_strong]:text-accent" aria-live="polite">
+      <ul class="m-0 grid list-none gap-1.5 p-0 [&_li[data-state=fail]_strong]:text-danger [&_li[data-state=off]]:text-muted [&_li[data-state=pass]_strong]:text-text" aria-live="polite">
         <li v-for="r in results" :key="r.rule" :data-testid="'rule-' + r.rule" :data-state="!r.checked ? 'off' : r.ok ? 'pass' : 'fail'">
           <strong>{{ verdict(r) }}</strong> {{ ruleLabel(r) }}
         </li>
