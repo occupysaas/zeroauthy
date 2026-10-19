@@ -406,8 +406,8 @@ func (a clientUsers) Update(ctx context.Context, v *store.User) error {
 	})
 }
 
-func (a clientUsers) RecordLogin(ctx context.Context, tenantID, userID string, at time.Time) error {
-	r, err := a.c.rpc.UsersRecordLogin(ctx, &storev1.UsersRecordLoginRequest{TxId: a.c.txID, TenantId: tenantID, UserId: userID, At: tsToPB(at)})
+func (a clientUsers) RecordLogin(ctx context.Context, tenantID, userID string, at time.Time, ip string) error {
+	r, err := a.c.rpc.UsersRecordLogin(ctx, &storev1.UsersRecordLoginRequest{TxId: a.c.txID, TenantId: tenantID, UserId: userID, At: tsToPB(at), Ip: ip})
 	return do("UsersRecordLogin", r, err)
 }
 
@@ -415,6 +415,33 @@ func (a clientUsers) SetPasswordHash(ctx context.Context, tenantID, userID, conn
 	r, err := a.c.rpc.UsersSetPasswordHash(ctx, &storev1.UsersSetPasswordHashRequest{
 		TxId: a.c.txID, TenantId: tenantID, UserId: userID, Connection: connection, Hash: hash, At: tsToPB(at)})
 	return do("UsersSetPasswordHash", r, err)
+}
+
+func (a clientUsers) SetPasswordHashIfEmpty(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error {
+	r, err := a.c.rpc.UsersSetPasswordHashIfEmpty(ctx, &storev1.UsersSetPasswordHashRequest{
+		TxId: a.c.txID, TenantId: tenantID, UserId: userID, Connection: connection, Hash: hash, At: tsToPB(at)})
+	return do("UsersSetPasswordHashIfEmpty", r, tooOld(err))
+}
+
+func (a clientUsers) BumpVersion(ctx context.Context, tenantID, userID string) (int64, error) {
+	r, err := a.c.rpc.UsersBumpVersion(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	if err = tooOld(err); err != nil {
+		return 0, rpcErr("UsersBumpVersion", err)
+	}
+	if e := errFromPB(r.GetError()); e != nil {
+		return 0, e
+	}
+	return r.GetValue(), nil
+}
+
+func (a clientUsers) FindByEmail(ctx context.Context, tenantID, email string) ([]*store.User, error) {
+	r, err := a.c.rpc.UsersFindByEmail(ctx, &storev1.UsersFindByEmailRequest{TxId: a.c.txID, TenantId: tenantID, Email: email})
+	return decList("UsersFindByEmail", tooOld(err), r.GetError(), r.GetValues(), userFromPB)
+}
+
+func (a clientUsers) Delete(ctx context.Context, tenantID, userID string) error {
+	r, err := a.c.rpc.UsersDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return do("UsersDelete", r, tooOld(err))
 }
 
 // ---- sessions ----

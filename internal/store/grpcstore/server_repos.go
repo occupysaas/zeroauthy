@@ -466,13 +466,44 @@ func (s *Server) UsersUpdate(ctx context.Context, r *storev1.UserWrite) (*storev
 
 func (s *Server) UsersRecordLogin(ctx context.Context, r *storev1.UsersRecordLoginRequest) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
-		return st.Users().RecordLogin(ctx, r.TenantId, r.UserId, tsFromPB(r.At))
+		return st.Users().RecordLogin(ctx, r.TenantId, r.UserId, tsFromPB(r.At), r.Ip)
 	}), nil
 }
 
 func (s *Server) UsersSetPasswordHash(ctx context.Context, r *storev1.UsersSetPasswordHashRequest) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
 		return st.Users().SetPasswordHash(ctx, r.TenantId, r.UserId, r.Connection, r.Hash, tsFromPB(r.At))
+	}), nil
+}
+
+func (s *Server) UsersSetPasswordHashIfEmpty(ctx context.Context, r *storev1.UsersSetPasswordHashRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.Users().SetPasswordHashIfEmpty(ctx, r.TenantId, r.UserId, r.Connection, r.Hash, tsFromPB(r.At))
+	}), nil
+}
+
+func (s *Server) UsersBumpVersion(ctx context.Context, r *storev1.ScopedKey) (*storev1.VersionResult, error) {
+	var v int64
+	err := s.with(r.TxId, func(st store.Store) (e error) {
+		v, e = st.Users().BumpVersion(ctx, r.TenantId, r.Key)
+		return e
+	})
+	return &storev1.VersionResult{Error: errToPB(err), Value: v}, nil
+}
+
+func (s *Server) UsersFindByEmail(ctx context.Context, r *storev1.UsersFindByEmailRequest) (*storev1.UserListResult, error) {
+	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.User, error) {
+		return st.Users().FindByEmail(ctx, r.TenantId, r.Email)
+	}, userToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.UserListResult{Error: e, Values: vs}, nil
+}
+
+func (s *Server) UsersDelete(ctx context.Context, r *storev1.ScopedKey) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.Users().Delete(ctx, r.TenantId, r.Key)
 	}), nil
 }
 

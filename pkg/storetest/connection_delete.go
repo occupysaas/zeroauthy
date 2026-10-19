@@ -9,7 +9,7 @@ import (
 
 // testConnectionDelete pins Connections.Delete: the connection's users go
 // with it, with their sessions, refresh tokens, grants, reset tickets and
-// password history; the tenant's default directory is cleared when it names
+// password history, auth codes and device codes; the tenant's default directory is cleared when it names
 // the connection; nothing of another connection or tenant is touched.
 func testConnectionDelete(t *testing.T, newStore Factory) {
 	ctx := context.Background()
@@ -42,10 +42,17 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 			tk.UserID, tk.Connection = uid, sp.conn
 			mustNoErr(t, s.PasswordResetTickets().Create(ctx, tk))
 			mustNoErr(t, s.PasswordHistories().Add(ctx, tenant, uid, []byte("hash-"+sp.id), 5))
+			ac := newAuthCode(tenant, "ac-"+sp.id)
+			ac.UserID = uid
+			mustNoErr(t, s.AuthCodes().Create(ctx, ac))
+			mustNoErr(t, s.DeviceCodes().Create(ctx, newDeviceCode(tenant, "dc-"+sp.id, "uc-"+sp.id)))
+			_, err = s.DeviceCodes().Decide(ctx, tenant, "dc-"+sp.id,
+				store.DeviceDecision{Status: store.DeviceCodeApproved, UserID: uid, GrantedScopes: []string{"openid"}})
+			mustNoErr(t, err)
 		}
 	}
 	// present reports which of the three users' rows still exist.
-	type left struct{ User, Session, Token, Grant, Ticket, History bool }
+	type left struct{ User, Session, Token, Grant, Ticket, History, AuthCode, DeviceCode bool }
 	probe := func(t *testing.T, s store.Store, tenant, id string) left {
 		t.Helper()
 		uid := "auth0|" + id
@@ -64,9 +71,13 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		h, err := s.PasswordHistories().List(ctx, tenant, uid)
 		mustNoErr(t, err)
 		l.History = len(h) > 0
+		_, err = s.AuthCodes().Get(ctx, tenant, "ac-"+id)
+		l.AuthCode = err == nil
+		_, err = s.DeviceCodes().Get(ctx, tenant, "dc-"+id)
+		l.DeviceCode = err == nil
 		return l
 	}
-	all := left{true, true, true, true, true, true}
+	all := left{true, true, true, true, true, true, true, true}
 
 	t.Run("Cascade", func(t *testing.T) {
 		s := open(t, newStore)

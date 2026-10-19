@@ -235,16 +235,34 @@ type Users interface {
 	// FindByLogin finds the user with an identity on connection whose
 	// Email or Username equals login.
 	FindByLogin(ctx context.Context, tenantID, connection, login string) (*User, error)
+	// FindByEmail returns the users whose Email equals email, on any
+	// connection, ordered by UserID. Callers pass the email lowercase.
+	FindByEmail(ctx context.Context, tenantID, email string) ([]*User, error)
 	// Update replaces the user. ErrNotFound if absent; ErrConflict under
-	// the same uniqueness rules as Create. Update never changes LastLogin
-	// or LoginsCount; only RecordLogin does.
+	// the same uniqueness rules as Create. Update never changes LastLogin,
+	// LastIP or LoginsCount (only RecordLogin does) and ignores the Version
+	// of u: it adds one to the stored Version when Blocked goes from false
+	// to true or Email changes, and otherwise leaves it.
 	Update(ctx context.Context, u *User) error
-	// RecordLogin atomically sets LastLogin and increments LoginsCount.
-	RecordLogin(ctx context.Context, tenantID, userID string, at time.Time) error
+	// RecordLogin atomically sets LastLogin and LastIP and increments
+	// LoginsCount.
+	RecordLogin(ctx context.Context, tenantID, userID string, at time.Time, ip string) error
 	// SetPasswordHash replaces the password hash of the user's identity on
-	// connection and sets UpdatedAt = at. It returns ErrNotFound if the user
-	// or the identity is absent.
+	// connection, sets UpdatedAt = at and adds one to Version. It returns
+	// ErrNotFound if the user or the identity is absent.
 	SetPasswordHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error
+	// SetPasswordHashIfEmpty is SetPasswordHash, but atomically does
+	// nothing and returns ErrConflict when the identity already has a
+	// non-empty hash. ErrNotFound if the user or the identity is absent.
+	SetPasswordHashIfEmpty(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error
+	// BumpVersion atomically adds one to Version and returns the new
+	// value, or ErrNotFound.
+	BumpVersion(ctx context.Context, tenantID, userID string) (int64, error)
+	// Delete removes the user and, in the same step, everything that
+	// names it: sessions, refresh tokens, user grants, password reset
+	// tickets, password history, auth codes and device codes. It returns
+	// ErrNotFound if the user is absent.
+	Delete(ctx context.Context, tenantID, userID string) error
 }
 
 // Sessions stores login sessions, keyed by (TenantID, ID). TokenHash is

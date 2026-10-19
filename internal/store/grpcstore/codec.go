@@ -556,6 +556,7 @@ func userToPB(u *store.User) (*storev1.User, error) {
 		GivenName: u.GivenName, FamilyName: u.FamilyName, Blocked: u.Blocked,
 		LastLogin: optTSToPB(u.LastLogin), LoginsCount: int64(u.LoginsCount),
 		CreatedAt: tsToPB(u.CreatedAt), UpdatedAt: tsToPB(u.UpdatedAt),
+		PhoneNumber: u.PhoneNumber, PhoneVerified: u.PhoneVerified, LastIp: u.LastIP, Version: u.Version,
 	}
 	if u.UserMetadata != nil {
 		b, err := json.Marshal(u.UserMetadata)
@@ -594,6 +595,7 @@ func userFromPB(pb *storev1.User) (*store.User, error) {
 		GivenName: pb.GivenName, FamilyName: pb.FamilyName, Blocked: pb.Blocked,
 		LastLogin: optTSFromPB(pb.LastLogin), LoginsCount: int(pb.LoginsCount),
 		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt),
+		PhoneNumber: pb.PhoneNumber, PhoneVerified: pb.PhoneVerified, LastIP: pb.LastIp, Version: pb.Version,
 	}
 	if pb.UserMetadataJson != nil {
 		var m map[string]any

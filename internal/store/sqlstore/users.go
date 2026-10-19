@@ -16,7 +16,8 @@ type users struct{ s *Store }
 func (s *Store) Users() store.Users { return users{s} }
 
 const userCols = `tenant_id, user_id, email, email_verified, username, name, nickname, picture, given_name, family_name,
- user_metadata, blocked, identities, last_login, logins_count, created_at, updated_at, app_metadata`
+ user_metadata, blocked, identities, last_login, logins_count, created_at, updated_at, app_metadata,
+ phone_number, phone_verified, last_ip, version`
 
 func (r users) Create(ctx context.Context, u *store.User) error {
 	args, err := userArgs(u)
@@ -24,7 +25,7 @@ func (r users) Create(ctx context.Context, u *store.User) error {
 		return err
 	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
 		return putLogins(ctx, tx, u, false)
@@ -118,13 +119,30 @@ func (r users) Update(ctx context.Context, u *store.User) error {
 		return err
 	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		// Login stats are owned by RecordLogin; Update never changes them.
-		// Relies on MySQL clientFoundRows so an unchanged row still counts.
+		// The stored email and blocked flag decide whether Version moves.
+		var oldEmail string
+		var oldBlocked bool
+		err := tx.queryRow(ctx, `SELECT email, blocked FROM users WHERE tenant_id=? AND user_id=?`+tx.d.forUpdate,
+			u.TenantID, u.UserID).Scan(&oldEmail, &oldBlocked)
+		if errors.Is(err, sql.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		bump := 0
+		if (u.Blocked && !oldBlocked) || u.Email != oldEmail {
+			bump = 1
+		}
+		// Login stats and Version are owned by the store; Update never
+		// replaces them. Relies on MySQL clientFoundRows so an unchanged row
+		// still counts.
 		res, err := tx.exec(ctx, `UPDATE users SET email=?, email_verified=?, username=?, name=?, nickname=?, picture=?,
- given_name=?, family_name=?, user_metadata=?, blocked=?, identities=?, created_at=?, updated_at=?, app_metadata=?
+ given_name=?, family_name=?, user_metadata=?, blocked=?, identities=?, created_at=?, updated_at=?, app_metadata=?,
+ phone_number=?, phone_verified=?, version=version+?
  WHERE tenant_id=? AND user_id=?`,
 			args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12],
-			args[15], args[16], args[17], u.TenantID, u.UserID)
+			args[15], args[16], args[17], args[18], args[19], bump, u.TenantID, u.UserID)
 		if err != nil {
 			return tx.conflict(err)
 		}
@@ -151,9 +169,12 @@ func (r users) FindByLogin(ctx context.Context, tenantID, connection, login stri
 	return r.Get(ctx, tenantID, userID)
 }
 
-func (r users) RecordLogin(ctx context.Context, tenantID, userID string, at time.Time) error {
-	res, err := r.s.write(ctx, nil, `UPDATE users SET last_login=?, logins_count=logins_count+1 WHERE tenant_id=? AND user_id=?`,
-		micros(at), tenantID, userID)
+func (r users) RecordLogin(ctx context.Context, tenantID, userID string, at time.Time, ip string) error {
+	if len(ip) > 255 { // the column is VARCHAR(255) on MySQL; a login must not fail over a hostile header
+		ip = ip[:255]
+	}
+	res, err := r.s.write(ctx, nil, `UPDATE users SET last_login=?, last_ip=?, logins_count=logins_count+1 WHERE tenant_id=? AND user_id=?`,
+		micros(at), ip, tenantID, userID)
 	if err != nil {
 		return err
 	}
@@ -161,6 +182,16 @@ func (r users) RecordLogin(ctx context.Context, tenantID, userID string, at time
 }
 
 func (r users) SetPasswordHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error {
+	return r.setHash(ctx, tenantID, userID, connection, hash, at, false)
+}
+
+func (r users) SetPasswordHashIfEmpty(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error {
+	return r.setHash(ctx, tenantID, userID, connection, hash, at, true)
+}
+
+// setHash reads the identities under a row lock, so the empty check and the
+// write are one step.
+func (r users) setHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time, onlyIfEmpty bool) error {
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		var raw string
 		err := tx.queryRow(ctx, `SELECT identities FROM users WHERE tenant_id=? AND user_id=?`+tx.d.forUpdate, tenantID, userID).Scan(&raw)
@@ -177,6 +208,9 @@ func (r users) SetPasswordHash(ctx context.Context, tenantID, userID, connection
 		found := false
 		for i := range ids {
 			if ids[i].Connection == connection {
+				if onlyIfEmpty && ids[i].PasswordHash != "" {
+					return store.ErrConflict
+				}
 				ids[i].PasswordHash = hash
 				found = true
 				break
@@ -189,9 +223,74 @@ func (r users) SetPasswordHash(ctx context.Context, tenantID, userID, connection
 		if err != nil {
 			return err
 		}
-		_, err = tx.exec(ctx, `UPDATE users SET identities=?, updated_at=? WHERE tenant_id=? AND user_id=?`,
+		_, err = tx.exec(ctx, `UPDATE users SET identities=?, updated_at=?, version=version+1 WHERE tenant_id=? AND user_id=?`,
 			enc, micros(at), tenantID, userID)
 		return err
+	})
+}
+
+func (r users) BumpVersion(ctx context.Context, tenantID, userID string) (int64, error) {
+	var v int64
+	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		res, err := tx.exec(ctx, `UPDATE users SET version=version+1 WHERE tenant_id=? AND user_id=?`, tenantID, userID)
+		if err != nil {
+			return err
+		}
+		if err := expectRow(res); err != nil {
+			return err
+		}
+		return tx.queryRow(ctx, `SELECT version FROM users WHERE tenant_id=? AND user_id=?`, tenantID, userID).Scan(&v)
+	})
+	return v, err
+}
+
+func (r users) FindByEmail(ctx context.Context, tenantID, email string) ([]*store.User, error) {
+	if email == "" {
+		return nil, nil
+	}
+	rows, err := r.s.query(ctx, `SELECT `+userCols+` FROM users WHERE tenant_id=? AND email=? ORDER BY user_id`, tenantID, email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*store.User
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}
+
+// userDependents are the tables whose rows name a user by (tenant_id,
+// user_id), in the order deleteUser clears them; users itself goes last.
+var userDependents = []string{"sessions", "refresh_tokens", "user_grants", "password_reset_tickets", "password_history",
+	"auth_codes", "device_codes", "user_logins", "users"}
+
+// deleteUser removes the user and every row that names it. Connections.Delete
+// uses it for each of the connection's users.
+func deleteUser(ctx context.Context, tx *Store, tenantID, userID string) error {
+	for _, table := range userDependents {
+		if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND user_id = ?`, tenantID, userID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r users) Delete(ctx context.Context, tenantID, userID string) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		var one int
+		err := tx.queryRow(ctx, `SELECT 1 FROM users WHERE tenant_id = ? AND user_id = ?`+tx.d.forUpdate, tenantID, userID).Scan(&one)
+		if errors.Is(err, sql.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		return deleteUser(ctx, tx, tenantID, userID)
 	})
 }
 
@@ -201,7 +300,8 @@ func scanUser(row scanner) (*store.User, error) {
 	var last sql.NullInt64
 	var created, updated int64
 	if err := row.Scan(&u.TenantID, &u.UserID, &u.Email, &u.EmailVerified, &u.Username, &u.Name, &u.Nickname, &u.Picture,
-		&u.GivenName, &u.FamilyName, &meta, &u.Blocked, &ids, &last, &u.LoginsCount, &created, &updated, &appMeta); err != nil {
+		&u.GivenName, &u.FamilyName, &meta, &u.Blocked, &ids, &last, &u.LoginsCount, &created, &updated, &appMeta,
+		&u.PhoneNumber, &u.PhoneVerified, &u.LastIP, &u.Version); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(appMeta, &u.AppMetadata); err != nil {
@@ -232,5 +332,6 @@ func userArgs(u *store.User) ([]any, error) {
 		return nil, err
 	}
 	return []any{u.TenantID, u.UserID, u.Email, u.EmailVerified, u.Username, u.Name, u.Nickname, u.Picture, u.GivenName,
-		u.FamilyName, meta, u.Blocked, ids, nullMicros(u.LastLogin), u.LoginsCount, micros(u.CreatedAt), micros(u.UpdatedAt), appMeta}, nil
+		u.FamilyName, meta, u.Blocked, ids, nullMicros(u.LastLogin), u.LoginsCount, micros(u.CreatedAt), micros(u.UpdatedAt), appMeta,
+		u.PhoneNumber, u.PhoneVerified, u.LastIP, int64(0)}, nil
 }

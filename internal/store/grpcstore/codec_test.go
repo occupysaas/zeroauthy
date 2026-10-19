@@ -319,7 +319,8 @@ func TestUserRoundTrip(t *testing.T) {
 		AppMetadata:  map[string]any{"plan": "gold", "n": float64(3), "roles": []any{"a"}},
 		Blocked:      true,
 		Identities:   []store.Identity{{Connection: "db", Provider: "auth0", UserID: "u1", PasswordHash: "$argon2id$..."}},
-		LastLogin:    ptr(nanoTime), LoginsCount: 7, CreatedAt: nanoTime, UpdatedAt: nanoTime.Add(time.Second),
+		LastLogin:    ptr(nanoTime), LoginsCount: 7, CreatedAt: nanoTime,
+		PhoneNumber: "+14155550100", PhoneVerified: true, LastIP: "2001:db8::1", Version: 5, UpdatedAt: nanoTime.Add(time.Second),
 	}, userToPB, userFromPB)
 	roundTrip(t, "empty", &store.User{UserMetadata: map[string]any{}, AppMetadata: map[string]any{}, Identities: []store.Identity{}}, userToPB, userFromPB)
 	roundTrip(t, "zero", &store.User{}, userToPB, userFromPB)

@@ -98,30 +98,9 @@ func (r connections) Delete(_ context.Context, tenantID, id string) error {
 	for uk, u := range r.s.users {
 		if uk.tenant == tenantID && onConnection(u, c.Name) {
 			gone[uk.id] = true
-			delete(r.s.users, uk)
-			delete(r.s.passwordHistories, uk)
 		}
 	}
-	for sk, s := range r.s.sessions {
-		if sk.tenant == tenantID && gone[s.UserID] {
-			delete(r.s.sessions, sk)
-		}
-	}
-	for tk, t := range r.s.refreshTokens {
-		if tk.tenant == tenantID && gone[t.UserID] {
-			delete(r.s.refreshTokens, tk)
-		}
-	}
-	for gk, g := range r.s.userGrants {
-		if gk.tenant == tenantID && gone[g.UserID] {
-			delete(r.s.userGrants, gk)
-		}
-	}
-	for tk, t := range r.s.resetTickets {
-		if tk.tenant == tenantID && gone[t.UserID] {
-			delete(r.s.resetTickets, tk)
-		}
-	}
+	r.s.deleteUsers(tenantID, gone)
 	return nil
 }
 

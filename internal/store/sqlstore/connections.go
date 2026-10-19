@@ -125,10 +125,8 @@ func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 			return err
 		}
 		for _, uid := range userIDs {
-			for _, table := range []string{"sessions", "refresh_tokens", "user_grants", "password_reset_tickets", "password_history", "user_logins", "users"} {
-				if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND user_id = ?`, tenantID, uid); err != nil {
-					return err
-				}
+			if err := deleteUser(ctx, tx, tenantID, uid); err != nil {
+				return err
 			}
 		}
 		if _, err := tx.exec(ctx, `UPDATE tenants SET default_directory = '' WHERE id = ? AND default_directory = ?`, tenantID, name); err != nil {

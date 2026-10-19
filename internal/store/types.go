@@ -540,10 +540,22 @@ type User struct {
 	AppMetadata map[string]any
 	Blocked     bool
 	Identities  []Identity
-	LastLogin   *time.Time
+	// PhoneNumber and PhoneVerified are profile fields, set through Update.
+	PhoneNumber   string
+	PhoneVerified bool
+	LastLogin     *time.Time
+	// LastIP is the client IP of the last login. Only RecordLogin sets it;
+	// Update keeps the stored value.
+	LastIP      string
 	LoginsCount int
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	// Version is store-maintained and starts at 0. Callers never set it:
+	// Create stores 0 and Update keeps the stored value, except that Update
+	// adds one when Blocked goes from false to true or Email changes.
+	// SetPasswordHash, SetPasswordHashIfEmpty and BumpVersion add one too.
+	// Tokens issued at one version stop being accepted once it moves on.
+	Version   int64
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // LoginSession is a browser's authenticated session with a tenant.

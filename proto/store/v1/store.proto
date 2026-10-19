@@ -119,6 +119,10 @@ service StoreService {
   rpc UsersUpdate(UserWrite) returns (Result);
   rpc UsersRecordLogin(UsersRecordLoginRequest) returns (Result);
   rpc UsersSetPasswordHash(UsersSetPasswordHashRequest) returns (Result);
+  rpc UsersFindByEmail(UsersFindByEmailRequest) returns (UserListResult);
+  rpc UsersSetPasswordHashIfEmpty(UsersSetPasswordHashRequest) returns (Result);
+  rpc UsersBumpVersion(ScopedKey) returns (VersionResult);
+  rpc UsersDelete(ScopedKey) returns (Result);
 
   rpc SessionsCreate(SessionWrite) returns (Result);
   rpc SessionsGetByTokenHash(ScopedKey) returns (SessionResult);
@@ -370,6 +374,8 @@ message User {
   int64 logins_count = 15;
   google.protobuf.Timestamp created_at = 16; google.protobuf.Timestamp updated_at = 17;
   optional bytes app_metadata_json = 18; // absent = nil map
+  string phone_number = 19; bool phone_verified = 20; string last_ip = 21;
+  int64 version = 22;
 }
 
 message LoginSession {
@@ -493,7 +499,10 @@ message PasswordHistoryList { Error error = 1; repeated bytes values = 2; } // n
 message UserWrite { string tx_id = 1; User value = 2; }
 message UserResult { Error error = 1; User value = 2; }
 message UsersFindByLoginRequest { string tx_id = 1; string tenant_id = 2; string connection = 3; string login = 4; }
-message UsersRecordLoginRequest { string tx_id = 1; string tenant_id = 2; string user_id = 3; google.protobuf.Timestamp at = 4; }
+message UsersRecordLoginRequest { string tx_id = 1; string tenant_id = 2; string user_id = 3; google.protobuf.Timestamp at = 4; string ip = 5; }
+message UsersFindByEmailRequest { string tx_id = 1; string tenant_id = 2; string email = 3; }
+message UserListResult { Error error = 1; repeated User values = 2; }
+message VersionResult { Error error = 1; int64 value = 2; }
 message UsersSetPasswordHashRequest {
   string tx_id = 1; string tenant_id = 2; string user_id = 3; string connection = 4;
   string hash = 5; google.protobuf.Timestamp at = 6;
