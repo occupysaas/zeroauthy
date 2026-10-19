@@ -15,7 +15,9 @@ import Callback from './pages/Callback.vue'
 import Home from './pages/Home.vue'
 import NotFound from './pages/NotFound.vue'
 import OperatorList from './pages/operators/List.vue'
+import { plannedPages } from './pages/planned'
 import Root from './pages/Root.vue'
+import { isPlanned, sections } from './layout/sections'
 import { useTenantsStore, type TenantsStore } from './stores/tenants'
 
 declare module 'vue-router' {
@@ -23,6 +25,8 @@ declare module 'vue-router' {
     // public routes need no sign-in; bare ones show no shell.
     public?: boolean
     bare?: boolean
+    // the section key of a planned route
+    section?: string
   }
 }
 
@@ -40,6 +44,12 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/connections/new', name: 'connection-new', component: ConnectionCreate },
   { path: '/t/:tenant/connections/:id', name: 'connection', component: ConnectionDetail },
   { path: '/t/:tenant/operators', name: 'operators', component: OperatorList },
+  ...sections.filter(isPlanned).map((s) => ({
+    path: '/t/:tenant/' + s.path,
+    name: s.key,
+    component: plannedPages[s.key]!,
+    meta: { section: s.key },
+  })),
   { path: '/:rest(.*)*', name: 'not-found', component: NotFound },
 ]
 

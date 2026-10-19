@@ -65,3 +65,27 @@ describe('router guards', () => {
     expect(r.currentRoute.value.name).toBe('not-found')
   })
 })
+
+describe('planned routes', () => {
+  it('signs an unauthenticated operator in, returning to the planned page', async () => {
+    const f = fakes(false)
+    await router(f).push('/t/acme/users')
+    expect(f.auth.login).toHaveBeenCalledWith('/t/acme/users', true)
+  })
+
+  it('resolves a planned section by name when signed in', async () => {
+    const f = fakes(true)
+    f.tenants.loaded = true
+    const r = router(f)
+    await r.push('/t/acme/users')
+    expect(r.currentRoute.value.name).toBe('users')
+  })
+
+  it('treats a path below a planned section as not found', async () => {
+    const f = fakes(true)
+    f.tenants.loaded = true
+    const r = router(f)
+    await r.push('/t/acme/users/x')
+    expect(r.currentRoute.value.name).toBe('not-found')
+  })
+})

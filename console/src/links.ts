@@ -2,6 +2,8 @@
 // product name and where its documentation and source live.
 
 export const product = 'zeroauthy'
+// The brand is drawn in two colours; these are its two parts.
+export const productParts = ['zero', 'authy'] as const
 export const docsURL = 'https://github.com/zeroauthy/zeroauthy/tree/main/docs'
 export const sourceURL = 'https://github.com/zeroauthy/zeroauthy'
 
