@@ -7,7 +7,7 @@ import { docsURL, productParts, sourceURL } from '../links'
 import Tag from '../ui/Tag.vue'
 import AccountMenu from './AccountMenu.vue'
 import LanguageMenu from './LanguageMenu.vue'
-import { isPlanned, visibleSections, type Section } from './sections'
+import { isPlanned, plannedWhenKey, visibleSections, type Section } from './sections'
 import TenantSwitcher from './TenantSwitcher.vue'
 
 const { t } = useI18n()
@@ -30,7 +30,7 @@ const groups = computed(() => {
 })
 
 function tip(s: Section): string | undefined {
-  return isPlanned(s) ? `${s.status.planned}: ${s.status.api.join(', ')}` : undefined
+  return isPlanned(s) ? t('plannedTip', { when: t(plannedWhenKey(s.status)), apis: s.status.api.join(', ') }) : undefined
 }
 
 const open = ref(false)

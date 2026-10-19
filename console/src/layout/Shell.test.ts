@@ -46,8 +46,24 @@ describe('Shell sidebar', () => {
     const { wrapper } = await mountShell('/t/acme/')
     const link = (name: string) => wrapper.findAll(`${nav} a`).find((a) => a.get('span').text() === name)!
     expect(link('Users').text()).toContain('Planned')
-    expect(link('Users').attributes('title')).toContain('/api/v2/users')
+    expect(link('Users').attributes('title')).toMatch(/^Slice 4: \/api\/v2\/users/)
+    expect(link('Roles').attributes('title')).toBe('Later: /api/v2/roles')
     expect(link('Applications').text()).not.toContain('Planned')
+    wrapper.unmount()
+  })
+})
+
+describe('Shell tenant switching', () => {
+  it('shows Operators only while on the system tenant, without a remount', async () => {
+    const { wrapper, router } = await mountShell('/t/acme/')
+    const labels = () => wrapper.findAll(`${nav} a`).map((a) => a.get('span').text())
+    expect(labels()).not.toContain('Operators')
+    await router.push('/t/system/')
+    await flushPromises()
+    expect(labels()).toContain('Operators')
+    await router.push('/t/acme/')
+    await flushPromises()
+    expect(labels()).not.toContain('Operators')
     wrapper.unmount()
   })
 })

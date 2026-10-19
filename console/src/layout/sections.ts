@@ -21,7 +21,7 @@ export const sections: Section[] = [
   { key: 'applications', label: 'nav.applications', group: 'navGroup.applications', path: 'applications', status: 'live' },
   { key: 'apis', label: 'nav.apis', group: 'navGroup.applications', path: 'apis', status: 'live' },
   { key: 'connections', label: 'nav.connections', group: 'navGroup.authentication', path: 'connections', status: 'live' },
-  { key: 'social', label: 'nav.social', group: 'navGroup.authentication', path: 'social', status: { planned: 'slice 6', api: ['/api/v2/connections'] } },
+  { key: 'social', label: 'nav.social', group: 'navGroup.authentication', path: 'social', status: { planned: 'slice 6', api: ['/api/v2/connections (social strategies)'] } },
   {
     key: 'users',
     label: 'nav.users',
@@ -31,8 +31,8 @@ export const sections: Section[] = [
   },
   { key: 'roles', label: 'nav.roles', group: 'navGroup.userManagement', path: 'roles', status: { planned: 'later', api: ['/api/v2/roles'] } },
   { key: 'organizations', label: 'nav.organizations', group: 'navGroup.userManagement', path: 'organizations', status: { planned: 'later', api: ['/api/v2/organizations'] } },
-  { key: 'attack-protection', label: 'nav.attackProtection', group: 'navGroup.security', path: 'attack-protection', status: { planned: 'slice 5', api: ['/api/v2/attack-protection'] } },
-  { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: { planned: 'later', api: ['/api/v2/guardian'] } },
+  { key: 'attack-protection', label: 'nav.attackProtection', group: 'navGroup.security', path: 'attack-protection', status: { planned: 'slice 5', api: ['/api/v2/attack-protection/*'] } },
+  { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: { planned: 'later', api: ['/api/v2/guardian/*'] } },
   { key: 'actions', label: 'nav.actions', group: 'navGroup.actions', path: 'actions', status: { planned: 'later', api: ['/api/v2/actions'] } },
   { key: 'branding', label: 'nav.branding', group: 'navGroup.branding', path: 'branding', status: { planned: 'later', api: ['/api/v2/branding', '/api/v2/prompts'] } },
   { key: 'emails', label: 'nav.emails', group: 'navGroup.branding', path: 'emails', status: { planned: 'later', api: ['/api/v2/email-templates', '/api/v2/emails/provider'] } },
@@ -49,4 +49,9 @@ export function isPlanned(s: Section): s is Section & { status: Planned } {
 /** The sections to list for a tenant; system-only ones need the reserved tenant. */
 export function visibleSections(reserved: boolean): Section[] {
   return sections.filter((s) => reserved || !s.systemOnly)
+}
+
+/** The catalog key naming when a planned section ships, e.g. 'plannedWhen.slice4'. */
+export function plannedWhenKey(p: Planned): string {
+  return 'plannedWhen.' + p.planned.replace(' ', '')
 }

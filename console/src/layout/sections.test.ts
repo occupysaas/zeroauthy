@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import en from '../locales/en'
 import { routes } from '../router'
-import { isPlanned, sections, visibleSections } from './sections'
+import { isPlanned, plannedWhenKey, sections, visibleSections } from './sections'
 
 function lookup(key: string): unknown {
   return key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], en)
@@ -36,6 +36,10 @@ describe('sections', () => {
       expect(typeof lookup(s.label), s.label).toBe('string')
       if (s.group) expect(typeof lookup(s.group), s.group).toBe('string')
     }
+  })
+
+  it('has a catalog string for every planned-when value', () => {
+    for (const s of sections.filter(isPlanned)) expect(typeof lookup(plannedWhenKey(s.status)), s.key).toBe('string')
   })
 
   it('names the APIs of every planned section', () => {

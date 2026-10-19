@@ -44,6 +44,8 @@ const en = {
   appCount: '{count} applications',
   planned: 'Planned',
   menu: 'Menu',
+  plannedWhen: { slice4: 'Slice 4', slice5: 'Slice 5', slice6: 'Slice 6', later: 'Later' },
+  plannedTip: '{when}: {apis}',
   nav: {
     home: 'Home',
     applications: 'Applications',
