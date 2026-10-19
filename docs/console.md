@@ -151,7 +151,8 @@ Applications created in the console are never touched by the seed.
 - Language: English only for now. The strings live in the vue-i18n catalog
   `console/src/locales/en.ts`; the globe menu lists the available languages
   and keeps the choice in the browser, so a second language is a new
-  catalog file (the parity test checks it has every key).
+  catalog file (`console/src/locales/parity.test.ts` finds every catalog and
+  checks it has exactly the English keys).
 - Font: Glacial Indifference (Regular and Bold) by Alfredo Marco Pradil,
   SIL Open Font License 1.1, converted to WOFF2 and bundled; the license
   text ships as `assets/OFL.txt` next to the fonts and is listed in `NOTICE`.

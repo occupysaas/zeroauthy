@@ -282,6 +282,8 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 - **Brand contrast:** the brand red on the black header is about 3.6:1 in light mode, which is AA only as large bold text.
 - **Email templates picker:** `role=radiogroup` on buttons without roving tabindex or arrow keys.
 - **Disabled radios (Multi-factor policy):** the disabled radios are very faint, and the fieldset legend sits on the border.
+- **Disabled text contrast:** `--disabled-text` `#5f5f5f` on `--disabled` `#d6d6d6` is about 4.4:1; accepted because WCAG exempts inactive controls.
+- **Planned tooltip case:** the `plannedWhen` catalog values are lowercase, so the sidebar tooltip reads "slice 4: ..." where the banner reads "Planned · slice 4".
 - **Mobile breakpoint:** the drawer starts below 768px (Tailwind `md`), not the spec's 720px.
 - **Deferred minors:** the Escape handler that closes the drawer also fires when a menu popup handled Escape; the theme radio and `savedLocale` paths lack tests; `typeLabel` and `strategyLabel` are duplicated in the List and Detail pages; `activeI18n()` is a module singleton, so the store locale and `i18n.global.locale` are two sources of truth; `main.ts` applies the theme twice (also in the preferences store); the CSS URL check in `build.test.ts` matches only `url(http...)`.
 - **E2E:** the console specs use the section links by text (`Database`); the sidebar now has more items, and the E2E does not yet cover the planned pages or the language menu.

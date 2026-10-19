@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig, type Plugin } from 'vitest/config'
@@ -12,7 +13,7 @@ const fontLicense = (): Plugin => ({
     this.emitFile({
       type: 'asset',
       fileName: 'assets/OFL.txt',
-      source: readFileSync('src/assets/fonts/OFL.txt', 'utf8').replace(/\r\n/g, '\n'),
+      source: readFileSync(fileURLToPath(new URL('./src/assets/fonts/OFL.txt', import.meta.url)), 'utf8').replace(/\r\n/g, '\n'),
     })
   },
 })
