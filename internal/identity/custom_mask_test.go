@@ -62,8 +62,9 @@ func TestScriptErrorLogIsMasked(t *testing.T) {
 	}})
 	buf := withConfig(t, db, conn, map[string]string{"k": secret})
 	_, err := db.Login(context.Background(), conn, "a@b.test", "pw")
-	if err == nil || !strings.Contains(err.Error(), secret) {
-		t.Fatalf("returned error must stay unmodified: %v", err)
+	var se *customdb.ScriptError
+	if err == nil || strings.Contains(err.Error(), secret) || !errors.Is(err, ErrScript) || !errors.As(err, &se) || se.Kind != customdb.KindError {
+		t.Fatalf("returned error must be masked and keep its kind: %v", err)
 	}
 	if out := buf.String(); strings.Contains(out, secret) || !strings.Contains(out, customdb.Mask) {
 		t.Fatalf("log = %s", out)

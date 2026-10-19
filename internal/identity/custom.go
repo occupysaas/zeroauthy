@@ -72,6 +72,11 @@ func (d *Database) scriptErr(ctx context.Context, conn *store.Connection, script
 			kind = "bad_profile"
 		}
 	}
+	// The returned error is logged by callers, so it carries the masked
+	// message too (D-0042); Kind and Code are kept.
+	if d.Scripts != nil {
+		err = d.Scripts.Redactor(conn).RedactError(err)
+	}
 	d.log().ErrorContext(ctx, "custom database script failed",
 		"tenant", conn.TenantID, "connection", conn.Name, "script", script, "kind", kind, "message", d.logText(conn, msg))
 	if unavailable {
@@ -81,7 +86,8 @@ func (d *Database) scriptErr(ctx context.Context, conn *store.Connection, script
 }
 
 // logText masks the connection's configuration values in a script's message
-// before it is logged. What is returned to callers is not masked.
+// before it is logged. The message of an UnauthorizedError that is returned
+// to the user stays as the script wrote it.
 func (d *Database) logText(conn *store.Connection, msg string) string {
 	if d.Scripts == nil {
 		return msg

@@ -72,6 +72,7 @@ tenants:
         enabled_clients: [legacy]
         enabledDatabaseCustomization: true
         customScripts: {login: "x", get_user: "x", create: "x", change_password: "x"}
+        configuration: {api_key: "cfg-secret-9f3a"}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, username: alice1, password: "alice password 1"}
       - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
@@ -131,7 +132,7 @@ func newEnv(t *testing.T) *env {
 	h := &Handlers{
 		Store: st, Sessions: sm, Authz: az, Log: log,
 		Database: &identity.Database{Store: st, Now: fixedNow, Log: log,
-			Scripts: &customdb.Client{Exec: scripts}},
+			Scripts: &customdb.Client{Exec: scripts, Wrapper: wrapper}},
 		UserThrottle: identity.NewThrottle(3, 15*time.Minute, 15*time.Minute),
 		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),
 		Now:          fixedNow,
@@ -857,5 +858,24 @@ func TestHostedLoginPicksFirstConnectionByByteOrder(t *testing.T) {
 	c, err = e.h.connection(ctx, tn.ID, &store.AuthTransaction{ClientID: "spa", Params: map[string]string{"connection": "another-db"}})
 	if err != nil || c.Name != "another-db" {
 		t.Fatalf("requested connection = %v, %v", c, err)
+	}
+}
+
+// The server log never carries a configuration value, including through the
+// error the login page logs (D-0042).
+func TestLegacyLoginLogsMaskScriptErrors(t *testing.T) {
+	e := newEnv(t)
+	e.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+		return nil, &customdb.ScriptError{Kind: customdb.KindError, Message: "db refused key cfg-secret-9f3a"}
+	}
+	b := e.browser("acme.example.test")
+	state, csrf := b.legacyBegin(t)
+	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"pw"}})
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("login = %d %s", rec.Code, rec.Body)
+	}
+	out := e.logs.String()
+	if !strings.Contains(out, "login page") || strings.Contains(out, "cfg-secret-9f3a") {
+		t.Fatalf("log = %s", out)
 	}
 }

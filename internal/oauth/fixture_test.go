@@ -83,6 +83,7 @@ tenants:
         enabled_clients: [ropg]
         enabledDatabaseCustomization: true
         customScripts: {login: "x"}
+        configuration: {api_key: "cfg-secret-9f3a"}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, password: "alice password 1", email_verified: true, name: Alice}
       - {connection: Username-Password-Authentication, email: carol@acme.test, password: "carol password 1", blocked: true}
@@ -139,7 +140,7 @@ func newFixture(t *testing.T) *fixture {
 	log := slog.New(slog.DiscardHandler)
 	return &fixture{st: st, keys: km, scripts: scripts, wrapper: wrapper, h: &Handlers{
 		Store: st, Now: fixedNow, Wrapper: wrapper, Minter: &Minter{Keys: km, Now: fixedNow}, Log: log,
-		Database:     &identity.Database{Store: st, Now: fixedNow, Log: log, Scripts: &customdb.Client{Exec: scripts}},
+		Database:     &identity.Database{Store: st, Now: fixedNow, Log: log, Scripts: &customdb.Client{Exec: scripts, Wrapper: wrapper}},
 		UserThrottle: identity.NewThrottle(3, 15*time.Minute, 15*time.Minute),
 		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),
 	}}

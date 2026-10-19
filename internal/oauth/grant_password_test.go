@@ -448,3 +448,21 @@ func TestPasswordGrantThrottleOffWithoutBruteForceProtection(t *testing.T) {
 		t.Fatalf("after 6 failures with protection off = %d %v", rec.Code, body)
 	}
 }
+
+// The server log never carries a configuration value, including through the
+// error the password grant logs (D-0042).
+func TestPasswordRealmGrantLogMasksScriptErrors(t *testing.T) {
+	var logs strings.Builder
+	f := newFixture(t)
+	f.h.Log = slog.New(slog.NewTextHandler(&logs, nil))
+	f.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+		return nil, &customdb.ScriptError{Kind: customdb.KindError, Message: "db refused key cfg-secret-9f3a"}
+	}
+	rec, _ := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "pw")})
+	if rec.Code != 500 {
+		t.Fatalf("code = %d", rec.Code)
+	}
+	if out := logs.String(); !strings.Contains(out, "password grant") || strings.Contains(out, "cfg-secret-9f3a") {
+		t.Fatalf("log = %s", out)
+	}
+}
