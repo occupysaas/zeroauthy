@@ -27,7 +27,7 @@ const { theme } = storeToRefs(prefs)
 
 <template>
   <DropdownMenuRoot>
-    <DropdownMenuTrigger class="trigger" :aria-label="t('account')">
+    <DropdownMenuTrigger class="cursor-pointer rounded border border-transparent bg-header-chip px-3 py-1 font-sans text-header-text hover:border-header-text" :aria-label="t('account')">
       {{ session.email || t('account') }} <span aria-hidden="true">▾</span>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
@@ -45,18 +45,3 @@ const { theme } = storeToRefs(prefs)
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>
-
-<style scoped>
-.trigger {
-  font: inherit;
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.3rem 0.7rem;
-  cursor: pointer;
-}
-.menu-item[data-state='checked']::before {
-  content: '✓';
-}
-</style>

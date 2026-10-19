@@ -10,6 +10,7 @@ const en = {
   close: 'Close',
   copy: 'Copy',
   copied: 'Copied',
+  copyDone: '{what}: Copied',
   save: 'Save changes',
   saving: 'Saving…',
   saved: 'Saved',

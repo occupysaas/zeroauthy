@@ -5,30 +5,10 @@ defineProps<{ id: string; label: string; hint?: string; error?: string }>()
 </script>
 
 <template>
-  <div class="field">
-    <label :for="id">{{ label }}</label>
+  <div class="grid gap-1">
+    <label :for="id" class="font-bold">{{ label }}</label>
     <slot />
-    <p v-if="hint" :id="id + '-hint'" class="hint">{{ hint }}</p>
-    <p v-if="error" :id="id + '-error'" class="error" role="alert">{{ error }}</p>
+    <p v-if="hint" :id="id + '-hint'" class="m-0 text-sm text-muted">{{ hint }}</p>
+    <p v-if="error" :id="id + '-error'" class="m-0 text-sm text-danger" role="alert">{{ error }}</p>
   </div>
 </template>
-
-<style scoped>
-.field {
-  display: grid;
-  gap: 0.3rem;
-}
-label {
-  font-weight: 600;
-}
-.hint {
-  margin: 0;
-  color: var(--text-2);
-  font-size: 0.875rem;
-}
-.error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 0.875rem;
-}
-</style>

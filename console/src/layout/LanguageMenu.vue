@@ -20,7 +20,7 @@ const { locale } = storeToRefs(prefs)
 
 <template>
   <DropdownMenuRoot>
-    <DropdownMenuTrigger class="trigger" :aria-label="t('language')">
+    <DropdownMenuTrigger class="inline-flex cursor-pointer items-center rounded border border-transparent bg-header-chip px-2 py-1 text-header-text hover:border-header-text" :aria-label="t('language')">
       <GlobeIcon aria-hidden="true" />
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
@@ -32,19 +32,3 @@ const { locale } = storeToRefs(prefs)
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>
-
-<style scoped>
-.trigger {
-  display: inline-flex;
-  align-items: center;
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.3rem 0.5rem;
-  cursor: pointer;
-}
-.menu-item[data-state='checked']::before {
-  content: '✓';
-}
-</style>

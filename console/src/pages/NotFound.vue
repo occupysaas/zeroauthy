@@ -6,6 +6,6 @@ const { t } = useI18n()
 
 <template>
   <h1>{{ t('notFoundTitle') }}</h1>
-  <p>{{ t('notFoundBody') }}</p>
+  <p class="my-3">{{ t('notFoundBody') }}</p>
   <RouterLink to="/">{{ t('backHome') }}</RouterLink>
 </template>

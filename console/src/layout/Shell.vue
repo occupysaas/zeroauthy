@@ -28,138 +28,41 @@ const sections = computed(() =>
 </script>
 
 <template>
-  <a class="skip" href="#main">{{ t('skipToContent') }}</a>
-  <header class="topbar">
-    <RouterLink class="brand" to="/">{{ product }}</RouterLink>
+  <a class="absolute -left-[999px] z-20 bg-surface px-3 py-1.5 focus:top-2 focus:left-4" href="#main">{{ t('skipToContent') }}</a>
+  <header class="flex items-center gap-4 bg-header px-5 py-2.5 text-header-text">
+    <RouterLink class="text-lg font-bold tracking-widest text-header-text uppercase no-underline hover:text-header-text" to="/">{{ product.slice(0, 4) }}<span class="text-accent">{{ product.slice(4) }}</span></RouterLink>
     <TenantSwitcher />
-    <span class="spacer" />
-    <nav class="links" :aria-label="t('navProject')">
-      <a :href="docsURL" target="_blank" rel="noopener noreferrer">{{ t('docs') }}</a>
-      <a :href="sourceURL" target="_blank" rel="noopener noreferrer">{{ t('source') }}</a>
+    <span class="flex-1" />
+    <nav class="flex gap-4" :aria-label="t('navProject')">
+      <a class="text-header-text no-underline hover:underline" :href="docsURL" target="_blank" rel="noopener noreferrer">{{ t('docs') }}</a>
+      <a class="text-header-text no-underline hover:underline" :href="sourceURL" target="_blank" rel="noopener noreferrer">{{ t('source') }}</a>
     </nav>
     <LanguageMenu />
     <AccountMenu />
   </header>
-  <div class="frame">
-    <nav v-if="tenant" class="sidebar" :aria-label="t('navSections')">
-      <ul>
+  <div class="flex min-h-[calc(100vh-3.5rem)] max-md:flex-col">
+    <nav v-if="tenant" class="w-52 shrink-0 border-r border-hair px-2 py-4 max-md:w-auto max-md:border-r-0 max-md:border-b" :aria-label="t('navSections')">
+      <ul class="m-0 grid list-none gap-0.5 p-0 max-md:flex">
         <li v-for="s in sections" :key="s.name">
-          <RouterLink :to="{ name: s.name, params: { tenant: tenant.name } }" active-class="" exact-active-class="active">
+          <RouterLink
+            class="block rounded px-3 py-2 font-bold text-text no-underline hover:bg-active aria-[current=page]:bg-active"
+            :to="{ name: s.name, params: { tenant: tenant.name } }"
+            active-class=""
+            exact-active-class="active"
+          >
             {{ s.label }}
           </RouterLink>
         </li>
       </ul>
-      <p class="planned-head">{{ t('navPlanned') }}</p>
-      <ul class="planned">
+      <p class="mt-4 mb-1 text-xs uppercase opacity-60">{{ t('navPlanned') }}</p>
+      <ul class="m-0 list-none p-0">
         <li v-for="p in planned" :key="p.key">
-          <span aria-disabled="true" :title="`${p.api} (${p.when})`">{{ p.label }} <small>{{ p.when }}</small></span>
+          <span class="block cursor-not-allowed py-1 opacity-50" aria-disabled="true" :title="`${p.api} (${p.when})`">{{ p.label }} <small>{{ p.when }}</small></span>
         </li>
       </ul>
     </nav>
-    <main id="main" tabindex="-1">
+    <main id="main" tabindex="-1" class="max-w-6xl min-w-0 flex-1 px-8 py-6 focus:outline-none max-md:p-4">
       <RouterView />
     </main>
   </div>
 </template>
-
-<style scoped>
-.planned-head {
-  margin: 1rem 0 0.25rem;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  opacity: 0.6;
-}
-.planned span {
-  display: block;
-  padding: 0.25rem 0;
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.skip {
-  position: absolute;
-  left: -999px;
-}
-.skip:focus {
-  left: 1rem;
-  top: 0.5rem;
-  z-index: 20;
-  background: var(--surface);
-  padding: 0.4rem 0.8rem;
-}
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.6rem 1.25rem;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-.brand {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--text);
-  text-decoration: none;
-  letter-spacing: -0.01em;
-}
-.spacer {
-  flex: 1;
-}
-.links {
-  display: flex;
-  gap: 1rem;
-}
-.frame {
-  display: flex;
-  min-height: calc(100vh - 3.5rem);
-}
-.sidebar {
-  width: 13rem;
-  flex-shrink: 0;
-  border-right: 1px solid var(--border);
-  padding: 1rem 0.5rem;
-}
-.sidebar ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.15rem;
-}
-.sidebar a {
-  display: block;
-  padding: 0.45rem 0.75rem;
-  border-radius: 6px;
-  color: var(--text);
-  text-decoration: none;
-}
-.sidebar a.active,
-.sidebar a.router-link-active {
-  background: var(--accent-soft);
-  font-weight: 600;
-}
-main {
-  flex: 1;
-  min-width: 0;
-  padding: 1.5rem 2rem;
-  max-width: 72rem;
-}
-main:focus {
-  outline: none;
-}
-@media (max-width: 720px) {
-  .frame {
-    flex-direction: column;
-  }
-  .sidebar {
-    width: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .sidebar ul {
-    display: flex;
-  }
-  main {
-    padding: 1rem;
-  }
-}
-</style>

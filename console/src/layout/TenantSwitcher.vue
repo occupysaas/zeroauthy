@@ -32,8 +32,8 @@ function switchTo(name: string) {
 
 <template>
   <DropdownMenuRoot>
-    <DropdownMenuTrigger class="trigger" :aria-label="t('switchTenant')">
-      <span class="muted">{{ t('tenantLabel') }}</span>
+    <DropdownMenuTrigger class="inline-flex items-center gap-1.5 cursor-pointer rounded border border-transparent bg-header-chip px-3 py-1 font-sans text-header-text hover:border-header-text" :aria-label="t('switchTenant')">
+      <span class="opacity-70">{{ t('tenantLabel') }}</span>
       <strong>{{ tenant?.name ?? '—' }}</strong>
       <span aria-hidden="true">▾</span>
     </DropdownMenuTrigger>
@@ -45,7 +45,7 @@ function switchTo(name: string) {
         <DropdownMenuItem
           v-for="item in tenants.list"
           :key="item.name"
-          class="menu-item"
+          class="menu-item data-[current]:font-bold"
           :data-current="item.name === tenant?.name || undefined"
           @select="switchTo(item.name)"
         >
@@ -60,21 +60,3 @@ function switchTo(name: string) {
   </DropdownMenuRoot>
   <CreateTenantDialog v-model:open="creating" />
 </template>
-
-<style scoped>
-.trigger {
-  font: inherit;
-  display: inline-flex;
-  gap: 0.4rem;
-  align-items: center;
-  background: var(--surface-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.3rem 0.7rem;
-  cursor: pointer;
-}
-[data-current] {
-  font-weight: 600;
-}
-</style>

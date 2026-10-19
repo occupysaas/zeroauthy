@@ -38,25 +38,25 @@ watch(
     <Banner v-if="tenant.seeded" kind="warn">{{ t('seededBanner') }}</Banner>
     <section class="card stack" aria-labelledby="home-tenant">
       <h2 id="home-tenant" class="visually-hidden">{{ t('tenant') }}</h2>
-      <dl class="facts">
-        <dt>{{ t('domain') }}</dt>
-        <dd class="row">
+      <dl class="m-0 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 max-md:grid-cols-1">
+        <dt class="font-bold text-muted">{{ t('domain') }}</dt>
+        <dd class="row m-0">
           <code>{{ tenant.host }}</code>
           <CopyButton :value="tenant.host" :label="t('domain')" />
         </dd>
         <template v-if="tenant.domains.length">
-          <dt>{{ t('domains') }}</dt>
-          <dd>
-            <code v-for="d in tenant.domains" :key="d" class="domain">{{ d }}</code>
+          <dt class="font-bold text-muted">{{ t('domains') }}</dt>
+          <dd class="m-0">
+            <code v-for="d in tenant.domains" :key="d" class="block">{{ d }}</code>
           </dd>
         </template>
-        <dt>{{ t('discoveryURL') }}</dt>
-        <dd class="row">
+        <dt class="font-bold text-muted">{{ t('discoveryURL') }}</dt>
+        <dd class="row m-0">
           <a :href="discovery" target="_blank" rel="noopener noreferrer" class="mono">{{ discovery }}</a>
           <CopyButton :value="discovery" :label="t('discoveryURL')" />
         </dd>
-        <dt>{{ t('managementAPI') }}</dt>
-        <dd class="row">
+        <dt class="font-bold text-muted">{{ t('managementAPI') }}</dt>
+        <dd class="row m-0">
           <code>{{ tenant.management_api_identifier }}</code>
           <CopyButton :value="tenant.management_api_identifier" :label="t('managementAPI')" />
         </dd>
@@ -74,34 +74,10 @@ watch(
       </RouterLink>
     </p>
     <h2>{{ t('learnMore') }}</h2>
-    <ul>
+    <ul class="m-0 list-disc pl-6">
       <li v-for="l in homeLinks" :key="l.href">
         <a :href="l.href" target="_blank" rel="noopener noreferrer">{{ t(l.titleKey) }}</a>
       </li>
     </ul>
   </template>
 </template>
-
-<style scoped>
-.facts {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 0.5rem 1.5rem;
-  margin: 0;
-}
-dt {
-  font-weight: 600;
-  color: var(--text-2);
-}
-dd {
-  margin: 0;
-}
-.domain {
-  display: block;
-}
-@media (max-width: 720px) {
-  .facts {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
