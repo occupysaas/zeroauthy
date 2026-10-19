@@ -14,7 +14,7 @@ and open standards. It is not affiliated with Auth0 or Okta. See
 > and `/oidc/logout` work today (verified with auth0-spa-js, auth0-react and
 > nextjs-auth0). Pushed authorization requests ([docs/par.md](docs/par.md)) and
 > the device authorization flow ([docs/device-flow.md](docs/device-flow.md))
-> are supported too, and so are Auth0's Management API for applications, APIs and client grants
+> are supported too, and so are Auth0's Management API for applications, APIs, client grants and database connections
 > ([docs/management-api.md](docs/management-api.md), verified with auth0-cli)
 > and an admin console ([docs/console.md](docs/console.md)). See the
 > [compatibility matrix](docs/compat/matrix.md).

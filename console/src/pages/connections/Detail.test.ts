@@ -408,7 +408,7 @@ describe('connection detail', () => {
         expect(out.textContent).toContain('u1')
         expect(out.textContent).toContain('hello')
         expect(out.textContent).toContain('12 ms')
-        expect(out.textContent).toContain('configuration values the script prints or returns')
+        expect(out.textContent).toContain('replaced with ■■■■■■■■')
         expect(setItem).not.toHaveBeenCalled()
         expect(sessionStorage.length).toBe(0)
         wrapper.unmount()

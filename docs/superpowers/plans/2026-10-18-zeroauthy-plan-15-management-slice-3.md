@@ -159,6 +159,6 @@ Run by the controller session as the observer (option A of Plan 14: the observer
 
 **Files:** `docs/management-api.md`, `docs/console.md`, `docs/compat/matrix.md`, `docs/superpowers/plan-1-followups.md` ("Plan 15 follow-ups": each stored-not-enforced option, slice 5 for attack protection if C6 says tenant-level), README.
 
-- [ ] **Step 1: Write the docs.**
-- [ ] **Step 2: Verify:** gofmt, vet, `go test -race ./...`, `go generate` no diff, `make console` no diff, the SQL suite, `make e2e`, `make check-sources`, `make conformance` (exit 0, or say exactly why it cannot run).
-- [ ] **Step 3: Commit** with `docs: database connections; Plan 15 records`.
+- [x] **Step 1: Write the docs.**
+- [x] **Step 2: Verify:** gofmt, vet, `go test -race ./...`, `go generate` no diff, `make console` no diff, the SQL suite, `make e2e`, `make check-sources`, `make conformance` (exit 0, or say exactly why it cannot run).
+- [x] **Step 3: Commit** with `docs: database connections; Plan 15 records`.

@@ -1,17 +1,18 @@
 # Management API
 
 Every zeroauthy tenant serves Auth0's Management API v2 at
-`https://<tenant host>/api/v2/`, on each of its hosts. Slices 1 and 2 cover
-**applications** (`/api/v2/clients`), **APIs** (`/api/v2/resource-servers`)
-and **client grants** (`/api/v2/client-grants`); later slices add
-connections, users and tenant settings (design
+`https://<tenant host>/api/v2/`, on each of its hosts. Slices 1 to 3 cover
+**applications** (`/api/v2/clients`), **APIs** (`/api/v2/resource-servers`),
+**client grants** (`/api/v2/client-grants`) and **database connections**
+(`/api/v2/connections`); later slices add users and tenant settings (design
 `docs/superpowers/specs/2026-10-18-zeroauthy-management-design.md`).
 
 The contract is [api/management.yaml](../api/management.yaml). Behaviour
 that Auth0 does not document comes from observation of Auth0's API
 ([observations/management-clients.md](compat/observations/management-clients.md),
-[observations/management-apis.md](compat/observations/management-apis.md))
-and is recorded in decisions D-0038 to D-0041 of
+[observations/management-apis.md](compat/observations/management-apis.md),
+[observations/management-connections.md](compat/observations/management-connections.md))
+and is recorded in decisions D-0038 to D-0042 of
 [compat/decisions.md](compat/decisions.md).
 
 ## Tokens
@@ -76,6 +77,10 @@ operators manage it.
 | `POST /api/v2/client-grants` | `create:client_grants` |
 | `PATCH /api/v2/client-grants/{id}` | `update:client_grants` |
 | `DELETE /api/v2/client-grants/{id}` | `delete:client_grants` |
+| `GET /api/v2/connections`, `GET /api/v2/connections/{id}`, `GET /api/v2/connections/{id}/clients` | `read:connections` |
+| `POST /api/v2/connections` | `create:connections` |
+| `PATCH /api/v2/connections/{id}`, `PATCH /api/v2/connections/{id}/clients` | `update:connections` |
+| `DELETE /api/v2/connections/{id}` | `delete:connections` |
 
 ## Shared behaviour
 
@@ -190,6 +195,127 @@ or `user`).
 - **Deleting** a grant is `204`, also for an unknown ID of the right form.
   Deleting an application or an API deletes its grants.
 - **The seed** never touches grants created through the API.
+
+## Database connections
+
+A connection is a way for users to sign in. zeroauthy has one kind, the
+database connection (strategy `auth0`): users with passwords stored by
+zeroauthy, or users checked by a custom database script. Other strategies are
+`400 invalid_body` until a later slice. Decision D-0042.
+
+Fields: `id` (`con_` and 16 letters and digits), `name`, `strategy`, `options`,
+`realms`, `is_domain_connection`, `display_name`, `metadata`. `enabled_clients`
+is accepted on create and is not part of a `GET`; use the clients endpoint.
+
+- **Names** are letters, digits and hyphens (no leading or trailing hyphen,
+  at most 128 characters); a used name is `409 connection_conflict`. A
+  well-formed unknown ID is `404 inexistent_connection`, a malformed one
+  `400 invalid_uri`.
+- **Listing** is ordered by name, ignoring case. Filters: `name`, `strategy`
+  (repeatable). `fields` and `include_fields` work as elsewhere, and always
+  keep `id` and `is_domain_connection`. Offset paging (key `connections`,
+  `per_page` default 100) or checkpoint paging with `take` and `from`.
+- **`options` is replaced whole on `PATCH`.** Keys inside `password_options`
+  that you leave out take their defaults. Option keys zeroauthy does not know
+  are stored and returned as sent.
+- **Enabled applications:** `GET /api/v2/connections/{id}/clients` lists
+  `{"clients": [{"client_id": …}], "next": …}` (checkpoint paging);
+  `PATCH` takes a non-empty `[{"client_id", "status"}]` and answers `204`.
+  Only enabled applications can sign in with the connection.
+- **Deleting** answers `202` with `{"deleted_at": …}`, and `204` once it is
+  gone, also for an ID that never existed. The connection's users go with it,
+  with their sessions, refresh tokens, grants and password history, and the
+  tenant's `default_directory` is cleared when it names the connection.
+
+### Password rules
+
+Stored as `options.password_options`. Defaults for a connection created
+through the API: minimum length 15, no required character types, identical
+and sequential characters allowed, passwords over the maximum refused, history
+off (size 3), dictionary off (`en_100k`), personal data off, and
+`brute_force_protection` on.
+
+| Rule | Behaviour |
+|---|---|
+| `complexity` | `min_length`; `character_types` (lower case, upper case, numbers, special characters) with `character_type_rule` `all` or `three_of_four`; `identical_characters` and `sequential_characters` `allow` or `block`; `max_length_exceeded` `truncate` or `error` (passwords are at most 72 characters) |
+| `history` | Refuses a password equal to one of the user's newest 1 to 24 (`size`) |
+| `dictionary` | Refuses (ignoring case) a word of the list (`en_10k` or `en_100k`, embedded) or of your own `custom` words |
+| `profile_data` | Refuses a password that contains the user's own email, name or similar fields (`blocked_fields`; values under 3 characters are ignored) |
+
+The legacy fields (`passwordPolicy`, `password_complexity_options`,
+`password_history`, `password_dictionary`, `password_no_personal_info`) are
+accepted and mapped onto `password_options`; sending both is `400 invalid_body`.
+Responses carry `password_options`. The `passwordPolicy` levels map as `none`
+(1 character), `low` (6), `fair` (8 with lower, upper and numbers), `good` (8,
+three of four types) and `excellent` (10, no three identical in a row, all
+four types); this table is not verified against Auth0's runtime. Legacy
+`min_length` above 72 is refused, since passwords are at most 72 characters.
+
+- **Where the rules apply:** sign-up and password reset (and the console's
+  password checker, which mirrors them except for the embedded lists). The dictionary and history rules were not
+  observable on Auth0's side (D-0042); zeroauthy's behaviour is the one
+  described above.
+- **`max_length_exceeded`:** with `truncate` the password is cut to 72
+  characters before hashing. Switching to `error` later locks out users who
+  still type a longer password; they need a reset.
+- **`brute_force_protection`** switches zeroauthy's login throttle for this
+  connection. Its thresholds stay zeroauthy's until tenant attack protection
+  (slice 5).
+- **Usernames:** `validation.username` `min` and `max` (1 to 128, `min` below
+  `max`), with `requires_username`.
+- **Seeded connections** keep the seed's own rules (minimum length 8), not the
+  API defaults and not the API-only checks (name pattern, 72-character cap).
+
+### Custom databases
+
+`options.enabledDatabaseCustomization`, `customScripts` (keys: the seven
+script names), `import_mode` (needs customization), `configuration` and
+`set_user_root_attributes` (only for a custom database that is not imported).
+Scripts are limited as in D-0022 (Auth0 accepts larger ones).
+
+- **Configuration** values are strings or `null`. They are sealed at rest and
+  returned as opaque `zcv1.` blobs, never as plaintext; send a blob back
+  unchanged to keep the value, anything else is a new value. A plaintext value
+  that itself starts with `zcv1.` is refused.
+- **`set_user_root_attributes`:** `never_on_login` is stored and returned but
+  behaves as `on_each_login`; only `on_first_login` changes behaviour.
+
+### Trying a script (zeroauthy extension)
+
+`POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try`, for
+operator tokens on the system host (not the Management API; Auth0 has no
+equivalent). Body `{"args": […]}` with the script's arguments; the answer is
+`{"result", "error": {"name", "message"}, "logs", "duration_ms"}`. Ten tries
+per minute per operator (`429`). Arguments and results are not written to the
+log.
+
+- **Masking:** configuration values are replaced with `■■■■■■■■` in the
+  response's result, console lines and error message, and in the server log's
+  script console lines and script error messages. A process masks every value
+  it has seen for the connection, so a rotated value stays masked until a
+  restart. Masking is exact, case-sensitive substring matching: a script that
+  encodes, splits or reformats a secret is not covered. A value cut at the
+  runner's limits (2048 characters of a console line, 1024 of an error message)
+  is still masked, and a long line may be masked more than needed. Real logins
+  and sign-ups return script output to the user unmasked.
+- **Timeouts:** the console output is lost when a script times out (`logs` is
+  empty).
+
+### Stored, not enforced
+
+Accepted, returned and marked "saved, not enforced yet" in the console, but
+without effect: `authentication_methods`, `passkey_options`, `attributes`,
+`precedence`, `mfa`, `disable_self_service_change_password`,
+`non_persistent_attrs`, `display_name`, `show_as_button`, `metadata`, `realms`
+beyond the default, `connected_accounts`, `authentication`, unknown option
+keys, and `never_on_login`.
+
+### With auth0-cli
+
+Verified with 1.37.0 (m15-mgmt-cli): `auth0 connections create --name staff
+--strategy auth0`, `list`, `show`, `update --data …`, `delete`, and
+`auth0 connections enabled-clients show|update`. Then users sign up through
+`/dbconnections/signup` on the new connection, with the rules applied.
 
 ## A machine-to-machine application without the seed
 

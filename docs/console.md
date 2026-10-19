@@ -67,6 +67,28 @@ session.
   - **Danger zone:** delete (type the name or identifier), which also
     deletes the API's grants and users' consents. The tenant's own
     Management API shows only the token lifetimes and cannot be deleted.
+- **Connections:** a paged list of the tenant's database connections with the
+  number of applications each is enabled for. **Create connection** asks for a
+  name (letters, digits, hyphens). Each connection has
+  - **Settings:** sign-up and username options; options zeroauthy stores but
+    does not act on yet sit in their own group, marked "saved, not enforced
+    yet";
+  - **Password policy:** length, character types, identical and sequential
+    characters, over-long passwords (truncate or refuse; switching to refuse
+    locks out users who still type a long one), history, dictionary (en_10k,
+    en_100k, your own words), personal data and brute-force protection, with a
+    checker that tries a password in the browser (it does not have the embedded
+    dictionary lists);
+  - **Custom database:** the scripts in an editor, configuration values and
+    **Try**. Configuration values are write-only: once saved they are never
+    shown again. Try runs the saved script with test arguments and shows the
+    result, console output and errors on the page only; configuration values
+    in them are replaced with `■■■■■■■■`, but a script that encodes or splits
+    a value can still reveal it, and console output is lost when a script
+    times out. Ten tries per minute;
+  - **Applications:** a switch per application that enables the connection;
+  - **Danger zone:** delete (type the name), which shows the user count and
+    deletes the connection's users.
 - **Applications:** a paged list with a type filter; **Create** asks for a
   name and a type (native, single-page, regular web, machine to machine)
   and applies defaults for that type; each application has
@@ -76,6 +98,8 @@ session.
   - **Advanced:** grant types, token endpoint authentication, ID token
     lifetime, refresh token rotation and expiration, PAR, and whether it is
     a first- or third-party application (fixed at creation);
+  - **Connections:** the database connections the application can sign users
+    in with, a switch each;
   - **APIs:** the APIs the application may request tokens for, with the
     permissions it has for each; authorize another, change permissions or
     revoke;
@@ -84,8 +108,8 @@ session.
     for each API it is authorized for; other types get the authorization URL
     and configuration for auth0-spa-js, auth0-react, nextjs-auth0 and
     express-openid-connect. The secret appears only after you reveal it. The
-    panel notes that no connection can be enabled from the console yet, so no
-    user can sign in with a new application until a later release;
+    panel reminds you to enable a connection in the Connections tab, since
+    no user can sign in with an application until you do;
   - **Danger zone:** rotate the secret (the old one stops working at once)
     and delete (type the name to confirm).
 - **Operators** (system tenant): the operators, **Invite operator** (shows a

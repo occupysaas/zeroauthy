@@ -425,7 +425,7 @@ export const t = {
       rateLimited: (seconds?: number) => `Too many tries.${seconds ? ` Wait ${seconds} seconds and try again.` : ' Wait a little and try again.'}`,
       runtimeUnavailable: 'The script runtime is not available on this server.',
       secretsNote:
-        'The result and output are shown here only and are not kept. They can include configuration values the script prints or returns.',
+        'The result and output are shown here only and are not kept. Configuration values in the output are replaced with ■■■■■■■■; a script that encodes or splits a value can still reveal it.',
     },
 
     enabled: 'Enabled',

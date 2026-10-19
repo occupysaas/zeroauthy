@@ -255,3 +255,18 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 - **Black-box client:** `auth0-cli` v1.37.0 has `connections list/show/create/update/delete` and `connections enabled-clients show/update`; the E2E should cover them as m13/m14 do, plus `auth0 api` for anything those commands do not reach.
 - **Starting points:** `internal/store` connections and enabled clients, the seed's connection rules (`internal/seed/validate.go`), custom databases (Plan 8, D-0022), consent and domain connections (Plan 9), the console's application detail (an application is enabled on no connection until this slice).
 - **Open maintainer decisions carried over:** the system API name (D-0041), `HS256`/`PS256` support.
+
+## Plan 15 follow-ups
+
+- **SQL suite and conformance:** the cloud session ran the Postgres suite for the connection migrations but not MySQL, and could not run `make conformance` (no container runtime). Run `scripts/test-sql.sh` and `make conformance` where containers exist.
+- **Stored, not enforced** (D-0042): `authentication_methods` and `passkey_options`, `attributes` and `precedence`, `mfa`, `disable_self_service_change_password`, `non_persistent_attrs`, `display_name`, `show_as_button`, `metadata`, `realms` beyond the default, `connected_accounts`, `authentication`, unknown option keys, and `set_user_root_attributes: never_on_login` (behaves as `on_each_login`). Each becomes work when the feature behind it exists (passwordless and passkeys, MFA, attributes, social and enterprise connections).
+- **Attack protection (slice 5):** `brute_force_protection` only switches zeroauthy's existing login throttle; thresholds and tenant-level attack protection settings wait for slice 5.
+- **Users API (slice 4):** `/api/v2/users` would let the E2E checks confirm that deleting a connection deleted its users through the API instead of through sign-in.
+- **Seed vs API rules:** seeded connections keep the seed's defaults (minimum length 8) and skip the API-only checks (name pattern, 72-character cap, the `set_user_root_attributes` rule). Tightening the seed is open.
+- **Connection delete:** the cascade scans all users (O(users), several statements each) and the scan is not locked, so a user created while a delete runs can be left behind. Authorization codes, transactions, device codes and pushed requests for the connection's users are not deleted (they expire).
+- **Name ordering:** names with non-ASCII characters can sort differently between store drivers (Unicode in memory, ASCII `LOWER` in SQLite), and the checkpoint cursor uses Go's lower-casing against SQL's, so page boundaries can differ. The checkpoint list also reads the whole set into memory.
+- **Unrelated `PATCH`:** a `PATCH` that does not send `options` still re-validates the stored options under the API's limits, which a seeded connection might not meet.
+- **Explicit empty lists:** `blocked_fields` or `custom` sent empty come back as the defaults.
+- **Console:** re-adding a removed configuration key drops the new value, and a replaced key left empty sends `''` as plaintext (both planned for the final fix wave; remove this line when fixed). The application quick start shows its connection note whether or not a connection is enabled.
+- **Script try:** a missing script runtime (503) still uses a rate-limit slot; console output is lost on a timeout.
+- **Masking:** matching is by exact substring (encoded or split secrets pass), and a long line ending in the first byte of a value may be over-masked.

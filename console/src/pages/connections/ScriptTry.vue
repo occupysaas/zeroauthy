@@ -9,8 +9,8 @@ import { parseJSON, pretty } from './options'
 
 // Try one script with test arguments. What comes back is shown here and
 // kept nowhere: not in storage, not in a cache, and it is gone when this
-// goes away. It can include configuration values the script prints or
-// returns, so the page says so.
+// goes away. The server masks configuration values in it, and the page
+// says what the mask does not cover.
 const props = defineProps<{ tenant: SystemTenant; connectionId: string; script: string; dirty: boolean }>()
 const { api } = useServices()
 

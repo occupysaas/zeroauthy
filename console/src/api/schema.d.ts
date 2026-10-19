@@ -506,9 +506,20 @@ export interface paths {
          *     with the error's `name` and `message` (`TimeoutError` when the
          *     script ran too long) and `result` is null. 503 means the script
          *     runtime could not start. At most 10 calls a minute per operator
-         *     (`too_many_requests`, with `Retry-After`). The server log records
-         *     the tenant, connection, script, operator, duration and outcome, never
-         *     the arguments, the result, the console output or the configuration.
+         *     (`too_many_requests`, with `Retry-After`). The try call's own
+         *     server-log record carries the tenant, connection, script, operator,
+         *     duration and outcome, never the arguments, the result or the output.
+         *     Script console lines forwarded to the server log (for a try and for
+         *     real logins) have configuration values masked.
+         *
+         *     Configuration values are masked, as Auth0 masks the secrets a script
+         *     logs: every value of the connection's configuration that appears in
+         *     `logs`, in `result` (in any string or object key, however deeply
+         *     nested) or in `error.message` is replaced by `■■■■■■■■`, whatever the
+         *     value's length. A value matches as an exact, case-sensitive substring,
+         *     a longer value is masked before a shorter one it contains, and empty
+         *     values and configuration keys are not masked. The same mask applies
+         *     to the script console lines in the server log.
          */
         post: operations["tryConnectionScript"];
         delete?: never;
@@ -1009,15 +1020,16 @@ export interface components {
             args: unknown[];
         };
         ScriptTryResult: {
-            /** @description The value the script passed to its callback; null when it failed or passed none. */
+            /** @description The value the script passed to its callback; null when it failed or passed none. Configuration values in it are masked. */
             result: unknown;
             /** @description The error the script threw or passed to its callback; null on success. */
             error: {
                 /** @description The error's class: `Error`, `ValidationError`, `UnauthorizedError`, `WrongUsernameOrPasswordError` or `TimeoutError`. */
                 name: string;
+                /** @description The error's message, with configuration values masked. */
                 message: string;
             } | null;
-            /** @description The script's console output, at most 50 lines. */
+            /** @description The script's console output, at most 50 lines, with configuration values masked. */
             logs: string[];
             /** @description How long the run took. */
             duration_ms: number;
