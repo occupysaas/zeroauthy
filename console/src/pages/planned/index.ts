@@ -1,6 +1,11 @@
 import { h, type Component } from 'vue'
 import { isPlanned, sections } from '../../layout/sections'
 import Actions from './Actions.vue'
+import AttackProtection from './AttackProtection.vue'
+import Branding from './Branding.vue'
+import Emails from './Emails.vue'
+import MultiFactor from './MultiFactor.vue'
+import TenantSettings from './TenantSettings.vue'
 import CustomDomains from './CustomDomains.vue'
 import Logs from './Logs.vue'
 import Organizations from './Organizations.vue'
@@ -17,6 +22,11 @@ function bare(key: string): Component {
 /** Dedicated pages by section key; the rest use the bare frame until designed. */
 const dedicated: Record<string, Component> = {
   actions: Actions,
+  'attack-protection': AttackProtection,
+  mfa: MultiFactor,
+  settings: TenantSettings,
+  branding: Branding,
+  emails: Emails,
   users: Users,
   social: Social,
   roles: Roles,
