@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useTenant } from '../context'
 import { docsURL, product, sourceURL } from '../links'
 import AccountMenu from './AccountMenu.vue'
+import LanguageMenu from './LanguageMenu.vue'
 import TenantSwitcher from './TenantSwitcher.vue'
 import { planned } from './planned'
 
@@ -36,6 +37,7 @@ const sections = computed(() =>
       <a :href="docsURL" target="_blank" rel="noopener noreferrer">{{ t('docs') }}</a>
       <a :href="sourceURL" target="_blank" rel="noopener noreferrer">{{ t('source') }}</a>
     </nav>
+    <LanguageMenu />
     <AccountMenu />
   </header>
   <div class="frame">

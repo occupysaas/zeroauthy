@@ -15,6 +15,7 @@ const en = {
   saved: 'Saved',
 
   account: 'Account',
+  language: 'Language',
   signOut: 'Sign out',
   signingIn: 'Signing you in…',
   signInFailed: 'Sign-in failed',
