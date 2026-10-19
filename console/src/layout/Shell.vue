@@ -4,6 +4,7 @@ import { useTenant } from '../context'
 import { t } from '../strings'
 import AccountMenu from './AccountMenu.vue'
 import TenantSwitcher from './TenantSwitcher.vue'
+import { planned } from './planned'
 
 // The frame of every signed-in page: a header with the tenant switcher and
 // account menu, a sidebar with the sections this slice ships, and the page.
@@ -43,6 +44,12 @@ const sections = computed(() =>
           </RouterLink>
         </li>
       </ul>
+      <p class="planned-head">{{ t.navPlanned }}</p>
+      <ul class="planned">
+        <li v-for="p in planned" :key="p.key">
+          <span aria-disabled="true" :title="`${p.api} (${p.when})`">{{ p.label }} <small>{{ p.when }}</small></span>
+        </li>
+      </ul>
     </nav>
     <main id="main" tabindex="-1">
       <RouterView />
@@ -51,6 +58,18 @@ const sections = computed(() =>
 </template>
 
 <style scoped>
+.planned-head {
+  margin: 1rem 0 0.25rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.planned span {
+  display: block;
+  padding: 0.25rem 0;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .skip {
   position: absolute;
   left: -999px;

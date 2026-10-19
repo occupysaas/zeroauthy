@@ -42,6 +42,7 @@ export const t = {
   navApis: 'APIs',
   navConnections: 'Connections',
   navOperators: 'Operators',
+  navPlanned: 'Coming later',
 
   homeTitle: 'Home',
   seededBanner:
