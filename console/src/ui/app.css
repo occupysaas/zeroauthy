@@ -1,0 +1,383 @@
+/* zeroauthy console: Tailwind, theme tokens and component classes. Light by
+   default, dark with the system preference or an explicit choice. */
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Glacial Indifference';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/GlacialIndifference-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Glacial Indifference';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/GlacialIndifference-Bold.woff2') format('woff2');
+}
+
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --text: #111111;
+  --muted: #5a5a5a;
+  --rule: #111111;
+  --hair: #e3e3e3;
+  --accent: #d7141a;
+  --accent-hover: #a50e13;
+  --accent-text: #ffffff;
+  --active: #fdecec;
+  --disabled: #d6d6d6;
+  --disabled-text: #5f5f5f;
+  --tag: #f1f1f1;
+  --header: #111111;
+  --header-text: #ffffff;
+  --header-chip: #262626;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --warn-soft: #fff4d6;
+  --warn-border: #e5b84a;
+  --focus: #2563eb;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #121212;
+    --surface: #121212;
+    --text: #f2f2f2;
+    --muted: #a8a8a8;
+    --rule: #f2f2f2;
+    --hair: #2c2c2c;
+    --accent: #ff3b40;
+    --accent-hover: #ff6b6f;
+    --accent-text: #121212;
+    --active: #2a1213;
+    --disabled: #333333;
+    --disabled-text: #9a9a9a;
+    --tag: #222222;
+    --header: #000000;
+    --header-text: #ffffff;
+    --header-chip: #222222;
+    --danger: #ff8a7f;
+    --danger-soft: #3a1714;
+    --warn-soft: #3a2e10;
+    --warn-border: #a37f22;
+    --focus: #7aa7ff;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #121212;
+  --surface: #121212;
+  --text: #f2f2f2;
+  --muted: #a8a8a8;
+  --rule: #f2f2f2;
+  --hair: #2c2c2c;
+  --accent: #ff3b40;
+  --accent-hover: #ff6b6f;
+  --accent-text: #121212;
+  --active: #2a1213;
+  --disabled: #333333;
+  --disabled-text: #9a9a9a;
+  --tag: #222222;
+  --header: #000000;
+  --header-text: #ffffff;
+  --header-chip: #222222;
+  --danger: #ff8a7f;
+  --danger-soft: #3a1714;
+  --warn-soft: #3a2e10;
+  --warn-border: #a37f22;
+  --focus: #7aa7ff;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-hair: var(--hair);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
+  --color-active: var(--active);
+  --color-disabled: var(--disabled);
+  --color-disabled-text: var(--disabled-text);
+  --color-tag: var(--tag);
+  --color-header: var(--header);
+  --color-header-text: var(--header-text);
+  --color-header-chip: var(--header-chip);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-border: var(--warn-border);
+  --color-focus: var(--focus);
+  --font-sans: 'Glacial Indifference', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  a {
+    color: var(--accent);
+  }
+
+  a:hover {
+    color: var(--accent-hover);
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-focus;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    margin: 0 0 1rem;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+  }
+}
+
+@layer components {
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.25rem;
+  }
+
+  .muted {
+    color: var(--muted);
+  }
+
+  .row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .stack {
+    display: grid;
+    gap: 1rem;
+  }
+
+  input:not([type='checkbox'], [type='radio'], [type='color'], [type='range'], [type='file']),
+  select,
+  textarea {
+    font: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.45rem 0.6rem;
+    width: 100%;
+  }
+
+  input[type='color'] {
+    width: 3rem;
+    height: 2.25rem;
+    padding: 0.2rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    background: var(--disabled);
+    color: var(--disabled-text);
+    border-color: var(--disabled-text);
+  }
+
+  textarea {
+    min-height: 5.5rem;
+    resize: vertical;
+  }
+
+  input[aria-invalid='true'],
+  textarea[aria-invalid='true'] {
+    border-color: var(--danger);
+  }
+
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  table.data th,
+  table.data td {
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--hair);
+    vertical-align: top;
+  }
+
+  table.data th {
+    font-weight: 700;
+    color: var(--text);
+    background: var(--tag);
+  }
+
+  table.data tr:last-child td {
+    border-bottom: 0;
+  }
+
+  /* Dialogs and menus (reka-ui parts). */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgb(0 0 0 / 45%);
+  }
+
+  .dialog {
+    position: fixed;
+    top: 12vh;
+    left: 50%;
+    translate: -50% 0;
+    width: min(32rem, calc(100vw - 2rem));
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.25rem;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 25%);
+  }
+
+  .dialog h2 {
+    margin-top: 0;
+  }
+
+  .menu {
+    min-width: 14rem;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.3rem;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+    z-index: 10;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .menu-item[data-highlighted] {
+    background: var(--active);
+  }
+
+  .menu-item[data-state='checked']::before {
+    content: '✓';
+  }
+
+  .menu-label {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .menu-sep {
+    height: 1px;
+    background: var(--hair);
+    margin: 0.3rem 0;
+  }
+
+  /* Tab strip (reka-ui TabsList / TabsTrigger). */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-bottom: 2px solid var(--rule);
+    margin: 1rem 0;
+  }
+
+  .tab {
+    font: inherit;
+    background: transparent;
+    color: var(--muted);
+    border: 0;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+  }
+
+  .tab[data-state='active'] {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Checkbox row with a label and a hint stacked beside the box. */
+  .check {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+
+  .check > span {
+    display: grid;
+  }
+
+  .check input {
+    margin-top: 0.3rem;
+  }
+}

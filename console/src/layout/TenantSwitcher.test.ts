@@ -1,17 +1,18 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { servicesKey } from '../context'
+import { useTenantsStore } from '../stores/tenants'
 import { fakeServices, memoryRouter, tenant } from '../test/services'
 import TenantSwitcher from './TenantSwitcher.vue'
 
 async function setup(handler: Parameters<typeof fakeServices>[0]) {
-  const { services, calls } = fakeServices(handler)
-  await services.tenants.load()
+  const { services, calls, pinia, i18n } = fakeServices(handler)
+  await useTenantsStore().load(services.api)
   const router = memoryRouter()
   await router.push('/t/acme/applications')
   const wrapper = mount(TenantSwitcher, {
     attachTo: document.body,
-    global: { plugins: [router], provide: { [servicesKey as symbol]: services } },
+    global: { plugins: [router, pinia, i18n], provide: { [servicesKey as symbol]: services } },
   })
   return { wrapper, router, calls, services }
 }

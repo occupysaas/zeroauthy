@@ -1,160 +1,122 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { useTenant } from '../context'
-import { t } from '../strings'
+import { docsURL, productParts, sourceURL } from '../links'
+import Tag from '../ui/Tag.vue'
 import AccountMenu from './AccountMenu.vue'
+import LanguageMenu from './LanguageMenu.vue'
+import { isPlanned, plannedWhenKey, visibleSections, type Section } from './sections'
 import TenantSwitcher from './TenantSwitcher.vue'
-import { planned } from './planned'
+
+const { t } = useI18n()
 
 // The frame of every signed-in page: a header with the tenant switcher and
-// account menu, a sidebar with the sections this slice ships, and the page.
+// account menu, a grouped sidebar of every section, and the page. Below the
+// md breakpoint the sidebar is a drawer behind the header's menu button.
 const tenant = useTenant()
-// Operators belong to the system tenant, where the console signs in.
-const sections = computed(() =>
-  tenant.value
-    ? [
-        { name: 'home', label: t.navHome },
-        { name: 'applications', label: t.navApplications },
-        { name: 'apis', label: t.navApis },
-        { name: 'connections', label: t.navConnections },
-        ...(tenant.value.reserved ? [{ name: 'operators', label: t.navOperators }] : []),
-      ]
-    : [],
-)
+const route = useRoute()
+
+// Consecutive sections of one group share a heading; Home has none.
+const groups = computed(() => {
+  const out: { group?: string; items: Section[] }[] = []
+  for (const s of visibleSections(tenant.value?.reserved ?? false)) {
+    const last = out[out.length - 1]
+    if (last && last.group === s.group) last.items.push(s)
+    else out.push({ group: s.group, items: [s] })
+  }
+  return out
+})
+
+function tip(s: Section): string | undefined {
+  return isPlanned(s) ? t('plannedTip', { when: t(plannedWhenKey(s.status)), apis: s.status.api.join(', ') }) : undefined
+}
+
+const open = ref(false)
+const button = useTemplateRef<HTMLButtonElement>('menuButton')
+const sidebar = useTemplateRef<HTMLElement>('sidebar')
+
+async function toggle() {
+  open.value = !open.value
+  if (!open.value) return
+  await nextTick()
+  sidebar.value?.querySelector('a')?.focus()
+}
+
+function close() {
+  if (!open.value) return
+  open.value = false
+  button.value?.focus()
+}
+
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape' && !e.defaultPrevented) close()
+}
+onMounted(() => document.addEventListener('keydown', onKey))
+onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
+watch(() => route.fullPath, close)
 </script>
 
 <template>
-  <a class="skip" href="#main">{{ t.skipToContent }}</a>
-  <header class="topbar">
-    <RouterLink class="brand" to="/">{{ t.product }}</RouterLink>
+  <a class="absolute -left-[999px] z-20 bg-surface px-3 py-1.5 focus:top-2 focus:left-4" href="#main">{{ t('skipToContent') }}</a>
+  <header class="flex items-center gap-4 bg-header px-5 py-2.5 text-header-text max-md:gap-2 max-md:px-3">
+    <button
+      v-if="tenant"
+      ref="menuButton"
+      type="button"
+      class="rounded border border-header-chip bg-transparent px-2.5 py-1 text-header-text md:hidden"
+      aria-controls="sections-nav"
+      :aria-expanded="open"
+      @click="toggle"
+    >
+      {{ t('menu') }}
+    </button>
+    <RouterLink class="text-lg font-bold tracking-widest text-header-text uppercase no-underline hover:text-header-text" to="/">{{ productParts[0] }}<span class="text-accent">{{ productParts[1] }}</span></RouterLink>
     <TenantSwitcher />
-    <span class="spacer" />
-    <nav class="links" aria-label="Project">
-      <a :href="t.docsURL" target="_blank" rel="noopener noreferrer">{{ t.docs }}</a>
-      <a :href="t.sourceURL" target="_blank" rel="noopener noreferrer">{{ t.source }}</a>
+    <span class="flex-1" />
+    <nav class="flex gap-4 max-md:hidden" :aria-label="t('navProject')">
+      <a class="text-header-text no-underline hover:underline" :href="docsURL" target="_blank" rel="noopener noreferrer">{{ t('docs') }}</a>
+      <a class="text-header-text no-underline hover:underline" :href="sourceURL" target="_blank" rel="noopener noreferrer">{{ t('source') }}</a>
     </nav>
+    <LanguageMenu />
     <AccountMenu />
   </header>
-  <div class="frame">
-    <nav v-if="tenant" class="sidebar" aria-label="Sections">
-      <ul>
-        <li v-for="s in sections" :key="s.name">
-          <RouterLink :to="{ name: s.name, params: { tenant: tenant.name } }" active-class="" exact-active-class="active">
-            {{ s.label }}
-          </RouterLink>
-        </li>
-      </ul>
-      <p class="planned-head">{{ t.navPlanned }}</p>
-      <ul class="planned">
-        <li v-for="p in planned" :key="p.key">
-          <span aria-disabled="true" :title="`${p.api} (${p.when})`">{{ p.label }} <small>{{ p.when }}</small></span>
+  <div class="flex min-h-[calc(100vh-3.5rem)] max-md:flex-col">
+    <nav
+      v-if="tenant"
+      id="sections-nav"
+      ref="sidebar"
+      class="w-56 shrink-0 border-r-[3px] border-rule px-2 py-4 max-md:w-auto max-md:border-r-0 max-md:border-b-[3px]"
+      :class="{ 'max-md:hidden': !open }"
+      :aria-label="t('navSections')"
+    >
+      <ul class="m-0 grid list-none gap-0.5 p-0">
+        <template v-for="g in groups" :key="g.group ?? ''">
+          <li v-if="g.group">
+            <h2 class="mt-4 mb-1 px-3 text-xs font-normal tracking-widest text-muted uppercase">{{ t(g.group) }}</h2>
+          </li>
+          <li v-for="s in g.items" :key="s.key">
+            <RouterLink
+              class="flex items-center gap-2 border-l-[3px] border-transparent px-3 py-2 font-bold text-text no-underline hover:bg-active aria-[current=page]:border-accent aria-[current=page]:bg-active"
+              :to="{ name: s.key, params: { tenant: tenant.name } }"
+              :title="tip(s)"
+              active-class=""
+              exact-active-class="active"
+            >
+              <span>{{ t(s.label) }}</span>
+              <Tag v-if="isPlanned(s)">{{ t('planned') }}</Tag>
+            </RouterLink>
+          </li>
+        </template>
+        <li class="mt-4 border-t border-rule pt-2 md:hidden">
+          <a class="block px-3 py-2 font-bold text-text no-underline hover:bg-active" :href="docsURL" target="_blank" rel="noopener noreferrer">{{ t('docs') }}</a>
+          <a class="block px-3 py-2 font-bold text-text no-underline hover:bg-active" :href="sourceURL" target="_blank" rel="noopener noreferrer">{{ t('source') }}</a>
         </li>
       </ul>
     </nav>
-    <main id="main" tabindex="-1">
+    <main id="main" tabindex="-1" class="max-w-6xl min-w-0 flex-1 px-8 py-6 focus:outline-none max-md:p-4">
       <RouterView />
     </main>
   </div>
 </template>
-
-<style scoped>
-.planned-head {
-  margin: 1rem 0 0.25rem;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  opacity: 0.6;
-}
-.planned span {
-  display: block;
-  padding: 0.25rem 0;
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.skip {
-  position: absolute;
-  left: -999px;
-}
-.skip:focus {
-  left: 1rem;
-  top: 0.5rem;
-  z-index: 20;
-  background: var(--surface);
-  padding: 0.4rem 0.8rem;
-}
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.6rem 1.25rem;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-.brand {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--text);
-  text-decoration: none;
-  letter-spacing: -0.01em;
-}
-.spacer {
-  flex: 1;
-}
-.links {
-  display: flex;
-  gap: 1rem;
-}
-.frame {
-  display: flex;
-  min-height: calc(100vh - 3.5rem);
-}
-.sidebar {
-  width: 13rem;
-  flex-shrink: 0;
-  border-right: 1px solid var(--border);
-  padding: 1rem 0.5rem;
-}
-.sidebar ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.15rem;
-}
-.sidebar a {
-  display: block;
-  padding: 0.45rem 0.75rem;
-  border-radius: 6px;
-  color: var(--text);
-  text-decoration: none;
-}
-.sidebar a.active,
-.sidebar a.router-link-active {
-  background: var(--accent-soft);
-  font-weight: 600;
-}
-main {
-  flex: 1;
-  min-width: 0;
-  padding: 1.5rem 2rem;
-  max-width: 72rem;
-}
-main:focus {
-  outline: none;
-}
-@media (max-width: 720px) {
-  .frame {
-    flex-direction: column;
-  }
-  .sidebar {
-    width: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .sidebar ul {
-    display: flex;
-  }
-  main {
-    padding: 1rem;
-  }
-}
-</style>

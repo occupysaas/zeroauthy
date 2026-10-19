@@ -1,27 +1,16 @@
 <script setup lang="ts">
-withDefaults(defineProps<{ kind?: 'info' | 'warn' | 'error' }>(), { kind: 'info' })
+withDefaults(defineProps<{ kind?: 'info' | 'warn' | 'error' | 'planned' }>(), { kind: 'info' })
+
+const kinds = {
+  info: 'border border-hair bg-active',
+  warn: 'border border-warn-border bg-warn-soft',
+  error: 'border border-danger bg-danger-soft',
+  planned: 'border-2 border-rule bg-surface',
+}
 </script>
 
 <template>
-  <div :class="['banner', kind]" :role="kind === 'error' ? 'alert' : 'status'">
+  <div :class="['mb-4 rounded px-4 py-3', kinds[kind]]" :role="kind === 'error' ? 'alert' : 'status'">
     <slot />
   </div>
 </template>
-
-<style scoped>
-.banner {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  background: var(--accent-soft);
-}
-.warn {
-  background: var(--warn-soft);
-  border-color: var(--warn-border);
-}
-.error {
-  background: var(--danger-soft);
-  border-color: var(--danger);
-}
-</style>

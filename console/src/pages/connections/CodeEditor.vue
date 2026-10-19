@@ -13,52 +13,17 @@ function sync(e: Event) {
 </script>
 
 <template>
-  <div class="editor">
-    <div ref="gutter" class="gutter" aria-hidden="true" data-testid="gutter">
+  <div class="flex overflow-hidden rounded border border-rule bg-surface">
+    <div ref="gutter" class="m-0 max-h-70 min-w-10 shrink-0 overflow-hidden bg-tag px-2 py-2 text-right font-mono text-[0.85rem] leading-[1.4] text-muted select-none" aria-hidden="true" data-testid="gutter">
       <div v-for="n in count" :key="n">{{ n }}</div>
     </div>
-    <textarea :id="id" v-model="model" :aria-label="label" wrap="off" spellcheck="false" autocomplete="off" rows="12" @scroll="sync" />
+    <textarea
+      :id="id" v-model="model" :aria-label="label" class="m-0 max-h-70 min-h-32 min-w-0 flex-1 resize-y overflow-auto rounded-none border-0 bg-transparent px-2 py-2 font-mono text-[0.85rem] leading-[1.4] whitespace-pre text-text -outline-offset-2"
+      wrap="off"
+      spellcheck="false"
+      autocomplete="off"
+      rows="12"
+      @scroll="sync"
+    />
   </div>
 </template>
-
-<style scoped>
-.editor {
-  display: flex;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  overflow: hidden;
-}
-.gutter,
-textarea {
-  font-family: var(--mono);
-  font-size: 0.85rem;
-  line-height: 1.4;
-  padding: 0.5rem 0;
-  margin: 0;
-}
-.gutter {
-  flex-shrink: 0;
-  min-width: 2.5rem;
-  max-height: 17.5rem;
-  overflow: hidden;
-  text-align: right;
-  padding-inline: 0.5rem;
-  color: var(--text-2);
-  background: var(--surface-2);
-  user-select: none;
-}
-textarea {
-  flex: 1;
-  border: 0;
-  outline-offset: -2px;
-  padding-inline: 0.5rem;
-  resize: vertical;
-  white-space: pre;
-  overflow: auto;
-  max-height: 17.5rem;
-  min-height: 8rem;
-  background: transparent;
-  color: var(--text);
-}
-</style>

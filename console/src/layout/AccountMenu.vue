@@ -10,48 +10,38 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from 'reka-ui'
-import { ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useServices } from '../context'
-import { t } from '../strings'
-import { applyTheme, savedTheme, type Theme } from '../theme'
+import { useI18n } from 'vue-i18n'
+import type { Theme } from '../theme'
+import { usePreferencesStore } from '../stores/preferences'
+import { useSessionStore } from '../stores/session'
+
+const { t } = useI18n()
 
 const { auth } = useServices()
-const theme = ref<Theme>(savedTheme())
-watch(theme, applyTheme)
+const prefs = usePreferencesStore()
+const session = useSessionStore()
+const { theme } = storeToRefs(prefs)
 </script>
 
 <template>
   <DropdownMenuRoot>
-    <DropdownMenuTrigger class="trigger" :aria-label="t.account">
-      {{ auth.user.email || t.account }} <span aria-hidden="true">▾</span>
+    <DropdownMenuTrigger class="inline-flex min-w-0 cursor-pointer items-center gap-1 rounded border border-transparent bg-header-chip px-3 py-1 font-sans text-header-text hover:border-header-text" :aria-label="t('account')">
+      <span class="truncate max-md:max-w-20">{{ session.email || t('account') }}</span> <span aria-hidden="true">▾</span>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent class="menu" align="end" :side-offset="6">
-        <DropdownMenuLabel class="menu-label">{{ auth.user.email }}</DropdownMenuLabel>
+        <DropdownMenuLabel class="menu-label">{{ session.email }}</DropdownMenuLabel>
         <DropdownMenuSeparator class="menu-sep" />
-        <DropdownMenuRadioGroup v-model="theme">
-          <DropdownMenuRadioItem class="menu-item" value="system">{{ t.themeSystem }}</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem class="menu-item" value="light">{{ t.themeLight }}</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem class="menu-item" value="dark">{{ t.themeDark }}</DropdownMenuRadioItem>
+        <DropdownMenuRadioGroup :model-value="theme" @update:model-value="prefs.setTheme($event as Theme)">
+          <DropdownMenuRadioItem class="menu-item" value="system">{{ t('themeSystem') }}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem class="menu-item" value="light">{{ t('themeLight') }}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem class="menu-item" value="dark">{{ t('themeDark') }}</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator class="menu-sep" />
-        <DropdownMenuItem class="menu-item" @select="auth.logout()">{{ t.signOut }}</DropdownMenuItem>
+        <DropdownMenuItem class="menu-item" @select="auth.logout()">{{ t('signOut') }}</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
 </template>
-
-<style scoped>
-.trigger {
-  font: inherit;
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.3rem 0.7rem;
-  cursor: pointer;
-}
-.menu-item[data-state='checked']::before {
-  content: '✓';
-}
-</style>

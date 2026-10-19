@@ -2,9 +2,11 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { errorMessage, useServices } from '../context'
-import { t } from '../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../ui/Banner.vue'
 import Button from '../ui/Button.vue'
+
+const { t } = useI18n()
 
 const { auth } = useServices()
 const router = useRouter()
@@ -21,20 +23,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="callback">
+  <main class="mx-auto my-[15vh] max-w-lg p-4">
     <template v-if="error">
-      <h1>{{ t.signInFailed }}</h1>
+      <h1>{{ t('signInFailed') }}</h1>
       <Banner kind="error">{{ error }}</Banner>
-      <Button variant="primary" @click="auth.login('/', false)">{{ t.signInAgain }}</Button>
+      <Button variant="primary" @click="auth.login('/', false)">{{ t('signInAgain') }}</Button>
     </template>
-    <p v-else class="muted" role="status">{{ t.signingIn }}</p>
+    <p v-else class="muted" role="status">{{ t('signingIn') }}</p>
   </main>
 </template>
-
-<style scoped>
-.callback {
-  max-width: 32rem;
-  margin: 15vh auto;
-  padding: 1rem;
-}
-</style>

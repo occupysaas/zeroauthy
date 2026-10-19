@@ -2,11 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import type { Client, ClientGrant, ResourceServer, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import GrantForm from '../apis/GrantForm.vue'
+
+const { t } = useI18n()
 
 // The APIs an application may request tokens for (its client grants),
 // each with its permissions, and a way to authorize another.
@@ -75,64 +77,46 @@ function replaced(g: ClientGrant) {
 
 <template>
   <div class="stack">
-    <p class="muted">{{ t.grants.hint }}</p>
+    <p class="muted">{{ t('grants.hint') }}</p>
     <Banner v-if="error" kind="error">
       {{ error }}
-      <Button variant="ghost" @click="load">{{ t.retry }}</Button>
+      <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
-    <p v-else-if="loading" class="muted" role="status">{{ t.loading }}</p>
+    <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
     <template v-else>
       <Banner v-if="actionError" kind="error">{{ actionError }}</Banner>
-      <div v-if="rows.length === 0" class="card"><p>{{ t.grants.empty }}</p></div>
-      <ul v-else class="stack rows">
+      <div v-if="rows.length === 0" class="card"><p>{{ t('grants.empty') }}</p></div>
+      <ul v-else class="stack m-0 list-none p-0">
         <li v-for="r in rows" :key="r.grant.id" class="card stack" :data-testid="'grant-' + r.grant.audience">
-          <div class="row item">
+          <div class="row justify-between">
             <div>
               <strong v-if="r.server">
-                <RouterLink :to="{ name: 'api', params: { tenant: tenant.name, id: r.server.id } }">{{ r.server.name || t.apis.unnamed }}</RouterLink>
+                <RouterLink :to="{ name: 'api', params: { tenant: tenant.name, id: r.server.id } }">{{ r.server.name || t('apis.unnamed') }}</RouterLink>
               </strong>
-              <strong v-else>{{ t.grants.unknownApi }}</strong>
-              <code class="id">{{ r.grant.audience }}</code>
+              <strong v-else>{{ t('grants.unknownApi') }}</strong>
+              <code class="ml-2.5">{{ r.grant.audience }}</code>
             </div>
-            <Button variant="danger" :aria-label="t.grants.revoke + ' ' + r.grant.audience" @click="revoke(r.grant)">{{ t.grants.revoke }}</Button>
+            <Button variant="danger" :aria-label="t('grants.revokeLabel', { audience: r.grant.audience })" @click="revoke(r.grant)">{{ t('grants.revoke') }}</Button>
           </div>
           <GrantForm v-if="r.server" :tenant="tenant" :api="r.server" :grant="r.grant" @saved="replaced" />
         </li>
       </ul>
 
       <form class="card stack" novalidate @submit.prevent="authorize">
-        <h2>{{ t.grants.authorizeAnother }}</h2>
-        <p v-if="unauthorized.length === 0" class="muted">{{ t.grants.noneLeft }}</p>
+        <h2 class="m-0 text-[1.05rem]">{{ t('grants.authorizeAnother') }}</h2>
+        <p v-if="unauthorized.length === 0" class="muted">{{ t('grants.noneLeft') }}</p>
         <template v-else>
-          <Field id="grant-api" :label="t.grants.authorizeLabel">
+          <Field id="grant-api" :label="t('grants.authorizeLabel')">
             <select id="grant-api" v-model="chosen">
-              <option value="">{{ t.grants.choose }}</option>
+              <option value="">{{ t('grants.choose') }}</option>
               <option v-for="s in unauthorized" :key="s.id" :value="s.identifier">{{ label(s) }}</option>
             </select>
           </Field>
           <div class="row">
-            <Button variant="primary" type="submit" :disabled="busy || !chosen">{{ t.grants.authorize }}</Button>
+            <Button variant="primary" type="submit" :disabled="busy || !chosen">{{ t('grants.authorize') }}</Button>
           </div>
         </template>
       </form>
     </template>
   </div>
 </template>
-
-<style scoped>
-.rows {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.item {
-  justify-content: space-between;
-}
-.id {
-  margin-left: 0.6rem;
-}
-h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-</style>

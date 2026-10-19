@@ -2,14 +2,18 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { errorMessage, useServices } from '../context'
-import { t } from '../strings'
+import { useTenantsStore } from '../stores/tenants'
+import { useI18n } from 'vue-i18n'
 import Banner from '../ui/Banner.vue'
 import Button from '../ui/Button.vue'
 import Field from '../ui/Field.vue'
 import Modal from '../ui/Modal.vue'
 
+const { t } = useI18n()
+
 const open = defineModel<boolean>('open', { required: true })
-const { tenants } = useServices()
+const { api } = useServices()
+const tenants = useTenantsStore()
 const router = useRouter()
 const name = ref('')
 const domains = ref('')
@@ -32,7 +36,7 @@ async function submit() {
       .split(/\s+/)
       .map((d) => d.trim())
       .filter(Boolean)
-    const created = await tenants.create({ name: name.value.trim(), ...(list.length ? { domains: list } : {}) })
+    const created = await tenants.create(api, { name: name.value.trim(), ...(list.length ? { domains: list } : {}) })
     open.value = false
     await router.push({ name: 'home', params: { tenant: created.name } })
   } catch (e) {
@@ -44,10 +48,10 @@ async function submit() {
 </script>
 
 <template>
-  <Modal v-model:open="open" :title="t.createTenant">
+  <Modal v-model:open="open" :title="t('createTenant')">
     <form class="stack" novalidate @submit.prevent="submit">
       <Banner v-if="error" kind="error">{{ error }}</Banner>
-      <Field id="tenant-name" :label="t.tenantName" :hint="t.tenantNameHint">
+      <Field id="tenant-name" :label="t('tenantName')" :hint="t('tenantNameHint')">
         <input
           id="tenant-name"
           v-model="name"
@@ -60,12 +64,12 @@ async function submit() {
           aria-describedby="tenant-name-hint"
         />
       </Field>
-      <Field id="tenant-domains" :label="t.tenantDomains" :hint="t.tenantDomainsHint">
+      <Field id="tenant-domains" :label="t('tenantDomains')" :hint="t('tenantDomainsHint')">
         <textarea id="tenant-domains" v-model="domains" spellcheck="false" aria-describedby="tenant-domains-hint" />
       </Field>
       <div class="row">
-        <Button variant="primary" type="submit" :disabled="busy || !name.trim()">{{ busy ? t.creating : t.create }}</Button>
-        <Button @click="open = false">{{ t.cancel }}</Button>
+        <Button variant="primary" type="submit" :disabled="busy || !name.trim()">{{ busy ? t('creating') : t('create') }}</Button>
+        <Button @click="open = false">{{ t('cancel') }}</Button>
       </div>
     </form>
   </Modal>

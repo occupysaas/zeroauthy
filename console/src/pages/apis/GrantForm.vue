@@ -2,10 +2,12 @@
 import { ref, watch } from 'vue'
 import type { ClientGrant, ResourceServer, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import ScopePicker from './ScopePicker.vue'
+
+const { t } = useI18n()
 
 // The scope picker of one grant, saved on its own.
 const props = defineProps<{ tenant: SystemTenant; api: ResourceServer; grant: ClientGrant }>()
@@ -33,7 +35,7 @@ async function save() {
   status.value = ''
   try {
     const g = await client.updateClientGrant(props.tenant, props.grant.id, all.value ? { allow_all_scopes: true } : { scope: selected.value })
-    status.value = t.apis.grantSaved
+    status.value = t('apis.grantSaved')
     emit('saved', g)
   } catch (e) {
     error.value = errorMessage(e)
@@ -48,7 +50,7 @@ async function save() {
     <Banner v-if="error" kind="error">{{ error }}</Banner>
     <ScopePicker :id="'grant-' + grant.id" v-model:selected="selected" v-model:all="all" :scopes="api.scopes ?? []" :disabled="busy" />
     <div class="row">
-      <Button variant="primary" :disabled="busy" @click="save">{{ busy ? t.saving : t.apis.grantSave }}</Button>
+      <Button variant="primary" :disabled="busy" @click="save">{{ busy ? t('saving') : t('apis.grantSave') }}</Button>
       <span class="muted" role="status">{{ status }}</span>
     </div>
   </div>

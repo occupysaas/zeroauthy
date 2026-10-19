@@ -26,3 +26,7 @@ tests/conformance/results/
 .idea/
 .vscode/
 .DS_Store
+
+# Agent working files
+.superpowers/
+.claude/worktrees/

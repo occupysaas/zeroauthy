@@ -2,9 +2,11 @@
 import { onMounted, reactive, ref } from 'vue'
 import type { Client, Connection, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
+
+const { t } = useI18n()
 
 // The connections this application may sign users in with: one switch per
 // connection, changed through the connection's clients endpoint.
@@ -51,30 +53,30 @@ async function toggle(c: Connection, status: boolean) {
 
 <template>
   <div class="stack">
-    <p class="muted">{{ t.appConns.hint }}</p>
+    <p class="muted">{{ t('appConns.hint') }}</p>
     <Banner v-if="error" kind="error">
       {{ error }}
-      <Button variant="ghost" @click="load">{{ t.retry }}</Button>
+      <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
-    <p v-else-if="loading" class="muted" role="status">{{ t.loading }}</p>
-    <div v-else-if="connections.length === 0" class="card empty">
-      <p>{{ t.appConns.empty }}</p>
-      <RouterLink :to="{ name: 'connection-new', params: { tenant: tenant.name } }">{{ t.conns.create }}</RouterLink>
+    <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
+    <div v-else-if="connections.length === 0" class="card empty [&_p]:my-1">
+      <p>{{ t('appConns.empty') }}</p>
+      <RouterLink :to="{ name: 'connection-new', params: { tenant: tenant.name } }">{{ t('conns.create') }}</RouterLink>
     </div>
-    <ul v-else class="stack rows">
+    <ul v-else class="stack m-0 list-none p-0">
       <li v-for="c in connections" :key="c.id" class="card stack" :data-testid="'conn-' + c.id">
-        <div class="row item">
+        <div class="row justify-between">
           <RouterLink :to="{ name: 'connection', params: { tenant: tenant.name, id: c.id } }">{{ c.name }}</RouterLink>
-          <label class="switch">
+          <label class="flex items-center gap-1.5">
             <input
               type="checkbox"
               role="switch"
               :checked="enabled[c.id]"
               :disabled="busy[c.id]"
-              :aria-label="t.appConns.enableSwitch(c.name ?? c.id)"
+              :aria-label="t('appConns.enableSwitch', { name: c.name ?? c.id })"
               @change="toggle(c, ($event.target as HTMLInputElement).checked)"
             />
-            <span>{{ t.conns.enabled }}</span>
+            <span>{{ t('conns.enabled') }}</span>
           </label>
         </div>
         <Banner v-if="rowError[c.id]" kind="error">{{ rowError[c.id] }}</Banner>
@@ -82,22 +84,3 @@ async function toggle(c: Connection, status: boolean) {
     </ul>
   </div>
 </template>
-
-<style scoped>
-.rows {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.item {
-  justify-content: space-between;
-}
-.switch {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-.empty p {
-  margin: 0.25rem 0;
-}
-</style>

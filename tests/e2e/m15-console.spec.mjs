@@ -52,7 +52,7 @@ test('an operator manages a database connection and its users', async ({ page })
   await page.waitForURL(/\/admin\/t\/e2e\/$/);
 
   // 2. Create a database connection.
-  await nav.getByRole('link', { name: 'Connections' }).click();
+  await nav.getByRole('link', { name: 'Database' }).click();
   await page.waitForURL(/\/admin\/t\/e2e\/connections$/);
   await expect(page.getByRole('link', { name: 'Username-Password-Authentication' })).toBeVisible();
   await page.getByRole('link', { name: 'Create connection' }).click();

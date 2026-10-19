@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useServices } from '../context'
-import { t } from '../strings'
+import { useTenantsStore } from '../stores/tenants'
+import { useI18n } from 'vue-i18n'
 import Banner from '../ui/Banner.vue'
 
+const { t } = useI18n()
+
 // /admin/ leads to the first tenant's home.
-const { tenants } = useServices()
+const tenants = useTenantsStore()
 const router = useRouter()
 
 onMounted(() => {
@@ -16,7 +18,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Banner v-if="tenants.state.error" kind="error">{{ tenants.state.error }}</Banner>
-  <p v-else-if="tenants.state.list.length === 0" class="muted">{{ t.noTenants }}</p>
-  <p v-else class="muted">{{ t.loading }}</p>
+  <Banner v-if="tenants.error" kind="error">{{ tenants.error }}</Banner>
+  <p v-else-if="tenants.list.length === 0" class="muted">{{ t('noTenants') }}</p>
+  <p v-else class="muted">{{ t('loading') }}</p>
 </template>
