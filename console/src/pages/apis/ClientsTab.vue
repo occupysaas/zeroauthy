@@ -2,10 +2,12 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import type { Client, ClientGrant, ResourceServer, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import GrantForm from './GrantForm.vue'
+
+const { t } = useI18n()
 
 // Every machine-to-machine application of the tenant, with a switch that
 // authorizes it for this API and, once on, its permissions.
@@ -62,15 +64,15 @@ function replaced(g: ClientGrant) {
 
 <template>
   <div class="stack">
-    <p class="muted">{{ t.apis.machineHint }}</p>
+    <p class="muted">{{ t('apis.machineHint') }}</p>
     <Banner v-if="error" kind="error">
       {{ error }}
-      <Button variant="ghost" @click="load">{{ t.retry }}</Button>
+      <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
-    <p v-else-if="loading" class="muted" role="status">{{ t.loading }}</p>
+    <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
     <div v-else-if="clients.length === 0" class="card empty">
-      <p>{{ t.apis.machineEmpty }}</p>
-      <RouterLink :to="{ name: 'application-new', params: { tenant: tenant.name } }">{{ t.apis.machineCreate }}</RouterLink>
+      <p>{{ t('apis.machineEmpty') }}</p>
+      <RouterLink :to="{ name: 'application-new', params: { tenant: tenant.name } }">{{ t('apis.machineCreate') }}</RouterLink>
     </div>
     <ul v-else class="stack rows">
       <li v-for="c in clients" :key="c.client_id" class="card stack" :data-testid="'m2m-' + c.client_id">
@@ -85,14 +87,14 @@ function replaced(g: ClientGrant) {
               role="switch"
               :checked="byClient.has(c.client_id)"
               :disabled="busy[c.client_id]"
-              :aria-label="t.apis.authorizeSwitch(c.name)"
+              :aria-label="t('apis.authorizeSwitch', { name: c.name })"
               @change="toggle(c, ($event.target as HTMLInputElement).checked)"
             />
-            <span>{{ t.apis.authorized }}</span>
+            <span>{{ t('apis.authorized') }}</span>
           </label>
         </div>
         <Banner v-if="rowError[c.client_id]" kind="error">{{ rowError[c.client_id] }}</Banner>
-        <section v-if="byClient.get(c.client_id)" :aria-label="t.apis.permissionsOf(c.name)">
+        <section v-if="byClient.get(c.client_id)" :aria-label="t('apis.permissionsOf', { name: c.name })">
           <GrantForm :tenant="tenant" :api="server" :grant="byClient.get(c.client_id)!" @saved="replaced" />
         </section>
       </li>

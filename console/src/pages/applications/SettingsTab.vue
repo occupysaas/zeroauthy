@@ -2,13 +2,15 @@
 import { reactive, ref, watch } from 'vue'
 import { ApiError, type Client, type ClientUpdate, type SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import CopyButton from '../../ui/CopyButton.vue'
 import Field from '../../ui/Field.vue'
 import { fieldErrors, lines } from './defaults'
 import SecretField from './SecretField.vue'
+
+const { t } = useI18n()
 
 const props = defineProps<{ tenant: SystemTenant; client: Client }>()
 const emit = defineEmits<{ saved: [Client] }>()
@@ -52,7 +54,7 @@ async function save() {
   }
   try {
     const c = await api.updateClient(props.tenant, props.client.client_id, body)
-    status.value = t.saved
+    status.value = t('saved')
     emit('saved', c)
   } catch (e) {
     if (e instanceof ApiError && e.errorCode === 'invalid_body') {
@@ -74,19 +76,19 @@ function describedBy(id: string, hint: boolean): string {
 
 <template>
   <div class="stack">
-    <section class="card stack" :aria-label="t.apps.clientID">
+    <section class="card stack" :aria-label="t('apps.clientID')">
       <div>
-        <span class="label">{{ t.apps.domain }}</span>
+        <span class="label">{{ t('apps.domain') }}</span>
         <div class="row">
           <code>{{ tenant.host }}</code>
-          <CopyButton :value="tenant.host" :label="t.apps.domain" />
+          <CopyButton :value="tenant.host" :label="t('apps.domain')" />
         </div>
       </div>
       <div>
-        <span class="label">{{ t.apps.clientID }}</span>
+        <span class="label">{{ t('apps.clientID') }}</span>
         <div class="row">
           <code data-testid="client-id">{{ client.client_id }}</code>
-          <CopyButton :value="client.client_id" :label="t.apps.clientID" />
+          <CopyButton :value="client.client_id" :label="t('apps.clientID')" />
         </div>
       </div>
       <SecretField :client="client" />
@@ -94,23 +96,23 @@ function describedBy(id: string, hint: boolean): string {
 
     <form class="card stack" novalidate @submit.prevent="save">
       <Banner v-if="general" kind="error">{{ general }}</Banner>
-      <Field id="app-name" :label="t.apps.name" :error="errors.name">
+      <Field id="app-name" :label="t('apps.name')" :error="errors.name">
         <input id="app-name" v-model="form.name" type="text" maxlength="255" :aria-invalid="!!errors.name" :aria-describedby="describedBy('app-name', false)" />
       </Field>
-      <Field id="app-callbacks" :label="t.apps.callbacks" :hint="t.apps.callbacksHint" :error="errors.callbacks">
+      <Field id="app-callbacks" :label="t('apps.callbacks')" :hint="t('apps.callbacksHint')" :error="errors.callbacks">
         <textarea id="app-callbacks" v-model="form.callbacks" spellcheck="false" :aria-invalid="!!errors.callbacks" :aria-describedby="describedBy('app-callbacks', true)" />
       </Field>
-      <Field id="app-logout" :label="t.apps.logoutURLs" :hint="t.apps.logoutURLsHint" :error="errors.logout">
+      <Field id="app-logout" :label="t('apps.logoutURLs')" :hint="t('apps.logoutURLsHint')" :error="errors.logout">
         <textarea id="app-logout" v-model="form.logout" spellcheck="false" :aria-invalid="!!errors.logout" :aria-describedby="describedBy('app-logout', true)" />
       </Field>
-      <Field id="app-webOrigins" :label="t.apps.webOrigins" :hint="t.apps.webOriginsHint" :error="errors.webOrigins">
+      <Field id="app-webOrigins" :label="t('apps.webOrigins')" :hint="t('apps.webOriginsHint')" :error="errors.webOrigins">
         <textarea id="app-webOrigins" v-model="form.webOrigins" spellcheck="false" :aria-invalid="!!errors.webOrigins" :aria-describedby="describedBy('app-webOrigins', true)" />
       </Field>
-      <Field id="app-allowedOrigins" :label="t.apps.allowedOrigins" :hint="t.apps.allowedOriginsHint" :error="errors.allowedOrigins">
+      <Field id="app-allowedOrigins" :label="t('apps.allowedOrigins')" :hint="t('apps.allowedOriginsHint')" :error="errors.allowedOrigins">
         <textarea id="app-allowedOrigins" v-model="form.allowedOrigins" spellcheck="false" :aria-invalid="!!errors.allowedOrigins" :aria-describedby="describedBy('app-allowedOrigins', true)" />
       </Field>
       <div class="row">
-        <Button variant="primary" type="submit" :disabled="busy || !form.name.trim()">{{ busy ? t.saving : t.save }}</Button>
+        <Button variant="primary" type="submit" :disabled="busy || !form.name.trim()">{{ busy ? t('saving') : t('save') }}</Button>
         <span class="muted" role="status">{{ status }}</span>
       </div>
     </form>

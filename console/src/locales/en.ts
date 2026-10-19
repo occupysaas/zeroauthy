@@ -1,11 +1,8 @@
-// Every string the console shows, in one catalog so that translation can
-// follow (design §4.4). English only for now.
-export const t = {
-  product: 'zeroauthy',
+// The English catalog: every string the console shows. Other languages
+// follow this shape (MessageSchema); vue-i18n checks keys against it.
+const en = {
   docs: 'Docs',
   source: 'Source',
-  docsURL: 'https://github.com/zeroauthy/zeroauthy/tree/main/docs',
-  sourceURL: 'https://github.com/zeroauthy/zeroauthy',
   skipToContent: 'Skip to content',
   loading: 'Loading…',
   retry: 'Try again',
@@ -53,11 +50,11 @@ export const t = {
   managementAPI: 'Management API identifier',
   applicationCount: 'Applications',
   learnMore: 'Learn more',
-  docLinks: [
-    { title: 'Management API', href: 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/management-api.md' },
-    { title: 'The console', href: 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/console.md' },
-    { title: 'Compatibility with Auth0', href: 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/compat/matrix.md' },
-  ],
+  docLinks: {
+    managementAPI: 'Management API',
+    console: 'The console',
+    compat: 'Compatibility with Auth0',
+  },
 
   apps: {
     title: 'Applications',
@@ -72,14 +69,14 @@ export const t = {
     clientID: 'Client ID',
     previous: 'Previous',
     next: 'Next',
-    range: (from: number, to: number, total: number) => `${from}–${to} of ${total}`,
+    range: '{from}–{to} of {total}',
     back: 'All applications',
     types: {
       native: { label: 'Native', help: 'Mobile, desktop or command-line apps that run on the user’s device.' },
       spa: { label: 'Single-page app', help: 'JavaScript apps that run in the browser, such as React, Vue or Angular apps.' },
       regular_web: { label: 'Regular web app', help: 'Server-side web apps that keep a secret, such as Node.js, Java or Go sites.' },
       non_interactive: { label: 'Machine to machine', help: 'Services, scripts and daemons that call APIs as themselves, with no user.' },
-    } as Record<string, { label: string; help: string }>,
+    },
     createTitle: 'New application',
     createSubmit: 'Create application',
 
@@ -108,16 +105,16 @@ export const t = {
       refresh_token: 'Refresh token',
       client_credentials: 'Client credentials',
       password: 'Password',
-      'http://auth0.com/oauth/grant-type/password-realm': 'Password (realm)',
-      'urn:ietf:params:oauth:grant-type:device_code': 'Device code',
+      passwordRealm: 'Password (realm)',
+      deviceCode: 'Device code',
       implicit: 'Implicit (stored, not served)',
-    } as Record<string, string>,
+    },
     authMethod: 'Token endpoint authentication',
     authMethods: {
       none: 'None (public application)',
       client_secret_post: 'Client secret in the request body',
       client_secret_basic: 'Client secret with HTTP Basic',
-    } as Record<string, string>,
+    },
     idTokenLifetime: 'ID token lifetime (seconds)',
     rotation: 'Refresh token rotation',
     rotating: 'Rotating',
@@ -128,7 +125,7 @@ export const t = {
     requirePAR: 'Require pushed authorization requests (PAR)',
     party: 'Party',
     firstParty: 'First-party application',
-    thirdParty: (mode: string) => `Third-party application (${mode} mode)`,
+    thirdParty: 'Third-party application ({mode} mode)',
     partyFixed: 'Set when the application was created; it cannot change.',
     rotate: 'Rotate secret',
     rotateConfirm: 'Rotate the secret?',
@@ -136,8 +133,7 @@ export const t = {
     rotated: 'The secret was rotated.',
     deleteApp: 'Delete application',
     deleteConfirm: 'Delete this application?',
-    deleteBody: (name: string) =>
-      `Its refresh tokens, API grants and user consents are deleted too. Type “${name}” to confirm.`,
+    deleteBody: 'Its refresh tokens, API grants and user consents are deleted too. Type “{name}” to confirm.',
     deleteLabel: 'Application name',
     deleting: 'Deleting…',
   },
@@ -185,7 +181,7 @@ export const t = {
       allow_all: 'Allow any user',
       require_client_grant: 'Only applications that have been authorized',
       deny_all: 'Nobody',
-    } as Record<string, string>,
+    },
 
     permissionsHint: 'The scopes an application can be authorized to request for this API.',
     scopeValue: 'Permission',
@@ -201,8 +197,12 @@ export const t = {
     scopesUnsaved: 'You have unsaved changes to the permissions.',
     scopesSave: 'Save permissions',
     scopesInUseTitle: 'Remove permissions in use?',
-    scopesInUse: (values: string[], grants: number) =>
-      `${values.join(', ')} ${values.length === 1 ? 'is' : 'are'} granted to ${grants} ${grants === 1 ? 'application' : 'applications'}. Saving removes ${values.length === 1 ? 'it' : 'them'} from ${grants === 1 ? 'that grant' : 'those grants'}.`,
+    scopesInUse: {
+      oneOne: '{values} is granted to 1 application. Saving removes it from that grant.',
+      oneMany: '{values} is granted to {grants} applications. Saving removes it from those grants.',
+      manyOne: '{values} are granted to 1 application. Saving removes them from that grant.',
+      manyMany: '{values} are granted to {grants} applications. Saving removes them from those grants.',
+    },
     scopesInUseConfirm: 'Remove and save',
 
     machineHint: 'Applications of type machine to machine. Turn one on to let it request tokens for this API, then choose the permissions it gets.',
@@ -210,8 +210,8 @@ export const t = {
     machineCreate: 'Create application',
     application: 'Application',
     authorized: 'Authorized',
-    authorizeSwitch: (name: string) => `Authorize ${name} to use this API`,
-    permissionsOf: (name: string) => `Permissions for ${name}`,
+    authorizeSwitch: 'Authorize {name} to use this API',
+    permissionsOf: 'Permissions for {name}',
     allScopes: 'All permissions, including ones added later',
     grantSave: 'Save permissions',
     grantNoScopes: 'This API defines no permissions, so the grant carries none.',
@@ -219,12 +219,11 @@ export const t = {
 
     deleteApi: 'Delete API',
     deleteConfirm: 'Delete this API?',
-    deleteBody: (confirmWith: string) =>
-      `Every application’s grant for this API and the users’ consents for it are deleted too. Access tokens already issued stay valid until they expire. Type “${confirmWith}” to confirm.`,
+    deleteBody: 'Every application’s grant for this API and the users’ consents for it are deleted too. Access tokens already issued stay valid until they expire. Type “{confirmWith}” to confirm.',
     deleteSummary: 'Deleting the API also deletes its client grants and user consents.',
     deleteLabel: 'Name or identifier',
     deleting: 'Deleting…',
-    range: (from: number, to: number, total: number) => `${from}–${to} of ${total}`,
+    range: '{from}–{to} of {total}',
     previous: 'Previous',
     next: 'Next',
   },
@@ -246,7 +245,7 @@ export const t = {
     tab: 'Connections',
     hint: 'The connections users of this application may sign in with.',
     empty: 'This tenant has no connections yet.',
-    enableSwitch: (name: string) => `Enable ${name} for this application`,
+    enableSwitch: 'Enable {name} for this application',
   },
 
   conns: {
@@ -256,10 +255,10 @@ export const t = {
     emptyHint: 'A database connection holds users and their passwords. Create one, then enable it for the applications whose users sign in with it.',
     name: 'Name',
     strategy: 'Type',
-    strategies: { auth0: 'Database' } as Record<string, string>,
+    strategies: { auth0: 'Database' },
     enabledApps: 'Enabled applications',
     back: 'All connections',
-    range: (from: number, to: number, total: number) => `${from}–${to} of ${total}`,
+    range: '{from}–{to} of {total}',
     previous: 'Previous',
     next: 'Next',
 
@@ -317,14 +316,14 @@ export const t = {
       mfa: { label: 'Multi-factor authentication', hint: 'A JSON object.' },
       disable_self_service_change_password: { label: 'Disable self-service password change', hint: '' },
       non_persistent_attrs: { label: 'Non-persistent attributes', hint: 'One per line.' },
-    } as Record<string, { label: string; hint: string }>,
+    },
 
     complexity: 'Complexity',
     minLength: 'Minimum length',
     minLengthHint: 'From 1 to 72 characters.',
     minLengthInvalid: 'Enter a whole number from 1 to 72.',
     characterTypes: 'Required character types',
-    typeNames: { lowercase: 'Lower-case letters', uppercase: 'Upper-case letters', number: 'Digits', special: 'Symbols' } as Record<string, string>,
+    typeNames: { lowercase: 'Lower-case letters', uppercase: 'Upper-case letters', number: 'Digits', special: 'Symbols' },
     typeRule: 'Rule',
     typeRuleHint: 'Three of four needs all four types listed.',
     ruleAll: 'Every listed type',
@@ -369,7 +368,7 @@ export const t = {
       off: 'Not checked',
       serverOnlyTag: 'Server only',
       tooLong: 'At most 72 bytes',
-      minLen: (n: number) => `At least ${n} characters`,
+      minLen: 'At least {n} characters',
       rules: {
         types: 'Every required character type',
         threeOfFour: 'Three of the four character types',
@@ -379,7 +378,7 @@ export const t = {
         personal: 'Contains no personal data from the sample profile',
         history: 'Not a recently used password',
         common: 'Not in the built-in list of common passwords',
-      } as Record<string, string>,
+      },
     },
 
     customEnabled: 'Use my own database',
@@ -395,15 +394,15 @@ export const t = {
     scripts: 'Scripts',
     scriptsHint: 'JavaScript that runs on the server, in the shape of Auth0’s custom database templates. Leave a script empty to not use it.',
     scriptSet: 'set',
-    scriptLabel: (name: string) => `${name} script`,
+    scriptLabel: '{name} script',
     configuration: 'Configuration',
     configurationHint: 'Values the scripts read from configuration. They are stored sealed and are never shown again: after you save, replace a value to change it.',
     configurationNone: 'There are no configuration values.',
     masked: '••••••••',
     replace: 'Replace',
     remove: 'Remove',
-    removeKey: (key: string) => `Remove ${key}`,
-    newValueFor: (key: string) => `New value for ${key}`,
+    removeKey: 'Remove {key}',
+    newValueFor: 'New value for {key}',
     addKey: 'Add a value',
     configKey: 'Key',
     configValue: 'Value',
@@ -421,23 +420,23 @@ export const t = {
       unsaved: 'Try runs the saved script. Save your changes first to try them.',
       result: 'Result',
       logs: 'Console output',
-      duration: (ms: number) => `Took ${ms} ms.`,
+      duration: 'Took {ms} ms.',
       timeout: 'The script ran too long and was stopped.',
-      rateLimited: (seconds?: number) => `Too many tries.${seconds ? ` Wait ${seconds} seconds and try again.` : ' Wait a little and try again.'}`,
+      rateLimited: 'Too many tries. Wait a little and try again.',
+      rateLimitedSeconds: 'Too many tries. Wait {seconds} seconds and try again.',
       runtimeUnavailable: 'The script runtime is not available on this server.',
       secretsNote:
         'The result and output are shown here only and are not kept. Configuration values in the output are replaced with ■■■■■■■■; a script that encodes or splits a value can still reveal it.',
     },
 
     enabled: 'Enabled',
-    enableSwitch: (name: string) => `Enable this connection for ${name}`,
+    enableSwitch: 'Enable this connection for {name}',
     clientsHint: 'The applications whose users may sign in with this connection.',
 
     deleteConnection: 'Delete connection',
     deleteConfirm: 'Delete this connection?',
     deleteSummary: 'Deleting the connection also deletes all users of this connection.',
-    deleteBody: (name: string) =>
-      `All users of this connection are deleted with it, with their sessions, refresh tokens, grants and password history. This cannot be undone. Type “${name}” to confirm.`,
+    deleteBody: 'All users of this connection are deleted with it, with their sessions, refresh tokens, grants and password history. This cannot be undone. Type “{name}” to confirm.',
     deleteLabel: 'Connection name',
     deleting: 'Deleting…',
   },
@@ -453,7 +452,7 @@ export const t = {
     connectionNone:
       'This application can use no connection until you enable one for it in its Connections tab, so no user can sign in with it until then.',
     m2mNoGrants: 'This application is not authorized to use any API yet. Authorize one in the APIs tab, then come back for its token request.',
-    m2mStep1: (audience: string) => `Get an access token for ${audience}`,
+    m2mStep1: 'Get an access token for {audience}',
     m2mStep2: 'Call the API with the access token from the response, in place of ACCESS_TOKEN',
     m2mPublic: 'This application has no secret, so the token request carries only its client ID.',
     authorizeTitle: 'Start sign-in',
@@ -463,7 +462,7 @@ export const t = {
     reactTitle: 'auth0-react',
     nextTitle: 'nextjs-auth0 (.env.local)',
     expressTitle: 'express-openid-connect',
-    copySnippet: (what: string) => `Copy ${what}`,
+    copySnippet: 'Copy {what}',
   },
 
   operators: {
@@ -487,11 +486,11 @@ export const t = {
     link: 'Setup link',
     done: 'Done',
     remove: 'Remove',
-    removeLabel: (email: string) => `Remove ${email}`,
+    removeLabel: 'Remove {email}',
     removeTitle: 'Remove this operator?',
-    removeBody: (email: string) => `${email} loses access to the console at once, and their sessions and refresh tokens end. Their user account stays.`,
+    removeBody: '{email} loses access to the console at once, and their sessions and refresh tokens end. Their user account stays.',
     removing: 'Removing…',
-    removed: (email: string) => `${email} was removed.`,
+    removed: '{email} was removed.',
     lastOperator: 'This is the last operator, and the console always needs at least one. Invite another operator first.',
     gone: 'That operator no longer exists.',
   },
@@ -500,4 +499,13 @@ export const t = {
   notFoundBody: 'There is nothing at this address.',
   backHome: 'Back to home',
   unknownTenant: 'This tenant does not exist, or you do not manage it.',
+} as const
+
+export default en
+
+export type MessageSchema = typeof en
+
+declare module 'vue-i18n' {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  export interface DefineLocaleMessage extends MessageSchema {}
 }

@@ -2,13 +2,15 @@
 import { computed, reactive, ref, watch } from 'vue'
 import type { Connection, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import { lines } from '../applications/defaults'
 import { CHARACTER_TYPES, checkPassword, emptyProfile, type Policy, type RuleResult } from './checker'
 import { asRecord, asStrings, mergeOptions, optionsOf } from './options'
+
+const { t, te } = useI18n()
 
 const props = defineProps<{ tenant: SystemTenant; connection: Connection }>()
 const emit = defineEmits<{ saved: [Connection] }>()
@@ -68,9 +70,9 @@ async function save() {
   for (const k of Object.keys(errors)) delete errors[k]
   const min = whole(form.minLength, 1, 72)
   const size = whole(form.historySize, 1, 24)
-  if (min === null) errors.minLength = t.conns.minLengthInvalid
-  if (form.rule === 'three_of_four' && form.types.length !== CHARACTER_TYPES.length) errors.types = t.conns.threeOfFourNeedsAll
-  if (size === null) errors.historySize = t.conns.historySizeInvalid
+  if (min === null) errors.minLength = t('conns.minLengthInvalid')
+  if (form.rule === 'three_of_four' && form.types.length !== CHARACTER_TYPES.length) errors.types = t('conns.threeOfFourNeedsAll')
+  if (size === null) errors.historySize = t('conns.historySizeInvalid')
   if (Object.keys(errors).length) return
 
   // The whole password_options goes back: what the last GET returned, with
@@ -94,7 +96,7 @@ async function save() {
   busy.value = true
   try {
     const c = await api.updateConnection(props.tenant, props.connection.id, { options: mergeOptions(optionsOf(props.connection), { password_options: next }) })
-    status.value = t.saved
+    status.value = t('saved')
     emit('saved', c)
   } catch (e) {
     general.value = errorMessage(e)
@@ -122,13 +124,13 @@ const policy = computed<Policy>(() => ({
 const results = computed<RuleResult[]>(() => checkPassword(policy.value, profile, sample.value))
 
 function verdict(r: RuleResult): string {
-  if (!r.checked) return t.conns.checker.off
-  return r.ok ? t.conns.checker.pass : t.conns.checker.fail
+  if (!r.checked) return t('conns.checker.off')
+  return r.ok ? t('conns.checker.pass') : t('conns.checker.fail')
 }
 function ruleLabel(r: RuleResult): string {
-  if (r.rule === 'length') return r.detail === 'long' ? t.conns.checker.tooLong : t.conns.checker.minLen(Number(r.detail))
-  if (r.rule === 'types' && r.checked) return policy.value.characterTypeRule === 'three_of_four' ? t.conns.checker.rules.threeOfFour : t.conns.checker.rules.types
-  return t.conns.checker.rules[r.rule] ?? r.rule
+  if (r.rule === 'length') return r.detail === 'long' ? t('conns.checker.tooLong') : t('conns.checker.minLen', { n: Number(r.detail) })
+  if (r.rule === 'types' && r.checked) return policy.value.characterTypeRule === 'three_of_four' ? t('conns.checker.rules.threeOfFour') : t('conns.checker.rules.types')
+  return te(`conns.checker.rules.${r.rule}`) ? t(`conns.checker.rules.${r.rule}`) : r.rule
 }
 const profileFields: { key: keyof typeof profile; label: string }[] = [
   { key: 'name', label: 'name' },
@@ -146,92 +148,92 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
   <div class="stack">
     <form class="card stack" novalidate @submit.prevent="save">
       <Banner v-if="general" kind="error">{{ general }}</Banner>
-      <h2>{{ t.conns.complexity }}</h2>
-      <Field id="pw-min" :label="t.conns.minLength" :hint="t.conns.minLengthHint" :error="errors.minLength">
+      <h2>{{ t('conns.complexity') }}</h2>
+      <Field id="pw-min" :label="t('conns.minLength')" :hint="t('conns.minLengthHint')" :error="errors.minLength">
         <input id="pw-min" v-model="form.minLength" type="text" inputmode="numeric" :aria-invalid="!!errors.minLength" :aria-describedby="'pw-min-hint' + (errors.minLength ? ' pw-min-error' : '')" />
       </Field>
       <fieldset class="stack plain">
-        <legend>{{ t.conns.characterTypes }}</legend>
+        <legend>{{ t('conns.characterTypes') }}</legend>
         <label v-for="ct in CHARACTER_TYPES" :key="ct" class="check">
           <input v-model="form.types" type="checkbox" :value="ct" />
-          <span>{{ t.conns.typeNames[ct] }}</span>
+          <span>{{ t(`conns.typeNames.${ct}`) }}</span>
         </label>
         <p v-if="errors.types" class="error" role="alert">{{ errors.types }}</p>
       </fieldset>
-      <Field id="pw-rule" :label="t.conns.typeRule" :hint="t.conns.typeRuleHint">
+      <Field id="pw-rule" :label="t('conns.typeRule')" :hint="t('conns.typeRuleHint')">
         <select id="pw-rule" v-model="form.rule" aria-describedby="pw-rule-hint">
-          <option value="all">{{ t.conns.ruleAll }}</option>
-          <option value="three_of_four">{{ t.conns.ruleThree }}</option>
+          <option value="all">{{ t('conns.ruleAll') }}</option>
+          <option value="three_of_four">{{ t('conns.ruleThree') }}</option>
         </select>
       </Field>
-      <Field id="pw-identical" :label="t.conns.identical">
+      <Field id="pw-identical" :label="t('conns.identical')">
         <select id="pw-identical" v-model="form.identical">
-          <option value="allow">{{ t.conns.allow }}</option>
-          <option value="block">{{ t.conns.block }}</option>
+          <option value="allow">{{ t('conns.allow') }}</option>
+          <option value="block">{{ t('conns.block') }}</option>
         </select>
       </Field>
-      <Field id="pw-sequential" :label="t.conns.sequential">
+      <Field id="pw-sequential" :label="t('conns.sequential')">
         <select id="pw-sequential" v-model="form.sequential">
-          <option value="allow">{{ t.conns.allow }}</option>
-          <option value="block">{{ t.conns.block }}</option>
+          <option value="allow">{{ t('conns.allow') }}</option>
+          <option value="block">{{ t('conns.block') }}</option>
         </select>
       </Field>
-      <Field id="pw-max" :label="t.conns.maxExceeded" :hint="t.conns.maxExceededHint">
+      <Field id="pw-max" :label="t('conns.maxExceeded')" :hint="t('conns.maxExceededHint')">
         <select id="pw-max" v-model="form.maxExceeded" aria-describedby="pw-max-hint">
-          <option value="error">{{ t.conns.maxError }}</option>
-          <option value="truncate">{{ t.conns.maxTruncate }}</option>
+          <option value="error">{{ t('conns.maxError') }}</option>
+          <option value="truncate">{{ t('conns.maxTruncate') }}</option>
         </select>
       </Field>
 
-      <h2>{{ t.conns.history }}</h2>
+      <h2>{{ t('conns.history') }}</h2>
       <label class="check">
         <input v-model="form.historyActive" type="checkbox" />
-        <span><strong>{{ t.conns.historyActive }}</strong><span class="muted">{{ t.conns.historyHint }}</span></span>
+        <span><strong>{{ t('conns.historyActive') }}</strong><span class="muted">{{ t('conns.historyHint') }}</span></span>
       </label>
-      <Field id="pw-history-size" :label="t.conns.historySize" :error="errors.historySize">
+      <Field id="pw-history-size" :label="t('conns.historySize')" :error="errors.historySize">
         <input id="pw-history-size" v-model="form.historySize" type="text" inputmode="numeric" :aria-invalid="!!errors.historySize" />
       </Field>
 
-      <h2>{{ t.conns.dictionary }}</h2>
+      <h2>{{ t('conns.dictionary') }}</h2>
       <label class="check">
         <input id="pw-dict-active" v-model="form.dictActive" type="checkbox" />
-        <span><strong>{{ t.conns.dictActive }}</strong><span class="muted">{{ t.conns.dictHint }}</span></span>
+        <span><strong>{{ t('conns.dictActive') }}</strong><span class="muted">{{ t('conns.dictHint') }}</span></span>
       </label>
-      <Field id="pw-dict-default" :label="t.conns.dictDefault">
+      <Field id="pw-dict-default" :label="t('conns.dictDefault')">
         <select id="pw-dict-default" v-model="form.dictDefault">
-          <option value="en_10k">{{ t.conns.dictList10k }}</option>
-          <option value="en_100k">{{ t.conns.dictList100k }}</option>
+          <option value="en_10k">{{ t('conns.dictList10k') }}</option>
+          <option value="en_100k">{{ t('conns.dictList100k') }}</option>
         </select>
       </Field>
-      <Field id="pw-dict-custom" :label="t.conns.dictCustom" :hint="t.conns.dictCustomHint">
+      <Field id="pw-dict-custom" :label="t('conns.dictCustom')" :hint="t('conns.dictCustomHint')">
         <textarea id="pw-dict-custom" v-model="form.dictCustom" rows="3" spellcheck="false" aria-describedby="pw-dict-custom-hint" />
       </Field>
 
-      <h2>{{ t.conns.personal }}</h2>
+      <h2>{{ t('conns.personal') }}</h2>
       <label class="check">
         <input id="pw-profile-active" v-model="form.profileActive" type="checkbox" />
-        <span><strong>{{ t.conns.personalActive }}</strong><span class="muted">{{ t.conns.personalHint }}</span></span>
+        <span><strong>{{ t('conns.personalActive') }}</strong><span class="muted">{{ t('conns.personalHint') }}</span></span>
       </label>
-      <Field id="pw-blocked" :label="t.conns.blockedFields" :hint="t.conns.blockedFieldsHint">
+      <Field id="pw-blocked" :label="t('conns.blockedFields')" :hint="t('conns.blockedFieldsHint')">
         <textarea id="pw-blocked" v-model="form.blocked" rows="5" spellcheck="false" aria-describedby="pw-blocked-hint" />
       </Field>
 
       <div class="row">
-        <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t.saving : t.save }}</Button>
+        <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('saving') : t('save') }}</Button>
         <span class="muted" role="status">{{ status }}</span>
       </div>
     </form>
 
-    <section class="card stack" :aria-label="t.conns.checker.title" data-testid="checker">
-      <h2>{{ t.conns.checker.title }}</h2>
-      <p class="muted">{{ t.conns.checker.intro }}</p>
-      <Banner kind="info">{{ t.conns.checker.serverOnly }}</Banner>
-      <Field id="pw-sample" :label="t.conns.checker.sample" :hint="t.conns.checker.sampleHint">
+    <section class="card stack" :aria-label="t('conns.checker.title')" data-testid="checker">
+      <h2>{{ t('conns.checker.title') }}</h2>
+      <p class="muted">{{ t('conns.checker.intro') }}</p>
+      <Banner kind="info">{{ t('conns.checker.serverOnly') }}</Banner>
+      <Field id="pw-sample" :label="t('conns.checker.sample')" :hint="t('conns.checker.sampleHint')">
         <input id="pw-sample" v-model="sample" type="text" autocomplete="off" spellcheck="false" aria-describedby="pw-sample-hint" />
       </Field>
       <details>
-        <summary>{{ t.conns.checker.profile }}</summary>
-        <p class="muted">{{ t.conns.checker.profileHint }}</p>
+        <summary>{{ t('conns.checker.profile') }}</summary>
+        <p class="muted">{{ t('conns.checker.profileHint') }}</p>
         <div class="grid">
           <Field v-for="f in profileFields" :id="'pw-profile-' + f.key" :key="f.key" :label="f.label">
             <input :id="'pw-profile-' + f.key" v-model="profile[f.key]" type="text" autocomplete="off" />
@@ -242,8 +244,8 @@ const profileFields: { key: keyof typeof profile; label: string }[] = [
         <li v-for="r in results" :key="r.rule" :data-testid="'rule-' + r.rule" :data-state="!r.checked ? 'off' : r.ok ? 'pass' : 'fail'">
           <strong>{{ verdict(r) }}</strong> {{ ruleLabel(r) }}
         </li>
-        <li data-testid="rule-history" data-state="off"><strong>{{ t.conns.checker.serverOnlyTag }}</strong> {{ t.conns.checker.rules.history }}</li>
-        <li data-testid="rule-common" data-state="off"><strong>{{ t.conns.checker.serverOnlyTag }}</strong> {{ t.conns.checker.rules.common }}</li>
+        <li data-testid="rule-history" data-state="off"><strong>{{ t('conns.checker.serverOnlyTag') }}</strong> {{ t('conns.checker.rules.history') }}</li>
+        <li data-testid="rule-common" data-state="off"><strong>{{ t('conns.checker.serverOnlyTag') }}</strong> {{ t('conns.checker.rules.common') }}</li>
       </ul>
     </section>
   </div>

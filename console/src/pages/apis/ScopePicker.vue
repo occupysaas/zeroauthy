@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { ResourceServerScope } from '../../api/client'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 // Which of an API's permissions a grant carries. "All" grants every
 // permission the API defines when a token is issued.
@@ -15,12 +17,12 @@ function toggle(value: string, on: boolean) {
 
 <template>
   <fieldset class="picker">
-    <legend class="visually-hidden">{{ t.apis.permissions }}</legend>
-    <p v-if="scopes.length === 0" class="muted">{{ t.apis.grantNoScopes }}</p>
+    <legend class="visually-hidden">{{ t('apis.permissions') }}</legend>
+    <p v-if="scopes.length === 0" class="muted">{{ t('apis.grantNoScopes') }}</p>
     <template v-else>
       <label class="opt">
         <input v-model="all" type="checkbox" :disabled="disabled" :data-testid="id + '-all'" />
-        <span>{{ t.apis.allScopes }}</span>
+        <span>{{ t('apis.allScopes') }}</span>
       </label>
       <label v-for="s in scopes" :key="s.value" class="opt">
         <input

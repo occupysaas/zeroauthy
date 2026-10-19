@@ -4,13 +4,15 @@ import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ApiError, type ResourceServer } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import ClientsTab from './ClientsTab.vue'
 import DangerZone from './DangerZone.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import SettingsTab from './SettingsTab.vue'
+
+const { t } = useI18n()
 
 const { api } = useServices()
 const tenant = useTenant()
@@ -39,25 +41,25 @@ watch([tenant, () => route.params.id], load, { immediate: true })
 
 <template>
   <div v-if="tenant">
-    <RouterLink :to="{ name: 'apis', params: { tenant: tenant.name } }">← {{ t.apis.back }}</RouterLink>
-    <Banner v-if="notFound" kind="error">{{ t.notFoundBody }}</Banner>
+    <RouterLink :to="{ name: 'apis', params: { tenant: tenant.name } }">← {{ t('apis.back') }}</RouterLink>
+    <Banner v-if="notFound" kind="error">{{ t('notFoundBody') }}</Banner>
     <Banner v-else-if="error" kind="error">
       {{ error }}
-      <Button variant="ghost" @click="load">{{ t.retry }}</Button>
+      <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
-    <p v-else-if="!server" class="muted" role="status">{{ t.loading }}</p>
+    <p v-else-if="!server" class="muted" role="status">{{ t('loading') }}</p>
     <template v-else>
       <h1>
-        {{ server.name || t.apis.unnamed }}
-        <span v-if="server.is_system" class="badge" data-testid="system-badge">{{ t.apis.system }}</span>
+        {{ server.name || t('apis.unnamed') }}
+        <span v-if="server.is_system" class="badge" data-testid="system-badge">{{ t('apis.system') }}</span>
       </h1>
       <p class="muted"><code>{{ server.identifier }}</code></p>
       <TabsRoot v-model="tab">
         <TabsList class="tabs" :aria-label="server.name || server.identifier">
-          <TabsTrigger class="tab" value="settings">{{ t.apis.settings }}</TabsTrigger>
-          <TabsTrigger class="tab" value="permissions">{{ t.apis.permissions }}</TabsTrigger>
-          <TabsTrigger class="tab" value="clients">{{ t.apis.machineApps }}</TabsTrigger>
-          <TabsTrigger v-if="!server.is_system" class="tab" value="danger">{{ t.apis.danger }}</TabsTrigger>
+          <TabsTrigger class="tab" value="settings">{{ t('apis.settings') }}</TabsTrigger>
+          <TabsTrigger class="tab" value="permissions">{{ t('apis.permissions') }}</TabsTrigger>
+          <TabsTrigger class="tab" value="clients">{{ t('apis.machineApps') }}</TabsTrigger>
+          <TabsTrigger v-if="!server.is_system" class="tab" value="danger">{{ t('apis.danger') }}</TabsTrigger>
         </TabsList>
         <TabsContent value="settings">
           <SettingsTab :tenant="tenant" :server="server" @saved="server = $event" />
@@ -74,7 +76,7 @@ watch([tenant, () => route.params.id], load, { immediate: true })
       </TabsRoot>
     </template>
   </div>
-  <Banner v-else kind="error">{{ t.unknownTenant }}</Banner>
+  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>
 
 <style scoped>

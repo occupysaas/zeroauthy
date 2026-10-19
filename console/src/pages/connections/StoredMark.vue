@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 // The marker on a setting zeroauthy keeps and returns but does not act on.
 </script>
 
 <template>
-  <span class="mark" data-testid="not-enforced">{{ t.conns.notEnforced }}</span>
+  <span class="mark" data-testid="not-enforced">{{ t('conns.notEnforced') }}</span>
 </template>
 
 <style scoped>

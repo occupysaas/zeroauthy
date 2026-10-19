@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { reactive } from 'vue'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { fakeServices, tenant } from '../test/services'
+import { createConsoleI18n } from '../i18n'
 import { usePreferencesStore } from './preferences'
 import { useSessionStore } from './session'
 import { useTenantsStore } from './tenants'
@@ -57,10 +58,14 @@ describe('preferences store', () => {
     expect(window.localStorage.getItem('zeroauthy.console.theme')).toBe('dark')
   })
 
-  it('setLocale stores the locale', () => {
+  it('setLocale applies and remembers the locale', () => {
+    const i18n = createConsoleI18n('en')
     const p = usePreferencesStore()
     p.setLocale('en')
     expect(p.locale).toBe('en')
+    expect(i18n.global.locale.value).toBe('en')
+    expect(document.documentElement.lang).toBe('en')
+    expect(window.localStorage.getItem('zeroauthy.console.locale')).toBe('en')
   })
 })
 

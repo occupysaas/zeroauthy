@@ -6,13 +6,13 @@ import { fakeServices, memoryRouter, tenant } from '../test/services'
 import TenantSwitcher from './TenantSwitcher.vue'
 
 async function setup(handler: Parameters<typeof fakeServices>[0]) {
-  const { services, calls, pinia } = fakeServices(handler)
+  const { services, calls, pinia, i18n } = fakeServices(handler)
   await useTenantsStore().load(services.api)
   const router = memoryRouter()
   await router.push('/t/acme/applications')
   const wrapper = mount(TenantSwitcher, {
     attachTo: document.body,
-    global: { plugins: [router, pinia], provide: { [servicesKey as symbol]: services } },
+    global: { plugins: [router, pinia, i18n], provide: { [servicesKey as symbol]: services } },
   })
   return { wrapper, router, calls, services }
 }

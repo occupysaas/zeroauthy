@@ -8,7 +8,7 @@ import { fakeServices, memoryRouter, tenant, type Call, type Reply } from './ser
 // mountAt mounts page at path, signed in, with the API answered by handler
 // (the tenant list included).
 export async function mountAt(page: Component, path: string, handler: (c: Call) => Reply | Promise<Reply>, tenantExtra: Partial<SystemTenant> = {}) {
-  const { services, calls, pinia } = fakeServices((c) =>
+  const { services, calls, pinia, i18n } = fakeServices((c) =>
     c.url.endsWith('/api/system/tenants') ? { status: 200, body: [tenant('acme', tenantExtra), tenant('system', { reserved: true })] } : handler(c),
   )
   await useTenantsStore().load(services.api)
@@ -17,7 +17,7 @@ export async function mountAt(page: Component, path: string, handler: (c: Call) 
   await router.push(path)
   const wrapper = mount(page, {
     attachTo: document.body,
-    global: { plugins: [router, pinia], provide: { [servicesKey as symbol]: services } },
+    global: { plugins: [router, pinia, i18n], provide: { [servicesKey as symbol]: services } },
   })
   await flushPromises()
   return { wrapper, router, calls }

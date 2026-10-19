@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
+import { activeI18n, applyLocale, savedLocale, type Locale } from '../i18n'
 import { applyTheme, savedTheme, type Theme } from '../theme'
 
 // Per-browser conveniences: the colour theme and the display language.
 export const usePreferencesStore = defineStore('preferences', {
   state: () => ({
     theme: savedTheme() as Theme,
-    locale: 'en',
+    locale: savedLocale() as Locale,
   }),
   actions: {
     setTheme(t: Theme): void {
@@ -13,9 +14,10 @@ export const usePreferencesStore = defineStore('preferences', {
       applyTheme(t)
     },
 
-    // setLocale only remembers the language until the i18n instance is wired.
-    setLocale(l: string): void {
+    setLocale(l: Locale): void {
       this.locale = l
+      const i18n = activeI18n()
+      if (i18n) applyLocale(i18n, l)
     },
   },
 })

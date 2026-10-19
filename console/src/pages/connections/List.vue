@@ -3,9 +3,17 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Connection } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
+
+const { t, te } = useI18n()
+
+// strategyLabel names a connection strategy; one this console does not know shows as is.
+function strategyLabel(strategy: string | undefined): string {
+  const s = strategy ?? ''
+  return te(`conns.strategies.${s}`) ? t(`conns.strategies.${s}`) : s
+}
 
 const PER_PAGE = 20
 
@@ -57,27 +65,27 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
 <template>
   <div v-if="tenant">
     <div class="row head">
-      <h1>{{ t.conns.title }}</h1>
+      <h1>{{ t('conns.title') }}</h1>
       <span class="spacer" />
-      <RouterLink class="create" :to="{ name: 'connection-new', params: { tenant: tenant.name } }">{{ t.conns.create }}</RouterLink>
+      <RouterLink class="create" :to="{ name: 'connection-new', params: { tenant: tenant.name } }">{{ t('conns.create') }}</RouterLink>
     </div>
 
     <Banner v-if="error" kind="error">
       {{ error }}
-      <Button variant="ghost" @click="load">{{ t.retry }}</Button>
+      <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
-    <p v-else-if="loading" class="muted" role="status">{{ t.loading }}</p>
+    <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
     <div v-else-if="connections.length === 0" class="card empty">
-      <p>{{ t.conns.empty }}</p>
-      <p class="muted">{{ t.conns.emptyHint }}</p>
+      <p>{{ t('conns.empty') }}</p>
+      <p class="muted">{{ t('conns.emptyHint') }}</p>
     </div>
     <template v-else>
       <table class="data">
         <thead>
           <tr>
-            <th scope="col">{{ t.conns.name }}</th>
-            <th scope="col">{{ t.conns.strategy }}</th>
-            <th scope="col">{{ t.conns.enabledApps }}</th>
+            <th scope="col">{{ t('conns.name') }}</th>
+            <th scope="col">{{ t('conns.strategy') }}</th>
+            <th scope="col">{{ t('conns.enabledApps') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -85,20 +93,20 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
             <td>
               <RouterLink :to="{ name: 'connection', params: { tenant: tenant.name, id: c.id } }">{{ c.name }}</RouterLink>
             </td>
-            <td>{{ t.conns.strategies[c.strategy ?? ''] ?? c.strategy }}</td>
+            <td>{{ strategyLabel(c.strategy) }}</td>
             <td :data-testid="'count-' + c.id">{{ counts[c.id] ?? '…' }}</td>
           </tr>
         </tbody>
       </table>
       <nav class="row pager" aria-label="Pages">
-        <span class="muted" aria-live="polite">{{ t.conns.range(from, to, total) }}</span>
+        <span class="muted" aria-live="polite">{{ t('conns.range', { from, to, total }) }}</span>
         <span class="spacer" />
-        <Button :disabled="page === 0" @click="goto(page - 1)">{{ t.conns.previous }}</Button>
-        <Button :disabled="to >= total" @click="goto(page + 1)">{{ t.conns.next }}</Button>
+        <Button :disabled="page === 0" @click="goto(page - 1)">{{ t('conns.previous') }}</Button>
+        <Button :disabled="to >= total" @click="goto(page + 1)">{{ t('conns.next') }}</Button>
       </nav>
     </template>
   </div>
-  <Banner v-else kind="error">{{ t.unknownTenant }}</Banner>
+  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>
 
 <style scoped>

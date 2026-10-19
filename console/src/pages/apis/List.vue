@@ -3,9 +3,11 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { ResourceServer } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
+
+const { t } = useI18n()
 
 const PER_PAGE = 20
 
@@ -47,47 +49,47 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
 <template>
   <div v-if="tenant">
     <div class="row head">
-      <h1>{{ t.apis.title }}</h1>
+      <h1>{{ t('apis.title') }}</h1>
       <span class="spacer" />
-      <RouterLink class="create" :to="{ name: 'api-new', params: { tenant: tenant.name } }">{{ t.apis.create }}</RouterLink>
+      <RouterLink class="create" :to="{ name: 'api-new', params: { tenant: tenant.name } }">{{ t('apis.create') }}</RouterLink>
     </div>
 
     <Banner v-if="error" kind="error">
       {{ error }}
-      <Button variant="ghost" @click="load">{{ t.retry }}</Button>
+      <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
-    <p v-else-if="loading" class="muted" role="status">{{ t.loading }}</p>
+    <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
     <div v-else-if="servers.length === 0" class="card empty">
-      <p>{{ t.apis.empty }}</p>
-      <p class="muted">{{ t.apis.emptyHint }}</p>
+      <p>{{ t('apis.empty') }}</p>
+      <p class="muted">{{ t('apis.emptyHint') }}</p>
     </div>
     <template v-else>
       <table class="data">
         <thead>
           <tr>
-            <th scope="col">{{ t.apis.name }}</th>
-            <th scope="col">{{ t.apis.identifier }}</th>
+            <th scope="col">{{ t('apis.name') }}</th>
+            <th scope="col">{{ t('apis.identifier') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="s in servers" :key="s.id">
             <td>
-              <RouterLink :to="{ name: 'api', params: { tenant: tenant.name, id: s.id } }">{{ s.name || t.apis.unnamed }}</RouterLink>
-              <span v-if="s.is_system" class="badge" data-testid="system-badge">{{ t.apis.system }}</span>
+              <RouterLink :to="{ name: 'api', params: { tenant: tenant.name, id: s.id } }">{{ s.name || t('apis.unnamed') }}</RouterLink>
+              <span v-if="s.is_system" class="badge" data-testid="system-badge">{{ t('apis.system') }}</span>
             </td>
             <td><code>{{ s.identifier }}</code></td>
           </tr>
         </tbody>
       </table>
       <nav class="row pager" aria-label="Pages">
-        <span class="muted" aria-live="polite">{{ t.apis.range(from, to, total) }}</span>
+        <span class="muted" aria-live="polite">{{ t('apis.range', { from, to, total }) }}</span>
         <span class="spacer" />
-        <Button :disabled="page === 0" @click="goto(page - 1)">{{ t.apis.previous }}</Button>
-        <Button :disabled="to >= total" @click="goto(page + 1)">{{ t.apis.next }}</Button>
+        <Button :disabled="page === 0" @click="goto(page - 1)">{{ t('apis.previous') }}</Button>
+        <Button :disabled="to >= total" @click="goto(page + 1)">{{ t('apis.next') }}</Button>
       </nav>
     </template>
   </div>
-  <Banner v-else kind="error">{{ t.unknownTenant }}</Banner>
+  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>
 
 <style scoped>

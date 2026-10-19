@@ -3,11 +3,13 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Connection, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import Modal from '../../ui/Modal.vue'
+
+const { t } = useI18n()
 
 const props = defineProps<{ tenant: SystemTenant; connection: Connection }>()
 const { api } = useServices()
@@ -37,21 +39,21 @@ async function remove() {
   <div class="card stack danger-zone">
     <div class="row item">
       <div>
-        <strong>{{ t.conns.deleteConnection }}</strong>
-        <p class="muted">{{ t.conns.deleteSummary }}</p>
+        <strong>{{ t('conns.deleteConnection') }}</strong>
+        <p class="muted">{{ t('conns.deleteSummary') }}</p>
       </div>
-      <Button variant="danger" @click="(error = ''), (typed = ''), (open = true)">{{ t.conns.deleteConnection }}</Button>
+      <Button variant="danger" @click="(error = ''), (typed = ''), (open = true)">{{ t('conns.deleteConnection') }}</Button>
     </div>
 
-    <Modal v-model:open="open" :title="t.conns.deleteConfirm" :description="t.conns.deleteBody(connection.name ?? '')">
+    <Modal v-model:open="open" :title="t('conns.deleteConfirm')" :description="t('conns.deleteBody', { name: connection.name ?? '' })">
       <form class="stack" novalidate @submit.prevent="typed === connection.name && remove()">
         <Banner v-if="error" kind="error">{{ error }}</Banner>
-        <Field id="delete-confirm" :label="t.conns.deleteLabel">
+        <Field id="delete-confirm" :label="t('conns.deleteLabel')">
           <input id="delete-confirm" v-model="typed" type="text" autocomplete="off" spellcheck="false" />
         </Field>
         <div class="row">
-          <Button variant="danger" type="submit" :disabled="busy || typed !== connection.name">{{ busy ? t.conns.deleting : t.conns.deleteConnection }}</Button>
-          <Button @click="open = false">{{ t.cancel }}</Button>
+          <Button variant="danger" type="submit" :disabled="busy || typed !== connection.name">{{ busy ? t('conns.deleting') : t('conns.deleteConnection') }}</Button>
+          <Button @click="open = false">{{ t('cancel') }}</Button>
         </div>
       </form>
     </Modal>

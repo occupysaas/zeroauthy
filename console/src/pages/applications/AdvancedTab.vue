@@ -2,10 +2,23 @@
 import { computed, reactive, ref, watch } from 'vue'
 import type { Client, ClientUpdate, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
+
+const { t, te } = useI18n()
+
+// Catalog keys for the grant types; the URN and URL grants have dotted names.
+const GRANT_KEYS: Record<string, string> = {
+  'http://auth0.com/oauth/grant-type/password-realm': 'passwordRealm',
+  'urn:ietf:params:oauth:grant-type:device_code': 'deviceCode',
+}
+// grantLabel names a grant type; one this console does not know shows as is.
+function grantLabel(g: string): string {
+  const key = `apps.grants.${GRANT_KEYS[g] ?? g}`
+  return te(key) ? t(key) : g
+}
 
 const props = defineProps<{ tenant: SystemTenant; client: Client }>()
 const emit = defineEmits<{ saved: [Client] }>()
@@ -45,6 +58,8 @@ watch(
   { immediate: true },
 )
 
+const authMethods = ['none', 'client_secret_post', 'client_secret_basic'] as const
+
 // Grants the client has that the console does not offer stay listed.
 const grantChoices = computed(() => [...offered, ...props.client.grant_types.filter((g) => !offered.includes(g))])
 
@@ -61,7 +76,7 @@ async function save() {
   }
   try {
     const c = await api.updateClient(props.tenant, props.client.client_id, body)
-    status.value = t.saved
+    status.value = t('saved')
     emit('saved', c)
   } catch (e) {
     error.value = errorMessage(e)
@@ -75,48 +90,48 @@ async function save() {
   <form class="card stack" novalidate @submit.prevent="save">
     <Banner v-if="error" kind="error">{{ error }}</Banner>
     <fieldset>
-      <legend>{{ t.apps.grantTypes }}</legend>
-      <p class="muted">{{ t.apps.grantTypesHint }}</p>
+      <legend>{{ t('apps.grantTypes') }}</legend>
+      <p class="muted">{{ t('apps.grantTypesHint') }}</p>
       <label v-for="g in grantChoices" :key="g" class="check">
         <input v-model="form.grants" type="checkbox" :value="g" />
-        {{ t.apps.grants[g] ?? g }}
+        {{ grantLabel(g) }}
       </label>
     </fieldset>
-    <Field id="app-auth-method" :label="t.apps.authMethod">
+    <Field id="app-auth-method" :label="t('apps.authMethod')">
       <select id="app-auth-method" v-model="form.authMethod">
-        <option v-for="(label, m) in t.apps.authMethods" :key="m" :value="m">{{ label }}</option>
+        <option v-for="m in authMethods" :key="m" :value="m">{{ t(`apps.authMethods.${m}`) }}</option>
       </select>
     </Field>
-    <Field id="app-id-ttl" :label="t.apps.idTokenLifetime">
+    <Field id="app-id-ttl" :label="t('apps.idTokenLifetime')">
       <input id="app-id-ttl" v-model.number="form.idTokenLifetime" type="number" min="0" step="1" />
     </Field>
     <div class="row two">
-      <Field id="app-rotation" :label="t.apps.rotation">
+      <Field id="app-rotation" :label="t('apps.rotation')">
         <select id="app-rotation" v-model="form.rotation">
-          <option value="rotating">{{ t.apps.rotating }}</option>
-          <option value="non-rotating">{{ t.apps.nonRotating }}</option>
+          <option value="rotating">{{ t('apps.rotating') }}</option>
+          <option value="non-rotating">{{ t('apps.nonRotating') }}</option>
         </select>
       </Field>
-      <Field id="app-expiration" :label="t.apps.expiration">
+      <Field id="app-expiration" :label="t('apps.expiration')">
         <select id="app-expiration" v-model="form.expiration">
-          <option value="expiring">{{ t.apps.expiring }}</option>
-          <option value="non-expiring">{{ t.apps.nonExpiring }}</option>
+          <option value="expiring">{{ t('apps.expiring') }}</option>
+          <option value="non-expiring">{{ t('apps.nonExpiring') }}</option>
         </select>
       </Field>
     </div>
     <label class="check">
       <input v-model="form.requirePAR" type="checkbox" />
-      {{ t.apps.requirePAR }}
+      {{ t('apps.requirePAR') }}
     </label>
     <div>
-      <span class="label">{{ t.apps.party }}</span>
+      <span class="label">{{ t('apps.party') }}</span>
       <p data-testid="party">
-        {{ client.is_first_party ? t.apps.firstParty : t.apps.thirdParty(client.third_party_security_mode ?? 'strict') }}
+        {{ client.is_first_party ? t('apps.firstParty') : t('apps.thirdParty', { mode: client.third_party_security_mode ?? 'strict' }) }}
       </p>
-      <p class="muted">{{ t.apps.partyFixed }}</p>
+      <p class="muted">{{ t('apps.partyFixed') }}</p>
     </div>
     <div class="row">
-      <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t.saving : t.save }}</Button>
+      <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('saving') : t('save') }}</Button>
       <span class="muted" role="status">{{ status }}</span>
     </div>
   </form>

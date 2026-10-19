@@ -2,12 +2,14 @@
 import { reactive, ref, watch } from 'vue'
 import { ApiError, type ResourceServer, type ResourceServerUpdate, type SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import CopyButton from '../../ui/CopyButton.vue'
 import Field from '../../ui/Field.vue'
 import { fieldErrors } from '../applications/defaults'
+
+const { t } = useI18n()
 
 const props = defineProps<{ tenant: SystemTenant; server: ResourceServer }>()
 const emit = defineEmits<{ saved: [ResourceServer] }>()
@@ -42,10 +44,10 @@ function validate(): { lifetime: number; web: number } | null {
   for (const k of Object.keys(errors)) delete errors[k]
   const lifetime = seconds(form.lifetime)
   const web = seconds(form.lifetimeWeb)
-  if (lifetime === null) errors.lifetime = t.apis.lifetimeInvalid
-  if (web === null) errors.lifetimeWeb = t.apis.lifetimeInvalid
-  else if (lifetime !== null && web > lifetime) errors.lifetimeWeb = t.apis.lifetimeWebTooLong
-  if (!props.server.is_system && props.server.name && !form.name.trim()) errors.name = t.apis.nameRequired
+  if (lifetime === null) errors.lifetime = t('apis.lifetimeInvalid')
+  if (web === null) errors.lifetimeWeb = t('apis.lifetimeInvalid')
+  else if (lifetime !== null && web > lifetime) errors.lifetimeWeb = t('apis.lifetimeWebTooLong')
+  if (!props.server.is_system && props.server.name && !form.name.trim()) errors.name = t('apis.nameRequired')
   return Object.keys(errors).length === 0 ? { lifetime: lifetime!, web: web! } : null
 }
 
@@ -67,7 +69,7 @@ async function save() {
   }
   try {
     const s = await api.updateResourceServer(props.tenant, props.server.id, body)
-    status.value = t.saved
+    status.value = t('saved')
     emit('saved', s)
   } catch (e) {
     if (e instanceof ApiError && e.errorCode === 'invalid_body') {
@@ -89,31 +91,31 @@ function describedBy(id: string, key: string): string {
 
 <template>
   <div class="stack">
-    <Banner v-if="server.is_system" kind="info">{{ t.apis.systemNote }}</Banner>
-    <section class="card stack" :aria-label="t.apis.identifier">
+    <Banner v-if="server.is_system" kind="info">{{ t('apis.systemNote') }}</Banner>
+    <section class="card stack" :aria-label="t('apis.identifier')">
       <div>
-        <span class="label">{{ t.apis.identifier }}</span>
+        <span class="label">{{ t('apis.identifier') }}</span>
         <div class="row">
           <code data-testid="identifier">{{ server.identifier }}</code>
-          <CopyButton :value="server.identifier" :label="t.apis.identifier" />
+          <CopyButton :value="server.identifier" :label="t('apis.identifier')" />
         </div>
-        <p class="muted hint">{{ t.apis.identifierHint }}</p>
+        <p class="muted hint">{{ t('apis.identifierHint') }}</p>
       </div>
       <div>
-        <span class="label">{{ t.apis.signingAlg }}</span>
+        <span class="label">{{ t('apis.signingAlg') }}</span>
         <div><code>{{ server.signing_alg }}</code></div>
       </div>
     </section>
 
     <form class="card stack" novalidate @submit.prevent="save">
       <Banner v-if="general" kind="error">{{ general }}</Banner>
-      <Field id="api-name" :label="t.apis.name" :error="errors.name">
+      <Field id="api-name" :label="t('apis.name')" :error="errors.name">
         <input id="api-name" v-model="form.name" type="text" maxlength="200" :disabled="server.is_system" :aria-invalid="!!errors.name" />
       </Field>
-      <Field id="api-lifetime" :label="t.apis.tokenLifetime" :hint="t.apis.tokenLifetimeHint" :error="errors.lifetime">
+      <Field id="api-lifetime" :label="t('apis.tokenLifetime')" :hint="t('apis.tokenLifetimeHint')" :error="errors.lifetime">
         <input id="api-lifetime" v-model="form.lifetime" type="text" inputmode="numeric" :aria-invalid="!!errors.lifetime" :aria-describedby="describedBy('api-lifetime', 'lifetime')" />
       </Field>
-      <Field id="api-lifetime-web" :label="t.apis.tokenLifetimeWeb" :hint="t.apis.tokenLifetimeWebHint" :error="errors.lifetimeWeb">
+      <Field id="api-lifetime-web" :label="t('apis.tokenLifetimeWeb')" :hint="t('apis.tokenLifetimeWebHint')" :error="errors.lifetimeWeb">
         <input
           id="api-lifetime-web"
           v-model="form.lifetimeWeb"
@@ -126,29 +128,29 @@ function describedBy(id: string, key: string): string {
       <label class="check">
         <input v-model="form.offline" type="checkbox" :disabled="server.is_system" />
         <span>
-          <strong>{{ t.apis.allowOffline }}</strong>
-          <span class="muted">{{ t.apis.allowOfflineHint }}</span>
+          <strong>{{ t('apis.allowOffline') }}</strong>
+          <span class="muted">{{ t('apis.allowOfflineHint') }}</span>
         </span>
       </label>
       <label class="check">
         <input v-model="form.skipConsent" type="checkbox" :disabled="server.is_system" />
         <span>
-          <strong>{{ t.apis.skipConsent }}</strong>
-          <span class="muted">{{ t.apis.skipConsentHint }}</span>
+          <strong>{{ t('apis.skipConsent') }}</strong>
+          <span class="muted">{{ t('apis.skipConsentHint') }}</span>
         </span>
       </label>
-      <Field id="api-user-policy" :label="t.apis.userPolicy">
+      <Field id="api-user-policy" :label="t('apis.userPolicy')">
         <select id="api-user-policy" v-model="form.user" :disabled="server.is_system">
-          <option v-for="p in userPolicies" :key="p" :value="p">{{ t.apis.policies[p] }}</option>
+          <option v-for="p in userPolicies" :key="p" :value="p">{{ t(`apis.policies.${p}`) }}</option>
         </select>
       </Field>
-      <Field id="api-client-policy" :label="t.apis.clientPolicy">
+      <Field id="api-client-policy" :label="t('apis.clientPolicy')">
         <select id="api-client-policy" v-model="form.client" :disabled="server.is_system">
-          <option v-for="p in clientPolicies" :key="p" :value="p">{{ t.apis.policies[p] }}</option>
+          <option v-for="p in clientPolicies" :key="p" :value="p">{{ t(`apis.policies.${p}`) }}</option>
         </select>
       </Field>
       <div class="row">
-        <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t.saving : t.save }}</Button>
+        <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('saving') : t('save') }}</Button>
         <span class="muted" role="status">{{ status }}</span>
       </div>
     </form>

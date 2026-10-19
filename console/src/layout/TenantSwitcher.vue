@@ -12,8 +12,10 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTenant } from '../context'
 import { useTenantsStore } from '../stores/tenants'
-import { t } from '../strings'
+import { useI18n } from 'vue-i18n'
 import CreateTenantDialog from './CreateTenantDialog.vue'
+
+const { t } = useI18n()
 
 const tenants = useTenantsStore()
 const tenant = useTenant()
@@ -30,16 +32,16 @@ function switchTo(name: string) {
 
 <template>
   <DropdownMenuRoot>
-    <DropdownMenuTrigger class="trigger" :aria-label="t.switchTenant">
-      <span class="muted">{{ t.tenant }}:</span>
+    <DropdownMenuTrigger class="trigger" :aria-label="t('switchTenant')">
+      <span class="muted">{{ t('tenant') }}:</span>
       <strong>{{ tenant?.name ?? '—' }}</strong>
       <span aria-hidden="true">▾</span>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent class="menu" align="start" :side-offset="6">
-        <DropdownMenuLabel class="menu-label">{{ t.switchTenant }}</DropdownMenuLabel>
+        <DropdownMenuLabel class="menu-label">{{ t('switchTenant') }}</DropdownMenuLabel>
         <p v-if="tenants.error" class="menu-label" role="alert">{{ tenants.error }}</p>
-        <p v-else-if="tenants.list.length === 0" class="menu-label">{{ t.noTenants }}</p>
+        <p v-else-if="tenants.list.length === 0" class="menu-label">{{ t('noTenants') }}</p>
         <DropdownMenuItem
           v-for="item in tenants.list"
           :key="item.name"
@@ -52,7 +54,7 @@ function switchTo(name: string) {
           <span v-if="item.name === tenant?.name" class="visually-hidden">(current)</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator class="menu-sep" />
-        <DropdownMenuItem class="menu-item" @select="creating = true">+ {{ t.createTenant }}</DropdownMenuItem>
+        <DropdownMenuItem class="menu-item" @select="creating = true">+ {{ t('createTenant') }}</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>

@@ -2,9 +2,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import type { Client, Connection, SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
-import { t } from '../../strings'
+import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
+
+const { t } = useI18n()
 
 // A switch per application. Enabled applications change only through the
 // clients endpoint, never through enabled_clients on PATCH.
@@ -56,15 +58,15 @@ async function toggle(c: Client, status: boolean) {
 
 <template>
   <div class="stack">
-    <p class="muted">{{ t.conns.clientsHint }}</p>
+    <p class="muted">{{ t('conns.clientsHint') }}</p>
     <Banner v-if="error" kind="error">
       {{ error }}
-      <Button variant="ghost" @click="load">{{ t.retry }}</Button>
+      <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
     </Banner>
-    <p v-else-if="loading" class="muted" role="status">{{ t.loading }}</p>
+    <p v-else-if="loading" class="muted" role="status">{{ t('loading') }}</p>
     <div v-else-if="clients.length === 0" class="card empty">
-      <p>{{ t.conns.noApps }}</p>
-      <RouterLink :to="{ name: 'application-new', params: { tenant: tenant.name } }">{{ t.apis.machineCreate }}</RouterLink>
+      <p>{{ t('conns.noApps') }}</p>
+      <RouterLink :to="{ name: 'application-new', params: { tenant: tenant.name } }">{{ t('apis.machineCreate') }}</RouterLink>
     </div>
     <ul v-else class="stack rows">
       <li v-for="c in clients" :key="c.client_id" class="card stack" :data-testid="'app-' + c.client_id">
@@ -79,10 +81,10 @@ async function toggle(c: Client, status: boolean) {
               role="switch"
               :checked="on.has(c.client_id)"
               :disabled="busy[c.client_id]"
-              :aria-label="t.conns.enableSwitch(c.name)"
+              :aria-label="t('conns.enableSwitch', { name: c.name })"
               @change="toggle(c, ($event.target as HTMLInputElement).checked)"
             />
-            <span>{{ t.conns.enabled }}</span>
+            <span>{{ t('conns.enabled') }}</span>
           </label>
         </div>
         <Banner v-if="rowError[c.client_id]" kind="error">{{ rowError[c.client_id] }}</Banner>

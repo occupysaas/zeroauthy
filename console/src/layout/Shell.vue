@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTenant } from '../context'
-import { t } from '../strings'
+import { docsURL, product, sourceURL } from '../links'
 import AccountMenu from './AccountMenu.vue'
 import TenantSwitcher from './TenantSwitcher.vue'
 import { planned } from './planned'
+
+const { t } = useI18n()
 
 // The frame of every signed-in page: a header with the tenant switcher and
 // account menu, a sidebar with the sections this slice ships, and the page.
@@ -13,25 +16,25 @@ const tenant = useTenant()
 const sections = computed(() =>
   tenant.value
     ? [
-        { name: 'home', label: t.navHome },
-        { name: 'applications', label: t.navApplications },
-        { name: 'apis', label: t.navApis },
-        { name: 'connections', label: t.navConnections },
-        ...(tenant.value.reserved ? [{ name: 'operators', label: t.navOperators }] : []),
+        { name: 'home', label: t('navHome') },
+        { name: 'applications', label: t('navApplications') },
+        { name: 'apis', label: t('navApis') },
+        { name: 'connections', label: t('navConnections') },
+        ...(tenant.value.reserved ? [{ name: 'operators', label: t('navOperators') }] : []),
       ]
     : [],
 )
 </script>
 
 <template>
-  <a class="skip" href="#main">{{ t.skipToContent }}</a>
+  <a class="skip" href="#main">{{ t('skipToContent') }}</a>
   <header class="topbar">
-    <RouterLink class="brand" to="/">{{ t.product }}</RouterLink>
+    <RouterLink class="brand" to="/">{{ product }}</RouterLink>
     <TenantSwitcher />
     <span class="spacer" />
     <nav class="links" aria-label="Project">
-      <a :href="t.docsURL" target="_blank" rel="noopener noreferrer">{{ t.docs }}</a>
-      <a :href="t.sourceURL" target="_blank" rel="noopener noreferrer">{{ t.source }}</a>
+      <a :href="docsURL" target="_blank" rel="noopener noreferrer">{{ t('docs') }}</a>
+      <a :href="sourceURL" target="_blank" rel="noopener noreferrer">{{ t('source') }}</a>
     </nav>
     <AccountMenu />
   </header>
@@ -44,7 +47,7 @@ const sections = computed(() =>
           </RouterLink>
         </li>
       </ul>
-      <p class="planned-head">{{ t.navPlanned }}</p>
+      <p class="planned-head">{{ t('navPlanned') }}</p>
       <ul class="planned">
         <li v-for="p in planned" :key="p.key">
           <span aria-disabled="true" :title="`${p.api} (${p.when})`">{{ p.label }} <small>{{ p.when }}</small></span>

@@ -12,10 +12,12 @@ import {
 } from 'reka-ui'
 import { storeToRefs } from 'pinia'
 import { useServices } from '../context'
-import { t } from '../strings'
+import { useI18n } from 'vue-i18n'
 import type { Theme } from '../theme'
 import { usePreferencesStore } from '../stores/preferences'
 import { useSessionStore } from '../stores/session'
+
+const { t } = useI18n()
 
 const { auth } = useServices()
 const prefs = usePreferencesStore()
@@ -25,20 +27,20 @@ const { theme } = storeToRefs(prefs)
 
 <template>
   <DropdownMenuRoot>
-    <DropdownMenuTrigger class="trigger" :aria-label="t.account">
-      {{ session.email || t.account }} <span aria-hidden="true">▾</span>
+    <DropdownMenuTrigger class="trigger" :aria-label="t('account')">
+      {{ session.email || t('account') }} <span aria-hidden="true">▾</span>
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
       <DropdownMenuContent class="menu" align="end" :side-offset="6">
         <DropdownMenuLabel class="menu-label">{{ session.email }}</DropdownMenuLabel>
         <DropdownMenuSeparator class="menu-sep" />
         <DropdownMenuRadioGroup :model-value="theme" @update:model-value="prefs.setTheme($event as Theme)">
-          <DropdownMenuRadioItem class="menu-item" value="system">{{ t.themeSystem }}</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem class="menu-item" value="light">{{ t.themeLight }}</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem class="menu-item" value="dark">{{ t.themeDark }}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem class="menu-item" value="system">{{ t('themeSystem') }}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem class="menu-item" value="light">{{ t('themeLight') }}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem class="menu-item" value="dark">{{ t('themeDark') }}</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator class="menu-sep" />
-        <DropdownMenuItem class="menu-item" @select="auth.logout()">{{ t.signOut }}</DropdownMenuItem>
+        <DropdownMenuItem class="menu-item" @select="auth.logout()">{{ t('signOut') }}</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>

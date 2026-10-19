@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { t } from '../strings'
+import { useI18n } from 'vue-i18n'
 import CopyButton from './CopyButton.vue'
+
+const { t } = useI18n()
 
 // A snippet to read and copy.
 defineProps<{ code: string; title: string }>()
@@ -11,7 +13,7 @@ defineProps<{ code: string; title: string }>()
     <figcaption class="row">
       <strong>{{ title }}</strong>
       <span class="spacer" />
-      <CopyButton :value="code" :label="t.quick.copySnippet(title)" />
+      <CopyButton :value="code" :label="t('quick.copySnippet', { what: title })" />
     </figcaption>
     <pre tabindex="0" :aria-label="title"><code>{{ code }}</code></pre>
   </figure>

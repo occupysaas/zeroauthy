@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { t } from '../strings'
+import { useI18n } from 'vue-i18n'
 import Button from './Button.vue'
+
+const { t } = useI18n()
 
 const props = defineProps<{ value: string; label?: string }>()
 const done = ref(false)
@@ -18,7 +20,7 @@ async function copy() {
 </script>
 
 <template>
-  <Button variant="ghost" :aria-label="(label ?? t.copy) + (done ? ': ' + t.copied : '')" @click="copy">
-    {{ done ? t.copied : t.copy }}
+  <Button variant="ghost" :aria-label="(label ?? t('copy')) + (done ? ': ' + t('copied') : '')" @click="copy">
+    {{ done ? t('copied') : t('copy') }}
   </Button>
 </template>

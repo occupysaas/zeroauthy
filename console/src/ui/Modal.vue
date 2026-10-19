@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { DialogClose, DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
-import { t } from '../strings'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 // An accessible dialog: focus is trapped, Escape closes it, and the title
 // and description are announced.
@@ -16,7 +18,7 @@ const open = defineModel<boolean>('open', { required: true })
         <DialogTitle as="h2">{{ title }}</DialogTitle>
         <DialogDescription v-if="description" class="muted">{{ description }}</DialogDescription>
         <slot />
-        <DialogClose class="visually-hidden">{{ t.close }}</DialogClose>
+        <DialogClose class="visually-hidden">{{ t('close') }}</DialogClose>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>
