@@ -132,6 +132,12 @@ if [[ $status -eq 0 ]]; then
   export E2E_ADMIN_SETUP_URL_M15
 fi
 
+# m17-console's own operator.
+if [[ $status -eq 0 ]]; then
+  E2E_ADMIN_SETUP_URL_M17="$(cd ../.. && "$work/zeroauthy" admin create --email operator-m17@e2e.local --config tests/e2e/config.yaml | grep '^https://')" || status=$?
+  export E2E_ADMIN_SETUP_URL_M17
+fi
+
 # run_fg CMD...: like start, but waits for it, so a signal to this script runs
 # the trap at once (and kills the group) instead of after the command ends.
 run_fg() {

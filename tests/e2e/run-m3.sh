@@ -108,9 +108,11 @@ npm_log="$work/npm-ci.log"
   NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m3-client-credentials.mjs && \
   NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m3-db-flows.mjs && \
   NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m9-custom-db.mjs && \
+  NODE_ENV=test NODE_EXTRA_CA_CERTS="$work/cert.pem" node m17-node-auth0.mjs && \
   AUTH0_BIN="$work/bin/auth0" E2E_CERT="$work/cert.pem" node m13-mgmt-cli.mjs && \
   AUTH0_BIN="$work/bin/auth0" E2E_CERT="$work/cert.pem" node m14-mgmt-cli.mjs && \
-  AUTH0_BIN="$work/bin/auth0" E2E_CERT="$work/cert.pem" node m15-mgmt-cli.mjs) || status=$?
+  AUTH0_BIN="$work/bin/auth0" E2E_CERT="$work/cert.pem" node m15-mgmt-cli.mjs && \
+  AUTH0_BIN="$work/bin/auth0" E2E_CERT="$work/cert.pem" node m17-mgmt-cli.mjs) || status=$?
 if [[ $status -ne 0 ]]; then
   dump_logs
 fi

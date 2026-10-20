@@ -133,12 +133,31 @@ tenants:
         callbacks: ["https://localhost:3443/m15-callback"]
         web_origins: ["https://localhost:3443"]
         allowed_origins: ["https://localhost:3443"]
+      # m17-node-auth0: node-auth0's ManagementClient manages users with it.
+      - client_id: e2e-m17-admin
+        name: E2E Users Management
+        app_type: non_interactive
+        client_secret: e2e-m17-admin-secret-not-for-production
+        grant_types: [client_credentials]
+      # m17-console: users sign in to it after the operator creates them.
+      - client_id: e2e-m17
+        name: E2E Users
+        app_type: spa
+        grant_types: [authorization_code]
+        callbacks: ["https://localhost:3443/m17-callback"]
+        web_origins: ["https://localhost:3443"]
+        allowed_origins: ["https://localhost:3443"]
       - client_id: e2e-device
         name: E2E Device
         app_type: native
         token_endpoint_auth_method: none
         grant_types: ["urn:ietf:params:oauth:grant-type:device_code", refresh_token]
     client_grants:
+      - client_id: e2e-m17-admin
+        audience: "https://localhost:8443/api/v2/"
+        scopes: ["read:users", "create:users", "update:users", "delete:users", "read:users_app_metadata", "update:users_app_metadata",
+                 "create:users_app_metadata", "create:user_tickets", "read:grants", "delete:grants", "read:sessions", "delete:sessions",
+                 "read:refresh_tokens", "delete:refresh_tokens"]
       - client_id: e2e-m2m
         audience: https://api.e2e.local
         scopes: ["read:things"]
@@ -146,7 +165,7 @@ tenants:
     connections:
       - name: Username-Password-Authentication
         is_domain_connection: true
-        enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node, e2e-confirm, e2e-par-web, e2e-next-par, e2e-par-authjs, e2e-device]
+        enabled_clients: [e2e-spa, e2e-react, e2e-next, e2e-node, e2e-confirm, e2e-par-web, e2e-next-par, e2e-par-authjs, e2e-device, e2e-m17]
       # Custom database connections backed by tests/e2e/legacy-store.mjs.
       - name: legacy-users
         enabledDatabaseCustomization: true
@@ -240,4 +259,6 @@ tenants:
                  "read:resource_servers", "create:resource_servers", "update:resource_servers", "delete:resource_servers",
                  "read:client_grants", "create:client_grants", "update:client_grants", "delete:client_grants",
                  "read:connections", "create:connections", "update:connections", "delete:connections",
-                 "read:connections_options", "update:connections_options"]
+                 "read:connections_options", "update:connections_options",
+                 "read:users", "create:users", "update:users", "delete:users", "read:users_app_metadata", "update:users_app_metadata",
+                 "create:users_app_metadata"]
