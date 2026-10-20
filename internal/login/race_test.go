@@ -2,8 +2,10 @@ package login
 
 import (
 	"context"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"sync"
 	"testing"
 
@@ -17,7 +19,9 @@ func TestImportLoginRacingReset(t *testing.T) {
 	le := newLegacyResetEnv(t)
 	le.useImportMode(t)
 	reached, release := make(chan struct{}), make(chan struct{})
-	var once sync.Once
+	var once, releaseOnce sync.Once
+	releaseScript := func() { releaseOnce.Do(func() { close(release) }) }
+	t.Cleanup(releaseScript)
 	le.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {
 		out, err := legacyLogin(args)
 		once.Do(func() { close(reached); <-release })
@@ -30,14 +34,15 @@ func TestImportLoginRacingReset(t *testing.T) {
 	state, csrf := b.legacyBegin(t)
 	form := url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"dave legacy 1"}}
 	done := make(chan *httptest.ResponseRecorder, 1)
-	go func() { done <- b.do(t, "POST", "/u/login", form) }()
+	go func() { done <- b.send("POST", "/u/login", form) }()
 	<-reached
 	if rec := completeReset(t, le.browser("acme.example.test"), ticket, "new import pw 1"); rec.Code != 200 {
 		t.Fatalf("reset = %d %s", rec.Code, rec.Body)
 	}
-	close(release)
-	if rec := <-done; rec.Code == 302 {
-		t.Fatalf("the old password logged in across the reset: %s", rec.Header().Get("Location"))
+	releaseScript()
+	// The old password fails as a wrong password does.
+	if rec := <-done; rec.Code != http.StatusUnauthorized || !strings.Contains(rec.Body.String(), "Incorrect") {
+		t.Fatalf("login with the old password across the reset = %d %s %s", rec.Code, rec.Header().Get("Location"), rec.Body)
 	}
 
 	u, err := le.st.Users().Get(context.Background(), mustTenant(t, le.env, "acme").ID, "auth0|42")
@@ -63,6 +68,9 @@ func TestImportLoginRacingReset(t *testing.T) {
 func TestLegacyResetDoubleSubmitRunsScriptOnce(t *testing.T) {
 	le := newLegacyResetEnv(t)
 	reached, release := make(chan struct{}), make(chan struct{})
+	var releaseOnce sync.Once
+	releaseScript := func() { releaseOnce.Do(func() { close(release) }) }
+	t.Cleanup(releaseScript)
 	var mu sync.Mutex
 	calls := 0
 	le.scripts.Funcs[store.ScriptChangePassword] = func([]any) (any, error) {
@@ -89,10 +97,10 @@ func TestLegacyResetDoubleSubmitRunsScriptOnce(t *testing.T) {
 	f1, f2 := formFor(b1), formFor(b2)
 
 	done := make(chan *httptest.ResponseRecorder, 1)
-	go func() { done <- b1.do(t, "POST", "/u/reset-password", f1) }()
+	go func() { done <- b1.send("POST", "/u/reset-password", f1) }()
 	<-reached
 	rec := b2.do(t, "POST", "/u/reset-password", f2)
-	close(release)
+	releaseScript()
 	if rec.Code != 400 || !usedLinkPage(rec.Body.String()) {
 		t.Errorf("second submit = %d %s", rec.Code, rec.Body)
 	}

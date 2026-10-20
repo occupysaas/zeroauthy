@@ -12,8 +12,8 @@ type clientGrants struct{ s *Store }
 
 func (r clientGrants) Create(_ context.Context, g *store.ClientGrant) error {
 	g = g.WithDefaults()
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{g.TenantID, g.ID}
 	if _, ok := r.s.clientGrants[k]; ok {
 		return store.ErrConflict
@@ -37,8 +37,8 @@ func (r clientGrants) Find(_ context.Context, tenantID, clientID, audience, subj
 
 func (r clientGrants) Update(_ context.Context, g *store.ClientGrant) error {
 	g = g.WithDefaults()
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{g.TenantID, g.ID}
 	old, ok := r.s.clientGrants[k]
 	if !ok {
@@ -52,8 +52,8 @@ func (r clientGrants) Update(_ context.Context, g *store.ClientGrant) error {
 }
 
 func (r clientGrants) Delete(_ context.Context, tenantID, id string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{tenantID, id}
 	if _, ok := r.s.clientGrants[k]; !ok {
 		return store.ErrNotFound

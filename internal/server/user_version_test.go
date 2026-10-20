@@ -7,18 +7,21 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 // versionFlowSeed is flowSeed with a password-grant client that gets
-// rotating refresh tokens and a machine client that may update users and
-// delete their sessions.
+// rotating refresh tokens, a legacy custom database connection, and a
+// machine client that may update users and delete their sessions and
+// refresh tokens.
 var versionFlowSeed = strings.Replace(strings.Replace(strings.Replace(flowSeed, "    clients:\n", `    clients:
       - {client_id: admin, app_type: non_interactive, client_secret: admin-s3cret, grant_types: [client_credentials]}
       - client_id: ropg
@@ -27,8 +30,10 @@ var versionFlowSeed = strings.Replace(strings.Replace(strings.Replace(flowSeed, 
         grant_types: ["http://auth0.com/oauth/grant-type/password-realm", refresh_token]
         refresh_token: {rotation_type: rotating, expiration_type: expiring}
 `, 1), "    client_grants:\n", `    client_grants:
-      - {client_id: admin, audience: "https://HOST/api/v2/", scopes: ["read:users", "update:users", "delete:sessions"]}
-`, 1), "enabled_clients: [spa, tv, spa2]", "enabled_clients: [spa, tv, spa2, ropg]", 1)
+      - {client_id: admin, audience: "https://HOST/api/v2/", scopes: ["read:users", "update:users", "delete:sessions", "delete:refresh_tokens"]}
+`, 1), "enabled_clients: [spa, tv, spa2]}\n", `enabled_clients: [spa, tv, spa2, ropg]}
+      - {name: Legacy-DB, enabled_clients: [ropg], enabledDatabaseCustomization: true, customScripts: {login: "x", change_password: "x"}}
+`, 1)
 
 // pauseStore holds the next WithTx, once armed, until the test releases
 // it. A grant's next WithTx is its minting transaction, so the hold sits
@@ -58,14 +63,18 @@ type versionEnv struct {
 	pause *pauseStore
 	alice *store.User
 	admin string
+	// scripts runs Legacy-DB's scripts; tests set Funcs.
+	scripts *customdb.FuncExecutor
 }
 
 func newVersionEnv(t *testing.T) *versionEnv {
 	t.Helper()
 	p := &pauseStore{}
+	scripts := &customdb.FuncExecutor{Funcs: map[string]func([]any) (any, error){}}
 	e := newFlowEnvSeed(t, versionFlowSeed, func(d *Deps) {
 		p.Store = d.Store
 		d.Store = p
+		d.Scripts = &customdb.Client{Exec: scripts, Wrapper: d.Wrapper}
 	})
 	ctx := context.Background()
 	tn, _ := e.st.Tenants().GetByName(ctx, "flow")
@@ -79,7 +88,7 @@ func newVersionEnv(t *testing.T) *versionEnv {
 	if resp.StatusCode != 200 || admin == "" {
 		t.Fatalf("admin token = %d %v", resp.StatusCode, out)
 	}
-	return &versionEnv{flowEnv: e, pause: p, alice: users[0], admin: admin}
+	return &versionEnv{flowEnv: e, pause: p, alice: users[0], admin: admin, scripts: scripts}
 }
 
 // tokenResult is a token endpoint answer collected off the test goroutine.
@@ -119,6 +128,10 @@ func refreshForm(token string) url.Values {
 func (e *versionEnv) paused(t *testing.T, form url.Values, between func()) tokenResult {
 	t.Helper()
 	e.pause.arm()
+	// A between that fails must not leave the grant held.
+	var once sync.Once
+	release := func() { once.Do(func() { close(e.pause.release) }) }
+	t.Cleanup(release)
 	done := make(chan tokenResult, 1)
 	c := e.client(t)
 	go func() { done <- e.token(c, form) }()
@@ -128,7 +141,7 @@ func (e *versionEnv) paused(t *testing.T, form url.Values, between func()) token
 		t.Fatalf("the grant finished without reaching its minting transaction: %d %v %v", r.status, r.body["error"], r.err)
 	}
 	between()
-	close(e.pause.release)
+	release()
 	r := <-done
 	if r.err != nil {
 		t.Fatal(r.err)
@@ -154,10 +167,16 @@ func (e *versionEnv) mgmt(t *testing.T, method, path string, body any) (int, str
 // reset completes a password reset of alice on the hosted page.
 func (e *versionEnv) reset(t *testing.T, password string) {
 	t.Helper()
+	e.resetUser(t, e.alice.UserID, "Username-Password-Authentication", password)
+}
+
+// resetUser completes a password reset of a user on the hosted page.
+func (e *versionEnv) resetUser(t *testing.T, userID, connection, password string) {
+	t.Helper()
 	ctx := context.Background()
 	raw := secrets.RandomString(32)
 	err := e.st.PasswordResetTickets().Create(ctx, &store.PasswordResetTicket{TenantID: e.alice.TenantID, ID: "prt_" + secrets.RandomString(8),
-		TokenHash: secrets.HashToken(raw), UserID: e.alice.UserID, Connection: "Username-Password-Authentication",
+		TokenHash: secrets.HashToken(raw), UserID: userID, Connection: connection,
 		ExpiresAt: time.Now().Add(time.Hour), CreatedAt: time.Now()})
 	if err != nil {
 		t.Fatal(err)
@@ -248,5 +267,69 @@ func TestRefreshAfterPatchPassword(t *testing.T) {
 	}
 	if r := e.token(e.client(t), refreshForm(rt)); r.status != 200 || r.body["refresh_token"] == nil {
 		t.Fatalf("refresh after the password change = %d %v", r.status, r.body)
+	}
+}
+
+// The same on a legacy connection: the login script accepted the old
+// password before the reset ran change_password. The reset writes no local
+// password, so it bumps the user's Version itself.
+func TestPasswordGrantRacingLegacyReset(t *testing.T) {
+	e := newVersionEnv(t)
+	var mu sync.Mutex
+	current := "dave legacy 1"
+	e.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if args[0] == "dave@legacy.test" && args[1] == current {
+			return map[string]any{"user_id": 42, "email": "dave@legacy.test"}, nil
+		}
+		return nil, &customdb.ScriptError{Kind: customdb.KindWrongCredentials}
+	}
+	e.scripts.Funcs[store.ScriptChangePassword] = func(args []any) (any, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		current = args[1].(string)
+		return true, nil
+	}
+	legacyForm := func(password string) url.Values {
+		f := passwordForm(password)
+		f.Set("realm", "Legacy-DB")
+		f.Set("username", "dave@legacy.test")
+		return f
+	}
+	// The first login stores dave locally.
+	if r := e.token(e.client(t), legacyForm("dave legacy 1")); r.status != 200 {
+		t.Fatalf("first legacy grant = %d %v", r.status, r.body)
+	}
+	r := e.paused(t, legacyForm("dave legacy 1"), func() { e.resetUser(t, "auth0|42", "Legacy-DB", "brand new legacy 2") })
+	wantInvalidGrant(t, "legacy password grant across a reset", r, "the user is blocked")
+	ts, _ := e.st.RefreshTokens().ListByUser(context.Background(), e.alice.TenantID, "auth0|42")
+	for _, rt := range ts {
+		if rt.RevokedAt == nil {
+			t.Fatalf("a refresh token of dave survived the reset: %s", rt.ID)
+		}
+	}
+}
+
+// A refresh racing DELETE /users/{id}/refresh-tokens is refused by the
+// version check (the delete bumps it) and leaves no live token.
+func TestRefreshRacingDeleteRefreshTokens(t *testing.T) {
+	e := newVersionEnv(t)
+	first := e.token(e.client(t), passwordForm("alice password 1"))
+	rt, _ := first.body["refresh_token"].(string)
+	if first.status != 200 || rt == "" {
+		t.Fatalf("password grant = %d %v", first.status, first.body)
+	}
+	r := e.paused(t, refreshForm(rt), func() {
+		if code, body := e.mgmt(t, "DELETE", "/users/"+url.PathEscape(e.alice.UserID)+"/refresh-tokens", nil); code != 202 {
+			t.Fatalf("delete refresh tokens = %d %s", code, body)
+		}
+	})
+	wantInvalidGrant(t, "refresh across a refresh-token delete", r, "the user is not allowed to sign in")
+	ts, _ := e.st.RefreshTokens().ListByUser(context.Background(), e.alice.TenantID, e.alice.UserID)
+	for _, tok := range ts {
+		if tok.RevokedAt == nil {
+			t.Fatalf("a refresh token survived the delete: %s", tok.ID)
+		}
 	}
 }

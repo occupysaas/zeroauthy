@@ -317,6 +317,69 @@ func testUsers(t *testing.T, newStore Factory) {
 		}
 	})
 
+	t.Run("GetForUpdate", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "u1", "alice@example.test", "alice")))
+		want, err := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		got, err := s.Users().GetForUpdate(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+		_, err = s.Users().GetForUpdate(ctx, "ten_b", "auth0|u1")
+		mustErrIs(t, err, store.ErrNotFound)
+		mustNoErr(t, s.WithTx(ctx, func(tx store.Store) error {
+			got, err := tx.Users().GetForUpdate(ctx, "ten_a", "auth0|u1")
+			if err != nil {
+				return err
+			}
+			mustEqual(t, got, want)
+			_, err = tx.Users().GetForUpdate(ctx, "ten_a", "auth0|missing")
+			mustErrIs(t, err, store.ErrNotFound)
+			return nil
+		}))
+	})
+
+	// A grant mints inside a transaction that holds GetForUpdate; a
+	// revocation that bumps the user first waits for it, so it revokes the
+	// token minted. Without the lock the revocation runs first and the
+	// token minted after it stays live.
+	t.Run("GetForUpdateSerializesRevocation", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "u1", "alice@example.test", "alice")))
+		locked := make(chan struct{})
+		mintErr, revokeErr := make(chan error, 1), make(chan error, 1)
+		go func() {
+			mintErr <- s.WithTx(ctx, func(tx store.Store) error {
+				u, err := tx.Users().GetForUpdate(ctx, "ten_a", "auth0|u1")
+				if err != nil {
+					return err
+				}
+				close(locked)
+				// Give the revocation time to reach the user's lock.
+				time.Sleep(200 * time.Millisecond)
+				if u.Version != 0 {
+					return fmt.Errorf("version %d", u.Version)
+				}
+				return tx.RefreshTokens().Create(ctx, newRefreshToken("ten_a", "rt1", "h1", "f1"))
+			})
+		}()
+		<-locked
+		go func() {
+			revokeErr <- s.WithTx(ctx, func(tx store.Store) error {
+				if _, err := tx.Users().BumpVersion(ctx, "ten_a", "auth0|u1"); err != nil {
+					return err
+				}
+				_, err := tx.RefreshTokens().RevokeByUser(ctx, "ten_a", "auth0|u1", ts(time.Hour))
+				return err
+			})
+		}()
+		mustNoErr(t, <-mintErr)
+		mustNoErr(t, <-revokeErr)
+		if rt := getRT(t, s, "ten_a", "h1"); rt.RevokedAt == nil {
+			t.Fatal("the token minted under the lock survived the revocation")
+		}
+	})
+
 	t.Run("FindByEmail", func(t *testing.T) {
 		s := open(t, newStore)
 		a := newUser("ten_a", "a", "shared@example.test", "")

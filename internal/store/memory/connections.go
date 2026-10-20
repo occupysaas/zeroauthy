@@ -12,8 +12,8 @@ import (
 type connections struct{ s *Store }
 
 func (r connections) Create(_ context.Context, c *store.Connection) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{c.TenantID, c.ID}
 	if _, ok := r.s.connections[k]; ok || r.nameTaken(c) {
 		return store.ErrConflict
@@ -44,8 +44,8 @@ func (r connections) GetByName(_ context.Context, tenantID, name string) (*store
 }
 
 func (r connections) Update(_ context.Context, c *store.Connection) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{c.TenantID, c.ID}
 	if _, ok := r.s.connections[k]; !ok {
 		return store.ErrNotFound
@@ -83,8 +83,8 @@ func (r connections) List(_ context.Context, tenantID string, f store.Connection
 }
 
 func (r connections) Delete(_ context.Context, tenantID, id string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{tenantID, id}
 	c, ok := r.s.connections[k]
 	if !ok {

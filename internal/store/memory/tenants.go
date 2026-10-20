@@ -11,8 +11,8 @@ import (
 type tenants struct{ s *Store }
 
 func (r tenants) Create(_ context.Context, t *store.Tenant) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if _, ok := r.s.tenants[t.ID]; ok || r.collides(t) {
 		return store.ErrConflict
 	}
@@ -39,8 +39,8 @@ func (r tenants) GetByDomain(_ context.Context, domain string) (*store.Tenant, e
 }
 
 func (r tenants) Update(_ context.Context, t *store.Tenant) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if _, ok := r.s.tenants[t.ID]; !ok {
 		return store.ErrNotFound
 	}
@@ -64,8 +64,8 @@ func (r tenants) List(context.Context) ([]*store.Tenant, error) {
 
 // Delete removes the tenant and every entity scoped to it.
 func (r tenants) Delete(_ context.Context, id string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if _, ok := r.s.tenants[id]; !ok {
 		return store.ErrNotFound
 	}

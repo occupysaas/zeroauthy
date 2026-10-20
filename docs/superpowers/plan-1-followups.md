@@ -287,3 +287,7 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 - **Deferred minors:** the theme radio lacks a component test; `typeLabel` and `strategyLabel` are duplicated in the List and Detail pages; `activeI18n()` is a module singleton, so the store locale and `i18n.global.locale` are two sources of truth; `main.ts` applies the theme twice (also in the preferences store); the CSS URL check in `build.test.ts` matches only `url(http...)`.
 - **Locale persistence (fixed in the final review):** startup no longer saves the detected language; only an explicit choice in the language menu does (saved, then browser, then `en`).
 - **E2E:** the console specs use the section links by text (`Database`); the sidebar now has more items, and the E2E does not yet cover the planned pages or the language menu.
+
+## Plan 17 follow-ups
+
+- **Hosted login is not version-guarded:** `/u/login` creates the session without the grants' version check, so a login whose password check finished before a reset completed can still create a session after the reset revoked the others. The code grant that follows checks only that the user exists and is not blocked (D-0043).

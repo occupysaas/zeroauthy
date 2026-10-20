@@ -27,8 +27,8 @@ func (r operators) Get(_ context.Context, tenantID, userID string) (*store.Opera
 }
 
 func (r operators) Upsert(_ context.Context, o *store.Operator) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{o.TenantID, o.UserID}
 	c := cloneOperator(o)
 	if old, ok := r.s.operators[k]; ok {
@@ -52,8 +52,8 @@ func (r operators) List(_ context.Context, tenantID string) ([]*store.Operator, 
 }
 
 func (r operators) Delete(_ context.Context, tenantID, userID string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{tenantID, userID}
 	if _, ok := r.s.operators[k]; !ok {
 		return store.ErrNotFound

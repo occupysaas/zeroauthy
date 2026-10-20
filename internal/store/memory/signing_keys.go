@@ -13,8 +13,8 @@ import (
 type signingKeys struct{ s *Store }
 
 func (r signingKeys) Create(_ context.Context, k *store.SigningKey) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	kk := key{k.TenantID, k.KID}
 	if _, ok := r.s.signingKeys[kk]; ok {
 		return store.ErrConflict
@@ -55,8 +55,8 @@ func (r signingKeys) Rotate(_ context.Context, tenantID string, next *store.Sign
 	if next.TenantID != tenantID {
 		return fmt.Errorf("store: rotate needs a key for tenant %q", tenantID)
 	}
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if _, ok := r.s.signingKeys[key{tenantID, next.KID}]; ok {
 		return store.ErrConflict
 	}

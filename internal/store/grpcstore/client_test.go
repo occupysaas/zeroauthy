@@ -275,8 +275,10 @@ func TestOldPluginUserManagementTooOld(t *testing.T) {
 	_, errTkGet := c.EmailVerificationTickets().GetByTokenHash(ctx, "t", "h")
 	_, errTkUse := c.EmailVerificationTickets().Consume(ctx, "t", "h", time.Now())
 	_, errTkDel := c.EmailVerificationTickets().DeleteByUser(ctx, "t", "u")
+	_, errLock := c.Users().GetForUpdate(ctx, "t", "u")
 	for name, err := range map[string]error{
-		"Sessions.Get": errSes, "Sessions.ListByUser": errSesList, "RefreshTokens.Get": errRT,
+		"Users.GetForUpdate": errLock,
+		"Sessions.Get":       errSes, "Sessions.ListByUser": errSesList, "RefreshTokens.Get": errRT,
 		"RefreshTokens.ListByUser": errRTList, "RefreshTokens.Revoke": errRev, "UserGrants.List": errUG,
 		"EmailVerificationTickets.Create": errTkCreate, "EmailVerificationTickets.GetByTokenHash": errTkGet,
 		"EmailVerificationTickets.Consume": errTkUse, "EmailVerificationTickets.DeleteByUser": errTkDel,

@@ -52,14 +52,16 @@ func (h *Handlers) activeUser(ctx context.Context, tenantID, userID string) (*st
 var errUserChanged = errors.New("oauth: the user changed since it was loaded")
 
 // mintTx runs write, the store writes that mint a grant's tokens (nil for
-// none), in a transaction that first re-reads the user. When the user is
+// none), in a transaction that first re-reads and locks the user
+// (GetForUpdate), so a reset or revocation, which locks or writes the user
+// first, runs wholly before or wholly after the mint. When the user is
 // gone or blocked, or version is non-nil and the user's Version differs
 // from it, nothing is written and mintTx returns errUserChanged: a reset,
 // block or session revocation landed between the grant loading the user
 // and minting. Tokens issued earlier are not affected (D-0043).
 func (h *Handlers) mintTx(ctx context.Context, tenantID, userID string, version *int64, write func(tx store.Store) error) error {
 	return h.Store.WithTx(ctx, func(tx store.Store) error {
-		u, err := tx.Users().Get(ctx, tenantID, userID)
+		u, err := tx.Users().GetForUpdate(ctx, tenantID, userID)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserChanged
 		}

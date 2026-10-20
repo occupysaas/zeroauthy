@@ -124,6 +124,7 @@ service StoreService {
   rpc UsersFindByEmail(UsersFindByEmailRequest) returns (UserListResult);
   rpc UsersSetPasswordHashIfEmpty(UsersSetPasswordHashRequest) returns (Result);
   rpc UsersBumpVersion(ScopedKey) returns (VersionResult);
+  rpc UsersGetForUpdate(ScopedKey) returns (UserResult); // Plan 17
   rpc UsersDelete(ScopedKey) returns (Result);
   rpc UsersList(UsersListRequest) returns (UserListResult);
 

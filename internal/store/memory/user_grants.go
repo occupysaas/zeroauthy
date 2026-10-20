@@ -31,8 +31,8 @@ func (r userGrants) Find(_ context.Context, tenantID, clientID, userID, audience
 }
 
 func (r userGrants) Upsert(_ context.Context, g *store.UserGrant) (*store.UserGrant, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if old, ok := r.find(g.TenantID, g.ClientID, g.UserID, g.Audience); ok {
 		old.Scopes = slices.Clone(g.Scopes)
 		old.UpdatedAt = g.UpdatedAt
@@ -98,8 +98,8 @@ func (r userGrants) ListByAudience(_ context.Context, tenantID, audience string)
 }
 
 func (r userGrants) Delete(_ context.Context, tenantID, id string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{tenantID, id}
 	if _, ok := r.s.userGrants[k]; !ok {
 		return store.ErrNotFound
@@ -109,8 +109,8 @@ func (r userGrants) Delete(_ context.Context, tenantID, id string) error {
 }
 
 func (r userGrants) DeleteByUser(_ context.Context, tenantID, userID string) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, g := range r.s.userGrants {
 		if k.tenant == tenantID && g.UserID == userID {

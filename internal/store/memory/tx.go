@@ -10,48 +10,42 @@ import (
 
 // WithTx snapshots every map, runs fn, and restores the snapshot unless fn
 // returns nil (including when fn panics or calls runtime.Goexit, e.g. via
-// t.Fatal). Transactions are serialized by txMu. fn receives a txStore, so a
-// nested WithTx runs inline like it does in the SQL drivers. Writers that are
-// not inside a transaction are not isolated (memory is for tests/demos).
+// t.Fatal). Transactions are serialized by txMu, and so are writes made
+// outside any transaction, so a restore never undoes another caller's
+// write. fn receives a view of the store whose writes skip txMu; a nested
+// WithTx on it joins the enclosing transaction like a savepoint in the SQL
+// drivers: an error or panic from fn undoes fn's writes only, and the
+// enclosing transaction continues. fn must use the store it is given: a
+// write through the outer store would wait for the transaction to end.
 func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	if s.tx {
+		return s.savepoint(fn)
+	}
 	s.txMu.Lock()
 	defer s.txMu.Unlock()
-	snap := s.snapshot()
-	committed := false
-	defer func() {
-		if !committed {
-			s.restore(snap)
-		}
-	}()
-	err := fn(txStore{s})
-	committed = err == nil
-	return err
+	return s.savepoint(fn)
 }
 
-// txStore is the store handed to a transaction body. Its WithTx joins the
-// enclosing transaction instead of locking txMu again, like a savepoint in
-// the SQL drivers: an error or panic from fn undoes fn's writes only, and the
-// enclosing transaction continues.
-type txStore struct{ *Store }
-
-func (t txStore) WithTx(_ context.Context, fn func(store.Store) error) error {
-	snap := t.snapshot()
+// savepoint runs fn against the transaction view and restores the maps it
+// changed unless fn returns nil. The caller holds txMu.
+func (s *Store) savepoint(fn func(store.Store) error) error {
+	snap := s.snapshot()
 	ok := false
 	defer func() {
 		if !ok {
-			t.restore(snap)
+			s.restore(snap)
 		}
 	}()
-	err := fn(t)
+	err := fn(&Store{state: s.state, tx: true})
 	ok = err == nil
 	return err
 }
 
 // snapshot deep-copies every map.
-func (s *Store) snapshot() *Store {
+func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return &Store{
+	return &state{
 		tenants:            cloneMap(s.tenants, cloneTenant),
 		clients:            cloneMap(s.clients, cloneClient),
 		resourceServers:    cloneMap(s.resourceServers, cloneResourceServer),
@@ -74,7 +68,7 @@ func (s *Store) snapshot() *Store {
 }
 
 // restore reassigns every map from snap.
-func (s *Store) restore(snap *Store) {
+func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.tenants, s.clients, s.resourceServers = snap.tenants, snap.clients, snap.resourceServers

@@ -190,6 +190,12 @@ func (e *env) browser(host string) *browser {
 
 func (b *browser) do(t *testing.T, method, path string, form url.Values) *httptest.ResponseRecorder {
 	t.Helper()
+	return b.send(method, path, form)
+}
+
+// send is do without a *testing.T, for requests made off the test
+// goroutine.
+func (b *browser) send(method, path string, form url.Values) *httptest.ResponseRecorder {
 	var r *http.Request
 	if form != nil {
 		r = httptest.NewRequest(method, "https://"+b.host+path, strings.NewReader(form.Encode()))

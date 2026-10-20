@@ -12,8 +12,8 @@ import (
 type clients struct{ s *Store }
 
 func (r clients) Create(_ context.Context, c *store.Client) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{c.TenantID, c.ClientID}
 	if _, ok := r.s.clients[k]; ok {
 		return store.ErrConflict
@@ -33,8 +33,8 @@ func (r clients) Get(_ context.Context, tenantID, clientID string) (*store.Clien
 }
 
 func (r clients) Update(_ context.Context, c *store.Client) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{c.TenantID, c.ClientID}
 	if _, ok := r.s.clients[k]; !ok {
 		return store.ErrNotFound
@@ -44,8 +44,8 @@ func (r clients) Update(_ context.Context, c *store.Client) error {
 }
 
 func (r clients) Delete(_ context.Context, tenantID, clientID string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{tenantID, clientID}
 	if _, ok := r.s.clients[k]; !ok {
 		return store.ErrNotFound

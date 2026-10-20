@@ -216,19 +216,25 @@ func (h *Handlers) GetUserSessions(w http.ResponseWriter, r *http.Request, id st
 }
 
 // DeleteUserSessions ends every session of the user and bumps the user's
-// version. Refresh tokens are not revoked (U8).
+// version, in one transaction. Refresh tokens are not revoked (U8).
 func (h *Handlers) DeleteUserSessions(w http.ResponseWriter, r *http.Request, id string) {
 	if err := h.userForSessions(r, id); err != nil {
 		Fail(w, err)
 		return
 	}
 	ctx, tn := r.Context(), resolved(r)
-	n, err := h.Store.Sessions().DeleteByUser(ctx, tn.ID, id)
+	// The bump comes first and locks the user, so a grant minting for the
+	// user runs wholly before or after this (its check sees the bump).
+	var n int
+	err := h.Store.WithTx(ctx, func(tx store.Store) error {
+		if _, err := tx.Users().BumpVersion(ctx, tn.ID, id); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		var err error
+		n, err = tx.Sessions().DeleteByUser(ctx, tn.ID, id)
+		return err
+	})
 	if err != nil {
-		Fail(w, internalError(h, r, "delete sessions", err))
-		return
-	}
-	if _, err := h.Store.Users().BumpVersion(ctx, tn.ID, id); err != nil && !errors.Is(err, store.ErrNotFound) {
 		Fail(w, internalError(h, r, "delete sessions", err))
 		return
 	}
@@ -275,13 +281,25 @@ func (h *Handlers) tokenSession(r *http.Request, t *store.RefreshToken, cache ma
 	return s
 }
 
-// DeleteUserRefreshTokens revokes every refresh token of the user.
+// DeleteUserRefreshTokens revokes every refresh token of the user and bumps
+// the user's version.
 func (h *Handlers) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string) {
 	if err := h.userForSessions(r, id); err != nil {
 		Fail(w, err)
 		return
 	}
-	n, err := h.Store.RefreshTokens().RevokeByUser(r.Context(), resolved(r).ID, id, h.now())
+	ctx, tn, now := r.Context(), resolved(r), h.now()
+	// Bump first, as for sessions: a refresh rotating now is refused rather
+	// than minting a token after the revocation.
+	var n int
+	err := h.Store.WithTx(ctx, func(tx store.Store) error {
+		if _, err := tx.Users().BumpVersion(ctx, tn.ID, id); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		var err error
+		n, err = tx.RefreshTokens().RevokeByUser(ctx, tn.ID, id, now)
+		return err
+	})
 	if err != nil {
 		Fail(w, internalError(h, r, "delete refresh tokens", err))
 		return

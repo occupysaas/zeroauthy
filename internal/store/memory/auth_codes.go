@@ -10,8 +10,8 @@ import (
 type authCodes struct{ s *Store }
 
 func (r authCodes) Create(_ context.Context, c *store.AuthCode) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{c.TenantID, c.CodeHash}
 	if _, ok := r.s.authCodes[k]; ok {
 		return store.ErrConflict
@@ -21,8 +21,8 @@ func (r authCodes) Create(_ context.Context, c *store.AuthCode) error {
 }
 
 func (r authCodes) Consume(_ context.Context, tenantID, codeHash string, at time.Time) (*store.AuthCode, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	c, ok := r.s.authCodes[key{tenantID, codeHash}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -50,8 +50,8 @@ func (r authCodes) Get(_ context.Context, tenantID, codeHash string) (*store.Aut
 }
 
 func (r authCodes) DeleteExpired(_ context.Context, before time.Time) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, c := range r.s.authCodes {
 		if !c.ExpiresAt.After(before) {

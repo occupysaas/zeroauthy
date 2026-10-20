@@ -20,8 +20,8 @@ func (r resetTickets) findByHash(tenantID, hash string) (*store.PasswordResetTic
 }
 
 func (r resetTickets) Create(_ context.Context, t *store.PasswordResetTicket) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if _, ok := r.s.resetTickets[key{t.TenantID, t.ID}]; ok {
 		return store.ErrConflict
 	}
@@ -43,8 +43,8 @@ func (r resetTickets) GetByTokenHash(_ context.Context, tenantID, tokenHash stri
 }
 
 func (r resetTickets) Consume(_ context.Context, tenantID, tokenHash string, at time.Time) (*store.PasswordResetTicket, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	t, ok := r.findByHash(tenantID, tokenHash)
 	if !ok {
 		return nil, store.ErrNotFound
@@ -58,8 +58,8 @@ func (r resetTickets) Consume(_ context.Context, tenantID, tokenHash string, at 
 }
 
 func (r resetTickets) DeleteByUser(_ context.Context, tenantID, userID string) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, t := range r.s.resetTickets {
 		if k.tenant == tenantID && t.UserID == userID && t.UsedAt == nil {
@@ -71,8 +71,8 @@ func (r resetTickets) DeleteByUser(_ context.Context, tenantID, userID string) (
 }
 
 func (r resetTickets) DeleteExpired(_ context.Context, before time.Time) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, t := range r.s.resetTickets {
 		if !t.ExpiresAt.After(before) {

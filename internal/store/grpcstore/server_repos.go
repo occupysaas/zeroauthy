@@ -482,6 +482,14 @@ func (s *Server) UsersGet(ctx context.Context, r *storev1.ScopedKey) (*storev1.U
 	return &storev1.UserResult{Error: e, Value: v}, nil
 }
 
+func (s *Server) UsersGetForUpdate(ctx context.Context, r *storev1.ScopedKey) (*storev1.UserResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.User, error) { return st.Users().GetForUpdate(ctx, r.TenantId, r.Key) }, userToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.UserResult{Error: e, Value: v}, nil
+}
+
 func (s *Server) UsersFindByLogin(ctx context.Context, r *storev1.UsersFindByLoginRequest) (*storev1.UserResult, error) {
 	v, e, err := one(s, r.TxId, func(st store.Store) (*store.User, error) {
 		return st.Users().FindByLogin(ctx, r.TenantId, r.Connection, r.Login)

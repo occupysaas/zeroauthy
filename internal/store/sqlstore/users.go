@@ -108,6 +108,21 @@ func (r users) Get(ctx context.Context, tenantID, userID string) (*store.User, e
 	return u, err
 }
 
+// GetForUpdate locks the row with the dialect's FOR UPDATE inside a
+// transaction. SQLite has no row locks; its transactions are serialized
+// (BEGIN IMMEDIATE on one connection).
+func (r users) GetForUpdate(ctx context.Context, tenantID, userID string) (*store.User, error) {
+	suffix := ""
+	if r.s.tx != nil {
+		suffix = r.s.d.forUpdate
+	}
+	u, err := scanUser(r.s.queryRow(ctx, `SELECT `+userCols+` FROM users WHERE tenant_id = ? AND user_id = ?`+suffix, tenantID, userID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, store.ErrNotFound
+	}
+	return u, err
+}
+
 func (r users) Update(ctx context.Context, u *store.User) error {
 	args, err := userArgs(u)
 	if err != nil {

@@ -9,8 +9,8 @@ import (
 type passwordHistories struct{ s *Store }
 
 func (r passwordHistories) Add(_ context.Context, tenantID, userID string, hash []byte, keep int) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{tenantID, userID}
 	if keep <= 0 {
 		delete(r.s.passwordHistories, k)

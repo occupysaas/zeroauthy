@@ -10,8 +10,8 @@ import (
 type pushedAuthRequests struct{ s *Store }
 
 func (r pushedAuthRequests) Create(_ context.Context, p *store.PushedAuthRequest) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{p.TenantID, p.IDHash}
 	if _, ok := r.s.pushedAuthRequests[k]; ok {
 		return store.ErrConflict
@@ -21,8 +21,8 @@ func (r pushedAuthRequests) Create(_ context.Context, p *store.PushedAuthRequest
 }
 
 func (r pushedAuthRequests) Consume(_ context.Context, tenantID, idHash string, at time.Time) (*store.PushedAuthRequest, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	p, ok := r.s.pushedAuthRequests[key{tenantID, idHash}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -46,8 +46,8 @@ func (r pushedAuthRequests) Get(_ context.Context, tenantID, idHash string) (*st
 }
 
 func (r pushedAuthRequests) DeleteExpired(_ context.Context, before time.Time) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, p := range r.s.pushedAuthRequests {
 		if !p.ExpiresAt.After(before) {

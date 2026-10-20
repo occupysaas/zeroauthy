@@ -51,8 +51,8 @@ type Store interface {
 	Operators() Operators
 	// WithTx runs fn against a transactional view of the store. If fn
 	// returns an error, none of its writes persist. Drivers serialize
-	// transactions; the memory driver's isolation from concurrent
-	// non-transactional writers is best effort (tests and demos only).
+	// transactions; the memory driver also serializes them with writes made
+	// outside any transaction, so fn must not write through the outer store.
 	// A nested WithTx call inside fn runs inline and joins the outer transaction.
 	WithTx(ctx context.Context, fn func(tx Store) error) error
 	Ping(ctx context.Context) error
@@ -272,6 +272,12 @@ type Users interface {
 	// BumpVersion atomically adds one to Version and returns the new
 	// value, or ErrNotFound.
 	BumpVersion(ctx context.Context, tenantID, userID string) (int64, error)
+	// GetForUpdate is Get that, inside WithTx, also locks the user until
+	// the transaction ends: another transaction's GetForUpdate or write of
+	// the user waits for it. Outside a transaction it is Get. Grants use it
+	// to mint, and credential changes and revocations lock or write the
+	// user first, so the two serialize.
+	GetForUpdate(ctx context.Context, tenantID, userID string) (*User, error)
 	// Delete removes the user and, in the same step, everything that
 	// names it: sessions, refresh tokens, user grants, password reset
 	// tickets, email verification tickets, password history, auth codes,

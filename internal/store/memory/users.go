@@ -12,8 +12,8 @@ import (
 type users struct{ s *Store }
 
 func (r users) Create(_ context.Context, u *store.User) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{u.TenantID, u.UserID}
 	if _, ok := r.s.users[k]; ok || r.loginTaken(u) {
 		return store.ErrConflict
@@ -32,6 +32,11 @@ func (r users) Get(_ context.Context, tenantID, userID string) (*store.User, err
 		return nil, store.ErrNotFound
 	}
 	return cloneUser(u), nil
+}
+
+// GetForUpdate is Get: transactions and writes are serialized by txMu.
+func (r users) GetForUpdate(ctx context.Context, tenantID, userID string) (*store.User, error) {
+	return r.Get(ctx, tenantID, userID)
 }
 
 func (r users) FindByLogin(_ context.Context, tenantID, connection, login string) (*store.User, error) {
@@ -54,8 +59,8 @@ func (r users) FindByLogin(_ context.Context, tenantID, connection, login string
 }
 
 func (r users) Update(_ context.Context, u *store.User) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{u.TenantID, u.UserID}
 	if _, ok := r.s.users[k]; !ok {
 		return store.ErrNotFound
@@ -75,8 +80,8 @@ func (r users) Update(_ context.Context, u *store.User) error {
 }
 
 func (r users) RecordLogin(_ context.Context, tenantID, userID string, at time.Time, ip string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	u, ok := r.s.users[key{tenantID, userID}]
 	if !ok {
 		return store.ErrNotFound
@@ -97,8 +102,8 @@ func (r users) SetPasswordHashIfEmpty(_ context.Context, tenantID, userID, conne
 }
 
 func (r users) setHash(tenantID, userID, connection, hash string, at time.Time, onlyIfEmpty bool) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	u, ok := r.s.users[key{tenantID, userID}]
 	if !ok {
 		return store.ErrNotFound
@@ -119,8 +124,8 @@ func (r users) setHash(tenantID, userID, connection, hash string, at time.Time, 
 }
 
 func (r users) BumpVersion(_ context.Context, tenantID, userID string) (int64, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	u, ok := r.s.users[key{tenantID, userID}]
 	if !ok {
 		return 0, store.ErrNotFound
@@ -146,8 +151,8 @@ func (r users) FindByEmail(_ context.Context, tenantID, email string) ([]*store.
 }
 
 func (r users) Delete(_ context.Context, tenantID, userID string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if _, ok := r.s.users[key{tenantID, userID}]; !ok {
 		return store.ErrNotFound
 	}

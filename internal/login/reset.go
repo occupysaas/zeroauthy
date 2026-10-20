@@ -289,12 +289,23 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 8. In one transaction, log the user out everywhere, invalidate
-	// their other reset links and, on a local connection, set the password,
-	// which changes the user's Version: a grant that checked the old
-	// password and has not minted yet is refused. A storage failure leaves
-	// everything as it was (on a legacy connection the password has
-	// changed already; the user should reset again).
+	// their other reset links and, on a local connection, set the password.
+	// Either way the user's Version changes, so a grant that checked the
+	// old password and has not minted yet is refused. A storage failure
+	// rolls this step back, but the link is already spent (and on a legacy
+	// connection the password has changed); the user should reset again.
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		// The first statement locks the user, so a grant minting for the
+		// user runs wholly before this transaction (its tokens are revoked
+		// below) or after it (its version check refuses it). A legacy
+		// reset writes no local password, so it bumps the Version itself.
+		if legacy {
+			if _, err := tx.Users().BumpVersion(ctx, res.Tenant.ID, tk.UserID); err != nil {
+				return err
+			}
+		} else if _, err := tx.Users().GetForUpdate(ctx, res.Tenant.ID, tk.UserID); err != nil {
+			return err
+		}
 		if _, err := tx.Sessions().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
 			return err
 		}

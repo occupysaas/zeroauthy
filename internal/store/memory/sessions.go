@@ -12,8 +12,8 @@ import (
 type sessions struct{ s *Store }
 
 func (r sessions) Create(_ context.Context, s *store.LoginSession) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{s.TenantID, s.ID}
 	if _, ok := r.s.sessions[k]; ok {
 		return store.ErrConflict
@@ -61,8 +61,8 @@ func (r sessions) ListByUser(_ context.Context, tenantID, userID string) ([]*sto
 }
 
 func (r sessions) Touch(_ context.Context, tenantID, id string, at, idleExpiresAt time.Time, ip, userAgent string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	s, ok := r.s.sessions[key{tenantID, id}]
 	if !ok {
 		return store.ErrNotFound
@@ -74,8 +74,8 @@ func (r sessions) Touch(_ context.Context, tenantID, id string, at, idleExpiresA
 }
 
 func (r sessions) AddClient(_ context.Context, tenantID, id, clientID string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	s, ok := r.s.sessions[key{tenantID, id}]
 	if !ok {
 		return store.ErrNotFound
@@ -87,8 +87,8 @@ func (r sessions) AddClient(_ context.Context, tenantID, id, clientID string) er
 }
 
 func (r sessions) DeleteExpired(_ context.Context, before time.Time) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, s := range r.s.sessions {
 		if !s.ExpiresAt.After(before) || !s.IdleExpiresAt.After(before) {
@@ -100,8 +100,8 @@ func (r sessions) DeleteExpired(_ context.Context, before time.Time) (int, error
 }
 
 func (r sessions) DeleteByUser(_ context.Context, tenantID, userID string) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, s := range r.s.sessions {
 		if k.tenant == tenantID && s.UserID == userID {
@@ -113,8 +113,8 @@ func (r sessions) DeleteByUser(_ context.Context, tenantID, userID string) (int,
 }
 
 func (r sessions) Delete(_ context.Context, tenantID, id string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{tenantID, id}
 	if _, ok := r.s.sessions[k]; !ok {
 		return store.ErrNotFound

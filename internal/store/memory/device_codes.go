@@ -10,8 +10,8 @@ import (
 type deviceCodes struct{ s *Store }
 
 func (r deviceCodes) Create(_ context.Context, d *store.DeviceCode) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if _, ok := r.s.deviceCodes[key{d.TenantID, d.DeviceCodeHash}]; ok {
 		return store.ErrConflict
 	}
@@ -46,8 +46,8 @@ func (r deviceCodes) GetByUserCode(_ context.Context, tenantID, userCodeHash str
 }
 
 func (r deviceCodes) Decide(_ context.Context, tenantID, deviceCodeHash string, dec store.DeviceDecision) (*store.DeviceCode, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	d, ok := r.s.deviceCodes[key{tenantID, deviceCodeHash}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -62,8 +62,8 @@ func (r deviceCodes) Decide(_ context.Context, tenantID, deviceCodeHash string, 
 }
 
 func (r deviceCodes) Poll(_ context.Context, tenantID, deviceCodeHash string, at time.Time) (store.DevicePoll, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	d, ok := r.s.deviceCodes[key{tenantID, deviceCodeHash}]
 	if !ok {
 		return store.DevicePoll{}, store.ErrNotFound
@@ -101,8 +101,8 @@ func (r deviceCodes) Poll(_ context.Context, tenantID, deviceCodeHash string, at
 }
 
 func (r deviceCodes) DeleteExpired(_ context.Context, before time.Time) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, d := range r.s.deviceCodes {
 		if !d.ExpiresAt.After(before) {

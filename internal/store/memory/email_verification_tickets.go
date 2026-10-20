@@ -20,8 +20,8 @@ func (r verifyTickets) findByHash(tenantID, hash string) (*store.EmailVerificati
 }
 
 func (r verifyTickets) Create(_ context.Context, t *store.EmailVerificationTicket) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if _, ok := r.s.verifyTickets[key{t.TenantID, t.ID}]; ok {
 		return store.ErrConflict
 	}
@@ -43,8 +43,8 @@ func (r verifyTickets) GetByTokenHash(_ context.Context, tenantID, tokenHash str
 }
 
 func (r verifyTickets) Consume(_ context.Context, tenantID, tokenHash string, at time.Time) (*store.EmailVerificationTicket, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	t, ok := r.findByHash(tenantID, tokenHash)
 	if !ok {
 		return nil, store.ErrNotFound
@@ -58,8 +58,8 @@ func (r verifyTickets) Consume(_ context.Context, tenantID, tokenHash string, at
 }
 
 func (r verifyTickets) DeleteByUser(_ context.Context, tenantID, userID string) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, t := range r.s.verifyTickets {
 		if k.tenant == tenantID && t.UserID == userID && t.UsedAt == nil {
@@ -71,8 +71,8 @@ func (r verifyTickets) DeleteByUser(_ context.Context, tenantID, userID string) 
 }
 
 func (r verifyTickets) DeleteExpired(_ context.Context, before time.Time) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, t := range r.s.verifyTickets {
 		if !t.ExpiresAt.After(before) {

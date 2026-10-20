@@ -10,8 +10,8 @@ import (
 type authTransactions struct{ s *Store }
 
 func (r authTransactions) Create(_ context.Context, t *store.AuthTransaction) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{t.TenantID, t.ID}
 	if _, ok := r.s.transactions[k]; ok {
 		return store.ErrConflict
@@ -31,8 +31,8 @@ func (r authTransactions) Get(_ context.Context, tenantID, id string) (*store.Au
 }
 
 func (r authTransactions) Delete(_ context.Context, tenantID, id string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{tenantID, id}
 	if _, ok := r.s.transactions[k]; !ok {
 		return store.ErrNotFound
@@ -42,8 +42,8 @@ func (r authTransactions) Delete(_ context.Context, tenantID, id string) error {
 }
 
 func (r authTransactions) DeleteExpired(_ context.Context, before time.Time) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, t := range r.s.transactions {
 		if !t.ExpiresAt.After(before) {

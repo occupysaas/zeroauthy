@@ -12,8 +12,8 @@ import (
 type resourceServers struct{ s *Store }
 
 func (r resourceServers) Create(_ context.Context, rs *store.ResourceServer) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{rs.TenantID, rs.ID}
 	if _, ok := r.s.resourceServers[k]; ok || r.identifierTaken(rs) {
 		return store.ErrConflict
@@ -44,8 +44,8 @@ func (r resourceServers) GetByIdentifier(_ context.Context, tenantID, identifier
 }
 
 func (r resourceServers) Update(_ context.Context, rs *store.ResourceServer) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{rs.TenantID, rs.ID}
 	if _, ok := r.s.resourceServers[k]; !ok {
 		return store.ErrNotFound
@@ -58,8 +58,8 @@ func (r resourceServers) Update(_ context.Context, rs *store.ResourceServer) err
 }
 
 func (r resourceServers) Delete(_ context.Context, tenantID, id string) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	k := key{tenantID, id}
 	rs, ok := r.s.resourceServers[k]
 	if !ok {

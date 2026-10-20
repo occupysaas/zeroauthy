@@ -458,6 +458,13 @@ func (a clientUsers) Get(ctx context.Context, tenantID, userID string) (*store.U
 	return decOne("UsersGet", err, r.GetError(), r.GetValue(), userFromPB)
 }
 
+// GetForUpdate runs in the plugin's transaction named by txID, so the
+// plugin's driver takes the lock there.
+func (a clientUsers) GetForUpdate(ctx context.Context, tenantID, userID string) (*store.User, error) {
+	r, err := a.c.rpc.UsersGetForUpdate(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return decOne("UsersGetForUpdate", tooOld(err), r.GetError(), r.GetValue(), userFromPB)
+}
+
 func (a clientUsers) FindByLogin(ctx context.Context, tenantID, connection, login string) (*store.User, error) {
 	r, err := a.c.rpc.UsersFindByLogin(ctx, &storev1.UsersFindByLoginRequest{TxId: a.c.txID, TenantId: tenantID, Connection: connection, Login: login})
 	return decOne("UsersFindByLogin", err, r.GetError(), r.GetValue(), userFromPB)

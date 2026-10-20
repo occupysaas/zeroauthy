@@ -360,6 +360,12 @@ func (h *Handlers) DeleteOperator(w http.ResponseWriter, r *http.Request, id str
 	sys := resolved(r)
 	now := h.now()
 	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		// Bump the user first: it locks the user, so a grant minting for
+		// the operator runs wholly before this (and its tokens are revoked
+		// below) or after it (and its version check refuses it).
+		if _, err := tx.Users().BumpVersion(r.Context(), sys.ID, id); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
 		if _, err := tx.Operators().Get(r.Context(), sys.ID, id); errors.Is(err, store.ErrNotFound) {
 			return errOperatorNotFound
 		} else if err != nil {

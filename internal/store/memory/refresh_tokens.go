@@ -31,8 +31,8 @@ func (r refreshTokens) findByHash(tenantID, hash string) (*store.RefreshToken, b
 }
 
 func (r refreshTokens) Create(_ context.Context, t *store.RefreshToken) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	if r.taken(t) {
 		return store.ErrConflict
 	}
@@ -76,8 +76,8 @@ func (r refreshTokens) ListByUser(_ context.Context, tenantID, userID string) ([
 }
 
 func (r refreshTokens) Revoke(_ context.Context, tenantID, id string, at time.Time) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	t, ok := r.s.refreshTokens[key{tenantID, id}]
 	if !ok {
 		return store.ErrNotFound
@@ -90,8 +90,8 @@ func (r refreshTokens) Revoke(_ context.Context, tenantID, id string, at time.Ti
 }
 
 func (r refreshTokens) Rotate(_ context.Context, tenantID, oldID string, next *store.RefreshToken, at time.Time, leeway time.Duration) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	old, ok := r.s.refreshTokens[key{tenantID, oldID}]
 	if !ok || (old.RevokedAt != nil && old.RotatedAt == nil) {
 		return store.ErrNotFound
@@ -117,8 +117,8 @@ func (r refreshTokens) Rotate(_ context.Context, tenantID, oldID string, next *s
 }
 
 func (r refreshTokens) Touch(_ context.Context, tenantID, id string, idleExpiresAt time.Time) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	t, ok := r.s.refreshTokens[key{tenantID, id}]
 	if !ok || t.RevokedAt != nil || t.RotatedAt != nil {
 		return store.ErrNotFound
@@ -128,15 +128,15 @@ func (r refreshTokens) Touch(_ context.Context, tenantID, id string, idleExpires
 }
 
 func (r refreshTokens) RevokeFamily(_ context.Context, tenantID, familyID string, at time.Time) error {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	r.revokeFamily(tenantID, familyID, at)
 	return nil
 }
 
 func (r refreshTokens) RevokeByUser(_ context.Context, tenantID, userID string, at time.Time) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, t := range r.s.refreshTokens {
 		if k.tenant == tenantID && t.UserID == userID && t.RevokedAt == nil {
@@ -159,8 +159,8 @@ func (r refreshTokens) revokeFamily(tenantID, familyID string, at time.Time) {
 }
 
 func (r refreshTokens) DeleteExpired(_ context.Context, before time.Time) (int, error) {
-	r.s.mu.Lock()
-	defer r.s.mu.Unlock()
+	r.s.lock()
+	defer r.s.unlock()
 	n := 0
 	for k, t := range r.s.refreshTokens {
 		if (!t.ExpiresAt.IsZero() && !t.ExpiresAt.After(before)) ||

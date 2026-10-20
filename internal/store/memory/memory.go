@@ -13,9 +13,19 @@ import (
 type key struct{ tenant, id string }
 
 // Store is safe for concurrent use. One RWMutex guards all maps, so
-// multi-entity operations such as key rotation are trivially atomic.
+// multi-entity operations such as key rotation are trivially atomic. A
+// transaction body gets a view of the same state with tx set.
 type Store struct {
-	txMu               sync.Mutex // serializes WithTx
+	*state
+	// tx marks a transaction's view: its writes already hold txMu.
+	tx bool
+}
+
+// state is the data of a Store and its locks. txMu serializes
+// transactions and the writes made outside any transaction, so a
+// transaction that rolls back never undoes a write that is not its own.
+type state struct {
+	txMu               sync.Mutex
 	mu                 sync.RWMutex
 	tenants            map[string]*store.Tenant               // by ID
 	clients            map[key]*store.Client                  // by (tenant, client ID)
@@ -39,7 +49,7 @@ type Store struct {
 
 // New returns an empty store.
 func New() *Store {
-	return &Store{
+	return &Store{state: &state{
 		tenants:            map[string]*store.Tenant{},
 		clients:            map[key]*store.Client{},
 		resourceServers:    map[key]*store.ResourceServer{},
@@ -58,6 +68,23 @@ func New() *Store {
 		resetTickets:       map[key]*store.PasswordResetTicket{},
 		verifyTickets:      map[key]*store.EmailVerificationTicket{},
 		operators:          map[key]*store.Operator{},
+	}}
+}
+
+// lock takes the write lock. Outside a transaction it first takes txMu,
+// so the write waits for a running transaction and is not lost when that
+// transaction restores its snapshot.
+func (s *Store) lock() {
+	if !s.tx {
+		s.txMu.Lock()
+	}
+	s.mu.Lock()
+}
+
+func (s *Store) unlock() {
+	s.mu.Unlock()
+	if !s.tx {
+		s.txMu.Unlock()
 	}
 }
 
