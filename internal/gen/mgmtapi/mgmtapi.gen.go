@@ -1629,10 +1629,43 @@ type UserCreate struct {
 type UserIdentity struct {
 	Connection string `json:"connection"`
 	IsSocial   bool   `json:"isSocial"`
-	Provider   string `json:"provider"`
+
+	// ProfileData On a linked (secondary) identity: `email`, `email_verified` and,
+	// when it has one, `username`. The link and unlink responses also
+	// give it for the primary's own identity.
+	ProfileData *map[string]interface{} `json:"profileData,omitempty"`
+	Provider    string                  `json:"provider"`
 
 	// UserId The ID within the provider (the user's `user_id` without `provider|`).
 	UserId string `json:"user_id"`
+}
+
+// UserIdentityLink The account to link: `provider` and `user_id` (with an optional
+// `connection_id`), or `link_with` alone. Unknown properties are
+// `400 invalid_body`.
+type UserIdentityLink struct {
+	// ConnectionId The secondary identity's connection ID.
+	ConnectionId *string `json:"connection_id,omitempty"`
+
+	// LinkWith An ID token for the secondary, issued to the calling client.
+	LinkWith *string `json:"link_with,omitempty"`
+
+	// Provider The secondary's provider, e.g. `auth0`.
+	Provider *string `json:"provider,omitempty"`
+
+	// UserId The secondary's ID without the `provider|` prefix.
+	UserId *UserIdentityLink_UserId `json:"user_id,omitempty"`
+}
+
+// UserIdentityLinkUserId0 defines model for UserIdentityLink.UserId.0.
+type UserIdentityLinkUserId0 = string
+
+// UserIdentityLinkUserId1 defines model for UserIdentityLink.UserId.1.
+type UserIdentityLinkUserId1 = int
+
+// UserIdentityLink_UserId The secondary's ID without the `provider|` prefix.
+type UserIdentityLink_UserId struct {
+	union json.RawMessage
 }
 
 // UserPage A page of users with `include_totals=true`.
@@ -2008,6 +2041,9 @@ type CreateUserJSONRequestBody = UserCreate
 // UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
 type UpdateUserJSONRequestBody = UserUpdate
 
+// LinkUserIdentityJSONRequestBody defines body for LinkUserIdentity for application/json ContentType.
+type LinkUserIdentityJSONRequestBody = UserIdentityLink
+
 // Getter for additional properties for User. Returns the specified
 // element and whether it was found
 func (a User) Get(fieldName string) (value interface{}, found bool) {
@@ -2359,6 +2395,68 @@ func (a User) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(object)
+}
+
+// AsUserIdentityLinkUserId0 returns the union data inside the UserIdentityLink_UserId as a UserIdentityLinkUserId0
+func (t UserIdentityLink_UserId) AsUserIdentityLinkUserId0() (UserIdentityLinkUserId0, error) {
+	var body UserIdentityLinkUserId0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUserIdentityLinkUserId0 overwrites any union data inside the UserIdentityLink_UserId as the provided UserIdentityLinkUserId0
+func (t *UserIdentityLink_UserId) FromUserIdentityLinkUserId0(v UserIdentityLinkUserId0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUserIdentityLinkUserId0 performs a merge with any union data inside the UserIdentityLink_UserId, using the provided UserIdentityLinkUserId0
+func (t *UserIdentityLink_UserId) MergeUserIdentityLinkUserId0(v UserIdentityLinkUserId0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsUserIdentityLinkUserId1 returns the union data inside the UserIdentityLink_UserId as a UserIdentityLinkUserId1
+func (t UserIdentityLink_UserId) AsUserIdentityLinkUserId1() (UserIdentityLinkUserId1, error) {
+	var body UserIdentityLinkUserId1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUserIdentityLinkUserId1 overwrites any union data inside the UserIdentityLink_UserId as the provided UserIdentityLinkUserId1
+func (t *UserIdentityLink_UserId) FromUserIdentityLinkUserId1(v UserIdentityLinkUserId1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUserIdentityLinkUserId1 performs a merge with any union data inside the UserIdentityLink_UserId, using the provided UserIdentityLinkUserId1
+func (t *UserIdentityLink_UserId) MergeUserIdentityLinkUserId1(v UserIdentityLinkUserId1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t UserIdentityLink_UserId) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *UserIdentityLink_UserId) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
 }
 
 // AsGetClientGrants200JSONResponseBody0 returns the union data inside the GetClientGrants200JSONResponseBody as a GetClientGrants200JSONResponseBody0
@@ -2836,6 +2934,12 @@ type ServerInterface interface {
 	// UpdateUser Update a user
 	// (PATCH /api/v2/users/{id})
 	UpdateUser(w http.ResponseWriter, r *http.Request, id string)
+	// LinkUserIdentity Link a user account to this user
+	// (POST /api/v2/users/{id}/identities)
+	LinkUserIdentity(w http.ResponseWriter, r *http.Request, id string)
+	// UnlinkUserIdentity Unlink an identity from a user
+	// (DELETE /api/v2/users/{id}/identities/{provider}/{user_id})
+	UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id string, provider string, userId string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -3061,6 +3165,18 @@ func (_ Unimplemented) GetUser(w http.ResponseWriter, r *http.Request, id string
 // UpdateUser Update a user
 // (PATCH /api/v2/users/{id})
 func (_ Unimplemented) UpdateUser(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// LinkUserIdentity Link a user account to this user
+// (POST /api/v2/users/{id}/identities)
+func (_ Unimplemented) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UnlinkUserIdentity Unlink an identity from a user
+// (DELETE /api/v2/users/{id}/identities/{provider}/{user_id})
+func (_ Unimplemented) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id string, provider string, userId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4616,6 +4732,76 @@ func (siw *ServerInterfaceWrapper) UpdateUser(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// LinkUserIdentity operation middleware
+func (siw *ServerInterfaceWrapper) LinkUserIdentity(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.LinkUserIdentity(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnlinkUserIdentity operation middleware
+func (siw *ServerInterfaceWrapper) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "provider" -------------
+	var provider string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "provider", chi.URLParam(r, "provider"), &provider, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "provider", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "user_id" -------------
+	var userId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnlinkUserIdentity(w, r, id, provider, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -4812,6 +4998,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v2/users/{id}", wrapper.UpdateUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/users/{id}/identities", wrapper.LinkUserIdentity)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}/identities/{provider}/{user_id}", wrapper.UnlinkUserIdentity)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/users-by-email", wrapper.GetUsersByEmail)

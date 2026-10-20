@@ -120,26 +120,33 @@ func (d *Database) Login(ctx context.Context, conn *store.Connection, login, pas
 	} else if err != nil {
 		return nil, err
 	}
-	hash := passwordHash(u, conn.Name)
+	hash := passwordHash(u, conn.Name, norm)
 	if hash == "" && IsCustom(conn) {
 		return d.importLogin(ctx, conn, strings.TrimSpace(login), password, u)
 	}
 	return verifyLocal(u, hash, password)
 }
 
-// passwordHash returns the password hash of u's identity on connection, or
-// "" when u is nil or has none.
-func passwordHash(u *store.User, connection string) string {
+// passwordHash returns the password hash of the identity of u on connection
+// that login (normalized) names, or "" when u is nil or has none. A user
+// can hold several identities on one connection once accounts are linked
+// (D-0043), each with its own password: the identity is the one whose
+// email or username is login (store.User.IdentityByLogin), never just the
+// first on the connection. When no identity names login, u's own identity
+// on connection is used.
+func passwordHash(u *store.User, connection, login string) string {
 	if u == nil {
 		return ""
 	}
-	hash := ""
+	if id := u.IdentityByLogin(connection, login); id != nil {
+		return id.PasswordHash
+	}
 	for _, id := range u.Identities {
-		if id.Connection == connection {
-			hash = id.PasswordHash
+		if id.Connection == connection && !id.Linked() {
+			return id.PasswordHash
 		}
 	}
-	return hash
+	return ""
 }
 
 // verifyLocal checks password against hash, the stored hash of u. An empty

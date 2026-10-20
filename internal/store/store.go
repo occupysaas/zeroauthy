@@ -236,12 +236,15 @@ type PasswordHistories interface {
 // lowercase emails and usernames.
 type Users interface {
 	// Create returns ErrConflict if the UserID exists, or if another user
-	// with an identity on the same connection has the same Email or
-	// Username.
+	// has one of its logins: the same email or username on the same
+	// connection, where each identity logs in with User.IdentityLogin (a
+	// linked identity with its ProfileData, see User.LoginKeys).
 	Create(ctx context.Context, u *User) error
 	Get(ctx context.Context, tenantID, userID string) (*User, error)
-	// FindByLogin finds the user with an identity on connection whose
-	// Email or Username equals login.
+	// FindByLogin finds the user with an identity on connection that logs
+	// in with login (User.LoginKeys): the user's own Email or Username,
+	// or a linked identity's ProfileData email or username, so a linked
+	// identity finds its primary user.
 	FindByLogin(ctx context.Context, tenantID, connection, login string) (*User, error)
 	// FindByEmail returns the users whose Email equals email, on any
 	// connection, ordered by UserID. Callers pass the email lowercase.

@@ -55,6 +55,8 @@ type Handlers struct {
 	// Verification sends verification emails for /users; nil logs and
 	// sends nothing.
 	Verification VerificationSender
+	// Keys verifies link_with ID tokens (POST /users/{id}/identities).
+	Keys *keys.Manager
 
 	tryOnce     sync.Once
 	tryThrottle *identity.Throttle

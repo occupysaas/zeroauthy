@@ -221,3 +221,54 @@ func TestSignupPictureAndMetadataLimits(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+// A linked identity (D-0043) logs in with its own email, username and
+// password and yields the primary user. Two identities on the same
+// connection each keep their own password: the one the login names is
+// checked.
+func TestLoginThroughLinkedIdentity(t *testing.T) {
+	ctx := context.Background()
+	db, conn := newDB(t)
+	conn.RequiresUsername = true
+	primary, err := db.Signup(ctx, conn, SignupInput{Email: "primary@example.com", Username: "primary", Password: "primary password"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sec, err := db.Signup(ctx, conn, SignupInput{Email: "second@example.com", Username: "second", Password: "second password"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Link as the Management API does: move the identity, delete the user.
+	if err := db.Store.Users().Delete(ctx, conn.TenantID, sec.UserID); err != nil {
+		t.Fatal(err)
+	}
+	id := sec.Identities[0]
+	id.ProfileData = map[string]any{"email": sec.Email, "email_verified": false, "username": sec.Username}
+	primary.Identities = append(primary.Identities, id)
+	if err := db.Store.Users().Update(ctx, primary); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, c := range []struct {
+		login, password string
+		ok              bool
+	}{
+		{"second@example.com", "second password", true},
+		{"SECOND", "second password", true},
+		{"primary@example.com", "primary password", true},
+		{"primary", "primary password", true},
+		{"second@example.com", "primary password", false},
+		{"primary@example.com", "second password", false},
+	} {
+		got, err := db.Login(ctx, conn, c.login, c.password)
+		if !c.ok {
+			if !errors.Is(err, ErrInvalidCredentials) {
+				t.Errorf("Login(%s, %s) err = %v, want ErrInvalidCredentials", c.login, c.password, err)
+			}
+			continue
+		}
+		if err != nil || got.UserID != primary.UserID {
+			t.Errorf("Login(%s) = %v, %v; want the primary %s", c.login, got, err, primary.UserID)
+		}
+	}
+}

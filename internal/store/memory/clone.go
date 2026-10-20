@@ -83,6 +83,9 @@ func cloneConnection(c *store.Connection) *store.Connection {
 func cloneUser(u *store.User) *store.User {
 	out := *u
 	out.Identities = slices.Clone(u.Identities)
+	for i := range out.Identities {
+		out.Identities[i].ProfileData = cloneJSON(out.Identities[i].ProfileData)
+	}
 	if u.LastLogin != nil {
 		t := *u.LastLogin
 		out.LastLogin = &t

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -81,7 +82,7 @@ func TestLegacyLoginCreatesLocalUser(t *testing.T) {
 		u.Name != "alice@legacy.test" || u.Nickname != "alice" {
 		t.Fatalf("user = %+v", u)
 	}
-	if id := u.Identities; len(id) != 1 || id[0] != (store.Identity{Connection: "Legacy", Provider: "auth0", UserID: "42"}) {
+	if id := u.Identities; len(id) != 1 || !reflect.DeepEqual(id[0], store.Identity{Connection: "Legacy", Provider: "auth0", UserID: "42"}) {
 		t.Fatalf("identities = %+v", id)
 	}
 	if got, err := db.Store.Users().FindByLogin(ctx, "ten_a", "Legacy", "alice@legacy.test"); err != nil || got.UserID != "auth0|42" {

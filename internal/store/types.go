@@ -5,6 +5,7 @@ package store
 import (
 	"maps"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -520,6 +521,82 @@ type Identity struct {
 	Provider     string // the connection strategy, e.g. "auth0"
 	UserID       string // ID within the provider (User.UserID without "provider|")
 	PasswordHash string // argon2id PHC string; database connections only
+	// ProfileData is set on a linked (secondary) identity only, and nil on
+	// the user's own: what the identity's user had when it was linked,
+	// "email" (string) and "email_verified" (bool), and "username" when it
+	// had one (D-0043). A linked identity logs in with these, not with the
+	// user's root email and username.
+	ProfileData map[string]any `json:",omitempty"`
+}
+
+// Linked reports whether id is a linked (secondary) identity.
+func (id *Identity) Linked() bool { return id.ProfileData != nil }
+
+// ProfileString returns ProfileData[k] when it is a string, or "".
+func (id *Identity) ProfileString(k string) string {
+	s, _ := id.ProfileData[k].(string)
+	return s
+}
+
+// LoginKey is one way a user is found at login: a value of kind "email" or
+// "username" on a connection.
+type LoginKey struct{ Connection, Kind, Value string }
+
+// IdentityLogin returns the email and username that log in through id, one
+// of u's identities: a linked identity's ProfileData values, otherwise u's
+// own Email and Username.
+func (u *User) IdentityLogin(id *Identity) (email, username string) {
+	if id.Linked() {
+		return id.ProfileString("email"), id.ProfileString("username")
+	}
+	return u.Email, u.Username
+}
+
+// LoginKeys returns every non-empty login of u's identities, sorted and
+// without duplicates. Users.FindByLogin and the uniqueness rules of Create
+// and Update work on these.
+func (u *User) LoginKeys() []LoginKey {
+	var out []LoginKey
+	for i := range u.Identities {
+		id := &u.Identities[i]
+		email, username := u.IdentityLogin(id)
+		for _, k := range [...]LoginKey{{id.Connection, "email", email}, {id.Connection, "username", username}} {
+			if k.Value != "" {
+				out = append(out, k)
+			}
+		}
+	}
+	slices.SortFunc(out, func(a, b LoginKey) int {
+		if a.Connection != b.Connection {
+			return strings.Compare(a.Connection, b.Connection)
+		}
+		if a.Kind != b.Kind {
+			return strings.Compare(a.Kind, b.Kind)
+		}
+		return strings.Compare(a.Value, b.Value)
+	})
+	return slices.Compact(out)
+}
+
+// IdentityByLogin returns u's identity on connection that login (an email or
+// username) logs in through, preferring u's own identity, or nil.
+func (u *User) IdentityByLogin(connection, login string) *Identity {
+	var found *Identity
+	for i := range u.Identities {
+		id := &u.Identities[i]
+		if id.Connection != connection || login == "" {
+			continue
+		}
+		if email, username := u.IdentityLogin(id); email == login || username == login {
+			if !id.Linked() {
+				return id
+			}
+			if found == nil {
+				found = id
+			}
+		}
+	}
+	return found
 }
 
 // User is a person in a tenant. Email and Username are stored lowercase.

@@ -575,8 +575,15 @@ func userToPB(u *store.User) (*storev1.User, error) {
 	if u.Identities != nil {
 		pb.Identities = &storev1.IdentityList{Values: make([]*storev1.Identity, 0, len(u.Identities))}
 		for _, id := range u.Identities {
-			pb.Identities.Values = append(pb.Identities.Values, &storev1.Identity{
-				Connection: id.Connection, Provider: id.Provider, UserId: id.UserID, PasswordHash: id.PasswordHash})
+			pid := &storev1.Identity{Connection: id.Connection, Provider: id.Provider, UserId: id.UserID, PasswordHash: id.PasswordHash}
+			if id.ProfileData != nil {
+				b, err := json.Marshal(id.ProfileData)
+				if err != nil {
+					return nil, fmt.Errorf("grpcstore: encode identity profile data: %w", err)
+				}
+				pid.ProfileDataJson = b
+			}
+			pb.Identities.Values = append(pb.Identities.Values, pid)
 		}
 	}
 	return pb, nil
@@ -614,8 +621,13 @@ func userFromPB(pb *storev1.User) (*store.User, error) {
 	if pb.Identities != nil {
 		u.Identities = make([]store.Identity, 0, len(pb.Identities.Values))
 		for _, id := range pb.Identities.Values {
-			u.Identities = append(u.Identities, store.Identity{
-				Connection: id.GetConnection(), Provider: id.GetProvider(), UserID: id.GetUserId(), PasswordHash: id.GetPasswordHash()})
+			sid := store.Identity{Connection: id.GetConnection(), Provider: id.GetProvider(), UserID: id.GetUserId(), PasswordHash: id.GetPasswordHash()}
+			if id.ProfileDataJson != nil {
+				if err := json.Unmarshal(id.ProfileDataJson, &sid.ProfileData); err != nil {
+					return nil, fmt.Errorf("grpcstore: decode identity profile data: %w", err)
+				}
+			}
+			u.Identities = append(u.Identities, sid)
 		}
 	}
 	return u, nil

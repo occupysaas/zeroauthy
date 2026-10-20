@@ -134,8 +134,8 @@ func UserJSON(u *store.User) map[string]any {
 		m["app_metadata"] = u.AppMetadata
 	}
 	ids := make([]map[string]any, len(u.Identities))
-	for i, id := range u.Identities {
-		ids[i] = map[string]any{"connection": id.Connection, "user_id": id.UserID, "provider": id.Provider, "isSocial": false}
+	for i := range u.Identities {
+		ids[i] = identityJSON(&u.Identities[i])
 	}
 	m["identities"] = ids
 	if u.LastLogin != nil {

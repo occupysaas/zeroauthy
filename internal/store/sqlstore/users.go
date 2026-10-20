@@ -35,20 +35,15 @@ func (r users) Create(ctx context.Context, u *store.User) error {
 // login is one row of user_logins, minus tenant and user.
 type login struct{ connection, kind, value string }
 
-// desiredLogins is the sorted, deduplicated set of login rows for u.
+// desiredLogins is the sorted, deduplicated set of login rows for u: one
+// per login of each identity (store.User.LoginKeys).
 func desiredLogins(u *store.User) []login {
-	var out []login
-	for _, id := range u.Identities {
-		for _, l := range [...]login{{id.Connection, "email", u.Email}, {id.Connection, "username", u.Username}} {
-			if l.value != "" {
-				out = append(out, l)
-			}
-		}
+	keys := u.LoginKeys()
+	out := make([]login, len(keys))
+	for i, k := range keys {
+		out[i] = login{k.Connection, k.Kind, k.Value}
 	}
-	slices.SortFunc(out, func(a, b login) int {
-		return cmp.Or(cmp.Compare(a.connection, b.connection), cmp.Compare(a.kind, b.kind), cmp.Compare(a.value, b.value))
-	})
-	return slices.Compact(out)
+	return out
 }
 
 // putLogins brings the user's rows in user_logins to the desired set. When

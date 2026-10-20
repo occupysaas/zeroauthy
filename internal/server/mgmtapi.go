@@ -142,6 +142,16 @@ func (a mgmtAPI) DeleteUser(w http.ResponseWriter, r *http.Request, id string) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteUser(w, r, id) }, "delete:users")
 }
 
+// LinkUserIdentity: update:users.
+func (a mgmtAPI) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.LinkUserIdentity(w, r, id) }, "update:users")
+}
+
+// UnlinkUserIdentity: update:users.
+func (a mgmtAPI) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id, provider, userID string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UnlinkUserIdentity(w, r, id, provider, userID) }, "update:users")
+}
+
 // The system API: the router lets only operators reach it (operatorOnly).
 
 func (a mgmtAPI) GetTenants(w http.ResponseWriter, r *http.Request)   { a.h.GetTenants(w, r) }

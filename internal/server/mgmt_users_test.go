@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -378,5 +379,135 @@ func TestDeleteUserMidFlow(t *testing.T) {
 	resp, out = e.postForm(t, e.client(t), "/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {"spa"}, "refresh_token": {refreshToken}})
 	if resp.StatusCode != 400 || out["error"] != "invalid_grant" {
 		t.Errorf("refresh = %d %v", resp.StatusCode, out)
+	}
+}
+
+// linkFlowSeed is flowSeed with a second user and a client allowed to read,
+// link and unlink users.
+var linkFlowSeed = strings.Replace(strings.Replace(strings.Replace(flowSeed, "    clients:\n", `    clients:
+      - {client_id: admin, app_type: non_interactive, client_secret: admin-s3cret, grant_types: [client_credentials]}
+`, 1), "    client_grants:\n", `    client_grants:
+      - {client_id: admin, audience: "https://HOST/api/v2/", scopes: ["read:users", "update:users"]}
+`, 1), "    users:\n", `    users:
+      - {connection: Username-Password-Authentication, email: bob@flow.test, password: "bob password 2", email_verified: true}
+`, 1)
+
+// idTokenSub returns the sub claim of a token response's id_token.
+func idTokenSub(t *testing.T, tok map[string]any) string {
+	t.Helper()
+	raw, _ := tok["id_token"].(string)
+	parts := strings.Split(raw, ".")
+	if len(parts) != 3 {
+		t.Fatalf("no id_token: %v", tok)
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var c struct {
+		Sub string `json:"sub"`
+	}
+	if err := json.Unmarshal(payload, &c); err != nil {
+		t.Fatal(err)
+	}
+	return c.Sub
+}
+
+// Review Focus 2: after a link and an unlink, the secondary logs in with
+// its own password again, as itself, with a fresh Version; what it held
+// before the link (sessions, refresh tokens) is gone. While linked, its
+// credentials log in as the primary.
+func TestUnlinkRestoresLogin(t *testing.T) {
+	e := newFlowEnvSeed(t, linkFlowSeed, nil)
+	ctx := context.Background()
+	tn, _ := e.st.Tenants().GetByName(ctx, "flow")
+	find := func(email string) *store.User {
+		us, _ := e.st.Users().FindByEmail(ctx, tn.ID, email)
+		if len(us) != 1 {
+			t.Fatalf("users with %s: %v", email, us)
+		}
+		return us[0]
+	}
+	alice, bob := find("alice@flow.test"), find("bob@flow.test")
+
+	// Bob's session and refresh token from before the link.
+	tok := e.codeFlowAs(t, e.client(t), "bob@flow.test", "bob password 2", "scope", "openid offline_access read:things")
+	oldRefresh, _ := tok["refresh_token"].(string)
+	if oldRefresh == "" || idTokenSub(t, tok) != bob.UserID {
+		t.Fatalf("bob's first login = %v", tok)
+	}
+
+	admin := ""
+	{
+		resp, out := e.postForm(t, e.client(t), "/oauth/token", url.Values{"grant_type": {"client_credentials"}, "client_id": {"admin"},
+			"client_secret": {"admin-s3cret"}, "audience": {e.base + "/api/v2/"}})
+		admin, _ = out["access_token"].(string)
+		if resp.StatusCode != 200 || admin == "" {
+			t.Fatalf("admin token = %d %v", resp.StatusCode, out)
+		}
+	}
+	call := func(method, path string, body any) (int, string) {
+		t.Helper()
+		var rd *strings.Reader
+		if body != nil {
+			b, _ := json.Marshal(body)
+			rd = strings.NewReader(string(b))
+		} else {
+			rd = strings.NewReader("")
+		}
+		req, _ := http.NewRequest(method, e.base+"/api/v2"+path, rd)
+		req.Header.Set("Authorization", "Bearer "+admin)
+		req.Header.Set("Content-Type", "application/json")
+		resp, out := mustDo(t, e.client(t), req)
+		return resp.StatusCode, out
+	}
+	bobBare := strings.TrimPrefix(bob.UserID, "auth0|")
+	if code, body := call("POST", "/users/"+url.PathEscape(alice.UserID)+"/identities", map[string]any{"provider": "auth0", "user_id": bobBare}); code != 201 {
+		t.Fatalf("link = %d %s", code, body)
+	}
+
+	refresh := func(token string) (int, map[string]any) {
+		resp, out := e.postForm(t, e.client(t), "/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {"spa"}, "refresh_token": {token}})
+		return resp.StatusCode, out
+	}
+	if code, out := refresh(oldRefresh); code != 400 || out["error"] != "invalid_grant" {
+		t.Errorf("bob's refresh after the link = %d %v", code, out)
+	}
+	// Bob's credentials now log in as alice.
+	tok = e.codeFlowAs(t, e.client(t), "bob@flow.test", "bob password 2")
+	if sub := idTokenSub(t, tok); sub != alice.UserID {
+		t.Errorf("login with bob's credentials while linked: sub %s, want the primary %s", sub, alice.UserID)
+	}
+
+	if code, body := call("DELETE", "/users/"+url.PathEscape(alice.UserID)+"/identities/auth0/"+url.PathEscape(bobBare), nil); code != 200 {
+		t.Fatalf("unlink = %d %s", code, body)
+	}
+	re, err := e.st.Users().Get(ctx, tn.ID, bob.UserID)
+	if err != nil {
+		t.Fatalf("bob after unlink: %v", err)
+	}
+	if re.Version < 1 || !re.CreatedAt.After(bob.CreatedAt) || re.LoginsCount != 0 {
+		t.Errorf("recreated bob: Version %d, created_at %v (was %v), logins %d", re.Version, re.CreatedAt, bob.CreatedAt, re.LoginsCount)
+	}
+	if ss, _ := e.st.Sessions().ListByUser(ctx, tn.ID, bob.UserID); len(ss) != 0 {
+		t.Errorf("bob's sessions survived the link: %d", len(ss))
+	}
+	if ts, _ := e.st.RefreshTokens().ListByUser(ctx, tn.ID, bob.UserID); len(ts) != 0 {
+		t.Errorf("bob's refresh tokens survived the link: %d", len(ts))
+	}
+	if code, out := refresh(oldRefresh); code != 400 || out["error"] != "invalid_grant" {
+		t.Errorf("bob's old refresh after the unlink = %d %v", code, out)
+	}
+	// Bob logs in as himself with his own password; alice is unchanged.
+	tok = e.codeFlowAs(t, e.client(t), "bob@flow.test", "bob password 2", "scope", "openid offline_access")
+	if sub := idTokenSub(t, tok); sub != bob.UserID {
+		t.Errorf("bob's login after unlink: sub %s, want %s", sub, bob.UserID)
+	}
+	if code, out := refresh(tok["refresh_token"].(string)); code != 200 {
+		t.Errorf("bob's new refresh token = %d %v", code, out)
+	}
+	tok = e.codeFlowAs(t, e.client(t), "alice@flow.test", "alice password 1")
+	if sub := idTokenSub(t, tok); sub != alice.UserID {
+		t.Errorf("alice's login: sub %s", sub)
 	}
 }

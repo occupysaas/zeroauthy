@@ -41,8 +41,13 @@ func (r users) FindByLogin(_ context.Context, tenantID, connection, login string
 		return nil, store.ErrNotFound
 	}
 	for k, u := range r.s.users {
-		if k.tenant == tenantID && onConnection(u, connection) && (u.Email == login || u.Username == login) {
-			return cloneUser(u), nil
+		if k.tenant != tenantID {
+			continue
+		}
+		for _, l := range u.LoginKeys() {
+			if l.Connection == connection && l.Value == login {
+				return cloneUser(u), nil
+			}
 		}
 	}
 	return nil, store.ErrNotFound
@@ -196,18 +201,20 @@ func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
 	}
 }
 
-// loginTaken reports whether another user shares a connection with u and
-// has the same non-empty email or username. The caller holds the lock.
+// loginTaken reports whether another user has one of u's logins (the same
+// email or username on the same connection; see store.User.LoginKeys). The
+// caller holds the lock.
 func (r users) loginTaken(u *store.User) bool {
+	mine := u.LoginKeys()
+	if len(mine) == 0 {
+		return false
+	}
 	for k, o := range r.s.users {
 		if k.tenant != u.TenantID || k.id == u.UserID {
 			continue
 		}
-		for _, id := range u.Identities {
-			if !onConnection(o, id.Connection) {
-				continue
-			}
-			if (u.Email != "" && o.Email == u.Email) || (u.Username != "" && o.Username == u.Username) {
+		for _, l := range o.LoginKeys() {
+			if slices.Contains(mine, l) {
 				return true
 			}
 		}

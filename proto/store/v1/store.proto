@@ -378,7 +378,10 @@ message Connection {
   optional bytes extra_json = 21;     // absent = nil map; any JSON object
 }
 
-message Identity { string connection = 1; string provider = 2; string user_id = 3; string password_hash = 4; }
+message Identity {
+  string connection = 1; string provider = 2; string user_id = 3; string password_hash = 4;
+  optional bytes profile_data_json = 5; // absent = nil map (the user's own identity)
+}
 message IdentityList { repeated Identity values = 1; }
 message User {
   string tenant_id = 1; string user_id = 2; string email = 3; bool email_verified = 4;

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -304,6 +305,32 @@ func TestManagementContractUsers(t *testing.T) {
 	c.do(a.h, "GET", "https://acme.example.test/api/v2/users-by-email?email=contract2@example.test", a.token, nil)
 	c.do(a.h, "GET", "https://acme.example.test/api/v2/users-by-email?email=nope", a.token, nil)
 	c.do(a.h, "GET", "https://acme.example.test/api/v2/users-by-email", a.token, nil)
+	code, body = c.do(a.h, "POST", usersBase, a.token, map[string]any{"connection": conn, "email": "second@example.test", "password": "first horse 1"})
+	var second map[string]any
+	_ = json.Unmarshal(body, &second)
+	sid, _ := second["user_id"].(string)
+	if code != 201 || sid == "" {
+		t.Fatalf("create second user = %d %s", code, body)
+	}
+	bare := strings.TrimPrefix(sid, "auth0|")
+	idents := usersBase + "/" + url.PathEscape(id) + "/identities"
+	if code, body := c.do(a.h, "POST", idents, a.token, map[string]any{"provider": "auth0", "user_id": bare}); code != 201 {
+		t.Fatalf("link = %d %s", code, body)
+	}
+	c.do(a.h, "GET", usersBase+"/"+url.PathEscape(id), ro, nil)
+	c.do(a.h, "POST", idents, a.token, map[string]any{"provider": "auth0", "user_id": bare})
+	c.do(a.h, "POST", idents, a.token, map[string]any{"provider": "auth0", "user_id": strings.TrimPrefix(id, "auth0|")})
+	c.do(a.h, "POST", idents, a.token, map[string]any{"provider": "auth0", "user_id": "000000000000000000000000"})
+	c.do(a.h, "POST", idents, a.token, map[string]any{"provider": "auth0"})
+	c.do(a.h, "POST", idents, a.token, map[string]any{"link_with": "not-a-jwt"})
+	c.do(a.h, "POST", usersBase+"/"+url.PathEscape("auth0|000000000000000000000000")+"/identities", a.token, map[string]any{"provider": "auth0", "user_id": bare})
+	c.do(a.h, "POST", idents, ro, map[string]any{"provider": "auth0", "user_id": bare})
+	if code, body := c.do(a.h, "DELETE", idents+"/auth0/"+url.PathEscape(bare), a.token, nil); code != 200 {
+		t.Fatalf("unlink = %d %s", code, body)
+	}
+	c.do(a.h, "DELETE", idents+"/auth0/"+url.PathEscape(bare), a.token, nil)
+	c.do(a.h, "DELETE", idents+"/auth0/"+url.PathEscape(strings.TrimPrefix(id, "auth0|")), a.token, nil)
+	c.do(a.h, "DELETE", usersBase+"/nope/identities/auth0/x", a.token, nil)
 	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), ro, nil)
 	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), a.token, nil)
 	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), a.token, nil)

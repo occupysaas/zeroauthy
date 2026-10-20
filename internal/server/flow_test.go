@@ -295,8 +295,15 @@ func (e *flowEnv) postForm(t *testing.T, c *http.Client, path string, form url.V
 	return resp, out
 }
 
-// codeFlow runs /authorize (logging in if needed) and exchanges the code.
+// codeFlow runs /authorize (logging in as alice if needed) and exchanges
+// the code.
 func (e *flowEnv) codeFlow(t *testing.T, c *http.Client, extra ...string) map[string]any {
+	t.Helper()
+	return e.codeFlowAs(t, c, "alice@flow.test", "alice password 1", extra...)
+}
+
+// codeFlowAs is codeFlow logging in with username and password.
+func (e *flowEnv) codeFlowAs(t *testing.T, c *http.Client, username, password string, extra ...string) map[string]any {
 	t.Helper()
 	resp, _ := fetch(t, c, authorizeURL(e.base, extra...))
 	loc, _ := resp.Location()
@@ -306,7 +313,7 @@ func (e *flowEnv) codeFlow(t *testing.T, c *http.Client, extra ...string) map[st
 		if csrf == nil {
 			t.Fatalf("no csrf: %s", page)
 		}
-		form := url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}}
+		form := url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "username": {username}, "password": {password}}
 		req, _ := http.NewRequest("POST", e.base+"/u/login", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		resp, _ = mustDo(t, c, req)

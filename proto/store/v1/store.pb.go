@@ -2777,13 +2777,14 @@ func (x *Connection) GetExtraJson() []byte {
 }
 
 type Identity struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Connection    string                 `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
-	Provider      string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	PasswordHash  string                 `protobuf:"bytes,4,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Connection      string                 `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
+	Provider        string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	UserId          string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	PasswordHash    string                 `protobuf:"bytes,4,opt,name=password_hash,json=passwordHash,proto3" json:"password_hash,omitempty"`
+	ProfileDataJson []byte                 `protobuf:"bytes,5,opt,name=profile_data_json,json=profileDataJson,proto3,oneof" json:"profile_data_json,omitempty"` // absent = nil map (the user's own identity)
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Identity) Reset() {
@@ -2842,6 +2843,13 @@ func (x *Identity) GetPasswordHash() string {
 		return x.PasswordHash
 	}
 	return ""
+}
+
+func (x *Identity) GetProfileDataJson() []byte {
+	if x != nil {
+		return x.ProfileDataJson
+	}
+	return nil
 }
 
 type IdentityList struct {
@@ -8703,14 +8711,16 @@ const file_store_proto_rawDesc = "" +
 	"\n" +
 	"extra_json\x18\x15 \x01(\fH\x01R\textraJson\x88\x01\x01B\x17\n" +
 	"\x15_configuration_sealedB\r\n" +
-	"\v_extra_json\"\x84\x01\n" +
+	"\v_extra_json\"\xcb\x01\n" +
 	"\bIdentity\x12\x1e\n" +
 	"\n" +
 	"connection\x18\x01 \x01(\tR\n" +
 	"connection\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x12#\n" +
-	"\rpassword_hash\x18\x04 \x01(\tR\fpasswordHash\"D\n" +
+	"\rpassword_hash\x18\x04 \x01(\tR\fpasswordHash\x12/\n" +
+	"\x11profile_data_json\x18\x05 \x01(\fH\x00R\x0fprofileDataJson\x88\x01\x01B\x14\n" +
+	"\x12_profile_data_json\"D\n" +
 	"\fIdentityList\x124\n" +
 	"\x06values\x18\x01 \x03(\v2\x1c.zeroauthy.store.v1.IdentityR\x06values\"\xdd\x06\n" +
 	"\x04User\x12\x1b\n" +
@@ -9891,6 +9901,7 @@ func file_store_proto_init() {
 	file_store_proto_msgTypes[30].OneofWrappers = []any{}
 	file_store_proto_msgTypes[31].OneofWrappers = []any{}
 	file_store_proto_msgTypes[33].OneofWrappers = []any{}
+	file_store_proto_msgTypes[34].OneofWrappers = []any{}
 	file_store_proto_msgTypes[36].OneofWrappers = []any{}
 	file_store_proto_msgTypes[41].OneofWrappers = []any{}
 	file_store_proto_msgTypes[85].OneofWrappers = []any{}

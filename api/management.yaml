@@ -938,6 +938,100 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "503": {$ref: "#/components/responses/ScriptRuntimeUnavailable"}
+  /api/v2/users/{id}/identities:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The primary user's ID, `provider|id`; anything else is `400 invalid_uri`.
+        schema: {type: string}
+    post:
+      operationId: linkUserIdentity
+      tags: [users]
+      summary: Link a user account to this user
+      description: |
+        Requires `update:users`. The secondary account is named by `provider`
+        and `user_id` (its ID without the `provider|` prefix, optionally with
+        `connection_id`), or by `link_with`, an ID token issued by this tenant
+        to the calling client (its `aud` must be the caller's client ID; its
+        `sub` is the secondary). The secondary user stops existing: its
+        identity, with its password, moves to the primary with `profileData`
+        (`email`, `email_verified`, and `username` when it has one), and its
+        sessions, refresh tokens and grants are deleted. Logging in with the
+        secondary's credentials then yields the primary user.
+
+        Answers `201` with the primary's identities, each with `profileData`.
+        An identity already linked is `409 identity_conflict`; the primary
+        itself is `400 operation_not_supported`; an unknown `auth0` secondary
+        is `400` without an error code; an unknown secondary of another
+        provider, a missing `user_id` and a bad `link_with` are
+        `400 invalid_body`; an unknown primary is `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/post-identities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UserIdentityLink"}
+      responses:
+        "201":
+          description: The primary user's identities.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/UserIdentity"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/users/{id}/identities/{provider}/{user_id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The primary user's ID, `provider|id`; anything else is `400 invalid_uri`.
+        schema: {type: string}
+      - name: provider
+        in: path
+        required: true
+        description: The linked identity's provider, e.g. `auth0`.
+        schema: {type: string}
+      - name: user_id
+        in: path
+        required: true
+        description: The linked identity's ID within the provider.
+        schema: {type: string}
+    delete:
+      operationId: unlinkUserIdentity
+      tags: [users]
+      summary: Unlink an identity from a user
+      description: |
+        Requires `update:users`. The identity leaves the primary and comes
+        back as a new user with the same `user_id`, `created_at` = now, only
+        `email` and `email_verified` from its `profileData` (and `username`
+        when it had one), the default `name` and `nickname`, no picture or
+        metadata, and `logins_count` 0. Its password still works.
+
+        Answers `200` with the primary's remaining identities, each with
+        `profileData`, also when the identity was not linked. Removing the
+        primary's own identity is `400 delete_main_user_identity`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/delete-user-identity-by-user-id
+      responses:
+        "200":
+          description: The primary user's remaining identities.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/UserIdentity"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
   /api/v2/users-by-email:
     get:
       operationId: getUsersByEmail
@@ -1852,6 +1946,28 @@ components:
         user_id: {type: string, description: The ID within the provider (the user's `user_id` without `provider|`).}
         provider: {type: string}
         isSocial: {type: boolean}
+        profileData:
+          type: object
+          additionalProperties: true
+          description: |
+            On a linked (secondary) identity: `email`, `email_verified` and,
+            when it has one, `username`. The link and unlink responses also
+            give it for the primary's own identity.
+    UserIdentityLink:
+      type: object
+      description: |
+        The account to link: `provider` and `user_id` (with an optional
+        `connection_id`), or `link_with` alone. Unknown properties are
+        `400 invalid_body`.
+      properties:
+        provider: {type: string, description: "The secondary's provider, e.g. `auth0`."}
+        user_id:
+          description: The secondary's ID without the `provider|` prefix.
+          oneOf:
+            - {type: string}
+            - {type: integer}
+        connection_id: {type: string, description: The secondary identity's connection ID.}
+        link_with: {type: string, description: "An ID token for the secondary, issued to the calling client."}
     User:
       type: object
       description: |

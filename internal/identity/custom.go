@@ -175,7 +175,7 @@ func (d *Database) importLogin(ctx context.Context, conn *store.Connection, logi
 		}
 		// A concurrent first login migrated the user first: its hash
 		// decides.
-		if h := passwordHash(u, conn.Name); h != "" {
+		if h := passwordHash(u, conn.Name, NormalizeLogin(login)); h != "" {
 			return verifyLocal(u, h, password)
 		}
 	}

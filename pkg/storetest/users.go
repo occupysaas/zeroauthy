@@ -399,4 +399,92 @@ func testUsers(t *testing.T, newStore Factory) {
 			mustEqual(t, got.Email, email)
 		}
 	})
+
+	// A linked identity (D-0043) carries ProfileData, which round-trips, and
+	// logs in with its own email and username: the user is found through
+	// them on the identity's connection, and they stay taken for other
+	// users of that connection. The user's own email is not a login on the
+	// linked identity's connection.
+	t.Run("LinkedIdentity", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "p1", "primary@example.test", "primary")))
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "s1", "second@example.test", "second")))
+		other := newUser("ten_a", "s2", "third@example.test", "")
+		other.Identities[0].Connection = "Other"
+		mustNoErr(t, s.Users().Create(ctx, other))
+
+		mustNoErr(t, s.WithTx(ctx, func(tx store.Store) error {
+			p, err := tx.Users().Get(ctx, "ten_a", "auth0|p1")
+			if err != nil {
+				return err
+			}
+			for _, sid := range []string{"auth0|s1", "auth0|s2"} {
+				sec, err := tx.Users().Get(ctx, "ten_a", sid)
+				if err != nil {
+					return err
+				}
+				if err := tx.Users().Delete(ctx, "ten_a", sid); err != nil {
+					return err
+				}
+				id := sec.Identities[0]
+				id.ProfileData = map[string]any{"email": sec.Email, "email_verified": sec.EmailVerified}
+				if sec.Username != "" {
+					id.ProfileData["username"] = sec.Username
+				}
+				p.Identities = append(p.Identities, id)
+			}
+			return tx.Users().Update(ctx, p)
+		}))
+
+		got, err := s.Users().Get(ctx, "ten_a", "auth0|p1")
+		mustNoErr(t, err)
+		mustEqual(t, len(got.Identities), 3)
+		mustEqual(t, got.Identities[0].ProfileData == nil, true)
+		mustEqual(t, got.Identities[1], store.Identity{Connection: "Database", Provider: store.StrategyDatabase, UserID: "s1",
+			PasswordHash: "$argon2id$hash-s1", ProfileData: map[string]any{"email": "second@example.test", "email_verified": true, "username": "second"}})
+		mustEqual(t, got.Identities[2].ProfileData, map[string]any{"email": "third@example.test", "email_verified": true})
+		// Copies: changing what Get returned changes nothing stored.
+		got.Identities[1].ProfileData["email"] = "mutated"
+		again, _ := s.Users().Get(ctx, "ten_a", "auth0|p1")
+		mustEqual(t, again.Identities[1].ProfileString("email"), "second@example.test")
+
+		for _, c := range []struct{ conn, login, want string }{
+			{"Database", "primary@example.test", "auth0|p1"},
+			{"Database", "primary", "auth0|p1"},
+			{"Database", "second@example.test", "auth0|p1"},
+			{"Database", "second", "auth0|p1"},
+			{"Other", "third@example.test", "auth0|p1"},
+			{"Other", "primary@example.test", ""},
+			{"Other", "second@example.test", ""},
+		} {
+			got, err := s.Users().FindByLogin(ctx, "ten_a", c.conn, c.login)
+			if c.want == "" {
+				mustErrIs(t, err, store.ErrNotFound)
+				continue
+			}
+			mustNoErr(t, err)
+			mustEqual(t, got.UserID, c.want)
+		}
+		// The linked logins stay taken on their connection.
+		mustErrIs(t, s.Users().Create(ctx, newUser("ten_a", "n1", "second@example.test", "")), store.ErrConflict)
+		mustErrIs(t, s.Users().Create(ctx, newUser("ten_a", "n2", "n2@example.test", "second")), store.ErrConflict)
+		thirdAgain := newUser("ten_a", "n3", "third@example.test", "")
+		thirdAgain.Identities[0].Connection = "Other"
+		mustErrIs(t, s.Users().Create(ctx, thirdAgain), store.ErrConflict)
+		// The primary's own email is free on the linked identity's connection.
+		primaryOther := newUser("ten_a", "n4", "primary@example.test", "")
+		primaryOther.Identities[0].Connection = "Other"
+		mustNoErr(t, s.Users().Create(ctx, primaryOther))
+
+		// Unlinking frees the logins.
+		again.Identities = again.Identities[:1]
+		mustNoErr(t, s.Users().Update(ctx, again))
+		_, err = s.Users().FindByLogin(ctx, "ten_a", "Database", "second@example.test")
+		mustErrIs(t, err, store.ErrNotFound)
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "s1", "second@example.test", "second")))
+		got, err = s.Users().FindByLogin(ctx, "ten_a", "Database", "second")
+		mustNoErr(t, err)
+		mustEqual(t, got.UserID, "auth0|s1")
+		mustEqual(t, got.Identities[0].ProfileData == nil, true)
+	})
 }
