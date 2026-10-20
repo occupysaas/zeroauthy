@@ -78,19 +78,35 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 	if oerr != nil {
 		return nil, oerr
 	}
+	var rt *store.RefreshToken
+	var raw string
 	if slices.Contains(scopes, "offline_access") {
 		absolute, _ := refreshLifetimes(c.RefreshToken)
 		var expiresAt time.Time
 		if absolute > 0 {
 			expiresAt = now.UTC().Add(absolute)
 		}
-		rt, raw := h.newRefreshToken(c, tenantID, refreshGrant{
+		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
 			familyID: familyForDevice(hash), userID: user.UserID, audience: dc.Audience, scopes: scopes, expiresAt: expiresAt,
 		})
-		if err := h.Store.RefreshTokens().Create(ctx, rt); err != nil {
-			h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
-			return nil, serverError()
+	}
+	// The user approved at /activate, possibly long ago, so there is no
+	// Version to compare (D-0043); the user must still exist and not be
+	// blocked when the tokens are minted.
+	err = h.mintTx(ctx, tenantID, user.UserID, nil, func(tx store.Store) error {
+		if rt == nil {
+			return nil
 		}
+		return tx.RefreshTokens().Create(ctx, rt)
+	})
+	switch {
+	case errors.Is(err, errUserChanged):
+		return nil, deviceInvalidGrant("the user is not allowed to sign in")
+	case err != nil:
+		h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	}
+	if rt != nil {
 		resp.RefreshToken = &raw
 	}
 	return resp, nil

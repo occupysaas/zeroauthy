@@ -47,6 +47,35 @@ func (h *Handlers) activeUser(ctx context.Context, tenantID, userID string) (*st
 	return user, nil
 }
 
+// errUserChanged is returned by mintTx when the user is gone, blocked or,
+// when a version is given, no longer at that Version.
+var errUserChanged = errors.New("oauth: the user changed since it was loaded")
+
+// mintTx runs write, the store writes that mint a grant's tokens (nil for
+// none), in a transaction that first re-reads the user. When the user is
+// gone or blocked, or version is non-nil and the user's Version differs
+// from it, nothing is written and mintTx returns errUserChanged: a reset,
+// block or session revocation landed between the grant loading the user
+// and minting. Tokens issued earlier are not affected (D-0043).
+func (h *Handlers) mintTx(ctx context.Context, tenantID, userID string, version *int64, write func(tx store.Store) error) error {
+	return h.Store.WithTx(ctx, func(tx store.Store) error {
+		u, err := tx.Users().Get(ctx, tenantID, userID)
+		if errors.Is(err, store.ErrNotFound) {
+			return errUserChanged
+		}
+		if err != nil {
+			return err
+		}
+		if u.Blocked || (version != nil && u.Version != *version) {
+			return errUserChanged
+		}
+		if write == nil {
+			return nil
+		}
+		return write(tx)
+	})
+}
+
 // audienceFor loads the API named by aud ("" means none) and the lifetime
 // of access tokens issued for it.
 func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*store.ResourceServer, time.Duration, *Error) {

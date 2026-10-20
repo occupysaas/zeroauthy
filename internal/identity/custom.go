@@ -182,19 +182,31 @@ func (d *Database) importLogin(ctx context.Context, conn *store.Connection, logi
 	if u.UserID != store.StrategyDatabase+"|"+p.UserID || !onConnection(u, conn, p.UserID) {
 		return nil, d.collision(ctx, conn, store.StrategyDatabase+"|"+p.UserID, "login belongs to another user")
 	}
-	now := d.now().UTC()
-	if err := d.Store.Users().SetPasswordHash(ctx, conn.TenantID, u.UserID, conn.Name, hash, now); err != nil {
+	// The hash is set only if none is: a reset that completed while the
+	// login script ran has set the new password, and it wins.
+	err = d.Store.Users().SetPasswordHashIfEmpty(ctx, conn.TenantID, u.UserID, conn.Name, hash, d.now().UTC())
+	if err != nil && !errors.Is(err, store.ErrConflict) {
 		return nil, err
 	}
-	for i := range u.Identities {
-		if u.Identities[i].Connection == conn.Name && !u.Identities[i].Linked() {
-			u.Identities[i].PasswordHash = hash
-			break
+	won := err == nil
+	if won {
+		if err := RecordPassword(ctx, d.Store, conn, u.UserID, hash); err != nil {
+			return nil, err
 		}
 	}
-	u.UpdatedAt = now
-	if err := RecordPassword(ctx, d.Store, conn, u.UserID, hash); err != nil {
+	// Re-read the user: its Version is the one the caller checks before
+	// minting, and it must include this write. If the stored hash is no
+	// longer ours (we lost, or a reset replaced it since), the password
+	// must match the stored hash, as on any later login.
+	u, err = d.Store.Users().Get(ctx, conn.TenantID, u.UserID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, ErrInvalidCredentials
+	}
+	if err != nil {
 		return nil, err
+	}
+	if stored := passwordHash(u, conn.Name, NormalizeLogin(login)); !won || stored != hash {
+		return verifyLocal(u, stored, password)
 	}
 	if u.Blocked {
 		return nil, ErrUserBlocked
@@ -459,7 +471,9 @@ func (d *Database) upsertProfile(ctx context.Context, conn *store.Connection, p 
 	} else if err != nil {
 		return nil, err
 	}
-	return u, nil
+	// Re-read: Update may have bumped the Version (an email change), and
+	// the caller checks that Version before minting.
+	return d.Store.Users().Get(ctx, conn.TenantID, userID)
 }
 
 // profileUser is a new local user for profile p, with no password hash.

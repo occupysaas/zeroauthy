@@ -466,3 +466,49 @@ func TestPasswordRealmGrantLogMasksScriptErrors(t *testing.T) {
 		t.Fatalf("log = %s", out)
 	}
 }
+
+// A login that itself changes the user (a legacy email change, an import
+// first login completing a hashless user) mints: the grant checks the
+// Version after its own writes, not the one before them.
+func TestPasswordGrantOwnWritesKeepVersion(t *testing.T) {
+	t.Run("legacy email change", func(t *testing.T) {
+		f := newFixture(t)
+		email := "dave@legacy.test"
+		f.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {
+			return map[string]any{"user_id": 42, "email": email}, nil
+		}
+		for _, e := range []string{"dave@legacy.test", "dave2@legacy.test"} {
+			email = e
+			rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave", "pw")})
+			if rec.Code != 200 {
+				t.Fatalf("grant as %s = %d %v", e, rec.Code, body)
+			}
+		}
+		u, err := f.st.Users().Get(context.Background(), f.tenantID(t, "acme"), "auth0|42")
+		if err != nil || u.Email != "dave2@legacy.test" || u.Version == 0 {
+			t.Fatalf("user = %+v, %v", u, err)
+		}
+	})
+	t.Run("import completes a hashless user", func(t *testing.T) {
+		f := newFixture(t)
+		tenantID := f.tenantID(t, "acme")
+		useImportMode(t, f.st, tenantID)
+		err := f.st.Users().Create(context.Background(), &store.User{TenantID: tenantID, UserID: "auth0|42", Email: "dave@legacy.test",
+			Identities: []store.Identity{{Connection: "Legacy-DB", Provider: store.StrategyDatabase, UserID: "42"}},
+			CreatedAt:  fixedNow(), UpdatedAt: fixedNow()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {
+			return map[string]any{"user_id": 42, "email": "dave@legacy.test"}, nil
+		}
+		form := legacyRealm("dave@legacy.test", "dave legacy 1")
+		form.Set("scope", "openid offline_access")
+		if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: form}); rec.Code != 200 || body["refresh_token"] == nil {
+			t.Fatalf("first import login = %d %v", rec.Code, body)
+		}
+		if rec, body := f.call(t, true, tokenCall{host: "acme.example.test", form: legacyRealm("dave@legacy.test", "other")}); rec.Code != 400 {
+			t.Fatalf("wrong password after migration = %d %v", rec.Code, body)
+		}
+	})
+}

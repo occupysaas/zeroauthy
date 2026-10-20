@@ -97,39 +97,54 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		return nil, oerr
 	}
 
-	// The minted tokens are only sent once the refresh token is consumed.
-	if rt.Rotating {
-		next, nextRaw := h.newRefreshToken(c, tenantID, refreshGrant{
-			familyID: rt.FamilyID, userID: rt.UserID, sessionID: rt.SessionID, audience: rt.Audience,
-			scopes: rt.Scopes, authTime: rt.AuthTime, expiresAt: rt.ExpiresAt,
-		})
-		next.Rotating = true
-		err := h.Store.RefreshTokens().Rotate(ctx, tenantID, rt.ID, next, now, time.Duration(c.RefreshToken.Leeway)*time.Second)
-		switch {
-		case errors.Is(err, store.ErrAlreadyUsed):
-			h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
-			return nil, invalid
-		case errors.Is(err, store.ErrNotFound):
-			return nil, invalid
-		case err != nil:
-			h.log().ErrorContext(ctx, "rotate refresh token", "tenant", tenantID, "err", err)
-			return nil, serverError()
+	// The minted tokens are only sent once the refresh token is consumed,
+	// in a transaction that checks the user is still at the Version loaded
+	// above. The store's own error from Rotate or Touch is kept apart and
+	// the transaction commits, so a family revoked for reuse stays revoked.
+	version := user.Version
+	var writeErr error
+	var nextRaw string
+	err = h.mintTx(ctx, tenantID, rt.UserID, &version, func(tx store.Store) error {
+		if rt.Rotating {
+			next, raw := h.newRefreshToken(c, tenantID, refreshGrant{
+				familyID: rt.FamilyID, userID: rt.UserID, sessionID: rt.SessionID, audience: rt.Audience,
+				scopes: rt.Scopes, authTime: rt.AuthTime, expiresAt: rt.ExpiresAt,
+			})
+			next.Rotating = true
+			nextRaw = raw
+			writeErr = tx.RefreshTokens().Rotate(ctx, tenantID, rt.ID, next, now, time.Duration(c.RefreshToken.Leeway)*time.Second)
+			return nil
 		}
-		resp.RefreshToken = &nextRaw
-		return resp, nil
+		if _, idle := refreshLifetimes(c.RefreshToken); idle > 0 {
+			idleAt := now.Add(idle)
+			if !rt.ExpiresAt.IsZero() && idleAt.After(rt.ExpiresAt) {
+				idleAt = rt.ExpiresAt
+			}
+			writeErr = tx.RefreshTokens().Touch(ctx, tenantID, rt.ID, idleAt)
+		}
+		return nil
+	})
+	if errors.Is(err, errUserChanged) {
+		return nil, invalidGrant("the user is not allowed to sign in")
 	}
-
-	if _, idle := refreshLifetimes(c.RefreshToken); idle > 0 {
-		idleAt := now.Add(idle)
-		if !rt.ExpiresAt.IsZero() && idleAt.After(rt.ExpiresAt) {
-			idleAt = rt.ExpiresAt
-		}
-		if err := h.Store.RefreshTokens().Touch(ctx, tenantID, rt.ID, idleAt); errors.Is(err, store.ErrNotFound) {
-			return nil, invalid
-		} else if err != nil {
-			h.log().ErrorContext(ctx, "extend refresh token", "tenant", tenantID, "err", err)
-			return nil, serverError()
-		}
+	if err == nil {
+		err = writeErr
+	}
+	switch {
+	case rt.Rotating && errors.Is(err, store.ErrAlreadyUsed):
+		h.logRefreshReuse(ctx, tenantID, c.ClientID, rt)
+		return nil, invalid
+	case errors.Is(err, store.ErrNotFound):
+		return nil, invalid
+	case err != nil && rt.Rotating:
+		h.log().ErrorContext(ctx, "rotate refresh token", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	case err != nil:
+		h.log().ErrorContext(ctx, "extend refresh token", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	}
+	if rt.Rotating {
+		resp.RefreshToken = &nextRaw
 	}
 	return resp, nil
 }

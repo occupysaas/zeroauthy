@@ -319,6 +319,18 @@ func completeReset(t *testing.T, b *browser, ticket, pw string) *httptest.Respon
 	return b.do(t, "POST", "/u/reset-password", url.Values{"ticket": {ticket}, "csrf": {m[1]}, "password": {pw}, "password_confirm": {pw}})
 }
 
+// completeResetSpent posts the new-password form for a ticket whose form
+// was opened before the ticket was used.
+func completeResetSpent(t *testing.T, b *browser, ticket, pw string) *httptest.ResponseRecorder {
+	t.Helper()
+	b.do(t, "GET", "/u/reset-password?ticket="+ticket, nil)
+	c, ok := b.cookies[resetCookie]
+	if !ok {
+		t.Fatal("no reset cookie")
+	}
+	return b.do(t, "POST", "/u/reset-password", url.Values{"ticket": {ticket}, "csrf": {c.Value}, "password": {pw}, "password_confirm": {pw}})
+}
+
 // A completed reset invalidates the user's other outstanding links.
 func TestResetInvalidatesOtherTickets(t *testing.T) {
 	e := newEnv(t)
@@ -461,7 +473,10 @@ func TestLegacyResetCallsChangePassword(t *testing.T) {
 	}
 }
 
-func TestLegacyResetNotChangedKeepsTicket(t *testing.T) {
+// change_password runs after the ticket is used, so a refusal or failure
+// spends the link (two submits must not run the script twice); a retry
+// gets the used-link page.
+func TestLegacyResetNotChangedSpendsTicket(t *testing.T) {
 	le := newLegacyResetEnv(t)
 	le.changed = false
 	b := le.browser("acme.example.test")
@@ -470,12 +485,12 @@ func TestLegacyResetNotChangedKeepsTicket(t *testing.T) {
 		t.Fatalf("not changed = %d %s", rec.Code, rec.Body)
 	}
 	le.changed = true
-	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 200 {
+	if rec := completeResetSpent(t, b, ticket, "new legacy pw 1"); rec.Code != 400 || !usedLinkPage(rec.Body.String()) {
 		t.Fatalf("retry = %d %s", rec.Code, rec.Body)
 	}
 }
 
-func TestLegacyResetUnauthorizedKeepsTicket(t *testing.T) {
+func TestLegacyResetUnauthorizedSpendsTicket(t *testing.T) {
 	le := newLegacyResetEnv(t)
 	le.fail = &customdb.ScriptError{Kind: customdb.KindUnauthorized, Message: "<i>locked</i>"}
 	b := le.browser("acme.example.test")
@@ -485,12 +500,12 @@ func TestLegacyResetUnauthorizedKeepsTicket(t *testing.T) {
 		t.Fatalf("unauthorized = %d %s", rec.Code, rec.Body)
 	}
 	le.fail = nil
-	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 200 {
+	if rec := completeResetSpent(t, b, ticket, "new legacy pw 1"); rec.Code != 400 || !usedLinkPage(rec.Body.String()) {
 		t.Fatalf("retry = %d %s", rec.Code, rec.Body)
 	}
 }
 
-func TestLegacyResetScriptErrorKeepsTicket(t *testing.T) {
+func TestLegacyResetScriptErrorSpendsTicket(t *testing.T) {
 	le := newLegacyResetEnv(t)
 	le.fail = customdb.ErrTimeout
 	b := le.browser("acme.example.test")
@@ -499,7 +514,7 @@ func TestLegacyResetScriptErrorKeepsTicket(t *testing.T) {
 		t.Fatalf("script error = %d %s", rec.Code, rec.Body)
 	}
 	le.fail = nil
-	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 200 {
+	if rec := completeResetSpent(t, b, ticket, "new legacy pw 1"); rec.Code != 400 || !usedLinkPage(rec.Body.String()) {
 		t.Fatalf("retry = %d %s", rec.Code, rec.Body)
 	}
 }

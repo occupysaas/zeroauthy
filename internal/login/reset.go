@@ -237,32 +237,21 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	pw = identity.EffectivePassword(conn, pw)
 
-	// 5. Set the password in the legacy store, or hash it, before using
-	// the ticket, so a failure does not spend it.
+	// 5. Hash the new password of a local connection.
 	legacy := identity.IsLegacy(conn)
 	var hash string
-	if legacy {
-		err := h.Database.ChangeLegacyPassword(ctx, conn, user, pw)
-		var ue *identity.UnauthorizedError
-		switch {
-		case errors.As(err, &ue):
-			form.Error = ue.Message
-			ui.RenderResetForm(w, http.StatusBadRequest, view, form)
-			return
-		case errors.Is(err, identity.ErrPasswordNotChanged):
-			form.Error = view.L.T(i18n.KeyResetNotChanged)
-			ui.RenderResetForm(w, http.StatusBadRequest, view, form)
-			return
-		case err != nil:
+	if !legacy {
+		if hash, err = secrets.Hash(pw); err != nil {
 			h.fail(w, r, err, nil)
 			return
 		}
-	} else if hash, err = secrets.Hash(pw); err != nil {
-		h.fail(w, r, err, nil)
-		return
 	}
 
-	// 6. Use the ticket.
+	// 6. Use the ticket. On a legacy connection this comes before the
+	// change_password script (step 7), so two submits of one link run the
+	// script at most once: the second gets the used-link page. A script
+	// that then refuses or fails has spent the link; the form shows why,
+	// and the user asks for a new link.
 	now := h.now()
 	tk, err = h.Store.PasswordResetTickets().Consume(ctx, res.Tenant.ID, secrets.HashToken(raw), now)
 	switch {
@@ -280,43 +269,63 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 7. Log the user out everywhere and invalidate their other reset
-	// links. On a local connection this runs before the password changes
-	// (step 8), so a storage failure part way leaves the old password
-	// working but every session gone. On a legacy connection the script's
-	// change_password already ran (step 5), so the password changed first;
-	// if revocation then fails, the new password is live while old
-	// sessions survive, and the user should reset again.
-	if _, err := h.Store.Sessions().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
-		h.fail(w, r, err, nil)
-		return
-	}
-	if _, err := h.Store.RefreshTokens().RevokeByUser(ctx, res.Tenant.ID, tk.UserID, now); err != nil {
-		h.fail(w, r, err, nil)
-		return
-	}
-	if _, err := h.Store.PasswordResetTickets().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
-		h.fail(w, r, err, nil)
-		return
-	}
-
-	// 8. Set the password. A legacy store already has it (step 5), so
-	// nothing is stored locally but the history.
-	if !legacy {
-		if err := h.Store.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); errors.Is(err, store.ErrNotFound) {
-			h.renderResetError(w, view, resetInvalid)
+	// 7. Set the password in the legacy store.
+	if legacy {
+		err := h.Database.ChangeLegacyPassword(ctx, conn, user, pw)
+		var ue *identity.UnauthorizedError
+		switch {
+		case errors.As(err, &ue):
+			form.Error = ue.Message
+			ui.RenderResetForm(w, http.StatusBadRequest, view, form)
 			return
-		} else if err != nil {
+		case errors.Is(err, identity.ErrPasswordNotChanged):
+			form.Error = view.L.T(i18n.KeyResetNotChanged)
+			ui.RenderResetForm(w, http.StatusBadRequest, view, form)
+			return
+		case err != nil:
 			h.fail(w, r, err, nil)
 			return
 		}
-		err = identity.RecordPassword(ctx, h.Store, conn, tk.UserID, hash)
-	} else {
-		err = h.Database.RecordLegacyPassword(ctx, conn, tk.UserID, pw)
 	}
-	if err != nil {
+
+	// 8. In one transaction, log the user out everywhere, invalidate
+	// their other reset links and, on a local connection, set the password,
+	// which changes the user's Version: a grant that checked the old
+	// password and has not minted yet is refused. A storage failure leaves
+	// everything as it was (on a legacy connection the password has
+	// changed already; the user should reset again).
+	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if _, err := tx.Sessions().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
+			return err
+		}
+		if _, err := tx.RefreshTokens().RevokeByUser(ctx, res.Tenant.ID, tk.UserID, now); err != nil {
+			return err
+		}
+		if _, err := tx.PasswordResetTickets().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
+			return err
+		}
+		if legacy {
+			return nil
+		}
+		if err := tx.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); err != nil {
+			return err
+		}
+		return identity.RecordPassword(ctx, tx, conn, tk.UserID, hash)
+	})
+	if errors.Is(err, store.ErrNotFound) {
+		h.renderResetError(w, view, resetInvalid)
+		return
+	} else if err != nil {
 		h.fail(w, r, err, nil)
 		return
+	}
+	// A legacy store already has the password (step 7), so nothing is
+	// stored locally but the history.
+	if legacy {
+		if err := h.Database.RecordLegacyPassword(ctx, conn, tk.UserID, pw); err != nil {
+			h.fail(w, r, err, nil)
+			return
+		}
 	}
 	h.log().InfoContext(ctx, "password reset", "tenant", res.Tenant.ID, "user_id", tk.UserID)
 	// A Management API ticket with mark_email_as_verified also verifies

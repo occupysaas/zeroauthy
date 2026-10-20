@@ -153,20 +153,36 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	if oerr != nil {
 		return nil, oerr
 	}
+	var rt *store.RefreshToken
+	var raw string
 	if slices.Contains(scopes, "offline_access") {
 		absolute, _ := refreshLifetimes(c.RefreshToken)
 		var expiresAt time.Time
 		if absolute > 0 {
 			expiresAt = now.Add(absolute)
 		}
-		rt, raw := h.newRefreshToken(c, tenantID, refreshGrant{
+		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
 			familyID: "rtf_" + secrets.RandomString(32), userID: user.UserID,
 			audience: aud, scopes: scopes, authTime: now, expiresAt: expiresAt,
 		})
-		if err := h.Store.RefreshTokens().Create(ctx, rt); err != nil {
-			h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
-			return nil, serverError()
+	}
+	// The password was checked against the user at this Version. A reset,
+	// block or session revocation since then refuses the grant.
+	version := user.Version
+	err = h.mintTx(ctx, tenantID, user.UserID, &version, func(tx store.Store) error {
+		if rt == nil {
+			return nil
 		}
+		return tx.RefreshTokens().Create(ctx, rt)
+	})
+	switch {
+	case errors.Is(err, errUserChanged):
+		return nil, invalidGrant("the user is blocked")
+	case err != nil:
+		h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	}
+	if rt != nil {
 		resp.RefreshToken = &raw
 	}
 	return resp, nil

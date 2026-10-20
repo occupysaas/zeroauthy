@@ -98,7 +98,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 ## Plan 5 deferred review findings
 
 - Access tokens issued before a reset stay valid until they expire (stateless JWT).
-- A password grant that verified the old password just before a reset can still mint a refresh token after `RevokeByUser` (needs a store-level user version).
+- **Fixed in Plan 17 Task 11 (`fix: user version closes the reset, block and import-login races`):** a password grant that verified the old password just before a reset could still mint a refresh token after `RevokeByUser`. Grants now mint inside a transaction that re-reads the user and refuses a changed `Version`.
 - SMTP implicit TLS (port 465) is not supported.
 - Background reset sends are untracked goroutines; sends in flight at shutdown are lost (documented in D-0018/D-0019).
 - No storetest mutates a returned ticket's `UsedAt` to prove the driver returns a copy; memory `cloneJSON` shares non-JSON container types.
@@ -144,7 +144,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 ## Plan 8 deferred review findings
 
-- Import mode: a late first import login can overwrite a password hash that a concurrent reset completion just set, and then get a session after the reset revoked them; fixing it needs a store-level set-if-empty for the password hash. Two concurrent submits of one reset ticket can both run `change_password`.
+- **Fixed in Plan 17 Task 11 (`fix: user version closes the reset, block and import-login races`):** a late first import login could overwrite a password hash that a concurrent reset completion just set (it now uses `SetPasswordHashIfEmpty` and checks the password against the hash that won), and two concurrent submits of one reset ticket could both run `change_password` (the ticket is now used before the script runs).
 - Import mode: the length check uses the normalized login while the script receives the trimmed form; `profileUser` reads the clock separately from `upsertProfile`; a comment in `importLogin` should say the script can still run for a migrated user reached through a changed login (the local hash wins).
 - Legacy mode: usernames from a legacy store must match the local username pattern; a legacy sign-up that lands on a locally blocked user returns a bare `ErrUserBlocked` (a 500); a `ValidationError` with an empty message renders a doubled period.
 - Scripts that hang or crash the runner are refunded: per tenant, up to 64 concurrent attempts per 20 s, immediately for a runner crash; cancelled requests are refunded while the script keeps running. Suggested fix: count cancellations and timeouts against the IP throttle only.

@@ -279,7 +279,7 @@ func TestCodeReplayRevokesRefreshTokens(t *testing.T) {
 }
 
 // raceStore blocks the first Users().Get until release is closed, and
-// records the refresh tokens created through it.
+// records the refresh tokens created through it or its transactions.
 type raceStore struct {
 	store.Store
 	entered, release chan struct{}
@@ -289,6 +289,24 @@ type raceStore struct {
 }
 
 func (s *raceStore) Users() store.Users { return raceUsers{s.Store.Users(), s} }
+
+// WithTx hands fn the transaction wrapped like the store, so writes made
+// inside a transaction are recorded too.
+func (s *raceStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(raceTx{tx, s}) })
+}
+
+// raceTx is a transaction of a raceStore.
+type raceTx struct {
+	store.Store
+	s *raceStore
+}
+
+func (t raceTx) Users() store.Users { return raceUsers{t.Store.Users(), t.s} }
+
+func (t raceTx) RefreshTokens() store.RefreshTokens {
+	return raceRefreshTokens{t.Store.RefreshTokens(), t.s}
+}
 
 func (s *raceStore) RefreshTokens() store.RefreshTokens {
 	return raceRefreshTokens{s.Store.RefreshTokens(), s}
