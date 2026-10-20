@@ -3,6 +3,7 @@ package mgmt_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -358,6 +359,8 @@ func TestPatchUser(t *testing.T) {
 	if _, out = e.patch(t, id, map[string]any{"blocked": true}); out["blocked"] != true {
 		t.Errorf("block = %v", out)
 	}
+	// Logged deviation (D-0043): Auth0 shows blocked:false once it has been
+	// set; zeroauthy cannot tell that from never set, so leaves it out.
 	if _, out = e.patch(t, id, map[string]any{"blocked": false}); out["blocked"] != nil {
 		t.Errorf("unblock: blocked is %v", out["blocked"])
 	}
@@ -743,4 +746,66 @@ func TestUsersCustomDBNoRuntime(t *testing.T) {
 	e.h.Scripts = nil
 	rec, out := e.create(t, map[string]any{"connection": conn.Name, "email": "n@x.test", "password": "correct horse 1"})
 	wantUserError(t, "no runtime", rec, out, 503, "script_runtime_unavailable", "")
+}
+
+// Review Focus 5: NUL and invalid UTF-8 never reach the store, in path IDs
+// or in body strings (Postgres refuses both with SQLSTATE 22021).
+func TestUsersRefuseNULAndInvalidUTF8(t *testing.T) {
+	e := newUsersEnv(t)
+	id := e.mustCreate(t, map[string]any{"email": "u@x.test"})["user_id"].(string)
+	for _, bad := range []string{"auth0|a\x00b", "auth0|a\xffb"} {
+		rec, out := e.get(t, bad, "")
+		wantUserError(t, "get "+bad, rec, out, 400, "invalid_uri", strings.ToValidUTF8("Object didn't pass validation for format user-id: "+bad, "\ufffd"))
+		rec, out = e.patch(t, bad, map[string]any{"name": "x"})
+		wantUserError(t, "patch "+bad, rec, out, 400, "invalid_uri", "")
+		if rec := e.del(t, bad); rec.Code != 400 {
+			t.Errorf("delete %q = %d", bad, rec.Code)
+		}
+	}
+	base := `"connection":"` + dbConn + `","email":"v@x.test","password":"correct horse 1"`
+	for _, body := range []string{
+		`{` + base + `,"name":"a\u0000b"}`,
+		`{` + base + `,"name":"a` + "\xff" + `b"}`,
+		`{` + base + `,"user_metadata":{"k\u0000":"v"}}`,
+		`{` + base + `,"user_metadata":{"k":["ok","v\u0000"]}}`,
+		`{"connection":"` + dbConn + `","email":"v\u0000@x.test","password":"correct horse 1"}`,
+	} {
+		rec, out := e.create(t, body)
+		wantUserError(t, "create "+body, rec, out, 400, "invalid_body", "Payload validation error: strings must be valid UTF-8 without NUL characters.")
+		rec, out = e.patch(t, id, strings.Replace(body, base+",", "", 1))
+		wantUserError(t, "patch "+body, rec, out, 400, "invalid_body", "")
+	}
+}
+
+// failingConnections fails every connection lookup by name.
+type failingConnections struct{ store.Connections }
+
+func (failingConnections) GetByName(context.Context, string, string) (*store.Connection, error) {
+	return nil, errors.New("connection lookup failed")
+}
+
+type failingConnStore struct{ store.Store }
+
+func (s failingConnStore) Connections() store.Connections {
+	return failingConnections{s.Store.Connections()}
+}
+
+// A store error while loading the user's connection fails the delete: no
+// script runs and the user stays.
+func TestDeleteUserConnectionLoadError(t *testing.T) {
+	e := newUsersEnv(t)
+	conn, fe := e.legacy(t, "Legacy-Db", false, map[string]func([]any) (any, error){
+		store.ScriptDelete: func([]any) (any, error) { return nil, nil },
+	})
+	id := e.legacyUser(t, conn, "L9", "l9@x.test")
+	e.h.Store = failingConnStore{e.st}
+	if rec := e.del(t, id); rec.Code != 500 {
+		t.Fatalf("delete = %d %s", rec.Code, rec.Body)
+	}
+	if got := fe.Requests(); len(got) != 0 {
+		t.Errorf("scripts ran: %v", scriptCalls(fe))
+	}
+	if _, err := e.st.Users().Get(context.Background(), e.tn.ID, id); err != nil {
+		t.Errorf("the user was deleted: %v", err)
+	}
 }

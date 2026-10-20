@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
@@ -36,22 +37,65 @@ var (
 	errUserNotFound = &Error{Status: http.StatusNotFound, Code: "inexistent_user", Message: "The user does not exist."}
 	// errUserExists is Auth0's answer for a duplicate user (U2): its own
 	// database reports it as an identity provider error.
-	errUserExists        = &Error{Status: http.StatusConflict, Code: "auth0_idp_error", Message: "The user already exists."}
-	errUserConnection    = &Error{Status: http.StatusBadRequest, Code: "inexistent_connection", Message: "The connection does not exist."}
-	errSearchEngineV1    = &Error{Status: http.StatusBadRequest, Code: "operation_not_supported", Message: "You are not allowed to use search_engine=v1."}
-	errPagingDepth       = &Error{Status: http.StatusBadRequest, Code: "invalid_paging", Message: "You can only page through the first 1000 records. See https://auth0.com/docs/users/search/v3/view-search-results-by-page#limitation"}
-	errWeakPassword      = &Error{Status: http.StatusBadRequest, Message: "PasswordStrengthError: Password is too weak"}
-	errPasswordInHistory = &Error{Status: http.StatusBadRequest, Message: "PasswordHistoryError: Password has previously been used"}
+	errUserExists         = &Error{Status: http.StatusConflict, Code: "auth0_idp_error", Message: "The user already exists."}
+	errUserConnection     = &Error{Status: http.StatusBadRequest, Code: "inexistent_connection", Message: "The connection does not exist."}
+	errSearchEngineV1     = &Error{Status: http.StatusBadRequest, Code: "operation_not_supported", Message: "You are not allowed to use search_engine=v1."}
+	errPagingDepth        = &Error{Status: http.StatusBadRequest, Code: "invalid_paging", Message: "You can only page through the first 1000 records. See https://auth0.com/docs/users/search/v3/view-search-results-by-page#limitation"}
+	errNoDatabaseIdentity = &Error{Status: http.StatusBadRequest, Code: "operation_not_supported", Message: "The user has no database identity"}
+	errWeakPassword       = &Error{Status: http.StatusBadRequest, Message: "PasswordStrengthError: Password is too weak"}
+	errPasswordInHistory  = &Error{Status: http.StatusBadRequest, Message: "PasswordHistoryError: Password has previously been used"}
 )
 
 func badUserID(id string) *Error {
 	return &Error{Status: http.StatusBadRequest, Code: "invalid_uri", Message: "Object didn't pass validation for format user-id: " + id}
 }
 
-// validUserID reports whether id has the form provider|id.
+// validUserID reports whether id has the form provider|id, in text a
+// database can store.
 func validUserID(id string) bool {
 	provider, rest, ok := strings.Cut(id, "|")
-	return ok && provider != "" && rest != "" && strings.TrimSpace(id) == id
+	return ok && provider != "" && rest != "" && strings.TrimSpace(id) == id && storableText(id)
+}
+
+// storableText reports whether s is valid UTF-8 without NUL: no driver can
+// store anything else (Postgres refuses both with SQLSTATE 22021).
+func storableText(s string) bool {
+	return utf8.ValidString(s) && !strings.ContainsRune(s, 0)
+}
+
+var errUnstorableText = badBodyRaw("Payload validation error: strings must be valid UTF-8 without NUL characters.")
+
+// checkBodyText refuses a body with a string or object key, at any depth,
+// that is not storableText. JSON decoding would silently turn invalid UTF-8
+// into U+FFFD, so the raw bytes are checked too.
+func checkBodyText(body map[string]json.RawMessage) error {
+	var walk func(v any) bool
+	walk = func(v any) bool {
+		switch v := v.(type) {
+		case string:
+			return storableText(v)
+		case []any:
+			for _, x := range v {
+				if !walk(x) {
+					return false
+				}
+			}
+		case map[string]any:
+			for k, x := range v {
+				if !storableText(k) || !walk(x) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	for k, raw := range body {
+		var v any
+		if !storableText(k) || !utf8.Valid(raw) || json.Unmarshal(raw, &v) != nil || !walk(v) {
+			return errUnstorableText
+		}
+	}
+	return nil
 }
 
 func insufficientScope(scope string) *Error {
@@ -77,6 +121,9 @@ func UserJSON(u *store.User) map[string]any {
 		m["phone_number"] = u.PhoneNumber
 		m["phone_verified"] = u.PhoneVerified
 	}
+	// blocked appears only when true. Auth0 shows blocked:false once it has
+	// been set, but the store cannot tell "set to false" from "never set";
+	// a logged deviation (D-0043).
 	if u.Blocked {
 		m["blocked"] = true
 	}
@@ -422,6 +469,10 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Fail(w, insufficientScope("create:users_app_metadata"))
 		return
 	}
+	if err := checkBodyText(body); err != nil {
+		Fail(w, err)
+		return
+	}
 	in, err := readCreateBody(body)
 	if err != nil {
 		Fail(w, err)
@@ -587,7 +638,7 @@ func (h *Handlers) userConnection(r *http.Request, u *store.User, name string) (
 	if name != "" {
 		return nil, nil, errUserConnection
 	}
-	return nil, nil, &Error{Status: http.StatusBadRequest, Code: "operation_not_supported", Message: "The user has no database identity"}
+	return nil, nil, errNoDatabaseIdentity
 }
 
 // loginTaken reports whether a user other than self has login (email or
@@ -625,6 +676,10 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	}
 	if (len(body) > 1 || !hasApp) && !callerHas(r, "update:users") {
 		Fail(w, insufficientScope("update:users"))
+		return
+	}
+	if err := checkBodyText(body); err != nil {
+		Fail(w, err)
 		return
 	}
 	in, clientID, err := readPatchBody(body)
@@ -785,7 +840,14 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, internalError(h, r, "delete user", err))
 		return
 	}
-	if conn, ident, err := h.userConnection(r, u, ""); err == nil && identity.IsLegacy(conn) {
+	conn, ident, err := h.userConnection(r, u, "")
+	switch {
+	case errors.Is(err, errUserConnection), errors.Is(err, errNoDatabaseIdentity):
+		// No connection to run a script on: delete the local record.
+	case err != nil:
+		Fail(w, err)
+		return
+	case identity.IsLegacy(conn):
 		if h.Scripts == nil {
 			Fail(w, h.scriptFail(r, conn, store.ScriptDelete, customdb.ErrUnavailable))
 			return

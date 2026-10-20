@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -34,6 +35,11 @@ func queryErr(format string, args ...any) *Error {
 //   - NOT on a root string field also requires the field to be present.
 //   - Metadata terms take their kind from the literal.
 func Parse(q string) (*store.UserQuery, error) {
+	// No driver can store NUL or invalid UTF-8 (Postgres refuses both), so
+	// no user can match them; refuse them before they reach one.
+	if !utf8.ValidString(q) || strings.ContainsRune(q, 0) {
+		return nil, errUndefined
+	}
 	p := &parser{s: scanner{r: []rune(q)}}
 	p.s.skipSpace()
 	if p.s.eof() {

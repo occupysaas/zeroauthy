@@ -342,3 +342,15 @@ func dump(q *store.UserQuery) string {
 	rec(q)
 	return b.String()
 }
+
+// Text no database can store is refused before it reaches a driver
+// (Postgres rejects NUL and invalid UTF-8 with SQLSTATE 22021).
+func TestParseRefusesNULAndInvalidUTF8(t *testing.T) {
+	for _, q := range []string{"a\x00b", "\x00", "email:\xff", "name:\"x\xc3\"", "\xff"} {
+		_, err := Parse(q)
+		var se *Error
+		if !errors.As(err, &se) || se.Message != "invalid query: undefined" || se.Code != "" {
+			t.Errorf("Parse(%q) = %v", q, err)
+		}
+	}
+}

@@ -196,32 +196,53 @@ func searchBadInput(t *testing.T, a *usersAPI) {
 		"'; DROP TABLE users; --", "user_id:auth0|x", `user_id:"auth0|x"`, "identities.connection:Username-Password-Authentication",
 		strings.Repeat("(", 100) + "a" + strings.Repeat(")", 100), "a\x00b", "é", "email:ALICE@EX.TEST",
 	} {
-		rec, out := a.do("GET", usersBase+"?q="+url.QueryEscape(q), nil)
-		body := rec.Body.String()
-		switch rec.Code {
-		case 200:
-			var list []any
-			if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
-				t.Errorf("%q: 200 but not a list: %s", q, body)
-			}
-			if n, ok := want[q]; ok && n >= 0 && len(list) != n {
-				t.Errorf("%q: %d users, want %d", q, len(list), n)
-			}
-		case 400:
-			if code, has := out["errorCode"]; has && code != "invalid_query_string" {
-				t.Errorf("%q: errorCode %v", q, code)
-			}
-			msg, _ := out["message"].(string)
-			if !strings.HasPrefix(msg, "invalid query") {
-				t.Errorf("%q: message %q", q, msg)
-			}
-		default:
-			t.Errorf("%q: status %d %s", q, rec.Code, body)
+		searchCase(t, a, q, want)
+	}
+	// Raw NUL and invalid UTF-8 (Postgres refuses both with SQLSTATE 22021).
+	for _, raw := range []string{"%00", "a%00b", "email:%00", "%FF", "name:%C3", "%FF%FE"} {
+		rec, out := a.do("GET", usersBase+"?q="+raw, nil)
+		if rec.Code != 400 || out["message"] != "invalid query: undefined" {
+			t.Errorf("q=%s: %d %s", raw, rec.Code, rec.Body)
 		}
-		for _, leak := range []string{"sql", "SQL", "store:", "pq:", "syntax error", "panic"} {
-			if strings.Contains(body, leak) {
-				t.Errorf("%q: response mentions %q: %s", q, leak, body)
-			}
+		if _, has := out["errorCode"]; has {
+			t.Errorf("q=%s: errorCode %v", raw, out["errorCode"])
+		}
+	}
+}
+
+// searchCase runs one search: a query in want must answer 200 with that
+// many users (-1: any count); any other answers 200 or a 400 with an
+// "invalid query" message, never a driver's text.
+func searchCase(t *testing.T, a *usersAPI, q string, want map[string]int) {
+	t.Helper()
+	rec, out := a.do("GET", usersBase+"?q="+url.QueryEscape(q), nil)
+	body := rec.Body.String()
+	n, expected := want[q]
+	switch {
+	case expected && rec.Code != 200:
+		t.Errorf("%q: status %d, want 200 (%s)", q, rec.Code, body)
+	case rec.Code == 200:
+		var list []any
+		if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+			t.Errorf("%q: 200 but not a list: %s", q, body)
+		}
+		if expected && n >= 0 && len(list) != n {
+			t.Errorf("%q: %d users, want %d", q, len(list), n)
+		}
+	case rec.Code == 400:
+		if code, has := out["errorCode"]; has && code != "invalid_query_string" {
+			t.Errorf("%q: errorCode %v", q, code)
+		}
+		msg, _ := out["message"].(string)
+		if !strings.HasPrefix(msg, "invalid query") {
+			t.Errorf("%q: message %q", q, msg)
+		}
+	default:
+		t.Errorf("%q: status %d %s", q, rec.Code, body)
+	}
+	for _, leak := range []string{"sql", "SQL", "store:", "pq:", "syntax error", "panic"} {
+		if strings.Contains(body, leak) {
+			t.Errorf("%q: response mentions %q: %s", q, leak, body)
 		}
 	}
 }
