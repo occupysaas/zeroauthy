@@ -4086,6 +4086,7 @@ type EmailVerificationTicket struct {
 	CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	ResultUrl              string                 `protobuf:"bytes,11,opt,name=result_url,json=resultUrl,proto3" json:"result_url,omitempty"`
 	IncludeEmailInRedirect bool                   `protobuf:"varint,12,opt,name=include_email_in_redirect,json=includeEmailInRedirect,proto3" json:"include_email_in_redirect,omitempty"`
+	Email                  string                 `protobuf:"bytes,13,opt,name=email,proto3" json:"email,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -4202,6 +4203,13 @@ func (x *EmailVerificationTicket) GetIncludeEmailInRedirect() bool {
 		return x.IncludeEmailInRedirect
 	}
 	return false
+}
+
+func (x *EmailVerificationTicket) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
 }
 
 type Operator struct {
@@ -8891,7 +8899,7 @@ const file_store_proto_rawDesc = "" +
 	"\n" +
 	"result_url\x18\v \x01(\tR\tresultUrl\x129\n" +
 	"\x19include_email_in_redirect\x18\f \x01(\bR\x16includeEmailInRedirect\x12.\n" +
-	"\x13mark_email_verified\x18\r \x01(\bR\x11markEmailVerified\"\xd4\x03\n" +
+	"\x13mark_email_verified\x18\r \x01(\bR\x11markEmailVerified\"\xea\x03\n" +
 	"\x17EmailVerificationTicket\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1d\n" +
@@ -8911,7 +8919,8 @@ const file_store_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"result_url\x18\v \x01(\tR\tresultUrl\x129\n" +
-	"\x19include_email_in_redirect\x18\f \x01(\bR\x16includeEmailInRedirect\"\xf0\x01\n" +
+	"\x19include_email_in_redirect\x18\f \x01(\bR\x16includeEmailInRedirect\x12\x14\n" +
+	"\x05email\x18\r \x01(\tR\x05email\"\xf0\x01\n" +
 	"\bOperator\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x128\n" +

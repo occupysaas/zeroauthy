@@ -462,6 +462,7 @@ message EmailVerificationTicket {
   google.protobuf.Timestamp used_at = 9; // absent = nil
   google.protobuf.Timestamp created_at = 10;
   string result_url = 11; bool include_email_in_redirect = 12;
+  string email = 13;
 }
 
 message Operator {

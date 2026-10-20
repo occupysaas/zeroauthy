@@ -150,7 +150,7 @@ func TestEmailVerificationTicket(t *testing.T) {
 		t.Fatalf("create = %d %s", rec.Code, rec.Body)
 	}
 	tk := e.verificationTicket(t, out["ticket"].(string))
-	if tk.UserID != id || tk.Connection != dbConn || tk.ResultURL != "https://app.test/verified?x=1" || !tk.IncludeEmailInRedirect ||
+	if tk.UserID != id || tk.Email != "bob@x.test" || tk.Connection != dbConn || tk.ResultURL != "https://app.test/verified?x=1" || !tk.IncludeEmailInRedirect ||
 		tk.ExpiresAt.Sub(tk.CreatedAt) != 432000*time.Second {
 		t.Fatalf("ticket = %+v", tk)
 	}
@@ -185,7 +185,7 @@ func TestEmailVerificationTicket(t *testing.T) {
 	}
 }
 
-// An email change drops the user's open verification links, so a link
+// An email change drops the user's open verification and reset links, so a link
 // sent to the old address cannot verify the new one.
 func TestEmailChangeDropsVerificationTickets(t *testing.T) {
 	e := newUsersEnv(t)
@@ -196,6 +196,16 @@ func TestEmailChangeDropsVerificationTickets(t *testing.T) {
 	}
 	link := out["ticket"].(string)
 	e.verificationTicket(t, link)
+	rec, out = e.passwordTicket(t, map[string]any{"user_id": id, "mark_email_as_verified": true})
+	if rec.Code != 201 {
+		t.Fatalf("reset ticket = %d %s", rec.Code, rec.Body)
+	}
+	resetRaw := resetTicketURL.FindStringSubmatch(out["ticket"].(string))[1]
+	defer func() {
+		if _, err := e.st.PasswordResetTickets().GetByTokenHash(context.Background(), e.tn.ID, secrets.HashToken(resetRaw)); err == nil {
+			t.Error("the password reset ticket survived the email change")
+		}
+	}()
 	if rec, _ := e.patch(t, id, map[string]any{"email": "new@x.test", "verify_email": false}); rec.Code != 200 {
 		t.Fatalf("patch = %d %s", rec.Code, rec.Body)
 	}

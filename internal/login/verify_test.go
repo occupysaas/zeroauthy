@@ -2,6 +2,7 @@ package login
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"regexp"
 	"strings"
@@ -18,8 +19,12 @@ import (
 // expires lifetime after fixedNow and returns its token.
 func (e *env) issueVerification(t *testing.T, userID, connection, resultURL string, includeEmail bool, lang string, lifetime time.Duration) string {
 	t.Helper()
+	u, err := e.st.Users().Get(context.Background(), mustTenant(t, e, "acme").ID, userID)
+	if err != nil {
+		t.Fatal(err)
+	}
 	raw, err := dbconn.IssueVerificationTicket(context.Background(), e.st, store.EmailVerificationTicket{
-		TenantID: mustTenant(t, e, "acme").ID, UserID: userID, Connection: connection,
+		TenantID: mustTenant(t, e, "acme").ID, UserID: userID, Connection: connection, Email: strings.ToLower(u.Email),
 		ResultURL: resultURL, IncludeEmailInRedirect: includeEmail, Lang: lang,
 	}, fixedNow(), lifetime)
 	if err != nil {
@@ -212,7 +217,7 @@ func TestSignupSendsVerificationEmail(t *testing.T) {
 	}
 	bob := e.user(t, "bob@acme.test")
 	tk, err := e.st.EmailVerificationTickets().GetByTokenHash(context.Background(), bob.TenantID, secrets.HashToken(link[1]))
-	if err != nil || tk.ExpiresAt.Sub(fixedNow()) != 432000*time.Second || tk.ClientID != "spa" || tk.Lang != "fr" {
+	if err != nil || tk.ExpiresAt.Sub(fixedNow()) != 432000*time.Second || tk.ClientID != "spa" || tk.Lang != "fr" || tk.Email != "bob@acme.test" {
 		t.Fatalf("ticket = %+v %v", tk, err)
 	}
 	if rec := b.do(t, "GET", verifyPath+link[1], nil); rec.Code != 200 || !e.verified(t, bob.UserID) {
@@ -284,7 +289,7 @@ func TestPasswordChangeTicket(t *testing.T) {
 	}
 	rec = b.do(t, "GET", "/u/reset-verify?ticket="+raw, nil)
 	rec = b.do(t, "GET", rec.Header().Get("Location"), nil)
-	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "already been used") {
+	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "Invalid Link") && strings.Contains(rec.Body.String(), "This link has already been used.") {
 		t.Fatalf("reused = %d %s", rec.Code, rec.Body)
 	}
 	if rec := b.do(t, "GET", "/u/reset-password?ticket=nope", nil); rec.Code != 400 {
@@ -301,5 +306,87 @@ func TestPasswordChangeTicket(t *testing.T) {
 	}
 	if e.verified(t, bob.UserID) {
 		t.Fatal("email_verified set without mark_email_as_verified")
+	}
+}
+
+// A ticket verifies only the address it was issued for: after the email
+// changes (here through the custom database profile sync on login), it
+// verifies nothing and shows the error page, even with a result_url.
+func TestEmailVerificationEmailChanged(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	ctx := context.Background()
+	tn := mustTenant(t, e, "acme")
+	u := &store.User{TenantID: tn.ID, UserID: "auth0|42", Email: "dave@legacy.test", CreatedAt: fixedNow(), UpdatedAt: fixedNow(),
+		Identities: []store.Identity{{Connection: "Legacy-DB", Provider: "auth0", UserID: "42"}}}
+	if err := e.st.Users().Create(ctx, u); err != nil {
+		t.Fatal(err)
+	}
+	e.scripts.Funcs[store.ScriptVerify] = func([]any) (any, error) { return true, nil }
+	ticket := e.issueVerification(t, u.UserID, "Legacy-DB", "https://legacy.acme.test/done", true, "", time.Hour)
+	e.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+		return map[string]any{"user_id": 42, "email": "dave.new@legacy.test"}, nil
+	}
+	conn, err := e.st.Connections().GetByName(ctx, tn.ID, "Legacy-DB")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.h.Database.Login(ctx, conn, "dave@legacy.test", "pw"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := e.st.Users().Get(ctx, tn.ID, u.UserID); got.Email != "dave.new@legacy.test" {
+		t.Fatalf("profile sync did not change the email: %+v", got)
+	}
+	rec := b.do(t, "GET", verifyPath+ticket, nil)
+	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "could not be verified") {
+		t.Fatalf("changed email = %d %q %s", rec.Code, rec.Header().Get("Location"), rec.Body)
+	}
+	if e.verified(t, u.UserID) {
+		t.Fatal("an old-address ticket verified the new address")
+	}
+
+	// The same for an email changed directly in the store.
+	alice := e.user(t, "alice@acme.test")
+	ticket = e.issueVerification(t, alice.UserID, "Username-Password-Authentication", "", false, "", time.Hour)
+	alice.Email = "alice2@acme.test"
+	if err := e.st.Users().Update(ctx, alice); err != nil {
+		t.Fatal(err)
+	}
+	if rec := b.do(t, "GET", verifyPath+ticket, nil); rec.Code != 400 || e.verified(t, alice.UserID) {
+		t.Fatalf("changed email = %d %s", rec.Code, rec.Body)
+	}
+}
+
+// failingUpdates is a store whose user updates fail inside transactions.
+type failingUpdates struct{ store.Store }
+
+func (s failingUpdates) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(failingUpdates{tx}) })
+}
+
+func (s failingUpdates) Users() store.Users { return failingUsers{s.Store.Users()} }
+
+type failingUsers struct{ store.Users }
+
+func (failingUsers) Update(context.Context, *store.User) error { return errors.New("update failed") }
+
+// A failure setting email_verified rolls back the use of the ticket, so
+// the link still works afterwards.
+func TestEmailVerificationUpdateFailureKeepsTicket(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	alice := e.user(t, "alice@acme.test")
+	ticket := e.issueVerification(t, alice.UserID, "Username-Password-Authentication", "", false, "", time.Hour)
+	e.h.Store = failingUpdates{e.st}
+	if rec := b.do(t, "GET", verifyPath+ticket, nil); rec.Code != 500 {
+		t.Fatalf("failing update = %d %s", rec.Code, rec.Body)
+	}
+	tk, err := e.st.EmailVerificationTickets().GetByTokenHash(context.Background(), alice.TenantID, secrets.HashToken(ticket))
+	if err != nil || tk.UsedAt != nil {
+		t.Fatalf("ticket = %+v %v, want unused", tk, err)
+	}
+	e.h.Store = e.st
+	if rec := b.do(t, "GET", verifyPath+ticket, nil); rec.Code != 200 || !e.verified(t, alice.UserID) {
+		t.Fatalf("retry = %d %s", rec.Code, rec.Body)
 	}
 }

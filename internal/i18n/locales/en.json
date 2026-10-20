@@ -62,12 +62,12 @@
       "description": "Your password has been changed. You can now sign in with your new password."
     },
     "reset-password-error": {
-      "eventTitleExpired": "Link expired",
-      "descriptionExpired": "This password reset link has expired. Request a new one.",
-      "eventTitleUsed": "Link already used",
-      "descriptionUsed": "This password reset link has already been used. Request a new one if you still need to.",
-      "eventTitleGeneric": "Link not valid",
-      "descriptionGeneric": "This password reset link is not valid. Request a new one."
+      "eventTitleExpired": "Link Expired",
+      "descriptionExpired": "To reset your password, return to the login page and select \"Forgot Your Password\" to send a new email.",
+      "eventTitleUsed": "Invalid Link",
+      "descriptionUsed": "This link has already been used. To reset your password, return to the login page and select \"Forgot Your Password\" to send a new email.",
+      "eventTitleGeneric": "Link Expired",
+      "descriptionGeneric": "To reset your password, return to the login page and select \"Forgot Your Password\" to send a new email."
     }
   },
   "email-verification": {

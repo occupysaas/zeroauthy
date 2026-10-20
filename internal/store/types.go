@@ -922,6 +922,10 @@ type EmailVerificationTicket struct {
 	// IncludeEmailInRedirect adds the user's email to that redirect.
 	ResultURL              string
 	IncludeEmailInRedirect bool
+	// Email is the user's email (lowercase) when the ticket was issued.
+	// The ticket verifies only that address: if the user's email has
+	// changed since, it no longer verifies anything.
+	Email string
 	// Lang is the UI language chosen when the ticket was requested.
 	Lang      string
 	ExpiresAt time.Time

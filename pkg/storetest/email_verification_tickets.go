@@ -14,7 +14,7 @@ import (
 func newVerificationTicket(tenantID, id, hash string) *store.EmailVerificationTicket {
 	return &store.EmailVerificationTicket{
 		TenantID: tenantID, ID: id, TokenHash: hash, UserID: "auth0|u1", Connection: "Database",
-		ClientID: "spa", Lang: "fr",
+		ClientID: "spa", Lang: "fr", Email: "alice@example.test",
 		ResultURL: "https://app.test/verified", IncludeEmailInRedirect: true, ExpiresAt: ts(24 * time.Hour), CreatedAt: ts(0),
 	}
 }
@@ -44,6 +44,24 @@ func testEmailVerificationTickets(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 		_, err = s.EmailVerificationTickets().Consume(ctx, "ten_b", "h1", ts(0))
 		mustErrIs(t, err, store.ErrNotFound)
+	})
+
+	// The verification page uses the ticket and sets email_verified in one
+	// transaction: a failure after Consume leaves the ticket usable.
+	t.Run("ConsumeRollsBackWithTx", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.EmailVerificationTickets().Create(ctx, newVerificationTicket("ten_a", "pr1", "h1")))
+		boom := errors.New("boom")
+		err := s.WithTx(ctx, func(tx store.Store) error {
+			if _, err := tx.EmailVerificationTickets().Consume(ctx, "ten_a", "h1", ts(time.Minute)); err != nil {
+				return err
+			}
+			return boom
+		})
+		mustErrIs(t, err, boom)
+		got, err := s.EmailVerificationTickets().GetByTokenHash(ctx, "ten_a", "h1")
+		mustNoErr(t, err)
+		mustEqual(t, got.UsedAt == nil, true)
 	})
 
 	t.Run("ConcurrentConsume", func(t *testing.T) {

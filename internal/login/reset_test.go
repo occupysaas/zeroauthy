@@ -174,7 +174,7 @@ func TestForgotPasswordFlow(t *testing.T) {
 		t.Fatal("refresh token survived the reset")
 	}
 	// The ticket cannot be used again.
-	if rec := post("another password 1", "another password 1"); rec.Code != 400 || !strings.Contains(rec.Body.String(), "already been used") {
+	if rec := post("another password 1", "another password 1"); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Invalid Link") && strings.Contains(rec.Body.String(), "This link has already been used.") {
 		t.Fatalf("replay = %d %s", rec.Code, rec.Body)
 	}
 	// The new password works; the old one does not.
@@ -190,11 +190,11 @@ func TestForgotPasswordFlow(t *testing.T) {
 func TestResetErrors(t *testing.T) {
 	e := newEnv(t)
 	b := e.browser("acme.example.test")
-	if rec := b.do(t, "GET", "/u/reset-password?ticket=nope", nil); rec.Code != 400 || !strings.Contains(rec.Body.String(), "not valid") {
+	if rec := b.do(t, "GET", "/u/reset-password?ticket=nope", nil); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Link Expired") {
 		t.Fatalf("unknown ticket = %d", rec.Code)
 	}
 	ticket := e.issueTicket(t, "alice@acme.test", -time.Minute) // already expired
-	if rec := b.do(t, "GET", "/u/reset-password?ticket="+ticket, nil); rec.Code != 400 || !strings.Contains(rec.Body.String(), "expired") {
+	if rec := b.do(t, "GET", "/u/reset-password?ticket="+ticket, nil); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Link Expired") {
 		t.Fatalf("expired ticket = %d", rec.Code)
 	}
 	live := e.issueTicket(t, "alice@acme.test", time.Hour)
@@ -321,7 +321,7 @@ func TestResetInvalidatesOtherTickets(t *testing.T) {
 	if rec := completeReset(t, b, first, "new password 123"); rec.Code != 200 {
 		t.Fatalf("reset = %d %s", rec.Code, rec.Body)
 	}
-	if rec := b.do(t, "GET", "/u/reset-password?ticket="+second, nil); rec.Code != 400 || !strings.Contains(rec.Body.String(), "not valid") {
+	if rec := b.do(t, "GET", "/u/reset-password?ticket="+second, nil); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Link Expired") {
 		t.Fatalf("second ticket after reset = %d %s", rec.Code, rec.Body)
 	}
 }
@@ -365,7 +365,7 @@ func TestResetBlockedAfterIssue(t *testing.T) {
 	if err := e.st.Users().Update(context.Background(), u); err != nil {
 		t.Fatal(err)
 	}
-	if rec := completeReset(t, e.browser("acme.example.test"), ticket, "new password 123"); rec.Code != 400 || !strings.Contains(rec.Body.String(), "not valid") {
+	if rec := completeReset(t, e.browser("acme.example.test"), ticket, "new password 123"); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Link Expired") {
 		t.Fatalf("reset for blocked user = %d %s", rec.Code, rec.Body)
 	}
 	tk, err := e.st.PasswordResetTickets().GetByTokenHash(context.Background(), mustTenant(t, e, "acme").ID, secrets.HashToken(ticket))

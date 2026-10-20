@@ -324,7 +324,7 @@ func (h *Handlers) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.
 		return
 	}
 	raw, err := dbconn.IssueVerificationTicket(r.Context(), h.Store, store.EmailVerificationTicket{
-		TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID,
+		TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID, Email: strings.ToLower(u.Email),
 		ResultURL: in.resultURL, IncludeEmailInRedirect: in.includeEmail,
 	}, h.now(), in.lifetime())
 	if err != nil {

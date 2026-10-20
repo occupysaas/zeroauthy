@@ -92,6 +92,7 @@ func (m *VerificationMailer) Send(ctx context.Context, res tenant.Resolved, u *s
 	}
 	raw, err := dbconn.IssueVerificationTicket(ctx, m.Store, store.EmailVerificationTicket{
 		TenantID: res.Tenant.ID, UserID: u.UserID, Connection: dbconn.VerificationConnection(u), ClientID: clientID, Lang: lang,
+		Email: strings.ToLower(u.Email),
 	}, m.now(), dbconn.VerificationTicketLifetime)
 	if err != nil {
 		return err
@@ -250,6 +251,13 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 		h.finishVerification(w, view, nil, "", verifyFailed)
 		return
 	}
+	// The ticket verifies only the address it was issued for. If the
+	// user's email has changed since (a Management API PATCH, a custom
+	// database profile sync), it verifies nothing.
+	if !ticketEmailMatches(tk, user) {
+		h.finishVerification(w, view, nil, "", verifyFailed)
+		return
+	}
 	now := h.now()
 	if user.EmailVerified {
 		// The ticket is spent all the same, so reopening it says so.
@@ -274,26 +282,58 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 		h.finishVerification(w, view, nil, "", verifyFailed)
 		return
 	}
-	switch _, err := tickets.Consume(ctx, res.Tenant.ID, hash, now); {
-	case errors.Is(err, store.ErrAlreadyUsed):
-		h.finishVerification(w, view, tk, user.Email, verifyReused)
-		return
-	case errors.Is(err, store.ErrNotFound):
-		h.finishVerification(w, view, nil, "", verifyFailed)
+	// Use the ticket and set email_verified in one transaction, checking
+	// the email again inside it: an email change that commits in between
+	// cannot be verified by this ticket, and a failed update leaves the
+	// ticket usable.
+	outcome := verifySuccess
+	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		switch _, err := tx.EmailVerificationTickets().Consume(ctx, res.Tenant.ID, hash, now); {
+		case errors.Is(err, store.ErrAlreadyUsed):
+			outcome = verifyReused
+			return errVerifyOutcome
+		case errors.Is(err, store.ErrNotFound):
+			outcome = verifyFailed
+			return errVerifyOutcome
+		case err != nil:
+			return err
+		}
+		cur, err := tx.Users().Get(ctx, res.Tenant.ID, tk.UserID)
+		if errors.Is(err, store.ErrNotFound) || (err == nil && !ticketEmailMatches(tk, cur)) {
+			outcome = verifyFailed
+			return errVerifyOutcome
+		} else if err != nil {
+			return err
+		}
+		if cur.EmailVerified {
+			return nil
+		}
+		cur.EmailVerified, cur.UpdatedAt = true, now
+		return tx.Users().Update(ctx, cur)
+	})
+	switch {
+	case errors.Is(err, errVerifyOutcome):
+		if outcome == verifyFailed {
+			tk = nil
+		}
+		h.finishVerification(w, view, tk, user.Email, outcome)
 		return
 	case err != nil:
 		h.fail(w, r, err, nil)
 		return
 	}
-	if err := h.setEmailVerified(ctx, res.Tenant.ID, tk.UserID, now); errors.Is(err, store.ErrNotFound) {
-		h.finishVerification(w, view, nil, "", verifyFailed)
-		return
-	} else if err != nil {
-		h.fail(w, r, err, nil)
-		return
-	}
 	h.log().InfoContext(ctx, "email verified", "tenant", res.Tenant.ID, "user_id", tk.UserID)
 	h.finishVerification(w, view, tk, user.Email, verifySuccess)
+}
+
+// errVerifyOutcome ends the verification transaction without writing; the
+// outcome to show is set beside it.
+var errVerifyOutcome = errors.New("login: verification not applied")
+
+// ticketEmailMatches reports whether the user's current email is the one
+// the ticket was issued for.
+func ticketEmailMatches(tk *store.EmailVerificationTicket, u *store.User) bool {
+	return u.Email != "" && strings.ToLower(u.Email) == tk.Email
 }
 
 // legacyVerify runs conn's verify script for the user's email and reports

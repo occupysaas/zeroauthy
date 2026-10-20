@@ -36,6 +36,7 @@ CREATE TABLE email_verification_tickets (
   client_id TEXT NOT NULL,
   result_url TEXT NOT NULL,
   include_email_in_redirect BOOLEAN NOT NULL,
+  email TEXT NOT NULL,
   lang TEXT NOT NULL,
   expires_at BIGINT NOT NULL,
   used_at BIGINT NULL,

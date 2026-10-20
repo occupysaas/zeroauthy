@@ -14,16 +14,16 @@ type verifyTickets struct{ s *Store }
 func (s *Store) EmailVerificationTickets() store.EmailVerificationTickets { return verifyTickets{s} }
 
 const verifyTicketCols = `tenant_id, id, token_hash, user_id, connection, client_id, lang, expires_at, used_at, created_at,
- result_url, include_email_in_redirect`
+ result_url, include_email_in_redirect, email`
 
 func (r verifyTickets) Create(ctx context.Context, t *store.EmailVerificationTicket) error {
 	// Retried on deadlock: on MySQL an INSERT can be the victim of a cycle
 	// with the range DELETEs of DeleteExpired and DeleteByUser (gap locks).
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO email_verification_tickets (`+verifyTicketCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+		_, err := tx.exec(ctx, `INSERT INTO email_verification_tickets (`+verifyTicketCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			t.TenantID, t.ID, t.TokenHash, t.UserID, t.Connection, t.ClientID, t.Lang,
 			micros(t.ExpiresAt), nullMicros(t.UsedAt), micros(t.CreatedAt),
-			t.ResultURL, t.IncludeEmailInRedirect)
+			t.ResultURL, t.IncludeEmailInRedirect, t.Email)
 		return tx.conflict(err)
 	})
 }
@@ -122,7 +122,7 @@ func scanVerifyTicket(row scanner) (*store.EmailVerificationTicket, error) {
 	var exp, created int64
 	var used sql.NullInt64
 	if err := row.Scan(&t.TenantID, &t.ID, &t.TokenHash, &t.UserID, &t.Connection, &t.ClientID, &t.Lang,
-		&exp, &used, &created, &t.ResultURL, &t.IncludeEmailInRedirect); err != nil {
+		&exp, &used, &created, &t.ResultURL, &t.IncludeEmailInRedirect, &t.Email); err != nil {
 		return nil, err
 	}
 	t.ExpiresAt, t.CreatedAt, t.UsedAt = fromMicros(exp), fromMicros(created), fromNullMicros(used)

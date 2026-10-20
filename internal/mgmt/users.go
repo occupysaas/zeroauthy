@@ -765,10 +765,14 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		} else if err != nil {
 			return err
 		}
-		// A verification link sent to the old address must not verify
-		// the new one.
+		// Links sent to the old address must not verify the new one: drop
+		// the open verification tickets, and the unused reset tickets
+		// (one with mark_email_as_verified would verify it).
 		if emailChanged {
 			if _, err := tx.EmailVerificationTickets().DeleteByUser(ctx, u.TenantID, id); err != nil {
+				return err
+			}
+			if _, err := tx.PasswordResetTickets().DeleteByUser(ctx, u.TenantID, id); err != nil {
 				return err
 			}
 		}

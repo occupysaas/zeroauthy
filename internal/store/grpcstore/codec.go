@@ -860,7 +860,7 @@ func emailVerificationTicketToPB(p *store.EmailVerificationTicket) (*storev1.Ema
 		TenantId: p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
 		Connection: p.Connection, ClientId: p.ClientID, Lang: p.Lang,
 		ExpiresAt: tsToPB(p.ExpiresAt), UsedAt: optTSToPB(p.UsedAt), CreatedAt: tsToPB(p.CreatedAt),
-		ResultUrl: p.ResultURL, IncludeEmailInRedirect: p.IncludeEmailInRedirect,
+		ResultUrl: p.ResultURL, IncludeEmailInRedirect: p.IncludeEmailInRedirect, Email: p.Email,
 	}, nil
 }
 
@@ -875,7 +875,7 @@ func emailVerificationTicketFromPB(pb *storev1.EmailVerificationTicket) (*store.
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
-		ResultURL: pb.ResultUrl, IncludeEmailInRedirect: pb.IncludeEmailInRedirect,
+		ResultURL: pb.ResultUrl, IncludeEmailInRedirect: pb.IncludeEmailInRedirect, Email: pb.Email,
 	}, nil
 }
 
