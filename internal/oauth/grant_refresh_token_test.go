@@ -270,6 +270,9 @@ func TestRefreshRejects(t *testing.T) {
 			if code != tc.status || body["error"] != tc.code {
 				t.Fatalf("got %d %v; want %d %s", code, body, tc.status, tc.code)
 			}
+			if name == "blocked user" && body["error_description"] != "user is blocked" {
+				t.Fatalf("blocked user: error_description = %v, want Auth0's \"user is blocked\"", body["error_description"])
+			}
 		})
 	}
 }

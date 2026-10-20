@@ -78,7 +78,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		scopes = requested
 	}
 
-	user, oerr := h.activeUser(ctx, tenantID, rt.UserID)
+	user, oerr := h.activeUserBlocked(ctx, tenantID, rt.UserID, "user is blocked")
 	if oerr != nil {
 		return nil, oerr
 	}
@@ -124,6 +124,9 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		}
 		return nil
 	})
+	if errors.Is(err, errUserBlocked) {
+		return nil, invalidGrant("user is blocked")
+	}
 	if errors.Is(err, errUserChanged) {
 		return nil, invalidGrant("the user is not allowed to sign in")
 	}

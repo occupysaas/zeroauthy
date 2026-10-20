@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -36,8 +37,17 @@ func userScopes(requested []string, rs *store.ResourceServer, offline bool) []st
 // activeUser loads the user a grant was issued to. A deleted or blocked
 // user gets invalid_grant.
 func (h *Handlers) activeUser(ctx context.Context, tenantID, userID string) (*store.User, *Error) {
+	return h.activeUserBlocked(ctx, tenantID, userID, "the user is not allowed to sign in")
+}
+
+// activeUserBlocked is activeUser with the invalid_grant text a blocked user
+// gets (the refresh grant says what Auth0 observed: "user is blocked").
+func (h *Handlers) activeUserBlocked(ctx context.Context, tenantID, userID, blocked string) (*store.User, *Error) {
 	user, err := h.Store.Users().Get(ctx, tenantID, userID)
-	if errors.Is(err, store.ErrNotFound) || (err == nil && user.Blocked) {
+	if err == nil && user.Blocked {
+		return nil, invalidGrant(blocked)
+	}
+	if errors.Is(err, store.ErrNotFound) {
 		return nil, invalidGrant("the user is not allowed to sign in")
 	}
 	if err != nil {
@@ -50,6 +60,10 @@ func (h *Handlers) activeUser(ctx context.Context, tenantID, userID string) (*st
 // errUserChanged is returned by mintTx when the user is gone, blocked or,
 // when a version is given, no longer at that Version.
 var errUserChanged = errors.New("oauth: the user changed since it was loaded")
+
+// errUserBlocked is the errUserChanged that mintTx returns for a blocked
+// user, so a grant can word that case on its own.
+var errUserBlocked = fmt.Errorf("%w: the user is blocked", errUserChanged)
 
 // mintTx runs write, the store writes that mint a grant's tokens (nil for
 // none), in a transaction that first re-reads and locks the user
@@ -68,7 +82,10 @@ func (h *Handlers) mintTx(ctx context.Context, tenantID, userID string, version 
 		if err != nil {
 			return err
 		}
-		if u.Blocked || (version != nil && u.Version != *version) {
+		if u.Blocked {
+			return errUserBlocked
+		}
+		if version != nil && u.Version != *version {
 			return errUserChanged
 		}
 		if write == nil {
