@@ -289,7 +289,7 @@ func TestPasswordChangeTicket(t *testing.T) {
 	}
 	rec = b.do(t, "GET", "/u/reset-verify?ticket="+raw, nil)
 	rec = b.do(t, "GET", rec.Header().Get("Location"), nil)
-	if rec.Code != 400 || !strings.Contains(rec.Body.String(), "Invalid Link") && strings.Contains(rec.Body.String(), "This link has already been used.") {
+	if rec.Code != 400 || !usedLinkPage(rec.Body.String()) {
 		t.Fatalf("reused = %d %s", rec.Code, rec.Body)
 	}
 	if rec := b.do(t, "GET", "/u/reset-password?ticket=nope", nil); rec.Code != 400 {

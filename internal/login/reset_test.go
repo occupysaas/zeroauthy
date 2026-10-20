@@ -49,6 +49,13 @@ func resetLink(t *testing.T, e *env) string {
 
 var nonceValue = regexp.MustCompile(`nonce="[^"]*"|'nonce-[^']*'`)
 
+// usedLinkPage reports whether body is U6's used-link page: its title and
+// its text, with the quotes as html/template escapes them.
+func usedLinkPage(body string) bool {
+	return strings.Contains(body, "Invalid Link") &&
+		strings.Contains(body, "This link has already been used. To reset your password, return to the login page and select &#34;Forgot Your Password&#34; to send a new email.")
+}
+
 func stripNonce(s string) string { return nonceValue.ReplaceAllString(s, "") }
 
 func (e *env) conn(t *testing.T) *store.Connection {
@@ -174,7 +181,7 @@ func TestForgotPasswordFlow(t *testing.T) {
 		t.Fatal("refresh token survived the reset")
 	}
 	// The ticket cannot be used again.
-	if rec := post("another password 1", "another password 1"); rec.Code != 400 || !strings.Contains(rec.Body.String(), "Invalid Link") && strings.Contains(rec.Body.String(), "This link has already been used.") {
+	if rec := post("another password 1", "another password 1"); rec.Code != 400 || !usedLinkPage(rec.Body.String()) {
 		t.Fatalf("replay = %d %s", rec.Code, rec.Body)
 	}
 	// The new password works; the old one does not.
