@@ -47,6 +47,8 @@ tags:
     description: Applications' access to APIs (Auth0's `/api/v2/client-grants`).
   - name: connections
     description: Database connections (Auth0's `/api/v2/connections`).
+  - name: users
+    description: Users (Auth0's `/api/v2/users` and `/api/v2/users-by-email`).
   - name: system
     description: zeroauthy's own API for tenants and operators (operator tokens only).
 security:
@@ -753,6 +755,221 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/users:
+    get:
+      operationId: getUsers
+      tags: [users]
+      summary: List or search users
+      description: |
+        Requires `read:users`. `q` is Auth0's v3 query syntax; `search_engine`
+        absent, `v2` or `v3` all mean v3, `v1` is `400 operation_not_supported`
+        and anything else `400 invalid_query_string`. Search errors are `400`
+        without `errorCode`, with Auth0's `invalid query: …` messages. Results
+        are immediately consistent with writes (D-0043).
+
+        `sort` is `field:1` or `field:-1` (`400 invalid_query_string`
+        otherwise); unknown and metadata fields are ignored. Without `sort`,
+        users are ordered by `last_login` descending, those who never logged
+        in last. `connection` keeps users with an identity on that connection.
+
+        Offset paging (`page`, `per_page` 1 to 100, 50 by default). Only the
+        first 1000 results can be reached: `(page + 1) × per_page` above 1000
+        is `400 invalid_paging`. `include_totals=true` answers
+        `{start, limit, length, total, users}`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/get-users
+        - https://auth0.com/docs/manage-users/user-search/user-search-query-syntax
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/per_page"
+        - $ref: "#/components/parameters/include_totals"
+        - name: sort
+          in: query
+          description: "`field:1` (ascending) or `field:-1` (descending)."
+          schema: {type: string}
+        - name: connection
+          in: query
+          description: Only users with an identity on this connection.
+          schema: {type: string}
+        - name: fields
+          in: query
+          description: Comma-separated fields to include or, with `include_fields=false`, to leave out.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
+        - name: q
+          in: query
+          description: The search, in Auth0's v3 query syntax.
+          schema: {type: string}
+        - name: search_engine
+          in: query
+          description: "`v3` (the default); `v2` behaves as `v3`, `v1` is refused."
+          schema: {type: string}
+      responses:
+        "200":
+          description: The page of users.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: array
+                    items: {$ref: "#/components/schemas/User"}
+                  - $ref: "#/components/schemas/UserPage"
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user
+      description: |
+        Requires `create:users`; `app_metadata` also needs
+        `create:users_app_metadata` or `update:users_app_metadata`. A missing
+        `connection` is `400 invalid_body`; an unknown connection is
+        `400 inexistent_connection`. A user whose email (or username) the
+        connection already has is `409 auth0_idp_error`. A password the
+        connection's policy refuses is `400` without `errorCode`. A supplied
+        `user_id` is always prefixed with `auth0|`. `verify_email` (true by
+        default for an unverified email) sends the verification email.
+
+        On a custom database connection that is not in import mode, the
+        `create` script runs first; its failures are `400 auth0_idp_error`
+        (`409` for a `user_exists` ValidationError).
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/post-users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UserCreate"}
+      responses:
+        "201":
+          description: The new user.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "503": {$ref: "#/components/responses/ScriptRuntimeUnavailable"}
+  /api/v2/users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The user's ID, `provider|id`; anything else is `400 invalid_uri`.
+        schema: {type: string}
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user
+      description: |
+        Requires `read:users`. A well-formed unknown ID is
+        `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/get-users-by-id
+      parameters:
+        - name: fields
+          in: query
+          description: Comma-separated fields to include or, with `include_fields=false`, to leave out.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: The user.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      description: |
+        Requires `update:users`; `app_metadata` needs
+        `update:users_app_metadata` (which alone allows a body with only
+        `app_metadata`). Metadata merges at the top level: a key set to `null`
+        is removed, nested objects are replaced, `{}` empties the object. An
+        email change clears `email_verified` unless the body sets it. `email`
+        and `password` together are `400 operation_not_supported`. An email or
+        username another user of the connection has is `409 auth0_idp_error`,
+        and nothing changes. Neither a password change nor `blocked: true`
+        revokes sessions or refresh tokens.
+
+        On a custom database connection that is not in import mode, an email
+        change runs `change_email` and a password change `change_password`
+        before anything is stored.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/patch-users-by-id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UserUpdate"}
+      responses:
+        "200":
+          description: The updated user.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "503": {$ref: "#/components/responses/ScriptRuntimeUnavailable"}
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a user
+      description: |
+        Requires `delete:users`. Answers `204`, also for a well-formed unknown
+        ID. The user's sessions, refresh tokens, grants, open tickets, auth
+        codes and device codes go with it. On a custom database connection
+        that is not in import mode, the `delete` script runs first.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/delete-users-by-id
+      responses:
+        "204": {description: Deleted.}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "503": {$ref: "#/components/responses/ScriptRuntimeUnavailable"}
+  /api/v2/users-by-email:
+    get:
+      operationId: getUsersByEmail
+      tags: [users]
+      summary: Find users by email
+      description: |
+        Requires `read:users`. The match is case-sensitive on the stored
+        (lowercase) email, on every connection. An unknown email is `200 []`;
+        a missing or malformed `email` is `400 invalid_query_string`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users-by-email/get-users-by-email
+      parameters:
+        - name: email
+          in: query
+          description: The email address, case-sensitive.
+          schema: {type: string}
+        - name: fields
+          in: query
+          description: Comma-separated fields to include or, with `include_fields=false`, to leave out.
+          schema: {type: string}
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: The users with that email.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/User"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /api/system/tenants:
     get:
       operationId: getTenants
@@ -1627,6 +1844,92 @@ components:
             setup_url:
               type: string
               description: One-time link, valid for one hour, where the operator chooses a password.
+    UserIdentity:
+      type: object
+      required: [connection, user_id, provider, isSocial]
+      properties:
+        connection: {type: string}
+        user_id: {type: string, description: The ID within the provider (the user's `user_id` without `provider|`).}
+        provider: {type: string}
+        isSocial: {type: boolean}
+    User:
+      type: object
+      description: |
+        A user in Auth0's shape. Fields without a value are left out:
+        `blocked` appears only when true; `last_login`, `last_ip` and
+        `logins_count` after the first login. A password or its hash is never
+        returned. `fields` can leave out any property.
+      additionalProperties: true
+      properties:
+        user_id: {type: string, description: "`auth0|` and 24 lowercase hex characters for generated IDs."}
+        email: {type: string}
+        email_verified: {type: boolean}
+        username: {type: string}
+        phone_number: {type: string}
+        phone_verified: {type: boolean}
+        name: {type: string}
+        given_name: {type: string}
+        family_name: {type: string}
+        nickname: {type: string}
+        picture: {type: string}
+        blocked: {type: boolean}
+        user_metadata: {type: object, additionalProperties: true}
+        app_metadata: {type: object, additionalProperties: true}
+        identities:
+          type: array
+          items: {$ref: "#/components/schemas/UserIdentity"}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        last_login: {type: string, format: date-time}
+        last_ip: {type: string}
+        logins_count: {type: integer}
+    UserProfileSettings:
+      type: object
+      properties:
+        email: {type: string}
+        email_verified: {type: boolean}
+        verify_email: {type: boolean, description: Send the verification email.}
+        username: {type: string}
+        password: {type: string, writeOnly: true}
+        phone_number: {type: string}
+        phone_verified: {type: boolean}
+        name: {type: string}
+        given_name: {type: string}
+        family_name: {type: string}
+        nickname: {type: string}
+        picture: {type: string}
+        blocked: {type: boolean}
+        user_metadata: {type: object, additionalProperties: true}
+        app_metadata: {type: object, additionalProperties: true}
+    UserCreate:
+      description: A new user. `connection` is required; unknown properties are `400 invalid_body`.
+      allOf:
+        - $ref: "#/components/schemas/UserProfileSettings"
+        - type: object
+          required: [connection]
+          properties:
+            connection: {type: string}
+            user_id: {type: string, maxLength: 255, description: "Prefixed with `auth0|`."}
+    UserUpdate:
+      description: Fields to change; unknown properties are `400 invalid_body`.
+      allOf:
+        - $ref: "#/components/schemas/UserProfileSettings"
+        - type: object
+          properties:
+            connection: {type: string}
+            client_id: {type: string, description: The application the verification email is for.}
+    UserPage:
+      type: object
+      description: A page of users with `include_totals=true`.
+      required: [start, limit, length, total, users]
+      properties:
+        start: {type: integer}
+        limit: {type: integer}
+        length: {type: integer, description: The number of users on this page.}
+        total: {type: integer}
+        users:
+          type: array
+          items: {$ref: "#/components/schemas/User"}
     ClientPage:
       description: A page of applications with `include_totals=true`.
       allOf:
@@ -1682,6 +1985,11 @@ components:
           schema: {$ref: "#/components/schemas/ManagementError"}
     Conflict:
       description: The name, a domain or an identifier is already used, or the change would remove the last operator (`conflict`, `last_operator`, `resource_server_conflict`).
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    ScriptRuntimeUnavailable:
+      description: A custom database script could not run (`script_runtime_unavailable`).
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}

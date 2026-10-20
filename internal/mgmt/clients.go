@@ -52,6 +52,9 @@ type Handlers struct {
 	// Scripts runs custom database scripts for the system API's script
 	// try; nil answers 503.
 	Scripts *customdb.Client
+	// Verification sends verification emails for /users; nil logs and
+	// sends nothing.
+	Verification VerificationSender
 
 	tryOnce     sync.Once
 	tryThrottle *identity.Throttle
@@ -158,11 +161,7 @@ func (h *Handlers) GetClients(w http.ResponseWriter, r *http.Request, _ mgmtapi.
 	for _, c := range got {
 		out = append(out, Project(h.clientView(r.Context(), tn, c, reveal), fields, include))
 	}
-	if !totals {
-		writeJSON(w, http.StatusOK, out)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"clients": out, "start": page * perPage, "limit": perPage, "total": total})
+	WritePage(w, "clients", out, page, perPage, total, totals)
 }
 
 // GetClient returns one application.

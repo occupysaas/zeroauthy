@@ -136,3 +136,19 @@ func TestWriteListHugePage(t *testing.T) {
 		t.Errorf("huge page: %s", rec.Body)
 	}
 }
+
+// WritePage writes a page the store cut, with the total it counted.
+func TestWritePage(t *testing.T) {
+	rec := httptest.NewRecorder()
+	WritePage[string](rec, "clients", nil, 3, 2, 7, false)
+	if strings.TrimSpace(rec.Body.String()) != `[]` {
+		t.Errorf("bare: %s", rec.Body)
+	}
+	rec = httptest.NewRecorder()
+	WritePage(rec, "clients", []string{"g"}, 3, 2, 7, true)
+	var body map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if l, _ := body["clients"].([]any); len(l) != 1 || body["start"] != float64(6) || body["limit"] != float64(2) || body["total"] != float64(7) {
+		t.Errorf("totals: %s", rec.Body)
+	}
+}

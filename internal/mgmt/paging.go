@@ -130,3 +130,17 @@ func WriteList[T any](w http.ResponseWriter, plural string, items []T, page, per
 	}
 	writeJSON(w, http.StatusOK, map[string]any{plural: out, "start": page * perPage, "limit": perPage, "total": len(items)})
 }
+
+// WritePage writes one page the store already cut: items as a bare array,
+// or with includeTotals {<plural>, start, limit, total}, where total is the
+// number of results on all pages (M6).
+func WritePage[T any](w http.ResponseWriter, plural string, items []T, page, perPage, total int, includeTotals bool) {
+	if items == nil {
+		items = []T{}
+	}
+	if !includeTotals {
+		writeJSON(w, http.StatusOK, items)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{plural: items, "start": page * perPage, "limit": perPage, "total": total})
+}

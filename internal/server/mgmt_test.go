@@ -56,9 +56,20 @@ func newMgmtEnv(t *testing.T) (http.Handler, store.Store) {
 // newMgmtEnvWith is newMgmtEnv with adjust applied to the server's Deps.
 func newMgmtEnvWith(t *testing.T, adjust func(*Deps)) (http.Handler, store.Store) {
 	t.Helper()
+	return newMgmtEnvSeed(t, mgmtSeed, adjust)
+}
+
+// newMgmtEnvSeed is newMgmtEnvWith with its own seed.
+func newMgmtEnvSeed(t *testing.T, seedText string, adjust func(*Deps)) (http.Handler, store.Store) {
+	t.Helper()
+	return newMgmtEnvOn(t, memory.New(), seedText, adjust)
+}
+
+// newMgmtEnvOn is newMgmtEnvSeed on an empty, migrated store st.
+func newMgmtEnvOn(t *testing.T, st store.Store, seedText string, adjust func(*Deps)) (http.Handler, store.Store) {
+	t.Helper()
 	ctx := context.Background()
-	st := memory.New()
-	f, err := seed.Parse([]byte(mgmtSeed))
+	f, err := seed.Parse([]byte(seedText))
 	if err != nil {
 		t.Fatal(err)
 	}

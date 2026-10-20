@@ -162,6 +162,45 @@ func (c *Client) ChangePassword(ctx context.Context, conn *store.Connection, ide
 	return false, errBadResult
 }
 
+// Delete runs the delete script with the user's ID in the legacy store (the
+// user_id without the "auth0|" prefix).
+func (c *Client) Delete(ctx context.Context, conn *store.Connection, userID string) error {
+	_, err := c.run(ctx, conn, store.ScriptDelete, userID)
+	return err
+}
+
+// ChangeEmail runs the change_email script. It returns false when the
+// script reports the email was not changed.
+func (c *Client) ChangeEmail(ctx context.Context, conn *store.Connection, email, newEmail string, verified bool) (bool, error) {
+	raw, err := c.run(ctx, conn, store.ScriptChangeEmail, email, newEmail, verified)
+	if err != nil {
+		return false, err
+	}
+	return boolResult(raw, store.ScriptChangeEmail)
+}
+
+// Verify runs the verify script. It returns false when the script reports
+// the email was not verified.
+func (c *Client) Verify(ctx context.Context, conn *store.Connection, email string) (bool, error) {
+	raw, err := c.run(ctx, conn, store.ScriptVerify, email)
+	if err != nil {
+		return false, err
+	}
+	return boolResult(raw, store.ScriptVerify)
+}
+
+// boolResult reads a callback value that must be a boolean (null is false).
+func boolResult(raw json.RawMessage, script string) (bool, error) {
+	raw = bytes.TrimSpace(raw)
+	switch {
+	case isNull(raw), bytes.Equal(raw, []byte("false")):
+		return false, nil
+	case bytes.Equal(raw, []byte("true")):
+		return true, nil
+	}
+	return false, fmt.Errorf("customdb: %s returned an unexpected result", script)
+}
+
 func isNull(raw json.RawMessage) bool {
 	raw = bytes.TrimSpace(raw)
 	return len(raw) == 0 || bytes.Equal(raw, []byte("null"))

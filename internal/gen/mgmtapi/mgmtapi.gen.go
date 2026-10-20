@@ -1570,6 +1570,127 @@ type TenantUpdate struct {
 // TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
 type TokenEndpointAuthMethod string
 
+// User A user in Auth0's shape. Fields without a value are left out:
+// `blocked` appears only when true; `last_login`, `last_ip` and
+// `logins_count` after the first login. A password or its hash is never
+// returned. `fields` can leave out any property.
+type User struct {
+	AppMetadata   *map[string]interface{} `json:"app_metadata,omitempty"`
+	Blocked       *bool                   `json:"blocked,omitempty"`
+	CreatedAt     *time.Time              `json:"created_at,omitempty"`
+	Email         *string                 `json:"email,omitempty"`
+	EmailVerified *bool                   `json:"email_verified,omitempty"`
+	FamilyName    *string                 `json:"family_name,omitempty"`
+	GivenName     *string                 `json:"given_name,omitempty"`
+	Identities    *[]UserIdentity         `json:"identities,omitempty"`
+	LastIp        *string                 `json:"last_ip,omitempty"`
+	LastLogin     *time.Time              `json:"last_login,omitempty"`
+	LoginsCount   *int                    `json:"logins_count,omitempty"`
+	Name          *string                 `json:"name,omitempty"`
+	Nickname      *string                 `json:"nickname,omitempty"`
+	PhoneNumber   *string                 `json:"phone_number,omitempty"`
+	PhoneVerified *bool                   `json:"phone_verified,omitempty"`
+	Picture       *string                 `json:"picture,omitempty"`
+	UpdatedAt     *time.Time              `json:"updated_at,omitempty"`
+
+	// UserId `auth0|` and 24 lowercase hex characters for generated IDs.
+	UserId               *string                 `json:"user_id,omitempty"`
+	UserMetadata         *map[string]interface{} `json:"user_metadata,omitempty"`
+	Username             *string                 `json:"username,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// UserCreate A new user. `connection` is required; unknown properties are `400 invalid_body`.
+type UserCreate struct {
+	AppMetadata   *map[string]interface{} `json:"app_metadata,omitempty"`
+	Blocked       *bool                   `json:"blocked,omitempty"`
+	Connection    string                  `json:"connection"`
+	Email         *string                 `json:"email,omitempty"`
+	EmailVerified *bool                   `json:"email_verified,omitempty"`
+	FamilyName    *string                 `json:"family_name,omitempty"`
+	GivenName     *string                 `json:"given_name,omitempty"`
+	Name          *string                 `json:"name,omitempty"`
+	Nickname      *string                 `json:"nickname,omitempty"`
+	Password      *string                 `json:"password,omitempty"`
+	PhoneNumber   *string                 `json:"phone_number,omitempty"`
+	PhoneVerified *bool                   `json:"phone_verified,omitempty"`
+	Picture       *string                 `json:"picture,omitempty"`
+
+	// UserId Prefixed with `auth0|`.
+	UserId       *string                 `json:"user_id,omitempty"`
+	UserMetadata *map[string]interface{} `json:"user_metadata,omitempty"`
+	Username     *string                 `json:"username,omitempty"`
+
+	// VerifyEmail Send the verification email.
+	VerifyEmail *bool `json:"verify_email,omitempty"`
+}
+
+// UserIdentity defines model for UserIdentity.
+type UserIdentity struct {
+	Connection string `json:"connection"`
+	IsSocial   bool   `json:"isSocial"`
+	Provider   string `json:"provider"`
+
+	// UserId The ID within the provider (the user's `user_id` without `provider|`).
+	UserId string `json:"user_id"`
+}
+
+// UserPage A page of users with `include_totals=true`.
+type UserPage struct {
+	// Length The number of users on this page.
+	Length int    `json:"length"`
+	Limit  int    `json:"limit"`
+	Start  int    `json:"start"`
+	Total  int    `json:"total"`
+	Users  []User `json:"users"`
+}
+
+// UserProfileSettings defines model for UserProfileSettings.
+type UserProfileSettings struct {
+	AppMetadata   *map[string]interface{} `json:"app_metadata,omitempty"`
+	Blocked       *bool                   `json:"blocked,omitempty"`
+	Email         *string                 `json:"email,omitempty"`
+	EmailVerified *bool                   `json:"email_verified,omitempty"`
+	FamilyName    *string                 `json:"family_name,omitempty"`
+	GivenName     *string                 `json:"given_name,omitempty"`
+	Name          *string                 `json:"name,omitempty"`
+	Nickname      *string                 `json:"nickname,omitempty"`
+	Password      *string                 `json:"password,omitempty"`
+	PhoneNumber   *string                 `json:"phone_number,omitempty"`
+	PhoneVerified *bool                   `json:"phone_verified,omitempty"`
+	Picture       *string                 `json:"picture,omitempty"`
+	UserMetadata  *map[string]interface{} `json:"user_metadata,omitempty"`
+	Username      *string                 `json:"username,omitempty"`
+
+	// VerifyEmail Send the verification email.
+	VerifyEmail *bool `json:"verify_email,omitempty"`
+}
+
+// UserUpdate Fields to change; unknown properties are `400 invalid_body`.
+type UserUpdate struct {
+	AppMetadata *map[string]interface{} `json:"app_metadata,omitempty"`
+	Blocked     *bool                   `json:"blocked,omitempty"`
+
+	// ClientId The application the verification email is for.
+	ClientId      *string                 `json:"client_id,omitempty"`
+	Connection    *string                 `json:"connection,omitempty"`
+	Email         *string                 `json:"email,omitempty"`
+	EmailVerified *bool                   `json:"email_verified,omitempty"`
+	FamilyName    *string                 `json:"family_name,omitempty"`
+	GivenName     *string                 `json:"given_name,omitempty"`
+	Name          *string                 `json:"name,omitempty"`
+	Nickname      *string                 `json:"nickname,omitempty"`
+	Password      *string                 `json:"password,omitempty"`
+	PhoneNumber   *string                 `json:"phone_number,omitempty"`
+	PhoneVerified *bool                   `json:"phone_verified,omitempty"`
+	Picture       *string                 `json:"picture,omitempty"`
+	UserMetadata  *map[string]interface{} `json:"user_metadata,omitempty"`
+	Username      *string                 `json:"username,omitempty"`
+
+	// VerifyEmail Send the verification email.
+	VerifyEmail *bool `json:"verify_email,omitempty"`
+}
+
 // Fields defines model for fields.
 type Fields = string
 
@@ -1596,6 +1717,9 @@ type Forbidden = ManagementError
 
 // NotFound Auth0's Management API error shape.
 type NotFound = ManagementError
+
+// ScriptRuntimeUnavailable Auth0's Management API error shape.
+type ScriptRuntimeUnavailable = ManagementError
 
 // Unauthorized Auth0's Management API error shape.
 type Unauthorized = ManagementError
@@ -1780,6 +1904,65 @@ type GetResourceServerParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// GetUsersParams defines parameters for GetUsers.
+type GetUsersParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *IncludeTotals `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// Sort `field:1` (ascending) or `field:-1` (descending).
+	Sort *string `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// Connection Only users with an identity on this connection.
+	Connection *string `form:"connection,omitempty" json:"connection,omitempty"`
+
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+
+	// Q The search, in Auth0's v3 query syntax.
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// SearchEngine `v3` (the default); `v2` behaves as `v3`, `v1` is refused.
+	SearchEngine *string `form:"search_engine,omitempty" json:"search_engine,omitempty"`
+}
+
+// GetUsers200JSONResponseBody0 defines parameters for GetUsers.
+type GetUsers200JSONResponseBody0 = []User
+
+// GetUsers200JSONResponseBody defines parameters for GetUsers.
+type GetUsers200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetUsersByEmailParams defines parameters for GetUsersByEmail.
+type GetUsersByEmailParams struct {
+	// Email The email address, case-sensitive.
+	Email *string `form:"email,omitempty" json:"email,omitempty"`
+
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
+// GetUserParams defines parameters for GetUser.
+type GetUserParams struct {
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out.
+	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
 // CreateOperatorJSONRequestBody defines body for CreateOperator for application/json ContentType.
 type CreateOperatorJSONRequestBody = OperatorCreate
 
@@ -1818,6 +2001,365 @@ type CreateResourceServerJSONRequestBody = ResourceServerCreate
 
 // UpdateResourceServerJSONRequestBody defines body for UpdateResourceServer for application/json ContentType.
 type UpdateResourceServerJSONRequestBody = ResourceServerUpdate
+
+// CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.
+type CreateUserJSONRequestBody = UserCreate
+
+// UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
+type UpdateUserJSONRequestBody = UserUpdate
+
+// Getter for additional properties for User. Returns the specified
+// element and whether it was found
+func (a User) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for User
+func (a *User) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for User to handle AdditionalProperties
+func (a *User) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["app_metadata"]; found {
+		err = json.Unmarshal(raw, &a.AppMetadata)
+		if err != nil {
+			return fmt.Errorf("error reading 'app_metadata': %w", err)
+		}
+		delete(object, "app_metadata")
+	}
+
+	if raw, found := object["blocked"]; found {
+		err = json.Unmarshal(raw, &a.Blocked)
+		if err != nil {
+			return fmt.Errorf("error reading 'blocked': %w", err)
+		}
+		delete(object, "blocked")
+	}
+
+	if raw, found := object["created_at"]; found {
+		err = json.Unmarshal(raw, &a.CreatedAt)
+		if err != nil {
+			return fmt.Errorf("error reading 'created_at': %w", err)
+		}
+		delete(object, "created_at")
+	}
+
+	if raw, found := object["email"]; found {
+		err = json.Unmarshal(raw, &a.Email)
+		if err != nil {
+			return fmt.Errorf("error reading 'email': %w", err)
+		}
+		delete(object, "email")
+	}
+
+	if raw, found := object["email_verified"]; found {
+		err = json.Unmarshal(raw, &a.EmailVerified)
+		if err != nil {
+			return fmt.Errorf("error reading 'email_verified': %w", err)
+		}
+		delete(object, "email_verified")
+	}
+
+	if raw, found := object["family_name"]; found {
+		err = json.Unmarshal(raw, &a.FamilyName)
+		if err != nil {
+			return fmt.Errorf("error reading 'family_name': %w", err)
+		}
+		delete(object, "family_name")
+	}
+
+	if raw, found := object["given_name"]; found {
+		err = json.Unmarshal(raw, &a.GivenName)
+		if err != nil {
+			return fmt.Errorf("error reading 'given_name': %w", err)
+		}
+		delete(object, "given_name")
+	}
+
+	if raw, found := object["identities"]; found {
+		err = json.Unmarshal(raw, &a.Identities)
+		if err != nil {
+			return fmt.Errorf("error reading 'identities': %w", err)
+		}
+		delete(object, "identities")
+	}
+
+	if raw, found := object["last_ip"]; found {
+		err = json.Unmarshal(raw, &a.LastIp)
+		if err != nil {
+			return fmt.Errorf("error reading 'last_ip': %w", err)
+		}
+		delete(object, "last_ip")
+	}
+
+	if raw, found := object["last_login"]; found {
+		err = json.Unmarshal(raw, &a.LastLogin)
+		if err != nil {
+			return fmt.Errorf("error reading 'last_login': %w", err)
+		}
+		delete(object, "last_login")
+	}
+
+	if raw, found := object["logins_count"]; found {
+		err = json.Unmarshal(raw, &a.LoginsCount)
+		if err != nil {
+			return fmt.Errorf("error reading 'logins_count': %w", err)
+		}
+		delete(object, "logins_count")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["nickname"]; found {
+		err = json.Unmarshal(raw, &a.Nickname)
+		if err != nil {
+			return fmt.Errorf("error reading 'nickname': %w", err)
+		}
+		delete(object, "nickname")
+	}
+
+	if raw, found := object["phone_number"]; found {
+		err = json.Unmarshal(raw, &a.PhoneNumber)
+		if err != nil {
+			return fmt.Errorf("error reading 'phone_number': %w", err)
+		}
+		delete(object, "phone_number")
+	}
+
+	if raw, found := object["phone_verified"]; found {
+		err = json.Unmarshal(raw, &a.PhoneVerified)
+		if err != nil {
+			return fmt.Errorf("error reading 'phone_verified': %w", err)
+		}
+		delete(object, "phone_verified")
+	}
+
+	if raw, found := object["picture"]; found {
+		err = json.Unmarshal(raw, &a.Picture)
+		if err != nil {
+			return fmt.Errorf("error reading 'picture': %w", err)
+		}
+		delete(object, "picture")
+	}
+
+	if raw, found := object["updated_at"]; found {
+		err = json.Unmarshal(raw, &a.UpdatedAt)
+		if err != nil {
+			return fmt.Errorf("error reading 'updated_at': %w", err)
+		}
+		delete(object, "updated_at")
+	}
+
+	if raw, found := object["user_id"]; found {
+		err = json.Unmarshal(raw, &a.UserId)
+		if err != nil {
+			return fmt.Errorf("error reading 'user_id': %w", err)
+		}
+		delete(object, "user_id")
+	}
+
+	if raw, found := object["user_metadata"]; found {
+		err = json.Unmarshal(raw, &a.UserMetadata)
+		if err != nil {
+			return fmt.Errorf("error reading 'user_metadata': %w", err)
+		}
+		delete(object, "user_metadata")
+	}
+
+	if raw, found := object["username"]; found {
+		err = json.Unmarshal(raw, &a.Username)
+		if err != nil {
+			return fmt.Errorf("error reading 'username': %w", err)
+		}
+		delete(object, "username")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for User to handle AdditionalProperties
+func (a User) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.AppMetadata != nil {
+		object["app_metadata"], err = json.Marshal(a.AppMetadata)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'app_metadata': %w", err)
+		}
+	}
+
+	if a.Blocked != nil {
+		object["blocked"], err = json.Marshal(a.Blocked)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'blocked': %w", err)
+		}
+	}
+
+	if a.CreatedAt != nil {
+		object["created_at"], err = json.Marshal(a.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'created_at': %w", err)
+		}
+	}
+
+	if a.Email != nil {
+		object["email"], err = json.Marshal(a.Email)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email': %w", err)
+		}
+	}
+
+	if a.EmailVerified != nil {
+		object["email_verified"], err = json.Marshal(a.EmailVerified)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'email_verified': %w", err)
+		}
+	}
+
+	if a.FamilyName != nil {
+		object["family_name"], err = json.Marshal(a.FamilyName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'family_name': %w", err)
+		}
+	}
+
+	if a.GivenName != nil {
+		object["given_name"], err = json.Marshal(a.GivenName)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'given_name': %w", err)
+		}
+	}
+
+	if a.Identities != nil {
+		object["identities"], err = json.Marshal(a.Identities)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'identities': %w", err)
+		}
+	}
+
+	if a.LastIp != nil {
+		object["last_ip"], err = json.Marshal(a.LastIp)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'last_ip': %w", err)
+		}
+	}
+
+	if a.LastLogin != nil {
+		object["last_login"], err = json.Marshal(a.LastLogin)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'last_login': %w", err)
+		}
+	}
+
+	if a.LoginsCount != nil {
+		object["logins_count"], err = json.Marshal(a.LoginsCount)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'logins_count': %w", err)
+		}
+	}
+
+	if a.Name != nil {
+		object["name"], err = json.Marshal(a.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if a.Nickname != nil {
+		object["nickname"], err = json.Marshal(a.Nickname)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'nickname': %w", err)
+		}
+	}
+
+	if a.PhoneNumber != nil {
+		object["phone_number"], err = json.Marshal(a.PhoneNumber)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'phone_number': %w", err)
+		}
+	}
+
+	if a.PhoneVerified != nil {
+		object["phone_verified"], err = json.Marshal(a.PhoneVerified)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'phone_verified': %w", err)
+		}
+	}
+
+	if a.Picture != nil {
+		object["picture"], err = json.Marshal(a.Picture)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'picture': %w", err)
+		}
+	}
+
+	if a.UpdatedAt != nil {
+		object["updated_at"], err = json.Marshal(a.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'updated_at': %w", err)
+		}
+	}
+
+	if a.UserId != nil {
+		object["user_id"], err = json.Marshal(a.UserId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'user_id': %w", err)
+		}
+	}
+
+	if a.UserMetadata != nil {
+		object["user_metadata"], err = json.Marshal(a.UserMetadata)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'user_metadata': %w", err)
+		}
+	}
+
+	if a.Username != nil {
+		object["username"], err = json.Marshal(a.Username)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'username': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // AsGetClientGrants200JSONResponseBody0 returns the union data inside the GetClientGrants200JSONResponseBody as a GetClientGrants200JSONResponseBody0
 func (t GetClientGrants200JSONResponseBody) AsGetClientGrants200JSONResponseBody0() (GetClientGrants200JSONResponseBody0, error) {
@@ -2119,6 +2661,68 @@ func (t *GetResourceServers200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsGetUsers200JSONResponseBody0 returns the union data inside the GetUsers200JSONResponseBody as a GetUsers200JSONResponseBody0
+func (t GetUsers200JSONResponseBody) AsGetUsers200JSONResponseBody0() (GetUsers200JSONResponseBody0, error) {
+	var body GetUsers200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetUsers200JSONResponseBody0 overwrites any union data inside the GetUsers200JSONResponseBody as the provided GetUsers200JSONResponseBody0
+func (t *GetUsers200JSONResponseBody) FromGetUsers200JSONResponseBody0(v GetUsers200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetUsers200JSONResponseBody0 performs a merge with any union data inside the GetUsers200JSONResponseBody, using the provided GetUsers200JSONResponseBody0
+func (t *GetUsers200JSONResponseBody) MergeGetUsers200JSONResponseBody0(v GetUsers200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsUserPage returns the union data inside the GetUsers200JSONResponseBody as a UserPage
+func (t GetUsers200JSONResponseBody) AsUserPage() (UserPage, error) {
+	var body UserPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUserPage overwrites any union data inside the GetUsers200JSONResponseBody as the provided UserPage
+func (t *GetUsers200JSONResponseBody) FromUserPage(v UserPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUserPage performs a merge with any union data inside the GetUsers200JSONResponseBody, using the provided UserPage
+func (t *GetUsers200JSONResponseBody) MergeUserPage(v UserPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetUsers200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetUsers200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetOperators List operators
@@ -2214,6 +2818,24 @@ type ServerInterface interface {
 	// UpdateResourceServer Update an API
 	// (PATCH /api/v2/resource-servers/{id})
 	UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string)
+	// GetUsers List or search users
+	// (GET /api/v2/users)
+	GetUsers(w http.ResponseWriter, r *http.Request, params GetUsersParams)
+	// CreateUser Create a user
+	// (POST /api/v2/users)
+	CreateUser(w http.ResponseWriter, r *http.Request)
+	// GetUsersByEmail Find users by email
+	// (GET /api/v2/users-by-email)
+	GetUsersByEmail(w http.ResponseWriter, r *http.Request, params GetUsersByEmailParams)
+	// DeleteUser Delete a user
+	// (DELETE /api/v2/users/{id})
+	DeleteUser(w http.ResponseWriter, r *http.Request, id string)
+	// GetUser Get a user
+	// (GET /api/v2/users/{id})
+	GetUser(w http.ResponseWriter, r *http.Request, id string, params GetUserParams)
+	// UpdateUser Update a user
+	// (PATCH /api/v2/users/{id})
+	UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -2403,6 +3025,42 @@ func (_ Unimplemented) GetResourceServer(w http.ResponseWriter, r *http.Request,
 // UpdateResourceServer Update an API
 // (PATCH /api/v2/resource-servers/{id})
 func (_ Unimplemented) UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUsers List or search users
+// (GET /api/v2/users)
+func (_ Unimplemented) GetUsers(w http.ResponseWriter, r *http.Request, params GetUsersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateUser Create a user
+// (POST /api/v2/users)
+func (_ Unimplemented) CreateUser(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUsersByEmail Find users by email
+// (GET /api/v2/users-by-email)
+func (_ Unimplemented) GetUsersByEmail(w http.ResponseWriter, r *http.Request, params GetUsersByEmailParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUser Delete a user
+// (DELETE /api/v2/users/{id})
+func (_ Unimplemented) DeleteUser(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUser Get a user
+// (GET /api/v2/users/{id})
+func (_ Unimplemented) GetUser(w http.ResponseWriter, r *http.Request, id string, params GetUserParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateUser Update a user
+// (PATCH /api/v2/users/{id})
+func (_ Unimplemented) UpdateUser(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3641,6 +4299,323 @@ func (siw *ServerInterfaceWrapper) UpdateResourceServer(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// GetUsers operation middleware
+func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUsersParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "connection" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "connection", r.URL.Query(), &params.Connection, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "connection"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "search_engine" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "search_engine", r.URL.Query(), &params.SearchEngine, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "search_engine"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search_engine", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUsers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateUser operation middleware
+func (siw *ServerInterfaceWrapper) CreateUser(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateUser(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUsersByEmail operation middleware
+func (siw *ServerInterfaceWrapper) GetUsersByEmail(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUsersByEmailParams
+
+	// ------------- Optional query parameter "email" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "email", r.URL.Query(), &params.Email, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "email"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUsersByEmail(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteUser operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUser(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUser operation middleware
+func (siw *ServerInterfaceWrapper) GetUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUserParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUser(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateUser operation middleware
+func (siw *ServerInterfaceWrapper) UpdateUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateUser(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -3822,6 +4797,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v2/connections/{id}/clients", wrapper.UpdateConnectionClients)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users", wrapper.GetUsers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/users", wrapper.CreateUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}", wrapper.DeleteUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}", wrapper.GetUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/users/{id}", wrapper.UpdateUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users-by-email", wrapper.GetUsersByEmail)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants", wrapper.GetTenants)

@@ -189,3 +189,48 @@ func TestMissingScript(t *testing.T) {
 		t.Fatal("Exec was called")
 	}
 }
+
+func TestDeleteChangeEmailVerify(t *testing.T) {
+	ctx := context.Background()
+	c, fe, conn := clientFor(t, map[string]func([]any) (any, error){
+		store.ScriptDelete:      func([]any) (any, error) { return nil, nil },
+		store.ScriptChangeEmail: func(a []any) (any, error) { return a[2] == true, nil },
+		store.ScriptVerify:      func([]any) (any, error) { return true, nil },
+	})
+	if err := c.Delete(ctx, conn, "42"); err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := c.ChangeEmail(ctx, conn, "a@b.test", "c@d.test", true); err != nil || !ok {
+		t.Fatalf("change email = %v, %v", ok, err)
+	}
+	if ok, err := c.ChangeEmail(ctx, conn, "a@b.test", "c@d.test", false); err != nil || ok {
+		t.Fatalf("change email (false) = %v, %v", ok, err)
+	}
+	if ok, err := c.Verify(ctx, conn, "a@b.test"); err != nil || !ok {
+		t.Fatalf("verify = %v, %v", ok, err)
+	}
+	reqs := fe.Requests()
+	if len(reqs) != 4 || reqs[0].Script != store.ScriptDelete || len(reqs[0].Args) != 1 || reqs[0].Args[0] != "42" ||
+		reqs[1].Script != store.ScriptChangeEmail || len(reqs[1].Args) != 3 || reqs[1].Args[0] != "a@b.test" || reqs[1].Args[1] != "c@d.test" ||
+		reqs[3].Script != store.ScriptVerify || len(reqs[3].Args) != 1 {
+		t.Fatalf("requests = %+v", reqs)
+	}
+}
+
+func TestChangeEmailErrors(t *testing.T) {
+	ctx := context.Background()
+	c, _, conn := clientFor(t, map[string]func([]any) (any, error){
+		store.ScriptChangeEmail: func([]any) (any, error) { return "yes", nil },
+		store.ScriptDelete:      func([]any) (any, error) { return nil, &ScriptError{Kind: KindError, Message: "boom"} },
+	})
+	if _, err := c.ChangeEmail(ctx, conn, "a@b.test", "c@d.test", false); err == nil {
+		t.Fatal("a string result was accepted")
+	}
+	var se *ScriptError
+	if err := c.Delete(ctx, conn, "1"); !errors.As(err, &se) || se.Message != "boom" {
+		t.Fatalf("delete = %v", err)
+	}
+	if _, err := c.Verify(ctx, conn, "a@b.test"); !errors.Is(err, ErrNoScript) {
+		t.Fatalf("verify without a script = %v", err)
+	}
+}

@@ -113,6 +113,35 @@ func (a mgmtAPI) UpdateConnectionClients(w http.ResponseWriter, r *http.Request,
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateConnectionClients(w, r, id) }, "update:connections")
 }
 
+func (a mgmtAPI) GetUsers(w http.ResponseWriter, r *http.Request, p mgmtapi.GetUsersParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetUsers(w, r, p) }, "read:users")
+}
+
+// CreateUser: create:users; app_metadata in the body also needs
+// create:users_app_metadata or update:users_app_metadata, which the
+// handler checks.
+func (a mgmtAPI) CreateUser(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateUser, "create:users")
+}
+
+func (a mgmtAPI) GetUsersByEmail(w http.ResponseWriter, r *http.Request, p mgmtapi.GetUsersByEmailParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetUsersByEmail(w, r, p) }, "read:users")
+}
+
+func (a mgmtAPI) GetUser(w http.ResponseWriter, r *http.Request, id string, p mgmtapi.GetUserParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetUser(w, r, id, p) }, "read:users")
+}
+
+// UpdateUser: update:users, or update:users_app_metadata for app_metadata;
+// the handler checks which the body needs.
+func (a mgmtAPI) UpdateUser(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateUser(w, r, id) }, "update:users", "update:users_app_metadata")
+}
+
+func (a mgmtAPI) DeleteUser(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteUser(w, r, id) }, "delete:users")
+}
+
 // The system API: the router lets only operators reach it (operatorOnly).
 
 func (a mgmtAPI) GetTenants(w http.ResponseWriter, r *http.Request)   { a.h.GetTenants(w, r) }

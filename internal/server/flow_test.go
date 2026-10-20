@@ -73,22 +73,36 @@ type flowEnv struct {
 
 func newFlowEnv(t *testing.T) *flowEnv {
 	t.Helper()
+	return newFlowEnvSeed(t, flowSeed, nil)
+}
+
+// newFlowEnvSeed is newFlowEnv with its own seed (HOST is replaced by the
+// server's host) and adjust applied to the server's Deps.
+func newFlowEnvSeed(t *testing.T, seedText string, adjust func(*Deps)) *flowEnv {
+	t.Helper()
 	ctx := context.Background()
 	st := memory.New()
 	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{8}, 32))
 	km := keys.NewManager(st.SigningKeys(), w)
-	srv := httptest.NewTLSServer(New(Deps{
+	d := Deps{
 		Store: st, Keys: km, Wrapper: w, Resolver: tenant.NewResolver(st.Tenants(), "", false),
 		Log:          slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Sessions:     &session.Manager{Store: st},
 		Mailer:       discardMailer{},
 		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
 		IPThrottle:   identity.NewThrottle(100, time.Minute, time.Minute),
-	}))
+	}
+	if adjust != nil {
+		adjust(&d)
+	}
+	srv := httptest.NewTLSServer(New(d))
 	t.Cleanup(srv.Close)
 	host := srv.Listener.Addr().String()
-	f, err := seed.Parse([]byte(strings.Replace(flowSeed, "HOST", host, 1)))
+	f, err := seed.Parse([]byte(strings.ReplaceAll(seedText, "HOST", host)))
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.CheckManagementAPI(""); err != nil {
 		t.Fatal(err)
 	}
 	if err := seed.Apply(ctx, st, f, nil, w); err != nil {

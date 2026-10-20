@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -257,4 +258,54 @@ func TestManagementContract(t *testing.T) {
 	}
 	c.do(h, "DELETE", sys+"/operators/"+url.PathEscape(invite["user_id"].(string)), op, nil)
 	c.do(h, "GET", sys+"/tenants", reader, nil)
+}
+
+func TestManagementContractUsers(t *testing.T) {
+	a := newUsersAPI(t, nil)
+	c := newMgmtContract(t)
+	ro := clientToken(t, a.h, "acme.example.test", acmeMgmtAPI, "usersro", "usersro-s3cret")
+	conn := "Username-Password-Authentication"
+
+	code, body := c.do(a.h, "POST", usersBase, a.token, map[string]any{"connection": conn, "email": "Contract@Example.test", "password": "first horse 1",
+		"given_name": "Con", "user_metadata": map[string]any{"a": 1}, "app_metadata": map[string]any{"plan": "pro"}})
+	var created map[string]any
+	_ = json.Unmarshal(body, &created)
+	id, _ := created["user_id"].(string)
+	if code != 201 || id == "" {
+		t.Fatalf("create user = %d %s", code, body)
+	}
+	if err := a.st.Users().RecordLogin(context.Background(), a.tenantID(), id, time.Now(), "192.0.2.1"); err != nil {
+		t.Fatal(err)
+	}
+	c.do(a.h, "POST", usersBase, a.token, map[string]any{"connection": conn, "email": "blocked@example.test", "password": "first horse 1", "blocked": true, "user_id": "own-id"})
+	c.do(a.h, "POST", usersBase, a.token, map[string]any{"connection": conn, "email": "contract@example.test", "password": "first horse 1"})
+	c.do(a.h, "POST", usersBase, a.token, map[string]any{"email": "x@example.test", "password": "first horse 1"})
+	c.do(a.h, "POST", usersBase, a.token, map[string]any{"connection": "Nope", "email": "x@example.test", "password": "first horse 1"})
+	c.do(a.h, "POST", usersBase, a.token, map[string]any{"connection": conn, "email": "x@example.test", "password": "short"})
+	c.do(a.h, "POST", usersBase, ro, map[string]any{"connection": conn, "email": "x@example.test", "password": "first horse 1"})
+	c.do(a.h, "POST", usersBase, "not-a-token", map[string]any{"connection": conn})
+	c.do(a.h, "GET", usersBase, a.token, nil)
+	c.do(a.h, "GET", usersBase+"?include_totals=true&per_page=1&sort=email:1", a.token, nil)
+	c.do(a.h, "GET", usersBase+"?q="+url.QueryEscape("email:contract@example.test")+"&search_engine=v3&fields=email", a.token, nil)
+	c.do(a.h, "GET", usersBase+"?q="+url.QueryEscape("bogus:x"), a.token, nil)
+	c.do(a.h, "GET", usersBase+"?search_engine=v1", a.token, nil)
+	c.do(a.h, "GET", usersBase+"?per_page=100&page=10", a.token, nil)
+	c.do(a.h, "GET", usersBase+"?connection="+conn, a.token, nil)
+	c.do(a.h, "GET", usersBase+"/"+url.PathEscape(id), ro, nil)
+	c.do(a.h, "GET", usersBase+"/"+url.PathEscape(id)+"?fields=identities&include_fields=false", ro, nil)
+	c.do(a.h, "GET", usersBase+"/nope", ro, nil)
+	c.do(a.h, "GET", usersBase+"/"+url.PathEscape("auth0|000000000000000000000000"), ro, nil)
+	c.do(a.h, "PATCH", usersBase+"/"+url.PathEscape(id), a.token, map[string]any{"email": "contract2@example.test", "user_metadata": map[string]any{"a": nil}})
+	c.do(a.h, "PATCH", usersBase+"/"+url.PathEscape(id), a.token, map[string]any{"password": "second horse 2"})
+	c.do(a.h, "PATCH", usersBase+"/"+url.PathEscape(id), a.token, map[string]any{"email": "blocked@example.test"})
+	c.do(a.h, "PATCH", usersBase+"/"+url.PathEscape(id), a.token, map[string]any{"colour": "blue"})
+	c.do(a.h, "PATCH", usersBase+"/"+url.PathEscape(id), ro, map[string]any{"app_metadata": map[string]any{}})
+	c.do(a.h, "PATCH", usersBase+"/"+url.PathEscape("auth0|000000000000000000000000"), a.token, map[string]any{"name": "x"})
+	c.do(a.h, "GET", "https://acme.example.test/api/v2/users-by-email?email=contract2@example.test", a.token, nil)
+	c.do(a.h, "GET", "https://acme.example.test/api/v2/users-by-email?email=nope", a.token, nil)
+	c.do(a.h, "GET", "https://acme.example.test/api/v2/users-by-email", a.token, nil)
+	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), ro, nil)
+	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), a.token, nil)
+	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), a.token, nil)
+	c.do(a.h, "DELETE", usersBase+"/nope", a.token, nil)
 }
