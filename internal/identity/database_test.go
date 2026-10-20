@@ -200,3 +200,24 @@ func TestEmailLengthCap(t *testing.T) {
 		t.Errorf("login at the cap: %v", err)
 	}
 }
+
+func TestSignupPictureAndMetadataLimits(t *testing.T) {
+	ctx := context.Background()
+	db, conn := newDB(t)
+	u, err := db.Signup(ctx, conn, SignupInput{Email: "pic@example.com", Password: "correct horse"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := DefaultPicture("pic@example.com"); u.Picture != want || !strings.HasSuffix(want, "?s=480&r=pg&d=mp") {
+		t.Fatalf("picture = %q", u.Picture)
+	}
+	u, err = db.Signup(ctx, conn, SignupInput{Email: "own@example.com", Password: "correct horse", Picture: "https://x.example/p.png"})
+	if err != nil || u.Picture != "https://x.example/p.png" {
+		t.Fatalf("%v %q", err, u.Picture)
+	}
+	_, err = db.Signup(ctx, conn, SignupInput{Email: "meta@example.com", Password: "correct horse", UserMetadata: map[string]any{"$x": "1"}})
+	var pe *PolicyError
+	if !errors.As(err, &pe) || pe.Reason != `user_metadata has an invalid key name "$x"` {
+		t.Fatalf("err = %v", err)
+	}
+}

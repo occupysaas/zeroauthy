@@ -11,8 +11,6 @@
 package userrules
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -110,68 +108,21 @@ type Patch struct {
 	UserMetadata, AppMetadata                          Metadata
 }
 
-// Limits on metadata. Auth0 documents a total of 16 MB per user for each of
-// the two objects; its key-name rules are not published in full, so
-// zeroauthy refuses empty keys and keys that start with '$' or '.' (names
-// a document store would mangle) and nesting deeper than MaxDepth.
-var MetadataLimits = struct {
-	MaxBytes int // encoded JSON size of one metadata object
-	MaxDepth int
-}{MaxBytes: 16 * 1024 * 1024, MaxDepth: 100}
+// DefaultPicture is identity.DefaultPicture, shared with signup.
+func DefaultPicture(email string) string { return identity.DefaultPicture(email) }
 
-// CheckMetadata validates one metadata object; name is "user_metadata" or
-// "app_metadata".
+// MissingConnectionMessage is Auth0's message for a body without
+// connection (code invalid_body).
+const MissingConnectionMessage = "Payload validation error: 'Missing required property: connection'."
+
+// CheckMetadata validates one metadata object with identity's limits and
+// returns a *FieldError.
 func CheckMetadata(name string, m map[string]any) error {
-	if len(m) == 0 {
+	err := identity.CheckMetadata(name, m)
+	if err == nil {
 		return nil
 	}
-	if err := checkKeys(name, m, 1); err != nil {
-		return err
-	}
-	b, err := json.Marshal(m)
-	if err != nil {
-		return invalid("%s is not valid JSON", name)
-	}
-	if len(b) > MetadataLimits.MaxBytes {
-		return invalid("%s is too large: at most %d bytes", name, MetadataLimits.MaxBytes)
-	}
-	return nil
-}
-
-func checkKeys(name string, v any, depth int) error {
-	if depth > MetadataLimits.MaxDepth {
-		return invalid("%s is nested too deeply", name)
-	}
-	switch t := v.(type) {
-	case map[string]any:
-		for k, e := range t {
-			if k == "" || k[0] == '$' || k[0] == '.' {
-				return invalid("%s has an invalid key name %q", name, k)
-			}
-			if err := checkKeys(name, e, depth+1); err != nil {
-				return err
-			}
-		}
-	case []any:
-		for _, e := range t {
-			if err := checkKeys(name, e, depth+1); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// DefaultPicture is the picture a user gets without one: Gravatar's, keyed
-// by the MD5 of the lowercased, trimmed email, with Gravatar's built-in
-// placeholder (D-0043). Empty without an email.
-func DefaultPicture(email string) string {
-	email = strings.ToLower(strings.TrimSpace(email))
-	if email == "" {
-		return ""
-	}
-	sum := md5.Sum([]byte(email))
-	return "https://s.gravatar.com/avatar/" + hex.EncodeToString(sum[:]) + "?s=480&r=pg&d=mp"
+	return profileError(err)
 }
 
 const weakPassword = "PasswordStrengthError: Password is too weak"
@@ -186,17 +137,17 @@ func passwordError(err error) error {
 
 func checkEmail(email string) error {
 	if err := identity.CheckEmail(email); err != nil {
-		return invalid("Object didn't pass validation for format email: %s", email)
+		return invalid("Payload validation error: 'Object didn't pass validation for format email: %s' on property email (The user's email).", email)
 	}
 	return nil
 }
 
 func checkUserID(id string) error {
 	if utf8.RuneCountInString(id) > MaxUserIDLength {
-		return invalid("Payload validation error: 'String is too long (%d chars), maximum length is %d' on property user_id.", utf8.RuneCountInString(id), MaxUserIDLength)
+		return invalid("Payload validation error: 'String is too long (%d chars), maximum %d' on property user_id (The external user's id provided by the identity provider).", utf8.RuneCountInString(id), MaxUserIDLength)
 	}
 	if strings.IndexFunc(id, unicode.IsSpace) >= 0 {
-		return invalid("Payload validation error: 'String does not match pattern ^\\S*$: %s' on property user_id.", id)
+		return invalid("Payload validation error: 'String does not match pattern ^\\S*$: %s' on property user_id (The external user's id provided by the identity provider).", id)
 	}
 	return nil
 }
@@ -228,10 +179,10 @@ func CheckCreate(c *store.Connection, in *Create) []error {
 			errs = append(errs, err)
 		}
 	}
-	if in.Username != "" {
-		if !c.RequiresUsername {
-			errs = append(errs, &FieldError{Code: CodeOperationNotSupported, Message: "Cannot set username for connection without requires_username"})
-		} else if err := identity.CheckUsername(c, in.Username); err != nil {
+	if in.Username != "" && !c.RequiresUsername {
+		errs = append(errs, &FieldError{Code: CodeOperationNotSupported, Message: "Cannot set username for connection without requires_username"})
+	} else if c.RequiresUsername {
+		if err := identity.CheckUsername(c, in.Username); err != nil {
 			errs = append(errs, profileError(err))
 		}
 	}

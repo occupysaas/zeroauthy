@@ -216,6 +216,9 @@ func checkSignup(conn *store.Connection, in SignupInput) (email, username string
 	if err := checkProfile(in); err != nil {
 		return "", "", err
 	}
+	if err := CheckMetadata("user_metadata", in.UserMetadata); err != nil {
+		return "", "", err
+	}
 	person := Person{
 		Email: email, Username: username, Name: in.Name, GivenName: in.GivenName,
 		FamilyName: in.FamilyName, Nickname: in.Nickname, UserMetadata: in.UserMetadata,
@@ -270,6 +273,10 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 	if err != nil {
 		return nil, err
 	}
+	picture := in.Picture
+	if picture == "" {
+		picture = DefaultPicture(email)
+	}
 	id := secrets.RandomHex(12)
 	now := d.now().UTC()
 	u := &store.User{
@@ -282,7 +289,7 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 
 		GivenName:    in.GivenName,
 		FamilyName:   in.FamilyName,
-		Picture:      in.Picture,
+		Picture:      picture,
 		UserMetadata: in.UserMetadata,
 		Identities: []store.Identity{{
 			Connection: conn.Name, Provider: store.StrategyDatabase, UserID: id, PasswordHash: hash,

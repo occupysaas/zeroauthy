@@ -56,7 +56,10 @@ func TestCreateKeepsGivenPicture(t *testing.T) {
 
 func TestCreateEmail(t *testing.T) {
 	errs := CheckCreate(conn(), &Create{Connection: "db", Email: "nope", Password: "Sup3r-secret-pw"})
-	fieldErr(t, errs, CodeInvalidBody, "")
+	fieldErr(t, errs, CodeInvalidBody, "Payload validation error: 'Object didn't pass validation for format email: nope' on property email (The user's email).")
+	if MissingConnectionMessage != "Payload validation error: 'Missing required property: connection'." {
+		t.Fatal(MissingConnectionMessage)
+	}
 }
 
 func TestCreateUsername(t *testing.T) {
@@ -68,6 +71,12 @@ func TestCreateUsername(t *testing.T) {
 	if errs := CheckCreate(c, in); len(errs) != 0 || in.Username != "bea" {
 		t.Fatal(errs, in.Username)
 	}
+	// A missing username is refused where the connection requires one.
+	if errs := CheckCreate(c, &Create{Connection: "db", Email: "a@example.com", Password: "Sup3r-secret-pw"}); len(errs) != 1 {
+		t.Fatal(errs)
+	} else if !strings.Contains(errs[0].Error(), "username") {
+		t.Fatal(errs[0])
+	}
 }
 
 func TestCreatePhone(t *testing.T) {
@@ -76,9 +85,14 @@ func TestCreatePhone(t *testing.T) {
 }
 
 func TestCreateUserID(t *testing.T) {
-	for _, bad := range []string{"has space", "tab\there", strings.Repeat("x", 256)} {
+	const desc = " on property user_id (The external user's id provided by the identity provider)."
+	for bad, msg := range map[string]string{
+		"has space":              "Payload validation error: 'String does not match pattern ^\\S*$: has space'" + desc,
+		"tab\there":              "Payload validation error: 'String does not match pattern ^\\S*$: tab\there'" + desc,
+		strings.Repeat("x", 256): "Payload validation error: 'String is too long (256 chars), maximum 255'" + desc,
+	} {
 		errs := CheckCreate(conn(), &Create{Connection: "db", Email: "a@example.com", Password: "Sup3r-secret-pw", UserID: bad})
-		fieldErr(t, errs, CodeInvalidBody, "")
+		fieldErr(t, errs, CodeInvalidBody, msg)
 	}
 	in := &Create{Connection: "db", Email: "a@example.com", Password: "Sup3r-secret-pw", UserID: "auth0|x"}
 	if errs := CheckCreate(conn(), in); len(errs) != 0 {
@@ -119,7 +133,7 @@ func TestCreateMetadataLimits(t *testing.T) {
 	fieldErr(t, CheckCreate(conn(), in), CodeInvalidBody, "")
 	in = &Create{Connection: "db", Email: "a@example.com", Password: "Sup3r-secret-pw", AppMetadata: map[string]any{"a": map[string]any{".x": 1}}}
 	fieldErr(t, CheckCreate(conn(), in), CodeInvalidBody, "")
-	in = &Create{Connection: "db", Email: "a@example.com", Password: "Sup3r-secret-pw", UserMetadata: map[string]any{"big": strings.Repeat("x", MetadataLimits.MaxBytes+1)}}
+	in = &Create{Connection: "db", Email: "a@example.com", Password: "Sup3r-secret-pw", UserMetadata: map[string]any{"big": strings.Repeat("x", identity.MetadataLimits.MaxBytes+1)}}
 	fieldErr(t, CheckCreate(conn(), in), CodeInvalidBody, "")
 }
 
@@ -137,7 +151,7 @@ func TestPatchRules(t *testing.T) {
 		CodeOperationNotSupported, "Cannot update password and email simultaneously")
 	fieldErr(t, CheckPatch(c, u, &Patch{Username: ptr("bea")}),
 		CodeOperationNotSupported, "Cannot set username for connection without requires_username or attributes")
-	fieldErr(t, CheckPatch(c, u, &Patch{Email: ptr("nope")}), CodeInvalidBody, "")
+	fieldErr(t, CheckPatch(c, u, &Patch{Email: ptr("nope")}), CodeInvalidBody, "Payload validation error: 'Object didn't pass validation for format email: nope' on property email (The user's email).")
 	fieldErr(t, CheckPatch(c, u, &Patch{PhoneNumber: ptr("1")}), CodeInvalidBody, `"phone_number" is not allowed`)
 	fieldErr(t, CheckPatch(c, u, &Patch{Password: ptr("abc")}), "", "PasswordStrengthError: Password is too weak")
 	if errs := CheckPatch(conn(), u, &Patch{Name: ptr("New")}); len(errs) != 0 {
