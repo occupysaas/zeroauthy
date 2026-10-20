@@ -44,3 +44,8 @@ export function relativeTime(iso: string, now: number, locale: string): string {
   }
   return fmt.format(0, 'second')
 }
+
+// formatTime shows an instant in the reader's locale.
+export function formatTime(iso: string, locale: string): string {
+  return new Date(iso).toLocaleString(locale)
+}

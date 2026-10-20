@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 
 // A monospace textarea with line numbers; no editor dependency.
-defineProps<{ id: string; label: string }>()
+defineProps<{ id: string; label: string; readonly?: boolean }>()
 const model = defineModel<string>({ required: true })
 const gutter = ref<HTMLElement | null>(null)
 const count = computed(() => Math.max(1, model.value.split('\n').length))
@@ -19,6 +19,7 @@ function sync(e: Event) {
     </div>
     <textarea
       :id="id" v-model="model" :aria-label="label" class="m-0 max-h-70 min-h-32 min-w-0 flex-1 resize-y overflow-auto rounded-none border-0 bg-transparent px-2 py-2 font-mono text-[0.85rem] leading-[1.4] whitespace-pre text-text -outline-offset-2"
+      :readonly="readonly"
       wrap="off"
       spellcheck="false"
       autocomplete="off"

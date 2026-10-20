@@ -30,6 +30,13 @@ export type ScriptTryResult = components['schemas']['ScriptTryResult']
 export type User = components['schemas']['User']
 export type UserCreate = components['schemas']['UserCreate']
 export type UserPage = components['schemas']['UserPage']
+export type UserUpdate = components['schemas']['UserProfileSettings']
+export type UserIdentity = components['schemas']['UserIdentity']
+export type UserSession = components['schemas']['UserSession']
+export type UserSessionPage = components['schemas']['UserSessionPage']
+export type UserRefreshToken = components['schemas']['UserRefreshToken']
+export type UserRefreshTokenPage = components['schemas']['UserRefreshTokenPage']
+export type UserGrant = components['schemas']['UserGrant']
 export type ManagementError = components['schemas']['ManagementError']
 
 export class ApiError extends Error {
@@ -154,6 +161,72 @@ export class Api {
     return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/users', { body })
   }
 
+  getUser(t: SystemTenant, id: string): Promise<User> {
+    return this.request(Api.tenantOrigin(t), 'GET', userPath(id))
+  }
+
+  // updateUser sends only what changes. Metadata merges at the top level:
+  // a key set to null is removed.
+  updateUser(t: SystemTenant, id: string, body: UserUpdate): Promise<User> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', userPath(id), { body })
+  }
+
+  deleteUser(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id))
+  }
+
+  // linkUser merges another database user into this one; userId is the
+  // secondary's ID without its auth0| prefix.
+  linkUser(t: SystemTenant, id: string, userId: string): Promise<UserIdentity[]> {
+    return this.request(Api.tenantOrigin(t), 'POST', userPath(id) + '/identities', { body: { provider: 'auth0', user_id: userId } })
+  }
+
+  unlinkUser(t: SystemTenant, id: string, provider: string, userId: string): Promise<UserIdentity[]> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id) + '/identities/' + encodeURIComponent(provider) + '/' + encodeURIComponent(userId))
+  }
+
+  listUserSessions(t: SystemTenant, id: string, q: { take: number; from?: string }): Promise<UserSessionPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', userPath(id) + '/sessions', { query: q })
+  }
+
+  deleteUserSessions(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id) + '/sessions')
+  }
+
+  deleteSession(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/sessions/' + encodeURIComponent(id))
+  }
+
+  listUserRefreshTokens(t: SystemTenant, id: string, q: { take: number; from?: string }): Promise<UserRefreshTokenPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', userPath(id) + '/refresh-tokens', { query: q })
+  }
+
+  deleteUserRefreshTokens(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', userPath(id) + '/refresh-tokens')
+  }
+
+  deleteRefreshToken(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/refresh-tokens/' + encodeURIComponent(id))
+  }
+
+  listUserGrants(t: SystemTenant, userId: string): Promise<UserGrant[]> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/grants', { query: { user_id: userId } })
+  }
+
+  deleteGrant(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/grants/' + encodeURIComponent(id))
+  }
+
+  // The ticket functions return a single-use URL. Callers show it once and
+  // must not keep it anywhere but the component that shows it.
+  createPasswordChangeTicket(t: SystemTenant, userId: string): Promise<{ ticket: string }> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/tickets/password-change', { body: { user_id: userId } })
+  }
+
+  createVerificationTicket(t: SystemTenant, userId: string): Promise<{ ticket: string }> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/tickets/email-verification', { body: { user_id: userId } })
+  }
+
   getConnection(t: SystemTenant, id: string): Promise<Connection> {
     return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections/' + encodeURIComponent(id))
   }
@@ -244,6 +317,10 @@ export class Api {
 }
 
 const ALL_PER_PAGE = 100
+
+function userPath(id: string): string {
+  return '/api/v2/users/' + encodeURIComponent(id)
+}
 
 async function collect<T>(fetchPage: (page: number) => Promise<{ items: T[]; total: number }>): Promise<T[]> {
   const out: T[] = []

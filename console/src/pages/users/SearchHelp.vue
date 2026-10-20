@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { userSearchDocsURL } from '../../links'
 
@@ -7,18 +7,35 @@ const { t } = useI18n()
 const open = ref(false)
 
 // The queries are syntax and stay as written; their captions are translated.
-const examples: { query: string; label: string }[] = [
+const examples = computed<{ query: string; label: string }[]>(() => [
   { query: 'email:"ada@example.com"', label: t('users.helpExamples.email') },
   { query: 'email:*@example.com', label: t('users.helpExamples.domain') },
   { query: 'blocked:true', label: t('users.helpExamples.blocked') },
   { query: 'NOT _exists_:last_login', label: t('users.helpExamples.never') },
   { query: 'app_metadata.plan:"pro"', label: t('users.helpExamples.meta') },
-]
+])
+
+const root = ref<HTMLElement | null>(null)
+const toggle = ref<HTMLButtonElement | null>(null)
+
+// Esc closes the popover and gives focus back to the button that opened it.
+function onEsc() {
+  if (!open.value) return
+  open.value = false
+  toggle.value?.focus()
+}
+// A click anywhere outside closes it too.
+function onOutside(e: MouseEvent) {
+  if (open.value && root.value && !root.value.contains(e.target as Node)) open.value = false
+}
+onMounted(() => document.addEventListener('click', onOutside))
+onBeforeUnmount(() => document.removeEventListener('click', onOutside))
 </script>
 
 <template>
-  <span class="relative inline-block" @keydown.esc="open = false">
+  <span ref="root" class="relative inline-block" @keydown.esc="onEsc">
     <button
+      ref="toggle"
       type="button"
       class="cursor-pointer rounded border border-rule bg-surface px-3 py-1.5 font-sans font-bold text-text hover:bg-active"
       :aria-expanded="open"

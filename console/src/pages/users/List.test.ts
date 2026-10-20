@@ -131,4 +131,26 @@ describe('users list', () => {
     expect(wrapper.get('#search-help a').attributes('href')).toMatch(/docs\/user-search\.md$/)
     wrapper.unmount()
   })
+
+  it('ignores an older answer that arrives after a newer one', async () => {
+    let releaseOld = () => {}
+    const old = new Promise<void>((r) => (releaseOld = r))
+    const { wrapper, router } = await mountAt(List, '/t/acme/users?q=old', async (c) => {
+      const u = new URL(c.url)
+      if (u.pathname === '/api/v2/users') {
+        if (u.searchParams.get('q') === 'old') await old
+        const who = u.searchParams.get('q') === 'old' ? 'olduser' : 'newuser'
+        return { status: 200, body: { users: [user(who)], start: 0, limit: 20, length: 1, total: 1 } }
+      }
+      return backend([])(c)
+    })
+    await router.push('/t/acme/users?q=new')
+    await flushPromises()
+    expect(wrapper.text()).toContain('newuser@')
+    releaseOld()
+    await flushPromises()
+    expect(wrapper.text()).toContain('newuser@')
+    expect(wrapper.text()).not.toContain('olduser@')
+    wrapper.unmount()
+  })
 })

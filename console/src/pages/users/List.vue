@@ -47,22 +47,27 @@ onMounted(async () => {
   }
 })
 
+// seq numbers the requests so a slow, older answer cannot overwrite a newer one.
+let seq = 0
 async function load() {
   const tn = tenant.value
   if (!tn) return
+  const mine = ++seq
   loading.value = true
   error.value = ''
   searchError.value = ''
   try {
     const res = await api.listUsers(tn, { q: q.value, page: page.value, per_page: PER_PAGE, sort: sort.value, connection: conn.value })
+    if (mine !== seq) return
     users.value = res.users
     total.value = res.total
   } catch (e) {
+    if (mine !== seq) return
     users.value = []
     if (e instanceof ApiError && e.status === 400) searchError.value = e.message
     else error.value = errorMessage(e)
   } finally {
-    loading.value = false
+    if (mine === seq) loading.value = false
   }
 }
 watch([tenant, q, conn, sort, page], load, { immediate: true })
