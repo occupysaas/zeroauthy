@@ -103,7 +103,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	case errors.Is(err, identity.ErrUserBlocked):
 		userThrottle.Success(userKey)
 		ipThrottle.Refund(ipKey)
-		return nil, invalidGrant("the user is blocked")
+		return nil, invalidGrant("user is blocked")
 	case errors.As(err, &ue):
 		// A custom database script refused the user; its message is meant
 		// for the user (D-0023). The attempt still counts.
@@ -177,7 +177,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	})
 	switch {
 	case errors.Is(err, errUserChanged):
-		return nil, invalidGrant("the user is blocked")
+		return nil, invalidGrant("user is blocked")
 	case err != nil:
 		h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
 		return nil, serverError()

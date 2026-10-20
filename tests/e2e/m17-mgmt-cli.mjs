@@ -128,8 +128,18 @@ assert.deepEqual(ids(search('app_metadata.seats:12')), [cyd.user_id]);
 assert.deepEqual(ids(search('email:*@cli-users.test AND NOT app_metadata.plan:pro')), ids([ada, cyd]));
 assert.deepEqual(ids(search('identities.connection:"cli-users-db"')), ids([ada, bob, cyd]));
 assert.deepEqual(search('email:"nobody@cli-users.test"'), []);
-assert.throws(() => search('app_metadata.seats:[10 TO *]'), /400|range/i, 'ranges are for root fields only');
-assert.throws(() => search('email:("ada'), /400|invalid_query_string|query/i, 'a bad query is a 400');
+// The refused queries go through request() so the server's own answer is
+// checked: 400, no errorCode, Auth0's "invalid query: " messages.
+const badQuery = (q) => request('GET', `/api/v2/users?search_engine=v3&q=${encodeURIComponent(q)}`, { token });
+const range = await badQuery('app_metadata.seats:[10 TO *]');
+assert.equal(range.status, 400, range.text);
+assert.equal(range.body.errorCode, undefined, 'search errors carry no errorCode');
+assert.match(range.body.message, /^invalid query: operator 'greater or equal' is not supported on field 'app_metadata\.seats'/);
+const malformed = await badQuery('email:("ada');
+assert.equal(malformed.status, 400, malformed.text);
+assert.equal(malformed.body.errorCode, undefined);
+assert.match(malformed.body.message, /^invalid query: /);
+assert.throws(() => search('email:("ada'), /invalid query/i, 'auth0-cli surfaces the refusal');
 
 // 5. users update: profile fields, app_metadata merge through auth0 api,
 //    block and unblock, password.
@@ -148,7 +158,7 @@ assert.deepEqual(ids(search('blocked:true')), [ada.user_id]);
 const refused = await realm('ada@cli-users.test', pw);
 assert.equal(refused.status, 400, refused.text);
 assert.equal(refused.body.error, 'invalid_grant');
-assert.match(refused.body.error_description, /user is blocked/);
+assert.equal(refused.body.error_description, 'user is blocked');
 assert.notEqual(auth0('users', 'update', ada.user_id, '--blocked=false', '--json').blocked, true);
 assert.equal((await realm('ada@cli-users.test', pw)).status, 200);
 const pw2 = 'Amber-Meadow-77';

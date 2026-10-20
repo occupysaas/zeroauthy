@@ -26,13 +26,18 @@ async function all(page) {
   }
   return out;
 }
-// status of the error a call raises, or 0.
+// statusOf is the status of the error a call raises, or 0.
 async function statusOf(promise) {
+  return (await failure(promise)).status;
+}
+// failure is the status, errorCode and message of the error a call raises.
+async function failure(promise) {
   try {
     await promise;
-    return 0;
+    return { status: 0 };
   } catch (e) {
-    return e.statusCode ?? e.status;
+    const body = typeof e.body === 'string' ? JSON.parse(e.body) : (e.body ?? {});
+    return { status: e.statusCode ?? e.status, code: body.errorCode, message: body.message };
   }
 }
 
@@ -45,7 +50,8 @@ assert.equal(ada.app_metadata.plan, 'pro');
 assert.equal(ada.password, undefined);
 assert.equal(ada.password_hash, undefined);
 const bob = await management.users.create({ connection, email: mail('bob'), password, app_metadata: { plan: 'free', seats: 30 } });
-assert.equal(await statusOf(management.users.create({ connection, email: mail('ada'), password })), 409, 'a duplicate email is a 409');
+const dup = await failure(management.users.create({ connection, email: mail('ada'), password }));
+assert.deepEqual(dup, { status: 409, code: 'auth0_idp_error', message: 'The user already exists.' });
 
 // 2. users.get, with and without fields.
 const got = await management.users.get(ada.user_id);
@@ -64,9 +70,16 @@ assert.deepEqual(await list(`email:"nobody-${stamp}@e2e.local"`), []);
 const counted = await management.users.list({ q: `email:m17-*-${stamp}@e2e.local`, search_engine: 'v3', include_totals: true, per_page: 1 });
 assert.equal(counted.response.total, 2);
 assert.equal(counted.data.length, 1);
-assert.equal(await statusOf(management.users.list({ q: 'app_metadata.seats:[10 TO *]', search_engine: 'v3' })), 400, 'ranges are for root fields only');
-assert.equal(await statusOf(management.users.list({ q: 'email:("ada', search_engine: 'v3' })), 400, 'a malformed query is a 400');
-assert.equal(await statusOf(management.users.list({ q: 'email:x', search_engine: 'v1' })), 400, 'v1 is refused');
+const range = await failure(management.users.list({ q: 'app_metadata.seats:[10 TO *]', search_engine: 'v3' }));
+assert.equal(range.status, 400);
+assert.equal(range.code, undefined, 'search errors carry no errorCode');
+assert.match(range.message, /^invalid query: operator 'greater or equal' is not supported on field 'app_metadata\.seats'/);
+const malformed = await failure(management.users.list({ q: 'email:("ada', search_engine: 'v3' }));
+assert.equal(malformed.status, 400);
+assert.equal(malformed.code, undefined);
+assert.match(malformed.message, /^invalid query: /);
+const v1 = await failure(management.users.list({ q: 'email:x', search_engine: 'v1' }));
+assert.deepEqual([v1.status, v1.code], [400, 'operation_not_supported']);
 
 // 4. users.listUsersByEmail.
 const byEmail = await management.users.listUsersByEmail({ email: mail('ada') });
@@ -118,7 +131,8 @@ assert.match(reset.ticket, /\/u\/reset-verify\?ticket=[A-Za-z0-9_-]+#$/);
 const page = await fetch(reset.ticket);
 assert.equal(page.status, 200);
 assert.match(await page.text(), /name="csrf"/);
-assert.equal(await statusOf(management.tickets.changePassword({ user_id: 'auth0|000000000000000000000000' })), 404);
+const noUser = await failure(management.tickets.changePassword({ user_id: 'auth0|000000000000000000000000' }));
+assert.deepEqual([noUser.status, noUser.code], [404, 'inexistent_user']);
 
 // 9. tickets.verifyEmail: opening the link verifies the address.
 assert.equal((await management.users.get(ada.user_id)).email_verified, false);
