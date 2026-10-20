@@ -141,7 +141,7 @@ func (s notFoundOnTouch) Sessions() store.Sessions { return notFoundSessions{s.S
 
 type notFoundSessions struct{ store.Sessions }
 
-func (notFoundSessions) Touch(context.Context, string, string, time.Time) error {
+func (notFoundSessions) Touch(context.Context, string, string, time.Time, time.Time, string, string) error {
 	return store.ErrNotFound
 }
 
@@ -263,5 +263,43 @@ func TestLookupDoesNotSlide(t *testing.T) {
 	}
 	if got, err := m.Lookup(ctx, requestWith(nil), tn); err != nil || got != nil {
 		t.Fatalf("Lookup without cookie = %+v, %v", got, err)
+	}
+}
+
+func TestDeviceRecorded(t *testing.T) {
+	ctx := context.Background()
+	m, c, tn := setup()
+	m.TrustProxyHeaders = true
+	req := func(cookies []*http.Cookie, ip, ua string) *http.Request {
+		r := requestWith(cookies)
+		r.Header.Set("X-Forwarded-For", ip)
+		r.Header.Set("User-Agent", ua)
+		return r
+	}
+	rec := httptest.NewRecorder()
+	s, err := m.Start(ctx, rec, req(nil, "203.0.113.7", "agent-1"), tn, "auth0|1", "Database", c.t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := m.Store.Sessions().Get(ctx, tn.ID, s.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.InitialIP != "203.0.113.7" || stored.InitialUserAgent != "agent-1" || stored.LastIP != "203.0.113.7" ||
+		stored.LastUserAgent != "agent-1" || !stored.UpdatedAt.Equal(c.t) || !stored.LastInteractedAt.Equal(c.t) {
+		t.Fatalf("created session = %+v", stored)
+	}
+
+	c.t = c.t.Add(time.Hour)
+	if _, err := m.Current(ctx, req(rec.Result().Cookies(), "198.51.100.9", "agent-2"), tn); err != nil {
+		t.Fatal(err)
+	}
+	stored, _ = m.Store.Sessions().Get(ctx, tn.ID, s.ID)
+	if stored.InitialIP != "203.0.113.7" || stored.InitialUserAgent != "agent-1" {
+		t.Errorf("initial device changed: %+v", stored)
+	}
+	if stored.LastIP != "198.51.100.9" || stored.LastUserAgent != "agent-2" ||
+		!stored.UpdatedAt.Equal(c.t) || !stored.LastInteractedAt.Equal(c.t) || !stored.CreatedAt.Before(c.t) {
+		t.Errorf("touched session = %+v", stored)
 	}
 }

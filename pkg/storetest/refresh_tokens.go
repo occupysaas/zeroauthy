@@ -293,4 +293,102 @@ func testRefreshTokens(t *testing.T, newStore Factory) {
 		mustEqual(t, getRT(t, s, "ten_a", "hc").RevokedAt == nil, true)
 		mustEqual(t, getRT(t, s, "ten_b", "hd").RevokedAt == nil, true)
 	})
+
+	t.Run("GetByID", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newRefreshToken("ten_a", "rt1", "h1", "f1")
+		mustNoErr(t, s.RefreshTokens().Create(ctx, want))
+		got, err := s.RefreshTokens().Get(ctx, "ten_a", "rt1")
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+		_, err = s.RefreshTokens().Get(ctx, "ten_b", "rt1")
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.RefreshTokens().Get(ctx, "ten_a", "nope")
+		mustErrIs(t, err, store.ErrNotFound)
+		// Whatever its state: revoked and rotated tokens are returned too.
+		mustNoErr(t, s.RefreshTokens().Revoke(ctx, "ten_a", "rt1", ts(time.Minute)))
+		got, err = s.RefreshTokens().Get(ctx, "ten_a", "rt1")
+		mustNoErr(t, err)
+		mustEqual(t, got.RevokedAt != nil && got.RevokedAt.Equal(ts(time.Minute)), true)
+		got.Scopes[0] = "mutated"
+		again, _ := s.RefreshTokens().Get(ctx, "ten_a", "rt1")
+		mustEqual(t, again.Scopes[0], "openid")
+	})
+
+	t.Run("ListByUser", func(t *testing.T) {
+		s := open(t, newStore)
+		mk := func(tenant, id, user string, created time.Duration) *store.RefreshToken {
+			x := newRefreshToken(tenant, id, "h-"+id, "f-"+id)
+			x.UserID, x.CreatedAt = user, ts(created)
+			mustNoErr(t, s.RefreshTokens().Create(ctx, x))
+			return x
+		}
+		mk("ten_a", "a", "auth0|u1", time.Minute)
+		mk("ten_a", "b", "auth0|u1", 3*time.Minute)
+		mk("ten_a", "c", "auth0|u1", 3*time.Minute) // ties on CreatedAt: ID descending
+		mk("ten_a", "d", "auth0|u1", 2*time.Minute)
+		mk("ten_a", "e", "auth0|u1", 4*time.Minute) // revoked below
+		mk("ten_a", "g", "auth0|u2", 4*time.Minute)
+		mk("ten_b", "h", "auth0|u1", 4*time.Minute)
+		mustNoErr(t, s.RefreshTokens().Revoke(ctx, "ten_a", "e", ts(time.Hour)))
+		// A rotated token is not listed; its successor is.
+		old := mk("ten_a", "r1", "auth0|u1", 5*time.Minute)
+		next := newRefreshToken("ten_a", "r2", "h-r2", old.FamilyID)
+		next.UserID, next.CreatedAt = "auth0|u1", ts(6*time.Minute)
+		mustNoErr(t, s.RefreshTokens().Rotate(ctx, "ten_a", "r1", next, ts(6*time.Minute), 0))
+
+		ids := func(tenant, user string) []string {
+			list, err := s.RefreshTokens().ListByUser(ctx, tenant, user)
+			mustNoErr(t, err)
+			var out []string
+			for _, x := range list {
+				out = append(out, x.ID)
+			}
+			return out
+		}
+		mustEqual(t, ids("ten_a", "auth0|u1"), []string{"r2", "c", "b", "d", "a"})
+		mustEqual(t, ids("ten_a", "auth0|u2"), []string{"g"})
+		mustEqual(t, ids("ten_b", "auth0|u1"), []string{"h"})
+		mustEqual(t, len(ids("ten_a", "auth0|nobody")), 0)
+		list, _ := s.RefreshTokens().ListByUser(ctx, "ten_a", "auth0|u2")
+		list[0].Scopes[0] = "mutated"
+		mustEqual(t, getRT(t, s, "ten_a", "h-g").Scopes[0], "openid")
+	})
+
+	t.Run("Revoke", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken("ten_a", "a", "ha", "f1")))
+		sibling := newRefreshToken("ten_a", "b", "hb", "f1") // same family: only the named token is revoked
+		mustNoErr(t, s.RefreshTokens().Create(ctx, sibling))
+		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken("ten_b", "a", "ha", "f1")))
+
+		mustNoErr(t, s.RefreshTokens().Revoke(ctx, "ten_a", "a", ts(time.Minute)))
+		mustEqual(t, getRT(t, s, "ten_a", "ha").RevokedAt.Equal(ts(time.Minute)), true)
+		mustEqual(t, getRT(t, s, "ten_a", "hb").RevokedAt == nil, true)
+		mustEqual(t, getRT(t, s, "ten_b", "ha").RevokedAt == nil, true)
+		// Revoking again succeeds and keeps the first time.
+		mustNoErr(t, s.RefreshTokens().Revoke(ctx, "ten_a", "a", ts(time.Hour)))
+		mustEqual(t, getRT(t, s, "ten_a", "ha").RevokedAt.Equal(ts(time.Minute)), true)
+		mustErrIs(t, s.RefreshTokens().Revoke(ctx, "ten_a", "nope", ts(0)), store.ErrNotFound)
+		mustErrIs(t, s.RefreshTokens().Revoke(ctx, "ten_c", "a", ts(0)), store.ErrNotFound)
+
+		// A revoked token no longer rotates (it was not rotated: not found).
+		next := newRefreshToken("ten_a", "n", "hn", "f1")
+		mustErrIs(t, s.RefreshTokens().Rotate(ctx, "ten_a", "a", next, ts(2*time.Minute), 0), store.ErrNotFound)
+
+		// A rotated token can be revoked: it keeps RotatedAt, gains RevokedAt,
+		// and is then reuse (ErrAlreadyUsed) like any rotated and revoked token.
+		next = newRefreshToken("ten_a", "n2", "hn2", "f1")
+		mustNoErr(t, s.RefreshTokens().Rotate(ctx, "ten_a", "b", next, ts(3*time.Minute), 0))
+		mustNoErr(t, s.RefreshTokens().Revoke(ctx, "ten_a", "b", ts(4*time.Minute)))
+		got := getRT(t, s, "ten_a", "hb")
+		mustEqual(t, got.RotatedAt != nil && got.RotatedAt.Equal(ts(3*time.Minute)), true)
+		mustEqual(t, got.RevokedAt != nil && got.RevokedAt.Equal(ts(4*time.Minute)), true)
+		next = newRefreshToken("ten_a", "n3", "hn3", "f1")
+		mustErrIs(t, s.RefreshTokens().Rotate(ctx, "ten_a", "b", next, ts(5*time.Minute), time.Hour), store.ErrAlreadyUsed)
+		// Revoking the successor leaves the family's other tokens as they were.
+		mustEqual(t, getRT(t, s, "ten_a", "hn2").RevokedAt == nil, true)
+		mustNoErr(t, s.RefreshTokens().Revoke(ctx, "ten_a", "n2", ts(6*time.Minute)))
+		mustErrIs(t, s.RefreshTokens().Touch(ctx, "ten_a", "n2", ts(time.Hour)), store.ErrNotFound)
+	})
 }

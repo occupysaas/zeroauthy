@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -23,6 +24,9 @@ const (
 type Manager struct {
 	Store store.Store
 	Now   func() time.Time
+	// TrustProxyHeaders reads the client address from X-Forwarded-For, as
+	// everywhere else (httpx.ClientIP).
+	TrustProxyHeaders bool
 }
 
 func (m *Manager) now() time.Time {
@@ -66,13 +70,16 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 	}
 	_, idle := lifetimes(t)
 	idleAt := minTime(now.Add(idle), s.ExpiresAt)
-	if err := m.Store.Sessions().Touch(ctx, t.ID, s.ID, idleAt); err != nil {
+	ip, ua := httpx.ClientIP(r, m.TrustProxyHeaders), r.UserAgent()
+	if err := m.Store.Sessions().Touch(ctx, t.ID, s.ID, now, idleAt, ip, ua); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, nil // deleted (e.g. logout) since it was read
 		}
 		return nil, err
 	}
 	s.IdleExpiresAt = idleAt
+	s.UpdatedAt, s.LastInteractedAt = now, now
+	s.LastIP, s.LastUserAgent = ip, ua
 	return s, nil
 }
 
@@ -86,6 +93,7 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		}
 	}
 	now := m.now()
+	ip, ua := httpx.ClientIP(r, m.TrustProxyHeaders), r.UserAgent()
 	absolute, idle := lifetimes(t)
 	token := secrets.RandomString(43)
 	s := &store.LoginSession{
@@ -98,6 +106,8 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		ExpiresAt:       now.Add(absolute),
 		IdleExpiresAt:   minTime(now.Add(idle), now.Add(absolute)),
 		CreatedAt:       now,
+		UpdatedAt:       now, LastInteractedAt: now,
+		InitialIP: ip, InitialUserAgent: ua, LastIP: ip, LastUserAgent: ua,
 	}
 	if err := m.Store.Sessions().Create(ctx, s); err != nil {
 		return nil, err

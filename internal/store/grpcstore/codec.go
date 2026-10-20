@@ -632,6 +632,8 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 		Connection: s.Connection, AuthenticatedAt: tsToPB(s.AuthenticatedAt),
 		ClientIds: stringsToPB(s.ClientIDs), ExpiresAt: tsToPB(s.ExpiresAt),
 		IdleExpiresAt: tsToPB(s.IdleExpiresAt), CreatedAt: tsToPB(s.CreatedAt),
+		UpdatedAt: tsToPB(s.UpdatedAt), LastInteractedAt: tsToPB(s.LastInteractedAt),
+		InitialIp: s.InitialIP, InitialUserAgent: s.InitialUserAgent, LastIp: s.LastIP, LastUserAgent: s.LastUserAgent,
 	}, nil
 }
 
@@ -639,7 +641,7 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 	if pb == nil {
 		return nil, nil
 	}
-	if err := checkTS(pb.AuthenticatedAt, pb.ExpiresAt, pb.IdleExpiresAt, pb.CreatedAt); err != nil {
+	if err := checkTS(pb.AuthenticatedAt, pb.ExpiresAt, pb.IdleExpiresAt, pb.CreatedAt, pb.UpdatedAt, pb.LastInteractedAt); err != nil {
 		return nil, err
 	}
 	return &store.LoginSession{
@@ -647,6 +649,8 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 		Connection: pb.Connection, AuthenticatedAt: tsFromPB(pb.AuthenticatedAt),
 		ClientIDs: stringsFromPB(pb.ClientIds), ExpiresAt: tsFromPB(pb.ExpiresAt),
 		IdleExpiresAt: tsFromPB(pb.IdleExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
+		UpdatedAt: tsFromPB(pb.UpdatedAt), LastInteractedAt: tsFromPB(pb.LastInteractedAt),
+		InitialIP: pb.InitialIp, InitialUserAgent: pb.InitialUserAgent, LastIP: pb.LastIp, LastUserAgent: pb.LastUserAgent,
 	}, nil
 }
 
@@ -815,6 +819,7 @@ func passwordResetTicketToPB(p *store.PasswordResetTicket) (*storev1.PasswordRes
 		TenantId: p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
 		Connection: p.Connection, ClientId: p.ClientID, Lang: p.Lang,
 		ExpiresAt: tsToPB(p.ExpiresAt), UsedAt: optTSToPB(p.UsedAt), CreatedAt: tsToPB(p.CreatedAt),
+		ResultUrl: p.ResultURL, IncludeEmailInRedirect: p.IncludeEmailInRedirect, MarkEmailVerified: p.MarkEmailVerified,
 	}, nil
 }
 
@@ -829,6 +834,36 @@ func passwordResetTicketFromPB(pb *storev1.PasswordResetTicket) (*store.Password
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
+		ResultURL: pb.ResultUrl, IncludeEmailInRedirect: pb.IncludeEmailInRedirect, MarkEmailVerified: pb.MarkEmailVerified,
+	}, nil
+}
+
+// ---- email verification ticket ----
+
+func emailVerificationTicketToPB(p *store.EmailVerificationTicket) (*storev1.EmailVerificationTicket, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return &storev1.EmailVerificationTicket{
+		TenantId: p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
+		Connection: p.Connection, ClientId: p.ClientID, Lang: p.Lang,
+		ExpiresAt: tsToPB(p.ExpiresAt), UsedAt: optTSToPB(p.UsedAt), CreatedAt: tsToPB(p.CreatedAt),
+		ResultUrl: p.ResultURL, IncludeEmailInRedirect: p.IncludeEmailInRedirect,
+	}, nil
+}
+
+func emailVerificationTicketFromPB(pb *storev1.EmailVerificationTicket) (*store.EmailVerificationTicket, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	if err := checkTS(pb.ExpiresAt, pb.UsedAt, pb.CreatedAt); err != nil {
+		return nil, err
+	}
+	return &store.EmailVerificationTicket{
+		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
+		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
+		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
+		ResultURL: pb.ResultUrl, IncludeEmailInRedirect: pb.IncludeEmailInRedirect,
 	}, nil
 }
 

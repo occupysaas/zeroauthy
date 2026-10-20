@@ -23,9 +23,23 @@ func testEmptyLists(t *testing.T, newStore Factory) {
 	mustNoErr(t, s.Tenants().Create(ctx, tn))
 	id := tn.ID
 
-	clients, err := s.Clients().List(ctx, id)
+	clients, total, err := s.Clients().List(ctx, id, store.ClientFilter{}, store.Page{})
 	mustNoErr(t, err)
 	mustEqual(t, len(clients), 0)
+	mustEqual(t, total, 0)
+
+	ugList, total, err := s.UserGrants().List(ctx, id, store.UserGrantFilter{}, store.Page{})
+	mustNoErr(t, err)
+	mustEqual(t, len(ugList), 0)
+	mustEqual(t, total, 0)
+
+	sessions, err := s.Sessions().ListByUser(ctx, id, "auth0|nobody")
+	mustNoErr(t, err)
+	mustEqual(t, len(sessions), 0)
+
+	tokens, err := s.RefreshTokens().ListByUser(ctx, id, "auth0|nobody")
+	mustNoErr(t, err)
+	mustEqual(t, len(tokens), 0)
 
 	rss, err := s.ResourceServers().List(ctx, id)
 	mustNoErr(t, err)

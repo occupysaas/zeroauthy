@@ -14,40 +14,73 @@ type sessions struct{ s *Store }
 
 func (s *Store) Sessions() store.Sessions { return sessions{s} }
 
-const sessionCols = `tenant_id, id, token_hash, user_id, connection, authenticated_at, client_ids, expires_at, idle_expires_at, created_at`
+const sessionCols = `tenant_id, id, token_hash, user_id, connection, authenticated_at, client_ids, expires_at, idle_expires_at, created_at,
+ updated_at, last_interacted_at, initial_ip, initial_user_agent, last_ip, last_user_agent`
 
 func (r sessions) Create(ctx context.Context, s *store.LoginSession) error {
 	clients, err := toJSON(s.ClientIDs)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+	_, err = r.s.write(ctx, nil, `INSERT INTO sessions (`+sessionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		s.TenantID, s.ID, s.TokenHash, s.UserID, s.Connection, micros(s.AuthenticatedAt), clients,
-		micros(s.ExpiresAt), micros(s.IdleExpiresAt), micros(s.CreatedAt))
+		micros(s.ExpiresAt), micros(s.IdleExpiresAt), micros(s.CreatedAt),
+		micros(s.UpdatedAt), micros(s.LastInteractedAt), s.InitialIP, s.InitialUserAgent, s.LastIP, s.LastUserAgent)
 	return r.s.conflict(err)
 }
 
-func (r sessions) GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*store.LoginSession, error) {
+func scanSession(row scanner) (*store.LoginSession, error) {
 	var s store.LoginSession
 	var clients string
-	var authAt, exp, idle, created int64
-	err := r.s.queryRow(ctx, `SELECT `+sessionCols+` FROM sessions WHERE tenant_id = ? AND token_hash = ?`, tenantID, tokenHash).
-		Scan(&s.TenantID, &s.ID, &s.TokenHash, &s.UserID, &s.Connection, &authAt, &clients, &exp, &idle, &created)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, store.ErrNotFound
-	}
-	if err != nil {
+	var authAt, exp, idle, created, updated, interacted int64
+	if err := row.Scan(&s.TenantID, &s.ID, &s.TokenHash, &s.UserID, &s.Connection, &authAt, &clients, &exp, &idle, &created,
+		&updated, &interacted, &s.InitialIP, &s.InitialUserAgent, &s.LastIP, &s.LastUserAgent); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(clients, &s.ClientIDs); err != nil {
 		return nil, err
 	}
 	s.AuthenticatedAt, s.ExpiresAt, s.IdleExpiresAt, s.CreatedAt = fromMicros(authAt), fromMicros(exp), fromMicros(idle), fromMicros(created)
+	s.UpdatedAt, s.LastInteractedAt = fromMicros(updated), fromMicros(interacted)
 	return &s, nil
 }
 
-func (r sessions) Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error {
-	res, err := r.s.write(ctx, nil, `UPDATE sessions SET idle_expires_at = ? WHERE tenant_id = ? AND id = ?`, micros(idleExpiresAt), tenantID, id)
+func (r sessions) GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*store.LoginSession, error) {
+	s, err := scanSession(r.s.queryRow(ctx, `SELECT `+sessionCols+` FROM sessions WHERE tenant_id = ? AND token_hash = ?`, tenantID, tokenHash))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, store.ErrNotFound
+	}
+	return s, err
+}
+
+func (r sessions) Get(ctx context.Context, tenantID, id string) (*store.LoginSession, error) {
+	s, err := scanSession(r.s.queryRow(ctx, `SELECT `+sessionCols+` FROM sessions WHERE tenant_id = ? AND id = ?`, tenantID, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, store.ErrNotFound
+	}
+	return s, err
+}
+
+func (r sessions) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.LoginSession, error) {
+	rows, err := r.s.query(ctx, `SELECT `+sessionCols+` FROM sessions WHERE tenant_id = ? AND user_id = ? ORDER BY created_at DESC, id`+r.s.d.byteOrder+` DESC`, tenantID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*store.LoginSession
+	for rows.Next() {
+		s, err := scanSession(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+func (r sessions) Touch(ctx context.Context, tenantID, id string, at, idleExpiresAt time.Time, ip, userAgent string) error {
+	res, err := r.s.write(ctx, nil, `UPDATE sessions SET idle_expires_at = ?, updated_at = ?, last_interacted_at = ?, last_ip = ?, last_user_agent = ?
+ WHERE tenant_id = ? AND id = ?`, micros(idleExpiresAt), micros(at), micros(at), ip, userAgent, tenantID, id)
 	if err != nil {
 		return err
 	}

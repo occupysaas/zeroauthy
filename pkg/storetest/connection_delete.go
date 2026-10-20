@@ -8,7 +8,7 @@ import (
 )
 
 // testConnectionDelete pins Connections.Delete: the connection's users go
-// with it, with their sessions, refresh tokens, grants, reset tickets and
+// with it, with their sessions, refresh tokens, grants, reset and verification tickets and
 // password history, auth codes and device codes; the tenant's default directory is cleared when it names
 // the connection; nothing of another connection or tenant is touched.
 func testConnectionDelete(t *testing.T, newStore Factory) {
@@ -41,6 +41,9 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 			tk := newTicket(tenant, "tk-"+sp.id, "th-"+sp.id)
 			tk.UserID, tk.Connection = uid, sp.conn
 			mustNoErr(t, s.PasswordResetTickets().Create(ctx, tk))
+			vt := newVerificationTicket(tenant, "vt-"+sp.id, "vh-"+sp.id)
+			vt.UserID, vt.Connection = uid, sp.conn
+			mustNoErr(t, s.EmailVerificationTickets().Create(ctx, vt))
 			mustNoErr(t, s.PasswordHistories().Add(ctx, tenant, uid, []byte("hash-"+sp.id), 5))
 			mustNoErr(t, s.Operators().Upsert(ctx, newOperator(tenant, uid, "*")))
 			ac := newAuthCode(tenant, "ac-"+sp.id)
@@ -53,7 +56,7 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		}
 	}
 	// present reports which of the three users' rows still exist.
-	type left struct{ User, Session, Token, Grant, Ticket, History, AuthCode, DeviceCode, Operator bool }
+	type left struct{ User, Session, Token, Grant, Ticket, VerifyTicket, History, AuthCode, DeviceCode, Operator bool }
 	probe := func(t *testing.T, s store.Store, tenant, id string) left {
 		t.Helper()
 		uid := "auth0|" + id
@@ -69,6 +72,8 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		l.Grant = len(gs) > 0
 		_, err = s.PasswordResetTickets().GetByTokenHash(ctx, tenant, "th-"+id)
 		l.Ticket = err == nil
+		_, err = s.EmailVerificationTickets().GetByTokenHash(ctx, tenant, "vh-"+id)
+		l.VerifyTicket = err == nil
 		h, err := s.PasswordHistories().List(ctx, tenant, uid)
 		mustNoErr(t, err)
 		l.History = len(h) > 0
@@ -80,7 +85,7 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		l.Operator = err == nil
 		return l
 	}
-	all := left{true, true, true, true, true, true, true, true, true}
+	all := left{true, true, true, true, true, true, true, true, true, true}
 
 	t.Run("Cascade", func(t *testing.T) {
 		s := open(t, newStore)

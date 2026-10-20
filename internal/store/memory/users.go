@@ -176,6 +176,11 @@ func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
 			delete(s.resetTickets, k)
 		}
 	}
+	for k, v := range s.verifyTickets {
+		if k.tenant == tenantID && gone[v.UserID] {
+			delete(s.verifyTickets, k)
+		}
+	}
 	for k, v := range s.authCodes {
 		if k.tenant == tenantID && gone[v.UserID] {
 			delete(s.authCodes, k)

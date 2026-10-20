@@ -7,24 +7,25 @@ package store
 import "github.com/zeroauthy/zeroauthy/internal/store"
 
 type (
-	Store                = store.Store
-	Tenants              = store.Tenants
-	Clients              = store.Clients
-	ResourceServers      = store.ResourceServers
-	ClientGrants         = store.ClientGrants
-	UserGrants           = store.UserGrants
-	SigningKeys          = store.SigningKeys
-	Connections          = store.Connections
-	PasswordHistories    = store.PasswordHistories
-	Users                = store.Users
-	Sessions             = store.Sessions
-	AuthTransactions     = store.AuthTransactions
-	AuthCodes            = store.AuthCodes
-	PushedAuthRequests   = store.PushedAuthRequests
-	DeviceCodes          = store.DeviceCodes
-	RefreshTokens        = store.RefreshTokens
-	PasswordResetTickets = store.PasswordResetTickets
-	Operators            = store.Operators
+	Store                    = store.Store
+	Tenants                  = store.Tenants
+	Clients                  = store.Clients
+	ResourceServers          = store.ResourceServers
+	ClientGrants             = store.ClientGrants
+	UserGrants               = store.UserGrants
+	SigningKeys              = store.SigningKeys
+	Connections              = store.Connections
+	PasswordHistories        = store.PasswordHistories
+	Users                    = store.Users
+	Sessions                 = store.Sessions
+	AuthTransactions         = store.AuthTransactions
+	AuthCodes                = store.AuthCodes
+	PushedAuthRequests       = store.PushedAuthRequests
+	DeviceCodes              = store.DeviceCodes
+	RefreshTokens            = store.RefreshTokens
+	PasswordResetTickets     = store.PasswordResetTickets
+	EmailVerificationTickets = store.EmailVerificationTickets
+	Operators                = store.Operators
 
 	Tenant                   = store.Tenant
 	Branding                 = store.Branding
@@ -62,6 +63,9 @@ type (
 	DevicePollOutcome        = store.DevicePollOutcome
 	RefreshToken             = store.RefreshToken
 	PasswordResetTicket      = store.PasswordResetTicket
+	EmailVerificationTicket  = store.EmailVerificationTicket
+	UserGrantFilter          = store.UserGrantFilter
+	ClientFilter             = store.ClientFilter
 	Operator                 = store.Operator
 )
 

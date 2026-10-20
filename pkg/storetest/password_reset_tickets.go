@@ -14,7 +14,8 @@ import (
 func newTicket(tenantID, id, hash string) *store.PasswordResetTicket {
 	return &store.PasswordResetTicket{
 		TenantID: tenantID, ID: id, TokenHash: hash, UserID: "auth0|u1", Connection: "Database",
-		ClientID: "spa", Lang: "fr", ExpiresAt: ts(24 * time.Hour), CreatedAt: ts(0),
+		ClientID: "spa", Lang: "fr",
+		ResultURL: "https://app.test/reset", IncludeEmailInRedirect: true, MarkEmailVerified: true, ExpiresAt: ts(24 * time.Hour), CreatedAt: ts(0),
 	}
 }
 

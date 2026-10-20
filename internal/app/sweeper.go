@@ -34,6 +34,7 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 		{st.DeviceCodes().DeleteExpired, now.Add(-deviceCodeRetention)},
 		{st.RefreshTokens().DeleteExpired, now},
 		{st.PasswordResetTickets().DeleteExpired, now},
+		{st.EmailVerificationTickets().DeleteExpired, now},
 	}
 	total := 0
 	var errs []error

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -79,6 +80,35 @@ func (r userGrants) Upsert(ctx context.Context, g *store.UserGrant) (*store.User
 		return nil, err
 	}
 	return out, nil
+}
+
+func (r userGrants) List(ctx context.Context, tenantID string, f store.UserGrantFilter, p store.Page) ([]*store.UserGrant, int, error) {
+	where, args := []string{"tenant_id = ?"}, []any{tenantID}
+	for _, c := range []struct{ col, val string }{{"user_id", f.UserID}, {"client_id", f.ClientID}, {"audience", f.Audience}} {
+		if c.val != "" {
+			where = append(where, c.col+" = ?")
+			args = append(args, c.val)
+		}
+	}
+	cond := strings.Join(where, " AND ")
+	var total int
+	if err := r.s.queryRow(ctx, `SELECT COUNT(*) FROM user_grants WHERE `+cond, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.s.query(ctx, `SELECT `+userGrantCols+` FROM user_grants WHERE `+cond+` ORDER BY id`+r.s.d.byteOrder+pageClause(p), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	var out []*store.UserGrant
+	for rows.Next() {
+		g, err := scanUserGrant(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		out = append(out, g)
+	}
+	return out, total, rows.Err()
 }
 
 func (r userGrants) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.UserGrant, error) {

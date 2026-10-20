@@ -145,26 +145,24 @@ func (h *Handlers) GetClients(w http.ResponseWriter, r *http.Request, _ mgmtapi.
 		firstParty = &v
 	}
 	tn := resolved(r)
-	all, err := h.Store.Clients().List(r.Context(), tn.ID)
+	// The store filters, orders and pages; Page already bounds both numbers.
+	got, total, err := h.Store.Clients().List(r.Context(), tn.ID,
+		store.ClientFilter{AppTypes: types, IsFirstParty: firstParty},
+		store.Page{Offset: page * perPage, Limit: perPage})
 	if err != nil {
 		Fail(w, internalError(h, r, "list clients", err))
 		return
 	}
-	slices.SortStableFunc(all, func(a, b *store.Client) int {
-		return cmp.Or(a.CreatedAt.Compare(b.CreatedAt), strings.Compare(a.ClientID, b.ClientID))
-	})
 	reveal := callerHas(r, "read:client_keys")
-	out := make([]map[string]any, 0, len(all))
-	for _, c := range all {
-		if len(types) > 0 && !slices.Contains(types, string(c.AppType)) {
-			continue
-		}
-		if firstParty != nil && c.IsFirstParty != *firstParty {
-			continue
-		}
+	out := make([]map[string]any, 0, len(got))
+	for _, c := range got {
 		out = append(out, Project(h.clientView(r.Context(), tn, c, reveal), fields, include))
 	}
-	WriteList(w, "clients", out, page, perPage, totals)
+	if !totals {
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"clients": out, "start": page * perPage, "limit": perPage, "total": total})
 }
 
 // GetClient returns one application.

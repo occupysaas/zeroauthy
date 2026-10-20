@@ -4,9 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"math"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -85,11 +83,7 @@ func (r connections) List(ctx context.Context, tenantID string, f store.Connecti
 	// limit" is the largest BIGINT.
 	q := `SELECT ` + connectionCols + ` FROM connections WHERE ` + cond +
 		` ORDER BY LOWER(name)` + r.s.d.byteOrder + `, id` + r.s.d.byteOrder
-	limit, offset := int64(p.Limit), int64(max(p.Offset, 0))
-	if limit <= 0 {
-		limit = math.MaxInt64
-	}
-	q += ` LIMIT ` + strconv.FormatInt(limit, 10) + ` OFFSET ` + strconv.FormatInt(offset, 10)
+	q += pageClause(p)
 	rows, err := r.s.query(ctx, q, args...)
 	if err != nil {
 		return nil, 0, err

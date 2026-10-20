@@ -42,6 +42,49 @@ func (r refreshTokens) GetByTokenHash(ctx context.Context, tenantID, tokenHash s
 	return t, err
 }
 
+func (r refreshTokens) Get(ctx context.Context, tenantID, id string) (*store.RefreshToken, error) {
+	t, err := scanRefreshToken(r.s.queryRow(ctx, `SELECT `+refreshCols+` FROM refresh_tokens WHERE tenant_id = ? AND id = ?`, tenantID, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, store.ErrNotFound
+	}
+	return t, err
+}
+
+func (r refreshTokens) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.RefreshToken, error) {
+	rows, err := r.s.query(ctx, `SELECT `+refreshCols+` FROM refresh_tokens WHERE tenant_id = ? AND user_id = ? AND revoked_at IS NULL AND rotated_at IS NULL
+ ORDER BY created_at DESC, id`+r.s.d.byteOrder+` DESC`, tenantID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*store.RefreshToken
+	for rows.Next() {
+		t, err := scanRefreshToken(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+// Revoke sets revoked_at where it is still NULL, so a second revocation
+// keeps the first time; the row is checked to exist either way.
+func (r refreshTokens) Revoke(ctx context.Context, tenantID, id string, at time.Time) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		var one int
+		err := tx.queryRow(ctx, `SELECT 1 FROM refresh_tokens WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate, tenantID, id).Scan(&one)
+		if errors.Is(err, sql.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		_, err = tx.exec(ctx, `UPDATE refresh_tokens SET revoked_at = ? WHERE tenant_id = ? AND id = ? AND revoked_at IS NULL`, micros(at), tenantID, id)
+		return err
+	})
+}
+
 // Rotate follows the memory driver's order of checks exactly. The old row is
 // locked by primary key, so rotations of one token are serialized. A reuse
 // commits the family revocation and then reports ErrAlreadyUsed; every other

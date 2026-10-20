@@ -106,6 +106,7 @@ func testTenantsDelete(t *testing.T, newStore Factory) {
 			mustNoErr(t, s.DeviceCodes().Create(ctx, newDeviceCode(id, "dh", "uh")))
 			mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken(id, "rt_1", "rh", "fam")))
 			mustNoErr(t, s.PasswordResetTickets().Create(ctx, newTicket(id, "prt_1", "th")))
+			mustNoErr(t, s.EmailVerificationTickets().Create(ctx, newVerificationTicket(id, "evt_1", "vh")))
 			mustNoErr(t, s.Operators().Upsert(ctx, newOperator(id, "auth0|u1", "*")))
 			return tn
 		}
@@ -130,6 +131,7 @@ func testTenantsDelete(t *testing.T, newStore Factory) {
 			_, errs["device code"] = s.DeviceCodes().Get(ctx, tenantID, "dh")
 			_, errs["refresh token"] = s.RefreshTokens().GetByTokenHash(ctx, tenantID, "rh")
 			_, errs["reset ticket"] = s.PasswordResetTickets().GetByTokenHash(ctx, tenantID, "th")
+			_, errs["verification ticket"] = s.EmailVerificationTickets().GetByTokenHash(ctx, tenantID, "vh")
 			_, errs["operator"] = s.Operators().Get(ctx, tenantID, "auth0|u1")
 			for what, err := range errs {
 				if wantErr == nil && err != nil {

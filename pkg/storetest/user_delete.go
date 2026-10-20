@@ -9,7 +9,7 @@ import (
 )
 
 // testUserDelete pins Users.Delete: the user goes with everything that names
-// it (sessions, refresh tokens, grants, reset tickets, password history,
+// it (sessions, refresh tokens, grants, reset and verification tickets, password history,
 // auth codes and device codes); other users' rows, in the same tenant or
 // another, stay.
 func testUserDelete(t *testing.T, newStore Factory) {
@@ -33,6 +33,9 @@ func testUserDelete(t *testing.T, newStore Factory) {
 			tk := newTicket(tenant, "tk-"+id, "th-"+id)
 			tk.UserID, tk.Connection = uid, "Database"
 			mustNoErr(t, s.PasswordResetTickets().Create(ctx, tk))
+			vt := newVerificationTicket(tenant, "vt-"+id, "vh-"+id)
+			vt.UserID, vt.Connection = uid, "Database"
+			mustNoErr(t, s.EmailVerificationTickets().Create(ctx, vt))
 			mustNoErr(t, s.PasswordHistories().Add(ctx, tenant, uid, []byte("hash-"+id), 5))
 			mustNoErr(t, s.Operators().Upsert(ctx, newOperator(tenant, uid, "*")))
 			ac := newAuthCode(tenant, "ac-"+id)
@@ -45,7 +48,7 @@ func testUserDelete(t *testing.T, newStore Factory) {
 			mustNoErr(t, err)
 		}
 	}
-	type left struct{ User, Session, Token, Grant, Ticket, History, AuthCode, DeviceCode, Operator bool }
+	type left struct{ User, Session, Token, Grant, Ticket, VerifyTicket, History, AuthCode, DeviceCode, Operator bool }
 	probe := func(t *testing.T, s store.Store, tenant, id string) left {
 		t.Helper()
 		uid := "auth0|" + id
@@ -61,6 +64,8 @@ func testUserDelete(t *testing.T, newStore Factory) {
 		l.Grant = len(gs) > 0
 		_, err = s.PasswordResetTickets().GetByTokenHash(ctx, tenant, "th-"+id)
 		l.Ticket = err == nil
+		_, err = s.EmailVerificationTickets().GetByTokenHash(ctx, tenant, "vh-"+id)
+		l.VerifyTicket = err == nil
 		h, err := s.PasswordHistories().List(ctx, tenant, uid)
 		mustNoErr(t, err)
 		l.History = len(h) > 0
@@ -72,7 +77,7 @@ func testUserDelete(t *testing.T, newStore Factory) {
 		l.Operator = err == nil
 		return l
 	}
-	all := left{true, true, true, true, true, true, true, true, true}
+	all := left{true, true, true, true, true, true, true, true, true, true}
 
 	t.Run("Cascade", func(t *testing.T) {
 		s := open(t, newStore)

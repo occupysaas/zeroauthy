@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"cmp"
 	"context"
 	"slices"
 	"time"
@@ -34,7 +35,32 @@ func (r sessions) GetByTokenHash(_ context.Context, tenantID, tokenHash string) 
 	return cloneSession(s), nil
 }
 
-func (r sessions) Touch(_ context.Context, tenantID, id string, idleExpiresAt time.Time) error {
+func (r sessions) Get(_ context.Context, tenantID, id string) (*store.LoginSession, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	s, ok := r.s.sessions[key{tenantID, id}]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	return cloneSession(s), nil
+}
+
+func (r sessions) ListByUser(_ context.Context, tenantID, userID string) ([]*store.LoginSession, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	var out []*store.LoginSession
+	for k, s := range r.s.sessions {
+		if k.tenant == tenantID && s.UserID == userID {
+			out = append(out, cloneSession(s))
+		}
+	}
+	slices.SortFunc(out, func(a, b *store.LoginSession) int {
+		return cmp.Or(b.CreatedAt.Compare(a.CreatedAt), cmp.Compare(b.ID, a.ID))
+	})
+	return out, nil
+}
+
+func (r sessions) Touch(_ context.Context, tenantID, id string, at, idleExpiresAt time.Time, ip, userAgent string) error {
 	r.s.mu.Lock()
 	defer r.s.mu.Unlock()
 	s, ok := r.s.sessions[key{tenantID, id}]
@@ -42,6 +68,8 @@ func (r sessions) Touch(_ context.Context, tenantID, id string, idleExpiresAt ti
 		return store.ErrNotFound
 	}
 	s.IdleExpiresAt = idleExpiresAt
+	s.UpdatedAt, s.LastInteractedAt = at, at
+	s.LastIP, s.LastUserAgent = ip, userAgent
 	return nil
 }
 

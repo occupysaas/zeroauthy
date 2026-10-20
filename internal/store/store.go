@@ -47,6 +47,7 @@ type Store interface {
 	DeviceCodes() DeviceCodes
 	RefreshTokens() RefreshTokens
 	PasswordResetTickets() PasswordResetTickets
+	EmailVerificationTickets() EmailVerificationTickets
 	Operators() Operators
 	// WithTx runs fn against a transactional view of the store. If fn
 	// returns an error, none of its writes persist. Drivers serialize
@@ -79,7 +80,7 @@ type Tenants interface {
 	// Delete removes the tenant and all of its data: domains, clients,
 	// resource servers, grants, signing keys, connections, users, sessions,
 	// transactions, codes, pushed requests, device codes, refresh tokens,
-	// reset tickets and operators. It returns ErrNotFound if absent. The
+	// reset and verification tickets and operators. It returns ErrNotFound if absent. The
 	// store does not protect Reserved tenants; callers refuse to delete them.
 	Delete(ctx context.Context, id string) error
 }
@@ -109,8 +110,11 @@ type Clients interface {
 	// not exist. Connections and login sessions that name the client are
 	// left alone.
 	Delete(ctx context.Context, tenantID, clientID string) error
-	// List returns the tenant's clients ordered by ClientID.
-	List(ctx context.Context, tenantID string) ([]*Client, error)
+	// List returns one page of the tenant's clients that match f, ordered
+	// by CreatedAt, then ClientID (byte order), and the number that match f
+	// before paging. A zero Page returns every match. A page past the end is
+	// empty.
+	List(ctx context.Context, tenantID string, f ClientFilter, p Page) ([]*Client, int, error)
 }
 
 // ResourceServers stores APIs, keyed by (TenantID, ID). Identifier is
@@ -161,6 +165,10 @@ type UserGrants interface {
 	// replaced; otherwise g is created as given. It returns the stored grant.
 	// Concurrent upserts of one key leave exactly one grant.
 	Upsert(ctx context.Context, g *UserGrant) (*UserGrant, error)
+	// List returns one page of the tenant's grants that match f, ordered by
+	// ID (byte order), and the number that match f before paging. A zero
+	// Page returns every match. A page past the end is empty.
+	List(ctx context.Context, tenantID string, f UserGrantFilter, p Page) ([]*UserGrant, int, error)
 	// ListByUser returns the user's grants ordered by ClientID, then Audience.
 	ListByUser(ctx context.Context, tenantID, userID string) ([]*UserGrant, error)
 	// ListByAudience returns the grants for audience, every user and client,
@@ -201,8 +209,8 @@ type Connections interface {
 	Update(ctx context.Context, c *Connection) error
 	// Delete removes the connection and everything that depends on it, in
 	// one step: its users (the users with an identity on it) with their
-	// sessions, refresh tokens, user grants, password reset tickets and
-	// password history; and the tenant's DefaultDirectory when it names the
+	// sessions, refresh tokens, user grants, password reset and email verification
+	// tickets and password history; and the tenant's DefaultDirectory when it names the
 	// connection. The enabled-clients list goes with the connection. It
 	// returns ErrNotFound if the connection is absent.
 	Delete(ctx context.Context, tenantID, id string) error
@@ -260,8 +268,8 @@ type Users interface {
 	BumpVersion(ctx context.Context, tenantID, userID string) (int64, error)
 	// Delete removes the user and, in the same step, everything that
 	// names it: sessions, refresh tokens, user grants, password reset
-	// tickets, password history, auth codes, device codes and the user's operator
-	// row. It returns
+	// tickets, email verification tickets, password history, auth codes,
+	// device codes and the user's operator row. It returns
 	// ErrNotFound if the user is absent.
 	Delete(ctx context.Context, tenantID, userID string) error
 	// List returns the tenant's users that match q, in the order s, and
@@ -278,9 +286,15 @@ type Sessions interface {
 	// Create returns ErrConflict if the ID or TokenHash exists.
 	Create(ctx context.Context, s *LoginSession) error
 	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*LoginSession, error)
-	// Touch sets IdleExpiresAt. It returns ErrNotFound if the session is
-	// absent.
-	Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error
+	// Get returns ErrNotFound if the session is absent.
+	Get(ctx context.Context, tenantID, id string) (*LoginSession, error)
+	// ListByUser returns the user's sessions, newest first (CreatedAt
+	// descending, then ID descending, byte order).
+	ListByUser(ctx context.Context, tenantID, userID string) ([]*LoginSession, error)
+	// Touch records an interaction at `at`: it sets IdleExpiresAt, sets
+	// UpdatedAt and LastInteractedAt to at, and sets LastIP and
+	// LastUserAgent. It returns ErrNotFound if the session is absent.
+	Touch(ctx context.Context, tenantID, id string, at, idleExpiresAt time.Time, ip, userAgent string) error
 	// AddClient appends clientID to ClientIDs unless it is already there.
 	// It returns ErrNotFound if the session is absent.
 	AddClient(ctx context.Context, tenantID, id, clientID string) error
@@ -374,6 +388,16 @@ type RefreshTokens interface {
 	// Create returns ErrConflict if the ID or TokenHash exists.
 	Create(ctx context.Context, t *RefreshToken) error
 	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*RefreshToken, error)
+	// Get returns the token whatever its state, or ErrNotFound.
+	Get(ctx context.Context, tenantID, id string) (*RefreshToken, error)
+	// ListByUser returns the user's live tokens (neither revoked nor
+	// rotated), newest first (CreatedAt descending, then ID descending, byte
+	// order).
+	ListByUser(ctx context.Context, tenantID, userID string) ([]*RefreshToken, error)
+	// Revoke sets RevokedAt = at on the token. A token that is already
+	// revoked keeps its first RevokedAt; a rotated token is revoked like any
+	// other. It returns ErrNotFound if the token is absent.
+	Revoke(ctx context.Context, tenantID, id string, at time.Time) error
 	// Rotate atomically exchanges the token oldID for next, which must have
 	// the same TenantID and FamilyID (otherwise ErrConflict).
 	//   - Absent, or revoked without having been rotated: ErrNotFound,
@@ -416,6 +440,27 @@ type PasswordResetTickets interface {
 	// DeleteByUser removes every unused ticket of the user in the tenant and
 	// returns how many it removed. Used tickets are kept (until
 	// DeleteExpired) so that a replayed link can still be reported as used.
+	DeleteByUser(ctx context.Context, tenantID, userID string) (int, error)
+	// DeleteExpired removes, in every tenant, the tickets whose ExpiresAt is
+	// not after before, used or not, and returns how many it removed.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
+}
+
+// EmailVerificationTickets stores email verification tickets, keyed by
+// (TenantID, ID). TokenHash is unique within a tenant. The contracts are
+// those of PasswordResetTickets.
+type EmailVerificationTickets interface {
+	// Create returns ErrConflict if the ID or TokenHash exists.
+	Create(ctx context.Context, t *EmailVerificationTicket) error
+	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*EmailVerificationTicket, error)
+	// Consume atomically marks the ticket used at `at` and returns it. A
+	// ticket that was already used is returned together with
+	// ErrAlreadyUsed, and its first UsedAt is kept. Unknown tickets return
+	// ErrNotFound.
+	Consume(ctx context.Context, tenantID, tokenHash string, at time.Time) (*EmailVerificationTicket, error)
+	// DeleteByUser removes every unused ticket of the user in the tenant and
+	// returns how many it removed. Used tickets are kept (until
+	// DeleteExpired).
 	DeleteByUser(ctx context.Context, tenantID, userID string) (int, error)
 	// DeleteExpired removes, in every tenant, the tickets whose ExpiresAt is
 	// not after before, used or not, and returns how many it removed.

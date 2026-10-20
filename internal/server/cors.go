@@ -56,7 +56,7 @@ func cors(st store.Store) func(http.Handler) http.Handler {
 }
 
 func originAllowed(r *http.Request, st store.Store, tenantID, origin string) bool {
-	clients, err := st.Clients().List(r.Context(), tenantID)
+	clients, _, err := st.Clients().List(r.Context(), tenantID, store.ClientFilter{}, store.Page{})
 	if err != nil {
 		return false
 	}

@@ -166,11 +166,31 @@ func (s *Server) ClientsDelete(ctx context.Context, r *storev1.ScopedKey) (*stor
 }
 
 func (s *Server) ClientsList(ctx context.Context, r *storev1.TenantScope) (*storev1.ClientList, error) {
-	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.Client, error) { return st.Clients().List(ctx, r.TenantId) }, clientToPB)
+	vs, e, err := many(s, r.TxId, func(st store.Store) (out []*store.Client, e error) {
+		out, _, e = st.Clients().List(ctx, r.TenantId, store.ClientFilter{}, store.Page{})
+		return out, e
+	}, clientToPB)
 	if err != nil {
 		return nil, err
 	}
 	return &storev1.ClientList{Error: e, Values: vs}, nil
+}
+
+func (s *Server) ClientsListPage(ctx context.Context, r *storev1.ClientsListPageRequest) (*storev1.ClientPage, error) {
+	var total int
+	vs, e, err := many(s, r.TxId, func(st store.Store) (out []*store.Client, e error) {
+		f := store.ClientFilter{AppTypes: r.AppTypes}
+		if r.HasIsFirstParty {
+			v := r.IsFirstParty
+			f.IsFirstParty = &v
+		}
+		out, total, e = st.Clients().List(ctx, r.TenantId, f, store.Page{Offset: int(r.Offset), Limit: int(r.Limit)})
+		return out, e
+	}, clientToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.ClientPage{Error: e, Values: vs, Total: int64(total)}, nil
 }
 
 // ---- resource servers ----
@@ -295,6 +315,20 @@ func (s *Server) UserGrantsUpsert(ctx context.Context, r *storev1.UserGrantWrite
 		return nil, err
 	}
 	return &storev1.UserGrantResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) UserGrantsList(ctx context.Context, r *storev1.UserGrantsListRequest) (*storev1.UserGrantList, error) {
+	var total int
+	vs, e, err := many(s, r.TxId, func(st store.Store) (out []*store.UserGrant, e error) {
+		out, total, e = st.UserGrants().List(ctx, r.TenantId,
+			store.UserGrantFilter{UserID: r.UserId, ClientID: r.ClientId, Audience: r.Audience},
+			store.Page{Offset: int(r.Offset), Limit: int(r.Limit)})
+		return out, e
+	}, userGrantToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.UserGrantList{Error: e, Values: vs, Total: int64(total)}, nil
 }
 
 func (s *Server) UserGrantsListByUser(ctx context.Context, r *storev1.ScopedKey) (*storev1.UserGrantList, error) {
@@ -538,9 +572,29 @@ func (s *Server) SessionsGetByTokenHash(ctx context.Context, r *storev1.ScopedKe
 	return &storev1.SessionResult{Error: e, Value: v}, nil
 }
 
+func (s *Server) SessionsGet(ctx context.Context, r *storev1.ScopedKey) (*storev1.SessionResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.LoginSession, error) {
+		return st.Sessions().Get(ctx, r.TenantId, r.Key)
+	}, sessionToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.SessionResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) SessionsListByUser(ctx context.Context, r *storev1.ScopedKey) (*storev1.SessionList, error) {
+	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.LoginSession, error) {
+		return st.Sessions().ListByUser(ctx, r.TenantId, r.Key)
+	}, sessionToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.SessionList{Error: e, Values: vs}, nil
+}
+
 func (s *Server) SessionsTouch(ctx context.Context, r *storev1.TouchRequest) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
-		return st.Sessions().Touch(ctx, r.TenantId, r.Id, tsFromPB(r.IdleExpiresAt))
+		return st.Sessions().Touch(ctx, r.TenantId, r.Id, tsFromPB(r.At), tsFromPB(r.IdleExpiresAt), r.Ip, r.UserAgent)
 	}), nil
 }
 
@@ -738,6 +792,32 @@ func (s *Server) RefreshTokensGetByTokenHash(ctx context.Context, r *storev1.Sco
 	return &storev1.RefreshTokenResult{Error: e, Value: v}, nil
 }
 
+func (s *Server) RefreshTokensGet(ctx context.Context, r *storev1.ScopedKey) (*storev1.RefreshTokenResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.RefreshToken, error) {
+		return st.RefreshTokens().Get(ctx, r.TenantId, r.Key)
+	}, refreshTokenToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.RefreshTokenResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) RefreshTokensListByUser(ctx context.Context, r *storev1.ScopedKey) (*storev1.RefreshTokenList, error) {
+	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.RefreshToken, error) {
+		return st.RefreshTokens().ListByUser(ctx, r.TenantId, r.Key)
+	}, refreshTokenToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.RefreshTokenList{Error: e, Values: vs}, nil
+}
+
+func (s *Server) RefreshTokensRevoke(ctx context.Context, r *storev1.RevokeRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.RefreshTokens().Revoke(ctx, r.TenantId, r.Key, tsFromPB(r.At))
+	}), nil
+}
+
 func (s *Server) RefreshTokensRotate(ctx context.Context, r *storev1.RefreshTokensRotateRequest) (*storev1.Result, error) {
 	var leeway time.Duration
 	if r.Leeway != nil { // an absent leeway is zero
@@ -811,6 +891,48 @@ func (s *Server) PasswordResetTicketsDeleteByUser(ctx context.Context, r *storev
 func (s *Server) PasswordResetTicketsDeleteExpired(ctx context.Context, r *storev1.DeleteExpiredRequest) (*storev1.CountResult, error) {
 	return count(s, r.TxId, func(st store.Store) (int, error) {
 		return st.PasswordResetTickets().DeleteExpired(ctx, tsFromPB(r.Before))
+	}), nil
+}
+
+// ---- email verification tickets ----
+
+func (s *Server) EmailVerificationTicketsCreate(ctx context.Context, r *storev1.EmailVerificationTicketWrite) (*storev1.Result, error) {
+	return write(s, r.TxId, r.Value, emailVerificationTicketFromPB, func(st store.Store, p *store.EmailVerificationTicket) error {
+		return st.EmailVerificationTickets().Create(ctx, p)
+	}), nil
+}
+
+func (s *Server) EmailVerificationTicketsGetByTokenHash(ctx context.Context, r *storev1.ScopedKey) (*storev1.EmailVerificationTicketResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.EmailVerificationTicket, error) {
+		return st.EmailVerificationTickets().GetByTokenHash(ctx, r.TenantId, r.Key)
+	}, emailVerificationTicketToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.EmailVerificationTicketResult{Error: e, Value: v}, nil
+}
+
+// EmailVerificationTicketsConsume returns the ticket together with
+// ErrAlreadyUsed when it was already used.
+func (s *Server) EmailVerificationTicketsConsume(ctx context.Context, r *storev1.ConsumeRequest) (*storev1.EmailVerificationTicketResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.EmailVerificationTicket, error) {
+		return st.EmailVerificationTickets().Consume(ctx, r.TenantId, r.Hash, tsFromPB(r.At))
+	}, emailVerificationTicketToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.EmailVerificationTicketResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) EmailVerificationTicketsDeleteByUser(ctx context.Context, r *storev1.ScopedKey) (*storev1.CountResult, error) {
+	return count(s, r.TxId, func(st store.Store) (int, error) {
+		return st.EmailVerificationTickets().DeleteByUser(ctx, r.TenantId, r.Key)
+	}), nil
+}
+
+func (s *Server) EmailVerificationTicketsDeleteExpired(ctx context.Context, r *storev1.DeleteExpiredRequest) (*storev1.CountResult, error) {
+	return count(s, r.TxId, func(st store.Store) (int, error) {
+		return st.EmailVerificationTickets().DeleteExpired(ctx, tsFromPB(r.Before))
 	}), nil
 }
 

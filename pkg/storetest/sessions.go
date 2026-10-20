@@ -17,6 +17,9 @@ func newSession(tenantID, id, tokenHash string) *store.LoginSession {
 		UserID: "auth0|u1", Connection: "Database",
 		AuthenticatedAt: ts(0), ClientIDs: []string{"spa"},
 		ExpiresAt: ts(7 * 24 * time.Hour), IdleExpiresAt: ts(3 * 24 * time.Hour), CreatedAt: ts(0),
+		UpdatedAt: ts(0), LastInteractedAt: ts(0),
+		InitialIP: "203.0.113.7", InitialUserAgent: "Mozilla/5.0 (initial)",
+		LastIP: "203.0.113.7", LastUserAgent: "Mozilla/5.0 (initial)",
 	}
 }
 
@@ -36,22 +39,73 @@ func testSessions(t *testing.T, newStore Factory) {
 		_, err = s.Sessions().GetByTokenHash(ctx, "ten_b", "hash1")
 		mustErrIs(t, err, store.ErrNotFound)
 
-		mustNoErr(t, s.Sessions().Touch(ctx, "ten_a", "s1", ts(4*24*time.Hour)))
+		mustNoErr(t, s.Sessions().Touch(ctx, "ten_a", "s1", ts(time.Hour), ts(4*24*time.Hour), "198.51.100.9", "Mozilla/5.0 (later)"))
 		mustNoErr(t, s.Sessions().AddClient(ctx, "ten_a", "s1", "web"))
 		mustNoErr(t, s.Sessions().AddClient(ctx, "ten_a", "s1", "web")) // idempotent
 		want.ClientIDs = []string{"spa", "web"}
 		want.IdleExpiresAt = ts(4 * 24 * time.Hour)
+		want.UpdatedAt, want.LastInteractedAt = ts(time.Hour), ts(time.Hour)
+		want.LastIP, want.LastUserAgent = "198.51.100.9", "Mozilla/5.0 (later)"
 		got, _ = s.Sessions().GetByTokenHash(ctx, "ten_a", "hash1")
 		mustEqual(t, got, want)
-		mustErrIs(t, s.Sessions().Touch(ctx, "ten_b", "s1", ts(0)), store.ErrNotFound)
+		mustErrIs(t, s.Sessions().Touch(ctx, "ten_b", "s1", ts(0), ts(0), "", ""), store.ErrNotFound)
 		mustErrIs(t, s.Sessions().AddClient(ctx, "ten_b", "s1", "x"), store.ErrNotFound)
 
 		mustNoErr(t, s.Sessions().Delete(ctx, "ten_a", "s1"))
 		_, err = s.Sessions().GetByTokenHash(ctx, "ten_a", "hash1")
 		mustErrIs(t, err, store.ErrNotFound)
 		mustErrIs(t, s.Sessions().Delete(ctx, "ten_a", "s1"), store.ErrNotFound)
-		mustErrIs(t, s.Sessions().Touch(ctx, "ten_a", "s1", ts(0)), store.ErrNotFound)
+		mustErrIs(t, s.Sessions().Touch(ctx, "ten_a", "s1", ts(0), ts(0), "", ""), store.ErrNotFound)
 		mustErrIs(t, s.Sessions().AddClient(ctx, "ten_a", "s1", "x"), store.ErrNotFound)
+	})
+
+	t.Run("GetAndListByUser", func(t *testing.T) {
+		s := open(t, newStore)
+		mk := func(id, user string, created time.Duration) {
+			x := newSession("ten_a", id, "h-"+id)
+			x.UserID, x.CreatedAt = user, ts(created)
+			mustNoErr(t, s.Sessions().Create(ctx, x))
+		}
+		mk("a", "auth0|u1", time.Minute)
+		mk("b", "auth0|u1", 3*time.Minute)
+		mk("c", "auth0|u1", 3*time.Minute) // ties on CreatedAt: ID descending
+		mk("d", "auth0|u1", 2*time.Minute)
+		mk("e", "auth0|u2", 4*time.Minute)
+		mustNoErr(t, s.Sessions().Create(ctx, func() *store.LoginSession {
+			x := newSession("ten_b", "f", "h-f") // same user ID, other tenant
+			x.CreatedAt = ts(5 * time.Minute)
+			return x
+		}()))
+
+		got, err := s.Sessions().Get(ctx, "ten_a", "d")
+		mustNoErr(t, err)
+		want := newSession("ten_a", "d", "h-d")
+		want.CreatedAt = ts(2 * time.Minute)
+		mustEqual(t, got, want)
+		_, err = s.Sessions().Get(ctx, "ten_b", "d")
+		mustErrIs(t, err, store.ErrNotFound)
+		_, err = s.Sessions().Get(ctx, "ten_a", "missing")
+		mustErrIs(t, err, store.ErrNotFound)
+
+		list, err := s.Sessions().ListByUser(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		var ids []string
+		for _, x := range list {
+			ids = append(ids, x.ID)
+		}
+		mustEqual(t, ids, []string{"c", "b", "d", "a"}) // newest first, ID descending on ties
+		list, err = s.Sessions().ListByUser(ctx, "ten_a", "auth0|nobody")
+		mustNoErr(t, err)
+		mustEqual(t, len(list), 0)
+		list, err = s.Sessions().ListByUser(ctx, "ten_b", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, len(list), 1)
+
+		// Copies, as everywhere.
+		list, _ = s.Sessions().ListByUser(ctx, "ten_a", "auth0|u1")
+		list[0].ClientIDs[0] = "mutated"
+		again, _ := s.Sessions().Get(ctx, "ten_a", "c")
+		mustEqual(t, again.ClientIDs, []string{"spa"})
 	})
 
 	t.Run("ReturnsCopies", func(t *testing.T) {

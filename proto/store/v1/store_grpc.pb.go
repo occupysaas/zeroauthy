@@ -19,103 +19,115 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StoreService_Ping_FullMethodName                               = "/zeroauthy.store.v1.StoreService/Ping"
-	StoreService_BeginTx_FullMethodName                            = "/zeroauthy.store.v1.StoreService/BeginTx"
-	StoreService_Commit_FullMethodName                             = "/zeroauthy.store.v1.StoreService/Commit"
-	StoreService_Rollback_FullMethodName                           = "/zeroauthy.store.v1.StoreService/Rollback"
-	StoreService_TenantsCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/TenantsCreate"
-	StoreService_TenantsGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/TenantsGet"
-	StoreService_TenantsGetByName_FullMethodName                   = "/zeroauthy.store.v1.StoreService/TenantsGetByName"
-	StoreService_TenantsGetByDomain_FullMethodName                 = "/zeroauthy.store.v1.StoreService/TenantsGetByDomain"
-	StoreService_TenantsUpdate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/TenantsUpdate"
-	StoreService_TenantsList_FullMethodName                        = "/zeroauthy.store.v1.StoreService/TenantsList"
-	StoreService_TenantsDelete_FullMethodName                      = "/zeroauthy.store.v1.StoreService/TenantsDelete"
-	StoreService_ClientsCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ClientsCreate"
-	StoreService_ClientsGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ClientsGet"
-	StoreService_ClientsUpdate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ClientsUpdate"
-	StoreService_ClientsDelete_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ClientsDelete"
-	StoreService_ClientsList_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ClientsList"
-	StoreService_ResourceServersCreate_FullMethodName              = "/zeroauthy.store.v1.StoreService/ResourceServersCreate"
-	StoreService_ResourceServersGet_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ResourceServersGet"
-	StoreService_ResourceServersGetByIdentifier_FullMethodName     = "/zeroauthy.store.v1.StoreService/ResourceServersGetByIdentifier"
-	StoreService_ResourceServersUpdate_FullMethodName              = "/zeroauthy.store.v1.StoreService/ResourceServersUpdate"
-	StoreService_ResourceServersDelete_FullMethodName              = "/zeroauthy.store.v1.StoreService/ResourceServersDelete"
-	StoreService_ResourceServersList_FullMethodName                = "/zeroauthy.store.v1.StoreService/ResourceServersList"
-	StoreService_ClientGrantsCreate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientGrantsCreate"
-	StoreService_ClientGrantsFind_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ClientGrantsFind"
-	StoreService_ClientGrantsUpdate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientGrantsUpdate"
-	StoreService_ClientGrantsDelete_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ClientGrantsDelete"
-	StoreService_ClientGrantsList_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ClientGrantsList"
-	StoreService_UserGrantsFind_FullMethodName                     = "/zeroauthy.store.v1.StoreService/UserGrantsFind"
-	StoreService_UserGrantsUpsert_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UserGrantsUpsert"
-	StoreService_UserGrantsListByUser_FullMethodName               = "/zeroauthy.store.v1.StoreService/UserGrantsListByUser"
-	StoreService_UserGrantsListByAudience_FullMethodName           = "/zeroauthy.store.v1.StoreService/UserGrantsListByAudience"
-	StoreService_UserGrantsDelete_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UserGrantsDelete"
-	StoreService_UserGrantsDeleteByUser_FullMethodName             = "/zeroauthy.store.v1.StoreService/UserGrantsDeleteByUser"
-	StoreService_SigningKeysCreate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SigningKeysCreate"
-	StoreService_SigningKeysList_FullMethodName                    = "/zeroauthy.store.v1.StoreService/SigningKeysList"
-	StoreService_SigningKeysRotate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SigningKeysRotate"
-	StoreService_ConnectionsCreate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ConnectionsCreate"
-	StoreService_ConnectionsGet_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ConnectionsGet"
-	StoreService_ConnectionsGetByName_FullMethodName               = "/zeroauthy.store.v1.StoreService/ConnectionsGetByName"
-	StoreService_ConnectionsUpdate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ConnectionsUpdate"
-	StoreService_ConnectionsList_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ConnectionsList"
-	StoreService_ConnectionsListPage_FullMethodName                = "/zeroauthy.store.v1.StoreService/ConnectionsListPage"
-	StoreService_ConnectionsDelete_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ConnectionsDelete"
-	StoreService_PasswordHistoriesAdd_FullMethodName               = "/zeroauthy.store.v1.StoreService/PasswordHistoriesAdd"
-	StoreService_PasswordHistoriesList_FullMethodName              = "/zeroauthy.store.v1.StoreService/PasswordHistoriesList"
-	StoreService_UsersCreate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UsersCreate"
-	StoreService_UsersGet_FullMethodName                           = "/zeroauthy.store.v1.StoreService/UsersGet"
-	StoreService_UsersFindByLogin_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UsersFindByLogin"
-	StoreService_UsersUpdate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UsersUpdate"
-	StoreService_UsersRecordLogin_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UsersRecordLogin"
-	StoreService_UsersSetPasswordHash_FullMethodName               = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHash"
-	StoreService_UsersFindByEmail_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UsersFindByEmail"
-	StoreService_UsersSetPasswordHashIfEmpty_FullMethodName        = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHashIfEmpty"
-	StoreService_UsersBumpVersion_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UsersBumpVersion"
-	StoreService_UsersDelete_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UsersDelete"
-	StoreService_UsersList_FullMethodName                          = "/zeroauthy.store.v1.StoreService/UsersList"
-	StoreService_SessionsCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/SessionsCreate"
-	StoreService_SessionsGetByTokenHash_FullMethodName             = "/zeroauthy.store.v1.StoreService/SessionsGetByTokenHash"
-	StoreService_SessionsTouch_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SessionsTouch"
-	StoreService_SessionsAddClient_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SessionsAddClient"
-	StoreService_SessionsDelete_FullMethodName                     = "/zeroauthy.store.v1.StoreService/SessionsDelete"
-	StoreService_SessionsDeleteByUser_FullMethodName               = "/zeroauthy.store.v1.StoreService/SessionsDeleteByUser"
-	StoreService_SessionsDeleteExpired_FullMethodName              = "/zeroauthy.store.v1.StoreService/SessionsDeleteExpired"
-	StoreService_AuthTransactionsCreate_FullMethodName             = "/zeroauthy.store.v1.StoreService/AuthTransactionsCreate"
-	StoreService_AuthTransactionsGet_FullMethodName                = "/zeroauthy.store.v1.StoreService/AuthTransactionsGet"
-	StoreService_AuthTransactionsDelete_FullMethodName             = "/zeroauthy.store.v1.StoreService/AuthTransactionsDelete"
-	StoreService_AuthTransactionsDeleteExpired_FullMethodName      = "/zeroauthy.store.v1.StoreService/AuthTransactionsDeleteExpired"
-	StoreService_AuthCodesCreate_FullMethodName                    = "/zeroauthy.store.v1.StoreService/AuthCodesCreate"
-	StoreService_AuthCodesConsume_FullMethodName                   = "/zeroauthy.store.v1.StoreService/AuthCodesConsume"
-	StoreService_AuthCodesGet_FullMethodName                       = "/zeroauthy.store.v1.StoreService/AuthCodesGet"
-	StoreService_AuthCodesDeleteExpired_FullMethodName             = "/zeroauthy.store.v1.StoreService/AuthCodesDeleteExpired"
-	StoreService_PushedAuthRequestsCreate_FullMethodName           = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsCreate"
-	StoreService_PushedAuthRequestsConsume_FullMethodName          = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsConsume"
-	StoreService_PushedAuthRequestsGet_FullMethodName              = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsGet"
-	StoreService_PushedAuthRequestsDeleteExpired_FullMethodName    = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsDeleteExpired"
-	StoreService_DeviceCodesCreate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/DeviceCodesCreate"
-	StoreService_DeviceCodesGet_FullMethodName                     = "/zeroauthy.store.v1.StoreService/DeviceCodesGet"
-	StoreService_DeviceCodesGetByUserCode_FullMethodName           = "/zeroauthy.store.v1.StoreService/DeviceCodesGetByUserCode"
-	StoreService_DeviceCodesDecide_FullMethodName                  = "/zeroauthy.store.v1.StoreService/DeviceCodesDecide"
-	StoreService_DeviceCodesPoll_FullMethodName                    = "/zeroauthy.store.v1.StoreService/DeviceCodesPoll"
-	StoreService_DeviceCodesDeleteExpired_FullMethodName           = "/zeroauthy.store.v1.StoreService/DeviceCodesDeleteExpired"
-	StoreService_RefreshTokensCreate_FullMethodName                = "/zeroauthy.store.v1.StoreService/RefreshTokensCreate"
-	StoreService_RefreshTokensGetByTokenHash_FullMethodName        = "/zeroauthy.store.v1.StoreService/RefreshTokensGetByTokenHash"
-	StoreService_RefreshTokensRotate_FullMethodName                = "/zeroauthy.store.v1.StoreService/RefreshTokensRotate"
-	StoreService_RefreshTokensTouch_FullMethodName                 = "/zeroauthy.store.v1.StoreService/RefreshTokensTouch"
-	StoreService_RefreshTokensRevokeFamily_FullMethodName          = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeFamily"
-	StoreService_RefreshTokensRevokeByUser_FullMethodName          = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeByUser"
-	StoreService_RefreshTokensDeleteExpired_FullMethodName         = "/zeroauthy.store.v1.StoreService/RefreshTokensDeleteExpired"
-	StoreService_PasswordResetTicketsCreate_FullMethodName         = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsCreate"
-	StoreService_PasswordResetTicketsGetByTokenHash_FullMethodName = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsGetByTokenHash"
-	StoreService_PasswordResetTicketsConsume_FullMethodName        = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsConsume"
-	StoreService_PasswordResetTicketsDeleteByUser_FullMethodName   = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteByUser"
-	StoreService_PasswordResetTicketsDeleteExpired_FullMethodName  = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteExpired"
-	StoreService_OperatorsGet_FullMethodName                       = "/zeroauthy.store.v1.StoreService/OperatorsGet"
-	StoreService_OperatorsUpsert_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OperatorsUpsert"
-	StoreService_OperatorsList_FullMethodName                      = "/zeroauthy.store.v1.StoreService/OperatorsList"
-	StoreService_OperatorsDelete_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OperatorsDelete"
+	StoreService_Ping_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/Ping"
+	StoreService_BeginTx_FullMethodName                                = "/zeroauthy.store.v1.StoreService/BeginTx"
+	StoreService_Commit_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/Commit"
+	StoreService_Rollback_FullMethodName                               = "/zeroauthy.store.v1.StoreService/Rollback"
+	StoreService_TenantsCreate_FullMethodName                          = "/zeroauthy.store.v1.StoreService/TenantsCreate"
+	StoreService_TenantsGet_FullMethodName                             = "/zeroauthy.store.v1.StoreService/TenantsGet"
+	StoreService_TenantsGetByName_FullMethodName                       = "/zeroauthy.store.v1.StoreService/TenantsGetByName"
+	StoreService_TenantsGetByDomain_FullMethodName                     = "/zeroauthy.store.v1.StoreService/TenantsGetByDomain"
+	StoreService_TenantsUpdate_FullMethodName                          = "/zeroauthy.store.v1.StoreService/TenantsUpdate"
+	StoreService_TenantsList_FullMethodName                            = "/zeroauthy.store.v1.StoreService/TenantsList"
+	StoreService_TenantsDelete_FullMethodName                          = "/zeroauthy.store.v1.StoreService/TenantsDelete"
+	StoreService_ClientsCreate_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ClientsCreate"
+	StoreService_ClientsGet_FullMethodName                             = "/zeroauthy.store.v1.StoreService/ClientsGet"
+	StoreService_ClientsUpdate_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ClientsUpdate"
+	StoreService_ClientsDelete_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ClientsDelete"
+	StoreService_ClientsList_FullMethodName                            = "/zeroauthy.store.v1.StoreService/ClientsList"
+	StoreService_ClientsListPage_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ClientsListPage"
+	StoreService_ResourceServersCreate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ResourceServersCreate"
+	StoreService_ResourceServersGet_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ResourceServersGet"
+	StoreService_ResourceServersGetByIdentifier_FullMethodName         = "/zeroauthy.store.v1.StoreService/ResourceServersGetByIdentifier"
+	StoreService_ResourceServersUpdate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ResourceServersUpdate"
+	StoreService_ResourceServersDelete_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ResourceServersDelete"
+	StoreService_ResourceServersList_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ResourceServersList"
+	StoreService_ClientGrantsCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ClientGrantsCreate"
+	StoreService_ClientGrantsFind_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ClientGrantsFind"
+	StoreService_ClientGrantsUpdate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ClientGrantsUpdate"
+	StoreService_ClientGrantsDelete_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ClientGrantsDelete"
+	StoreService_ClientGrantsList_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ClientGrantsList"
+	StoreService_UserGrantsFind_FullMethodName                         = "/zeroauthy.store.v1.StoreService/UserGrantsFind"
+	StoreService_UserGrantsUpsert_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UserGrantsUpsert"
+	StoreService_UserGrantsList_FullMethodName                         = "/zeroauthy.store.v1.StoreService/UserGrantsList"
+	StoreService_UserGrantsListByUser_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UserGrantsListByUser"
+	StoreService_UserGrantsListByAudience_FullMethodName               = "/zeroauthy.store.v1.StoreService/UserGrantsListByAudience"
+	StoreService_UserGrantsDelete_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UserGrantsDelete"
+	StoreService_UserGrantsDeleteByUser_FullMethodName                 = "/zeroauthy.store.v1.StoreService/UserGrantsDeleteByUser"
+	StoreService_SigningKeysCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SigningKeysCreate"
+	StoreService_SigningKeysList_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SigningKeysList"
+	StoreService_SigningKeysRotate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SigningKeysRotate"
+	StoreService_ConnectionsCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ConnectionsCreate"
+	StoreService_ConnectionsGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ConnectionsGet"
+	StoreService_ConnectionsGetByName_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ConnectionsGetByName"
+	StoreService_ConnectionsUpdate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ConnectionsUpdate"
+	StoreService_ConnectionsList_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ConnectionsList"
+	StoreService_ConnectionsListPage_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ConnectionsListPage"
+	StoreService_ConnectionsDelete_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ConnectionsDelete"
+	StoreService_PasswordHistoriesAdd_FullMethodName                   = "/zeroauthy.store.v1.StoreService/PasswordHistoriesAdd"
+	StoreService_PasswordHistoriesList_FullMethodName                  = "/zeroauthy.store.v1.StoreService/PasswordHistoriesList"
+	StoreService_UsersCreate_FullMethodName                            = "/zeroauthy.store.v1.StoreService/UsersCreate"
+	StoreService_UsersGet_FullMethodName                               = "/zeroauthy.store.v1.StoreService/UsersGet"
+	StoreService_UsersFindByLogin_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UsersFindByLogin"
+	StoreService_UsersUpdate_FullMethodName                            = "/zeroauthy.store.v1.StoreService/UsersUpdate"
+	StoreService_UsersRecordLogin_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UsersRecordLogin"
+	StoreService_UsersSetPasswordHash_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHash"
+	StoreService_UsersFindByEmail_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UsersFindByEmail"
+	StoreService_UsersSetPasswordHashIfEmpty_FullMethodName            = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHashIfEmpty"
+	StoreService_UsersBumpVersion_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UsersBumpVersion"
+	StoreService_UsersDelete_FullMethodName                            = "/zeroauthy.store.v1.StoreService/UsersDelete"
+	StoreService_UsersList_FullMethodName                              = "/zeroauthy.store.v1.StoreService/UsersList"
+	StoreService_SessionsCreate_FullMethodName                         = "/zeroauthy.store.v1.StoreService/SessionsCreate"
+	StoreService_SessionsGetByTokenHash_FullMethodName                 = "/zeroauthy.store.v1.StoreService/SessionsGetByTokenHash"
+	StoreService_SessionsGet_FullMethodName                            = "/zeroauthy.store.v1.StoreService/SessionsGet"
+	StoreService_SessionsListByUser_FullMethodName                     = "/zeroauthy.store.v1.StoreService/SessionsListByUser"
+	StoreService_SessionsTouch_FullMethodName                          = "/zeroauthy.store.v1.StoreService/SessionsTouch"
+	StoreService_SessionsAddClient_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SessionsAddClient"
+	StoreService_SessionsDelete_FullMethodName                         = "/zeroauthy.store.v1.StoreService/SessionsDelete"
+	StoreService_SessionsDeleteByUser_FullMethodName                   = "/zeroauthy.store.v1.StoreService/SessionsDeleteByUser"
+	StoreService_SessionsDeleteExpired_FullMethodName                  = "/zeroauthy.store.v1.StoreService/SessionsDeleteExpired"
+	StoreService_AuthTransactionsCreate_FullMethodName                 = "/zeroauthy.store.v1.StoreService/AuthTransactionsCreate"
+	StoreService_AuthTransactionsGet_FullMethodName                    = "/zeroauthy.store.v1.StoreService/AuthTransactionsGet"
+	StoreService_AuthTransactionsDelete_FullMethodName                 = "/zeroauthy.store.v1.StoreService/AuthTransactionsDelete"
+	StoreService_AuthTransactionsDeleteExpired_FullMethodName          = "/zeroauthy.store.v1.StoreService/AuthTransactionsDeleteExpired"
+	StoreService_AuthCodesCreate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/AuthCodesCreate"
+	StoreService_AuthCodesConsume_FullMethodName                       = "/zeroauthy.store.v1.StoreService/AuthCodesConsume"
+	StoreService_AuthCodesGet_FullMethodName                           = "/zeroauthy.store.v1.StoreService/AuthCodesGet"
+	StoreService_AuthCodesDeleteExpired_FullMethodName                 = "/zeroauthy.store.v1.StoreService/AuthCodesDeleteExpired"
+	StoreService_PushedAuthRequestsCreate_FullMethodName               = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsCreate"
+	StoreService_PushedAuthRequestsConsume_FullMethodName              = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsConsume"
+	StoreService_PushedAuthRequestsGet_FullMethodName                  = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsGet"
+	StoreService_PushedAuthRequestsDeleteExpired_FullMethodName        = "/zeroauthy.store.v1.StoreService/PushedAuthRequestsDeleteExpired"
+	StoreService_DeviceCodesCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/DeviceCodesCreate"
+	StoreService_DeviceCodesGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/DeviceCodesGet"
+	StoreService_DeviceCodesGetByUserCode_FullMethodName               = "/zeroauthy.store.v1.StoreService/DeviceCodesGetByUserCode"
+	StoreService_DeviceCodesDecide_FullMethodName                      = "/zeroauthy.store.v1.StoreService/DeviceCodesDecide"
+	StoreService_DeviceCodesPoll_FullMethodName                        = "/zeroauthy.store.v1.StoreService/DeviceCodesPoll"
+	StoreService_DeviceCodesDeleteExpired_FullMethodName               = "/zeroauthy.store.v1.StoreService/DeviceCodesDeleteExpired"
+	StoreService_RefreshTokensCreate_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RefreshTokensCreate"
+	StoreService_RefreshTokensGetByTokenHash_FullMethodName            = "/zeroauthy.store.v1.StoreService/RefreshTokensGetByTokenHash"
+	StoreService_RefreshTokensGet_FullMethodName                       = "/zeroauthy.store.v1.StoreService/RefreshTokensGet"
+	StoreService_RefreshTokensListByUser_FullMethodName                = "/zeroauthy.store.v1.StoreService/RefreshTokensListByUser"
+	StoreService_RefreshTokensRevoke_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RefreshTokensRevoke"
+	StoreService_RefreshTokensRotate_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RefreshTokensRotate"
+	StoreService_RefreshTokensTouch_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RefreshTokensTouch"
+	StoreService_RefreshTokensRevokeFamily_FullMethodName              = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeFamily"
+	StoreService_RefreshTokensRevokeByUser_FullMethodName              = "/zeroauthy.store.v1.StoreService/RefreshTokensRevokeByUser"
+	StoreService_RefreshTokensDeleteExpired_FullMethodName             = "/zeroauthy.store.v1.StoreService/RefreshTokensDeleteExpired"
+	StoreService_PasswordResetTicketsCreate_FullMethodName             = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsCreate"
+	StoreService_PasswordResetTicketsGetByTokenHash_FullMethodName     = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsGetByTokenHash"
+	StoreService_PasswordResetTicketsConsume_FullMethodName            = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsConsume"
+	StoreService_PasswordResetTicketsDeleteByUser_FullMethodName       = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteByUser"
+	StoreService_PasswordResetTicketsDeleteExpired_FullMethodName      = "/zeroauthy.store.v1.StoreService/PasswordResetTicketsDeleteExpired"
+	StoreService_EmailVerificationTicketsCreate_FullMethodName         = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsCreate"
+	StoreService_EmailVerificationTicketsGetByTokenHash_FullMethodName = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsGetByTokenHash"
+	StoreService_EmailVerificationTicketsConsume_FullMethodName        = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsConsume"
+	StoreService_EmailVerificationTicketsDeleteByUser_FullMethodName   = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsDeleteByUser"
+	StoreService_EmailVerificationTicketsDeleteExpired_FullMethodName  = "/zeroauthy.store.v1.StoreService/EmailVerificationTicketsDeleteExpired"
+	StoreService_OperatorsGet_FullMethodName                           = "/zeroauthy.store.v1.StoreService/OperatorsGet"
+	StoreService_OperatorsUpsert_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OperatorsUpsert"
+	StoreService_OperatorsList_FullMethodName                          = "/zeroauthy.store.v1.StoreService/OperatorsList"
+	StoreService_OperatorsDelete_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OperatorsDelete"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -195,6 +207,7 @@ type StoreServiceClient interface {
 	ClientsUpdate(ctx context.Context, in *ClientWrite, opts ...grpc.CallOption) (*Result, error)
 	ClientsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
 	ClientsList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*ClientList, error)
+	ClientsListPage(ctx context.Context, in *ClientsListPageRequest, opts ...grpc.CallOption) (*ClientPage, error)
 	ResourceServersCreate(ctx context.Context, in *ResourceServerWrite, opts ...grpc.CallOption) (*Result, error)
 	ResourceServersGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ResourceServerResult, error)
 	ResourceServersGetByIdentifier(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ResourceServerResult, error)
@@ -208,6 +221,7 @@ type StoreServiceClient interface {
 	ClientGrantsList(ctx context.Context, in *ClientGrantsListRequest, opts ...grpc.CallOption) (*ClientGrantList, error)
 	UserGrantsFind(ctx context.Context, in *UserGrantsFindRequest, opts ...grpc.CallOption) (*UserGrantResult, error)
 	UserGrantsUpsert(ctx context.Context, in *UserGrantWrite, opts ...grpc.CallOption) (*UserGrantResult, error)
+	UserGrantsList(ctx context.Context, in *UserGrantsListRequest, opts ...grpc.CallOption) (*UserGrantList, error)
 	UserGrantsListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantList, error)
 	UserGrantsListByAudience(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserGrantList, error)
 	UserGrantsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
@@ -237,6 +251,8 @@ type StoreServiceClient interface {
 	UsersList(ctx context.Context, in *UsersListRequest, opts ...grpc.CallOption) (*UserListResult, error)
 	SessionsCreate(ctx context.Context, in *SessionWrite, opts ...grpc.CallOption) (*Result, error)
 	SessionsGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error)
+	SessionsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error)
+	SessionsListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionList, error)
 	SessionsTouch(ctx context.Context, in *TouchRequest, opts ...grpc.CallOption) (*Result, error)
 	SessionsAddClient(ctx context.Context, in *SessionsAddClientRequest, opts ...grpc.CallOption) (*Result, error)
 	SessionsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
@@ -262,6 +278,9 @@ type StoreServiceClient interface {
 	DeviceCodesDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
 	RefreshTokensCreate(ctx context.Context, in *RefreshTokenWrite, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error)
+	RefreshTokensGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error)
+	RefreshTokensListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenList, error)
+	RefreshTokensRevoke(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensRotate(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensTouch(ctx context.Context, in *TouchRequest, opts ...grpc.CallOption) (*Result, error)
 	RefreshTokensRevokeFamily(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*Result, error)
@@ -272,6 +291,11 @@ type StoreServiceClient interface {
 	PasswordResetTicketsConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*PasswordResetTicketResult, error)
 	PasswordResetTicketsDeleteByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*CountResult, error)
 	PasswordResetTicketsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
+	EmailVerificationTicketsCreate(ctx context.Context, in *EmailVerificationTicketWrite, opts ...grpc.CallOption) (*Result, error)
+	EmailVerificationTicketsGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*EmailVerificationTicketResult, error)
+	EmailVerificationTicketsConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*EmailVerificationTicketResult, error)
+	EmailVerificationTicketsDeleteByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*CountResult, error)
+	EmailVerificationTicketsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
 	// Console operators (Plan 13), keyed by (tenant_id, user_id). Hosts
 	// report Unimplemented as "plugin too old".
 	OperatorsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*OperatorResult, error)
@@ -448,6 +472,16 @@ func (c *storeServiceClient) ClientsList(ctx context.Context, in *TenantScope, o
 	return out, nil
 }
 
+func (c *storeServiceClient) ClientsListPage(ctx context.Context, in *ClientsListPageRequest, opts ...grpc.CallOption) (*ClientPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClientPage)
+	err := c.cc.Invoke(ctx, StoreService_ClientsListPage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) ResourceServersCreate(ctx context.Context, in *ResourceServerWrite, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -572,6 +606,16 @@ func (c *storeServiceClient) UserGrantsUpsert(ctx context.Context, in *UserGrant
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UserGrantResult)
 	err := c.cc.Invoke(ctx, StoreService_UserGrantsUpsert_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UserGrantsList(ctx context.Context, in *UserGrantsListRequest, opts ...grpc.CallOption) (*UserGrantList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserGrantList)
+	err := c.cc.Invoke(ctx, StoreService_UserGrantsList_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -868,6 +912,26 @@ func (c *storeServiceClient) SessionsGetByTokenHash(ctx context.Context, in *Sco
 	return out, nil
 }
 
+func (c *storeServiceClient) SessionsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionResult)
+	err := c.cc.Invoke(ctx, StoreService_SessionsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) SessionsListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionList)
+	err := c.cc.Invoke(ctx, StoreService_SessionsListByUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) SessionsTouch(ctx context.Context, in *TouchRequest, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -1118,6 +1182,36 @@ func (c *storeServiceClient) RefreshTokensGetByTokenHash(ctx context.Context, in
 	return out, nil
 }
 
+func (c *storeServiceClient) RefreshTokensGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenResult)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensListByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*RefreshTokenList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshTokenList)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensListByUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RefreshTokensRevoke(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_RefreshTokensRevoke_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) RefreshTokensRotate(ctx context.Context, in *RefreshTokensRotateRequest, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -1212,6 +1306,56 @@ func (c *storeServiceClient) PasswordResetTicketsDeleteExpired(ctx context.Conte
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CountResult)
 	err := c.cc.Invoke(ctx, StoreService_PasswordResetTicketsDeleteExpired_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailVerificationTicketsCreate(ctx context.Context, in *EmailVerificationTicketWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_EmailVerificationTicketsCreate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailVerificationTicketsGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*EmailVerificationTicketResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmailVerificationTicketResult)
+	err := c.cc.Invoke(ctx, StoreService_EmailVerificationTicketsGetByTokenHash_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailVerificationTicketsConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*EmailVerificationTicketResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmailVerificationTicketResult)
+	err := c.cc.Invoke(ctx, StoreService_EmailVerificationTicketsConsume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailVerificationTicketsDeleteByUser(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_EmailVerificationTicketsDeleteByUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailVerificationTicketsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_EmailVerificationTicketsDeleteExpired_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1335,6 +1479,7 @@ type StoreServiceServer interface {
 	ClientsUpdate(context.Context, *ClientWrite) (*Result, error)
 	ClientsDelete(context.Context, *ScopedKey) (*Result, error)
 	ClientsList(context.Context, *TenantScope) (*ClientList, error)
+	ClientsListPage(context.Context, *ClientsListPageRequest) (*ClientPage, error)
 	ResourceServersCreate(context.Context, *ResourceServerWrite) (*Result, error)
 	ResourceServersGet(context.Context, *ScopedKey) (*ResourceServerResult, error)
 	ResourceServersGetByIdentifier(context.Context, *ScopedKey) (*ResourceServerResult, error)
@@ -1348,6 +1493,7 @@ type StoreServiceServer interface {
 	ClientGrantsList(context.Context, *ClientGrantsListRequest) (*ClientGrantList, error)
 	UserGrantsFind(context.Context, *UserGrantsFindRequest) (*UserGrantResult, error)
 	UserGrantsUpsert(context.Context, *UserGrantWrite) (*UserGrantResult, error)
+	UserGrantsList(context.Context, *UserGrantsListRequest) (*UserGrantList, error)
 	UserGrantsListByUser(context.Context, *ScopedKey) (*UserGrantList, error)
 	UserGrantsListByAudience(context.Context, *ScopedKey) (*UserGrantList, error)
 	UserGrantsDelete(context.Context, *ScopedKey) (*Result, error)
@@ -1377,6 +1523,8 @@ type StoreServiceServer interface {
 	UsersList(context.Context, *UsersListRequest) (*UserListResult, error)
 	SessionsCreate(context.Context, *SessionWrite) (*Result, error)
 	SessionsGetByTokenHash(context.Context, *ScopedKey) (*SessionResult, error)
+	SessionsGet(context.Context, *ScopedKey) (*SessionResult, error)
+	SessionsListByUser(context.Context, *ScopedKey) (*SessionList, error)
 	SessionsTouch(context.Context, *TouchRequest) (*Result, error)
 	SessionsAddClient(context.Context, *SessionsAddClientRequest) (*Result, error)
 	SessionsDelete(context.Context, *ScopedKey) (*Result, error)
@@ -1402,6 +1550,9 @@ type StoreServiceServer interface {
 	DeviceCodesDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
 	RefreshTokensCreate(context.Context, *RefreshTokenWrite) (*Result, error)
 	RefreshTokensGetByTokenHash(context.Context, *ScopedKey) (*RefreshTokenResult, error)
+	RefreshTokensGet(context.Context, *ScopedKey) (*RefreshTokenResult, error)
+	RefreshTokensListByUser(context.Context, *ScopedKey) (*RefreshTokenList, error)
+	RefreshTokensRevoke(context.Context, *RevokeRequest) (*Result, error)
 	RefreshTokensRotate(context.Context, *RefreshTokensRotateRequest) (*Result, error)
 	RefreshTokensTouch(context.Context, *TouchRequest) (*Result, error)
 	RefreshTokensRevokeFamily(context.Context, *RevokeRequest) (*Result, error)
@@ -1412,6 +1563,11 @@ type StoreServiceServer interface {
 	PasswordResetTicketsConsume(context.Context, *ConsumeRequest) (*PasswordResetTicketResult, error)
 	PasswordResetTicketsDeleteByUser(context.Context, *ScopedKey) (*CountResult, error)
 	PasswordResetTicketsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
+	EmailVerificationTicketsCreate(context.Context, *EmailVerificationTicketWrite) (*Result, error)
+	EmailVerificationTicketsGetByTokenHash(context.Context, *ScopedKey) (*EmailVerificationTicketResult, error)
+	EmailVerificationTicketsConsume(context.Context, *ConsumeRequest) (*EmailVerificationTicketResult, error)
+	EmailVerificationTicketsDeleteByUser(context.Context, *ScopedKey) (*CountResult, error)
+	EmailVerificationTicketsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
 	// Console operators (Plan 13), keyed by (tenant_id, user_id). Hosts
 	// report Unimplemented as "plugin too old".
 	OperatorsGet(context.Context, *ScopedKey) (*OperatorResult, error)
@@ -1476,6 +1632,9 @@ func (UnimplementedStoreServiceServer) ClientsDelete(context.Context, *ScopedKey
 func (UnimplementedStoreServiceServer) ClientsList(context.Context, *TenantScope) (*ClientList, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClientsList not implemented")
 }
+func (UnimplementedStoreServiceServer) ClientsListPage(context.Context, *ClientsListPageRequest) (*ClientPage, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClientsListPage not implemented")
+}
 func (UnimplementedStoreServiceServer) ResourceServersCreate(context.Context, *ResourceServerWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResourceServersCreate not implemented")
 }
@@ -1514,6 +1673,9 @@ func (UnimplementedStoreServiceServer) UserGrantsFind(context.Context, *UserGran
 }
 func (UnimplementedStoreServiceServer) UserGrantsUpsert(context.Context, *UserGrantWrite) (*UserGrantResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method UserGrantsUpsert not implemented")
+}
+func (UnimplementedStoreServiceServer) UserGrantsList(context.Context, *UserGrantsListRequest) (*UserGrantList, error) {
+	return nil, status.Error(codes.Unimplemented, "method UserGrantsList not implemented")
 }
 func (UnimplementedStoreServiceServer) UserGrantsListByUser(context.Context, *ScopedKey) (*UserGrantList, error) {
 	return nil, status.Error(codes.Unimplemented, "method UserGrantsListByUser not implemented")
@@ -1602,6 +1764,12 @@ func (UnimplementedStoreServiceServer) SessionsCreate(context.Context, *SessionW
 func (UnimplementedStoreServiceServer) SessionsGetByTokenHash(context.Context, *ScopedKey) (*SessionResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method SessionsGetByTokenHash not implemented")
 }
+func (UnimplementedStoreServiceServer) SessionsGet(context.Context, *ScopedKey) (*SessionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SessionsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) SessionsListByUser(context.Context, *ScopedKey) (*SessionList, error) {
+	return nil, status.Error(codes.Unimplemented, "method SessionsListByUser not implemented")
+}
 func (UnimplementedStoreServiceServer) SessionsTouch(context.Context, *TouchRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SessionsTouch not implemented")
 }
@@ -1677,6 +1845,15 @@ func (UnimplementedStoreServiceServer) RefreshTokensCreate(context.Context, *Ref
 func (UnimplementedStoreServiceServer) RefreshTokensGetByTokenHash(context.Context, *ScopedKey) (*RefreshTokenResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensGetByTokenHash not implemented")
 }
+func (UnimplementedStoreServiceServer) RefreshTokensGet(context.Context, *ScopedKey) (*RefreshTokenResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensGet not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensListByUser(context.Context, *ScopedKey) (*RefreshTokenList, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensListByUser not implemented")
+}
+func (UnimplementedStoreServiceServer) RefreshTokensRevoke(context.Context, *RevokeRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshTokensRevoke not implemented")
+}
 func (UnimplementedStoreServiceServer) RefreshTokensRotate(context.Context, *RefreshTokensRotateRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshTokensRotate not implemented")
 }
@@ -1706,6 +1883,21 @@ func (UnimplementedStoreServiceServer) PasswordResetTicketsDeleteByUser(context.
 }
 func (UnimplementedStoreServiceServer) PasswordResetTicketsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method PasswordResetTicketsDeleteExpired not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailVerificationTicketsCreate(context.Context, *EmailVerificationTicketWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailVerificationTicketsCreate not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailVerificationTicketsGetByTokenHash(context.Context, *ScopedKey) (*EmailVerificationTicketResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailVerificationTicketsGetByTokenHash not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailVerificationTicketsConsume(context.Context, *ConsumeRequest) (*EmailVerificationTicketResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailVerificationTicketsConsume not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailVerificationTicketsDeleteByUser(context.Context, *ScopedKey) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailVerificationTicketsDeleteByUser not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailVerificationTicketsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailVerificationTicketsDeleteExpired not implemented")
 }
 func (UnimplementedStoreServiceServer) OperatorsGet(context.Context, *ScopedKey) (*OperatorResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method OperatorsGet not implemented")
@@ -2028,6 +2220,24 @@ func _StoreService_ClientsList_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_ClientsListPage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientsListPageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ClientsListPage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ClientsListPage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ClientsListPage(ctx, req.(*ClientsListPageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_ResourceServersCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ResourceServerWrite)
 	if err := dec(in); err != nil {
@@ -2258,6 +2468,24 @@ func _StoreService_UserGrantsUpsert_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).UserGrantsUpsert(ctx, req.(*UserGrantWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UserGrantsList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserGrantsListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UserGrantsList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UserGrantsList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UserGrantsList(ctx, req.(*UserGrantsListRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2784,6 +3012,42 @@ func _StoreService_SessionsGetByTokenHash_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_SessionsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SessionsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SessionsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SessionsGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_SessionsListByUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SessionsListByUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SessionsListByUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SessionsListByUser(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_SessionsTouch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TouchRequest)
 	if err := dec(in); err != nil {
@@ -3234,6 +3498,60 @@ func _StoreService_RefreshTokensGetByTokenHash_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_RefreshTokensGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensListByUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensListByUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensListByUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensListByUser(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RefreshTokensRevoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RefreshTokensRevoke(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RefreshTokensRevoke_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RefreshTokensRevoke(ctx, req.(*RevokeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_RefreshTokensRotate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RefreshTokensRotateRequest)
 	if err := dec(in); err != nil {
@@ -3414,6 +3732,96 @@ func _StoreService_PasswordResetTicketsDeleteExpired_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_EmailVerificationTicketsCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmailVerificationTicketWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailVerificationTicketsCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailVerificationTicketsCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailVerificationTicketsCreate(ctx, req.(*EmailVerificationTicketWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailVerificationTicketsGetByTokenHash_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailVerificationTicketsGetByTokenHash(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailVerificationTicketsGetByTokenHash_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailVerificationTicketsGetByTokenHash(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailVerificationTicketsConsume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConsumeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailVerificationTicketsConsume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailVerificationTicketsConsume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailVerificationTicketsConsume(ctx, req.(*ConsumeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailVerificationTicketsDeleteByUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailVerificationTicketsDeleteByUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailVerificationTicketsDeleteByUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailVerificationTicketsDeleteByUser(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailVerificationTicketsDeleteExpired_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteExpiredRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailVerificationTicketsDeleteExpired(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailVerificationTicketsDeleteExpired_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailVerificationTicketsDeleteExpired(ctx, req.(*DeleteExpiredRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_OperatorsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ScopedKey)
 	if err := dec(in); err != nil {
@@ -3558,6 +3966,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StoreService_ClientsList_Handler,
 		},
 		{
+			MethodName: "ClientsListPage",
+			Handler:    _StoreService_ClientsListPage_Handler,
+		},
+		{
 			MethodName: "ResourceServersCreate",
 			Handler:    _StoreService_ResourceServersCreate_Handler,
 		},
@@ -3608,6 +4020,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UserGrantsUpsert",
 			Handler:    _StoreService_UserGrantsUpsert_Handler,
+		},
+		{
+			MethodName: "UserGrantsList",
+			Handler:    _StoreService_UserGrantsList_Handler,
 		},
 		{
 			MethodName: "UserGrantsListByUser",
@@ -3726,6 +4142,14 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StoreService_SessionsGetByTokenHash_Handler,
 		},
 		{
+			MethodName: "SessionsGet",
+			Handler:    _StoreService_SessionsGet_Handler,
+		},
+		{
+			MethodName: "SessionsListByUser",
+			Handler:    _StoreService_SessionsListByUser_Handler,
+		},
+		{
 			MethodName: "SessionsTouch",
 			Handler:    _StoreService_SessionsTouch_Handler,
 		},
@@ -3826,6 +4250,18 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StoreService_RefreshTokensGetByTokenHash_Handler,
 		},
 		{
+			MethodName: "RefreshTokensGet",
+			Handler:    _StoreService_RefreshTokensGet_Handler,
+		},
+		{
+			MethodName: "RefreshTokensListByUser",
+			Handler:    _StoreService_RefreshTokensListByUser_Handler,
+		},
+		{
+			MethodName: "RefreshTokensRevoke",
+			Handler:    _StoreService_RefreshTokensRevoke_Handler,
+		},
+		{
 			MethodName: "RefreshTokensRotate",
 			Handler:    _StoreService_RefreshTokensRotate_Handler,
 		},
@@ -3864,6 +4300,26 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PasswordResetTicketsDeleteExpired",
 			Handler:    _StoreService_PasswordResetTicketsDeleteExpired_Handler,
+		},
+		{
+			MethodName: "EmailVerificationTicketsCreate",
+			Handler:    _StoreService_EmailVerificationTicketsCreate_Handler,
+		},
+		{
+			MethodName: "EmailVerificationTicketsGetByTokenHash",
+			Handler:    _StoreService_EmailVerificationTicketsGetByTokenHash_Handler,
+		},
+		{
+			MethodName: "EmailVerificationTicketsConsume",
+			Handler:    _StoreService_EmailVerificationTicketsConsume_Handler,
+		},
+		{
+			MethodName: "EmailVerificationTicketsDeleteByUser",
+			Handler:    _StoreService_EmailVerificationTicketsDeleteByUser_Handler,
+		},
+		{
+			MethodName: "EmailVerificationTicketsDeleteExpired",
+			Handler:    _StoreService_EmailVerificationTicketsDeleteExpired_Handler,
 		},
 		{
 			MethodName: "OperatorsGet",

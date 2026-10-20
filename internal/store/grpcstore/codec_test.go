@@ -331,6 +331,8 @@ func TestSessionRoundTrip(t *testing.T) {
 		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db",
 		AuthenticatedAt: nanoTime, ClientIDs: []string{"c1", "c2"},
 		ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
+		UpdatedAt: nanoTime.Add(time.Second), LastInteractedAt: nanoTime.Add(2 * time.Second),
+		InitialIP: "203.0.113.7", InitialUserAgent: "ua-1", LastIP: "198.51.100.9", LastUserAgent: "ua-2",
 	}, sessionToPB, sessionFromPB)
 	roundTrip(t, "empty", &store.LoginSession{ClientIDs: []string{}}, sessionToPB, sessionFromPB)
 	roundTrip(t, "zero", &store.LoginSession{}, sessionToPB, sessionFromPB)
@@ -373,8 +375,18 @@ func TestPasswordResetTicketRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.PasswordResetTicket{
 		TenantID: "ten", ID: "tk", TokenHash: "th", UserID: "auth0|u1", Connection: "db", ClientID: "cid",
 		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
+		ResultURL: "https://app.test/done", IncludeEmailInRedirect: true, MarkEmailVerified: true,
 	}, passwordResetTicketToPB, passwordResetTicketFromPB)
 	roundTrip(t, "zero", &store.PasswordResetTicket{}, passwordResetTicketToPB, passwordResetTicketFromPB)
+}
+
+func TestEmailVerificationTicketRoundTrip(t *testing.T) {
+	roundTrip(t, "full", &store.EmailVerificationTicket{
+		TenantID: "ten", ID: "tk", TokenHash: "th", UserID: "auth0|u1", Connection: "db", ClientID: "cid",
+		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
+		ResultURL: "https://app.test/done", IncludeEmailInRedirect: true,
+	}, emailVerificationTicketToPB, emailVerificationTicketFromPB)
+	roundTrip(t, "zero", &store.EmailVerificationTicket{}, emailVerificationTicketToPB, emailVerificationTicketFromPB)
 }
 
 func TestOperatorRoundTrip(t *testing.T) {

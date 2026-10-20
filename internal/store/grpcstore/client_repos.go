@@ -1,9 +1,12 @@
 package grpcstore
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -161,9 +164,59 @@ func (a clientClients) Delete(ctx context.Context, tenantID, clientID string) er
 	return do("ClientsDelete", r, err)
 }
 
-func (a clientClients) List(ctx context.Context, tenantID string) ([]*store.Client, error) {
-	r, err := a.c.rpc.ClientsList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
-	return decList("ClientsList", err, r.GetError(), r.GetValues(), clientFromPB)
+func (a clientClients) List(ctx context.Context, tenantID string, f store.ClientFilter, p store.Page) ([]*store.Client, int, error) {
+	if len(f.AppTypes) == 0 && f.IsFirstParty == nil && p == (store.Page{}) {
+		// Everything, as every plugin can serve it.
+		r, err := a.c.rpc.ClientsList(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+		out, err := decList("ClientsList", err, r.GetError(), r.GetValues(), clientFromPB)
+		sortClients(out)
+		return out, len(out), err
+	}
+	req := &storev1.ClientsListPageRequest{TxId: a.c.txID, TenantId: tenantID, AppTypes: f.AppTypes,
+		Offset: int64(p.Offset), Limit: int64(p.Limit)}
+	if f.IsFirstParty != nil {
+		req.HasIsFirstParty, req.IsFirstParty = true, *f.IsFirstParty
+	}
+	r, err := a.c.rpc.ClientsListPage(ctx, req)
+	if status.Code(err) == codes.Unimplemented {
+		// A plugin without ClientsListPage still serves GET /clients: list
+		// everything and filter, order and page here.
+		all, _, err := a.List(ctx, tenantID, store.ClientFilter{}, store.Page{})
+		if err != nil {
+			return nil, 0, err
+		}
+		return filterClients(all, f, p)
+	}
+	out, err := decList("ClientsListPage", err, r.GetError(), r.GetValues(), clientFromPB)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, int(r.GetTotal()), nil
+}
+
+// sortClients orders by CreatedAt, then ClientID, as Clients.List promises;
+// a plugin that predates the order returns them by ClientID.
+func sortClients(cs []*store.Client) {
+	slices.SortStableFunc(cs, func(a, b *store.Client) int {
+		return cmp.Or(a.CreatedAt.Compare(b.CreatedAt), strings.Compare(a.ClientID, b.ClientID))
+	})
+}
+
+// filterClients applies f and p to all, which sortClients has ordered.
+func filterClients(all []*store.Client, f store.ClientFilter, p store.Page) ([]*store.Client, int, error) {
+	var kept []*store.Client
+	for _, c := range all {
+		if (len(f.AppTypes) == 0 || slices.Contains(f.AppTypes, string(c.AppType))) &&
+			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) {
+			kept = append(kept, c)
+		}
+	}
+	total := len(kept)
+	kept = kept[min(max(p.Offset, 0), total):]
+	if p.Limit > 0 && len(kept) > p.Limit {
+		kept = kept[:p.Limit]
+	}
+	return kept, total, nil
 }
 
 // ---- resource servers ----
@@ -265,6 +318,16 @@ func (a clientUserGrants) Upsert(ctx context.Context, g *store.UserGrant) (*stor
 	}
 	r, err := a.c.rpc.UserGrantsUpsert(ctx, &storev1.UserGrantWrite{TxId: a.c.txID, Value: pb})
 	return decOne("UserGrantsUpsert", err, r.GetError(), r.GetValue(), userGrantFromPB)
+}
+
+func (a clientUserGrants) List(ctx context.Context, tenantID string, f store.UserGrantFilter, p store.Page) ([]*store.UserGrant, int, error) {
+	r, err := a.c.rpc.UserGrantsList(ctx, &storev1.UserGrantsListRequest{TxId: a.c.txID, TenantId: tenantID,
+		UserId: f.UserID, ClientId: f.ClientID, Audience: f.Audience, Offset: int64(p.Offset), Limit: int64(p.Limit)})
+	out, err := decList("UserGrantsList", tooOld(err), r.GetError(), r.GetValues(), userGrantFromPB)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, int(r.GetTotal()), nil
 }
 
 func (a clientUserGrants) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.UserGrant, error) {
@@ -459,8 +522,21 @@ func (a clientSessions) GetByTokenHash(ctx context.Context, tenantID, tokenHash 
 	return decOne("SessionsGetByTokenHash", err, r.GetError(), r.GetValue(), sessionFromPB)
 }
 
-func (a clientSessions) Touch(ctx context.Context, tenantID, id string, idleExpiresAt time.Time) error {
-	r, err := a.c.rpc.SessionsTouch(ctx, &storev1.TouchRequest{TxId: a.c.txID, TenantId: tenantID, Id: id, IdleExpiresAt: tsToPB(idleExpiresAt)})
+func (a clientSessions) Get(ctx context.Context, tenantID, id string) (*store.LoginSession, error) {
+	r, err := a.c.rpc.SessionsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return decOne("SessionsGet", tooOld(err), r.GetError(), r.GetValue(), sessionFromPB)
+}
+
+func (a clientSessions) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.LoginSession, error) {
+	r, err := a.c.rpc.SessionsListByUser(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return decList("SessionsListByUser", tooOld(err), r.GetError(), r.GetValues(), sessionFromPB)
+}
+
+// Touch sends at, ip and userAgent as new TouchRequest fields: a plugin that
+// predates them still extends the idle expiry and drops the rest.
+func (a clientSessions) Touch(ctx context.Context, tenantID, id string, at, idleExpiresAt time.Time, ip, userAgent string) error {
+	r, err := a.c.rpc.SessionsTouch(ctx, &storev1.TouchRequest{TxId: a.c.txID, TenantId: tenantID, Id: id,
+		IdleExpiresAt: tsToPB(idleExpiresAt), At: tsToPB(at), Ip: ip, UserAgent: userAgent})
 	return do("SessionsTouch", r, err)
 }
 
@@ -640,6 +716,21 @@ func (a clientRefreshTokens) GetByTokenHash(ctx context.Context, tenantID, token
 	return decOne("RefreshTokensGetByTokenHash", err, r.GetError(), r.GetValue(), refreshTokenFromPB)
 }
 
+func (a clientRefreshTokens) Get(ctx context.Context, tenantID, id string) (*store.RefreshToken, error) {
+	r, err := a.c.rpc.RefreshTokensGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return decOne("RefreshTokensGet", tooOld(err), r.GetError(), r.GetValue(), refreshTokenFromPB)
+}
+
+func (a clientRefreshTokens) ListByUser(ctx context.Context, tenantID, userID string) ([]*store.RefreshToken, error) {
+	r, err := a.c.rpc.RefreshTokensListByUser(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return decList("RefreshTokensListByUser", tooOld(err), r.GetError(), r.GetValues(), refreshTokenFromPB)
+}
+
+func (a clientRefreshTokens) Revoke(ctx context.Context, tenantID, id string, at time.Time) error {
+	r, err := a.c.rpc.RefreshTokensRevoke(ctx, &storev1.RevokeRequest{TxId: a.c.txID, TenantId: tenantID, Key: id, At: tsToPB(at)})
+	return do("RefreshTokensRevoke", r, tooOld(err))
+}
+
 func (a clientRefreshTokens) Rotate(ctx context.Context, tenantID, oldID string, next *store.RefreshToken, at time.Time, leeway time.Duration) error {
 	return put("RefreshTokensRotate", next, refreshTokenToPB, func(pb *storev1.RefreshToken) (result, error) {
 		return a.c.rpc.RefreshTokensRotate(ctx, &storev1.RefreshTokensRotateRequest{
@@ -696,6 +787,43 @@ func (a clientPasswordResetTickets) DeleteByUser(ctx context.Context, tenantID, 
 func (a clientPasswordResetTickets) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
 	r, err := a.c.rpc.PasswordResetTicketsDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
 	return counted("PasswordResetTicketsDeleteExpired", r, err)
+}
+
+// ---- email verification tickets ----
+
+type clientEmailVerificationTickets struct{ c *Client }
+
+func (a clientEmailVerificationTickets) Create(ctx context.Context, v *store.EmailVerificationTicket) error {
+	return put("EmailVerificationTicketsCreate", v, emailVerificationTicketToPB, func(pb *storev1.EmailVerificationTicket) (result, error) {
+		r, err := a.c.rpc.EmailVerificationTicketsCreate(ctx, &storev1.EmailVerificationTicketWrite{TxId: a.c.txID, Value: pb})
+		return r, tooOld(err)
+	})
+}
+
+func (a clientEmailVerificationTickets) GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*store.EmailVerificationTicket, error) {
+	r, err := a.c.rpc.EmailVerificationTicketsGetByTokenHash(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: tokenHash})
+	return decOne("EmailVerificationTicketsGetByTokenHash", tooOld(err), r.GetError(), r.GetValue(), emailVerificationTicketFromPB)
+}
+
+// Consume returns the ticket together with ErrAlreadyUsed on a replay.
+func (a clientEmailVerificationTickets) Consume(ctx context.Context, tenantID, tokenHash string, at time.Time) (*store.EmailVerificationTicket, error) {
+	r, err := a.c.rpc.EmailVerificationTicketsConsume(ctx, &storev1.ConsumeRequest{TxId: a.c.txID, TenantId: tenantID, Hash: tokenHash, At: tsToPB(at)})
+	return decOne("EmailVerificationTicketsConsume", tooOld(err), r.GetError(), r.GetValue(), emailVerificationTicketFromPB)
+}
+
+func (a clientEmailVerificationTickets) DeleteByUser(ctx context.Context, tenantID, userID string) (int, error) {
+	r, err := a.c.rpc.EmailVerificationTicketsDeleteByUser(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
+	return counted("EmailVerificationTicketsDeleteByUser", r, tooOld(err))
+}
+
+// DeleteExpired treats a plugin that predates the RPC as holding no tickets:
+// the sweeper calls it on every deployment.
+func (a clientEmailVerificationTickets) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	r, err := a.c.rpc.EmailVerificationTicketsDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
+	if status.Code(err) == codes.Unimplemented {
+		return 0, nil
+	}
+	return counted("EmailVerificationTicketsDeleteExpired", r, err)
 }
 
 // ---- operators ----

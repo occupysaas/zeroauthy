@@ -166,6 +166,15 @@ func cloneResetTicket(t *store.PasswordResetTicket) *store.PasswordResetTicket {
 	return &out
 }
 
+func cloneVerifyTicket(t *store.EmailVerificationTicket) *store.EmailVerificationTicket {
+	out := *t
+	if t.UsedAt != nil {
+		v := *t.UsedAt
+		out.UsedAt = &v
+	}
+	return &out
+}
+
 // cloneJSON deep-copies JSON-like values (maps, slices, scalars).
 func cloneJSON(m map[string]any) map[string]any {
 	if m == nil {

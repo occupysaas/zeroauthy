@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -254,6 +255,85 @@ func TestOldPluginListsTooOld(t *testing.T) {
 		if !errors.Is(err, errPluginTooOld) || !strings.Contains(err.Error(), "too old") {
 			t.Errorf("%s: err = %v, want errPluginTooOld", name, err)
 		}
+	}
+}
+
+// The new user-management reads and the verification tickets need a Plan 17
+// plugin; the error says so. The sweeper alone treats a missing
+// EmailVerificationTicketsDeleteExpired as an empty table.
+func TestOldPluginUserManagementTooOld(t *testing.T) {
+	c := serveOldPlugin(t)
+	ctx := context.Background()
+	_, errSes := c.Sessions().Get(ctx, "t", "s")
+	_, errSesList := c.Sessions().ListByUser(ctx, "t", "u")
+	_, errRT := c.RefreshTokens().Get(ctx, "t", "r")
+	_, errRTList := c.RefreshTokens().ListByUser(ctx, "t", "u")
+	errRev := c.RefreshTokens().Revoke(ctx, "t", "r", time.Now())
+	_, _, errUG := c.UserGrants().List(ctx, "t", store.UserGrantFilter{}, store.Page{})
+	_, _, errCl := c.Clients().List(ctx, "t", store.ClientFilter{AppTypes: []string{"spa"}}, store.Page{Limit: 1})
+	errTkCreate := c.EmailVerificationTickets().Create(ctx, &store.EmailVerificationTicket{TenantID: "t", ID: "i", TokenHash: "h"})
+	_, errTkGet := c.EmailVerificationTickets().GetByTokenHash(ctx, "t", "h")
+	_, errTkUse := c.EmailVerificationTickets().Consume(ctx, "t", "h", time.Now())
+	_, errTkDel := c.EmailVerificationTickets().DeleteByUser(ctx, "t", "u")
+	for name, err := range map[string]error{
+		"Sessions.Get": errSes, "Sessions.ListByUser": errSesList, "RefreshTokens.Get": errRT,
+		"RefreshTokens.ListByUser": errRTList, "RefreshTokens.Revoke": errRev, "UserGrants.List": errUG,
+		"EmailVerificationTickets.Create": errTkCreate, "EmailVerificationTickets.GetByTokenHash": errTkGet,
+		"EmailVerificationTickets.Consume": errTkUse, "EmailVerificationTickets.DeleteByUser": errTkDel,
+	} {
+		if !errors.Is(err, errPluginTooOld) || !strings.Contains(err.Error(), "too old") {
+			t.Errorf("%s: err = %v, want errPluginTooOld", name, err)
+		}
+	}
+	// Clients.List on a plugin without ClientsListPage falls back to ClientsList,
+	// which this plugin lacks too: the error is not hidden.
+	if errCl == nil {
+		t.Error("Clients.List with a filter on a plugin without any list RPC succeeded")
+	}
+	if n, err := c.EmailVerificationTickets().DeleteExpired(ctx, time.Now()); n != 0 || err != nil {
+		t.Errorf("EmailVerificationTickets.DeleteExpired = %d, %v; want 0, nil", n, err)
+	}
+}
+
+// clientsPlugin is a pre-Plan-17 plugin: it lists every client (by ClientID)
+// and has no ClientsListPage.
+type clientsPlugin struct{ oldPlugin }
+
+func (clientsPlugin) ClientsList(context.Context, *storev1.TenantScope) (*storev1.ClientList, error) {
+	mk := func(id, typ string, first bool, at int64) *storev1.Client {
+		return &storev1.Client{TenantId: "t", ClientId: id, AppType: typ, CreatedAt: tsToPB(time.Unix(at, 0)), IsFirstParty: &first}
+	}
+	return &storev1.ClientList{Values: []*storev1.Client{
+		mk("a", "spa", true, 30), mk("b", "native", true, 10), mk("c", "spa", false, 20), mk("d", "spa", true, 20),
+	}}, nil
+}
+
+// GET /clients keeps working against such a plugin: the host orders, filters
+// and pages what ClientsList returns.
+func TestOldPluginClientsListFallback(t *testing.T) {
+	c := serveWith(t, clientsPlugin{})
+	ctx := context.Background()
+	ids := func(f store.ClientFilter, p store.Page) ([]string, int) {
+		t.Helper()
+		got, total, err := c.Clients().List(ctx, "t", f, p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, cl := range got {
+			out = append(out, cl.ClientID)
+		}
+		return out, total
+	}
+	yes := true
+	if got, total := ids(store.ClientFilter{}, store.Page{}); !slices.Equal(got, []string{"b", "c", "d", "a"}) || total != 4 {
+		t.Errorf("all = %v, %d", got, total)
+	}
+	if got, total := ids(store.ClientFilter{AppTypes: []string{"spa"}, IsFirstParty: &yes}, store.Page{}); !slices.Equal(got, []string{"d", "a"}) || total != 2 {
+		t.Errorf("filtered = %v, %d", got, total)
+	}
+	if got, total := ids(store.ClientFilter{AppTypes: []string{"spa"}}, store.Page{Offset: 1, Limit: 1}); !slices.Equal(got, []string{"d"}) || total != 3 {
+		t.Errorf("paged = %v, %d", got, total)
 	}
 }
 

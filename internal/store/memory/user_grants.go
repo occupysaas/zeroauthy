@@ -46,6 +46,29 @@ func (r userGrants) Upsert(_ context.Context, g *store.UserGrant) (*store.UserGr
 	return cloneUserGrant(g), nil
 }
 
+func (r userGrants) List(_ context.Context, tenantID string, f store.UserGrantFilter, p store.Page) ([]*store.UserGrant, int, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	var all []*store.UserGrant
+	for k, g := range r.s.userGrants {
+		if k.tenant == tenantID && (f.UserID == "" || g.UserID == f.UserID) &&
+			(f.ClientID == "" || g.ClientID == f.ClientID) && (f.Audience == "" || g.Audience == f.Audience) {
+			all = append(all, g)
+		}
+	}
+	slices.SortFunc(all, func(a, b *store.UserGrant) int { return cmp.Compare(a.ID, b.ID) })
+	total := len(all)
+	all = all[min(max(p.Offset, 0), total):]
+	if p.Limit > 0 && len(all) > p.Limit {
+		all = all[:p.Limit]
+	}
+	out := make([]*store.UserGrant, len(all))
+	for i, g := range all {
+		out[i] = cloneUserGrant(g)
+	}
+	return out, total, nil
+}
+
 func (r userGrants) ListByUser(_ context.Context, tenantID, userID string) ([]*store.UserGrant, error) {
 	r.s.mu.RLock()
 	defer r.s.mu.RUnlock()

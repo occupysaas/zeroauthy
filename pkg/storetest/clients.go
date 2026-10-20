@@ -196,18 +196,75 @@ func testClients(t *testing.T, newStore Factory) {
 		mustEqual(t, got, newClient("ten_a", "c1"))
 	})
 
-	t.Run("ListOrderedByClientID", func(t *testing.T) {
+	t.Run("ListOrderedByCreatedAtThenClientID", func(t *testing.T) {
 		s := open(t, newStore)
-		for _, id := range []string{"zz", "aa", "mm"} {
-			mustNoErr(t, s.Clients().Create(ctx, newClient("ten_a", id)))
+		for _, c := range []struct {
+			id      string
+			created time.Duration
+		}{{"zz", 0}, {"aa", time.Hour}, {"mm", 0}, {"bb", time.Hour}, {"yy", -time.Hour}} {
+			x := newClient("ten_a", c.id)
+			x.CreatedAt = ts(c.created)
+			mustNoErr(t, s.Clients().Create(ctx, x))
 		}
 		mustNoErr(t, s.Clients().Create(ctx, newClient("ten_b", "other")))
-		got, err := s.Clients().List(ctx, "ten_a")
+		got, total, err := s.Clients().List(ctx, "ten_a", store.ClientFilter{}, store.Page{})
 		mustNoErr(t, err)
-		var ids []string
-		for _, c := range got {
-			ids = append(ids, c.ClientID)
-		}
-		mustEqual(t, ids, []string{"aa", "mm", "zz"})
+		mustEqual(t, total, 5)
+		mustEqual(t, clientIDs(got), []string{"yy", "mm", "zz", "aa", "bb"})
 	})
+
+	t.Run("ListFilterAndPage", func(t *testing.T) {
+		s := open(t, newStore)
+		yes, no := true, false
+		for i, c := range []struct {
+			id    string
+			typ   store.AppType
+			first bool
+		}{
+			{"c1", store.AppTypeSPA, true},
+			{"c2", store.AppTypeNative, false},
+			{"c3", store.AppTypeRegularWeb, true},
+			{"c4", store.AppTypeSPA, false},
+			{"c5", store.AppTypeNonInteractive, true},
+			{"c6", store.AppTypeSPA, true},
+		} {
+			x := newClient("ten_a", c.id)
+			x.AppType, x.IsFirstParty, x.CreatedAt = c.typ, c.first, ts(time.Duration(i)*time.Minute)
+			mustNoErr(t, s.Clients().Create(ctx, x))
+		}
+		other := newClient("ten_b", "c7")
+		other.AppType = store.AppTypeSPA
+		mustNoErr(t, s.Clients().Create(ctx, other))
+		check := func(name string, f store.ClientFilter, p store.Page, wantIDs []string, wantTotal int) {
+			t.Helper()
+			got, total, err := s.Clients().List(ctx, "ten_a", f, p)
+			mustNoErr(t, err)
+			if len(wantIDs) == 0 {
+				mustEqual(t, len(got), 0)
+			} else {
+				mustEqual(t, clientIDs(got), wantIDs)
+			}
+			mustEqual(t, total, wantTotal)
+		}
+		spa, native := string(store.AppTypeSPA), string(store.AppTypeNative)
+		check("Type", store.ClientFilter{AppTypes: []string{spa}}, store.Page{}, []string{"c1", "c4", "c6"}, 3)
+		check("Types", store.ClientFilter{AppTypes: []string{spa, native}}, store.Page{}, []string{"c1", "c2", "c4", "c6"}, 4)
+		check("Unknown type", store.ClientFilter{AppTypes: []string{"nope"}}, store.Page{}, nil, 0)
+		check("First party", store.ClientFilter{IsFirstParty: &yes}, store.Page{}, []string{"c1", "c3", "c5", "c6"}, 4)
+		check("Third party", store.ClientFilter{IsFirstParty: &no}, store.Page{}, []string{"c2", "c4"}, 2)
+		check("Both", store.ClientFilter{AppTypes: []string{spa}, IsFirstParty: &yes}, store.Page{}, []string{"c1", "c6"}, 2)
+		check("Page", store.ClientFilter{}, store.Page{Offset: 2, Limit: 2}, []string{"c3", "c4"}, 6)
+		check("Last page", store.ClientFilter{}, store.Page{Offset: 5, Limit: 2}, []string{"c6"}, 6)
+		check("Past the end", store.ClientFilter{}, store.Page{Offset: 9, Limit: 2}, nil, 6)
+		check("Filter and page", store.ClientFilter{AppTypes: []string{spa}}, store.Page{Offset: 1, Limit: 1}, []string{"c4"}, 3)
+		check("Offset only", store.ClientFilter{}, store.Page{Offset: 4}, []string{"c5", "c6"}, 6)
+	})
+}
+
+func clientIDs(cs []*store.Client) []string {
+	var ids []string
+	for _, c := range cs {
+		ids = append(ids, c.ClientID)
+	}
+	return ids
 }

@@ -235,7 +235,7 @@ func TestCreateClientRefusals(t *testing.T) {
 	if out["description"] != nil || !slices.Contains(strs(out["grant_types"]), "implicit") {
 		t.Fatalf("cli create = %v", out)
 	}
-	clients, _ := e.st.Clients().List(context.Background(), e.tn.ID)
+	clients, _, _ := e.st.Clients().List(context.Background(), e.tn.ID, store.ClientFilter{}, store.Page{})
 	if len(clients) != 1 {
 		t.Fatalf("%d clients stored after refusals", len(clients))
 	}

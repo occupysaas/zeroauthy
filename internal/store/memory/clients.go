@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"cmp"
 	"context"
 	"slices"
 	"strings"
@@ -68,15 +69,27 @@ func (r clients) Delete(_ context.Context, tenantID, clientID string) error {
 	return nil
 }
 
-func (r clients) List(_ context.Context, tenantID string) ([]*store.Client, error) {
+func (r clients) List(_ context.Context, tenantID string, f store.ClientFilter, p store.Page) ([]*store.Client, int, error) {
 	r.s.mu.RLock()
 	defer r.s.mu.RUnlock()
-	var out []*store.Client
+	var all []*store.Client
 	for k, c := range r.s.clients {
-		if k.tenant == tenantID {
-			out = append(out, cloneClient(c))
+		if k.tenant == tenantID && (len(f.AppTypes) == 0 || slices.Contains(f.AppTypes, string(c.AppType))) &&
+			(f.IsFirstParty == nil || c.IsFirstParty == *f.IsFirstParty) {
+			all = append(all, c)
 		}
 	}
-	slices.SortFunc(out, func(a, b *store.Client) int { return strings.Compare(a.ClientID, b.ClientID) })
-	return out, nil
+	slices.SortFunc(all, func(a, b *store.Client) int {
+		return cmp.Or(a.CreatedAt.Compare(b.CreatedAt), strings.Compare(a.ClientID, b.ClientID))
+	})
+	total := len(all)
+	all = all[min(max(p.Offset, 0), total):]
+	if p.Limit > 0 && len(all) > p.Limit {
+		all = all[:p.Limit]
+	}
+	out := make([]*store.Client, len(all))
+	for i, c := range all {
+		out[i] = cloneClient(c)
+	}
+	return out, total, nil
 }

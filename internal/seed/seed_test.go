@@ -1190,7 +1190,7 @@ func TestSeedSkipsAPITenants(t *testing.T) {
 	if got.FriendlyName != "From the console" || got.Seeded {
 		t.Fatalf("the seed changed an API tenant: %+v", got)
 	}
-	if clients, _ := st.Clients().List(ctx, got.ID); len(clients) != 0 {
+	if clients, _, _ := st.Clients().List(ctx, got.ID, store.ClientFilter{}, store.Page{}); len(clients) != 0 {
 		t.Fatalf("the seed added %d clients to an API tenant", len(clients))
 	}
 }

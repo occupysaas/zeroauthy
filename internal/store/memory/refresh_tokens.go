@@ -1,7 +1,9 @@
 package memory
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -46,6 +48,45 @@ func (r refreshTokens) GetByTokenHash(_ context.Context, tenantID, tokenHash str
 		return nil, store.ErrNotFound
 	}
 	return cloneRefreshToken(t), nil
+}
+
+func (r refreshTokens) Get(_ context.Context, tenantID, id string) (*store.RefreshToken, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	t, ok := r.s.refreshTokens[key{tenantID, id}]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	return cloneRefreshToken(t), nil
+}
+
+func (r refreshTokens) ListByUser(_ context.Context, tenantID, userID string) ([]*store.RefreshToken, error) {
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	var out []*store.RefreshToken
+	for k, t := range r.s.refreshTokens {
+		if k.tenant == tenantID && t.UserID == userID && t.RevokedAt == nil && t.RotatedAt == nil {
+			out = append(out, cloneRefreshToken(t))
+		}
+	}
+	slices.SortFunc(out, func(a, b *store.RefreshToken) int {
+		return cmp.Or(b.CreatedAt.Compare(a.CreatedAt), cmp.Compare(b.ID, a.ID))
+	})
+	return out, nil
+}
+
+func (r refreshTokens) Revoke(_ context.Context, tenantID, id string, at time.Time) error {
+	r.s.mu.Lock()
+	defer r.s.mu.Unlock()
+	t, ok := r.s.refreshTokens[key{tenantID, id}]
+	if !ok {
+		return store.ErrNotFound
+	}
+	if t.RevokedAt == nil {
+		v := at
+		t.RevokedAt = &v
+	}
+	return nil
 }
 
 func (r refreshTokens) Rotate(_ context.Context, tenantID, oldID string, next *store.RefreshToken, at time.Time, leeway time.Duration) error {

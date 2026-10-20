@@ -17,23 +17,24 @@ type key struct{ tenant, id string }
 type Store struct {
 	txMu               sync.Mutex // serializes WithTx
 	mu                 sync.RWMutex
-	tenants            map[string]*store.Tenant           // by ID
-	clients            map[key]*store.Client              // by (tenant, client ID)
-	resourceServers    map[key]*store.ResourceServer      // by (tenant, ID)
-	clientGrants       map[key]*store.ClientGrant         // by (tenant, ID)
-	userGrants         map[key]*store.UserGrant           // by (tenant, ID)
-	signingKeys        map[key]*store.SigningKey          // by (tenant, KID)
-	connections        map[key]*store.Connection          // by (tenant, ID)
-	passwordHistories  map[key][][]byte                   // by (tenant, UserID), oldest first
-	users              map[key]*store.User                // by (tenant, UserID)
-	sessions           map[key]*store.LoginSession        // by (tenant, ID)
-	transactions       map[key]*store.AuthTransaction     // by (tenant, ID)
-	authCodes          map[key]*store.AuthCode            // by (tenant, CodeHash)
-	pushedAuthRequests map[key]*store.PushedAuthRequest   // by (tenant, IDHash)
-	deviceCodes        map[key]*store.DeviceCode          // by (tenant, DeviceCodeHash)
-	refreshTokens      map[key]*store.RefreshToken        // by (tenant, ID)
-	resetTickets       map[key]*store.PasswordResetTicket // by (tenant, ID)
-	operators          map[key]*store.Operator            // by (tenant, UserID)
+	tenants            map[string]*store.Tenant               // by ID
+	clients            map[key]*store.Client                  // by (tenant, client ID)
+	resourceServers    map[key]*store.ResourceServer          // by (tenant, ID)
+	clientGrants       map[key]*store.ClientGrant             // by (tenant, ID)
+	userGrants         map[key]*store.UserGrant               // by (tenant, ID)
+	signingKeys        map[key]*store.SigningKey              // by (tenant, KID)
+	connections        map[key]*store.Connection              // by (tenant, ID)
+	passwordHistories  map[key][][]byte                       // by (tenant, UserID), oldest first
+	users              map[key]*store.User                    // by (tenant, UserID)
+	sessions           map[key]*store.LoginSession            // by (tenant, ID)
+	transactions       map[key]*store.AuthTransaction         // by (tenant, ID)
+	authCodes          map[key]*store.AuthCode                // by (tenant, CodeHash)
+	pushedAuthRequests map[key]*store.PushedAuthRequest       // by (tenant, IDHash)
+	deviceCodes        map[key]*store.DeviceCode              // by (tenant, DeviceCodeHash)
+	refreshTokens      map[key]*store.RefreshToken            // by (tenant, ID)
+	resetTickets       map[key]*store.PasswordResetTicket     // by (tenant, ID)
+	verifyTickets      map[key]*store.EmailVerificationTicket // by (tenant, ID)
+	operators          map[key]*store.Operator                // by (tenant, UserID)
 }
 
 // New returns an empty store.
@@ -55,6 +56,7 @@ func New() *Store {
 		deviceCodes:        map[key]*store.DeviceCode{},
 		refreshTokens:      map[key]*store.RefreshToken{},
 		resetTickets:       map[key]*store.PasswordResetTicket{},
+		verifyTickets:      map[key]*store.EmailVerificationTicket{},
 		operators:          map[key]*store.Operator{},
 	}
 }
@@ -75,8 +77,11 @@ func (s *Store) PushedAuthRequests() store.PushedAuthRequests     { return pushe
 func (s *Store) DeviceCodes() store.DeviceCodes                   { return deviceCodes{s} }
 func (s *Store) RefreshTokens() store.RefreshTokens               { return refreshTokens{s} }
 func (s *Store) PasswordResetTickets() store.PasswordResetTickets { return resetTickets{s} }
-func (s *Store) Operators() store.Operators                       { return operators{s} }
-func (s *Store) Ping(context.Context) error                       { return nil }
-func (s *Store) Close() error                                     { return nil }
+func (s *Store) EmailVerificationTickets() store.EmailVerificationTickets {
+	return verifyTickets{s}
+}
+func (s *Store) Operators() store.Operators { return operators{s} }
+func (s *Store) Ping(context.Context) error { return nil }
+func (s *Store) Close() error               { return nil }
 
 var _ store.Store = (*Store)(nil)

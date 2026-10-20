@@ -173,7 +173,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Store:    st,
 			Keys:     km,
 			Resolver: tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),
-			Sessions: &session.Manager{Store: st},
+			Sessions: &session.Manager{Store: st, TrustProxyHeaders: cfg.Server.TrustProxyHeaders},
 			Log:      log,
 			Mailer:   mailer,
 			Wrapper:  wrapper,

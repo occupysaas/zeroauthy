@@ -570,6 +570,17 @@ type LoginSession struct {
 	ExpiresAt       time.Time
 	IdleExpiresAt   time.Time
 	CreatedAt       time.Time
+	// UpdatedAt and LastInteractedAt are the creation time until the
+	// session is touched; Touch sets both to its time.
+	UpdatedAt        time.Time
+	LastInteractedAt time.Time
+	// InitialIP and InitialUserAgent are those of the request that created
+	// the session; LastIP and LastUserAgent those of the latest touch. There
+	// is no ASN data (D-0043).
+	InitialIP        string
+	InitialUserAgent string
+	LastIP           string
+	LastUserAgent    string
 }
 
 // AuthTransaction holds an /authorize request while the user logs in.
@@ -754,8 +765,51 @@ type PasswordResetTicket struct {
 	Connection string
 	ClientID   string
 	// Lang is the UI language chosen when the ticket was requested.
+	Lang string
+	// ResultURL, when set, is where the page sends the user after the
+	// password is reset. IncludeEmailInRedirect adds the user's email to
+	// that redirect. MarkEmailVerified sets email_verified when the ticket
+	// is used.
+	ResultURL              string
+	IncludeEmailInRedirect bool
+	MarkEmailVerified      bool
+	ExpiresAt              time.Time
+	UsedAt                 *time.Time
+	CreatedAt              time.Time
+}
+
+// EmailVerificationTicket is an issued email verification link (Auth0's
+// email verification ticket).
+type EmailVerificationTicket struct {
+	TenantID   string
+	ID         string
+	TokenHash  string // secrets.HashToken of the ticket token
+	UserID     string
+	Connection string
+	ClientID   string
+	// ResultURL, when set, is where the page sends the user afterwards;
+	// IncludeEmailInRedirect adds the user's email to that redirect.
+	ResultURL              string
+	IncludeEmailInRedirect bool
+	// Lang is the UI language chosen when the ticket was requested.
 	Lang      string
 	ExpiresAt time.Time
 	UsedAt    *time.Time
 	CreatedAt time.Time
+}
+
+// UserGrantFilter narrows UserGrants.List. An empty field matches all; the
+// fields are exact, case-sensitive matches.
+type UserGrantFilter struct {
+	UserID   string
+	ClientID string
+	Audience string
+}
+
+// ClientFilter narrows Clients.List. AppTypes, when not empty, keeps the
+// clients whose AppType is any of them; IsFirstParty, when not nil, keeps
+// the clients with that IsFirstParty.
+type ClientFilter struct {
+	AppTypes     []string
+	IsFirstParty *bool
 }

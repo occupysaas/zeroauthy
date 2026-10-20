@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -76,21 +77,37 @@ func (r clients) Delete(ctx context.Context, tenantID, clientID string) error {
 	})
 }
 
-func (r clients) List(ctx context.Context, tenantID string) ([]*store.Client, error) {
-	rows, err := r.s.query(ctx, `SELECT `+clientCols+` FROM clients WHERE tenant_id = ? ORDER BY client_id`, tenantID)
+func (r clients) List(ctx context.Context, tenantID string, f store.ClientFilter, p store.Page) ([]*store.Client, int, error) {
+	where, args := []string{"tenant_id = ?"}, []any{tenantID}
+	if len(f.AppTypes) > 0 {
+		where = append(where, "app_type IN ("+strings.TrimSuffix(strings.Repeat("?,", len(f.AppTypes)), ",")+")")
+		for _, t := range f.AppTypes {
+			args = append(args, t)
+		}
+	}
+	if f.IsFirstParty != nil {
+		where = append(where, "is_first_party = ?")
+		args = append(args, *f.IsFirstParty)
+	}
+	cond := strings.Join(where, " AND ")
+	var total int
+	if err := r.s.queryRow(ctx, `SELECT COUNT(*) FROM clients WHERE `+cond, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.s.query(ctx, `SELECT `+clientCols+` FROM clients WHERE `+cond+` ORDER BY created_at, client_id`+r.s.d.byteOrder+pageClause(p), args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var out []*store.Client
 	for rows.Next() {
 		c, err := scanClient(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		out = append(out, c)
 	}
-	return out, rows.Err()
+	return out, total, rows.Err()
 }
 
 func scanClient(row scanner) (*store.Client, error) {
