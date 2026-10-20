@@ -1,0 +1,5 @@
+{{t .L "zeroauthy.email-verify-email.heading"}}
+
+{{t .L "zeroauthy.email-verify-email.body"}}
+
+{{.Link}}

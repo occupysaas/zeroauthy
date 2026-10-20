@@ -319,6 +319,14 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.log().InfoContext(ctx, "password reset", "tenant", res.Tenant.ID, "user_id", tk.UserID)
+	// A Management API ticket with mark_email_as_verified also verifies
+	// the email (U6). Its result_url is not used: Auth0's page shows the
+	// success message and does not redirect.
+	if tk.MarkEmailVerified {
+		if err := h.setEmailVerified(ctx, res.Tenant.ID, tk.UserID, now); err != nil {
+			h.log().ErrorContext(ctx, "reset: mark email verified", "tenant", res.Tenant.ID, "user_id", tk.UserID, "err", err)
+		}
+	}
 
 	// 9. A password change unblocks a user locked by brute-force
 	// protection, as on Auth0.

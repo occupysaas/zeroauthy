@@ -1,7 +1,8 @@
 // Black-box test (CLEAN_ROOM.md): node-auth0 AuthenticationClient against
 // zeroauthy's database endpoints and password grants.
 import assert from 'node:assert/strict';
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { AuthClient } from '@auth0/auth0-auth-js';
 import { AuthenticationClient } from 'auth0/legacy';
 
@@ -41,13 +42,26 @@ await assert.rejects(
 );
 
 await auth.database.changePassword({ email, connection });
-// The server sends reset emails in the background (D-0018), so poll briefly.
+// The server sends emails in the background (D-0018), so poll briefly.
+// The signup above also sent a verification email, so look for the reset
+// link itself.
+async function emailsWith(needle) {
+  const dir = process.env.E2E_MAIL_DIR;
+  const out = [];
+  for (const f of (await readdir(dir)).filter((f) => f.endsWith('.eml'))) {
+    // Quoted-printable may break the needle across a soft line break.
+    const text = (await readFile(path.join(dir, f), 'utf8')).replace(/=\r?\n/g, '');
+    if (text.includes(needle)) out.push(f);
+  }
+  return out;
+}
 let files = [];
 for (let i = 0; i < 50 && files.length === 0; i++) {
-  files = (await readdir(process.env.E2E_MAIL_DIR)).filter((f) => f.endsWith('.eml'));
+  files = await emailsWith('/u/reset-password?ticket');
   if (files.length === 0) await new Promise((r) => setTimeout(r, 100));
 }
 assert.ok(files.length >= 1, 'a reset email was written');
+assert.ok((await emailsWith('/u/email-verification?ticket')).length >= 1, 'signup sent a verification email');
 
 // An unknown address gets the same success answer (D-0018): the endpoint
 // does not reveal which addresses have accounts.

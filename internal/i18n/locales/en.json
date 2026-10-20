@@ -70,6 +70,15 @@
       "descriptionGeneric": "This password reset link is not valid. Request a new one."
     }
   },
+  "email-verification": {
+    "email-verification-result": {
+      "verifiedTitle": "Email Verified",
+      "verifiedDescription": "Your email address was successfully verified.",
+      "errorTitle": "Error",
+      "errorDescription": "Your email address could not be verified.",
+      "alreadyVerifiedDescription": "This account is already verified."
+    }
+  },
   "consent": {
     "consent": {
       "pageTitle": "Authorize application",
@@ -149,6 +158,12 @@
       "heading": "Reset your password",
       "body": "We received a request to reset the password for your ${companyName} account. The link below works once and expires in 24 hours. If you did not ask for this, you can ignore this email.",
       "button": "Choose a new password"
+    },
+    "email-verify-email": {
+      "subject": "Verify your ${companyName} email address",
+      "heading": "Verify your email address",
+      "body": "Please confirm that this is the email address of your ${companyName} account. The link below works once and expires in 5 days. If you did not create an account, you can ignore this email.",
+      "button": "Verify my email address"
     },
     "error": {
       "title": "Something went wrong",

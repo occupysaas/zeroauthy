@@ -86,8 +86,9 @@ async function resetTicket(since) {
       .map((f) => [fs.statSync(path.join(mailDir, f)).mtimeMs, f])
       .filter(([t]) => t >= since)
       .sort((a, b) => b[0] - a[0]);
-    if (fresh.length) {
-      const mail = decodeQP(fs.readFileSync(path.join(mailDir, fresh[0][1]), 'utf8'));
+    // Verification emails (sent when users are created) land here too.
+    for (const [, f] of fresh) {
+      const mail = decodeQP(fs.readFileSync(path.join(mailDir, f), 'utf8'));
       const m = mail.match(/\/u\/reset-password\?ticket=([A-Za-z0-9_-]+)/);
       if (m && !seen.has(m[1])) {
         seen.add(m[1]);

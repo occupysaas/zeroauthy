@@ -45,6 +45,7 @@ var ManagementAPIScopes = []store.Scope{
 	{Value: "read:users_app_metadata", Description: "Read users' app_metadata"},
 	{Value: "create:users_app_metadata", Description: "Set users' app_metadata on creation"},
 	{Value: "update:users_app_metadata", Description: "Update users' app_metadata"},
+	{Value: "create:user_tickets", Description: "Create password-change and email verification tickets"},
 	{Value: "read:grants", Description: "Read user consents"},
 	{Value: "delete:grants", Description: "Revoke user consents"},
 	{Value: "read:refresh_tokens", Description: "Read refresh tokens"},

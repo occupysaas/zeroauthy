@@ -450,7 +450,7 @@ func (h *Handlers) database(st store.Store) *identity.Database {
 // A failure is logged; the write it follows stands.
 func (h *Handlers) sendVerification(r *http.Request, u *store.User, clientID string) {
 	if h.Verification == nil {
-		h.log().InfoContext(r.Context(), "management API: verification email not sent: no sender is configured", "user_id", u.UserID)
+		h.log().DebugContext(r.Context(), "management API: verification email not sent: no sender is configured", "user_id", u.UserID)
 		return
 	}
 	if err := h.Verification.SendVerification(r.Context(), u.TenantID, u, clientID); err != nil {
@@ -764,6 +764,13 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 			return errUserExists
 		} else if err != nil {
 			return err
+		}
+		// A verification link sent to the old address must not verify
+		// the new one.
+		if emailChanged {
+			if _, err := tx.EmailVerificationTickets().DeleteByUser(ctx, u.TenantID, id); err != nil {
+				return err
+			}
 		}
 		if in.Password != nil {
 			if legacy {

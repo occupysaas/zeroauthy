@@ -333,6 +333,7 @@ func TestManagementContractUsers(t *testing.T) {
 	c.do(a.h, "DELETE", idents+"/auth0/"+url.PathEscape(strings.TrimPrefix(id, "auth0|")), a.token, nil)
 	c.do(a.h, "DELETE", usersBase+"/nope/identities/auth0/x", a.token, nil)
 	sessionsAndGrantsContract(t, c, a, ro, id)
+	ticketsContract(t, c, a, ro, id)
 	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), ro, nil)
 	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), a.token, nil)
 	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), a.token, nil)
@@ -409,4 +410,22 @@ func sessionsAndGrantsContract(t *testing.T, c *mgmtContract, a *usersAPI, ro, i
 	}
 	c.do(a.h, "DELETE", base+"grants?user_id="+url.QueryEscape(id), a.token, nil)
 	c.do(a.h, "DELETE", base+"grants", a.token, nil)
+}
+
+// ticketsContract exercises the ticket operations for user id (U6).
+func ticketsContract(t *testing.T, c *mgmtContract, a *usersAPI, ro, id string) {
+	t.Helper()
+	base := "https://acme.example.test/api/v2/tickets/"
+	if code, body := c.do(a.h, "POST", base+"password-change", a.token, map[string]any{"user_id": id, "mark_email_as_verified": true}); code != 201 {
+		t.Errorf("password-change ticket = %d %s", code, body)
+	}
+	c.do(a.h, "POST", base+"password-change", a.token, map[string]any{"email": "x@example.test"})
+	c.do(a.h, "POST", base+"password-change", a.token, map[string]any{"user_id": "auth0|000000000000000000000000"})
+	c.do(a.h, "POST", base+"password-change", ro, map[string]any{"user_id": id})
+	if code, body := c.do(a.h, "POST", base+"email-verification", a.token, map[string]any{"user_id": id, "ttl_sec": 60}); code != 201 {
+		t.Errorf("email-verification ticket = %d %s", code, body)
+	}
+	c.do(a.h, "POST", base+"email-verification", a.token, map[string]any{"user_id": id, "ttl_sec": -1})
+	c.do(a.h, "POST", base+"email-verification", a.token, map[string]any{"user_id": "auth0|000000000000000000000000"})
+	c.do(a.h, "POST", base+"email-verification", ro, map[string]any{"user_id": id})
 }

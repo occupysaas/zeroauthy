@@ -1216,6 +1216,22 @@ type ConnectionSettings struct {
 // `enabled_clients` are unknown properties.
 type ConnectionUpdate = ConnectionSettings
 
+// EmailVerificationTicketCreate Unknown properties are `400 invalid_body`.
+type EmailVerificationTicketCreate struct {
+	ClientId *string `json:"client_id,omitempty"`
+
+	// Identity One of the user's identities.
+	Identity               *TicketIdentity `json:"identity,omitempty"`
+	IncludeEmailInRedirect *bool           `json:"includeEmailInRedirect,omitempty"`
+
+	// ResultUrl Where the page redirects after opening. Not with `client_id`.
+	ResultUrl *string `json:"result_url,omitempty"`
+
+	// TtlSec Seconds the ticket is valid; 0 or absent is 432000 (5 days).
+	TtlSec *int   `json:"ttl_sec,omitempty"`
+	UserId string `json:"user_id"`
+}
+
 // JwtConfiguration ID token settings.
 type JwtConfiguration struct {
 	// Alg The signing algorithm; zeroauthy signs with RS256 only.
@@ -1289,6 +1305,28 @@ type OperatorInvite struct {
 
 	// UserId The operator's user ID in the system tenant.
 	UserId string `json:"user_id"`
+}
+
+// PasswordChangeTicketCreate `user_id`, or `email` with `connection_id`. Unknown properties are
+// `400 invalid_body`.
+type PasswordChangeTicketCreate struct {
+	ClientId *string `json:"client_id,omitempty"`
+
+	// ConnectionId The database connection's ID, with `email`.
+	ConnectionId *string `json:"connection_id,omitempty"`
+	Email        *string `json:"email,omitempty"`
+
+	// Identity One of the user's identities.
+	Identity               *TicketIdentity `json:"identity,omitempty"`
+	IncludeEmailInRedirect *bool           `json:"includeEmailInRedirect,omitempty"`
+	MarkEmailAsVerified    *bool           `json:"mark_email_as_verified,omitempty"`
+
+	// ResultUrl Stored; the success page does not redirect to it. Not with `client_id`.
+	ResultUrl *string `json:"result_url,omitempty"`
+
+	// TtlSec Seconds the ticket is valid; 0 or absent is 432000 (5 days).
+	TtlSec *int    `json:"ttl_sec,omitempty"`
+	UserId *string `json:"user_id,omitempty"`
 }
 
 // RefreshTokenSettings The refresh tokens the application receives.
@@ -1588,6 +1626,18 @@ type TenantCreate struct {
 type TenantUpdate struct {
 	Domains      *[]string `json:"domains,omitempty"`
 	FriendlyName *string   `json:"friendly_name,omitempty"`
+}
+
+// Ticket defines model for Ticket.
+type Ticket struct {
+	// Ticket The ticket's URL. Its token is shown only here.
+	Ticket string `json:"ticket"`
+}
+
+// TicketIdentity One of the user's identities.
+type TicketIdentity struct {
+	Provider *string `json:"provider,omitempty"`
+	UserId   *string `json:"user_id,omitempty"`
 }
 
 // TokenEndpointAuthMethod How the application authenticates at `/oauth/token`; `none` for public clients.
@@ -2207,6 +2257,12 @@ type CreateResourceServerJSONRequestBody = ResourceServerCreate
 
 // UpdateResourceServerJSONRequestBody defines body for UpdateResourceServer for application/json ContentType.
 type UpdateResourceServerJSONRequestBody = ResourceServerUpdate
+
+// CreateEmailVerificationTicketJSONRequestBody defines body for CreateEmailVerificationTicket for application/json ContentType.
+type CreateEmailVerificationTicketJSONRequestBody = EmailVerificationTicketCreate
+
+// CreatePasswordChangeTicketJSONRequestBody defines body for CreatePasswordChangeTicket for application/json ContentType.
+type CreatePasswordChangeTicketJSONRequestBody = PasswordChangeTicketCreate
 
 // CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.
 type CreateUserJSONRequestBody = UserCreate
@@ -3172,6 +3228,12 @@ type ServerInterface interface {
 	// GetSession Get a session
 	// (GET /api/v2/sessions/{id})
 	GetSession(w http.ResponseWriter, r *http.Request, id string)
+	// CreateEmailVerificationTicket Create an email verification ticket
+	// (POST /api/v2/tickets/email-verification)
+	CreateEmailVerificationTicket(w http.ResponseWriter, r *http.Request)
+	// CreatePasswordChangeTicket Create a password-change ticket
+	// (POST /api/v2/tickets/password-change)
+	CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Request)
 	// GetUsers List or search users
 	// (GET /api/v2/users)
 	GetUsers(w http.ResponseWriter, r *http.Request, params GetUsersParams)
@@ -3439,6 +3501,18 @@ func (_ Unimplemented) DeleteSession(w http.ResponseWriter, r *http.Request, id 
 // GetSession Get a session
 // (GET /api/v2/sessions/{id})
 func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateEmailVerificationTicket Create an email verification ticket
+// (POST /api/v2/tickets/email-verification)
+func (_ Unimplemented) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreatePasswordChangeTicket Create a password-change ticket
+// (POST /api/v2/tickets/password-change)
+func (_ Unimplemented) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5010,6 +5084,34 @@ func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// CreateEmailVerificationTicket operation middleware
+func (siw *ServerInterfaceWrapper) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEmailVerificationTicket(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePasswordChangeTicket operation middleware
+func (siw *ServerInterfaceWrapper) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePasswordChangeTicket(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetUsers operation middleware
 func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Request) {
 
@@ -5794,6 +5896,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/grants/{id}", wrapper.DeleteGrant)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/tickets/password-change", wrapper.CreatePasswordChangeTicket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/tickets/email-verification", wrapper.CreateEmailVerificationTicket)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/users-by-email", wrapper.GetUsersByEmail)

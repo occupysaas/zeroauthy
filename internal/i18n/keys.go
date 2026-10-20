@@ -33,6 +33,7 @@ const (
 	KeyErrLogoutUnknownClient = "zeroauthy.error.logout-unknown-client"
 	KeyErrLogoutURL           = "zeroauthy.error.logout-url-not-allowed"
 	KeyEmailResetSubject      = "zeroauthy.email-reset-password.subject"
+	KeyEmailVerifySubject     = "zeroauthy.email-verify-email.subject"
 	KeyErrLogoutInvalid       = "zeroauthy.error.logout-invalid"
 	KeyResetPasswordMismatch  = "reset-password.reset-password.password-mismatch"
 	KeyResetNotChanged        = "zeroauthy.reset.not-changed"
@@ -46,6 +47,16 @@ const (
 	KeyResetErrUsed         = "reset-password.reset-password-error.descriptionUsed"
 	KeyResetErrGenericTitle = "reset-password.reset-password-error.eventTitleGeneric"
 	KeyResetErrGeneric      = "reset-password.reset-password-error.descriptionGeneric"
+)
+
+// Email verification result screen keys (Auth0's email-verification
+// prompt).
+const (
+	KeyVerifiedTitle              = "email-verification.email-verification-result.verifiedTitle"
+	KeyVerifiedDescription        = "email-verification.email-verification-result.verifiedDescription"
+	KeyVerifyErrorTitle           = "email-verification.email-verification-result.errorTitle"
+	KeyVerifyErrorDescription     = "email-verification.email-verification-result.errorDescription"
+	KeyAlreadyVerifiedDescription = "email-verification.email-verification-result.alreadyVerifiedDescription"
 )
 
 // Device code entry errors (Auth0's device-code-activation screen). One

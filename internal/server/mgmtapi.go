@@ -152,6 +152,16 @@ func (a mgmtAPI) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id, 
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UnlinkUserIdentity(w, r, id, provider, userID) }, "update:users")
 }
 
+// CreatePasswordChangeTicket: create:user_tickets.
+func (a mgmtAPI) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreatePasswordChangeTicket, "create:user_tickets")
+}
+
+// CreateEmailVerificationTicket: create:user_tickets.
+func (a mgmtAPI) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateEmailVerificationTicket, "create:user_tickets")
+}
+
 // The system API: the router lets only operators reach it (operatorOnly).
 
 func (a mgmtAPI) GetTenants(w http.ResponseWriter, r *http.Request)   { a.h.GetTenants(w, r) }

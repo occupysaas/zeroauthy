@@ -241,3 +241,46 @@ func TestLogDriverShowsLinksWhenAsked(t *testing.T) {
 		t.Fatalf("log output = %s", out)
 	}
 }
+
+// The verification email renders in the language it is asked for: the
+// English catalog, or a tenant's custom text for another locale.
+func TestVerifyEmailMessageLocales(t *testing.T) {
+	tn := &store.Tenant{Name: "acme", FriendlyName: "Acme", CustomText: map[string]map[string]map[string]map[string]string{
+		"zeroauthy": {"fr": {"email-verify-email": {
+			"subject": "Vérifiez votre adresse ${companyName}", "heading": "Vérifiez votre adresse",
+			"body": "Confirmez votre adresse.", "button": "Vérifier",
+		}}},
+	}}
+	link := "https://acme.test/u/email-verification?ticket=abc#"
+	en := VerifyEmailMessage(i18n.New(tn, "en"), link)
+	if en.Subject != "Verify your Acme email address" || !strings.Contains(en.Text, link) || !strings.Contains(en.Text, "Verify your email address") ||
+		!strings.Contains(en.HTML, `href="`+link+`"`) || !strings.Contains(en.HTML, `lang="en"`) {
+		t.Errorf("en = %+v", en)
+	}
+	fr := VerifyEmailMessage(i18n.New(tn, "fr"), link)
+	if fr.Subject != "Vérifiez votre adresse Acme" || !strings.Contains(fr.Text, "Confirmez votre adresse.") ||
+		!strings.Contains(fr.HTML, `lang="fr"`) || !strings.Contains(fr.HTML, "Vérifier") {
+		t.Errorf("fr = %+v", fr)
+	}
+}
+
+// SendVerifyEmail addresses the message and sends it through the mailer.
+func TestSenderSendVerifyEmail(t *testing.T) {
+	dir := t.TempDir()
+	m, err := New(config.Email{Driver: "dir", Dir: dir, From: "zeroauthy@localhost"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := Sender{Mailer: m}
+	if err := s.SendVerifyEmail(context.Background(), VerifyEmail{To: "bob@example.test", L: i18n.Default(), Link: "https://a.test/u/email-verification?ticket=x#"}); err != nil {
+		t.Fatal(err)
+	}
+	files, _ := filepath.Glob(filepath.Join(dir, "*.eml"))
+	if len(files) != 1 {
+		t.Fatalf("files = %v", files)
+	}
+	b, _ := os.ReadFile(files[0])
+	if !strings.Contains(string(b), "To: bob@example.test") {
+		t.Fatalf("eml = %s", b)
+	}
+}

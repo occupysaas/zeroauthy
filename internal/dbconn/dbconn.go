@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 // maxBodyBytes bounds a request body.
@@ -31,6 +32,15 @@ type Handlers struct {
 	Log               *slog.Logger
 	Now               func() time.Time
 	Go                func(func()) // runs email sending; nil = go statement
+	// Verification sends the verification email after a signup; nil sends
+	// none.
+	Verification SignupVerifier
+}
+
+// SignupVerifier sends a new user the email that verifies their address,
+// without holding up the response. login.VerificationMailer implements it.
+type SignupVerifier interface {
+	SendInBackground(res tenant.Resolved, u *store.User, clientID, lang string)
 }
 
 func (h *Handlers) now() time.Time {

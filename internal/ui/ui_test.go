@@ -399,3 +399,20 @@ func TestRenderDevicePages(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderEmailVerification(t *testing.T) {
+	rec := httptest.NewRecorder()
+	RenderEmailVerification(rec, 200, Tenant{Name: "Acme"}, EmailVerificationData{Title: "Email Verified", Description: "<b>ok</b>", Success: true})
+	body := rec.Body.String()
+	if !strings.Contains(body, "Email Verified") || !strings.Contains(body, `role="status"`) || !strings.Contains(body, "&lt;b&gt;ok&lt;/b&gt;") {
+		t.Fatalf("body = %s", body)
+	}
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'none'") {
+		t.Errorf("csp = %q", csp)
+	}
+	rec = httptest.NewRecorder()
+	RenderEmailVerification(rec, 400, Tenant{Name: "Acme"}, EmailVerificationData{Title: "Error", Description: "nope"})
+	if rec.Code != 400 || !strings.Contains(rec.Body.String(), `role="alert"`) {
+		t.Fatalf("error page = %d %s", rec.Code, rec.Body)
+	}
+}

@@ -34,20 +34,21 @@ func parsePage(names ...string) *template.Template {
 
 var (
 	pages = map[string]*template.Template{
-		"login":            parsePage("templates/layout.html", "templates/login.html"),
-		"signup":           parsePage("templates/layout.html", "templates/signup.html"),
-		"consent":          parsePage("templates/layout.html", "templates/consent.html"),
-		"error":            parsePage("templates/layout.html", "templates/error.html"),
-		"logout_confirm":   parsePage("templates/layout.html", "templates/logout_confirm.html"),
-		"logged_out":       parsePage("templates/layout.html", "templates/logged_out.html"),
-		"reset_request":    parsePage("templates/layout.html", "templates/reset_request.html"),
-		"reset_email_sent": parsePage("templates/layout.html", "templates/reset_email_sent.html"),
-		"reset_password":   parsePage("templates/layout.html", "templates/reset_password.html"),
-		"reset_success":    parsePage("templates/layout.html", "templates/reset_success.html"),
-		"reset_error":      parsePage("templates/layout.html", "templates/reset_error.html"),
-		"device_code":      parsePage("templates/layout.html", "templates/device_code.html"),
-		"device_confirm":   parsePage("templates/layout.html", "templates/device_confirm.html"),
-		"device_result":    parsePage("templates/layout.html", "templates/device_result.html"),
+		"login":              parsePage("templates/layout.html", "templates/login.html"),
+		"signup":             parsePage("templates/layout.html", "templates/signup.html"),
+		"consent":            parsePage("templates/layout.html", "templates/consent.html"),
+		"error":              parsePage("templates/layout.html", "templates/error.html"),
+		"logout_confirm":     parsePage("templates/layout.html", "templates/logout_confirm.html"),
+		"logged_out":         parsePage("templates/layout.html", "templates/logged_out.html"),
+		"reset_request":      parsePage("templates/layout.html", "templates/reset_request.html"),
+		"reset_email_sent":   parsePage("templates/layout.html", "templates/reset_email_sent.html"),
+		"reset_password":     parsePage("templates/layout.html", "templates/reset_password.html"),
+		"reset_success":      parsePage("templates/layout.html", "templates/reset_success.html"),
+		"reset_error":        parsePage("templates/layout.html", "templates/reset_error.html"),
+		"email_verification": parsePage("templates/layout.html", "templates/email_verification.html"),
+		"device_code":        parsePage("templates/layout.html", "templates/device_code.html"),
+		"device_confirm":     parsePage("templates/layout.html", "templates/device_confirm.html"),
+		"device_result":      parsePage("templates/layout.html", "templates/device_result.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
 	webMessage = parsePage("templates/web_message.html")
@@ -348,6 +349,18 @@ func RenderResetSuccess(w http.ResponseWriter, t Tenant) {
 // RenderResetError explains why a reset link cannot be used.
 func RenderResetError(w http.ResponseWriter, status int, t Tenant, d ResetErrorData) {
 	render(w, status, "reset_error", t, d, "'none'")
+}
+
+// EmailVerificationData is the localized result of opening an email
+// verification link.
+type EmailVerificationData struct {
+	Title, Description string
+	Success            bool
+}
+
+// RenderEmailVerification shows the result of an email verification link.
+func RenderEmailVerification(w http.ResponseWriter, status int, t Tenant, d EmailVerificationData) {
+	render(w, status, "email_verification", t, d, "'none'")
 }
 
 // ConsentData is the consent or confirmation page of a transaction.

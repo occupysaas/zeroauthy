@@ -55,6 +55,8 @@ tags:
     description: Refresh tokens (Auth0's `/api/v2/refresh-tokens`).
   - name: grants
     description: Users' consents (Auth0's `/api/v2/grants`).
+  - name: tickets
+    description: Password-change and email verification links (Auth0's `/api/v2/tickets`).
   - name: system
     description: zeroauthy's own API for tenants and operators (operator tokens only).
 security:
@@ -1309,6 +1311,74 @@ paths:
         "204": {description: Deleted.}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/tickets/password-change:
+    post:
+      operationId: createPasswordChangeTicket
+      tags: [tickets]
+      summary: Create a password-change ticket
+      description: |
+        Requires `create:user_tickets`. A single-use link to the new-password
+        form for a database user, named by `user_id` or by `email` together
+        with `connection_id`: `https://<tenant host>/u/reset-verify?ticket=<token>#`.
+        It is valid for `ttl_sec` seconds (432000, 5 days, when absent or 0).
+        `mark_email_as_verified` sets `email_verified` when the password is
+        changed. `result_url` is stored, but as on Auth0 the success page
+        does not redirect to it.
+
+        `email` without `connection_id`, an empty body, a negative `ttl_sec`,
+        `result_url` together with `client_id` and an unknown property are
+        `400 invalid_body`; an unknown user is `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/tickets/post-password-change
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PasswordChangeTicketCreate"}
+      responses:
+        "201":
+          description: The ticket.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Ticket"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/tickets/email-verification:
+    post:
+      operationId: createEmailVerificationTicket
+      tags: [tickets]
+      summary: Create an email verification ticket
+      description: |
+        Requires `create:user_tickets`. A single-use link that verifies the
+        user's email as soon as it is opened:
+        `https://<tenant host>/u/email-verification?ticket=<token>#`, valid
+        for `ttl_sec` seconds (432000 when absent or 0). With `result_url`
+        the page redirects there, appending `success`, `message`, `code`,
+        `supportSignUp`, `supportForgotPassword` and, with
+        `includeEmailInRedirect`, `email` to its query.
+
+        A missing `user_id`, a negative `ttl_sec`, `result_url` together with
+        `client_id` and an unknown property are `400 invalid_body`; an unknown
+        user is `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/tickets/post-email-verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/EmailVerificationTicketCreate"}
+      responses:
+        "201":
+          description: The ticket.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Ticket"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /api/v2/users-by-email:
     get:
       operationId: getUsersByEmail
@@ -2351,6 +2421,44 @@ components:
             - {type: integer}
         connection_id: {type: string, description: The secondary identity's connection ID.}
         link_with: {type: string, description: "An ID token for the secondary, issued to the calling client."}
+    Ticket:
+      type: object
+      required: [ticket]
+      additionalProperties: false
+      properties:
+        ticket: {type: string, description: "The ticket's URL. Its token is shown only here."}
+    TicketIdentity:
+      type: object
+      description: One of the user's identities.
+      properties:
+        user_id: {type: string}
+        provider: {type: string}
+    PasswordChangeTicketCreate:
+      type: object
+      description: |
+        `user_id`, or `email` with `connection_id`. Unknown properties are
+        `400 invalid_body`.
+      properties:
+        user_id: {type: string}
+        email: {type: string}
+        connection_id: {type: string, description: "The database connection's ID, with `email`."}
+        result_url: {type: string, description: "Stored; the success page does not redirect to it. Not with `client_id`."}
+        client_id: {type: string}
+        ttl_sec: {type: integer, minimum: 0, description: "Seconds the ticket is valid; 0 or absent is 432000 (5 days)."}
+        mark_email_as_verified: {type: boolean}
+        includeEmailInRedirect: {type: boolean}
+        identity: {$ref: "#/components/schemas/TicketIdentity"}
+    EmailVerificationTicketCreate:
+      type: object
+      required: [user_id]
+      description: Unknown properties are `400 invalid_body`.
+      properties:
+        user_id: {type: string}
+        result_url: {type: string, description: "Where the page redirects after opening. Not with `client_id`."}
+        client_id: {type: string}
+        ttl_sec: {type: integer, minimum: 0, description: "Seconds the ticket is valid; 0 or absent is 432000 (5 days)."}
+        includeEmailInRedirect: {type: boolean}
+        identity: {$ref: "#/components/schemas/TicketIdentity"}
     User:
       type: object
       description: |

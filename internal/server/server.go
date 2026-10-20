@@ -136,17 +136,22 @@ func New(d Deps) http.Handler {
 
 	az := &authz.Handlers{Store: d.Store, Sessions: d.Sessions, Log: d.Log}
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
+	// One mailer sends every verification email: after a signup (API and
+	// hosted page) and for the Management API's verify_email.
+	verification := &login.VerificationMailer{Store: d.Store, Mailer: d.Mailer, BaseDomain: d.BaseDomain, Log: d.Log}
 	// One instance serves the API and the hosted reset pages, so they share
 	// the per-user reset send limit.
 	dbconnHandlers := &dbconn.Handlers{
 		Store: d.Store, Database: db,
 		IPThrottle: d.IPThrottle, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 		Mailer: d.Mailer, SendThrottle: identity.NewThrottle(3, time.Hour, time.Hour),
+		Verification: verification,
 	}
 	lg := &login.Handlers{
 		Store: d.Store, Sessions: d.Sessions, Authz: az,
 		Database:     db,
 		Resets:       dbconnHandlers,
+		Verification: verification,
 		UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
 		DeviceTxnThrottle: d.DeviceTxnThrottle, DeviceIPThrottle: d.DeviceIPThrottle, DeviceTenantThrottle: d.DeviceTenantThrottle,
 		TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
@@ -189,6 +194,9 @@ func New(d Deps) http.Handler {
 		tr.Post("/u/reset-password/request", lg.ResetRequestSubmit)
 		tr.Get("/u/reset-password", lg.ResetPasswordPage)
 		tr.Post("/u/reset-password", lg.ResetPasswordSubmit)
+		// Management API ticket links (U6).
+		tr.Get("/u/reset-verify", lg.ResetVerify)
+		tr.Get("/u/email-verification", lg.EmailVerificationPage)
 		// Device flow pages, at the paths observed on Auth0.
 		tr.Get("/activate", lg.Activate)
 		tr.Post("/activate", lg.ActivateSubmit)
@@ -212,7 +220,7 @@ func New(d Deps) http.Handler {
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, operatorOnly)
 	mgmtapi.HandlerWithOptions(mgmtAPI{&mgmt.Handlers{
 		Store: d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
-		Scripts: d.Scripts, Keys: d.Keys,
+		Scripts: d.Scripts, Keys: d.Keys, Verification: verification,
 	}}, mgmtapi.ChiServerOptions{
 		BaseRouter: mr,
 		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {

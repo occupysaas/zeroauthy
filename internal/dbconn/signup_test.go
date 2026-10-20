@@ -388,3 +388,37 @@ func TestSignupPasswordAndUsernameRules(t *testing.T) {
 		t.Fatalf("valid signup = %d %v", code, out)
 	}
 }
+
+// verifier is a SignupVerifier that records its calls.
+type verifier struct {
+	mu   sync.Mutex
+	sent []string // "user_id client_id lang host"
+}
+
+func (v *verifier) SendInBackground(res tenant.Resolved, u *store.User, clientID, lang string) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.sent = append(v.sent, u.UserID+" "+clientID+" "+lang+" "+res.Host)
+}
+
+// A new unverified user gets the verification email once; a failed signup
+// sends nothing.
+func TestSignupSendsVerificationEmail(t *testing.T) {
+	e := newEnv(t)
+	v := &verifier{}
+	e.h.Verification = v
+	body := `{"client_id":"app","connection":"Username-Password-Authentication","email":"new@acme.test","password":"a good password 1"}`
+	code, out, _ := e.post(t, "/dbconnections/signup", "application/json", body)
+	if code != 200 {
+		t.Fatalf("signup = %d %v", code, out)
+	}
+	if want := "auth0|" + out["_id"].(string) + " app en acme.example.test"; len(v.sent) != 1 || v.sent[0] != want {
+		t.Fatalf("sent = %v, want [%s]", v.sent, want)
+	}
+	if code, _, _ := e.post(t, "/dbconnections/signup", "application/json", body); code != 400 && code != 409 {
+		t.Fatalf("duplicate = %d", code)
+	}
+	if len(v.sent) != 1 {
+		t.Fatalf("sent = %v after a failed signup", v.sent)
+	}
+}

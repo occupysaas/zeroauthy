@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -99,6 +100,10 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		h.internal(w, r, "sign up", err)
 		return
+	}
+	// Auth0 sends a new user the verification email on signup.
+	if h.Verification != nil && user.Email != "" && !user.EmailVerified {
+		h.Verification.SendInBackground(res, user, fields["client_id"], i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language")))
 	}
 	out := map[string]any{"_id": strings.TrimPrefix(user.UserID, store.StrategyDatabase+"|"), "email_verified": user.EmailVerified, "email": user.Email}
 	for k, v := range map[string]string{"username": user.Username, "given_name": user.GivenName, "family_name": user.FamilyName,

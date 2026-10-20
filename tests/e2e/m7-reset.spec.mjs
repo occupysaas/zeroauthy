@@ -15,9 +15,11 @@ async function newestEmail(since) {
       const s = await stat(path.join(dir, f));
       if (s.mtimeMs >= since) fresh.push([s.mtimeMs, f]);
     }
-    if (fresh.length) {
-      fresh.sort((a, b) => b[0] - a[0]);
-      return readFile(path.join(dir, fresh[0][1]), 'utf8');
+    // Only a reset email: signups elsewhere send verification emails.
+    fresh.sort((a, b) => b[0] - a[0]);
+    for (const [, f] of fresh) {
+      const mail = await readFile(path.join(dir, f), 'utf8');
+      if (mail.includes('/u/reset-password?ticket')) return mail;
     }
     await new Promise((r) => setTimeout(r, 100));
   }

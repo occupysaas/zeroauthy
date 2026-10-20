@@ -30,11 +30,14 @@ const maxFormBytes = 16 << 10
 var errTxn = errors.New("login: invalid or expired transaction")
 
 type Handlers struct {
-	Store        store.Store
-	Sessions     *session.Manager
-	Authz        *authz.Handlers
-	Database     *identity.Database
-	Resets       *dbconn.Handlers // nil disables the hosted password reset pages
+	Store    store.Store
+	Sessions *session.Manager
+	Authz    *authz.Handlers
+	Database *identity.Database
+	Resets   *dbconn.Handlers // nil disables the hosted password reset pages
+	// Verification sends the verification email after a signup; nil sends
+	// none.
+	Verification *VerificationMailer
 	UserThrottle *identity.Throttle
 	IPThrottle   *identity.Throttle
 	// Device code entry limits (/activate). Each counts misses; a code
@@ -342,6 +345,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
+	h.sendSignupVerification(f, user)
 	h.complete(w, r, f, user)
 }
 

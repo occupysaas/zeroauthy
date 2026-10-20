@@ -71,7 +71,7 @@ tenants:
       - name: Legacy-DB
         enabled_clients: [legacy]
         enabledDatabaseCustomization: true
-        customScripts: {login: "x", get_user: "x", create: "x", change_password: "x"}
+        customScripts: {login: "x", get_user: "x", create: "x", change_password: "x", verify: "x"}
         configuration: {api_key: "cfg-secret-9f3a"}
     users:
       - {connection: Username-Password-Authentication, email: alice@acme.test, username: alice1, password: "alice password 1"}
@@ -149,6 +149,7 @@ func newEnv(t *testing.T) *env {
 		IPThrottle:   identity.NewThrottle(100, time.Hour, time.Hour),
 		Log:          log,
 	}
+	h.Verification = &VerificationMailer{Store: st, Mailer: mail, Now: fixedNow, Log: log, Go: func(f func()) { f() }}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /authorize", az.Authorize)
 	mux.HandleFunc("GET /u/login", h.LoginPage)
@@ -161,6 +162,8 @@ func newEnv(t *testing.T) *env {
 	mux.HandleFunc("POST /u/reset-password/request", h.ResetRequestSubmit)
 	mux.HandleFunc("GET /u/reset-password", h.ResetPasswordPage)
 	mux.HandleFunc("POST /u/reset-password", h.ResetPasswordSubmit)
+	mux.HandleFunc("GET /u/reset-verify", h.ResetVerify)
+	mux.HandleFunc("GET /u/email-verification", h.EmailVerificationPage)
 	mux.HandleFunc("GET /activate", h.Activate)
 	mux.HandleFunc("POST /activate", h.ActivateSubmit)
 	mux.HandleFunc("GET /device/confirmation", h.DeviceConfirmPage)

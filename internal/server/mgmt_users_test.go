@@ -30,7 +30,7 @@ var usersSeed = strings.Replace(strings.Replace(mgmtSeed, "    clients:\n", `   
       - {client_id: users, app_type: non_interactive, client_secret: users-s3cret, grant_types: [client_credentials]}
       - {client_id: usersro, app_type: non_interactive, client_secret: usersro-s3cret, grant_types: [client_credentials]}
 `, 1), "    client_grants:\n", `    client_grants:
-      - {client_id: users, audience: "https://acme.example.test/api/v2/", scopes: ["read:users", "create:users", "update:users", "delete:users", "update:users_app_metadata", "read:sessions", "delete:sessions", "read:refresh_tokens", "delete:refresh_tokens", "read:grants", "delete:grants"]}
+      - {client_id: users, audience: "https://acme.example.test/api/v2/", scopes: ["read:users", "create:users", "update:users", "delete:users", "update:users_app_metadata", "read:sessions", "delete:sessions", "read:refresh_tokens", "delete:refresh_tokens", "read:grants", "delete:grants", "create:user_tickets"]}
       - {client_id: usersro, audience: "https://acme.example.test/api/v2/", scopes: ["read:users", "update:users"]}
 `, 1)
 
@@ -510,4 +510,57 @@ func TestUnlinkRestoresLogin(t *testing.T) {
 	if sub := idTokenSub(t, tok); sub != alice.UserID {
 		t.Errorf("alice's login: sub %s", sub)
 	}
+}
+
+// U6 end to end: Management API tickets open on the tenant's host.
+func TestTicketLinksEndToEnd(t *testing.T) {
+	a := newUsersAPI(t, nil)
+	rec, user := a.do("POST", usersBase, map[string]any{"connection": "Username-Password-Authentication", "email": "tk@example.test",
+		"password": "first horse 1", "verify_email": false})
+	if rec.Code != 201 {
+		t.Fatalf("create user = %d %s", rec.Code, rec.Body)
+	}
+	id := user["user_id"].(string)
+	rec, out := a.do("POST", "https://acme.example.test/api/v2/tickets/email-verification", map[string]any{"user_id": id,
+		"result_url": "https://app.example.test/done", "includeEmailInRedirect": true})
+	link, _ := out["ticket"].(string)
+	if rec.Code != 201 || !strings.HasPrefix(link, "https://acme.example.test/u/email-verification?ticket=") || !strings.HasSuffix(link, "#") {
+		t.Fatalf("ticket = %d %s", rec.Code, rec.Body)
+	}
+	page := httptest.NewRecorder()
+	a.h.ServeHTTP(page, httptest.NewRequest("GET", strings.TrimSuffix(link, "#"), nil))
+	want := "https://app.example.test/done?supportSignUp=true&supportForgotPassword=true&email=tk%40example.test&message=Your%20email%20was%20verified.%20You%20can%20continue%20using%20the%20application.&success=true&code=success"
+	if page.Code != 302 || page.Header().Get("Location") != want {
+		t.Fatalf("open = %d %q", page.Code, page.Header().Get("Location"))
+	}
+	if _, got := a.do("GET", usersBase+"/"+url.PathEscape(id), nil); got["email_verified"] != true {
+		t.Fatalf("user = %v", got)
+	}
+
+	rec, out = a.do("POST", "https://acme.example.test/api/v2/tickets/password-change", map[string]any{"email": "tk@example.test",
+		"connection_id": connectionID(t, a, "Username-Password-Authentication")})
+	link, _ = out["ticket"].(string)
+	if rec.Code != 201 || !strings.HasPrefix(link, "https://acme.example.test/u/reset-verify?ticket=") {
+		t.Fatalf("password ticket = %d %s", rec.Code, rec.Body)
+	}
+	page = httptest.NewRecorder()
+	a.h.ServeHTTP(page, httptest.NewRequest("GET", strings.TrimSuffix(link, "#"), nil))
+	loc := page.Header().Get("Location")
+	if page.Code != 302 || !strings.HasPrefix(loc, "/u/reset-password?ticket=") {
+		t.Fatalf("reset-verify = %d %q", page.Code, loc)
+	}
+	form := httptest.NewRecorder()
+	a.h.ServeHTTP(form, httptest.NewRequest("GET", "https://acme.example.test"+loc, nil))
+	if form.Code != 200 || !strings.Contains(form.Body.String(), `name="password"`) {
+		t.Fatalf("reset form = %d %s", form.Code, form.Body)
+	}
+}
+
+func connectionID(t *testing.T, a *usersAPI, name string) string {
+	t.Helper()
+	c, err := a.st.Connections().GetByName(context.Background(), a.tenantID(), name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c.ID
 }
