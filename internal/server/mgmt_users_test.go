@@ -30,7 +30,7 @@ var usersSeed = strings.Replace(strings.Replace(mgmtSeed, "    clients:\n", `   
       - {client_id: users, app_type: non_interactive, client_secret: users-s3cret, grant_types: [client_credentials]}
       - {client_id: usersro, app_type: non_interactive, client_secret: usersro-s3cret, grant_types: [client_credentials]}
 `, 1), "    client_grants:\n", `    client_grants:
-      - {client_id: users, audience: "https://acme.example.test/api/v2/", scopes: ["read:users", "create:users", "update:users", "delete:users", "update:users_app_metadata"]}
+      - {client_id: users, audience: "https://acme.example.test/api/v2/", scopes: ["read:users", "create:users", "update:users", "delete:users", "update:users_app_metadata", "read:sessions", "delete:sessions", "read:refresh_tokens", "delete:refresh_tokens", "read:grants", "delete:grants"]}
       - {client_id: usersro, audience: "https://acme.example.test/api/v2/", scopes: ["read:users", "update:users"]}
 `, 1)
 

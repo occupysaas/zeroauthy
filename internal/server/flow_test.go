@@ -17,6 +17,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -530,5 +531,74 @@ func TestEndToEndAuthorizePost(t *testing.T) {
 	resp, body = post(params() + "&client_id=other")
 	if resp.StatusCode != 400 || !strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") || !strings.Contains(body, `"invalid_request"`) {
 		t.Fatalf("repeated client_id = %d %v %s", resp.StatusCode, resp.Header, body)
+	}
+}
+
+// mgmtDelete runs a Management API delete handler for the flow tenant, as a
+// machine caller with scope.
+func (e *flowEnv) mgmtDelete(t *testing.T, scope string, fn func(h *mgmt.Handlers, w http.ResponseWriter, r *http.Request)) {
+	t.Helper()
+	tn, err := e.st.Tenants().GetByName(context.Background(), "flow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest("DELETE", e.base+"/api/v2/x", nil)
+	ctx := tenant.WithResolved(r.Context(), tenant.Resolved{Tenant: tn, Host: strings.TrimPrefix(e.base, "https://")})
+	r = r.WithContext(mgmt.WithCaller(ctx, mgmt.Caller{Kind: mgmt.M2M, ClientID: "m2m", Scopes: []string{scope}}))
+	w := httptest.NewRecorder()
+	fn(&mgmt.Handlers{Store: e.st, Wrapper: e.w}, w, r)
+	if w.Code != http.StatusAccepted || strings.TrimSpace(w.Body.String()) != "{}" {
+		t.Fatalf("management delete = %d %s", w.Code, w.Body)
+	}
+}
+
+// Deleting a session through the Management API ends the browser's single
+// sign-on, and deleting a refresh token makes the refresh grant fail (U8).
+func TestEndToEndManagementDeletes(t *testing.T) {
+	e := newFlowEnv(t)
+	ctx := context.Background()
+	c := e.client(t)
+	refresh := func(token string) (*http.Response, map[string]any) {
+		return e.postForm(t, c, "/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {"spa"}, "refresh_token": {token}})
+	}
+	silent := func() string {
+		_, page := fetch(t, c, authorizeURL(e.base, "prompt", "none", "response_mode", "web_message"))
+		return page
+	}
+	tok := e.codeFlow(t, c, "scope", "openid offline_access")
+	rt, _ := tok["refresh_token"].(string)
+	if rt == "" || strings.Contains(silent(), "login_required") {
+		t.Fatalf("setup: refresh token %q, silent auth ok = %v", rt, !strings.Contains(silent(), "login_required"))
+	}
+	tn, _ := e.st.Tenants().GetByName(ctx, "flow")
+	found, _ := e.st.Users().FindByEmail(ctx, tn.ID, "alice@flow.test")
+	if len(found) != 1 {
+		t.Fatalf("users = %d", len(found))
+	}
+	u := found[0]
+	sessions, _ := e.st.Sessions().ListByUser(ctx, tn.ID, u.UserID)
+	if len(sessions) != 1 || sessions[0].InitialUserAgent == "" || sessions[0].InitialIP == "" {
+		t.Fatalf("sessions = %+v, want one with a recorded IP and user agent", sessions)
+	}
+
+	e.mgmtDelete(t, "delete:sessions", func(h *mgmt.Handlers, w http.ResponseWriter, r *http.Request) { h.DeleteSession(w, r, sessions[0].ID) })
+	if page := silent(); !strings.Contains(page, "login_required") {
+		t.Errorf("silent auth after deleting the session: %s", page)
+	}
+	// Deleting a session leaves the refresh token alone.
+	resp, body := refresh(rt)
+	if resp.StatusCode != 200 {
+		t.Fatalf("refresh after deleting the session = %d %v", resp.StatusCode, body)
+	}
+	rt, _ = body["refresh_token"].(string)
+	tokens, _ := e.st.RefreshTokens().ListByUser(ctx, tn.ID, u.UserID)
+	if len(tokens) != 1 {
+		t.Fatalf("tokens = %d, want 1", len(tokens))
+	}
+	e.mgmtDelete(t, "delete:refresh_tokens", func(h *mgmt.Handlers, w http.ResponseWriter, r *http.Request) {
+		h.DeleteRefreshToken(w, r, tokens[0].ID)
+	})
+	if resp, body := refresh(rt); resp.StatusCode != 400 || body["error"] != "invalid_grant" {
+		t.Errorf("refresh after deleting the token = %d %v", resp.StatusCode, body)
 	}
 }

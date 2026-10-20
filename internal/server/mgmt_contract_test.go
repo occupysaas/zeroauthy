@@ -17,6 +17,7 @@ import (
 	"github.com/getkin/kin-openapi/routers"
 	"github.com/getkin/kin-openapi/routers/gorillamux"
 	"github.com/zeroauthy/zeroauthy/api"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 // mgmtContract checks responses against api/management.yaml.
@@ -331,8 +332,81 @@ func TestManagementContractUsers(t *testing.T) {
 	c.do(a.h, "DELETE", idents+"/auth0/"+url.PathEscape(bare), a.token, nil)
 	c.do(a.h, "DELETE", idents+"/auth0/"+url.PathEscape(strings.TrimPrefix(id, "auth0|")), a.token, nil)
 	c.do(a.h, "DELETE", usersBase+"/nope/identities/auth0/x", a.token, nil)
+	sessionsAndGrantsContract(t, c, a, ro, id)
 	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), ro, nil)
 	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), a.token, nil)
 	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape(id), a.token, nil)
 	c.do(a.h, "DELETE", usersBase+"/nope", a.token, nil)
+}
+
+// sessionsAndGrantsContract exercises the session, refresh token and grant
+// operations of user id (U8, U9).
+func sessionsAndGrantsContract(t *testing.T, c *mgmtContract, a *usersAPI, ro, id string) {
+	t.Helper()
+	ctx, tid := context.Background(), a.tenantID()
+	now := time.Now().UTC()
+	if err := a.st.Sessions().Create(ctx, &store.LoginSession{TenantID: tid, ID: "contract-session", TokenHash: "h1", UserID: id, Connection: "Username-Password-Authentication",
+		AuthenticatedAt: now, ClientIDs: []string{"spa"}, ExpiresAt: now.Add(time.Hour), IdleExpiresAt: now.Add(time.Hour), CreatedAt: now, UpdatedAt: now, LastInteractedAt: now,
+		InitialIP: "192.0.2.1", InitialUserAgent: "ua", LastIP: "192.0.2.2", LastUserAgent: "ua2"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.st.RefreshTokens().Create(ctx, &store.RefreshToken{TenantID: tid, ID: "contract-token", TokenHash: "h2", FamilyID: "f", ClientID: "spa", UserID: id,
+		SessionID: "contract-session", Scopes: []string{"openid"}, Audience: "https://api.acme.test", ExpiresAt: now.Add(time.Hour), IdleExpiresAt: now.Add(time.Hour), CreatedAt: now}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.st.RefreshTokens().Create(ctx, &store.RefreshToken{TenantID: tid, ID: "contract-token2", TokenHash: "h3", FamilyID: "f2", ClientID: "spa", UserID: id,
+		Scopes: []string{"openid"}, CreatedAt: now.Add(-time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.st.UserGrants().Upsert(ctx, &store.UserGrant{TenantID: tid, ID: "contract-grant", ClientID: "spa", UserID: id, Audience: "https://api.acme.test",
+		Scopes: []string{"read:things", "openid"}, CreatedAt: now, UpdatedAt: now}); err != nil {
+		t.Fatal(err)
+	}
+	us := usersBase + "/" + url.PathEscape(id)
+	base := "https://acme.example.test/api/v2/"
+	c.do(a.h, "GET", us+"/sessions", a.token, nil)
+	c.do(a.h, "GET", us+"/sessions?take=1", a.token, nil)
+	c.do(a.h, "GET", us+"/sessions?take=101", a.token, nil)
+	c.do(a.h, "GET", us+"/sessions?from=garbage", a.token, nil)
+	c.do(a.h, "GET", us+"/sessions", ro, nil)
+	c.do(a.h, "GET", usersBase+"/nope/sessions", a.token, nil)
+	c.do(a.h, "GET", usersBase+"/"+url.PathEscape("auth0|000000000000000000000000")+"/sessions", a.token, nil)
+	c.do(a.h, "GET", base+"sessions/contract-session", a.token, nil)
+	c.do(a.h, "GET", base+"sessions/nope", a.token, nil)
+	c.do(a.h, "GET", base+"sessions/contract-session", ro, nil)
+	c.do(a.h, "GET", us+"/refresh-tokens", a.token, nil)
+	c.do(a.h, "GET", us+"/refresh-tokens?take=1", a.token, nil)
+	c.do(a.h, "GET", us+"/refresh-tokens?take=101", a.token, nil)
+	c.do(a.h, "GET", us+"/refresh-tokens", ro, nil)
+	c.do(a.h, "GET", base+"refresh-tokens/contract-token", a.token, nil)
+	c.do(a.h, "GET", base+"refresh-tokens/contract-token2", a.token, nil)
+	c.do(a.h, "GET", base+"refresh-tokens/nope", a.token, nil)
+	c.do(a.h, "GET", base+"grants", a.token, nil)
+	c.do(a.h, "GET", base+"grants?include_totals=true&user_id="+url.QueryEscape(id), a.token, nil)
+	c.do(a.h, "GET", base+"grants?user_id=nobody", a.token, nil)
+	c.do(a.h, "GET", base+"grants", ro, nil)
+	c.do(a.h, "DELETE", base+"sessions/contract-session", ro, nil)
+	if code, body := c.do(a.h, "DELETE", base+"sessions/contract-session", a.token, nil); code != 202 || strings.TrimSpace(string(body)) != "{}" {
+		t.Errorf("delete session = %d %s", code, body)
+	}
+	c.do(a.h, "DELETE", base+"sessions/contract-session", a.token, nil)
+	if code, _ := c.do(a.h, "DELETE", us+"/sessions", a.token, nil); code != 202 {
+		t.Errorf("delete user sessions = %d", code)
+	}
+	c.do(a.h, "DELETE", usersBase+"/nope/sessions", a.token, nil)
+	c.do(a.h, "DELETE", usersBase+"/"+url.PathEscape("auth0|000000000000000000000000")+"/sessions", a.token, nil)
+	if code, _ := c.do(a.h, "DELETE", base+"refresh-tokens/contract-token", a.token, nil); code != 202 {
+		t.Errorf("delete token = %d", code)
+	}
+	c.do(a.h, "DELETE", base+"refresh-tokens/nope", a.token, nil)
+	if code, _ := c.do(a.h, "DELETE", us+"/refresh-tokens", a.token, nil); code != 202 {
+		t.Errorf("delete user tokens = %d", code)
+	}
+	c.do(a.h, "DELETE", us+"/refresh-tokens", ro, nil)
+	c.do(a.h, "DELETE", base+"grants/contract-grant", ro, nil)
+	if code, _ := c.do(a.h, "DELETE", base+"grants/contract-grant", a.token, nil); code != 204 {
+		t.Errorf("delete grant = %d", code)
+	}
+	c.do(a.h, "DELETE", base+"grants?user_id="+url.QueryEscape(id), a.token, nil)
+	c.do(a.h, "DELETE", base+"grants", a.token, nil)
 }

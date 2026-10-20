@@ -49,6 +49,12 @@ tags:
     description: Database connections (Auth0's `/api/v2/connections`).
   - name: users
     description: Users (Auth0's `/api/v2/users` and `/api/v2/users-by-email`).
+  - name: sessions
+    description: Login sessions (Auth0's `/api/v2/sessions`).
+  - name: refresh-tokens
+    description: Refresh tokens (Auth0's `/api/v2/refresh-tokens`).
+  - name: grants
+    description: Users' consents (Auth0's `/api/v2/grants`).
   - name: system
     description: zeroauthy's own API for tenants and operators (operator tokens only).
 security:
@@ -1032,6 +1038,277 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/users/{id}/sessions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The user's ID, `provider|id`; anything else is `400 invalid_uri`.
+        schema: {type: string}
+    get:
+      operationId: getUserSessions
+      tags: [users]
+      summary: List a user's sessions
+      description: |
+        Requires `read:sessions`. The user's unexpired sessions, newest first,
+        by checkpoint paging only: `take` is 1 to 100 (50 by default) and
+        `from` the opaque `next` of the previous page. `next` is present
+        whenever the page is not empty, the last page included; an empty list
+        has none. `page`, `per_page` and `include_totals` are ignored. A bad
+        `from` is `400 invalid_query_string`; an unknown user is
+        `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/get-sessions-for-user
+      parameters:
+        - name: take
+          in: query
+          description: Page size, 1 to 100 (50 by default).
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: from
+          in: query
+          description: The `next` of the previous page.
+          schema: {type: string}
+      responses:
+        "200":
+          description: A page of sessions.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserSessionPage"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteUserSessions
+      tags: [users]
+      summary: Delete a user's sessions
+      description: |
+        Requires `delete:sessions`. Deletes every session of the user, which
+        ends their single sign-on, and bumps the user's version. Refresh
+        tokens are not revoked. Answers `202 {}`, also when there were none;
+        an unknown user is `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/delete-sessions-for-user
+      responses:
+        "202": {$ref: "#/components/responses/Accepted"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/users/{id}/refresh-tokens:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The user's ID, `provider|id`; anything else is `400 invalid_uri`.
+        schema: {type: string}
+    get:
+      operationId: getUserRefreshTokens
+      tags: [users]
+      summary: List a user's refresh tokens
+      description: |
+        Requires `read:refresh_tokens`. The user's live refresh tokens (not
+        revoked, rotated or expired), newest first, by checkpoint paging only
+        as for sessions: `take`, `from`, and `next` on every non-empty page.
+        An unknown user is `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/get-refresh-tokens-for-user
+      parameters:
+        - name: take
+          in: query
+          description: Page size, 1 to 100 (50 by default).
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - name: from
+          in: query
+          description: The `next` of the previous page.
+          schema: {type: string}
+      responses:
+        "200":
+          description: A page of refresh tokens.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserRefreshTokenPage"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteUserRefreshTokens
+      tags: [users]
+      summary: Delete a user's refresh tokens
+      description: |
+        Requires `delete:refresh_tokens`. Revokes every refresh token of the
+        user; a refresh grant with one answers `invalid_grant`. Answers
+        `202 {}`, also when there were none; an unknown user is
+        `404 inexistent_user`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/users/delete-refresh-tokens-for-user
+      responses:
+        "202": {$ref: "#/components/responses/Accepted"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/sessions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The session's ID.
+        schema: {type: string}
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get a session
+      description: |
+        Requires `read:sessions`. An unknown, expired or malformed ID is `404`
+        without an `errorCode` ("The session does not exist.").
+      x-source:
+        - https://auth0.com/docs/api/management/v2/sessions/get-session
+      responses:
+        "200":
+          description: The session.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserSession"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteSession
+      tags: [sessions]
+      summary: Delete a session
+      description: |
+        Requires `delete:sessions`. Ends the session, so the next
+        `/authorize?prompt=none` answers `login_required`. Answers `202 {}`,
+        also when there was no such session.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/sessions/delete-session
+      responses:
+        "202": {$ref: "#/components/responses/Accepted"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/refresh-tokens/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The refresh token's ID (not the token).
+        schema: {type: string}
+    get:
+      operationId: getRefreshToken
+      tags: [refresh-tokens]
+      summary: Get a refresh token
+      description: |
+        Requires `read:refresh_tokens`. An unknown, revoked, expired or
+        malformed ID is `404` without an `errorCode` ("The refresh token does
+        not exist.").
+      x-source:
+        - https://auth0.com/docs/api/management/v2/refresh-tokens/get-refresh-token
+      responses:
+        "200":
+          description: The refresh token.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserRefreshToken"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteRefreshToken
+      tags: [refresh-tokens]
+      summary: Delete a refresh token
+      description: |
+        Requires `delete:refresh_tokens`. Revokes the token and its rotation
+        family; a refresh grant with it answers `invalid_grant`. Answers
+        `202 {}`, also when there was no such token.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/refresh-tokens/delete-refresh-token
+      responses:
+        "202": {$ref: "#/components/responses/Accepted"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/grants:
+    get:
+      operationId: getGrants
+      tags: [grants]
+      summary: List user grants
+      description: |
+        Requires `read:grants`. The users' grants (consents) in grant ID
+        order, filtered by `user_id`, `client_id` and `audience`. An unknown
+        user is `200 []`. Offset paging; `include_totals=true` answers
+        `{grants, start, limit, total}`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/grants/get-grants
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/per_page"
+        - $ref: "#/components/parameters/include_totals"
+        - name: user_id
+          in: query
+          description: Only the grants of this user.
+          schema: {type: string}
+        - name: client_id
+          in: query
+          description: Only the grants of this application.
+          schema: {type: string}
+        - name: audience
+          in: query
+          description: Only the grants for this audience.
+          schema: {type: string}
+      responses:
+        "200":
+          description: The page of grants.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: array
+                    items: {$ref: "#/components/schemas/UserGrant"}
+                  - $ref: "#/components/schemas/UserGrantPage"
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    delete:
+      operationId: deleteGrantsByUser
+      tags: [grants]
+      summary: Delete a user's grants
+      description: |
+        Requires `delete:grants`. Deletes every grant of the user named by
+        `user_id`, which is required (`400 invalid_query_string` without it).
+        Answers `204`, also when there were none.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/grants/delete-grants-by-id
+      parameters:
+        - name: user_id
+          in: query
+          description: The user whose grants are deleted; required (checked by the handler, for Auth0's error body).
+          schema: {type: string}
+      responses:
+        "204": {description: Deleted.}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/grants/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The grant's ID.
+        schema: {type: string}
+    delete:
+      operationId: deleteGrant
+      tags: [grants]
+      summary: Delete a grant
+      description: |
+        Requires `delete:grants`. Answers `204`, also when there was no such
+        grant.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/grants/delete-grants-by-id
+      responses:
+        "204": {description: Deleted.}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /api/v2/users-by-email:
     get:
       operationId: getUsersByEmail
@@ -1938,6 +2215,112 @@ components:
             setup_url:
               type: string
               description: One-time link, valid for one hour, where the operator chooses a password.
+    SessionDevice:
+      type: object
+      description: The IP addresses and user agents of the session; there are no ASN keys.
+      properties:
+        initial_user_agent: {type: string}
+        initial_ip: {type: string}
+        last_user_agent: {type: string}
+        last_ip: {type: string}
+    UserSession:
+      type: object
+      required: [id, user_id, created_at, updated_at, authenticated_at, authentication, idle_expires_at, expires_at, device, clients, last_interacted_at, cookie]
+      properties:
+        id: {type: string}
+        user_id: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        authenticated_at: {type: string, format: date-time}
+        authentication:
+          type: object
+          required: [methods]
+          properties:
+            methods:
+              type: array
+              items:
+                type: object
+                required: [name, timestamp]
+                properties:
+                  name: {type: string, description: "`pwd` for a database login."}
+                  timestamp: {type: string, format: date-time}
+        idle_expires_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+        device: {$ref: "#/components/schemas/SessionDevice"}
+        clients:
+          type: array
+          items:
+            type: object
+            required: [client_id]
+            properties:
+              client_id: {type: string}
+        last_interacted_at: {type: string, format: date-time}
+        cookie:
+          type: object
+          required: [mode]
+          properties:
+            mode: {type: string, enum: [persistent]}
+    UserSessionPage:
+      type: object
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          items: {$ref: "#/components/schemas/UserSession"}
+        next: {type: string, description: Pass as `from` for the next page; absent when the page is empty.}
+    UserRefreshToken:
+      type: object
+      required: [id, user_id, created_at, idle_expires_at, expires_at, client_id, session_id, rotating, resource_servers, last_exchanged_at]
+      properties:
+        id: {type: string}
+        user_id: {type: string}
+        created_at: {type: string, format: date-time}
+        idle_expires_at: {type: [string, "null"], format: date-time}
+        expires_at: {type: [string, "null"], format: date-time}
+        client_id: {type: string}
+        session_id: {type: [string, "null"]}
+        rotating: {type: boolean}
+        resource_servers:
+          type: array
+          description: The API the token is for with its space-separated scopes; the tenant's `/userinfo` audience when it has no API.
+          items:
+            type: object
+            required: [audience, scopes]
+            properties:
+              audience: {type: string}
+              scopes: {type: string}
+        device: {$ref: "#/components/schemas/SessionDevice"}
+        last_exchanged_at: {type: [string, "null"], format: date-time}
+    UserRefreshTokenPage:
+      type: object
+      required: [tokens]
+      properties:
+        tokens:
+          type: array
+          items: {$ref: "#/components/schemas/UserRefreshToken"}
+        next: {type: string, description: Pass as `from` for the next page; absent when the page is empty.}
+    UserGrant:
+      type: object
+      required: [id, clientID, user_id, audience, scope]
+      properties:
+        id: {type: string}
+        clientID: {type: string, description: "Spelled `clientID`, as Auth0 does."}
+        user_id: {type: string}
+        audience: {type: string}
+        scope:
+          type: array
+          description: The granted scopes, sorted.
+          items: {type: string}
+    UserGrantPage:
+      description: A page of grants with `include_totals=true`.
+      allOf:
+        - $ref: "#/components/schemas/ListTotals"
+        - type: object
+          required: [grants]
+          properties:
+            grants:
+              type: array
+              items: {$ref: "#/components/schemas/UserGrant"}
     UserIdentity:
       type: object
       required: [connection, user_id, provider, isSocial]
@@ -2109,6 +2492,11 @@ components:
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}
+    Accepted:
+      description: Accepted; the body is `{}`.
+      content:
+        application/json:
+          schema: {type: object}
     NotFound:
       description: The resource does not exist.
       content:

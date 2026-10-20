@@ -558,6 +558,21 @@ func (e TokenEndpointAuthMethod) Valid() bool {
 	}
 }
 
+// Defines values for UserSessionCookieMode.
+const (
+	Persistent UserSessionCookieMode = "persistent"
+)
+
+// Valid indicates whether the value is a known member of the UserSessionCookieMode enum.
+func (e UserSessionCookieMode) Valid() bool {
+	switch e {
+	case Persistent:
+		return true
+	default:
+		return false
+	}
+}
+
 // AccessPolicy defines model for AccessPolicy.
 type AccessPolicy struct {
 	Policy *AccessPolicyPolicy `json:"policy,omitempty"`
@@ -1519,6 +1534,14 @@ type ScriptTryResult struct {
 	Result interface{} `json:"result"`
 }
 
+// SessionDevice The IP addresses and user agents of the session; there are no ASN keys.
+type SessionDevice struct {
+	InitialIp        *string `json:"initial_ip,omitempty"`
+	InitialUserAgent *string `json:"initial_user_agent,omitempty"`
+	LastIp           *string `json:"last_ip,omitempty"`
+	LastUserAgent    *string `json:"last_user_agent,omitempty"`
+}
+
 // SubjectTypeAuthorization Who may get access tokens for the API. `user` is `allow_all`,
 // `require_client_grant` or `deny_all`; `client` is `require_client_grant`
 // or `deny_all`. On update the two subject types merge.
@@ -1625,6 +1648,33 @@ type UserCreate struct {
 	VerifyEmail *bool `json:"verify_email,omitempty"`
 }
 
+// UserGrant defines model for UserGrant.
+type UserGrant struct {
+	Audience string `json:"audience"`
+
+	// ClientID Spelled `clientID`, as Auth0 does.
+	ClientID string `json:"clientID"`
+	Id       string `json:"id"`
+
+	// Scope The granted scopes, sorted.
+	Scope  []string `json:"scope"`
+	UserId string   `json:"user_id"`
+}
+
+// UserGrantPage A page of grants with `include_totals=true`.
+type UserGrantPage struct {
+	Grants []UserGrant `json:"grants"`
+
+	// Limit The page size.
+	Limit int `json:"limit"`
+
+	// Start Index of the first result.
+	Start int `json:"start"`
+
+	// Total The number of results on all pages.
+	Total int `json:"total"`
+}
+
 // UserIdentity defines model for UserIdentity.
 type UserIdentity struct {
 	Connection string `json:"connection"`
@@ -1699,6 +1749,73 @@ type UserProfileSettings struct {
 	VerifyEmail *bool `json:"verify_email,omitempty"`
 }
 
+// UserRefreshToken defines model for UserRefreshToken.
+type UserRefreshToken struct {
+	ClientId  string    `json:"client_id"`
+	CreatedAt time.Time `json:"created_at"`
+
+	// Device The IP addresses and user agents of the session; there are no ASN keys.
+	Device          *SessionDevice `json:"device,omitempty"`
+	ExpiresAt       *time.Time     `json:"expires_at"`
+	Id              string         `json:"id"`
+	IdleExpiresAt   *time.Time     `json:"idle_expires_at"`
+	LastExchangedAt *time.Time     `json:"last_exchanged_at"`
+
+	// ResourceServers The API the token is for with its space-separated scopes; the tenant's `/userinfo` audience when it has no API.
+	ResourceServers []struct {
+		Audience string `json:"audience"`
+		Scopes   string `json:"scopes"`
+	} `json:"resource_servers"`
+	Rotating  bool    `json:"rotating"`
+	SessionId *string `json:"session_id"`
+	UserId    string  `json:"user_id"`
+}
+
+// UserRefreshTokenPage defines model for UserRefreshTokenPage.
+type UserRefreshTokenPage struct {
+	// Next Pass as `from` for the next page; absent when the page is empty.
+	Next   *string            `json:"next,omitempty"`
+	Tokens []UserRefreshToken `json:"tokens"`
+}
+
+// UserSession defines model for UserSession.
+type UserSession struct {
+	AuthenticatedAt time.Time `json:"authenticated_at"`
+	Authentication  struct {
+		Methods []struct {
+			// Name `pwd` for a database login.
+			Name      string    `json:"name"`
+			Timestamp time.Time `json:"timestamp"`
+		} `json:"methods"`
+	} `json:"authentication"`
+	Clients []struct {
+		ClientId string `json:"client_id"`
+	} `json:"clients"`
+	Cookie struct {
+		Mode UserSessionCookieMode `json:"mode"`
+	} `json:"cookie"`
+	CreatedAt time.Time `json:"created_at"`
+
+	// Device The IP addresses and user agents of the session; there are no ASN keys.
+	Device           SessionDevice `json:"device"`
+	ExpiresAt        time.Time     `json:"expires_at"`
+	Id               string        `json:"id"`
+	IdleExpiresAt    time.Time     `json:"idle_expires_at"`
+	LastInteractedAt time.Time     `json:"last_interacted_at"`
+	UpdatedAt        time.Time     `json:"updated_at"`
+	UserId           string        `json:"user_id"`
+}
+
+// UserSessionCookieMode defines model for UserSession.Cookie.Mode.
+type UserSessionCookieMode string
+
+// UserSessionPage defines model for UserSessionPage.
+type UserSessionPage struct {
+	// Next Pass as `from` for the next page; absent when the page is empty.
+	Next     *string       `json:"next,omitempty"`
+	Sessions []UserSession `json:"sessions"`
+}
+
 // UserUpdate Fields to change; unknown properties are `400 invalid_body`.
 type UserUpdate struct {
 	AppMetadata *map[string]interface{} `json:"app_metadata,omitempty"`
@@ -1738,6 +1855,9 @@ type Page = int
 
 // PerPage defines model for per_page.
 type PerPage = int
+
+// Accepted defines model for Accepted.
+type Accepted = map[string]interface{}
 
 // BadRequest Auth0's Management API error shape.
 type BadRequest = ManagementError
@@ -1898,6 +2018,41 @@ type GetConnectionClientsParams struct {
 // UpdateConnectionClientsJSONBody defines parameters for UpdateConnectionClients.
 type UpdateConnectionClientsJSONBody = []ConnectionClientStatus
 
+// DeleteGrantsByUserParams defines parameters for DeleteGrantsByUser.
+type DeleteGrantsByUserParams struct {
+	// UserId The user whose grants are deleted; required (checked by the handler, for Auth0's error body).
+	UserId *string `form:"user_id,omitempty" json:"user_id,omitempty"`
+}
+
+// GetGrantsParams defines parameters for GetGrants.
+type GetGrantsParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *IncludeTotals `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// UserId Only the grants of this user.
+	UserId *string `form:"user_id,omitempty" json:"user_id,omitempty"`
+
+	// ClientId Only the grants of this application.
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
+
+	// Audience Only the grants for this audience.
+	Audience *string `form:"audience,omitempty" json:"audience,omitempty"`
+}
+
+// GetGrants200JSONResponseBody0 defines parameters for GetGrants.
+type GetGrants200JSONResponseBody0 = []UserGrant
+
+// GetGrants200JSONResponseBody defines parameters for GetGrants.
+type GetGrants200JSONResponseBody struct {
+	union json.RawMessage
+}
+
 // GetResourceServersParams defines parameters for GetResourceServers.
 type GetResourceServersParams struct {
 	// Page Page index of the results, from 0.
@@ -1994,6 +2149,24 @@ type GetUserParams struct {
 
 	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
+// GetUserRefreshTokensParams defines parameters for GetUserRefreshTokens.
+type GetUserRefreshTokensParams struct {
+	// Take Page size, 1 to 100 (50 by default).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// From The `next` of the previous page.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+}
+
+// GetUserSessionsParams defines parameters for GetUserSessions.
+type GetUserSessionsParams struct {
+	// Take Page size, 1 to 100 (50 by default).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// From The `next` of the previous page.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
 }
 
 // CreateOperatorJSONRequestBody defines body for CreateOperator for application/json ContentType.
@@ -2697,6 +2870,68 @@ func (t *GetConnections200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsGetGrants200JSONResponseBody0 returns the union data inside the GetGrants200JSONResponseBody as a GetGrants200JSONResponseBody0
+func (t GetGrants200JSONResponseBody) AsGetGrants200JSONResponseBody0() (GetGrants200JSONResponseBody0, error) {
+	var body GetGrants200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetGrants200JSONResponseBody0 overwrites any union data inside the GetGrants200JSONResponseBody as the provided GetGrants200JSONResponseBody0
+func (t *GetGrants200JSONResponseBody) FromGetGrants200JSONResponseBody0(v GetGrants200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetGrants200JSONResponseBody0 performs a merge with any union data inside the GetGrants200JSONResponseBody, using the provided GetGrants200JSONResponseBody0
+func (t *GetGrants200JSONResponseBody) MergeGetGrants200JSONResponseBody0(v GetGrants200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsUserGrantPage returns the union data inside the GetGrants200JSONResponseBody as a UserGrantPage
+func (t GetGrants200JSONResponseBody) AsUserGrantPage() (UserGrantPage, error) {
+	var body UserGrantPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUserGrantPage overwrites any union data inside the GetGrants200JSONResponseBody as the provided UserGrantPage
+func (t *GetGrants200JSONResponseBody) FromUserGrantPage(v UserGrantPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUserGrantPage performs a merge with any union data inside the GetGrants200JSONResponseBody, using the provided UserGrantPage
+func (t *GetGrants200JSONResponseBody) MergeUserGrantPage(v UserGrantPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetGrants200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetGrants200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsGetResourceServers200JSONResponseBody0 returns the union data inside the GetResourceServers200JSONResponseBody as a GetResourceServers200JSONResponseBody0
 func (t GetResourceServers200JSONResponseBody) AsGetResourceServers200JSONResponseBody0() (GetResourceServers200JSONResponseBody0, error) {
 	var body GetResourceServers200JSONResponseBody0
@@ -2901,6 +3136,21 @@ type ServerInterface interface {
 	// UpdateConnectionClients Enable or disable applications on a connection
 	// (PATCH /api/v2/connections/{id}/clients)
 	UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteGrantsByUser Delete a user's grants
+	// (DELETE /api/v2/grants)
+	DeleteGrantsByUser(w http.ResponseWriter, r *http.Request, params DeleteGrantsByUserParams)
+	// GetGrants List user grants
+	// (GET /api/v2/grants)
+	GetGrants(w http.ResponseWriter, r *http.Request, params GetGrantsParams)
+	// DeleteGrant Delete a grant
+	// (DELETE /api/v2/grants/{id})
+	DeleteGrant(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteRefreshToken Delete a refresh token
+	// (DELETE /api/v2/refresh-tokens/{id})
+	DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string)
+	// GetRefreshToken Get a refresh token
+	// (GET /api/v2/refresh-tokens/{id})
+	GetRefreshToken(w http.ResponseWriter, r *http.Request, id string)
 	// GetResourceServers List APIs
 	// (GET /api/v2/resource-servers)
 	GetResourceServers(w http.ResponseWriter, r *http.Request, params GetResourceServersParams)
@@ -2916,6 +3166,12 @@ type ServerInterface interface {
 	// UpdateResourceServer Update an API
 	// (PATCH /api/v2/resource-servers/{id})
 	UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteSession Delete a session
+	// (DELETE /api/v2/sessions/{id})
+	DeleteSession(w http.ResponseWriter, r *http.Request, id string)
+	// GetSession Get a session
+	// (GET /api/v2/sessions/{id})
+	GetSession(w http.ResponseWriter, r *http.Request, id string)
 	// GetUsers List or search users
 	// (GET /api/v2/users)
 	GetUsers(w http.ResponseWriter, r *http.Request, params GetUsersParams)
@@ -2940,6 +3196,18 @@ type ServerInterface interface {
 	// UnlinkUserIdentity Unlink an identity from a user
 	// (DELETE /api/v2/users/{id}/identities/{provider}/{user_id})
 	UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id string, provider string, userId string)
+	// DeleteUserRefreshTokens Delete a user's refresh tokens
+	// (DELETE /api/v2/users/{id}/refresh-tokens)
+	DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string)
+	// GetUserRefreshTokens List a user's refresh tokens
+	// (GET /api/v2/users/{id}/refresh-tokens)
+	GetUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string, params GetUserRefreshTokensParams)
+	// DeleteUserSessions Delete a user's sessions
+	// (DELETE /api/v2/users/{id}/sessions)
+	DeleteUserSessions(w http.ResponseWriter, r *http.Request, id string)
+	// GetUserSessions List a user's sessions
+	// (GET /api/v2/users/{id}/sessions)
+	GetUserSessions(w http.ResponseWriter, r *http.Request, id string, params GetUserSessionsParams)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -3102,6 +3370,36 @@ func (_ Unimplemented) UpdateConnectionClients(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteGrantsByUser Delete a user's grants
+// (DELETE /api/v2/grants)
+func (_ Unimplemented) DeleteGrantsByUser(w http.ResponseWriter, r *http.Request, params DeleteGrantsByUserParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGrants List user grants
+// (GET /api/v2/grants)
+func (_ Unimplemented) GetGrants(w http.ResponseWriter, r *http.Request, params GetGrantsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteGrant Delete a grant
+// (DELETE /api/v2/grants/{id})
+func (_ Unimplemented) DeleteGrant(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteRefreshToken Delete a refresh token
+// (DELETE /api/v2/refresh-tokens/{id})
+func (_ Unimplemented) DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetRefreshToken Get a refresh token
+// (GET /api/v2/refresh-tokens/{id})
+func (_ Unimplemented) GetRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetResourceServers List APIs
 // (GET /api/v2/resource-servers)
 func (_ Unimplemented) GetResourceServers(w http.ResponseWriter, r *http.Request, params GetResourceServersParams) {
@@ -3129,6 +3427,18 @@ func (_ Unimplemented) GetResourceServer(w http.ResponseWriter, r *http.Request,
 // UpdateResourceServer Update an API
 // (PATCH /api/v2/resource-servers/{id})
 func (_ Unimplemented) UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteSession Delete a session
+// (DELETE /api/v2/sessions/{id})
+func (_ Unimplemented) DeleteSession(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSession Get a session
+// (GET /api/v2/sessions/{id})
+func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3177,6 +3487,30 @@ func (_ Unimplemented) LinkUserIdentity(w http.ResponseWriter, r *http.Request, 
 // UnlinkUserIdentity Unlink an identity from a user
 // (DELETE /api/v2/users/{id}/identities/{provider}/{user_id})
 func (_ Unimplemented) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id string, provider string, userId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUserRefreshTokens Delete a user's refresh tokens
+// (DELETE /api/v2/users/{id}/refresh-tokens)
+func (_ Unimplemented) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUserRefreshTokens List a user's refresh tokens
+// (GET /api/v2/users/{id}/refresh-tokens)
+func (_ Unimplemented) GetUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string, params GetUserRefreshTokensParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUserSessions Delete a user's sessions
+// (DELETE /api/v2/users/{id}/sessions)
+func (_ Unimplemented) DeleteUserSessions(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUserSessions List a user's sessions
+// (GET /api/v2/users/{id}/sessions)
+func (_ Unimplemented) GetUserSessions(w http.ResponseWriter, r *http.Request, id string, params GetUserSessionsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4196,6 +4530,215 @@ func (siw *ServerInterfaceWrapper) UpdateConnectionClients(w http.ResponseWriter
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteGrantsByUser operation middleware
+func (siw *ServerInterfaceWrapper) DeleteGrantsByUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteGrantsByUserParams
+
+	// ------------- Optional query parameter "user_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "user_id", r.URL.Query(), &params.UserId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "user_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteGrantsByUser(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGrants operation middleware
+func (siw *ServerInterfaceWrapper) GetGrants(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetGrantsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "user_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "user_id", r.URL.Query(), &params.UserId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "user_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "client_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "client_id", r.URL.Query(), &params.ClientId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "client_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "audience" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "audience", r.URL.Query(), &params.Audience, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "audience"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "audience", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGrants(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteGrant operation middleware
+func (siw *ServerInterfaceWrapper) DeleteGrant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteGrant(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteRefreshToken operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRefreshToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRefreshToken(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRefreshToken operation middleware
+func (siw *ServerInterfaceWrapper) GetRefreshToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRefreshToken(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetResourceServers operation middleware
 func (siw *ServerInterfaceWrapper) GetResourceServers(w http.ResponseWriter, r *http.Request) {
 
@@ -4406,6 +4949,58 @@ func (siw *ServerInterfaceWrapper) UpdateResourceServer(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateResourceServer(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteSession operation middleware
+func (siw *ServerInterfaceWrapper) DeleteSession(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteSession(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSession operation middleware
+func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSession(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4802,6 +5397,168 @@ func (siw *ServerInterfaceWrapper) UnlinkUserIdentity(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteUserRefreshTokens operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUserRefreshTokens(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUserRefreshTokens operation middleware
+func (siw *ServerInterfaceWrapper) GetUserRefreshTokens(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUserRefreshTokensParams
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserRefreshTokens(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteUserSessions operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserSessions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUserSessions(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUserSessions operation middleware
+func (siw *ServerInterfaceWrapper) GetUserSessions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUserSessionsParams
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserSessions(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -5004,6 +5761,39 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/users/{id}/identities/{provider}/{user_id}", wrapper.UnlinkUserIdentity)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}/sessions", wrapper.DeleteUserSessions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/sessions", wrapper.GetUserSessions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}/refresh-tokens", wrapper.DeleteUserRefreshTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/refresh-tokens", wrapper.GetUserRefreshTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/sessions/{id}", wrapper.DeleteSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/sessions/{id}", wrapper.GetSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/refresh-tokens/{id}", wrapper.DeleteRefreshToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/refresh-tokens/{id}", wrapper.GetRefreshToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/grants", wrapper.DeleteGrantsByUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/grants", wrapper.GetGrants)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/grants/{id}", wrapper.DeleteGrant)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/users-by-email", wrapper.GetUsersByEmail)
