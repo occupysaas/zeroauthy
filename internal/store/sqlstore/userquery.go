@@ -210,7 +210,10 @@ func (b *queryBuilder) metadata(q *store.UserQuery, f store.UserField) (string, 
 		case store.KindString:
 			typ, val = "m.type = 'text'", q.Value
 		case store.KindBool:
-			typ = "m.type = '" + q.Value + "'" // validated: true or false
+			typ = "m.type = 'false'"
+			if q.Value == "true" {
+				typ = "m.type = 'true'"
+			}
 		default:
 			n, _ := store.ParseQueryNumber(q.Value)
 			typ, val = "m.type IN ('integer', 'real')", n

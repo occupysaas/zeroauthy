@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand/v2"
 	"net"
 	"net/url"
@@ -84,7 +85,27 @@ func Open(ctx context.Context, dsn string) (*Store, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("sqlstore: connect %s: %w", d.name, err)
 	}
+	if d.name == "postgres" {
+		var ctype string
+		if err := db.QueryRowContext(ctx, `SELECT datctype FROM pg_database WHERE datname = current_database()`).Scan(&ctype); err == nil &&
+			pgCtypeFoldsASCIIOnly(ctype) {
+			slog.Warn("sqlstore: the PostgreSQL database's LC_CTYPE is not a UTF-8 locale, so case-insensitive user search "+
+				"and sort will fold ASCII letters only; create the database with a UTF-8 LC_CTYPE (for example C.UTF-8 or en_US.UTF-8)",
+				"datctype", ctype)
+		}
+	}
 	return &Store{db: db, q: db, d: d}, nil
+}
+
+// pgCtypeFoldsASCIIOnly reports whether PostgreSQL's lower() under this
+// LC_CTYPE folds ASCII letters only: C, POSIX, or any locale that does not
+// name UTF-8.
+func pgCtypeFoldsASCIIOnly(ctype string) bool {
+	c := strings.ToLower(ctype)
+	if c == "c" || c == "posix" {
+		return true
+	}
+	return !strings.Contains(c, "utf8") && !strings.Contains(c, "utf-8")
 }
 
 // parseDSN maps a zeroauthy storage DSN to a dialect and a driver DSN.

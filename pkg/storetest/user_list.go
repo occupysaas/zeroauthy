@@ -48,14 +48,14 @@ func listFixtures() []listUser {
 		return out
 	}
 	u01 := mk(1, "alice@example.com", true, "alice", "Alice Smith", "alice", "Alice", "Smith", "+15550001", true,
-		m("plan", "pro"), m("color", "red"))
+		m("plan", "pro", "x", 1), m("color", "red"))
 	u02 := mk(2, "bob@example.com", false, "bob", "Bob Jones", "bob", "Bob", "Jones", "", false,
-		m("plan", "PRO"), m("color", "blue"))
+		m("plan", "PRO", "x", []any{1.0}), m("color", "blue"))
 	u02.Blocked = true
 	u03 := mk(3, "carol@test.org", true, "", "Carol", "carol", "", "", "+15550003", false,
-		m("plan", []any{"basic", "pro"}), nil)
+		m("plan", []any{"basic", "pro"}, "x", true), nil)
 	u04 := mk(4, "dave@test.org", false, "dave", "dave@test.org", "dave", "Dave", "", "", false,
-		m("plan", 2), m("tier", "2")) // an int, as a caller may store it
+		m("plan", 2, "x", []any{true}), m("tier", "2")) // an int, as a caller may store it
 	u05 := mk(5, "erin@example.com", true, "erin_x", "Erin", "erin", "Erin", "Stone", "+15550005", true,
 		m("plan", true), map[string]any{})
 	u06 := mk(6, "frank@example.com", false, "", "100% Frank", "frank", "Frank", "", "", false,
@@ -432,6 +432,13 @@ func testUserQueryMetadataTypes(t *testing.T, newStore Factory) {
 		{"ObjectKey", qStr("app_metadata.plan.name", "pro"), "07"},
 		{"Exists", qExists("app_metadata.plan"), "01 02 03 04 05 07 08 09 11"},
 		{"NotExists", qNot(qExists("app_metadata.plan")), "06 10 12"},
+		// Booleans and numbers never cross: true is not 1, in a scalar or an array.
+		{"BoolTrueNotNumberOne", qBool("app_metadata.x", true), "03 04"},
+		{"NumberOneNotBoolTrue", qNum("app_metadata.x", "1"), "01 02"},
+		{"BoolFalseNotNumberZero", qBool("app_metadata.x", false), ""},
+		{"NumberZeroNotBoolFalse", qNum("app_metadata.x", "0"), ""},
+		{"StringOneNotNumber", qStr("app_metadata.x", "1"), ""},
+		{"StringTrueNotBool", qStr("app_metadata.x", "true"), ""},
 		{"OtherTenantUnseen", qAnd(qStr("app_metadata.plan", "pro"), qStr("email", "alice@example.com")), "01"},
 	} {
 		t.Run(c.name, func(t *testing.T) {

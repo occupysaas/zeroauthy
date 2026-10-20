@@ -130,9 +130,17 @@ file containing it). It is required for persistent storage; with
 |-----|--------|
 | `memory://` | In memory; lost on exit (tests, demos) |
 | `sqlite:///var/lib/zeroauthy/zeroauthy.db` | SQLite (pure Go, no CGO); `sqlite://relative.db` is relative to the working directory |
-| `postgres://user:pass@host:5432/db?sslmode=require` | PostgreSQL 14+ (`postgresql://` also works) |
+| `postgres://user:pass@host:5432/db?sslmode=require` | PostgreSQL 14+ (`postgresql://` also works); the database needs a UTF-8 `LC_CTYPE` (see below) |
 | `mysql://user:pass@host:3306/db` | MySQL 8.0.17+ (MariaDB is not supported) |
 | `plugin:///abs/path/to/binary?arg=x&arg=y` | External gRPC storage plugin; each `arg` becomes one argument of the binary. Needs `security.master_key` |
+
+**PostgreSQL locale.** Create the database with a UTF-8 `LC_CTYPE` (for
+example `CREATE DATABASE zeroauthy LC_CTYPE 'C.UTF-8' TEMPLATE template0`;
+the official container images default to `en_US.utf8`). Under `C` or `POSIX`
+PostgreSQL's `lower()` folds ASCII letters only, so case-insensitive user
+search and sort would miss non-ASCII matches (`Émilie` vs `émilie`) that the
+other drivers find. zeroauthy logs a warning at startup in that case and
+still runs.
 
 **Writing a storage plugin.** A plugin is a Go program that calls
 `pkg/storeplugin.Serve` with any `store.Store`; `cmd/zeroauthy-store-memory`

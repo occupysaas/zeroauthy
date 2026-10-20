@@ -315,3 +315,14 @@ func TestBrokenTransaction(t *testing.T) {
 		})
 	}
 }
+
+func TestPgCtypeFoldsASCIIOnly(t *testing.T) {
+	for ctype, want := range map[string]bool{
+		"C": true, "POSIX": true, "c": true, "en_US": true, "de_DE.ISO8859-1": true, "": true,
+		"C.UTF-8": false, "C.utf8": false, "en_US.utf8": false, "en_US.UTF-8": false,
+	} {
+		if got := pgCtypeFoldsASCIIOnly(ctype); got != want {
+			t.Errorf("pgCtypeFoldsASCIIOnly(%q) = %v, want %v", ctype, got, want)
+		}
+	}
+}
