@@ -25,14 +25,14 @@ describe('PlannedPage', () => {
 describe('PlannedPage slots', () => {
   it('shows slots and breadcrumb, hiding the placeholder', async () => {
     const page = defineComponent({
-      render: () => h(PlannedPage, { sectionKey: 'users' }, { default: () => h('p', 'preview body'), actions: () => h('button', { disabled: true }, 'Create user') }),
+      render: () => h(PlannedPage, { sectionKey: 'roles' }, { default: () => h('p', 'preview body'), actions: () => h('button', { disabled: true }, 'Create user') }),
     })
-    const { wrapper } = await mountAt(page, '/t/acme/users', never)
+    const { wrapper } = await mountAt(page, '/t/acme/roles', never)
     expect(wrapper.text()).toContain('User management')
     expect(wrapper.text()).toContain('Create user')
     expect(wrapper.text()).toContain('preview body')
     expect(wrapper.text()).not.toContain('This section is planned.')
-    expect(wrapper.get('[role=status]').text()).toContain('Planned · slice 4')
+    expect(wrapper.get('[role=status]').text()).toContain('Planned · later')
   })
 })
 

@@ -27,6 +27,9 @@ export type ConnectionUpdate = components['schemas']['ConnectionUpdate']
 export type ConnectionPage = components['schemas']['ConnectionPage']
 export type ConnectionClientStatus = components['schemas']['ConnectionClientStatus']
 export type ScriptTryResult = components['schemas']['ScriptTryResult']
+export type User = components['schemas']['User']
+export type UserCreate = components['schemas']['UserCreate']
+export type UserPage = components['schemas']['UserPage']
 export type ManagementError = components['schemas']['ManagementError']
 
 export class ApiError extends Error {
@@ -138,8 +141,17 @@ export class Api {
     return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/client-grants/' + encodeURIComponent(id))
   }
 
-  listConnections(t: SystemTenant, q: { page: number; per_page: number }): Promise<ConnectionPage> {
+  listConnections(t: SystemTenant, q: { page: number; per_page: number; strategy?: string }): Promise<ConnectionPage> {
     return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/connections', { query: { ...q, include_totals: true } })
+  }
+
+  // listUsers searches with Auth0's v3 query syntax; q goes out as typed.
+  listUsers(t: SystemTenant, q: { q?: string; page: number; per_page: number; sort?: string; connection?: string }): Promise<UserPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/users', { query: { ...q, search_engine: 'v3', include_totals: true } })
+  }
+
+  createUser(t: SystemTenant, body: UserCreate): Promise<User> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/users', { body })
   }
 
   getConnection(t: SystemTenant, id: string): Promise<Connection> {
@@ -192,6 +204,10 @@ export class Api {
 
   async allConnections(t: SystemTenant): Promise<Connection[]> {
     return collect((page) => this.listConnections(t, { page, per_page: ALL_PER_PAGE }).then((r) => ({ items: r.connections, total: r.total })))
+  }
+
+  async allDatabaseConnections(t: SystemTenant): Promise<Connection[]> {
+    return collect((page) => this.listConnections(t, { page, per_page: ALL_PER_PAGE, strategy: 'auth0' }).then((r) => ({ items: r.connections, total: r.total })))
   }
 
   // allConnectionClients follows the checkpoint cursor to the end.

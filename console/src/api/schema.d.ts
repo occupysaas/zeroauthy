@@ -363,6 +363,440 @@ export interface paths {
         patch: operations["updateConnectionClients"];
         trace?: never;
     };
+    "/api/v2/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List or search users
+         * @description Requires `read:users`. `q` is Auth0's v3 query syntax; `search_engine`
+         *     absent, `v2` or `v3` all mean v3, `v1` is `400 operation_not_supported`
+         *     and anything else `400 invalid_query_string`. Search errors are `400`
+         *     without `errorCode`, with Auth0's `invalid query: …` messages. Results
+         *     are immediately consistent with writes (D-0043).
+         *
+         *     `sort` is `field:1` or `field:-1` (`400 invalid_query_string`
+         *     otherwise); unknown and metadata fields are ignored. Without `sort`,
+         *     users are ordered by `last_login` descending, those who never logged
+         *     in last. `connection` keeps users with an identity on that connection.
+         *
+         *     Offset paging (`page`, `per_page` 1 to 100, 50 by default). Only the
+         *     first 1000 results can be reached: `(page + 1) × per_page` above 1000
+         *     is `400 invalid_paging`. `include_totals=true` answers
+         *     `{start, limit, length, total, users}`.
+         */
+        get: operations["getUsers"];
+        put?: never;
+        /**
+         * Create a user
+         * @description Requires `create:users`; `app_metadata` also needs
+         *     `create:users_app_metadata` or `update:users_app_metadata`. A missing
+         *     `connection` is `400 invalid_body`; an unknown connection is
+         *     `400 inexistent_connection`. A user whose email (or username) the
+         *     connection already has is `409 auth0_idp_error`. A password the
+         *     connection's policy refuses is `400` without `errorCode`. A supplied
+         *     `user_id` is always prefixed with `auth0|`. `verify_email` (true by
+         *     default for an unverified email) sends the verification email.
+         *
+         *     On a custom database connection that is not in import mode, the
+         *     `create` script runs first; its failures are `400 auth0_idp_error`
+         *     (`409` for a `user_exists` ValidationError).
+         */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a user
+         * @description Requires `read:users`. A well-formed unknown ID is
+         *     `404 inexistent_user`.
+         */
+        get: operations["getUser"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a user
+         * @description Requires `delete:users`. Answers `204`, also for a well-formed unknown
+         *     ID. The user's sessions, refresh tokens, grants, open tickets, auth
+         *     codes and device codes go with it. On a custom database connection
+         *     that is not in import mode, the `delete` script runs first.
+         */
+        delete: operations["deleteUser"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a user
+         * @description Requires `update:users`; `app_metadata` needs
+         *     `update:users_app_metadata` (which alone allows a body with only
+         *     `app_metadata`). Metadata merges at the top level: a key set to `null`
+         *     is removed, nested objects are replaced, `{}` empties the object. An
+         *     email change clears `email_verified` unless the body sets it. `email`
+         *     and `password` together are `400 operation_not_supported`. An email or
+         *     username another user of the connection has is `409 auth0_idp_error`,
+         *     and nothing changes. Neither a password change nor `blocked: true`
+         *     revokes sessions or refresh tokens.
+         *
+         *     On a custom database connection that is not in import mode, an email
+         *     change runs `change_email` and a password change `change_password`
+         *     before anything is stored.
+         */
+        patch: operations["updateUser"];
+        trace?: never;
+    };
+    "/api/v2/users/{id}/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The primary user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link a user account to this user
+         * @description Requires `update:users`. The secondary account is named by `provider`
+         *     and `user_id` (its ID without the `provider|` prefix, optionally with
+         *     `connection_id`), or by `link_with`, an ID token issued by this tenant
+         *     to the calling client (its `aud` must be the caller's client ID; its
+         *     `sub` is the secondary). The secondary user stops existing: its
+         *     identity, with its password, moves to the primary with `profileData`
+         *     (`email`, `email_verified`, and `username` when it has one), and its
+         *     sessions, refresh tokens and grants are deleted. Logging in with the
+         *     secondary's credentials then yields the primary user.
+         *
+         *     Answers `201` with the primary's identities, each with `profileData`.
+         *     An identity already linked is `409 identity_conflict`; the primary
+         *     itself is `400 operation_not_supported`; an unknown `auth0` secondary
+         *     is `400` without an error code; an unknown secondary of another
+         *     provider, a missing `user_id` and a bad `link_with` are
+         *     `400 invalid_body`; an unknown primary is `404 inexistent_user`.
+         */
+        post: operations["linkUserIdentity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/identities/{provider}/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The primary user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+                /** @description The linked identity's provider, e.g. `auth0`. */
+                provider: string;
+                /** @description The linked identity's ID within the provider. */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unlink an identity from a user
+         * @description Requires `update:users`. The identity leaves the primary and comes
+         *     back as a new user with the same `user_id`, `created_at` = now, only
+         *     `email` and `email_verified` from its `profileData` (and `username`
+         *     when it had one), the default `name` and `nickname`, no picture or
+         *     metadata, and `logins_count` 0. Its password still works.
+         *
+         *     Answers `200` with the primary's remaining identities, each with
+         *     `profileData`, also when the identity was not linked. Removing the
+         *     primary's own identity is `400 delete_main_user_identity`.
+         */
+        delete: operations["unlinkUserIdentity"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List a user's sessions
+         * @description Requires `read:sessions`. The user's unexpired sessions, newest first,
+         *     by checkpoint paging only: `take` is 1 to 100 (50 by default) and
+         *     `from` the opaque `next` of the previous page. `next` is present
+         *     whenever the page is not empty, the last page included; an empty list
+         *     has none. `page`, `per_page` and `include_totals` are ignored. A bad
+         *     `from` is `400 invalid_query_string`; an unknown user is
+         *     `404 inexistent_user`.
+         */
+        get: operations["getUserSessions"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a user's sessions
+         * @description Requires `delete:sessions`. Deletes every session of the user, which
+         *     ends their single sign-on, and bumps the user's version. Refresh
+         *     tokens are not revoked. Answers `202 {}`, also when there were none;
+         *     an unknown user is `404 inexistent_user`.
+         */
+        delete: operations["deleteUserSessions"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/refresh-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List a user's refresh tokens
+         * @description Requires `read:refresh_tokens`. The user's live refresh tokens (not
+         *     revoked, rotated or expired), newest first, by checkpoint paging only
+         *     as for sessions: `take`, `from`, and `next` on every non-empty page.
+         *     An unknown user is `404 inexistent_user`.
+         */
+        get: operations["getUserRefreshTokens"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a user's refresh tokens
+         * @description Requires `delete:refresh_tokens`. Revokes every refresh token of the
+         *     user; a refresh grant with one answers `invalid_grant`. Answers
+         *     `202 {}`, also when there were none; an unknown user is
+         *     `404 inexistent_user`.
+         */
+        delete: operations["deleteUserRefreshTokens"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a session
+         * @description Requires `read:sessions`. An unknown, expired or malformed ID is `404`
+         *     without an `errorCode` ("The session does not exist.").
+         */
+        get: operations["getSession"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a session
+         * @description Requires `delete:sessions`. Ends the session, so the next
+         *     `/authorize?prompt=none` answers `login_required`. Answers `202 {}`,
+         *     also when there was no such session.
+         */
+        delete: operations["deleteSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/refresh-tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The refresh token's ID (not the token). */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a refresh token
+         * @description Requires `read:refresh_tokens`. An unknown, revoked, expired or
+         *     malformed ID is `404` without an `errorCode` ("The refresh token does
+         *     not exist.").
+         */
+        get: operations["getRefreshToken"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a refresh token
+         * @description Requires `delete:refresh_tokens`. Revokes the token and its rotation
+         *     family; a refresh grant with it answers `invalid_grant`. Answers
+         *     `202 {}`, also when there was no such token.
+         */
+        delete: operations["deleteRefreshToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List user grants
+         * @description Requires `read:grants`. The users' grants (consents) in grant ID
+         *     order, filtered by `user_id`, `client_id` and `audience`. An unknown
+         *     user is `200 []`. Offset paging; `include_totals=true` answers
+         *     `{grants, start, limit, total}`.
+         */
+        get: operations["getGrants"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a user's grants
+         * @description Requires `delete:grants`. Deletes every grant of the user named by
+         *     `user_id`, which is required (`400 invalid_query_string` without it).
+         *     Answers `204`, also when there were none.
+         */
+        delete: operations["deleteGrantsByUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/grants/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The grant's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a grant
+         * @description Requires `delete:grants`. Answers `204`, also when there was no such
+         *     grant.
+         */
+        delete: operations["deleteGrant"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/tickets/password-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a password-change ticket
+         * @description Requires `create:user_tickets`. A single-use link to the new-password
+         *     form for a database user, named by `user_id` or by `email` together
+         *     with `connection_id`: `https://<tenant host>/u/reset-verify?ticket=<token>#`.
+         *     It is valid for `ttl_sec` seconds (432000, 5 days, when absent or 0).
+         *     `mark_email_as_verified` sets `email_verified` when the password is
+         *     changed. `result_url` is stored, but as on Auth0 the success page
+         *     does not redirect to it.
+         *
+         *     `email` without `connection_id`, an empty body, a negative `ttl_sec`,
+         *     `result_url` together with `client_id` and an unknown property are
+         *     `400 invalid_body`; an unknown user is `404 inexistent_user`.
+         */
+        post: operations["createPasswordChangeTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/tickets/email-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an email verification ticket
+         * @description Requires `create:user_tickets`. A single-use link that verifies the
+         *     user's email as soon as it is opened:
+         *     `https://<tenant host>/u/email-verification?ticket=<token>#`, valid
+         *     for `ttl_sec` seconds (432000 when absent or 0). With `result_url`
+         *     the page redirects there, appending `success`, `message`, `code`,
+         *     `supportSignUp`, `supportForgotPassword` and, with
+         *     `includeEmailInRedirect`, `email` to its query.
+         *
+         *     A missing `user_id`, a negative `ttl_sec`, `result_url` together with
+         *     `client_id` and an unknown property are `400 invalid_body`; an unknown
+         *     user is `404 inexistent_user`.
+         */
+        post: operations["createEmailVerificationTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users-by-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find users by email
+         * @description Requires `read:users`. The match is case-sensitive on the stored
+         *     (lowercase) email, on every connection. An unknown email is `200 []`;
+         *     a missing or malformed `email` is `400 invalid_query_string`.
+         */
+        get: operations["getUsersByEmail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants": {
         parameters: {
             query?: never;
@@ -1050,6 +1484,238 @@ export interface components {
             /** @description One-time link, valid for one hour, where the operator chooses a password. */
             setup_url: string;
         };
+        /** @description The IP addresses and user agents of the session; there are no ASN keys. */
+        SessionDevice: {
+            initial_user_agent?: string;
+            initial_ip?: string;
+            last_user_agent?: string;
+            last_ip?: string;
+        };
+        UserSession: {
+            id: string;
+            user_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            authenticated_at: string;
+            authentication: {
+                methods: {
+                    /** @description `pwd` for a database login. */
+                    name: string;
+                    /** Format: date-time */
+                    timestamp: string;
+                }[];
+            };
+            /** Format: date-time */
+            idle_expires_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            device: components["schemas"]["SessionDevice"];
+            clients: {
+                client_id: string;
+            }[];
+            /** Format: date-time */
+            last_interacted_at: string;
+            cookie: {
+                /** @enum {string} */
+                mode: "persistent";
+            };
+        };
+        UserSessionPage: {
+            sessions: components["schemas"]["UserSession"][];
+            /** @description Pass as `from` for the next page; absent when the page is empty. */
+            next?: string;
+        };
+        UserRefreshToken: {
+            id: string;
+            user_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            idle_expires_at: string | null;
+            /** Format: date-time */
+            expires_at: string | null;
+            client_id: string;
+            session_id: string | null;
+            rotating: boolean;
+            /** @description The API the token is for with its space-separated scopes; the tenant's `/userinfo` audience when it has no API. */
+            resource_servers: {
+                audience: string;
+                scopes: string;
+            }[];
+            device?: components["schemas"]["SessionDevice"];
+            /** Format: date-time */
+            last_exchanged_at: string | null;
+        };
+        UserRefreshTokenPage: {
+            tokens: components["schemas"]["UserRefreshToken"][];
+            /** @description Pass as `from` for the next page; absent when the page is empty. */
+            next?: string;
+        };
+        UserGrant: {
+            id: string;
+            /** @description Spelled `clientID`, as Auth0 does. */
+            clientID: string;
+            user_id: string;
+            audience: string;
+            /** @description The granted scopes, sorted. */
+            scope: string[];
+        };
+        /** @description A page of grants with `include_totals=true`. */
+        UserGrantPage: components["schemas"]["ListTotals"] & {
+            grants: components["schemas"]["UserGrant"][];
+        };
+        UserIdentity: {
+            connection: string;
+            /** @description The ID within the provider (the user's `user_id` without `provider|`). */
+            user_id: string;
+            provider: string;
+            isSocial: boolean;
+            /**
+             * @description On a linked (secondary) identity: `email`, `email_verified` and,
+             *     when it has one, `username`. The link and unlink responses also
+             *     give it for the primary's own identity.
+             */
+            profileData?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * @description The account to link: `provider` and `user_id` (with an optional
+         *     `connection_id`), or `link_with` alone. Unknown properties are
+         *     `400 invalid_body`.
+         */
+        UserIdentityLink: {
+            /** @description The secondary's provider, e.g. `auth0`. */
+            provider?: string;
+            /** @description The secondary's ID without the `provider|` prefix. */
+            user_id?: string | number;
+            /** @description The secondary identity's connection ID. */
+            connection_id?: string;
+            /** @description An ID token for the secondary, issued to the calling client. */
+            link_with?: string;
+        };
+        Ticket: {
+            /** @description The ticket's URL. Its token is shown only here. */
+            ticket: string;
+        };
+        /** @description One of the user's identities. */
+        TicketIdentity: {
+            user_id?: string;
+            provider?: string;
+        };
+        /**
+         * @description `user_id`, or `email` with `connection_id`. Unknown properties are
+         *     `400 invalid_body`.
+         */
+        PasswordChangeTicketCreate: {
+            user_id?: string;
+            email?: string;
+            /** @description The database connection's ID, with `email`. */
+            connection_id?: string;
+            /** @description Stored; the success page does not redirect to it. Not with `client_id`. */
+            result_url?: string;
+            client_id?: string;
+            /** @description Seconds the ticket is valid; 0 or absent is 432000 (5 days). */
+            ttl_sec?: number;
+            mark_email_as_verified?: boolean;
+            includeEmailInRedirect?: boolean;
+            identity?: components["schemas"]["TicketIdentity"];
+        };
+        /** @description Unknown properties are `400 invalid_body`. */
+        EmailVerificationTicketCreate: {
+            user_id: string;
+            /** @description Where the page redirects after opening. Not with `client_id`. */
+            result_url?: string;
+            client_id?: string;
+            /** @description Seconds the ticket is valid; 0 or absent is 432000 (5 days). */
+            ttl_sec?: number;
+            includeEmailInRedirect?: boolean;
+            identity?: components["schemas"]["TicketIdentity"];
+        };
+        /**
+         * @description A user in Auth0's shape. Fields without a value are left out:
+         *     `blocked` appears only when true; `last_login`, `last_ip` and
+         *     `logins_count` after the first login. A password or its hash is never
+         *     returned. `fields` can leave out any property.
+         */
+        User: {
+            /** @description `auth0|` and 24 lowercase hex characters for generated IDs. */
+            user_id?: string;
+            email?: string;
+            email_verified?: boolean;
+            username?: string;
+            phone_number?: string;
+            phone_verified?: boolean;
+            name?: string;
+            given_name?: string;
+            family_name?: string;
+            nickname?: string;
+            picture?: string;
+            blocked?: boolean;
+            user_metadata?: {
+                [key: string]: unknown;
+            };
+            app_metadata?: {
+                [key: string]: unknown;
+            };
+            identities?: components["schemas"]["UserIdentity"][];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+            /** Format: date-time */
+            last_login?: string;
+            last_ip?: string;
+            logins_count?: number;
+        } & {
+            [key: string]: unknown;
+        };
+        UserProfileSettings: {
+            email?: string;
+            email_verified?: boolean;
+            /** @description Send the verification email. */
+            verify_email?: boolean;
+            username?: string;
+            password?: string;
+            phone_number?: string;
+            phone_verified?: boolean;
+            name?: string;
+            given_name?: string;
+            family_name?: string;
+            nickname?: string;
+            picture?: string;
+            blocked?: boolean;
+            user_metadata?: {
+                [key: string]: unknown;
+            };
+            app_metadata?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description A new user. `connection` is required; unknown properties are `400 invalid_body`. */
+        UserCreate: components["schemas"]["UserProfileSettings"] & {
+            connection: string;
+            /** @description Prefixed with `auth0|`. */
+            user_id?: string;
+        };
+        /** @description Fields to change; unknown properties are `400 invalid_body`. */
+        UserUpdate: components["schemas"]["UserProfileSettings"] & {
+            connection?: string;
+            /** @description The application the verification email is for. */
+            client_id?: string;
+        };
+        /** @description A page of users with `include_totals=true`. */
+        UserPage: {
+            start: number;
+            limit: number;
+            /** @description The number of users on this page. */
+            length: number;
+            total: number;
+            users: components["schemas"]["User"][];
+        };
         /** @description A page of applications with `include_totals=true`. */
         ClientPage: components["schemas"]["ListTotals"] & {
             clients: components["schemas"]["Client"][];
@@ -1113,6 +1779,24 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["ManagementError"];
+            };
+        };
+        /** @description A custom database script could not run (`script_runtime_unavailable`). */
+        ScriptRuntimeUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ManagementError"];
+            };
+        };
+        /** @description Accepted; the body is `{}`. */
+        Accepted: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": Record<string, never>;
             };
         };
         /** @description The resource does not exist. */
@@ -1851,6 +2535,588 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    getUsers: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0. */
+                page?: components["parameters"]["page"];
+                /** @description Number of results per page; more than 100 is refused (`invalid_query_string`). */
+                per_page?: components["parameters"]["per_page"];
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: components["parameters"]["include_totals"];
+                /** @description `field:1` (ascending) or `field:-1` (descending). */
+                sort?: string;
+                /** @description Only users with an identity on this connection. */
+                connection?: string;
+                /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+                /** @description The search, in Auth0's v3 query syntax. */
+                q?: string;
+                /** @description `v3` (the default); `v2` behaves as `v3`, `v1` is refused. */
+                search_engine?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page of users. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"][] | components["schemas"]["UserPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"];
+            };
+        };
+        responses: {
+            /** @description The new user. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            503: components["responses"]["ScriptRuntimeUnavailable"];
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["ScriptRuntimeUnavailable"];
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated user. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            503: components["responses"]["ScriptRuntimeUnavailable"];
+        };
+    };
+    linkUserIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The primary user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserIdentityLink"];
+            };
+        };
+        responses: {
+            /** @description The primary user's identities. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserIdentity"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    unlinkUserIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The primary user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+                /** @description The linked identity's provider, e.g. `auth0`. */
+                provider: string;
+                /** @description The linked identity's ID within the provider. */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The primary user's remaining identities. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserIdentity"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getUserSessions: {
+        parameters: {
+            query?: {
+                /** @description Page size, 1 to 100 (50 by default). */
+                take?: number;
+                /** @description The `next` of the previous page. */
+                from?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of sessions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSessionPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteUserSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: components["responses"]["Accepted"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getUserRefreshTokens: {
+        parameters: {
+            query?: {
+                /** @description Page size, 1 to 100 (50 by default). */
+                take?: number;
+                /** @description The `next` of the previous page. */
+                from?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of refresh tokens. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRefreshTokenPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteUserRefreshTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user's ID, `provider|id`; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: components["responses"]["Accepted"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSession"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: components["responses"]["Accepted"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getRefreshToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The refresh token's ID (not the token). */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The refresh token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRefreshToken"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteRefreshToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The refresh token's ID (not the token). */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: components["responses"]["Accepted"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getGrants: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0. */
+                page?: components["parameters"]["page"];
+                /** @description Number of results per page; more than 100 is refused (`invalid_query_string`). */
+                per_page?: components["parameters"]["per_page"];
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: components["parameters"]["include_totals"];
+                /** @description Only the grants of this user. */
+                user_id?: string;
+                /** @description Only the grants of this application. */
+                client_id?: string;
+                /** @description Only the grants for this audience. */
+                audience?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page of grants. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserGrant"][] | components["schemas"]["UserGrantPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    deleteGrantsByUser: {
+        parameters: {
+            query?: {
+                /** @description The user whose grants are deleted; required (checked by the handler, for Auth0's error body). */
+                user_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    deleteGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The grant's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createPasswordChangeTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeTicketCreate"];
+            };
+        };
+        responses: {
+            /** @description The ticket. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createEmailVerificationTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailVerificationTicketCreate"];
+            };
+        };
+        responses: {
+            /** @description The ticket. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getUsersByEmail: {
+        parameters: {
+            query?: {
+                /** @description The email address, case-sensitive. */
+                email?: string;
+                /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The users with that email. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     getTenants: {

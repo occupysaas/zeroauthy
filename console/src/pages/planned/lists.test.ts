@@ -7,7 +7,6 @@ const never = () => ({ status: 500, body: {} })
 
 // key, title, column headers, empty text, header buttons
 const tables: [string, string, string[], string, string[]][] = [
-  ['users', 'Users', ['Name', 'Connection', 'Logins', 'Last login'], 'Users will appear here.', ['Create user', 'Import users', 'Send reset emails']],
   ['roles', 'Roles', ['Name', 'Description'], 'Roles will appear here.', ['Create role']],
   ['organizations', 'Organizations', ['Name', 'Display name'], 'Organizations will appear here.', ['Create organization']],
   ['custom-domains', 'Custom domains', ['Domain', 'Status', 'Type'], 'Custom domains will appear here.', ['Add domain']],
@@ -25,13 +24,6 @@ describe('list-style planned previews', () => {
     for (const b of buttons) expect(labels).toContain(b)
     assertPreviewInert(wrapper)
     expect(calls.length).toBe(0)
-    wrapper.unmount()
-  })
-
-  it('users has a disabled search box', async () => {
-    const { wrapper } = await mountAt(plannedPages.users!, '/t/acme/users', never)
-    expect(wrapper.get('input#users-search').attributes('disabled')).toBeDefined()
-    expect(wrapper.get('label[for=users-search]').text()).toBe('Search users')
     wrapper.unmount()
   })
 

@@ -13,3 +13,6 @@ export const homeLinks: { titleKey: string; href: string }[] = [
   { titleKey: 'docLinks.console', href: 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/console.md' },
   { titleKey: 'docLinks.compat', href: 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/compat/matrix.md' },
 ]
+
+// The query guide the users search box links to.
+export const userSearchDocsURL = 'https://github.com/zeroauthy/zeroauthy/blob/main/docs/user-search.md'

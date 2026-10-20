@@ -27,7 +27,7 @@ export const sections: Section[] = [
     label: 'nav.users',
     group: 'navGroup.userManagement',
     path: 'users',
-    status: { planned: 'slice 4', api: ['/api/v2/users', '/api/v2/jobs/users-imports', '/api/v2/tickets/password-change'] },
+    status: 'live',
   },
   { key: 'roles', label: 'nav.roles', group: 'navGroup.userManagement', path: 'roles', status: { planned: 'later', api: ['/api/v2/roles'] } },
   { key: 'organizations', label: 'nav.organizations', group: 'navGroup.userManagement', path: 'organizations', status: { planned: 'later', api: ['/api/v2/organizations'] } },

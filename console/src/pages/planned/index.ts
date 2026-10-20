@@ -11,7 +11,6 @@ import Logs from './Logs.vue'
 import Organizations from './Organizations.vue'
 import Roles from './Roles.vue'
 import Social from './Social.vue'
-import Users from './Users.vue'
 import PlannedPage from './PlannedPage.vue'
 
 /** A planned page with no preview of its own: just the frame for the section. */
@@ -27,7 +26,6 @@ const dedicated: Record<string, Component> = {
   settings: TenantSettings,
   branding: Branding,
   emails: Emails,
-  users: Users,
   social: Social,
   roles: Roles,
   organizations: Organizations,
