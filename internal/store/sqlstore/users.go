@@ -202,7 +202,8 @@ func (r users) setHash(ctx context.Context, tenantID, userID, connection, hash s
 		}
 		found := false
 		for i := range ids {
-			if ids[i].Connection == connection {
+			// The user's own identity; a linked one keeps its hash (D-0043).
+			if ids[i].Connection == connection && !ids[i].Linked() {
 				if onlyIfEmpty && ids[i].PasswordHash != "" {
 					return store.ErrConflict
 				}

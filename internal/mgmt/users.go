@@ -618,12 +618,14 @@ func (h *Handlers) scriptFail(r *http.Request, conn *store.Connection, script st
 	return internalError(h, r, "run "+script+" script", red.RedactError(err))
 }
 
-// userConnection is the database connection of u's identity on name, or of
-// its first database identity when name is empty, with that identity.
+// userConnection is the database connection of u's own identity on name,
+// or of its first own database identity when name is empty, with that
+// identity. Linked identities (D-0043) are never chosen: a connection where
+// u has only a linked identity is refused as one where it has none.
 func (h *Handlers) userConnection(r *http.Request, u *store.User, name string) (*store.Connection, *store.Identity, error) {
 	for i := range u.Identities {
 		id := &u.Identities[i]
-		if id.Provider != store.StrategyDatabase || (name != "" && id.Connection != name) {
+		if id.Linked() || id.Provider != store.StrategyDatabase || (name != "" && id.Connection != name) {
 			continue
 		}
 		conn, err := h.Store.Connections().GetByName(r.Context(), u.TenantID, id.Connection)

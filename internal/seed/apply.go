@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -287,6 +288,16 @@ func applyUser(ctx context.Context, st store.Store, tenantID string, in User, no
 	if err != nil && !create {
 		return err
 	}
+	if !create {
+		// A seeded user that was since linked into another user (D-0043)
+		// is found through its linked identity; the entry must not
+		// rewrite the primary's profile or password.
+		if id := u.IdentityByLogin(in.Connection, in.Email); id != nil && id.Linked() {
+			slog.WarnContext(ctx, "seed: user skipped: it is now linked into another user",
+				"tenant", tenantID, "connection", in.Connection, "identity", id.Provider+"|"+id.UserID, "primary", u.UserID)
+			return nil
+		}
+	}
 	if create {
 		id := secrets.RandomHex(12)
 		u = &store.User{
@@ -311,7 +322,8 @@ func applyUser(ctx context.Context, st store.Store, tenantID string, in User, no
 	password := identity.EffectivePassword(conn, in.Password)
 	var newHash string
 	for i := range u.Identities {
-		if u.Identities[i].Connection != in.Connection {
+		// Only the user's own identity: a linked one keeps its password.
+		if u.Identities[i].Connection != in.Connection || u.Identities[i].Linked() {
 			continue
 		}
 		if ok, err := secrets.Verify(u.Identities[i].PasswordHash, password); err == nil && ok {

@@ -356,3 +356,49 @@ func jsonEqual(got, want any) bool {
 	}
 	return reflect.DeepEqual(norm(got), norm(want))
 }
+
+// A PATCH of the password or email writes the primary's own identity: a
+// connection where it has only a linked identity is refused as one where it
+// has none, and a linked identity's password survives (D-0043).
+func TestPatchSkipsLinkedIdentity(t *testing.T) {
+	e := newUsersEnv(t)
+	ctx := context.Background()
+	other := &store.Connection{TenantID: e.tn.ID, ID: "con_other", Name: "Other-Db", Strategy: store.StrategyDatabase, CreatedAt: now}
+	if err := e.st.Connections().Create(ctx, other); err != nil {
+		t.Fatal(err)
+	}
+	p := e.mustCreate(t, map[string]any{"email": "p@x.test", "password": "primary pass 1"})["user_id"].(string)
+	same := e.mustCreate(t, map[string]any{"email": "same@x.test", "password": "same pass 2"})["user_id"].(string)
+	far := e.mustCreate(t, map[string]any{"email": "far@x.test", "password": "far pass 3", "connection": other.Name})["user_id"].(string)
+	e.mustLink(t, p, same)
+	e.mustLink(t, p, far)
+	before, _ := e.st.Users().Get(ctx, e.tn.ID, p)
+
+	for _, body := range []map[string]any{
+		{"password": "new pass 4", "connection": other.Name},
+		{"email": "new@x.test", "connection": other.Name},
+	} {
+		rec, out := e.patch(t, p, body)
+		wantUserError(t, "patch on the linked-only connection", rec, out, 400, "inexistent_connection", "")
+	}
+	if after, _ := e.st.Users().Get(ctx, e.tn.ID, p); after.Email != before.Email || after.Version != before.Version {
+		t.Errorf("a refused PATCH changed the user: %+v", after)
+	}
+	// A password change without a connection hits the primary's own hash.
+	if rec, _ := e.patch(t, p, map[string]any{"password": "new pass 4"}); rec.Code != 200 {
+		t.Fatalf("patch password = %d %s", rec.Code, rec.Body)
+	}
+	if u, err := e.login(t, "p@x.test", "new pass 4"); err != nil || u.UserID != p {
+		t.Errorf("primary's new password = %v, %v", u, err)
+	}
+	if u, err := e.login(t, "same@x.test", "same pass 2"); err != nil || u.UserID != p {
+		t.Errorf("linked identity's password after the primary's change = %v, %v", u, err)
+	}
+	if _, err := e.login(t, "same@x.test", "new pass 4"); err == nil {
+		t.Errorf("the primary's new password logs in through the linked identity")
+	}
+	farConn, _ := e.st.Connections().GetByName(ctx, e.tn.ID, other.Name)
+	if u, err := (&identity.Database{Store: e.st}).Login(ctx, farConn, "far@x.test", "far pass 3"); err != nil || u.UserID != p {
+		t.Errorf("linked identity on the other connection = %v, %v", u, err)
+	}
+}

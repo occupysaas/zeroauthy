@@ -208,11 +208,13 @@ type Connections interface {
 	// is used by another connection in the tenant.
 	Update(ctx context.Context, c *Connection) error
 	// Delete removes the connection and everything that depends on it, in
-	// one step: its users (the users with an identity on it) with their
+	// one step: its users (the users whose own identity is on it) with their
 	// sessions, refresh tokens, user grants, password reset and email verification
 	// tickets and password history; and the tenant's DefaultDirectory when it names the
-	// connection. The enabled-clients list goes with the connection. It
-	// returns ErrNotFound if the connection is absent.
+	// connection. A user with only linked identities on it (D-0043) loses
+	// those identities, gains one Version and keeps everything else. The
+	// enabled-clients list goes with the connection. It returns
+	// ErrNotFound if the connection is absent.
 	Delete(ctx context.Context, tenantID, id string) error
 	// List returns one page of the tenant's connections that match f,
 	// ordered by Name compared case-insensitively, then ID, and the number
@@ -258,9 +260,10 @@ type Users interface {
 	// RecordLogin atomically sets LastLogin and LastIP and increments
 	// LoginsCount.
 	RecordLogin(ctx context.Context, tenantID, userID string, at time.Time, ip string) error
-	// SetPasswordHash replaces the password hash of the user's identity on
-	// connection, sets UpdatedAt = at and adds one to Version. It returns
-	// ErrNotFound if the user or the identity is absent.
+	// SetPasswordHash replaces the password hash of the user's own (not
+	// linked) identity on connection, sets UpdatedAt = at and adds one to
+	// Version. It returns ErrNotFound if the user or that identity is
+	// absent, also when the user has only a linked identity there.
 	SetPasswordHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error
 	// SetPasswordHashIfEmpty is SetPasswordHash, but atomically does
 	// nothing and returns ErrConflict when the identity already has a

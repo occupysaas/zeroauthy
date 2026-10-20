@@ -259,7 +259,7 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 		if err != nil {
 			return err
 		}
-		own := ownIdentity(sec)
+		own := sec.OwnIdentity()
 		if own == nil {
 			return errNoSecondary
 		}
@@ -303,25 +303,6 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 	}
 	h.audit(r, "link user identity", "user_id", id, "secondary", secondary)
 	writeJSON(w, http.StatusCreated, linkIdentitiesJSON(out))
-}
-
-// ownIdentity is u's own (not linked) identity: the one its user_id names,
-// or else its first identity that is not linked.
-func ownIdentity(u *store.User) *store.Identity {
-	var first *store.Identity
-	for i := range u.Identities {
-		id := &u.Identities[i]
-		if id.Linked() {
-			continue
-		}
-		if id.Provider+"|"+id.UserID == u.UserID {
-			return id
-		}
-		if first == nil {
-			first = id
-		}
-	}
-	return first
 }
 
 // UnlinkUserIdentity removes a linked identity from the user and recreates

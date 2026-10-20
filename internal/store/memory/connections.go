@@ -96,8 +96,15 @@ func (r connections) Delete(_ context.Context, tenantID, id string) error {
 	}
 	gone := map[string]bool{}
 	for uk, u := range r.s.users {
-		if uk.tenant == tenantID && onConnection(u, c.Name) {
+		if uk.tenant != tenantID {
+			continue
+		}
+		switch del, strip := u.ConnectionDeleteEffect(c.Name); {
+		case del:
 			gone[uk.id] = true
+		case strip:
+			u.WithoutLinkedOn(c.Name)
+			u.Version++
 		}
 	}
 	r.s.deleteUsers(tenantID, gone)

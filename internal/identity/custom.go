@@ -187,8 +187,9 @@ func (d *Database) importLogin(ctx context.Context, conn *store.Connection, logi
 		return nil, err
 	}
 	for i := range u.Identities {
-		if u.Identities[i].Connection == conn.Name {
+		if u.Identities[i].Connection == conn.Name && !u.Identities[i].Linked() {
 			u.Identities[i].PasswordHash = hash
+			break
 		}
 	}
 	u.UpdatedAt = now
@@ -475,11 +476,11 @@ func (d *Database) profileUser(conn *store.Connection, p *customdb.Profile) *sto
 	}
 }
 
-// onConnection reports whether u has the identity of legacy user_id
-// profileID on conn.
+// onConnection reports whether u's own (not linked) identity on conn is
+// that of legacy user_id profileID.
 func onConnection(u *store.User, conn *store.Connection, profileID string) bool {
 	for _, id := range u.Identities {
-		if id.Connection == conn.Name && id.Provider == store.StrategyDatabase && id.UserID == profileID {
+		if id.Connection == conn.Name && !id.Linked() && id.Provider == store.StrategyDatabase && id.UserID == profileID {
 			return true
 		}
 	}

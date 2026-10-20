@@ -204,4 +204,44 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		mustNoErr(t, err)
 	})
 
+	// D-0043: a user whose own identity is on another connection loses only
+	// its linked identity on the deleted one (and its Version moves); its
+	// sessions, tokens and other rows stay. A user whose own identity is on
+	// the deleted connection is deleted as before, linked identities and
+	// all.
+	t.Run("LinkedIdentity", func(t *testing.T) {
+		s := open(t, newStore)
+		seedTenant(t, s, "ten_a")
+		link := func(primary, linkedID, linkedConn, email string) {
+			t.Helper()
+			u, err := s.Users().Get(ctx, "ten_a", "auth0|"+primary)
+			mustNoErr(t, err)
+			u.Identities = append(u.Identities, store.Identity{Connection: linkedConn, Provider: store.StrategyDatabase, UserID: linkedID,
+				PasswordHash: "$argon2id$linked-" + linkedID, ProfileData: map[string]any{"email": email, "email_verified": true}})
+			mustNoErr(t, s.Users().Update(ctx, u))
+		}
+		link("u1", "l1", "Other", "l1@x.test")    // own on Database, linked on Other
+		link("u3", "l3", "Database", "l3@x.test") // own on Other, linked on Database
+		before, err := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+
+		mustNoErr(t, s.Connections().Delete(ctx, "ten_a", "con2"))
+
+		after, err := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, after.Identities, before.Identities[:1])
+		mustEqual(t, after.Version, before.Version+1)
+		mustEqual(t, probe(t, s, "ten_a", "u1"), all)
+		mustEqual(t, probe(t, s, "ten_a", "u3"), left{})
+		for _, c := range []struct{ conn, login string }{{"Other", "l1@x.test"}, {"Database", "l3@x.test"}, {"Other", "u3@x.test"}} {
+			_, err = s.Users().FindByLogin(ctx, "ten_a", c.conn, c.login)
+			mustErrIs(t, err, store.ErrNotFound)
+		}
+		got, err := s.Users().FindByLogin(ctx, "ten_a", "Database", "u1@x.test")
+		mustNoErr(t, err)
+		mustEqual(t, got.UserID, "auth0|u1")
+		// The freed login can be taken again.
+		u := newUser("ten_a", "n1", "l3@x.test", "")
+		mustNoErr(t, s.Users().Create(ctx, u))
+	})
 }

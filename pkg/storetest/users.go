@@ -487,4 +487,30 @@ func testUsers(t *testing.T, newStore Factory) {
 		mustEqual(t, got.UserID, "auth0|s1")
 		mustEqual(t, got.Identities[0].ProfileData == nil, true)
 	})
+
+	// SetPasswordHash and SetPasswordHashIfEmpty write the user's own
+	// identity on the connection, never a linked one (D-0043); a connection
+	// with only a linked identity of the user is ErrNotFound.
+	t.Run("SetPasswordHashSkipsLinked", func(t *testing.T) {
+		s := open(t, newStore)
+		u := newUser("ten_a", "p1", "p@example.test", "")
+		linkedSame := store.Identity{Connection: "Database", Provider: store.StrategyDatabase, UserID: "s1", PasswordHash: "$argon2id$s1",
+			ProfileData: map[string]any{"email": "s1@example.test", "email_verified": true}}
+		linkedOther := store.Identity{Connection: "Other", Provider: store.StrategyDatabase, UserID: "s2",
+			ProfileData: map[string]any{"email": "s2@example.test", "email_verified": true}}
+		// The linked identity comes first, so a first-match write would hit it.
+		u.Identities = []store.Identity{linkedSame, u.Identities[0], linkedOther}
+		mustNoErr(t, s.Users().Create(ctx, u))
+
+		mustNoErr(t, s.Users().SetPasswordHash(ctx, "ten_a", "auth0|p1", "Database", "$argon2id$new", ts(time.Hour)))
+		got, _ := s.Users().Get(ctx, "ten_a", "auth0|p1")
+		mustEqual(t, got.Identities[0].PasswordHash, "$argon2id$s1")
+		mustEqual(t, got.Identities[1].PasswordHash, "$argon2id$new")
+		mustErrIs(t, s.Users().SetPasswordHash(ctx, "ten_a", "auth0|p1", "Other", "$argon2id$x", ts(time.Hour)), store.ErrNotFound)
+		mustErrIs(t, s.Users().SetPasswordHashIfEmpty(ctx, "ten_a", "auth0|p1", "Other", "$argon2id$x", ts(time.Hour)), store.ErrNotFound)
+		mustErrIs(t, s.Users().SetPasswordHashIfEmpty(ctx, "ten_a", "auth0|p1", "Database", "$argon2id$x", ts(time.Hour)), store.ErrConflict)
+		got, _ = s.Users().Get(ctx, "ten_a", "auth0|p1")
+		mustEqual(t, got.Identities[2].PasswordHash, "")
+		mustEqual(t, got.Identities[1].PasswordHash, "$argon2id$new")
+	})
 }

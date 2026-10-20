@@ -104,7 +104,8 @@ func (r users) setHash(tenantID, userID, connection, hash string, at time.Time, 
 		return store.ErrNotFound
 	}
 	for i := range u.Identities {
-		if u.Identities[i].Connection == connection {
+		// The user's own identity; a linked one keeps its hash (D-0043).
+		if u.Identities[i].Connection == connection && !u.Identities[i].Linked() {
 			if onlyIfEmpty && u.Identities[i].PasswordHash != "" {
 				return store.ErrConflict
 			}
@@ -217,15 +218,6 @@ func (r users) loginTaken(u *store.User) bool {
 			if slices.Contains(mine, l) {
 				return true
 			}
-		}
-	}
-	return false
-}
-
-func onConnection(u *store.User, connection string) bool {
-	for _, id := range u.Identities {
-		if id.Connection == connection {
-			return true
 		}
 	}
 	return false

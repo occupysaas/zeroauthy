@@ -538,6 +538,60 @@ func (id *Identity) ProfileString(k string) string {
 	return s
 }
 
+// OwnIdentity returns u's own (not linked) identity: the one its UserID
+// names, or else its first identity that is not linked; nil if none.
+func (u *User) OwnIdentity() *Identity {
+	var first *Identity
+	for i := range u.Identities {
+		id := &u.Identities[i]
+		if id.Linked() {
+			continue
+		}
+		if id.Provider+"|"+id.UserID == u.UserID {
+			return id
+		}
+		if first == nil {
+			first = id
+		}
+	}
+	return first
+}
+
+// OwnIdentityOn returns u's own (not linked) identity on connection, or nil.
+// Writes that name a connection (a password hash, an email change) target
+// this identity; a linked identity on the connection is never chosen.
+func (u *User) OwnIdentityOn(connection string) *Identity {
+	for i := range u.Identities {
+		if id := &u.Identities[i]; id.Connection == connection && !id.Linked() {
+			return id
+		}
+	}
+	return nil
+}
+
+// ConnectionDeleteEffect says what deleting connection does to u: delete
+// is true when u's own identity is on it (the user goes, with everything
+// that names it), and strip is true when only linked identities of u are on
+// it (they are removed and the user stays, D-0043).
+func (u *User) ConnectionDeleteEffect(connection string) (del, strip bool) {
+	for i := range u.Identities {
+		id := &u.Identities[i]
+		if id.Connection != connection {
+			continue
+		}
+		if !id.Linked() {
+			return true, false
+		}
+		strip = true
+	}
+	return false, strip
+}
+
+// WithoutLinkedOn removes u's linked identities on connection.
+func (u *User) WithoutLinkedOn(connection string) {
+	u.Identities = slices.DeleteFunc(u.Identities, func(id Identity) bool { return id.Linked() && id.Connection == connection })
+}
+
 // LoginKey is one way a user is found at login: a value of kind "email" or
 // "username" on a connection.
 type LoginKey struct{ Connection, Kind, Value string }

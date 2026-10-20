@@ -101,9 +101,10 @@ func (r connections) List(ctx context.Context, tenantID string, f store.Connecti
 }
 
 // Delete removes the connection, then its users and what hangs off them.
-// The users are those with an identity on the connection, found by reading
-// the identities of the tenant's users (the identities are JSON, so no index
-// helps); only their IDs are kept.
+// The users are those whose own identity is on the connection; a user with
+// only linked identities on it loses those identities and keeps the rest
+// (D-0043). Both are found by reading the identities of the tenant's users
+// (the identities are JSON, so no index helps).
 func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		var name string
@@ -114,12 +115,25 @@ func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 		if err != nil {
 			return err
 		}
-		userIDs, err := usersOnConnection(ctx, tx, tenantID, name)
+		gone, stripped, err := usersOnConnection(ctx, tx, tenantID, name)
 		if err != nil {
 			return err
 		}
-		for _, uid := range userIDs {
+		for _, uid := range gone {
 			if err := deleteUser(ctx, tx, tenantID, uid); err != nil {
+				return err
+			}
+		}
+		for _, u := range stripped {
+			u.WithoutLinkedOn(name)
+			ids, err := toJSON(u.Identities)
+			if err != nil {
+				return err
+			}
+			if _, err := tx.exec(ctx, `UPDATE users SET identities=?, version=version+1 WHERE tenant_id=? AND user_id=?`, ids, tenantID, u.UserID); err != nil {
+				return err
+			}
+			if err := putLogins(ctx, tx, u, true); err != nil {
 				return err
 			}
 		}
@@ -131,29 +145,28 @@ func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 	})
 }
 
-// usersOnConnection returns the IDs of the tenant's users with an identity
-// on the connection called name.
-func usersOnConnection(ctx context.Context, tx *Store, tenantID, name string) ([]string, error) {
-	rows, err := tx.query(ctx, `SELECT user_id, identities FROM users WHERE tenant_id = ?`, tenantID)
+// usersOnConnection returns, for the connection called name, the IDs of the
+// tenant's users whose own identity is on it (gone) and the users that only
+// have linked identities on it (stripped), in user_id order.
+func usersOnConnection(ctx context.Context, tx *Store, tenantID, name string) (gone []string, stripped []*store.User, err error) {
+	rows, err := tx.query(ctx, `SELECT `+userCols+` FROM users WHERE tenant_id = ? ORDER BY user_id`+tx.d.byteOrder, tenantID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer rows.Close() // also on the early returns; SQLite has one connection
-	var out []string
 	for rows.Next() {
-		var uid, raw string
-		if err := rows.Scan(&uid, &raw); err != nil {
-			return nil, err
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, nil, err
 		}
-		var ids []store.Identity
-		if err := fromJSON(raw, &ids); err != nil {
-			return nil, err
-		}
-		if slices.ContainsFunc(ids, func(i store.Identity) bool { return i.Connection == name }) {
-			out = append(out, uid)
+		switch del, strip := u.ConnectionDeleteEffect(name); {
+		case del:
+			gone = append(gone, u.UserID)
+		case strip:
+			stripped = append(stripped, u)
 		}
 	}
-	return out, rows.Err()
+	return gone, stripped, rows.Err()
 }
 
 func scanConnection(row scanner) (*store.Connection, error) {

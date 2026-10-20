@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -1351,5 +1353,57 @@ func TestSeedSkipsAPIConnections(t *testing.T) {
 	got, _ := st.Connections().GetByName(ctx, tn.ID, "Username-Password-Authentication")
 	if got.Origin != store.OriginAPI || !got.DisableSignup || len(got.EnabledClients) != 0 || got.PasswordOptions.Complexity.MinLength != 33 {
 		t.Fatalf("the seed changed an API connection: %+v", got)
+	}
+}
+
+// A seeded user that was linked into another (D-0043) is skipped on
+// re-apply: the primary's profile and both passwords stay as they are.
+func TestApplySkipsLinkedUser(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	text := sampleWithUsers + `      - connection: Username-Password-Authentication
+        email: bob@acme.test
+        password: "bob password 22"
+        name: Bob
+`
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	conn := "Username-Password-Authentication"
+	alice, _ := st.Users().FindByLogin(ctx, tn.ID, conn, "alice@acme.test")
+	bob, _ := st.Users().FindByLogin(ctx, tn.ID, conn, "bob@acme.test")
+	// Link bob into alice as the Management API does.
+	if err := st.Users().Delete(ctx, tn.ID, bob.UserID); err != nil {
+		t.Fatal(err)
+	}
+	moved := bob.Identities[0]
+	moved.ProfileData = map[string]any{"email": bob.Email, "email_verified": bob.EmailVerified}
+	alice.Identities = append(alice.Identities, moved)
+	if err := st.Users().Update(ctx, alice); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := st.Users().Get(ctx, tn.ID, alice.UserID)
+
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	after, _ := st.Users().Get(ctx, tn.ID, alice.UserID)
+	if diff := cmp.Diff(before, after); diff != "" {
+		t.Errorf("re-apply changed the primary (-before +after):\n%s", diff)
+	}
+	if _, err := st.Users().Get(ctx, tn.ID, bob.UserID); err == nil {
+		t.Error("re-apply recreated the linked user")
+	}
+	c, _ := st.Connections().GetByName(ctx, tn.ID, conn)
+	db := &identity.Database{Store: st}
+	for login, password := range map[string]string{"alice@acme.test": "alice password 1", "bob@acme.test": "bob password 22"} {
+		if u, err := db.Login(ctx, c, login, password); err != nil || u.UserID != alice.UserID {
+			t.Errorf("login %s = %v, %v", login, u, err)
+		}
 	}
 }
