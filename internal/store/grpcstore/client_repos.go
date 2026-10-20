@@ -735,3 +735,21 @@ func (a clientOperators) Delete(ctx context.Context, tenantID, userID string) er
 	r, err := a.c.rpc.OperatorsDelete(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
 	return do("OperatorsDelete", r, tooOld(err))
 }
+
+func (a clientUsers) List(ctx context.Context, tenantID string, q *store.UserQuery, s store.UserSort, p store.Page) ([]*store.User, int, error) {
+	// The host validates first: a nil kid cannot cross the wire, and a bad
+	// tree must fail the same way whatever the plugin does with it.
+	if err := q.Validate(); err != nil {
+		return nil, 0, err
+	}
+	if err := s.Validate(); err != nil {
+		return nil, 0, err
+	}
+	r, err := a.c.rpc.UsersList(ctx, &storev1.UsersListRequest{TxId: a.c.txID, TenantId: tenantID, Query: userQueryToPB(q),
+		SortField: s.Field, SortDesc: s.Desc, Offset: int64(p.Offset), Limit: int64(p.Limit)})
+	out, err := decList("UsersList", tooOld(err), r.GetError(), r.GetValues(), userFromPB)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, int(r.GetTotal()), nil
+}

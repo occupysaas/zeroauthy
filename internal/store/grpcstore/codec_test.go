@@ -592,3 +592,19 @@ func TestConnectionWritesLegacyPasswordPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestUserQueryRoundTrip(t *testing.T) {
+	lo := "2026-01-01"
+	q := &store.UserQuery{Op: store.QueryAnd, Kids: []*store.UserQuery{
+		{Op: store.QueryRange, Field: "created_at", Kind: store.KindDate, Lo: &lo, LoIncl: true},
+		{Op: store.QueryNot, Kids: []*store.UserQuery{{Op: store.QueryWildcard, Field: "email", Value: `a\**`}}},
+		{Op: store.QueryTerm, Field: "app_metadata.plan", Kind: store.KindNumber, Value: "2"},
+		{Op: store.QueryExists, Field: "last_login"},
+	}}
+	roundTrip(t, "UserQuery", q,
+		func(q *store.UserQuery) (*storev1.UserQuery, error) { return userQueryToPB(q), nil },
+		func(pb *storev1.UserQuery) (*store.UserQuery, error) { return userQueryFromPB(pb), nil })
+	if userQueryToPB(nil) != nil || userQueryFromPB(nil) != nil {
+		t.Fatal("a nil query must stay nil")
+	}
+}

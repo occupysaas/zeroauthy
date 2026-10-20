@@ -312,3 +312,12 @@ func TestOldPluginOperatorsTooOld(t *testing.T) {
 		}
 	}
 }
+
+// Users.List needs a Plan 17 plugin.
+func TestOldPluginUserListTooOld(t *testing.T) {
+	c := serveOldPlugin(t)
+	_, _, err := c.Users().List(context.Background(), "t", nil, store.UserSort{}, store.Page{})
+	if !errors.Is(err, errPluginTooOld) || !strings.Contains(err.Error(), "too old") {
+		t.Errorf("err = %v, want errPluginTooOld", err)
+	}
+}

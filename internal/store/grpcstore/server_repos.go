@@ -501,6 +501,19 @@ func (s *Server) UsersFindByEmail(ctx context.Context, r *storev1.UsersFindByEma
 	return &storev1.UserListResult{Error: e, Values: vs}, nil
 }
 
+func (s *Server) UsersList(ctx context.Context, r *storev1.UsersListRequest) (*storev1.UserListResult, error) {
+	var total int
+	vs, e, err := many(s, r.TxId, func(st store.Store) (out []*store.User, e error) {
+		out, total, e = st.Users().List(ctx, r.TenantId, userQueryFromPB(r.Query),
+			store.UserSort{Field: r.SortField, Desc: r.SortDesc}, store.Page{Offset: int(r.Offset), Limit: int(r.Limit)})
+		return out, e
+	}, userToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.UserListResult{Error: e, Values: vs, Total: int64(total)}, nil
+}
+
 func (s *Server) UsersDelete(ctx context.Context, r *storev1.ScopedKey) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
 		return st.Users().Delete(ctx, r.TenantId, r.Key)

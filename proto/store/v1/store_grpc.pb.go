@@ -74,6 +74,7 @@ const (
 	StoreService_UsersSetPasswordHashIfEmpty_FullMethodName        = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHashIfEmpty"
 	StoreService_UsersBumpVersion_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UsersBumpVersion"
 	StoreService_UsersDelete_FullMethodName                        = "/zeroauthy.store.v1.StoreService/UsersDelete"
+	StoreService_UsersList_FullMethodName                          = "/zeroauthy.store.v1.StoreService/UsersList"
 	StoreService_SessionsCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/SessionsCreate"
 	StoreService_SessionsGetByTokenHash_FullMethodName             = "/zeroauthy.store.v1.StoreService/SessionsGetByTokenHash"
 	StoreService_SessionsTouch_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SessionsTouch"
@@ -233,6 +234,7 @@ type StoreServiceClient interface {
 	UsersSetPasswordHashIfEmpty(ctx context.Context, in *UsersSetPasswordHashRequest, opts ...grpc.CallOption) (*Result, error)
 	UsersBumpVersion(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*VersionResult, error)
 	UsersDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
+	UsersList(ctx context.Context, in *UsersListRequest, opts ...grpc.CallOption) (*UserListResult, error)
 	SessionsCreate(ctx context.Context, in *SessionWrite, opts ...grpc.CallOption) (*Result, error)
 	SessionsGetByTokenHash(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SessionResult, error)
 	SessionsTouch(ctx context.Context, in *TouchRequest, opts ...grpc.CallOption) (*Result, error)
@@ -836,6 +838,16 @@ func (c *storeServiceClient) UsersDelete(ctx context.Context, in *ScopedKey, opt
 	return out, nil
 }
 
+func (c *storeServiceClient) UsersList(ctx context.Context, in *UsersListRequest, opts ...grpc.CallOption) (*UserListResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserListResult)
+	err := c.cc.Invoke(ctx, StoreService_UsersList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) SessionsCreate(ctx context.Context, in *SessionWrite, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
@@ -1362,6 +1374,7 @@ type StoreServiceServer interface {
 	UsersSetPasswordHashIfEmpty(context.Context, *UsersSetPasswordHashRequest) (*Result, error)
 	UsersBumpVersion(context.Context, *ScopedKey) (*VersionResult, error)
 	UsersDelete(context.Context, *ScopedKey) (*Result, error)
+	UsersList(context.Context, *UsersListRequest) (*UserListResult, error)
 	SessionsCreate(context.Context, *SessionWrite) (*Result, error)
 	SessionsGetByTokenHash(context.Context, *ScopedKey) (*SessionResult, error)
 	SessionsTouch(context.Context, *TouchRequest) (*Result, error)
@@ -1579,6 +1592,9 @@ func (UnimplementedStoreServiceServer) UsersBumpVersion(context.Context, *Scoped
 }
 func (UnimplementedStoreServiceServer) UsersDelete(context.Context, *ScopedKey) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method UsersDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) UsersList(context.Context, *UsersListRequest) (*UserListResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method UsersList not implemented")
 }
 func (UnimplementedStoreServiceServer) SessionsCreate(context.Context, *SessionWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SessionsCreate not implemented")
@@ -2714,6 +2730,24 @@ func _StoreService_UsersDelete_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_UsersList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UsersListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UsersList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UsersList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UsersList(ctx, req.(*UsersListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_SessionsCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SessionWrite)
 	if err := dec(in); err != nil {
@@ -3678,6 +3712,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UsersDelete",
 			Handler:    _StoreService_UsersDelete_Handler,
+		},
+		{
+			MethodName: "UsersList",
+			Handler:    _StoreService_UsersList_Handler,
 		},
 		{
 			MethodName: "SessionsCreate",

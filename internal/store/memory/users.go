@@ -218,3 +218,32 @@ func onConnection(u *store.User, connection string) bool {
 	}
 	return false
 }
+
+func (r users) List(_ context.Context, tenantID string, q *store.UserQuery, s store.UserSort, p store.Page) ([]*store.User, int, error) {
+	m, err := store.NewUserMatcher(q)
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := s.Validate(); err != nil {
+		return nil, 0, err
+	}
+	r.s.mu.RLock()
+	defer r.s.mu.RUnlock()
+	var all []*store.User
+	for k, u := range r.s.users {
+		if k.tenant == tenantID && m.Match(u) {
+			all = append(all, u)
+		}
+	}
+	slices.SortFunc(all, func(a, b *store.User) int { return store.CompareUsers(a, b, s) })
+	total := len(all)
+	all = all[min(max(p.Offset, 0), total):]
+	if p.Limit > 0 && len(all) > p.Limit {
+		all = all[:p.Limit]
+	}
+	out := make([]*store.User, len(all))
+	for i, u := range all {
+		out[i] = cloneUser(u)
+	}
+	return out, total, nil
+}

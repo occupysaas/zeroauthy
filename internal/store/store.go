@@ -264,6 +264,11 @@ type Users interface {
 	// row. It returns
 	// ErrNotFound if the user is absent.
 	Delete(ctx context.Context, tenantID, userID string) error
+	// List returns the tenant's users that match q, in the order s, and
+	// the number that match before paging. A nil q matches every user. An
+	// invalid tree or sort (see UserQuery.Validate and UserSort.Validate)
+	// is an error. The semantics are UserQuery's.
+	List(ctx context.Context, tenantID string, q *UserQuery, s UserSort, p Page) ([]*User, int, error)
 }
 
 // Sessions stores login sessions, keyed by (TenantID, ID). TokenHash is

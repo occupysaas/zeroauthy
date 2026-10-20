@@ -856,3 +856,30 @@ func operatorFromPB(pb *storev1.Operator) (*store.Operator, error) {
 		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt),
 	}, nil
 }
+
+// userQueryToPB carries a query tree over the plugin boundary; nil stays nil.
+// Operators and kinds keep their numeric values on both sides.
+func userQueryToPB(q *store.UserQuery) *storev1.UserQuery {
+	if q == nil {
+		return nil
+	}
+	pb := &storev1.UserQuery{Op: storev1.UserQuery_Op(q.Op), Field: q.Field, Kind: storev1.UserQuery_Kind(q.Kind),
+		Value: q.Value, Lo: q.Lo, Hi: q.Hi, LoIncl: q.LoIncl, HiIncl: q.HiIncl}
+	for _, k := range q.Kids {
+		pb.Kids = append(pb.Kids, userQueryToPB(k))
+	}
+	return pb
+}
+
+// userQueryFromPB is the inverse of userQueryToPB.
+func userQueryFromPB(pb *storev1.UserQuery) *store.UserQuery {
+	if pb == nil {
+		return nil
+	}
+	q := &store.UserQuery{Op: store.QueryOp(pb.Op), Field: pb.Field, Kind: store.ValueKind(pb.Kind),
+		Value: pb.Value, Lo: pb.Lo, Hi: pb.Hi, LoIncl: pb.LoIncl, HiIncl: pb.HiIncl}
+	for _, k := range pb.Kids {
+		q.Kids = append(q.Kids, userQueryFromPB(k))
+	}
+	return q
+}
