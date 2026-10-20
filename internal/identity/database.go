@@ -179,14 +179,20 @@ const maxProfileFieldRunes = loginid.MaxProfileFieldRunes
 
 // checkProfile validates the optional profile fields of a signup.
 func checkProfile(in SignupInput) error {
+	return CheckProfile(in.GivenName, in.FamilyName, in.Name, in.Nickname, in.Picture)
+}
+
+// CheckProfile validates the optional profile fields of a new or changed
+// user: the four names and the picture. userrules shares it with signup.
+func CheckProfile(givenName, familyName, name, nickname, picture string) error {
 	for _, f := range []struct{ label, value string }{
-		{"given_name", in.GivenName}, {"family_name", in.FamilyName}, {"name", in.Name}, {"nickname", in.Nickname},
+		{"given_name", givenName}, {"family_name", familyName}, {"name", name}, {"nickname", nickname},
 	} {
 		if utf8.RuneCountInString(f.value) > maxProfileFieldRunes {
 			return &PolicyError{Reason: f.label + " must be at most 300 characters"}
 		}
 	}
-	if in.Picture != "" && !loginid.ValidPicture(in.Picture) {
+	if picture != "" && !loginid.ValidPicture(picture) {
 		return &PolicyError{Reason: "picture must be an https URL"}
 	}
 	return nil
@@ -216,17 +222,17 @@ func checkSignup(conn *store.Connection, in SignupInput) (email, username string
 	}
 	// A new user has no history. The names a signup leaves out default as
 	// they do when the user is stored, so the rule sees what will be held.
-	person.Name, person.Nickname = defaultNames(in.Name, in.Nickname, email, username)
+	person.Name, person.Nickname = DefaultNames(in.Name, in.Nickname, email, username)
 	if err := CheckPassword(conn, person, in.Password, nil); err != nil {
 		return "", "", err
 	}
 	return email, username, nil
 }
 
-// defaultNames fills an empty name with the email and an empty nickname
+// DefaultNames fills an empty name with the email and an empty nickname
 // with the part of the email before the '@'. Without an email (a legacy
 // profile may have only a username) both default to the username.
-func defaultNames(name, nickname, email, username string) (string, string) {
+func DefaultNames(name, nickname, email, username string) (string, string) {
 	if name == "" {
 		name = email
 		if name == "" {
@@ -259,7 +265,7 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 			return nil, err
 		}
 	}
-	name, nickname := defaultNames(in.Name, in.Nickname, email, username)
+	name, nickname := DefaultNames(in.Name, in.Nickname, email, username)
 	hash, err := secrets.Hash(EffectivePassword(conn, in.Password))
 	if err != nil {
 		return nil, err

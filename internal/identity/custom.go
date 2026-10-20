@@ -449,7 +449,7 @@ func (d *Database) upsertProfile(ctx context.Context, conn *store.Connection, p 
 	}
 	u.Email, u.Username, u.EmailVerified = p.Email, p.Username, p.EmailVerified
 	if onLogin && conn.SetUserRootAttributes != store.RootAttributesOnFirstLogin {
-		u.Name, u.Nickname = defaultNames(p.Name, p.Nickname, p.Email, p.Username)
+		u.Name, u.Nickname = DefaultNames(p.Name, p.Nickname, p.Email, p.Username)
 		u.GivenName, u.FamilyName, u.Picture = p.GivenName, p.FamilyName, p.Picture
 	}
 	u.UpdatedAt = now
@@ -464,7 +464,7 @@ func (d *Database) upsertProfile(ctx context.Context, conn *store.Connection, p 
 // profileUser is a new local user for profile p, with no password hash.
 func (d *Database) profileUser(conn *store.Connection, p *customdb.Profile) *store.User {
 	now := d.now().UTC()
-	name, nickname := defaultNames(p.Name, p.Nickname, p.Email, p.Username)
+	name, nickname := DefaultNames(p.Name, p.Nickname, p.Email, p.Username)
 	return &store.User{
 		TenantID: conn.TenantID, UserID: store.StrategyDatabase + "|" + p.UserID,
 		Email: p.Email, EmailVerified: p.EmailVerified, Username: p.Username,
