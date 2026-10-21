@@ -64,7 +64,10 @@ const (
 //     contains it as an element. It never looks inside nested arrays or
 //     objects; the path itself does not step through arrays.
 //   - Wildcards are for root string fields and ranges for logins_count and
-//     the dates; the parser refuses others, and drivers return an error.
+//     the dates, and for user_id, whose range compares the lowercased IDs
+//     bytewise as the user_id sort orders them (Lo and Hi are strings, with
+//     LoIncl and HiIncl; an export pages with it); the parser refuses
+//     others, and drivers return an error.
 //     In a glob, * matches any run of characters and \* is a literal star.
 //   - Exists is true when the field is present and not null. Root string
 //     fields are present when non-empty, last_login when set; the bool
@@ -355,6 +358,8 @@ type node struct {
 	lower string   // string terms, lowercased
 	glob  []string // wildcard pieces, lowercased
 	meta  any      // metadata term value: string, bool or float64
+	// loS and hiS are the bounds of a user_id range, lowercased.
+	loS, hiS *string
 }
 
 // NewUserMatcher validates q and prepares it; a nil q matches everyone.
@@ -420,6 +425,10 @@ func compileQuery(q *UserQuery) (*node, error) {
 			n.glob = append(n.glob, strings.ToLower(p))
 		}
 	case QueryRange:
+		if f.Class == FieldRoot && f.Name == "user_id" {
+			n.loS, n.hiS = lowerPtr(q.Lo), lowerPtr(q.Hi)
+			break
+		}
 		if f.Kind != KindNumber && f.Kind != KindDate {
 			return nil, fmt.Errorf("store: range is not supported on %q", q.Field)
 		}
@@ -507,6 +516,8 @@ func (n *node) match(u *User, md *map[string]any) bool {
 			return true
 		case n.q.Op == QueryWildcard:
 			return globMatch(strings.ToLower(v), n.glob)
+		case n.q.Op == QueryRange:
+			return n.inStringRange(strings.ToLower(v))
 		}
 		return strings.ToLower(v) == n.lower
 	case KindBool:
@@ -523,6 +534,30 @@ func (n *node) match(u *User, md *map[string]any) bool {
 		return true
 	}
 	return n.lo <= v && v <= n.hi
+}
+
+func lowerPtr(p *string) *string {
+	if p == nil {
+		return nil
+	}
+	s := strings.ToLower(*p)
+	return &s
+}
+
+// inStringRange reports whether v (lowercased) is within the bounds of a
+// user_id range, compared bytewise as the user_id sort does.
+func (n *node) inStringRange(v string) bool {
+	if n.loS != nil {
+		if c := strings.Compare(v, *n.loS); c < 0 || (c == 0 && !n.q.LoIncl) {
+			return false
+		}
+	}
+	if n.hiS != nil {
+		if c := strings.Compare(v, *n.hiS); c > 0 || (c == 0 && !n.q.HiIncl) {
+			return false
+		}
+	}
+	return true
 }
 
 func rootString(u *User, name string) string {

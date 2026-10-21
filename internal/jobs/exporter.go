@@ -30,6 +30,10 @@ const (
 // ExportPage is how many users the exporter reads at a time.
 const ExportPage = 500
 
+// exportSlack is how many more users a page asks for than it writes, for the
+// users of the previous page that the inclusive bound returns again.
+const exportSlack = 4
+
 // MaxExportFields is the most fields an export may name (J8).
 const MaxExportFields = 30
 
@@ -113,19 +117,25 @@ func exportFields(params map[string]any) []exportField {
 func intParam(params map[string]any, k string) int {
 	switch v := params[k].(type) {
 	case int:
-		return v
+		return clampLimit(float64(v))
 	case int64:
-		return int(v)
+		return clampLimit(float64(v))
 	case float64:
-		if v == math.Trunc(v) && v < math.MaxInt32*4 {
-			return int(v)
-		}
-		return math.MaxInt32 * 4
+		return clampLimit(v)
 	case json.Number:
-		n, _ := v.Int64()
-		return int(n)
+		f, _ := v.Float64()
+		return clampLimit(f)
 	}
 	return 0
+}
+
+// clampLimit keeps a stored limit, which may be any positive integer, within
+// what int holds on every platform.
+func clampLimit(v float64) int {
+	if v < 1 {
+		return 0
+	}
+	return int(min(v, math.MaxInt32))
 }
 
 // chunkWriter cuts what is written into chunks for AppendFile.
@@ -177,11 +187,11 @@ func (p Exporter) Run(ctx context.Context, st store.Store, j *store.Job, lease L
 	}
 	limit := intParam(j.Params, ParamLimit)
 	fields := exportFields(j.Params)
-	var q *store.UserQuery
+	var base *store.UserQuery
 	if j.Connection != "" {
-		q = &store.UserQuery{Op: store.QueryTerm, Field: "identities.connection", Kind: store.KindString, Value: j.Connection}
+		base = &store.UserQuery{Op: store.QueryTerm, Field: "identities.connection", Kind: store.KindString, Value: j.Connection}
 	} else {
-		q = &store.UserQuery{Op: store.QueryAll}
+		base = &store.UserQuery{Op: store.QueryAll}
 	}
 	owner := ""
 	if lease != nil {
@@ -205,11 +215,12 @@ func (p Exporter) Run(ctx context.Context, st store.Store, j *store.Job, lease L
 	}
 
 	count := 0
-	for offset := 0; limit == 0 || count < limit; {
+	last := "" // the last user_id written; the walk goes on after it
+	for limit == 0 || count < limit {
 		if err := ctx.Err(); err != nil {
 			return "", "", err
 		}
-		if offset > 0 && lease != nil {
+		if count > 0 && lease != nil {
 			if err := lease.Renew(ctx); err != nil {
 				return "", "", fmt.Errorf("renew the lease: %w", err)
 			}
@@ -218,14 +229,28 @@ func (p Exporter) Run(ctx context.Context, st store.Store, j *store.Job, lease L
 		if limit > 0 {
 			n = min(n, limit-count)
 		}
-		users, _, err := st.Users().List(ctx, j.TenantID, q, store.UserSort{Field: "user_id"}, store.Page{Offset: offset, Limit: n})
+		// Keyset paging: a user created or deleted while the export runs
+		// neither repeats nor hides another. The bound is inclusive and the
+		// users already written are skipped, because the order compares
+		// lowercased IDs and two IDs may differ by case only.
+		pq := base
+		if last != "" {
+			after := store.UserQuery{Op: store.QueryRange, Field: "user_id", Kind: store.KindString, Lo: &last, LoIncl: true}
+			pq = &store.UserQuery{Op: store.QueryAnd, Kids: []*store.UserQuery{base, &after}}
+		}
+		ask := n + exportSlack
+		users, _, err := st.Users().List(ctx, j.TenantID, pq, store.UserSort{Field: "user_id"}, store.Page{Limit: ask})
 		if err != nil {
 			return "", "", fmt.Errorf("list users: %w", err)
 		}
-		if len(users) == 0 {
-			break
-		}
+		written := 0
 		for _, u := range users {
+			if last != "" && strings.ToLower(u.UserID) == strings.ToLower(last) && u.UserID <= last {
+				continue
+			}
+			if written == n {
+				break
+			}
 			view, err := normalize(p.View(u))
 			if err != nil {
 				return "", "", err
@@ -239,10 +264,17 @@ func (p Exporter) Run(ctx context.Context, st store.Store, j *store.Job, lease L
 			if _, err := zw.Write(line.Bytes()); err != nil {
 				return "", "", err
 			}
+			last = u.UserID
+			written++
 		}
-		count += len(users)
-		offset += len(users)
-		if len(users) < n {
+		count += written
+		if written == 0 {
+			if len(users) >= ask {
+				return "", "", fmt.Errorf("export: %d users share the id %q ignoring case", len(users), last)
+			}
+			break
+		}
+		if len(users) < ask && written < n {
 			break
 		}
 	}
@@ -312,6 +344,9 @@ func writeJSONRow(buf *bytes.Buffer, view map[string]any, fields []exportField) 
 	first := true
 	for _, f := range fields {
 		v, ok := lookup(view, f.name)
+		if !ok && (f.name == "user_metadata" || f.name == "app_metadata") {
+			v, ok = map[string]any{}, true // J8: a user without metadata has {}
+		}
 		if !ok || seen[f.key] {
 			continue
 		}

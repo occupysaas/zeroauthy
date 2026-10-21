@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"math"
 	"net/http"
 	"slices"
 	"strconv"
@@ -34,7 +35,7 @@ const (
 type exportBody struct {
 	connectionID string
 	format       string
-	limit        int
+	limit        int64
 	fields       []any // [{name, export_as?}], as stored in the job
 }
 
@@ -89,7 +90,7 @@ func readExportBody(body map[string]json.RawMessage) (*exportBody, error) {
 		v, err := strconv.ParseInt(n.String(), 10, 64)
 		if err != nil {
 			f, ferr := n.Float64()
-			if ferr != nil || f != float64(int64(f)) {
+			if ferr != nil || f != math.Trunc(f) || math.Abs(f) >= 1<<62 {
 				return nil, wrongType("limit", "integer", raw)
 			}
 			v = int64(f)
@@ -97,7 +98,7 @@ func readExportBody(body map[string]json.RawMessage) (*exportBody, error) {
 		if v < 1 {
 			return nil, exportMessage(fmt.Sprintf("Value %d is less than minimum 1", v), "limit", descLimit)
 		}
-		in.limit = int(min(v, 1<<31))
+		in.limit = v
 	}
 	if raw, ok := body["fields"]; ok {
 		var list []json.RawMessage
@@ -219,7 +220,7 @@ func (h *Handlers) DownloadExport(w http.ResponseWriter, r *http.Request) {
 	}
 	jobID, file := chi.URLParam(r, "job"), chi.URLParam(r, "file")
 	expires, err := strconv.ParseInt(r.URL.Query().Get("expires"), 10, 64)
-	if err != nil || !h.Export.Check(res.Tenant.ID, jobID, expires, r.URL.Query().Get("sig")) {
+	if err != nil || !h.exportLink().Check(res.Tenant.ID, jobID, expires, r.URL.Query().Get("sig")) {
 		deny("bad or expired signature")
 		return
 	}

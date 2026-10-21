@@ -98,6 +98,30 @@ func (b *queryBuilder) build(q *store.UserQuery) (string, error) {
 		switch q.Op {
 		case store.QueryExists:
 			return leaf(col + " <> ''"), nil
+		case store.QueryRange:
+			if f.Name != "user_id" {
+				return "", fmt.Errorf("sqlstore: range is not supported on %q", q.Field)
+			}
+			expr := b.lower(col) + b.d.byteOrder
+			var conds []string
+			if q.Lo != nil {
+				op := " > "
+				if q.LoIncl {
+					op = " >= "
+				}
+				conds = append(conds, expr+op+b.arg(strings.ToLower(*q.Lo)))
+			}
+			if q.Hi != nil {
+				op := " < "
+				if q.HiIncl {
+					op = " <= "
+				}
+				conds = append(conds, expr+op+b.arg(strings.ToLower(*q.Hi)))
+			}
+			if len(conds) == 0 {
+				conds = append(conds, col+" <> ''")
+			}
+			return leaf(strings.Join(conds, " AND ")), nil
 		case store.QueryWildcard:
 			return leaf(col + " <> '' AND " + b.lower(col) + " LIKE " + b.arg(likePattern(q.Value)) + " ESCAPE '!'"), nil
 		}

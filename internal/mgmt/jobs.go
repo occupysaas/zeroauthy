@@ -115,7 +115,7 @@ func (h *Handlers) jobLocation(r *http.Request, j *store.Job) string {
 	if !ok || res.Tenant == nil {
 		return ""
 	}
-	return h.Export.Sign(res.Host, res.Tenant.Name, j.TenantID, j.ID, exportFormat(j))
+	return h.exportLink().Sign(res.Host, res.Tenant.Name, j.TenantID, j.ID, exportFormat(j))
 }
 
 // exportFormat is the format of an export job's file.
@@ -520,4 +520,14 @@ func (h *Handlers) createImportJob(r *http.Request, j *store.Job) error {
 		j.ID = NewJobID()
 	}
 	return internalError(h, r, "create job", errJobIDUnavailable)
+}
+
+// exportLink is the handlers' ExportLink, on the handlers' clock unless it
+// has its own, so that signing, checking and job expiry agree on the time.
+func (h *Handlers) exportLink() ExportLink {
+	l := *h.Export
+	if l.Now == nil {
+		l.Now = h.now
+	}
+	return l
 }

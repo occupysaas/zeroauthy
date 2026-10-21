@@ -167,6 +167,9 @@ func TestExportEchoAndDefaults(t *testing.T) {
 	if _, has := out["connection_id"]; has {
 		t.Error("an export of every connection echoes a connection")
 	}
+	if rec, out = e.postExport(t, map[string]any{"limit": 5000000000}); rec.Code != 200 || out["limit"] != float64(5000000000) {
+		t.Errorf("a big limit is echoed as given: %d %s", rec.Code, rec.Body)
+	}
 	rec, out = e.postExport(t, map[string]any{"connection_id": exportsConnID, "format": "json", "limit": 3,
 		"fields": []any{map[string]any{"name": "email", "export_as": "mail"}}})
 	if rec.Code != 200 || out["connection_id"] != exportsConnID || out["connection"] != "Exports" || out["format"] != "json" || out["limit"] != float64(3) {
@@ -222,7 +225,7 @@ func TestExportJSON(t *testing.T) {
 	a, b = nil, nil
 	_ = json.Unmarshal([]byte(lines[0]), &a)
 	_ = json.Unmarshal([]byte(lines[1]), &b)
-	if a["mail"] != "a@x.test" || a["user_metadata"] != nil && len(a["user_metadata"].(map[string]any)) != 0 {
+	if m, isMap := a["user_metadata"].(map[string]any); a["mail"] != "a@x.test" || !isMap || len(m) != 0 {
 		t.Errorf("row a = %v", a)
 	}
 	if _, has := a["user_metadata.obj"]; has {
@@ -539,3 +542,86 @@ func (e *usersEnv) sysTenantCopy(t *testing.T) (*store.Tenant, error) {
 }
 
 var _ = http.StatusOK
+
+// hookStore runs after once, after the first user list.
+type hookStore struct {
+	store.Store
+	after func()
+	done  bool
+}
+
+type hookUsers struct {
+	store.Users
+	s *hookStore
+}
+
+func (h *hookStore) Users() store.Users { return hookUsers{h.Store.Users(), h} }
+
+func (u hookUsers) List(ctx context.Context, tenantID string, q *store.UserQuery, s store.UserSort, p store.Page) ([]*store.User, int, error) {
+	out, total, err := u.Users.List(ctx, tenantID, q, s, p)
+	if !u.s.done {
+		u.s.done = true
+		u.s.after()
+	}
+	return out, total, err
+}
+
+// Users deleted and created while an export runs neither repeat nor hide
+// another user: every user that existed throughout is written exactly once.
+func TestExportSurvivesChangesBetweenPages(t *testing.T) {
+	e := newUsersEnv(t)
+	for i := range 10 {
+		e.addUser(t, &store.User{UserID: fmt.Sprintf("auth0|u%02d", i), Email: fmt.Sprintf("u%d@x.test", i)})
+	}
+	rec, out := e.postExport(t, map[string]any{"format": "json", "fields": []any{map[string]any{"name": "user_id"}}})
+	if rec.Code != 200 {
+		t.Fatal(rec.Body)
+	}
+	ctx := context.Background()
+	j, err := e.st.Jobs().Claim(ctx, "w1", now, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hs := &hookStore{Store: e.st}
+	hs.after = func() {
+		// The first page (u00-u02) is written once the hook has run; delete
+		// a user of it, one not yet reached, and add users before and after.
+		for _, id := range []string{"auth0|u01", "auth0|u06"} {
+			if err := e.st.Users().Delete(ctx, e.tn.ID, id); err != nil {
+				t.Error(err)
+			}
+		}
+		e.addUser(t, &store.User{UserID: "auth0|u00a", Email: "a@x.test"})
+		e.addUser(t, &store.User{UserID: "auth0|u095", Email: "b@x.test"})
+	}
+	x := jobs.Exporter{View: mgmt.UserJSON, Page: 3}
+	if _, _, err := x.Run(ctx, hs, j, exportLease{e, j, "w1"}); err != nil {
+		t.Fatal(err)
+	}
+	var raw bytes.Buffer
+	_ = e.st.Jobs().ReadFile(ctx, e.tn.ID, out["id"].(string), func(c []byte) error { raw.Write(c); return nil })
+	zr, err := gzip.NewReader(&raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plain, _ := io.ReadAll(zr)
+	seen := map[string]int{}
+	for _, l := range strings.Split(strings.TrimSpace(string(plain)), "\n") {
+		var m map[string]string
+		_ = json.Unmarshal([]byte(l), &m)
+		seen[m["user_id"]]++
+	}
+	for id, n := range seen {
+		if n != 1 {
+			t.Errorf("%s written %d times", id, n)
+		}
+	}
+	for _, i := range []int{0, 2, 3, 4, 5, 7, 8, 9} {
+		if id := fmt.Sprintf("auth0|u%02d", i); seen[id] != 1 {
+			t.Errorf("%s written %d times, want 1 (%s)", id, seen[id], plain)
+		}
+	}
+	if seen["auth0|u06"] != 0 || seen["auth0|u095"] != 1 || seen["auth0|u00a"] != 0 {
+		t.Errorf("unexpected rows: %s", plain)
+	}
+}

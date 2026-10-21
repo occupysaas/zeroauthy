@@ -190,6 +190,11 @@ func userListCases() []listCase {
 		{"Username", qStr("username", "ERIN_X"), "05"},
 		{"PhoneNumber", qStr("phone_number", "+15550001"), "01"},
 		{"UserIDCaseInsensitive", qStr("user_id", "AUTH0|U07"), "07"},
+		{"UserIDRangeExclusiveInclusive", qRange("user_id", store.KindString, "{]", "auth0|u03", "auth0|u06"), "04 05 06"},
+		{"UserIDRangeFoldsCase", qRange("user_id", store.KindString, "[}", "AUTH0|U03", "auth0|U05"), "03 04"},
+		{"UserIDRangeOpenEnd", qRange("user_id", store.KindString, "{}", "auth0|u10", "*"), "11 12"},
+		{"UserIDRangeOpenStart", qRange("user_id", store.KindString, "{]", "*", "auth0|u02"), "01 02"},
+		{"UserIDRangeWithConnection", qAnd(qRange("user_id", store.KindString, "{}", "auth0|u06", "*"), qStr("identities.connection", "Database")), "07 08 09 10 12"},
 		{"LastIP", qStr("last_ip", "10.0.0.5"), "05"},
 		// Booleans and numbers.
 		{"EmailVerifiedFalse", qBool("email_verified", false), "02 04 06 09 11 12"},

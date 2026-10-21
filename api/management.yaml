@@ -1440,7 +1440,8 @@ paths:
       tags: [jobs]
       summary: Export users to a file
       description: |
-        Requires `read:users`. A JSON body (an empty body is `{}`); unknown
+        Requires `read:users`. A JSON body (an empty body is `{}`; form-encoded
+        bodies are not accepted); unknown
         properties, `limit` below 1, `format` other than `json` or `csv` and
         more than 30 `fields` are `400 invalid_body`. Answers `200` with the
         job, echoing `connection_id`, `connection`, `format` (default `csv`),
