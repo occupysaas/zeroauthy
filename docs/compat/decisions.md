@@ -742,3 +742,30 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **`device.*_asn`:** not returned (zeroauthy has no ASN database); IPs and user agents are.
   - **`app_metadata` scope split:** not observed (the observer could not narrow its token); zeroauthy follows the reference: writing `app_metadata` needs `update:users_app_metadata` and reading it needs `read:users` or `read:users_app_metadata`.
 - **Rationale:** observed values are matched; the differences avoid depending on Auth0's infrastructure or data zeroauthy does not have.
+
+## D-0044: Management API jobs (user import, export, verification email)
+
+- **Context:** Auth0 documents the jobs endpoints, the import schema, the custom hash formats and the export options, but its sources disagree in places and leave error codes, upsert rules and file details unstated.
+- **Sources:** the Management API reference for the jobs endpoints; the bulk import, import schema and bulk export docs; observations/management-users.md (U10, U11) and observations/management-jobs.md (J1–J10).
+- **Decision** (observed values, matched):
+  - **Create checks:** the J1 errors; the 512000-byte limit applies to the whole request body (`413` without `errorCode`); a third active import in a tenant is `429` without `errorCode` (J3); a non-boolean `upsert` and unknown form fields are accepted.
+  - **Files:** malformed files are accepted at create and the job fails with J2's `status_details`; non-object entries are `INVALID_TYPE` record errors.
+  - **Jobs:** a running job reads `pending`, without `percentage_done` or `time_left_seconds`; `send_completion_email` defaults to `true`; `external_id` is echoed; job data is deleted 24 hours after creation, then `404 inexistent_job`.
+  - **Errors endpoint:** `200 []` for a completed import without errors, `204` for an export, and the job object (`200`) for a failed job.
+  - **Upsert:** matches by email; replaces names, `email_verified` and whole metadata objects; ignores `blocked`, `user_id` and `password_hash` on an existing user; replaces `custom_password_hash` only while the user has never signed in (else `CONFLICT`). `upsert: false` reports `DUPLICATED_USER` (U10), where the docs say existing users are skipped: observation wins.
+  - **Records:** J5's codes, messages and paths, with hash values masked; a duplicate within one file fails only the later record.
+  - **Unusable hashes:** an imported argon2 or PBKDF2 value that cannot be parsed is accepted, and signing in answers `invalid_grant` "Password change required." (J6).
+  - **Export:** no `limit` exports every user; an empty body is CSV over every connection; unknown field names give empty columns (CSV) or no key (JSON); `password_hash` as a field exports nothing; CSV object and array subfields are empty; strings are quoted with a leading `'`; no `connection_id` exports every connection (U11), where the reference names a default connection: observation wins.
+  - **Verification email:** `201` with a `pending` job; J10's errors.
+- **Differences from Auth0:**
+  - **Rehash:** the first sign-in with an imported hash stores zeroauthy's argon2id hash (Auth0 rehashes to bcrypt).
+  - **No cleartext:** an ldap `{CLEARTEXT}` value is refused with `ONE_OF_MISSING` (path `custom_password_hash`), so no password is ever stored in clear. Auth0 stores it and asks for a password change at sign-in.
+  - **Masked PATTERN message:** the `PATTERN` message for `password_hash` ends in `*****`, not the hash. Auth0 repeats the hash there.
+  - **Hash cost limits:** a scrypt or argon2 cost whose memory exceeds 256 MiB is refused at import with `MAXIMUM` (path `custom_password_hash`), so a file cannot exhaust a worker.
+  - **`mfa_factors`:** accepted and ignored (zeroauthy has no MFA yet); Auth0 stores the enrollments.
+  - **Completion email recipients:** the operators whose tenant list covers the tenant (zeroauthy has no tenant owners).
+  - **Download URL:** `https://<tenant host>/export/<job id>/<tenant>.<json|csv>.gz?expires=…&sig=…`, signed with a key derived from the master key, valid 60 seconds, a new one on every job read; Auth0's points at its object storage. An expired or wrong link is `403`.
+  - **Export order:** rows are written in `user_id` order; Auth0's order is unspecified.
+  - **Verification email without a mailer:** zeroauthy always has one (the log mailer at least), so the job completes; Auth0's fails on a tenant without an email provider.
+  - **Hash algorithms Go lacks:** argon2d comes from a vendored copy of `golang.org/x/crypto/argon2` (BSD-3, NOTICE); Whirlpool and MDC-2 are written from their published specifications.
+- **Rationale:** observed values are matched; the differences keep passwords and hashes from being stored or shown in clear, bound the work a file can cause, and avoid depending on Auth0's infrastructure.

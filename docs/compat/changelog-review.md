@@ -39,6 +39,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 | 2026-10-16 | 2026-10-12 (newest entry) | Claude (Plan 9 planning) | No entries since the previous review. Re-read entries on consent and third-party applications; the 2026 third-party security modes, access policies and confirmation prompt are taken from the current documentation into the Plan 9 design. |
 | 2026-10-16 | 2026-10-16 (newest entry) | Claude (Plan 10 planning) | No entries on PAR. One new entry since the previous review, recorded under Relevant entries: Universal Login identifier and phone controls (early access). |
 | 2026-10-17 | 2026-10-16 (newest entry) | Claude (Plan 11 planning) | No entries on the device flow. No new entries since the previous review. Device behaviour was taken from the current documentation and the tenant observation (observations/device-flow.md). |
+| 2026-10-20 | 2026-10-20 (newest entry) | Claude (Plan 18 planning) | Covers 2026-10-16 to 2026-10-20 (the Plan 12–17 planning reviews were not logged here). No entry on jobs, import or export; the 2026-09-17 custom user ID entry excludes bulk import. New since the previous logged review: tenant ACL rule builder (2026-10-12), Actions token scope customization GA (2026-10-09), bot detection IPv6 update (2026-10-20); none affects implemented behavior. The 2026-01-21 `enabled_clients` deprecation is now enforced on the maintainer's tenant (observations/management-jobs.md). |
 
 ## Relevant entries
 
