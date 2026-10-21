@@ -54,12 +54,14 @@ func parsePBKDF2(v string) (*pbkdf2PHC, error) {
 	}
 	p := &pbkdf2PHC{digest: ctor, iter: 100000, keyLen: 64}
 	if parts[2] != "" {
+		seen := map[string]bool{}
 		for _, kv := range strings.Split(parts[2], ",") {
 			k, val, ok := strings.Cut(kv, "=")
 			n, err := strconv.Atoi(val)
-			if !ok || err != nil || n < 1 {
+			if !ok || err != nil || n < 1 || seen[k] {
 				return nil, fmt.Errorf("%w: pbkdf2 parameter %q", ErrUnusable, kv)
 			}
+			seen[k] = true
 			switch k {
 			case "i":
 				p.iter = n
@@ -70,13 +72,8 @@ func parsePBKDF2(v string) (*pbkdf2PHC, error) {
 			}
 		}
 	}
-	var err error
-	if p.salt, err = decodeBase64(parts[3]); err != nil {
-		return nil, err
-	}
-	if p.key, err = decodeBase64(parts[4]); err != nil {
-		return nil, err
-	}
+	p.salt = decodeBase64(parts[3])
+	p.key = decodeBase64(parts[4])
 	return p, nil
 }
 
@@ -85,12 +82,21 @@ func (s *Spec) verifyPBKDF2(pw []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if p.iter > maxPBKDF2Rounds || p.keyLen > maxKDFKeyLen {
+	if p.keyLen > maxKDFKeyLen || p.work() > maxPBKDF2Work {
 		return false, fmt.Errorf("%w: pbkdf2 cost", ErrUnusable)
+	}
+	if len(p.key) != p.keyLen {
+		return false, nil // a key of another length can never match: skip the work
 	}
 	got, err := pbkdf2.Key(p.digest, string(pw), p.salt, p.iter, p.keyLen)
 	if err != nil {
 		return false, fmt.Errorf("%w: pbkdf2: %v", ErrUnusable, err)
 	}
 	return subtle.ConstantTimeCompare(got, p.key) == 1, nil
+}
+
+// work is the number of HMAC block computations: rounds × ceil(l / digest size).
+func (p *pbkdf2PHC) work() uint64 {
+	size := p.digest().Size()
+	return uint64(p.iter) * uint64((p.keyLen+size-1)/size)
 }

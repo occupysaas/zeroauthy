@@ -63,7 +63,8 @@ func (e FieldError) Error() string { return e.Code + " " + e.Path + ": " + e.Mes
 var (
 	// ErrUnusable marks an imported value that was accepted at import but
 	// cannot be verified: an argon2 or pbkdf2 value that is not a valid PHC
-	// string, or a value that does not decode in its declared encoding. The
+	// string, or a hex value that does not decode (base64 never fails: it
+	// follows Node and skips what it cannot read). The
 	// user must reset the password (D-0044).
 	ErrUnusable = errors.New("passhash: imported hash is unusable")
 )

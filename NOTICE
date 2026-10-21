@@ -28,5 +28,7 @@ Version 1.1; the license text is console/src/assets/fonts/OFL.txt.
 internal/third_party/argon2/ is a copy of golang.org/x/crypto/argon2 at
 v0.58.0 (https://cs.opensource.google/go/x/crypto), licensed under the
 BSD 3-Clause License, Copyright 2009 The Go Authors; its LICENSE file is
-beside the code. The only change is the added DKey function, which exports
-Argon2d (the package keeps it unexported); the tests were not copied.
+beside the code. Modified: adds argon2d export (DKey) and Argon2 version
+0x10 support (KeyVersion, Version10; version 1.0 overwrites blocks on every
+pass instead of XOR-ing); the tests were not copied. Each change is marked in
+a comment in argon2.go.

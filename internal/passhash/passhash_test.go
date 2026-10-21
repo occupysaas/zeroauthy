@@ -1,8 +1,13 @@
 package passhash
 
 import (
+	"crypto/hmac"
+	"crypto/md5"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -342,10 +347,18 @@ func TestVectorsCoverEveryAlgorithm(t *testing.T) {
 			pbkdf2Names[strings.Split(s.Hash.Value, "$")[1]] = true
 		}
 		if s.Algorithm == "argon2" {
-			seen[strings.Split(s.Hash.Value, "$")[1]] = true
+			parts := strings.Split(s.Hash.Value, "$")
+			seen[parts[1]] = true
+			if strings.HasPrefix(parts[2], "v=") {
+				seen[parts[1]+"/"+parts[2]] = true
+			} else {
+				seen[parts[1]+"/no-v"] = true
+			}
 		}
 	}
-	for _, a := range append(algorithms, "hmac/whirlpool", "argon2i", "argon2d", "argon2id") {
+	for _, a := range append(algorithms, "hmac/whirlpool", "argon2i", "argon2d", "argon2id",
+		"argon2i/v=16", "argon2d/v=16", "argon2id/v=16", "argon2i/no-v", "argon2d/no-v", "argon2id/no-v",
+		"argon2i/v=19", "argon2d/v=19", "argon2id/v=19") {
 		if !seen[a] {
 			t.Errorf("no vector for %s", a)
 		}
@@ -383,23 +396,41 @@ func TestKDFCostLimits(t *testing.T) {
 		}
 	}
 	const hx = `"hash":{"value":"00","encoding":"hex"}`
-	// N*r*128 = 256 MiB exactly is allowed, one doubling more is not
-	accepted("scrypt at cap", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"cost":2097152,"blockSize":1}`)
-	maximum("scrypt over cap", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"cost":4194304,"blockSize":1}`)
+	// N*r*128 = 1 GiB exactly is allowed (libsodium SENSITIVE: N=2^20, r=8),
+	// one doubling more is not
+	accepted("scrypt at cap", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"cost":8388608,"blockSize":1}`)
+	accepted("scrypt sensitive", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"cost":1048576,"blockSize":8}`)
+	maximum("scrypt over cap", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"cost":16777216,"blockSize":1}`)
 	maximum("scrypt r", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"cost":16384,"blockSize":1000}`)
-	maximum("scrypt p", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"parallelization":2000000}`)
+	maximum("scrypt p memory", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"parallelization":2000000000}`)
+	maximum("scrypt p work", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"parallelization":2000000}`)
 	maximum("scrypt int32 product", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"cost":1073741824,"blockSize":2147483647}`)
+	accepted("scrypt work at 2^30", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"cost":1024,"blockSize":1024,"parallelization":1024}`)
+	maximum("scrypt work over 2^30", `{"algorithm":"scrypt",`+hx+`,"keylen":32,"cost":2048,"blockSize":1024,"parallelization":1025}`)
 	accepted("scrypt default", `{"algorithm":"scrypt",`+hx+`,"keylen":32}`)
 
-	argon := func(m string) string {
-		return `{"algorithm":"argon2","hash":{"value":"$argon2id$v=19$m=` + m + `,t=1,p=1$c2FsdHNhbHQ$aGFzaGhhc2g","encoding":"utf8"}}`
+	argon := func(m string, t ...string) string {
+		pass := "1"
+		if len(t) > 0 {
+			pass = t[0]
+		}
+		return `{"algorithm":"argon2","hash":{"value":"$argon2id$v=19$m=` + m + `,t=` + pass + `,p=1$c2FsdHNhbHQ$aGFzaGhhc2g","encoding":"utf8"}}`
 	}
-	accepted("argon2 at cap", argon("262144"))
-	maximum("argon2 over cap", argon("262145"))
+	accepted("argon2 at cap", argon("1048576"))
+	maximum("argon2 over cap", argon("1048577"))
 	maximum("argon2 huge", argon("4294967295"))
+	accepted("argon2 sensitive", argon("1048576", "4")) // libsodium SENSITIVE: t*m = 2^22
+	accepted("argon2 work at 2^32", argon("1048576", "4096"))
+	maximum("argon2 work over 2^32", argon("1048576", "4097"))
+	maximum("argon2 t huge", argon("64", "4294967295"))
+	const pbkdf2Val = `{"algorithm":"pbkdf2","hash":{"value":"$pbkdf2-sha256$i=%s,l=%s$c2FsdA$aGFzaA","encoding":"utf8"}}`
+	accepted("pbkdf2 work at 5e7", fmt.Sprintf(pbkdf2Val, "25000000", "64"))
+	maximum("pbkdf2 work over 5e7", fmt.Sprintf(pbkdf2Val, "25000001", "64"))
+	maximum("pbkdf2 long key", fmt.Sprintf(pbkdf2Val, "1000000", "1048576"))
+	accepted("pbkdf2 realistic", fmt.Sprintf(pbkdf2Val, "1300000", "32"))
 	// an argon2 value that does not parse is accepted at import (R3)
 	accepted("argon2 junk", `{"algorithm":"argon2","hash":{"value":"$argon2id$junk","encoding":"utf8"}}`)
-	accepted("argon2 v16 huge", `{"algorithm":"argon2","hash":{"value":"$argon2id$v=16$m=999999999,t=1,p=1$c2FsdA$aGFzaA","encoding":"utf8"}}`)
+	maximum("argon2 v16 huge", `{"algorithm":"argon2","hash":{"value":"$argon2id$v=16$m=999999999,t=1,p=1$c2FsdA$aGFzaA","encoding":"utf8"}}`)
 }
 
 func TestKDFUnusable(t *testing.T) {
@@ -408,7 +439,8 @@ func TestKDFUnusable(t *testing.T) {
 		"pbkdf2 unknown hash": `{"algorithm":"pbkdf2","hash":{"value":"$pbkdf2-crc32$i=1,l=4$c2FsdA$aGFzaA","encoding":"utf8"}}`,
 		"pbkdf2 bad param":    `{"algorithm":"pbkdf2","hash":{"value":"$pbkdf2-sha256$i=x,l=4$c2FsdA$aGFzaA","encoding":"utf8"}}`,
 		"argon2 junk":         `{"algorithm":"argon2","hash":{"value":"$argon2id$junk","encoding":"utf8"}}`,
-		"argon2 v16":          `{"algorithm":"argon2","hash":{"value":"$argon2id$v=16$m=64,t=2,p=1$b2xkdmVyc2lvbnNhbHQ$N1Pvdo7NjhE3QfTtxix6CTCx14ZWgFumbFq9SNAPCpU","encoding":"utf8"}}`,
+		"argon2 v20":          `{"algorithm":"argon2","hash":{"value":"$argon2id$v=20$m=64,t=2,p=1$c2FsdHNhbHQ$aGFzaGhhc2g","encoding":"utf8"}}`,
+		"pbkdf2 duplicate i":  `{"algorithm":"pbkdf2","hash":{"value":"$pbkdf2-sha256$i=1,i=2,l=4$c2FsdA$aGFzaA","encoding":"utf8"}}`,
 		"argon2 no p":         `{"algorithm":"argon2","hash":{"value":"$argon2id$v=19$m=64,t=2$c2FsdHNhbHQ$aGFzaGhhc2g","encoding":"utf8"}}`,
 		"scrypt bad hex":      `{"algorithm":"scrypt","hash":{"value":"zz","encoding":"hex"},"keylen":4,"cost":16}`,
 	} {
@@ -424,35 +456,46 @@ func TestKDFUnusable(t *testing.T) {
 	}
 }
 
-// A spec read back from storage may carry any case; Verify must neither panic
-// nor mis-dispatch on an unknown algorithm.
+// A spec read back from storage may carry any case; Unmarshal normalises it,
+// and Verify never panics on a spec that was not normalised.
 func TestUnmarshalNormalisesAndVerifyNeverPanics(t *testing.T) {
-	s, err := Unmarshal(`{"algorithm":"MD5","hash":{"value":"00000000000000000000000000000000","encoding":"hex"}}`)
+	// md5("Pa55w0rd!") and HMAC-SHA256("k", "Pa55w0rd!") are checked here with
+	// upper-case names.
+	md5sum := md5.Sum([]byte("Pa55w0rd!"))
+	mac := hmac.New(sha256.New, []byte("k"))
+	mac.Write([]byte("Pa55w0rd!"))
+	s, err := Unmarshal(`{"algorithm":"MD5","hash":{"value":"` + hex.EncodeToString(md5sum[:]) + `","encoding":"hex"}}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ok, err := s.Verify("x"); err != nil || ok {
-		t.Fatalf("Verify = %v, %v", ok, err)
+	if s.Algorithm != "md5" {
+		t.Fatalf("algorithm = %q", s.Algorithm)
 	}
-	h, err := Unmarshal(`{"algorithm":"HMAC","hash":{"value":"00","encoding":"hex","digest":"SHA256","key":{"value":"k"}}}`)
+	h, err := Unmarshal(`{"algorithm":"HMAC","hash":{"value":"` + hex.EncodeToString(mac.Sum(nil)) +
+		`","encoding":"hex","digest":"SHA256","key":{"value":"k"}}}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ok, err := h.Verify("x"); err != nil || ok {
-		t.Fatalf("hmac Verify = %v, %v", ok, err)
+	if h.Hash.Digest != "sha256" {
+		t.Fatalf("digest = %q", h.Hash.Digest)
 	}
-	for _, spec := range []*Spec{
-		{Algorithm: "nope"},
-		{Algorithm: "md5", Hash: HashPart{Value: "00", Encoding: "hex"}},
-		{Algorithm: "hmac", Hash: HashPart{Value: "00", Encoding: "hex", Digest: "crc32", Key: &KeyPart{Value: "k"}}},
-	} {
-		spec.Algorithm = strings.ToUpper(spec.Algorithm) // unnormalised on purpose
-		if _, err := spec.Verify("x"); spec.Algorithm == "NOPE" && !errors.Is(err, ErrUnusable) {
-			t.Fatalf("unknown algorithm: %v", err)
+	for name, spec := range map[string]*Spec{"md5": s, "hmac": h} {
+		if ok, err := spec.Verify("Pa55w0rd!"); err != nil || !ok {
+			t.Errorf("%s: right password: %v, %v", name, ok, err)
+		}
+		if ok, err := spec.Verify("wrong"); err != nil || ok {
+			t.Errorf("%s: wrong password: %v, %v", name, ok, err)
 		}
 	}
-	if _, err := (&Spec{Algorithm: "md5", Hash: HashPart{Value: "00", Encoding: "hex"}}).Verify("x"); err != nil {
-		t.Fatal(err)
+	// Specs that bypass Unmarshal: unknown names give ErrUnusable, never a panic.
+	for name, spec := range map[string]*Spec{
+		"unknown algorithm": {Algorithm: "NOPE"},
+		"upper-case md5":    {Algorithm: "MD5", Hash: HashPart{Value: "00", Encoding: "hex"}},
+		"unknown digest":    {Algorithm: "hmac", Hash: HashPart{Value: "00", Encoding: "hex", Digest: "SHA256", Key: &KeyPart{Value: "k"}}},
+	} {
+		if _, err := spec.Verify("x"); !errors.Is(err, ErrUnusable) {
+			t.Errorf("%s: err = %v, want ErrUnusable", name, err)
+		}
 	}
 }
 
@@ -469,21 +512,49 @@ func TestBase64LikeNode(t *testing.T) {
 		"mixed alphabets":   "+__-+gE",
 		"skips other chars": "+//+*+gE",
 	} {
-		got, err := decodeBase64(in)
-		if err != nil || string(got) != string(want) {
-			t.Errorf("%s: %q -> % x, %v", name, in, got, err)
+		if got := decodeBase64(in); string(got) != string(want) {
+			t.Errorf("%s: %q -> % x", name, in, got)
 		}
 	}
 	// "YQ" and "YQ==" are "a"; a single dangling character adds nothing
 	for _, in := range []string{"YQ", "YQ==", "YQ=", "YQ\n=="} {
-		if got, err := decodeBase64(in); err != nil || string(got) != "a" {
-			t.Errorf("%q -> %q, %v", in, got, err)
+		if got := decodeBase64(in); string(got) != "a" {
+			t.Errorf("%q -> %q", in, got)
 		}
 	}
-	if got, _ := decodeBase64("YWJjZ"); string(got) != "abc" {
+	if got := decodeBase64("YWJjZ"); string(got) != "abc" {
 		t.Errorf("dangling char: %q", got)
 	}
-	if got, err := decodeBase64(""); err != nil || len(got) != 0 {
-		t.Errorf("empty: %q %v", got, err)
+	if got := decodeBase64(""); len(got) != 0 {
+		t.Errorf("empty: %q", got)
+	}
+}
+
+// A stored key whose length differs from l can never match: no derivation is
+// done (i here would take minutes).
+func TestPBKDF2LengthMismatchSkipsWork(t *testing.T) {
+	s, errs := parse(t, `{"algorithm":"pbkdf2","hash":{"value":"$pbkdf2-sha256$i=40000000,l=32$c2FsdA$aGFzaA","encoding":"utf8"}}`)
+	if len(errs) > 0 {
+		t.Fatal(errs)
+	}
+	if ok, err := s.Verify("x"); ok || err != nil {
+		t.Fatalf("Verify = %v, %v", ok, err)
+	}
+}
+
+// Verify re-checks the budgets for a spec that did not come through ParseCustom.
+func TestVerifyBudgetsBackstop(t *testing.T) {
+	for name, v := range map[string]string{
+		"pbkdf2": "$pbkdf2-sha256$i=99999999,l=32$c2FsdA$" + strings.Repeat("A", 43),
+		"argon2": "$argon2id$v=19$m=1048576,t=4097,p=1$c2FsdHNhbHQ$aGFzaGhhc2g",
+	} {
+		s := &Spec{Algorithm: strings.SplitN(name, "-", 2)[0], Hash: HashPart{Value: v, Encoding: "utf8"}}
+		if _, err := s.Verify("x"); !errors.Is(err, ErrUnusable) {
+			t.Errorf("%s: err = %v", name, err)
+		}
+	}
+	s := &Spec{Algorithm: "scrypt", Hash: HashPart{Value: "00", Encoding: "hex"}, KeyLen: 32, Cost: 2048, BlockSize: 1024, Parallelization: 1025}
+	if _, err := s.Verify("x"); !errors.Is(err, ErrUnusable) {
+		t.Errorf("scrypt: err = %v", err)
 	}
 }

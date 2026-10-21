@@ -23,3 +23,20 @@ func TestDKeyMatchesReferenceCLI(t *testing.T) {
 		t.Fatal("DKey and IDKey agree")
 	}
 }
+
+// Argon2 1.0 against the argon2 CLI (`-v 10`) is checked by the passhash vectors
+// (argon2/*/v16/*); this tests the entry point.
+func TestKeyVersion10(t *testing.T) {
+	pw, salt := []byte("Pa55w0rd!"), []byte("oldversionsalt")
+	v10 := KeyVersion("argon2id", Version10, pw, salt, 3, 256, 2, 32)
+	v13 := KeyVersion("argon2id", Version, pw, salt, 3, 256, 2, 32)
+	if string(v13) != string(IDKey(pw, salt, 3, 256, 2, 32)) {
+		t.Fatal("KeyVersion(1.3) differs from IDKey")
+	}
+	if string(v10) == string(v13) {
+		t.Fatal("1.0 and 1.3 agree")
+	}
+	if KeyVersion("argon2x", Version, pw, salt, 1, 8, 1, 4) != nil || KeyVersion("argon2i", 0x11, pw, salt, 1, 8, 1, 4) != nil {
+		t.Fatal("unknown variant or version accepted")
+	}
+}

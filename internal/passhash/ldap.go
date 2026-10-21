@@ -45,10 +45,7 @@ func (s *Spec) verifyLDAP(pw []byte) (bool, error) {
 	if !ok {
 		return false, ErrUnusable
 	}
-	raw, err := decodeBase64(body)
-	if err != nil {
-		return false, err
-	}
+	raw := decodeBase64(body)
 	h := kind.ctor()
 	sum, salt := raw, []byte(nil)
 	if kind.salted {

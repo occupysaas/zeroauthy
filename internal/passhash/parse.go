@@ -155,12 +155,15 @@ func ParseCustom(raw json.RawMessage) (*Spec, []FieldError) {
 		}
 		// A value that does not parse is accepted and unusable (R3); one
 		// that does is held to the memory cap.
-		if p, err := parseArgon2(v); err == nil && p.memory() > maxKDFMemory {
-			return nil, []FieldError{memoryTooBig("MAXIMUM")}
+		if p, err := parseArgon2(v); err == nil && (p.memory() > maxKDFMemory || p.work() > maxArgon2Work) {
+			return nil, []FieldError{costTooBig("argon2")}
 		}
 	case "pbkdf2":
 		if !strings.HasPrefix(v, "$pbkdf2-") {
 			return oneOf()
+		}
+		if p, err := parsePBKDF2(v); err == nil && p.work() > maxPBKDF2Work {
+			return nil, []FieldError{costTooBig("pbkdf2")}
 		}
 	case "ldap":
 		// {CRYPT} and {CLEARTEXT} (accepted by Auth0 but unusable, D-0044
@@ -286,8 +289,9 @@ func parseScrypt(s *Spec, m map[string]any) (*Spec, []FieldError) {
 			return nil, []FieldError{{Code: "MINIMUM", Message: fmt.Sprintf("Value %d is less than minimum 1", p.v), Path: pathCPH + "." + p.name}}
 		}
 	}
-	if scryptMemory(uint64(s.Cost), uint64(s.BlockSize), uint64(s.Parallelization)) > maxKDFMemory {
-		return nil, []FieldError{memoryTooBig("MAXIMUM")}
+	if scryptMemory(uint64(s.Cost), uint64(s.BlockSize), uint64(s.Parallelization)) > maxKDFMemory ||
+		scryptWork(uint64(s.Cost), uint64(s.BlockSize), uint64(s.Parallelization)) > maxScryptWork {
+		return nil, []FieldError{costTooBig("scrypt")}
 	}
 	if s.Cost < 2 || s.Cost&(s.Cost-1) != 0 {
 		return nil, []FieldError{{Code: "INVALID_FORMAT", Message: fmt.Sprintf("Error in custom_password_hash.cost property - cost must be a power of two greater than 1: %d", s.Cost), Path: pathCPH + ".cost"}}

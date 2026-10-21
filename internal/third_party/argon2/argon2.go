@@ -45,7 +45,11 @@ import (
 )
 
 // The Argon2 version implemented by this package.
-const Version = 0x13
+const Version uint32 = 0x13
+
+// Version10 is Argon2 1.0 (0x10), which zeroauthy supports for verifying old
+// imported hashes.
+const Version10 = 0x10
 
 const (
 	argon2d = iota
@@ -73,7 +77,7 @@ const (
 // increased as memory latency and CPU parallelism increases. Remember to get a
 // good random salt.
 func Key(password, salt []byte, time, memory uint32, threads uint8, keyLen uint32) []byte {
-	return deriveKey(argon2i, password, salt, nil, nil, time, memory, threads, keyLen)
+	return deriveKey(Version, argon2i, password, salt, nil, nil, time, memory, threads, keyLen)
 }
 
 // IDKey derives a key from the password, salt, and cost parameters using
@@ -99,33 +103,44 @@ func Key(password, salt []byte, time, memory uint32, threads uint8, keyLen uint3
 //
 // [RFC 9106 Section 4]: https://www.rfc-editor.org/rfc/rfc9106.html#section-4
 func IDKey(password, salt []byte, time, memory uint32, threads uint8, keyLen uint32) []byte {
-	return deriveKey(argon2id, password, salt, nil, nil, time, memory, threads, keyLen)
+	return deriveKey(Version, argon2id, password, salt, nil, nil, time, memory, threads, keyLen)
 }
 
-// DKey returns the Argon2d hash of the password, salt and parameters. It is the
-// one change zeroauthy makes to golang.org/x/crypto/argon2 v0.58.0, which keeps
+// DKey returns the Argon2d hash of the password, salt and parameters. It is a
+// zeroauthy change to golang.org/x/crypto/argon2 v0.58.0, which keeps
 // argon2d unexported: Auth0's bulk import accepts $argon2d$ hashes. The
 // signature matches IDKey. Argon2d is data-dependent and is used here only to
 // verify imported hashes.
 func DKey(password, salt []byte, time, memory uint32, threads uint8, keyLen uint32) []byte {
-	return deriveKey(argon2d, password, salt, nil, nil, time, memory, threads, keyLen)
+	return deriveKey(Version, argon2d, password, salt, nil, nil, time, memory, threads, keyLen)
 }
 
-func deriveKey(mode int, password, salt, secret, data []byte, time, memory uint32, threads uint8, keyLen uint32) []byte {
+// KeyVersion is zeroauthy's addition: the key for variant ("argon2i",
+// "argon2d" or "argon2id") at version Version10 or Version. It returns nil for
+// any other variant or version.
+func KeyVersion(variant string, version uint32, password, salt []byte, time, memory uint32, threads uint8, keyLen uint32) []byte {
+	mode, ok := map[string]int{"argon2i": argon2i, "argon2d": argon2d, "argon2id": argon2id}[variant]
+	if !ok || (version != Version && version != Version10) {
+		return nil
+	}
+	return deriveKey(version, mode, password, salt, nil, nil, time, memory, threads, keyLen)
+}
+
+func deriveKey(version uint32, mode int, password, salt, secret, data []byte, time, memory uint32, threads uint8, keyLen uint32) []byte {
 	if time < 1 {
 		panic("argon2: number of rounds too small")
 	}
 	if threads < 1 {
 		panic("argon2: parallelism degree too low")
 	}
-	h0 := initHash(password, salt, secret, data, time, memory, uint32(threads), keyLen, mode)
+	h0 := initHash(password, salt, secret, data, time, memory, uint32(threads), keyLen, mode, version)
 
 	memory = memory / (syncPoints * uint32(threads)) * (syncPoints * uint32(threads))
 	if memory < 2*syncPoints*uint32(threads) {
 		memory = 2 * syncPoints * uint32(threads)
 	}
 	B := initBlocks(&h0, memory, uint32(threads))
-	processBlocks(B, time, memory, uint32(threads), mode)
+	processBlocks(B, time, memory, uint32(threads), mode, version)
 	return extractKey(B, memory, uint32(threads), keyLen)
 }
 
@@ -136,7 +151,7 @@ const (
 
 type block [blockLength]uint64
 
-func initHash(password, salt, key, data []byte, time, memory, threads, keyLen uint32, mode int) [blake2b.Size + 8]byte {
+func initHash(password, salt, key, data []byte, time, memory, threads, keyLen uint32, mode int, version uint32) [blake2b.Size + 8]byte {
 	var (
 		h0     [blake2b.Size + 8]byte
 		params [24]byte
@@ -148,7 +163,7 @@ func initHash(password, salt, key, data []byte, time, memory, threads, keyLen ui
 	binary.LittleEndian.PutUint32(params[4:8], keyLen)
 	binary.LittleEndian.PutUint32(params[8:12], memory)
 	binary.LittleEndian.PutUint32(params[12:16], time)
-	binary.LittleEndian.PutUint32(params[16:20], uint32(Version))
+	binary.LittleEndian.PutUint32(params[16:20], version)
 	binary.LittleEndian.PutUint32(params[20:24], uint32(mode))
 	b2.Write(params[:])
 	binary.LittleEndian.PutUint32(tmp[:], uint32(len(password)))
@@ -189,7 +204,7 @@ func initBlocks(h0 *[blake2b.Size + 8]byte, memory, threads uint32) []block {
 	return B
 }
 
-func processBlocks(B []block, time, memory, threads uint32, mode int) {
+func processBlocks(B []block, time, memory, threads uint32, mode int, version uint32) {
 	lanes := memory / threads
 	segments := lanes / syncPoints
 
@@ -232,7 +247,13 @@ func processBlocks(B []block, time, memory, threads uint32, mode int) {
 				random = B[prev][0]
 			}
 			newOffset := indexAlpha(random, lanes, segments, threads, n, slice, lane, index)
-			processBlockXOR(&B[offset], &B[prev], &B[newOffset])
+			if version == Version10 {
+				// zeroauthy: Argon2 1.0 overwrites the block on every pass;
+				// 1.3 XORs into it from the second pass on.
+				processBlock(&B[offset], &B[prev], &B[newOffset])
+			} else {
+				processBlockXOR(&B[offset], &B[prev], &B[newOffset])
+			}
 			index, offset = index+1, offset+1
 		}
 		wg.Done()

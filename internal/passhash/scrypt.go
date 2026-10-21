@@ -12,7 +12,8 @@ import (
 // a plain KDF salt (its position has no meaning here).
 func (s *Spec) verifyScrypt(pw []byte) (bool, error) {
 	if s.KeyLen < 1 || s.KeyLen > maxKDFKeyLen || s.Cost < 2 || s.BlockSize < 1 || s.Parallelization < 1 ||
-		scryptMemory(uint64(s.Cost), uint64(s.BlockSize), uint64(s.Parallelization)) > maxKDFMemory {
+		scryptMemory(uint64(s.Cost), uint64(s.BlockSize), uint64(s.Parallelization)) > maxKDFMemory ||
+		scryptWork(uint64(s.Cost), uint64(s.BlockSize), uint64(s.Parallelization)) > maxScryptWork {
 		return false, fmt.Errorf("%w: scrypt parameters", ErrUnusable)
 	}
 	want, err := decodeValue(s.Hash.Value, s.Hash.Encoding)

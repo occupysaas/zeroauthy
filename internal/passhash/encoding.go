@@ -43,7 +43,7 @@ func decodeValue(v, enc string) ([]byte, error) {
 		}
 		return b, nil
 	case "base64":
-		return decodeBase64(v)
+		return decodeBase64(v), nil
 	case "utf8", "":
 		return []byte(v), nil
 	}
@@ -56,7 +56,7 @@ func decodeValue(v, enc string) ([]byte, error) {
 // included) is skipped. It never fails; a short or empty result simply fails
 // the comparison later. A dangling sixth bit left by a single trailing
 // character is dropped.
-func decodeBase64(v string) ([]byte, error) {
+func decodeBase64(v string) []byte {
 	clean := make([]byte, 0, len(v))
 scan:
 	for i := 0; i < len(v); i++ {
@@ -74,11 +74,10 @@ scan:
 	if len(clean)%4 == 1 {
 		clean = clean[:len(clean)-1]
 	}
-	b, err := base64.RawStdEncoding.DecodeString(string(clean))
-	if err != nil {
-		return nil, fmt.Errorf("%w: base64: %v", ErrUnusable, err)
-	}
-	return b, nil
+	// Only alphabet characters remain and the length is not 1 mod 4, so this
+	// cannot fail.
+	b, _ := base64.RawStdEncoding.DecodeString(string(clean))
+	return b
 }
 
 // saltedInput joins salt and password in the salt's position (prefix is the

@@ -134,11 +134,14 @@ for variant in ("argon2i", "argon2d", "argon2id"):
     argon2_vec("argon2/%s" % variant, variant, "somesaltsomesalt", 2, 64, 1, 32)
     argon2_vec("argon2/%s/p4-m256" % variant, variant, "pepperpepper", 3, 256, 4, 24)
 argon2_vec("argon2/argon2id/utf8-password", "argon2id", "unicodesalt1234", 2, 128, 2, 32, pw="pässwörd€")
-enc = argon2_vec("argon2/argon2id/v10-unsupported-form-is-separate", "argon2id", "oldversionsalt", 2, 64, 1, 32,
-                 version="10")
-VECTORS.pop()
-VECTORS.pop()  # v=16 hashes are not computable by the library: tested as unusable in Go
-print("argon2 v=16 form for the Go test:", enc)
+# Argon2 1.0 (`-v 10`): the CLI writes v=16; a string without v= is read as 1.0
+for variant in ("argon2i", "argon2d", "argon2id"):
+    for t, kib, p in ((2, 64, 1), (3, 256, 2)):  # t>1: the pass that differs from 1.3
+        enc = argon2_vec("argon2/%s/v16/t%d-p%d" % (variant, t, p), variant, "oldversionsalt", t, kib, p, 32,
+                         version="10")
+        assert "$v=16$" in enc, enc
+        add("argon2/%s/no-v/t%d-p%d" % (variant, t, p),
+            {"algorithm": "argon2", "hash": {"value": enc.replace("$v=16$", "$"), "encoding": "utf8"}}, PW)
 
 # ---- hmac with whirlpool -------------------------------------------------------
 KEYS = {"utf8": ({"value": "s3cret key", "encoding": "utf8"}, b"s3cret key"),
