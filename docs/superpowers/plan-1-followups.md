@@ -133,7 +133,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 ## Plan 8 follow-ups
 
-- **Closed in Plan 17** (`verify` runs when a verification ticket is opened, `delete` on a Management API delete, `change_email` on an email change). Callers for the stored `verify`, `delete` and `change_email` scripts: `verify` needs verification emails; `delete` and `change_email` are called by the Management API (sub-project 3). The runner (`Executor.Execute`) can already execute any of the seven scripts; `customdb.Client` exposes only `Login`, `GetUser`, `Create` and `ChangePassword`.
+- **Closed in Plan 17:** the callers for the stored `verify`, `delete` and `change_email` scripts exist. `verify` runs when a verification ticket is opened, `delete` on a Management API delete and `change_email` on an email change; `customdb.Client` now exposes them. (The runner `Executor.Execute` could already execute any of the seven scripts.)
 - `mfa_factors` in profiles (MFA, sub-project 2).
 - Custom signup prompt fields passed to `create` (changelog 2026-04-02, sub-project 2).
 - Custom user IDs at signup (changelog 2026-09-17, early access).
@@ -291,7 +291,6 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 ## Plan 17 follow-ups
 
 Closed from the users design section 7: verification emails, the store-level user version (closes the reset, block and import-login races), the set-if-empty hash write, callers for the `delete`, `change_email` and `verify` scripts, store-level client paging, the Plan 9 grant re-check (U9 confirmed), the O1 re-check, and the Plan 15 check that deleting a connection deletes its users (m17-mgmt-cli, through `/api/v2/users`). Still open: "bcrypt hash verification and upgrade for imported users" is Plan 18.
-
 
 - **Hosted login is not version-guarded:** `/u/login` creates the session without the grants' version check, so a login whose password check finished before a reset completed can still create a session after the reset revoked the others. The code grant that follows checks only that the user exists and is not blocked (D-0043).
 - **Jobs (Plan 18):** user import with Auth0's hash formats and first-sign-in upgrade, export, `jobs/verification-email`, and the console's email-sending action (the Users detail only creates the link today).

@@ -7,7 +7,8 @@ and its tests are the final word; the choices Auth0 does not document are in
 decision D-0043 of [compat/decisions.md](compat/decisions.md).
 
 `search_engine` may be left out, or be `v2` or `v3`; all mean v3. `v1` is
-refused with `400 operation_not_supported`.
+refused with `400 operation_not_supported`; any other value is
+`400 invalid_query_string`.
 
 ```bash
 curl -G "https://login.acme.example/api/v2/users" \
@@ -116,9 +117,14 @@ boolean, number or date field (`blocked`, `email_verified`, `logins_count`,
 
 ## NOT and users without the field
 
-`NOT family_name:Smith` leaves out users without a family name as well as the
-Smiths; on any other field, a user without the field simply does not match the
-term, so `NOT` includes them.
+`NOT` on a term, a wildcard or a group that all concern one root text field
+(`user_id`, `email`, `name`, `given_name`, `family_name`, `nickname`,
+`username`, `phone_number`, `last_ip`) also drops users that do not have the
+field: `NOT family_name:Smith` and `NOT email:*@example.com` leave out users
+without a family name or an email as well as the matches. Everywhere else
+`NOT` is a plain negation, so users without the field are included: booleans,
+numbers, dates, `identities.*`, metadata, groups that mix several fields, and
+bare words (which span several fields).
 
 ## Sorting and paging
 
