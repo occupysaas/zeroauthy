@@ -521,6 +521,11 @@ type Identity struct {
 	Provider     string // the connection strategy, e.g. "auth0"
 	UserID       string // ID within the provider (User.UserID without "provider|")
 	PasswordHash string // argon2id PHC string; database connections only
+	// ImportedHash is the canonical JSON of a passhash.Spec: a hash another
+	// system made, imported with the user and upgraded to PasswordHash at
+	// the first successful login. The store keeps it opaque. At most one of
+	// PasswordHash and ImportedHash is non-empty.
+	ImportedHash string `json:",omitempty"`
 	// ProfileData is set on a linked (secondary) identity only, and nil on
 	// the user's own: what the identity's user had when it was linked,
 	// "email" (string) and "email_verified" (bool), and "username" when it
@@ -947,4 +952,91 @@ type UserGrantFilter struct {
 type ClientFilter struct {
 	AppTypes     []string
 	IsFirstParty *bool
+}
+
+// JobType is the kind of a Management API job.
+type JobType string
+
+// The job types, as Auth0 names them.
+const (
+	JobUsersImport       JobType = "users_import"
+	JobUsersExport       JobType = "users_export"
+	JobVerificationEmail JobType = "verification_email"
+)
+
+// JobStatus is where a job is in its life.
+type JobStatus string
+
+// The job statuses, as Auth0 names them.
+const (
+	JobPending    JobStatus = "pending"
+	JobProcessing JobStatus = "processing"
+	JobCompleted  JobStatus = "completed"
+	JobFailed     JobStatus = "failed"
+)
+
+// JobMaxAttempts is how many times a job is claimed: a job whose worker
+// stopped (its lease ran out) is claimed again once, and failed when its
+// second worker stops too.
+const JobMaxAttempts = 2
+
+// JobMaxRuntime is how long a job may run, from its first claim, before the
+// sweeper fails it.
+const JobMaxRuntime = 2 * time.Hour
+
+// Status details the store gives the jobs it fails itself.
+const (
+	JobDetailTimedOut   = "Job timed out"
+	JobDetailWorkerLost = "Job failed after its worker stopped twice"
+)
+
+// JobSummary counts the records of an import.
+type JobSummary struct {
+	Failed, Updated, Inserted, Total int
+}
+
+// Job is a Management API job: a bulk user import or export, or a
+// verification email run. Workers claim jobs with a lease and renew it
+// while they work.
+type Job struct {
+	TenantID, ID string
+	Type         JobType
+	Status       JobStatus
+	// ConnectionID, Connection (the name) and ExternalID are as the
+	// request gave them or the handler resolved them.
+	ConnectionID, Connection, ExternalID string
+	// Params are the request's options, as the handler stored them (JSON
+	// values only).
+	Params map[string]any
+	// Input is the import file (at most 512000 bytes); nil for other types.
+	// Finish clears it.
+	Input []byte
+	// Progress is the number of records committed so far.
+	Progress      int
+	Summary       JobSummary
+	StatusDetails string
+	// Attempts counts the claims; LeaseOwner and LeaseUntil name the
+	// worker that holds the job and until when (empty and zero when none).
+	// FirstClaimedAt is the first claim's time (zero before it).
+	Attempts       int
+	LeaseOwner     string
+	LeaseUntil     time.Time
+	FirstClaimedAt time.Time
+	// UpdatedAt moves when the job is claimed and when it finishes.
+	CreatedAt, UpdatedAt, ExpiresAt time.Time
+	// FileSize is the number of bytes of the export file written so far.
+	FileSize int64
+}
+
+// JobErrorItem is one problem with one record, as Auth0's job error
+// details list them.
+type JobErrorItem struct{ Code, Message, Path string }
+
+// JobError is the failure of one record of an import. Index is the
+// record's position in the file, starting at 0. User is the record with its
+// secrets already masked.
+type JobError struct {
+	Index  int
+	User   map[string]any
+	Errors []JobErrorItem
 }

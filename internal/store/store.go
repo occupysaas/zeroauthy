@@ -49,6 +49,7 @@ type Store interface {
 	PasswordResetTickets() PasswordResetTickets
 	EmailVerificationTickets() EmailVerificationTickets
 	Operators() Operators
+	Jobs() Jobs
 	// WithTx runs fn against a transactional view of the store. If fn
 	// returns an error, none of its writes persist. Drivers serialize
 	// transactions; the memory driver also serializes them with writes made
@@ -279,6 +280,13 @@ type Users interface {
 	// to mint, and credential changes and revocations lock or write the
 	// user first, so the two serialize.
 	GetForUpdate(ctx context.Context, tenantID, userID string) (*User, error)
+	// UpgradeImportedHash atomically replaces the imported hash of the
+	// user's own (not linked) identity on connection: if its ImportedHash
+	// equals imported, PasswordHash becomes hash, ImportedHash is cleared,
+	// UpdatedAt = at and Version goes up by one. Any other ImportedHash
+	// (also when the identity has none) returns ErrConflict and changes
+	// nothing; ErrNotFound if the user or the identity is absent.
+	UpgradeImportedHash(ctx context.Context, tenantID, userID, connection, imported, hash string, at time.Time) error
 	// Delete removes the user and, in the same step, everything that
 	// names it: sessions, refresh tokens, user grants, password reset
 	// tickets, email verification tickets, password history, auth codes,
@@ -477,5 +485,60 @@ type EmailVerificationTickets interface {
 	DeleteByUser(ctx context.Context, tenantID, userID string) (int, error)
 	// DeleteExpired removes, in every tenant, the tickets whose ExpiresAt is
 	// not after before, used or not, and returns how many it removed.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
+}
+
+// Jobs stores Management API jobs, keyed by (TenantID, ID), their errors
+// and their export files. A worker claims a job with a lease; every write
+// the worker makes names its owner and is refused (ErrConflict) once
+// another worker holds the lease.
+type Jobs interface {
+	// Create returns ErrConflict if the ID exists in the tenant.
+	Create(ctx context.Context, j *Job) error
+	// Get returns ErrNotFound for an absent job and for one whose
+	// ExpiresAt has passed (by the store's clock), swept or not.
+	Get(ctx context.Context, tenantID, id string) (*Job, error)
+	// List returns one page of the tenant's unexpired jobs, newest first
+	// (CreatedAt, then ID, both descending), and the number of them before
+	// paging. Input is not loaded.
+	List(ctx context.Context, tenantID string, p Page) ([]*Job, int, error)
+	// CountActive counts the tenant's jobs of type t that are pending or
+	// processing.
+	CountActive(ctx context.Context, tenantID string, t JobType) (int, error)
+	// Claim atomically picks, in any tenant, the oldest job (CreatedAt,
+	// then ID) that is pending, or processing with LeaseUntil before now
+	// and fewer than JobMaxAttempts attempts, and makes it processing:
+	// LeaseOwner = owner, LeaseUntil = now + lease, Attempts + 1,
+	// FirstClaimedAt = now if it was zero, UpdatedAt = now. Two concurrent
+	// claims never return the same job. ErrNotFound when there is none.
+	Claim(ctx context.Context, owner string, now time.Time, lease time.Duration) (*Job, error)
+	// Renew moves LeaseUntil to until. ErrConflict when owner does not hold
+	// the job's lease (also for a job that is absent or no longer
+	// processing).
+	Renew(ctx context.Context, tenantID, id, owner string, until time.Time) error
+	// Checkpoint sets Progress and Summary and stores errs (Index is
+	// unique within a job; a repeated Index is ErrConflict). It is
+	// lease-checked like Renew. Callers run it in the same WithTx as the
+	// batch's user writes, so both persist or neither.
+	Checkpoint(ctx context.Context, tenantID, id, owner string, progress int, s JobSummary, errs []JobError) error
+	// Finish sets the final status (completed or failed) and StatusDetails,
+	// UpdatedAt = at, clears the lease and Input. Lease-checked like Renew.
+	Finish(ctx context.Context, tenantID, id, owner string, st JobStatus, details string, at time.Time) error
+	// Errors returns the job's errors in Index order.
+	Errors(ctx context.Context, tenantID, id string) ([]JobError, error)
+	// AppendFile stores chunk (at most 1 MiB) as chunk number seq of the
+	// export file and adds its length to FileSize. Lease-checked like
+	// Renew; a repeated seq is ErrConflict.
+	AppendFile(ctx context.Context, tenantID, id, owner string, seq int, chunk []byte) error
+	// ReadFile calls fn with the export file's chunks in seq order. It
+	// returns ErrNotFound for an absent job; fn's error stops the read and
+	// is returned.
+	ReadFile(ctx context.Context, tenantID, id string, fn func(chunk []byte) error) error
+	// DeleteExpired removes, in every tenant, the jobs whose ExpiresAt is
+	// before before, with their errors and chunks, and returns how many it
+	// removed. It first fails (status failed, Input and lease cleared) the
+	// processing jobs that started more than JobMaxRuntime before before
+	// (JobDetailTimedOut) and those whose lease ended before before after
+	// JobMaxAttempts attempts (JobDetailWorkerLost); those are not counted.
 	DeleteExpired(ctx context.Context, before time.Time) (int, error)
 }

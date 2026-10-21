@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 	"time"
@@ -493,6 +494,12 @@ func (a clientUsers) SetPasswordHashIfEmpty(ctx context.Context, tenantID, userI
 	return do("UsersSetPasswordHashIfEmpty", r, tooOld(err))
 }
 
+func (a clientUsers) UpgradeImportedHash(ctx context.Context, tenantID, userID, connection, imported, hash string, at time.Time) error {
+	r, err := a.c.rpc.UsersUpgradeImportedHash(ctx, &storev1.UsersUpgradeImportedHashRequest{
+		TxId: a.c.txID, TenantId: tenantID, UserId: userID, Connection: connection, Imported: imported, Hash: hash, At: tsToPB(at)})
+	return do("UsersUpgradeImportedHash", r, tooOld(err))
+}
+
 func (a clientUsers) BumpVersion(ctx context.Context, tenantID, userID string) (int64, error) {
 	r, err := a.c.rpc.UsersBumpVersion(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: userID})
 	if err = tooOld(err); err != nil {
@@ -887,4 +894,118 @@ func (a clientUsers) List(ctx context.Context, tenantID string, q *store.UserQue
 		return nil, 0, err
 	}
 	return out, int(r.GetTotal()), nil
+}
+
+// ---- jobs ----
+
+type clientJobs struct{ c *Client }
+
+func (a clientJobs) Create(ctx context.Context, j *store.Job) error {
+	return put("JobsCreate", j, jobToPB, func(pb *storev1.Job) (result, error) {
+		r, err := a.c.rpc.JobsCreate(ctx, &storev1.JobWrite{TxId: a.c.txID, Value: pb})
+		return r, tooOld(err)
+	})
+}
+
+func (a clientJobs) Get(ctx context.Context, tenantID, id string) (*store.Job, error) {
+	r, err := a.c.rpc.JobsGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	return decOne("JobsGet", tooOld(err), r.GetError(), r.GetValue(), jobFromPB)
+}
+
+func (a clientJobs) List(ctx context.Context, tenantID string, p store.Page) ([]*store.Job, int, error) {
+	r, err := a.c.rpc.JobsList(ctx, &storev1.JobsListRequest{TxId: a.c.txID, TenantId: tenantID, Offset: int64(p.Offset), Limit: int64(p.Limit)})
+	out, err := decList("JobsList", tooOld(err), r.GetError(), r.GetValues(), jobFromPB)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, int(r.GetTotal()), nil
+}
+
+func (a clientJobs) CountActive(ctx context.Context, tenantID string, t store.JobType) (int, error) {
+	r, err := a.c.rpc.JobsCountActive(ctx, &storev1.JobsCountActiveRequest{TxId: a.c.txID, TenantId: tenantID, Type: string(t)})
+	return counted("JobsCountActive", r, tooOld(err))
+}
+
+func (a clientJobs) Claim(ctx context.Context, owner string, now time.Time, lease time.Duration) (*store.Job, error) {
+	r, err := a.c.rpc.JobsClaim(ctx, &storev1.JobsClaimRequest{TxId: a.c.txID, Owner: owner, Now: tsToPB(now), Lease: durationpb.New(lease)})
+	return decOne("JobsClaim", tooOld(err), r.GetError(), r.GetValue(), jobFromPB)
+}
+
+func (a clientJobs) Renew(ctx context.Context, tenantID, id, owner string, until time.Time) error {
+	r, err := a.c.rpc.JobsRenew(ctx, &storev1.JobsRenewRequest{TxId: a.c.txID, TenantId: tenantID, Id: id, Owner: owner, Until: tsToPB(until)})
+	return do("JobsRenew", r, tooOld(err))
+}
+
+func (a clientJobs) Checkpoint(ctx context.Context, tenantID, id, owner string, progress int, s store.JobSummary, errs []store.JobError) error {
+	req := &storev1.JobsCheckpointRequest{TxId: a.c.txID, TenantId: tenantID, Id: id, Owner: owner,
+		Progress: int64(progress), Summary: jobSummaryToPB(s), Errors: make([]*storev1.JobError, 0, len(errs))}
+	for i := range errs {
+		pb, err := jobErrorToPB(&errs[i])
+		if err != nil {
+			return err
+		}
+		req.Errors = append(req.Errors, pb)
+	}
+	r, err := a.c.rpc.JobsCheckpoint(ctx, req)
+	return do("JobsCheckpoint", r, tooOld(err))
+}
+
+func (a clientJobs) Finish(ctx context.Context, tenantID, id, owner string, st store.JobStatus, details string, at time.Time) error {
+	r, err := a.c.rpc.JobsFinish(ctx, &storev1.JobsFinishRequest{TxId: a.c.txID, TenantId: tenantID, Id: id, Owner: owner,
+		Status: string(st), Details: details, At: tsToPB(at)})
+	return do("JobsFinish", r, tooOld(err))
+}
+
+func (a clientJobs) Errors(ctx context.Context, tenantID, id string) ([]store.JobError, error) {
+	r, err := a.c.rpc.JobsErrors(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	ptrs, err := decList("JobsErrors", tooOld(err), r.GetError(), r.GetValues(), jobErrorFromPB)
+	if err != nil {
+		return nil, err
+	}
+	var out []store.JobError
+	for _, p := range ptrs {
+		out = append(out, *p)
+	}
+	return out, nil
+}
+
+func (a clientJobs) AppendFile(ctx context.Context, tenantID, id, owner string, seq int, chunk []byte) error {
+	r, err := a.c.rpc.JobsAppendFile(ctx, &storev1.JobsAppendFileRequest{TxId: a.c.txID, TenantId: tenantID, Id: id, Owner: owner,
+		Seq: int64(seq), Chunk: chunk})
+	return do("JobsAppendFile", r, tooOld(err))
+}
+
+func (a clientJobs) ReadFile(ctx context.Context, tenantID, id string, fn func(chunk []byte) error) error {
+	// The stream is cancelled when fn stops early.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stream, err := a.c.rpc.JobsReadFile(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: id})
+	if err != nil {
+		return rpcErr("JobsReadFile", tooOld(err))
+	}
+	for {
+		m, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if err != nil {
+			return rpcErr("JobsReadFile", tooOld(err))
+		}
+		if e := errFromPB(m.GetError()); e != nil {
+			return e
+		}
+		if err := fn(m.GetData()); err != nil {
+			return err
+		}
+	}
+}
+
+// DeleteExpired treats a plugin that predates the RPC as holding no jobs:
+// the sweeper calls it on every deployment.
+func (a clientJobs) DeleteExpired(ctx context.Context, before time.Time) (int, error) {
+	r, err := a.c.rpc.JobsDeleteExpired(ctx, &storev1.DeleteExpiredRequest{TxId: a.c.txID, Before: tsToPB(before)})
+	if status.Code(err) == codes.Unimplemented {
+		return 0, nil
+	}
+	return counted("JobsDeleteExpired", r, err)
 }

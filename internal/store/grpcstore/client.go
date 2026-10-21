@@ -124,6 +124,7 @@ func (c *Client) PushedAuthRequests() store.PushedAuthRequests { return clientPu
 func (c *Client) DeviceCodes() store.DeviceCodes               { return clientDeviceCodes{c} }
 func (c *Client) RefreshTokens() store.RefreshTokens           { return clientRefreshTokens{c} }
 func (c *Client) Operators() store.Operators                   { return clientOperators{c} }
+func (c *Client) Jobs() store.Jobs                             { return clientJobs{c} }
 func (c *Client) EmailVerificationTickets() store.EmailVerificationTickets {
 	return clientEmailVerificationTickets{c}
 }

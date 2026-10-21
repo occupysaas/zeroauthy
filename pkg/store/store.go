@@ -26,6 +26,7 @@ type (
 	PasswordResetTickets     = store.PasswordResetTickets
 	EmailVerificationTickets = store.EmailVerificationTickets
 	Operators                = store.Operators
+	Jobs                     = store.Jobs
 
 	Tenant                   = store.Tenant
 	Branding                 = store.Branding
@@ -67,6 +68,12 @@ type (
 	UserGrantFilter          = store.UserGrantFilter
 	ClientFilter             = store.ClientFilter
 	Operator                 = store.Operator
+	JobType                  = store.JobType
+	JobStatus                = store.JobStatus
+	JobSummary               = store.JobSummary
+	Job                      = store.Job
+	JobErrorItem             = store.JobErrorItem
+	JobError                 = store.JobError
 )
 
 var (
@@ -124,6 +131,18 @@ const (
 	StrategyDatabase = store.StrategyDatabase
 
 	OperatorAllTenants = store.OperatorAllTenants
+
+	JobUsersImport       = store.JobUsersImport
+	JobUsersExport       = store.JobUsersExport
+	JobVerificationEmail = store.JobVerificationEmail
+	JobPending           = store.JobPending
+	JobProcessing        = store.JobProcessing
+	JobCompleted         = store.JobCompleted
+	JobFailed            = store.JobFailed
+	JobMaxAttempts       = store.JobMaxAttempts
+	JobMaxRuntime        = store.JobMaxRuntime
+	JobDetailTimedOut    = store.JobDetailTimedOut
+	JobDetailWorkerLost  = store.JobDetailWorkerLost
 
 	OriginAPI = store.OriginAPI
 

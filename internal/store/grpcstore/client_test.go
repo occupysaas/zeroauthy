@@ -403,3 +403,38 @@ func TestOldPluginUserListTooOld(t *testing.T) {
 		t.Errorf("err = %v, want errPluginTooOld", err)
 	}
 }
+
+// Jobs and imported hashes need a Plan 18 plugin; an older one gets a clear
+// error, except for the sweep, which finds no jobs.
+func TestOldPluginJobsTooOld(t *testing.T) {
+	c := serveOldPlugin(t)
+	ctx := context.Background()
+	now := time.Now()
+	_, errGet := c.Jobs().Get(ctx, "t", "j")
+	_, _, errList := c.Jobs().List(ctx, "t", store.Page{})
+	_, errCount := c.Jobs().CountActive(ctx, "t", store.JobUsersImport)
+	_, errClaim := c.Jobs().Claim(ctx, "w", now, time.Minute)
+	_, errErrors := c.Jobs().Errors(ctx, "t", "j")
+	for name, err := range map[string]error{
+		"Create":              c.Jobs().Create(ctx, &store.Job{TenantID: "t", ID: "j"}),
+		"Get":                 errGet,
+		"List":                errList,
+		"CountActive":         errCount,
+		"Claim":               errClaim,
+		"Renew":               c.Jobs().Renew(ctx, "t", "j", "w", now),
+		"Checkpoint":          c.Jobs().Checkpoint(ctx, "t", "j", "w", 1, store.JobSummary{}, nil),
+		"Finish":              c.Jobs().Finish(ctx, "t", "j", "w", store.JobCompleted, "", now),
+		"Errors":              errErrors,
+		"AppendFile":          c.Jobs().AppendFile(ctx, "t", "j", "w", 0, []byte("x")),
+		"ReadFile":            c.Jobs().ReadFile(ctx, "t", "j", func([]byte) error { return nil }),
+		"UpgradeImportedHash": c.Users().UpgradeImportedHash(ctx, "t", "u", "Database", "i", "h", now),
+	} {
+		if !errors.Is(err, errPluginTooOld) || !strings.Contains(err.Error(), "too old") {
+			t.Errorf("%s: err = %v, want errPluginTooOld", name, err)
+		}
+	}
+	// The sweeper calls this on every deployment.
+	if n, err := c.Jobs().DeleteExpired(ctx, now); n != 0 || err != nil {
+		t.Errorf("DeleteExpired = %d, %v; want 0, nil", n, err)
+	}
+}

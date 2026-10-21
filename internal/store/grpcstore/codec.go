@@ -575,7 +575,7 @@ func userToPB(u *store.User) (*storev1.User, error) {
 	if u.Identities != nil {
 		pb.Identities = &storev1.IdentityList{Values: make([]*storev1.Identity, 0, len(u.Identities))}
 		for _, id := range u.Identities {
-			pid := &storev1.Identity{Connection: id.Connection, Provider: id.Provider, UserId: id.UserID, PasswordHash: id.PasswordHash}
+			pid := &storev1.Identity{Connection: id.Connection, Provider: id.Provider, UserId: id.UserID, PasswordHash: id.PasswordHash, ImportedHash: id.ImportedHash}
 			if id.ProfileData != nil {
 				b, err := json.Marshal(id.ProfileData)
 				if err != nil {
@@ -621,7 +621,7 @@ func userFromPB(pb *storev1.User) (*store.User, error) {
 	if pb.Identities != nil {
 		u.Identities = make([]store.Identity, 0, len(pb.Identities.Values))
 		for _, id := range pb.Identities.Values {
-			sid := store.Identity{Connection: id.GetConnection(), Provider: id.GetProvider(), UserID: id.GetUserId(), PasswordHash: id.GetPasswordHash()}
+			sid := store.Identity{Connection: id.GetConnection(), Provider: id.GetProvider(), UserID: id.GetUserId(), PasswordHash: id.GetPasswordHash(), ImportedHash: id.GetImportedHash()}
 			if id.ProfileDataJson != nil {
 				if err := json.Unmarshal(id.ProfileDataJson, &sid.ProfileData); err != nil {
 					return nil, fmt.Errorf("grpcstore: decode identity profile data: %w", err)
@@ -902,6 +902,107 @@ func operatorFromPB(pb *storev1.Operator) (*store.Operator, error) {
 		TenantID: pb.TenantId, UserID: pb.UserId, Tenants: stringsFromPB(pb.Tenants),
 		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt),
 	}, nil
+}
+
+// ---- jobs ----
+
+func jobToPB(j *store.Job) (*storev1.Job, error) {
+	if j == nil {
+		return nil, nil
+	}
+	pb := &storev1.Job{
+		TenantId: j.TenantID, Id: j.ID, Type: string(j.Type), Status: string(j.Status),
+		ConnectionId: j.ConnectionID, Connection: j.Connection, ExternalId: j.ExternalID,
+		Input: cloneBytes(j.Input), Progress: int64(j.Progress), Summary: jobSummaryToPB(j.Summary),
+		StatusDetails: j.StatusDetails, Attempts: int64(j.Attempts), LeaseOwner: j.LeaseOwner,
+		LeaseUntil: tsToPB(j.LeaseUntil), FirstClaimedAt: tsToPB(j.FirstClaimedAt),
+		CreatedAt: tsToPB(j.CreatedAt), UpdatedAt: tsToPB(j.UpdatedAt), ExpiresAt: tsToPB(j.ExpiresAt),
+		FileSize: j.FileSize,
+	}
+	if j.Params != nil {
+		b, err := json.Marshal(j.Params)
+		if err != nil {
+			return nil, fmt.Errorf("grpcstore: encode job params: %w", err)
+		}
+		pb.ParamsJson = b
+	}
+	return pb, nil
+}
+
+func jobFromPB(pb *storev1.Job) (*store.Job, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	if err := checkTS(pb.LeaseUntil, pb.FirstClaimedAt, pb.CreatedAt, pb.UpdatedAt, pb.ExpiresAt); err != nil {
+		return nil, err
+	}
+	j := &store.Job{
+		TenantID: pb.TenantId, ID: pb.Id, Type: store.JobType(pb.Type), Status: store.JobStatus(pb.Status),
+		ConnectionID: pb.ConnectionId, Connection: pb.Connection, ExternalID: pb.ExternalId,
+		Input: optBytes(pb.Input), Progress: int(pb.Progress), Summary: jobSummaryFromPB(pb.Summary),
+		StatusDetails: pb.StatusDetails, Attempts: int(pb.Attempts), LeaseOwner: pb.LeaseOwner,
+		LeaseUntil: tsFromPB(pb.LeaseUntil), FirstClaimedAt: tsFromPB(pb.FirstClaimedAt),
+		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt), ExpiresAt: tsFromPB(pb.ExpiresAt),
+		FileSize: pb.FileSize,
+	}
+	if pb.ParamsJson != nil {
+		var m map[string]any
+		if err := json.Unmarshal(pb.ParamsJson, &m); err != nil {
+			return nil, fmt.Errorf("grpcstore: decode job params: %w", err)
+		}
+		j.Params = m
+	}
+	return j, nil
+}
+
+func jobSummaryToPB(s store.JobSummary) *storev1.JobSummary {
+	return &storev1.JobSummary{Failed: int64(s.Failed), Updated: int64(s.Updated), Inserted: int64(s.Inserted), Total: int64(s.Total)}
+}
+
+func jobSummaryFromPB(pb *storev1.JobSummary) store.JobSummary {
+	return store.JobSummary{Failed: int(pb.GetFailed()), Updated: int(pb.GetUpdated()), Inserted: int(pb.GetInserted()), Total: int(pb.GetTotal())}
+}
+
+func jobErrorToPB(e *store.JobError) (*storev1.JobError, error) {
+	if e == nil {
+		return nil, nil
+	}
+	pb := &storev1.JobError{Index: int64(e.Index)}
+	if e.User != nil {
+		b, err := json.Marshal(e.User)
+		if err != nil {
+			return nil, fmt.Errorf("grpcstore: encode job error user: %w", err)
+		}
+		pb.UserJson = b
+	}
+	if e.Errors != nil {
+		pb.Errors = &storev1.JobErrorItems{Values: make([]*storev1.JobErrorItem, 0, len(e.Errors))}
+		for _, it := range e.Errors {
+			pb.Errors.Values = append(pb.Errors.Values, &storev1.JobErrorItem{Code: it.Code, Message: it.Message, Path: it.Path})
+		}
+	}
+	return pb, nil
+}
+
+func jobErrorFromPB(pb *storev1.JobError) (*store.JobError, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	e := &store.JobError{Index: int(pb.Index)}
+	if pb.UserJson != nil {
+		var m map[string]any
+		if err := json.Unmarshal(pb.UserJson, &m); err != nil {
+			return nil, fmt.Errorf("grpcstore: decode job error user: %w", err)
+		}
+		e.User = m
+	}
+	if pb.Errors != nil {
+		e.Errors = make([]store.JobErrorItem, 0, len(pb.Errors.Values))
+		for _, it := range pb.Errors.Values {
+			e.Errors = append(e.Errors, store.JobErrorItem{Code: it.GetCode(), Message: it.GetMessage(), Path: it.GetPath()})
+		}
+	}
+	return e, nil
 }
 
 // userQueryToPB carries a query tree over the plugin boundary; nil stays nil.

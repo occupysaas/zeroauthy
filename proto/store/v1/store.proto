@@ -123,6 +123,8 @@ service StoreService {
   rpc UsersSetPasswordHash(UsersSetPasswordHashRequest) returns (Result);
   rpc UsersFindByEmail(UsersFindByEmailRequest) returns (UserListResult);
   rpc UsersSetPasswordHashIfEmpty(UsersSetPasswordHashRequest) returns (Result);
+  // Plan 18. Hosts report Unimplemented as "plugin too old".
+  rpc UsersUpgradeImportedHash(UsersUpgradeImportedHashRequest) returns (Result);
   rpc UsersBumpVersion(ScopedKey) returns (VersionResult);
   rpc UsersGetForUpdate(ScopedKey) returns (UserResult); // Plan 17
   rpc UsersDelete(ScopedKey) returns (Result);
@@ -188,6 +190,26 @@ service StoreService {
   rpc OperatorsUpsert(OperatorWrite) returns (Result);
   rpc OperatorsList(TenantScope) returns (OperatorList);
   rpc OperatorsDelete(ScopedKey) returns (Result);        // key = user_id
+
+  // Management API jobs (Plan 18). Hosts report Unimplemented as "plugin
+  // too old", except JobsDeleteExpired, which the sweeper calls on every
+  // deployment: a plugin that predates it is treated as holding no jobs.
+  // Tenants.Delete removes the tenant's jobs, errors and file chunks.
+  rpc JobsCreate(JobWrite) returns (Result);
+  rpc JobsGet(ScopedKey) returns (JobResult);                 // key = id
+  rpc JobsList(JobsListRequest) returns (JobPage);
+  rpc JobsCountActive(JobsCountActiveRequest) returns (CountResult);
+  rpc JobsClaim(JobsClaimRequest) returns (JobResult);
+  rpc JobsRenew(JobsRenewRequest) returns (Result);
+  rpc JobsCheckpoint(JobsCheckpointRequest) returns (Result);
+  rpc JobsFinish(JobsFinishRequest) returns (Result);
+  rpc JobsErrors(ScopedKey) returns (JobErrorList);           // key = job id
+  rpc JobsAppendFile(JobsAppendFileRequest) returns (Result);
+  // JobsReadFile streams the export file's chunks in seq order. A failure
+  // that is not a transport fault ends the stream with one message whose
+  // error is set.
+  rpc JobsReadFile(ScopedKey) returns (stream JobFileChunk);  // key = job id
+  rpc JobsDeleteExpired(DeleteExpiredRequest) returns (CountResult);
 }
 
 // ---- errors and generic results ----
@@ -382,6 +404,7 @@ message Connection {
 message Identity {
   string connection = 1; string provider = 2; string user_id = 3; string password_hash = 4;
   optional bytes profile_data_json = 5; // absent = nil map (the user's own identity)
+  string imported_hash = 6; // JSON of an imported password hash spec; opaque
 }
 message IdentityList { repeated Identity values = 1; }
 message User {
@@ -464,6 +487,29 @@ message EmailVerificationTicket {
   google.protobuf.Timestamp created_at = 10;
   string result_url = 11; bool include_email_in_redirect = 12;
   string email = 13;
+}
+
+// A Management API job. type and status are store.JobType and
+// store.JobStatus strings. Timestamps that are unset travel as the zero time.
+message JobSummary { int64 failed = 1; int64 updated = 2; int64 inserted = 3; int64 total = 4; }
+message Job {
+  string tenant_id = 1; string id = 2; string type = 3; string status = 4;
+  string connection_id = 5; string connection = 6; string external_id = 7;
+  optional bytes params_json = 8; // absent = nil map
+  bytes input = 9;                // empty = nil
+  int64 progress = 10; JobSummary summary = 11; string status_details = 12;
+  int64 attempts = 13; string lease_owner = 14;
+  google.protobuf.Timestamp lease_until = 15; google.protobuf.Timestamp first_claimed_at = 16;
+  google.protobuf.Timestamp created_at = 17; google.protobuf.Timestamp updated_at = 18;
+  google.protobuf.Timestamp expires_at = 19;
+  int64 file_size = 20;
+}
+message JobErrorItem { string code = 1; string message = 2; string path = 3; }
+message JobErrorItems { repeated JobErrorItem values = 1; }
+message JobError {
+  int64 index = 1;
+  optional bytes user_json = 2; // absent = nil map
+  JobErrorItems errors = 3;     // absent = nil slice
 }
 
 message Operator {
@@ -627,3 +673,34 @@ message EmailVerificationTicketResult { Error error = 1; EmailVerificationTicket
 message OperatorWrite { string tx_id = 1; Operator value = 2; }
 message OperatorResult { Error error = 1; Operator value = 2; }
 message OperatorList { Error error = 1; repeated Operator values = 2; }
+
+message UsersUpgradeImportedHashRequest {
+  string tx_id = 1; string tenant_id = 2; string user_id = 3; string connection = 4;
+  string imported = 5; string hash = 6; google.protobuf.Timestamp at = 7;
+}
+
+message JobWrite { string tx_id = 1; Job value = 2; }
+message JobResult { Error error = 1; Job value = 2; }
+message JobPage { Error error = 1; repeated Job values = 2; int64 total = 3; }
+message JobsListRequest { string tx_id = 1; string tenant_id = 2; int64 offset = 3; int64 limit = 4; }
+message JobsCountActiveRequest { string tx_id = 1; string tenant_id = 2; string type = 3; }
+message JobsClaimRequest {
+  string tx_id = 1; string owner = 2; google.protobuf.Timestamp now = 3; google.protobuf.Duration lease = 4;
+}
+message JobsRenewRequest {
+  string tx_id = 1; string tenant_id = 2; string id = 3; string owner = 4; google.protobuf.Timestamp until = 5;
+}
+message JobsCheckpointRequest {
+  string tx_id = 1; string tenant_id = 2; string id = 3; string owner = 4;
+  int64 progress = 5; JobSummary summary = 6; repeated JobError errors = 7;
+}
+message JobsFinishRequest {
+  string tx_id = 1; string tenant_id = 2; string id = 3; string owner = 4;
+  string status = 5; string details = 6; google.protobuf.Timestamp at = 7;
+}
+message JobErrorList { Error error = 1; repeated JobError values = 2; }
+message JobsAppendFileRequest {
+  string tx_id = 1; string tenant_id = 2; string id = 3; string owner = 4;
+  int64 seq = 5; bytes chunk = 6; // at most 1 MiB
+}
+message JobFileChunk { Error error = 1; bytes data = 2; }

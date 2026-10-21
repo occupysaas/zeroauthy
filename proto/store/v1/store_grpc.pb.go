@@ -74,6 +74,7 @@ const (
 	StoreService_UsersSetPasswordHash_FullMethodName                   = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHash"
 	StoreService_UsersFindByEmail_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UsersFindByEmail"
 	StoreService_UsersSetPasswordHashIfEmpty_FullMethodName            = "/zeroauthy.store.v1.StoreService/UsersSetPasswordHashIfEmpty"
+	StoreService_UsersUpgradeImportedHash_FullMethodName               = "/zeroauthy.store.v1.StoreService/UsersUpgradeImportedHash"
 	StoreService_UsersBumpVersion_FullMethodName                       = "/zeroauthy.store.v1.StoreService/UsersBumpVersion"
 	StoreService_UsersGetForUpdate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/UsersGetForUpdate"
 	StoreService_UsersDelete_FullMethodName                            = "/zeroauthy.store.v1.StoreService/UsersDelete"
@@ -129,6 +130,18 @@ const (
 	StoreService_OperatorsUpsert_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OperatorsUpsert"
 	StoreService_OperatorsList_FullMethodName                          = "/zeroauthy.store.v1.StoreService/OperatorsList"
 	StoreService_OperatorsDelete_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OperatorsDelete"
+	StoreService_JobsCreate_FullMethodName                             = "/zeroauthy.store.v1.StoreService/JobsCreate"
+	StoreService_JobsGet_FullMethodName                                = "/zeroauthy.store.v1.StoreService/JobsGet"
+	StoreService_JobsList_FullMethodName                               = "/zeroauthy.store.v1.StoreService/JobsList"
+	StoreService_JobsCountActive_FullMethodName                        = "/zeroauthy.store.v1.StoreService/JobsCountActive"
+	StoreService_JobsClaim_FullMethodName                              = "/zeroauthy.store.v1.StoreService/JobsClaim"
+	StoreService_JobsRenew_FullMethodName                              = "/zeroauthy.store.v1.StoreService/JobsRenew"
+	StoreService_JobsCheckpoint_FullMethodName                         = "/zeroauthy.store.v1.StoreService/JobsCheckpoint"
+	StoreService_JobsFinish_FullMethodName                             = "/zeroauthy.store.v1.StoreService/JobsFinish"
+	StoreService_JobsErrors_FullMethodName                             = "/zeroauthy.store.v1.StoreService/JobsErrors"
+	StoreService_JobsAppendFile_FullMethodName                         = "/zeroauthy.store.v1.StoreService/JobsAppendFile"
+	StoreService_JobsReadFile_FullMethodName                           = "/zeroauthy.store.v1.StoreService/JobsReadFile"
+	StoreService_JobsDeleteExpired_FullMethodName                      = "/zeroauthy.store.v1.StoreService/JobsDeleteExpired"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -247,6 +260,8 @@ type StoreServiceClient interface {
 	UsersSetPasswordHash(ctx context.Context, in *UsersSetPasswordHashRequest, opts ...grpc.CallOption) (*Result, error)
 	UsersFindByEmail(ctx context.Context, in *UsersFindByEmailRequest, opts ...grpc.CallOption) (*UserListResult, error)
 	UsersSetPasswordHashIfEmpty(ctx context.Context, in *UsersSetPasswordHashRequest, opts ...grpc.CallOption) (*Result, error)
+	// Plan 18. Hosts report Unimplemented as "plugin too old".
+	UsersUpgradeImportedHash(ctx context.Context, in *UsersUpgradeImportedHashRequest, opts ...grpc.CallOption) (*Result, error)
 	UsersBumpVersion(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*VersionResult, error)
 	UsersGetForUpdate(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*UserResult, error)
 	UsersDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
@@ -304,6 +319,25 @@ type StoreServiceClient interface {
 	OperatorsUpsert(ctx context.Context, in *OperatorWrite, opts ...grpc.CallOption) (*Result, error)
 	OperatorsList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*OperatorList, error)
 	OperatorsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
+	// Management API jobs (Plan 18). Hosts report Unimplemented as "plugin
+	// too old", except JobsDeleteExpired, which the sweeper calls on every
+	// deployment: a plugin that predates it is treated as holding no jobs.
+	// Tenants.Delete removes the tenant's jobs, errors and file chunks.
+	JobsCreate(ctx context.Context, in *JobWrite, opts ...grpc.CallOption) (*Result, error)
+	JobsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*JobResult, error)
+	JobsList(ctx context.Context, in *JobsListRequest, opts ...grpc.CallOption) (*JobPage, error)
+	JobsCountActive(ctx context.Context, in *JobsCountActiveRequest, opts ...grpc.CallOption) (*CountResult, error)
+	JobsClaim(ctx context.Context, in *JobsClaimRequest, opts ...grpc.CallOption) (*JobResult, error)
+	JobsRenew(ctx context.Context, in *JobsRenewRequest, opts ...grpc.CallOption) (*Result, error)
+	JobsCheckpoint(ctx context.Context, in *JobsCheckpointRequest, opts ...grpc.CallOption) (*Result, error)
+	JobsFinish(ctx context.Context, in *JobsFinishRequest, opts ...grpc.CallOption) (*Result, error)
+	JobsErrors(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*JobErrorList, error)
+	JobsAppendFile(ctx context.Context, in *JobsAppendFileRequest, opts ...grpc.CallOption) (*Result, error)
+	// JobsReadFile streams the export file's chunks in seq order. A failure
+	// that is not a transport fault ends the stream with one message whose
+	// error is set.
+	JobsReadFile(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (grpc.ServerStreamingClient[JobFileChunk], error)
+	JobsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
 }
 
 type storeServiceClient struct {
@@ -864,6 +898,16 @@ func (c *storeServiceClient) UsersSetPasswordHashIfEmpty(ctx context.Context, in
 	return out, nil
 }
 
+func (c *storeServiceClient) UsersUpgradeImportedHash(ctx context.Context, in *UsersUpgradeImportedHashRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_UsersUpgradeImportedHash_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) UsersBumpVersion(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*VersionResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VersionResult)
@@ -1414,6 +1458,135 @@ func (c *storeServiceClient) OperatorsDelete(ctx context.Context, in *ScopedKey,
 	return out, nil
 }
 
+func (c *storeServiceClient) JobsCreate(ctx context.Context, in *JobWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_JobsCreate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*JobResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JobResult)
+	err := c.cc.Invoke(ctx, StoreService_JobsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsList(ctx context.Context, in *JobsListRequest, opts ...grpc.CallOption) (*JobPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JobPage)
+	err := c.cc.Invoke(ctx, StoreService_JobsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsCountActive(ctx context.Context, in *JobsCountActiveRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_JobsCountActive_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsClaim(ctx context.Context, in *JobsClaimRequest, opts ...grpc.CallOption) (*JobResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JobResult)
+	err := c.cc.Invoke(ctx, StoreService_JobsClaim_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsRenew(ctx context.Context, in *JobsRenewRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_JobsRenew_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsCheckpoint(ctx context.Context, in *JobsCheckpointRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_JobsCheckpoint_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsFinish(ctx context.Context, in *JobsFinishRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_JobsFinish_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsErrors(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*JobErrorList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JobErrorList)
+	err := c.cc.Invoke(ctx, StoreService_JobsErrors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsAppendFile(ctx context.Context, in *JobsAppendFileRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_JobsAppendFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) JobsReadFile(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (grpc.ServerStreamingClient[JobFileChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &StoreService_ServiceDesc.Streams[0], StoreService_JobsReadFile_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ScopedKey, JobFileChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StoreService_JobsReadFileClient = grpc.ServerStreamingClient[JobFileChunk]
+
+func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_JobsDeleteExpired_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -1530,6 +1703,8 @@ type StoreServiceServer interface {
 	UsersSetPasswordHash(context.Context, *UsersSetPasswordHashRequest) (*Result, error)
 	UsersFindByEmail(context.Context, *UsersFindByEmailRequest) (*UserListResult, error)
 	UsersSetPasswordHashIfEmpty(context.Context, *UsersSetPasswordHashRequest) (*Result, error)
+	// Plan 18. Hosts report Unimplemented as "plugin too old".
+	UsersUpgradeImportedHash(context.Context, *UsersUpgradeImportedHashRequest) (*Result, error)
 	UsersBumpVersion(context.Context, *ScopedKey) (*VersionResult, error)
 	UsersGetForUpdate(context.Context, *ScopedKey) (*UserResult, error)
 	UsersDelete(context.Context, *ScopedKey) (*Result, error)
@@ -1587,6 +1762,25 @@ type StoreServiceServer interface {
 	OperatorsUpsert(context.Context, *OperatorWrite) (*Result, error)
 	OperatorsList(context.Context, *TenantScope) (*OperatorList, error)
 	OperatorsDelete(context.Context, *ScopedKey) (*Result, error)
+	// Management API jobs (Plan 18). Hosts report Unimplemented as "plugin
+	// too old", except JobsDeleteExpired, which the sweeper calls on every
+	// deployment: a plugin that predates it is treated as holding no jobs.
+	// Tenants.Delete removes the tenant's jobs, errors and file chunks.
+	JobsCreate(context.Context, *JobWrite) (*Result, error)
+	JobsGet(context.Context, *ScopedKey) (*JobResult, error)
+	JobsList(context.Context, *JobsListRequest) (*JobPage, error)
+	JobsCountActive(context.Context, *JobsCountActiveRequest) (*CountResult, error)
+	JobsClaim(context.Context, *JobsClaimRequest) (*JobResult, error)
+	JobsRenew(context.Context, *JobsRenewRequest) (*Result, error)
+	JobsCheckpoint(context.Context, *JobsCheckpointRequest) (*Result, error)
+	JobsFinish(context.Context, *JobsFinishRequest) (*Result, error)
+	JobsErrors(context.Context, *ScopedKey) (*JobErrorList, error)
+	JobsAppendFile(context.Context, *JobsAppendFileRequest) (*Result, error)
+	// JobsReadFile streams the export file's chunks in seq order. A failure
+	// that is not a transport fault ends the stream with one message whose
+	// error is set.
+	JobsReadFile(*ScopedKey, grpc.ServerStreamingServer[JobFileChunk]) error
+	JobsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -1762,6 +1956,9 @@ func (UnimplementedStoreServiceServer) UsersFindByEmail(context.Context, *UsersF
 func (UnimplementedStoreServiceServer) UsersSetPasswordHashIfEmpty(context.Context, *UsersSetPasswordHashRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method UsersSetPasswordHashIfEmpty not implemented")
 }
+func (UnimplementedStoreServiceServer) UsersUpgradeImportedHash(context.Context, *UsersUpgradeImportedHashRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method UsersUpgradeImportedHash not implemented")
+}
 func (UnimplementedStoreServiceServer) UsersBumpVersion(context.Context, *ScopedKey) (*VersionResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method UsersBumpVersion not implemented")
 }
@@ -1926,6 +2123,42 @@ func (UnimplementedStoreServiceServer) OperatorsList(context.Context, *TenantSco
 }
 func (UnimplementedStoreServiceServer) OperatorsDelete(context.Context, *ScopedKey) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method OperatorsDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsCreate(context.Context, *JobWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsCreate not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsGet(context.Context, *ScopedKey) (*JobResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsList(context.Context, *JobsListRequest) (*JobPage, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsList not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsCountActive(context.Context, *JobsCountActiveRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsCountActive not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsClaim(context.Context, *JobsClaimRequest) (*JobResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsClaim not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsRenew(context.Context, *JobsRenewRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsRenew not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsCheckpoint(context.Context, *JobsCheckpointRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsCheckpoint not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsFinish(context.Context, *JobsFinishRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsFinish not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsErrors(context.Context, *ScopedKey) (*JobErrorList, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsErrors not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsAppendFile(context.Context, *JobsAppendFileRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsAppendFile not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsReadFile(*ScopedKey, grpc.ServerStreamingServer[JobFileChunk]) error {
+	return status.Error(codes.Unimplemented, "method JobsReadFile not implemented")
+}
+func (UnimplementedStoreServiceServer) JobsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method JobsDeleteExpired not implemented")
 }
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
@@ -2938,6 +3171,24 @@ func _StoreService_UsersSetPasswordHashIfEmpty_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_UsersUpgradeImportedHash_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UsersUpgradeImportedHashRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UsersUpgradeImportedHash(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UsersUpgradeImportedHash_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UsersUpgradeImportedHash(ctx, req.(*UsersUpgradeImportedHashRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_UsersBumpVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ScopedKey)
 	if err := dec(in); err != nil {
@@ -3928,6 +4179,215 @@ func _StoreService_OperatorsDelete_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_JobsCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsCreate(ctx, req.(*JobWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobsListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsList(ctx, req.(*JobsListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsCountActive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobsCountActiveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsCountActive(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsCountActive_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsCountActive(ctx, req.(*JobsCountActiveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsClaim_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobsClaimRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsClaim(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsClaim_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsClaim(ctx, req.(*JobsClaimRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsRenew_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobsRenewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsRenew(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsRenew_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsRenew(ctx, req.(*JobsRenewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsCheckpoint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobsCheckpointRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsCheckpoint(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsCheckpoint_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsCheckpoint(ctx, req.(*JobsCheckpointRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsFinish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobsFinishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsFinish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsFinish_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsFinish(ctx, req.(*JobsFinishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsErrors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsErrors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsErrors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsErrors(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsAppendFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobsAppendFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsAppendFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsAppendFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsAppendFile(ctx, req.(*JobsAppendFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_JobsReadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ScopedKey)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StoreServiceServer).JobsReadFile(m, &grpc.GenericServerStream[ScopedKey, JobFileChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StoreService_JobsReadFileServer = grpc.ServerStreamingServer[JobFileChunk]
+
+func _StoreService_JobsDeleteExpired_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteExpiredRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).JobsDeleteExpired(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_JobsDeleteExpired_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).JobsDeleteExpired(ctx, req.(*DeleteExpiredRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -4156,6 +4616,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StoreService_UsersSetPasswordHashIfEmpty_Handler,
 		},
 		{
+			MethodName: "UsersUpgradeImportedHash",
+			Handler:    _StoreService_UsersUpgradeImportedHash_Handler,
+		},
+		{
 			MethodName: "UsersBumpVersion",
 			Handler:    _StoreService_UsersBumpVersion_Handler,
 		},
@@ -4375,7 +4839,57 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "OperatorsDelete",
 			Handler:    _StoreService_OperatorsDelete_Handler,
 		},
+		{
+			MethodName: "JobsCreate",
+			Handler:    _StoreService_JobsCreate_Handler,
+		},
+		{
+			MethodName: "JobsGet",
+			Handler:    _StoreService_JobsGet_Handler,
+		},
+		{
+			MethodName: "JobsList",
+			Handler:    _StoreService_JobsList_Handler,
+		},
+		{
+			MethodName: "JobsCountActive",
+			Handler:    _StoreService_JobsCountActive_Handler,
+		},
+		{
+			MethodName: "JobsClaim",
+			Handler:    _StoreService_JobsClaim_Handler,
+		},
+		{
+			MethodName: "JobsRenew",
+			Handler:    _StoreService_JobsRenew_Handler,
+		},
+		{
+			MethodName: "JobsCheckpoint",
+			Handler:    _StoreService_JobsCheckpoint_Handler,
+		},
+		{
+			MethodName: "JobsFinish",
+			Handler:    _StoreService_JobsFinish_Handler,
+		},
+		{
+			MethodName: "JobsErrors",
+			Handler:    _StoreService_JobsErrors_Handler,
+		},
+		{
+			MethodName: "JobsAppendFile",
+			Handler:    _StoreService_JobsAppendFile_Handler,
+		},
+		{
+			MethodName: "JobsDeleteExpired",
+			Handler:    _StoreService_JobsDeleteExpired_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "JobsReadFile",
+			Handler:       _StoreService_JobsReadFile_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "store.proto",
 }

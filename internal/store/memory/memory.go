@@ -45,6 +45,9 @@ type state struct {
 	resetTickets       map[key]*store.PasswordResetTicket     // by (tenant, ID)
 	verifyTickets      map[key]*store.EmailVerificationTicket // by (tenant, ID)
 	operators          map[key]*store.Operator                // by (tenant, UserID)
+	jobs               map[key]*store.Job                     // by (tenant, ID)
+	jobErrors          map[key][]store.JobError               // by (tenant, job ID), by Index
+	jobFiles           map[key]jobFile                        // by (tenant, job ID)
 }
 
 // New returns an empty store.
@@ -68,6 +71,9 @@ func New() *Store {
 		resetTickets:       map[key]*store.PasswordResetTicket{},
 		verifyTickets:      map[key]*store.EmailVerificationTicket{},
 		operators:          map[key]*store.Operator{},
+		jobs:               map[key]*store.Job{},
+		jobErrors:          map[key][]store.JobError{},
+		jobFiles:           map[key]jobFile{},
 	}}
 }
 
@@ -108,6 +114,7 @@ func (s *Store) EmailVerificationTickets() store.EmailVerificationTickets {
 	return verifyTickets{s}
 }
 func (s *Store) Operators() store.Operators { return operators{s} }
+func (s *Store) Jobs() store.Jobs           { return jobs{s} }
 func (s *Store) Ping(context.Context) error { return nil }
 func (s *Store) Close() error               { return nil }
 

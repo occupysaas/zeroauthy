@@ -108,6 +108,11 @@ func testTenantsDelete(t *testing.T, newStore Factory) {
 			mustNoErr(t, s.PasswordResetTickets().Create(ctx, newTicket(id, "prt_1", "th")))
 			mustNoErr(t, s.EmailVerificationTickets().Create(ctx, newVerificationTicket(id, "evt_1", "vh")))
 			mustNoErr(t, s.Operators().Upsert(ctx, newOperator(id, "auth0|u1", "*")))
+			job := pendingJob(id, "job_1", store.JobUsersExport, 0)
+			job.Status, job.LeaseOwner, job.LeaseUntil = store.JobProcessing, "w1", jt(time.Hour)
+			mustNoErr(t, s.Jobs().Create(ctx, job))
+			mustNoErr(t, s.Jobs().Checkpoint(ctx, id, "job_1", "w1", 1, store.JobSummary{Total: 1}, []store.JobError{jobErr(0)}))
+			mustNoErr(t, s.Jobs().AppendFile(ctx, id, "job_1", "w1", 0, []byte("chunk")))
 			return tn
 		}
 		gone, kept := fill("acme"), fill("globex")
@@ -133,6 +138,7 @@ func testTenantsDelete(t *testing.T, newStore Factory) {
 			_, errs["reset ticket"] = s.PasswordResetTickets().GetByTokenHash(ctx, tenantID, "th")
 			_, errs["verification ticket"] = s.EmailVerificationTickets().GetByTokenHash(ctx, tenantID, "vh")
 			_, errs["operator"] = s.Operators().Get(ctx, tenantID, "auth0|u1")
+			_, errs["job"] = s.Jobs().Get(ctx, tenantID, "job_1")
 			for what, err := range errs {
 				if wantErr == nil && err != nil {
 					t.Errorf("%s of %s: %v", what, tenantID, err)

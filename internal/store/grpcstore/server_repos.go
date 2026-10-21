@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -518,6 +519,12 @@ func (s *Server) UsersSetPasswordHash(ctx context.Context, r *storev1.UsersSetPa
 	}), nil
 }
 
+func (s *Server) UsersUpgradeImportedHash(ctx context.Context, r *storev1.UsersUpgradeImportedHashRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.Users().UpgradeImportedHash(ctx, r.TenantId, r.UserId, r.Connection, r.Imported, r.Hash, tsFromPB(r.At))
+	}), nil
+}
+
 func (s *Server) UsersSetPasswordHashIfEmpty(ctx context.Context, r *storev1.UsersSetPasswordHashRequest) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
 		return st.Users().SetPasswordHashIfEmpty(ctx, r.TenantId, r.UserId, r.Connection, r.Hash, tsFromPB(r.At))
@@ -970,4 +977,120 @@ func (s *Server) OperatorsList(ctx context.Context, r *storev1.TenantScope) (*st
 
 func (s *Server) OperatorsDelete(ctx context.Context, r *storev1.ScopedKey) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error { return st.Operators().Delete(ctx, r.TenantId, r.Key) }), nil
+}
+
+// ---- jobs ----
+
+func (s *Server) JobsCreate(ctx context.Context, r *storev1.JobWrite) (*storev1.Result, error) {
+	return write(s, r.TxId, r.Value, jobFromPB, func(st store.Store, j *store.Job) error {
+		return st.Jobs().Create(ctx, j)
+	}), nil
+}
+
+func (s *Server) JobsGet(ctx context.Context, r *storev1.ScopedKey) (*storev1.JobResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.Job, error) { return st.Jobs().Get(ctx, r.TenantId, r.Key) }, jobToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.JobResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) JobsList(ctx context.Context, r *storev1.JobsListRequest) (*storev1.JobPage, error) {
+	var total int
+	vs, e, err := many(s, r.TxId, func(st store.Store) (out []*store.Job, e error) {
+		out, total, e = st.Jobs().List(ctx, r.TenantId, store.Page{Offset: int(r.Offset), Limit: int(r.Limit)})
+		return out, e
+	}, jobToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.JobPage{Error: e, Values: vs, Total: int64(total)}, nil
+}
+
+func (s *Server) JobsCountActive(ctx context.Context, r *storev1.JobsCountActiveRequest) (*storev1.CountResult, error) {
+	return count(s, r.TxId, func(st store.Store) (int, error) {
+		return st.Jobs().CountActive(ctx, r.TenantId, store.JobType(r.Type))
+	}), nil
+}
+
+func (s *Server) JobsClaim(ctx context.Context, r *storev1.JobsClaimRequest) (*storev1.JobResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.Job, error) {
+		return st.Jobs().Claim(ctx, r.Owner, tsFromPB(r.Now), r.Lease.AsDuration())
+	}, jobToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.JobResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) JobsRenew(ctx context.Context, r *storev1.JobsRenewRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.Jobs().Renew(ctx, r.TenantId, r.Id, r.Owner, tsFromPB(r.Until))
+	}), nil
+}
+
+func (s *Server) JobsCheckpoint(ctx context.Context, r *storev1.JobsCheckpointRequest) (*storev1.Result, error) {
+	var errs []store.JobError
+	for _, pb := range r.Errors {
+		e, err := jobErrorFromPB(pb)
+		if err != nil {
+			return &storev1.Result{Error: errToPB(err)}, nil
+		}
+		if e != nil {
+			errs = append(errs, *e)
+		}
+	}
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.Jobs().Checkpoint(ctx, r.TenantId, r.Id, r.Owner, int(r.Progress), jobSummaryFromPB(r.Summary), errs)
+	}), nil
+}
+
+func (s *Server) JobsFinish(ctx context.Context, r *storev1.JobsFinishRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.Jobs().Finish(ctx, r.TenantId, r.Id, r.Owner, store.JobStatus(r.Status), r.Details, tsFromPB(r.At))
+	}), nil
+}
+
+func (s *Server) JobsErrors(ctx context.Context, r *storev1.ScopedKey) (*storev1.JobErrorList, error) {
+	vs, e, err := many(s, r.TxId, func(st store.Store) ([]*store.JobError, error) {
+		errs, err := st.Jobs().Errors(ctx, r.TenantId, r.Key)
+		out := make([]*store.JobError, len(errs))
+		for i := range errs {
+			out[i] = &errs[i]
+		}
+		return out, err
+	}, jobErrorToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.JobErrorList{Error: e, Values: vs}, nil
+}
+
+func (s *Server) JobsAppendFile(ctx context.Context, r *storev1.JobsAppendFileRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.Jobs().AppendFile(ctx, r.TenantId, r.Id, r.Owner, int(r.Seq), r.Chunk)
+	}), nil
+}
+
+func (s *Server) JobsReadFile(r *storev1.ScopedKey, stream grpc.ServerStreamingServer[storev1.JobFileChunk]) error {
+	var sendErr error
+	err := s.with(r.TxId, func(st store.Store) error {
+		return st.Jobs().ReadFile(stream.Context(), r.TenantId, r.Key, func(chunk []byte) error {
+			if sendErr = stream.Send(&storev1.JobFileChunk{Data: chunk}); sendErr != nil {
+				return sendErr
+			}
+			return nil
+		})
+	})
+	if sendErr != nil {
+		return sendErr // the transport failed; there is nobody to tell
+	}
+	if err != nil {
+		return stream.Send(&storev1.JobFileChunk{Error: errToPB(err)})
+	}
+	return nil
+}
+
+func (s *Server) JobsDeleteExpired(ctx context.Context, r *storev1.DeleteExpiredRequest) (*storev1.CountResult, error) {
+	return count(s, r.TxId, func(st store.Store) (int, error) { return st.Jobs().DeleteExpired(ctx, tsFromPB(r.Before)) }), nil
 }

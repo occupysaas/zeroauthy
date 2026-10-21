@@ -282,6 +282,87 @@ func testUsers(t *testing.T, newStore Factory) {
 		mustErrIs(t, s.Users().SetPasswordHashIfEmpty(ctx, "ten_b", "auth0|u1", "Database", "x", ts(0)), store.ErrNotFound)
 	})
 
+	t.Run("ImportedHash", func(t *testing.T) {
+		s := open(t, newStore)
+		const imported = `{"alg":"bcrypt","hash":"$2b$10$abc"}`
+		u := newUser("ten_a", "u1", "alice@example.test", "alice")
+		u.Identities[0].PasswordHash = ""
+		u.Identities[0].ImportedHash = imported
+		mustNoErr(t, s.Users().Create(ctx, u))
+		got, err := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, got.Identities[0].ImportedHash, imported)
+		mustEqual(t, got.Identities[0].PasswordHash, "")
+
+		// A password nobody could have imported: IfEmpty leaves it alone.
+		mustErrIs(t, s.Users().SetPasswordHashIfEmpty(ctx, "ten_a", "auth0|u1", "Database", "$x", ts(0)), store.ErrConflict)
+
+		// A new password replaces the imported hash.
+		mustNoErr(t, s.Users().SetPasswordHash(ctx, "ten_a", "auth0|u1", "Database", "$new", ts(time.Hour)))
+		got, _ = s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, got.Identities[0].PasswordHash, "$new")
+		mustEqual(t, got.Identities[0].ImportedHash, "")
+	})
+
+	t.Run("UpgradeImportedHash", func(t *testing.T) {
+		s := open(t, newStore)
+		const imported = `{"alg":"bcrypt","hash":"$2b$10$abc"}`
+		u := newUser("ten_a", "u1", "alice@example.test", "alice")
+		u.Identities[0].PasswordHash = ""
+		u.Identities[0].ImportedHash = imported
+		mustNoErr(t, s.Users().Create(ctx, u))
+
+		// Wrong imported value, other connection, other user, other tenant.
+		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", "other", "$new", ts(time.Hour)), store.ErrConflict)
+		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", "", "$new", ts(time.Hour)), store.ErrConflict)
+		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Other", imported, "$new", ts(time.Hour)), store.ErrNotFound)
+		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|nobody", "Database", imported, "$new", ts(time.Hour)), store.ErrNotFound)
+		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_b", "auth0|u1", "Database", imported, "$new", ts(time.Hour)), store.ErrNotFound)
+		got, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, got.Identities[0].ImportedHash, imported)
+		mustEqual(t, got.Identities[0].PasswordHash, "")
+		mustEqual(t, got.Version, int64(0))
+		mustEqual(t, got.UpdatedAt, ts(0))
+
+		mustNoErr(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", imported, "$new", ts(time.Hour)))
+		got, _ = s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, got.Identities[0].ImportedHash, "")
+		mustEqual(t, got.Identities[0].PasswordHash, "$new")
+		mustEqual(t, got.Version, int64(1))
+		mustEqual(t, got.UpdatedAt, ts(time.Hour))
+
+		// Used up: a second upgrade loses.
+		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", imported, "$again", ts(2*time.Hour)), store.ErrConflict)
+	})
+
+	t.Run("UpgradeImportedHashRace", func(t *testing.T) {
+		s := open(t, newStore)
+		const imported = `{"alg":"md5","hash":"abc"}`
+		u := newUser("ten_a", "u1", "alice@example.test", "alice")
+		u.Identities[0].PasswordHash = ""
+		u.Identities[0].ImportedHash = imported
+		mustNoErr(t, s.Users().Create(ctx, u))
+		errs := parallel(20, func(i int) error {
+			return s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", imported, fmt.Sprint("$up", i), ts(time.Hour))
+		})
+		wins := 0
+		for i, err := range errs {
+			switch {
+			case err == nil:
+				wins++
+			case errors.Is(err, store.ErrConflict):
+			default:
+				t.Errorf("call %d: unexpected %v", i, err)
+			}
+		}
+		mustEqual(t, wins, 1)
+		got, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, got.Version, int64(1))
+		if h := got.Identities[0].PasswordHash; !strings.HasPrefix(h, "$up") {
+			t.Errorf("hash = %q", h)
+		}
+	})
+
 	t.Run("SetPasswordHashIfEmptyRace", func(t *testing.T) {
 		s := open(t, newStore)
 		empty := newUser("ten_a", "u1", "alice@example.test", "alice")

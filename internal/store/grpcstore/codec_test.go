@@ -320,7 +320,7 @@ func TestUserRoundTrip(t *testing.T) {
 		Blocked:      true,
 		Identities: []store.Identity{{Connection: "db", Provider: "auth0", UserID: "u1", PasswordHash: "$argon2id$..."},
 			{Connection: "db", Provider: "auth0", UserID: "u2", PasswordHash: "$argon2id$2", ProfileData: map[string]any{"email": "b@example.test", "email_verified": false}},
-			{Connection: "other", Provider: "auth0", UserID: "u3", ProfileData: map[string]any{}}},
+			{Connection: "other", Provider: "auth0", UserID: "u3", ImportedHash: `{"alg":"bcrypt","hash":"$2b$10$x"}`, ProfileData: map[string]any{}}},
 		LastLogin: ptr(nanoTime), LoginsCount: 7, CreatedAt: nanoTime,
 		PhoneNumber: "+14155550100", PhoneVerified: true, LastIP: "2001:db8::1", Version: 5, UpdatedAt: nanoTime.Add(time.Second),
 	}, userToPB, userFromPB)
@@ -621,4 +621,28 @@ func TestUserQueryRoundTrip(t *testing.T) {
 	if userQueryToPB(nil) != nil || userQueryFromPB(nil) != nil {
 		t.Fatal("a nil query must stay nil")
 	}
+}
+
+func TestJobRoundTrip(t *testing.T) {
+	roundTrip(t, "full", &store.Job{
+		TenantID: "ten", ID: "job_1", Type: store.JobUsersImport, Status: store.JobProcessing,
+		ConnectionID: "con_1", Connection: "Database", ExternalID: "ext",
+		Params: map[string]any{"upsert": true, "n": float64(3), "nested": map[string]any{"a": []any{"x", nil}}},
+		Input:  []byte(`[{"email":"a@example.test"}]`), Progress: 2,
+		Summary:       store.JobSummary{Failed: 1, Updated: 2, Inserted: 3, Total: 6},
+		StatusDetails: "details", Attempts: 2, LeaseOwner: "w1", LeaseUntil: nanoTime.Add(time.Minute),
+		FirstClaimedAt: nanoTime, CreatedAt: nanoTime.Add(-time.Hour), UpdatedAt: nanoTime.Add(time.Second),
+		ExpiresAt: nanoTime.Add(24 * time.Hour), FileSize: 1 << 33,
+	}, jobToPB, jobFromPB)
+	roundTrip(t, "empty", &store.Job{Params: map[string]any{}}, jobToPB, jobFromPB)
+	roundTrip(t, "zero", &store.Job{}, jobToPB, jobFromPB)
+}
+
+func TestJobErrorRoundTrip(t *testing.T) {
+	roundTrip(t, "full", &store.JobError{
+		Index: 41, User: map[string]any{"email": "a@example.test", "nested": map[string]any{"k": []any{"v"}}},
+		Errors: []store.JobErrorItem{{Code: "DUPLICATED_USER", Message: "The user already exists.", Path: "email"}, {Code: "X"}},
+	}, jobErrorToPB, jobErrorFromPB)
+	roundTrip(t, "empty", &store.JobError{User: map[string]any{}, Errors: []store.JobErrorItem{}}, jobErrorToPB, jobErrorFromPB)
+	roundTrip(t, "zero", &store.JobError{}, jobErrorToPB, jobErrorFromPB)
 }

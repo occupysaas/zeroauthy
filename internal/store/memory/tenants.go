@@ -88,6 +88,9 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(s.resetTickets, id)
 	purge(s.verifyTickets, id)
 	purge(s.operators, id)
+	purge(s.jobs, id)
+	purge(s.jobErrors, id)
+	purge(s.jobFiles, id)
 	return nil
 }
 

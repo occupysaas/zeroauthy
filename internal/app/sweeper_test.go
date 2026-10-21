@@ -40,10 +40,20 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 	// device's next poll gets expired_token.
 	must(st.DeviceCodes().Create(ctx, &store.DeviceCode{TenantID: "t", DeviceCodeHash: "recent", UserCodeHash: "ur", ExpiresAt: now.Add(-time.Hour)}))
 	must(st.DeviceCodes().Create(ctx, &store.DeviceCode{TenantID: "t", DeviceCodeHash: "ancient", UserCodeHash: "ua", ExpiresAt: now.Add(-25 * time.Hour)}))
+	must(st.Jobs().Create(ctx, &store.Job{TenantID: "t", ID: "old", Type: store.JobUsersExport, Status: store.JobCompleted, ExpiresAt: now.Add(-time.Second)}))
+	must(st.Jobs().Create(ctx, &store.Job{TenantID: "t", ID: "new", Type: store.JobUsersExport, Status: store.JobCompleted, ExpiresAt: now.Add(time.Hour)}))
 
 	n, err := sweep(ctx, st, now)
-	if err != nil || n != 8 {
-		t.Fatalf("sweep = %d, %v; want 8, nil", n, err)
+	if err != nil || n != 9 {
+		t.Fatalf("sweep = %d, %v; want 9, nil", n, err)
+	}
+	// Jobs.Get hides expired jobs by the real clock, which is past these
+	// fixed times; Errors only needs the job to exist.
+	if _, err := st.Jobs().Errors(ctx, "t", "old"); !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expired job kept: %v", err)
+	}
+	if _, err := st.Jobs().Errors(ctx, "t", "new"); err != nil {
+		t.Errorf("live job removed: %v", err)
 	}
 	if _, err := st.AuthTransactions().Get(ctx, "t", "new"); err != nil {
 		t.Errorf("live transaction removed: %v", err)

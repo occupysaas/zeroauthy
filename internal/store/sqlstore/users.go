@@ -216,10 +216,52 @@ func (r users) setHash(ctx context.Context, tenantID, userID, connection, hash s
 		for i := range ids {
 			// The user's own identity; a linked one keeps its hash (D-0043).
 			if ids[i].Connection == connection && !ids[i].Linked() {
-				if onlyIfEmpty && ids[i].PasswordHash != "" {
+				if onlyIfEmpty && (ids[i].PasswordHash != "" || ids[i].ImportedHash != "") {
 					return store.ErrConflict
 				}
 				ids[i].PasswordHash = hash
+				ids[i].ImportedHash = ""
+				found = true
+				break
+			}
+		}
+		if !found {
+			return store.ErrNotFound
+		}
+		enc, err := toJSON(ids)
+		if err != nil {
+			return err
+		}
+		_, err = tx.exec(ctx, `UPDATE users SET identities=?, updated_at=?, version=version+1 WHERE tenant_id=? AND user_id=?`,
+			enc, micros(at), tenantID, userID)
+		return err
+	})
+}
+
+// UpgradeImportedHash reads the identities under a row lock, so the
+// comparison with imported and the write are one step.
+func (r users) UpgradeImportedHash(ctx context.Context, tenantID, userID, connection, imported, hash string, at time.Time) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		var raw string
+		err := tx.queryRow(ctx, `SELECT identities FROM users WHERE tenant_id=? AND user_id=?`+tx.d.forUpdate, tenantID, userID).Scan(&raw)
+		if errors.Is(err, sql.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		var ids []store.Identity
+		if err := fromJSON(raw, &ids); err != nil {
+			return err
+		}
+		found := false
+		for i := range ids {
+			if ids[i].Connection == connection && !ids[i].Linked() {
+				if imported == "" || ids[i].ImportedHash != imported {
+					return store.ErrConflict
+				}
+				ids[i].PasswordHash = hash
+				ids[i].ImportedHash = ""
 				found = true
 				break
 			}

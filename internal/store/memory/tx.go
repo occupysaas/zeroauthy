@@ -64,6 +64,9 @@ func (s *Store) snapshot() *state {
 		resetTickets:       cloneMap(s.resetTickets, cloneResetTicket),
 		verifyTickets:      cloneMap(s.verifyTickets, cloneVerifyTicket),
 		operators:          cloneMap(s.operators, cloneOperator),
+		jobs:               cloneMap(s.jobs, cloneJob),
+		jobErrors:          cloneJobErrorMap(s.jobErrors),
+		jobFiles:           cloneJobFiles(s.jobFiles),
 	}
 }
 
@@ -79,6 +82,7 @@ func (s *Store) restore(snap *state) {
 	s.pushedAuthRequests, s.deviceCodes = snap.pushedAuthRequests, snap.deviceCodes
 	s.verifyTickets = snap.verifyTickets
 	s.operators, s.passwordHistories = snap.operators, snap.passwordHistories
+	s.jobs, s.jobErrors, s.jobFiles = snap.jobs, snap.jobErrors, snap.jobFiles
 }
 
 func cloneMap[K comparable, V any](m map[K]*V, clone func(*V) *V) map[K]*V {
@@ -97,6 +101,22 @@ func clonePasswordHistories(m map[key][][]byte) map[key][][]byte {
 			c[i] = bytes.Clone(b)
 		}
 		out[k] = c
+	}
+	return out
+}
+
+func cloneJobErrorMap(m map[key][]store.JobError) map[key][]store.JobError {
+	out := make(map[key][]store.JobError, len(m))
+	for k, errs := range m {
+		out[k] = cloneJobErrors(errs)
+	}
+	return out
+}
+
+func cloneJobFiles(m map[key]jobFile) map[key]jobFile {
+	out := make(map[key]jobFile, len(m))
+	for k, f := range m {
+		out[k] = cloneJobFile(f)
 	}
 	return out
 }

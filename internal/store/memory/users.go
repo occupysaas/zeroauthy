@@ -111,10 +111,33 @@ func (r users) setHash(tenantID, userID, connection, hash string, at time.Time, 
 	for i := range u.Identities {
 		// The user's own identity; a linked one keeps its hash (D-0043).
 		if u.Identities[i].Connection == connection && !u.Identities[i].Linked() {
-			if onlyIfEmpty && u.Identities[i].PasswordHash != "" {
+			if onlyIfEmpty && (u.Identities[i].PasswordHash != "" || u.Identities[i].ImportedHash != "") {
 				return store.ErrConflict
 			}
 			u.Identities[i].PasswordHash = hash
+			u.Identities[i].ImportedHash = ""
+			u.UpdatedAt = at
+			u.Version++
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
+func (r users) UpgradeImportedHash(_ context.Context, tenantID, userID, connection, imported, hash string, at time.Time) error {
+	r.s.lock()
+	defer r.s.unlock()
+	u, ok := r.s.users[key{tenantID, userID}]
+	if !ok {
+		return store.ErrNotFound
+	}
+	for i := range u.Identities {
+		if u.Identities[i].Connection == connection && !u.Identities[i].Linked() {
+			if imported == "" || u.Identities[i].ImportedHash != imported {
+				return store.ErrConflict
+			}
+			u.Identities[i].PasswordHash = hash
+			u.Identities[i].ImportedHash = ""
 			u.UpdatedAt = at
 			u.Version++
 			return nil
