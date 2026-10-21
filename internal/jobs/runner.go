@@ -195,8 +195,9 @@ func (r *Runner) process(ctx context.Context, owner string, j *store.Job) {
 	case l.Lost():
 		r.log().Warn("jobs: lost the lease of a job", "tenant", j.TenantID, "job", j.ID)
 		return
-	case err != nil && ctx.Err() != nil:
-		// Shutting down: leave the job for the next claim.
+	case ctx.Err() != nil && (err != nil || (status != store.JobCompleted && status != store.JobFailed)):
+		// Shutting down and the processor did not finish: leave the job
+		// for the next claim.
 		return
 	case err != nil:
 		r.log().Error("jobs: a job failed", "err", err, "tenant", j.TenantID, "job", j.ID, "type", j.Type)

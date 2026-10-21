@@ -35,6 +35,9 @@ func (p VerifyEmail) Run(ctx context.Context, st store.Store, j *store.Job, _ Le
 	if err != nil {
 		return "", "", err
 	}
+	// Known deviation: the request's "identity" is validated and stored,
+	// but VerificationSender has no connection parameter, so the email
+	// verifies the user's default database identity (dbconn.VerificationConnection).
 	if p.Sender == nil {
 		if p.Log != nil {
 			p.Log.DebugContext(ctx, "verification email job not sent: no sender is configured", "tenant", j.TenantID, "user_id", userID)

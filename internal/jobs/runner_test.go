@@ -232,3 +232,78 @@ func TestZeroWorkersRunNothing(t *testing.T) {
 	var nilRunner *Runner
 	nilRunner.Notify() // must not panic
 }
+
+// A worker whose lease another owner took stops its processor and never
+// finishes the job.
+func TestRenewalConflictCancelsAndNeverFinishes(t *testing.T) {
+	st := memory.New()
+	addJob(t, st, "job_a", nil)
+	finishes := &finishCounter{Store: st}
+	cancelled := make(chan struct{})
+	started := make(chan struct{})
+	r := newRunner(finishes, procFunc(func(ctx context.Context, _ store.Store, _ *store.Job, l Lease) (store.JobStatus, string, error) {
+		close(started)
+		<-ctx.Done()
+		close(cancelled)
+		// Returns a "success" even though it lost the job.
+		return store.JobCompleted, "", nil
+	}), 1)
+	r.LeaseFor = 90 * time.Millisecond
+	start(t, r)
+	<-started
+	// Another owner takes the job once the lease is made to look expired.
+	if err := st.Jobs().Renew(context.Background(), "t1", "job_a", getJob(t, st, "job_a").LeaseOwner, time.Now().Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Jobs().Claim(context.Background(), "thief", time.Now().UTC(), time.Hour); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-cancelled:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the processor's context was not cancelled after the lease was lost")
+	}
+	time.Sleep(100 * time.Millisecond)
+	if n := finishes.n.Load(); n != 0 {
+		t.Errorf("Finish was called %d times after the lease was lost", n)
+	}
+	if j := getJob(t, st, "job_a"); j.Status != store.JobProcessing || j.LeaseOwner != "thief" {
+		t.Errorf("job = %s owned by %q, want processing under the thief", j.Status, j.LeaseOwner)
+	}
+}
+
+// A processor that returns without a final status once the runner's
+// context is cancelled leaves the job for a retry.
+func TestShutdownWithoutFinalStatusLeavesTheJob(t *testing.T) {
+	st := memory.New()
+	addJob(t, st, "job_a", nil)
+	started := make(chan struct{})
+	r := newRunner(st, procFunc(func(ctx context.Context, _ store.Store, _ *store.Job, _ Lease) (store.JobStatus, string, error) {
+		close(started)
+		<-ctx.Done()
+		return "", "", nil
+	}), 1)
+	stop := start(t, r)
+	<-started
+	stop()
+	if j := getJob(t, st, "job_a"); j.Status != store.JobProcessing {
+		t.Errorf("job = %s, want processing (left for a retry)", j.Status)
+	}
+}
+
+type finishCounter struct {
+	store.Store
+	n atomic.Int32
+}
+
+func (f *finishCounter) Jobs() store.Jobs { return finishJobs{f.Store.Jobs(), &f.n} }
+
+type finishJobs struct {
+	store.Jobs
+	n *atomic.Int32
+}
+
+func (f finishJobs) Finish(ctx context.Context, tenantID, id, owner string, st store.JobStatus, details string, at time.Time) error {
+	f.n.Add(1)
+	return f.Jobs.Finish(ctx, tenantID, id, owner, st, details, at)
+}

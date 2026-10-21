@@ -286,6 +286,7 @@ func (a *App) Serve(ctx context.Context) error {
 			select {
 			case <-jobsDone:
 			case <-time.After(10 * time.Second):
+				a.log.Warn("job workers did not stop within 10s; a job may be left to its lease")
 			}
 		}()
 	}

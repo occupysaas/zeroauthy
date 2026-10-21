@@ -21,9 +21,11 @@ const JobLifetime = 24 * time.Hour
 var jobIDPattern = regexp.MustCompile(`^job_[A-Za-z0-9]{16}$`)
 
 var (
+	// Every verification-email error is a 400 on Auth0 (J10), unlike the
+	// tickets endpoints (D-0043), so these are not the ticket errors.
 	errJobNotFound      = &Error{Status: http.StatusNotFound, Code: "inexistent_job", Message: "The job does not exist"}
-	errVerifyUser       = &Error{Status: http.StatusNotFound, Code: "inexistent_user", Message: "The user does not exist"}
-	errVerifyIdentity   = &Error{Status: http.StatusNotFound, Code: "inexistent_identity", Message: "The user exists, but does not contain the given identity"}
+	errVerifyUser       = &Error{Status: http.StatusBadRequest, Code: "inexistent_user", Message: "The user does not exist"}
+	errVerifyIdentity   = &Error{Status: http.StatusBadRequest, Code: "inexistent_identity", Message: "The user exists, but does not contain the given identity"}
 	errVerifyNotDB      = &Error{Status: http.StatusBadRequest, Code: "operation_not_supported", Message: "The identity is not in a database connection."}
 	errJobIDUnavailable = errors.New("no free job ID")
 )
@@ -274,11 +276,16 @@ func (h *Handlers) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Req
 		}
 		params["identity"] = map[string]any{"user_id": id.UserID, "provider": id.Provider, "connection": id.Connection}
 	}
-	if err := h.checkTicketClient(r, in.clientID); err != nil {
-		Fail(w, err)
-		return
-	}
 	if in.clientID != "" {
+		_, err := h.Store.Clients().Get(ctx, tn.ID, in.clientID)
+		if errors.Is(err, store.ErrNotFound) {
+			Fail(w, errNoSuchClient)
+			return
+		}
+		if err != nil {
+			Fail(w, internalError(h, r, "load client", err))
+			return
+		}
 		params["client_id"] = in.clientID
 	}
 	if u.Email == "" {

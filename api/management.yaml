@@ -1396,11 +1396,11 @@ paths:
 
         A missing or empty `user_id`, a wrong type and an unknown property
         (`organization_id` too: zeroauthy has no organizations) are
-        `400 invalid_body`; an unknown user is `404 inexistent_user`; an
-        identity the user does not have is `404 inexistent_identity`; an
-        unknown `client_id` is `404 inexistent_client`; a user without an
-        email address, or an identity that is not in a database connection,
-        is `400 operation_not_supported`.
+        `400 invalid_body`; as on Auth0 every other error is a `400` too: an
+        unknown user is `inexistent_user`; an identity the user does not have
+        is `inexistent_identity`; an unknown `client_id` is
+        `inexistent_client`; a user without an email address, or an identity
+        that is not in a database connection, is `operation_not_supported`.
       x-source:
         - https://auth0.com/docs/api/management/v2/jobs/post-verification-email
       requestBody:
@@ -1417,7 +1417,6 @@ paths:
         "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
-        "404": {$ref: "#/components/responses/NotFound"}
   /api/v2/jobs/{id}:
     parameters:
       - name: id
