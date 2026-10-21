@@ -66,6 +66,22 @@ async function patch(body: UserUpdate) {
   }
 }
 
+// sendVerification queues the verification email job and reports it; the
+// job runs in the background, so this says queued, not delivered.
+async function sendVerification() {
+  busy.value = true
+  notice.value = ''
+  error.value = ''
+  try {
+    const job = await api.createVerificationEmailJob(props.tenant, uid.value)
+    notice.value = t('userd.verificationQueued', { id: job.id })
+  } catch (e) {
+    error.value = errorMessage(e)
+  } finally {
+    busy.value = false
+  }
+}
+
 async function unblock() {
   notice.value = ''
   error.value = ''
@@ -98,7 +114,8 @@ async function remove() {
       <Button @click="ask('password')">{{ t('userd.changePassword') }}</Button>
       <Button @click="ask('email')">{{ t('userd.changeEmail') }}</Button>
       <Button @click="ask('reset')">{{ t('userd.createResetLink') }}</Button>
-      <Button @click="ask('verify')">{{ t('userd.sendVerification') }}</Button>
+      <Button :disabled="busy" @click="sendVerification">{{ busy ? t('userd.sendingVerification') : t('userd.sendVerification') }}</Button>
+      <Button @click="ask('verify')">{{ t('userd.createVerifyLink') }}</Button>
       <Button variant="danger" @click="ask('delete')">{{ t('userd.delete') }}</Button>
     </div>
     <Banner v-if="error && dialog === null" kind="error" class="mt-3">{{ error }}</Banner>

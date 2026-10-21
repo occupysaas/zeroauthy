@@ -13,10 +13,10 @@ describe('sections', () => {
     for (const s of sections) expect(names.has(s.key), s.key).toBe(true)
   })
 
-  it('has a section for every tenant route that is not a form or a detail page', () => {
+  it('has a section for every tenant route that is not a form, a detail page or a sub page', () => {
     const keys = new Set(sections.map((s) => s.key))
     const missing = routes
-      .filter((r) => r.path.startsWith('/t/:tenant/') && !String(r.name).endsWith('-new') && !r.path.includes('/:id'))
+      .filter((r) => r.path.startsWith('/t/:tenant/') && !String(r.name).endsWith('-new') && !r.path.includes('/:id') && !r.path.slice('/t/:tenant/'.length).includes('/'))
       .filter((r) => !keys.has(String(r.name)))
     expect(missing).toEqual([])
   })

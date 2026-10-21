@@ -119,6 +119,7 @@ function ago(iso: string): string {
     <div class="row mb-4">
       <h1 class="m-0">{{ t('users.title') }}</h1>
       <span class="flex-1" />
+      <RouterLink class="rounded border border-rule bg-surface px-3.5 py-1.5 font-bold text-text no-underline hover:bg-active" :to="{ name: 'users-import-export', params: { tenant: tenant.name } }">{{ t('users.importExport') }}</RouterLink>
       <RouterLink class="create rounded border border-accent bg-accent px-3.5 py-1.5 font-bold text-accent-text no-underline hover:border-accent-hover hover:bg-accent-hover hover:text-accent-text" :to="{ name: 'user-new', params: { tenant: tenant.name } }">{{ t('users.create') }}</RouterLink>
     </div>
 

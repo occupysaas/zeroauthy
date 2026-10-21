@@ -18,6 +18,7 @@ import OperatorList from './pages/operators/List.vue'
 import UserCreate from './pages/users/Create.vue'
 import UserDetail from './pages/users/Detail.vue'
 import UserList from './pages/users/List.vue'
+import UserImportExport from './pages/users/ImportExport.vue'
 import { plannedPages } from './pages/planned'
 import Root from './pages/Root.vue'
 import { isPlanned, sections } from './layout/sections'
@@ -48,6 +49,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/connections/:id', name: 'connection', component: ConnectionDetail },
   { path: '/t/:tenant/users', name: 'users', component: UserList },
   { path: '/t/:tenant/users/new', name: 'user-new', component: UserCreate },
+  { path: '/t/:tenant/users/import-export', name: 'users-import-export', component: UserImportExport },
   { path: '/t/:tenant/users/:id', name: 'user', component: UserDetail },
   { path: '/t/:tenant/operators', name: 'operators', component: OperatorList },
   ...sections.filter(isPlanned).map((s) => ({

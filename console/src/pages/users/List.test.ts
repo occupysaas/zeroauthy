@@ -24,6 +24,13 @@ function backend(all: User[]) {
 const usersCalls = (calls: Call[]) => calls.filter((c) => new URL(c.url).pathname === '/api/v2/users')
 
 describe('users list', () => {
+  it('links to the import and export page', async () => {
+    const { wrapper } = await mountAt(List, '/t/acme/users', backend([]))
+    const link = wrapper.findAll('a').find((a) => a.text() === 'Import and export')!
+    expect(link.attributes('href')).toBe('/admin/t/acme/users/import-export')
+    wrapper.unmount()
+  })
+
   it('shows the columns and pages on the server', async () => {
     const all = Array.from({ length: 25 }, (_, i) => user('u' + i, i === 0 ? { name: 'Ada', blocked: true, logins_count: 7, last_login: new Date(Date.now() - 3 * 86400000).toISOString() } : {}))
     const { wrapper, router, calls } = await mountAt(List, '/t/acme/users', backend(all))

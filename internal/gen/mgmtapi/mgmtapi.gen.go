@@ -1314,7 +1314,10 @@ type Job struct {
 		Total    *int `json:"total,omitempty"`
 		Updated  *int `json:"updated,omitempty"`
 	} `json:"summary,omitempty"`
-	Type                 JobType                `json:"type"`
+	Type JobType `json:"type"`
+
+	// WeakHashes On the system API's job list: the import's records with a weak password hash.
+	WeakHashes           *int                   `json:"weak_hashes,omitempty"`
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
@@ -1334,6 +1337,14 @@ type JobError struct {
 
 	// User The record, with its secrets masked.
 	User interface{} `json:"user,omitempty"`
+}
+
+// JobPage defines model for JobPage.
+type JobPage struct {
+	Jobs  *[]Job `json:"jobs,omitempty"`
+	Limit *int   `json:"limit,omitempty"`
+	Start *int   `json:"start,omitempty"`
+	Total *int   `json:"total,omitempty"`
 }
 
 // JwtConfiguration ID token settings.
@@ -2090,6 +2101,26 @@ type DeleteTenantParams struct {
 	Confirm string `form:"confirm" json:"confirm"`
 }
 
+// GetTenantJobsParams defines parameters for GetTenantJobs.
+type GetTenantJobsParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *IncludeTotals `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// GetTenantJobs200JSONResponseBody0 defines parameters for GetTenantJobs.
+type GetTenantJobs200JSONResponseBody0 = []Job
+
+// GetTenantJobs200JSONResponseBody defines parameters for GetTenantJobs.
+type GetTenantJobs200JSONResponseBody struct {
+	union json.RawMessage
+}
+
 // GetClientGrantsParams defines parameters for GetClientGrants.
 type GetClientGrantsParams struct {
 	// Page Page index of the results, from 0.
@@ -2576,6 +2607,14 @@ func (a *Job) UnmarshalJSON(b []byte) error {
 		delete(object, "type")
 	}
 
+	if raw, found := object["weak_hashes"]; found {
+		err = json.Unmarshal(raw, &a.WeakHashes)
+		if err != nil {
+			return fmt.Errorf("error reading 'weak_hashes': %w", err)
+		}
+		delete(object, "weak_hashes")
+	}
+
 	if len(object) != 0 {
 		a.AdditionalProperties = make(map[string]interface{})
 		for fieldName, fieldBuf := range object {
@@ -2676,6 +2715,13 @@ func (a Job) MarshalJSON() ([]byte, error) {
 	object["type"], err = json.Marshal(a.Type)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	if a.WeakHashes != nil {
+		object["weak_hashes"], err = json.Marshal(a.WeakHashes)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'weak_hashes': %w", err)
+		}
 	}
 
 	for fieldName, field := range a.AdditionalProperties {
@@ -3098,6 +3144,68 @@ func (t UserIdentityLink_UserId) MarshalJSON() ([]byte, error) {
 }
 
 func (t *UserIdentityLink_UserId) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsGetTenantJobs200JSONResponseBody0 returns the union data inside the GetTenantJobs200JSONResponseBody as a GetTenantJobs200JSONResponseBody0
+func (t GetTenantJobs200JSONResponseBody) AsGetTenantJobs200JSONResponseBody0() (GetTenantJobs200JSONResponseBody0, error) {
+	var body GetTenantJobs200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetTenantJobs200JSONResponseBody0 overwrites any union data inside the GetTenantJobs200JSONResponseBody as the provided GetTenantJobs200JSONResponseBody0
+func (t *GetTenantJobs200JSONResponseBody) FromGetTenantJobs200JSONResponseBody0(v GetTenantJobs200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetTenantJobs200JSONResponseBody0 performs a merge with any union data inside the GetTenantJobs200JSONResponseBody, using the provided GetTenantJobs200JSONResponseBody0
+func (t *GetTenantJobs200JSONResponseBody) MergeGetTenantJobs200JSONResponseBody0(v GetTenantJobs200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsJobPage returns the union data inside the GetTenantJobs200JSONResponseBody as a JobPage
+func (t GetTenantJobs200JSONResponseBody) AsJobPage() (JobPage, error) {
+	var body JobPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromJobPage overwrites any union data inside the GetTenantJobs200JSONResponseBody as the provided JobPage
+func (t *GetTenantJobs200JSONResponseBody) FromJobPage(v JobPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeJobPage performs a merge with any union data inside the GetTenantJobs200JSONResponseBody, using the provided JobPage
+func (t *GetTenantJobs200JSONResponseBody) MergeJobPage(v JobPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetTenantJobs200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetTenantJobs200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -3614,6 +3722,9 @@ type ServerInterface interface {
 	// TryConnectionScript Try a custom database script
 	// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 	TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string)
+	// GetTenantJobs List a tenant's jobs
+	// (GET /api/system/tenants/{tenant}/jobs)
+	GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams)
 	// GetClientGrants List client grants
 	// (GET /api/v2/client-grants)
 	GetClientGrants(w http.ResponseWriter, r *http.Request, params GetClientGrantsParams)
@@ -3812,6 +3923,12 @@ func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name
 // TryConnectionScript Try a custom database script
 // (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 func (_ Unimplemented) TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenantJobs List a tenant's jobs
+// (GET /api/system/tenants/{tenant}/jobs)
+func (_ Unimplemented) GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4303,6 +4420,74 @@ func (siw *ServerInterfaceWrapper) TryConnectionScript(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.TryConnectionScript(w, r, tenant, id, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTenantJobs operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantJobs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTenantJobsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantJobs(w, r, tenant, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6556,6 +6741,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/system/operators/{id}", wrapper.DeleteOperator)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/jobs", wrapper.GetTenantJobs)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try", wrapper.TryConnectionScript)

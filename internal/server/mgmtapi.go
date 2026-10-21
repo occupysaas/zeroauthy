@@ -182,6 +182,10 @@ func (a mgmtAPI) DeleteOperator(w http.ResponseWriter, r *http.Request, id strin
 	a.h.DeleteOperator(w, r, id)
 }
 
+func (a mgmtAPI) GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, p mgmtapi.GetTenantJobsParams) {
+	a.h.GetTenantJobs(w, r, tenant, p)
+}
+
 func (a mgmtAPI) TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant, id, name string) {
 	a.h.TryConnectionScript(w, r, tenant, id, name)
 }

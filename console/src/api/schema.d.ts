@@ -775,6 +775,171 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/jobs/users-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import users from a file
+         * @description Requires `create:users`. A `multipart/form-data` body of at most
+         *     512000 bytes, framing included (`413` above, without `errorCode`):
+         *     the `users` file (a JSON array of users in Auth0's import schema),
+         *     `connection_id` (a database connection enabled for at least one
+         *     application; a custom database must be in import mode), `upsert`
+         *     (`true` updates the users the file names by email; anything else
+         *     does not), `send_completion_email` (anything but `false` emails the
+         *     tenant's operators when the job ends) and `external_id` (echoed).
+         *     Answers `202` with the job. A tenant may have 2 import jobs pending
+         *     or running; a third is `429` without `errorCode`.
+         *
+         *     A missing `users` or `connection_id` part, or a malformed
+         *     `connection_id`, is `400 invalid_body`; an empty file, a connection
+         *     that is not a database connection, or a custom database without
+         *     import mode is `400 operation_not_supported`; an unknown connection
+         *     is `400 inexistent_connection`; a connection enabled for no
+         *     application is `400 connection_is_disabled`. A file that is not a
+         *     JSON array is accepted and the job fails; each record that fails
+         *     is listed by `GET /jobs/{id}/errors`, with its hashes masked.
+         */
+        post: operations["createUsersImportJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/jobs/users-exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export users to a file
+         * @description Requires `read:users`. A JSON body (an empty body is `{}`; form-encoded
+         *     bodies are not accepted); unknown
+         *     properties, `limit` below 1, `format` other than `json` or `csv` and
+         *     more than 30 `fields` are `400 invalid_body`. Answers `200` with the
+         *     job, echoing `connection_id`, `connection`, `format` (default `csv`),
+         *     `limit` and `fields` as given. Without `connection_id` every
+         *     connection is exported, and without `limit` every user.
+         *
+         *     A worker writes a gzipped file, users in `user_id` order: newline
+         *     delimited JSON (one object per user, the key of each field being its
+         *     `export_as` or its name, fields without a value left out) or CSV
+         *     (a header of the same names; strings quoted with a leading `'`,
+         *     numbers, booleans and dates bare, objects and arrays empty).
+         *     Without `fields`, the columns are `user_id`, `email`, `name`,
+         *     `family_name`, `given_name`, `phone_number`, `nickname`, `username`,
+         *     `last_ip`, `logins_count`, `created_at`, `updated_at`, `deleted_at`,
+         *     `last_login`, `blocked`, `deleted`, `email_verified`,
+         *     `phone_verified` and `identities.[0].connection`. A field name is a
+         *     user property, a dotted path into it (`user_metadata.plan`,
+         *     `identities.[0].connection`) or anything else, which is an empty
+         *     value. A password hash is never exported.
+         *
+         *     A completed job has a `location` that works for 60 seconds, new at
+         *     every `GET /jobs/{id}`.
+         */
+        post: operations["createUsersExportJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/jobs/verification-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send an email address verification email
+         * @description Requires `update:users`. Queues a job that emails the user a link that
+         *     verifies their address (432000 s, as for `POST /tickets/email-verification`)
+         *     and answers `201` with the job, `status: pending`, whether or not the
+         *     user is already verified. Without an email provider the job still
+         *     completes. `identity` names one of the user's identities and
+         *     `client_id` the application the email is for.
+         *
+         *     A missing or empty `user_id`, a wrong type and an unknown property
+         *     (`organization_id` too: zeroauthy has no organizations) are
+         *     `400 invalid_body`; as on Auth0 every other error is a `400` too: an
+         *     unknown user is `inexistent_user`; an identity the user does not have
+         *     is `inexistent_identity`; an unknown `client_id` is
+         *     `inexistent_client`; a user without an email address, or an identity
+         *     that is not in a database connection, is `operation_not_supported`.
+         */
+        post: operations["createVerificationEmailJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The job's ID, `job_` and 16 letters or digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a job
+         * @description Requires `create:users` or `read:users`. A job that is running reads
+         *     `pending`; there is no progress. Jobs are kept for 24 hours; an unknown
+         *     or expired job is `404 inexistent_job`.
+         */
+        get: operations["getJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/jobs/{id}/errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The job's ID, `job_` and 16 letters or digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get the errors of a job
+         * @description Requires `create:users` or `read:users`. A completed import answers
+         *     `200` with its record errors (`[]` when none); an export or a completed
+         *     verification email job answers `204`; a failed job answers `200` with
+         *     the job object itself.
+         */
+        get: operations["getJobErrors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/users-by-email": {
         parameters: {
             query?: never;
@@ -893,6 +1058,34 @@ export interface paths {
          *     tokens. Their user stays. The last operator cannot be removed.
          */
         delete: operations["deleteOperator"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/tenants/{tenant}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List a tenant's jobs
+         * @description A zeroauthy extension (Auth0 has no job list). The tenant's jobs,
+         *     newest first, for the console's import and export page. Each job is
+         *     as `GET /api/v2/jobs/{id}` reports it, without `location`, and an
+         *     import also carries `weak_hashes` (how many of its records had a
+         *     weak password hash) and its `summary` whatever its status. The
+         *     uploaded file is never returned.
+         */
+        get: operations["getTenantJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1600,6 +1793,102 @@ export interface components {
         Ticket: {
             /** @description The ticket's URL. Its token is shown only here. */
             ticket: string;
+        };
+        /** @description Unknown parts are ignored. */
+        UsersImportJobCreate: {
+            /**
+             * Format: binary
+             * @description The file: a JSON array of users.
+             */
+            users: string;
+            /** @description The database connection, `con_` and 16 letters or digits. */
+            connection_id: string;
+            /** @description `true` updates existing users (matched by email). */
+            upsert?: string;
+            /** @description Echoed in the job. */
+            external_id?: string;
+            /** @description `false` sends no completion email; the default is `true`. */
+            send_completion_email?: string;
+        };
+        /** @description Unknown properties are `400 invalid_body`. */
+        UsersExportJobCreate: {
+            /** @description A connection to export; every connection when absent. */
+            connection_id?: string;
+            /**
+             * @default csv
+             * @enum {string}
+             */
+            format: "json" | "csv";
+            /** @description The most users to export; all when absent. */
+            limit?: number;
+            fields?: {
+                name: string;
+                export_as?: string;
+            }[];
+        };
+        /** @description Unknown properties are `400 invalid_body`. */
+        VerificationEmailJobCreate: {
+            /** @description The user to send the email to. */
+            user_id: string;
+            /** @description The application the email is for. */
+            client_id?: string;
+            /** @description One of the user's database identities; the user's primary one when absent. */
+            identity?: {
+                /** @description The identity's ID, without the provider. */
+                user_id?: string;
+                provider?: string;
+                connection_id?: string;
+            };
+        };
+        /**
+         * @description A job in Auth0's shape. `status` is `pending`, `completed` or `failed`
+         *     (a running job reads `pending`). `status_details` appears only on a
+         *     failed job, `summary` only on a completed import and `location` only
+         *     on a completed export.
+         */
+        Job: {
+            id: string;
+            /** @enum {string} */
+            type: "users_import" | "users_export" | "verification_email";
+            /** @enum {string} */
+            status: "pending" | "completed" | "failed";
+            created_at: string;
+            connection_id?: string;
+            connection?: string;
+            external_id?: string;
+            format?: string;
+            limit?: number;
+            fields?: {
+                [key: string]: unknown;
+            }[];
+            status_details?: string;
+            location?: string;
+            /** @description On the system API's job list: the import's records with a weak password hash. */
+            weak_hashes?: number;
+            summary?: {
+                failed?: number;
+                updated?: number;
+                inserted?: number;
+                total?: number;
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        JobPage: {
+            jobs?: components["schemas"]["Job"][];
+            start?: number;
+            limit?: number;
+            total?: number;
+        };
+        /** @description The failure of one record of an import. */
+        JobError: {
+            /** @description The record, with its secrets masked. */
+            user?: unknown;
+            errors?: {
+                code?: string;
+                message?: string;
+                path?: string;
+            }[];
         };
         /** @description One of the user's identities. */
         TicketIdentity: {
@@ -3089,6 +3378,166 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    createUsersImportJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UsersImportJobCreate"];
+            };
+        };
+        responses: {
+            /** @description The job. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description The body is over 512000 bytes. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+            /** @description The tenant already has 2 active import jobs. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagementError"];
+                };
+            };
+        };
+    };
+    createUsersExportJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UsersExportJobCreate"];
+            };
+        };
+        responses: {
+            /** @description The job. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createVerificationEmailJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationEmailJobCreate"];
+            };
+        };
+        responses: {
+            /** @description The job. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The job's ID, `job_` and 16 letters or digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The job. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getJobErrors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The job's ID, `job_` and 16 letters or digits; anything else is `400 invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record errors, or the failed job. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobError"][] | components["schemas"]["Job"];
+                };
+            };
+            /** @description The job has no errors to list. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     getUsersByEmail: {
         parameters: {
             query?: {
@@ -3301,6 +3750,40 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    getTenantJobs: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0. */
+                page?: components["parameters"]["page"];
+                /** @description Number of results per page; more than 100 is refused (`invalid_query_string`). */
+                per_page?: components["parameters"]["per_page"];
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: components["parameters"]["include_totals"];
+            };
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page of jobs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"][] | components["schemas"]["JobPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     tryConnectionScript: {

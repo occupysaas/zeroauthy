@@ -11,6 +11,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -420,4 +421,44 @@ func (h *Handlers) DeleteOperator(w http.ResponseWriter, r *http.Request, id str
 	h.audit(r, "remove operator", "user_id", id)
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetTenantJobs lists a tenant's jobs, newest first, for the console. A
+// zeroauthy extension: Auth0 has no job list. Each job is JobJSON without a
+// download link; an import also carries weak_hashes and its summary in
+// every status. The uploaded file is never loaded (Jobs.List omits Input).
+func (h *Handlers) GetTenantJobs(w http.ResponseWriter, r *http.Request, tenantName string, _ mgmtapi.GetTenantJobsParams) {
+	page, perPage, totals, err := Page(r)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
+	tn, err := h.Store.Tenants().GetByName(r.Context(), tenantName)
+	if errors.Is(err, store.ErrNotFound) {
+		Fail(w, errTenantNotFound)
+		return
+	}
+	if err != nil {
+		Fail(w, internalError(h, r, "list jobs", err))
+		return
+	}
+	got, total, err := h.Store.Jobs().List(r.Context(), tn.ID, store.Page{Offset: page * perPage, Limit: perPage})
+	if err != nil {
+		Fail(w, internalError(h, r, "list jobs", err))
+		return
+	}
+	out := make([]map[string]any, 0, len(got))
+	for _, j := range got {
+		m := JobJSON(j, "")
+		if j.Type == store.JobUsersImport {
+			m["summary"] = map[string]any{"failed": j.Summary.Failed, "updated": j.Summary.Updated, "inserted": j.Summary.Inserted, "total": j.Summary.Total}
+			weak, _ := j.Params[jobs.ParamWeakHashes].(float64)
+			if n, ok := j.Params[jobs.ParamWeakHashes].(int); ok {
+				weak = float64(n)
+			}
+			m["weak_hashes"] = int(weak)
+		}
+		out = append(out, m)
+	}
+	WritePage(w, "jobs", out, page, perPage, total, totals)
 }

@@ -26,13 +26,21 @@ export interface Call {
   method: string
   url: string
   body: unknown
+  // form is the multipart body of an upload, as name to text or File.
+  form?: Record<string, string | File>
 }
 
 // fakeServices answers API calls with handler, signed in, with no guards.
 export function fakeServices(handler: (c: Call) => Reply | Promise<Reply>) {
   const calls: Call[] = []
   const fetchFn = async (url: RequestInfo | URL, init?: RequestInit) => {
-    const c = { method: init?.method ?? 'GET', url: String(url), body: init?.body ? JSON.parse(String(init.body)) : undefined }
+    const isForm = init?.body instanceof FormData
+    const c: Call = {
+      method: init?.method ?? 'GET',
+      url: String(url),
+      body: init?.body && !isForm ? JSON.parse(String(init.body)) : undefined,
+      form: isForm ? (Object.fromEntries((init!.body as FormData).entries()) as Record<string, string | File>) : undefined,
+    }
     calls.push(c)
     const r = await handler(c)
     return new Response(r.body === undefined ? null : JSON.stringify(r.body), { status: r.status, headers: r.headers })

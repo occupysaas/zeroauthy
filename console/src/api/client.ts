@@ -37,6 +37,10 @@ export type UserSessionPage = components['schemas']['UserSessionPage']
 export type UserRefreshToken = components['schemas']['UserRefreshToken']
 export type UserRefreshTokenPage = components['schemas']['UserRefreshTokenPage']
 export type UserGrant = components['schemas']['UserGrant']
+export type Job = components['schemas']['Job']
+export type JobPage = components['schemas']['JobPage']
+export type JobError = components['schemas']['JobError']
+export type UsersExportJobCreate = components['schemas']['UsersExportJobCreate']
 export type ManagementError = components['schemas']['ManagementError']
 
 export class ApiError extends Error {
@@ -61,17 +65,19 @@ export class Api {
     private fetchFn: typeof fetch = (...a) => window.fetch(...a),
   ) {}
 
+  // body is JSON, or a FormData sent as multipart (its boundary is the browser's).
   async request<T>(origin: string, method: string, path: string, opts: { query?: Query; body?: unknown } = {}): Promise<T> {
     const url = new URL(path, origin)
     for (const [k, v] of Object.entries(opts.query ?? {})) {
       if (v !== undefined && v !== '') url.searchParams.set(k, String(v))
     }
     const headers: Record<string, string> = { Authorization: 'Bearer ' + (await this.token()) }
-    if (opts.body !== undefined) headers['Content-Type'] = 'application/json'
+    const form = typeof FormData !== 'undefined' && opts.body instanceof FormData
+    if (opts.body !== undefined && !form) headers['Content-Type'] = 'application/json'
     const res = await this.fetchFn(url.toString(), {
       method,
       headers,
-      body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+      body: opts.body === undefined ? undefined : form ? (opts.body as FormData) : JSON.stringify(opts.body),
     })
     if (res.status === 204) return undefined as T
     const body = (await res.json().catch(() => null)) as unknown
@@ -225,6 +231,36 @@ export class Api {
 
   createVerificationTicket(t: SystemTenant, userId: string): Promise<{ ticket: string }> {
     return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/tickets/email-verification', { body: { user_id: userId } })
+  }
+
+  // The jobs. The list is the system API's (Auth0 has none); the rest are
+  // the tenant's /api/v2/jobs.
+  listJobs(t: Pick<SystemTenant, 'name'>, q: { page: number; per_page: number }): Promise<JobPage> {
+    return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/jobs`, { query: { ...q, include_totals: true } })
+  }
+
+  createImportJob(t: SystemTenant, form: FormData): Promise<Job> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/jobs/users-imports', { body: form })
+  }
+
+  createExportJob(t: SystemTenant, body: UsersExportJobCreate): Promise<Job> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/jobs/users-exports', { body })
+  }
+
+  // getJob reads the job; a completed export carries a new 60-second
+  // location on every read, so callers read again for each download.
+  getJob(t: SystemTenant, id: string): Promise<Job> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/jobs/' + encodeURIComponent(id))
+  }
+
+  // getJobErrors: the import's failed records (secrets masked by the
+  // server), undefined for an export (204), or the job itself when it failed.
+  getJobErrors(t: SystemTenant, id: string): Promise<JobError[] | Job | undefined> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/jobs/' + encodeURIComponent(id) + '/errors')
+  }
+
+  createVerificationEmailJob(t: SystemTenant, userId: string): Promise<Job> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/jobs/verification-email', { body: { user_id: userId } })
   }
 
   getConnection(t: SystemTenant, id: string): Promise<Connection> {

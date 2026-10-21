@@ -118,6 +118,8 @@ function world(extra: Partial<World> = {}) {
         return { status: 201, body: { ticket: 'https://acme.example.test/lo/reset?ticket=SECRETRESET' } }
       case 'POST /api/v2/tickets/email-verification':
         return { status: 201, body: { ticket: 'https://acme.example.test/lo/verify?ticket=SECRETVERIFY' } }
+      case 'POST /api/v2/jobs/verification-email':
+        return { status: 201, body: { id: 'job_abcdefgh12345678', type: 'verification_email', status: 'pending', created_at: '2026-10-20T10:00:00.000Z' } }
       case 'POST /api/v2/users/auth0|abc/identities':
         return { status: 201, body: [...(w.user.identities ?? []), { connection: 'Users c0', user_id: 'zed', provider: 'auth0', isSocial: false, profileData: { email: 'zed@example.test' } }] }
       case 'DELETE /api/v2/users/auth0|abc/identities/auth0/zed':
@@ -509,10 +511,33 @@ describe('actions', () => {
     wrapper.unmount()
   })
 
-  it('shows the verification link to copy, since no email job exists', async () => {
+  it('queues the verification email job and shows its id', async () => {
     const { handler } = world()
     const { wrapper, calls } = await mountAt(Detail, path, handler)
     await click(button('Send verification email'))
+    const sent = writes(calls)
+    expect(sent).toHaveLength(1)
+    expect(new URL(sent[0]!.url).host).toBe('acme.example.test')
+    expect(new URL(sent[0]!.url).pathname).toBe('/api/v2/jobs/verification-email')
+    expect(sent[0]!.body).toEqual({ user_id: 'auth0|abc' })
+    expect(q('[role="status"]').textContent).toContain('job_abcdefgh12345678')
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('shows why the verification job was refused', async () => {
+    const { handler } = world({ fail: { 'POST /api/v2/jobs/verification-email': apiError(400, 'operation_not_supported', 'The user has no email address') } })
+    const { wrapper } = await mountAt(Detail, path, handler)
+    await click(button('Send verification email'))
+    expect(q('[role="alert"]').textContent).toContain('The user has no email address')
+    expect(document.body.textContent).not.toContain('queued')
+    wrapper.unmount()
+  })
+
+  it('still offers the verification link to copy', async () => {
+    const { handler } = world()
+    const { wrapper, calls } = await mountAt(Detail, path, handler)
+    await click(button('Create verification link'))
     expect(new URL(writes(calls)[0]!.url).pathname).toBe('/api/v2/tickets/email-verification')
     expect(q('[data-testid="ticket-url"]').textContent).toContain('SECRETVERIFY')
     wrapper.unmount()

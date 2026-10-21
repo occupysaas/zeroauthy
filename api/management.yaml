@@ -1774,6 +1774,45 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
+  /api/system/tenants/{tenant}/jobs:
+    parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+    get:
+      operationId: getTenantJobs
+      tags: [system]
+      summary: List a tenant's jobs
+      description: |
+        A zeroauthy extension (Auth0 has no job list). The tenant's jobs,
+        newest first, for the console's import and export page. Each job is
+        as `GET /api/v2/jobs/{id}` reports it, without `location`, and an
+        import also carries `weak_hashes` (how many of its records had a
+        weak password hash) and its `summary` whatever its status. The
+        uploaded file is never returned.
+      x-source:
+        - https://auth0.com/docs/manage-users/user-migration/bulk-user-imports
+      security: [{operatorToken: []}]
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/per_page"
+        - $ref: "#/components/parameters/include_totals"
+      responses:
+        "200":
+          description: The page of jobs.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items: {$ref: "#/components/schemas/Job"}
+                  - $ref: "#/components/schemas/JobPage"
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try:
     parameters:
       - name: tenant
@@ -2687,6 +2726,7 @@ components:
         fields: {type: array, items: {type: object, additionalProperties: true}}
         status_details: {type: string}
         location: {type: string}
+        weak_hashes: {type: integer, description: "On the system API's job list: the import's records with a weak password hash."}
         summary:
           type: object
           properties:
@@ -2694,6 +2734,13 @@ components:
             updated: {type: integer}
             inserted: {type: integer}
             total: {type: integer}
+    JobPage:
+      type: object
+      properties:
+        jobs: {type: array, items: {$ref: "#/components/schemas/Job"}}
+        start: {type: integer}
+        limit: {type: integer}
+        total: {type: integer}
     JobError:
       type: object
       description: The failure of one record of an import.
