@@ -57,6 +57,8 @@ tags:
     description: Users' consents (Auth0's `/api/v2/grants`).
   - name: tickets
     description: Password-change and email verification links (Auth0's `/api/v2/tickets`).
+  - name: jobs
+    description: "Background jobs (verification emails; Auth0's `/api/v2/jobs`)."
   - name: system
     description: zeroauthy's own API for tenants and operators (operator tokens only).
 security:
@@ -1379,6 +1381,103 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/jobs/verification-email:
+    post:
+      operationId: createVerificationEmailJob
+      tags: [jobs]
+      summary: Send an email address verification email
+      description: |
+        Requires `update:users`. Queues a job that emails the user a link that
+        verifies their address (432000 s, as for `POST /tickets/email-verification`)
+        and answers `201` with the job, `status: pending`, whether or not the
+        user is already verified. Without an email provider the job still
+        completes. `identity` names one of the user's identities and
+        `client_id` the application the email is for.
+
+        A missing or empty `user_id`, a wrong type and an unknown property
+        (`organization_id` too: zeroauthy has no organizations) are
+        `400 invalid_body`; an unknown user is `404 inexistent_user`; an
+        identity the user does not have is `404 inexistent_identity`; an
+        unknown `client_id` is `404 inexistent_client`; a user without an
+        email address, or an identity that is not in a database connection,
+        is `400 operation_not_supported`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/jobs/post-verification-email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VerificationEmailJobCreate"}
+      responses:
+        "201":
+          description: The job.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Job"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/jobs/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The job's ID, `job_` and 16 letters or digits; anything else is `400 invalid_uri`.
+        schema: {type: string}
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: Get a job
+      description: |
+        Requires `create:users` or `read:users`. A job that is running reads
+        `pending`; there is no progress. Jobs are kept for 24 hours; an unknown
+        or expired job is `404 inexistent_job`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/jobs/get-jobs-by-id
+      responses:
+        "200":
+          description: The job.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Job"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/jobs/{id}/errors:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The job's ID, `job_` and 16 letters or digits; anything else is `400 invalid_uri`.
+        schema: {type: string}
+    get:
+      operationId: getJobErrors
+      tags: [jobs]
+      summary: Get the errors of a job
+      description: |
+        Requires `create:users` or `read:users`. A completed import answers
+        `200` with its record errors (`[]` when none); an export or a completed
+        verification email job answers `204`; a failed job answers `200` with
+        the job object itself.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/jobs/get-errors
+      responses:
+        "200":
+          description: The record errors, or the failed job.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items: {$ref: "#/components/schemas/JobError"}
+                  - $ref: "#/components/schemas/Job"
+        "204": {description: The job has no errors to list.}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /api/v2/users-by-email:
     get:
       operationId: getUsersByEmail
@@ -2427,6 +2526,62 @@ components:
       additionalProperties: false
       properties:
         ticket: {type: string, description: "The ticket's URL. Its token is shown only here."}
+    VerificationEmailJobCreate:
+      type: object
+      required: [user_id]
+      description: Unknown properties are `400 invalid_body`.
+      properties:
+        user_id: {type: string, description: The user to send the email to.}
+        client_id: {type: string, description: The application the email is for.}
+        identity:
+          type: object
+          description: One of the user's database identities; the user's primary one when absent.
+          properties:
+            user_id: {type: string, description: "The identity's ID, without the provider."}
+            provider: {type: string}
+            connection_id: {type: string}
+    Job:
+      type: object
+      description: |
+        A job in Auth0's shape. `status` is `pending`, `completed` or `failed`
+        (a running job reads `pending`). `status_details` appears only on a
+        failed job, `summary` only on a completed import and `location` only
+        on a completed export.
+      additionalProperties: true
+      required: [id, type, status, created_at]
+      properties:
+        id: {type: string}
+        type: {type: string, enum: [users_import, users_export, verification_email]}
+        status: {type: string, enum: [pending, completed, failed]}
+        created_at: {type: string}
+        connection_id: {type: string}
+        connection: {type: string}
+        external_id: {type: string}
+        format: {type: string}
+        limit: {type: integer}
+        fields: {type: array, items: {type: object, additionalProperties: true}}
+        status_details: {type: string}
+        location: {type: string}
+        summary:
+          type: object
+          properties:
+            failed: {type: integer}
+            updated: {type: integer}
+            inserted: {type: integer}
+            total: {type: integer}
+    JobError:
+      type: object
+      description: The failure of one record of an import.
+      properties:
+        user: {description: "The record, with its secrets masked."}
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code: {type: string}
+              message: {type: string}
+              path: {type: string}
     TicketIdentity:
       type: object
       description: One of the user's identities.

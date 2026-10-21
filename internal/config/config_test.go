@@ -301,3 +301,25 @@ func TestSeedMode(t *testing.T) {
 		t.Error("an unknown seed_mode was accepted")
 	}
 }
+
+func TestJobsSettings(t *testing.T) {
+	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Jobs.Workers != 2 || cfg.Jobs.Lease != time.Minute {
+		t.Errorf("defaults = %+v, want 2 workers and a 60s lease", cfg.Jobs)
+	}
+	cfg, err = Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_JOBS__WORKERS=0", "ZEROAUTHY_JOBS__LEASE=90s"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Jobs.Workers != 0 || cfg.Jobs.Lease != 90*time.Second {
+		t.Errorf("jobs = %+v, want 0 workers and 90s", cfg.Jobs)
+	}
+	for _, env := range []string{"ZEROAUTHY_JOBS__WORKERS=-1", "ZEROAUTHY_JOBS__LEASE=0s", "ZEROAUTHY_JOBS__LEASE=500ms"} {
+		if _, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, env}); err == nil {
+			t.Errorf("%s was accepted", env)
+		}
+	}
+}

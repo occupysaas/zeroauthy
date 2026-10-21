@@ -31,6 +31,7 @@ type Config struct {
 	Log      Log      `koanf:"log"`
 	Email    Email    `koanf:"email"`
 	CustomDB CustomDB `koanf:"custom_db"`
+	Jobs     Jobs     `koanf:"jobs"`
 	// Bootstrap creates the first console operator on an empty install.
 	Bootstrap Bootstrap `koanf:"bootstrap"`
 	// Seed is an optional path to a declarative seed file applied at startup.
@@ -104,6 +105,16 @@ type CustomDB struct {
 	IdleTimeout time.Duration `koanf:"idle_timeout"`  // idle runner lifetime; default 5m
 }
 
+// Jobs configures the workers that run Management API jobs.
+type Jobs struct {
+	// Workers is how many jobs this process runs at once; default 2. 0
+	// disables the pool on this process (another process may run the jobs).
+	Workers int `koanf:"workers"`
+	// Lease is how long a worker holds a job before another may take it
+	// over; workers renew it every third of it. Default 60s, at least 1s.
+	Lease time.Duration `koanf:"lease"`
+}
+
 type Log struct {
 	Level  string `koanf:"level"`  // debug, info, warn, error
 	Format string `koanf:"format"` // json, text
@@ -138,6 +149,7 @@ func defaults() *Config {
 			DeviceActivationTxnMaxMisses: 5, DeviceActivationIPMaxMisses: 10, DeviceActivationIPLockoutSeconds: 900,
 			DeviceActivationTenantMaxMisses: 1000, DeviceActivationTenantWindowSeconds: 600, DeviceActivationTenantLockoutSeconds: 60,
 		},
+		Jobs:     Jobs{Workers: 2, Lease: time.Minute},
 		CustomDB: CustomDB{Node: "node", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute},
 		Email:    Email{Driver: "log", From: "zeroauthy@localhost", SMTP: SMTP{Port: 587}},
 	}
@@ -258,6 +270,12 @@ func (c *Config) validate() error {
 	}
 	if c.CustomDB.IdleTimeout <= 0 {
 		errs = append(errs, errors.New("custom_db.idle_timeout must be positive"))
+	}
+	if c.Jobs.Workers < 0 {
+		errs = append(errs, fmt.Errorf("jobs.workers %d must not be negative", c.Jobs.Workers))
+	}
+	if c.Jobs.Lease < time.Second {
+		errs = append(errs, fmt.Errorf("jobs.lease %s must be at least 1s", c.Jobs.Lease))
 	}
 	switch c.Email.Driver {
 	case "log":

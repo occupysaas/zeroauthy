@@ -95,6 +95,8 @@ operators manage it.
 | `GET /api/v2/grants` | `read:grants` |
 | `DELETE /api/v2/grants`, `DELETE /api/v2/grants/{id}` | `delete:grants` |
 | `POST /api/v2/tickets/password-change`, `POST /api/v2/tickets/email-verification` | `create:user_tickets` |
+| `POST /api/v2/jobs/verification-email` | `update:users` |
+| `GET /api/v2/jobs/{id}`, `GET /api/v2/jobs/{id}/errors` | `create:users` or `read:users` |
 
 ## Shared behaviour
 
@@ -416,10 +418,18 @@ current pages. See D-0043 for the choices Auth0 does not document.
 
 ### Not yet
 
-Jobs (user import, export and the verification-email job) are Plan 18.
-The verification email itself is sent at sign-up and on user creation, but
-there is no `POST /api/v2/jobs/verification-email` yet; an email-verification
-ticket gives you the link to send yourself.
+User import and export jobs are Plan 18 (in progress).
+
+### Jobs
+
+`POST /api/v2/jobs/verification-email` checks the request at once (unknown
+user, identity or application, no email address) and answers `201` with a
+`pending` job; a worker sends the email. `GET /api/v2/jobs/{id}` reads the
+job: a running job still reads `pending`, with no progress, as on Auth0.
+`GET /api/v2/jobs/{id}/errors` answers `204` for a verification job and the
+job itself when it failed. Jobs are kept for 24 hours. `jobs.workers`
+(default 2; 0 turns the workers off on that process) and `jobs.lease`
+(default 60s) configure the workers; several processes may share a database.
 
 ## A machine-to-machine application without the seed
 

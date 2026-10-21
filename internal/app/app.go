@@ -16,7 +16,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/login"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/server"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -31,6 +33,7 @@ type App struct {
 	log     *slog.Logger
 	store   store.Store
 	runner  *customdb.NodeRunner
+	jobs    *jobs.Runner
 	handler http.Handler
 }
 
@@ -162,6 +165,18 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		return nil, err
 	}
 
+	// The workers send verification emails through the same mailer kind as
+	// the Management API's users routes.
+	jobRunner := &jobs.Runner{
+		Store: st, Workers: cfg.Jobs.Workers, LeaseFor: cfg.Jobs.Lease, Log: log,
+		Processors: map[store.JobType]jobs.Processor{
+			store.JobVerificationEmail: jobs.VerifyEmail{
+				Sender: &login.VerificationMailer{Store: st, Mailer: mailer, BaseDomain: cfg.Server.BaseDomain, Log: log},
+				Log:    log,
+			},
+		},
+	}
+
 	lockout := time.Duration(cfg.Security.LoginLockoutSeconds) * time.Second
 	sec := cfg.Security
 	return &App{
@@ -169,15 +184,17 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		log:    log,
 		store:  st,
 		runner: runner,
+		jobs:   jobRunner,
 		handler: server.New(server.Deps{
-			Store:    st,
-			Keys:     km,
-			Resolver: tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),
-			Sessions: &session.Manager{Store: st, TrustProxyHeaders: cfg.Server.TrustProxyHeaders},
-			Log:      log,
-			Mailer:   mailer,
-			Wrapper:  wrapper,
-			Scripts:  &customdb.Client{Exec: runner, Wrapper: wrapper},
+			Store:     st,
+			Keys:      km,
+			Resolver:  tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),
+			Sessions:  &session.Manager{Store: st, TrustProxyHeaders: cfg.Server.TrustProxyHeaders},
+			Log:       log,
+			Mailer:    mailer,
+			JobNotify: jobRunner.Notify,
+			Wrapper:   wrapper,
+			Scripts:   &customdb.Client{Exec: runner, Wrapper: wrapper},
 
 			UserThrottle:      identity.NewThrottle(cfg.Security.LoginMaxAttempts, lockout, lockout),
 			IPThrottle:        identity.NewThrottle(10*cfg.Security.LoginMaxAttempts, lockout, lockout),
@@ -258,6 +275,20 @@ func (a *App) Serve(ctx context.Context) error {
 	}()
 	a.log.Info("listening", "addr", a.cfg.Server.Listen, "tls", tls)
 	go a.sweepLoop(ctx, sweepInterval)
+	if a.jobs != nil && a.jobs.Workers > 0 {
+		// Workers stop with Serve, which waits a little for the job they
+		// are on before the caller closes the store.
+		jobsCtx, stopJobs := context.WithCancel(ctx)
+		jobsDone := make(chan struct{})
+		go func() { defer close(jobsDone); a.jobs.Run(jobsCtx) }()
+		defer func() {
+			stopJobs()
+			select {
+			case <-jobsDone:
+			case <-time.After(10 * time.Second):
+			}
+		}()
+	}
 
 	select {
 	case err := <-errc:

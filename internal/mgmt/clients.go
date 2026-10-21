@@ -55,6 +55,9 @@ type Handlers struct {
 	// Verification sends verification emails for /users; nil logs and
 	// sends nothing.
 	Verification VerificationSender
+	// Notify wakes the job workers after a job is stored; nil does
+	// nothing (the workers poll).
+	Notify func()
 	// Keys verifies link_with ID tokens (POST /users/{id}/identities).
 	Keys *keys.Manager
 

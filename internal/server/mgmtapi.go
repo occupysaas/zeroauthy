@@ -240,3 +240,18 @@ func (a mgmtAPI) DeleteGrantsByUser(w http.ResponseWriter, r *http.Request, _ mg
 func (a mgmtAPI) DeleteGrant(w http.ResponseWriter, r *http.Request, id string) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteGrant(w, r, id) }, "delete:grants")
 }
+
+// GetJob: create:users or read:users.
+func (a mgmtAPI) GetJob(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetJob(w, r, id) }, "create:users", "read:users")
+}
+
+// GetJobErrors: create:users or read:users.
+func (a mgmtAPI) GetJobErrors(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetJobErrors(w, r, id) }, "create:users", "read:users")
+}
+
+// CreateVerificationEmailJob: update:users.
+func (a mgmtAPI) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateVerificationEmailJob, "update:users")
+}

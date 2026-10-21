@@ -39,6 +39,10 @@ type Deps struct {
 	Log      *slog.Logger
 	Mailer   email.Mailer
 
+	// JobNotify wakes the job workers after a job is stored; nil does
+	// nothing.
+	JobNotify func()
+
 	// Wrapper opens sealed client secrets at the token endpoint. It must be
 	// the master key wrapper the seed and the Management API seal with.
 	Wrapper keys.Wrapper
@@ -220,7 +224,7 @@ func New(d Deps) http.Handler {
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, operatorOnly)
 	mgmtapi.HandlerWithOptions(mgmtAPI{&mgmt.Handlers{
 		Store: d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
-		Scripts: d.Scripts, Keys: d.Keys, Verification: verification,
+		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify,
 	}}, mgmtapi.ChiServerOptions{
 		BaseRouter: mr,
 		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {

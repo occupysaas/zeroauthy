@@ -342,6 +342,48 @@ func (e ConnectionCreateStrategy) Valid() bool {
 	}
 }
 
+// Defines values for JobStatus.
+const (
+	Completed JobStatus = "completed"
+	Failed    JobStatus = "failed"
+	Pending   JobStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the JobStatus enum.
+func (e JobStatus) Valid() bool {
+	switch e {
+	case Completed:
+		return true
+	case Failed:
+		return true
+	case Pending:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobType.
+const (
+	UsersExport       JobType = "users_export"
+	UsersImport       JobType = "users_import"
+	VerificationEmail JobType = "verification_email"
+)
+
+// Valid indicates whether the value is a known member of the JobType enum.
+func (e JobType) Valid() bool {
+	switch e {
+	case UsersExport:
+		return true
+	case UsersImport:
+		return true
+	case VerificationEmail:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JwtConfigurationAlg.
 const (
 	JwtConfigurationAlgRS256 JwtConfigurationAlg = "RS256"
@@ -1232,6 +1274,50 @@ type EmailVerificationTicketCreate struct {
 	UserId string `json:"user_id"`
 }
 
+// Job A job in Auth0's shape. `status` is `pending`, `completed` or `failed`
+// (a running job reads `pending`). `status_details` appears only on a
+// failed job, `summary` only on a completed import and `location` only
+// on a completed export.
+type Job struct {
+	Connection    *string                   `json:"connection,omitempty"`
+	ConnectionId  *string                   `json:"connection_id,omitempty"`
+	CreatedAt     string                    `json:"created_at"`
+	ExternalId    *string                   `json:"external_id,omitempty"`
+	Fields        *[]map[string]interface{} `json:"fields,omitempty"`
+	Format        *string                   `json:"format,omitempty"`
+	Id            string                    `json:"id"`
+	Limit         *int                      `json:"limit,omitempty"`
+	Location      *string                   `json:"location,omitempty"`
+	Status        JobStatus                 `json:"status"`
+	StatusDetails *string                   `json:"status_details,omitempty"`
+	Summary       *struct {
+		Failed   *int `json:"failed,omitempty"`
+		Inserted *int `json:"inserted,omitempty"`
+		Total    *int `json:"total,omitempty"`
+		Updated  *int `json:"updated,omitempty"`
+	} `json:"summary,omitempty"`
+	Type                 JobType                `json:"type"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// JobStatus defines model for Job.Status.
+type JobStatus string
+
+// JobType defines model for Job.Type.
+type JobType string
+
+// JobError The failure of one record of an import.
+type JobError struct {
+	Errors *[]struct {
+		Code    *string `json:"code,omitempty"`
+		Message *string `json:"message,omitempty"`
+		Path    *string `json:"path,omitempty"`
+	} `json:"errors,omitempty"`
+
+	// User The record, with its secrets masked.
+	User interface{} `json:"user,omitempty"`
+}
+
 // JwtConfiguration ID token settings.
 type JwtConfiguration struct {
 	// Alg The signing algorithm; zeroauthy signs with RS256 only.
@@ -1891,6 +1977,24 @@ type UserUpdate struct {
 	VerifyEmail *bool `json:"verify_email,omitempty"`
 }
 
+// VerificationEmailJobCreate Unknown properties are `400 invalid_body`.
+type VerificationEmailJobCreate struct {
+	// ClientId The application the email is for.
+	ClientId *string `json:"client_id,omitempty"`
+
+	// Identity One of the user's database identities; the user's primary one when absent.
+	Identity *struct {
+		ConnectionId *string `json:"connection_id,omitempty"`
+		Provider     *string `json:"provider,omitempty"`
+
+		// UserId The identity's ID, without the provider.
+		UserId *string `json:"user_id,omitempty"`
+	} `json:"identity,omitempty"`
+
+	// UserId The user to send the email to.
+	UserId string `json:"user_id"`
+}
+
 // Fields defines model for fields.
 type Fields = string
 
@@ -2103,6 +2207,14 @@ type GetGrants200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// GetJobErrors200JSONResponseBody0 defines parameters for GetJobErrors.
+type GetJobErrors200JSONResponseBody0 = []JobError
+
+// GetJobErrors200JSONResponseBody defines parameters for GetJobErrors.
+type GetJobErrors200JSONResponseBody struct {
+	union json.RawMessage
+}
+
 // GetResourceServersParams defines parameters for GetResourceServers.
 type GetResourceServersParams struct {
 	// Page Page index of the results, from 0.
@@ -2252,6 +2364,9 @@ type UpdateConnectionJSONRequestBody = ConnectionUpdate
 // UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
 type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
 
+// CreateVerificationEmailJobJSONRequestBody defines body for CreateVerificationEmailJob for application/json ContentType.
+type CreateVerificationEmailJobJSONRequestBody = VerificationEmailJobCreate
+
 // CreateResourceServerJSONRequestBody defines body for CreateResourceServer for application/json ContentType.
 type CreateResourceServerJSONRequestBody = ResourceServerCreate
 
@@ -2272,6 +2387,246 @@ type UpdateUserJSONRequestBody = UserUpdate
 
 // LinkUserIdentityJSONRequestBody defines body for LinkUserIdentity for application/json ContentType.
 type LinkUserIdentityJSONRequestBody = UserIdentityLink
+
+// Getter for additional properties for Job. Returns the specified
+// element and whether it was found
+func (a Job) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for Job
+func (a *Job) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for Job to handle AdditionalProperties
+func (a *Job) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["connection"]; found {
+		err = json.Unmarshal(raw, &a.Connection)
+		if err != nil {
+			return fmt.Errorf("error reading 'connection': %w", err)
+		}
+		delete(object, "connection")
+	}
+
+	if raw, found := object["connection_id"]; found {
+		err = json.Unmarshal(raw, &a.ConnectionId)
+		if err != nil {
+			return fmt.Errorf("error reading 'connection_id': %w", err)
+		}
+		delete(object, "connection_id")
+	}
+
+	if raw, found := object["created_at"]; found {
+		err = json.Unmarshal(raw, &a.CreatedAt)
+		if err != nil {
+			return fmt.Errorf("error reading 'created_at': %w", err)
+		}
+		delete(object, "created_at")
+	}
+
+	if raw, found := object["external_id"]; found {
+		err = json.Unmarshal(raw, &a.ExternalId)
+		if err != nil {
+			return fmt.Errorf("error reading 'external_id': %w", err)
+		}
+		delete(object, "external_id")
+	}
+
+	if raw, found := object["fields"]; found {
+		err = json.Unmarshal(raw, &a.Fields)
+		if err != nil {
+			return fmt.Errorf("error reading 'fields': %w", err)
+		}
+		delete(object, "fields")
+	}
+
+	if raw, found := object["format"]; found {
+		err = json.Unmarshal(raw, &a.Format)
+		if err != nil {
+			return fmt.Errorf("error reading 'format': %w", err)
+		}
+		delete(object, "format")
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["limit"]; found {
+		err = json.Unmarshal(raw, &a.Limit)
+		if err != nil {
+			return fmt.Errorf("error reading 'limit': %w", err)
+		}
+		delete(object, "limit")
+	}
+
+	if raw, found := object["location"]; found {
+		err = json.Unmarshal(raw, &a.Location)
+		if err != nil {
+			return fmt.Errorf("error reading 'location': %w", err)
+		}
+		delete(object, "location")
+	}
+
+	if raw, found := object["status"]; found {
+		err = json.Unmarshal(raw, &a.Status)
+		if err != nil {
+			return fmt.Errorf("error reading 'status': %w", err)
+		}
+		delete(object, "status")
+	}
+
+	if raw, found := object["status_details"]; found {
+		err = json.Unmarshal(raw, &a.StatusDetails)
+		if err != nil {
+			return fmt.Errorf("error reading 'status_details': %w", err)
+		}
+		delete(object, "status_details")
+	}
+
+	if raw, found := object["summary"]; found {
+		err = json.Unmarshal(raw, &a.Summary)
+		if err != nil {
+			return fmt.Errorf("error reading 'summary': %w", err)
+		}
+		delete(object, "summary")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for Job to handle AdditionalProperties
+func (a Job) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Connection != nil {
+		object["connection"], err = json.Marshal(a.Connection)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'connection': %w", err)
+		}
+	}
+
+	if a.ConnectionId != nil {
+		object["connection_id"], err = json.Marshal(a.ConnectionId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'connection_id': %w", err)
+		}
+	}
+
+	object["created_at"], err = json.Marshal(a.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'created_at': %w", err)
+	}
+
+	if a.ExternalId != nil {
+		object["external_id"], err = json.Marshal(a.ExternalId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'external_id': %w", err)
+		}
+	}
+
+	if a.Fields != nil {
+		object["fields"], err = json.Marshal(a.Fields)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'fields': %w", err)
+		}
+	}
+
+	if a.Format != nil {
+		object["format"], err = json.Marshal(a.Format)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'format': %w", err)
+		}
+	}
+
+	object["id"], err = json.Marshal(a.Id)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'id': %w", err)
+	}
+
+	if a.Limit != nil {
+		object["limit"], err = json.Marshal(a.Limit)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'limit': %w", err)
+		}
+	}
+
+	if a.Location != nil {
+		object["location"], err = json.Marshal(a.Location)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'location': %w", err)
+		}
+	}
+
+	object["status"], err = json.Marshal(a.Status)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'status': %w", err)
+	}
+
+	if a.StatusDetails != nil {
+		object["status_details"], err = json.Marshal(a.StatusDetails)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'status_details': %w", err)
+		}
+	}
+
+	if a.Summary != nil {
+		object["summary"], err = json.Marshal(a.Summary)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'summary': %w", err)
+		}
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // Getter for additional properties for User. Returns the specified
 // element and whether it was found
@@ -2988,6 +3343,68 @@ func (t *GetGrants200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsGetJobErrors200JSONResponseBody0 returns the union data inside the GetJobErrors200JSONResponseBody as a GetJobErrors200JSONResponseBody0
+func (t GetJobErrors200JSONResponseBody) AsGetJobErrors200JSONResponseBody0() (GetJobErrors200JSONResponseBody0, error) {
+	var body GetJobErrors200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetJobErrors200JSONResponseBody0 overwrites any union data inside the GetJobErrors200JSONResponseBody as the provided GetJobErrors200JSONResponseBody0
+func (t *GetJobErrors200JSONResponseBody) FromGetJobErrors200JSONResponseBody0(v GetJobErrors200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetJobErrors200JSONResponseBody0 performs a merge with any union data inside the GetJobErrors200JSONResponseBody, using the provided GetJobErrors200JSONResponseBody0
+func (t *GetJobErrors200JSONResponseBody) MergeGetJobErrors200JSONResponseBody0(v GetJobErrors200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsJob returns the union data inside the GetJobErrors200JSONResponseBody as a Job
+func (t GetJobErrors200JSONResponseBody) AsJob() (Job, error) {
+	var body Job
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromJob overwrites any union data inside the GetJobErrors200JSONResponseBody as the provided Job
+func (t *GetJobErrors200JSONResponseBody) FromJob(v Job) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeJob performs a merge with any union data inside the GetJobErrors200JSONResponseBody, using the provided Job
+func (t *GetJobErrors200JSONResponseBody) MergeJob(v Job) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetJobErrors200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetJobErrors200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsGetResourceServers200JSONResponseBody0 returns the union data inside the GetResourceServers200JSONResponseBody as a GetResourceServers200JSONResponseBody0
 func (t GetResourceServers200JSONResponseBody) AsGetResourceServers200JSONResponseBody0() (GetResourceServers200JSONResponseBody0, error) {
 	var body GetResourceServers200JSONResponseBody0
@@ -3201,6 +3618,15 @@ type ServerInterface interface {
 	// DeleteGrant Delete a grant
 	// (DELETE /api/v2/grants/{id})
 	DeleteGrant(w http.ResponseWriter, r *http.Request, id string)
+	// CreateVerificationEmailJob Send an email address verification email
+	// (POST /api/v2/jobs/verification-email)
+	CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request)
+	// GetJob Get a job
+	// (GET /api/v2/jobs/{id})
+	GetJob(w http.ResponseWriter, r *http.Request, id string)
+	// GetJobErrors Get the errors of a job
+	// (GET /api/v2/jobs/{id}/errors)
+	GetJobErrors(w http.ResponseWriter, r *http.Request, id string)
 	// DeleteRefreshToken Delete a refresh token
 	// (DELETE /api/v2/refresh-tokens/{id})
 	DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string)
@@ -3447,6 +3873,24 @@ func (_ Unimplemented) GetGrants(w http.ResponseWriter, r *http.Request, params 
 // DeleteGrant Delete a grant
 // (DELETE /api/v2/grants/{id})
 func (_ Unimplemented) DeleteGrant(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateVerificationEmailJob Send an email address verification email
+// (POST /api/v2/jobs/verification-email)
+func (_ Unimplemented) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetJob Get a job
+// (GET /api/v2/jobs/{id})
+func (_ Unimplemented) GetJob(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetJobErrors Get the errors of a job
+// (GET /api/v2/jobs/{id}/errors)
+func (_ Unimplemented) GetJobErrors(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -4761,6 +5205,72 @@ func (siw *ServerInterfaceWrapper) DeleteGrant(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// CreateVerificationEmailJob operation middleware
+func (siw *ServerInterfaceWrapper) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateVerificationEmailJob(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetJob operation middleware
+func (siw *ServerInterfaceWrapper) GetJob(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetJob(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetJobErrors operation middleware
+func (siw *ServerInterfaceWrapper) GetJobErrors(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetJobErrors(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteRefreshToken operation middleware
 func (siw *ServerInterfaceWrapper) DeleteRefreshToken(w http.ResponseWriter, r *http.Request) {
 
@@ -5902,6 +6412,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/tickets/email-verification", wrapper.CreateEmailVerificationTicket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/jobs/verification-email", wrapper.CreateVerificationEmailJob)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/jobs/{id}", wrapper.GetJob)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/jobs/{id}/errors", wrapper.GetJobErrors)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/users-by-email", wrapper.GetUsersByEmail)

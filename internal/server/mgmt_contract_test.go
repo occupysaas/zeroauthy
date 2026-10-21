@@ -429,3 +429,50 @@ func ticketsContract(t *testing.T, c *mgmtContract, a *usersAPI, ro, id string) 
 	c.do(a.h, "POST", base+"email-verification", a.token, map[string]any{"user_id": "auth0|000000000000000000000000"})
 	c.do(a.h, "POST", base+"email-verification", ro, map[string]any{"user_id": id})
 }
+
+func TestManagementContractJobs(t *testing.T) {
+	a := newJobsAPI(t, nil)
+	c := newMgmtContract(t)
+	base := "https://acme.example.test/api/v2/jobs"
+	code, body := c.do(a.h, "POST", usersBase, a.token, map[string]any{"connection": "Username-Password-Authentication", "email": "jobs@example.test", "password": "first horse 1"})
+	var u map[string]any
+	_ = json.Unmarshal(body, &u)
+	if code != 201 {
+		t.Fatalf("create user = %d %s", code, body)
+	}
+	code, body = c.do(a.h, "POST", base+"/verification-email", a.token, map[string]any{"user_id": u["user_id"]})
+	var job map[string]any
+	_ = json.Unmarshal(body, &job)
+	id, _ := job["id"].(string)
+	if code != 201 || id == "" {
+		t.Fatalf("create job = %d %s", code, body)
+	}
+	c.do(a.h, "POST", base+"/verification-email", a.token, map[string]any{"user_id": u["user_id"], "identity": map[string]any{"user_id": "x", "provider": "auth0"}})
+	c.do(a.h, "POST", base+"/verification-email", a.token, map[string]any{"user_id": "auth0|000000000000000000000000"})
+	c.do(a.h, "POST", base+"/verification-email", a.token, map[string]any{"user_id": u["user_id"], "client_id": "nope"})
+	c.do(a.h, "POST", base+"/verification-email", a.token, map[string]any{"user_id": u["user_id"], "organization_id": "org_1"})
+	c.do(a.h, "POST", base+"/verification-email", a.token, map[string]any{})
+	c.do(a.h, "POST", base+"/verification-email", a.tokenFor("jobsread"), map[string]any{"user_id": u["user_id"]})
+	c.do(a.h, "GET", base+"/"+id, a.tokenFor("jobsread"), nil)
+	c.do(a.h, "GET", base+"/"+id, a.tokenFor("jobsnone"), nil)
+	c.do(a.h, "GET", base+"/job_unknownAAAAAAAA", a.token, nil)
+	c.do(a.h, "GET", base+"/job_x", a.token, nil)
+	c.do(a.h, "GET", base+"/"+id+"/errors", a.token, nil)
+	c.do(a.h, "GET", base+"/job_unknownAAAAAAAA/errors", a.token, nil)
+	c.do(a.h, "GET", base+"/job_x/errors", a.token, nil)
+
+	now := time.Now().UTC()
+	tn := a.tenantID()
+	for jid, j := range map[string]*store.Job{
+		"job_importDoneAAAA": {Type: store.JobUsersImport, Status: store.JobCompleted, Summary: store.JobSummary{Inserted: 1, Total: 1}, ConnectionID: "con_x", Connection: "c", ExternalID: "e"},
+		"job_importFailAAAA": {Type: store.JobUsersImport, Status: store.JobFailed, StatusDetails: "Failed to parse users file JSON when importing users. Make sure it is valid JSON."},
+		"job_exportDoneAAAA": {Type: store.JobUsersExport, Status: store.JobCompleted, Params: map[string]any{"format": "csv", "limit": float64(3)}},
+	} {
+		j.TenantID, j.ID, j.CreatedAt, j.UpdatedAt, j.ExpiresAt = tn, jid, now, now, now.Add(time.Hour)
+		if err := a.st.Jobs().Create(context.Background(), j); err != nil {
+			t.Fatal(err)
+		}
+		c.do(a.h, "GET", base+"/"+jid, a.token, nil)
+		c.do(a.h, "GET", base+"/"+jid+"/errors", a.token, nil)
+	}
+}
