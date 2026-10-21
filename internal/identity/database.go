@@ -170,12 +170,8 @@ func (d *Database) importedLogin(ctx context.Context, conn *store.Connection, u 
 		}
 		h, imp := credentials(fresh, conn.Name, login)
 		if imp != "" {
-			if !retry || imp == imported {
-				// Not upgradable (a linked identity, or a second race):
-				// the password was verified against what is stored.
-				if imp == imported {
-					return d.finishImported(fresh)
-				}
+			if !retry {
+				// Replaced again during the second pass: give up.
 				return nil, ErrInvalidCredentials
 			}
 			return d.importedLogin(ctx, conn, fresh, login, imp, password, false)
@@ -187,6 +183,9 @@ func (d *Database) importedLogin(ctx context.Context, conn *store.Connection, u 
 	}
 	// Re-read: the caller checks the user's Version before minting.
 	u, err = d.Store.Users().Get(ctx, conn.TenantID, u.UserID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, ErrInvalidCredentials
+	}
 	if err != nil {
 		return nil, err
 	}

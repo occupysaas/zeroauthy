@@ -132,18 +132,15 @@ func (r users) UpgradeImportedHash(_ context.Context, tenantID, userID, connecti
 		return store.ErrNotFound
 	}
 	for i := range u.Identities {
-		if u.Identities[i].Connection == connection && !u.Identities[i].Linked() {
-			if imported == "" || u.Identities[i].ImportedHash != imported {
-				return store.ErrConflict
-			}
-			u.Identities[i].PasswordHash = hash
-			u.Identities[i].ImportedHash = ""
+		if id := &u.Identities[i]; imported != "" && id.Connection == connection && id.ImportedHash == imported {
+			id.PasswordHash = hash
+			id.ImportedHash = ""
 			u.UpdatedAt = at
 			u.Version++
 			return nil
 		}
 	}
-	return store.ErrNotFound
+	return store.ErrConflict
 }
 
 func (r users) BumpVersion(_ context.Context, tenantID, userID string) (int64, error) {

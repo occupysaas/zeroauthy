@@ -283,12 +283,13 @@ type Users interface {
 	// to mint, and credential changes and revocations lock or write the
 	// user first, so the two serialize.
 	GetForUpdate(ctx context.Context, tenantID, userID string) (*User, error)
-	// UpgradeImportedHash atomically replaces the imported hash of the
-	// user's own (not linked) identity on connection: if its ImportedHash
-	// equals imported, PasswordHash becomes hash, ImportedHash is cleared,
-	// UpdatedAt = at and Version goes up by one. Any other ImportedHash
-	// (also when the identity has none) returns ErrConflict and changes
-	// nothing; ErrNotFound if the user or the identity is absent.
+	// UpgradeImportedHash atomically replaces an imported hash: the identity
+	// on connection (the user's own or a linked one) whose ImportedHash
+	// equals imported gets PasswordHash = hash and an empty ImportedHash,
+	// and the user gets UpdatedAt = at and Version + 1. The imported value
+	// is the compare-and-swap key: when no identity on connection holds it
+	// (including an empty imported), ErrConflict is returned and nothing
+	// changes. ErrNotFound if the user does not exist.
 	UpgradeImportedHash(ctx context.Context, tenantID, userID, connection, imported, hash string, at time.Time) error
 	// Delete removes the user and, in the same step, everything that
 	// names it: sessions, refresh tokens, user grants, password reset

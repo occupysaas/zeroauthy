@@ -315,7 +315,7 @@ func testUsers(t *testing.T, newStore Factory) {
 		// Wrong imported value, other connection, other user, other tenant.
 		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", "other", "$new", ts(time.Hour)), store.ErrConflict)
 		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", "", "$new", ts(time.Hour)), store.ErrConflict)
-		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Other", imported, "$new", ts(time.Hour)), store.ErrNotFound)
+		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Other", imported, "$new", ts(time.Hour)), store.ErrConflict)
 		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|nobody", "Database", imported, "$new", ts(time.Hour)), store.ErrNotFound)
 		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_b", "auth0|u1", "Database", imported, "$new", ts(time.Hour)), store.ErrNotFound)
 		got, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
@@ -333,6 +333,25 @@ func testUsers(t *testing.T, newStore Factory) {
 
 		// Used up: a second upgrade loses.
 		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", imported, "$again", ts(2*time.Hour)), store.ErrConflict)
+	})
+
+	t.Run("UpgradeImportedHashLinked", func(t *testing.T) {
+		s := open(t, newStore)
+		const own, linked = `{"alg":"md5","hash":"own"}`, `{"alg":"bcrypt","hash":"$2b$10$abc"}`
+		u := newUser("ten_a", "u1", "alice@example.test", "alice")
+		u.Identities[0].PasswordHash = ""
+		u.Identities[0].ImportedHash = own
+		u.Identities = append(u.Identities, store.Identity{Connection: "Database", Provider: store.StrategyDatabase,
+			UserID: "u2", ImportedHash: linked, ProfileData: map[string]any{"email": "l@example.test"}})
+		mustNoErr(t, s.Users().Create(ctx, u))
+		mustNoErr(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", linked, "$new", ts(time.Hour)))
+		got, _ := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustEqual(t, got.Identities[0].ImportedHash, own)
+		mustEqual(t, got.Identities[0].PasswordHash, "")
+		mustEqual(t, got.Identities[1].ImportedHash, "")
+		mustEqual(t, got.Identities[1].PasswordHash, "$new")
+		mustEqual(t, got.Version, int64(1))
+		mustErrIs(t, s.Users().UpgradeImportedHash(ctx, "ten_a", "auth0|u1", "Database", linked, "$again", ts(2*time.Hour)), store.ErrConflict)
 	})
 
 	t.Run("UpgradeImportedHashRace", func(t *testing.T) {

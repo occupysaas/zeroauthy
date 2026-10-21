@@ -27,8 +27,17 @@ func setImported(t *testing.T, e *env, imported string) *store.User {
 }
 
 func TestImportedHashHostedLogin(t *testing.T) {
+	for name, tc := range map[string]struct{ imported, password string }{
+		"bcrypt": {passhashtest.Bcrypt(), passhashtest.BcryptPassword},
+		"pbkdf2": {passhashtest.PBKDF2("imported pw 12"), "imported pw 12"},
+	} {
+		t.Run(name, func(t *testing.T) { testImportedHostedLogin(t, tc.imported, tc.password) })
+	}
+}
+
+func testImportedHostedLogin(t *testing.T, imported, password string) {
 	e := newEnv(t)
-	u := setImported(t, e, passhashtest.PBKDF2("imported pw 12"))
+	u := setImported(t, e, imported)
 	post := func(pw string) (int, string) {
 		b := e.browser("acme.example.test")
 		_, state, csrf := b.begin(t, "login_hint", "alice@acme.test")
@@ -41,7 +50,7 @@ func TestImportedHashHostedLogin(t *testing.T) {
 	if got, _ := e.st.Users().Get(context.Background(), u.TenantID, u.UserID); got.Identities[0].ImportedHash == "" {
 		t.Fatal("a wrong password dropped the imported hash")
 	}
-	if code, body := post("imported pw 12"); code != 302 {
+	if code, body := post(password); code != 302 {
 		t.Fatalf("imported password = %d %s", code, body)
 	}
 	got, _ := e.st.Users().Get(context.Background(), u.TenantID, u.UserID)

@@ -256,10 +256,7 @@ func (r users) UpgradeImportedHash(ctx context.Context, tenantID, userID, connec
 		}
 		found := false
 		for i := range ids {
-			if ids[i].Connection == connection && !ids[i].Linked() {
-				if imported == "" || ids[i].ImportedHash != imported {
-					return store.ErrConflict
-				}
+			if imported != "" && ids[i].Connection == connection && ids[i].ImportedHash == imported {
 				ids[i].PasswordHash = hash
 				ids[i].ImportedHash = ""
 				found = true
@@ -267,7 +264,7 @@ func (r users) UpgradeImportedHash(ctx context.Context, tenantID, userID, connec
 			}
 		}
 		if !found {
-			return store.ErrNotFound
+			return store.ErrConflict
 		}
 		enc, err := toJSON(ids)
 		if err != nil {

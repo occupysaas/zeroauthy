@@ -141,43 +141,104 @@ func (r *raceUsers) UpgradeImportedHash(ctx context.Context, tenantID, userID, c
 // A login that verified the old imported hash while an upsert replaced it:
 // the upgrade must not land; the password is checked against the new hash.
 func TestUpgradeRacesUpsert(t *testing.T) {
-	ctx := context.Background()
-	db, conn := newDB(t)
-	u := importedUser(t, db, conn, "fay@example.com", passhashtest.PBKDF2("old pw 12345"))
-	rs := &raceStore{Store: db.Store, reached: make(chan struct{}), release: make(chan struct{})}
-	db.Store = rs
-	newImported := passhashtest.PBKDF2("new pw 12345")
+	pw := passhashtest.BcryptPassword
+	for _, tc := range []struct {
+		name, upserted string
+		wantErr        error
+	}{
+		// The upsert holds another password: the login is refused and the
+		// upserted hash stays.
+		{"other password", passhashtest.PBKDF2("new pw 12345"), ErrInvalidCredentials},
+		// The upsert holds the same password in another form: the second
+		// pass verifies against it and upgrades it.
+		{"same password", passhashtest.PBKDF2(pw), nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			db, conn := newDB(t)
+			u := importedUser(t, db, conn, "fay@example.com", passhashtest.Bcrypt())
+			rs := &raceStore{Store: db.Store, reached: make(chan struct{}), release: make(chan struct{})}
+			db.Store = rs
 
-	done := make(chan error, 1)
-	go func() {
-		_, err := db.Login(ctx, conn, "fay@example.com", "old pw 12345")
-		done <- err
-	}()
-	<-rs.reached
-	cur, err := rs.Store.Users().Get(ctx, conn.TenantID, u.UserID)
-	if err != nil {
+			done := make(chan error, 1)
+			go func() {
+				_, err := db.Login(ctx, conn, "fay@example.com", pw)
+				done <- err
+			}()
+			<-rs.reached
+			cur, err := rs.Store.Users().Get(ctx, conn.TenantID, u.UserID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cur.Identities[0].ImportedHash = tc.upserted
+			if err := rs.Store.Users().Update(ctx, cur); err != nil {
+				t.Fatal(err)
+			}
+			close(rs.release)
+			if err := <-done; !errors.Is(err, tc.wantErr) {
+				t.Fatalf("login = %v; want %v", err, tc.wantErr)
+			}
+			got, _ := rs.Store.Users().Get(ctx, conn.TenantID, u.UserID)
+			id := got.Identities[0]
+			if tc.wantErr != nil {
+				if id.ImportedHash != tc.upserted || id.PasswordHash != "" {
+					t.Fatalf("upsert was overwritten: %+v", id)
+				}
+				return
+			}
+			if id.ImportedHash != "" || !strings.HasPrefix(id.PasswordHash, "$argon2id$") {
+				t.Fatalf("not upgraded: %+v", id)
+			}
+		})
+	}
+}
+
+// linkedImported stores a user from another connection with a linked
+// database identity holding imported; own, when set, is also a database
+// identity of the primary on the same connection.
+func linkedImported(t *testing.T, db *Database, conn *store.Connection, own bool, imported string) *store.User {
+	t.Helper()
+	now := fixedNow()
+	u := &store.User{TenantID: conn.TenantID, UserID: "google-oauth2|1", Email: "lin@example.com", Name: "lin", Nickname: "lin",
+		Identities: []store.Identity{{Connection: "google-oauth2", Provider: "google-oauth2", UserID: "1"}},
+		CreatedAt:  now, UpdatedAt: now}
+	if own {
+		u.UserID = "auth0|ownlin"
+		u.Email = "primary@example.com"
+		u.Identities = []store.Identity{{Connection: conn.Name, Provider: store.StrategyDatabase, UserID: "ownlin", PasswordHash: "$argon2id$other"}}
+	}
+	u.Identities = append(u.Identities, store.Identity{Connection: conn.Name, Provider: store.StrategyDatabase, UserID: "linked1",
+		ImportedHash: imported, ProfileData: map[string]any{"email": "lin@example.com"}})
+	if err := db.Store.Users().Create(context.Background(), u); err != nil {
 		t.Fatal(err)
 	}
-	cur.Identities[0].ImportedHash = newImported
-	if err := rs.Store.Users().Update(ctx, cur); err != nil {
-		t.Fatal(err)
-	}
-	close(rs.release)
-	// The old password verified against the old hash, but the user now
-	// holds the new one: the login is checked against what is stored.
-	if err := <-done; !errors.Is(err, ErrInvalidCredentials) {
-		t.Fatalf("login with the old password = %v; want ErrInvalidCredentials", err)
-	}
-	got, _ := rs.Store.Users().Get(ctx, conn.TenantID, u.UserID)
-	if got.Identities[0].ImportedHash != newImported || got.Identities[0].PasswordHash != "" {
-		t.Fatalf("upsert was overwritten: %+v", got.Identities[0])
-	}
-	if _, err := db.Login(ctx, conn, "fay@example.com", "new pw 12345"); err != nil {
-		t.Fatal(err)
-	}
-	got, _ = rs.Store.Users().Get(ctx, conn.TenantID, u.UserID)
-	if got.Identities[0].ImportedHash != "" || got.Identities[0].PasswordHash == "" {
-		t.Fatalf("not upgraded: %+v", got.Identities[0])
+	return u
+}
+
+func TestLinkedImportedLoginUpgrades(t *testing.T) {
+	for _, own := range []bool{false, true} {
+		t.Run(map[bool]string{false: "no own identity", true: "own identity"}[own], func(t *testing.T) {
+			ctx := context.Background()
+			db, conn := newDB(t)
+			u := linkedImported(t, db, conn, own, passhashtest.PBKDF2("linked pw 123"))
+			if _, err := db.Login(ctx, conn, "lin@example.com", "wrong"); !errors.Is(err, ErrInvalidCredentials) {
+				t.Fatalf("wrong password = %v", err)
+			}
+			if _, err := db.Login(ctx, conn, "lin@example.com", "linked pw 123"); err != nil {
+				t.Fatalf("Login = %v", err)
+			}
+			got, _ := db.Store.Users().Get(ctx, conn.TenantID, u.UserID)
+			l := got.Identities[len(got.Identities)-1]
+			if l.ImportedHash != "" || !strings.HasPrefix(l.PasswordHash, "$argon2id$") {
+				t.Fatalf("linked identity = %+v", l)
+			}
+			if own && got.Identities[0].PasswordHash != "$argon2id$other" {
+				t.Fatalf("own identity changed: %+v", got.Identities[0])
+			}
+			if _, err := db.Login(ctx, conn, "lin@example.com", "linked pw 123"); err != nil {
+				t.Fatalf("second Login = %v", err)
+			}
+		})
 	}
 }
 

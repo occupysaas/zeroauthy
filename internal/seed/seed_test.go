@@ -1407,3 +1407,26 @@ func TestApplySkipsLinkedUser(t *testing.T) {
 		}
 	}
 }
+
+// Seeding a password over an imported hash replaces it.
+func TestApplyClearsImportedHash(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	f, _ := Parse([]byte(sampleWithUsers))
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	u, _ := st.Users().FindByLogin(ctx, tn.ID, "Username-Password-Authentication", "alice@acme.test")
+	u.Identities[0].PasswordHash, u.Identities[0].ImportedHash = "", `{"algorithm":"md5","hash":{"value":"abc"}}`
+	if err := st.Users().Update(ctx, u); err != nil {
+		t.Fatal(err)
+	}
+	if err := Apply(ctx, st, f, fixedNow, testWrapper(t)); err != nil {
+		t.Fatal(err)
+	}
+	u, _ = st.Users().Get(ctx, tn.ID, u.UserID)
+	if id := u.Identities[0]; id.ImportedHash != "" || id.PasswordHash == "" {
+		t.Fatalf("identity = %+v", id)
+	}
+}

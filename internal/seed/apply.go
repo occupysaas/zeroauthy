@@ -334,6 +334,7 @@ func applyUser(ctx context.Context, st store.Store, tenantID string, in User, no
 			return err
 		}
 		u.Identities[i].PasswordHash = h
+		u.Identities[i].ImportedHash = "" // at most one of the two is set
 		newHash = h
 	}
 	if create {
