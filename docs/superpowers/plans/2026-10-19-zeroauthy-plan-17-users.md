@@ -84,10 +84,10 @@ The controller session runs this as the observer, with the observer M2M applicat
   - `Users.FindByEmail(ctx, tenantID, email string) ([]*User, error)` searches across connections, ordered by `UserID`. Callers pass the email lowercase.
   - `Users.Delete(ctx, tenantID, userID string) error`, all in one step: the user, sessions, refresh tokens, user grants, password reset tickets, email verification tickets (Task 4; add the clause when Task 4 lands), password history, unconsumed auth codes, and device codes that name the user. It returns `ErrNotFound` if absent. `Connections.Delete` now calls the same per-user cascade.
 
-- [ ] **Step 1: Tests** (storetest): round trips of the new fields; `RecordLogin` IP; `Version` bumps on each of the four triggers and stays the same on other updates; `SetPasswordHashIfEmpty` racing `SetPasswordHash` (20 goroutines, exactly one outcome per call, final hash never overwritten by the if-empty write); `FindByEmail` across two connections; `Delete` cascade (Review Focus 4: each dependent record is gone, other users' records stay); tenant isolation; gRPC codec round trips.
-- [ ] **Step 2: Implement** in every driver. Regenerate with `go generate ./...`.
-- [ ] **Step 3: Run** the Go suite and `./scripts/test-sql.sh ./internal/store/... ./pkg/storetest/...`. Expected: PASS on sqlite, postgres, mysql.
-- [ ] **Step 4: Commit** with `feat(store): user fields, delete cascade, user version and set-if-empty hash`.
+- [x] **Step 1: Tests** (storetest): round trips of the new fields; `RecordLogin` IP; `Version` bumps on each of the four triggers and stays the same on other updates; `SetPasswordHashIfEmpty` racing `SetPasswordHash` (20 goroutines, exactly one outcome per call, final hash never overwritten by the if-empty write); `FindByEmail` across two connections; `Delete` cascade (Review Focus 4: each dependent record is gone, other users' records stay); tenant isolation; gRPC codec round trips.
+- [x] **Step 2: Implement** in every driver. Regenerate with `go generate ./...`.
+- [x] **Step 3: Run** the Go suite and `./scripts/test-sql.sh ./internal/store/... ./pkg/storetest/...`. Expected: PASS on sqlite, postgres, mysql.
+- [x] **Step 4: Commit** with `feat(store): user fields, delete cascade, user version and set-if-empty hash`.
 
 ---
 
@@ -114,9 +114,9 @@ The controller session runs this as the observer, with the observer M2M applicat
   `Users.List(ctx, tenantID string, q *UserQuery, s UserSort, p Page) ([]*User, int, error)`. A nil `q` means all users. The int is the match count before paging.
 - Semantics (D-0043; copy them into the doc comment): terms and wildcards on root string fields compare case-insensitively; on metadata paths case-sensitively, and only values of the term's `Kind` match (number 2 is not string "2"). A metadata term matches a scalar equal to the value, or an array containing it (Review Focus 1). Wildcards and ranges are root-field only (the parser refuses others). `Exists` is true when the field is present and not null. `Not` is plain negation; an absent field never matches a term (the parser adds `Exists` where Auth0 excludes absent fields). `identities.*` matches if any identity matches. Ranges compare numbers as numbers and dates as instants. Zero `UserSort` is `last_login` descending with never-logged-in users last; an explicit sort puts users without the value first ascending and last descending; ties break on `user_id`.
 
-- [ ] **Step 1: Tests** (storetest `TestUserList*`): a shared table of about 40 query trees over a fixed set of 12 users, including every documented searchable field (spec §5.2), And/Or/Not nesting, prefix, open and closed ranges on `logins_count` and `created_at`, `_exists_`, and `TestUserQueryMetadataTypes` (Review Focus 1). Also cover sort on each sortable field in both directions, with ties broken by `user_id`; paging and totals; and tenant isolation.
-- [ ] **Step 2: Implement.** SQL indexing of metadata is the builder's choice, as long as every driver passes the same table.
-- [ ] **Step 3: Run** the Go and SQL suites. **Step 4: Commit** with `feat(store): user list over a query tree`.
+- [x] **Step 1: Tests** (storetest `TestUserList*`): a shared table of about 40 query trees over a fixed set of 12 users, including every documented searchable field (spec §5.2), And/Or/Not nesting, prefix, open and closed ranges on `logins_count` and `created_at`, `_exists_`, and `TestUserQueryMetadataTypes` (Review Focus 1). Also cover sort on each sortable field in both directions, with ties broken by `user_id`; paging and totals; and tenant isolation.
+- [x] **Step 2: Implement.** SQL indexing of metadata is the builder's choice, as long as every driver passes the same table.
+- [x] **Step 3: Run** the Go and SQL suites. **Step 4: Commit** with `feat(store): user list over a query tree`.
 
 ---
 
@@ -134,8 +134,8 @@ The controller session runs this as the observer, with the observer M2M applicat
   - `PasswordResetTicket` gains `ResultURL string`, `IncludeEmailInRedirect bool` and `MarkEmailVerified bool`.
   - `ClientFilter{AppTypes []string; IsFirstParty *bool}` (the filters `GET /clients` applies today) and `Clients.List(ctx, tenantID string, f ClientFilter, p Page) ([]*Client, int, error)`, ordered by `CreatedAt`, then `ClientID` (today's handler order). A zero filter and zero page return everything, for the other callers.
 
-- [ ] **Step 1: Tests** (storetest): each new method; ordering and filters; `Revoke` on rotated and revoked tokens; the ticket contract (copy the reset-ticket cases); `Users.Delete` and `Connections.Delete` now remove verification tickets; `Clients.List` filters and paging; the existing `GET /clients` tests unchanged.
-- [ ] **Step 2: Implement. Step 3: Run** the Go and SQL suites. **Step 4: Commit** with `feat(store): sessions, refresh tokens, grants and verification tickets by user; client paging`.
+- [x] **Step 1: Tests** (storetest): each new method; ordering and filters; `Revoke` on rotated and revoked tokens; the ticket contract (copy the reset-ticket cases); `Users.Delete` and `Connections.Delete` now remove verification tickets; `Clients.List` filters and paging; the existing `GET /clients` tests unchanged.
+- [x] **Step 2: Implement. Step 3: Run** the Go and SQL suites. **Step 4: Commit** with `feat(store): sessions, refresh tokens, grants and verification tickets by user; client paging`.
 
 ---
 
@@ -148,8 +148,8 @@ The controller session runs this as the observer, with the observer M2M applicat
 - Rewrites (D-0043): a bare term `t` becomes `Or(name:t, given_name:t, family_name:t, nickname:t, email:t@*, email:*@t)`; juxtaposition is `Or`; `NOT f:v` on a root string field becomes `And(Exists f, Not f:v)`; metadata literal kinds come from the literal (quoted → string, `true`/`false` → bool, numeric → number); `logins_count:abc` is 0 and a non-`true` boolean literal is false; wildcards and ranges on metadata and `app_metadata:v` without a key are errors with U4's messages.
 - Produces: `usersearch.Parse(q string) (*store.UserQuery, error)` and `usersearch.ParseSort(s string) (store.UserSort, error)`. Errors are `*usersearch.Error{Message string}` carrying Auth0's message text from U4. The handler maps them to `400 invalid_query_string`. `usersearch.Fields` maps each searchable field (spec §5.2) to its `ValueKind`, and to whether it is sortable and whether it allows a prefix.
 
-- [ ] **Step 1: Tests:** a table of Auth0's documented query examples, each with its expected tree; every U4 edge case (bare words, bare space, wildcard minimum, unknown field, quoted phrases with escaped quotes, `NOT` precedence, `[a TO *]`); sort strings `field:1` and `field:-1`; `FuzzParse` (no panic, and every error is a `*usersearch.Error`) with a seed corpus of the Review Focus 5 inputs.
-- [ ] **Step 2: Implement** a recursive-descent parser. Precedence: `NOT` > `AND` > `OR`, with bare juxtaposition as U4 decides. **Step 3: Run** `go test ./internal/usersearch/ -fuzz=FuzzParse -fuzztime=30s` plus the unit tests. **Step 4: Commit** with `feat(usersearch): Auth0 v3 user query parser`.
+- [x] **Step 1: Tests:** a table of Auth0's documented query examples, each with its expected tree; every U4 edge case (bare words, bare space, wildcard minimum, unknown field, quoted phrases with escaped quotes, `NOT` precedence, `[a TO *]`); sort strings `field:1` and `field:-1`; `FuzzParse` (no panic, and every error is a `*usersearch.Error`) with a seed corpus of the Review Focus 5 inputs.
+- [x] **Step 2: Implement** a recursive-descent parser. Precedence: `NOT` > `AND` > `OR`, with bare juxtaposition as U4 decides. **Step 3: Run** `go test ./internal/usersearch/ -fuzz=FuzzParse -fuzztime=30s` plus the unit tests. **Step 4: Commit** with `feat(usersearch): Auth0 v3 user query parser`.
 
 ---
 
@@ -167,8 +167,8 @@ The controller session runs this as the observer, with the observer M2M applicat
   - `userrules.MetadataLimits` holds Auth0's size and key rules.
   - The errors are `*userrules.FieldError{Code, Message string}` with U2's codes and messages.
 
-- [ ] **Step 1: Tests:** each rule and limit from U2 and U3; the metadata merge (`null` deletes, nested objects replaced per U3); a `user_id` the caller supplies; a username on a connection without usernames; the existing signup tests (`internal/dbconn`, `internal/login`) unchanged.
-- [ ] **Step 2: Implement.** Signup paths call `CheckCreate`. **Step 3: Run. Step 4: Commit** with `feat(userrules): shared user field rules`.
+- [x] **Step 1: Tests:** each rule and limit from U2 and U3; the metadata merge (`null` deletes, nested objects replaced per U3); a `user_id` the caller supplies; a username on a connection without usernames; the existing signup tests (`internal/dbconn`, `internal/login`) unchanged.
+- [x] **Step 2: Implement.** Signup paths call `CheckCreate`. **Step 3: Run. Step 4: Commit** with `feat(userrules): shared user field rules`.
 
 ---
 
@@ -184,8 +184,8 @@ The controller session runs this as the observer, with the observer M2M applicat
   - `customdb.Client` gains `Delete(ctx, conn, userID string) error`, `ChangeEmail(ctx, conn, email, newEmail string, verified bool) (bool, error)` and `Verify(ctx, conn, email string) (bool, error)`. Their argument order is Auth0's, as the runner already defines for these scripts.
 - Rules: reads include `app_metadata` with `read:users` (D-0043); writes to it need `update:users_app_metadata`. `PATCH`'s password change goes through `CheckPassword` and `RecordPassword`. Revocation on password change or block follows U3. On a custom-DB connection that is not in import mode, create, delete, email change and password change call their scripts before the store write, and script failures map to Auth0's errors (U2/U3). `verify_email: true` sends the verification email (Task 10 provides the sender; until then the handler takes it through an interface `VerificationSender` that Task 10 implements).
 
-- [ ] **Step 1: Tests:** each operation and field from U1–U5 and U12; `TestPatchUserEmailConflictAtomic` (Review Focus 3); `TestDeleteUserMidFlow` (Review Focus 4: a reset link, an auth code, a device code and a refresh token taken before the delete all fail after it); `TestSearchBadInputIs400` (Review Focus 5); the scope split for `app_metadata`; custom-DB create, delete, change email and change password with a stub script, including a thrown error; and the contract test extended.
-- [ ] **Step 2: Implement. Step 3: Run** the Go suite, `go generate` with no diff, `make check-sources`. **Step 4: Commit** with `feat(mgmt): /api/v2/users and users-by-email`.
+- [x] **Step 1: Tests:** each operation and field from U1–U5 and U12; `TestPatchUserEmailConflictAtomic` (Review Focus 3); `TestDeleteUserMidFlow` (Review Focus 4: a reset link, an auth code, a device code and a refresh token taken before the delete all fail after it); `TestSearchBadInputIs400` (Review Focus 5); the scope split for `app_metadata`; custom-DB create, delete, change email and change password with a stub script, including a thrown error; and the contract test extended.
+- [x] **Step 2: Implement. Step 3: Run** the Go suite, `go generate` with no diff, `make check-sources`. **Step 4: Commit** with `feat(mgmt): /api/v2/users and users-by-email`.
 
 ---
 
@@ -198,8 +198,8 @@ The controller session runs this as the observer, with the observer M2M applicat
 - Produces: `POST /users/{id}/identities` (`provider` + `user_id` (+ `connection_id`), or `link_with`, which is an ID token verified against the tenant's keys and audience per U7) and `DELETE /users/{id}/identities/{provider}/{user_id}`, both with U7's response bodies (the primary's `identities` array).
 - Model (D-0043): linking moves the secondary's `Identity` (with its `PasswordHash`) into the primary's `Identities`, records `{email, email_verified}` in that identity's `ProfileData map[string]any` (a new `Identity` field, stored as JSON), and deletes the secondary user row with the Task 2 cascade. Unlink recreates the secondary user from `ProfileData` only (default name and nickname, new `created_at`, no metadata). `Users.FindByLogin` already searches identities by connection, so a linked identity resolves to the primary. Bump both users' `Version`.
 
-- [ ] **Step 1: Tests:** link by `user_id` and by `link_with`; U7's errors (self link, already linked, unknown secondary, a token from another tenant); login through the linked identity returns the primary; `TestUnlinkRestoresLogin` (Review Focus 2); storetest round trip of `ProfileData`.
-- [ ] **Step 2: Implement. Step 3: Run** the Go and SQL suites. **Step 4: Commit** with `feat(mgmt): link and unlink user identities`.
+- [x] **Step 1: Tests:** link by `user_id` and by `link_with`; U7's errors (self link, already linked, unknown secondary, a token from another tenant); login through the linked identity returns the primary; `TestUnlinkRestoresLogin` (Review Focus 2); storetest round trip of `ProfileData`.
+- [x] **Step 2: Implement. Step 3: Run** the Go and SQL suites. **Step 4: Commit** with `feat(mgmt): link and unlink user identities`.
 
 ---
 
@@ -211,8 +211,8 @@ The controller session runs this as the observer, with the observer M2M applicat
 - Consumes: Task 4's store methods.
 - Produces: `GET/DELETE /users/{id}/sessions`, `GET/DELETE /sessions/{id}`, `GET/DELETE /users/{id}/refresh-tokens`, `GET/DELETE /refresh-tokens/{id}`, `GET /grants` (`user_id`, `client_id`, `audience`, paging), `DELETE /grants/{id}` and `DELETE /grants?user_id=`. Response shapes, paging and status codes come from U8 and U9. `DELETE /users/{id}/sessions` also calls `Users.BumpVersion`.
 
-- [ ] **Step 1: Tests:** each operation from U8 and U9, including checkpoint paging over three pages; deleting a session ends the browser's SSO (the next `/authorize` with `prompt=none` returns `login_required`); deleting a refresh token makes the refresh grant return `invalid_grant`; IP and user agent recorded at login and at touch.
-- [ ] **Step 2: Implement.** Align the Plan 9 grant recording with U9, or log a decision. **Step 3: Run. Step 4: Commit** with `feat(mgmt): user sessions, refresh tokens and grants`.
+- [x] **Step 1: Tests:** each operation from U8 and U9, including checkpoint paging over three pages; deleting a session ends the browser's SSO (the next `/authorize` with `prompt=none` returns `login_required`); deleting a refresh token makes the refresh grant return `invalid_grant`; IP and user agent recorded at login and at touch.
+- [x] **Step 2: Implement.** Align the Plan 9 grant recording with U9, or log a decision. **Step 3: Run. Step 4: Commit** with `feat(mgmt): user sessions, refresh tokens and grants`.
 
 ---
 
@@ -228,8 +228,8 @@ The controller session runs this as the observer, with the observer M2M applicat
   - `email.Sender.SendVerifyEmail(ctx, msg email.VerifyEmail) error`.
   - `login.VerificationMailer` implementing `mgmt.VerificationSender`. Plan 18's `jobs/verification-email` reuses it.
 
-- [ ] **Step 1: Tests:** each ticket field from U6; `user_id` form and `email` + `connection_id` form; a used ticket and an expired ticket show the localized error page; `result_url` redirect parameters; `mark_email_as_verified` on a password-change ticket; signup sends the email once; the email renders in two locales; `verify` script failure leaves `email_verified` false and shows the error page.
-- [ ] **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat: email verification tickets, page and email; password-change tickets`.
+- [x] **Step 1: Tests:** each ticket field from U6; `user_id` form and `email` + `connection_id` form; a used ticket and an expired ticket show the localized error page; `result_url` redirect parameters; `mark_email_as_verified` on a password-change ticket; signup sends the email once; the email renders in two locales; `verify` script failure leaves `email_verified` false and shows the error page.
+- [x] **Step 2: Implement. Step 3: Run. Step 4: Commit** with `feat: email verification tickets, page and email; password-change tickets`.
 
 ---
 
@@ -241,8 +241,8 @@ The controller session runs this as the observer, with the observer M2M applicat
 - Consumes: Task 2's `Version`, `BumpVersion`, `SetPasswordHashIfEmpty`.
 - Produces: every grant that mints a refresh token or tokens for a user records `u.Version` when it loads the user. It then mints inside `store.WithTx`, which re-reads the user and returns `invalid_grant` (the error text the grant already uses for a blocked user) when `Version` changed or the user is blocked or gone. An import-mode first login that loses `SetPasswordHashIfEmpty` (`ErrConflict`) re-reads the user and verifies the password against the stored hash. Two concurrent submits of one reset ticket run `change_password` at most once, through `PasswordResetTickets.Consume` before the script call.
 
-- [ ] **Step 1: Tests:** a password grant whose password check finishes before a reset completes, with the mint after it, gets `invalid_grant` (use a store wrapper that blocks between the user read and the tx); the same for `blocked: true` via PATCH; a refresh rotation racing `DELETE /users/{id}/sessions`; an import-mode login racing a reset (the reset hash wins, and the login fails with the old password); two concurrent reset submits call the stub `change_password` script once. Close the matching entries in `plan-1-followups.md`.
-- [ ] **Step 2: Implement. Step 3: Run** with `-race -count=20` on the new tests. **Step 4: Commit** with `fix: user version closes the reset, block and import-login races`.
+- [x] **Step 1: Tests:** a password grant whose password check finishes before a reset completes, with the mint after it, gets `invalid_grant` (use a store wrapper that blocks between the user read and the tx); the same for `blocked: true` via PATCH; a refresh rotation racing `DELETE /users/{id}/sessions`; an import-mode login racing a reset (the reset hash wins, and the login fails with the old password); two concurrent reset submits call the stub `change_password` script once. Close the matching entries in `plan-1-followups.md`.
+- [x] **Step 2: Implement. Step 3: Run** with `-race -count=20` on the new tests. **Step 4: Commit** with `fix: user version closes the reset, block and import-login races`.
 
 ---
 
@@ -252,8 +252,8 @@ The controller session runs this as the observer, with the observer M2M applicat
 
 **Screens** (spec §6): a list with a search box that sends the text as `q` with `search_engine=v3`, a link to the query guide (Task 15), a connection filter, server paging, sort, and the columns name/email, connection, logins count, last login and a blocked tag. Create takes the connection (database connections only), email, password with the Plan 15 live checker (`pages/connections/checker.ts`), username when the connection requires one, and "send verification email".
 
-- [ ] **Step 1: Tests** (Vitest): loading, empty, error (a `400 invalid_query_string` shows the server message under the box), and paging states; the search text is sent unchanged and URL-encoded; create validation and success (it navigates to detail); the username field appears only when the connection requires it.
-- [ ] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): users list and create`.
+- [x] **Step 1: Tests** (Vitest): loading, empty, error (a `400 invalid_query_string` shows the server message under the box), and paging states; the search text is sent unchanged and URL-encoded; create validation and success (it navigates to detail); the username field appears only when the connection requires it.
+- [x] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): users list and create`.
 
 ---
 
@@ -263,8 +263,8 @@ The controller session runs this as the observer, with the observer M2M applicat
 
 **Screens** (spec §6): Details (editable profile through `PATCH`, phone shown as stored-only), Metadata (two JSON editors reusing `pages/connections/CodeEditor.vue`, validated before save, with a top-level merge shown as a diff before saving), Identities (list, link another database user by search, unlink), Sessions and devices (sessions and refresh tokens, revoke one or all), Authorized applications (grants, revoke), and Raw JSON. The actions menu has block/unblock, change password, change email, create password-change link (shows the URL with a copy button and the TTL), send verification email, and delete (type the email to confirm; it shows what the cascade removes).
 
-- [ ] **Step 1: Tests** (Vitest): each tab's loading, empty, error and success states; invalid JSON blocks save; deleting a metadata key sends `null`; the ticket URL is shown once and never stored in the Pinia store; delete stays disabled until the email matches; `app_metadata` editing is hidden for a caller without the scope.
-- [ ] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): user detail`.
+- [x] **Step 1: Tests** (Vitest): each tab's loading, empty, error and success states; invalid JSON blocks save; deleting a metadata key sends `null`; the ticket URL is shown once and never stored in the Pinia store; delete stays disabled until the email matches; `app_metadata` editing is hidden for a caller without the scope.
+- [x] **Step 2: Implement.** Rebuild `dist/`. **Step 3: Run** `make console`. **Step 4: Commit** with `feat(console): user detail`.
 
 ---
 
@@ -272,10 +272,10 @@ The controller session runs this as the observer, with the observer M2M applicat
 
 **Files:** `tests/e2e/m17-mgmt-cli.mjs`, `tests/e2e/m17-node-auth0.mjs`, `tests/e2e/m17-console.spec.mjs`, `tests/e2e/run-m3.sh`, `tests/e2e/run-browser.sh`, `tests/e2e/seed.yaml`, `tests/e2e/package.json` (node-auth0 is already pinned for m3; reuse that version).
 
-- [ ] **Step 1: auth0-cli v1.37.0:** `users create/search/show/update/delete` (search by email and by `app_metadata`), plus a Plan 15 follow-up check: deleting a connection removes its users, as seen through `users search`.
-- [ ] **Step 2: node-auth0:** the `users` manager (create, getAll with `q`, get, update metadata, delete), `usersByEmail`, `tickets.changePassword`, `tickets.verifyEmail`, `grants.getAll`/`delete`, and `users.getSessions`/`deleteSessions`.
-- [ ] **Step 3: Playwright:** sign in; create a user; find them by a search query; edit metadata; block them (their password login fails); unblock; revoke sessions; create a password-change link, open it in a fresh context and set a new password, then sign in with it; send a verification ticket and open it (`email_verified` shows true).
-- [ ] **Step 4: Run** `make e2e`. **Step 5: Commit** with `test(e2e): users with auth0-cli, node-auth0 and the console`.
+- [x] **Step 1: auth0-cli v1.37.0:** `users create/search/show/update/delete` (search by email and by `app_metadata`), plus a Plan 15 follow-up check: deleting a connection removes its users, as seen through `users search`.
+- [x] **Step 2: node-auth0:** the `users` manager (create, getAll with `q`, get, update metadata, delete), `usersByEmail`, `tickets.changePassword`, `tickets.verifyEmail`, `grants.getAll`/`delete`, and `users.getSessions`/`deleteSessions`.
+- [x] **Step 3: Playwright:** sign in; create a user; find them by a search query; edit metadata; block them (their password login fails); unblock; revoke sessions; create a password-change link, open it in a fresh context and set a new password, then sign in with it; send a verification ticket and open it (`email_verified` shows true).
+- [x] **Step 4: Run** `make e2e`. **Step 5: Commit** with `test(e2e): users with auth0-cli, node-auth0 and the console`.
 
 ---
 
@@ -283,6 +283,10 @@ The controller session runs this as the observer, with the observer M2M applicat
 
 **Files:** `docs/management-api.md`, `docs/console.md`, `docs/user-search.md` (new: the query guide the console links to, written from our own tests), `docs/compat/matrix.md`, `docs/superpowers/plan-1-followups.md` (close the folded-in items from spec §7 that this plan covers; add "Plan 17 follow-ups"), README roadmap status.
 
-- [ ] **Step 1: Write the docs.**
-- [ ] **Step 2: Verify:** gofmt, vet, `go test -race ./...`, `go generate` no diff, `make console` no diff, the SQL suite, `make e2e`, `make check-sources`, and `make conformance` (exit 0, or say exactly why it cannot run).
-- [ ] **Step 3: Commit** with `docs: users; Plan 17 records`.
+- [x] **Step 1: Write the docs.**
+- [x] **Step 2: Verify:** gofmt, vet, `go test -race ./...`, `go generate` no diff, `make console` no diff, the SQL suite, `make e2e`, `make check-sources`, and `make conformance` (exit 0, or say exactly why it cannot run).
+- [x] **Step 3: Commit** with `docs: users; Plan 17 records`.
+
+---
+
+**Plan 17 completion note (Tasks 1 to 15).** Shipped: the observation of Auth0's Management API for users (Task 1, `docs/compat/observations/management-users.md`); the store: user fields, delete cascade, user version and the set-if-empty hash write (Task 2), the user list over a query tree (Task 3), sessions, refresh tokens, grants and verification tickets by user, and store-level client paging (Task 4); `internal/usersearch`, the v3 query parser (Task 5); `internal/userrules`, shared with signup (Task 6); `/api/v2/users` and `/users-by-email` with the custom-database callers for `create`, `delete`, `change_email` and `change_password` (Task 7); identity link and unlink (Task 8); user sessions, refresh tokens and `/grants` (Task 9); `/tickets/password-change` and `/tickets/email-verification`, the verification page and email, and the verification email at signup, with the `verify` script caller (Task 10); the user version that closes the reset, block and import-login races (Task 11); the console Users list and create (Task 12) and detail (Task 13); E2E m17 with auth0-cli, node-auth0 and Chromium (Task 14); the docs and records (Task 15: `docs/management-api.md`, `docs/console.md`, `docs/user-search.md`, `docs/compat/matrix.md`, D-0043, the follow-ups, the README roadmap). Review fixes landed as separate commits (Task 14's blocked-user texts among them). Checks, all passing: `gofmt -l` empty; `go vet ./...`; `go test -race ./...` (42 packages ok); `go generate ./...` and `make console` with no diff; `make check-sources`; the SQL suite (`./scripts/test-sql.sh -timeout 40m ./internal/store/sqlstore/...` on ports 55999/53999: sqlite, PostgreSQL 17 and MySQL 8.4); `E2E_CHROMIUM=/usr/bin/chromium make e2e` (23 Chromium specs passed, the auth0-cli and node-auth0 scripts passed); `make conformance` exited 0 (0 failures; the accepted warnings, reviews and skips of D-0036). Open items are in "Plan 17 follow-ups" of `docs/superpowers/plan-1-followups.md`; jobs and the bcrypt hash upgrade are Plan 18.

@@ -89,7 +89,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 ## Plan 5 follow-ups
 
-- Email verification emails.
+- Email verification emails. **Closed in Plan 17** (signup and user creation send the verification email; `/u/email-verification` consumes the ticket).
 - MFA (`mfa_required`).
 - Breached-password detection.
 - The `organization` parameter on `change_password`.
@@ -133,7 +133,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 ## Plan 8 follow-ups
 
-- Callers for the stored `verify`, `delete` and `change_email` scripts: `verify` needs verification emails; `delete` and `change_email` are called by the Management API (sub-project 3). The runner (`Executor.Execute`) can already execute any of the seven scripts; `customdb.Client` exposes only `Login`, `GetUser`, `Create` and `ChangePassword`.
+- **Closed in Plan 17** (`verify` runs when a verification ticket is opened, `delete` on a Management API delete, `change_email` on an email change). Callers for the stored `verify`, `delete` and `change_email` scripts: `verify` needs verification emails; `delete` and `change_email` are called by the Management API (sub-project 3). The runner (`Executor.Execute`) can already execute any of the seven scripts; `customdb.Client` exposes only `Login`, `GetUser`, `Create` and `ChangePassword`.
 - `mfa_factors` in profiles (MFA, sub-project 2).
 - Custom signup prompt fields passed to `create` (changelog 2026-04-02, sub-project 2).
 - Custom user IDs at signup (changelog 2026-09-17, early access).
@@ -165,8 +165,8 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - `/api/v2/grants` and `/api/v2/client-grants`, and revoking refresh tokens when a grant is deleted (sub-project 3).
 - The `tpc_` client ID prefix for generated strict client IDs (sub-project 3).
 - Device flow (`/activate`, which will reuse the consent page) and PAR, which strict clients reject (Plans 10 and 11).
-- Auth0 stored a user grant for a first-party client after a login that showed no screen (observation check 1). zeroauthy stores grants only on accepted consent (D-0026); revisit once the grants Management API exists.
-- Re-check the Management API defaults (O1) with a machine (client-credentials) login of auth0-cli; the observations used a user login.
+- Auth0 stored a user grant for a first-party client after a login that showed no screen (observation check 1). zeroauthy stores grants only on accepted consent (D-0026); revisit once the grants Management API exists. **Closed in Plan 17 (U9):** Auth0 stores the grant in this case and so does zeroauthy.
+- Re-check the Management API defaults (O1) with a machine (client-credentials) login of auth0-cli; the observations used a user login. **Closed in Plan 17 (O1):** a client-credentials login gives the same defaults.
 
 ## Plan 9 deferred review findings
 
@@ -229,7 +229,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - **Slices 2–6** of the Management API and console (design §2): APIs and client grants, connections (including enabling applications on them: an application created in the console or through the API is enabled on no connection until slice 3), users with import and forced reset, tenant settings with an `auth0-deploy-cli` round trip, social connections.
 - **Pushed down the road** (design §2), each needing its own design: passwordless and phone reset, organizations and RBAC, MFA, branding and email-template editors, custom domains, logs and log streams, event streams, Actions and Forms, enterprise connections, the marketplace and integration catalogues.
 - **Per-tenant admins:** operators carry a tenant list already (`["*"]` today); the system API cannot set it yet, and tenant-scoped operator tokens need a design.
-- **Store-level client pagination and filtering:** `GET /api/v2/clients` pages in memory over `Clients.List`; users (slice 4) need it in the store.
+- **Store-level client pagination and filtering:** `GET /api/v2/clients` pages in memory over `Clients.List`; users (slice 4) need it in the store. **Closed in Plan 17:** `Clients.List` filters and pages in the store.
 - **Keeping client IDs and secrets on migration:** `auth0-deploy-cli` exports no secrets and Auth0 refuses a supplied `client_id` (D-0039, open for slice 5).
 - **Client fields** accepted and ignored today (`description`, `client_metadata`, `logo_uri`, organizations and others, D-0039) could be stored and returned.
 - **Rate-limit headers** on the Management API once a limiter exists.
@@ -290,4 +290,30 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 
 ## Plan 17 follow-ups
 
+Closed from the users design section 7: verification emails, the store-level user version (closes the reset, block and import-login races), the set-if-empty hash write, callers for the `delete`, `change_email` and `verify` scripts, store-level client paging, the Plan 9 grant re-check (U9 confirmed), the O1 re-check, and the Plan 15 check that deleting a connection deletes its users (m17-mgmt-cli, through `/api/v2/users`). Still open: "bcrypt hash verification and upgrade for imported users" is Plan 18.
+
+
 - **Hosted login is not version-guarded:** `/u/login` creates the session without the grants' version check, so a login whose password check finished before a reset completed can still create a session after the reset revoked the others. The code grant that follows checks only that the user exists and is not blocked (D-0043).
+- **Jobs (Plan 18):** user import with Auth0's hash formats and first-sign-in upgrade, export, `jobs/verification-email`, and the console's email-sending action (the Users detail only creates the link today).
+- **Search and store:**
+  - Metadata numbers above 2^53 compare differently in the memory driver and the SQL drivers; MySQL's Unicode 9.0 case mapping differs from Go's for rare characters; the MySQL `JSON_TABLE` column for identity values is `VARCHAR(1024)`, so longer values fail to match.
+  - `users_last_login` cannot serve the default order (the order is a `CASE` expression); there is no `(tenant_id, email)` index for `FindByEmail`; the list's `COUNT` and `SELECT` do not share a snapshot.
+  - Parser edge cases without a test: the `!` escape, a lone backslash before a glob, metadata keys containing a space, `'` or `[`. A literal backslash is not escaped in the bare-term email globs. A leading `-` or `!` inside a field group negates.
+  - `user_metadata: null` empties the metadata (not observed on Auth0). The store has two near-identical client filters (`grpcstore.filterClients` and the memory predicate), and `pageClause` is not used by `client_grants.go` or `userquery.go`; a `WritePage` helper would replace the hand-written totals envelopes (users, clients).
+- **Data hygiene:**
+  - `last_ip` stores the raw `X-Forwarded-For` text (parse it with `netip`); the session user agent is stored unbounded; the MySQL `phone_number` column is `VARCHAR(255)` while the others are `TEXT`; MySQL 0014 has a `LONGTEXT NOT NULL` without a default.
+  - Old storage plugins silently ignore `Version` bumps, `ProfileData`, the new password-reset ticket fields and the session device fields; a plugin must add them (Go SDK note).
+  - `users-by-email` does not check its `email` and `connection` parameters for NUL or invalid UTF-8.
+- **Management API users:**
+  - A legacy custom-database create has no local `FindByLogin` pre-check (an orphan can stay in the legacy store) and `ErrBadProfile` answers 500; a script failure is logged twice; the `Info` line for a sent verification email is noisy; `userConnection` blocks a metadata `PATCH` for a non-database identity; `GetUsers` writes its own totals envelope.
+  - `mark_email_as_verified` that fails after the password change is only logged; a password-change ticket ignores `email` when `user_id` is also sent.
+  - `link_with` does not check `typ`, `nbf` or `iat`; an import-mode linked identity with an empty hash strands its login; `OwnIdentityOn` is unused.
+  - Link scanners in email clients consume verification tickets on `GET`, as on Auth0 (D-0043).
+- **Races and tests:**
+  - A token session swallows store errors; an `invalid_grant` message is not asserted; reuse detection is skipped on a version race; an import profile upsert whose re-read finds nothing answers 500.
+  - The memory driver deep-copies the store per grant and its non-transaction writes wait on the transaction mutex without honouring cancellation (it is for tests and demos).
+  - `TestImportLoginRacingReset` has a weak assertion, and three tests call `t.Fatal` or `f.call` off the test goroutine; `GetForUpdateSerializesRevocation` sleeps 200 ms instead of synchronizing.
+- **Console users:**
+  - The actions menu keeps a stale error banner; the Metadata and Details tabs drop unsaved edits when the user refreshes; Show more uses a short-page heuristic and its error replaces the table; the ticket dialog can race a close and reopen; the TTL is hard-coded (send `ttl_sec`); clearing a profile field sends an empty string; tests lack the ticket dialog error, Escape and focus, and show-more error cases.
+  - The search help examples are static, the popover does not close on an outside click or return focus, and the sort headers are duplicated.
+- **E2E:** the seed grants `create:users_app_metadata` it does not need; the auth0-cli script leaks the `cli-users-web` client and a temporary `HOME`; the request helper is copied from m15; one selector uses DOM order (`nth(1)`); the "emailed" assertion is trivial; the blocked check accepts any alert.

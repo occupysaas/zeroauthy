@@ -131,10 +131,39 @@ session.
     no user can sign in with an application until you do;
   - **Danger zone:** rotate the secret (the old one stops working at once)
     and delete (type the name to confirm).
+- **Users:** a paged list (50 a page; only the first 1000 results can be
+  paged through) with columns for name and email, connection, logins, last
+  login and a Blocked tag, sortable by clicking the headings. The search box
+  takes Auth0's v3 query syntax (`name:ada`, `blocked:true`,
+  `app_metadata.plan:pro`); the help button beside it lists examples and links
+  to the [query guide](user-search.md). A connection filter narrows the list.
+  **Create user** asks for a connection, an email (and a username when the
+  connection requires one), a password, checked as you type against the
+  connection's rules, and whether to send the verification email. Each user has
+  - **Details:** the user ID, created date, email and phone (the phone is only
+    stored; no code is sent to it), and the profile: name, given name, family
+    name, nickname and picture URL. **Actions** blocks or unblocks the user,
+    changes the password or email, creates a password-change link or a
+    verification link (shown once: this server sends verification email at
+    sign-up but has no job yet for the console to send it, so copy the link
+    to the user) and deletes the user (type the name). Blocking does not end
+    sessions or refresh tokens the user already holds; revoke them in the
+    Sessions tab;
+  - **Metadata:** `user_metadata` and `app_metadata` as JSON. **Review changes**
+    shows what was added, changed and removed before it is sent. `app_metadata`
+    is read-only when your account cannot change it;
+  - **Identities:** the user's linked identities, **Unlink** for each
+    secondary, and **Link another user**, which searches database users to
+    merge into this one (the other user stops existing as a separate user);
+  - **Sessions and devices:** sign-in sessions and refresh tokens with
+    device, IP address and applications, revoked one by one or all at once.
+    Ending sessions leaves refresh tokens alone, and the reverse;
+  - **Authorized applications:** the users' grants (consents), each revocable;
+  - **Raw JSON:** the user as the API returns it.
 - **Operators** (system tenant): the operators, **Invite operator** (shows a
   one-hour link once) and remove (never the last one).
 
-Applications created in the console are never touched by the seed.
+Applications created in the console are never touched by the seed. Users are managed through the same Management API ([management-api.md](management-api.md#users)) the console calls.
 
 ## Security
 

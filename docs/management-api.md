@@ -4,15 +4,17 @@ Every zeroauthy tenant serves Auth0's Management API v2 at
 `https://<tenant host>/api/v2/`, on each of its hosts. Slices 1 to 3 cover
 **applications** (`/api/v2/clients`), **APIs** (`/api/v2/resource-servers`),
 **client grants** (`/api/v2/client-grants`) and **database connections**
-(`/api/v2/connections`); later slices add users and tenant settings (design
+(`/api/v2/connections`). Slice 4 adds **users**, sessions, refresh tokens,
+grants and tickets; later slices add tenant settings and jobs (design
 `docs/superpowers/specs/2026-10-18-zeroauthy-management-design.md`).
 
 The contract is [api/management.yaml](../api/management.yaml). Behaviour
 that Auth0 does not document comes from observation of Auth0's API
 ([observations/management-clients.md](compat/observations/management-clients.md),
 [observations/management-apis.md](compat/observations/management-apis.md),
-[observations/management-connections.md](compat/observations/management-connections.md))
-and is recorded in decisions D-0038 to D-0042 of
+[observations/management-connections.md](compat/observations/management-connections.md),
+[observations/management-users.md](compat/observations/management-users.md))
+and is recorded in decisions D-0038 to D-0043 of
 [compat/decisions.md](compat/decisions.md).
 
 ## Tokens
@@ -81,6 +83,18 @@ operators manage it.
 | `POST /api/v2/connections` | `create:connections` |
 | `PATCH /api/v2/connections/{id}`, `PATCH /api/v2/connections/{id}/clients` | `update:connections` |
 | `DELETE /api/v2/connections/{id}` | `delete:connections` |
+| `GET /api/v2/users`, `GET /api/v2/users-by-email`, `GET /api/v2/users/{id}` | `read:users`; `app_metadata` is included with `read:users` or `read:users_app_metadata` |
+| `POST /api/v2/users` | `create:users`; `app_metadata` in the body also needs `create:users_app_metadata` or `update:users_app_metadata` |
+| `PATCH /api/v2/users/{id}` | `update:users` or `update:users_app_metadata`; changing anything but `app_metadata` needs `update:users`, and writing `app_metadata` needs `update:users_app_metadata` |
+| `DELETE /api/v2/users/{id}` | `delete:users` |
+| `POST /api/v2/users/{id}/identities`, `DELETE /api/v2/users/{id}/identities/{provider}/{user_id}` | `update:users` |
+| `GET /api/v2/users/{id}/sessions`, `GET /api/v2/sessions/{id}` | `read:sessions` |
+| `DELETE /api/v2/users/{id}/sessions`, `DELETE /api/v2/sessions/{id}` | `delete:sessions` |
+| `GET /api/v2/users/{id}/refresh-tokens`, `GET /api/v2/refresh-tokens/{id}` | `read:refresh_tokens` |
+| `DELETE /api/v2/users/{id}/refresh-tokens`, `DELETE /api/v2/refresh-tokens/{id}` | `delete:refresh_tokens` |
+| `GET /api/v2/grants` | `read:grants` |
+| `DELETE /api/v2/grants`, `DELETE /api/v2/grants/{id}` | `delete:grants` |
+| `POST /api/v2/tickets/password-change`, `POST /api/v2/tickets/email-verification` | `create:user_tickets` |
 
 ## Shared behaviour
 
@@ -317,6 +331,95 @@ Verified with 1.37.0 (m15-mgmt-cli): `auth0 connections create --name staff
 --strategy auth0`, `list`, `show`, `update --data …`, `delete`, and
 `auth0 connections enabled-clients show|update`. Then users sign up through
 `/dbconnections/signup` on the new connection, with the rules applied.
+
+## Users
+
+Users of the tenant's database connections. Decision D-0043; the search
+language has its own guide, [user-search.md](user-search.md). The
+`GET /api/v2/users/{id}` shape is the one the hosted login and `/userinfo`
+agree on: `user_id` (`auth0|` and 24 hex characters), `email`,
+`email_verified`, `name`, `nickname`, `picture` (a Gravatar URL), `identities`,
+`user_metadata`, `app_metadata`, `created_at`, `updated_at`, and after the
+first login `last_login`, `last_ip` and `logins_count`. `blocked`, names and
+metadata are absent until set; `blocked: false` is never shown (D-0043).
+
+- **List and search:** `GET /api/v2/users` takes `q` (v3 syntax), `sort`
+  (`field:1` or `field:-1`), `connection`, `fields`/`include_fields` and
+  offset paging (`page`, `per_page` 1 to 100, default 50, `include_totals` for
+  `{start, limit, length, total, users}`). Only the first 1000 results can be
+  reached; beyond that is `400 invalid_paging`. Without `sort`, users are
+  ordered by `last_login` descending, never-logged-in users last. Search sees
+  every write at once (Auth0's index lags).
+- **By email:** `GET /api/v2/users-by-email?email=` matches the stored
+  (lowercase) address exactly; `fields` and `include_fields` work.
+- **Create:** `connection` is required and the connection's rules apply as
+  for sign-up: a duplicate is `409 auth0_idp_error`,
+  a password the policy refuses is `400` without an `errorCode`, an unknown
+  connection `400 inexistent_connection`. A supplied `user_id` is always
+  prefixed `auth0|`. An unverified email gets the verification email unless
+  `verify_email` is `false`. On a custom database connection that is not in
+  import mode the `create` script runs first (script failures: `400
+  auth0_idp_error`, `409` for `user_exists`, `503 script_runtime_unavailable`).
+- **Update:** `PATCH` merges `user_metadata` and `app_metadata` at the top
+  level (`null` removes a key, nested objects are replaced, `{}` empties). An
+  email change clears `email_verified` unless the body sets it, and deletes
+  the user's open verification and unused password-change tickets. Email
+  together with `password` in one request, and username or phone on a
+  connection without them, are `400 operation_not_supported`. Neither a
+  password change nor `blocked: true` ends sessions or refresh tokens (a
+  blocked user's refresh and password grants are refused).
+- **Delete:** `204`, also for an unknown well-formed ID. It deletes the
+  user's sessions, refresh tokens, grants, tickets and password history.
+- **Errors:** an ID that is not `provider|id` is `400 invalid_uri`, an unknown
+  user `404 inexistent_user`.
+
+### Linking identities
+
+`POST /api/v2/users/{id}/identities` links a secondary account to the primary
+`{id}`, named by `provider` and `user_id` (with an optional `connection_id`)
+or by `link_with`, an ID token this tenant issued to the calling client. The
+secondary stops existing as a user; its identity (with its password) moves to
+the primary and logging in with it yields the primary. Its sessions, refresh
+tokens and grants are deleted. The answer is `201` with the primary's
+identities. `DELETE …/identities/{provider}/{user_id}` unlinks: the secondary is
+recreated from the identity's `profileData` only (email, verification and
+username), with a new `created_at` and no names, picture or metadata.
+Unlinking an identity that is not linked is `200`.
+
+### Sessions, refresh tokens and grants
+
+- `GET /api/v2/users/{id}/sessions` and `…/refresh-tokens` list newest first by
+  **checkpoint paging only** (`take` 1 to 100, default 50; `from` the previous
+  page's `next`, which is present on every non-empty page). `page`, `per_page`
+  and `include_totals` are ignored. `GET /api/v2/sessions/{id}` and
+  `/api/v2/refresh-tokens/{id}` read one (`404` without an `errorCode` when
+  unknown).
+- Every delete answers `202 {}`. Deleting a user's sessions leaves their
+  refresh tokens alone, and deleting one refresh token revokes its whole
+  rotation family.
+- `GET /api/v2/grants` lists the consents users gave (`user_id`, `client_id`,
+  `audience` filters; offset paging, `include_totals` answers
+  `{grants, start, limit, total}`). Each has `clientID` (sic, as on Auth0) and a
+  sorted `scope` array. `DELETE /api/v2/grants?user_id=` deletes a user's
+  grants and `DELETE /api/v2/grants/{id}` one grant; both answer `204`.
+
+### Tickets
+
+`POST /api/v2/tickets/password-change` and `…/email-verification` answer `201`
+with `{"ticket": "https://<tenant host>/u/reset-verify?ticket=…#"}` (and
+`/u/email-verification?ticket=…#`), valid for `ttl_sec` seconds (432000 by
+default). A verification ticket is consumed when the link is opened and then
+redirects with `success`, `code`, `message` and the other parameters of the
+documented redirect; it is bound to the email it was issued for. The
+password-change success page does not redirect to `result_url`, as on Auth0's
+current pages. See D-0043 for the choices Auth0 does not document.
+
+### Not yet
+
+Jobs (user import, export and the verification-email job) are Plan 18.
+The verification email itself is sent at sign-up and on user creation, but
+there is no `POST /api/v2/jobs/verification-email` yet; an email-verification
+ticket gives you the link to send yourself.
 
 ## A machine-to-machine application without the seed
 
