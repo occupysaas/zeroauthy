@@ -402,3 +402,37 @@ func TestPatchSkipsLinkedIdentity(t *testing.T) {
 		t.Errorf("linked identity on the other connection = %v, %v", u, err)
 	}
 }
+
+// An imported user who has not signed in yet keeps its imported hash through
+// a link and an unlink.
+func TestLinkUnlinkKeepsImportedHash(t *testing.T) {
+	e := newUsersEnv(t)
+	ctx := context.Background()
+	const imported = `{"alg":"bcrypt","hash":"$2b$10$abc"}`
+	p := e.mustCreate(t, map[string]any{"email": "primary@x.test"})["user_id"].(string)
+	s := e.mustCreate(t, map[string]any{"email": "second@x.test"})["user_id"].(string)
+	u, err := e.st.Users().Get(ctx, e.tn.ID, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u.Identities[0].PasswordHash, u.Identities[0].ImportedHash = "", imported
+	if err := e.st.Users().Update(ctx, u); err != nil {
+		t.Fatal(err)
+	}
+
+	e.mustLink(t, p, s)
+	linked, _ := e.st.Users().Get(ctx, e.tn.ID, p)
+	if len(linked.Identities) != 2 || linked.Identities[1].ImportedHash != imported || linked.Identities[1].PasswordHash != "" {
+		t.Fatalf("linked identities = %+v", linked.Identities)
+	}
+	if rec, _ := e.unlink(t, p, "auth0", strings.TrimPrefix(s, "auth0|")); rec.Code != 200 {
+		t.Fatalf("unlink = %d %s", rec.Code, rec.Body)
+	}
+	back, err := e.st.Users().Get(ctx, e.tn.ID, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(back.Identities) != 1 || back.Identities[0].ImportedHash != imported || back.Identities[0].PasswordHash != "" {
+		t.Errorf("restored identities = %+v", back.Identities)
+	}
+}

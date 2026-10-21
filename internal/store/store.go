@@ -27,6 +27,9 @@ var (
 	ErrConflict = errors.New("store: conflict")
 	// ErrAlreadyUsed is returned when a single-use entity was already used.
 	ErrAlreadyUsed = errors.New("store: already used")
+	// ErrInvalid is returned for an argument the store refuses to take, such
+	// as a negative file chunk number or a job status that is not final.
+	ErrInvalid = errors.New("store: invalid argument")
 )
 
 // Store aggregates the repositories of one storage backend.
@@ -495,18 +498,20 @@ type EmailVerificationTickets interface {
 type Jobs interface {
 	// Create returns ErrConflict if the ID exists in the tenant.
 	Create(ctx context.Context, j *Job) error
-	// Get returns ErrNotFound for an absent job and for one whose
-	// ExpiresAt has passed (by the store's clock), swept or not.
+	// Get returns ErrNotFound for an absent job. The store keeps no clock:
+	// a job past its ExpiresAt is returned until DeleteExpired removes it,
+	// and callers compare ExpiresAt with their own clock.
 	Get(ctx context.Context, tenantID, id string) (*Job, error)
-	// List returns one page of the tenant's unexpired jobs, newest first
+	// List returns one page of the tenant's jobs, newest first
 	// (CreatedAt, then ID, both descending), and the number of them before
 	// paging. Input is not loaded.
 	List(ctx context.Context, tenantID string, p Page) ([]*Job, int, error)
 	// CountActive counts the tenant's jobs of type t that are pending or
 	// processing.
 	CountActive(ctx context.Context, tenantID string, t JobType) (int, error)
-	// Claim atomically picks, in any tenant, the oldest job (CreatedAt,
-	// then ID) that is pending, or processing with LeaseUntil before now
+	// Claim atomically picks, in any tenant, the oldest job (CreatedAt, then
+	// TenantID, then ID) that is pending with ExpiresAt not before now, or
+	// processing with LeaseUntil before now
 	// and fewer than JobMaxAttempts attempts, and makes it processing:
 	// LeaseOwner = owner, LeaseUntil = now + lease, Attempts + 1,
 	// FirstClaimedAt = now if it was zero, UpdatedAt = now. Two concurrent
@@ -521,14 +526,16 @@ type Jobs interface {
 	// lease-checked like Renew. Callers run it in the same WithTx as the
 	// batch's user writes, so both persist or neither.
 	Checkpoint(ctx context.Context, tenantID, id, owner string, progress int, s JobSummary, errs []JobError) error
-	// Finish sets the final status (completed or failed) and StatusDetails,
+	// Finish sets the final status (JobCompleted or JobFailed; any other is
+	// ErrInvalid) and StatusDetails,
 	// UpdatedAt = at, clears the lease and Input. Lease-checked like Renew.
 	Finish(ctx context.Context, tenantID, id, owner string, st JobStatus, details string, at time.Time) error
 	// Errors returns the job's errors in Index order.
 	Errors(ctx context.Context, tenantID, id string) ([]JobError, error)
 	// AppendFile stores chunk (at most 1 MiB) as chunk number seq of the
-	// export file and adds its length to FileSize. Lease-checked like
-	// Renew; a repeated seq is ErrConflict.
+	// export file and adds its length to FileSize. A negative seq or a chunk
+	// over JobMaxChunk is ErrInvalid. Lease-checked like Renew; a repeated
+	// seq is ErrConflict.
 	AppendFile(ctx context.Context, tenantID, id, owner string, seq int, chunk []byte) error
 	// ReadFile calls fn with the export file's chunks in seq order. It
 	// returns ErrNotFound for an absent job; fn's error stops the read and

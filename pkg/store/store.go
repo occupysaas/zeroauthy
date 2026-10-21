@@ -80,6 +80,7 @@ var (
 	ErrNotFound    = store.ErrNotFound
 	ErrConflict    = store.ErrConflict
 	ErrAlreadyUsed = store.ErrAlreadyUsed
+	ErrInvalid     = store.ErrInvalid
 
 	ScriptNames      = store.ScriptNames
 	CharacterTypes   = store.CharacterTypes
@@ -140,6 +141,7 @@ const (
 	JobCompleted         = store.JobCompleted
 	JobFailed            = store.JobFailed
 	JobMaxAttempts       = store.JobMaxAttempts
+	JobMaxChunk          = store.JobMaxChunk
 	JobMaxRuntime        = store.JobMaxRuntime
 	JobDetailTimedOut    = store.JobDetailTimedOut
 	JobDetailWorkerLost  = store.JobDetailWorkerLost

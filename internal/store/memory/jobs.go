@@ -3,6 +3,7 @@ package memory
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -74,7 +75,7 @@ func (r jobs) Get(_ context.Context, tenantID, id string) (*store.Job, error) {
 	r.s.mu.RLock()
 	defer r.s.mu.RUnlock()
 	j, ok := r.s.jobs[key{tenantID, id}]
-	if !ok || !j.ExpiresAt.After(time.Now()) {
+	if !ok {
 		return nil, store.ErrNotFound
 	}
 	return cloneJob(j), nil
@@ -83,10 +84,9 @@ func (r jobs) Get(_ context.Context, tenantID, id string) (*store.Job, error) {
 func (r jobs) List(_ context.Context, tenantID string, p store.Page) ([]*store.Job, int, error) {
 	r.s.mu.RLock()
 	defer r.s.mu.RUnlock()
-	now := time.Now()
 	var all []*store.Job
 	for k, j := range r.s.jobs {
-		if k.tenant == tenantID && j.ExpiresAt.After(now) {
+		if k.tenant == tenantID {
 			c := cloneJob(j)
 			c.Input = nil
 			all = append(all, c)
@@ -125,7 +125,7 @@ func (r jobs) Claim(_ context.Context, owner string, now time.Time, lease time.D
 	defer r.s.unlock()
 	var best *store.Job
 	for _, j := range r.s.jobs {
-		ready := j.Status == store.JobPending ||
+		ready := (j.Status == store.JobPending && !j.ExpiresAt.Before(now)) ||
 			(j.Status == store.JobProcessing && j.LeaseUntil.Before(now) && j.Attempts < store.JobMaxAttempts)
 		if !ready {
 			continue
@@ -186,6 +186,9 @@ func (r jobs) Checkpoint(_ context.Context, tenantID, id, owner string, progress
 }
 
 func (r jobs) Finish(_ context.Context, tenantID, id, owner string, st store.JobStatus, details string, at time.Time) error {
+	if st != store.JobCompleted && st != store.JobFailed {
+		return fmt.Errorf("%w: job status %q is not final", store.ErrInvalid, st)
+	}
 	r.s.lock()
 	defer r.s.unlock()
 	j, err := r.held(tenantID, id, owner)
@@ -213,6 +216,9 @@ func (r jobs) Errors(_ context.Context, tenantID, id string) ([]store.JobError, 
 }
 
 func (r jobs) AppendFile(_ context.Context, tenantID, id, owner string, seq int, chunk []byte) error {
+	if seq < 0 || len(chunk) > store.JobMaxChunk {
+		return fmt.Errorf("%w: file chunk %d of %d bytes", store.ErrInvalid, seq, len(chunk))
+	}
 	r.s.lock()
 	defer r.s.unlock()
 	j, err := r.held(tenantID, id, owner)

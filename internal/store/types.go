@@ -980,6 +980,9 @@ const (
 // second worker stops too.
 const JobMaxAttempts = 2
 
+// JobMaxChunk is the largest export file chunk AppendFile takes.
+const JobMaxChunk = 1 << 20
+
 // JobMaxRuntime is how long a job may run, from its first claim, before the
 // sweeper fails it.
 const JobMaxRuntime = 2 * time.Hour

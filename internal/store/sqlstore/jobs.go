@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -22,10 +23,10 @@ const jobListCols = `tenant_id, id, type, status, connection_id, connection, ext
  summary_failed, summary_updated, summary_inserted, summary_total, status_details, attempts, lease_owner,
  lease_until, first_claimed_at, created_at, updated_at, expires_at, file_size`
 
-// claimable is the WHERE condition of a job a worker may take: pending, or
-// processing with a lapsed lease and an attempt left. It takes (now,
-// JobMaxAttempts).
-const claimable = `(status = 'pending' OR (status = 'processing' AND lease_until < ? AND attempts < ?))`
+// claimable is the WHERE condition of a job a worker may take: pending and
+// not expired, or processing with a lapsed lease and an attempt left. It
+// takes (now, now, JobMaxAttempts).
+const claimable = `((status = 'pending' AND expires_at >= ?) OR (status = 'processing' AND lease_until < ? AND attempts < ?))`
 
 func (r jobs) Create(ctx context.Context, j *store.Job) error {
 	params, err := toJSON(j.Params)
@@ -45,8 +46,8 @@ func (r jobs) Create(ctx context.Context, j *store.Job) error {
 }
 
 func (r jobs) Get(ctx context.Context, tenantID, id string) (*store.Job, error) {
-	j, err := scanJob(r.s.queryRow(ctx, `SELECT `+jobCols+` FROM jobs WHERE tenant_id = ? AND id = ? AND expires_at > ?`,
-		tenantID, id, micros(time.Now())))
+	j, err := scanJob(r.s.queryRow(ctx, `SELECT `+jobCols+` FROM jobs WHERE tenant_id = ? AND id = ?`,
+		tenantID, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
 	}
@@ -54,13 +55,12 @@ func (r jobs) Get(ctx context.Context, tenantID, id string) (*store.Job, error) 
 }
 
 func (r jobs) List(ctx context.Context, tenantID string, p store.Page) ([]*store.Job, int, error) {
-	now := micros(time.Now())
 	var total int
-	if err := r.s.queryRow(ctx, `SELECT COUNT(*) FROM jobs WHERE tenant_id = ? AND expires_at > ?`, tenantID, now).Scan(&total); err != nil {
+	if err := r.s.queryRow(ctx, `SELECT COUNT(*) FROM jobs WHERE tenant_id = ?`, tenantID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	rows, err := r.s.query(ctx, `SELECT `+jobListCols+` FROM jobs WHERE tenant_id = ? AND expires_at > ?
- ORDER BY created_at DESC, id`+r.s.d.byteOrder+` DESC`+pageClause(p), tenantID, now)
+	rows, err := r.s.query(ctx, `SELECT `+jobListCols+` FROM jobs WHERE tenant_id = ?
+ ORDER BY created_at DESC, id`+r.s.d.byteOrder+` DESC`+pageClause(p), tenantID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -103,7 +103,7 @@ func (r jobs) Claim(ctx context.Context, owner string, now time.Time, lease time
 		var attempts int
 		err := r.s.queryRow(ctx, `SELECT tenant_id, id, attempts FROM jobs WHERE `+claimable+`
  ORDER BY created_at, tenant_id`+r.s.d.byteOrder+`, id`+r.s.d.byteOrder+` LIMIT 1`+r.lockRead(),
-			micros(now), store.JobMaxAttempts).Scan(&tenantID, &id, &attempts)
+			micros(now), micros(now), store.JobMaxAttempts).Scan(&tenantID, &id, &attempts)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
@@ -113,7 +113,7 @@ func (r jobs) Claim(ctx context.Context, owner string, now time.Time, lease time
 		res, err := r.s.write(ctx, nil, `UPDATE jobs SET status = 'processing', lease_owner = ?, lease_until = ?, attempts = attempts + 1,
  first_claimed_at = CASE WHEN first_claimed_at = 0 THEN ? ELSE first_claimed_at END, updated_at = ?
  WHERE tenant_id = ? AND id = ? AND attempts = ? AND `+claimable,
-			owner, micros(now.Add(lease)), micros(now), micros(now), tenantID, id, attempts, micros(now), store.JobMaxAttempts)
+			owner, micros(now.Add(lease)), micros(now), micros(now), tenantID, id, attempts, micros(now), micros(now), store.JobMaxAttempts)
 		if err != nil {
 			return nil, err
 		}
@@ -177,6 +177,9 @@ func (r jobs) Checkpoint(ctx context.Context, tenantID, id, owner string, progre
 }
 
 func (r jobs) Finish(ctx context.Context, tenantID, id, owner string, st store.JobStatus, details string, at time.Time) error {
+	if st != store.JobCompleted && st != store.JobFailed {
+		return fmt.Errorf("%w: job status %q is not final", store.ErrInvalid, st)
+	}
 	res, err := r.s.write(ctx, nil, `UPDATE jobs SET status = ?, status_details = ?, updated_at = ?, lease_owner = '', lease_until = 0, input = NULL
  WHERE `+leased, string(st), details, micros(at), tenantID, id, owner)
 	if err != nil {
@@ -222,6 +225,9 @@ func (r jobs) Errors(ctx context.Context, tenantID, id string) ([]store.JobError
 }
 
 func (r jobs) AppendFile(ctx context.Context, tenantID, id, owner string, seq int, chunk []byte) error {
+	if seq < 0 || len(chunk) > store.JobMaxChunk {
+		return fmt.Errorf("%w: file chunk %d of %d bytes", store.ErrInvalid, seq, len(chunk))
+	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		res, err := tx.exec(ctx, `UPDATE jobs SET file_size = file_size + ? WHERE `+leased, len(chunk), tenantID, id, owner)
 		if err != nil {

@@ -11,12 +11,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
-// jt is a job time: the job suites run in 2100 so that every ExpiresAt is in
-// the future of the store's own clock (Get hides expired jobs by it), and
-// pass the sweep's and the claims' clocks explicitly.
-func jt(offset time.Duration) time.Time {
-	return time.Date(2100, 1, 2, 3, 4, 5, 0, time.UTC).Add(offset)
-}
+// jt is a job time; the stores keep no clock, so the suites pass the claims'
+// and the sweep's times explicitly.
+func jt(offset time.Duration) time.Time { return ts(offset) }
 
 func newJob(tenantID, id string, typ store.JobType) *store.Job {
 	return &store.Job{
@@ -110,17 +107,41 @@ func testJobs(t *testing.T, newStore Factory) {
 		mustNoErr(t, s.Jobs().Create(ctx, pendingJob("ten_b", "job_1", store.JobUsersImport, 0)))
 	})
 
-	t.Run("GetHidesExpired", func(t *testing.T) {
+	t.Run("ExpiredStayUntilSwept", func(t *testing.T) {
 		s := open(t, newStore)
 		old := pendingJob("ten_a", "job_old", store.JobUsersImport, 0)
-		old.ExpiresAt = time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
+		old.ExpiresAt = jt(time.Hour)
 		mustNoErr(t, s.Jobs().Create(ctx, old))
-		_, err := s.Jobs().Get(ctx, "ten_a", "job_old")
-		mustErrIs(t, err, store.ErrNotFound)
-		// Still stored: a later sweep removes it.
-		n, err := s.Jobs().DeleteExpired(ctx, time.Now().UTC())
+		// The store keeps no clock: the job is there until DeleteExpired.
+		got, err := s.Jobs().Get(ctx, "ten_a", "job_old")
+		mustNoErr(t, err)
+		mustEqual(t, got.ID, "job_old")
+		list, total, err := s.Jobs().List(ctx, "ten_a", store.Page{})
+		mustNoErr(t, err)
+		mustEqual(t, total, 1)
+		mustEqual(t, len(list), 1)
+		n, err := s.Jobs().DeleteExpired(ctx, jt(2*time.Hour))
 		mustNoErr(t, err)
 		mustEqual(t, n, 1)
+		_, err = s.Jobs().Get(ctx, "ten_a", "job_old")
+		mustErrIs(t, err, store.ErrNotFound)
+	})
+
+	t.Run("ClaimSkipsExpiredPending", func(t *testing.T) {
+		s := open(t, newStore)
+		old := pendingJob("ten_a", "job_old", store.JobUsersImport, 0)
+		old.ExpiresAt = jt(time.Hour)
+		mustNoErr(t, s.Jobs().Create(ctx, old))
+		mustNoErr(t, s.Jobs().Create(ctx, pendingJob("ten_a", "job_new", store.JobUsersImport, time.Second)))
+		j, err := s.Jobs().Claim(ctx, "w1", jt(2*time.Hour), lease)
+		mustNoErr(t, err)
+		mustEqual(t, j.ID, "job_new")
+		_, err = s.Jobs().Claim(ctx, "w2", jt(2*time.Hour), lease)
+		mustErrIs(t, err, store.ErrNotFound)
+		// Not yet expired at its own ExpiresAt.
+		j, err = s.Jobs().Claim(ctx, "w3", jt(time.Hour), lease)
+		mustNoErr(t, err)
+		mustEqual(t, j.ID, "job_old")
 	})
 
 	t.Run("List", func(t *testing.T) {
@@ -133,9 +154,6 @@ func testJobs(t *testing.T, newStore Factory) {
 		// Same CreatedAt as job_4: the ID breaks the tie, descending.
 		mustNoErr(t, s.Jobs().Create(ctx, pendingJob("ten_a", "job_9", store.JobUsersExport, 4*time.Second)))
 		mustNoErr(t, s.Jobs().Create(ctx, pendingJob("ten_b", "job_other", store.JobUsersImport, 0)))
-		gone := pendingJob("ten_a", "job_gone", store.JobUsersImport, 10*time.Second)
-		gone.ExpiresAt = time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
-		mustNoErr(t, s.Jobs().Create(ctx, gone))
 
 		ids := func(js []*store.Job) []string {
 			out := []string{}
@@ -351,12 +369,8 @@ func testJobs(t *testing.T, newStore Factory) {
 		j, _ = s.Jobs().Get(ctx, "ten_a", "job_1")
 		mustEqual(t, j.Progress, 8)
 
-		other, err := s.Jobs().Errors(ctx, "ten_b", "job_1")
-		if err == nil {
-			mustEqual(t, len(other), 0)
-		} else {
-			mustErrIs(t, err, store.ErrNotFound)
-		}
+		_, err = s.Jobs().Errors(ctx, "ten_b", "job_1")
+		mustErrIs(t, err, store.ErrNotFound)
 	})
 
 	t.Run("CheckpointRollsBackWithItsTransaction", func(t *testing.T) {
@@ -456,6 +470,26 @@ func testJobs(t *testing.T, newStore Factory) {
 		n, err := s.Jobs().CountActive(ctx, "ten_a", store.JobUsersImport)
 		mustNoErr(t, err)
 		mustEqual(t, n, 0)
+	})
+
+	t.Run("InvalidArguments", func(t *testing.T) {
+		s := open(t, newStore)
+		claimed(t, s, "job_1", "w1", jt(0))
+		for name, err := range map[string]error{
+			"negative seq": s.Jobs().AppendFile(ctx, "ten_a", "job_1", "w1", -1, []byte("x")),
+			"big chunk":    s.Jobs().AppendFile(ctx, "ten_a", "job_1", "w1", 0, make([]byte, store.JobMaxChunk+1)),
+			"processing":   s.Jobs().Finish(ctx, "ten_a", "job_1", "w1", store.JobProcessing, "", jt(time.Hour)),
+			"pending":      s.Jobs().Finish(ctx, "ten_a", "job_1", "w1", store.JobPending, "", jt(time.Hour)),
+		} {
+			if err == nil {
+				t.Errorf("%s: accepted", name)
+			}
+		}
+		j, err := s.Jobs().Get(ctx, "ten_a", "job_1")
+		mustNoErr(t, err)
+		mustEqual(t, j.Status, store.JobProcessing)
+		mustEqual(t, j.FileSize, int64(0))
+		mustNoErr(t, s.Jobs().AppendFile(ctx, "ten_a", "job_1", "w1", 0, make([]byte, store.JobMaxChunk)))
 	})
 
 	t.Run("File", func(t *testing.T) {

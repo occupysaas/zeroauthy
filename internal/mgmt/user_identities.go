@@ -280,7 +280,7 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 				return err
 			}
 		}
-		moved := store.Identity{Connection: own.Connection, Provider: own.Provider, UserID: own.UserID, PasswordHash: own.PasswordHash,
+		moved := store.Identity{Connection: own.Connection, Provider: own.Provider, UserID: own.UserID, PasswordHash: own.PasswordHash, ImportedHash: own.ImportedHash,
 			ProfileData: map[string]any{"email": sec.Email, "email_verified": sec.EmailVerified}}
 		if sec.Username != "" {
 			moved.ProfileData["username"] = sec.Username
@@ -357,7 +357,7 @@ func (h *Handlers) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id
 		name, nickname := identity.DefaultNames("", "", email, username)
 		nu := &store.User{
 			TenantID: tn.ID, UserID: secondary, Email: email, EmailVerified: verified, Username: username, Name: name, Nickname: nickname,
-			Identities: []store.Identity{{Connection: moved.Connection, Provider: moved.Provider, UserID: moved.UserID, PasswordHash: moved.PasswordHash}},
+			Identities: []store.Identity{{Connection: moved.Connection, Provider: moved.Provider, UserID: moved.UserID, PasswordHash: moved.PasswordHash, ImportedHash: moved.ImportedHash}},
 			CreatedAt:  now, UpdatedAt: now,
 		}
 		if err := tx.Users().Create(ctx, nu); errors.Is(err, store.ErrConflict) {

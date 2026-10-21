@@ -47,12 +47,10 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 	if err != nil || n != 9 {
 		t.Fatalf("sweep = %d, %v; want 9, nil", n, err)
 	}
-	// Jobs.Get hides expired jobs by the real clock, which is past these
-	// fixed times; Errors only needs the job to exist.
-	if _, err := st.Jobs().Errors(ctx, "t", "old"); !errors.Is(err, store.ErrNotFound) {
+	if _, err := st.Jobs().Get(ctx, "t", "old"); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("expired job kept: %v", err)
 	}
-	if _, err := st.Jobs().Errors(ctx, "t", "new"); err != nil {
+	if _, err := st.Jobs().Get(ctx, "t", "new"); err != nil {
 		t.Errorf("live job removed: %v", err)
 	}
 	if _, err := st.AuthTransactions().Get(ctx, "t", "new"); err != nil {
