@@ -535,8 +535,10 @@ type Jobs interface {
 	Errors(ctx context.Context, tenantID, id string) ([]JobError, error)
 	// AppendFile stores chunk (at most 1 MiB) as chunk number seq of the
 	// export file and adds its length to FileSize. A negative seq or a chunk
-	// over JobMaxChunk is ErrInvalid. Lease-checked like Renew; a repeated
-	// seq is ErrConflict.
+	// over JobMaxChunk is ErrInvalid. Lease-checked like Renew. A repeated
+	// seq is ErrConflict, except seq 0, which starts the file anew: it
+	// discards the chunks already stored and sets FileSize to its own
+	// length (a worker that restarts an export writes from 0 again).
 	AppendFile(ctx context.Context, tenantID, id, owner string, seq int, chunk []byte) error
 	// ReadFile calls fn with the export file's chunks in seq order. It
 	// returns ErrNotFound for an absent job; fn's error stops the read and

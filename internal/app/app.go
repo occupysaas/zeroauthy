@@ -19,6 +19,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/server"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -167,6 +169,10 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 
 	// The workers send verification and import completion emails through
 	// the same mailer kind as the Management API's users routes.
+	exportKey, err := secrets.DeriveKey(masterKey, mgmt.ExportLinkInfo)
+	if err != nil {
+		return nil, err
+	}
 	jobRunner := &jobs.Runner{
 		Store: st, Workers: cfg.Jobs.Workers, LeaseFor: cfg.Jobs.Lease, Log: log,
 		Processors: map[store.JobType]jobs.Processor{
@@ -175,6 +181,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 				Log:    log,
 			},
 			store.JobUsersImport: jobs.Importer{Mailer: mailer, Log: log},
+			store.JobUsersExport: jobs.Exporter{View: mgmt.UserJSON, Log: log},
 		},
 	}
 
@@ -194,6 +201,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Log:       log,
 			Mailer:    mailer,
 			JobNotify: jobRunner.Notify,
+			ExportKey: exportKey,
 			Wrapper:   wrapper,
 			Scripts:   &customdb.Client{Exec: runner, Wrapper: wrapper},
 

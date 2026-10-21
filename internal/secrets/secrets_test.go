@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 )
@@ -93,5 +94,19 @@ func TestRandomHex(t *testing.T) {
 	a, b := RandomHex(12), RandomHex(12)
 	if len(a) != 24 || a == b || strings.Trim(a, "0123456789abcdef") != "" {
 		t.Fatalf("RandomHex = %q, %q", a, b)
+	}
+}
+
+func TestDeriveKey(t *testing.T) {
+	master := bytes.Repeat([]byte{7}, 32)
+	a, err := DeriveKey(master, "purpose a")
+	if err != nil || len(a) != 32 {
+		t.Fatalf("DeriveKey = %x, %v", a, err)
+	}
+	again, _ := DeriveKey(master, "purpose a")
+	b, _ := DeriveKey(master, "purpose b")
+	other, _ := DeriveKey(bytes.Repeat([]byte{8}, 32), "purpose a")
+	if !bytes.Equal(a, again) || bytes.Equal(a, b) || bytes.Equal(a, other) || bytes.Equal(a, master) {
+		t.Error("a derived key must be stable, and differ by purpose and by master key")
 	}
 }

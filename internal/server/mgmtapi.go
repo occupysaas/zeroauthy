@@ -256,6 +256,11 @@ func (a mgmtAPI) CreateUsersImportJob(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.CreateUsersImportJob, "create:users")
 }
 
+// CreateUsersExportJob: read:users.
+func (a mgmtAPI) CreateUsersExportJob(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateUsersExportJob, "read:users")
+}
+
 // CreateVerificationEmailJob: update:users.
 func (a mgmtAPI) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.CreateVerificationEmailJob, "update:users")

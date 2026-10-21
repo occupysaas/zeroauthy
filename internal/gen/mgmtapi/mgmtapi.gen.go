@@ -615,6 +615,24 @@ func (e UserSessionCookieMode) Valid() bool {
 	}
 }
 
+// Defines values for UsersExportJobCreateFormat.
+const (
+	Csv  UsersExportJobCreateFormat = "csv"
+	Json UsersExportJobCreateFormat = "json"
+)
+
+// Valid indicates whether the value is a known member of the UsersExportJobCreateFormat enum.
+func (e UsersExportJobCreateFormat) Valid() bool {
+	switch e {
+	case Csv:
+		return true
+	case Json:
+		return true
+	default:
+		return false
+	}
+}
+
 // AccessPolicy defines model for AccessPolicy.
 type AccessPolicy struct {
 	Policy *AccessPolicyPolicy `json:"policy,omitempty"`
@@ -1977,6 +1995,23 @@ type UserUpdate struct {
 	VerifyEmail *bool `json:"verify_email,omitempty"`
 }
 
+// UsersExportJobCreate Unknown properties are `400 invalid_body`.
+type UsersExportJobCreate struct {
+	// ConnectionId A connection to export; every connection when absent.
+	ConnectionId *string `json:"connection_id,omitempty"`
+	Fields       *[]struct {
+		ExportAs *string `json:"export_as,omitempty"`
+		Name     string  `json:"name"`
+	} `json:"fields,omitempty"`
+	Format *UsersExportJobCreateFormat `json:"format,omitempty"`
+
+	// Limit The most users to export; all when absent.
+	Limit *int `json:"limit,omitempty"`
+}
+
+// UsersExportJobCreateFormat defines model for UsersExportJobCreate.Format.
+type UsersExportJobCreateFormat string
+
 // UsersImportJobCreate Unknown parts are ignored.
 type UsersImportJobCreate struct {
 	// ConnectionId The database connection, `con_` and 16 letters or digits.
@@ -2381,6 +2416,9 @@ type UpdateConnectionJSONRequestBody = ConnectionUpdate
 
 // UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
 type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
+
+// CreateUsersExportJobJSONRequestBody defines body for CreateUsersExportJob for application/json ContentType.
+type CreateUsersExportJobJSONRequestBody = UsersExportJobCreate
 
 // CreateUsersImportJobMultipartRequestBody defines body for CreateUsersImportJob for multipart/form-data ContentType.
 type CreateUsersImportJobMultipartRequestBody = UsersImportJobCreate
@@ -3639,6 +3677,9 @@ type ServerInterface interface {
 	// DeleteGrant Delete a grant
 	// (DELETE /api/v2/grants/{id})
 	DeleteGrant(w http.ResponseWriter, r *http.Request, id string)
+	// CreateUsersExportJob Export users to a file
+	// (POST /api/v2/jobs/users-exports)
+	CreateUsersExportJob(w http.ResponseWriter, r *http.Request)
 	// CreateUsersImportJob Import users from a file
 	// (POST /api/v2/jobs/users-imports)
 	CreateUsersImportJob(w http.ResponseWriter, r *http.Request)
@@ -3897,6 +3938,12 @@ func (_ Unimplemented) GetGrants(w http.ResponseWriter, r *http.Request, params 
 // DeleteGrant Delete a grant
 // (DELETE /api/v2/grants/{id})
 func (_ Unimplemented) DeleteGrant(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateUsersExportJob Export users to a file
+// (POST /api/v2/jobs/users-exports)
+func (_ Unimplemented) CreateUsersExportJob(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5235,6 +5282,20 @@ func (siw *ServerInterfaceWrapper) DeleteGrant(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// CreateUsersExportJob operation middleware
+func (siw *ServerInterfaceWrapper) CreateUsersExportJob(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateUsersExportJob(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateUsersImportJob operation middleware
 func (siw *ServerInterfaceWrapper) CreateUsersImportJob(w http.ResponseWriter, r *http.Request) {
 
@@ -6459,6 +6520,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/jobs/users-imports", wrapper.CreateUsersImportJob)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/jobs/users-exports", wrapper.CreateUsersExportJob)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/jobs/verification-email", wrapper.CreateVerificationEmailJob)

@@ -58,6 +58,12 @@ type Handlers struct {
 	// Notify wakes the job workers after a job is stored; nil does
 	// nothing (the workers poll).
 	Notify func()
+	// Export signs and checks export download links; nil gives completed
+	// exports no location and refuses every download.
+	Export *ExportLink
+	// TrustProxyHeaders makes the download log read the client address from
+	// the proxy headers.
+	TrustProxyHeaders bool
 	// Keys verifies link_with ID tokens (POST /users/{id}/identities).
 	Keys *keys.Manager
 

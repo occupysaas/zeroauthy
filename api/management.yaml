@@ -1434,6 +1434,52 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/ManagementError"}
+  /api/v2/jobs/users-exports:
+    post:
+      operationId: createUsersExportJob
+      tags: [jobs]
+      summary: Export users to a file
+      description: |
+        Requires `read:users`. A JSON body (an empty body is `{}`); unknown
+        properties, `limit` below 1, `format` other than `json` or `csv` and
+        more than 30 `fields` are `400 invalid_body`. Answers `200` with the
+        job, echoing `connection_id`, `connection`, `format` (default `csv`),
+        `limit` and `fields` as given. Without `connection_id` every
+        connection is exported, and without `limit` every user.
+
+        A worker writes a gzipped file, users in `user_id` order: newline
+        delimited JSON (one object per user, the key of each field being its
+        `export_as` or its name, fields without a value left out) or CSV
+        (a header of the same names; strings quoted with a leading `'`,
+        numbers, booleans and dates bare, objects and arrays empty).
+        Without `fields`, the columns are `user_id`, `email`, `name`,
+        `family_name`, `given_name`, `phone_number`, `nickname`, `username`,
+        `last_ip`, `logins_count`, `created_at`, `updated_at`, `deleted_at`,
+        `last_login`, `blocked`, `deleted`, `email_verified`,
+        `phone_verified` and `identities.[0].connection`. A field name is a
+        user property, a dotted path into it (`user_metadata.plan`,
+        `identities.[0].connection`) or anything else, which is an empty
+        value. A password hash is never exported.
+
+        A completed job has a `location` that works for 60 seconds, new at
+        every `GET /jobs/{id}`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/jobs/post-users-exports
+        - https://auth0.com/docs/manage-users/user-migration/bulk-user-exports
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UsersExportJobCreate"}
+      responses:
+        "200":
+          description: The job.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Job"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /api/v2/jobs/verification-email:
     post:
       operationId: createVerificationEmailJob
@@ -2588,6 +2634,22 @@ components:
         upsert: {type: string, description: "`true` updates existing users (matched by email)."}
         external_id: {type: string, description: Echoed in the job.}
         send_completion_email: {type: string, description: "`false` sends no completion email; the default is `true`."}
+    UsersExportJobCreate:
+      type: object
+      description: Unknown properties are `400 invalid_body`.
+      properties:
+        connection_id: {type: string, description: "A connection to export; every connection when absent."}
+        format: {type: string, enum: [json, csv], default: csv}
+        limit: {type: integer, minimum: 1, description: The most users to export; all when absent.}
+        fields:
+          type: array
+          maxItems: 30
+          items:
+            type: object
+            required: [name]
+            properties:
+              name: {type: string, maxLength: 100}
+              export_as: {type: string, maxLength: 100}
     VerificationEmailJobCreate:
       type: object
       required: [user_id]

@@ -43,6 +43,10 @@ type Deps struct {
 	// nothing.
 	JobNotify func()
 
+	// ExportKey signs the download links of user exports (derived from the
+	// master key, mgmt.ExportLinkInfo); nil gives exports no links.
+	ExportKey []byte
+
 	// Wrapper opens sealed client secrets at the token endpoint. It must be
 	// the master key wrapper the seed and the Management API seal with.
 	Wrapper keys.Wrapper
@@ -222,10 +226,15 @@ func New(d Deps) http.Handler {
 	}
 	mr := chi.NewRouter()
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, operatorOnly)
-	mgmtapi.HandlerWithOptions(mgmtAPI{&mgmt.Handlers{
+	mh := &mgmt.Handlers{
 		Store: d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify,
-	}}, mgmtapi.ChiServerOptions{
+		TrustProxyHeaders: d.TrustProxyHeaders,
+	}
+	if len(d.ExportKey) > 0 {
+		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}
+	}
+	mgmtapi.HandlerWithOptions(mgmtAPI{mh}, mgmtapi.ChiServerOptions{
 		BaseRouter: mr,
 		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 			mgmt.WriteError(w, http.StatusBadRequest, "invalid_query_string", "Query validation error: "+err.Error())
@@ -239,6 +248,12 @@ func New(d Deps) http.Handler {
 	})
 	r.Handle("/api/v2/*", own)
 	r.Handle("/api/system/*", own)
+
+	// Export downloads (D-0044): a signed link, no token, on any tenant host.
+	r.Group(func(er chi.Router) {
+		er.Use(d.Resolver.Middleware)
+		er.Get("/export/{job}/{file}", mh.DownloadExport)
+	})
 
 	// The console, on the system host only.
 	files := d.Console

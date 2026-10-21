@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
 )
@@ -265,5 +267,74 @@ func TestUsersImportEndToEnd(t *testing.T) {
 	rec, errs := a.do("GET", jobsBase+"/"+job["id"].(string)+"/errors", nil)
 	if rec.Code != 200 || errs["id"] != job["id"] || errs["status"] != "failed" {
 		t.Errorf("malformed job errors = %d %s", rec.Code, rec.Body)
+	}
+}
+
+// A user export, over HTTP: a worker writes the file, GET /jobs/{id} gives a
+// signed link, and the link downloads the gzip on the tenant host with no
+// token. A scope without read:users cannot create it.
+func TestUsersExportEndToEnd(t *testing.T) {
+	var runner *jobs.Runner
+	a := newJobsAPI(t, func(d *Deps) {
+		d.JobNotify = func() { runner.Notify() }
+		d.ExportKey = bytes.Repeat([]byte{5}, 32)
+	})
+	runner = &jobs.Runner{
+		Store: a.st, Workers: 1, LeaseFor: time.Second, Poll: time.Hour,
+		Processors: map[store.JobType]jobs.Processor{store.JobUsersExport: jobs.Exporter{View: mgmt.UserJSON}},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { runner.Run(ctx); close(done) }()
+	t.Cleanup(func() { cancel(); <-done })
+
+	if rec, u := a.do("POST", usersBase, map[string]any{"connection": "Username-Password-Authentication", "email": "x@example.test", "password": "first horse 1"}); rec.Code != 201 {
+		t.Fatalf("create user = %d %s %v", rec.Code, rec.Body, u)
+	}
+	if rec, _ := a.doAs(a.tokenFor("jobscreate"), "POST", jobsBase+"/users-exports", map[string]any{}); rec.Code != 403 {
+		t.Errorf("export with create:users = %d", rec.Code)
+	}
+	rec, job := a.doAs(a.tokenFor("jobsread"), "POST", jobsBase+"/users-exports", map[string]any{"format": "json", "fields": []any{map[string]any{"name": "email"}}})
+	if rec.Code != 200 {
+		t.Fatalf("create export = %d %s", rec.Code, rec.Body)
+	}
+	target := jobsBase + "/" + job["id"].(string)
+	var got map[string]any
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+		_, got = a.do("GET", target, nil)
+		if got["status"] != "pending" {
+			break
+		}
+	}
+	loc, _ := got["location"].(string)
+	if got["status"] != "completed" || !strings.HasPrefix(loc, "https://acme.example.test/export/"+job["id"].(string)+"/acme.json.gz?expires=") {
+		t.Fatalf("job = %v", got)
+	}
+	req := httptest.NewRequest("GET", loc, nil)
+	dl := httptest.NewRecorder()
+	a.h.ServeHTTP(dl, req)
+	if dl.Code != 200 || dl.Header().Get("Content-Type") != "application/gzip" {
+		t.Fatalf("download = %d %v", dl.Code, dl.Header())
+	}
+	zr, err := gzip.NewReader(dl.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(zr)
+	if !strings.Contains(string(body), `"email":"x@example.test"`) {
+		t.Errorf("file = %s", body)
+	}
+	// Another tenant's host refuses the link.
+	other := httptest.NewRequest("GET", strings.Replace(loc, "acme.example.test", "other.example.test", 1), nil)
+	rec = httptest.NewRecorder()
+	a.h.ServeHTTP(rec, other)
+	if rec.Code == 200 {
+		t.Errorf("another host served the export: %d", rec.Code)
+	}
+	bad := httptest.NewRequest("GET", strings.Replace(loc, "sig=", "sig=x", 1), nil)
+	rec = httptest.NewRecorder()
+	a.h.ServeHTTP(rec, bad)
+	if rec.Code != 403 {
+		t.Errorf("tampered link = %d", rec.Code)
 	}
 }

@@ -3,6 +3,7 @@
 package secrets
 
 import (
+	"crypto/hkdf"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -119,4 +120,10 @@ func RandomString(n int) string {
 		}
 	}
 	return string(out)
+}
+
+// DeriveKey derives a 32-byte key for one purpose from the master key with
+// HKDF-SHA256; info names the purpose, so two purposes never share a key.
+func DeriveKey(master []byte, info string) ([]byte, error) {
+	return hkdf.Key(sha256.New, master, nil, info, 32)
 }

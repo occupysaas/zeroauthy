@@ -229,12 +229,22 @@ func (r jobs) AppendFile(ctx context.Context, tenantID, id, owner string, seq in
 		return fmt.Errorf("%w: file chunk %d of %d bytes", store.ErrInvalid, seq, len(chunk))
 	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		res, err := tx.exec(ctx, `UPDATE jobs SET file_size = file_size + ? WHERE `+leased, len(chunk), tenantID, id, owner)
+		set := `file_size = file_size + ?`
+		if seq == 0 {
+			// Chunk 0 starts the file anew.
+			set = `file_size = ?`
+		}
+		res, err := tx.exec(ctx, `UPDATE jobs SET `+set+` WHERE `+leased, len(chunk), tenantID, id, owner)
 		if err != nil {
 			return err
 		}
 		if err := expectLease(res); err != nil {
 			return err
+		}
+		if seq == 0 {
+			if _, err := tx.exec(ctx, `DELETE FROM job_files WHERE tenant_id = ? AND job_id = ?`, tenantID, id); err != nil {
+				return err
+			}
 		}
 		if chunk == nil {
 			chunk = []byte{}

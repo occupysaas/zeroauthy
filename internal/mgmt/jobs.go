@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 // JobLifetime is how long a job is kept: Auth0 deletes job data after 24
@@ -104,9 +105,26 @@ func JobJSON(j *store.Job, location string) map[string]any {
 	return m
 }
 
-// jobLocation is the download link of a completed export; exports add it
-// with their download route.
-func (h *Handlers) jobLocation(*http.Request, *store.Job) string { return "" }
+// jobLocation is a fresh download link of a completed export (J9); every
+// read signs a new one.
+func (h *Handlers) jobLocation(r *http.Request, j *store.Job) string {
+	if h.Export == nil || j.Type != store.JobUsersExport || j.Status != store.JobCompleted {
+		return ""
+	}
+	res, ok := tenant.FromContext(r.Context())
+	if !ok || res.Tenant == nil {
+		return ""
+	}
+	return h.Export.Sign(res.Host, res.Tenant.Name, j.TenantID, j.ID, exportFormat(j))
+}
+
+// exportFormat is the format of an export job's file.
+func exportFormat(j *store.Job) string {
+	if f, _ := j.Params[jobs.ParamFormat].(string); f == jobs.FormatJSON {
+		return jobs.FormatJSON
+	}
+	return jobs.FormatCSV
+}
 
 // loadJob finds the tenant's job id. An expired job that the sweeper has
 // not removed yet does not exist (J9).

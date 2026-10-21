@@ -226,6 +226,11 @@ func (r jobs) AppendFile(_ context.Context, tenantID, id, owner string, seq int,
 		return err
 	}
 	k := key{tenantID, id}
+	if seq == 0 {
+		// Chunk 0 starts the file anew.
+		delete(r.s.jobFiles, k)
+		j.FileSize = 0
+	}
 	if _, ok := r.s.jobFiles[k][seq]; ok {
 		return store.ErrConflict
 	}

@@ -533,6 +533,7 @@ func testJobs(t *testing.T, newStore Factory) {
 		if !bytes.Equal(chunks[2], big) {
 			t.Errorf("third chunk differs (%d bytes)", len(chunks[2]))
 		}
+
 		j, _ := s.Jobs().Get(ctx, "ten_a", "job_1")
 		mustEqual(t, j.FileSize, int64(6+7+len(big))) // the refused chunk is not counted
 
@@ -541,6 +542,17 @@ func testJobs(t *testing.T, newStore Factory) {
 		err = s.Jobs().ReadFile(ctx, "ten_a", "job_1", func([]byte) error { calls++; return stop })
 		mustErrIs(t, err, stop)
 		mustEqual(t, calls, 1)
+
+		// Chunk 0 starts the file anew.
+		mustNoErr(t, s.Jobs().AppendFile(ctx, "ten_a", "job_1", "w1", 0, []byte("restart")))
+		chunks, err = read("ten_a", "job_1")
+		mustNoErr(t, err)
+		mustEqual(t, len(chunks), 1)
+		mustEqual(t, chunks[0], []byte("restart"))
+		j, err = s.Jobs().Get(ctx, "ten_a", "job_1")
+		mustNoErr(t, err)
+		mustEqual(t, j.FileSize, int64(len("restart")))
+		mustNoErr(t, s.Jobs().AppendFile(ctx, "ten_a", "job_1", "w1", 1, []byte("!")))
 
 		_, err = read("ten_a", "nope")
 		mustErrIs(t, err, store.ErrNotFound)
@@ -551,7 +563,7 @@ func testJobs(t *testing.T, newStore Factory) {
 		mustNoErr(t, s.Jobs().Finish(ctx, "ten_a", "job_1", "w1", store.JobCompleted, "", jt(time.Hour)))
 		chunks, err = read("ten_a", "job_1")
 		mustNoErr(t, err)
-		mustEqual(t, len(chunks), 3)
+		mustEqual(t, len(chunks), 2)
 	})
 
 	t.Run("DeleteExpired", func(t *testing.T) {
