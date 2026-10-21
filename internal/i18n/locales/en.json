@@ -11,6 +11,7 @@
       "signupActionLinkText": "Create an account",
       "wrong-credentials": "Incorrect email/username or password.",
       "user-blocked": "This account has been blocked. Contact the application's support.",
+      "password-change-required": "This account's password must be reset before you can sign in. Choose \"Forgot password?\" below to set a new one.",
       "forgotPasswordText": "Forgot password?"
     }
   },

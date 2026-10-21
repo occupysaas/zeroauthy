@@ -197,7 +197,7 @@ func TestEnglishCatalogShape(t *testing.T) {
 
 func TestGoKeysExist(t *testing.T) {
 	for _, k := range []string{
-		KeyWrongCredentials, KeyUserBlocked, KeyEmailInUse, KeyInvalidUsername,
+		KeyWrongCredentials, KeyUserBlocked, KeyPasswordChangeRequired, KeyEmailInUse, KeyInvalidUsername,
 		KeyTooManyAttempts, KeyPasswordTooLong, KeyPasswordTooShort, KeyPasswordClasses,
 		KeyPasswordTypes, KeyPasswordIdentical, KeyPasswordSequential, KeyPasswordInHistory, KeyPasswordDictionary,
 		KeyPasswordPersonalInfo, KeyUsernameTooShort, KeyUsernameTooLong,

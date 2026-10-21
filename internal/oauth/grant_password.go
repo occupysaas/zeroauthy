@@ -100,6 +100,9 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		h.log().InfoContext(ctx, "password grant failed", "tenant", tenantID, "client_id", c.ClientID, "connection", conn.Name)
 		return nil, invalidGrant(wrongCredentials)
+	case errors.Is(err, identity.ErrPasswordChangeRequired):
+		h.log().InfoContext(ctx, "password grant: password change required", "tenant", tenantID, "client_id", c.ClientID, "connection", conn.Name)
+		return nil, &Error{Status: http.StatusForbidden, Code: "invalid_grant", Description: "Password change required."}
 	case errors.Is(err, identity.ErrUserBlocked):
 		userThrottle.Success(userKey)
 		ipThrottle.Refund(ipKey)

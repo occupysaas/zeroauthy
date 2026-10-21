@@ -258,6 +258,11 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		data.Error = f.view.L.T(i18n.KeyWrongCredentials)
 		ui.RenderLogin(w, http.StatusUnauthorized, f.view, data)
 		return
+	case errors.Is(err, identity.ErrPasswordChangeRequired):
+		h.log().InfoContext(ctx, "login failed: password change required", "tenant", f.res.Tenant.ID, "connection", f.conn.Name)
+		data.Error = f.view.L.T(i18n.KeyPasswordChangeRequired)
+		ui.RenderLogin(w, http.StatusForbidden, f.view, data)
+		return
 	case errors.Is(err, identity.ErrUserBlocked):
 		userThrottle.Success(userKey)
 		ipThrottle.Refund(ipKey)

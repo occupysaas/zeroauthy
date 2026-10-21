@@ -11,8 +11,11 @@ import (
 var (
 	ErrInvalidCredentials = errors.New("identity: invalid credentials")
 	ErrUserBlocked        = errors.New("identity: user is blocked")
-	ErrSignupDisabled     = errors.New("identity: signup is disabled for this connection")
-	ErrUserExists         = errors.New("identity: user already exists")
+	// ErrPasswordChangeRequired is a user whose imported hash cannot be
+	// verified: whatever password is given, it must be reset first.
+	ErrPasswordChangeRequired = errors.New("identity: password change required")
+	ErrSignupDisabled         = errors.New("identity: signup is disabled for this connection")
+	ErrUserExists             = errors.New("identity: user already exists")
 	// ErrScript is a custom database script failure; it wraps the cause.
 	ErrScript = errors.New("identity: custom database script failed")
 	// ErrScriptUnavailable accompanies ErrScript when the script could not

@@ -809,3 +809,30 @@ func TestDeleteUserConnectionLoadError(t *testing.T) {
 		t.Errorf("the user was deleted: %v", err)
 	}
 }
+
+// A PATCH that sets the password replaces an imported hash, and no response
+// shows one.
+func TestPatchUserPasswordClearsImportedHash(t *testing.T) {
+	e := newUsersEnv(t)
+	ctx := context.Background()
+	id := e.mustCreate(t, map[string]any{"email": "imp@x.test"})["user_id"].(string)
+	u, err := e.st.Users().Get(ctx, e.tn.ID, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const imported = `{"algorithm":"bcrypt","hash":{"value":"$2b$10$secretsecretsecret"}}`
+	u.Identities[0].PasswordHash, u.Identities[0].ImportedHash = "", imported
+	if err := e.st.Users().Update(ctx, u); err != nil {
+		t.Fatal(err)
+	}
+	if rec, got := e.get(t, id, ""); rec.Code != 200 || strings.Contains(rec.Body.String(), "secretsecret") || strings.Contains(rec.Body.String(), "bcrypt") || got["password_hash"] != nil {
+		t.Fatalf("imported hash shown: %s", rec.Body)
+	}
+	if rec, _ := e.patch(t, id, map[string]any{"password": "fresh horse 12"}); rec.Code != 200 {
+		t.Fatalf("patch = %d %s", rec.Code, rec.Body)
+	}
+	u, _ = e.st.Users().Get(ctx, e.tn.ID, id)
+	if id := u.Identities[0]; id.ImportedHash != "" || !strings.HasPrefix(id.PasswordHash, "$argon2id$") {
+		t.Fatalf("identity = %+v", id)
+	}
+}

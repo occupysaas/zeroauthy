@@ -10,6 +10,7 @@ const KeyPasswordPolicyAlias = "signup.signup.password-policy-not-conformant"
 const (
 	KeyWrongCredentials       = "login.login.wrong-credentials"
 	KeyUserBlocked            = "login.login.user-blocked"
+	KeyPasswordChangeRequired = "login.login.password-change-required"
 	KeyEmailInUse             = "signup.signup.email-in-use"
 	KeyInvalidUsername        = "signup.signup.invalid-username"
 	KeyTooManyAttempts        = "zeroauthy.common.too-many-attempts"

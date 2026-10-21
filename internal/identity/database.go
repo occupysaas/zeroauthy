@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
+	"github.com/zeroauthy/zeroauthy/internal/passhash"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -120,11 +121,104 @@ func (d *Database) Login(ctx context.Context, conn *store.Connection, login, pas
 	} else if err != nil {
 		return nil, err
 	}
-	hash := passwordHash(u, conn.Name, norm)
+	hash, imported := credentials(u, conn.Name, norm)
+	if imported != "" {
+		return d.importedLogin(ctx, conn, u, norm, imported, password, true)
+	}
 	if hash == "" && IsCustom(conn) {
 		return d.importLogin(ctx, conn, strings.TrimSpace(login), password, u)
 	}
 	return verifyLocal(u, hash, password)
+}
+
+// importedLogin verifies password against imported, the Auth0 import hash
+// of u's identity, then replaces it with a native hash. A value that cannot
+// be verified gives ErrPasswordChangeRequired for any password. The
+// password policy and history are not applied (as on Auth0). When the
+// upgrade finds the hash replaced meanwhile (a bulk import upserting the
+// user), the user is read once more and checked against what is stored now;
+// retry is false on that second pass.
+func (d *Database) importedLogin(ctx context.Context, conn *store.Connection, u *store.User, login, imported, password string, retry bool) (*store.User, error) {
+	spec, err := passhash.Unmarshal(imported)
+	if err != nil {
+		return nil, ErrPasswordChangeRequired
+	}
+	ok, err := spec.Verify(password)
+	if errors.Is(err, passhash.ErrUnusable) {
+		return nil, ErrPasswordChangeRequired
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		// A native failure costs an argon2 verification; so does this.
+		_, _ = secrets.Verify(dummyHash(), password)
+		return nil, ErrInvalidCredentials
+	}
+	hash, err := secrets.Hash(password)
+	if err != nil {
+		return nil, err
+	}
+	err = d.Store.Users().UpgradeImportedHash(ctx, conn.TenantID, u.UserID, conn.Name, imported, hash, d.now().UTC())
+	if errors.Is(err, store.ErrConflict) {
+		fresh, gerr := d.Store.Users().Get(ctx, conn.TenantID, u.UserID)
+		if errors.Is(gerr, store.ErrNotFound) {
+			return nil, ErrInvalidCredentials
+		}
+		if gerr != nil {
+			return nil, gerr
+		}
+		h, imp := credentials(fresh, conn.Name, login)
+		if imp != "" {
+			if !retry || imp == imported {
+				// Not upgradable (a linked identity, or a second race):
+				// the password was verified against what is stored.
+				if imp == imported {
+					return d.finishImported(fresh)
+				}
+				return nil, ErrInvalidCredentials
+			}
+			return d.importedLogin(ctx, conn, fresh, login, imp, password, false)
+		}
+		return verifyLocal(fresh, h, password)
+	}
+	if err != nil {
+		return nil, err
+	}
+	// Re-read: the caller checks the user's Version before minting.
+	u, err = d.Store.Users().Get(ctx, conn.TenantID, u.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return d.finishImported(u)
+}
+
+func (d *Database) finishImported(u *store.User) (*store.User, error) {
+	if u.Blocked {
+		return nil, ErrUserBlocked
+	}
+	return u, nil
+}
+
+// credentials returns the native password hash and the imported hash of
+// the identity passwordHash would choose; at most one is non-empty.
+func credentials(u *store.User, connection, login string) (hash, imported string) {
+	if u == nil {
+		return "", ""
+	}
+	id := u.IdentityByLogin(connection, login)
+	if id == nil {
+		for i := range u.Identities {
+			if u.Identities[i].Connection == connection && !u.Identities[i].Linked() {
+				id = &u.Identities[i]
+				break
+			}
+		}
+	}
+	if id == nil {
+		return "", ""
+	}
+	return id.PasswordHash, id.ImportedHash
 }
 
 // passwordHash returns the password hash of the identity of u on connection

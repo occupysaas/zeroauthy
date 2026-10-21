@@ -11,6 +11,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/passhash/passhashtest"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -511,4 +512,57 @@ func TestPasswordGrantOwnWritesKeepVersion(t *testing.T) {
 			t.Fatalf("wrong password after migration = %d %v", rec.Code, body)
 		}
 	})
+}
+
+// setImportedHash gives alice (default directory) imported instead of a
+// native hash.
+func (f *fixture) setImportedHash(t *testing.T, imported string) *store.User {
+	t.Helper()
+	ctx := context.Background()
+	tid := f.tenantID(t, "acme")
+	u, err := f.st.Users().FindByLogin(ctx, tid, "Username-Password-Authentication", "alice@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u.Identities[0].PasswordHash, u.Identities[0].ImportedHash = "", imported
+	if err := f.st.Users().Update(ctx, u); err != nil {
+		t.Fatal(err)
+	}
+	return u
+}
+
+func TestPasswordGrantImportedHash(t *testing.T) {
+	for name, tc := range map[string]struct{ imported, password string }{
+		"bcrypt": {passhashtest.Bcrypt(), passhashtest.BcryptPassword},
+		"pbkdf2": {passhashtest.PBKDF2("imported pw 12"), "imported pw 12"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			u := f.setImportedHash(t, tc.imported)
+			if code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", "wrong")); code != 400 || body["error_description"] != wrongCredentials {
+				t.Fatalf("wrong password = %d %v", code, body)
+			}
+			if got, _ := f.st.Users().Get(context.Background(), u.TenantID, u.UserID); got.Identities[0].ImportedHash != tc.imported {
+				t.Fatal("a wrong password changed the imported hash")
+			}
+			if code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", tc.password)); code != 200 {
+				t.Fatalf("grant = %d %v", code, body)
+			}
+			got, _ := f.st.Users().Get(context.Background(), u.TenantID, u.UserID)
+			if id := got.Identities[0]; id.ImportedHash != "" || !strings.HasPrefix(id.PasswordHash, "$argon2id$") {
+				t.Fatalf("identity = %+v", id)
+			}
+		})
+	}
+}
+
+func TestPasswordGrantUnusableImportedHash(t *testing.T) {
+	f := newFixture(t)
+	f.setImportedHash(t, passhashtest.Unusable())
+	for _, p := range []string{"anything", "alice password 1"} {
+		code, body := f.pwCall(t, pw("ropg", "ropg-secret", "alice@acme.test", p))
+		if code != 403 || body["error"] != "invalid_grant" || body["error_description"] != "Password change required." {
+			t.Fatalf("password %q = %d %v", p, code, body)
+		}
+	}
 }
