@@ -12,8 +12,15 @@ pg="zeroauthy-test-pg-$$" my="zeroauthy-test-my-$$"
 cleanup() { "$rt" rm -f "$pg" "$my" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
-"$rt" run -d --rm --name "$pg" -e POSTGRES_PASSWORD=zeroauthy -p "127.0.0.1:$pg_port:5432" docker.io/library/postgres:17 >/dev/null
-"$rt" run -d --rm --name "$my" -e MYSQL_ROOT_PASSWORD=zeroauthy -p "127.0.0.1:$my_port:3306" docker.io/library/mysql:8.4 >/dev/null
+# The containers are throwaway, so their data lives on tmpfs and durability
+# is off: the suites make thousands of small transactions, and with fsync on
+# they mostly wait on the disk.
+"$rt" run -d --rm --name "$pg" -e POSTGRES_PASSWORD=zeroauthy -p "127.0.0.1:$pg_port:5432" \
+  --tmpfs /var/lib/postgresql/data docker.io/library/postgres:17 \
+  -c fsync=off -c synchronous_commit=off -c full_page_writes=off >/dev/null
+"$rt" run -d --rm --name "$my" -e MYSQL_ROOT_PASSWORD=zeroauthy -p "127.0.0.1:$my_port:3306" \
+  --tmpfs /var/lib/mysql docker.io/library/mysql:8.4 \
+  --innodb-flush-log-at-trx-commit=0 --sync-binlog=0 --skip-log-bin --innodb-doublewrite=OFF >/dev/null
 
 wait_for() { # name, command...
   local name="$1"; shift
