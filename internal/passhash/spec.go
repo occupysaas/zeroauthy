@@ -108,7 +108,10 @@ const masked = "*****"
 // Masked returns raw (a user record as received) with password_hash and the
 // secret values of custom_password_hash replaced by "*****", as Auth0 echoes
 // them. raw is not modified. Beyond Auth0's observed hash.value and salt.value
-// it also masks hash.key.value, the HMAC key, which is a secret too.
+// it also masks hash.key.value, the HMAC key, which is a secret too. A part
+// of the wrong type (custom_password_hash, hash, salt or key that is not an
+// object, a value of any type) is masked whole, so that a hash pasted in the
+// wrong place never shows; JSON null holds no secret and is kept.
 func (s *Spec) Masked(raw map[string]any) map[string]any {
 	out := make(map[string]any, len(raw))
 	for k, v := range raw {
@@ -117,8 +120,13 @@ func (s *Spec) Masked(raw map[string]any) map[string]any {
 	if _, ok := out["password_hash"]; ok {
 		out["password_hash"] = masked
 	}
-	cph, ok := out["custom_password_hash"].(map[string]any)
+	v, ok := out["custom_password_hash"]
+	if !ok || v == nil {
+		return out
+	}
+	cph, ok := v.(map[string]any)
 	if !ok {
+		out["custom_password_hash"] = masked
 		return out
 	}
 	cph = maskIn(cph, "salt", "value")
@@ -126,12 +134,15 @@ func (s *Spec) Masked(raw map[string]any) map[string]any {
 		h = maskIn(h, "", "value")
 		h = maskIn(h, "key", "value")
 		cph["hash"] = h
+	} else if cph["hash"] != nil {
+		cph["hash"] = masked
 	}
 	out["custom_password_hash"] = cph
 	return out
 }
 
 // maskIn copies m and masks m[sub][field] (or m[field] when sub is empty).
+// A non-null m[sub] that is not an object is masked whole.
 func maskIn(m map[string]any, sub, field string) map[string]any {
 	c := make(map[string]any, len(m))
 	for k, v := range m {
@@ -143,7 +154,9 @@ func maskIn(m map[string]any, sub, field string) map[string]any {
 		}
 		return c
 	}
-	if inner, ok := c[sub].(map[string]any); ok {
+	switch inner := c[sub].(type) {
+	case nil:
+	case map[string]any:
 		ic := make(map[string]any, len(inner))
 		for k, v := range inner {
 			ic[k] = v
@@ -152,6 +165,8 @@ func maskIn(m map[string]any, sub, field string) map[string]any {
 			ic[field] = masked
 		}
 		c[sub] = ic
+	default:
+		c[sub] = masked
 	}
 	return c
 }

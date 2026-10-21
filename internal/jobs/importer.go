@@ -673,10 +673,12 @@ func (p Importer) insert(ctx context.Context, tx store.Store, conn *store.Connec
 // email_verified and the other profile fields the record has replace the
 // stored ones, metadata objects are replaced whole, and blocked, user_id
 // and password_hash are ignored. A custom_password_hash replaces the
-// imported hash only while the user has one, that is, before the user's
-// first sign-in (ruling R1): the user row is locked here, and the sign-in
+// imported hash, or sets one on a user that has no hash at all; a user
+// with a native password hash (who signed in, or set a password) is a
+// CONFLICT (rulings R1, R11). The user row is locked here, and the sign-in
 // upgrade is a compare-and-swap on the imported value, so exactly one of
-// the two wins.
+// the two wins: if the upgrade committed first, PasswordHash is set and
+// the record conflicts.
 func (p Importer) update(ctx context.Context, tx store.Store, conn *store.Connection, userID string, f *fields) (outcome, []store.JobErrorItem, error) {
 	u, err := tx.Users().GetForUpdate(ctx, conn.TenantID, userID)
 	if err != nil {
@@ -687,7 +689,7 @@ func (p Importer) update(ctx context.Context, tx store.Store, conn *store.Connec
 		return outFailed, []store.JobErrorItem{item("CONFLICT_EMAIL", "The email is already used by another user of the connection", "")}, nil
 	}
 	if f.customHash {
-		if id.ImportedHash == "" {
+		if id.PasswordHash != "" {
 			return outFailed, []store.JobErrorItem{item("CONFLICT", msgHashAlreadySet, "")}, nil
 		}
 		id.ImportedHash = f.spec.Marshal()

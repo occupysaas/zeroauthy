@@ -304,6 +304,38 @@ func TestMasked(t *testing.T) {
 	}
 }
 
+// Hash parts of the wrong type are masked whole: a hash pasted as a plain
+// string must not show in /errors.
+func TestMaskedWrongShapes(t *testing.T) {
+	var s *Spec
+	for _, c := range []struct {
+		name string
+		in   map[string]any
+		want string
+	}{
+		{"custom_password_hash string", map[string]any{"custom_password_hash": "$2b$10$secret"}, `{"custom_password_hash":"*****"}`},
+		{"custom_password_hash array", map[string]any{"custom_password_hash": []any{"secret"}}, `{"custom_password_hash":"*****"}`},
+		{"custom_password_hash number", map[string]any{"custom_password_hash": 5.0}, `{"custom_password_hash":"*****"}`},
+		{"hash string", map[string]any{"custom_password_hash": map[string]any{"algorithm": "md5", "hash": "5f4dcc3b"}},
+			`{"custom_password_hash":{"algorithm":"md5","hash":"*****"}}`},
+		{"hash array", map[string]any{"custom_password_hash": map[string]any{"hash": []any{"5f4dcc3b"}}}, `{"custom_password_hash":{"hash":"*****"}}`},
+		{"salt string", map[string]any{"custom_password_hash": map[string]any{"hash": map[string]any{"value": "x"}, "salt": "s3cr3t"}},
+			`{"custom_password_hash":{"hash":{"value":"*****"},"salt":"*****"}}`},
+		{"key string", map[string]any{"custom_password_hash": map[string]any{"hash": map[string]any{"value": "x", "key": "k3y"}}},
+			`{"custom_password_hash":{"hash":{"key":"*****","value":"*****"}}}`},
+		{"value object", map[string]any{"custom_password_hash": map[string]any{"hash": map[string]any{"value": map[string]any{"v": "x"}}}},
+			`{"custom_password_hash":{"hash":{"value":"*****"}}}`},
+		{"password_hash number", map[string]any{"password_hash": 12.0}, `{"password_hash":"*****"}`},
+		{"password_hash object", map[string]any{"password_hash": map[string]any{"v": "x"}}, `{"password_hash":"*****"}`},
+		{"null is kept", map[string]any{"custom_password_hash": nil}, `{"custom_password_hash":null}`},
+	} {
+		b, _ := json.Marshal(s.Masked(c.in))
+		if string(b) != c.want {
+			t.Errorf("%s: %s, want %s", c.name, b, c.want)
+		}
+	}
+}
+
 func TestWeak(t *testing.T) {
 	cases := []struct {
 		in   string

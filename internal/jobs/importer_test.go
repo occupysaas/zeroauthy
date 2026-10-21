@@ -697,3 +697,97 @@ func TestImportConnectionGone(t *testing.T) {
 		t.Errorf("job = %+v %+v", done.Summary, errs)
 	}
 }
+
+// Ruling R11: on upsert, a custom_password_hash replaces an imported hash,
+// sets one on a user that has no hash at all, and is a CONFLICT only for a
+// user with a native password hash (one who signed in or set a password).
+func TestImportUpsertCustomHash(t *testing.T) {
+	forEachStore(t, func(t *testing.T, st store.Store) {
+		ctx := context.Background()
+		e := newImpEnv(t, st)
+		md5, sha256 := vec(t, "md5/hex/salt-none"), vec(t, "sha256/hex/salt-prefix-utf8")
+		native, err := secrets.Hash("native horse 1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		e.mustCreate(&store.User{UserID: "auth0|imported", Email: "imported@x.test",
+			Identities: []store.Identity{{Connection: impConn, Provider: "auth0", UserID: "imported", ImportedHash: specOf(t, md5.Spec)}}})
+		e.mustCreate(&store.User{UserID: "auth0|native", Email: "native@x.test",
+			Identities: []store.Identity{{Connection: impConn, Provider: "auth0", UserID: "native", PasswordHash: native}}})
+		// A user imported without any hash.
+		if j, _ := e.run(e.importer(), []byte(`[{"email":"hashless@x.test"}]`), nil); j.Summary.Inserted != 1 {
+			t.Fatalf("hashless import = %+v", j.Summary)
+		}
+
+		records := []any{
+			map[string]any{"email": "imported@x.test", "custom_password_hash": sha256.Spec},
+			map[string]any{"email": "hashless@x.test", "custom_password_hash": sha256.Spec},
+			map[string]any{"email": "native@x.test", "custom_password_hash": sha256.Spec},
+		}
+		j, errs := e.run(e.importer(), fileOf(t, records), map[string]any{ParamUpsert: true, ParamSendCompletionEmail: false})
+		if j.Summary != (store.JobSummary{Updated: 2, Failed: 1, Total: 3}) {
+			t.Errorf("summary = %+v", j.Summary)
+		}
+		sameJSON(t, "errors", errs, []store.JobError{
+			jerr(2, masked(records[2].(map[string]any), "custom_password_hash.hash.value", "custom_password_hash.salt.value"),
+				it("CONFLICT", "A custom_password_hash was provided, but the user already has password hash defined.", "")),
+		})
+		want := specOf(t, sha256.Spec)
+		for _, email := range []string{"imported@x.test", "hashless@x.test"} {
+			if id := e.user(email).Identities[0]; id.ImportedHash != want || id.PasswordHash != "" {
+				t.Errorf("%s identity = %+v", email, id)
+			}
+		}
+		if id := e.user("native@x.test").Identities[0]; id.PasswordHash != native || id.ImportedHash != "" {
+			t.Errorf("native identity = %+v", id)
+		}
+		db := &identity.Database{Store: st, Now: func() time.Time { return e.now }}
+		for _, email := range []string{"imported@x.test", "hashless@x.test"} {
+			if _, err := db.Login(ctx, e.conn, email, sha256.Password); err != nil {
+				t.Errorf("sign in %s with the new hash: %v", email, err)
+			}
+		}
+		if _, err := db.Login(ctx, e.conn, "native@x.test", "native horse 1"); err != nil {
+			t.Errorf("native password no longer works: %v", err)
+		}
+	})
+}
+
+// Hash values of the wrong type are masked whole in /errors.
+func TestImportMasksWrongShapes(t *testing.T) {
+	forEachStore(t, func(t *testing.T, st store.Store) {
+		e := newImpEnv(t, st)
+		file := `[
+			{"email":"a@x.test","custom_password_hash":"$2b$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2"},
+			{"email":"b@x.test","custom_password_hash":["5f4dcc3b5aa765d61d8327deb882cf99"]},
+			{"email":"c@x.test","custom_password_hash":{"algorithm":"md5","hash":"5f4dcc3b5aa765d61d8327deb882cf99"}},
+			{"email":"d@x.test","custom_password_hash":{"algorithm":"md5","hash":{"value":"5f4dcc3b5aa765d61d8327deb882cf99","encoding":"hex"},"salt":"s3cr3t-salt"}},
+			{"email":"e@x.test","custom_password_hash":{"algorithm":"hmac","hash":{"value":"5f4dcc3b5aa765d61d8327deb882cf99","encoding":"hex","digest":"sha256","key":"s3cr3t-key"}}},
+			{"email":"f@x.test","password_hash":["$2b$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2"]}
+		]`
+		j, errs := e.run(e.importer(), []byte(file), nil)
+		if j.Summary != (store.JobSummary{Failed: 6, Total: 6}) || len(errs) != 6 {
+			t.Fatalf("job = %+v, %d errors", j.Summary, len(errs))
+		}
+		want := []string{
+			`{"custom_password_hash":"*****","email":"a@x.test"}`,
+			`{"custom_password_hash":"*****","email":"b@x.test"}`,
+			`{"custom_password_hash":{"algorithm":"md5","hash":"*****"},"email":"c@x.test"}`,
+			`{"custom_password_hash":{"algorithm":"md5","hash":{"encoding":"hex","value":"*****"},"salt":"*****"},"email":"d@x.test"}`,
+			`{"custom_password_hash":{"algorithm":"hmac","hash":{"digest":"sha256","encoding":"hex","key":"*****","value":"*****"}},"email":"e@x.test"}`,
+			`{"email":"f@x.test","password_hash":"*****"}`,
+		}
+		for i, e := range errs {
+			b, _ := json.Marshal(e.User)
+			if string(b) != want[i] {
+				t.Errorf("record %d echo = %s, want %s", e.Index, b, want[i])
+			}
+			all, _ := json.Marshal(e)
+			for _, secret := range []string{"5f4dcc3b", "abcdefghijklmnop", "s3cr3t"} {
+				if strings.Contains(string(all), secret) {
+					t.Errorf("record %d shows %q: %s", e.Index, secret, all)
+				}
+			}
+		}
+	})
+}
