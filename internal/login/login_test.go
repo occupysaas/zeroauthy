@@ -269,7 +269,7 @@ func TestLoginSuccess(t *testing.T) {
 		t.Fatal("transaction cookie not cleared")
 	}
 	u, _ := e.st.Users().FindByLogin(context.Background(), mustTenant(t, e, "acme").ID, "Username-Password-Authentication", "alice@acme.test")
-	if u.LoginsCount != 1 || u.LastLogin == nil {
+	if u.LoginsCount != 1 || u.LastLogin == nil || u.LastIP != "192.0.2.1" {
 		t.Fatalf("login not recorded: %+v", u)
 	}
 

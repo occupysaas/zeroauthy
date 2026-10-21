@@ -224,3 +224,41 @@ func TestSystemAPIOperators(t *testing.T) {
 		t.Errorf("removed operator's token = %d", rec.Code)
 	}
 }
+
+// The Users API on the system tenant reaches operators too: it refuses to
+// delete, block or link away the last one, as DeleteOperator does.
+func TestSystemTenantUsersKeepLastOperator(t *testing.T) {
+	h, st := newMgmtEnv(t)
+	op, opID := operatorToken(t, st, "op@example.test")
+	ctx := context.Background()
+	sys, _ := st.Tenants().GetByName(ctx, tenant.SystemName)
+	users := "https://" + mgmtSystemHost + "/api/v2/users/"
+	provider, sub, _ := strings.Cut(opID, "|")
+	primary := &store.User{TenantID: sys.ID, UserID: "auth0|primary", Email: "primary@example.test",
+		Identities: []store.Identity{{Connection: system.OperatorsConnection, Provider: "auth0", UserID: "primary"}}}
+	if err := st.Users().Create(ctx, primary); err != nil {
+		t.Fatal(err)
+	}
+	refused := func(name, method, target string, body any) {
+		t.Helper()
+		rec, out := sendRaw(h, method, target, op, body)
+		if rec.Code != 409 || errCode(out) != "last_operator" {
+			t.Errorf("%s = %d %s, want 409 last_operator", name, rec.Code, rec.Body)
+		}
+	}
+	refused("delete", "DELETE", users+url.PathEscape(opID), nil)
+	refused("block", "PATCH", users+url.PathEscape(opID), map[string]any{"blocked": true})
+	refused("link as secondary", "POST", users+url.PathEscape(primary.UserID)+"/identities", map[string]any{"provider": provider, "user_id": sub})
+	if u, err := st.Users().Get(ctx, sys.ID, opID); err != nil || u.Blocked {
+		t.Fatalf("operator after the refusals = %+v, %v", u, err)
+	}
+	// Other changes to the last operator go through.
+	if rec, _ := sendRaw(h, "PATCH", users+url.PathEscape(opID), op, map[string]any{"blocked": false, "name": "Op"}); rec.Code != 200 {
+		t.Errorf("unblock and rename = %d %s", rec.Code, rec.Body)
+	}
+	// With a second operator, the first can be blocked.
+	operatorToken(t, st, "second@example.test")
+	if rec, _ := sendRaw(h, "PATCH", users+url.PathEscape(opID), op, map[string]any{"blocked": true}); rec.Code != 200 {
+		t.Errorf("block with another operator = %d %s", rec.Code, rec.Body)
+	}
+}

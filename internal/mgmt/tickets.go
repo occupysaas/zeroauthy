@@ -202,14 +202,16 @@ func (h *Handlers) passwordChangeTarget(r *http.Request, in *ticketBody) (*store
 		if err != nil {
 			return nil, "", err
 		}
+		// A linked identity's password is not the user's to reset: the
+		// ticket could never be used, as userConnection skips it too.
 		if id != nil {
-			if id.Provider != store.StrategyDatabase {
+			if id.Linked() || id.Provider != store.StrategyDatabase {
 				return nil, "", errNoDatabaseIdentity
 			}
 			return u, id.Connection, nil
 		}
 		for _, id := range u.Identities {
-			if id.Provider == store.StrategyDatabase {
+			if !id.Linked() && id.Provider == store.StrategyDatabase {
 				return u, id.Connection, nil
 			}
 		}
@@ -234,7 +236,7 @@ func (h *Handlers) passwordChangeTarget(r *http.Request, in *ticketBody) (*store
 	}
 	for _, u := range users {
 		for _, id := range u.Identities {
-			if id.Provider == store.StrategyDatabase && id.Connection == conn.Name {
+			if !id.Linked() && id.Provider == store.StrategyDatabase && id.Connection == conn.Name {
 				return u, conn.Name, nil
 			}
 		}

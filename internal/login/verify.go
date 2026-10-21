@@ -288,6 +288,15 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 	// ticket usable.
 	outcome := verifySuccess
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		// Lock the user before the ticket: a concurrent PATCH locks the
+		// user and then deletes its tickets, so this order cannot cycle.
+		cur, err := tx.Users().GetForUpdate(ctx, res.Tenant.ID, tk.UserID)
+		if errors.Is(err, store.ErrNotFound) {
+			outcome = verifyFailed
+			return errVerifyOutcome
+		} else if err != nil {
+			return err
+		}
 		switch _, err := tx.EmailVerificationTickets().Consume(ctx, res.Tenant.ID, hash, now); {
 		case errors.Is(err, store.ErrAlreadyUsed):
 			outcome = verifyReused
@@ -298,12 +307,9 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 		case err != nil:
 			return err
 		}
-		cur, err := tx.Users().Get(ctx, res.Tenant.ID, tk.UserID)
-		if errors.Is(err, store.ErrNotFound) || (err == nil && !ticketEmailMatches(tk, cur)) {
+		if !ticketEmailMatches(tk, cur) {
 			outcome = verifyFailed
 			return errVerifyOutcome
-		} else if err != nil {
-			return err
 		}
 		if cur.EmailVerified {
 			return nil
@@ -358,7 +364,7 @@ func (h *Handlers) legacyVerify(ctx context.Context, conn *store.Connection, u *
 // setEmailVerified sets the user's email_verified.
 func (h *Handlers) setEmailVerified(ctx context.Context, tenantID, userID string, now time.Time) error {
 	return h.Store.WithTx(ctx, func(tx store.Store) error {
-		u, err := tx.Users().Get(ctx, tenantID, userID)
+		u, err := tx.Users().GetForUpdate(ctx, tenantID, userID)
 		if err != nil || u.EmailVerified {
 			return err
 		}

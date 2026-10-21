@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -445,5 +446,99 @@ func TestGrants(t *testing.T) {
 	rec, _ = e.do(t, m2mCaller("delete:grants"), "DELETE", "/api/v2/grants?user_id="+url.QueryEscape(u1), nil, e.h.DeleteGrantsByUser)
 	if l, _ := e.st.UserGrants().ListByUser(ctx, e.tn.ID, u1); rec.Code != 204 || len(l) != 0 {
 		t.Errorf("delete by user = %d, %d grants left", rec.Code, len(l))
+	}
+}
+
+// lockSpy records, in order, which users a transaction locks and which
+// refresh-token families it revokes.
+type lockSpy struct {
+	store.Store
+	log  *[]string
+	inTx bool
+}
+
+func (s lockSpy) WithTx(ctx context.Context, fn func(tx store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(lockSpy{tx, s.log, true}) })
+}
+func (s lockSpy) Users() store.Users { return spyUsers{s.Store.Users(), s} }
+func (s lockSpy) RefreshTokens() store.RefreshTokens {
+	return spyTokens{s.Store.RefreshTokens(), s}
+}
+func (s lockSpy) note(what string) {
+	if s.inTx {
+		what += " (tx)"
+	}
+	*s.log = append(*s.log, what)
+}
+
+type spyUsers struct {
+	store.Users
+	s lockSpy
+}
+
+func (u spyUsers) GetForUpdate(ctx context.Context, tenantID, userID string) (*store.User, error) {
+	u.s.note("lock " + userID)
+	return u.Users.GetForUpdate(ctx, tenantID, userID)
+}
+
+type spyTokens struct {
+	store.RefreshTokens
+	s lockSpy
+}
+
+func (r spyTokens) RevokeFamily(ctx context.Context, tenantID, familyID string, at time.Time) error {
+	r.s.note("revoke " + familyID)
+	return r.RefreshTokens.RevokeFamily(ctx, tenantID, familyID, at)
+}
+
+// DELETE /refresh-tokens/{id} locks the user before revoking the family, in
+// one transaction, as a rotation does: a rotation in flight then commits
+// wholly before the revocation (its successor is revoked too) or after it.
+func TestDeleteRefreshTokenLocksUser(t *testing.T) {
+	e := newUsersEnv(t)
+	u := e.mustCreate(t, map[string]any{"email": "rt@x.test"})["user_id"].(string)
+	e.addToken(t, "t1", u, now.Add(-time.Minute))
+	var log []string
+	e.h.Store = lockSpy{Store: e.st, log: &log}
+	code, out := e.call2(t, "delete:refresh_tokens", "DELETE", "/x", func(w http.ResponseWriter, r *http.Request) { e.h.DeleteRefreshToken(w, r, "t1") })
+	if code != 202 {
+		t.Fatalf("delete = %d %v", code, out)
+	}
+	if want := []string{"lock " + u + " (tx)", "revoke fam-t1 (tx)"}; !eqStrings(log, want) {
+		t.Errorf("calls = %v, want %v", log, want)
+	}
+}
+
+// IDs and query parameters no store can hold (NUL, invalid UTF-8) are
+// answered as malformed or absent, never passed to the store.
+func TestUnstorableIDsAndQueries(t *testing.T) {
+	e := newUsersEnv(t)
+	for _, bad := range []string{"a\x00b", "a\xffb"} {
+		q := url.QueryEscape(bad)
+		for name, tc := range map[string]struct {
+			scope, target string
+			fn            http.HandlerFunc
+			status        int
+			code          any
+		}{
+			"users connection": {"read:users", "/api/v2/users?connection=" + q, func(w http.ResponseWriter, r *http.Request) { e.h.GetUsers(w, r, mgmtapi.GetUsersParams{}) }, 400, "invalid_query_string"},
+			"users by email": {"read:users", "/api/v2/users-by-email?email=" + q, func(w http.ResponseWriter, r *http.Request) {
+				e.h.GetUsersByEmail(w, r, mgmtapi.GetUsersByEmailParams{})
+			}, 400, "invalid_query_string"},
+			"grants user_id":   {"read:grants", "/api/v2/grants?user_id=" + q, e.h.GetGrants, 400, "invalid_query_string"},
+			"grants client_id": {"read:grants", "/api/v2/grants?client_id=" + q, e.h.GetGrants, 400, "invalid_query_string"},
+			"grants audience":  {"read:grants", "/api/v2/grants?audience=" + q, e.h.GetGrants, 400, "invalid_query_string"},
+			"delete grants":    {"delete:grants", "/api/v2/grants?user_id=" + q, e.h.DeleteGrantsByUser, 400, "invalid_query_string"},
+			"delete grant":     {"delete:grants", "/x", func(w http.ResponseWriter, r *http.Request) { e.h.DeleteGrant(w, r, bad) }, 204, nil},
+			"get session":      {"read:sessions", "/x", func(w http.ResponseWriter, r *http.Request) { e.h.GetSession(w, r, bad) }, 404, nil},
+			"delete session":   {"delete:sessions", "/x", func(w http.ResponseWriter, r *http.Request) { e.h.DeleteSession(w, r, bad) }, 202, nil},
+			"get token":        {"read:refresh_tokens", "/x", func(w http.ResponseWriter, r *http.Request) { e.h.GetRefreshToken(w, r, bad) }, 404, nil},
+			"delete token":     {"delete:refresh_tokens", "/x", func(w http.ResponseWriter, r *http.Request) { e.h.DeleteRefreshToken(w, r, bad) }, 202, nil},
+		} {
+			code, out := e.call2(t, tc.scope, "GET", tc.target, tc.fn)
+			if code != tc.status || out["errorCode"] != tc.code {
+				t.Errorf("%s %q = %d %v, want %d %v", name, bad, code, out, tc.status, tc.code)
+			}
+		}
 	}
 }

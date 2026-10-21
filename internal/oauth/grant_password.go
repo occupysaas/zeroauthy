@@ -121,7 +121,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	userThrottle.Success(userKey)
 	ipThrottle.Refund(ipKey)
 	now := h.now().UTC()
-	if err := h.Store.Users().RecordLogin(ctx, tenantID, user.UserID, now, clientIPFrom(ctx)); err != nil {
+	if err := h.Store.Users().RecordLogin(ctx, tenantID, user.UserID, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
 		h.log().WarnContext(ctx, "record login", "tenant", tenantID, "err", err)
 	}
 
@@ -176,8 +176,10 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		return tx.RefreshTokens().Create(ctx, rt)
 	})
 	switch {
-	case errors.Is(err, errUserChanged):
+	case errors.Is(err, errUserBlocked):
 		return nil, invalidGrant("user is blocked")
+	case errors.Is(err, errUserChanged):
+		return nil, invalidGrant("the user is not allowed to sign in")
 	case err != nil:
 		h.log().ErrorContext(ctx, "store refresh token", "tenant", tenantID, "err", err)
 		return nil, serverError()

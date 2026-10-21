@@ -310,6 +310,10 @@ func (h *Handlers) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Reques
 
 // GetSession returns one unexpired session.
 func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request, id string) {
+	if !storableText(id) {
+		Fail(w, errNoSession)
+		return
+	}
 	s, err := h.Store.Sessions().Get(r.Context(), resolved(r).ID, id)
 	if errors.Is(err, store.ErrNotFound) || (err == nil && !sessionLive(s, h.now())) {
 		Fail(w, errNoSession)
@@ -324,6 +328,10 @@ func (h *Handlers) GetSession(w http.ResponseWriter, r *http.Request, id string)
 
 // DeleteSession ends one session, also when there is none.
 func (h *Handlers) DeleteSession(w http.ResponseWriter, r *http.Request, id string) {
+	if !storableText(id) { // no session has it
+		writeJSON(w, http.StatusAccepted, map[string]any{})
+		return
+	}
 	err := h.Store.Sessions().Delete(r.Context(), resolved(r).ID, id)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		Fail(w, internalError(h, r, "delete session", err))
@@ -337,6 +345,10 @@ func (h *Handlers) DeleteSession(w http.ResponseWriter, r *http.Request, id stri
 
 // GetRefreshToken returns one live refresh token.
 func (h *Handlers) GetRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
+	if !storableText(id) {
+		Fail(w, errNoRefreshToken)
+		return
+	}
 	t, err := h.Store.RefreshTokens().Get(r.Context(), resolved(r).ID, id)
 	if errors.Is(err, store.ErrNotFound) || (err == nil && !tokenLive(t, h.now())) {
 		Fail(w, errNoRefreshToken)
@@ -352,10 +364,22 @@ func (h *Handlers) GetRefreshToken(w http.ResponseWriter, r *http.Request, id st
 // DeleteRefreshToken revokes a refresh token and its rotation family, also
 // when there is no such token.
 func (h *Handlers) DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string) {
+	if !storableText(id) { // no token has it
+		writeJSON(w, http.StatusAccepted, map[string]any{})
+		return
+	}
 	ctx, tn := r.Context(), resolved(r)
 	t, err := h.Store.RefreshTokens().Get(ctx, tn.ID, id)
 	if err == nil {
-		err = h.Store.RefreshTokens().RevokeFamily(ctx, tn.ID, t.FamilyID, h.now())
+		// Lock the user first, as a rotation does: one in flight commits
+		// wholly before this (and its successor is in the family revoked
+		// here) or after it (and finds its token revoked).
+		err = h.Store.WithTx(ctx, func(tx store.Store) error {
+			if _, err := tx.Users().GetForUpdate(ctx, tn.ID, t.UserID); err != nil && !errors.Is(err, store.ErrNotFound) {
+				return err
+			}
+			return tx.RefreshTokens().RevokeFamily(ctx, tn.ID, t.FamilyID, h.now())
+		})
 		if err == nil {
 			h.audit(r, "delete refresh token", "token_id", id)
 		}

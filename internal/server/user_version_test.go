@@ -210,7 +210,7 @@ func wantInvalidGrant(t *testing.T, what string, r tokenResult, desc string) {
 func TestPasswordGrantRacingReset(t *testing.T) {
 	e := newVersionEnv(t)
 	r := e.paused(t, passwordForm("alice password 1"), func() { e.reset(t, "brand new password 2") })
-	wantInvalidGrant(t, "password grant across a reset", r, "user is blocked")
+	wantInvalidGrant(t, "password grant across a reset", r, "the user is not allowed to sign in")
 	ts, _ := e.st.RefreshTokens().ListByUser(context.Background(), e.alice.TenantID, e.alice.UserID)
 	if len(ts) != 0 {
 		t.Fatalf("refresh tokens after the reset: %d", len(ts))
@@ -302,7 +302,7 @@ func TestPasswordGrantRacingLegacyReset(t *testing.T) {
 		t.Fatalf("first legacy grant = %d %v", r.status, r.body)
 	}
 	r := e.paused(t, legacyForm("dave legacy 1"), func() { e.resetUser(t, "auth0|42", "Legacy-DB", "brand new legacy 2") })
-	wantInvalidGrant(t, "legacy password grant across a reset", r, "user is blocked")
+	wantInvalidGrant(t, "legacy password grant across a reset", r, "the user is not allowed to sign in")
 	ts, _ := e.st.RefreshTokens().ListByUser(context.Background(), e.alice.TenantID, "auth0|42")
 	for _, rt := range ts {
 		if rt.RevokedAt == nil {

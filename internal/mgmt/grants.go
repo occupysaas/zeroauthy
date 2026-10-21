@@ -22,6 +22,10 @@ func grantJSON(g *store.UserGrant) map[string]any {
 // GetGrants lists grants in ID order, filtered by user_id, client_id and
 // audience. An unknown user gives an empty list.
 func (h *Handlers) GetGrants(w http.ResponseWriter, r *http.Request) {
+	if err := checkQueryText(r, "user_id", "client_id", "audience"); err != nil {
+		Fail(w, err)
+		return
+	}
 	q := r.URL.Query()
 	f := store.UserGrantFilter{UserID: q.Get("user_id"), ClientID: q.Get("client_id"), Audience: q.Get("audience")}
 	page, perPage, totals, err := Page(r)
@@ -43,7 +47,10 @@ func (h *Handlers) GetGrants(w http.ResponseWriter, r *http.Request) {
 
 // DeleteGrant deletes one grant, also when there is none.
 func (h *Handlers) DeleteGrant(w http.ResponseWriter, r *http.Request, id string) {
-	err := h.Store.UserGrants().Delete(r.Context(), resolved(r).ID, id)
+	err := store.ErrNotFound // no grant has an unstorable ID
+	if storableText(id) {
+		err = h.Store.UserGrants().Delete(r.Context(), resolved(r).ID, id)
+	}
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		Fail(w, internalError(h, r, "delete grant", err))
 		return
@@ -61,6 +68,10 @@ func (h *Handlers) DeleteGrantsByUser(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
 		Fail(w, badQuery("Query validation error: user_id is required"))
+		return
+	}
+	if !storableText(userID) {
+		Fail(w, errUnstorableQuery)
 		return
 	}
 	n, err := h.Store.UserGrants().DeleteByUser(r.Context(), resolved(r).ID, userID)

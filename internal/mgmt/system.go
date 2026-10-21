@@ -1,6 +1,7 @@
 package mgmt
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,7 +27,32 @@ var (
 	errTenantNotFound   = &Error{Status: http.StatusNotFound, Code: "inexistent_tenant", Message: "The tenant does not exist"}
 	errOperatorNotFound = &Error{Status: http.StatusNotFound, Code: "inexistent_operator", Message: "The operator does not exist"}
 	errSystemTenant     = &Error{Status: http.StatusForbidden, Code: "operation_not_supported", Message: "The system tenant is managed by zeroauthy"}
+
+	errLastOperatorRemove = &Error{Status: http.StatusConflict, Code: "last_operator", Message: "The last operator cannot be removed"}
+	errLastOperatorBlock  = &Error{Status: http.StatusConflict, Code: "last_operator", Message: "The last operator cannot be blocked"}
+	errLastOperatorLink   = &Error{Status: http.StatusConflict, Code: "last_operator", Message: "The last operator cannot be linked as a secondary account"}
 )
+
+// lastOperator reports whether userID is the only operator of the reserved
+// system tenant tn. The Users API on the system tenant reaches operators
+// too, so it refuses what would leave no operator to sign in: deleting,
+// blocking or linking away the last one (the system API's DeleteOperator
+// refuses the same).
+func lastOperator(ctx context.Context, st store.Store, tn *store.Tenant, userID string) (bool, error) {
+	if !tn.Reserved {
+		return false, nil
+	}
+	if _, err := st.Operators().Get(ctx, tn.ID, userID); errors.Is(err, store.ErrNotFound) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	ops, err := st.Operators().List(ctx, tn.ID)
+	if err != nil {
+		return false, err
+	}
+	return len(ops) <= 1, nil
+}
 
 func conflict(format string, args ...any) *Error {
 	return &Error{Status: http.StatusConflict, Code: "conflict", Message: fmt.Sprintf(format, args...)}
@@ -376,7 +402,7 @@ func (h *Handlers) DeleteOperator(w http.ResponseWriter, r *http.Request, id str
 			return err
 		}
 		if len(ops) <= 1 {
-			return &Error{Status: http.StatusConflict, Code: "last_operator", Message: "The last operator cannot be removed"}
+			return errLastOperatorRemove
 		}
 		if err := tx.Operators().Delete(r.Context(), sys.ID, id); err != nil {
 			return err

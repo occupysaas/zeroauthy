@@ -230,7 +230,7 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 	now := h.now()
 	var out *store.User
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
-		p, err := tx.Users().Get(ctx, tn.ID, id)
+		p, err := tx.Users().GetForUpdate(ctx, tn.ID, id)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserNotFound
 		}
@@ -265,6 +265,11 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 		}
 		if len(sec.Identities) > 1 {
 			return errSecondaryHasLinks
+		}
+		if last, err := lastOperator(ctx, tx, tn, secondary); err != nil {
+			return err
+		} else if last {
+			return errLastOperatorLink
 		}
 		if in.connectionID != "" {
 			c, err := tx.Connections().GetByName(ctx, tn.ID, own.Connection)
@@ -319,7 +324,7 @@ func (h *Handlers) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id
 	var out *store.User
 	changed := false
 	err := h.Store.WithTx(ctx, func(tx store.Store) error {
-		p, err := tx.Users().Get(ctx, tn.ID, id)
+		p, err := tx.Users().GetForUpdate(ctx, tn.ID, id)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserNotFound
 		}

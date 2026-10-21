@@ -3,11 +3,13 @@ package server
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -563,4 +565,87 @@ func connectionID(t *testing.T, a *usersAPI, name string) string {
 		t.Fatal(err)
 	}
 	return c.ID
+}
+
+// NUL and invalid UTF-8 in query parameters and path IDs are the caller's
+// input: Postgres refuses both (SQLSTATE 22021), so they must be answered
+// before the store, never as a 500.
+func TestUnstorableInputIsNot500(t *testing.T) {
+	t.Run("memory", func(t *testing.T) { unstorableInput(t, newUsersAPI(t, nil)) })
+	t.Run("sqlite", func(t *testing.T) {
+		unstorableInput(t, newUsersAPIOn(t, openSQL(t, "sqlite://"+filepath.Join(t.TempDir(), "z.db")), nil))
+	})
+	if dsn := os.Getenv("ZA_TEST_POSTGRES_DSN"); dsn != "" {
+		t.Run("postgres", func(t *testing.T) { unstorableInput(t, newUsersAPIOn(t, openSQL(t, freshPostgres(t, dsn)), nil)) })
+	}
+}
+
+func openSQL(t *testing.T, dsn string) store.Store {
+	t.Helper()
+	ctx := context.Background()
+	st, err := sqlstore.Open(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	if err := st.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	return st
+}
+
+// freshPostgres creates a database on the server of adminDSN (a URL DSN),
+// drops it at cleanup and returns its DSN.
+func freshPostgres(t *testing.T, adminDSN string) string {
+	t.Helper()
+	name := "zs_" + strings.ToLower(secrets.RandomString(12))
+	admin, err := sql.Open("pgx", adminDSN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer admin.Close()
+	if _, err := admin.Exec("CREATE DATABASE " + name); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if a, err := sql.Open("pgx", adminDSN); err == nil {
+			_, _ = a.Exec("DROP DATABASE IF EXISTS " + name + " WITH (FORCE)")
+			_ = a.Close()
+		}
+	})
+	u, err := url.Parse(adminDSN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u.Path = "/" + name
+	return u.String()
+}
+
+func unstorableInput(t *testing.T, a *usersAPI) {
+	const api = "https://acme.example.test/api/v2"
+	for _, bad := range []string{"%00", "a%00b", "%FF", "a%C3"} {
+		for _, c := range []struct {
+			method, target string
+			status         int
+			code           string
+		}{
+			{"GET", api + "/users?connection=" + bad, 400, "invalid_query_string"},
+			{"GET", api + "/users-by-email?email=" + bad, 400, "invalid_query_string"},
+			{"GET", api + "/users-by-email?email=a" + bad + "@x.test", 400, "invalid_query_string"},
+			{"GET", api + "/grants?user_id=" + bad, 400, "invalid_query_string"},
+			{"GET", api + "/grants?client_id=" + bad, 400, "invalid_query_string"},
+			{"GET", api + "/grants?audience=" + bad, 400, "invalid_query_string"},
+			{"DELETE", api + "/grants?user_id=" + bad, 400, "invalid_query_string"},
+			{"DELETE", api + "/grants/" + bad, 204, ""},
+			{"GET", api + "/sessions/" + bad, 404, ""},
+			{"DELETE", api + "/sessions/" + bad, 202, ""},
+			{"GET", api + "/refresh-tokens/" + bad, 404, ""},
+			{"DELETE", api + "/refresh-tokens/" + bad, 202, ""},
+		} {
+			rec, out := a.do(c.method, c.target, nil)
+			if rec.Code != c.status || (c.code != "" && out["errorCode"] != c.code) {
+				t.Errorf("%s %s = %d %s, want %d %s", c.method, c.target, rec.Code, rec.Body, c.status, c.code)
+			}
+		}
+	}
 }

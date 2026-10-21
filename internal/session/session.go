@@ -70,7 +70,7 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 	}
 	_, idle := lifetimes(t)
 	idleAt := minTime(now.Add(idle), s.ExpiresAt)
-	ip, ua := httpx.ClientIP(r, m.TrustProxyHeaders), r.UserAgent()
+	ip, ua := httpx.RecordedIP(r, m.TrustProxyHeaders), r.UserAgent()
 	if err := m.Store.Sessions().Touch(ctx, t.ID, s.ID, now, idleAt, ip, ua); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, nil // deleted (e.g. logout) since it was read
@@ -93,7 +93,7 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		}
 	}
 	now := m.now()
-	ip, ua := httpx.ClientIP(r, m.TrustProxyHeaders), r.UserAgent()
+	ip, ua := httpx.RecordedIP(r, m.TrustProxyHeaders), r.UserAgent()
 	absolute, idle := lifetimes(t)
 	token := secrets.RandomString(43)
 	s := &store.LoginSession{

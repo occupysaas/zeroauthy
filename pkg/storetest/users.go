@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -378,6 +379,47 @@ func testUsers(t *testing.T, newStore Factory) {
 		if rt := getRT(t, s, "ten_a", "h1"); rt.RevokedAt == nil {
 			t.Fatal("the token minted under the lock survived the revocation")
 		}
+	})
+
+	// Two read-modify-write transactions on one user, each through
+	// GetForUpdate: the second reads after the first commits, so neither
+	// write is lost. With a plain Get the second reads the stale record
+	// (READ COMMITTED, snapshot reads) and writes it back over the first.
+	t.Run("GetForUpdateNoLostUpdate", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.Users().Create(ctx, newUser("ten_a", "u1", "alice@example.test", "alice")))
+		rmw := func(key string, hold func()) error {
+			return s.WithTx(ctx, func(tx store.Store) error {
+				u, err := tx.Users().GetForUpdate(ctx, "ten_a", "auth0|u1")
+				if err != nil {
+					return err
+				}
+				hold()
+				if u.UserMetadata == nil {
+					u.UserMetadata = map[string]any{}
+				}
+				u.UserMetadata[key] = true
+				return tx.Users().Update(ctx, u)
+			})
+		}
+		locked := make(chan struct{})
+		var once sync.Once
+		firstErr, secondErr := make(chan error, 1), make(chan error, 1)
+		go func() {
+			firstErr <- rmw("first", func() {
+				once.Do(func() { close(locked) })
+				// Give the second transaction time to read.
+				time.Sleep(200 * time.Millisecond)
+			})
+		}()
+		<-locked
+		go func() { secondErr <- rmw("second", func() {}) }()
+		mustNoErr(t, <-firstErr)
+		mustNoErr(t, <-secondErr)
+		got, err := s.Users().Get(ctx, "ten_a", "auth0|u1")
+		mustNoErr(t, err)
+		mustEqual(t, got.UserMetadata["first"], true)
+		mustEqual(t, got.UserMetadata["second"], true)
 	})
 
 	t.Run("FindByEmail", func(t *testing.T) {

@@ -214,3 +214,24 @@ func TestEmailChangeDropsVerificationTickets(t *testing.T) {
 		t.Fatal("the verification ticket survived the email change")
 	}
 }
+
+// A linked identity is not the user's to reset (its password never signs
+// the user in), so a password-change ticket never targets one.
+func TestPasswordChangeTicketSkipsLinkedIdentity(t *testing.T) {
+	e := newUsersEnv(t)
+	u := &store.User{TenantID: e.tn.ID, UserID: "google-oauth2|g1", Email: "linked@x.test", CreatedAt: now, UpdatedAt: now,
+		Identities: []store.Identity{
+			{Connection: "google-oauth2", Provider: "google-oauth2", UserID: "g1"},
+			{Connection: dbConn, Provider: store.StrategyDatabase, UserID: "000000000000000000000001", PasswordHash: "x",
+				ProfileData: map[string]any{"email": "linked@x.test", "email_verified": true}},
+		}}
+	if err := e.st.Users().Create(context.Background(), u); err != nil {
+		t.Fatal(err)
+	}
+	rec, out := e.passwordTicket(t, map[string]any{"user_id": u.UserID})
+	wantTicketError(t, "by user_id", rec, out, 400, "operation_not_supported", "The user has no database identity")
+	rec, out = e.passwordTicket(t, map[string]any{"user_id": u.UserID, "identity": map[string]any{"provider": "auth0", "user_id": "000000000000000000000001"}})
+	wantTicketError(t, "naming the linked identity", rec, out, 400, "operation_not_supported", "The user has no database identity")
+	rec, out = e.passwordTicket(t, map[string]any{"email": "linked@x.test", "connection_id": e.conn.ID})
+	wantTicketError(t, "by email", rec, out, 404, "inexistent_user", "")
+}

@@ -303,3 +303,39 @@ func TestDeviceRecorded(t *testing.T) {
 		t.Errorf("touched session = %+v", stored)
 	}
 }
+
+// A client IP that is not an address (a hostile X-Forwarded-For) is
+// stored as "", on creation and on touch.
+func TestDeviceIPMustBeAnAddress(t *testing.T) {
+	ctx := context.Background()
+	m, c, tn := setup()
+	m.TrustProxyHeaders = true
+	req := func(cookies []*http.Cookie, ip string) *http.Request {
+		r := requestWith(cookies)
+		r.Header.Set("X-Forwarded-For", ip)
+		return r
+	}
+	rec := httptest.NewRecorder()
+	s, err := m.Start(ctx, rec, req(nil, "<b>not an ip</b>"), tn, "auth0|1", "Database", c.t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, _ := m.Store.Sessions().Get(ctx, tn.ID, s.ID)
+	if stored.InitialIP != "" || stored.LastIP != "" {
+		t.Fatalf("created session IPs = %q, %q", stored.InitialIP, stored.LastIP)
+	}
+	c.t = c.t.Add(time.Minute)
+	if _, err := m.Current(ctx, req(rec.Result().Cookies(), "2001:DB8::9"), tn); err != nil {
+		t.Fatal(err)
+	}
+	if stored, _ = m.Store.Sessions().Get(ctx, tn.ID, s.ID); stored.LastIP != "2001:db8::9" {
+		t.Errorf("touched LastIP = %q", stored.LastIP)
+	}
+	c.t = c.t.Add(time.Minute)
+	if _, err := m.Current(ctx, req(rec.Result().Cookies(), "1.2.3.4\x00x"), tn); err != nil {
+		t.Fatal(err)
+	}
+	if stored, _ = m.Store.Sessions().Get(ctx, tn.ID, s.ID); stored.LastIP != "" {
+		t.Errorf("hostile touch LastIP = %q", stored.LastIP)
+	}
+}

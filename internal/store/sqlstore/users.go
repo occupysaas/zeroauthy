@@ -180,9 +180,6 @@ func (r users) FindByLogin(ctx context.Context, tenantID, connection, login stri
 }
 
 func (r users) RecordLogin(ctx context.Context, tenantID, userID string, at time.Time, ip string) error {
-	if len(ip) > 255 { // the column is VARCHAR(255) on MySQL; a login must not fail over a hostile header
-		ip = ip[:255]
-	}
 	res, err := r.s.write(ctx, nil, `UPDATE users SET last_login=?, last_ip=?, logins_count=logins_count+1 WHERE tenant_id=? AND user_id=?`,
 		micros(at), ip, tenantID, userID)
 	if err != nil {

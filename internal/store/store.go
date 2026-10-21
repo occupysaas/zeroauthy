@@ -258,7 +258,8 @@ type Users interface {
 	// to true or Email changes, and otherwise leaves it.
 	Update(ctx context.Context, u *User) error
 	// RecordLogin atomically sets LastLogin and LastIP and increments
-	// LoginsCount.
+	// LoginsCount. Callers pass an IP address or "" (httpx.CanonicalIP):
+	// never raw header text.
 	RecordLogin(ctx context.Context, tenantID, userID string, at time.Time, ip string) error
 	// SetPasswordHash replaces the password hash of the user's own (not
 	// linked) identity on connection, sets UpdatedAt = at and adds one to

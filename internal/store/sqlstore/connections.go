@@ -115,26 +115,38 @@ func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 		if err != nil {
 			return err
 		}
-		gone, stripped, err := usersOnConnection(ctx, tx, tenantID, name)
+		affected, err := usersOnConnection(ctx, tx, tenantID, name)
 		if err != nil {
 			return err
 		}
-		for _, uid := range gone {
-			if err := deleteUser(ctx, tx, tenantID, uid); err != nil {
-				return err
+		// Lock each user before touching its rows, in user_id order, as
+		// Users.Delete and the user writes do (user, then dependents), and
+		// decide again on the locked row: the scan above read without locks.
+		for _, uid := range affected {
+			u, err := users{tx}.GetForUpdate(ctx, tenantID, uid)
+			if errors.Is(err, store.ErrNotFound) {
+				continue
 			}
-		}
-		for _, u := range stripped {
-			u.WithoutLinkedOn(name)
-			ids, err := toJSON(u.Identities)
 			if err != nil {
 				return err
 			}
-			if _, err := tx.exec(ctx, `UPDATE users SET identities=?, version=version+1 WHERE tenant_id=? AND user_id=?`, ids, tenantID, u.UserID); err != nil {
-				return err
-			}
-			if err := putLogins(ctx, tx, u, true); err != nil {
-				return err
+			switch del, strip := u.ConnectionDeleteEffect(name); {
+			case del:
+				if err := deleteUser(ctx, tx, tenantID, uid); err != nil {
+					return err
+				}
+			case strip:
+				u.WithoutLinkedOn(name)
+				ids, err := toJSON(u.Identities)
+				if err != nil {
+					return err
+				}
+				if _, err := tx.exec(ctx, `UPDATE users SET identities=?, version=version+1 WHERE tenant_id=? AND user_id=?`, ids, tenantID, u.UserID); err != nil {
+					return err
+				}
+				if err := putLogins(ctx, tx, u, true); err != nil {
+					return err
+				}
 			}
 		}
 		if _, err := tx.exec(ctx, `UPDATE tenants SET default_directory = '' WHERE id = ? AND default_directory = ?`, tenantID, name); err != nil {
@@ -145,28 +157,26 @@ func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 	})
 }
 
-// usersOnConnection returns, for the connection called name, the IDs of the
-// tenant's users whose own identity is on it (gone) and the users that only
-// have linked identities on it (stripped), in user_id order.
-func usersOnConnection(ctx context.Context, tx *Store, tenantID, name string) (gone []string, stripped []*store.User, err error) {
+// usersOnConnection returns, in user_id order, the IDs of the tenant's
+// users that deleting the connection called name affects: those whose own
+// identity is on it and those with linked identities on it.
+func usersOnConnection(ctx context.Context, tx *Store, tenantID, name string) ([]string, error) {
 	rows, err := tx.query(ctx, `SELECT `+userCols+` FROM users WHERE tenant_id = ? ORDER BY user_id`+tx.d.byteOrder, tenantID)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer rows.Close() // also on the early returns; SQLite has one connection
+	var out []string
 	for rows.Next() {
 		u, err := scanUser(rows)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		switch del, strip := u.ConnectionDeleteEffect(name); {
-		case del:
-			gone = append(gone, u.UserID)
-		case strip:
-			stripped = append(stripped, u)
+		if del, strip := u.ConnectionDeleteEffect(name); del || strip {
+			out = append(out, u.UserID)
 		}
 	}
-	return gone, stripped, rows.Err()
+	return out, rows.Err()
 }
 
 func scanConnection(row scanner) (*store.Connection, error) {

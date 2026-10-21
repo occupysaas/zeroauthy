@@ -65,6 +65,23 @@ func storableText(s string) bool {
 
 var errUnstorableText = badBodyRaw("Payload validation error: strings must be valid UTF-8 without NUL characters.")
 
+// errUnstorableQuery answers a query parameter that is not storableText.
+var errUnstorableQuery = badQuery("Query validation error: strings must be valid UTF-8 without NUL characters.")
+
+// checkQueryText refuses the request's query parameters names when one is
+// not storableText: the store would refuse it with a driver error.
+func checkQueryText(r *http.Request, names ...string) error {
+	q := r.URL.Query()
+	for _, n := range names {
+		for _, v := range q[n] {
+			if !storableText(v) {
+				return errUnstorableQuery
+			}
+		}
+	}
+	return nil
+}
+
 // checkBodyText refuses a body with a string or object key, at any depth,
 // that is not storableText. JSON decoding would silently turn invalid UTF-8
 // into U+FFFD, so the raw bytes are checked too.
@@ -171,6 +188,10 @@ func fieldError(err error) error {
 // GetUsers lists or searches the tenant's users (U4).
 func (h *Handlers) GetUsers(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetUsersParams) {
 	q := r.URL.Query()
+	if err := checkQueryText(r, "connection"); err != nil {
+		Fail(w, err)
+		return
+	}
 	switch q.Get("search_engine") {
 	case "", "v2", "v3":
 	case "v1":
@@ -246,6 +267,10 @@ func (h *Handlers) GetUsersByEmail(w http.ResponseWriter, r *http.Request, _ mgm
 	email := r.URL.Query().Get("email")
 	if email == "" {
 		Fail(w, badQuery("Query validation error: 'Missing required property: email' on property email (Email address to search for (case-sensitive))."))
+		return
+	}
+	if !storableText(email) {
+		Fail(w, errUnstorableQuery)
 		return
 	}
 	if identity.CheckEmail(email) != nil {
@@ -751,12 +776,19 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	now := h.now()
 	var out *store.User
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
-		cur, err := tx.Users().Get(ctx, u.TenantID, id)
+		cur, err := tx.Users().GetForUpdate(ctx, u.TenantID, id)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserNotFound
 		}
 		if err != nil {
 			return err
+		}
+		if in.Blocked != nil && *in.Blocked {
+			if last, err := lastOperator(ctx, tx, resolved(r), id); err != nil {
+				return err
+			} else if last {
+				return errLastOperatorBlock
+			}
 		}
 		userrules.ApplyPatch(cur, in)
 		cur.UpdatedAt = now
@@ -853,6 +885,15 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, internalError(h, r, "delete user", err))
 		return
 	}
+	// Refuse before a script deletes the user from a legacy store; the
+	// transaction below checks again under the user's lock.
+	if last, err := lastOperator(ctx, h.Store, tn, id); err != nil {
+		Fail(w, internalError(h, r, "delete user", err))
+		return
+	} else if last {
+		Fail(w, errLastOperatorRemove)
+		return
+	}
 	conn, ident, err := h.userConnection(r, u, "")
 	switch {
 	case errors.Is(err, errUserConnection), errors.Is(err, errNoDatabaseIdentity):
@@ -870,9 +911,19 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 			return
 		}
 	}
-	err = h.Store.Users().Delete(ctx, tn.ID, id)
+	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if _, err := tx.Users().GetForUpdate(ctx, tn.ID, id); err != nil {
+			return err
+		}
+		if last, err := lastOperator(ctx, tx, tn, id); err != nil {
+			return err
+		} else if last {
+			return errLastOperatorRemove
+		}
+		return tx.Users().Delete(ctx, tn.ID, id)
+	})
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		Fail(w, internalError(h, r, "delete user", err))
+		h.failTx(w, r, "delete user", err)
 		return
 	}
 	h.audit(r, "delete user", "user_id", id)

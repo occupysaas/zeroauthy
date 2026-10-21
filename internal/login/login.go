@@ -358,7 +358,7 @@ func (h *Handlers) complete(w http.ResponseWriter, r *http.Request, f *flow, use
 		h.fail(w, r, err, f)
 		return
 	}
-	if err := h.Store.Users().RecordLogin(ctx, f.res.Tenant.ID, user.UserID, now, httpx.ClientIP(r, h.TrustProxyHeaders)); err != nil {
+	if err := h.Store.Users().RecordLogin(ctx, f.res.Tenant.ID, user.UserID, now, httpx.RecordedIP(r, h.TrustProxyHeaders)); err != nil {
 		h.log().WarnContext(ctx, "record login", "tenant", f.res.Tenant.ID, "err", err)
 	}
 	h.Authz.Resume(w, r, f.res, f.txn, sess)
