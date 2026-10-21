@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"unicode/utf16"
 )
 
@@ -51,10 +50,31 @@ func decodeValue(v, enc string) ([]byte, error) {
 	return nil, fmt.Errorf("%w: encoding %q", ErrUnusable, enc)
 }
 
+// decodeBase64 decodes the way Node's Buffer.from(v, 'base64') does: both
+// alphabets (standard and URL-safe), padding optional, decoding stops at the
+// first '=', and any other character outside the alphabets (whitespace
+// included) is skipped. It never fails; a short or empty result simply fails
+// the comparison later. A dangling sixth bit left by a single trailing
+// character is dropped.
 func decodeBase64(v string) ([]byte, error) {
-	v = strings.TrimRight(v, "=")
-	v = strings.NewReplacer("-", "+", "_", "/").Replace(v)
-	b, err := base64.RawStdEncoding.DecodeString(v)
+	clean := make([]byte, 0, len(v))
+scan:
+	for i := 0; i < len(v); i++ {
+		switch c := v[i]; {
+		case c == '=':
+			break scan
+		case c == '-':
+			clean = append(clean, '+')
+		case c == '_':
+			clean = append(clean, '/')
+		case c >= 'A' && c <= 'Z', c >= 'a' && c <= 'z', c >= '0' && c <= '9', c == '+', c == '/':
+			clean = append(clean, c)
+		}
+	}
+	if len(clean)%4 == 1 {
+		clean = clean[:len(clean)-1]
+	}
+	b, err := base64.RawStdEncoding.DecodeString(string(clean))
 	if err != nil {
 		return nil, fmt.Errorf("%w: base64: %v", ErrUnusable, err)
 	}

@@ -66,9 +66,6 @@ var (
 	// string, or a value that does not decode in its declared encoding. The
 	// user must reset the password (D-0044).
 	ErrUnusable = errors.New("passhash: imported hash is unusable")
-	// ErrNotImplemented is returned by Verify for an algorithm whose verifier
-	// has not landed yet.
-	ErrNotImplemented = errors.New("passhash: algorithm not implemented yet")
 )
 
 // Marshal serialises the spec for storage in an identity's imported hash.
@@ -86,6 +83,9 @@ func Unmarshal(v string) (*Spec, error) {
 	if s.Algorithm == "" {
 		return nil, errors.New("passhash: stored spec has no algorithm")
 	}
+	// Algorithm and digest names are looked up in lower case.
+	s.Algorithm = strings.ToLower(s.Algorithm)
+	s.Hash.Digest = strings.ToLower(s.Hash.Digest)
 	return &s, nil
 }
 
@@ -166,7 +166,7 @@ func (s *Spec) passwordEncoding() string {
 // ErrUnusable for a value that cannot be parsed.
 func (s *Spec) Verify(password string) (bool, error) {
 	pw := encodePassword(password, s.passwordEncoding())
-	switch strings.ToLower(s.Algorithm) {
+	switch s.Algorithm {
 	case "md4", "md5", "sha1", "sha256", "sha512":
 		return s.verifyDigest(pw)
 	case "hmac":
@@ -175,6 +175,12 @@ func (s *Spec) Verify(password string) (bool, error) {
 		return s.verifyLDAP(pw)
 	case "bcrypt":
 		return s.verifyBcrypt(pw)
+	case "pbkdf2":
+		return s.verifyPBKDF2(pw)
+	case "scrypt":
+		return s.verifyScrypt(pw)
+	case "argon2":
+		return s.verifyArgon2(pw)
 	}
-	return false, ErrNotImplemented
+	return false, fmt.Errorf("%w: algorithm %q", ErrUnusable, s.Algorithm)
 }

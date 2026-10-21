@@ -18,8 +18,8 @@ character above U+00FF and 'ascii' raises for any non-ASCII one, whereas Node
 keeps the low 8 bits of every UTF-16 code unit for ascii, latin1 and binary.
 node_bytes() below emulates Node explicitly instead of using those codecs.
 
-Later tasks append their algorithms (pbkdf2, scrypt, argon2, whirlpool) to the
-same file; "task" says which task's verifier a vector exercises.
+The Task 4 algorithms (pbkdf2, scrypt, argon2, whirlpool) are in
+vectors-kdf.json, written by gen-hash-vectors-kdf.py.
 """
 import base64
 import hashlib
@@ -223,7 +223,11 @@ B64 = "abcdefghijklmnopqrstuu"  # 22 salt characters
 
 
 def bcrypt_hash(minor, pw_bytes):
-    return crypt.crypt(pw_bytes.decode("latin1"), "$2%s$10$%s" % (minor, B64))
+    # crypt.crypt takes str and encodes it as UTF-8, so only ASCII input
+    # reaches libc unchanged; refuse anything else instead of hashing
+    # different bytes than the vector says.
+    assert all(b < 0x80 for b in pw_bytes), "bcrypt vectors must be ASCII"
+    return crypt.crypt(pw_bytes.decode("ascii"), "$2%s$10$%s" % (minor, B64))
 
 
 for minor in ("a", "b", "y"):

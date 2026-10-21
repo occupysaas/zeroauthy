@@ -1,0 +1,1820 @@
+[
+ {
+  "name": "pbkdf2/md4",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-md4$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KISbNLEH5dBpwBGK7TqP5gM2373Gew7j7z9DcVQhSSE",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/md4/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-md4$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KISbNLEH5dBpwBGK7TqP5gM2373Gew7j7z9DcVQhSSE",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-md4",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-md4$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KISbNLEH5dBpwBGK7TqP5gM2373Gew7j7z9DcVQhSSE",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-md4/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-md4$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KISbNLEH5dBpwBGK7TqP5gM2373Gew7j7z9DcVQhSSE",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/md4withrsaencryption",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-md4withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KISbNLEH5dBpwBGK7TqP5gM2373Gew7j7z9DcVQhSSE",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/md4withrsaencryption/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-md4withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KISbNLEH5dBpwBGK7TqP5gM2373Gew7j7z9DcVQhSSE",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/md5",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-md5$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KFrb2hPj3hnyZsLW1fqToGlcFkWxzWsomor/OLLJQS8",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/md5/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-md5$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KFrb2hPj3hnyZsLW1fqToGlcFkWxzWsomor/OLLJQS8",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-md5",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-md5$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KFrb2hPj3hnyZsLW1fqToGlcFkWxzWsomor/OLLJQS8",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-md5/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-md5$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KFrb2hPj3hnyZsLW1fqToGlcFkWxzWsomor/OLLJQS8",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/md5withrsaencryption",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-md5withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KFrb2hPj3hnyZsLW1fqToGlcFkWxzWsomor/OLLJQS8",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/md5withrsaencryption/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-md5withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KFrb2hPj3hnyZsLW1fqToGlcFkWxzWsomor/OLLJQS8",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/ssl3-md5",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ssl3-md5$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KFrb2hPj3hnyZsLW1fqToGlcFkWxzWsomor/OLLJQS8",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/ssl3-md5/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ssl3-md5$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$KFrb2hPj3hnyZsLW1fqToGlcFkWxzWsomor/OLLJQS8",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha1",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha1$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha1/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha1$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-sha1",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha1$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-sha1/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha1$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha1withrsaencryption",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha1withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha1withrsaencryption/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha1withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/ssl3-sha1",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ssl3-sha1$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/ssl3-sha1/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ssl3-sha1$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-sha1-2",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha1-2$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-sha1-2/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha1-2$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$4gLP8bI6MYo25+AY74GaypHrWwj/Ffq1tYGUuQpGoF0",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha224",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha224$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$dyAhfRKqmf0L9dxUBt1EN/DQqfebNP09rDntS42JnHM",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha224/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha224$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$dyAhfRKqmf0L9dxUBt1EN/DQqfebNP09rDntS42JnHM",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-sha224",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha224$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$dyAhfRKqmf0L9dxUBt1EN/DQqfebNP09rDntS42JnHM",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-sha224/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha224$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$dyAhfRKqmf0L9dxUBt1EN/DQqfebNP09rDntS42JnHM",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha224withrsaencryption",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha224withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$dyAhfRKqmf0L9dxUBt1EN/DQqfebNP09rDntS42JnHM",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha224withrsaencryption/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha224withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$dyAhfRKqmf0L9dxUBt1EN/DQqfebNP09rDntS42JnHM",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha256",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha256$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$1Nhd+jSQU1g3ZP6insHJmyQROq/spzJmIfrLpG1G1xc",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha256/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha256$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$1Nhd+jSQU1g3ZP6insHJmyQROq/spzJmIfrLpG1G1xc",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-sha256",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha256$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$1Nhd+jSQU1g3ZP6insHJmyQROq/spzJmIfrLpG1G1xc",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-sha256/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha256$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$1Nhd+jSQU1g3ZP6insHJmyQROq/spzJmIfrLpG1G1xc",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha256withrsaencryption",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha256withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$1Nhd+jSQU1g3ZP6insHJmyQROq/spzJmIfrLpG1G1xc",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha256withrsaencryption/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha256withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$1Nhd+jSQU1g3ZP6insHJmyQROq/spzJmIfrLpG1G1xc",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha384",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha384$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$qFk5sDdTzowU5ubX7gFhUIuc622tN+rAw+4jdD8dfIk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha384/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha384$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$qFk5sDdTzowU5ubX7gFhUIuc622tN+rAw+4jdD8dfIk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-sha384",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha384$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$qFk5sDdTzowU5ubX7gFhUIuc622tN+rAw+4jdD8dfIk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-sha384/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha384$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$qFk5sDdTzowU5ubX7gFhUIuc622tN+rAw+4jdD8dfIk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha384withrsaencryption",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha384withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$qFk5sDdTzowU5ubX7gFhUIuc622tN+rAw+4jdD8dfIk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha384withrsaencryption/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha384withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$qFk5sDdTzowU5ubX7gFhUIuc622tN+rAw+4jdD8dfIk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha512",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha512$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$p8F8cO50TM3BgzHM+oZCjP2d0dtvNaUqVYQU/1aVXfQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha512/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha512$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$p8F8cO50TM3BgzHM+oZCjP2d0dtvNaUqVYQU/1aVXfQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-sha512",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha512$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$p8F8cO50TM3BgzHM+oZCjP2d0dtvNaUqVYQU/1aVXfQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-sha512/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-sha512$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$p8F8cO50TM3BgzHM+oZCjP2d0dtvNaUqVYQU/1aVXfQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/sha512withrsaencryption",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha512withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$p8F8cO50TM3BgzHM+oZCjP2d0dtvNaUqVYQU/1aVXfQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/sha512withrsaencryption/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha512withrsaencryption$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$p8F8cO50TM3BgzHM+oZCjP2d0dtvNaUqVYQU/1aVXfQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/ripemd160",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ripemd160$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/ripemd160/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ripemd160$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rmd160",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rmd160$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rmd160/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rmd160$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/ripemd",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ripemd$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/ripemd/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ripemd$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-ripemd160",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-ripemd160$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-ripemd160/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-ripemd160$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/ripemd160withrsa",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ripemd160withrsa$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/ripemd160withrsa/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-ripemd160withrsa$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$O81nWfvvQQ86eDVQz9U4UxZft//mvBjniCmrB/CXHsg",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/whirlpool",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-whirlpool$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$j/1ovi2C2Gcol4rHJNc9BkERySIJMXvqCAZn5t4XRTk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/whirlpool/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-whirlpool$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$j/1ovi2C2Gcol4rHJNc9BkERySIJMXvqCAZn5t4XRTk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/mdc2",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-mdc2$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$jy6eDbvNaX5+tDUk8ol9eao9agWMPmLL5dG8L8grii4",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/mdc2/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-mdc2$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$jy6eDbvNaX5+tDUk8ol9eao9agWMPmLL5dG8L8grii4",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/rsa-mdc2",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-mdc2$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$jy6eDbvNaX5+tDUk8ol9eao9agWMPmLL5dG8L8grii4",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/rsa-mdc2/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-rsa-mdc2$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$jy6eDbvNaX5+tDUk8ol9eao9agWMPmLL5dG8L8grii4",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/mdc2withrsa",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-mdc2withrsa$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$jy6eDbvNaX5+tDUk8ol9eao9agWMPmLL5dG8L8grii4",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/mdc2withrsa/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-mdc2withrsa$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$jy6eDbvNaX5+tDUk8ol9eao9agWMPmLL5dG8L8grii4",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/defaults-empty-params",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha256$$ABEiM0RVZneImaq7zN3u/w$wAdTAIRwbsdLUOr5RUaRlcTFSw+EXP02muGhX8AqlB349aayNaW/BDozF74KiIUUN4Zc6cLhm7QsEmL7jczPnQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/defaults-empty-params/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha256$$ABEiM0RVZneImaq7zN3u/w$wAdTAIRwbsdLUOr5RUaRlcTFSw+EXP02muGhX8AqlB349aayNaW/BDozF74KiIUUN4Zc6cLhm7QsEmL7jczPnQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/default-l",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha256$i=100000$ABEiM0RVZneImaq7zN3u/w$wAdTAIRwbsdLUOr5RUaRlcTFSw+EXP02muGhX8AqlB349aayNaW/BDozF74KiIUUN4Zc6cLhm7QsEmL7jczPnQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/default-l/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha256$i=100000$ABEiM0RVZneImaq7zN3u/w$wAdTAIRwbsdLUOr5RUaRlcTFSw+EXP02muGhX8AqlB349aayNaW/BDozF74KiIUUN4Zc6cLhm7QsEmL7jczPnQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "pbkdf2/utf8-password-urlsafe-padded-salt",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha512$i=777,l=20$-__--g==$j55UqDNPIR49CCUdg9rLGRyeHtw",
+    "encoding": "utf8"
+   }
+  },
+  "password": "p\u00e4ssw\u00f6rd\u20ac",
+  "match": true
+ },
+ {
+  "name": "pbkdf2/utf8-password-urlsafe-padded-salt/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "pbkdf2",
+   "hash": {
+    "value": "$pbkdf2-sha512$i=777,l=20$-__--g==$j55UqDNPIR49CCUdg9rLGRyeHtw",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xp\u00e4ssw\u00f6rd\u20ac",
+  "match": false
+ },
+ {
+  "name": "scrypt/defaults-hex",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "66e8db8e8307f30e5d55a38a47cb7a2d56e3ab1d41e16b87068a114ea3db9f1d",
+    "encoding": "hex"
+   },
+   "keylen": 32,
+   "salt": {
+    "value": "NaCl-scrypt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "scrypt/defaults-hex/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "66e8db8e8307f30e5d55a38a47cb7a2d56e3ab1d41e16b87068a114ea3db9f1d",
+    "encoding": "hex"
+   },
+   "keylen": 32,
+   "salt": {
+    "value": "NaCl-scrypt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "scrypt/base64-hexsalt",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "yLfof7HW0tdoehNO887xW3TPCb/zArGK/iXVimQcM2d+s+Z8iVB+AndjBUmQgn2M+CQZAX8ZMkjY4ju0Lnaaqw==",
+    "encoding": "base64"
+   },
+   "keylen": 64,
+   "cost": 1024,
+   "salt": {
+    "value": "a1b2c3d4e5f6",
+    "encoding": "hex"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "scrypt/base64-hexsalt/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "yLfof7HW0tdoehNO887xW3TPCb/zArGK/iXVimQcM2d+s+Z8iVB+AndjBUmQgn2M+CQZAX8ZMkjY4ju0Lnaaqw==",
+    "encoding": "base64"
+   },
+   "keylen": 64,
+   "cost": 1024,
+   "salt": {
+    "value": "a1b2c3d4e5f6",
+    "encoding": "hex"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "scrypt/base64salt-r4-p2",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "5d39d56ad7a12877ca0e28d3fa591b9125fda6720f4a41f6",
+    "encoding": "hex"
+   },
+   "keylen": 24,
+   "cost": 2048,
+   "blockSize": 4,
+   "parallelization": 2,
+   "salt": {
+    "value": "YmFzZTY0LXNhbHQ=",
+    "encoding": "base64"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "scrypt/base64salt-r4-p2/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "5d39d56ad7a12877ca0e28d3fa591b9125fda6720f4a41f6",
+    "encoding": "hex"
+   },
+   "keylen": 24,
+   "cost": 2048,
+   "blockSize": 4,
+   "parallelization": 2,
+   "salt": {
+    "value": "YmFzZTY0LXNhbHQ=",
+    "encoding": "base64"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "scrypt/no-salt",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "050fb1384d405aff8b5b00db874da1e821ea058c44f4755c1faa72082d48f9f8",
+    "encoding": "hex"
+   },
+   "keylen": 32,
+   "cost": 1024
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "scrypt/no-salt/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "050fb1384d405aff8b5b00db874da1e821ea058c44f4755c1faa72082d48f9f8",
+    "encoding": "hex"
+   },
+   "keylen": 32,
+   "cost": 1024
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "scrypt/utf16le-password",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "0f61f168ec30dc899fa7ba7acce1afeb9c705933a7c347f409f9f7b326ba1bc5",
+    "encoding": "hex"
+   },
+   "keylen": 32,
+   "cost": 1024,
+   "salt": {
+    "value": "s"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "pw\u20ac",
+  "match": true
+ },
+ {
+  "name": "scrypt/utf16le-password/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "scrypt",
+   "hash": {
+    "value": "0f61f168ec30dc899fa7ba7acce1afeb9c705933a7c347f409f9f7b326ba1bc5",
+    "encoding": "hex"
+   },
+   "keylen": 32,
+   "cost": 1024,
+   "salt": {
+    "value": "s"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "xpw\u20ac",
+  "match": false
+ },
+ {
+  "name": "argon2/argon2i",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2i$v=19$m=64,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$KJjFKZFkxW8um7/NNWEGC+o+pOZJwJERAhiu6AesO7M",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "argon2/argon2i/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2i$v=19$m=64,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$KJjFKZFkxW8um7/NNWEGC+o+pOZJwJERAhiu6AesO7M",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "argon2/argon2i/p4-m256",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2i$v=19$m=256,t=3,p=4$cGVwcGVycGVwcGVy$ARbcZcC5pix+i8DA3bE3x8GnzNoYVG7N",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "argon2/argon2i/p4-m256/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2i$v=19$m=256,t=3,p=4$cGVwcGVycGVwcGVy$ARbcZcC5pix+i8DA3bE3x8GnzNoYVG7N",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "argon2/argon2d",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2d$v=19$m=64,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$9qwlKLp0tLmScb4/tn+NCeKxQLelOcf5JuS7IlpfnIU",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "argon2/argon2d/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2d$v=19$m=64,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$9qwlKLp0tLmScb4/tn+NCeKxQLelOcf5JuS7IlpfnIU",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "argon2/argon2d/p4-m256",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2d$v=19$m=256,t=3,p=4$cGVwcGVycGVwcGVy$VLrnJFk3A9dG4ZEfKii0jjeYlyJ0Ocgk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "argon2/argon2d/p4-m256/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2d$v=19$m=256,t=3,p=4$cGVwcGVycGVwcGVy$VLrnJFk3A9dG4ZEfKii0jjeYlyJ0Ocgk",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "argon2/argon2id",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2id$v=19$m=64,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$yehLjERwqmrHNCQ7nSARxXNwAZXw4BBlnVm0VTnN6PU",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "argon2/argon2id/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2id$v=19$m=64,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$yehLjERwqmrHNCQ7nSARxXNwAZXw4BBlnVm0VTnN6PU",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "argon2/argon2id/p4-m256",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2id$v=19$m=256,t=3,p=4$cGVwcGVycGVwcGVy$2Lvk0/hZTUMIDDhe49GemOGND1wiYmlQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "argon2/argon2id/p4-m256/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2id$v=19$m=256,t=3,p=4$cGVwcGVycGVwcGVy$2Lvk0/hZTUMIDDhe49GemOGND1wiYmlQ",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "argon2/argon2id/utf8-password",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2id$v=19$m=128,t=2,p=2$dW5pY29kZXNhbHQxMjM0$7fLUqWi17IWy948wa9z6Ay99f/pE2sYUdJCoRBa/ffM",
+    "encoding": "utf8"
+   }
+  },
+  "password": "p\u00e4ssw\u00f6rd\u20ac",
+  "match": true
+ },
+ {
+  "name": "argon2/argon2id/utf8-password/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "argon2",
+   "hash": {
+    "value": "$argon2id$v=19$m=128,t=2,p=2$dW5pY29kZXNhbHQxMjM0$7fLUqWi17IWy948wa9z6Ay99f/pE2sYUdJCoRBa/ffM",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xp\u00e4ssw\u00f6rd\u20ac",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-utf8/salt-none",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0e23812876d848e35ffe8bbef44ccd1ca962775c77bf79c79231a10a1426e6ed6c032d02078cff9a4dfe174656763c29386daeb329b5174afd9fb1841436aae1",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-utf8/salt-none/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0e23812876d848e35ffe8bbef44ccd1ca962775c77bf79c79231a10a1426e6ed6c032d02078cff9a4dfe174656763c29386daeb329b5174afd9fb1841436aae1",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-utf8/salt-suffix-utf8",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "d4814da3b6dbf21448879aec84b05829a423a27c1cbcee4951363e365ebf2634a4a4be968bb612c3d774b8294d68aebf24900087c6374534ec42168eb7104e11",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-utf8/salt-suffix-utf8/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "d4814da3b6dbf21448879aec84b05829a423a27c1cbcee4951363e365ebf2634a4a4be968bb612c3d774b8294d68aebf24900087c6374534ec42168eb7104e11",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-utf8/salt-prefix-hex",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "15703a78d246fe8522050c186ddb793f58a9dba3f44e3efeadaca7ca2112f991546d2e101552e0c3e7dcd0532820b7c4ba37f26643c3fe773016a1ddbb1b1938",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-utf8/salt-prefix-hex/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "15703a78d246fe8522050c186ddb793f58a9dba3f44e3efeadaca7ca2112f991546d2e101552e0c3e7dcd0532820b7c4ba37f26643c3fe773016a1ddbb1b1938",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-hex/salt-none",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "06c810835a46981ec5bd58d76fa1dd895c9be7eba1ad05f6eb1078bc04de1957bcddfb3b343075322625a087f8ea6cfe05ee957f321dafe15746d8de39d0e7e3",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-hex/salt-none/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "06c810835a46981ec5bd58d76fa1dd895c9be7eba1ad05f6eb1078bc04de1957bcddfb3b343075322625a087f8ea6cfe05ee957f321dafe15746d8de39d0e7e3",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-hex/salt-suffix-utf8",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "588cf1f5f7ce877f2eb2efd6de9c2b85c6503165def0595e1425e4c615069bcf6ff2e56221d02b1bfaa754c39339d39d2e3468b4f1ce13121647ff03fa838637",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-hex/salt-suffix-utf8/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "588cf1f5f7ce877f2eb2efd6de9c2b85c6503165def0595e1425e4c615069bcf6ff2e56221d02b1bfaa754c39339d39d2e3468b4f1ce13121647ff03fa838637",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-hex/salt-prefix-hex",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "245e0b456555bef782b72f5e9fcce8283c18c6865b84845feb9bb853e008ba2b8ae0a6d655d7013ab8e86048683d9517be4103013036f326c1e45ec6bcca25f4",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-hex/salt-prefix-hex/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "245e0b456555bef782b72f5e9fcce8283c18c6865b84845feb9bb853e008ba2b8ae0a6d655d7013ab8e86048683d9517be4103013036f326c1e45ec6bcca25f4",
+    "encoding": "hex",
+    "digest": "whirlpool",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-base64/salt-none",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "bJJ/Iw/JbdN4AfOJq5IOGJyg9xXGHEeqr82f0qXQUAHGuNTPgs9NTvqH/YzCySRT+K3x/asO+/6yqi0R0fyPyg==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-base64/salt-none/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "bJJ/Iw/JbdN4AfOJq5IOGJyg9xXGHEeqr82f0qXQUAHGuNTPgs9NTvqH/YzCySRT+K3x/asO+/6yqi0R0fyPyg==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-base64/salt-suffix-utf8",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "5o+Iv+EKzlbK0CmtPKlFfKecSMyHmp6orFKjkX0f3JqAT6NO3+BWXV5vJe+/V7x1VBExjv9pmsCMJcqkjRm1rA==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-base64/salt-suffix-utf8/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "5o+Iv+EKzlbK0CmtPKlFfKecSMyHmp6orFKjkX0f3JqAT6NO3+BWXV5vJe+/V7x1VBExjv9pmsCMJcqkjRm1rA==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-base64/salt-prefix-hex",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "obPDQUtmDM7L1uaZ69ZiyIc9ZnfgCC6CDHyPw7DGVWsKFbHppDy+7a0SWuNepGverizpypz8bkWOJho2/XnMcg==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-base64/salt-prefix-hex/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "obPDQUtmDM7L1uaZ69ZiyIc9ZnfgCC6CDHyPw7DGVWsKFbHppDy+7a0SWuNepGverizpypz8bkWOJho2/XnMcg==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-long/salt-none",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "jHSGvEo/xou37iD4+Bjk8lrM0mbf5lIA8l6Z+PPh3umsxr1lc+azpOSU/KTZe5FZ40qAezrZYXtRtfefbN6y7A==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-long/salt-none/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "jHSGvEo/xou37iD4+Bjk8lrM0mbf5lIA8l6Z+PPh3umsxr1lc+azpOSU/KTZe5FZ40qAezrZYXtRtfefbN6y7A==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-long/salt-suffix-utf8",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "LbyNIbGEFeAcns1jZB+tdtl2n9ErHdukmQkNkI/jBcgXufcswQQviCiK6WVqgDTeyp/yLS3SyM7GAqFGZbuYzQ==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-long/salt-suffix-utf8/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "LbyNIbGEFeAcns1jZB+tdtl2n9ErHdukmQkNkI/jBcgXufcswQQviCiK6WVqgDTeyp/yLS3SyM7GAqFGZbuYzQ==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/whirlpool/key-long/salt-prefix-hex",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "SVasxp3rN4zpL9ALr1utNixM0RUbyv9CJfdcSluZrbPmN8xbg9NSVJweBrG3Kw3ydwffhNf+rbMV55UU3nwqWw==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/whirlpool/key-long/salt-prefix-hex/wrong",
+  "task": "4",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "SVasxp3rN4zpL9ALr1utNixM0RUbyv9CJfdcSluZrbPmN8xbg9NSVJweBrG3Kw3ydwffhNf+rbMV55UU3nwqWw==",
+    "encoding": "base64",
+    "digest": "whirlpool",
+    "key": {
+     "value": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ }
+]

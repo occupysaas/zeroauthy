@@ -153,6 +153,11 @@ func ParseCustom(raw json.RawMessage) (*Spec, []FieldError) {
 		if !strings.HasPrefix(v, "$argon2") {
 			return oneOf()
 		}
+		// A value that does not parse is accepted and unusable (R3); one
+		// that does is held to the memory cap.
+		if p, err := parseArgon2(v); err == nil && p.memory() > maxKDFMemory {
+			return nil, []FieldError{memoryTooBig("MAXIMUM")}
+		}
 	case "pbkdf2":
 		if !strings.HasPrefix(v, "$pbkdf2-") {
 			return oneOf()
@@ -281,13 +286,19 @@ func parseScrypt(s *Spec, m map[string]any) (*Spec, []FieldError) {
 			return nil, []FieldError{{Code: "MINIMUM", Message: fmt.Sprintf("Value %d is less than minimum 1", p.v), Path: pathCPH + "." + p.name}}
 		}
 	}
+	if scryptMemory(uint64(s.Cost), uint64(s.BlockSize), uint64(s.Parallelization)) > maxKDFMemory {
+		return nil, []FieldError{memoryTooBig("MAXIMUM")}
+	}
 	if s.Cost < 2 || s.Cost&(s.Cost-1) != 0 {
 		return nil, []FieldError{{Code: "INVALID_FORMAT", Message: fmt.Sprintf("Error in custom_password_hash.cost property - cost must be a power of two greater than 1: %d", s.Cost), Path: pathCPH + ".cost"}}
 	}
 	return nil, nil
 }
 
-// intProp reads an integer property; ok is false when it is absent.
+// intProp reads an integer property; ok is false when it is absent. Integers
+// outside int32 are reported as MAXIMUM; that is zeroauthy's choice, as Auth0's
+// code for them was not observed (it is the code for a value above a declared
+// maximum, here the int32 range).
 func intProp(m map[string]any, name string) (n int, ok bool, fe []FieldError) {
 	v, has := m[name]
 	if !has {

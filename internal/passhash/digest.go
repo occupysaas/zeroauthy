@@ -6,13 +6,14 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"crypto/subtle"
+	"fmt"
 	"hash"
 
 	"golang.org/x/crypto/md4"
 	"golang.org/x/crypto/ripemd160"
 )
 
-// digests maps Auth0's digest names to constructors. Task 4 adds whirlpool.
+// digests maps Auth0's digest names to constructors.
 var digests = map[string]func() hash.Hash{
 	"md4":       md4.New,
 	"md5":       md5.New,
@@ -22,6 +23,7 @@ var digests = map[string]func() hash.Hash{
 	"sha384":    sha512.New384,
 	"sha512":    sha512.New,
 	"ripemd160": ripemd160.New,
+	"whirlpool": newWhirlpool,
 }
 
 func (s *Spec) verifyDigest(pw []byte) (bool, error) {
@@ -33,7 +35,11 @@ func (s *Spec) verifyDigest(pw []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	h := digests[s.Algorithm]()
+	ctor, ok := digests[s.Algorithm]
+	if !ok {
+		return false, fmt.Errorf("%w: digest %q", ErrUnusable, s.Algorithm)
+	}
+	h := ctor()
 	h.Write(in)
 	return subtle.ConstantTimeCompare(h.Sum(nil), want) == 1, nil
 }

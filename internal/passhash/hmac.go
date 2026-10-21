@@ -3,6 +3,7 @@ package passhash
 import (
 	"crypto/hmac"
 	"crypto/subtle"
+	"fmt"
 )
 
 // verifyHMAC computes HMAC(key, salt+password) with the declared digest; the
@@ -10,7 +11,7 @@ import (
 func (s *Spec) verifyHMAC(pw []byte) (bool, error) {
 	ctor, ok := digests[s.Hash.Digest]
 	if !ok {
-		return false, ErrNotImplemented // whirlpool until Task 4
+		return false, fmt.Errorf("%w: hmac digest %q", ErrUnusable, s.Hash.Digest)
 	}
 	if s.Hash.Key == nil {
 		return false, ErrUnusable
