@@ -300,9 +300,8 @@ Closed from the users design section 7: verification emails, the store-level use
   - Parser edge cases without a test: the `!` escape, a lone backslash before a glob, metadata keys containing a space, `'` or `[`. A literal backslash is not escaped in the bare-term email globs. A leading `-` or `!` inside a field group negates.
   - `user_metadata: null` empties the metadata (not observed on Auth0). The store has two near-identical client filters (`grpcstore.filterClients` and the memory predicate), and `pageClause` is not used by `client_grants.go` or `userquery.go`; a `WritePage` helper would replace the hand-written totals envelopes (users, clients).
 - **Data hygiene:**
-  - `last_ip` stores the raw `X-Forwarded-For` text (parse it with `netip`); the session user agent is stored unbounded; the MySQL `phone_number` column is `VARCHAR(255)` while the others are `TEXT`; MySQL 0014 has a `LONGTEXT NOT NULL` without a default.
+  - The session user agent is stored unbounded; the MySQL `phone_number` column is `VARCHAR(255)` while the others are `TEXT`; MySQL 0014 has a `LONGTEXT NOT NULL` without a default.
   - Old storage plugins silently ignore `Version` bumps, `ProfileData`, the new password-reset ticket fields and the session device fields; a plugin must add them (Go SDK note).
-  - `users-by-email` does not check its `email` and `connection` parameters for NUL or invalid UTF-8.
 - **Management API users:**
   - A legacy custom-database create has no local `FindByLogin` pre-check (an orphan can stay in the legacy store) and `ErrBadProfile` answers 500; a script failure is logged twice; the `Info` line for a sent verification email is noisy; `userConnection` blocks a metadata `PATCH` for a non-database identity; `GetUsers` writes its own totals envelope.
   - `mark_email_as_verified` that fails after the password change is only logged; a password-change ticket ignores `email` when `user_id` is also sent.
@@ -315,4 +314,11 @@ Closed from the users design section 7: verification emails, the store-level use
 - **Console users:**
   - The actions menu keeps a stale error banner; the Metadata and Details tabs drop unsaved edits when the user refreshes; Show more uses a short-page heuristic and its error replaces the table; the ticket dialog can race a close and reopen; the TTL is hard-coded (send `ttl_sec`); clearing a profile field sends an empty string; tests lack the ticket dialog error, Escape and focus, and show-more error cases.
   - The search help examples are static, the popover does not close on an outside click or return focus, and the sort headers are duplicated.
-- **E2E:** the seed grants `create:users_app_metadata` it does not need; the auth0-cli script leaks the `cli-users-web` client and a temporary `HOME`; the request helper is copied from m15; one selector uses DOM order (`nth(1)`); the "emailed" assertion is trivial; the blocked check accepts any alert.
+- **Locks left after the final review:**
+  - The last-operator check (system API and `/api/v2/users` on the reserved tenant) counts operators without a lock, so two concurrent removals of different operators can both succeed.
+  - Link reads the secondary with a plain `Get`; a PATCH or reset on the secondary that commits before the link locks it can be lost (use `GetForUpdate`).
+  - Two simultaneous cross-links (A takes B while B takes A), a link racing `Connections.Delete`, and `DELETE /users/{id}` racing the system API's operator removal can deadlock; the database aborts one side and `WithTx` does not retry, so that request answers 500.
+  - On MySQL, `Connections.Delete` (REPEATABLE READ) can deadlock with a mint for another user through gap locks; the mint then answers `server_error`.
+  - `Connections.Delete` builds its affected list from an unlocked scan, so a user who gains a linked identity on the connection meanwhile keeps a dangling one.
+  - A `PATCH` sending `blocked:true` to an already blocked last operator answers 409 instead of 200.
+- **E2E:** the auth0-cli script leaks the `cli-users-web` client and a temporary `HOME`; the request helper is copied from m15; one selector uses DOM order (`nth(1)`); the "emailed" assertion is trivial; the blocked check accepts any alert.
