@@ -4593,7 +4593,7 @@ func (x *JobErrorItems) GetValues() []*JobErrorItem {
 type JobError struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Index         int64                  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	UserJson      []byte                 `protobuf:"bytes,2,opt,name=user_json,json=userJson,proto3,oneof" json:"user_json,omitempty"` // absent = nil map
+	UserJson      []byte                 `protobuf:"bytes,2,opt,name=user_json,json=userJson,proto3,oneof" json:"user_json,omitempty"` // any JSON value; absent = nil
 	Errors        *JobErrorItems         `protobuf:"bytes,3,opt,name=errors,proto3" json:"errors,omitempty"`                           // absent = nil slice
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

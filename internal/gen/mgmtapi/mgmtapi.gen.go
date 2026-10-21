@@ -1977,6 +1977,24 @@ type UserUpdate struct {
 	VerifyEmail *bool `json:"verify_email,omitempty"`
 }
 
+// UsersImportJobCreate Unknown parts are ignored.
+type UsersImportJobCreate struct {
+	// ConnectionId The database connection, `con_` and 16 letters or digits.
+	ConnectionId string `json:"connection_id"`
+
+	// ExternalId Echoed in the job.
+	ExternalId *string `json:"external_id,omitempty"`
+
+	// SendCompletionEmail `false` sends no completion email; the default is `true`.
+	SendCompletionEmail *string `json:"send_completion_email,omitempty"`
+
+	// Upsert `true` updates existing users (matched by email).
+	Upsert *string `json:"upsert,omitempty"`
+
+	// Users The file: a JSON array of users.
+	Users openapi_types.File `json:"users"`
+}
+
 // VerificationEmailJobCreate Unknown properties are `400 invalid_body`.
 type VerificationEmailJobCreate struct {
 	// ClientId The application the email is for.
@@ -2363,6 +2381,9 @@ type UpdateConnectionJSONRequestBody = ConnectionUpdate
 
 // UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
 type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
+
+// CreateUsersImportJobMultipartRequestBody defines body for CreateUsersImportJob for multipart/form-data ContentType.
+type CreateUsersImportJobMultipartRequestBody = UsersImportJobCreate
 
 // CreateVerificationEmailJobJSONRequestBody defines body for CreateVerificationEmailJob for application/json ContentType.
 type CreateVerificationEmailJobJSONRequestBody = VerificationEmailJobCreate
@@ -3618,6 +3639,9 @@ type ServerInterface interface {
 	// DeleteGrant Delete a grant
 	// (DELETE /api/v2/grants/{id})
 	DeleteGrant(w http.ResponseWriter, r *http.Request, id string)
+	// CreateUsersImportJob Import users from a file
+	// (POST /api/v2/jobs/users-imports)
+	CreateUsersImportJob(w http.ResponseWriter, r *http.Request)
 	// CreateVerificationEmailJob Send an email address verification email
 	// (POST /api/v2/jobs/verification-email)
 	CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request)
@@ -3873,6 +3897,12 @@ func (_ Unimplemented) GetGrants(w http.ResponseWriter, r *http.Request, params 
 // DeleteGrant Delete a grant
 // (DELETE /api/v2/grants/{id})
 func (_ Unimplemented) DeleteGrant(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateUsersImportJob Import users from a file
+// (POST /api/v2/jobs/users-imports)
+func (_ Unimplemented) CreateUsersImportJob(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5205,6 +5235,20 @@ func (siw *ServerInterfaceWrapper) DeleteGrant(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// CreateUsersImportJob operation middleware
+func (siw *ServerInterfaceWrapper) CreateUsersImportJob(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateUsersImportJob(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateVerificationEmailJob operation middleware
 func (siw *ServerInterfaceWrapper) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request) {
 
@@ -6412,6 +6456,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/tickets/email-verification", wrapper.CreateEmailVerificationTicket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/jobs/users-imports", wrapper.CreateUsersImportJob)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/jobs/verification-email", wrapper.CreateVerificationEmailJob)

@@ -508,7 +508,7 @@ message JobErrorItem { string code = 1; string message = 2; string path = 3; }
 message JobErrorItems { repeated JobErrorItem values = 1; }
 message JobError {
   int64 index = 1;
-  optional bytes user_json = 2; // absent = nil map
+  optional bytes user_json = 2; // any JSON value; absent = nil
   JobErrorItems errors = 3;     // absent = nil slice
 }
 

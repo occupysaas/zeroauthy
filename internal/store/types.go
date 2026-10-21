@@ -1037,9 +1037,11 @@ type JobErrorItem struct{ Code, Message, Path string }
 
 // JobError is the failure of one record of an import. Index is the
 // record's position in the file, starting at 0. User is the record with its
-// secrets already masked.
+// secrets already masked: a JSON value, which is an object
+// (map[string]any) unless the file held something else there (J2: a
+// number, a string, null as nil).
 type JobError struct {
 	Index  int
-	User   map[string]any
+	User   any
 	Errors []JobErrorItem
 }

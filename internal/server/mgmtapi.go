@@ -251,6 +251,11 @@ func (a mgmtAPI) GetJobErrors(w http.ResponseWriter, r *http.Request, id string)
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetJobErrors(w, r, id) }, "create:users", "read:users")
 }
 
+// CreateUsersImportJob: create:users.
+func (a mgmtAPI) CreateUsersImportJob(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateUsersImportJob, "create:users")
+}
+
 // CreateVerificationEmailJob: update:users.
 func (a mgmtAPI) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.CreateVerificationEmailJob, "update:users")

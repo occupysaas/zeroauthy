@@ -1381,6 +1381,59 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/jobs/users-imports:
+    post:
+      operationId: createUsersImportJob
+      tags: [jobs]
+      summary: Import users from a file
+      description: |
+        Requires `create:users`. A `multipart/form-data` body of at most
+        512000 bytes, framing included (`413` above, without `errorCode`):
+        the `users` file (a JSON array of users in Auth0's import schema),
+        `connection_id` (a database connection enabled for at least one
+        application; a custom database must be in import mode), `upsert`
+        (`true` updates the users the file names by email; anything else
+        does not), `send_completion_email` (anything but `false` emails the
+        tenant's operators when the job ends) and `external_id` (echoed).
+        Answers `202` with the job. A tenant may have 2 import jobs pending
+        or running; a third is `429` without `errorCode`.
+
+        A missing `users` or `connection_id` part, or a malformed
+        `connection_id`, is `400 invalid_body`; an empty file, a connection
+        that is not a database connection, or a custom database without
+        import mode is `400 operation_not_supported`; an unknown connection
+        is `400 inexistent_connection`; a connection enabled for no
+        application is `400 connection_is_disabled`. A file that is not a
+        JSON array is accepted and the job fails; each record that fails
+        is listed by `GET /jobs/{id}/errors`, with its hashes masked.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/jobs/post-users-imports
+        - https://auth0.com/docs/manage-users/user-migration/bulk-user-imports
+        - https://auth0.com/docs/manage-users/user-migration/bulk-user-import-database-schema-and-examples
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: {$ref: "#/components/schemas/UsersImportJobCreate"}
+      responses:
+        "202":
+          description: The job.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Job"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "413":
+          description: The body is over 512000 bytes.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
+        "429":
+          description: The tenant already has 2 active import jobs.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManagementError"}
   /api/v2/jobs/verification-email:
     post:
       operationId: createVerificationEmailJob
@@ -2525,6 +2578,16 @@ components:
       additionalProperties: false
       properties:
         ticket: {type: string, description: "The ticket's URL. Its token is shown only here."}
+    UsersImportJobCreate:
+      type: object
+      required: [users, connection_id]
+      description: Unknown parts are ignored.
+      properties:
+        users: {type: string, format: binary, description: "The file: a JSON array of users."}
+        connection_id: {type: string, description: "The database connection, `con_` and 16 letters or digits."}
+        upsert: {type: string, description: "`true` updates existing users (matched by email)."}
+        external_id: {type: string, description: Echoed in the job.}
+        send_completion_email: {type: string, description: "`false` sends no completion email; the default is `true`."}
     VerificationEmailJobCreate:
       type: object
       required: [user_id]

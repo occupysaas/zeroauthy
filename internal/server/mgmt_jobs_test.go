@@ -1,8 +1,15 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
+	"maps"
+	"mime/multipart"
+	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -145,5 +152,118 @@ func TestVerificationEmailJobEndToEnd(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	if n := mail.count() - before; n != 1 {
 		t.Errorf("%d emails sent, want 1", n)
+	}
+}
+
+// postImportAs sends a multipart users import through the router.
+func (a *usersAPI) postImportAs(token string, parts map[string]string) (*httptest.ResponseRecorder, map[string]any) {
+	a.t.Helper()
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	for _, k := range slices.Sorted(maps.Keys(parts)) {
+		var pw io.Writer
+		var err error
+		if k == "users" {
+			pw, err = w.CreateFormFile(k, "users.json")
+		} else {
+			pw, err = w.CreateFormField(k)
+		}
+		if err != nil {
+			a.t.Fatal(err)
+		}
+		_, _ = pw.Write([]byte(parts[k]))
+	}
+	_ = w.Close()
+	req := httptest.NewRequest("POST", jobsBase+"/users-imports", &b)
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	rec := httptest.NewRecorder()
+	a.h.ServeHTTP(rec, req)
+	var out map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &out)
+	return rec, out
+}
+
+// waitJob polls GET /jobs/{id} until the job ends.
+func (a *usersAPI) waitJob(id string) map[string]any {
+	a.t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		_, got := a.do("GET", jobsBase+"/"+url.PathEscape(id), nil)
+		if got["status"] == "completed" || got["status"] == "failed" {
+			return got
+		}
+		if time.Now().After(deadline) {
+			a.t.Fatalf("job %s = %v, still not done", id, got)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// An import over HTTP: create:users is required, a worker imports the
+// file, and the job, its errors (masked) and the users read back through
+// the API; a malformed file fails the job and /errors answers the job.
+func TestUsersImportEndToEnd(t *testing.T) {
+	var runner *jobs.Runner
+	a := newJobsAPI(t, func(d *Deps) { d.JobNotify = func() { runner.Notify() } })
+	runner = &jobs.Runner{
+		Store: a.st, Workers: 1, LeaseFor: time.Second, Poll: time.Hour,
+		Processors: map[store.JobType]jobs.Processor{store.JobUsersImport: jobs.Importer{}},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { runner.Run(ctx); close(done) }()
+	t.Cleanup(func() { cancel(); <-done })
+
+	conn, err := a.st.Connections().GetByName(context.Background(), a.tenantID(), "Username-Password-Authentication")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.EnabledClients = []string{"users"}
+	if err := a.st.Connections().Update(context.Background(), conn); err != nil {
+		t.Fatal(err)
+	}
+	file := `[{"email":"imp@example.test","user_id":"imp-1","password_hash":"$2a$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2"},
+		{"email":"bad@example.test","password_hash":"$2a$12$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2"}]`
+	parts := map[string]string{"users": file, "connection_id": conn.ID, "external_id": "e2e"}
+	for _, client := range []string{"jobsread", "jobsupdate", "jobsnone"} {
+		if rec, _ := a.postImportAs(a.tokenFor(client), parts); rec.Code != 403 {
+			t.Errorf("import as %s = %d, want 403", client, rec.Code)
+		}
+	}
+	rec, job := a.postImportAs(a.tokenFor("jobscreate"), parts)
+	if rec.Code != 202 || job["status"] != "pending" || job["external_id"] != "e2e" {
+		t.Fatalf("create = %d %s", rec.Code, rec.Body)
+	}
+	got := a.waitJob(job["id"].(string))
+	if got["status"] != "completed" || got["external_id"] != "e2e" {
+		t.Fatalf("job = %v", got)
+	}
+	sum, _ := json.Marshal(got["summary"])
+	if string(sum) != `{"failed":1,"inserted":1,"total":2,"updated":0}` {
+		t.Errorf("summary = %s", sum)
+	}
+	rec, _ = a.do("GET", jobsBase+"/"+job["id"].(string)+"/errors", nil)
+	want := `[{"errors":[{"code":"PATTERN","message":"Error in passwordHash property - String does not match pattern ^\\$2[ab]?\\$10+\\$[./A-Za-z0-9]{53}$: *****","path":"passwordHash"}],"user":{"email":"bad@example.test","password_hash":"*****"}}]`
+	if rec.Code != 200 || strings.TrimSpace(rec.Body.String()) != want {
+		t.Errorf("errors = %d %s\nwant %s", rec.Code, rec.Body, want)
+	}
+	rec, u := a.do("GET", usersBase+"/"+url.PathEscape("auth0|imp-1"), nil)
+	if rec.Code != 200 || u["email"] != "imp@example.test" || strings.Contains(rec.Body.String(), "$2a$") || strings.Contains(rec.Body.String(), "imported") {
+		t.Errorf("imported user = %d %s", rec.Code, rec.Body)
+	}
+
+	parts["users"] = `{"email":"x@example.test"}`
+	rec, job = a.postImportAs(a.token, parts)
+	if rec.Code != 202 {
+		t.Fatalf("malformed file = %d %s", rec.Code, rec.Body)
+	}
+	got = a.waitJob(job["id"].(string))
+	if got["status"] != "failed" || got["status_details"] != jobs.DetailsNotArray || got["summary"] != nil {
+		t.Errorf("malformed job = %v", got)
+	}
+	rec, errs := a.do("GET", jobsBase+"/"+job["id"].(string)+"/errors", nil)
+	if rec.Code != 200 || errs["id"] != job["id"] || errs["status"] != "failed" {
+		t.Errorf("malformed job errors = %d %s", rec.Code, rec.Body)
 	}
 }

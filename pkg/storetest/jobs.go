@@ -364,6 +364,18 @@ func testJobs(t *testing.T, newStore Factory) {
 		mustNoErr(t, err)
 		mustEqual(t, errs, []store.JobError{jobErr(3), jobErr(4), jobErr(5)})
 
+		// A record that is not an object (J2) is kept as the value it was.
+		raw := []store.JobError{
+			{Index: 10, User: float64(1), Errors: []store.JobErrorItem{{Code: "INVALID_TYPE", Message: "Expected type object but found type integer"}}},
+			{Index: 11, User: "x", Errors: []store.JobErrorItem{{Code: "INVALID_TYPE", Message: "Expected type object but found type string"}}},
+			{Index: 12, User: nil, Errors: []store.JobErrorItem{{Code: "INVALID_TYPE", Message: "Expected type object but found type null"}}},
+		}
+		claimed(t, s, "job_2", "w1", jt(0))
+		mustNoErr(t, s.Jobs().Checkpoint(ctx, "ten_a", "job_2", "w1", 13, store.JobSummary{Failed: 3, Total: 13}, raw))
+		errs, err = s.Jobs().Errors(ctx, "ten_a", "job_2")
+		mustNoErr(t, err)
+		mustEqual(t, errs, raw)
+
 		// A repeated index is refused and changes nothing.
 		mustErrIs(t, s.Jobs().Checkpoint(ctx, "ten_a", "job_1", "w1", 9, store.JobSummary{Total: 9}, []store.JobError{jobErr(4)}), store.ErrConflict)
 		j, _ = s.Jobs().Get(ctx, "ten_a", "job_1")

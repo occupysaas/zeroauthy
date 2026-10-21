@@ -35,9 +35,12 @@ const (
 	KeyErrLogoutURL           = "zeroauthy.error.logout-url-not-allowed"
 	KeyEmailResetSubject      = "zeroauthy.email-reset-password.subject"
 	KeyEmailVerifySubject     = "zeroauthy.email-verify-email.subject"
-	KeyErrLogoutInvalid       = "zeroauthy.error.logout-invalid"
-	KeyResetPasswordMismatch  = "reset-password.reset-password.password-mismatch"
-	KeyResetNotChanged        = "zeroauthy.reset.not-changed"
+	// The user import completion email goes to operators, in English.
+	KeyEmailImportDoneSubject   = "zeroauthy.email-import-done.subject"
+	KeyEmailImportFailedSubject = "zeroauthy.email-import-done.subject-failed"
+	KeyErrLogoutInvalid         = "zeroauthy.error.logout-invalid"
+	KeyResetPasswordMismatch    = "reset-password.reset-password.password-mismatch"
+	KeyResetNotChanged          = "zeroauthy.reset.not-changed"
 )
 
 // Password reset error screen keys (Auth0's reset-password-error screen).

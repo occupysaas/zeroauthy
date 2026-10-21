@@ -645,4 +645,7 @@ func TestJobErrorRoundTrip(t *testing.T) {
 	}, jobErrorToPB, jobErrorFromPB)
 	roundTrip(t, "empty", &store.JobError{User: map[string]any{}, Errors: []store.JobErrorItem{}}, jobErrorToPB, jobErrorFromPB)
 	roundTrip(t, "zero", &store.JobError{}, jobErrorToPB, jobErrorFromPB)
+	// A file entry that is not an object is echoed as itself (J2).
+	roundTrip(t, "number", &store.JobError{Index: 1, User: float64(1)}, jobErrorToPB, jobErrorFromPB)
+	roundTrip(t, "string", &store.JobError{Index: 2, User: "x"}, jobErrorToPB, jobErrorFromPB)
 }

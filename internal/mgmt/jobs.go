@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
 	"regexp"
 	"slices"
+	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -322,4 +326,180 @@ func (h *Handlers) verificationIdentity(r *http.Request, u *store.User, userID, 
 		return id, nil
 	}
 	return nil, errVerifyIdentity
+}
+
+// MaxImportBody is the largest POST /jobs/users-imports request body,
+// multipart framing included (J1).
+const MaxImportBody = 512000
+
+// MaxActiveImports is how many import jobs of one tenant may be pending or
+// running at once (J3).
+const MaxActiveImports = 2
+
+var importConnectionID = regexp.MustCompile(`^con_[A-Za-z0-9]{16}$`)
+
+var (
+	errImportTooLarge = &Error{Status: http.StatusRequestEntityTooLarge,
+		Message: fmt.Sprintf("Payload content length greater than maximum allowed: %d", MaxImportBody)}
+	errImportTooMany = &Error{Status: http.StatusTooManyRequests,
+		Message: fmt.Sprintf("There are %d active import users jobs, please wait until some of them are finished and try again", MaxActiveImports)}
+	errImportNoUsers      = badBodyRaw("Must provide 'users' file as multipart part.")
+	errImportNoConnection = badBodyRaw("Must provide 'connection_id' as multipart part.")
+	errImportEmptyFile    = &Error{Status: http.StatusBadRequest, Code: "operation_not_supported", Message: "Users file must not be empty."}
+	errImportConnectionID = badBodyRaw("Payload validation error: 'String does not match pattern ^con_[A-Za-z0-9]{16}$' on property connection_id.")
+	errImportNotDatabase  = &Error{Status: http.StatusBadRequest, Code: "operation_not_supported", Message: "Connection must be a database connection."}
+	errImportDisabled     = &Error{Status: http.StatusBadRequest, Code: "connection_is_disabled", Message: "Connection must be enabled."}
+	errImportLegacy       = &Error{Status: http.StatusBadRequest, Code: "operation_not_supported", Message: "Custom Database Connections without import mode are not allowed."}
+	errImportExternalID   = badBodyRaw("Payload validation error: strings must be valid UTF-8 without NUL characters.")
+)
+
+// readImportForm reads the parts of a multipart request body, keeping the
+// first part of each name. A body that is not multipart, or whose framing
+// breaks off, has the parts read before that; the rest of the body is
+// still read, so that a body over the limit fails.
+func readImportForm(r *http.Request) (map[string][]byte, error) {
+	parts := map[string][]byte{}
+	mr, err := r.MultipartReader()
+	if err != nil {
+		_, err := io.Copy(io.Discard, r.Body)
+		return parts, err
+	}
+	for {
+		part, err := mr.NextPart()
+		if errors.Is(err, io.EOF) {
+			return parts, nil
+		}
+		if err != nil {
+			var mbe *http.MaxBytesError
+			if errors.As(err, &mbe) {
+				return nil, err
+			}
+			_, err := io.Copy(io.Discard, r.Body)
+			return parts, err
+		}
+		data, err := io.ReadAll(part)
+		if err != nil {
+			return nil, err
+		}
+		if name := part.FormName(); name != "" {
+			if _, seen := parts[name]; !seen {
+				parts[name] = data
+			}
+		}
+	}
+}
+
+// CreateUsersImportJob serves POST /jobs/users-imports (J1, J3): the checks
+// run now, a worker imports the file (jobs.Importer).
+func (h *Handlers) CreateUsersImportJob(w http.ResponseWriter, r *http.Request) {
+	if r.ContentLength > MaxImportBody {
+		Fail(w, errImportTooLarge)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, MaxImportBody)
+	parts, err := readImportForm(r)
+	if err != nil {
+		// The multipart reader may hide the limit's error behind its own:
+		// once over the limit, the body keeps answering it.
+		_, rest := io.Copy(io.Discard, r.Body)
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) || errors.As(rest, &mbe) {
+			Fail(w, errImportTooLarge)
+			return
+		}
+		Fail(w, badBodyRaw("The request body could not be read."))
+		return
+	}
+	users, hasUsers := parts["users"]
+	connID, hasConn := parts["connection_id"]
+	switch {
+	case !hasUsers:
+		Fail(w, errImportNoUsers)
+		return
+	case !hasConn:
+		Fail(w, errImportNoConnection)
+		return
+	case len(users) == 0:
+		Fail(w, errImportEmptyFile)
+		return
+	case !importConnectionID.Match(connID):
+		Fail(w, errImportConnectionID)
+		return
+	}
+	externalID := string(parts["external_id"])
+	if !storableText(externalID) {
+		Fail(w, errImportExternalID)
+		return
+	}
+	ctx, tn := r.Context(), resolved(r)
+	conn, err := h.Store.Connections().Get(ctx, tn.ID, string(connID))
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		Fail(w, errUserConnection)
+		return
+	case err != nil:
+		Fail(w, internalError(h, r, "load connection", err))
+		return
+	case conn.Strategy != store.StrategyDatabase:
+		Fail(w, errImportNotDatabase)
+		return
+	case len(conn.EnabledClients) == 0:
+		Fail(w, errImportDisabled)
+		return
+	case identity.IsLegacy(conn):
+		Fail(w, errImportLegacy)
+		return
+	}
+	// Loose booleans, as on Auth0: anything but "true" is no upsert, and
+	// anything but "false" sends the completion email.
+	upsert := strings.EqualFold(strings.TrimSpace(string(parts["upsert"])), "true")
+	sendEmail := true
+	if v, ok := parts["send_completion_email"]; ok && strings.EqualFold(strings.TrimSpace(string(v)), "false") {
+		sendEmail = false
+	}
+	j := NewJob(tn.ID, store.JobUsersImport, h.now())
+	j.ConnectionID, j.Connection, j.ExternalID, j.Input = conn.ID, conn.Name, externalID, users
+	j.Params = map[string]any{
+		jobs.ParamUpsert: upsert, jobs.ParamSendCompletionEmail: sendEmail, jobs.ParamWeakHashes: jobs.WeakHashes(users),
+	}
+	if err := h.createImportJob(r, j); err != nil {
+		Fail(w, err)
+		return
+	}
+	h.audit(r, "create users import job", "job_id", j.ID, "connection", conn.Name, "upsert", upsert, "bytes", len(users))
+	writeJSON(w, http.StatusAccepted, JobJSON(j, ""))
+}
+
+// createImportJob stores j unless the tenant already has MaxActiveImports
+// active imports. The count and the write share a transaction, which
+// serializes them on the memory and SQLite drivers; on PostgreSQL and MySQL
+// two requests racing each other can both pass the count (the limit is a
+// guard against overload, not a security boundary).
+func (h *Handlers) createImportJob(r *http.Request, j *store.Job) error {
+	ctx := r.Context()
+	for range 5 {
+		err := h.Store.WithTx(ctx, func(tx store.Store) error {
+			n, err := tx.Jobs().CountActive(ctx, j.TenantID, store.JobUsersImport)
+			if err != nil {
+				return err
+			}
+			if n >= MaxActiveImports {
+				return errImportTooMany
+			}
+			return tx.Jobs().Create(ctx, j)
+		})
+		switch {
+		case err == nil:
+			if h.Notify != nil {
+				h.Notify()
+			}
+			return nil
+		case errors.Is(err, errImportTooMany):
+			return errImportTooMany
+		case !errors.Is(err, store.ErrConflict):
+			return internalError(h, r, "create job", err)
+		}
+		j.ID = NewJobID()
+	}
+	return internalError(h, r, "create job", errJobIDUnavailable)
 }

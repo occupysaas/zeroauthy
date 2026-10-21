@@ -166,6 +166,17 @@
       "body": "Please confirm that this is the email address of your ${companyName} account. The link below works once and expires in 5 days. If you did not create an account, you can ignore this email.",
       "button": "Verify my email address"
     },
+    "email-import-done": {
+      "subject": "User import ${job} on ${tenant} has finished",
+      "subject-failed": "User import ${job} on ${tenant} did not finish",
+      "heading": "The user import has finished",
+      "heading-failed": "The user import did not finish",
+      "body": "The import ${job} into the connection ${connection} of the tenant ${tenant} has processed every record of its file.",
+      "body-failed": "The import ${job} into the connection ${connection} of the tenant ${tenant} stopped before it processed its file. Records committed before it stopped are kept.",
+      "counts": "New users: ${inserted}. Updated users: ${updated}. Records with errors: ${failed}. Records in total: ${total}.",
+      "details": "Reason: ${details}",
+      "footer": "The job and its record errors stay available in the console and the Management API for 24 hours. You receive this email because you are an operator of this tenant."
+    },
     "error": {
       "title": "Something went wrong",
       "description": "Return to the application and try again.",

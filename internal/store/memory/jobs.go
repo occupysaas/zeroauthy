@@ -37,7 +37,7 @@ func cloneJobErrors(errs []store.JobError) []store.JobError {
 	}
 	out := make([]store.JobError, len(errs))
 	for i, e := range errs {
-		out[i] = store.JobError{Index: e.Index, User: cloneJSON(e.User), Errors: slices.Clone(e.Errors)}
+		out[i] = store.JobError{Index: e.Index, User: cloneJSONValue(e.User), Errors: slices.Clone(e.Errors)}
 	}
 	return out
 }

@@ -1,0 +1,12 @@
+{{if .Failed}}{{t .L "zeroauthy.email-import-done.heading-failed"}}
+
+{{t .L "zeroauthy.email-import-done.body-failed"}}
+
+{{t .L "zeroauthy.email-import-done.details"}}
+{{else}}{{t .L "zeroauthy.email-import-done.heading"}}
+
+{{t .L "zeroauthy.email-import-done.body"}}
+
+{{t .L "zeroauthy.email-import-done.counts"}}
+{{end}}
+{{t .L "zeroauthy.email-import-done.footer"}}

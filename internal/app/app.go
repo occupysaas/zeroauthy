@@ -165,8 +165,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		return nil, err
 	}
 
-	// The workers send verification emails through the same mailer kind as
-	// the Management API's users routes.
+	// The workers send verification and import completion emails through
+	// the same mailer kind as the Management API's users routes.
 	jobRunner := &jobs.Runner{
 		Store: st, Workers: cfg.Jobs.Workers, LeaseFor: cfg.Jobs.Lease, Log: log,
 		Processors: map[store.JobType]jobs.Processor{
@@ -174,6 +174,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 				Sender: &login.VerificationMailer{Store: st, Mailer: mailer, BaseDomain: cfg.Server.BaseDomain, Log: log},
 				Log:    log,
 			},
+			store.JobUsersImport: jobs.Importer{Mailer: mailer, Log: log},
 		},
 	}
 

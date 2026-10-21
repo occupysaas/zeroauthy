@@ -990,11 +990,11 @@ func jobErrorFromPB(pb *storev1.JobError) (*store.JobError, error) {
 	}
 	e := &store.JobError{Index: int(pb.Index)}
 	if pb.UserJson != nil {
-		var m map[string]any
-		if err := json.Unmarshal(pb.UserJson, &m); err != nil {
+		var v any
+		if err := json.Unmarshal(pb.UserJson, &v); err != nil {
 			return nil, fmt.Errorf("grpcstore: decode job error user: %w", err)
 		}
-		e.User = m
+		e.User = v
 	}
 	if pb.Errors != nil {
 		e.Errors = make([]store.JobErrorItem, 0, len(pb.Errors.Values))

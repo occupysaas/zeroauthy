@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="{{.L.Lang}}" dir="{{.L.Dir}}"><body style="font-family:system-ui,sans-serif;color:#1f2933">
+{{if .Failed}}<h1 style="font-size:20px">{{t .L "zeroauthy.email-import-done.heading-failed"}}</h1>
+<p>{{t .L "zeroauthy.email-import-done.body-failed"}}</p>
+<p>{{t .L "zeroauthy.email-import-done.details"}}</p>
+{{else}}<h1 style="font-size:20px">{{t .L "zeroauthy.email-import-done.heading"}}</h1>
+<p>{{t .L "zeroauthy.email-import-done.body"}}</p>
+<p>{{t .L "zeroauthy.email-import-done.counts"}}</p>
+{{end}}<p style="color:#52606d">{{t .L "zeroauthy.email-import-done.footer"}}</p>
+</body></html>

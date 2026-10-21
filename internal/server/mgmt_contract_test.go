@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -46,13 +47,21 @@ func newMgmtContract(t *testing.T) *mgmtContract {
 func (c *mgmtContract) do(h http.Handler, method, target, token string, body any) (int, []byte) {
 	c.t.Helper()
 	var data []byte
+	ctype := ""
 	if body != nil {
 		data, _ = json.Marshal(body)
+		ctype = "application/json"
 	}
+	return c.doRaw(h, method, target, token, ctype, data)
+}
+
+// doRaw is do with a body of the given content type.
+func (c *mgmtContract) doRaw(h http.Handler, method, target, token, ctype string, data []byte) (int, []byte) {
+	c.t.Helper()
 	req := httptest.NewRequest(method, target, bytes.NewReader(data))
 	req.Header.Set("Authorization", "Bearer "+token)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+	if ctype != "" {
+		req.Header.Set("Content-Type", ctype)
 	}
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -460,6 +469,37 @@ func TestManagementContractJobs(t *testing.T) {
 	c.do(a.h, "GET", base+"/"+id+"/errors", a.token, nil)
 	c.do(a.h, "GET", base+"/job_unknownAAAAAAAA/errors", a.token, nil)
 	c.do(a.h, "GET", base+"/job_x/errors", a.token, nil)
+
+	// Users imports: 202, the J1 errors, 403, 413 and 429.
+	conn, err := a.st.Connections().GetByName(context.Background(), a.tenantID(), "Username-Password-Authentication")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.EnabledClients = []string{"users"}
+	if err := a.st.Connections().Update(context.Background(), conn); err != nil {
+		t.Fatal(err)
+	}
+	form := func(parts ...string) (string, []byte) {
+		var b bytes.Buffer
+		w := multipart.NewWriter(&b)
+		for i := 0; i+1 < len(parts); i += 2 {
+			_ = w.WriteField(parts[i], parts[i+1])
+		}
+		_ = w.Close()
+		return w.FormDataContentType(), b.Bytes()
+	}
+	ctype, body := form("users", `[{"email":"c@example.test"}]`, "connection_id", conn.ID, "external_id", "x")
+	for range 2 {
+		if code, b := c.doRaw(a.h, "POST", base+"/users-imports", a.token, ctype, body); code != 202 {
+			t.Errorf("import = %d %s", code, b)
+		}
+	}
+	c.doRaw(a.h, "POST", base+"/users-imports", a.token, ctype, body)
+	c.doRaw(a.h, "POST", base+"/users-imports", a.tokenFor("jobsread"), ctype, body)
+	ctype, body = form("users", "[]")
+	c.doRaw(a.h, "POST", base+"/users-imports", a.token, ctype, body)
+	ctype, body = form("users", strings.Repeat(" ", 512001), "connection_id", conn.ID)
+	c.doRaw(a.h, "POST", base+"/users-imports", a.token, ctype, body)
 
 	now := time.Now().UTC()
 	tn := a.tenantID()
