@@ -132,7 +132,7 @@ A `totp` factor was accepted. The user then shows `multifactor` and `multifactor
 ## Verification email (J10)
 
 - **Success:** `201 {type: "verification_email", status: "pending", created_at, id}`. The answer is the same for an unverified user, an already verified one, a request with the primary `identity`, and one with the application's `client_id`.
-- **Errors:**
+- **Errors** (every one `400`):
 
 | Request | errorCode | message |
 |---|---|---|
