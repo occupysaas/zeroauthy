@@ -1,0 +1,8886 @@
+[
+ {
+  "name": "md4/hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "de44aa98a6122b02f024f74ab0309ed6",
+    "encoding": "hex"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "de44aa98a6122b02f024f74ab0309ed6",
+    "encoding": "hex"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/hex/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "927bc7cfb5f8da47f1f70fe539bcf360",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/hex/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "927bc7cfb5f8da47f1f70fe539bcf360",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "be9333a160a6056e287db8743986c9ef",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "be9333a160a6056e287db8743986c9ef",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/hex/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "037673f71c3b161827599616f37d0576",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/hex/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "037673f71c3b161827599616f37d0576",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/hex/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "57540e8061ba9a5da5d5a29d2b516b11",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/hex/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "57540e8061ba9a5da5d5a29d2b516b11",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/hex/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "db17e7dcaf4a58360802a5d7a2929e0a",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/hex/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "db17e7dcaf4a58360802a5d7a2929e0a",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "3kSqmKYSKwLwJPdKsDCe1g==",
+    "encoding": "base64"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "3kSqmKYSKwLwJPdKsDCe1g==",
+    "encoding": "base64"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/base64/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "knvHz7X42kfx9w/lObzzYA==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/base64/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "knvHz7X42kfx9w/lObzzYA==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "vpMzoWCmBW4ofbh0OYbJ7w==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "vpMzoWCmBW4ofbh0OYbJ7w==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/base64/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "A3Zz9xw7FhgnWZYW830Fdg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/base64/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "A3Zz9xw7FhgnWZYW830Fdg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/base64/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "V1QOgGG6ml2l1aKdK1FrEQ==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/base64/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "V1QOgGG6ml2l1aKdK1FrEQ==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md4/base64/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "2xfn3K9KWDYIAqXXopKeCg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md4/base64/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md4",
+   "hash": {
+    "value": "2xfn3K9KWDYIAqXXopKeCg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "ebab9967e11d93bb393807f8b2f03258",
+    "encoding": "hex"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "ebab9967e11d93bb393807f8b2f03258",
+    "encoding": "hex"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/hex/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "eeac6cbbbb99a3015eb77d65e2703421",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/hex/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "eeac6cbbbb99a3015eb77d65e2703421",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "c9d0f8bb7d80e6dbf9144c2fa090c7af",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "c9d0f8bb7d80e6dbf9144c2fa090c7af",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/hex/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "7642646fe4483c05b6b4660ce0b87882",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/hex/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "7642646fe4483c05b6b4660ce0b87882",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/hex/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "0b73dcda4aad61d00acae2816e59c682",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/hex/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "0b73dcda4aad61d00acae2816e59c682",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/hex/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "b3ee87eacecc2348715a3858e50418a3",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/hex/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "b3ee87eacecc2348715a3858e50418a3",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "66uZZ+Edk7s5OAf4svAyWA==",
+    "encoding": "base64"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "66uZZ+Edk7s5OAf4svAyWA==",
+    "encoding": "base64"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/base64/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "7qxsu7uZowFet31l4nA0IQ==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/base64/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "7qxsu7uZowFet31l4nA0IQ==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "ydD4u32A5tv5FEwvoJDHrw==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "ydD4u32A5tv5FEwvoJDHrw==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/base64/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "dkJkb+RIPAW2tGYM4Lh4gg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/base64/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "dkJkb+RIPAW2tGYM4Lh4gg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/base64/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "C3Pc2kqtYdAKyuKBblnGgg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/base64/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "C3Pc2kqtYdAKyuKBblnGgg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "md5/base64/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "s+6H6s7MI0hxWjhY5QQYow==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "md5/base64/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "md5",
+   "hash": {
+    "value": "s+6H6s7MI0hxWjhY5QQYow==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "37b3b6617930d3ceb0b5ecef8f0fef6f75e2fef9",
+    "encoding": "hex"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "37b3b6617930d3ceb0b5ecef8f0fef6f75e2fef9",
+    "encoding": "hex"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/hex/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "71cdb964e0775d69dee8ab916de057cac2f3497b",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/hex/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "71cdb964e0775d69dee8ab916de057cac2f3497b",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "5ba288e8d39d5b0cdc7475009d66f93a806795a1",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "5ba288e8d39d5b0cdc7475009d66f93a806795a1",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/hex/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "b35e19b118b06277b28abd0aa00bb801c288f72f",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/hex/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "b35e19b118b06277b28abd0aa00bb801c288f72f",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/hex/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "ba0b5ae17cbbc9655691aa43204c5960584af332",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/hex/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "ba0b5ae17cbbc9655691aa43204c5960584af332",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/hex/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "e03fc44ae911b831274468f380251149385d9710",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/hex/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "e03fc44ae911b831274468f380251149385d9710",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "N7O2YXkw086wtezvjw/vb3Xi/vk=",
+    "encoding": "base64"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "N7O2YXkw086wtezvjw/vb3Xi/vk=",
+    "encoding": "base64"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/base64/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "cc25ZOB3XWne6KuRbeBXysLzSXs=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/base64/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "cc25ZOB3XWne6KuRbeBXysLzSXs=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "W6KI6NOdWwzcdHUAnWb5OoBnlaE=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "W6KI6NOdWwzcdHUAnWb5OoBnlaE=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/base64/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "s14ZsRiwYneyir0KoAu4AcKI9y8=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/base64/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "s14ZsRiwYneyir0KoAu4AcKI9y8=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/base64/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "ugta4Xy7yWVWkapDIExZYFhK8zI=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/base64/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "ugta4Xy7yWVWkapDIExZYFhK8zI=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha1/base64/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "4D/ESukRuDEnRGjzgCURSThdlxA=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha1/base64/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha1",
+   "hash": {
+    "value": "4D/ESukRuDEnRGjzgCURSThdlxA=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "e30c71407def2d37e443d6a2743992bb515a242cac46054e516d3bdad1ca2b17",
+    "encoding": "hex"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "e30c71407def2d37e443d6a2743992bb515a242cac46054e516d3bdad1ca2b17",
+    "encoding": "hex"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/hex/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a1ca8ed7f078a1d6d869c2b7b7d539585ad1cf45310c105fbeff95aefd1b4a88",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/hex/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a1ca8ed7f078a1d6d869c2b7b7d539585ad1cf45310c105fbeff95aefd1b4a88",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "491fdb4b0c31660735803221b0c206bba953cd07a87f7a27b2bb82debe1809c4",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "491fdb4b0c31660735803221b0c206bba953cd07a87f7a27b2bb82debe1809c4",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/hex/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "d59552fd2ce9b43fd4bc3ec810623f2cc0aee6ad5f435c41505f07f1f3bd2dad",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/hex/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "d59552fd2ce9b43fd4bc3ec810623f2cc0aee6ad5f435c41505f07f1f3bd2dad",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/hex/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "83131e297a873e2e9f211a297a1790593394097ab9d053835c31b581e91b5ee0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/hex/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "83131e297a873e2e9f211a297a1790593394097ab9d053835c31b581e91b5ee0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/hex/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "b43a5f2645f02f8e61e5012b4b25764308e400ba2772a0fa43fa71d1e9b3f9ba",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/hex/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "b43a5f2645f02f8e61e5012b4b25764308e400ba2772a0fa43fa71d1e9b3f9ba",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "4wxxQH3vLTfkQ9aidDmSu1FaJCysRgVOUW072tHKKxc=",
+    "encoding": "base64"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "4wxxQH3vLTfkQ9aidDmSu1FaJCysRgVOUW072tHKKxc=",
+    "encoding": "base64"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/base64/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "ocqO1/B4odbYacK3t9U5WFrRz0UxDBBfvv+Vrv0bSog=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/base64/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "ocqO1/B4odbYacK3t9U5WFrRz0UxDBBfvv+Vrv0bSog=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "SR/bSwwxZgc1gDIhsMIGu6lTzQeof3onsruC3r4YCcQ=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "SR/bSwwxZgc1gDIhsMIGu6lTzQeof3onsruC3r4YCcQ=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/base64/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "1ZVS/SzptD/UvD7IEGI/LMCu5q1fQ1xBUF8H8fO9La0=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/base64/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "1ZVS/SzptD/UvD7IEGI/LMCu5q1fQ1xBUF8H8fO9La0=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/base64/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "gxMeKXqHPi6fIRopeheQWTOUCXq50FODXDG1gekbXuA=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/base64/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "gxMeKXqHPi6fIRopeheQWTOUCXq50FODXDG1gekbXuA=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha256/base64/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "tDpfJkXwL45h5QErSyV2QwjkALoncqD6Q/px0emz+bo=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha256/base64/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "tDpfJkXwL45h5QErSyV2QwjkALoncqD6Q/px0emz+bo=",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "e205f71776a1fb8cdd16e11818889b6bc3db2ae72503f80fb0fb830b0c7c34ea205d6885f05df0f8a08f6684d0995d4983592a54fcdd7960dd82bdb86b1e6f44",
+    "encoding": "hex"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "e205f71776a1fb8cdd16e11818889b6bc3db2ae72503f80fb0fb830b0c7c34ea205d6885f05df0f8a08f6684d0995d4983592a54fcdd7960dd82bdb86b1e6f44",
+    "encoding": "hex"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/hex/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "2bc6300d0c6b538a53b1933f45cff6995cc01b4f0696bf4cc146983378c4e49c620aedae716ab25f29f40d747a56b65d410b03064b1cb68ca72222444214c4c1",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/hex/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "2bc6300d0c6b538a53b1933f45cff6995cc01b4f0696bf4cc146983378c4e49c620aedae716ab25f29f40d747a56b65d410b03064b1cb68ca72222444214c4c1",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "d40a0dbb78c3310d773dc0f68f0b6d33fefb04702926da02d18c912173b495bfb95aabda7ab90fa8fc48bd6accb3c75db2a58f1d7fa652b43667928c0de3eec9",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "d40a0dbb78c3310d773dc0f68f0b6d33fefb04702926da02d18c912173b495bfb95aabda7ab90fa8fc48bd6accb3c75db2a58f1d7fa652b43667928c0de3eec9",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/hex/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "7858c129dcdace238d8d823cba2a04536e605496e384b16b4e7384db246a6211a86c6bdc102b3b8965e99dbaf3ade40882b34ffa684e4265d3acf14d7390a812",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/hex/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "7858c129dcdace238d8d823cba2a04536e605496e384b16b4e7384db246a6211a86c6bdc102b3b8965e99dbaf3ade40882b34ffa684e4265d3acf14d7390a812",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/hex/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "7160de9c973e528a22fec34002e1ed6774ccaa50a6c9a430d18f30162165f0f7bf28a1d0f17b1e9cca49cd4f87bcefb084c5bbb4e3356253ff6bc3eb6f698b70",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/hex/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "7160de9c973e528a22fec34002e1ed6774ccaa50a6c9a430d18f30162165f0f7bf28a1d0f17b1e9cca49cd4f87bcefb084c5bbb4e3356253ff6bc3eb6f698b70",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/hex/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "ad0f3f8213d53348dc385cc0f16fbfd66ae6cea94dc9cc50662b5b1c85560f3a2a75d63f60051b7422e5cad7f0ee51ceefcc9728a1b77513ccf97bec2d5433ae",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/hex/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "ad0f3f8213d53348dc385cc0f16fbfd66ae6cea94dc9cc50662b5b1c85560f3a2a75d63f60051b7422e5cad7f0ee51ceefcc9728a1b77513ccf97bec2d5433ae",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "4gX3F3ah+4zdFuEYGIiba8PbKuclA/gPsPuDCwx8NOogXWiF8F3w+KCPZoTQmV1Jg1kqVPzdeWDdgr24ax5vRA==",
+    "encoding": "base64"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "4gX3F3ah+4zdFuEYGIiba8PbKuclA/gPsPuDCwx8NOogXWiF8F3w+KCPZoTQmV1Jg1kqVPzdeWDdgr24ax5vRA==",
+    "encoding": "base64"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/base64/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "K8YwDQxrU4pTsZM/Rc/2mVzAG08Glr9MwUaYM3jE5JxiCu2ucWqyXyn0DXR6VrZdQQsDBksctoynIiJEQhTEwQ==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/base64/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "K8YwDQxrU4pTsZM/Rc/2mVzAG08Glr9MwUaYM3jE5JxiCu2ucWqyXyn0DXR6VrZdQQsDBksctoynIiJEQhTEwQ==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "1AoNu3jDMQ13PcD2jwttM/77BHApJtoC0YyRIXO0lb+5WqvaerkPqPxIvWrMs8ddsqWPHX+mUrQ2Z5KMDePuyQ==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "1AoNu3jDMQ13PcD2jwttM/77BHApJtoC0YyRIXO0lb+5WqvaerkPqPxIvWrMs8ddsqWPHX+mUrQ2Z5KMDePuyQ==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/base64/salt-suffix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "eFjBKdzaziONjYI8uioEU25gVJbjhLFrTnOE2yRqYhGobGvcECs7iWXpnbrzreQIgrNP+mhOQmXTrPFNc5CoEg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/base64/salt-suffix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "eFjBKdzaziONjYI8uioEU25gVJbjhLFrTnOE2yRqYhGobGvcECs7iWXpnbrzreQIgrNP+mhOQmXTrPFNc5CoEg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "00ff10ab",
+    "encoding": "hex",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/base64/salt-prefix-base64",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "cWDenJc+Uooi/sNAAuHtZ3TMqlCmyaQw0Y8wFiFl8Pe/KKHQ8XsenMpJzU+HvO+whMW7tOM1YlP/a8Prb2mLcA==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/base64/salt-prefix-base64/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "cWDenJc+Uooi/sNAAuHtZ3TMqlCmyaQw0Y8wFiFl8Pe/KKHQ8XsenMpJzU+HvO+whMW7tOM1YlP/a8Prb2mLcA==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "c2FsdHktYmFzZTY0",
+    "encoding": "base64",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "sha512/base64/salt-default-position",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "rQ8/ghPVM0jcOFzA8W+/1mrmzqlNycxQZitbHIVWDzoqddY/YAUbdCLlytfw7lHO78yXKKG3dRPM+XvsLVQzrg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "sha512/base64/salt-default-position/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha512",
+   "hash": {
+    "value": "rQ8/ghPVM0jcOFzA8W+/1mrmzqlNycxQZitbHIVWDzoqddY/YAUbdCLlytfw7lHO78yXKKG3dRPM+XvsLVQzrg==",
+    "encoding": "base64"
+   },
+   "salt": {
+    "value": "dflt",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/ascii-only/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a116c9ed46d6207734a43317d30fd88f52ac8634c37d904bbf4e41d865f90475",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/ascii-only/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a116c9ed46d6207734a43317d30fd88f52ac8634c37d904bbf4e41d865f90475",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/ascii-only/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "76a353d8629eac0bfebbc99beda6acdb4c1ded68030d8d74165f3744bad9dcc0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/ascii-only/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "76a353d8629eac0bfebbc99beda6acdb4c1ded68030d8d74165f3744bad9dcc0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/latin1-e-acute/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "c63c19ed1e0ee079f22ddb0d4112cfc799132c88684eb42324c62b9899b0c6c1",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/latin1-e-acute/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "c63c19ed1e0ee079f22ddb0d4112cfc799132c88684eb42324c62b9899b0c6c1",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/latin1-e-acute/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "48574b0186227e6b43fb670e1b1a799c13e5e5b6be83c310ace9a5bf2c38c9f2",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/latin1-e-acute/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "48574b0186227e6b43fb670e1b1a799c13e5e5b6be83c310ace9a5bf2c38c9f2",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/above-ff/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "0daff6be3c53659ce5030843e01f11c9e7c8b013b4313466465297e8f3736420",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/above-ff/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "0daff6be3c53659ce5030843e01f11c9e7c8b013b4313466465297e8f3736420",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/above-ff/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "4f830da85d022fae00c58a5a7f38dd208bd794cdc9c3378552988d7f7b6622d6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/above-ff/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "4f830da85d022fae00c58a5a7f38dd208bd794cdc9c3378552988d7f7b6622d6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/non-bmp/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "2c6180dfe5e94087fe012b1546577b7661b3323378e4e6647291c7fa19b569d7",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/non-bmp/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "2c6180dfe5e94087fe012b1546577b7661b3323378e4e6647291c7fa19b569d7",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/non-bmp/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "09c9b8d80b016c3979393819060803251fa49d07665fc634235e0020446d101e",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/non-bmp/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "09c9b8d80b016c3979393819060803251fa49d07665fc634235e0020446d101e",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/cjk/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "327495999131b34dd1239c03d88b8316378137d5ec047b61c875bcc0b8cad05c",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/cjk/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "327495999131b34dd1239c03d88b8316378137d5ec047b61c875bcc0b8cad05c",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ascii/cjk/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eec95347a478438b35622459e3b24cc4235767e34aa383408f185d0a16ae95e6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ascii/cjk/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eec95347a478438b35622459e3b24cc4235767e34aa383408f185d0a16ae95e6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ascii"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/ascii-only/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a116c9ed46d6207734a43317d30fd88f52ac8634c37d904bbf4e41d865f90475",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/ascii-only/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a116c9ed46d6207734a43317d30fd88f52ac8634c37d904bbf4e41d865f90475",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/ascii-only/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "76a353d8629eac0bfebbc99beda6acdb4c1ded68030d8d74165f3744bad9dcc0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/ascii-only/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "76a353d8629eac0bfebbc99beda6acdb4c1ded68030d8d74165f3744bad9dcc0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/latin1-e-acute/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "3c48591d8d098a4538f5e013dfcf406e948eac4d3277b10bf614e295d6068179",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/latin1-e-acute/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "3c48591d8d098a4538f5e013dfcf406e948eac4d3277b10bf614e295d6068179",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/latin1-e-acute/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "246995f3645dba4ced9c316bd4e789df1f159416cf10b1eadff3129947b8ed5a",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/latin1-e-acute/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "246995f3645dba4ced9c316bd4e789df1f159416cf10b1eadff3129947b8ed5a",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/above-ff/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "b7ee13260a38d26f856263e4080195263c85609fbf2ecb09325e6938d9abb2f4",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/above-ff/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "b7ee13260a38d26f856263e4080195263c85609fbf2ecb09325e6938d9abb2f4",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/above-ff/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "e6f47a113e0cfa91dad1037ec517898fdff5a5462287da3eb21bc503ebd3c4fd",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/above-ff/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "e6f47a113e0cfa91dad1037ec517898fdff5a5462287da3eb21bc503ebd3c4fd",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/non-bmp/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "aacf34c4441e7e6f10455450b8baf4c923c2583ed65bada2a5c4d23cb3641664",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/non-bmp/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "aacf34c4441e7e6f10455450b8baf4c923c2583ed65bada2a5c4d23cb3641664",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/non-bmp/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a27e96e853f5a49cde6261d3e5a0055ecb6c43d5c020c59e04d7c78d276e7a15",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/non-bmp/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a27e96e853f5a49cde6261d3e5a0055ecb6c43d5c020c59e04d7c78d276e7a15",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/cjk/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "c6d297713595d2f5127b438aa2ec2cb3049bb096cff7fe128f620a609c32a00f",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/cjk/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "c6d297713595d2f5127b438aa2ec2cb3049bb096cff7fe128f620a609c32a00f",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf8/cjk/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "b43837825e0619fb57a51f34b21de3fe65f6bfe0100ee80bebfa7d0ce19f8e38",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf8/cjk/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "b43837825e0619fb57a51f34b21de3fe65f6bfe0100ee80bebfa7d0ce19f8e38",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf8"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/ascii-only/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "cec403fa58c697b84b2f77f14da2ec98361257937925b4bd2ec26a3445e32d8e",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/ascii-only/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "cec403fa58c697b84b2f77f14da2ec98361257937925b4bd2ec26a3445e32d8e",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/ascii-only/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "632a16808625dda4e06b7a1ced33675acb7da2bcc14130531db9f6f134b77253",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/ascii-only/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "632a16808625dda4e06b7a1ced33675acb7da2bcc14130531db9f6f134b77253",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/latin1-e-acute/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "7f72dcf08ef92c0582b018a06d8a1bebf1e5098b5c72c8ad53db57def1bf8bdb",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/latin1-e-acute/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "7f72dcf08ef92c0582b018a06d8a1bebf1e5098b5c72c8ad53db57def1bf8bdb",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/latin1-e-acute/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "03a503dab0150a20bd8ba5bbf4afcfc06e6d11053e36d6b1da21245abf18cdbc",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/latin1-e-acute/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "03a503dab0150a20bd8ba5bbf4afcfc06e6d11053e36d6b1da21245abf18cdbc",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/above-ff/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "3fcd04acfb4cc171f26607f716c67a13412919f5c690427f32baf9bdc628b00b",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/above-ff/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "3fcd04acfb4cc171f26607f716c67a13412919f5c690427f32baf9bdc628b00b",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/above-ff/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "f7466cec31b2f46fe729d121aaec0474e21e488c389957c648d70c44fb7f81e7",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/above-ff/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "f7466cec31b2f46fe729d121aaec0474e21e488c389957c648d70c44fb7f81e7",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/non-bmp/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "5bd7fbf0576bcff328dbfdba6b6f602ef0dc21ad53c3e6b25ca801dcbc9fdbde",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/non-bmp/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "5bd7fbf0576bcff328dbfdba6b6f602ef0dc21ad53c3e6b25ca801dcbc9fdbde",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/non-bmp/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "256f40d933177a5352163e61a10f1a7d081e6bde6cf6f14f5bbb21e942b32730",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/non-bmp/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "256f40d933177a5352163e61a10f1a7d081e6bde6cf6f14f5bbb21e942b32730",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/cjk/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eef42f9376c7e782a8d647b4d3ba910437ad00a3a81614b859f378b256441b5a",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/cjk/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eef42f9376c7e782a8d647b4d3ba910437ad00a3a81614b859f378b256441b5a",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/utf16le/cjk/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "e54b1d2194352d6a1296d21f6d429c0b79bf453aa6896eb132b78cf5888c4ac3",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/utf16le/cjk/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "e54b1d2194352d6a1296d21f6d429c0b79bf453aa6896eb132b78cf5888c4ac3",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "utf16le"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/ascii-only/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "cec403fa58c697b84b2f77f14da2ec98361257937925b4bd2ec26a3445e32d8e",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/ascii-only/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "cec403fa58c697b84b2f77f14da2ec98361257937925b4bd2ec26a3445e32d8e",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/ascii-only/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "632a16808625dda4e06b7a1ced33675acb7da2bcc14130531db9f6f134b77253",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/ascii-only/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "632a16808625dda4e06b7a1ced33675acb7da2bcc14130531db9f6f134b77253",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/latin1-e-acute/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "7f72dcf08ef92c0582b018a06d8a1bebf1e5098b5c72c8ad53db57def1bf8bdb",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/latin1-e-acute/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "7f72dcf08ef92c0582b018a06d8a1bebf1e5098b5c72c8ad53db57def1bf8bdb",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/latin1-e-acute/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "03a503dab0150a20bd8ba5bbf4afcfc06e6d11053e36d6b1da21245abf18cdbc",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/latin1-e-acute/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "03a503dab0150a20bd8ba5bbf4afcfc06e6d11053e36d6b1da21245abf18cdbc",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/above-ff/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "3fcd04acfb4cc171f26607f716c67a13412919f5c690427f32baf9bdc628b00b",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/above-ff/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "3fcd04acfb4cc171f26607f716c67a13412919f5c690427f32baf9bdc628b00b",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/above-ff/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "f7466cec31b2f46fe729d121aaec0474e21e488c389957c648d70c44fb7f81e7",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/above-ff/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "f7466cec31b2f46fe729d121aaec0474e21e488c389957c648d70c44fb7f81e7",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/non-bmp/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "5bd7fbf0576bcff328dbfdba6b6f602ef0dc21ad53c3e6b25ca801dcbc9fdbde",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/non-bmp/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "5bd7fbf0576bcff328dbfdba6b6f602ef0dc21ad53c3e6b25ca801dcbc9fdbde",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/non-bmp/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "256f40d933177a5352163e61a10f1a7d081e6bde6cf6f14f5bbb21e942b32730",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/non-bmp/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "256f40d933177a5352163e61a10f1a7d081e6bde6cf6f14f5bbb21e942b32730",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/cjk/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eef42f9376c7e782a8d647b4d3ba910437ad00a3a81614b859f378b256441b5a",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/cjk/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eef42f9376c7e782a8d647b4d3ba910437ad00a3a81614b859f378b256441b5a",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/ucs2/cjk/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "e54b1d2194352d6a1296d21f6d429c0b79bf453aa6896eb132b78cf5888c4ac3",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/ucs2/cjk/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "e54b1d2194352d6a1296d21f6d429c0b79bf453aa6896eb132b78cf5888c4ac3",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "ucs2"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/ascii-only/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a116c9ed46d6207734a43317d30fd88f52ac8634c37d904bbf4e41d865f90475",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/ascii-only/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a116c9ed46d6207734a43317d30fd88f52ac8634c37d904bbf4e41d865f90475",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/ascii-only/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "76a353d8629eac0bfebbc99beda6acdb4c1ded68030d8d74165f3744bad9dcc0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/ascii-only/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "76a353d8629eac0bfebbc99beda6acdb4c1ded68030d8d74165f3744bad9dcc0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/latin1-e-acute/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "c63c19ed1e0ee079f22ddb0d4112cfc799132c88684eb42324c62b9899b0c6c1",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/latin1-e-acute/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "c63c19ed1e0ee079f22ddb0d4112cfc799132c88684eb42324c62b9899b0c6c1",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/latin1-e-acute/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "48574b0186227e6b43fb670e1b1a799c13e5e5b6be83c310ace9a5bf2c38c9f2",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/latin1-e-acute/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "48574b0186227e6b43fb670e1b1a799c13e5e5b6be83c310ace9a5bf2c38c9f2",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/above-ff/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "0daff6be3c53659ce5030843e01f11c9e7c8b013b4313466465297e8f3736420",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/above-ff/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "0daff6be3c53659ce5030843e01f11c9e7c8b013b4313466465297e8f3736420",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/above-ff/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "4f830da85d022fae00c58a5a7f38dd208bd794cdc9c3378552988d7f7b6622d6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/above-ff/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "4f830da85d022fae00c58a5a7f38dd208bd794cdc9c3378552988d7f7b6622d6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/non-bmp/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "2c6180dfe5e94087fe012b1546577b7661b3323378e4e6647291c7fa19b569d7",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/non-bmp/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "2c6180dfe5e94087fe012b1546577b7661b3323378e4e6647291c7fa19b569d7",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/non-bmp/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "09c9b8d80b016c3979393819060803251fa49d07665fc634235e0020446d101e",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/non-bmp/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "09c9b8d80b016c3979393819060803251fa49d07665fc634235e0020446d101e",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/cjk/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "327495999131b34dd1239c03d88b8316378137d5ec047b61c875bcc0b8cad05c",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/cjk/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "327495999131b34dd1239c03d88b8316378137d5ec047b61c875bcc0b8cad05c",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/latin1/cjk/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eec95347a478438b35622459e3b24cc4235767e34aa383408f185d0a16ae95e6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/latin1/cjk/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eec95347a478438b35622459e3b24cc4235767e34aa383408f185d0a16ae95e6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "latin1"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/ascii-only/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a116c9ed46d6207734a43317d30fd88f52ac8634c37d904bbf4e41d865f90475",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/ascii-only/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "a116c9ed46d6207734a43317d30fd88f52ac8634c37d904bbf4e41d865f90475",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/ascii-only/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "76a353d8629eac0bfebbc99beda6acdb4c1ded68030d8d74165f3744bad9dcc0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "plain",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/ascii-only/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "76a353d8629eac0bfebbc99beda6acdb4c1ded68030d8d74165f3744bad9dcc0",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "xplain",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/latin1-e-acute/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "c63c19ed1e0ee079f22ddb0d4112cfc799132c88684eb42324c62b9899b0c6c1",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/latin1-e-acute/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "c63c19ed1e0ee079f22ddb0d4112cfc799132c88684eb42324c62b9899b0c6c1",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/latin1-e-acute/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "48574b0186227e6b43fb670e1b1a799c13e5e5b6be83c310ace9a5bf2c38c9f2",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "h\u00e9llo",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/latin1-e-acute/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "48574b0186227e6b43fb670e1b1a799c13e5e5b6be83c310ace9a5bf2c38c9f2",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "xh\u00e9llo",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/above-ff/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "0daff6be3c53659ce5030843e01f11c9e7c8b013b4313466465297e8f3736420",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/above-ff/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "0daff6be3c53659ce5030843e01f11c9e7c8b013b4313466465297e8f3736420",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/above-ff/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "4f830da85d022fae00c58a5a7f38dd208bd794cdc9c3378552988d7f7b6622d6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "euro\u20ac!",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/above-ff/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "4f830da85d022fae00c58a5a7f38dd208bd794cdc9c3378552988d7f7b6622d6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "xeuro\u20ac!",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/non-bmp/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "2c6180dfe5e94087fe012b1546577b7661b3323378e4e6647291c7fa19b569d7",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/non-bmp/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "2c6180dfe5e94087fe012b1546577b7661b3323378e4e6647291c7fa19b569d7",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/non-bmp/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "09c9b8d80b016c3979393819060803251fa49d07665fc634235e0020446d101e",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "smile\ud83d\ude00",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/non-bmp/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "09c9b8d80b016c3979393819060803251fa49d07665fc634235e0020446d101e",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "xsmile\ud83d\ude00",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/cjk/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "327495999131b34dd1239c03d88b8316378137d5ec047b61c875bcc0b8cad05c",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/cjk/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "327495999131b34dd1239c03d88b8316378137d5ec047b61c875bcc0b8cad05c",
+    "encoding": "hex"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "password-encoding/binary/cjk/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eec95347a478438b35622459e3b24cc4235767e34aa383408f185d0a16ae95e6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "\u6f22\u5b57",
+  "match": true
+ },
+ {
+  "name": "password-encoding/binary/cjk/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "sha256",
+   "hash": {
+    "value": "eec95347a478438b35622459e3b24cc4235767e34aa383408f185d0a16ae95e6",
+    "encoding": "hex"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   },
+   "password": {
+    "encoding": "binary"
+   }
+  },
+  "password": "x\u6f22\u5b57",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-utf8/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "d066984af460e7509af572905ac543d8",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-utf8/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "d066984af460e7509af572905ac543d8",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-utf8/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0c0e597d1fd23e0154f76a4e3fe6ef2d",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-utf8/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0c0e597d1fd23e0154f76a4e3fe6ef2d",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-utf8/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "e981d71e331240ec5c9e627fc6a3b62e",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-utf8/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "e981d71e331240ec5c9e627fc6a3b62e",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-default-encoding/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Ks6cd09U8viZa8xHKGh8bA==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-default-encoding/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Ks6cd09U8viZa8xHKGh8bA==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-default-encoding/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "o25sUQeGINEkU0tsLA/qiQ==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-default-encoding/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "o25sUQeGINEkU0tsLA/qiQ==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-default-encoding/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "3N/VH9ltLBsDgsX8a51EHA==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-default-encoding/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "3N/VH9ltLBsDgsX8a51EHA==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "772f70ef10f71a5ad65f41b2e3a983eb",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "772f70ef10f71a5ad65f41b2e3a983eb",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "2908d1ff6973cdd457ae28c7e7ef5fe9",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "2908d1ff6973cdd457ae28c7e7ef5fe9",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-hex/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "17d3581e464ded45a34777b86455318f",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-hex/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "17d3581e464ded45a34777b86455318f",
+    "encoding": "hex",
+    "digest": "md4",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "j8OgZF3Iz7hc2CSUNE5L2g==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "j8OgZF3Iz7hc2CSUNE5L2g==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "1AHMNRIrIWzH3h4pDsKhrw==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "1AHMNRIrIWzH3h4pDsKhrw==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md4/key-base64/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "lwOn+a0d2pPT4Nr6ZsjQIA==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md4/key-base64/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "lwOn+a0d2pPT4Nr6ZsjQIA==",
+    "encoding": "base64",
+    "digest": "md4",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-utf8/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "ca39a3011a7e16bad8a6d40da84fc83f",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-utf8/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "ca39a3011a7e16bad8a6d40da84fc83f",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-utf8/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "691d6620a617bf21fdcbd1fa93b1913a",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-utf8/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "691d6620a617bf21fdcbd1fa93b1913a",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-utf8/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0dc19a0918bea4d22687962a43033c79",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-utf8/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0dc19a0918bea4d22687962a43033c79",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-default-encoding/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "VkWouB3uh9UH4gw7hV/cpw==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-default-encoding/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "VkWouB3uh9UH4gw7hV/cpw==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-default-encoding/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "wQo5ingVtPql1TOb4wJuWg==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-default-encoding/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "wQo5ingVtPql1TOb4wJuWg==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-default-encoding/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "1/4O9xXctfHWY0thCkLtKQ==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-default-encoding/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "1/4O9xXctfHWY0thCkLtKQ==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "dbadd24c8aad47320620e2a2addc036f",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "dbadd24c8aad47320620e2a2addc036f",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "3283298331c15c7fe5999024b37a65d5",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "3283298331c15c7fe5999024b37a65d5",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-hex/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "2d30a5ac8b0a529de513f85c33e0f794",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-hex/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "2d30a5ac8b0a529de513f85c33e0f794",
+    "encoding": "hex",
+    "digest": "md5",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "VT7B5XLd7YxJweOaC15snQ==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "VT7B5XLd7YxJweOaC15snQ==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "6mL8+yTtJscicTb4lNVkfA==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "6mL8+yTtJscicTb4lNVkfA==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/md5/key-base64/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "O+3Z+3F7dSKWSop8Vs3tzA==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/md5/key-base64/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "O+3Z+3F7dSKWSop8Vs3tzA==",
+    "encoding": "base64",
+    "digest": "md5",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-utf8/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "9cfa17e89ba8fa64b548c548958883998b6ee8a4",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-utf8/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "9cfa17e89ba8fa64b548c548958883998b6ee8a4",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-utf8/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "3e52913e0bc9356edd288f06f8e7c6587a0e391b",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-utf8/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "3e52913e0bc9356edd288f06f8e7c6587a0e391b",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-utf8/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "842cbcf83bebc55f8037b0c29ea704b0f3c56aea",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-utf8/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "842cbcf83bebc55f8037b0c29ea704b0f3c56aea",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-default-encoding/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Gj4UfS/G6J01xmQdOTH+8CMiraE=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-default-encoding/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Gj4UfS/G6J01xmQdOTH+8CMiraE=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-default-encoding/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "qf8lj07H7DbIjw6Mq7ywLF86bu4=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-default-encoding/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "qf8lj07H7DbIjw6Mq7ywLF86bu4=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-default-encoding/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "6uE9y/3oUiBZKjCD4Xdnt44LLyk=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-default-encoding/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "6uE9y/3oUiBZKjCD4Xdnt44LLyk=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "8091a735dff73ba965b4b29138f1f9bf135e1110",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "8091a735dff73ba965b4b29138f1f9bf135e1110",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0e23af7d35a2f48f00f4b3849e35b127efa12444",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0e23af7d35a2f48f00f4b3849e35b127efa12444",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-hex/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4f98c05ac5ec499d06a1565b0708ecc416242e17",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-hex/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4f98c05ac5ec499d06a1565b0708ecc416242e17",
+    "encoding": "hex",
+    "digest": "sha1",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "SS3V1TSQV9MOCjh90JO2KSWTC0c=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "SS3V1TSQV9MOCjh90JO2KSWTC0c=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "5g3T9IKxNvj9sKvRvIcyh1uWtfY=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "5g3T9IKxNvj9sKvRvIcyh1uWtfY=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha1/key-base64/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "ucv6VfWDuBPRpZwgIB/zO3ckCYo=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha1/key-base64/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "ucv6VfWDuBPRpZwgIB/zO3ckCYo=",
+    "encoding": "base64",
+    "digest": "sha1",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-utf8/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4c890fdb50179ba7b0387cb1f8e0179ceea0fbf1f433035501306751",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-utf8/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4c890fdb50179ba7b0387cb1f8e0179ceea0fbf1f433035501306751",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-utf8/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "a280c5e2f0eec15a939aea628b8a0d2ee71cbcf7ee0b706fff89f615",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-utf8/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "a280c5e2f0eec15a939aea628b8a0d2ee71cbcf7ee0b706fff89f615",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-utf8/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "b12818cf0151aca68e688bd6a086089636f36aef531ed773f900d658",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-utf8/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "b12818cf0151aca68e688bd6a086089636f36aef531ed773f900d658",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-default-encoding/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "a8CouHCO5iyWgc3PkAK7WmtoT8oA7MgSz9Be1w==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-default-encoding/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "a8CouHCO5iyWgc3PkAK7WmtoT8oA7MgSz9Be1w==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-default-encoding/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "kOkGK4DlJf1NkPz3Rk9EQwCrB1vKFHdC4M/CLQ==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-default-encoding/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "kOkGK4DlJf1NkPz3Rk9EQwCrB1vKFHdC4M/CLQ==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-default-encoding/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "6r7Atpl5b6NJ95WRm9zU7eqYND5kgH5ugqpGQg==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-default-encoding/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "6r7Atpl5b6NJ95WRm9zU7eqYND5kgH5ugqpGQg==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "22ea6a50b6d31eb7ff31e472918b17c487ac3c99156b59273c1ac688",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "22ea6a50b6d31eb7ff31e472918b17c487ac3c99156b59273c1ac688",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "46d8364a2126332f1ef51e423ce764871a7f42edab4031e67645b7b1",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "46d8364a2126332f1ef51e423ce764871a7f42edab4031e67645b7b1",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-hex/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "07be89225386d02bc52196ff711d3ef309891dbda90cdee89d9cc5e3",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-hex/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "07be89225386d02bc52196ff711d3ef309891dbda90cdee89d9cc5e3",
+    "encoding": "hex",
+    "digest": "sha224",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "qOjhXejkLmdwiU6m0DzTSmx9CYLeVjCMBmCPWA==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "qOjhXejkLmdwiU6m0DzTSmx9CYLeVjCMBmCPWA==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "vfATm1Ceh5eCTicd9ig5m+WiWLdmLPXgiqVXhQ==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "vfATm1Ceh5eCTicd9ig5m+WiWLdmLPXgiqVXhQ==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha224/key-base64/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "oscfIp4PhceageJDLKYW1Ji59w3v5u/G+1+dmg==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha224/key-base64/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "oscfIp4PhceageJDLKYW1Ji59w3v5u/G+1+dmg==",
+    "encoding": "base64",
+    "digest": "sha224",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-utf8/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0333b8f08fe589906b40610cc70bc2646626c71bcb1f1dcf368eb7e3344efef0",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-utf8/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0333b8f08fe589906b40610cc70bc2646626c71bcb1f1dcf368eb7e3344efef0",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-utf8/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4f1e5a99e577f32434ec01c7ffdc832c308fea45a6eb11cf752f3f1c943b1446",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-utf8/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4f1e5a99e577f32434ec01c7ffdc832c308fea45a6eb11cf752f3f1c943b1446",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-utf8/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "aa3582798ce100934fec18c59b88479dfd95ef0b94f40545807f68bcc996bde7",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-utf8/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "aa3582798ce100934fec18c59b88479dfd95ef0b94f40545807f68bcc996bde7",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-default-encoding/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "GNfR7u60cl/GxmB3xYLGNuHw3tVHIB6LEcjFx1XsA9w=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-default-encoding/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "GNfR7u60cl/GxmB3xYLGNuHw3tVHIB6LEcjFx1XsA9w=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-default-encoding/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Q3qXiYCrJGpR/Ql2/tRP5yIXcivkiyRmmKARS2eH/sw=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-default-encoding/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Q3qXiYCrJGpR/Ql2/tRP5yIXcivkiyRmmKARS2eH/sw=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-default-encoding/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Jgn+g27cBqB8mJ8oGjGn7u/HBR4JRZ/iSFU2uTsTLoc=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-default-encoding/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Jgn+g27cBqB8mJ8oGjGn7u/HBR4JRZ/iSFU2uTsTLoc=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "906e5f0be648bf81cbf3413882bcf094c81934aec8349ff294ed7722513ad811",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "906e5f0be648bf81cbf3413882bcf094c81934aec8349ff294ed7722513ad811",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "be25794e0cd945cb2afefb40622cbf60c4358df0ec0d5bc79d3e0174a146a1b5",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "be25794e0cd945cb2afefb40622cbf60c4358df0ec0d5bc79d3e0174a146a1b5",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-hex/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "395f491c1789e695e5f0086042d1c290dc4ae8774748352b7058901493967fc8",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-hex/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "395f491c1789e695e5f0086042d1c290dc4ae8774748352b7058901493967fc8",
+    "encoding": "hex",
+    "digest": "sha256",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Aqv5WxmvAj70TiIU5Y8e8TqKmAv5XBn3T57xHt7yC5k=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "Aqv5WxmvAj70TiIU5Y8e8TqKmAv5XBn3T57xHt7yC5k=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "U7ldjK/vyhsjr0aLYl3lNWclJ0MvMiGG+5zxVdOLj/8=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "U7ldjK/vyhsjr0aLYl3lNWclJ0MvMiGG+5zxVdOLj/8=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha256/key-base64/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4iDL0f560618z4LZQl+B4It7ntXQISFXwb4l6c76nxI=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha256/key-base64/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4iDL0f560618z4LZQl+B4It7ntXQISFXwb4l6c76nxI=",
+    "encoding": "base64",
+    "digest": "sha256",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-utf8/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "ec3fa5db4b01f618d1fc315781238ef743076795b1d74e65c46e5dc0d5b05fa6815b448c28b2b554d6ba9c56f757e934",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-utf8/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "ec3fa5db4b01f618d1fc315781238ef743076795b1d74e65c46e5dc0d5b05fa6815b448c28b2b554d6ba9c56f757e934",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-utf8/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "1bc985c6dac97772d7089b62860509e6e794eeb00d9dbd9ef8dae829e49216736e321861239f5eedec93958b9e44a2c2",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-utf8/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "1bc985c6dac97772d7089b62860509e6e794eeb00d9dbd9ef8dae829e49216736e321861239f5eedec93958b9e44a2c2",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-utf8/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "384379c2a8d212b7ad4b2f6708cf4f8875b064ac168fa48259a0f1a09d1f7013702a91e08f143cae565da77edc1242ed",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-utf8/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "384379c2a8d212b7ad4b2f6708cf4f8875b064ac168fa48259a0f1a09d1f7013702a91e08f143cae565da77edc1242ed",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-default-encoding/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0u5egYZ9z3Uskku/wE01YFMxIVZLPmjxfbc/AkFS4O1jh+tdbNjtphtJ463T+o5N",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-default-encoding/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0u5egYZ9z3Uskku/wE01YFMxIVZLPmjxfbc/AkFS4O1jh+tdbNjtphtJ463T+o5N",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-default-encoding/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "120MS1QKVl0l701JGfuIXMjSD6pmeqgZ3RQcFN/D1AgQY4uU2NSaSOQOWZkhVLIQ",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-default-encoding/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "120MS1QKVl0l701JGfuIXMjSD6pmeqgZ3RQcFN/D1AgQY4uU2NSaSOQOWZkhVLIQ",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-default-encoding/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0kJ4FHBdwryfYD4tJ2mly2+hPAqM/vnZLt61iE/o6ilwyiYJeRQZr+nDa5QBlGoz",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-default-encoding/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "0kJ4FHBdwryfYD4tJ2mly2+hPAqM/vnZLt61iE/o6ilwyiYJeRQZr+nDa5QBlGoz",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "5abab2e4ad95e36f6e413bb93983e5dff69cf552375ea58e1c2ca501081fe00c9b5b2de3d7208712707fcd1bb626f6f9",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "5abab2e4ad95e36f6e413bb93983e5dff69cf552375ea58e1c2ca501081fe00c9b5b2de3d7208712707fcd1bb626f6f9",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "649261531f7c48fb66e9fa1c5f79bc3da7569d53b81f3676d66181a52d580ce429cfcbc2125762d9e0d4a6221e1da11c",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "649261531f7c48fb66e9fa1c5f79bc3da7569d53b81f3676d66181a52d580ce429cfcbc2125762d9e0d4a6221e1da11c",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-hex/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "9e99b4c5f477600f8133a41d984d5d4e3856871c65778d06d832a9435fd68e9d4598e4d5bc2d2bb2aee89f39c3ac8e62",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-hex/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "9e99b4c5f477600f8133a41d984d5d4e3856871c65778d06d832a9435fd68e9d4598e4d5bc2d2bb2aee89f39c3ac8e62",
+    "encoding": "hex",
+    "digest": "sha384",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "EXutypFvl1rOPvPXoIVorsjzjuH/du8Zwh//lkF+gvJkeQ/zNyI7F0eb8eNIbTrK",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "EXutypFvl1rOPvPXoIVorsjzjuH/du8Zwh//lkF+gvJkeQ/zNyI7F0eb8eNIbTrK",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "HA+l7baDqzFez3Hv+wadu0M/sjsjNFobIaBLjcSZ67TdBXfrG2l9/IuE6tXsctiu",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "HA+l7baDqzFez3Hv+wadu0M/sjsjNFobIaBLjcSZ67TdBXfrG2l9/IuE6tXsctiu",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha384/key-base64/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "vVr+v39ERXo3mTD2LLMAJ4k6va5t7BzyVg8qeozzdJxx/ESGly3sfsJ4LzY3SBeX",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha384/key-base64/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "vVr+v39ERXo3mTD2LLMAJ4k6va5t7BzyVg8qeozzdJxx/ESGly3sfsJ4LzY3SBeX",
+    "encoding": "base64",
+    "digest": "sha384",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-utf8/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "1104dca960561f5400559a8ba7be7c2af13611c3cb24341320f889d656f66d2fa423f0814bba71841c62e0083167e86fc3b7120b7749cc7f4f705e64109b4d6b",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-utf8/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "1104dca960561f5400559a8ba7be7c2af13611c3cb24341320f889d656f66d2fa423f0814bba71841c62e0083167e86fc3b7120b7749cc7f4f705e64109b4d6b",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-utf8/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "d675868bff6f10dee4bc599594be1e584dea123fc4fa738fcece7b93c51933af0812253b36a52367f9433bd4b6e9f99d0fe6f9ff74bdbdf46d019d185840e459",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-utf8/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "d675868bff6f10dee4bc599594be1e584dea123fc4fa738fcece7b93c51933af0812253b36a52367f9433bd4b6e9f99d0fe6f9ff74bdbdf46d019d185840e459",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-utf8/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "fcd3563ab3712159381992a94e19d1d5b14efcabf2704c082b0dbcedda1c02f0276cf93fe354f37f57bbe1e434fbf55f01af20641559ff5d6121b41e0a8a289a",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-utf8/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "fcd3563ab3712159381992a94e19d1d5b14efcabf2704c082b0dbcedda1c02f0276cf93fe354f37f57bbe1e434fbf55f01af20641559ff5d6121b41e0a8a289a",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-default-encoding/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "k/nGJMrck1Dg394OY1gllzhI/YwwhktCFUB9hRTcThwaDY/NpqzjSFD2hwtkiCATYxgLCTmuAnQLAyLQ5OYvWg==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-default-encoding/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "k/nGJMrck1Dg394OY1gllzhI/YwwhktCFUB9hRTcThwaDY/NpqzjSFD2hwtkiCATYxgLCTmuAnQLAyLQ5OYvWg==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-default-encoding/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "oM6dBBUQitEOsBptFdN/P8bSJ9MrIcP2KbqVNA3W88T2yfxQ9/Uh92A6iezOlkJJ5/oF+gbD/O9z7NOZL/fmYA==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-default-encoding/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "oM6dBBUQitEOsBptFdN/P8bSJ9MrIcP2KbqVNA3W88T2yfxQ9/Uh92A6iezOlkJJ5/oF+gbD/O9z7NOZL/fmYA==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-default-encoding/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "SKac040hp2Zmyg12vfxc36xAlglKMt6K6sT+jBvzytcbQwaqcPts7LqmoUbvUeK8R3a56rW1CJgbY1BFhlVpcA==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-default-encoding/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "SKac040hp2Zmyg12vfxc36xAlglKMt6K6sT+jBvzytcbQwaqcPts7LqmoUbvUeK8R3a56rW1CJgbY1BFhlVpcA==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "9bfbcf35dfe9cd1aae3ac01e0f48d681992e9c4925d9beb27f15407b0473096ed3c63b3ca0b3ac8860e6200b667d35f0ee04072449c3282fe2179500c3d33f48",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "9bfbcf35dfe9cd1aae3ac01e0f48d681992e9c4925d9beb27f15407b0473096ed3c63b3ca0b3ac8860e6200b667d35f0ee04072449c3282fe2179500c3d33f48",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "e7e28d59880d2c6b2e47c527c7d63c63739f15adaf3e158484491b1a9c95aae862d87b9cf6f4ef63a2ea229dc6b021d5340baf616cada51e591e226be679c59b",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "e7e28d59880d2c6b2e47c527c7d63c63739f15adaf3e158484491b1a9c95aae862d87b9cf6f4ef63a2ea229dc6b021d5340baf616cada51e591e226be679c59b",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-hex/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "a86ca5cf07d231248497da0fa31b39efe2b51b91491c10be32b2bf79960007b5cd07f307368192c49f5aeac11fdd4c5f4b22312ca0047e86c0fad77d23700aac",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-hex/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "a86ca5cf07d231248497da0fa31b39efe2b51b91491c10be32b2bf79960007b5cd07f307368192c49f5aeac11fdd4c5f4b22312ca0047e86c0fad77d23700aac",
+    "encoding": "hex",
+    "digest": "sha512",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "qdA2jQSEJweqMGm2aB7Us+A5usBRka6MUjGwASrH/L1oQB5XfVwHyhBIhy4UMeILrMBTd6IP2TH+QBjNV3I8WA==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "qdA2jQSEJweqMGm2aB7Us+A5usBRka6MUjGwASrH/L1oQB5XfVwHyhBIhy4UMeILrMBTd6IP2TH+QBjNV3I8WA==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "lJMOWbAvPd+CvsoDrJoOTYeTd5Tx4VJHWMNOF4Wz+/4+NeR/yRjlpR/g6rHAyrVuFmnEYwMmbdKL3lExr6nvlg==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "lJMOWbAvPd+CvsoDrJoOTYeTd5Tx4VJHWMNOF4Wz+/4+NeR/yRjlpR/g6rHAyrVuFmnEYwMmbdKL3lExr6nvlg==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/sha512/key-base64/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "/MnzNCm1dht58IXsG5qExaYbUHHOAdDWgG5iq4dPmrQvBZ9ywnd366lVAtkb/EcHcoICmz8x9tGhVZ53IdJmNA==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/sha512/key-base64/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "/MnzNCm1dht58IXsG5qExaYbUHHOAdDWgG5iq4dPmrQvBZ9ywnd366lVAtkb/EcHcoICmz8x9tGhVZ53IdJmNA==",
+    "encoding": "base64",
+    "digest": "sha512",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-utf8/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "d459e5888a25c87ad284b9d40f59f2271d5a4d1f",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-utf8/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "d459e5888a25c87ad284b9d40f59f2271d5a4d1f",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-utf8/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "7a88fa293674459afe9691c0b5e57531718a4de1",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-utf8/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "7a88fa293674459afe9691c0b5e57531718a4de1",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-utf8/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "f810ae79c9dc8f895dadb098f0346f2b52cf1700",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-utf8/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "f810ae79c9dc8f895dadb098f0346f2b52cf1700",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "s3cret key",
+     "encoding": "utf8"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-default-encoding/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "XbdfWcrOPgnu8xZRt077Ro/2G+4=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-default-encoding/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "XbdfWcrOPgnu8xZRt077Ro/2G+4=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "plainkey"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-default-encoding/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "LzL7klPdxsPRmbeWgf92mVqweo0=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-default-encoding/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "LzL7klPdxsPRmbeWgf92mVqweo0=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-default-encoding/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "GJdAzHI1oFFEO8RIGUKs4ewwxIY=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-default-encoding/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "GJdAzHI1oFFEO8RIGUKs4ewwxIY=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "plainkey"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-hex/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "c78f941fc0dfbe0a9cce2a4e706c4fe0211970e4",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-hex/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "c78f941fc0dfbe0a9cce2a4e706c4fe0211970e4",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-hex/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "e60936ad2f86bdca50c6fa4126ebd2ba08fedd62",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-hex/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "e60936ad2f86bdca50c6fa4126ebd2ba08fedd62",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-hex/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "bacfa60738c35e603d92fd4d02619aded47e7f34",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-hex/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "bacfa60738c35e603d92fd4d02619aded47e7f34",
+    "encoding": "hex",
+    "digest": "ripemd160",
+    "key": {
+     "value": "0a0b0c0d0e0f",
+     "encoding": "hex"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-base64/salt-none",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "HvO21Wg6bZ4ZCTBRd8u6n5lcEr8=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-base64/salt-none/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "HvO21Wg6bZ4ZCTBRd8u6n5lcEr8=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-base64/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4R9F2fT3CSdZsOg9H98F78bmigY=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-base64/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "4R9F2fT3CSdZsOg9H98F78bmigY=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "hmac/ripemd160/key-base64/salt-prefix-hex",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "2xAv2g3xp6STyIvpmkSQ4k3j79E=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "hmac/ripemd160/key-base64/salt-prefix-hex/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "hmac",
+   "hash": {
+    "value": "2xAv2g3xp6STyIvpmkSQ4k3j79E=",
+    "encoding": "base64",
+    "digest": "ripemd160",
+    "key": {
+     "value": "a2V5LWJhc2U2NA==",
+     "encoding": "base64"
+    }
+   },
+   "salt": {
+    "value": "dead",
+    "encoding": "hex",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/MD5",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{MD5}66uZZ+Edk7s5OAf4svAyWA==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/MD5/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{MD5}66uZZ+Edk7s5OAf4svAyWA==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SMD5",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SMD5}amktZ8Ei9ZA0XzylCk2hxQEjRWeJq83v",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SMD5/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SMD5}amktZ8Ei9ZA0XzylCk2hxQEjRWeJq83v",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SMD5/lowercase",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{smd5}amktZ8Ei9ZA0XzylCk2hxQEjRWeJq83v",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SMD5/lowercase/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{smd5}amktZ8Ei9ZA0XzylCk2hxQEjRWeJq83v",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SHA",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SHA}N7O2YXkw086wtezvjw/vb3Xi/vk=",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SHA/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SHA}N7O2YXkw086wtezvjw/vb3Xi/vk=",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SSHA",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SSHA}vQMREjaLDq0HZ2Ki27SZPx0T/r4BI0VniavN7w==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SSHA/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SSHA}vQMREjaLDq0HZ2Ki27SZPx0T/r4BI0VniavN7w==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SSHA/lowercase",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{ssha}vQMREjaLDq0HZ2Ki27SZPx0T/r4BI0VniavN7w==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SSHA/lowercase/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{ssha}vQMREjaLDq0HZ2Ki27SZPx0T/r4BI0VniavN7w==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SHA256",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SHA256}4wxxQH3vLTfkQ9aidDmSu1FaJCysRgVOUW072tHKKxc=",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SHA256/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SHA256}4wxxQH3vLTfkQ9aidDmSu1FaJCysRgVOUW072tHKKxc=",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SSHA256",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SSHA256}gvGHxtpILzrl50bhtqNKL2LwRWsTtMQZ7+XRZ7Y0BWYBI0VniavN7w==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SSHA256/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SSHA256}gvGHxtpILzrl50bhtqNKL2LwRWsTtMQZ7+XRZ7Y0BWYBI0VniavN7w==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SSHA256/lowercase",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{ssha256}gvGHxtpILzrl50bhtqNKL2LwRWsTtMQZ7+XRZ7Y0BWYBI0VniavN7w==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SSHA256/lowercase/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{ssha256}gvGHxtpILzrl50bhtqNKL2LwRWsTtMQZ7+XRZ7Y0BWYBI0VniavN7w==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SHA384",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SHA384}NUYCW2DKr0FZXTE/AsNl1dmGVpQaYTYnhXiLBLkY7GoFAwaA+sJCRSIFW+guQG5G",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SHA384/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SHA384}NUYCW2DKr0FZXTE/AsNl1dmGVpQaYTYnhXiLBLkY7GoFAwaA+sJCRSIFW+guQG5G",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SSHA384",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SSHA384}EtYIKi9RGxvyRHRskR3V/owLxTy1lbPjN3sTZ71k8esCn7L7QJTbR/lAW+dsdOu8ASNFZ4mrze8=",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SSHA384/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SSHA384}EtYIKi9RGxvyRHRskR3V/owLxTy1lbPjN3sTZ71k8esCn7L7QJTbR/lAW+dsdOu8ASNFZ4mrze8=",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SSHA384/lowercase",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{ssha384}EtYIKi9RGxvyRHRskR3V/owLxTy1lbPjN3sTZ71k8esCn7L7QJTbR/lAW+dsdOu8ASNFZ4mrze8=",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SSHA384/lowercase/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{ssha384}EtYIKi9RGxvyRHRskR3V/owLxTy1lbPjN3sTZ71k8esCn7L7QJTbR/lAW+dsdOu8ASNFZ4mrze8=",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SHA512",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SHA512}4gX3F3ah+4zdFuEYGIiba8PbKuclA/gPsPuDCwx8NOogXWiF8F3w+KCPZoTQmV1Jg1kqVPzdeWDdgr24ax5vRA==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SHA512/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SHA512}4gX3F3ah+4zdFuEYGIiba8PbKuclA/gPsPuDCwx8NOogXWiF8F3w+KCPZoTQmV1Jg1kqVPzdeWDdgr24ax5vRA==",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SSHA512",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SSHA512}sF42KFMaAwpW2ZxR6WEKCd9Y089kkxYELXbMUtuf37rwXflvWXd4+yqBFrFhP4l8+s+PkcflqvxwgIN5Vey4bAEjRWeJq83v",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SSHA512/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{SSHA512}sF42KFMaAwpW2ZxR6WEKCd9Y089kkxYELXbMUtuf37rwXflvWXd4+yqBFrFhP4l8+s+PkcflqvxwgIN5Vey4bAEjRWeJq83v",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "ldap/SSHA512/lowercase",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{ssha512}sF42KFMaAwpW2ZxR6WEKCd9Y089kkxYELXbMUtuf37rwXflvWXd4+yqBFrFhP4l8+s+PkcflqvxwgIN5Vey4bAEjRWeJq83v",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "ldap/SSHA512/lowercase/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "ldap",
+   "hash": {
+    "value": "{ssha512}sF42KFMaAwpW2ZxR6WEKCd9Y089kkxYELXbMUtuf37rwXflvWXd4+yqBFrFhP4l8+s+PkcflqvxwgIN5Vey4bAEjRWeJq83v",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "bcrypt/2a",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2a$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "bcrypt/2a/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2a$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "bcrypt/2b",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2b$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "bcrypt/2b/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2b$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "bcrypt/2y",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2y$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2",
+    "encoding": "utf8"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "bcrypt/2y/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2y$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2",
+    "encoding": "utf8"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "bcrypt/salt-prefix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2b$10$abcdefghijklmnopqrstuuab2jJ1sIvVpL4At4q0FLtxN6aztvUf.",
+    "encoding": "utf8"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "bcrypt/salt-prefix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2b$10$abcdefghijklmnopqrstuuab2jJ1sIvVpL4At4q0FLtxN6aztvUf.",
+    "encoding": "utf8"
+   },
+   "salt": {
+    "value": "NaCl-pre",
+    "encoding": "utf8",
+    "position": "prefix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "bcrypt/salt-suffix-utf8",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2b$10$abcdefghijklmnopqrstuuJ.RYjm4hzrHLk4EaNYaQfmxa3BBn5Pi",
+    "encoding": "utf8"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "Pa55w0rd!",
+  "match": true
+ },
+ {
+  "name": "bcrypt/salt-suffix-utf8/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2b$10$abcdefghijklmnopqrstuuJ.RYjm4hzrHLk4EaNYaQfmxa3BBn5Pi",
+    "encoding": "utf8"
+   },
+   "salt": {
+    "value": "NaCl-suf",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "xPa55w0rd!",
+  "match": false
+ },
+ {
+  "name": "bcrypt/long-input-truncated",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2b$10$abcdefghijklmnopqrstuuRpj1bzfKHAFWgKO/f/3yYCJmOOS/k2G",
+    "encoding": "utf8"
+   },
+   "salt": {
+    "value": "SUFFIXSALT",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "0123456789012345678901234567890123456789012345678901234567890123456789",
+  "match": true
+ },
+ {
+  "name": "bcrypt/long-input-truncated/wrong",
+  "task": "3",
+  "spec": {
+   "algorithm": "bcrypt",
+   "hash": {
+    "value": "$2b$10$abcdefghijklmnopqrstuuRpj1bzfKHAFWgKO/f/3yYCJmOOS/k2G",
+    "encoding": "utf8"
+   },
+   "salt": {
+    "value": "SUFFIXSALT",
+    "encoding": "utf8",
+    "position": "suffix"
+   }
+  },
+  "password": "x0123456789012345678901234567890123456789012345678901234567890123456789",
+  "match": false
+ }
+]
