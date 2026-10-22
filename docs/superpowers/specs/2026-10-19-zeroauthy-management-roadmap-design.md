@@ -7,7 +7,7 @@
 
 ## 0. Where we are (2026-10-21)
 
-**Plans done:** 18. **Specified, not built:** 0. **Left in this roadmap:** 20 (Plans 19–38); the five "full" plans will likely split, so expect roughly 25–30 more plans.
+**Plans done:** 18. **Specified, not built:** 1 (Plan 19, draft for review). **Left in this roadmap:** 20 (Plans 19–38); the five "full" plans will likely split, so expect roughly 25–30 more plans.
 
 ### Done
 
@@ -90,6 +90,8 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 ## 3. Plans
 
 ### Plan 19 — Tenant settings, attack protection, user blocks (slice 5a)
+
+**Draft documents (2026-10-21):** [standalone spec](2026-10-21-zeroauthy-tenant-settings-attack-protection-design.md) and [implementation plan](../plans/2026-10-21-zeroauthy-plan-19-tenant-settings-attack-protection.md). Implementation has not started; contract observation is Task 1.
 
 **Endpoints:**
 - `GET/PATCH /api/v2/tenants/settings`: every documented field. Enforced where zeroauthy has the feature: `friendly_name`, `picture_url`, `support_email`, `support_url`, `default_audience`, `default_directory`, `session_lifetime`, `idle_session_lifetime`, `enabled_locales`, `flags` that map to built behaviour, `device_flow`, `pushed_authorization_requests_supported`, `skip_non_verifiable_callback_uri_confirmation_prompt`, `sessions` (cookie mode), `allowed_logout_urls`, `default_redirection_uri`, `error_page`, `customize_mfa_in_postlogin_action` and the rest stored, not enforced, until their plan.
