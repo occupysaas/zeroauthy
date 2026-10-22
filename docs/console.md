@@ -144,9 +144,8 @@ session.
     stored; no code is sent to it), and the profile: name, given name, family
     name, nickname and picture URL. **Actions** blocks or unblocks the user,
     changes the password or email, creates a password-change link or a
-    verification link (shown once: this server sends verification email at
-    sign-up but has no job yet for the console to send it, so copy the link
-    to the user) and deletes the user (type the name). Blocking does not end
+    verification link (shown once), queues a verification email and deletes
+    the user (type the name). Blocking does not end
     sessions or refresh tokens the user already holds; revoke them in the
     Sessions tab;
   - **Metadata:** `user_metadata` and `app_metadata` as JSON. **Review changes**
@@ -164,6 +163,23 @@ session.
   one-hour link once) and remove (never the last one).
 
 Applications created in the console are never touched by the seed. Users are managed through the same Management API ([management-api.md](management-api.md#users)) the console calls.
+
+## Import and export
+
+Open **Users → Import and export**. Select a JSON file and a database
+connection; custom databases appear only in import mode. Choose whether to
+upsert existing users and send completion email. The file picker refuses
+files above 511000 bytes, leaving room for multipart framing within the
+server's 512000-byte request limit. The jobs list polls pending work every three
+seconds while the page is visible, shows the final summary and weak-hash
+count, and opens masked errors with their codes and paths.
+
+For export, choose one connection or all, CSV or newline-delimited JSON,
+an optional limit, and fields. Add metadata subfields and output names as
+needed (30 fields maximum). **Download** fetches a fresh short-lived URL on
+every click. Job history and files are retained for 24 hours. User detail's
+**Actions → Send verification email** queues a job; the list shows its result.
+See [user-import.md](user-import.md) for supported hashes and reset advice.
 
 ## Security
 

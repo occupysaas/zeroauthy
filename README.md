@@ -42,11 +42,11 @@ each with its console screens; the full breakdown is in the
 - OpenID conformance in CI (Basic, Config, Form Post, RP-Initiated Logout)
 - Management API and console: applications, APIs, client grants, database
   connections, users (with search, identity linking, sessions, refresh tokens,
-  grants and tickets)
+  grants and tickets), user import/export jobs and verification email
 
-**Next** (Plan 18, specified)
+**Next** (Plan 19)
 
-- User import (with Auth0's password-hash formats) and export jobs
+- Tenant settings and attack protection
 
 **Later** (Plans 19–38)
 
@@ -175,6 +175,16 @@ ever taken from configuration. Operators sign in to the
 
 **Proxies.** Enable `server.trust_proxy_headers` only behind a proxy that
 sets `X-Forwarded-Host`; otherwise clients could choose their own tenant.
+
+## Job workers
+
+`jobs.workers` defaults to 2; set it to 0 to disable workers on a process
+while another process handles the shared database queue. `jobs.lease`
+defaults to `60s` (minimum `1s`); workers renew every third of the lease.
+Environment overrides are `ZEROAUTHY_JOBS__WORKERS` and
+`ZEROAUTHY_JOBS__LEASE`. All serving processes must share the same storage
+and master key for job reads and export downloads. See
+[the import/export guide](docs/user-import.md) for limits and reset advice.
 
 ## Custom databases
 

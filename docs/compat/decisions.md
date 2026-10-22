@@ -761,7 +761,7 @@ them. Each entry: context, sources consulted, decision, rationale.
   - **Rehash:** the first sign-in with an imported hash stores zeroauthy's argon2id hash (Auth0 rehashes to bcrypt).
   - **No cleartext:** an ldap `{CLEARTEXT}` value is refused with `ONE_OF_MISSING` (path `custom_password_hash`), so no password is ever stored in clear. Auth0 stores it and asks for a password change at sign-in.
   - **Masked PATTERN message:** the `PATTERN` message for `password_hash` ends in `*****`, not the hash. Auth0 repeats the hash there.
-  - **Hash cost limits:** a scrypt or argon2 cost whose memory exceeds 256 MiB is refused at import with `MAXIMUM` (path `custom_password_hash`), so a file cannot exhaust a worker.
+  - **Hash cost limits:** a scrypt or argon2 cost whose memory exceeds 1 GiB is refused at import with `MAXIMUM` (path `custom_password_hash`). The implementation raised the planned 256 MiB cap to admit libsodium sensitive settings; scrypt also accounts for its parallelization buffers. Work budgets additionally cap PBKDF2 rounds × output blocks at 50,000,000, argon2 time × memory in KiB at 2^32, and scrypt N × r × p at 2^30. These are zeroauthy limits, not observed Auth0 limits.
   - **`mfa_factors`:** accepted and ignored (zeroauthy has no MFA yet); Auth0 stores the enrollments.
   - **Completion email recipients:** the operators whose tenant list covers the tenant (zeroauthy has no tenant owners).
   - **Download URL:** `https://<tenant host>/export/<job id>/<tenant>.<json|csv>.gz?expires=…&sig=…`, signed with a key derived from the master key, valid 60 seconds, a new one on every job read; Auth0's points at its object storage. An expired or wrong link is `403`.

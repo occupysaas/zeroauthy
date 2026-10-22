@@ -48,7 +48,7 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Management API v2: `/api/v2/users/{id}/refresh-tokens`, `/api/v2/refresh-tokens/{id}` | Implemented | zeroauthy ID formats (no `dcr_` prefix); deleting one revokes its rotation family (D-0043) |
 | Management API v2: `/api/v2/grants` (list, delete by user, delete by ID) | Implemented | `clientID` (sic) and a sorted `scope` array, as Auth0 returns them (D-0043) |
 | Management API v2: `/api/v2/tickets/password-change`, `/api/v2/tickets/email-verification` | Implemented | Hosted pages `/u/reset-verify` and `/u/email-verification`; the verification email is sent at sign-up and user creation. Success page of a password-change ticket does not redirect to `result_url`, as on Auth0 (D-0043) |
-| Management API v2: jobs (user import, user export, verification email) | Planned (Plan 18) | |
+| Management API v2: jobs (user import, user export, verification email) | Implemented | Guide: `docs/user-import.md`; D-0044. Imports accept Auth0 hash formats and upgrade on sign-in to argon2id; masked record errors; gzipped CSV/NDJSON exports with 60-second download URLs; jobs retained 24 hours. E2E clients: auth0-cli 1.37.0, node-auth0 7.4.0 and Chromium (m18) |
 | Management API v2: other resources (tenant settings, …) | Planned (sub-project 3, slices 5–6) | |
 | Admin console (`/admin` on the system host) and system API (`/api/system/tenants`, `/api/system/operators`) | Implemented | zeroauthy extension, not an Auth0 surface. Guide: `docs/console.md`; D-0040. Verified in Chromium (m13-console) |
 | SAML, WS-Federation | Planned (sub-project 4) | |

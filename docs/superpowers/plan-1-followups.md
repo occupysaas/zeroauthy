@@ -25,7 +25,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 |---|---|
 | Multi-instance deployments | Login throttling is in-process; move counters to the store or a shared cache. |
 | Large tenants | CORS origin checks list all clients per cross-origin request; index origins. |
-| Hosted login (spec §7) | Template override directory; bcrypt hash verification and upgrade for imported users. |
+| Hosted login (spec §7) | Template override directory. Imported bcrypt verification and upgrade closed in Plan 18. |
 
 ## Plan 2 deferred review findings
 
@@ -290,10 +290,10 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 
 ## Plan 17 follow-ups
 
-Closed from the users design section 7: verification emails, the store-level user version (closes the reset, block and import-login races), the set-if-empty hash write, callers for the `delete`, `change_email` and `verify` scripts, store-level client paging, the Plan 9 grant re-check (U9 confirmed), the O1 re-check, and the Plan 15 check that deleting a connection deletes its users (m17-mgmt-cli, through `/api/v2/users`). Still open: "bcrypt hash verification and upgrade for imported users" is Plan 18.
+Closed from the users design section 7: verification emails, the store-level user version (closes the reset, block and import-login races), the set-if-empty hash write, callers for the `delete`, `change_email` and `verify` scripts, store-level client paging, the Plan 9 grant re-check (U9 confirmed), the O1 re-check, and the Plan 15 check that deleting a connection deletes its users (m17-mgmt-cli, through `/api/v2/users`). Closed in Plan 18: bcrypt hash verification and upgrade for imported users.
 
 - **Hosted login is not version-guarded:** `/u/login` creates the session without the grants' version check, so a login whose password check finished before a reset completed can still create a session after the reset revoked the others. The code grant that follows checks only that the user exists and is not blocked (D-0043).
-- **Jobs (Plan 18):** user import with Auth0's hash formats and first-sign-in upgrade, export, `jobs/verification-email`, and the console's email-sending action (the Users detail only creates the link today).
+- **Jobs (Plan 18): closed.** User import with Auth0's hash formats and first-sign-in upgrade, export, `jobs/verification-email`, and the console's email-sending action are implemented.
 - **Search and store:**
   - Metadata numbers above 2^53 compare differently in the memory driver and the SQL drivers; MySQL's Unicode 9.0 case mapping differs from Go's for rare characters; the MySQL `JSON_TABLE` column for identity values is `VARCHAR(1024)`, so longer values fail to match.
   - `users_last_login` cannot serve the default order (the order is a `CASE` expression); there is no `(tenant_id, email)` index for `FindByEmail`; the list's `COUNT` and `SELECT` do not share a snapshot.
@@ -322,3 +322,11 @@ Closed from the users design section 7: verification emails, the store-level use
   - `Connections.Delete` builds its affected list from an unlocked scan, so a user who gains a linked identity on the connection meanwhile keeps a dangling one.
   - A `PATCH` sending `blocked:true` to an already blocked last operator answers 409 instead of 200.
 - **E2E:** the auth0-cli script leaks the `cli-users-web` client and a temporary `HOME`; the request helper is copied from m15; one selector uses DOM order (`nth(1)`); the "emailed" assertion is trivial; the blocked check accepts any alert.
+
+## Plan 18 follow-ups
+
+Plan 18 closes bulk import, hash verification and first-sign-in upgrade,
+exports and signed downloads, and verification-email jobs in the console.
+MFA factors are accepted and ignored until Plan 33. Completion emails use
+English because operators have no locale. As recorded in D-0044, unusable
+imported hashes require reset, and cleartext password schemes are refused.

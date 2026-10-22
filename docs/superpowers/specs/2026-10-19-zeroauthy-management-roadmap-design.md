@@ -5,9 +5,9 @@
 - **Scope:** every Auth0 Management API v2 resource not covered by slices 1–4 (applications, APIs, client grants, database connections, users and jobs), broken into plans with an order, dependencies and a short design each.
 - **Inputs:** the management design (`2026-10-18-zeroauthy-management-design.md`), the users design (`2026-10-19-zeroauthy-users-design.md`), the compatibility matrix, the follow-ups file, and the maintainer's 2026-10-19 rulings.
 
-## 0. Where we are (2026-10-19)
+## 0. Where we are (2026-10-21)
 
-**Plans done:** 17. **Specified, not built:** 1 (Plan 18). **Left in this roadmap:** 20 (Plans 19–38); the five "full" plans will likely split, so expect roughly 25–30 more plans.
+**Plans done:** 18. **Specified, not built:** 0. **Left in this roadmap:** 20 (Plans 19–38); the five "full" plans will likely split, so expect roughly 25–30 more plans.
 
 ### Done
 
@@ -21,6 +21,7 @@
 | 14 | **APIs** (resource servers) and **client grants** |
 | 15 | **Database connections** and enabled clients |
 | 16 | Console frame: every section routed, planned pages previewed |
+| 17–18 | Users, search, identities, sessions, refresh tokens, grants, tickets; import/export and verification-email jobs |
 
 ### Management API coverage by resource
 
@@ -28,13 +29,12 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done** | 9 | clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17) |
-| **Specified** (Plan 18) | 1 | jobs |
+| **Done** | 10 | clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18) |
 | **Planned, short design** | 13 | tenant settings, attack protection, user blocks, signing keys, email provider, email templates, social strategies II, roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
 | **Planned, full design** | 15 | branding, themes, prompts and custom text, custom domains, social strategies I, Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
-Read as resource groups, about 22% is done and 2% is specified. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
+Read as resource groups, about 24% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
 
 ## 1. Goal and ground rules
 

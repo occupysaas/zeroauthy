@@ -5,7 +5,7 @@ Every zeroauthy tenant serves Auth0's Management API v2 at
 **applications** (`/api/v2/clients`), **APIs** (`/api/v2/resource-servers`),
 **client grants** (`/api/v2/client-grants`) and **database connections**
 (`/api/v2/connections`). Slice 4 adds **users**, sessions, refresh tokens,
-grants and tickets; later slices add tenant settings and jobs (design
+grants and tickets; later slices add tenant settings (design
 `docs/superpowers/specs/2026-10-18-zeroauthy-management-design.md`).
 
 The contract is [api/management.yaml](../api/management.yaml). Behaviour
@@ -95,6 +95,8 @@ operators manage it.
 | `GET /api/v2/grants` | `read:grants` |
 | `DELETE /api/v2/grants`, `DELETE /api/v2/grants/{id}` | `delete:grants` |
 | `POST /api/v2/tickets/password-change`, `POST /api/v2/tickets/email-verification` | `create:user_tickets` |
+| `POST /api/v2/jobs/users-imports` | `create:users` |
+| `POST /api/v2/jobs/users-exports` | `read:users` |
 | `POST /api/v2/jobs/verification-email` | `update:users` |
 | `GET /api/v2/jobs/{id}`, `GET /api/v2/jobs/{id}/errors` | `create:users` or `read:users` |
 
@@ -416,11 +418,16 @@ documented redirect; it is bound to the email it was issued for. The
 password-change success page does not redirect to `result_url`, as on Auth0's
 current pages. See D-0043 for the choices Auth0 does not document.
 
-### Not yet
-
-User import and export jobs are Plan 18 (in progress).
-
 ### Jobs
+
+`POST /api/v2/jobs/users-imports` (`create:users`) takes a multipart JSON file
+and connection ID and returns `202`. `POST /api/v2/jobs/users-exports`
+(`read:users`) takes format, optional connection, fields and limit and returns
+`200`. See [the import/export guide](user-import.md) for hash examples,
+upsert rules, limits, errors and download links. Completed imports report a
+summary and masked per-record errors; completed exports supply a signed
+`location` valid for 60 seconds. Read the job again for a fresh link.
+
 
 `POST /api/v2/jobs/verification-email` checks the request at once (unknown
 user, identity or application, no email address) and answers `201` with a
@@ -490,6 +497,7 @@ for operator tokens only (D-0040). Auth0 has no equivalent.
 | `POST /api/system/tenants` | `{"name", "friendly_name", "domains"}`. Names are DNS labels (63 characters at most); `system` is reserved. A new tenant gets signing keys, the database connection `Username-Password-Authentication` and its Management API. Without a base domain it needs a domain |
 | `PATCH /api/system/tenants/{name}` | Friendly name and domains |
 | `DELETE /api/system/tenants/{name}?confirm={name}` | Deletes the tenant and all of its data |
+| `GET /api/system/tenants/{name}/jobs` | Tenant job list, newest first, with `page`, `per_page` and `include_totals`; operators only |
 | `GET /api/system/operators` | The operators |
 | `POST /api/system/operators` | `{"email"}`: invites an operator; the response's `setup_url` is a one-hour link to choose a password |
 | `DELETE /api/system/operators/{user_id}` | Removes an operator and ends their sessions; never the last one |
