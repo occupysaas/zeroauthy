@@ -40,6 +40,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 | 2026-10-16 | 2026-10-16 (newest entry) | Claude (Plan 10 planning) | No entries on PAR. One new entry since the previous review, recorded under Relevant entries: Universal Login identifier and phone controls (early access). |
 | 2026-10-17 | 2026-10-16 (newest entry) | Claude (Plan 11 planning) | No entries on the device flow. No new entries since the previous review. Device behaviour was taken from the current documentation and the tenant observation (observations/device-flow.md). |
 | 2026-10-20 | 2026-10-20 (newest entry) | Claude (Plan 18 planning) | Covers 2026-10-16 to 2026-10-20 (the Plan 12–17 planning reviews were not logged here). No entry on jobs, import or export; the 2026-09-17 custom user ID entry excludes bulk import. New since the previous logged review: tenant ACL rule builder (2026-10-12), Actions token scope customization GA (2026-10-09), bot detection IPv6 update (2026-10-20); none affects implemented behavior. The 2026-01-21 `enabled_clients` deprecation is now enforced on the maintainer's tenant (observations/management-jobs.md). |
+| 2026-10-22 | 2026-10-21 (newest entry) | Codex (Plan 19 observer) | Reviewed public https://auth0.com/changelog since 2026-10-20. One newer entry: CLI Agent Mode (2026-10-21); keep pinned v1.37.0 and its documented commands. The 2026-10-20 IPv6 bot-model update concerns proprietary classification, represented by the explicit local risk difference. No newer tenant/session/attack-settings wire change found. |
 
 ## Relevant entries
 
