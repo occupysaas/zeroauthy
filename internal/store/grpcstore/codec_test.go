@@ -1,6 +1,7 @@
 package grpcstore
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -13,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
 )
 
@@ -666,4 +668,13 @@ func fullProtectionSettings() store.ProtectionSettings {
 		CAPTCHA:              store.CAPTCHAPolicy{ActiveProviderID: "hcaptcha", Arkose: store.ArkoseProvider{CAPTCHAProvider: store.CAPTCHAProvider{SiteKey: "site", Secret: "test-secret"}, ClientSubdomain: "client", VerifySubdomain: "verify", FailOpen: true}, AuthChallenge: store.AuthChallengeProvider{FailOpen: true}, HCaptcha: store.CAPTCHAProvider{SiteKey: "site", Secret: "test-secret"}, FriendlyCaptcha: store.CAPTCHAProvider{SiteKey: "site", Secret: "test-secret"}, RecaptchaV2: store.CAPTCHAProvider{SiteKey: "site", Secret: "test-secret"}, RecaptchaEnterprise: store.RecaptchaEnterpriseProvider{SiteKey: "site", APIKey: "test-key", ProjectID: "project"}, SimpleCaptcha: map[string]any{"extension": true}},
 		LegacyLockoutSeconds: 900, LegacyIPMaxAttempts: 100,
 	}
+}
+
+func TestTenantSettingsLargeNumberRoundTrip(t *testing.T) {
+	in, err := tenantrules.Apply(&store.Tenant{}, map[string]any{"security_headers": map[string]any{"content_security_policy": map[string]any{"reporting_infrastructure": map[string]any{"report_to": map[string]any{"max_age": json.Number("9007199254740993")}}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	in.ProtectionSettings.CAPTCHA.SimpleCaptcha = map[string]any{"large": json.Number("9007199254740993")}
+	roundTrip(t, "large settings integers", in, tenantToPB, tenantFromPB)
 }

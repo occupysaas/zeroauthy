@@ -110,3 +110,19 @@ func TestProtectionFeatureInventories(t *testing.T) {
 		t.Fatal("open provider clone aliases nested values")
 	}
 }
+
+func TestCAPTCHAUnrelatedPatchPreservesLargeNumber(t *testing.T) {
+	current := Defaults()
+	current.CAPTCHA.SimpleCaptcha = map[string]any{"nested": map[string]any{"max_age": json.Number("9007199254740993")}}
+	out, err := Apply(current, "captcha", map[string]any{"active_provider_id": "hcaptcha"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := json.Marshal(out.CAPTCHA.SimpleCaptcha["nested"].(map[string]any)["max_age"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "9007199254740993" {
+		t.Fatalf("unrelated patch rounded large number: got %s", got)
+	}
+}

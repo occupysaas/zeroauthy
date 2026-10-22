@@ -68,7 +68,10 @@ func Apply(current store.ProtectionSettings, feature string, patch map[string]an
 	if err != nil {
 		return current, settingsrules.Invalid("", "invalid policy value")
 	}
-	if err := json.Unmarshal(data, target); err != nil {
+	// Preserve arbitrary provider JSON numbers as well as typed integer fields.
+	decoder = json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	if err := decoder.Decode(target); err != nil {
 		return current, settingsrules.Invalid("", "invalid policy value")
 	}
 	// An explicit edit moves that feature away from legacy compatibility mode.

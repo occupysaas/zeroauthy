@@ -5,6 +5,7 @@
 package grpcstore
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -235,7 +236,14 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		{"protection settings", pb.ProtectionSettingsJson, &t.ProtectionSettings},
 	} {
 		if item.data != nil {
-			if err := json.Unmarshal(item.data, item.dest); err != nil {
+			// Retain Unmarshal's rejection of trailing data while preserving
+			// exact JSON numbers in SettingsExtra and open CAPTCHA provider maps.
+			if !json.Valid(item.data) {
+				return nil, fmt.Errorf("grpcstore: decode %s: invalid JSON", item.name)
+			}
+			decoder := json.NewDecoder(bytes.NewReader(item.data))
+			decoder.UseNumber()
+			if err := decoder.Decode(item.dest); err != nil {
 				return nil, fmt.Errorf("grpcstore: decode %s: %w", item.name, err)
 			}
 		}
