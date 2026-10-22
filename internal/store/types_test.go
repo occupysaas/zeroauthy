@@ -29,3 +29,14 @@ func TestLegacyComplexity(t *testing.T) {
 		t.Fatal("LegacyComplexity shares CharacterTypes")
 	}
 }
+
+func TestTenantSettingsClone(t *testing.T) {
+	original := &Tenant{SettingsExtra: map[string]any{"nested": map[string]any{"array": []any{map[string]any{"value": "original"}}}}, ProtectionSettings: ProtectionSettings{Bot: BotPolicy{Allowlist: []string{"::1"}}, CAPTCHA: CAPTCHAPolicy{SimpleCaptcha: map[string]any{"nested": []any{map[string]any{"value": "original"}}}}}}
+	copy := original.Clone()
+	copy.SettingsExtra["nested"].(map[string]any)["array"].([]any)[0].(map[string]any)["value"] = "changed"
+	copy.ProtectionSettings.Bot.Allowlist[0] = "changed"
+	copy.ProtectionSettings.CAPTCHA.SimpleCaptcha["nested"].([]any)[0].(map[string]any)["value"] = "changed"
+	if original.SettingsExtra["nested"].(map[string]any)["array"].([]any)[0].(map[string]any)["value"] != "original" || original.ProtectionSettings.Bot.Allowlist[0] != "::1" || original.ProtectionSettings.CAPTCHA.SimpleCaptcha["nested"].([]any)[0].(map[string]any)["value"] != "original" {
+		t.Fatal("clone aliases mutable state")
+	}
+}

@@ -1021,6 +1021,16 @@ type Tenant struct {
 	Reserved                                       bool                   `protobuf:"varint,19,opt,name=reserved,proto3" json:"reserved,omitempty"`                                                                                                         // absent = false
 	Seeded                                         bool                   `protobuf:"varint,20,opt,name=seeded,proto3" json:"seeded,omitempty"`                                                                                                             // absent = false
 	Origin                                         string                 `protobuf:"bytes,21,opt,name=origin,proto3" json:"origin,omitempty"`                                                                                                              // "api" or empty (seed)
+	SupportEmail                                   string                 `protobuf:"bytes,22,opt,name=support_email,json=supportEmail,proto3" json:"support_email,omitempty"`
+	SupportUrl                                     string                 `protobuf:"bytes,23,opt,name=support_url,json=supportUrl,proto3" json:"support_url,omitempty"`
+	PictureUrl                                     string                 `protobuf:"bytes,24,opt,name=picture_url,json=pictureUrl,proto3" json:"picture_url,omitempty"`
+	SettingsExtraJson                              []byte                 `protobuf:"bytes,25,opt,name=settings_extra_json,json=settingsExtraJson,proto3,oneof" json:"settings_extra_json,omitempty"`                // absent = nil; stored-only settings
+	SettingsPresenceJson                           []byte                 `protobuf:"bytes,26,opt,name=settings_presence_json,json=settingsPresenceJson,proto3,oneof" json:"settings_presence_json,omitempty"`       // absent = nil; explicit zero values
+	ProtectionSettingsJson                         []byte                 `protobuf:"bytes,27,opt,name=protection_settings_json,json=protectionSettingsJson,proto3,oneof" json:"protection_settings_json,omitempty"` // typed internal policy, including private credentials
+	ProtectionSettingsInitialized                  bool                   `protobuf:"varint,28,opt,name=protection_settings_initialized,json=protectionSettingsInitialized,proto3" json:"protection_settings_initialized,omitempty"`
+	EphemeralSessionLifetime                       int64                  `protobuf:"varint,29,opt,name=ephemeral_session_lifetime,json=ephemeralSessionLifetime,proto3" json:"ephemeral_session_lifetime,omitempty"`               // internal seconds
+	IdleEphemeralSessionLifetime                   int64                  `protobuf:"varint,30,opt,name=idle_ephemeral_session_lifetime,json=idleEphemeralSessionLifetime,proto3" json:"idle_ephemeral_session_lifetime,omitempty"` // internal seconds
+	SessionCookieMode                              string                 `protobuf:"bytes,31,opt,name=session_cookie_mode,json=sessionCookieMode,proto3" json:"session_cookie_mode,omitempty"`
 	unknownFields                                  protoimpl.UnknownFields
 	sizeCache                                      protoimpl.SizeCache
 }
@@ -1198,6 +1208,76 @@ func (x *Tenant) GetSeeded() bool {
 func (x *Tenant) GetOrigin() string {
 	if x != nil {
 		return x.Origin
+	}
+	return ""
+}
+
+func (x *Tenant) GetSupportEmail() string {
+	if x != nil {
+		return x.SupportEmail
+	}
+	return ""
+}
+
+func (x *Tenant) GetSupportUrl() string {
+	if x != nil {
+		return x.SupportUrl
+	}
+	return ""
+}
+
+func (x *Tenant) GetPictureUrl() string {
+	if x != nil {
+		return x.PictureUrl
+	}
+	return ""
+}
+
+func (x *Tenant) GetSettingsExtraJson() []byte {
+	if x != nil {
+		return x.SettingsExtraJson
+	}
+	return nil
+}
+
+func (x *Tenant) GetSettingsPresenceJson() []byte {
+	if x != nil {
+		return x.SettingsPresenceJson
+	}
+	return nil
+}
+
+func (x *Tenant) GetProtectionSettingsJson() []byte {
+	if x != nil {
+		return x.ProtectionSettingsJson
+	}
+	return nil
+}
+
+func (x *Tenant) GetProtectionSettingsInitialized() bool {
+	if x != nil {
+		return x.ProtectionSettingsInitialized
+	}
+	return false
+}
+
+func (x *Tenant) GetEphemeralSessionLifetime() int64 {
+	if x != nil {
+		return x.EphemeralSessionLifetime
+	}
+	return 0
+}
+
+func (x *Tenant) GetIdleEphemeralSessionLifetime() int64 {
+	if x != nil {
+		return x.IdleEphemeralSessionLifetime
+	}
+	return 0
+}
+
+func (x *Tenant) GetSessionCookieMode() string {
+	if x != nil {
+		return x.SessionCookieMode
 	}
 	return ""
 }
@@ -3134,6 +3214,7 @@ type LoginSession struct {
 	InitialUserAgent string                 `protobuf:"bytes,14,opt,name=initial_user_agent,json=initialUserAgent,proto3" json:"initial_user_agent,omitempty"`
 	LastIp           string                 `protobuf:"bytes,15,opt,name=last_ip,json=lastIp,proto3" json:"last_ip,omitempty"`
 	LastUserAgent    string                 `protobuf:"bytes,16,opt,name=last_user_agent,json=lastUserAgent,proto3" json:"last_user_agent,omitempty"`
+	CookieMode       string                 `protobuf:"bytes,17,opt,name=cookie_mode,json=cookieMode,proto3" json:"cookie_mode,omitempty"` // creation-time persistent/non-persistent choice
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -3276,6 +3357,13 @@ func (x *LoginSession) GetLastIp() string {
 func (x *LoginSession) GetLastUserAgent() string {
 	if x != nil {
 		return x.LastUserAgent
+	}
+	return ""
+}
+
+func (x *LoginSession) GetCookieMode() string {
+	if x != nil {
+		return x.CookieMode
 	}
 	return ""
 }
@@ -9859,7 +9947,7 @@ const file_store_proto_rawDesc = "" +
 	"\x06values\x18\x01 \x03(\v2).zeroauthy.store.v1.StringMap.ValuesEntryR\x06values\x1a9\n" +
 	"\vValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcb\b\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xae\r\n" +
 	"\x06Tenant\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
@@ -9883,8 +9971,23 @@ const file_store_proto_rawDesc = "" +
 	"\x10device_flow_mask\x18\x12 \x01(\tR\x0edeviceFlowMask\x12\x1a\n" +
 	"\breserved\x18\x13 \x01(\bR\breserved\x12\x16\n" +
 	"\x06seeded\x18\x14 \x01(\bR\x06seeded\x12\x16\n" +
-	"\x06origin\x18\x15 \x01(\tR\x06originB\x13\n" +
-	"\x11_custom_text_json\"J\n" +
+	"\x06origin\x18\x15 \x01(\tR\x06origin\x12#\n" +
+	"\rsupport_email\x18\x16 \x01(\tR\fsupportEmail\x12\x1f\n" +
+	"\vsupport_url\x18\x17 \x01(\tR\n" +
+	"supportUrl\x12\x1f\n" +
+	"\vpicture_url\x18\x18 \x01(\tR\n" +
+	"pictureUrl\x123\n" +
+	"\x13settings_extra_json\x18\x19 \x01(\fH\x01R\x11settingsExtraJson\x88\x01\x01\x129\n" +
+	"\x16settings_presence_json\x18\x1a \x01(\fH\x02R\x14settingsPresenceJson\x88\x01\x01\x12=\n" +
+	"\x18protection_settings_json\x18\x1b \x01(\fH\x03R\x16protectionSettingsJson\x88\x01\x01\x12F\n" +
+	"\x1fprotection_settings_initialized\x18\x1c \x01(\bR\x1dprotectionSettingsInitialized\x12<\n" +
+	"\x1aephemeral_session_lifetime\x18\x1d \x01(\x03R\x18ephemeralSessionLifetime\x12E\n" +
+	"\x1fidle_ephemeral_session_lifetime\x18\x1e \x01(\x03R\x1cidleEphemeralSessionLifetime\x12.\n" +
+	"\x13session_cookie_mode\x18\x1f \x01(\tR\x11sessionCookieModeB\x13\n" +
+	"\x11_custom_text_jsonB\x16\n" +
+	"\x14_settings_extra_jsonB\x19\n" +
+	"\x17_settings_presence_jsonB\x1b\n" +
+	"\x19_protection_settings_json\"J\n" +
 	"\bBranding\x12\x19\n" +
 	"\blogo_url\x18\x01 \x01(\tR\alogoUrl\x12#\n" +
 	"\rprimary_color\x18\x02 \x01(\tR\fprimaryColor\"\xb0\x01\n" +
@@ -10102,7 +10205,7 @@ const file_store_proto_rawDesc = "" +
 	"\alast_ip\x18\x15 \x01(\tR\x06lastIp\x12\x18\n" +
 	"\aversion\x18\x16 \x01(\x03R\aversionB\x15\n" +
 	"\x13_user_metadata_jsonB\x14\n" +
-	"\x12_app_metadata_json\"\xe6\x05\n" +
+	"\x12_app_metadata_json\"\x87\x06\n" +
 	"\fLoginSession\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1d\n" +
@@ -10128,7 +10231,9 @@ const file_store_proto_rawDesc = "" +
 	"initial_ip\x18\r \x01(\tR\tinitialIp\x12,\n" +
 	"\x12initial_user_agent\x18\x0e \x01(\tR\x10initialUserAgent\x12\x17\n" +
 	"\alast_ip\x18\x0f \x01(\tR\x06lastIp\x12&\n" +
-	"\x0flast_user_agent\x18\x10 \x01(\tR\rlastUserAgent\"\xc8\x02\n" +
+	"\x0flast_user_agent\x18\x10 \x01(\tR\rlastUserAgent\x12\x1f\n" +
+	"\vcookie_mode\x18\x11 \x01(\tR\n" +
+	"cookieMode\"\xc8\x02\n" +
 	"\x0fAuthTransaction\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1f\n" +

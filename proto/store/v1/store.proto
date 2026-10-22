@@ -286,6 +286,16 @@ message Tenant {
   bool reserved = 19;                                // absent = false
   bool seeded = 20;                                  // absent = false
   string origin = 21;                                // "api" or empty (seed)
+  string support_email = 22;
+  string support_url = 23;
+  string picture_url = 24;
+  optional bytes settings_extra_json = 25; // absent = nil; stored-only settings
+  optional bytes settings_presence_json = 26; // absent = nil; explicit zero values
+  optional bytes protection_settings_json = 27; // typed internal policy, including private credentials
+  bool protection_settings_initialized = 28;
+  int64 ephemeral_session_lifetime = 29; // internal seconds
+  int64 idle_ephemeral_session_lifetime = 30; // internal seconds
+  string session_cookie_mode = 31;
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 
@@ -428,6 +438,7 @@ message LoginSession {
   google.protobuf.Timestamp idle_expires_at = 9; google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp updated_at = 11; google.protobuf.Timestamp last_interacted_at = 12;
   string initial_ip = 13; string initial_user_agent = 14; string last_ip = 15; string last_user_agent = 16;
+  string cookie_mode = 17; // creation-time persistent/non-persistent choice
 }
 
 message AuthTransaction {

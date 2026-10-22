@@ -17,6 +17,24 @@ type Tenant struct {
 	// server.base_domain.
 	Name         string
 	FriendlyName string
+	SupportEmail string
+	SupportURL   string
+	PictureURL   string
+	// SettingsExtra contains validated, stored-only public settings. It never
+	// overrides typed settings and does not imply runtime enforcement.
+	SettingsExtra map[string]any
+	// SettingsPresence records explicit typed values whose zero value also means
+	// a legacy default. Currently device_flow.mask=true preserves an explicit
+	// empty mask; missing/false means the legacy default. Null device_flow clears
+	// that presence. Persist it alongside SettingsExtra in every driver.
+	SettingsPresence   map[string]bool
+	ProtectionSettings ProtectionSettings
+	// ProtectionSettingsInitialized distinguishes an absent policy from explicit
+	// disabled values; initialization/legacy migration occurs once transactionally.
+	ProtectionSettingsInitialized bool
+	EphemeralSessionLifetime      int    // seconds; zero means 72 hours
+	IdleEphemeralSessionLifetime  int    // seconds; zero means 24 hours
+	SessionCookieMode             string // persistent (default) or non-persistent
 	// Domains are normalized hosts that resolve to this tenant.
 	Domains []string
 	// DefaultAudience is used when a token request has no audience.
@@ -696,6 +714,8 @@ type User struct {
 
 // LoginSession is a browser's authenticated session with a tenant.
 type LoginSession struct {
+	// CookieMode is persisted at creation; later tenant edits do not change it.
+	CookieMode      string
 	TenantID        string
 	ID              string // public identifier, used as the ID token "sid" claim
 	TokenHash       string // secrets.HashToken of the session cookie value
@@ -1044,4 +1064,67 @@ type JobError struct {
 	Index  int
 	User   any
 	Errors []JobErrorItem
+}
+
+// CloneSettings deep-copies JSON-like settings while preserving explicit empty
+// arrays and native numeric representations.
+func CloneSettings(m map[string]any) map[string]any {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = cloneSetting(v)
+	}
+	return out
+}
+func cloneSetting(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		return CloneSettings(x)
+	case []any:
+		if x == nil {
+			return []any(nil)
+		}
+		a := make([]any, len(x))
+		for i, e := range x {
+			a[i] = cloneSetting(e)
+		}
+		return a
+	case []string:
+		return slices.Clone(x)
+	default:
+		return v
+	}
+}
+
+// Clone returns a copy owning all nested mutable state.
+func (t *Tenant) Clone() *Tenant {
+	if t == nil {
+		return nil
+	}
+	c := *t
+	c.Domains = slices.Clone(t.Domains)
+	c.AllowedLogoutURLs = slices.Clone(t.AllowedLogoutURLs)
+	c.EnabledLocales = slices.Clone(t.EnabledLocales)
+	c.CustomText = t.CustomText.Clone()
+	c.SettingsExtra = CloneSettings(t.SettingsExtra)
+	c.SettingsPresence = maps.Clone(t.SettingsPresence)
+	c.ProtectionSettings = t.ProtectionSettings.Clone()
+	return &c
+}
+
+// Clone returns a policy whose slices and open provider maps are independent.
+func (p ProtectionSettings) Clone() ProtectionSettings {
+	p.BruteForce.Shields = slices.Clone(p.BruteForce.Shields)
+	p.BruteForce.Allowlist = slices.Clone(p.BruteForce.Allowlist)
+	p.SuspiciousIP.Shields = slices.Clone(p.SuspiciousIP.Shields)
+	p.SuspiciousIP.Allowlist = slices.Clone(p.SuspiciousIP.Allowlist)
+	p.BreachedPassword.Shields = slices.Clone(p.BreachedPassword.Shields)
+	p.BreachedPassword.AdminNotificationFrequency = slices.Clone(p.BreachedPassword.AdminNotificationFrequency)
+	p.BreachedPassword.Stage.PreUserRegistration.Shields = slices.Clone(p.BreachedPassword.Stage.PreUserRegistration.Shields)
+	p.BreachedPassword.Stage.PreChangePassword.Shields = slices.Clone(p.BreachedPassword.Stage.PreChangePassword.Shields)
+	p.Bot.Allowlist = slices.Clone(p.Bot.Allowlist)
+	p.CAPTCHA.SimpleCaptcha = CloneSettings(p.CAPTCHA.SimpleCaptcha)
+	return p
 }

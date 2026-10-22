@@ -24,3 +24,18 @@ func TestAliasesAreIdentical(t *testing.T) {
 		t.Fatal("constants differ")
 	}
 }
+
+func TestProtectionAliases(t *testing.T) {
+	var p store.Protection = internal.UnimplementedProtection{}
+	var _ internal.Protection = p
+	var _ store.ProtectionSettings = internal.ProtectionSettings{}
+	var _ store.ProtectionKey = internal.ProtectionKey{}
+	var _ store.ProtectionLimit = internal.ProtectionLimit{}
+	var _ store.ProtectionReceipt = internal.ProtectionReceipt{}
+	var _ store.ProtectionAdmission = internal.ProtectionAdmission{}
+	var _ store.ProtectionBlock = internal.ProtectionBlock{}
+	var _ store.ProtectionFilter = internal.ProtectionFilter{}
+	if store.ErrProtectionUnimplemented != internal.ErrProtectionUnimplemented {
+		t.Fatal("unimplemented errors differ")
+	}
+}

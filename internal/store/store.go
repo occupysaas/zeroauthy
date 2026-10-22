@@ -34,6 +34,7 @@ var (
 
 // Store aggregates the repositories of one storage backend.
 type Store interface {
+	Protection() Protection
 	Tenants() Tenants
 	Clients() Clients
 	ResourceServers() ResourceServers

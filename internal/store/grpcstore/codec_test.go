@@ -137,7 +137,12 @@ func mustFrom[PP any, T any](t *testing.T, from func(PP) (*T, error), pb PP) *T 
 }
 
 func TestTenantRoundTrip(t *testing.T) {
+
 	roundTrip(t, "full", &store.Tenant{
+		SupportEmail: "support@example.com", SupportURL: "https://example.com", PictureURL: "https://example.com/logo",
+		SettingsExtra: map[string]any{"flags": map[string]any{"enable_sso": true}}, SettingsPresence: map[string]bool{"device_flow.mask": true},
+		ProtectionSettings: fullProtectionSettings(), ProtectionSettingsInitialized: true,
+		EphemeralSessionLifetime: 7200, IdleEphemeralSessionLifetime: 3600, SessionCookieMode: "non-persistent",
 		ID: "ten", Name: "acme", FriendlyName: "Acme", Domains: []string{"a.example.test", "b.example.test"},
 		DefaultAudience: "https://api", AllowedLogoutURLs: []string{"https://x/out"}, EnabledLocales: []string{"en", "de"},
 		CustomText:      store.CustomText{"login": {"en": {"login": {"title": "Hi", "description": "Welcome"}}, "de": {"login": {"title": "Hallo"}}}},
@@ -149,7 +154,7 @@ func TestTenantRoundTrip(t *testing.T) {
 		DeviceFlowCharset:                    "digits", DeviceFlowMask: "###-###",
 		Reserved: true, Seeded: true, Origin: store.OriginAPI,
 	}, tenantToPB, tenantFromPB)
-	roundTrip(t, "empty", &store.Tenant{Domains: []string{}, AllowedLogoutURLs: []string{}, EnabledLocales: []string{}, CustomText: store.CustomText{}}, tenantToPB, tenantFromPB)
+	roundTrip(t, "empty", &store.Tenant{Domains: []string{}, AllowedLogoutURLs: []string{}, EnabledLocales: []string{}, CustomText: store.CustomText{}, SettingsExtra: map[string]any{}, SettingsPresence: map[string]bool{}, ProtectionSettings: store.ProtectionSettings{CAPTCHA: store.CAPTCHAPolicy{SimpleCaptcha: map[string]any{}}}}, tenantToPB, tenantFromPB)
 	roundTrip(t, "zero", &store.Tenant{}, tenantToPB, tenantFromPB)
 }
 
@@ -330,7 +335,7 @@ func TestUserRoundTrip(t *testing.T) {
 
 func TestSessionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.LoginSession{
-		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db",
+		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db", CookieMode: "non-persistent",
 		AuthenticatedAt: nanoTime, ClientIDs: []string{"c1", "c2"},
 		ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
 		UpdatedAt: nanoTime.Add(time.Second), LastInteractedAt: nanoTime.Add(2 * time.Second),
@@ -648,4 +653,17 @@ func TestJobErrorRoundTrip(t *testing.T) {
 	// A file entry that is not an object is echoed as itself (J2).
 	roundTrip(t, "number", &store.JobError{Index: 1, User: float64(1)}, jobErrorToPB, jobErrorFromPB)
 	roundTrip(t, "string", &store.JobError{Index: 2, User: "x"}, jobErrorToPB, jobErrorFromPB)
+}
+
+// Every policy field is populated so the existing reflective completeness guard
+// detects future fields missing from the plugin round-trip contract.
+func fullProtectionSettings() store.ProtectionSettings {
+	return store.ProtectionSettings{
+		BruteForce:           store.BruteForcePolicy{Enabled: true, Shields: []string{"block"}, Allowlist: []string{"::1"}, Mode: "count_per_identifier", MaxAttempts: 7, FormSubmissionMode: "auto"},
+		SuspiciousIP:         store.SuspiciousIPPolicy{Enabled: true, Shields: []string{"block"}, Allowlist: []string{"192.0.2.0/24"}, Stage: store.SuspiciousIPStages{PreLogin: store.ProtectionRate{MaxAttempts: 9, Rate: 864000}, PreUserRegistration: store.ProtectionRate{MaxAttempts: 8, Rate: 1728000}, PreCustomTokenExchange: store.ProtectionRate{MaxAttempts: 7, Rate: 8640000}}},
+		BreachedPassword:     store.BreachedPasswordPolicy{Enabled: true, Shields: []string{"block"}, AdminNotificationFrequency: []string{"daily"}, Method: "standard", Stage: store.BreachedPasswordStages{PreUserRegistration: store.ProtectionShields{Shields: []string{"block"}}, PreChangePassword: store.ProtectionShields{Shields: []string{"block"}}}},
+		Bot:                  store.BotPolicy{BotDetectionLevel: "high", ChallengePasswordPolicy: "always", ChallengePasswordlessPolicy: "when_risky", ChallengePasswordResetPolicy: "always", Allowlist: []string{"::1"}, MonitoringModeEnabled: true},
+		CAPTCHA:              store.CAPTCHAPolicy{ActiveProviderID: "hcaptcha", Arkose: store.ArkoseProvider{CAPTCHAProvider: store.CAPTCHAProvider{SiteKey: "site", Secret: "test-secret"}, ClientSubdomain: "client", VerifySubdomain: "verify", FailOpen: true}, AuthChallenge: store.AuthChallengeProvider{FailOpen: true}, HCaptcha: store.CAPTCHAProvider{SiteKey: "site", Secret: "test-secret"}, FriendlyCaptcha: store.CAPTCHAProvider{SiteKey: "site", Secret: "test-secret"}, RecaptchaV2: store.CAPTCHAProvider{SiteKey: "site", Secret: "test-secret"}, RecaptchaEnterprise: store.RecaptchaEnterpriseProvider{SiteKey: "site", APIKey: "test-key", ProjectID: "project"}, SimpleCaptcha: map[string]any{"extension": true}},
+		LegacyLockoutSeconds: 900, LegacyIPMaxAttempts: 100,
+	}
 }

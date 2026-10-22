@@ -8,14 +8,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
-func cloneTenant(t *store.Tenant) *store.Tenant {
-	c := *t
-	c.Domains = slices.Clone(t.Domains)
-	c.AllowedLogoutURLs = slices.Clone(t.AllowedLogoutURLs)
-	c.EnabledLocales = slices.Clone(t.EnabledLocales)
-	c.CustomText = t.CustomText.Clone()
-	return &c
-}
+func cloneTenant(t *store.Tenant) *store.Tenant { return t.Clone() }
 
 func cloneClient(c *store.Client) *store.Client {
 	out := *c

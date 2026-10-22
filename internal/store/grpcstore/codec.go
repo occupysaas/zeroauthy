@@ -158,6 +158,9 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 	}
 	pb := &storev1.Tenant{
 		Id: t.ID, Name: t.Name, FriendlyName: t.FriendlyName,
+		SupportEmail: t.SupportEmail, SupportUrl: t.SupportURL, PictureUrl: t.PictureURL,
+		ProtectionSettingsInitialized: t.ProtectionSettingsInitialized,
+		EphemeralSessionLifetime:      int64(t.EphemeralSessionLifetime), IdleEphemeralSessionLifetime: int64(t.IdleEphemeralSessionLifetime), SessionCookieMode: t.SessionCookieMode,
 		Domains: stringsToPB(t.Domains), DefaultAudience: t.DefaultAudience,
 		AllowedLogoutUrls: stringsToPB(t.AllowedLogoutURLs), EnabledLocales: stringsToPB(t.EnabledLocales),
 		SessionLifetime: int64(t.SessionLifetime), IdleSessionLifetime: int64(t.IdleSessionLifetime),
@@ -168,6 +171,25 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		PushedAuthorizationRequestsSupported:           t.PushedAuthorizationRequestsSupported,
 		DeviceFlowCharset:                              t.DeviceFlowCharset, DeviceFlowMask: t.DeviceFlowMask,
 		Reserved: t.Reserved, Seeded: t.Seeded, Origin: t.Origin,
+	}
+
+	for _, item := range []struct {
+		name    string
+		value   any
+		dest    *[]byte
+		present bool
+	}{
+		{"tenant settings", t.SettingsExtra, &pb.SettingsExtraJson, t.SettingsExtra != nil},
+		{"settings presence", t.SettingsPresence, &pb.SettingsPresenceJson, t.SettingsPresence != nil},
+		{"protection settings", t.ProtectionSettings, &pb.ProtectionSettingsJson, true},
+	} {
+		if item.present {
+			b, err := json.Marshal(item.value)
+			if err != nil {
+				return nil, fmt.Errorf("grpcstore: encode %s: %w", item.name, err)
+			}
+			*item.dest = b
+		}
 	}
 	if t.CustomText != nil {
 		b, err := json.Marshal(t.CustomText)
@@ -188,6 +210,9 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 	}
 	t := &store.Tenant{
 		ID: pb.Id, Name: pb.Name, FriendlyName: pb.FriendlyName,
+		SupportEmail: pb.SupportEmail, SupportURL: pb.SupportUrl, PictureURL: pb.PictureUrl,
+		ProtectionSettingsInitialized: pb.ProtectionSettingsInitialized,
+		EphemeralSessionLifetime:      int(pb.EphemeralSessionLifetime), IdleEphemeralSessionLifetime: int(pb.IdleEphemeralSessionLifetime), SessionCookieMode: pb.SessionCookieMode,
 		Domains: stringsFromPB(pb.Domains), DefaultAudience: pb.DefaultAudience,
 		AllowedLogoutURLs: stringsFromPB(pb.AllowedLogoutUrls), EnabledLocales: stringsFromPB(pb.EnabledLocales),
 		SessionLifetime: int(pb.SessionLifetime), IdleSessionLifetime: int(pb.IdleSessionLifetime),
@@ -198,6 +223,22 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		PushedAuthorizationRequestsSupported:           pb.PushedAuthorizationRequestsSupported,
 		DeviceFlowCharset:                              pb.DeviceFlowCharset, DeviceFlowMask: pb.DeviceFlowMask,
 		Reserved: pb.Reserved, Seeded: pb.Seeded, Origin: pb.Origin,
+	}
+
+	for _, item := range []struct {
+		name string
+		data []byte
+		dest any
+	}{
+		{"tenant settings", pb.SettingsExtraJson, &t.SettingsExtra},
+		{"settings presence", pb.SettingsPresenceJson, &t.SettingsPresence},
+		{"protection settings", pb.ProtectionSettingsJson, &t.ProtectionSettings},
+	} {
+		if item.data != nil {
+			if err := json.Unmarshal(item.data, item.dest); err != nil {
+				return nil, fmt.Errorf("grpcstore: decode %s: %w", item.name, err)
+			}
+		}
 	}
 	if pb.CustomTextJson != nil {
 		var ct store.CustomText
@@ -640,7 +681,8 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 		return nil, nil
 	}
 	return &storev1.LoginSession{
-		TenantId: s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
+		CookieMode: s.CookieMode,
+		TenantId:   s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
 		Connection: s.Connection, AuthenticatedAt: tsToPB(s.AuthenticatedAt),
 		ClientIds: stringsToPB(s.ClientIDs), ExpiresAt: tsToPB(s.ExpiresAt),
 		IdleExpiresAt: tsToPB(s.IdleExpiresAt), CreatedAt: tsToPB(s.CreatedAt),
@@ -657,7 +699,8 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 		return nil, err
 	}
 	return &store.LoginSession{
-		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
+		CookieMode: pb.CookieMode,
+		TenantID:   pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, AuthenticatedAt: tsFromPB(pb.AuthenticatedAt),
 		ClientIDs: stringsFromPB(pb.ClientIds), ExpiresAt: tsFromPB(pb.ExpiresAt),
 		IdleExpiresAt: tsFromPB(pb.IdleExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),

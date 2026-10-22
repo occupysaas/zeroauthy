@@ -7,6 +7,29 @@ package store
 import "github.com/zeroauthy/zeroauthy/internal/store"
 
 type (
+	Protection                  = store.Protection
+	ProtectionSettings          = store.ProtectionSettings
+	BruteForcePolicy            = store.BruteForcePolicy
+	SuspiciousIPPolicy          = store.SuspiciousIPPolicy
+	SuspiciousIPStages          = store.SuspiciousIPStages
+	ProtectionRate              = store.ProtectionRate
+	BreachedPasswordPolicy      = store.BreachedPasswordPolicy
+	BreachedPasswordStages      = store.BreachedPasswordStages
+	ProtectionShields           = store.ProtectionShields
+	BotPolicy                   = store.BotPolicy
+	CAPTCHAPolicy               = store.CAPTCHAPolicy
+	CAPTCHAProvider             = store.CAPTCHAProvider
+	ArkoseProvider              = store.ArkoseProvider
+	AuthChallengeProvider       = store.AuthChallengeProvider
+	RecaptchaEnterpriseProvider = store.RecaptchaEnterpriseProvider
+	ProtectionKey               = store.ProtectionKey
+	ProtectionLimit             = store.ProtectionLimit
+	ProtectionReceipt           = store.ProtectionReceipt
+	ProtectionAdmission         = store.ProtectionAdmission
+	ProtectionBlock             = store.ProtectionBlock
+	ProtectionFilter            = store.ProtectionFilter
+	UnimplementedProtection     = store.UnimplementedProtection
+
 	Store                    = store.Store
 	Tenants                  = store.Tenants
 	Clients                  = store.Clients
@@ -176,3 +199,6 @@ const (
 	DictionaryEn10k  = store.DictionaryEn10k
 	DictionaryEn100k = store.DictionaryEn100k
 )
+
+var ErrProtectionUnimplemented = store.ErrProtectionUnimplemented
+var CloneSettings = store.CloneSettings
