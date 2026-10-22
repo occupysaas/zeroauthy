@@ -29,6 +29,32 @@ import struct
 import sys
 import warnings
 
+# Fixture mode uses the committed, independently generated vectors from both
+# generators; it needs neither Python's removed crypt module nor KDF tools.
+if sys.argv[1:] == ["--fixture"]:
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    vectors = {}
+    for filename in ("vectors.json", "vectors-kdf.json"):
+        for vector in json.loads((root / "internal/passhash/testdata" / filename).read_text()):
+            vectors[vector["name"]] = vector
+    records = []
+    for label, name in (("bcrypt", "bcrypt/2a"), ("pbkdf2", "pbkdf2/sha256"),
+                        ("sha256", "sha256/hex/salt-prefix-utf8"), ("argon2id", "argon2/argon2id")):
+        vector = vectors[name]
+        assert vector["password"] == "Pa55w0rd!" and vector["match"]
+        record = {"email": "m18-" + label + "@e2e.local", "email_verified": False}
+        if label == "bcrypt":
+            record["password_hash"] = vector["spec"]["hash"]["value"]
+        else:
+            record["custom_password_hash"] = vector["spec"]
+        records.append(record)
+    records.append({"email": "m18-invalid@e2e.local", "password_hash": "invalid-secret-hash"})
+    output = root / "tests/e2e/fixtures/import-users.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(records, indent=2) + "\n")
+    sys.exit(0)
+
 warnings.simplefilter("ignore")
 import crypt  # noqa: E402  (Python <= 3.12)
 

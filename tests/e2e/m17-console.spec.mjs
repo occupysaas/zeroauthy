@@ -198,7 +198,7 @@ test('an operator manages a user in the console', async ({ page, browser }) => {
   await staleCtx.close();
 
   // 8. A verification ticket, opened in a fresh context: Email Verified.
-  await page.getByRole('button', { name: 'Send verification email' }).click();
+  await page.getByRole('button', { name: 'Create verification link' }).click();
   const verifyLink = (await dialog.getByTestId('ticket-url').textContent()).trim();
   expect(verifyLink).toContain('/u/email-verification?ticket=');
   await dialog.getByRole('button', { name: 'Done' }).click();

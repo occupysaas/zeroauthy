@@ -155,7 +155,7 @@ tenants:
     client_grants:
       - client_id: e2e-m17-admin
         audience: "https://localhost:8443/api/v2/"
-        scopes: ["read:users", "create:users", "update:users", "delete:users", "read:users_app_metadata", "update:users_app_metadata",
+        scopes: ["read:connections", "read:users", "create:users", "update:users", "delete:users", "read:users_app_metadata", "update:users_app_metadata",
                  "create:user_tickets", "read:grants", "delete:grants", "read:sessions", "delete:sessions",
                  "read:refresh_tokens", "delete:refresh_tokens"]
       - client_id: e2e-m2m

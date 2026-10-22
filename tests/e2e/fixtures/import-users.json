@@ -1,0 +1,49 @@
+[
+  {
+    "email": "m18-bcrypt@e2e.local",
+    "email_verified": false,
+    "password_hash": "$2a$10$abcdefghijklmnopqrstuutXuLMGzUDkLKWYZMwfQ1jZL/OanUDL2"
+  },
+  {
+    "email": "m18-pbkdf2@e2e.local",
+    "email_verified": false,
+    "custom_password_hash": {
+      "algorithm": "pbkdf2",
+      "hash": {
+        "value": "$pbkdf2-sha256$i=1000,l=32$ABEiM0RVZneImaq7zN3u/w$1Nhd+jSQU1g3ZP6insHJmyQROq/spzJmIfrLpG1G1xc",
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "email": "m18-sha256@e2e.local",
+    "email_verified": false,
+    "custom_password_hash": {
+      "algorithm": "sha256",
+      "hash": {
+        "value": "a1ca8ed7f078a1d6d869c2b7b7d539585ad1cf45310c105fbeff95aefd1b4a88",
+        "encoding": "hex"
+      },
+      "salt": {
+        "value": "NaCl-pre",
+        "encoding": "utf8",
+        "position": "prefix"
+      }
+    }
+  },
+  {
+    "email": "m18-argon2id@e2e.local",
+    "email_verified": false,
+    "custom_password_hash": {
+      "algorithm": "argon2",
+      "hash": {
+        "value": "$argon2id$v=19$m=64,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$yehLjERwqmrHNCQ7nSARxXNwAZXw4BBlnVm0VTnN6PU",
+        "encoding": "utf8"
+      }
+    }
+  },
+  {
+    "email": "m18-invalid@e2e.local",
+    "password_hash": "invalid-secret-hash"
+  }
+]
