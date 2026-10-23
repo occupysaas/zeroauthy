@@ -86,6 +86,7 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		}
 	} else {
 		tn, err = tenantsetup.UpsertTenant(ctx, st, in.Name, now, func(tn *store.Tenant) error {
+			before := tn.Clone()
 			tn.FriendlyName, tn.Domains, tn.DefaultAudience = in.FriendlyName, domains, in.DefaultAudience
 			tn.AllowedLogoutURLs = slices.Clone(in.AllowedLogoutURLs)
 			tn.EnabledLocales = slices.Clone(in.EnabledLocales)
@@ -97,6 +98,12 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			tn.UseScopeDescriptionsForConsent = in.UseScopeDescriptionsForConsent
 			tn.PushedAuthorizationRequestsSupported = in.PushedAuthorizationRequestsSupported
 			tn.DeviceFlowCharset, tn.DeviceFlowMask = in.DeviceFlow.Charset, in.DeviceFlow.Mask
+			if exists {
+				preserveOmittedTenant(tn, before, in.supplied)
+			}
+			if err := applyTenantSettings(tn, in, w); err != nil {
+				return err
+			}
 			// In create-only mode nothing is overwritten later, so there is
 			// nothing to warn about.
 			tn.Seeded = !createOnly
@@ -130,6 +137,20 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 	for _, c := range in.Connections {
 		if err := applyConnection(ctx, st, tn.ID, c, now, w, createOnly); err != nil {
 			return fmt.Errorf("connection %q: %w", c.Name, err)
+		}
+	}
+	if _, supplied := in.Settings["default_audience"]; supplied && tn.DefaultAudience != "" {
+		if _, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, tn.DefaultAudience); err != nil {
+			return fmt.Errorf("settings.default_audience must resolve within the tenant: %w", err)
+		}
+	}
+	if _, supplied := in.Settings["default_directory"]; supplied && tn.DefaultDirectory != "" {
+		c, err := st.Connections().GetByName(ctx, tn.ID, tn.DefaultDirectory)
+		if err != nil {
+			return fmt.Errorf("settings.default_directory must resolve within the tenant: %w", err)
+		}
+		if c.Strategy != store.StrategyDatabase {
+			return fmt.Errorf("settings.default_directory must be a supported database connection")
 		}
 	}
 	for _, u := range in.Users {

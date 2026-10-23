@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	StoreService_Ping_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/Ping"
+	StoreService_TenantSettingsSupported_FullMethodName                = "/zeroauthy.store.v1.StoreService/TenantSettingsSupported"
 	StoreService_BeginTx_FullMethodName                                = "/zeroauthy.store.v1.StoreService/BeginTx"
 	StoreService_Commit_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/Commit"
 	StoreService_Rollback_FullMethodName                               = "/zeroauthy.store.v1.StoreService/Rollback"
@@ -204,6 +205,8 @@ const (
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error)
+	// Required before writing Plan 19 tenant settings: old plugins must fail closed.
+	TenantSettingsSupported(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error)
 	BeginTx(ctx context.Context, in *BeginTxRequest, opts ...grpc.CallOption) (*BeginTxResponse, error)
 	Commit(ctx context.Context, in *EndTxRequest, opts ...grpc.CallOption) (*Result, error)
 	Rollback(ctx context.Context, in *EndTxRequest, opts ...grpc.CallOption) (*Result, error)
@@ -352,6 +355,16 @@ func (c *storeServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_Ping_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TenantSettingsSupported(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_TenantSettingsSupported_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1647,6 +1660,8 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceServer interface {
 	Ping(context.Context, *PingRequest) (*Result, error)
+	// Required before writing Plan 19 tenant settings: old plugins must fail closed.
+	TenantSettingsSupported(context.Context, *PingRequest) (*Result, error)
 	BeginTx(context.Context, *BeginTxRequest) (*BeginTxResponse, error)
 	Commit(context.Context, *EndTxRequest) (*Result, error)
 	Rollback(context.Context, *EndTxRequest) (*Result, error)
@@ -1793,6 +1808,9 @@ type UnimplementedStoreServiceServer struct{}
 
 func (UnimplementedStoreServiceServer) Ping(context.Context, *PingRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedStoreServiceServer) TenantSettingsSupported(context.Context, *PingRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method TenantSettingsSupported not implemented")
 }
 func (UnimplementedStoreServiceServer) BeginTx(context.Context, *BeginTxRequest) (*BeginTxResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BeginTx not implemented")
@@ -2195,6 +2213,24 @@ func _StoreService_Ping_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).Ping(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TenantSettingsSupported_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TenantSettingsSupported(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TenantSettingsSupported_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TenantSettingsSupported(ctx, req.(*PingRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -4398,6 +4434,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _StoreService_Ping_Handler,
+		},
+		{
+			MethodName: "TenantSettingsSupported",
+			Handler:    _StoreService_TenantSettingsSupported_Handler,
 		},
 		{
 			MethodName: "BeginTx",

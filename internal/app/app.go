@@ -135,6 +135,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, Wrapper: wrapper}); err != nil {
 		return nil, err
 	}
+	if err := seed.InitializeProtection(ctx, st, cfg.Security, log); err != nil {
+		return nil, err
+	}
 	if err := bootstrapOperator(ctx, st, cfg.Bootstrap.AdminEmail, log); err != nil {
 		return nil, err
 	}

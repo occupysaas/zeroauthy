@@ -45,6 +45,9 @@ func Apply(current *store.Tenant, patch map[string]any) (*store.Tenant, error) {
 			delete(extra, key)
 		}
 	}
+	if picture, ok := patch["picture_url"]; ok {
+		out.Branding.LogoURL = picture.(string)
+	}
 	for key, field := range boolFields {
 		if value, ok := patch[key]; ok {
 			b, _ := value.(bool)

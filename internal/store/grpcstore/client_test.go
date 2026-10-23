@@ -438,3 +438,13 @@ func TestOldPluginJobsTooOld(t *testing.T) {
 		t.Errorf("DeleteExpired = %d, %v; want 0, nil", n, err)
 	}
 }
+
+func TestOldPluginTenantSettingsTooOld(t *testing.T) {
+	c := serveOldPlugin(t)
+	tn := &store.Tenant{ID: "t", Name: "tenant", SupportEmail: "help@example.test"}
+	for _, err := range []error{c.Tenants().Create(context.Background(), tn), c.Tenants().Update(context.Background(), tn), c.Sessions().Create(context.Background(), &store.LoginSession{CookieMode: "non-persistent"})} {
+		if !errors.Is(err, errPluginTooOld) {
+			t.Fatalf("want plugin too old, got %v", err)
+		}
+	}
+}

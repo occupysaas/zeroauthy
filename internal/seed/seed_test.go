@@ -846,8 +846,8 @@ tenants:
 		}
 	}
 
-	// Applying again with the settings removed turns them off.
-	f, err = Parse([]byte(strings.ReplaceAll(strings.ReplaceAll(doc, "pushed_authorization_requests_supported: true", ""), ", require_pushed_authorization_requests: true", "")))
+	// Explicit false clears the tenant flag; omitted client settings retain the legacy client behavior.
+	f, err = Parse([]byte(strings.ReplaceAll(strings.ReplaceAll(doc, "pushed_authorization_requests_supported: true", "pushed_authorization_requests_supported: false"), ", require_pushed_authorization_requests: true", "")))
 	if err != nil {
 		t.Fatal(err)
 	}

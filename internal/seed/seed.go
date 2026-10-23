@@ -48,6 +48,11 @@ type File struct {
 }
 
 type Tenant struct {
+	AttackProtection map[string]map[string]any `yaml:"attack_protection"`
+	// Settings uses the public tenant settings inventory; legacy top-level durations remain seconds.
+	Settings map[string]any `yaml:"settings"`
+	supplied map[string]any
+
 	Name                string           `yaml:"name"`
 	FriendlyName        string           `yaml:"friendly_name"`
 	Domains             []string         `yaml:"domains"`
@@ -216,6 +221,15 @@ func Parse(data []byte) (*File, error) {
 			return nil, errors.New("seed: the file is empty; expected a tenants list")
 		}
 		return nil, fmt.Errorf("seed: %w", err)
+	}
+	var raw struct {
+		Tenants []map[string]any `yaml:"tenants"`
+	}
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+	for i := range f.Tenants {
+		f.Tenants[i].supplied = raw.Tenants[i]
 	}
 	if err := f.validate(); err != nil {
 		return nil, err

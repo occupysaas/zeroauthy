@@ -2,10 +2,13 @@ package storetest
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/protectionrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -30,6 +33,62 @@ func newTenant(name string) *store.Tenant {
 func testTenants(t *testing.T, newStore Factory) {
 	ctx := context.Background()
 
+	t.Run("TestTenantProtectionRoundTrip", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newTenant("protection")
+		want.SupportEmail = "help@example.test"
+		want.SupportURL = "https://example.test/" + strings.Repeat("x", 400)
+		want.PictureURL = "https://example.test/" + strings.Repeat("y", 400)
+		want.EphemeralSessionLifetime = 7200
+		want.IdleEphemeralSessionLifetime = 3600
+		want.SessionCookieMode = "non-persistent"
+		want.SettingsExtra = map[string]any{"flags": map[string]any{"enable_sso": true}, "custom_number": json.Number("9007199254740993")}
+		want.SettingsPresence = map[string]bool{"device_flow.mask": true}
+		want.ProtectionSettingsInitialized = true
+		w, err := keys.NewLocalWrapper(make([]byte, 32))
+		mustNoErr(t, err)
+		want.ProtectionSettings, err = keys.PatchCAPTCHA(w, want.ID, protectionrules.Defaults(), map[string]any{"recaptcha_enterprise": map[string]any{"site_key": "site", "project_id": "project", "api_key": "secret-fixture"}})
+		mustNoErr(t, err)
+		want.ProtectionSettings.BruteForce.MaxAttempts = 17
+		want.ProtectionSettings.BruteForce.Allowlist = []string{"127.0.0.1"}
+		mustNoErr(t, s.Tenants().Create(ctx, want))
+		got, err := s.Tenants().Get(ctx, want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+		got.SettingsExtra["flags"].(map[string]any)["enable_sso"] = false
+		got.SettingsPresence["device_flow.mask"] = false
+		got.ProtectionSettings.BruteForce.Allowlist[0] = "changed"
+		got, err = s.Tenants().Get(ctx, want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+		rollback := fmt.Errorf("rollback")
+		err = s.WithTx(ctx, func(tx store.Store) error {
+			got.SupportEmail = "rollback@example.test"
+			if err := tx.Tenants().Update(ctx, got); err != nil {
+				return err
+			}
+			return rollback
+		})
+		if err != rollback {
+			t.Fatal(err)
+		}
+		got, err = s.Tenants().Get(ctx, want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+		want.SupportEmail = "new@example.test"
+		mustNoErr(t, s.Tenants().Update(ctx, want))
+		got, err = s.Tenants().Get(ctx, want.ID)
+		mustNoErr(t, err)
+		mustEqual(t, got, want)
+	})
+	t.Run("RejectPlaintextCAPTCHA", func(t *testing.T) {
+		s := open(t, newStore)
+		tn := newTenant("secret")
+		tn.ProtectionSettings.CAPTCHA.HCaptcha.Secret = "must-never-be-stored"
+		if err := s.Tenants().Create(ctx, tn); err == nil {
+			t.Fatal("plaintext accepted")
+		}
+	})
 	t.Run("DeviceFlow", func(t *testing.T) { testTenantDeviceFlow(t, newStore) })
 
 	t.Run("ConcurrentCreateDistinct", func(t *testing.T) {

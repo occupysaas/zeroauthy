@@ -3,6 +3,7 @@ package sqlstore
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"maps"
 	"slices"
@@ -18,7 +19,7 @@ func (s *Store) Tenants() store.Tenants { return tenants{s} }
 const tenantCols = `id, name, friendly_name, default_audience, allowed_logout_urls, enabled_locales, custom_text,
  session_lifetime, idle_session_lifetime, logo_url, primary_color, default_directory, created_at,
  skip_non_verifiable_callback_uri_confirmation_prompt, use_scope_descriptions_for_consent, pushed_authorization_requests_supported,
- device_flow_charset, device_flow_mask, reserved, seeded, origin`
+ device_flow_charset, device_flow_mask, reserved, seeded, origin, support_email, support_url, picture_url, ephemeral_session_lifetime, idle_ephemeral_session_lifetime, session_cookie_mode, protection_initialized, settings_extra, settings_presence, protection_settings`
 
 // prefixed prefixes each comma-separated column name in cols with p.
 func prefixed(p, cols string) string {
@@ -30,12 +31,15 @@ func prefixed(p, cols string) string {
 }
 
 func (r tenants) Create(ctx context.Context, t *store.Tenant) error {
+	if err := store.ValidateProtectionSecrets(t.ProtectionSettings.CAPTCHA); err != nil {
+		return err
+	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		args, err := tenantArgs(t)
 		if err != nil {
 			return err
 		}
-		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
 		return tenants{tx}.putDomains(ctx, t.ID, t.Domains, false)
@@ -105,6 +109,9 @@ func (r tenants) putDomains(ctx context.Context, id string, domains []string, ex
 }
 
 func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
+	if err := store.ValidateProtectionSecrets(t.ProtectionSettings.CAPTCHA); err != nil {
+		return err
+	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		args, err := tenantArgs(t)
 		if err != nil {
@@ -114,7 +121,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
  enabled_locales=?, custom_text=?, session_lifetime=?, idle_session_lifetime=?, logo_url=?, primary_color=?,
  default_directory=?, created_at=?, skip_non_verifiable_callback_uri_confirmation_prompt=?,
  use_scope_descriptions_for_consent=?, pushed_authorization_requests_supported=?,
- device_flow_charset=?, device_flow_mask=?, reserved=?, seeded=?, origin=? WHERE id=?`, append(args[1:], t.ID)...)
+ device_flow_charset=?, device_flow_mask=?, reserved=?, seeded=?, origin=?, support_email=?, support_url=?, picture_url=?, ephemeral_session_lifetime=?, idle_ephemeral_session_lifetime=?, session_cookie_mode=?, protection_initialized=?, settings_extra=?, settings_presence=?, protection_settings=? WHERE id=?`, append(args[1:], t.ID)...)
 		if err != nil {
 			return tx.conflict(err)
 		}
@@ -128,7 +135,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 // tenantTables are the tables whose rows belong to one tenant, by
 // tenant_id. Delete empties them before it deletes the tenant row.
 var tenantTables = []string{
-	"job_files", "job_errors", "jobs", "operators", "password_reset_tickets", "email_verification_tickets", "refresh_tokens", "device_codes", "pushed_auth_requests",
+	"protection_reservations", "protection_receipts", "protection_buckets", "protection_risk_events", "job_files", "job_errors", "jobs", "operators", "password_reset_tickets", "email_verification_tickets", "refresh_tokens", "device_codes", "pushed_auth_requests",
 	"auth_codes", "auth_transactions", "sessions", "user_grants", "user_logins", "password_history", "users",
 	"connections", "signing_keys", "client_grants", "resource_servers", "clients", "tenant_domains",
 }
@@ -169,7 +176,11 @@ func (r tenants) GetByDomain(ctx context.Context, domain string) (*store.Tenant,
 }
 
 func (r tenants) List(ctx context.Context) ([]*store.Tenant, error) {
-	rows, err := r.s.query(ctx, `SELECT `+tenantCols+` FROM tenants ORDER BY name`)
+	q := `SELECT ` + tenantCols + ` FROM tenants ORDER BY name`
+	if r.s.tx != nil {
+		q += r.s.d.forUpdate
+	}
+	rows, err := r.s.query(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -195,6 +206,9 @@ func (r tenants) List(ctx context.Context) ([]*store.Tenant, error) {
 }
 
 func (r tenants) one(ctx context.Context, q string, args ...any) (*store.Tenant, error) {
+	if r.s.tx != nil {
+		q += r.s.d.forUpdate
+	}
 	t, err := scanTenant(r.s.queryRow(ctx, q, args...))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
@@ -226,20 +240,30 @@ func (r tenants) domains(ctx context.Context, id string) ([]string, error) {
 
 func scanTenant(row scanner) (*store.Tenant, error) {
 	var t store.Tenant
-	var logout, locales, text string
+	var logout, locales, text, extra, presence, policy string
 	var created int64
 	if err := row.Scan(&t.ID, &t.Name, &t.FriendlyName, &t.DefaultAudience, &logout, &locales, &text,
 		&t.SessionLifetime, &t.IdleSessionLifetime, &t.Branding.LogoURL, &t.Branding.PrimaryColor,
 		&t.DefaultDirectory, &created, &t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		&t.UseScopeDescriptionsForConsent, &t.PushedAuthorizationRequestsSupported,
-		&t.DeviceFlowCharset, &t.DeviceFlowMask, &t.Reserved, &t.Seeded, &t.Origin); err != nil {
+		&t.DeviceFlowCharset, &t.DeviceFlowMask, &t.Reserved, &t.Seeded, &t.Origin, &t.SupportEmail, &t.SupportURL, &t.PictureURL, &t.EphemeralSessionLifetime, &t.IdleEphemeralSessionLifetime, &t.SessionCookieMode, &t.ProtectionSettingsInitialized, &extra, &presence, &policy); err != nil {
 		return nil, err
 	}
 	for _, j := range []struct {
 		s string
 		v any
-	}{{logout, &t.AllowedLogoutURLs}, {locales, &t.EnabledLocales}, {text, &t.CustomText}} {
+	}{{logout, &t.AllowedLogoutURLs}, {locales, &t.EnabledLocales}, {text, &t.CustomText}, {presence, &t.SettingsPresence}} {
 		if err := fromJSON(j.s, j.v); err != nil {
+			return nil, err
+		}
+	}
+	for _, j := range []struct {
+		s string
+		v any
+	}{{extra, &t.SettingsExtra}, {policy, &t.ProtectionSettings}} {
+		decoder := json.NewDecoder(strings.NewReader(j.s))
+		decoder.UseNumber()
+		if err := decoder.Decode(j.v); err != nil {
 			return nil, err
 		}
 	}
@@ -260,9 +284,21 @@ func tenantArgs(t *store.Tenant) ([]any, error) {
 	if err != nil {
 		return nil, err
 	}
+	extra, err := toJSON(t.SettingsExtra)
+	if err != nil {
+		return nil, err
+	}
+	presence, err := toJSON(t.SettingsPresence)
+	if err != nil {
+		return nil, err
+	}
+	policy, err := toJSON(t.ProtectionSettings)
+	if err != nil {
+		return nil, err
+	}
 	return []any{t.ID, t.Name, t.FriendlyName, t.DefaultAudience, logout, locales, text,
 		t.SessionLifetime, t.IdleSessionLifetime, t.Branding.LogoURL, t.Branding.PrimaryColor,
 		t.DefaultDirectory, micros(t.CreatedAt), t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		t.UseScopeDescriptionsForConsent, t.PushedAuthorizationRequestsSupported,
-		t.DeviceFlowCharset, t.DeviceFlowMask, t.Reserved, t.Seeded, t.Origin}, nil
+		t.DeviceFlowCharset, t.DeviceFlowMask, t.Reserved, t.Seeded, t.Origin, t.SupportEmail, t.SupportURL, t.PictureURL, t.EphemeralSessionLifetime, t.IdleEphemeralSessionLifetime, t.SessionCookieMode, t.ProtectionSettingsInitialized, extra, presence, policy}, nil
 }

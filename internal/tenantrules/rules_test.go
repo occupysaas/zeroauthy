@@ -132,3 +132,15 @@ func TestTenantSettingsNestedSecurityHeaders(t *testing.T) {
 		}
 	}
 }
+
+func TestPictureURLCanonicalBranding(t *testing.T) {
+	current := &store.Tenant{Branding: store.Branding{LogoURL: "https://example.test/old"}}
+	out, err := Apply(current, map[string]any{"picture_url": "https://example.test/new"})
+	if err != nil || out.Branding.LogoURL != "https://example.test/new" {
+		t.Fatal("picture does not update runtime branding", err)
+	}
+	out, err = Apply(current, map[string]any{"friendly_name": "Name"})
+	if err != nil || out.Branding.LogoURL != current.Branding.LogoURL {
+		t.Fatal("omission changed branding", err)
+	}
+}

@@ -15,7 +15,7 @@ func newSession(tenantID, id, tokenHash string) *store.LoginSession {
 	return &store.LoginSession{
 		TenantID: tenantID, ID: id, TokenHash: tokenHash,
 		UserID: "auth0|u1", Connection: "Database",
-		AuthenticatedAt: ts(0), ClientIDs: []string{"spa"},
+		CookieMode: "non-persistent", AuthenticatedAt: ts(0), ClientIDs: []string{"spa"},
 		ExpiresAt: ts(7 * 24 * time.Hour), IdleExpiresAt: ts(3 * 24 * time.Hour), CreatedAt: ts(0),
 		UpdatedAt: ts(0), LastInteractedAt: ts(0),
 		InitialIP: "203.0.113.7", InitialUserAgent: "Mozilla/5.0 (initial)",

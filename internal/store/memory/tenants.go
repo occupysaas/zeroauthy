@@ -11,6 +11,9 @@ import (
 type tenants struct{ s *Store }
 
 func (r tenants) Create(_ context.Context, t *store.Tenant) error {
+	if err := store.ValidateProtectionSecrets(t.ProtectionSettings.CAPTCHA); err != nil {
+		return err
+	}
 	r.s.lock()
 	defer r.s.unlock()
 	if _, ok := r.s.tenants[t.ID]; ok || r.collides(t) {
@@ -39,6 +42,9 @@ func (r tenants) GetByDomain(_ context.Context, domain string) (*store.Tenant, e
 }
 
 func (r tenants) Update(_ context.Context, t *store.Tenant) error {
+	if err := store.ValidateProtectionSecrets(t.ProtectionSettings.CAPTCHA); err != nil {
+		return err
+	}
 	r.s.lock()
 	defer r.s.unlock()
 	if _, ok := r.s.tenants[t.ID]; !ok {

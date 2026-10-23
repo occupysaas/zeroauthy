@@ -75,7 +75,16 @@ type Storage struct {
 	AutoMigrate bool `koanf:"auto_migrate"`
 }
 
+type BreachedPasswords struct {
+	Mode string `koanf:"mode"`
+	File string `koanf:"file"`
+}
+
 type Security struct {
+	BreachedPasswords           BreachedPasswords `koanf:"breached_passwords"`
+	LoginMaxAttemptsExplicit    bool              `koanf:"-"`
+	LoginLockoutSecondsExplicit bool              `koanf:"-"`
+
 	// MasterKey is a base64-encoded 32-byte key. Prefer MasterKeyFile.
 	MasterKey     string `koanf:"master_key"`
 	MasterKeyFile string `koanf:"master_key_file"`
@@ -145,7 +154,7 @@ func defaults() *Config {
 		Log:      Log{Level: "info", Format: "json"},
 		SeedMode: "apply",
 		Security: Security{
-			LoginMaxAttempts: 10, LoginLockoutSeconds: 900,
+			LoginMaxAttempts: 10, LoginLockoutSeconds: 900, BreachedPasswords: BreachedPasswords{Mode: "off"},
 			DeviceActivationTxnMaxMisses: 5, DeviceActivationIPMaxMisses: 10, DeviceActivationIPLockoutSeconds: 900,
 			DeviceActivationTenantMaxMisses: 1000, DeviceActivationTenantWindowSeconds: 600, DeviceActivationTenantLockoutSeconds: 60,
 		},
@@ -195,6 +204,8 @@ func Load(path string, environ []string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
+	cfg.Security.LoginMaxAttemptsExplicit = k.Exists("security.login_max_attempts")
+	cfg.Security.LoginLockoutSecondsExplicit = k.Exists("security.login_lockout_seconds")
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
@@ -203,6 +214,15 @@ func Load(path string, environ []string) (*Config, error) {
 
 func (c *Config) validate() error {
 	var errs []error
+	switch c.Security.BreachedPasswords.Mode {
+	case "off", "range":
+	case "file":
+		if c.Security.BreachedPasswords.File == "" {
+			errs = append(errs, errors.New("security.breached_passwords.file is required in file mode"))
+		}
+	default:
+		errs = append(errs, errors.New("security.breached_passwords.mode must be off, range or file"))
+	}
 	if c.Storage.DSN == "" {
 		errs = append(errs, errors.New("storage.dsn is required"))
 	}

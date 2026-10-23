@@ -2,14 +2,16 @@ package store
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"strings"
 	"time"
 )
 
 // ProtectionSettings contains tenant-owned policy. Fields named Legacy are
 // internal compatibility state and must never be exposed through public APIs.
-// CAPTCHA credentials are internal plaintext inputs: persistence adapters must
-// encrypt them with the existing key-wrapping machinery before writing storage.
+// CAPTCHA credentials contain versioned encrypted envelopes only. Callers must
+// use keys.PatchCAPTCHA before persistence and keys.OpenCAPTCHA for verification.
 type ProtectionSettings struct {
 	BruteForce           BruteForcePolicy
 	SuspiciousIP         SuspiciousIPPolicy
@@ -173,4 +175,20 @@ func (UnimplementedProtection) RiskCount(context.Context, string, string, time.T
 }
 func (UnimplementedProtection) Sweep(context.Context, time.Time, int) (int, error) {
 	return 0, ErrProtectionUnimplemented
+}
+
+// ValidateProtectionSecrets prevents accidental plaintext writes across all
+// drivers, including remote plugins. Authentication is performed by keys on open.
+func ValidateProtectionSecrets(c CAPTCHAPolicy) error {
+	for _, value := range []string{c.Arkose.Secret, c.HCaptcha.Secret, c.FriendlyCaptcha.Secret, c.RecaptchaV2.Secret, c.RecaptchaEnterprise.APIKey} {
+		if value == "" {
+			continue
+		}
+		encoded, ok := strings.CutPrefix(value, "zcap1.")
+		blob, err := base64.RawURLEncoding.DecodeString(encoded)
+		if !ok || err != nil || len(blob) < 32 {
+			return ErrInvalid
+		}
+	}
+	return nil
 }

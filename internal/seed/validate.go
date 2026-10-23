@@ -26,6 +26,9 @@ func (f *File) validate() error {
 	domainOwner := map[string]string{}
 	for i := range f.Tenants {
 		t := &f.Tenants[i]
+		if err := validateTenantSettings(t); err != nil {
+			errs = append(errs, err)
+		}
 		if t.Name == "" {
 			errs = append(errs, fmt.Errorf("seed: tenants[%d]: name is required", i))
 			continue

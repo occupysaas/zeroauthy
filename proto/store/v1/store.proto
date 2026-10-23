@@ -58,6 +58,8 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 // `error` field; gRPC status codes mean transport or plugin failure.
 service StoreService {
   rpc Ping(PingRequest) returns (Result);
+  // Required before writing Plan 19 tenant settings: old plugins must fail closed.
+  rpc TenantSettingsSupported(PingRequest) returns (Result);
   rpc BeginTx(BeginTxRequest) returns (BeginTxResponse);
   rpc Commit(EndTxRequest) returns (Result);
   rpc Rollback(EndTxRequest) returns (Result);

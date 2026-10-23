@@ -337,3 +337,8 @@ func (s *Server) with(txID string, f func(store.Store) error) error {
 	defer t.timer.Reset(s.idle)
 	return f(h.st)
 }
+
+// TenantSettingsSupported advertises lossless Plan 19 tenant/session persistence.
+func (s *Server) TenantSettingsSupported(context.Context, *storev1.PingRequest) (*storev1.Result, error) {
+	return &storev1.Result{}, nil
+}

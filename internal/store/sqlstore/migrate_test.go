@@ -172,8 +172,8 @@ func TestSchemaConstraints(t *testing.T) {
 
 func TestLatestVersion(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 15 {
-			t.Errorf("%s LatestVersion = %d, want 15", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 16 {
+			t.Errorf("%s LatestVersion = %d, want 16", d.name, v)
 		}
 	}
 }
@@ -295,6 +295,59 @@ func TestMigration0013ConvertsPasswordPolicy(t *testing.T) {
 				if !c.BruteForceProtection || c.UsernameMin != 0 || c.UsernameMax != 0 || c.Origin != "" || c.Extra != nil ||
 					!reflect.DeepEqual(c.EnabledClients, []string{"spa"}) {
 					t.Errorf("%s: unexpected settings %+v", id, c)
+				}
+			}
+		})
+	}
+}
+
+func TestMigration0016PreservesData(t *testing.T) {
+	ctx := context.Background()
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := openAtVersion(t, mk(t), 15)
+			tenant := &store.Tenant{ID: "legacy", Name: "legacy", FriendlyName: "Existing", SessionLifetime: 3600}
+			args, err := tenantArgs(tenant)
+			if err != nil {
+				t.Fatal(err)
+			}
+			oldCols := strings.Join(strings.Split(tenantCols, ",")[:21], ",")
+			mustExec(t, s, `INSERT INTO tenants (`+oldCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args[:21]...)
+			user := &store.User{TenantID: "legacy", UserID: "auth0|existing", Email: "old@example.test"}
+			if err := s.Users().Create(ctx, user); err != nil {
+				t.Fatal(err)
+			}
+			job := &store.Job{TenantID: "legacy", ID: "job", Type: store.JobType("users_import"), Status: store.JobStatus("pending"), Input: []byte("preserved input")}
+			if err := s.Jobs().Create(ctx, job); err != nil {
+				t.Fatal(err)
+			}
+			mustExec(t, s, `INSERT INTO sessions (tenant_id,id,token_hash,user_id,connection,authenticated_at,client_ids,expires_at,idle_expires_at,created_at,updated_at,last_interacted_at,initial_ip,initial_user_agent,last_ip,last_user_agent) VALUES ('legacy','session','hash','auth0|existing','Database',0,'["spa"]',999,888,0,0,0,'','','','')`)
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			got, err := s.Tenants().Get(ctx, "legacy")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, tenant) {
+				t.Fatalf("tenant changed: %#v", got)
+			}
+			gotUser, err := s.Users().Get(ctx, "legacy", user.UserID)
+			if err != nil || !reflect.DeepEqual(gotUser, user) {
+				t.Fatalf("user changed: %v", err)
+			}
+			gotJob, err := s.Jobs().Get(ctx, "legacy", "job")
+			if err != nil || !reflect.DeepEqual(gotJob, job) {
+				t.Fatalf("job changed: %v", err)
+			}
+			session, err := s.Sessions().Get(ctx, "legacy", "session")
+			if err != nil || session.CookieMode != "" || session.TokenHash != "hash" || micros(session.ExpiresAt) != 999 || len(session.ClientIDs) != 1 {
+				t.Fatalf("session changed: %v", err)
+			}
+			for _, table := range []string{"protection_buckets", "protection_receipts", "protection_reservations", "protection_proofs", "protection_risk_events"} {
+				var n int
+				if err := s.queryRow(ctx, "SELECT COUNT(*) FROM "+table).Scan(&n); err != nil || n != 0 {
+					t.Fatalf("table %s: %v", table, err)
 				}
 			}
 		})

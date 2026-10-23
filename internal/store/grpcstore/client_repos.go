@@ -100,6 +100,12 @@ func decList[P, T any](op string, err error, e *storev1.Error, pbs []P, dec func
 type clientTenants struct{ c *Client }
 
 func (a clientTenants) Create(ctx context.Context, t *store.Tenant) error {
+	if err := store.ValidateProtectionSecrets(t.ProtectionSettings.CAPTCHA); err != nil {
+		return err
+	}
+	if err := a.c.requireTenantSettings(ctx); err != nil {
+		return err
+	}
 	return put("TenantsCreate", t, tenantToPB, func(pb *storev1.Tenant) (result, error) {
 		return a.c.rpc.TenantsCreate(ctx, &storev1.TenantWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -123,6 +129,12 @@ func (a clientTenants) GetByDomain(ctx context.Context, domain string) (*store.T
 }
 
 func (a clientTenants) Update(ctx context.Context, t *store.Tenant) error {
+	if err := store.ValidateProtectionSecrets(t.ProtectionSettings.CAPTCHA); err != nil {
+		return err
+	}
+	if err := a.c.requireTenantSettings(ctx); err != nil {
+		return err
+	}
 	return put("TenantsUpdate", t, tenantToPB, func(pb *storev1.Tenant) (result, error) {
 		return a.c.rpc.TenantsUpdate(ctx, &storev1.TenantWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -526,6 +538,11 @@ func (a clientUsers) Delete(ctx context.Context, tenantID, userID string) error 
 type clientSessions struct{ c *Client }
 
 func (a clientSessions) Create(ctx context.Context, v *store.LoginSession) error {
+	if v.CookieMode != "" {
+		if err := a.c.requireTenantSettings(ctx); err != nil {
+			return err
+		}
+	}
 	return put("SessionsCreate", v, sessionToPB, func(pb *storev1.LoginSession) (result, error) {
 		return a.c.rpc.SessionsCreate(ctx, &storev1.SessionWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -1008,4 +1025,15 @@ func (a clientJobs) DeleteExpired(ctx context.Context, before time.Time) (int, e
 		return 0, nil
 	}
 	return counted("JobsDeleteExpired", r, err)
+}
+
+func (c *Client) requireTenantSettings(ctx context.Context) error {
+	r, err := c.rpc.TenantSettingsSupported(ctx, &storev1.PingRequest{})
+	if status.Code(err) == codes.Unimplemented {
+		return errPluginTooOld
+	}
+	if err != nil {
+		return rpcErr("TenantSettingsSupported", err)
+	}
+	return errFromPB(r.GetError())
 }
