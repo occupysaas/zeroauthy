@@ -139,12 +139,12 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			return fmt.Errorf("connection %q: %w", c.Name, err)
 		}
 	}
-	if _, supplied := in.Settings["default_audience"]; supplied && tn.DefaultAudience != "" {
+	if _, supplied := in.Settings["default_audience"]; supplied && !(createOnly && exists) && tn.DefaultAudience != "" {
 		if _, err := st.ResourceServers().GetByIdentifier(ctx, tn.ID, tn.DefaultAudience); err != nil {
 			return fmt.Errorf("settings.default_audience must resolve within the tenant: %w", err)
 		}
 	}
-	if _, supplied := in.Settings["default_directory"]; supplied && tn.DefaultDirectory != "" {
+	if _, supplied := in.Settings["default_directory"]; supplied && !(createOnly && exists) && tn.DefaultDirectory != "" {
 		c, err := st.Connections().GetByName(ctx, tn.ID, tn.DefaultDirectory)
 		if err != nil {
 			return fmt.Errorf("settings.default_directory must resolve within the tenant: %w", err)

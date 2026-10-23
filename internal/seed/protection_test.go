@@ -1,9 +1,11 @@
 package seed
 
 import (
+	"bytes"
 	"context"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -62,22 +64,31 @@ func TestProtectionInitializationOnce(t *testing.T) {
 	if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
 		t.Fatal(err)
 	}
+	var audit bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&audit, nil))
 	cfg := config.Security{LoginMaxAttempts: 4, LoginLockoutSeconds: 900, LoginMaxAttemptsExplicit: true}
-	if err := InitializeProtection(ctx, st, cfg, slog.Default()); err != nil {
+	if err := InitializeProtection(ctx, st, cfg, logger); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ := st.Tenants().GetByName(ctx, "acme")
 	if tn.ProtectionSettings.BruteForce.MaxAttempts != 4 || tn.ProtectionSettings.LegacyLockoutSeconds != 900 {
 		t.Fatal("explicit legacy not honored")
 	}
+	if !strings.Contains(audit.String(), tn.ID) || !strings.Contains(audit.String(), "legacy compatibility mode") || !strings.Contains(audit.String(), `"level":"WARN"`) {
+		t.Fatal("missing initialization audit", audit.String())
+	}
+	firstAudit := audit.String()
 	tn.ProtectionSettings.BruteForce.MaxAttempts = 21
 	if err := st.Tenants().Update(ctx, tn); err != nil {
 		t.Fatal(err)
 	}
-	if err := InitializeProtection(ctx, st, cfg, slog.Default()); err != nil {
+	if err := InitializeProtection(ctx, st, cfg, logger); err != nil {
 		t.Fatal(err)
 	}
 	tn, _ = st.Tenants().GetByName(ctx, "acme")
+	if audit.String() != firstAudit {
+		t.Fatal("restart emitted another initialization audit")
+	}
 	if tn.ProtectionSettings.BruteForce.MaxAttempts != 21 {
 		t.Fatal("restart overwrote policy")
 	}
@@ -190,5 +201,36 @@ func TestSeedSettingsReferences(t *testing.T) {
 		if _, err := st.Tenants().GetByName(context.Background(), "acme"); err == nil {
 			t.Fatal("invalid seed was not rolled back")
 		}
+	}
+}
+
+func TestCreateOnlyIgnoresSettingsReferences(t *testing.T) {
+	ctx := context.Background()
+	for _, field := range []string{"default_audience", "default_directory"} {
+		t.Run(field, func(t *testing.T) {
+			st := memory.New()
+			initial, _ := Parse([]byte("tenants:\n- name: acme\n"))
+			if err := Apply(ctx, st, initial, fixedNow, nil); err != nil {
+				t.Fatal(err)
+			}
+			tn, _ := st.Tenants().GetByName(ctx, "acme")
+			tn.DefaultAudience = "existing-unresolved"
+			tn.DefaultDirectory = "existing-unresolved"
+			if err := st.Tenants().Update(ctx, tn); err != nil {
+				t.Fatal(err)
+			}
+			f, err := Parse([]byte("tenants:\n- name: acme\n  settings:\n    " + field + ": ignored\n"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.Mode = ModeCreateOnly
+			if err := Apply(ctx, st, f, fixedNow, nil); err != nil {
+				t.Fatal(err)
+			}
+			got, _ := st.Tenants().GetByName(ctx, "acme")
+			if got.DefaultAudience != tn.DefaultAudience || got.DefaultDirectory != tn.DefaultDirectory {
+				t.Fatal("create_only changed settings")
+			}
+		})
 	}
 }
