@@ -339,3 +339,96 @@ func TestDeviceIPMustBeAnAddress(t *testing.T) {
 		t.Errorf("hostile touch LastIP = %q", stored.LastIP)
 	}
 }
+
+func TestTenantSessionCookiePolicy(t *testing.T) {
+	for _, mode := range []string{"persistent", "non-persistent"} {
+		t.Run(mode, func(t *testing.T) {
+			m, c, tn := setup()
+			tn.SessionCookieMode = mode
+			tn.SessionLifetime = 3600
+			tn.EphemeralSessionLifetime = 3600
+			tn.IdleSessionLifetime = 1800
+			tn.IdleEphemeralSessionLifetime = 1200
+			rec := httptest.NewRecorder()
+			s, err := m.Start(context.Background(), rec, requestWith(nil), tn, "u", "db", c.t)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if s.CookieMode != mode || !s.ExpiresAt.Equal(c.t.Add(time.Hour)) {
+				t.Fatalf("session: %+v", s)
+			}
+			ck := rec.Result().Cookies()[0]
+			if mode == "non-persistent" && (!ck.Expires.IsZero() || ck.MaxAge != 0) {
+				t.Fatalf("transient cookie: %+v", ck)
+			}
+			if mode == "persistent" && !ck.Expires.Equal(s.ExpiresAt) {
+				t.Fatalf("persistent cookie: %+v", ck)
+			}
+			// Switching the tenant default does not switch an existing session's mode.
+			tn.SessionCookieMode = "persistent"
+			tn.IdleSessionLifetime = 900
+			tn.IdleEphemeralSessionLifetime = 300
+			tn.SessionLifetime = 7200
+			tn.EphemeralSessionLifetime = 7200
+			c.t = c.t.Add(time.Minute)
+			got, err := m.Current(context.Background(), requestWith(rec.Result().Cookies()), tn)
+			if err != nil || got == nil {
+				t.Fatalf("Current: %+v %v", got, err)
+			}
+			idle := 900
+			if mode == "non-persistent" {
+				idle = 300
+			}
+			if !got.IdleExpiresAt.Equal(c.t.Add(time.Duration(idle)*time.Second)) || !got.ExpiresAt.Equal(s.ExpiresAt) {
+				t.Fatalf("touch changed lifetime/mode: %+v", got)
+			}
+		})
+	}
+}
+
+func TestTenantSessionHugeLifetime(t *testing.T) {
+	m, c, tn := setup()
+	tn.SessionLifetime = int(^uint(0) >> 1)
+	tn.IdleSessionLifetime = tn.SessionLifetime
+	rec := httptest.NewRecorder()
+	s, err := m.Start(context.Background(), rec, requestWith(nil), tn, "u", "db", c.t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+	if !s.ExpiresAt.Equal(want) || !s.IdleExpiresAt.Equal(want) {
+		t.Fatalf("overflow: %+v", s)
+	}
+}
+
+func TestTenantSessionEphemeralDefaultsAndExpiry(t *testing.T) {
+	m, c, tn := setup()
+	tn.SessionCookieMode = "non-persistent"
+	rec := httptest.NewRecorder()
+	s, err := m.Start(context.Background(), rec, requestWith(nil), tn, "u", "db", c.t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.ExpiresAt.Equal(c.t.Add(72*time.Hour)) || !s.IdleExpiresAt.Equal(c.t.Add(24*time.Hour)) {
+		t.Fatalf("ephemeral defaults: %+v", s)
+	}
+	c.t = c.t.Add(24 * time.Hour)
+	if got, err := m.Lookup(context.Background(), requestWith(rec.Result().Cookies()), tn); err != nil || got != nil {
+		t.Fatalf("expired transient session: %+v %v", got, err)
+	}
+}
+
+func TestTenantSessionLegacyCookieMode(t *testing.T) {
+	m, c, tn := setup()
+	tn.SessionCookieMode = "non-persistent"
+	tn.IdleSessionLifetime = 1800
+	tn.IdleEphemeralSessionLifetime = 300
+	s := &store.LoginSession{TenantID: tn.ID, ID: "legacy", TokenHash: secrets.HashToken("legacy"), UserID: "u", ExpiresAt: c.t.Add(time.Hour), IdleExpiresAt: c.t.Add(time.Hour)}
+	if err := m.Store.Sessions().Create(context.Background(), s); err != nil {
+		t.Fatal(err)
+	}
+	got, err := m.Current(context.Background(), requestWith([]*http.Cookie{{Name: CookieName, Value: "legacy"}}), tn)
+	if err != nil || got == nil || !got.IdleExpiresAt.Equal(c.t.Add(30*time.Minute)) {
+		t.Fatalf("legacy session changed mode: %+v %v", got, err)
+	}
+}

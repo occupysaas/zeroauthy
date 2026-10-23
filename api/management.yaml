@@ -65,6 +65,47 @@ security:
   - managementToken: []
   - operatorToken: []
 paths:
+  /api/v2/tenants/settings:
+    get:
+      operationId: getTenantSettings
+      tags: [tenant-settings]
+      summary: Read tenant settings
+      description: Requires `read:tenant_settings`. Returns local runtime defaults for enforced fields. Projection applies to top-level fields; unknown names are ignored.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/tenants/tenant-settings-route
+      parameters:
+        - $ref: "#/components/parameters/fields"
+        - $ref: "#/components/parameters/include_fields"
+      responses:
+        "200":
+          description: Tenant settings
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TenantSettings"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    patch:
+      operationId: updateTenantSettings
+      tags: [tenant-settings]
+      summary: Update tenant settings
+      description: Requires `update:tenant_settings`. Validates and merges atomically. Arrays replace; omitted fields are preserved. Reserved system tenants cannot be changed. Stored-only settings have no runtime effect.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/tenants/patch-settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/TenantSettingsPatch"}
+      responses:
+        "200":
+          description: Updated tenant settings
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TenantSettings"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /api/v2/clients:
     get:
       operationId: getClients
@@ -1949,6 +1990,1247 @@ components:
       description: Whether `fields` lists the fields to include (true) or to leave out (false).
       schema: {type: boolean, default: true}
   schemas:
+    TenantSettings:
+      type: object
+      additionalProperties: false
+      properties:
+        change_password:
+          type: object
+          additionalProperties: false
+          properties:
+            enabled:
+              type: boolean
+              default: false
+            html:
+              type: string
+              default: ''
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        device_flow:
+          type: object
+          additionalProperties: false
+          properties:
+            charset:
+              type: string
+              default: base20
+              enum:
+              - base20
+              - digits
+            mask:
+              type: string
+              default: '****-****'
+              maxLength: 20
+          description: Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime
+            code entropy requirements before device authorization can issue a code.
+          nullable: true
+        guardian_mfa_page:
+          type: object
+          additionalProperties: false
+          properties:
+            enabled:
+              type: boolean
+              default: false
+            html:
+              type: string
+              default: ''
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        default_audience:
+          type: string
+          default: ''
+        default_directory:
+          type: string
+          default: ''
+        error_page:
+          type: object
+          additionalProperties: false
+          properties:
+            html:
+              type: string
+              default: ''
+            show_log_link:
+              type: boolean
+              default: false
+            url:
+              type: string
+              default: https://mycompany.org/error
+              format: absolute-uri-or-empty
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        default_token_quota:
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          properties:
+            clients:
+              type: object
+              additionalProperties: true
+              required:
+              - client_credentials
+              properties:
+                client_credentials:
+                  type: object
+                  additionalProperties: false
+                  minProperties: 1
+                  properties:
+                    enforce:
+                      type: boolean
+                    per_day:
+                      type: integer
+                      minimum: 1
+                      maximum: 2147483647
+                    per_hour:
+                      type: integer
+                      minimum: 1
+                      maximum: 2147483647
+            organizations:
+              type: object
+              additionalProperties: true
+              required:
+              - client_credentials
+              properties:
+                client_credentials:
+                  type: object
+                  additionalProperties: false
+                  minProperties: 1
+                  properties:
+                    enforce:
+                      type: boolean
+                    per_day:
+                      type: integer
+                      minimum: 1
+                      maximum: 2147483647
+                    per_hour:
+                      type: integer
+                      minimum: 1
+                      maximum: 2147483647
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        flags:
+          type: object
+          additionalProperties: false
+          properties:
+            change_pwd_flow_v1:
+              type: boolean
+              default: false
+            enable_apis_section:
+              type: boolean
+              default: false
+            disable_impersonation:
+              type: boolean
+              default: false
+              readOnly: true
+            enable_client_connections:
+              type: boolean
+              default: true
+            enable_pipeline2:
+              type: boolean
+              default: true
+            allow_legacy_delegation_grant_types:
+              type: boolean
+            allow_legacy_ro_grant_types:
+              type: boolean
+            allow_legacy_tokeninfo_endpoint:
+              type: boolean
+            enable_legacy_profile:
+              type: boolean
+            enable_idtoken_api2:
+              type: boolean
+            enable_public_signup_user_exists_error:
+              type: boolean
+            enable_sso:
+              type: boolean
+            allow_changing_enable_sso:
+              type: boolean
+            disable_clickjack_protection_headers:
+              type: boolean
+            no_disclose_enterprise_connections:
+              type: boolean
+            enforce_client_authentication_on_passwordless_start:
+              type: boolean
+            enable_adfs_waad_email_verification:
+              type: boolean
+            revoke_refresh_token_grant:
+              type: boolean
+            dashboard_log_streams_next:
+              type: boolean
+            dashboard_insights_view:
+              type: boolean
+            disable_fields_map_fix:
+              type: boolean
+            mfa_show_factor_list_on_enrollment:
+              type: boolean
+            remove_alg_from_jwks:
+              type: boolean
+            improved_signup_bot_detection_in_classic:
+              type: boolean
+            genai_trial:
+              type: boolean
+            local_resource_discovery:
+              type: boolean
+            enable_dynamic_client_registration:
+              type: boolean
+              default: false
+            disable_management_api_sms_obfuscation:
+              type: boolean
+              default: true
+            trust_azure_adfs_email_verified_connection_property:
+              type: boolean
+              default: false
+            custom_domains_provisioning:
+              type: boolean
+              default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        friendly_name:
+          type: string
+          default: My Company
+        picture_url:
+          type: string
+          default: https://mycompany.org/logo.png
+          format: absolute-uri-or-empty
+        support_email:
+          type: string
+          default: support@mycompany.org
+          format: email-or-empty
+        support_url:
+          type: string
+          default: https://mycompany.org/support
+          format: absolute-uri-or-empty
+        allowed_logout_urls:
+          type: array
+          items:
+            type: string
+            format: url-with-placeholders
+        session_lifetime:
+          type: number
+          default: 168
+          description: Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year
+            9999.
+        idle_session_lifetime:
+          type: number
+          default: 72
+          description: Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year
+            9999.
+        ephemeral_session_lifetime:
+          type: number
+          default: 72
+          description: Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year
+            9999.
+        idle_ephemeral_session_lifetime:
+          type: number
+          default: 24
+          description: Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year
+            9999.
+        sandbox_version:
+          type: string
+          default: '22'
+          maxLength: 8
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        legacy_sandbox_version:
+          type: string
+          maxLength: 8
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        default_redirection_uri:
+          type: string
+          format: absolute-https-uri-or-empty
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        enabled_locales:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum:
+            - am
+            - ar
+            - ar-EG
+            - ar-SA
+            - az
+            - bg
+            - bn
+            - bs
+            - ca-ES
+            - cnr
+            - cs
+            - cy
+            - da
+            - de
+            - el
+            - en
+            - en-CA
+            - es
+            - es-419
+            - es-AR
+            - es-MX
+            - et
+            - eu-ES
+            - fa
+            - fi
+            - fr
+            - fr-CA
+            - fr-FR
+            - gl-ES
+            - gu
+            - he
+            - hi
+            - hr
+            - hu
+            - hy
+            - id
+            - is
+            - it
+            - ja
+            - ka
+            - kk
+            - kn
+            - ko
+            - lt
+            - lv
+            - mk
+            - ml
+            - mn
+            - mr
+            - ms
+            - my
+            - nb
+            - nl
+            - nn
+            - 'no'
+            - pa
+            - pl
+            - pt
+            - pt-BR
+            - pt-PT
+            - ro
+            - ru
+            - sk
+            - sl
+            - so
+            - sq
+            - sr
+            - sv
+            - sw
+            - ta
+            - te
+            - th
+            - tl
+            - tr
+            - uk
+            - ur
+            - vi
+            - zgh
+            - zh-CN
+            - zh-HK
+            - zh-MO
+            - zh-TW
+        access_token:
+          type: object
+          additionalProperties: false
+          properties:
+            claims_mapping:
+              type: object
+              additionalProperties: false
+              properties:
+                custom_claims:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - name
+                    - expression
+                    properties:
+                      name:
+                        type: string
+                        minLength: 1
+                        maxLength: 255
+                      expression:
+                        type: string
+                        minLength: 1
+                        maxLength: 255
+                        pattern: ^[A-Za-z_][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*(?:\.[A-Za-z_][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)+$
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        security_headers:
+          type: object
+          additionalProperties: false
+          properties:
+            content_security_policy:
+              type: object
+              additionalProperties: false
+              properties:
+                enabled:
+                  type: boolean
+                policies:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      mode:
+                        type: string
+                        enum:
+                        - enforcing
+                        - reporting
+                      directives:
+                        type: object
+                        additionalProperties:
+                          type: array
+                        maxProperties: 30
+                      flags:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                          - upgrade-insecure-requests
+                          - block-all-mixed-content
+                      reporting:
+                        type: object
+                        additionalProperties: false
+                        properties:
+                          report_uri:
+                            type: string
+                          report_to_group:
+                            type: string
+                        nullable: true
+                reporting_infrastructure:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    report_to:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        group:
+                          type: string
+                        max_age:
+                          type: integer
+                        endpoints:
+                          type: array
+                          items:
+                            type: object
+                            additionalProperties: false
+                            properties:
+                              url:
+                                type: string
+                      nullable: true
+                    reporting_endpoints:
+                      type: object
+                      additionalProperties:
+                        type: string
+                  nullable: true
+              nullable: true
+            x_xss_protection:
+              type: object
+              additionalProperties: false
+              properties:
+                enabled:
+                  type: boolean
+                mode:
+                  type: string
+                  enum:
+                  - block
+                report_uri:
+                  type: string
+              nullable: true
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        session_cookie:
+          type: object
+          additionalProperties: false
+          required:
+          - mode
+          properties:
+            mode:
+              type: string
+              default: persistent
+              enum:
+              - persistent
+              - non-persistent
+          nullable: true
+        sessions:
+          type: object
+          additionalProperties: false
+          properties:
+            oidc_logout_prompt_enabled:
+              type: boolean
+              default: true
+            anonymous:
+              type: object
+              additionalProperties: false
+              properties:
+                lifetime_in_minutes:
+                  type: integer
+                  default: 43200
+                  minimum: 1
+                  maximum: 525600
+                activate_cookie:
+                  type: boolean
+                  default: true
+              nullable: true
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        oidc_logout:
+          type: object
+          additionalProperties: false
+          properties:
+            rp_logout_end_session_endpoint_discovery:
+              type: boolean
+              default: true
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        customize_mfa_in_postlogin_action:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        allow_organization_name_in_authentication_api:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        acr_values_supported:
+          type: array
+          minItems: 0
+          items:
+            type: string
+            format: acr
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        mtls:
+          type: object
+          additionalProperties: false
+          properties:
+            enable_endpoint_aliases:
+              type: boolean
+              default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        pushed_authorization_requests_supported:
+          type: boolean
+          default: false
+        authorization_response_iss_parameter_supported:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        dpop_strict_refresh_token_binding:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        skip_non_verifiable_callback_uri_confirmation_prompt:
+          type: boolean
+        resource_parameter_profile:
+          type: string
+          default: audience
+          enum:
+          - audience
+          - compatibility
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        client_id_metadata_document_supported:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        client_id_metadata_document_dynamic_registration_supported:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        enable_ai_guide:
+          type: boolean
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        phone_consolidated_experience:
+          type: boolean
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        include_session_metadata_in_tenant_logs:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        dynamic_client_registration_security_mode:
+          type: string
+          enum:
+          - strict
+          - permissive
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        country_codes:
+          type: object
+          additionalProperties: false
+          properties:
+            list:
+              type: array
+              items:
+                type: string
+                minLength: 2
+                maxLength: 2
+                pattern: ^[A-Z]{2}$
+            mode:
+              type: string
+              enum:
+              - allow
+              - deny
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        sandbox_versions_available:
+          type: array
+          items:
+            type: string
+          readOnly: true
+          description: Stored only; custom-script runtime follow-up.
+    TenantSettingsPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        change_password:
+          type: object
+          additionalProperties: false
+          properties:
+            enabled:
+              type: boolean
+              default: false
+            html:
+              type: string
+              default: ''
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        device_flow:
+          type: object
+          additionalProperties: false
+          properties:
+            charset:
+              type: string
+              default: base20
+              enum:
+              - base20
+              - digits
+            mask:
+              type: string
+              default: '****-****'
+              maxLength: 20
+          description: Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime
+            code entropy requirements before device authorization can issue a code.
+          nullable: true
+        guardian_mfa_page:
+          type: object
+          additionalProperties: false
+          properties:
+            enabled:
+              type: boolean
+              default: false
+            html:
+              type: string
+              default: ''
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        default_audience:
+          type: string
+          default: ''
+        default_directory:
+          type: string
+          default: ''
+        error_page:
+          type: object
+          additionalProperties: false
+          properties:
+            html:
+              type: string
+              default: ''
+            show_log_link:
+              type: boolean
+              default: false
+            url:
+              type: string
+              default: https://mycompany.org/error
+              format: absolute-uri-or-empty
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        default_token_quota:
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          properties:
+            clients:
+              type: object
+              additionalProperties: true
+              required:
+              - client_credentials
+              properties:
+                client_credentials:
+                  type: object
+                  additionalProperties: false
+                  minProperties: 1
+                  properties:
+                    enforce:
+                      type: boolean
+                    per_day:
+                      type: integer
+                      minimum: 1
+                      maximum: 2147483647
+                    per_hour:
+                      type: integer
+                      minimum: 1
+                      maximum: 2147483647
+            organizations:
+              type: object
+              additionalProperties: true
+              required:
+              - client_credentials
+              properties:
+                client_credentials:
+                  type: object
+                  additionalProperties: false
+                  minProperties: 1
+                  properties:
+                    enforce:
+                      type: boolean
+                    per_day:
+                      type: integer
+                      minimum: 1
+                      maximum: 2147483647
+                    per_hour:
+                      type: integer
+                      minimum: 1
+                      maximum: 2147483647
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        flags:
+          type: object
+          additionalProperties: false
+          properties:
+            change_pwd_flow_v1:
+              type: boolean
+              default: false
+            enable_apis_section:
+              type: boolean
+              default: false
+            disable_impersonation:
+              type: boolean
+              default: false
+              readOnly: true
+            enable_client_connections:
+              type: boolean
+              default: true
+            enable_pipeline2:
+              type: boolean
+              default: true
+            allow_legacy_delegation_grant_types:
+              type: boolean
+            allow_legacy_ro_grant_types:
+              type: boolean
+            allow_legacy_tokeninfo_endpoint:
+              type: boolean
+            enable_legacy_profile:
+              type: boolean
+            enable_idtoken_api2:
+              type: boolean
+            enable_public_signup_user_exists_error:
+              type: boolean
+            enable_sso:
+              type: boolean
+            allow_changing_enable_sso:
+              type: boolean
+            disable_clickjack_protection_headers:
+              type: boolean
+            no_disclose_enterprise_connections:
+              type: boolean
+            enforce_client_authentication_on_passwordless_start:
+              type: boolean
+            enable_adfs_waad_email_verification:
+              type: boolean
+            revoke_refresh_token_grant:
+              type: boolean
+            dashboard_log_streams_next:
+              type: boolean
+            dashboard_insights_view:
+              type: boolean
+            disable_fields_map_fix:
+              type: boolean
+            mfa_show_factor_list_on_enrollment:
+              type: boolean
+            remove_alg_from_jwks:
+              type: boolean
+            improved_signup_bot_detection_in_classic:
+              type: boolean
+            genai_trial:
+              type: boolean
+            local_resource_discovery:
+              type: boolean
+            enable_dynamic_client_registration:
+              type: boolean
+              default: false
+            disable_management_api_sms_obfuscation:
+              type: boolean
+              default: true
+            trust_azure_adfs_email_verified_connection_property:
+              type: boolean
+              default: false
+            custom_domains_provisioning:
+              type: boolean
+              default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        friendly_name:
+          type: string
+          default: My Company
+        picture_url:
+          type: string
+          default: https://mycompany.org/logo.png
+          format: absolute-uri-or-empty
+        support_email:
+          type: string
+          default: support@mycompany.org
+          format: email-or-empty
+        support_url:
+          type: string
+          default: https://mycompany.org/support
+          format: absolute-uri-or-empty
+        allowed_logout_urls:
+          type: array
+          items:
+            type: string
+            format: url-with-placeholders
+        session_lifetime:
+          type: integer
+          default: 168
+          minimum: 1
+          description: Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing
+            absolute expiry never extends. Runtime expiry saturates at year 9999.
+        session_lifetime_in_minutes:
+          type: integer
+          minimum: 1
+          description: Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing
+            absolute expiry never extends. Runtime expiry saturates at year 9999.
+        idle_session_lifetime:
+          type: integer
+          default: 72
+          minimum: 1
+          description: Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing
+            absolute expiry never extends. Runtime expiry saturates at year 9999.
+        idle_session_lifetime_in_minutes:
+          type: integer
+          minimum: 1
+          description: Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing
+            absolute expiry never extends. Runtime expiry saturates at year 9999.
+        ephemeral_session_lifetime:
+          type: integer
+          default: 72
+          minimum: 1
+          description: Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing
+            absolute expiry never extends. Runtime expiry saturates at year 9999.
+        idle_ephemeral_session_lifetime:
+          type: integer
+          default: 24
+          minimum: 1
+          description: Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing
+            absolute expiry never extends. Runtime expiry saturates at year 9999.
+        ephemeral_session_lifetime_in_minutes:
+          type: integer
+          minimum: 1
+          description: Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing
+            absolute expiry never extends. Runtime expiry saturates at year 9999.
+        idle_ephemeral_session_lifetime_in_minutes:
+          type: integer
+          minimum: 1
+          description: Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing
+            absolute expiry never extends. Runtime expiry saturates at year 9999.
+        sandbox_version:
+          type: string
+          default: '22'
+          maxLength: 8
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        legacy_sandbox_version:
+          type: string
+          maxLength: 8
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        default_redirection_uri:
+          type: string
+          format: absolute-https-uri-or-empty
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        enabled_locales:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum:
+            - am
+            - ar
+            - ar-EG
+            - ar-SA
+            - az
+            - bg
+            - bn
+            - bs
+            - ca-ES
+            - cnr
+            - cs
+            - cy
+            - da
+            - de
+            - el
+            - en
+            - en-CA
+            - es
+            - es-419
+            - es-AR
+            - es-MX
+            - et
+            - eu-ES
+            - fa
+            - fi
+            - fr
+            - fr-CA
+            - fr-FR
+            - gl-ES
+            - gu
+            - he
+            - hi
+            - hr
+            - hu
+            - hy
+            - id
+            - is
+            - it
+            - ja
+            - ka
+            - kk
+            - kn
+            - ko
+            - lt
+            - lv
+            - mk
+            - ml
+            - mn
+            - mr
+            - ms
+            - my
+            - nb
+            - nl
+            - nn
+            - 'no'
+            - pa
+            - pl
+            - pt
+            - pt-BR
+            - pt-PT
+            - ro
+            - ru
+            - sk
+            - sl
+            - so
+            - sq
+            - sr
+            - sv
+            - sw
+            - ta
+            - te
+            - th
+            - tl
+            - tr
+            - uk
+            - ur
+            - vi
+            - zgh
+            - zh-CN
+            - zh-HK
+            - zh-MO
+            - zh-TW
+        access_token:
+          type: object
+          additionalProperties: false
+          properties:
+            claims_mapping:
+              type: object
+              additionalProperties: false
+              properties:
+                custom_claims:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required:
+                    - name
+                    - expression
+                    properties:
+                      name:
+                        type: string
+                        minLength: 1
+                        maxLength: 255
+                      expression:
+                        type: string
+                        minLength: 1
+                        maxLength: 255
+                        pattern: ^[A-Za-z_][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*(?:\.[A-Za-z_][A-Za-z0-9_]*(?:-[A-Za-z0-9_]+)*)+$
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        security_headers:
+          type: object
+          additionalProperties: false
+          properties:
+            content_security_policy:
+              type: object
+              additionalProperties: false
+              properties:
+                enabled:
+                  type: boolean
+                policies:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      mode:
+                        type: string
+                        enum:
+                        - enforcing
+                        - reporting
+                      directives:
+                        type: object
+                        additionalProperties:
+                          type: array
+                        maxProperties: 30
+                      flags:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                          - upgrade-insecure-requests
+                          - block-all-mixed-content
+                      reporting:
+                        type: object
+                        additionalProperties: false
+                        properties:
+                          report_uri:
+                            type: string
+                          report_to_group:
+                            type: string
+                        nullable: true
+                reporting_infrastructure:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    report_to:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        group:
+                          type: string
+                        max_age:
+                          type: integer
+                        endpoints:
+                          type: array
+                          items:
+                            type: object
+                            additionalProperties: false
+                            properties:
+                              url:
+                                type: string
+                      nullable: true
+                    reporting_endpoints:
+                      type: object
+                      additionalProperties:
+                        type: string
+                  nullable: true
+              nullable: true
+            x_xss_protection:
+              type: object
+              additionalProperties: false
+              properties:
+                enabled:
+                  type: boolean
+                mode:
+                  type: string
+                  enum:
+                  - block
+                report_uri:
+                  type: string
+              nullable: true
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        session_cookie:
+          type: object
+          additionalProperties: false
+          required:
+          - mode
+          properties:
+            mode:
+              type: string
+              default: persistent
+              enum:
+              - persistent
+              - non-persistent
+          nullable: true
+        sessions:
+          type: object
+          additionalProperties: false
+          properties:
+            oidc_logout_prompt_enabled:
+              type: boolean
+              default: true
+            anonymous:
+              type: object
+              additionalProperties: false
+              properties:
+                lifetime_in_minutes:
+                  type: integer
+                  default: 43200
+                  minimum: 1
+                  maximum: 525600
+                activate_cookie:
+                  type: boolean
+                  default: true
+              nullable: true
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        oidc_logout:
+          type: object
+          additionalProperties: false
+          properties:
+            rp_logout_end_session_endpoint_discovery:
+              type: boolean
+              default: true
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        customize_mfa_in_postlogin_action:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        allow_organization_name_in_authentication_api:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        acr_values_supported:
+          type: array
+          minItems: 0
+          items:
+            type: string
+            format: acr
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        mtls:
+          type: object
+          additionalProperties: false
+          properties:
+            enable_endpoint_aliases:
+              type: boolean
+              default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        pushed_authorization_requests_supported:
+          type: boolean
+          default: false
+          nullable: true
+        authorization_response_iss_parameter_supported:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        dpop_strict_refresh_token_binding:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+        skip_non_verifiable_callback_uri_confirmation_prompt:
+          type: boolean
+          nullable: true
+        resource_parameter_profile:
+          type: string
+          default: audience
+          enum:
+          - audience
+          - compatibility
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        client_id_metadata_document_supported:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        client_id_metadata_document_dynamic_registration_supported:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        enable_ai_guide:
+          type: boolean
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        phone_consolidated_experience:
+          type: boolean
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        include_session_metadata_in_tenant_logs:
+          type: boolean
+          default: false
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        dynamic_client_registration_security_mode:
+          type: string
+          enum:
+          - strict
+          - permissive
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+        country_codes:
+          type: object
+          additionalProperties: false
+          properties:
+            list:
+              type: array
+              items:
+                type: string
+                minLength: 2
+                maxLength: 2
+                pattern: ^[A-Z]{2}$
+            mode:
+              type: string
+              enum:
+              - allow
+              - deny
+          description: Validated and stored only; not enforced in this milestone. See the tenant settings compatibility
+            inventory for the follow-up owner.
+          nullable: true
+      minProperties: 1
     AppType:
       type: string
       enum: [native, spa, regular_web, non_interactive]

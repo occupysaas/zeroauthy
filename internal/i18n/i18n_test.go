@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenantrules"
 )
 
 // withCatalog installs an extra built-in catalog for one test.
@@ -320,5 +321,23 @@ func TestDeviceFlowKeys(t *testing.T) {
 		if catalogs["en"][k] == "" {
 			t.Errorf("key %q missing from en.json", k)
 		}
+	}
+}
+
+func TestTenantSettingsHostedLocaleFallback(t *testing.T) {
+	tn, err := tenantrules.Apply(&store.Tenant{}, map[string]any{"enabled_locales": []string{"fr", "am"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := Negotiate(tn, "", "de"); got != "fr" {
+		t.Fatalf("default locale %q", got)
+	}
+	if got := Negotiate(tn, "am", ""); got != "am" {
+		t.Fatalf("documented locale %q", got)
+	}
+	// An accepted locale without a local translation retains catalog fallback.
+	req := httptest.NewRequest("GET", "https://tenant.test", nil)
+	if l := ForRequest(tn, req, "am"); l.T("login.login.title") == "login.login.title" {
+		t.Fatal("missing hosted fallback")
 	}
 }

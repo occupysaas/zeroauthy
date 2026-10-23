@@ -269,3 +269,10 @@ func (a mgmtAPI) CreateUsersExportJob(w http.ResponseWriter, r *http.Request) {
 func (a mgmtAPI) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.CreateVerificationEmailJob, "update:users")
 }
+
+func (a mgmtAPI) GetTenantSettings(w http.ResponseWriter, r *http.Request, p mgmtapi.GetTenantSettingsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetTenantSettings(w, r, p) }, "read:tenant_settings")
+}
+func (a mgmtAPI) UpdateTenantSettings(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.UpdateTenantSettings, "update:tenant_settings")
+}

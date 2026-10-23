@@ -195,3 +195,28 @@ func TestDeviceCodeDigitsTenant(t *testing.T) {
 		t.Fatalf("status %d body %v", rec.Code, body)
 	}
 }
+
+func TestDeviceCodeTenantMaskSafety(t *testing.T) {
+	for _, mask := range []string{"", "literal", "*", "!!!!-!!!!"} {
+		t.Run(mask, func(t *testing.T) {
+			f := newFixture(t)
+			tn, err := f.st.Tenants().GetByName(context.Background(), "acme")
+			if err != nil {
+				t.Fatal(err)
+			}
+			tn.DeviceFlowMask = mask
+			tn.SettingsPresence = map[string]bool{"device_flow.mask": true}
+			if err = f.st.Tenants().Update(context.Background(), tn); err != nil {
+				t.Fatal(err)
+			}
+			rec, out := f.deviceCode(t, acmeHost, "application/x-www-form-urlencoded", "client_id=dev&scope=openid")
+			if mask == "" {
+				if rec.Code != 200 {
+					t.Fatalf("empty fallback: %d %s", rec.Code, rec.Body)
+				}
+			} else if rec.Code != 400 || out["error"] != "invalid_request" || out["device_code"] != nil {
+				t.Fatalf("unsafe mask issued: %d %s", rec.Code, rec.Body)
+			}
+		})
+	}
+}

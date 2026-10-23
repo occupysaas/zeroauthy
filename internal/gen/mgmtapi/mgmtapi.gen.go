@@ -579,6 +579,804 @@ func (e ResourceServerSettingsTokenDialect) Valid() bool {
 	}
 }
 
+// Defines values for TenantSettingsCountryCodesMode.
+const (
+	TenantSettingsCountryCodesModeAllow TenantSettingsCountryCodesMode = "allow"
+	TenantSettingsCountryCodesModeDeny  TenantSettingsCountryCodesMode = "deny"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsCountryCodesMode enum.
+func (e TenantSettingsCountryCodesMode) Valid() bool {
+	switch e {
+	case TenantSettingsCountryCodesModeAllow:
+		return true
+	case TenantSettingsCountryCodesModeDeny:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsDeviceFlowCharset.
+const (
+	TenantSettingsDeviceFlowCharsetBase20 TenantSettingsDeviceFlowCharset = "base20"
+	TenantSettingsDeviceFlowCharsetDigits TenantSettingsDeviceFlowCharset = "digits"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsDeviceFlowCharset enum.
+func (e TenantSettingsDeviceFlowCharset) Valid() bool {
+	switch e {
+	case TenantSettingsDeviceFlowCharsetBase20:
+		return true
+	case TenantSettingsDeviceFlowCharsetDigits:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsDynamicClientRegistrationSecurityMode.
+const (
+	TenantSettingsDynamicClientRegistrationSecurityModePermissive TenantSettingsDynamicClientRegistrationSecurityMode = "permissive"
+	TenantSettingsDynamicClientRegistrationSecurityModeStrict     TenantSettingsDynamicClientRegistrationSecurityMode = "strict"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsDynamicClientRegistrationSecurityMode enum.
+func (e TenantSettingsDynamicClientRegistrationSecurityMode) Valid() bool {
+	switch e {
+	case TenantSettingsDynamicClientRegistrationSecurityModePermissive:
+		return true
+	case TenantSettingsDynamicClientRegistrationSecurityModeStrict:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsEnabledLocales.
+const (
+	TenantSettingsEnabledLocalesAm    TenantSettingsEnabledLocales = "am"
+	TenantSettingsEnabledLocalesAr    TenantSettingsEnabledLocales = "ar"
+	TenantSettingsEnabledLocalesArEG  TenantSettingsEnabledLocales = "ar-EG"
+	TenantSettingsEnabledLocalesArSA  TenantSettingsEnabledLocales = "ar-SA"
+	TenantSettingsEnabledLocalesAz    TenantSettingsEnabledLocales = "az"
+	TenantSettingsEnabledLocalesBg    TenantSettingsEnabledLocales = "bg"
+	TenantSettingsEnabledLocalesBn    TenantSettingsEnabledLocales = "bn"
+	TenantSettingsEnabledLocalesBs    TenantSettingsEnabledLocales = "bs"
+	TenantSettingsEnabledLocalesCaES  TenantSettingsEnabledLocales = "ca-ES"
+	TenantSettingsEnabledLocalesCnr   TenantSettingsEnabledLocales = "cnr"
+	TenantSettingsEnabledLocalesCs    TenantSettingsEnabledLocales = "cs"
+	TenantSettingsEnabledLocalesCy    TenantSettingsEnabledLocales = "cy"
+	TenantSettingsEnabledLocalesDa    TenantSettingsEnabledLocales = "da"
+	TenantSettingsEnabledLocalesDe    TenantSettingsEnabledLocales = "de"
+	TenantSettingsEnabledLocalesEl    TenantSettingsEnabledLocales = "el"
+	TenantSettingsEnabledLocalesEn    TenantSettingsEnabledLocales = "en"
+	TenantSettingsEnabledLocalesEnCA  TenantSettingsEnabledLocales = "en-CA"
+	TenantSettingsEnabledLocalesEs    TenantSettingsEnabledLocales = "es"
+	TenantSettingsEnabledLocalesEs419 TenantSettingsEnabledLocales = "es-419"
+	TenantSettingsEnabledLocalesEsAR  TenantSettingsEnabledLocales = "es-AR"
+	TenantSettingsEnabledLocalesEsMX  TenantSettingsEnabledLocales = "es-MX"
+	TenantSettingsEnabledLocalesEt    TenantSettingsEnabledLocales = "et"
+	TenantSettingsEnabledLocalesEuES  TenantSettingsEnabledLocales = "eu-ES"
+	TenantSettingsEnabledLocalesFa    TenantSettingsEnabledLocales = "fa"
+	TenantSettingsEnabledLocalesFi    TenantSettingsEnabledLocales = "fi"
+	TenantSettingsEnabledLocalesFr    TenantSettingsEnabledLocales = "fr"
+	TenantSettingsEnabledLocalesFrCA  TenantSettingsEnabledLocales = "fr-CA"
+	TenantSettingsEnabledLocalesFrFR  TenantSettingsEnabledLocales = "fr-FR"
+	TenantSettingsEnabledLocalesGlES  TenantSettingsEnabledLocales = "gl-ES"
+	TenantSettingsEnabledLocalesGu    TenantSettingsEnabledLocales = "gu"
+	TenantSettingsEnabledLocalesHe    TenantSettingsEnabledLocales = "he"
+	TenantSettingsEnabledLocalesHi    TenantSettingsEnabledLocales = "hi"
+	TenantSettingsEnabledLocalesHr    TenantSettingsEnabledLocales = "hr"
+	TenantSettingsEnabledLocalesHu    TenantSettingsEnabledLocales = "hu"
+	TenantSettingsEnabledLocalesHy    TenantSettingsEnabledLocales = "hy"
+	TenantSettingsEnabledLocalesId    TenantSettingsEnabledLocales = "id"
+	TenantSettingsEnabledLocalesIs    TenantSettingsEnabledLocales = "is"
+	TenantSettingsEnabledLocalesIt    TenantSettingsEnabledLocales = "it"
+	TenantSettingsEnabledLocalesJa    TenantSettingsEnabledLocales = "ja"
+	TenantSettingsEnabledLocalesKa    TenantSettingsEnabledLocales = "ka"
+	TenantSettingsEnabledLocalesKk    TenantSettingsEnabledLocales = "kk"
+	TenantSettingsEnabledLocalesKn    TenantSettingsEnabledLocales = "kn"
+	TenantSettingsEnabledLocalesKo    TenantSettingsEnabledLocales = "ko"
+	TenantSettingsEnabledLocalesLt    TenantSettingsEnabledLocales = "lt"
+	TenantSettingsEnabledLocalesLv    TenantSettingsEnabledLocales = "lv"
+	TenantSettingsEnabledLocalesMk    TenantSettingsEnabledLocales = "mk"
+	TenantSettingsEnabledLocalesMl    TenantSettingsEnabledLocales = "ml"
+	TenantSettingsEnabledLocalesMn    TenantSettingsEnabledLocales = "mn"
+	TenantSettingsEnabledLocalesMr    TenantSettingsEnabledLocales = "mr"
+	TenantSettingsEnabledLocalesMs    TenantSettingsEnabledLocales = "ms"
+	TenantSettingsEnabledLocalesMy    TenantSettingsEnabledLocales = "my"
+	TenantSettingsEnabledLocalesNb    TenantSettingsEnabledLocales = "nb"
+	TenantSettingsEnabledLocalesNl    TenantSettingsEnabledLocales = "nl"
+	TenantSettingsEnabledLocalesNn    TenantSettingsEnabledLocales = "nn"
+	TenantSettingsEnabledLocalesNo    TenantSettingsEnabledLocales = "no"
+	TenantSettingsEnabledLocalesPa    TenantSettingsEnabledLocales = "pa"
+	TenantSettingsEnabledLocalesPl    TenantSettingsEnabledLocales = "pl"
+	TenantSettingsEnabledLocalesPt    TenantSettingsEnabledLocales = "pt"
+	TenantSettingsEnabledLocalesPtBR  TenantSettingsEnabledLocales = "pt-BR"
+	TenantSettingsEnabledLocalesPtPT  TenantSettingsEnabledLocales = "pt-PT"
+	TenantSettingsEnabledLocalesRo    TenantSettingsEnabledLocales = "ro"
+	TenantSettingsEnabledLocalesRu    TenantSettingsEnabledLocales = "ru"
+	TenantSettingsEnabledLocalesSk    TenantSettingsEnabledLocales = "sk"
+	TenantSettingsEnabledLocalesSl    TenantSettingsEnabledLocales = "sl"
+	TenantSettingsEnabledLocalesSo    TenantSettingsEnabledLocales = "so"
+	TenantSettingsEnabledLocalesSq    TenantSettingsEnabledLocales = "sq"
+	TenantSettingsEnabledLocalesSr    TenantSettingsEnabledLocales = "sr"
+	TenantSettingsEnabledLocalesSv    TenantSettingsEnabledLocales = "sv"
+	TenantSettingsEnabledLocalesSw    TenantSettingsEnabledLocales = "sw"
+	TenantSettingsEnabledLocalesTa    TenantSettingsEnabledLocales = "ta"
+	TenantSettingsEnabledLocalesTe    TenantSettingsEnabledLocales = "te"
+	TenantSettingsEnabledLocalesTh    TenantSettingsEnabledLocales = "th"
+	TenantSettingsEnabledLocalesTl    TenantSettingsEnabledLocales = "tl"
+	TenantSettingsEnabledLocalesTr    TenantSettingsEnabledLocales = "tr"
+	TenantSettingsEnabledLocalesUk    TenantSettingsEnabledLocales = "uk"
+	TenantSettingsEnabledLocalesUr    TenantSettingsEnabledLocales = "ur"
+	TenantSettingsEnabledLocalesVi    TenantSettingsEnabledLocales = "vi"
+	TenantSettingsEnabledLocalesZgh   TenantSettingsEnabledLocales = "zgh"
+	TenantSettingsEnabledLocalesZhCN  TenantSettingsEnabledLocales = "zh-CN"
+	TenantSettingsEnabledLocalesZhHK  TenantSettingsEnabledLocales = "zh-HK"
+	TenantSettingsEnabledLocalesZhMO  TenantSettingsEnabledLocales = "zh-MO"
+	TenantSettingsEnabledLocalesZhTW  TenantSettingsEnabledLocales = "zh-TW"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsEnabledLocales enum.
+func (e TenantSettingsEnabledLocales) Valid() bool {
+	switch e {
+	case TenantSettingsEnabledLocalesAm:
+		return true
+	case TenantSettingsEnabledLocalesAr:
+		return true
+	case TenantSettingsEnabledLocalesArEG:
+		return true
+	case TenantSettingsEnabledLocalesArSA:
+		return true
+	case TenantSettingsEnabledLocalesAz:
+		return true
+	case TenantSettingsEnabledLocalesBg:
+		return true
+	case TenantSettingsEnabledLocalesBn:
+		return true
+	case TenantSettingsEnabledLocalesBs:
+		return true
+	case TenantSettingsEnabledLocalesCaES:
+		return true
+	case TenantSettingsEnabledLocalesCnr:
+		return true
+	case TenantSettingsEnabledLocalesCs:
+		return true
+	case TenantSettingsEnabledLocalesCy:
+		return true
+	case TenantSettingsEnabledLocalesDa:
+		return true
+	case TenantSettingsEnabledLocalesDe:
+		return true
+	case TenantSettingsEnabledLocalesEl:
+		return true
+	case TenantSettingsEnabledLocalesEn:
+		return true
+	case TenantSettingsEnabledLocalesEnCA:
+		return true
+	case TenantSettingsEnabledLocalesEs:
+		return true
+	case TenantSettingsEnabledLocalesEs419:
+		return true
+	case TenantSettingsEnabledLocalesEsAR:
+		return true
+	case TenantSettingsEnabledLocalesEsMX:
+		return true
+	case TenantSettingsEnabledLocalesEt:
+		return true
+	case TenantSettingsEnabledLocalesEuES:
+		return true
+	case TenantSettingsEnabledLocalesFa:
+		return true
+	case TenantSettingsEnabledLocalesFi:
+		return true
+	case TenantSettingsEnabledLocalesFr:
+		return true
+	case TenantSettingsEnabledLocalesFrCA:
+		return true
+	case TenantSettingsEnabledLocalesFrFR:
+		return true
+	case TenantSettingsEnabledLocalesGlES:
+		return true
+	case TenantSettingsEnabledLocalesGu:
+		return true
+	case TenantSettingsEnabledLocalesHe:
+		return true
+	case TenantSettingsEnabledLocalesHi:
+		return true
+	case TenantSettingsEnabledLocalesHr:
+		return true
+	case TenantSettingsEnabledLocalesHu:
+		return true
+	case TenantSettingsEnabledLocalesHy:
+		return true
+	case TenantSettingsEnabledLocalesId:
+		return true
+	case TenantSettingsEnabledLocalesIs:
+		return true
+	case TenantSettingsEnabledLocalesIt:
+		return true
+	case TenantSettingsEnabledLocalesJa:
+		return true
+	case TenantSettingsEnabledLocalesKa:
+		return true
+	case TenantSettingsEnabledLocalesKk:
+		return true
+	case TenantSettingsEnabledLocalesKn:
+		return true
+	case TenantSettingsEnabledLocalesKo:
+		return true
+	case TenantSettingsEnabledLocalesLt:
+		return true
+	case TenantSettingsEnabledLocalesLv:
+		return true
+	case TenantSettingsEnabledLocalesMk:
+		return true
+	case TenantSettingsEnabledLocalesMl:
+		return true
+	case TenantSettingsEnabledLocalesMn:
+		return true
+	case TenantSettingsEnabledLocalesMr:
+		return true
+	case TenantSettingsEnabledLocalesMs:
+		return true
+	case TenantSettingsEnabledLocalesMy:
+		return true
+	case TenantSettingsEnabledLocalesNb:
+		return true
+	case TenantSettingsEnabledLocalesNl:
+		return true
+	case TenantSettingsEnabledLocalesNn:
+		return true
+	case TenantSettingsEnabledLocalesNo:
+		return true
+	case TenantSettingsEnabledLocalesPa:
+		return true
+	case TenantSettingsEnabledLocalesPl:
+		return true
+	case TenantSettingsEnabledLocalesPt:
+		return true
+	case TenantSettingsEnabledLocalesPtBR:
+		return true
+	case TenantSettingsEnabledLocalesPtPT:
+		return true
+	case TenantSettingsEnabledLocalesRo:
+		return true
+	case TenantSettingsEnabledLocalesRu:
+		return true
+	case TenantSettingsEnabledLocalesSk:
+		return true
+	case TenantSettingsEnabledLocalesSl:
+		return true
+	case TenantSettingsEnabledLocalesSo:
+		return true
+	case TenantSettingsEnabledLocalesSq:
+		return true
+	case TenantSettingsEnabledLocalesSr:
+		return true
+	case TenantSettingsEnabledLocalesSv:
+		return true
+	case TenantSettingsEnabledLocalesSw:
+		return true
+	case TenantSettingsEnabledLocalesTa:
+		return true
+	case TenantSettingsEnabledLocalesTe:
+		return true
+	case TenantSettingsEnabledLocalesTh:
+		return true
+	case TenantSettingsEnabledLocalesTl:
+		return true
+	case TenantSettingsEnabledLocalesTr:
+		return true
+	case TenantSettingsEnabledLocalesUk:
+		return true
+	case TenantSettingsEnabledLocalesUr:
+		return true
+	case TenantSettingsEnabledLocalesVi:
+		return true
+	case TenantSettingsEnabledLocalesZgh:
+		return true
+	case TenantSettingsEnabledLocalesZhCN:
+		return true
+	case TenantSettingsEnabledLocalesZhHK:
+		return true
+	case TenantSettingsEnabledLocalesZhMO:
+		return true
+	case TenantSettingsEnabledLocalesZhTW:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsResourceParameterProfile.
+const (
+	TenantSettingsResourceParameterProfileAudience      TenantSettingsResourceParameterProfile = "audience"
+	TenantSettingsResourceParameterProfileCompatibility TenantSettingsResourceParameterProfile = "compatibility"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsResourceParameterProfile enum.
+func (e TenantSettingsResourceParameterProfile) Valid() bool {
+	switch e {
+	case TenantSettingsResourceParameterProfileAudience:
+		return true
+	case TenantSettingsResourceParameterProfileCompatibility:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags.
+const (
+	TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlagsBlockAllMixedContent    TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags = "block-all-mixed-content"
+	TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlagsUpgradeInsecureRequests TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags = "upgrade-insecure-requests"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags enum.
+func (e TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags) Valid() bool {
+	switch e {
+	case TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlagsBlockAllMixedContent:
+		return true
+	case TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlagsUpgradeInsecureRequests:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesMode.
+const (
+	TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesModeEnforcing TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesMode = "enforcing"
+	TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesModeReporting TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesMode = "reporting"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesMode enum.
+func (e TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesMode) Valid() bool {
+	switch e {
+	case TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesModeEnforcing:
+		return true
+	case TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesModeReporting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsSecurityHeadersXXssProtectionMode.
+const (
+	TenantSettingsSecurityHeadersXXssProtectionModeBlock TenantSettingsSecurityHeadersXXssProtectionMode = "block"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsSecurityHeadersXXssProtectionMode enum.
+func (e TenantSettingsSecurityHeadersXXssProtectionMode) Valid() bool {
+	switch e {
+	case TenantSettingsSecurityHeadersXXssProtectionModeBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsSessionCookieMode.
+const (
+	TenantSettingsSessionCookieModeNonPersistent TenantSettingsSessionCookieMode = "non-persistent"
+	TenantSettingsSessionCookieModePersistent    TenantSettingsSessionCookieMode = "persistent"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsSessionCookieMode enum.
+func (e TenantSettingsSessionCookieMode) Valid() bool {
+	switch e {
+	case TenantSettingsSessionCookieModeNonPersistent:
+		return true
+	case TenantSettingsSessionCookieModePersistent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsPatchCountryCodesMode.
+const (
+	TenantSettingsPatchCountryCodesModeAllow TenantSettingsPatchCountryCodesMode = "allow"
+	TenantSettingsPatchCountryCodesModeDeny  TenantSettingsPatchCountryCodesMode = "deny"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsPatchCountryCodesMode enum.
+func (e TenantSettingsPatchCountryCodesMode) Valid() bool {
+	switch e {
+	case TenantSettingsPatchCountryCodesModeAllow:
+		return true
+	case TenantSettingsPatchCountryCodesModeDeny:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsPatchDeviceFlowCharset.
+const (
+	TenantSettingsPatchDeviceFlowCharsetBase20 TenantSettingsPatchDeviceFlowCharset = "base20"
+	TenantSettingsPatchDeviceFlowCharsetDigits TenantSettingsPatchDeviceFlowCharset = "digits"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsPatchDeviceFlowCharset enum.
+func (e TenantSettingsPatchDeviceFlowCharset) Valid() bool {
+	switch e {
+	case TenantSettingsPatchDeviceFlowCharsetBase20:
+		return true
+	case TenantSettingsPatchDeviceFlowCharsetDigits:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsPatchDynamicClientRegistrationSecurityMode.
+const (
+	TenantSettingsPatchDynamicClientRegistrationSecurityModePermissive TenantSettingsPatchDynamicClientRegistrationSecurityMode = "permissive"
+	TenantSettingsPatchDynamicClientRegistrationSecurityModeStrict     TenantSettingsPatchDynamicClientRegistrationSecurityMode = "strict"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsPatchDynamicClientRegistrationSecurityMode enum.
+func (e TenantSettingsPatchDynamicClientRegistrationSecurityMode) Valid() bool {
+	switch e {
+	case TenantSettingsPatchDynamicClientRegistrationSecurityModePermissive:
+		return true
+	case TenantSettingsPatchDynamicClientRegistrationSecurityModeStrict:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsPatchEnabledLocales.
+const (
+	TenantSettingsPatchEnabledLocalesAm    TenantSettingsPatchEnabledLocales = "am"
+	TenantSettingsPatchEnabledLocalesAr    TenantSettingsPatchEnabledLocales = "ar"
+	TenantSettingsPatchEnabledLocalesArEG  TenantSettingsPatchEnabledLocales = "ar-EG"
+	TenantSettingsPatchEnabledLocalesArSA  TenantSettingsPatchEnabledLocales = "ar-SA"
+	TenantSettingsPatchEnabledLocalesAz    TenantSettingsPatchEnabledLocales = "az"
+	TenantSettingsPatchEnabledLocalesBg    TenantSettingsPatchEnabledLocales = "bg"
+	TenantSettingsPatchEnabledLocalesBn    TenantSettingsPatchEnabledLocales = "bn"
+	TenantSettingsPatchEnabledLocalesBs    TenantSettingsPatchEnabledLocales = "bs"
+	TenantSettingsPatchEnabledLocalesCaES  TenantSettingsPatchEnabledLocales = "ca-ES"
+	TenantSettingsPatchEnabledLocalesCnr   TenantSettingsPatchEnabledLocales = "cnr"
+	TenantSettingsPatchEnabledLocalesCs    TenantSettingsPatchEnabledLocales = "cs"
+	TenantSettingsPatchEnabledLocalesCy    TenantSettingsPatchEnabledLocales = "cy"
+	TenantSettingsPatchEnabledLocalesDa    TenantSettingsPatchEnabledLocales = "da"
+	TenantSettingsPatchEnabledLocalesDe    TenantSettingsPatchEnabledLocales = "de"
+	TenantSettingsPatchEnabledLocalesEl    TenantSettingsPatchEnabledLocales = "el"
+	TenantSettingsPatchEnabledLocalesEn    TenantSettingsPatchEnabledLocales = "en"
+	TenantSettingsPatchEnabledLocalesEnCA  TenantSettingsPatchEnabledLocales = "en-CA"
+	TenantSettingsPatchEnabledLocalesEs    TenantSettingsPatchEnabledLocales = "es"
+	TenantSettingsPatchEnabledLocalesEs419 TenantSettingsPatchEnabledLocales = "es-419"
+	TenantSettingsPatchEnabledLocalesEsAR  TenantSettingsPatchEnabledLocales = "es-AR"
+	TenantSettingsPatchEnabledLocalesEsMX  TenantSettingsPatchEnabledLocales = "es-MX"
+	TenantSettingsPatchEnabledLocalesEt    TenantSettingsPatchEnabledLocales = "et"
+	TenantSettingsPatchEnabledLocalesEuES  TenantSettingsPatchEnabledLocales = "eu-ES"
+	TenantSettingsPatchEnabledLocalesFa    TenantSettingsPatchEnabledLocales = "fa"
+	TenantSettingsPatchEnabledLocalesFi    TenantSettingsPatchEnabledLocales = "fi"
+	TenantSettingsPatchEnabledLocalesFr    TenantSettingsPatchEnabledLocales = "fr"
+	TenantSettingsPatchEnabledLocalesFrCA  TenantSettingsPatchEnabledLocales = "fr-CA"
+	TenantSettingsPatchEnabledLocalesFrFR  TenantSettingsPatchEnabledLocales = "fr-FR"
+	TenantSettingsPatchEnabledLocalesGlES  TenantSettingsPatchEnabledLocales = "gl-ES"
+	TenantSettingsPatchEnabledLocalesGu    TenantSettingsPatchEnabledLocales = "gu"
+	TenantSettingsPatchEnabledLocalesHe    TenantSettingsPatchEnabledLocales = "he"
+	TenantSettingsPatchEnabledLocalesHi    TenantSettingsPatchEnabledLocales = "hi"
+	TenantSettingsPatchEnabledLocalesHr    TenantSettingsPatchEnabledLocales = "hr"
+	TenantSettingsPatchEnabledLocalesHu    TenantSettingsPatchEnabledLocales = "hu"
+	TenantSettingsPatchEnabledLocalesHy    TenantSettingsPatchEnabledLocales = "hy"
+	TenantSettingsPatchEnabledLocalesId    TenantSettingsPatchEnabledLocales = "id"
+	TenantSettingsPatchEnabledLocalesIs    TenantSettingsPatchEnabledLocales = "is"
+	TenantSettingsPatchEnabledLocalesIt    TenantSettingsPatchEnabledLocales = "it"
+	TenantSettingsPatchEnabledLocalesJa    TenantSettingsPatchEnabledLocales = "ja"
+	TenantSettingsPatchEnabledLocalesKa    TenantSettingsPatchEnabledLocales = "ka"
+	TenantSettingsPatchEnabledLocalesKk    TenantSettingsPatchEnabledLocales = "kk"
+	TenantSettingsPatchEnabledLocalesKn    TenantSettingsPatchEnabledLocales = "kn"
+	TenantSettingsPatchEnabledLocalesKo    TenantSettingsPatchEnabledLocales = "ko"
+	TenantSettingsPatchEnabledLocalesLt    TenantSettingsPatchEnabledLocales = "lt"
+	TenantSettingsPatchEnabledLocalesLv    TenantSettingsPatchEnabledLocales = "lv"
+	TenantSettingsPatchEnabledLocalesMk    TenantSettingsPatchEnabledLocales = "mk"
+	TenantSettingsPatchEnabledLocalesMl    TenantSettingsPatchEnabledLocales = "ml"
+	TenantSettingsPatchEnabledLocalesMn    TenantSettingsPatchEnabledLocales = "mn"
+	TenantSettingsPatchEnabledLocalesMr    TenantSettingsPatchEnabledLocales = "mr"
+	TenantSettingsPatchEnabledLocalesMs    TenantSettingsPatchEnabledLocales = "ms"
+	TenantSettingsPatchEnabledLocalesMy    TenantSettingsPatchEnabledLocales = "my"
+	TenantSettingsPatchEnabledLocalesNb    TenantSettingsPatchEnabledLocales = "nb"
+	TenantSettingsPatchEnabledLocalesNl    TenantSettingsPatchEnabledLocales = "nl"
+	TenantSettingsPatchEnabledLocalesNn    TenantSettingsPatchEnabledLocales = "nn"
+	TenantSettingsPatchEnabledLocalesNo    TenantSettingsPatchEnabledLocales = "no"
+	TenantSettingsPatchEnabledLocalesPa    TenantSettingsPatchEnabledLocales = "pa"
+	TenantSettingsPatchEnabledLocalesPl    TenantSettingsPatchEnabledLocales = "pl"
+	TenantSettingsPatchEnabledLocalesPt    TenantSettingsPatchEnabledLocales = "pt"
+	TenantSettingsPatchEnabledLocalesPtBR  TenantSettingsPatchEnabledLocales = "pt-BR"
+	TenantSettingsPatchEnabledLocalesPtPT  TenantSettingsPatchEnabledLocales = "pt-PT"
+	TenantSettingsPatchEnabledLocalesRo    TenantSettingsPatchEnabledLocales = "ro"
+	TenantSettingsPatchEnabledLocalesRu    TenantSettingsPatchEnabledLocales = "ru"
+	TenantSettingsPatchEnabledLocalesSk    TenantSettingsPatchEnabledLocales = "sk"
+	TenantSettingsPatchEnabledLocalesSl    TenantSettingsPatchEnabledLocales = "sl"
+	TenantSettingsPatchEnabledLocalesSo    TenantSettingsPatchEnabledLocales = "so"
+	TenantSettingsPatchEnabledLocalesSq    TenantSettingsPatchEnabledLocales = "sq"
+	TenantSettingsPatchEnabledLocalesSr    TenantSettingsPatchEnabledLocales = "sr"
+	TenantSettingsPatchEnabledLocalesSv    TenantSettingsPatchEnabledLocales = "sv"
+	TenantSettingsPatchEnabledLocalesSw    TenantSettingsPatchEnabledLocales = "sw"
+	TenantSettingsPatchEnabledLocalesTa    TenantSettingsPatchEnabledLocales = "ta"
+	TenantSettingsPatchEnabledLocalesTe    TenantSettingsPatchEnabledLocales = "te"
+	TenantSettingsPatchEnabledLocalesTh    TenantSettingsPatchEnabledLocales = "th"
+	TenantSettingsPatchEnabledLocalesTl    TenantSettingsPatchEnabledLocales = "tl"
+	TenantSettingsPatchEnabledLocalesTr    TenantSettingsPatchEnabledLocales = "tr"
+	TenantSettingsPatchEnabledLocalesUk    TenantSettingsPatchEnabledLocales = "uk"
+	TenantSettingsPatchEnabledLocalesUr    TenantSettingsPatchEnabledLocales = "ur"
+	TenantSettingsPatchEnabledLocalesVi    TenantSettingsPatchEnabledLocales = "vi"
+	TenantSettingsPatchEnabledLocalesZgh   TenantSettingsPatchEnabledLocales = "zgh"
+	TenantSettingsPatchEnabledLocalesZhCN  TenantSettingsPatchEnabledLocales = "zh-CN"
+	TenantSettingsPatchEnabledLocalesZhHK  TenantSettingsPatchEnabledLocales = "zh-HK"
+	TenantSettingsPatchEnabledLocalesZhMO  TenantSettingsPatchEnabledLocales = "zh-MO"
+	TenantSettingsPatchEnabledLocalesZhTW  TenantSettingsPatchEnabledLocales = "zh-TW"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsPatchEnabledLocales enum.
+func (e TenantSettingsPatchEnabledLocales) Valid() bool {
+	switch e {
+	case TenantSettingsPatchEnabledLocalesAm:
+		return true
+	case TenantSettingsPatchEnabledLocalesAr:
+		return true
+	case TenantSettingsPatchEnabledLocalesArEG:
+		return true
+	case TenantSettingsPatchEnabledLocalesArSA:
+		return true
+	case TenantSettingsPatchEnabledLocalesAz:
+		return true
+	case TenantSettingsPatchEnabledLocalesBg:
+		return true
+	case TenantSettingsPatchEnabledLocalesBn:
+		return true
+	case TenantSettingsPatchEnabledLocalesBs:
+		return true
+	case TenantSettingsPatchEnabledLocalesCaES:
+		return true
+	case TenantSettingsPatchEnabledLocalesCnr:
+		return true
+	case TenantSettingsPatchEnabledLocalesCs:
+		return true
+	case TenantSettingsPatchEnabledLocalesCy:
+		return true
+	case TenantSettingsPatchEnabledLocalesDa:
+		return true
+	case TenantSettingsPatchEnabledLocalesDe:
+		return true
+	case TenantSettingsPatchEnabledLocalesEl:
+		return true
+	case TenantSettingsPatchEnabledLocalesEn:
+		return true
+	case TenantSettingsPatchEnabledLocalesEnCA:
+		return true
+	case TenantSettingsPatchEnabledLocalesEs:
+		return true
+	case TenantSettingsPatchEnabledLocalesEs419:
+		return true
+	case TenantSettingsPatchEnabledLocalesEsAR:
+		return true
+	case TenantSettingsPatchEnabledLocalesEsMX:
+		return true
+	case TenantSettingsPatchEnabledLocalesEt:
+		return true
+	case TenantSettingsPatchEnabledLocalesEuES:
+		return true
+	case TenantSettingsPatchEnabledLocalesFa:
+		return true
+	case TenantSettingsPatchEnabledLocalesFi:
+		return true
+	case TenantSettingsPatchEnabledLocalesFr:
+		return true
+	case TenantSettingsPatchEnabledLocalesFrCA:
+		return true
+	case TenantSettingsPatchEnabledLocalesFrFR:
+		return true
+	case TenantSettingsPatchEnabledLocalesGlES:
+		return true
+	case TenantSettingsPatchEnabledLocalesGu:
+		return true
+	case TenantSettingsPatchEnabledLocalesHe:
+		return true
+	case TenantSettingsPatchEnabledLocalesHi:
+		return true
+	case TenantSettingsPatchEnabledLocalesHr:
+		return true
+	case TenantSettingsPatchEnabledLocalesHu:
+		return true
+	case TenantSettingsPatchEnabledLocalesHy:
+		return true
+	case TenantSettingsPatchEnabledLocalesId:
+		return true
+	case TenantSettingsPatchEnabledLocalesIs:
+		return true
+	case TenantSettingsPatchEnabledLocalesIt:
+		return true
+	case TenantSettingsPatchEnabledLocalesJa:
+		return true
+	case TenantSettingsPatchEnabledLocalesKa:
+		return true
+	case TenantSettingsPatchEnabledLocalesKk:
+		return true
+	case TenantSettingsPatchEnabledLocalesKn:
+		return true
+	case TenantSettingsPatchEnabledLocalesKo:
+		return true
+	case TenantSettingsPatchEnabledLocalesLt:
+		return true
+	case TenantSettingsPatchEnabledLocalesLv:
+		return true
+	case TenantSettingsPatchEnabledLocalesMk:
+		return true
+	case TenantSettingsPatchEnabledLocalesMl:
+		return true
+	case TenantSettingsPatchEnabledLocalesMn:
+		return true
+	case TenantSettingsPatchEnabledLocalesMr:
+		return true
+	case TenantSettingsPatchEnabledLocalesMs:
+		return true
+	case TenantSettingsPatchEnabledLocalesMy:
+		return true
+	case TenantSettingsPatchEnabledLocalesNb:
+		return true
+	case TenantSettingsPatchEnabledLocalesNl:
+		return true
+	case TenantSettingsPatchEnabledLocalesNn:
+		return true
+	case TenantSettingsPatchEnabledLocalesNo:
+		return true
+	case TenantSettingsPatchEnabledLocalesPa:
+		return true
+	case TenantSettingsPatchEnabledLocalesPl:
+		return true
+	case TenantSettingsPatchEnabledLocalesPt:
+		return true
+	case TenantSettingsPatchEnabledLocalesPtBR:
+		return true
+	case TenantSettingsPatchEnabledLocalesPtPT:
+		return true
+	case TenantSettingsPatchEnabledLocalesRo:
+		return true
+	case TenantSettingsPatchEnabledLocalesRu:
+		return true
+	case TenantSettingsPatchEnabledLocalesSk:
+		return true
+	case TenantSettingsPatchEnabledLocalesSl:
+		return true
+	case TenantSettingsPatchEnabledLocalesSo:
+		return true
+	case TenantSettingsPatchEnabledLocalesSq:
+		return true
+	case TenantSettingsPatchEnabledLocalesSr:
+		return true
+	case TenantSettingsPatchEnabledLocalesSv:
+		return true
+	case TenantSettingsPatchEnabledLocalesSw:
+		return true
+	case TenantSettingsPatchEnabledLocalesTa:
+		return true
+	case TenantSettingsPatchEnabledLocalesTe:
+		return true
+	case TenantSettingsPatchEnabledLocalesTh:
+		return true
+	case TenantSettingsPatchEnabledLocalesTl:
+		return true
+	case TenantSettingsPatchEnabledLocalesTr:
+		return true
+	case TenantSettingsPatchEnabledLocalesUk:
+		return true
+	case TenantSettingsPatchEnabledLocalesUr:
+		return true
+	case TenantSettingsPatchEnabledLocalesVi:
+		return true
+	case TenantSettingsPatchEnabledLocalesZgh:
+		return true
+	case TenantSettingsPatchEnabledLocalesZhCN:
+		return true
+	case TenantSettingsPatchEnabledLocalesZhHK:
+		return true
+	case TenantSettingsPatchEnabledLocalesZhMO:
+		return true
+	case TenantSettingsPatchEnabledLocalesZhTW:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsPatchResourceParameterProfile.
+const (
+	TenantSettingsPatchResourceParameterProfileAudience      TenantSettingsPatchResourceParameterProfile = "audience"
+	TenantSettingsPatchResourceParameterProfileCompatibility TenantSettingsPatchResourceParameterProfile = "compatibility"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsPatchResourceParameterProfile enum.
+func (e TenantSettingsPatchResourceParameterProfile) Valid() bool {
+	switch e {
+	case TenantSettingsPatchResourceParameterProfileAudience:
+		return true
+	case TenantSettingsPatchResourceParameterProfileCompatibility:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags.
+const (
+	TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlagsBlockAllMixedContent    TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags = "block-all-mixed-content"
+	TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlagsUpgradeInsecureRequests TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags = "upgrade-insecure-requests"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags enum.
+func (e TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags) Valid() bool {
+	switch e {
+	case TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlagsBlockAllMixedContent:
+		return true
+	case TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlagsUpgradeInsecureRequests:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesMode.
+const (
+	TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesModeEnforcing TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesMode = "enforcing"
+	TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesModeReporting TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesMode = "reporting"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesMode enum.
+func (e TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesMode) Valid() bool {
+	switch e {
+	case TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesModeEnforcing:
+		return true
+	case TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesModeReporting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsPatchSecurityHeadersXXssProtectionMode.
+const (
+	TenantSettingsPatchSecurityHeadersXXssProtectionModeBlock TenantSettingsPatchSecurityHeadersXXssProtectionMode = "block"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsPatchSecurityHeadersXXssProtectionMode enum.
+func (e TenantSettingsPatchSecurityHeadersXXssProtectionMode) Valid() bool {
+	switch e {
+	case TenantSettingsPatchSecurityHeadersXXssProtectionModeBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TenantSettingsPatchSessionCookieMode.
+const (
+	TenantSettingsPatchSessionCookieModeNonPersistent TenantSettingsPatchSessionCookieMode = "non-persistent"
+	TenantSettingsPatchSessionCookieModePersistent    TenantSettingsPatchSessionCookieMode = "persistent"
+)
+
+// Valid indicates whether the value is a known member of the TenantSettingsPatchSessionCookieMode enum.
+func (e TenantSettingsPatchSessionCookieMode) Valid() bool {
+	switch e {
+	case TenantSettingsPatchSessionCookieModeNonPersistent:
+		return true
+	case TenantSettingsPatchSessionCookieModePersistent:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TokenEndpointAuthMethod.
 const (
 	ClientSecretBasic TokenEndpointAuthMethod = "client_secret_basic"
@@ -602,13 +1400,13 @@ func (e TokenEndpointAuthMethod) Valid() bool {
 
 // Defines values for UserSessionCookieMode.
 const (
-	Persistent UserSessionCookieMode = "persistent"
+	UserSessionCookieModePersistent UserSessionCookieMode = "persistent"
 )
 
 // Valid indicates whether the value is a known member of the UserSessionCookieMode enum.
 func (e UserSessionCookieMode) Valid() bool {
 	switch e {
-	case Persistent:
+	case UserSessionCookieModePersistent:
 		return true
 	default:
 		return false
@@ -1737,6 +2535,523 @@ type TenantCreate struct {
 	Name string `json:"name"`
 }
 
+// TenantSettings defines model for TenantSettings.
+type TenantSettings struct {
+	// AccessToken Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	AccessToken *struct {
+		ClaimsMapping *struct {
+			CustomClaims *[]struct {
+				Expression string `json:"expression"`
+				Name       string `json:"name"`
+			} `json:"custom_claims,omitempty"`
+		} `json:"claims_mapping,omitempty"`
+	} `json:"access_token,omitempty"`
+
+	// AcrValuesSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	AcrValuesSupported *[]string `json:"acr_values_supported,omitempty"`
+
+	// AllowOrganizationNameInAuthenticationApi Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	AllowOrganizationNameInAuthenticationApi *bool     `json:"allow_organization_name_in_authentication_api,omitempty"`
+	AllowedLogoutUrls                        *[]string `json:"allowed_logout_urls,omitempty"`
+
+	// AuthorizationResponseIssParameterSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	AuthorizationResponseIssParameterSupported *bool `json:"authorization_response_iss_parameter_supported,omitempty"`
+
+	// ChangePassword Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ChangePassword *struct {
+		Enabled *bool   `json:"enabled,omitempty"`
+		Html    *string `json:"html,omitempty"`
+	} `json:"change_password,omitempty"`
+
+	// ClientIdMetadataDocumentDynamicRegistrationSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ClientIdMetadataDocumentDynamicRegistrationSupported *bool `json:"client_id_metadata_document_dynamic_registration_supported,omitempty"`
+
+	// ClientIdMetadataDocumentSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ClientIdMetadataDocumentSupported *bool `json:"client_id_metadata_document_supported,omitempty"`
+
+	// CountryCodes Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	CountryCodes *struct {
+		List *[]string                       `json:"list,omitempty"`
+		Mode *TenantSettingsCountryCodesMode `json:"mode,omitempty"`
+	} `json:"country_codes,omitempty"`
+
+	// CustomizeMfaInPostloginAction Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	CustomizeMfaInPostloginAction *bool   `json:"customize_mfa_in_postlogin_action,omitempty"`
+	DefaultAudience               *string `json:"default_audience,omitempty"`
+	DefaultDirectory              *string `json:"default_directory,omitempty"`
+
+	// DefaultRedirectionUri Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	DefaultRedirectionUri *string `json:"default_redirection_uri,omitempty"`
+
+	// DefaultTokenQuota Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	DefaultTokenQuota *struct {
+		Clients       *TenantSettings_DefaultTokenQuota_Clients       `json:"clients,omitempty"`
+		Organizations *TenantSettings_DefaultTokenQuota_Organizations `json:"organizations,omitempty"`
+	} `json:"default_token_quota,omitempty"`
+
+	// DeviceFlow Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code.
+	DeviceFlow *struct {
+		Charset *TenantSettingsDeviceFlowCharset `json:"charset,omitempty"`
+		Mask    *string                          `json:"mask,omitempty"`
+	} `json:"device_flow,omitempty"`
+
+	// DpopStrictRefreshTokenBinding Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
+
+	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	DynamicClientRegistrationSecurityMode *TenantSettingsDynamicClientRegistrationSecurityMode `json:"dynamic_client_registration_security_mode,omitempty"`
+
+	// EnableAiGuide Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	EnableAiGuide  *bool                           `json:"enable_ai_guide,omitempty"`
+	EnabledLocales *[]TenantSettingsEnabledLocales `json:"enabled_locales,omitempty"`
+
+	// EphemeralSessionLifetime Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
+	EphemeralSessionLifetime *float32 `json:"ephemeral_session_lifetime,omitempty"`
+
+	// ErrorPage Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ErrorPage *struct {
+		Html        *string `json:"html,omitempty"`
+		ShowLogLink *bool   `json:"show_log_link,omitempty"`
+		Url         *string `json:"url,omitempty"`
+	} `json:"error_page,omitempty"`
+
+	// Flags Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	Flags *struct {
+		AllowChangingEnableSso                         *bool `json:"allow_changing_enable_sso,omitempty"`
+		AllowLegacyDelegationGrantTypes                *bool `json:"allow_legacy_delegation_grant_types,omitempty"`
+		AllowLegacyRoGrantTypes                        *bool `json:"allow_legacy_ro_grant_types,omitempty"`
+		AllowLegacyTokeninfoEndpoint                   *bool `json:"allow_legacy_tokeninfo_endpoint,omitempty"`
+		ChangePwdFlowV1                                *bool `json:"change_pwd_flow_v1,omitempty"`
+		CustomDomainsProvisioning                      *bool `json:"custom_domains_provisioning,omitempty"`
+		DashboardInsightsView                          *bool `json:"dashboard_insights_view,omitempty"`
+		DashboardLogStreamsNext                        *bool `json:"dashboard_log_streams_next,omitempty"`
+		DisableClickjackProtectionHeaders              *bool `json:"disable_clickjack_protection_headers,omitempty"`
+		DisableFieldsMapFix                            *bool `json:"disable_fields_map_fix,omitempty"`
+		DisableImpersonation                           *bool `json:"disable_impersonation,omitempty"`
+		DisableManagementApiSmsObfuscation             *bool `json:"disable_management_api_sms_obfuscation,omitempty"`
+		EnableAdfsWaadEmailVerification                *bool `json:"enable_adfs_waad_email_verification,omitempty"`
+		EnableApisSection                              *bool `json:"enable_apis_section,omitempty"`
+		EnableClientConnections                        *bool `json:"enable_client_connections,omitempty"`
+		EnableDynamicClientRegistration                *bool `json:"enable_dynamic_client_registration,omitempty"`
+		EnableIdtokenApi2                              *bool `json:"enable_idtoken_api2,omitempty"`
+		EnableLegacyProfile                            *bool `json:"enable_legacy_profile,omitempty"`
+		EnablePipeline2                                *bool `json:"enable_pipeline2,omitempty"`
+		EnablePublicSignupUserExistsError              *bool `json:"enable_public_signup_user_exists_error,omitempty"`
+		EnableSso                                      *bool `json:"enable_sso,omitempty"`
+		EnforceClientAuthenticationOnPasswordlessStart *bool `json:"enforce_client_authentication_on_passwordless_start,omitempty"`
+		GenaiTrial                                     *bool `json:"genai_trial,omitempty"`
+		ImprovedSignupBotDetectionInClassic            *bool `json:"improved_signup_bot_detection_in_classic,omitempty"`
+		LocalResourceDiscovery                         *bool `json:"local_resource_discovery,omitempty"`
+		MfaShowFactorListOnEnrollment                  *bool `json:"mfa_show_factor_list_on_enrollment,omitempty"`
+		NoDiscloseEnterpriseConnections                *bool `json:"no_disclose_enterprise_connections,omitempty"`
+		RemoveAlgFromJwks                              *bool `json:"remove_alg_from_jwks,omitempty"`
+		RevokeRefreshTokenGrant                        *bool `json:"revoke_refresh_token_grant,omitempty"`
+		TrustAzureAdfsEmailVerifiedConnectionProperty  *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
+	} `json:"flags,omitempty"`
+	FriendlyName *string `json:"friendly_name,omitempty"`
+
+	// GuardianMfaPage Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	GuardianMfaPage *struct {
+		Enabled *bool   `json:"enabled,omitempty"`
+		Html    *string `json:"html,omitempty"`
+	} `json:"guardian_mfa_page,omitempty"`
+
+	// IdleEphemeralSessionLifetime Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
+	IdleEphemeralSessionLifetime *float32 `json:"idle_ephemeral_session_lifetime,omitempty"`
+
+	// IdleSessionLifetime Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
+	IdleSessionLifetime *float32 `json:"idle_session_lifetime,omitempty"`
+
+	// IncludeSessionMetadataInTenantLogs Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	IncludeSessionMetadataInTenantLogs *bool `json:"include_session_metadata_in_tenant_logs,omitempty"`
+
+	// LegacySandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	LegacySandboxVersion *string `json:"legacy_sandbox_version,omitempty"`
+
+	// Mtls Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	Mtls *struct {
+		EnableEndpointAliases *bool `json:"enable_endpoint_aliases,omitempty"`
+	} `json:"mtls,omitempty"`
+
+	// OidcLogout Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	OidcLogout *struct {
+		RpLogoutEndSessionEndpointDiscovery *bool `json:"rp_logout_end_session_endpoint_discovery,omitempty"`
+	} `json:"oidc_logout,omitempty"`
+
+	// PhoneConsolidatedExperience Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	PhoneConsolidatedExperience          *bool   `json:"phone_consolidated_experience,omitempty"`
+	PictureUrl                           *string `json:"picture_url,omitempty"`
+	PushedAuthorizationRequestsSupported *bool   `json:"pushed_authorization_requests_supported,omitempty"`
+
+	// ResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ResourceParameterProfile *TenantSettingsResourceParameterProfile `json:"resource_parameter_profile,omitempty"`
+
+	// SandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	SandboxVersion *string `json:"sandbox_version,omitempty"`
+
+	// SandboxVersionsAvailable Stored only; custom-script runtime follow-up.
+	SandboxVersionsAvailable *[]string `json:"sandbox_versions_available,omitempty"`
+
+	// SecurityHeaders Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	SecurityHeaders *struct {
+		ContentSecurityPolicy *struct {
+			Enabled  *bool `json:"enabled,omitempty"`
+			Policies *[]struct {
+				Directives *map[string][]interface{}                                          `json:"directives,omitempty"`
+				Flags      *[]TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags `json:"flags,omitempty"`
+				Mode       *TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesMode    `json:"mode,omitempty"`
+				Reporting  *struct {
+					ReportToGroup *string `json:"report_to_group,omitempty"`
+					ReportUri     *string `json:"report_uri,omitempty"`
+				} `json:"reporting,omitempty"`
+			} `json:"policies,omitempty"`
+			ReportingInfrastructure *struct {
+				ReportTo *struct {
+					Endpoints *[]struct {
+						Url *string `json:"url,omitempty"`
+					} `json:"endpoints,omitempty"`
+					Group  *string `json:"group,omitempty"`
+					MaxAge *int    `json:"max_age,omitempty"`
+				} `json:"report_to,omitempty"`
+				ReportingEndpoints *map[string]string `json:"reporting_endpoints,omitempty"`
+			} `json:"reporting_infrastructure,omitempty"`
+		} `json:"content_security_policy,omitempty"`
+		XXssProtection *struct {
+			Enabled   *bool                                            `json:"enabled,omitempty"`
+			Mode      *TenantSettingsSecurityHeadersXXssProtectionMode `json:"mode,omitempty"`
+			ReportUri *string                                          `json:"report_uri,omitempty"`
+		} `json:"x_xss_protection,omitempty"`
+	} `json:"security_headers,omitempty"`
+	SessionCookie *struct {
+		Mode TenantSettingsSessionCookieMode `json:"mode"`
+	} `json:"session_cookie,omitempty"`
+
+	// SessionLifetime Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
+	SessionLifetime *float32 `json:"session_lifetime,omitempty"`
+
+	// Sessions Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	Sessions *struct {
+		Anonymous *struct {
+			ActivateCookie    *bool `json:"activate_cookie,omitempty"`
+			LifetimeInMinutes *int  `json:"lifetime_in_minutes,omitempty"`
+		} `json:"anonymous,omitempty"`
+		OidcLogoutPromptEnabled *bool `json:"oidc_logout_prompt_enabled,omitempty"`
+	} `json:"sessions,omitempty"`
+	SkipNonVerifiableCallbackUriConfirmationPrompt *bool   `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
+	SupportEmail                                   *string `json:"support_email,omitempty"`
+	SupportUrl                                     *string `json:"support_url,omitempty"`
+}
+
+// TenantSettingsCountryCodesMode defines model for TenantSettings.CountryCodes.Mode.
+type TenantSettingsCountryCodesMode string
+
+// TenantSettings_DefaultTokenQuota_Clients defines model for TenantSettings.DefaultTokenQuota.Clients.
+type TenantSettings_DefaultTokenQuota_Clients struct {
+	ClientCredentials struct {
+		Enforce *bool `json:"enforce,omitempty"`
+		PerDay  *int  `json:"per_day,omitempty"`
+		PerHour *int  `json:"per_hour,omitempty"`
+	} `json:"client_credentials"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// TenantSettings_DefaultTokenQuota_Organizations defines model for TenantSettings.DefaultTokenQuota.Organizations.
+type TenantSettings_DefaultTokenQuota_Organizations struct {
+	ClientCredentials struct {
+		Enforce *bool `json:"enforce,omitempty"`
+		PerDay  *int  `json:"per_day,omitempty"`
+		PerHour *int  `json:"per_hour,omitempty"`
+	} `json:"client_credentials"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// TenantSettingsDeviceFlowCharset defines model for TenantSettings.DeviceFlow.Charset.
+type TenantSettingsDeviceFlowCharset string
+
+// TenantSettingsDynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+type TenantSettingsDynamicClientRegistrationSecurityMode string
+
+// TenantSettingsEnabledLocales defines model for TenantSettings.EnabledLocales.
+type TenantSettingsEnabledLocales string
+
+// TenantSettingsResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+type TenantSettingsResourceParameterProfile string
+
+// TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags defines model for TenantSettings.SecurityHeaders.ContentSecurityPolicy.Policies.Flags.
+type TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesFlags string
+
+// TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesMode defines model for TenantSettings.SecurityHeaders.ContentSecurityPolicy.Policies.Mode.
+type TenantSettingsSecurityHeadersContentSecurityPolicyPoliciesMode string
+
+// TenantSettingsSecurityHeadersXXssProtectionMode defines model for TenantSettings.SecurityHeaders.XXssProtection.Mode.
+type TenantSettingsSecurityHeadersXXssProtectionMode string
+
+// TenantSettingsSessionCookieMode defines model for TenantSettings.SessionCookie.Mode.
+type TenantSettingsSessionCookieMode string
+
+// TenantSettingsPatch defines model for TenantSettingsPatch.
+type TenantSettingsPatch struct {
+	// AccessToken Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	AccessToken *struct {
+		ClaimsMapping *struct {
+			CustomClaims *[]struct {
+				Expression string `json:"expression"`
+				Name       string `json:"name"`
+			} `json:"custom_claims,omitempty"`
+		} `json:"claims_mapping,omitempty"`
+	} `json:"access_token,omitempty"`
+
+	// AcrValuesSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	AcrValuesSupported *[]string `json:"acr_values_supported,omitempty"`
+
+	// AllowOrganizationNameInAuthenticationApi Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	AllowOrganizationNameInAuthenticationApi *bool     `json:"allow_organization_name_in_authentication_api,omitempty"`
+	AllowedLogoutUrls                        *[]string `json:"allowed_logout_urls,omitempty"`
+
+	// AuthorizationResponseIssParameterSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	AuthorizationResponseIssParameterSupported *bool `json:"authorization_response_iss_parameter_supported,omitempty"`
+
+	// ChangePassword Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ChangePassword *struct {
+		Enabled *bool   `json:"enabled,omitempty"`
+		Html    *string `json:"html,omitempty"`
+	} `json:"change_password,omitempty"`
+
+	// ClientIdMetadataDocumentDynamicRegistrationSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ClientIdMetadataDocumentDynamicRegistrationSupported *bool `json:"client_id_metadata_document_dynamic_registration_supported,omitempty"`
+
+	// ClientIdMetadataDocumentSupported Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ClientIdMetadataDocumentSupported *bool `json:"client_id_metadata_document_supported,omitempty"`
+
+	// CountryCodes Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	CountryCodes *struct {
+		List *[]string                            `json:"list,omitempty"`
+		Mode *TenantSettingsPatchCountryCodesMode `json:"mode,omitempty"`
+	} `json:"country_codes,omitempty"`
+
+	// CustomizeMfaInPostloginAction Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	CustomizeMfaInPostloginAction *bool   `json:"customize_mfa_in_postlogin_action,omitempty"`
+	DefaultAudience               *string `json:"default_audience,omitempty"`
+	DefaultDirectory              *string `json:"default_directory,omitempty"`
+
+	// DefaultRedirectionUri Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	DefaultRedirectionUri *string `json:"default_redirection_uri,omitempty"`
+
+	// DefaultTokenQuota Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	DefaultTokenQuota *struct {
+		Clients       *TenantSettingsPatch_DefaultTokenQuota_Clients       `json:"clients,omitempty"`
+		Organizations *TenantSettingsPatch_DefaultTokenQuota_Organizations `json:"organizations,omitempty"`
+	} `json:"default_token_quota,omitempty"`
+
+	// DeviceFlow Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code.
+	DeviceFlow *struct {
+		Charset *TenantSettingsPatchDeviceFlowCharset `json:"charset,omitempty"`
+		Mask    *string                               `json:"mask,omitempty"`
+	} `json:"device_flow,omitempty"`
+
+	// DpopStrictRefreshTokenBinding Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	DpopStrictRefreshTokenBinding *bool `json:"dpop_strict_refresh_token_binding,omitempty"`
+
+	// DynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	DynamicClientRegistrationSecurityMode *TenantSettingsPatchDynamicClientRegistrationSecurityMode `json:"dynamic_client_registration_security_mode,omitempty"`
+
+	// EnableAiGuide Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	EnableAiGuide  *bool                                `json:"enable_ai_guide,omitempty"`
+	EnabledLocales *[]TenantSettingsPatchEnabledLocales `json:"enabled_locales,omitempty"`
+
+	// EphemeralSessionLifetime Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+	EphemeralSessionLifetime *int `json:"ephemeral_session_lifetime,omitempty"`
+
+	// EphemeralSessionLifetimeInMinutes Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+	EphemeralSessionLifetimeInMinutes *int `json:"ephemeral_session_lifetime_in_minutes,omitempty"`
+
+	// ErrorPage Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ErrorPage *struct {
+		Html        *string `json:"html,omitempty"`
+		ShowLogLink *bool   `json:"show_log_link,omitempty"`
+		Url         *string `json:"url,omitempty"`
+	} `json:"error_page,omitempty"`
+
+	// Flags Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	Flags *struct {
+		AllowChangingEnableSso                         *bool `json:"allow_changing_enable_sso,omitempty"`
+		AllowLegacyDelegationGrantTypes                *bool `json:"allow_legacy_delegation_grant_types,omitempty"`
+		AllowLegacyRoGrantTypes                        *bool `json:"allow_legacy_ro_grant_types,omitempty"`
+		AllowLegacyTokeninfoEndpoint                   *bool `json:"allow_legacy_tokeninfo_endpoint,omitempty"`
+		ChangePwdFlowV1                                *bool `json:"change_pwd_flow_v1,omitempty"`
+		CustomDomainsProvisioning                      *bool `json:"custom_domains_provisioning,omitempty"`
+		DashboardInsightsView                          *bool `json:"dashboard_insights_view,omitempty"`
+		DashboardLogStreamsNext                        *bool `json:"dashboard_log_streams_next,omitempty"`
+		DisableClickjackProtectionHeaders              *bool `json:"disable_clickjack_protection_headers,omitempty"`
+		DisableFieldsMapFix                            *bool `json:"disable_fields_map_fix,omitempty"`
+		DisableImpersonation                           *bool `json:"disable_impersonation,omitempty"`
+		DisableManagementApiSmsObfuscation             *bool `json:"disable_management_api_sms_obfuscation,omitempty"`
+		EnableAdfsWaadEmailVerification                *bool `json:"enable_adfs_waad_email_verification,omitempty"`
+		EnableApisSection                              *bool `json:"enable_apis_section,omitempty"`
+		EnableClientConnections                        *bool `json:"enable_client_connections,omitempty"`
+		EnableDynamicClientRegistration                *bool `json:"enable_dynamic_client_registration,omitempty"`
+		EnableIdtokenApi2                              *bool `json:"enable_idtoken_api2,omitempty"`
+		EnableLegacyProfile                            *bool `json:"enable_legacy_profile,omitempty"`
+		EnablePipeline2                                *bool `json:"enable_pipeline2,omitempty"`
+		EnablePublicSignupUserExistsError              *bool `json:"enable_public_signup_user_exists_error,omitempty"`
+		EnableSso                                      *bool `json:"enable_sso,omitempty"`
+		EnforceClientAuthenticationOnPasswordlessStart *bool `json:"enforce_client_authentication_on_passwordless_start,omitempty"`
+		GenaiTrial                                     *bool `json:"genai_trial,omitempty"`
+		ImprovedSignupBotDetectionInClassic            *bool `json:"improved_signup_bot_detection_in_classic,omitempty"`
+		LocalResourceDiscovery                         *bool `json:"local_resource_discovery,omitempty"`
+		MfaShowFactorListOnEnrollment                  *bool `json:"mfa_show_factor_list_on_enrollment,omitempty"`
+		NoDiscloseEnterpriseConnections                *bool `json:"no_disclose_enterprise_connections,omitempty"`
+		RemoveAlgFromJwks                              *bool `json:"remove_alg_from_jwks,omitempty"`
+		RevokeRefreshTokenGrant                        *bool `json:"revoke_refresh_token_grant,omitempty"`
+		TrustAzureAdfsEmailVerifiedConnectionProperty  *bool `json:"trust_azure_adfs_email_verified_connection_property,omitempty"`
+	} `json:"flags,omitempty"`
+	FriendlyName *string `json:"friendly_name,omitempty"`
+
+	// GuardianMfaPage Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	GuardianMfaPage *struct {
+		Enabled *bool   `json:"enabled,omitempty"`
+		Html    *string `json:"html,omitempty"`
+	} `json:"guardian_mfa_page,omitempty"`
+
+	// IdleEphemeralSessionLifetime Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+	IdleEphemeralSessionLifetime *int `json:"idle_ephemeral_session_lifetime,omitempty"`
+
+	// IdleEphemeralSessionLifetimeInMinutes Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+	IdleEphemeralSessionLifetimeInMinutes *int `json:"idle_ephemeral_session_lifetime_in_minutes,omitempty"`
+
+	// IdleSessionLifetime Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+	IdleSessionLifetime *int `json:"idle_session_lifetime,omitempty"`
+
+	// IdleSessionLifetimeInMinutes Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+	IdleSessionLifetimeInMinutes *int `json:"idle_session_lifetime_in_minutes,omitempty"`
+
+	// IncludeSessionMetadataInTenantLogs Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	IncludeSessionMetadataInTenantLogs *bool `json:"include_session_metadata_in_tenant_logs,omitempty"`
+
+	// LegacySandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	LegacySandboxVersion *string `json:"legacy_sandbox_version,omitempty"`
+
+	// Mtls Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	Mtls *struct {
+		EnableEndpointAliases *bool `json:"enable_endpoint_aliases,omitempty"`
+	} `json:"mtls,omitempty"`
+
+	// OidcLogout Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	OidcLogout *struct {
+		RpLogoutEndSessionEndpointDiscovery *bool `json:"rp_logout_end_session_endpoint_discovery,omitempty"`
+	} `json:"oidc_logout,omitempty"`
+
+	// PhoneConsolidatedExperience Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	PhoneConsolidatedExperience          *bool   `json:"phone_consolidated_experience,omitempty"`
+	PictureUrl                           *string `json:"picture_url,omitempty"`
+	PushedAuthorizationRequestsSupported *bool   `json:"pushed_authorization_requests_supported,omitempty"`
+
+	// ResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	ResourceParameterProfile *TenantSettingsPatchResourceParameterProfile `json:"resource_parameter_profile,omitempty"`
+
+	// SandboxVersion Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	SandboxVersion *string `json:"sandbox_version,omitempty"`
+
+	// SecurityHeaders Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	SecurityHeaders *struct {
+		ContentSecurityPolicy *struct {
+			Enabled  *bool `json:"enabled,omitempty"`
+			Policies *[]struct {
+				Directives *map[string][]interface{}                                               `json:"directives,omitempty"`
+				Flags      *[]TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags `json:"flags,omitempty"`
+				Mode       *TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesMode    `json:"mode,omitempty"`
+				Reporting  *struct {
+					ReportToGroup *string `json:"report_to_group,omitempty"`
+					ReportUri     *string `json:"report_uri,omitempty"`
+				} `json:"reporting,omitempty"`
+			} `json:"policies,omitempty"`
+			ReportingInfrastructure *struct {
+				ReportTo *struct {
+					Endpoints *[]struct {
+						Url *string `json:"url,omitempty"`
+					} `json:"endpoints,omitempty"`
+					Group  *string `json:"group,omitempty"`
+					MaxAge *int    `json:"max_age,omitempty"`
+				} `json:"report_to,omitempty"`
+				ReportingEndpoints *map[string]string `json:"reporting_endpoints,omitempty"`
+			} `json:"reporting_infrastructure,omitempty"`
+		} `json:"content_security_policy,omitempty"`
+		XXssProtection *struct {
+			Enabled   *bool                                                 `json:"enabled,omitempty"`
+			Mode      *TenantSettingsPatchSecurityHeadersXXssProtectionMode `json:"mode,omitempty"`
+			ReportUri *string                                               `json:"report_uri,omitempty"`
+		} `json:"x_xss_protection,omitempty"`
+	} `json:"security_headers,omitempty"`
+	SessionCookie *struct {
+		Mode TenantSettingsPatchSessionCookieMode `json:"mode"`
+	} `json:"session_cookie,omitempty"`
+
+	// SessionLifetime Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+	SessionLifetime *int `json:"session_lifetime,omitempty"`
+
+	// SessionLifetimeInMinutes Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+	SessionLifetimeInMinutes *int `json:"session_lifetime_in_minutes,omitempty"`
+
+	// Sessions Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+	Sessions *struct {
+		Anonymous *struct {
+			ActivateCookie    *bool `json:"activate_cookie,omitempty"`
+			LifetimeInMinutes *int  `json:"lifetime_in_minutes,omitempty"`
+		} `json:"anonymous,omitempty"`
+		OidcLogoutPromptEnabled *bool `json:"oidc_logout_prompt_enabled,omitempty"`
+	} `json:"sessions,omitempty"`
+	SkipNonVerifiableCallbackUriConfirmationPrompt *bool   `json:"skip_non_verifiable_callback_uri_confirmation_prompt,omitempty"`
+	SupportEmail                                   *string `json:"support_email,omitempty"`
+	SupportUrl                                     *string `json:"support_url,omitempty"`
+}
+
+// TenantSettingsPatchCountryCodesMode defines model for TenantSettingsPatch.CountryCodes.Mode.
+type TenantSettingsPatchCountryCodesMode string
+
+// TenantSettingsPatch_DefaultTokenQuota_Clients defines model for TenantSettingsPatch.DefaultTokenQuota.Clients.
+type TenantSettingsPatch_DefaultTokenQuota_Clients struct {
+	ClientCredentials struct {
+		Enforce *bool `json:"enforce,omitempty"`
+		PerDay  *int  `json:"per_day,omitempty"`
+		PerHour *int  `json:"per_hour,omitempty"`
+	} `json:"client_credentials"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// TenantSettingsPatch_DefaultTokenQuota_Organizations defines model for TenantSettingsPatch.DefaultTokenQuota.Organizations.
+type TenantSettingsPatch_DefaultTokenQuota_Organizations struct {
+	ClientCredentials struct {
+		Enforce *bool `json:"enforce,omitempty"`
+		PerDay  *int  `json:"per_day,omitempty"`
+		PerHour *int  `json:"per_hour,omitempty"`
+	} `json:"client_credentials"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// TenantSettingsPatchDeviceFlowCharset defines model for TenantSettingsPatch.DeviceFlow.Charset.
+type TenantSettingsPatchDeviceFlowCharset string
+
+// TenantSettingsPatchDynamicClientRegistrationSecurityMode Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+type TenantSettingsPatchDynamicClientRegistrationSecurityMode string
+
+// TenantSettingsPatchEnabledLocales defines model for TenantSettingsPatch.EnabledLocales.
+type TenantSettingsPatchEnabledLocales string
+
+// TenantSettingsPatchResourceParameterProfile Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+type TenantSettingsPatchResourceParameterProfile string
+
+// TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags defines model for TenantSettingsPatch.SecurityHeaders.ContentSecurityPolicy.Policies.Flags.
+type TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesFlags string
+
+// TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesMode defines model for TenantSettingsPatch.SecurityHeaders.ContentSecurityPolicy.Policies.Mode.
+type TenantSettingsPatchSecurityHeadersContentSecurityPolicyPoliciesMode string
+
+// TenantSettingsPatchSecurityHeadersXXssProtectionMode defines model for TenantSettingsPatch.SecurityHeaders.XXssProtection.Mode.
+type TenantSettingsPatchSecurityHeadersXXssProtectionMode string
+
+// TenantSettingsPatchSessionCookieMode defines model for TenantSettingsPatch.SessionCookie.Mode.
+type TenantSettingsPatchSessionCookieMode string
+
 // TenantUpdate defines model for TenantUpdate.
 type TenantUpdate struct {
 	Domains      *[]string `json:"domains,omitempty"`
@@ -2338,6 +3653,15 @@ type GetResourceServerParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// GetTenantSettingsParams defines parameters for GetTenantSettings.
+type GetTenantSettingsParams struct {
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned.
+	Fields *Fields `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
 // GetUsersParams defines parameters for GetUsers.
 type GetUsersParams struct {
 	// Page Page index of the results, from 0.
@@ -2462,6 +3786,9 @@ type CreateResourceServerJSONRequestBody = ResourceServerCreate
 
 // UpdateResourceServerJSONRequestBody defines body for UpdateResourceServer for application/json ContentType.
 type UpdateResourceServerJSONRequestBody = ResourceServerUpdate
+
+// UpdateTenantSettingsJSONRequestBody defines body for UpdateTenantSettings for application/json ContentType.
+type UpdateTenantSettingsJSONRequestBody = TenantSettingsPatch
 
 // CreateEmailVerificationTicketJSONRequestBody defines body for CreateEmailVerificationTicket for application/json ContentType.
 type CreateEmailVerificationTicketJSONRequestBody = EmailVerificationTicketCreate
@@ -2722,6 +4049,270 @@ func (a Job) MarshalJSON() ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'weak_hashes': %w", err)
 		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for TenantSettings_DefaultTokenQuota_Clients. Returns the specified
+// element and whether it was found
+func (a TenantSettings_DefaultTokenQuota_Clients) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for TenantSettings_DefaultTokenQuota_Clients
+func (a *TenantSettings_DefaultTokenQuota_Clients) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for TenantSettings_DefaultTokenQuota_Clients to handle AdditionalProperties
+func (a *TenantSettings_DefaultTokenQuota_Clients) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_credentials"]; found {
+		err = json.Unmarshal(raw, &a.ClientCredentials)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_credentials': %w", err)
+		}
+		delete(object, "client_credentials")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for TenantSettings_DefaultTokenQuota_Clients to handle AdditionalProperties
+func (a TenantSettings_DefaultTokenQuota_Clients) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for TenantSettings_DefaultTokenQuota_Organizations. Returns the specified
+// element and whether it was found
+func (a TenantSettings_DefaultTokenQuota_Organizations) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for TenantSettings_DefaultTokenQuota_Organizations
+func (a *TenantSettings_DefaultTokenQuota_Organizations) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for TenantSettings_DefaultTokenQuota_Organizations to handle AdditionalProperties
+func (a *TenantSettings_DefaultTokenQuota_Organizations) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_credentials"]; found {
+		err = json.Unmarshal(raw, &a.ClientCredentials)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_credentials': %w", err)
+		}
+		delete(object, "client_credentials")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for TenantSettings_DefaultTokenQuota_Organizations to handle AdditionalProperties
+func (a TenantSettings_DefaultTokenQuota_Organizations) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Clients. Returns the specified
+// element and whether it was found
+func (a TenantSettingsPatch_DefaultTokenQuota_Clients) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Clients
+func (a *TenantSettingsPatch_DefaultTokenQuota_Clients) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Clients to handle AdditionalProperties
+func (a *TenantSettingsPatch_DefaultTokenQuota_Clients) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_credentials"]; found {
+		err = json.Unmarshal(raw, &a.ClientCredentials)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_credentials': %w", err)
+		}
+		delete(object, "client_credentials")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Clients to handle AdditionalProperties
+func (a TenantSettingsPatch_DefaultTokenQuota_Clients) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Organizations. Returns the specified
+// element and whether it was found
+func (a TenantSettingsPatch_DefaultTokenQuota_Organizations) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for TenantSettingsPatch_DefaultTokenQuota_Organizations
+func (a *TenantSettingsPatch_DefaultTokenQuota_Organizations) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Organizations to handle AdditionalProperties
+func (a *TenantSettingsPatch_DefaultTokenQuota_Organizations) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["client_credentials"]; found {
+		err = json.Unmarshal(raw, &a.ClientCredentials)
+		if err != nil {
+			return fmt.Errorf("error reading 'client_credentials': %w", err)
+		}
+		delete(object, "client_credentials")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for TenantSettingsPatch_DefaultTokenQuota_Organizations to handle AdditionalProperties
+func (a TenantSettingsPatch_DefaultTokenQuota_Organizations) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["client_credentials"], err = json.Marshal(a.ClientCredentials)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'client_credentials': %w", err)
 	}
 
 	for fieldName, field := range a.AdditionalProperties {
@@ -3830,6 +5421,12 @@ type ServerInterface interface {
 	// GetSession Get a session
 	// (GET /api/v2/sessions/{id})
 	GetSession(w http.ResponseWriter, r *http.Request, id string)
+	// GetTenantSettings Read tenant settings
+	// (GET /api/v2/tenants/settings)
+	GetTenantSettings(w http.ResponseWriter, r *http.Request, params GetTenantSettingsParams)
+	// UpdateTenantSettings Update tenant settings
+	// (PATCH /api/v2/tenants/settings)
+	UpdateTenantSettings(w http.ResponseWriter, r *http.Request)
 	// CreateEmailVerificationTicket Create an email verification ticket
 	// (POST /api/v2/tickets/email-verification)
 	CreateEmailVerificationTicket(w http.ResponseWriter, r *http.Request)
@@ -4139,6 +5736,18 @@ func (_ Unimplemented) DeleteSession(w http.ResponseWriter, r *http.Request, id 
 // GetSession Get a session
 // (GET /api/v2/sessions/{id})
 func (_ Unimplemented) GetSession(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenantSettings Read tenant settings
+// (GET /api/v2/tenants/settings)
+func (_ Unimplemented) GetTenantSettings(w http.ResponseWriter, r *http.Request, params GetTenantSettingsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateTenantSettings Update tenant settings
+// (PATCH /api/v2/tenants/settings)
+func (_ Unimplemented) UpdateTenantSettings(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5884,6 +7493,66 @@ func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// GetTenantSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantSettings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTenantSettingsParams
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantSettings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateTenantSettings operation middleware
+func (siw *ServerInterfaceWrapper) UpdateTenantSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateTenantSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateEmailVerificationTicket operation middleware
 func (siw *ServerInterfaceWrapper) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.Request) {
 
@@ -6574,6 +8243,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/tenants/settings", wrapper.GetTenantSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/tenants/settings", wrapper.UpdateTenantSettings)
+	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/clients", wrapper.GetClients)
 	})

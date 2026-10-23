@@ -4,6 +4,30 @@
  */
 
 export interface paths {
+    "/api/v2/tenants/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read tenant settings
+         * @description Requires `read:tenant_settings`. Returns local runtime defaults for enforced fields. Projection applies to top-level fields; unknown names are ignored.
+         */
+        get: operations["getTenantSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update tenant settings
+         * @description Requires `update:tenant_settings`. Validates and merges atomically. Arrays replace; omitted fields are preserved. Reserved system tenants cannot be changed. Stored-only settings have no runtime effect.
+         */
+        patch: operations["updateTenantSettings"];
+        trace?: never;
+    };
     "/api/v2/clients": {
         parameters: {
             query?: never;
@@ -1158,6 +1182,596 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        TenantSettings: {
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            change_password?: {
+                /** @default false */
+                enabled: boolean;
+                /** @default  */
+                html: string;
+            } | null;
+            /** @description Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code. */
+            device_flow?: {
+                /**
+                 * @default base20
+                 * @enum {string}
+                 */
+                charset: "base20" | "digits";
+                /** @default ****-**** */
+                mask: string;
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            guardian_mfa_page?: {
+                /** @default false */
+                enabled: boolean;
+                /** @default  */
+                html: string;
+            } | null;
+            /** @default  */
+            default_audience: string;
+            /** @default  */
+            default_directory: string;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            error_page?: {
+                /** @default  */
+                html: string;
+                /** @default false */
+                show_log_link: boolean;
+                /**
+                 * Format: absolute-uri-or-empty
+                 * @default https://mycompany.org/error
+                 */
+                url: string;
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            default_token_quota?: {
+                clients?: {
+                    client_credentials: {
+                        enforce?: boolean;
+                        per_day?: number;
+                        per_hour?: number;
+                    };
+                } & {
+                    [key: string]: unknown;
+                };
+                organizations?: {
+                    client_credentials: {
+                        enforce?: boolean;
+                        per_day?: number;
+                        per_hour?: number;
+                    };
+                } & {
+                    [key: string]: unknown;
+                };
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            flags?: {
+                /** @default false */
+                change_pwd_flow_v1: boolean;
+                /** @default false */
+                enable_apis_section: boolean;
+                /** @default false */
+                readonly disable_impersonation: boolean;
+                /** @default true */
+                enable_client_connections: boolean;
+                /** @default true */
+                enable_pipeline2: boolean;
+                allow_legacy_delegation_grant_types?: boolean;
+                allow_legacy_ro_grant_types?: boolean;
+                allow_legacy_tokeninfo_endpoint?: boolean;
+                enable_legacy_profile?: boolean;
+                enable_idtoken_api2?: boolean;
+                enable_public_signup_user_exists_error?: boolean;
+                enable_sso?: boolean;
+                allow_changing_enable_sso?: boolean;
+                disable_clickjack_protection_headers?: boolean;
+                no_disclose_enterprise_connections?: boolean;
+                enforce_client_authentication_on_passwordless_start?: boolean;
+                enable_adfs_waad_email_verification?: boolean;
+                revoke_refresh_token_grant?: boolean;
+                dashboard_log_streams_next?: boolean;
+                dashboard_insights_view?: boolean;
+                disable_fields_map_fix?: boolean;
+                mfa_show_factor_list_on_enrollment?: boolean;
+                remove_alg_from_jwks?: boolean;
+                improved_signup_bot_detection_in_classic?: boolean;
+                genai_trial?: boolean;
+                local_resource_discovery?: boolean;
+                /** @default false */
+                enable_dynamic_client_registration: boolean;
+                /** @default true */
+                disable_management_api_sms_obfuscation: boolean;
+                /** @default false */
+                trust_azure_adfs_email_verified_connection_property: boolean;
+                /** @default false */
+                custom_domains_provisioning: boolean;
+            };
+            /** @default My Company */
+            friendly_name: string;
+            /**
+             * Format: absolute-uri-or-empty
+             * @default https://mycompany.org/logo.png
+             */
+            picture_url: string;
+            /**
+             * Format: email-or-empty
+             * @default support@mycompany.org
+             */
+            support_email: string;
+            /**
+             * Format: absolute-uri-or-empty
+             * @default https://mycompany.org/support
+             */
+            support_url: string;
+            allowed_logout_urls?: string[];
+            /**
+             * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
+             * @default 168
+             */
+            session_lifetime: number;
+            /**
+             * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
+             * @default 72
+             */
+            idle_session_lifetime: number;
+            /**
+             * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
+             * @default 72
+             */
+            ephemeral_session_lifetime: number;
+            /**
+             * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
+             * @default 24
+             */
+            idle_ephemeral_session_lifetime: number;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default 22
+             */
+            sandbox_version: string;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            legacy_sandbox_version?: string;
+            /**
+             * Format: absolute-https-uri-or-empty
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             */
+            default_redirection_uri?: string;
+            enabled_locales?: ("am" | "ar" | "ar-EG" | "ar-SA" | "az" | "bg" | "bn" | "bs" | "ca-ES" | "cnr" | "cs" | "cy" | "da" | "de" | "el" | "en" | "en-CA" | "es" | "es-419" | "es-AR" | "es-MX" | "et" | "eu-ES" | "fa" | "fi" | "fr" | "fr-CA" | "fr-FR" | "gl-ES" | "gu" | "he" | "hi" | "hr" | "hu" | "hy" | "id" | "is" | "it" | "ja" | "ka" | "kk" | "kn" | "ko" | "lt" | "lv" | "mk" | "ml" | "mn" | "mr" | "ms" | "my" | "nb" | "nl" | "nn" | "no" | "pa" | "pl" | "pt" | "pt-BR" | "pt-PT" | "ro" | "ru" | "sk" | "sl" | "so" | "sq" | "sr" | "sv" | "sw" | "ta" | "te" | "th" | "tl" | "tr" | "uk" | "ur" | "vi" | "zgh" | "zh-CN" | "zh-HK" | "zh-MO" | "zh-TW")[];
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            access_token?: {
+                claims_mapping?: {
+                    custom_claims?: {
+                        name: string;
+                        expression: string;
+                    }[];
+                };
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            security_headers?: {
+                content_security_policy?: {
+                    enabled?: boolean;
+                    policies?: {
+                        /** @enum {string} */
+                        mode?: "enforcing" | "reporting";
+                        directives?: {
+                            [key: string]: unknown[];
+                        };
+                        flags?: ("upgrade-insecure-requests" | "block-all-mixed-content")[];
+                        reporting?: {
+                            report_uri?: string;
+                            report_to_group?: string;
+                        } | null;
+                    }[];
+                    reporting_infrastructure?: {
+                        report_to?: {
+                            group?: string;
+                            max_age?: number;
+                            endpoints?: {
+                                url?: string;
+                            }[];
+                        } | null;
+                        reporting_endpoints?: {
+                            [key: string]: string;
+                        };
+                    } | null;
+                } | null;
+                x_xss_protection?: {
+                    enabled?: boolean;
+                    /** @enum {string} */
+                    mode?: "block";
+                    report_uri?: string;
+                } | null;
+            } | null;
+            session_cookie?: {
+                /**
+                 * @default persistent
+                 * @enum {string}
+                 */
+                mode: "persistent" | "non-persistent";
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            sessions?: {
+                /** @default true */
+                oidc_logout_prompt_enabled: boolean;
+                anonymous?: {
+                    /** @default 43200 */
+                    lifetime_in_minutes: number;
+                    /** @default true */
+                    activate_cookie: boolean;
+                } | null;
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            oidc_logout?: {
+                /** @default true */
+                rp_logout_end_session_endpoint_discovery: boolean;
+            };
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            customize_mfa_in_postlogin_action: boolean | null;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            allow_organization_name_in_authentication_api: boolean | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            acr_values_supported?: string[] | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            mtls?: {
+                /** @default false */
+                enable_endpoint_aliases: boolean;
+            } | null;
+            /** @default false */
+            pushed_authorization_requests_supported: boolean;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            authorization_response_iss_parameter_supported: boolean | null;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            dpop_strict_refresh_token_binding: boolean | null;
+            skip_non_verifiable_callback_uri_confirmation_prompt?: boolean;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default audience
+             * @enum {string}
+             */
+            resource_parameter_profile: "audience" | "compatibility";
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            client_id_metadata_document_supported: boolean;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            client_id_metadata_document_dynamic_registration_supported: boolean;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            enable_ai_guide?: boolean;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            phone_consolidated_experience?: boolean;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            include_session_metadata_in_tenant_logs: boolean;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @enum {string}
+             */
+            dynamic_client_registration_security_mode?: "strict" | "permissive";
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            country_codes?: {
+                list?: string[];
+                /** @enum {string} */
+                mode?: "allow" | "deny";
+            } | null;
+            /** @description Stored only; custom-script runtime follow-up. */
+            readonly sandbox_versions_available?: string[];
+        };
+        TenantSettingsPatch: {
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            change_password?: {
+                /** @default false */
+                enabled: boolean;
+                /** @default  */
+                html: string;
+            } | null;
+            /** @description Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code. */
+            device_flow?: {
+                /**
+                 * @default base20
+                 * @enum {string}
+                 */
+                charset: "base20" | "digits";
+                /** @default ****-**** */
+                mask: string;
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            guardian_mfa_page?: {
+                /** @default false */
+                enabled: boolean;
+                /** @default  */
+                html: string;
+            } | null;
+            /** @default  */
+            default_audience: string;
+            /** @default  */
+            default_directory: string;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            error_page?: {
+                /** @default  */
+                html: string;
+                /** @default false */
+                show_log_link: boolean;
+                /**
+                 * Format: absolute-uri-or-empty
+                 * @default https://mycompany.org/error
+                 */
+                url: string;
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            default_token_quota?: {
+                clients?: {
+                    client_credentials: {
+                        enforce?: boolean;
+                        per_day?: number;
+                        per_hour?: number;
+                    };
+                } & {
+                    [key: string]: unknown;
+                };
+                organizations?: {
+                    client_credentials: {
+                        enforce?: boolean;
+                        per_day?: number;
+                        per_hour?: number;
+                    };
+                } & {
+                    [key: string]: unknown;
+                };
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            flags?: {
+                /** @default false */
+                change_pwd_flow_v1: boolean;
+                /** @default false */
+                enable_apis_section: boolean;
+                /** @default false */
+                readonly disable_impersonation: boolean;
+                /** @default true */
+                enable_client_connections: boolean;
+                /** @default true */
+                enable_pipeline2: boolean;
+                allow_legacy_delegation_grant_types?: boolean;
+                allow_legacy_ro_grant_types?: boolean;
+                allow_legacy_tokeninfo_endpoint?: boolean;
+                enable_legacy_profile?: boolean;
+                enable_idtoken_api2?: boolean;
+                enable_public_signup_user_exists_error?: boolean;
+                enable_sso?: boolean;
+                allow_changing_enable_sso?: boolean;
+                disable_clickjack_protection_headers?: boolean;
+                no_disclose_enterprise_connections?: boolean;
+                enforce_client_authentication_on_passwordless_start?: boolean;
+                enable_adfs_waad_email_verification?: boolean;
+                revoke_refresh_token_grant?: boolean;
+                dashboard_log_streams_next?: boolean;
+                dashboard_insights_view?: boolean;
+                disable_fields_map_fix?: boolean;
+                mfa_show_factor_list_on_enrollment?: boolean;
+                remove_alg_from_jwks?: boolean;
+                improved_signup_bot_detection_in_classic?: boolean;
+                genai_trial?: boolean;
+                local_resource_discovery?: boolean;
+                /** @default false */
+                enable_dynamic_client_registration: boolean;
+                /** @default true */
+                disable_management_api_sms_obfuscation: boolean;
+                /** @default false */
+                trust_azure_adfs_email_verified_connection_property: boolean;
+                /** @default false */
+                custom_domains_provisioning: boolean;
+            };
+            /** @default My Company */
+            friendly_name: string;
+            /**
+             * Format: absolute-uri-or-empty
+             * @default https://mycompany.org/logo.png
+             */
+            picture_url: string;
+            /**
+             * Format: email-or-empty
+             * @default support@mycompany.org
+             */
+            support_email: string;
+            /**
+             * Format: absolute-uri-or-empty
+             * @default https://mycompany.org/support
+             */
+            support_url: string;
+            allowed_logout_urls?: string[];
+            /**
+             * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+             * @default 168
+             */
+            session_lifetime: number;
+            /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
+            session_lifetime_in_minutes?: number;
+            /**
+             * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+             * @default 72
+             */
+            idle_session_lifetime: number;
+            /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
+            idle_session_lifetime_in_minutes?: number;
+            /**
+             * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+             * @default 72
+             */
+            ephemeral_session_lifetime: number;
+            /**
+             * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
+             * @default 24
+             */
+            idle_ephemeral_session_lifetime: number;
+            /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
+            ephemeral_session_lifetime_in_minutes?: number;
+            /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
+            idle_ephemeral_session_lifetime_in_minutes?: number;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default 22
+             */
+            sandbox_version: string;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            legacy_sandbox_version?: string;
+            /**
+             * Format: absolute-https-uri-or-empty
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             */
+            default_redirection_uri?: string;
+            enabled_locales?: ("am" | "ar" | "ar-EG" | "ar-SA" | "az" | "bg" | "bn" | "bs" | "ca-ES" | "cnr" | "cs" | "cy" | "da" | "de" | "el" | "en" | "en-CA" | "es" | "es-419" | "es-AR" | "es-MX" | "et" | "eu-ES" | "fa" | "fi" | "fr" | "fr-CA" | "fr-FR" | "gl-ES" | "gu" | "he" | "hi" | "hr" | "hu" | "hy" | "id" | "is" | "it" | "ja" | "ka" | "kk" | "kn" | "ko" | "lt" | "lv" | "mk" | "ml" | "mn" | "mr" | "ms" | "my" | "nb" | "nl" | "nn" | "no" | "pa" | "pl" | "pt" | "pt-BR" | "pt-PT" | "ro" | "ru" | "sk" | "sl" | "so" | "sq" | "sr" | "sv" | "sw" | "ta" | "te" | "th" | "tl" | "tr" | "uk" | "ur" | "vi" | "zgh" | "zh-CN" | "zh-HK" | "zh-MO" | "zh-TW")[];
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            access_token?: {
+                claims_mapping?: {
+                    custom_claims?: {
+                        name: string;
+                        expression: string;
+                    }[];
+                };
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            security_headers?: {
+                content_security_policy?: {
+                    enabled?: boolean;
+                    policies?: {
+                        /** @enum {string} */
+                        mode?: "enforcing" | "reporting";
+                        directives?: {
+                            [key: string]: unknown[];
+                        };
+                        flags?: ("upgrade-insecure-requests" | "block-all-mixed-content")[];
+                        reporting?: {
+                            report_uri?: string;
+                            report_to_group?: string;
+                        } | null;
+                    }[];
+                    reporting_infrastructure?: {
+                        report_to?: {
+                            group?: string;
+                            max_age?: number;
+                            endpoints?: {
+                                url?: string;
+                            }[];
+                        } | null;
+                        reporting_endpoints?: {
+                            [key: string]: string;
+                        };
+                    } | null;
+                } | null;
+                x_xss_protection?: {
+                    enabled?: boolean;
+                    /** @enum {string} */
+                    mode?: "block";
+                    report_uri?: string;
+                } | null;
+            } | null;
+            session_cookie?: {
+                /**
+                 * @default persistent
+                 * @enum {string}
+                 */
+                mode: "persistent" | "non-persistent";
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            sessions?: {
+                /** @default true */
+                oidc_logout_prompt_enabled: boolean;
+                anonymous?: {
+                    /** @default 43200 */
+                    lifetime_in_minutes: number;
+                    /** @default true */
+                    activate_cookie: boolean;
+                } | null;
+            } | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            oidc_logout?: {
+                /** @default true */
+                rp_logout_end_session_endpoint_discovery: boolean;
+            };
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            customize_mfa_in_postlogin_action: boolean | null;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            allow_organization_name_in_authentication_api: boolean | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            acr_values_supported?: string[] | null;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            mtls?: {
+                /** @default false */
+                enable_endpoint_aliases: boolean;
+            } | null;
+            /** @default false */
+            pushed_authorization_requests_supported: boolean | null;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            authorization_response_iss_parameter_supported: boolean | null;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            dpop_strict_refresh_token_binding: boolean | null;
+            skip_non_verifiable_callback_uri_confirmation_prompt?: boolean | null;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default audience
+             * @enum {string}
+             */
+            resource_parameter_profile: "audience" | "compatibility";
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            client_id_metadata_document_supported: boolean;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            client_id_metadata_document_dynamic_registration_supported: boolean;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            enable_ai_guide?: boolean;
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            phone_consolidated_experience?: boolean;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @default false
+             */
+            include_session_metadata_in_tenant_logs: boolean;
+            /**
+             * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
+             * @enum {string}
+             */
+            dynamic_client_registration_security_mode?: "strict" | "permissive";
+            /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
+            country_codes?: {
+                list?: string[];
+                /** @enum {string} */
+                mode?: "allow" | "deny";
+            } | null;
+        };
         /**
          * @description `native` (mobile and desktop), `spa` (single-page), `regular_web`
          *     (server-side web) or `non_interactive` (machine to machine).
@@ -2116,6 +2730,61 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getTenantSettings: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned. */
+                fields?: components["parameters"]["fields"];
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tenant settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    updateTenantSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantSettingsPatch"];
+            };
+        };
+        responses: {
+            /** @description Updated tenant settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     getClients: {
         parameters: {
             query?: {

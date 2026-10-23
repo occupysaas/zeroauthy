@@ -56,6 +56,8 @@ var (
 
 // Tenant is the branding and language of a hosted page.
 type Tenant struct {
+	SupportEmail string
+	SupportURL   string
 	Name         string
 	LogoURL      string
 	PrimaryColor string
@@ -72,7 +74,7 @@ func TenantView(t *store.Tenant, l *i18n.Localizer) Tenant {
 	if name == "" {
 		name = t.Name
 	}
-	return Tenant{Name: name, LogoURL: t.Branding.LogoURL, PrimaryColor: t.Branding.PrimaryColor, L: l}
+	return Tenant{SupportEmail: t.SupportEmail, SupportURL: t.SupportURL, Name: name, LogoURL: t.Branding.LogoURL, PrimaryColor: t.Branding.PrimaryColor, L: l}
 }
 
 type LoginData struct {

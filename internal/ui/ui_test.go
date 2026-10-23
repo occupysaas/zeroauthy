@@ -416,3 +416,19 @@ func TestRenderEmailVerification(t *testing.T) {
 		t.Fatalf("error page = %d %s", rec.Code, rec.Body)
 	}
 }
+
+func TestTenantSupportLinks(t *testing.T) {
+	tn := &store.Tenant{FriendlyName: `<b>Company</b>`, SupportEmail: `help@example.test`, SupportURL: `https://help.example.test/?q="<script>`}
+	rec := httptest.NewRecorder()
+	RenderLogin(rec, 200, TenantView(tn, nil), LoginData{})
+	body := rec.Body.String()
+	if !strings.Contains(body, `href="mailto:help@example.test"`) || !strings.Contains(body, `href="https://help.example.test/`) || strings.Contains(body, `<b>Company</b>`) || strings.Contains(body, `<script>`) {
+		t.Fatalf("unsafe or missing links: %s", body)
+	}
+	tn.SupportURL = `javascript:alert(1)`
+	rec = httptest.NewRecorder()
+	RenderLogin(rec, 200, TenantView(tn, nil), LoginData{})
+	if strings.Contains(rec.Body.String(), `href="javascript:`) {
+		t.Fatal("executable support link")
+	}
+}

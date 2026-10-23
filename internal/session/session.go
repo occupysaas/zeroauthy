@@ -36,15 +36,32 @@ func (m *Manager) now() time.Time {
 	return time.Now().UTC()
 }
 
-func lifetimes(t *store.Tenant) (absolute, idle time.Duration) {
-	absolute, idle = DefaultLifetime, DefaultIdleLifetime
-	if t.SessionLifetime > 0 {
-		absolute = time.Duration(t.SessionLifetime) * time.Second
+// lifetimes returns seconds, avoiding time.Duration overflow for API-valid
+// policies longer than 292 years. Empty session mode is legacy persistent.
+func lifetimes(t *store.Tenant, mode string) (absolute, idle int) {
+	absolute, idle = t.SessionLifetime, t.IdleSessionLifetime
+	da, di := int(DefaultLifetime/time.Second), int(DefaultIdleLifetime/time.Second)
+	if mode == "non-persistent" {
+		absolute, idle = t.EphemeralSessionLifetime, t.IdleEphemeralSessionLifetime
+		da, di = 72*3600, 24*3600
 	}
-	if t.IdleSessionLifetime > 0 {
-		idle = time.Duration(t.IdleSessionLifetime) * time.Second
+	if absolute <= 0 {
+		absolute = da
+	}
+	if idle <= 0 {
+		idle = di
 	}
 	return absolute, idle
+}
+
+// expiry saturates at the latest cookie/JSON-representable second. Check the
+// remaining range before adding seconds, so even MaxInt64 cannot wrap.
+func expiry(now time.Time, seconds int) time.Time {
+	limit := time.Date(9999, 12, 31, 23, 59, 59, 0, time.UTC)
+	if !now.Before(limit) || int64(seconds) >= limit.Unix()-now.Unix() {
+		return limit
+	}
+	return time.Unix(now.Unix()+int64(seconds), int64(now.Nanosecond())).UTC()
 }
 
 // Current returns the request's valid session for tenant t, or nil. Each
@@ -68,8 +85,8 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 		}
 		return nil, nil
 	}
-	_, idle := lifetimes(t)
-	idleAt := minTime(now.Add(idle), s.ExpiresAt)
+	_, idle := lifetimes(t, s.CookieMode)
+	idleAt := minTime(expiry(now, idle), s.ExpiresAt)
 	ip, ua := httpx.RecordedIP(r, m.TrustProxyHeaders), r.UserAgent()
 	if err := m.Store.Sessions().Touch(ctx, t.ID, s.ID, now, idleAt, ip, ua); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -94,17 +111,22 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	}
 	now := m.now()
 	ip, ua := httpx.RecordedIP(r, m.TrustProxyHeaders), r.UserAgent()
-	absolute, idle := lifetimes(t)
+	mode := t.SessionCookieMode
+	if mode == "" {
+		mode = "persistent"
+	}
+	absolute, idle := lifetimes(t, mode)
 	token := secrets.RandomString(43)
 	s := &store.LoginSession{
+		CookieMode:      mode,
 		TenantID:        t.ID,
 		ID:              secrets.RandomString(24),
 		TokenHash:       secrets.HashToken(token),
 		UserID:          userID,
 		Connection:      connection,
 		AuthenticatedAt: authTime.UTC(),
-		ExpiresAt:       now.Add(absolute),
-		IdleExpiresAt:   minTime(now.Add(idle), now.Add(absolute)),
+		ExpiresAt:       expiry(now, absolute),
+		IdleExpiresAt:   minTime(expiry(now, idle), expiry(now, absolute)),
 		CreatedAt:       now,
 		UpdatedAt:       now, LastInteractedAt: now,
 		InitialIP: ip, InitialUserAgent: ua, LastIP: ip, LastUserAgent: ua,
@@ -112,7 +134,7 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	if err := m.Store.Sessions().Create(ctx, s); err != nil {
 		return nil, err
 	}
-	http.SetCookie(w, &http.Cookie{
+	cookie := &http.Cookie{
 		Name:     CookieName,
 		Value:    token,
 		Path:     "/",
@@ -122,7 +144,11 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		// None so the cookie reaches the hidden iframe used for silent
 		// authentication (response_mode=web_message).
 		SameSite: http.SameSiteNoneMode,
-	})
+	}
+	if mode == "non-persistent" {
+		cookie.Expires = time.Time{}
+	}
+	http.SetCookie(w, cookie)
 	return s, nil
 }
 

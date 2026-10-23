@@ -102,6 +102,9 @@ func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant
 	}
 
 	charset, mask := devicecode.Settings(t)
+	if err := devicecode.ValidateMask(charset, mask); err != nil {
+		return nil, invalidRequest("tenant device_flow mask cannot safely generate a device code")
+	}
 	now := h.now().UTC()
 	for range deviceCreateAttempts {
 		deviceCode := secrets.RandomString(24)

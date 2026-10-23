@@ -36,6 +36,10 @@ a { color: var(--accent); }
 <p class="sub">{{block "description" .}}{{.Tenant.Name}}{{end}}</p>
 </header>
 {{template "content" .}}
+{{if or .Tenant.SupportEmail .Tenant.SupportURL}}<footer class="alt">
+{{if .Tenant.SupportURL}}<p><a href="{{.Tenant.SupportURL}}">{{.Tenant.SupportURL}}</a></p>{{end}}
+{{if .Tenant.SupportEmail}}<p><a href="mailto:{{.Tenant.SupportEmail}}">{{.Tenant.SupportEmail}}</a></p>{{end}}
+</footer>{{end}}
 </main>
 </body>
 </html>{{end}}
