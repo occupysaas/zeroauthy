@@ -53,6 +53,9 @@ func (r tenants) Update(_ context.Context, t *store.Tenant) error {
 	if r.collides(t) {
 		return store.ErrConflict
 	}
+	if p := r.s.protection[t.ID]; p != nil {
+		p.Policy(r.s.tenants[t.ID].ProtectionSettings, t.ProtectionSettings)
+	}
 	r.s.tenants[t.ID] = cloneTenant(t)
 	return nil
 }
@@ -76,6 +79,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 		return store.ErrNotFound
 	}
 	delete(r.s.tenants, id)
+	delete(r.s.protection, id)
 	s := r.s
 	purge(s.clients, id)
 	purge(s.resourceServers, id)

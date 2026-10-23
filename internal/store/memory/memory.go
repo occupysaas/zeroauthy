@@ -5,8 +5,10 @@ package memory
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/store/protectionstate"
 )
 
 // key addresses a tenant-scoped entity.
@@ -25,6 +27,8 @@ type Store struct {
 // transactions and the writes made outside any transaction, so a
 // transaction that rolls back never undoes a write that is not its own.
 type state struct {
+	protection         map[string]*protectionstate.State
+	proofs             map[string]time.Time
 	txMu               sync.Mutex
 	mu                 sync.RWMutex
 	tenants            map[string]*store.Tenant               // by ID
@@ -53,6 +57,7 @@ type state struct {
 // New returns an empty store.
 func New() *Store {
 	return &Store{state: &state{
+		protection: map[string]*protectionstate.State{}, proofs: map[string]time.Time{},
 		tenants:            map[string]*store.Tenant{},
 		clients:            map[key]*store.Client{},
 		resourceServers:    map[key]*store.ResourceServer{},

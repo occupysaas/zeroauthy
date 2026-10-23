@@ -28,7 +28,8 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 // Units
 //   Every int64 that holds a lifetime, timeout or leeway counts SECONDS
 //   (session_lifetime, token_lifetime, leeway, ...). The one exception is
-//   RefreshTokensRotateRequest.leeway, a google.protobuf.Duration. Instants
+//   RefreshTokensRotateRequest.leeway and ProtectionLimit intervals use
+//   google.protobuf.Duration. Instants
 //   are google.protobuf.Timestamp with nanosecond precision.
 //
 // JSON fields
@@ -59,6 +60,14 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 service StoreService {
   rpc Ping(PingRequest) returns (Result);
   // Required before writing Plan 19 tenant settings: old plugins must fail closed.
+  rpc ProtectionReserve(ProtectionRequest) returns (ProtectionResult);
+  rpc ProtectionComplete(ProtectionRequest) returns (ProtectionResult);
+  rpc ProtectionBlocks(ProtectionRequest) returns (ProtectionResult);
+  rpc ProtectionClear(ProtectionRequest) returns (ProtectionResult);
+  rpc ProtectionUseProof(ProtectionRequest) returns (ProtectionResult);
+  rpc ProtectionRecordRisk(ProtectionRequest) returns (ProtectionResult);
+  rpc ProtectionRiskCount(ProtectionRequest) returns (ProtectionResult);
+  rpc ProtectionSweep(ProtectionRequest) returns (ProtectionResult);
   rpc TenantSettingsSupported(PingRequest) returns (Result);
   rpc BeginTx(BeginTxRequest) returns (BeginTxResponse);
   rpc Commit(EndTxRequest) returns (Result);
@@ -222,6 +231,7 @@ message Error {
     KIND_NOT_FOUND = 1;   // store.ErrNotFound
     KIND_CONFLICT = 2;    // store.ErrConflict
     KIND_ALREADY_USED = 3; // store.ErrAlreadyUsed
+    KIND_INVALID = 4; // store.ErrInvalid
   }
   Kind kind = 1;
   string message = 2; // human-readable; for KIND_UNSPECIFIED the whole error
@@ -717,3 +727,28 @@ message JobsAppendFileRequest {
   int64 seq = 5; bytes chunk = 6; // at most 1 MiB
 }
 message JobFileChunk { Error error = 1; bytes data = 2; }
+
+// Atomic protection operations; opaque receipts are resolved by the server.
+message ProtectionKey {
+ string tenant_id = 1; string kind = 2; string connection_id = 3;
+ string identifier = 4; string ip = 5;
+}
+message ProtectionLimit {
+ ProtectionKey key = 1; string algorithm = 2; int64 capacity = 3;
+ google.protobuf.Duration window = 4;
+ google.protobuf.Duration refill = 5;
+ google.protobuf.Duration lockout = 6;
+}
+message ProtectionBlock { ProtectionKey key = 1; google.protobuf.Timestamp blocked_until = 2; }
+message ProtectionRequest {
+ string tx_id = 1; string tenant_id = 2; string receipt_id = 3;
+ repeated ProtectionLimit limits = 4; string outcome = 5;
+ google.protobuf.Timestamp now = 6; google.protobuf.Timestamp expires_at = 7;
+ ProtectionKey filter = 8; string proof_hash = 9;
+ string attempt_id = 10; string ip = 11; int64 limit = 12;
+}
+message ProtectionResult {
+ Error error = 1; bool allowed = 2; string tenant_id = 3; string receipt_id = 4;
+ google.protobuf.Timestamp retry_at = 5; repeated ProtectionBlock blocks = 6;
+ int64 count = 7;
+}

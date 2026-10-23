@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/store/protectionstate"
 )
 
 type users struct{ s *Store }
@@ -184,6 +185,19 @@ func (r users) Delete(_ context.Context, tenantID, userID string) error {
 // holds the lock; Connections.Delete uses it too.
 func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
 	for id := range gone {
+		if p := s.protection[tenantID]; p != nil {
+			if u := s.users[key{tenantID, id}]; u != nil {
+				var cs []*store.Connection
+				for k, c := range s.connections {
+					if k.tenant == tenantID {
+						cs = append(cs, c)
+					}
+				}
+				for _, f := range protectionstate.UserFilters(u, cs) {
+					p.Clear(f)
+				}
+			}
+		}
 		delete(s.users, key{tenantID, id})
 		delete(s.passwordHistories, key{tenantID, id})
 	}

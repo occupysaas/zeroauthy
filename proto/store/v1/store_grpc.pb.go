@@ -20,6 +20,14 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	StoreService_Ping_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/Ping"
+	StoreService_ProtectionReserve_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ProtectionReserve"
+	StoreService_ProtectionComplete_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ProtectionComplete"
+	StoreService_ProtectionBlocks_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ProtectionBlocks"
+	StoreService_ProtectionClear_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ProtectionClear"
+	StoreService_ProtectionUseProof_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ProtectionUseProof"
+	StoreService_ProtectionRecordRisk_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ProtectionRecordRisk"
+	StoreService_ProtectionRiskCount_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ProtectionRiskCount"
+	StoreService_ProtectionSweep_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ProtectionSweep"
 	StoreService_TenantSettingsSupported_FullMethodName                = "/zeroauthy.store.v1.StoreService/TenantSettingsSupported"
 	StoreService_BeginTx_FullMethodName                                = "/zeroauthy.store.v1.StoreService/BeginTx"
 	StoreService_Commit_FullMethodName                                 = "/zeroauthy.store.v1.StoreService/Commit"
@@ -172,7 +180,8 @@ const (
 //
 //	Every int64 that holds a lifetime, timeout or leeway counts SECONDS
 //	(session_lifetime, token_lifetime, leeway, ...). The one exception is
-//	RefreshTokensRotateRequest.leeway, a google.protobuf.Duration. Instants
+//	RefreshTokensRotateRequest.leeway and ProtectionLimit intervals use
+//	google.protobuf.Duration. Instants
 //	are google.protobuf.Timestamp with nanosecond precision.
 //
 // JSON fields
@@ -206,6 +215,14 @@ const (
 type StoreServiceClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error)
 	// Required before writing Plan 19 tenant settings: old plugins must fail closed.
+	ProtectionReserve(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
+	ProtectionComplete(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
+	ProtectionBlocks(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
+	ProtectionClear(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
+	ProtectionUseProof(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
+	ProtectionRecordRisk(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
+	ProtectionRiskCount(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
+	ProtectionSweep(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
 	TenantSettingsSupported(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error)
 	BeginTx(ctx context.Context, in *BeginTxRequest, opts ...grpc.CallOption) (*BeginTxResponse, error)
 	Commit(ctx context.Context, in *EndTxRequest, opts ...grpc.CallOption) (*Result, error)
@@ -355,6 +372,86 @@ func (c *storeServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_Ping_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ProtectionReserve(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProtectionResult)
+	err := c.cc.Invoke(ctx, StoreService_ProtectionReserve_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ProtectionComplete(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProtectionResult)
+	err := c.cc.Invoke(ctx, StoreService_ProtectionComplete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ProtectionBlocks(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProtectionResult)
+	err := c.cc.Invoke(ctx, StoreService_ProtectionBlocks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ProtectionClear(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProtectionResult)
+	err := c.cc.Invoke(ctx, StoreService_ProtectionClear_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ProtectionUseProof(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProtectionResult)
+	err := c.cc.Invoke(ctx, StoreService_ProtectionUseProof_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ProtectionRecordRisk(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProtectionResult)
+	err := c.cc.Invoke(ctx, StoreService_ProtectionRecordRisk_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ProtectionRiskCount(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProtectionResult)
+	err := c.cc.Invoke(ctx, StoreService_ProtectionRiskCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ProtectionSweep(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProtectionResult)
+	err := c.cc.Invoke(ctx, StoreService_ProtectionSweep_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1627,7 +1724,8 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 //
 //	Every int64 that holds a lifetime, timeout or leeway counts SECONDS
 //	(session_lifetime, token_lifetime, leeway, ...). The one exception is
-//	RefreshTokensRotateRequest.leeway, a google.protobuf.Duration. Instants
+//	RefreshTokensRotateRequest.leeway and ProtectionLimit intervals use
+//	google.protobuf.Duration. Instants
 //	are google.protobuf.Timestamp with nanosecond precision.
 //
 // JSON fields
@@ -1661,6 +1759,14 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 type StoreServiceServer interface {
 	Ping(context.Context, *PingRequest) (*Result, error)
 	// Required before writing Plan 19 tenant settings: old plugins must fail closed.
+	ProtectionReserve(context.Context, *ProtectionRequest) (*ProtectionResult, error)
+	ProtectionComplete(context.Context, *ProtectionRequest) (*ProtectionResult, error)
+	ProtectionBlocks(context.Context, *ProtectionRequest) (*ProtectionResult, error)
+	ProtectionClear(context.Context, *ProtectionRequest) (*ProtectionResult, error)
+	ProtectionUseProof(context.Context, *ProtectionRequest) (*ProtectionResult, error)
+	ProtectionRecordRisk(context.Context, *ProtectionRequest) (*ProtectionResult, error)
+	ProtectionRiskCount(context.Context, *ProtectionRequest) (*ProtectionResult, error)
+	ProtectionSweep(context.Context, *ProtectionRequest) (*ProtectionResult, error)
 	TenantSettingsSupported(context.Context, *PingRequest) (*Result, error)
 	BeginTx(context.Context, *BeginTxRequest) (*BeginTxResponse, error)
 	Commit(context.Context, *EndTxRequest) (*Result, error)
@@ -1808,6 +1914,30 @@ type UnimplementedStoreServiceServer struct{}
 
 func (UnimplementedStoreServiceServer) Ping(context.Context, *PingRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedStoreServiceServer) ProtectionReserve(context.Context, *ProtectionRequest) (*ProtectionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProtectionReserve not implemented")
+}
+func (UnimplementedStoreServiceServer) ProtectionComplete(context.Context, *ProtectionRequest) (*ProtectionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProtectionComplete not implemented")
+}
+func (UnimplementedStoreServiceServer) ProtectionBlocks(context.Context, *ProtectionRequest) (*ProtectionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProtectionBlocks not implemented")
+}
+func (UnimplementedStoreServiceServer) ProtectionClear(context.Context, *ProtectionRequest) (*ProtectionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProtectionClear not implemented")
+}
+func (UnimplementedStoreServiceServer) ProtectionUseProof(context.Context, *ProtectionRequest) (*ProtectionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProtectionUseProof not implemented")
+}
+func (UnimplementedStoreServiceServer) ProtectionRecordRisk(context.Context, *ProtectionRequest) (*ProtectionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProtectionRecordRisk not implemented")
+}
+func (UnimplementedStoreServiceServer) ProtectionRiskCount(context.Context, *ProtectionRequest) (*ProtectionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProtectionRiskCount not implemented")
+}
+func (UnimplementedStoreServiceServer) ProtectionSweep(context.Context, *ProtectionRequest) (*ProtectionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProtectionSweep not implemented")
 }
 func (UnimplementedStoreServiceServer) TenantSettingsSupported(context.Context, *PingRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method TenantSettingsSupported not implemented")
@@ -2213,6 +2343,150 @@ func _StoreService_Ping_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).Ping(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ProtectionReserve_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ProtectionReserve(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ProtectionReserve_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ProtectionReserve(ctx, req.(*ProtectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ProtectionComplete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ProtectionComplete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ProtectionComplete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ProtectionComplete(ctx, req.(*ProtectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ProtectionBlocks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ProtectionBlocks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ProtectionBlocks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ProtectionBlocks(ctx, req.(*ProtectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ProtectionClear_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ProtectionClear(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ProtectionClear_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ProtectionClear(ctx, req.(*ProtectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ProtectionUseProof_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ProtectionUseProof(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ProtectionUseProof_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ProtectionUseProof(ctx, req.(*ProtectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ProtectionRecordRisk_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ProtectionRecordRisk(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ProtectionRecordRisk_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ProtectionRecordRisk(ctx, req.(*ProtectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ProtectionRiskCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ProtectionRiskCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ProtectionRiskCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ProtectionRiskCount(ctx, req.(*ProtectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ProtectionSweep_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ProtectionSweep(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ProtectionSweep_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ProtectionSweep(ctx, req.(*ProtectionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -4434,6 +4708,38 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _StoreService_Ping_Handler,
+		},
+		{
+			MethodName: "ProtectionReserve",
+			Handler:    _StoreService_ProtectionReserve_Handler,
+		},
+		{
+			MethodName: "ProtectionComplete",
+			Handler:    _StoreService_ProtectionComplete_Handler,
+		},
+		{
+			MethodName: "ProtectionBlocks",
+			Handler:    _StoreService_ProtectionBlocks_Handler,
+		},
+		{
+			MethodName: "ProtectionClear",
+			Handler:    _StoreService_ProtectionClear_Handler,
+		},
+		{
+			MethodName: "ProtectionUseProof",
+			Handler:    _StoreService_ProtectionUseProof_Handler,
+		},
+		{
+			MethodName: "ProtectionRecordRisk",
+			Handler:    _StoreService_ProtectionRecordRisk_Handler,
+		},
+		{
+			MethodName: "ProtectionRiskCount",
+			Handler:    _StoreService_ProtectionRiskCount_Handler,
+		},
+		{
+			MethodName: "ProtectionSweep",
+			Handler:    _StoreService_ProtectionSweep_Handler,
 		},
 		{
 			MethodName: "TenantSettingsSupported",

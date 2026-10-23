@@ -99,6 +99,14 @@ type RecaptchaEnterpriseProvider struct {
 	ProjectID string `json:"project_id"`
 }
 
+// Bucket kinds shared by runtime consumers, policy invalidation and block queries.
+const (
+	ProtectionBruteForce               = "brute-force"
+	ProtectionSuspiciousIPLogin        = "suspicious-ip-login"
+	ProtectionSuspiciousIPRegistration = "suspicious-ip-registration"
+	ProtectionResetMail                = "reset-mail"
+)
+
 // ProtectionKey is tenant-scoped. ConnectionID is stable, never a mutable name.
 type ProtectionKey struct{ TenantID, Kind, ConnectionID, Identifier, IP string }
 type ProtectionLimit struct {

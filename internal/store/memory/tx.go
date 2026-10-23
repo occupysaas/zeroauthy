@@ -6,6 +6,7 @@ import (
 	"maps"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/store/protectionstate"
 )
 
 // WithTx snapshots every map, runs fn, and restores the snapshot unless fn
@@ -46,6 +47,8 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
+		protection:         cloneMap(s.protection, func(p *protectionstate.State) *protectionstate.State { return p.Clone() }),
+		proofs:             maps.Clone(s.proofs),
 		tenants:            cloneMap(s.tenants, cloneTenant),
 		clients:            cloneMap(s.clients, cloneClient),
 		resourceServers:    cloneMap(s.resourceServers, cloneResourceServer),
@@ -74,6 +77,7 @@ func (s *Store) snapshot() *state {
 func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.protection, s.proofs = snap.protection, snap.proofs
 	s.tenants, s.clients, s.resourceServers = snap.tenants, snap.clients, snap.resourceServers
 	s.clientGrants, s.signingKeys, s.connections = snap.clientGrants, snap.signingKeys, snap.connections
 	s.userGrants = snap.userGrants

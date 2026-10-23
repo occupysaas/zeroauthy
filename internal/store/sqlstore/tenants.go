@@ -113,6 +113,19 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 		return err
 	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		old, err := (tenants{tx}).Get(ctx, t.ID)
+		if err != nil {
+			return err
+		}
+		p, err := tx.loadProtection(ctx, t.ID, " AND kind IN (?,?,?)", store.ProtectionBruteForce, store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration)
+		if err != nil {
+			return err
+		}
+		before := p.Clone()
+		p.Policy(old.ProtectionSettings, t.ProtectionSettings)
+		if err = tx.saveProtection(ctx, t.ID, before, p); err != nil {
+			return err
+		}
 		args, err := tenantArgs(t)
 		if err != nil {
 			return err

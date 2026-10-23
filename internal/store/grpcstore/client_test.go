@@ -448,3 +448,11 @@ func TestOldPluginTenantSettingsTooOld(t *testing.T) {
 		}
 	}
 }
+
+func TestOldPluginProtectionTooOld(t *testing.T) {
+	c := serveOldPlugin(t)
+	_, err := c.Protection().Reserve(context.Background(), nil, time.Now())
+	if !errors.Is(err, errPluginTooOld) {
+		t.Fatalf("want plugin too old, got %v", err)
+	}
+}

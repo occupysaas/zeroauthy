@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/store/protectionstate"
 )
 
 type users struct{ s *Store }
@@ -319,6 +320,27 @@ var userDependents = []string{"sessions", "refresh_tokens", "user_grants", "pass
 // deleteUser removes the user and every row that names it. Connections.Delete
 // uses it for each of the connection's users.
 func deleteUser(ctx context.Context, tx *Store, tenantID, userID string) error {
+	u, e := (users{tx}).Get(ctx, tenantID, userID)
+	if e != nil {
+		return e
+	}
+	var cs []*store.Connection
+	for _, identity := range u.Identities {
+		c, err := (connections{tx}).GetByName(ctx, tenantID, identity.Connection)
+		if errors.Is(err, store.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		cs = append(cs, c)
+	}
+	for _, f := range protectionstate.UserFilters(u, cs) {
+		if e = tx.clearProtectionIfTenant(ctx, tenantID, f); e != nil {
+			return e
+		}
+	}
+
 	for _, table := range userDependents {
 		if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND user_id = ?`, tenantID, userID); err != nil {
 			return err

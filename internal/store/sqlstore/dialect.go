@@ -66,8 +66,14 @@ func (d dialect) isUniqueViolation(err error) bool {
 
 // isDeadlock reports whether err is a deadlock or serialization failure the
 // database resolved by aborting the transaction: MySQL 1213, PostgreSQL
-// 40P01 and 40001.
+// 40P01 and 40001, and SQLite BUSY/LOCKED (including extended codes).
 func (d dialect) isDeadlock(err error) bool {
+	var sq *sqlite.Error
+	if errors.As(err, &sq) {
+		code := sq.Code() & 0xff
+		return code == sqlite3.SQLITE_BUSY || code == sqlite3.SQLITE_LOCKED
+	}
+
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) {
 		return pg.Code == "40P01" || pg.Code == "40001"

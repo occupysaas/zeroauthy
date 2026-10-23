@@ -126,6 +126,8 @@ func errToPB(err error) *storev1.Error {
 		return &storev1.Error{Kind: storev1.Error_KIND_NOT_FOUND, Message: err.Error()}
 	case errors.Is(err, store.ErrConflict):
 		return &storev1.Error{Kind: storev1.Error_KIND_CONFLICT, Message: err.Error()}
+	case errors.Is(err, store.ErrInvalid):
+		return &storev1.Error{Kind: storev1.Error_KIND_INVALID, Message: err.Error()}
 	case errors.Is(err, store.ErrAlreadyUsed):
 		return &storev1.Error{Kind: storev1.Error_KIND_ALREADY_USED, Message: err.Error()}
 	default:
@@ -144,6 +146,8 @@ func errFromPB(e *storev1.Error) error {
 		return store.ErrNotFound
 	case storev1.Error_KIND_CONFLICT:
 		return store.ErrConflict
+	case storev1.Error_KIND_INVALID:
+		return store.ErrInvalid
 	case storev1.Error_KIND_ALREADY_USED:
 		return store.ErrAlreadyUsed
 	default:

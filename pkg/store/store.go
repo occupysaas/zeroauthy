@@ -205,3 +205,10 @@ var CloneSettings = store.CloneSettings
 
 // ValidateProtectionSecrets rejects accidental plaintext CAPTCHA persistence.
 var ValidateProtectionSecrets = store.ValidateProtectionSecrets
+
+const (
+	ProtectionBruteForce               = store.ProtectionBruteForce
+	ProtectionSuspiciousIPLogin        = store.ProtectionSuspiciousIPLogin
+	ProtectionSuspiciousIPRegistration = store.ProtectionSuspiciousIPRegistration
+	ProtectionResetMail                = store.ProtectionResetMail
+)

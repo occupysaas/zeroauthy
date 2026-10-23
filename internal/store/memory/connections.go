@@ -90,6 +90,9 @@ func (r connections) Delete(_ context.Context, tenantID, id string) error {
 	if !ok {
 		return store.ErrNotFound
 	}
+	if p := r.s.protection[tenantID]; p != nil {
+		p.Clear(store.ProtectionFilter{ConnectionID: id})
+	}
 	delete(r.s.connections, k)
 	if t, ok := r.s.tenants[tenantID]; ok && t.DefaultDirectory == c.Name {
 		t.DefaultDirectory = ""

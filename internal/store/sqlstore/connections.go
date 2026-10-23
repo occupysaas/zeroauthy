@@ -107,6 +107,9 @@ func (r connections) List(ctx context.Context, tenantID string, f store.Connecti
 // (the identities are JSON, so no index helps).
 func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		if err := tx.clearProtectionIfTenant(ctx, tenantID, store.ProtectionFilter{ConnectionID: id}); err != nil {
+			return err
+		}
 		var name string
 		err := tx.queryRow(ctx, `SELECT name FROM connections WHERE tenant_id = ? AND id = ?`+tx.d.forUpdate, tenantID, id).Scan(&name)
 		if errors.Is(err, sql.ErrNoRows) {
