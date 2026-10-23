@@ -261,6 +261,27 @@ func testProtectionLifecycle(t *testing.T, f Factory) {
 
 func testProtectionEdges(t *testing.T, f Factory) {
 	ctx := context.Background()
+	t.Run("TestProtectionOlderAbandonedPreservesLatestExpiry", func(t *testing.T) {
+		s, l, now := protectionFixture(t, f)
+		l.Capacity = 2
+		l.Lockout = time.Hour
+		old := reserveProtection(t, s, now, l)
+		newer := reserveProtection(t, s, now.Add(50*time.Second), l)
+		mustNoErr(t, s.Protection().Complete(ctx, newer.Receipt, "failure", now.Add(90*time.Second)))
+		mustNoErr(t, s.Protection().Complete(ctx, old.Receipt, "failure", now.Add(100*time.Second)))
+		blocks, err := s.Protection().Blocks(ctx, l.Key.TenantID, store.ProtectionFilter{}, now.Add(time.Hour+75*time.Second))
+		mustNoErr(t, err)
+		if len(blocks) != 1 || !blocks[0].BlockedUntil.Equal(now.Add(time.Hour+90*time.Second)) {
+			t.Fatalf("latest failure expiry lost: %+v", blocks)
+		}
+		if reserveProtection(t, s, now.Add(time.Hour+75*time.Second), l).Allowed {
+			t.Fatal("old abandoned conversion shortened lockout")
+		}
+		if !reserveProtection(t, s, now.Add(time.Hour+90*time.Second), l).Allowed {
+			t.Fatal("expired failed history still denies admission")
+		}
+	})
+
 	t.Run("TestProtectionSweepAbandonedBound", func(t *testing.T) {
 		s, l, now := protectionFixture(t, f)
 		for i := range 3 {

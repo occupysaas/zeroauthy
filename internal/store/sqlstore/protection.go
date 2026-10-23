@@ -314,7 +314,7 @@ func (r protection) RecordRisk(ctx context.Context, tenant, id, ip string, now t
 			return e
 		}
 		var one int
-		e := tx.queryRow(ctx, `SELECT 1 FROM protection_risk_events WHERE tenant_id=? AND attempt_id=?`, tenant, id).Scan(&one)
+		e := tx.queryRow(ctx, `SELECT 1 FROM protection_risk_events WHERE tenant_id=? AND attempt_id=?`+tx.d.forUpdate, tenant, id).Scan(&one)
 		if e == nil {
 			return nil
 		}
@@ -330,7 +330,22 @@ func (r protection) RiskCount(ctx context.Context, tenant, ip string, now time.T
 		if e := tx.protectionLock(ctx, tenant); e != nil {
 			return e
 		}
-		return tx.queryRow(ctx, `SELECT COUNT(*) FROM protection_risk_events WHERE tenant_id=? AND ip=? AND occurred_at<=? AND expires_at>?`, tenant, ip, protectionTime(now), protectionTime(now)).Scan(&n)
+		// Lock actual rows: PostgreSQL does not allow FOR UPDATE on COUNT,
+		// and a nonlocking aggregate can reuse an old MySQL transaction snapshot.
+		rows, e := tx.query(ctx, `SELECT attempt_id FROM protection_risk_events WHERE tenant_id=? AND ip=? AND occurred_at<=? AND expires_at>?`+tx.d.forUpdate, tenant, ip, protectionTime(now), protectionTime(now))
+		if e != nil {
+			return e
+		}
+		defer rows.Close()
+		n = 0
+		for rows.Next() {
+			var id string
+			if e := rows.Scan(&id); e != nil {
+				return e
+			}
+			n++
+		}
+		return rows.Err()
 	})
 	return
 }

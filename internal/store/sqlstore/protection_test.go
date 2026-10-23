@@ -139,3 +139,54 @@ func TestProtectionCompletionAfterTransactionSnapshot(t *testing.T) {
 		})
 	}
 }
+
+// An existing MySQL REPEATABLE READ snapshot must not hide subsequently
+// committed risk events, for either counting or idempotent insertion.
+func TestProtectionRiskAfterTransactionSnapshot(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		if name == "sqlite" {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			for _, operation := range []string{"count", "duplicate"} {
+				t.Run(operation, func(t *testing.T) {
+					ctx := context.Background()
+					dsn := mk(t)
+					a := mustOpen(t, dsn)
+					b := mustOpenRaw(t, dsn)
+					if e := a.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "tenant"}); e != nil {
+						t.Fatal(e)
+					}
+					now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+					e := a.WithTx(ctx, func(st store.Store) error {
+						var n int
+						if e := st.(*Store).queryRow(ctx, `SELECT COUNT(*) FROM protection_risk_events`).Scan(&n); e != nil {
+							return e
+						}
+						if e := b.Protection().RecordRisk(ctx, "t", "attempt", "ip", now); e != nil {
+							return e
+						}
+						if operation == "duplicate" {
+							return st.Protection().RecordRisk(ctx, "t", "attempt", "ip", now.Add(time.Minute))
+						}
+						n, e := st.Protection().RiskCount(ctx, "t", "ip", now)
+						if e == nil && n != 1 {
+							t.Errorf("snapshot hid committed event: count=%d", n)
+						}
+						return e
+					})
+					if e != nil {
+						t.Fatal(e)
+					}
+					n, e := a.Protection().RiskCount(ctx, "t", "ip", now.Add(15*time.Minute))
+					if e != nil {
+						t.Fatal(e)
+					}
+					if n != 0 {
+						t.Fatal("duplicate renewed original event expiry")
+					}
+				})
+			}
+		})
+	}
+}

@@ -166,7 +166,9 @@ func (b *Bucket) finish(id, outcome string, now time.Time) {
 	m.Outcome = outcome
 	b.Members[id] = m
 	if outcome == "failure" && b.Limit.Algorithm == "brute-force" {
-		b.ExpiresAt = now.Add(b.Limit.Lockout)
+		if expiry := now.Add(b.Limit.Lockout); expiry.After(b.ExpiresAt) {
+			b.ExpiresAt = expiry
+		}
 		b.BlockedUntil = b.ExpiresAt
 	}
 	if outcome != "failure" && b.Limit.Algorithm == "token-bucket" {
