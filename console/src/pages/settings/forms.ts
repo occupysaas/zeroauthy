@@ -9,6 +9,7 @@ export interface PolicyField {
   min?: number
   max?: number
   readonly?: boolean
+  required?: boolean
 }
 export interface Panel {
   key: string

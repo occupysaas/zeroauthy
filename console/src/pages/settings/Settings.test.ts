@@ -139,3 +139,33 @@ it('discards unsaved edits on tenant switch before saving', async () => {
   expect(calls.at(-1)?.url).toContain('system.example.test')
   wrapper.unmount()
 })
+
+it('associates and focuses a server validation error on a toggle', async () => {
+  const { wrapper } = await mountAt(AttackProtection, '/t/acme/attack-protection', c => c.method === 'PATCH' ? apiError(400, 'invalid_body', 'enabled: invalid setting') : { status: 200, body: { enabled: false } })
+  await wrapper.get('[role=switch]').trigger('click')
+  await wrapper.get('form').trigger('submit'); await flushPromises()
+  const control = wrapper.get('[role=switch]')
+  expect(control.attributes('id')).toBe('enabled')
+  expect(control.attributes('aria-invalid')).toBe('true')
+  expect(control.attributes('aria-describedby')).toContain('enabled-error')
+  expect(wrapper.get('#enabled-error').text()).toContain('invalid setting')
+  expect(document.activeElement).toBe(control.element)
+  wrapper.unmount()
+})
+
+it('preserves and exposes optional Arkose fields in a full provider replacement', async () => {
+  const arkose = { site_key: 'saved-site', client_subdomain: 'client', verify_subdomain: 'verify', fail_open: true }
+  const { wrapper, calls } = await mountAt(AttackProtection, '/t/acme/attack-protection', () => ({ status: 200, body: { active_provider_id: 'arkose', arkose } }))
+  await tab(wrapper, 'CAPTCHA')
+  await wrapper.get('#arkose-secret').setValue('new-credential')
+  await wrapper.get('form').trigger('submit'); await flushPromises()
+  expect(calls.at(-1)?.body).toEqual({ arkose: { ...arkose, secret: 'new-credential' } })
+  expect((wrapper.get('#arkose-client_subdomain').element as HTMLInputElement).value).toBe('client')
+  expect((wrapper.get('#arkose-verify_subdomain').element as HTMLInputElement).value).toBe('verify')
+  await wrapper.get('#arkose-fail_open').trigger('click')
+  await wrapper.get('#arkose-client_subdomain').setValue('')
+  await wrapper.get('#arkose-secret').setValue('second-credential')
+  await wrapper.get('form').trigger('submit'); await flushPromises()
+  expect(calls.at(-1)?.body).toEqual({ arkose: { ...arkose, client_subdomain: '', fail_open: false, secret: 'second-credential' } })
+  wrapper.unmount()
+})

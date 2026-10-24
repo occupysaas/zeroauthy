@@ -61,3 +61,66 @@ it('invalidates an IP result and pending confirmation when the address changes',
   expect(calls.filter(c => c.method === 'DELETE')).toHaveLength(0)
   wrapper.unmount()
 })
+
+it('allows clearing a new IP after dismissing a pending delete and editing the address', async () => {
+  let finish!: (r: import('../../test/services').Reply) => void
+  const page = defineComponent({ render: () => h(BlocksPanel, { tenant: tenant('acme') }) })
+  const { wrapper } = await mountAt(page, '/t/acme/attack-protection', c => c.method === 'DELETE' ? new Promise(r => { finish = r }) : { status: 200 })
+  await wrapper.get('#block-ip').setValue('192.0.2.1')
+  await wrapper.get('form').trigger('submit'); await flushPromises()
+  await wrapper.findAll('button').find(b => b.text() === 'Clear IP block')!.trigger('click'); await flushPromises()
+  document.querySelector<HTMLButtonElement>('[role=dialog] button[type=submit]')!.click(); await flushPromises()
+  Array.from(document.querySelectorAll<HTMLButtonElement>('[role=dialog] button')).find(b => b.textContent === 'Cancel')!.click(); await flushPromises()
+  await wrapper.get('#block-ip').setValue('192.0.2.2')
+  await wrapper.get('form').trigger('submit'); await flushPromises()
+  const clear = wrapper.findAll('button').find(b => b.text() === 'Clear IP block')!
+  expect(clear.attributes('disabled')).toBeUndefined()
+  finish({ status: 204 }); await flushPromises()
+  expect(wrapper.text()).toContain('192.0.2.2: This IP is blocked')
+  expect(clear.attributes('disabled')).toBeUndefined()
+  wrapper.unmount()
+})
+
+it('refreshing after dismissing a pending user delete restores controls and ignores the old completion', async () => {
+  let finish!: (r: import('../../test/services').Reply) => void
+  const page = defineComponent({ render: () => h(BlocksPanel, { tenant: tenant('acme'), user }) })
+  const { wrapper, calls } = await mountAt(page, '/t/acme/users/auth0%7Cabc', c => c.method === 'DELETE' ? new Promise(r => { finish = r }) : { status: 200, body: { blocked_for: [{ identifier: 'ada@example.test' }] } })
+  await wrapper.findAll('button').find(b => b.text() === 'Clear login blocks')!.trigger('click'); await flushPromises()
+  document.querySelector<HTMLButtonElement>('[role=dialog] button[type=submit]')!.click(); await flushPromises()
+  Array.from(document.querySelectorAll<HTMLButtonElement>('[role=dialog] button')).find(b => b.textContent === 'Cancel')!.click(); await flushPromises()
+  await wrapper.findAll('button').find(b => b.text() === 'Refresh')!.trigger('click'); await flushPromises()
+  const clear = wrapper.findAll('button').find(b => b.text() === 'Clear login blocks')!
+  expect(clear.attributes('disabled')).toBeDefined()
+  await clear.trigger('click'); await flushPromises()
+  expect(document.querySelector('[role=dialog]')).toBeNull()
+  expect(calls.filter(c => c.method === 'DELETE')).toHaveLength(1)
+  finish({ status: 204 }); await flushPromises()
+  expect(clear.attributes('disabled')).toBeUndefined()
+  await clear.trigger('click'); await flushPromises()
+  expect(document.querySelector('[role=dialog]')).not.toBeNull()
+  expect(document.querySelector<HTMLButtonElement>('[role=dialog] button[type=submit]')!.disabled).toBe(false)
+  expect(calls.map(c => c.method)).toEqual(['GET', 'DELETE', 'GET'])
+  wrapper.unmount()
+})
+
+it('releases the mutation lock when DELETE settles even if its follow-up lookup is delayed', async () => {
+  let finish!: (r: import('../../test/services').Reply) => void
+  let gets = 0
+  const page = defineComponent({ render: () => h(BlocksPanel, { tenant: tenant('acme') }) })
+  const { wrapper } = await mountAt(page, '/t/acme/attack-protection', c => {
+    if (c.method === 'DELETE') return { status: 204 }
+    if (++gets === 2) return new Promise(r => { finish = r })
+    return { status: 200 }
+  })
+  await wrapper.get('#block-ip').setValue('192.0.2.1')
+  await wrapper.get('form').trigger('submit'); await flushPromises()
+  await wrapper.findAll('button').find(b => b.text() === 'Clear IP block')!.trigger('click'); await flushPromises()
+  document.querySelector<HTMLButtonElement>('[role=dialog] button[type=submit]')!.click(); await flushPromises()
+  await wrapper.get('#block-ip').setValue('192.0.2.2')
+  await wrapper.get('#block-ip').setValue('192.0.2.1')
+  await wrapper.get('form').trigger('submit'); await flushPromises()
+  expect(wrapper.findAll('button').find(b => b.text() === 'Clear IP block')!.attributes('disabled')).toBeUndefined()
+  finish({ status: 404 }); await flushPromises()
+  expect(wrapper.text()).toContain('This IP is blocked')
+  wrapper.unmount()
+})

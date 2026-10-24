@@ -60,7 +60,7 @@ async function save() {
   error.value = ''; saved.value = false; fieldErrors.value = {}
   if (panel.captcha) {
     for (const f of panel.fields) {
-      if (f.path.includes('.') && patch.value[f.path.split('.')[0]!] && !draft.value[f.path]) fieldErrors.value[f.path] = t('policy.completeCredentials')
+      if (f.required && f.path.includes('.') && patch.value[f.path.split('.')[0]!] && !draft.value[f.path]) fieldErrors.value[f.path] = t('policy.completeCredentials')
     }
     if (Object.keys(fieldErrors.value).length) { await focusError(); return }
   }
@@ -94,9 +94,9 @@ const id = (path: string) => path.replaceAll('.', '-')
       <fieldset class="m-0 grid min-w-0 gap-4 border-0 p-0" :disabled="busy">
         <template v-for="f in panel.fields" :key="f.path">
           <div v-if="f.kind === 'toggle'" class="grid gap-1">
-            <Toggle :model-value="Boolean(draft[f.path])" :label="t(f.label)" :disabled="f.readonly" @update:model-value="draft[f.path] = $event" />
-            <p v-if="f.hint" class="muted m-0 text-sm">{{ t(f.hint) }}</p>
-            <p v-if="fieldErrors[f.path]" role="alert">{{ fieldErrors[f.path] }}</p>
+            <Toggle :id="id(f.path)" :invalid="!!fieldErrors[f.path]" :described-by="[f.hint ? `${id(f.path)}-hint` : '', fieldErrors[f.path] ? `${id(f.path)}-error` : ''].filter(Boolean).join(' ') || undefined" :model-value="Boolean(draft[f.path])" :label="t(f.label)" :disabled="f.readonly" @update:model-value="draft[f.path] = $event" />
+            <p v-if="f.hint" :id="`${id(f.path)}-hint`" class="muted m-0 text-sm">{{ t(f.hint) }}</p>
+            <p v-if="fieldErrors[f.path]" :id="`${id(f.path)}-error`" role="alert">{{ fieldErrors[f.path] }}</p>
           </div>
           <Field v-else :id="id(f.path)" :label="t(f.label)" :hint="f.hint ? t(f.hint) : undefined" :error="fieldErrors[f.path]">
             <select v-if="f.options" :id="id(f.path)" v-model="draft[f.path]" :disabled="f.readonly" :aria-describedby="`${id(f.path)}-hint ${id(f.path)}-error`" :aria-invalid="!!fieldErrors[f.path]">

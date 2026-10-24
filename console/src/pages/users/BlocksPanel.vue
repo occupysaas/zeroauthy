@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ApiError, type SystemTenant, type User, type UserBlocks } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
@@ -17,7 +17,11 @@ const blocked = ref<boolean | null>(null)
 const loading = ref(false)
 const error = ref('')
 const open = ref(false)
-const busy = ref(false)
+// Response generations can change during a DELETE (refresh, dismissal, switching).
+// Mutation locks instead belong to a tenant/target until that DELETE settles.
+const pendingDeletes = ref(new Set<string>())
+const targetKey = () => JSON.stringify([props.tenant.name, props.tenant.host, props.user ? 'user' : 'ip', props.user?.user_id ?? ip.value.trim()])
+const busy = computed(() => pendingDeletes.value.has(targetKey()))
 let generation = 0
 async function load() {
   const tn = props.tenant
@@ -25,7 +29,7 @@ async function load() {
   const address = ip.value.trim()
   if (!userId && !address) return
   const mine = ++generation
-  loading.value = true; error.value = ''; blocked.value = null; rows.value = []
+  loading.value = true; open.value = false; error.value = ''; blocked.value = null; rows.value = []
   checkedIP.value = address
   try {
     if (userId) {
@@ -42,26 +46,29 @@ async function load() {
   } finally { if (mine === generation) loading.value = false }
 }
 watch(() => [props.tenant.name, props.tenant.host, props.user?.user_id], () => {
-  generation++; rows.value = []; ip.value = ''; checkedIP.value = ''; blocked.value = null; open.value = false; error.value = ''; loading.value = false; busy.value = false
+  generation++; rows.value = []; ip.value = ''; checkedIP.value = ''; blocked.value = null; open.value = false; error.value = ''; loading.value = false
   if (props.user) void load()
 }, { immediate: true })
-watch(ip, () => { if (!props.user) { generation++; blocked.value = null; checkedIP.value = ''; loading.value = false; open.value = false } })
+watch(ip, () => { if (!props.user) { generation++; blocked.value = null; checkedIP.value = ''; loading.value = false; open.value = false; error.value = '' } })
 onBeforeUnmount(() => { generation++ })
 async function clear() {
+  const key = targetKey()
+  if (pendingDeletes.value.has(key)) return
   const mine = generation
   const tn = props.tenant
   const userId = props.user?.user_id
   const address = checkedIP.value
-  busy.value = true; error.value = ''
+  pendingDeletes.value.add(key); error.value = ''
   try {
     if (userId) await api.deleteUserBlocks(tn, userId)
     else await api.deleteIPBlock(tn, address)
-    if (mine !== generation) return
-    open.value = false
-    busy.value = false
-    await load()
-  } catch (e) { if (mine === generation) error.value = errorMessage(e) }
-  finally { if (mine === generation) busy.value = false }
+  } catch (e) {
+    if (mine === generation) error.value = errorMessage(e)
+    return
+  } finally { pendingDeletes.value.delete(key) }
+  if (mine !== generation) return
+  open.value = false
+  await load()
 }
 </script>
 <template>
