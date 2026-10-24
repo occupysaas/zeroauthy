@@ -283,6 +283,12 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
+	if err := svc.CheckPassword(ctx, f.res.Tenant, "login", identity.EffectivePassword(f.conn, r.PostForm.Get("password"))); err != nil {
+		status, key := breachFailure(err, http.StatusUnauthorized)
+		data.Error = f.view.L.T(key)
+		ui.RenderLogin(w, status, f.view, data)
+		return
+	}
 	h.complete(w, r, f, user)
 }
 
@@ -353,6 +359,12 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := svc.CheckPassword(r.Context(), f.res.Tenant, "pre-user-registration", identity.EffectivePassword(f.conn, r.PostForm.Get("password"))); err != nil {
+		status, key := breachFailure(err, http.StatusBadRequest)
+		data.Error = f.view.L.T(key)
+		ui.RenderSignup(w, status, f.view, data)
+		return
+	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
 		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"),
 	})
@@ -435,4 +447,12 @@ func (h *Handlers) protectionService() *protection.Service {
 		return h.Protection
 	}
 	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log}
+}
+
+// These availability/error choices are local A5 compatibility fallbacks.
+func breachFailure(err error, status int) (int, string) {
+	if errors.Is(err, protection.ErrPasswordLeaked) {
+		return status, i18n.KeyPasswordLeaked
+	}
+	return http.StatusServiceUnavailable, i18n.KeyBreachUnavailable
 }

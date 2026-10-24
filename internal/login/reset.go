@@ -230,6 +230,12 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pw = identity.EffectivePassword(conn, pw)
+	if err := h.protectionService().CheckPassword(ctx, res.Tenant, "pre-change-password", pw); err != nil {
+		status, key := breachFailure(err, http.StatusBadRequest)
+		form.Error = view.L.T(key)
+		ui.RenderResetForm(w, status, view, form)
+		return
+	}
 
 	// 5. Hash outside the transaction for local credentials or legacy history.
 	legacy := identity.IsLegacy(conn)

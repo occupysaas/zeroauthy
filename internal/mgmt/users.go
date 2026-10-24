@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/userrules"
@@ -523,6 +524,10 @@ func (h *Handlers) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	password := identity.EffectivePassword(conn, in.Password)
+	if err := h.checkPassword(r, tn, "pre-user-registration", password); err != nil {
+		Fail(w, err)
+		return
+	}
 	now := h.now()
 	deref := func(b *bool) bool { return b != nil && *b }
 	u := &store.User{
@@ -760,6 +765,10 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 			return
 		}
 		password = identity.EffectivePassword(conn, *in.Password)
+		if err := h.checkPassword(r, resolved(r), "pre-change-password", password); err != nil {
+			Fail(w, err)
+			return
+		}
 		if !legacy {
 			if hash, err = secrets.Hash(password); err != nil {
 				Fail(w, internalError(h, r, "update user", err))
@@ -929,4 +938,19 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 	h.audit(r, "delete user", "user_id", id)
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) checkPassword(r *http.Request, tenant *store.Tenant, stage, password string) error {
+	svc := h.Protection
+	if svc == nil {
+		svc = &protection.Service{Store: h.Store, Log: h.log(), Now: h.now}
+	}
+	err := svc.CheckPassword(r.Context(), tenant, stage, password)
+	if errors.Is(err, protection.ErrPasswordLeaked) {
+		return &Error{Status: http.StatusBadRequest, Code: "invalid_body", Message: protection.ErrPasswordLeaked.Error()}
+	}
+	if err != nil {
+		return &Error{Status: http.StatusServiceUnavailable, Code: "temporarily_unavailable", Message: protection.ErrBreachUnavailable.Error()}
+	}
+	return nil
 }

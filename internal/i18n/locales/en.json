@@ -135,6 +135,8 @@
       "logoAltText": "${companyName}"
     },
     "common": {
+      "password-leaked": "This password has appeared in a data breach. Choose a different password, or reset it before signing in.",
+      "breach-unavailable": "The password security check is temporarily unavailable. Please try again later.",
       "too-many-attempts": "Too many attempts. Please try again later."
     },
     "login": {

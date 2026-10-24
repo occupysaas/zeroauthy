@@ -123,6 +123,12 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		h.log().ErrorContext(ctx, "password grant", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
+	if err := svc.CheckPassword(ctx, res.Tenant, "login", identity.EffectivePassword(conn, password)); err != nil {
+		if errors.Is(err, protection.ErrPasswordLeaked) {
+			return nil, &Error{Status: http.StatusUnauthorized, Code: "password_leaked", Description: protection.ErrPasswordLeaked.Error()}
+		}
+		return nil, &Error{Status: http.StatusServiceUnavailable, Code: "temporarily_unavailable", Description: protection.ErrBreachUnavailable.Error()}
+	}
 	now := h.now().UTC()
 	if err := h.Store.Users().RecordLogin(ctx, tenantID, user.UserID, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
 		h.log().WarnContext(ctx, "record login", "tenant", tenantID, "err", err)

@@ -24,9 +24,10 @@ type Decision struct {
 	Receipt store.ProtectionReceipt
 }
 type Service struct {
-	Store store.Store
-	Now   func() time.Time
-	Log   *slog.Logger
+	BreachChecker BreachChecker
+	Store         store.Store
+	Now           func() time.Time
+	Log           *slog.Logger
 }
 
 func (s *Service) now() time.Time {

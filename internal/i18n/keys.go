@@ -71,3 +71,8 @@ const (
 	KeyDeviceInvalidCode        = "device-flow.device-code-activation.invalid-code"
 	KeyDeviceInvalidExpiredCode = "device-flow.device-code-activation.invalid-expired-code"
 )
+
+const (
+	KeyPasswordLeaked    = "zeroauthy.common.password-leaked"
+	KeyBreachUnavailable = "zeroauthy.common.breach-unavailable"
+)

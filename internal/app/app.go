@@ -32,12 +32,13 @@ import (
 )
 
 type App struct {
-	cfg     *config.Config
-	log     *slog.Logger
-	store   store.Store
-	runner  *customdb.NodeRunner
-	jobs    *jobs.Runner
-	handler http.Handler
+	cfg        *config.Config
+	log        *slog.Logger
+	store      store.Store
+	runner     *customdb.NodeRunner
+	jobs       *jobs.Runner
+	handler    http.Handler
+	breachFile *protection.FileChecker
 }
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error) {
@@ -189,13 +190,31 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		},
 	}
 
+	var checker protection.BreachChecker
+	var breachFile *protection.FileChecker
+	switch cfg.Security.BreachedPasswords.Mode {
+	case "", "off":
+	case "range":
+		checker = protection.NewRangeChecker(nil)
+	case "file":
+		breachFile, err = protection.NewFileChecker(cfg.Security.BreachedPasswords.File)
+		if err != nil {
+			_ = runner.Close()
+			return nil, fmt.Errorf("app: breached password corpus unavailable or invalid")
+		}
+		checker = breachFile
+	default:
+		_ = runner.Close()
+		return nil, fmt.Errorf("app: invalid breached password mode")
+	}
 	sec := cfg.Security
 	return &App{
-		cfg:    cfg,
-		log:    log,
-		store:  st,
-		runner: runner,
-		jobs:   jobRunner,
+		cfg:        cfg,
+		log:        log,
+		store:      st,
+		runner:     runner,
+		jobs:       jobRunner,
+		breachFile: breachFile,
 		handler: server.New(server.Deps{
 			Store:     st,
 			Keys:      km,
@@ -208,7 +227,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Wrapper:   wrapper,
 			Scripts:   &customdb.Client{Exec: runner, Wrapper: wrapper},
 
-			Protection:        &protection.Service{Store: st, Log: log},
+			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker},
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
 			BaseDomain:        cfg.Server.BaseDomain,
 			SystemHost:        systemHost,
@@ -319,7 +338,11 @@ func (a *App) Close() error {
 	if a.runner != nil {
 		errRunner = a.runner.Close()
 	}
-	return errors.Join(errRunner, a.store.Close())
+	var errBreach error
+	if a.breachFile != nil {
+		errBreach = a.breachFile.Close()
+	}
+	return errors.Join(errRunner, errBreach, a.store.Close())
 }
 
 func seconds(n int) time.Duration { return time.Duration(n) * time.Second }

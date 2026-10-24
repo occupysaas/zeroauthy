@@ -21,6 +21,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
@@ -40,6 +41,7 @@ const (
 
 // Handlers serves the Management API and the system API.
 type Handlers struct {
+	Protection *protection.Service
 	// BreachCheckerAvailable reports an actually constructed server-side checker.
 	BreachCheckerAvailable bool
 

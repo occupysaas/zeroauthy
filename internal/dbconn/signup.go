@@ -86,6 +86,14 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "protection completion", err)
 		return
 	}
+	if err := svc.CheckPassword(ctx, res.Tenant, "pre-user-registration", identity.EffectivePassword(conn, fields["password"])); err != nil {
+		if errors.Is(err, protection.ErrPasswordLeaked) {
+			writeErr(w, http.StatusBadRequest, "password_leaked", protection.ErrPasswordLeaked.Error())
+		} else {
+			writeErr(w, http.StatusServiceUnavailable, "temporarily_unavailable", protection.ErrBreachUnavailable.Error())
+		}
+		return
+	}
 	user, err := h.Database.Signup(ctx, conn, identity.SignupInput{
 		ClientID: fields["client_id"], Email: fields["email"], Username: fields["username"], Password: fields["password"],
 		GivenName: fields["given_name"], FamilyName: fields["family_name"], Name: fields["name"],
