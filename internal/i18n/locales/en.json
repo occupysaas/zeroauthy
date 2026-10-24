@@ -135,7 +135,7 @@
       "logoAltText": "${companyName}"
     },
     "common": {
-      "too-many-attempts": "Too many attempts. Wait a few minutes and try again."
+      "too-many-attempts": "Too many attempts. Please try again later."
     },
     "login": {
       "description-no-client": "Sign in to ${companyName} to continue."

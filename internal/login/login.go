@@ -251,16 +251,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := h.Database.Login(ctx, f.conn, login, r.PostForm.Get("password"))
-	outcome := "failure"
-	if err == nil || errors.Is(err, identity.ErrUserBlocked) {
-		outcome = "success"
-	} else if !errors.Is(err, identity.ErrInvalidCredentials) && !errors.Is(err, identity.ErrPasswordChangeRequired) && !identity.ScriptRaised(err) {
-		var refusal *identity.UnauthorizedError
-		if !errors.As(err, &refusal) {
-			outcome = "refund"
-		}
-	}
-	if finishErr := svc.Finish(ctx, decision.Receipt, outcome); finishErr != nil {
+	if finishErr := svc.Finish(ctx, decision.Receipt, protection.CredentialOutcome(err)); finishErr != nil {
 		h.fail(w, r, finishErr, f)
 		return
 	}
@@ -322,6 +313,28 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Email: email, Username: username,
 		RequiresUsername: f.conn.RequiresUsername, LoginURL: "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
 		RedirectURI: f.txn.Params["redirect_uri"],
+	}
+	// Missing required fields are malformed forms, not registration attempts.
+	// Nonempty passwords still reach policy validation after the reservation.
+	var malformed error
+	switch {
+	case strings.TrimSpace(email) == "":
+		malformed = identity.CheckEmail("")
+	case r.PostForm.Get("password") == "":
+		malformed = identity.CheckPassword(f.conn, identity.Person{}, "", nil)
+	case f.conn.RequiresUsername && strings.TrimSpace(username) == "":
+		malformed = identity.CheckUsername(f.conn, "")
+	}
+	if malformed != nil {
+		var pe *identity.PolicyError
+		if errors.As(malformed, &pe) {
+			data.Error = policyMessage(f.view.L, pe)
+		} else {
+			h.fail(w, r, malformed, f)
+			return
+		}
+		ui.RenderSignup(w, http.StatusBadRequest, f.view, data)
+		return
 	}
 	svc := h.protectionService()
 	decision, err := svc.Begin(r.Context(), protection.Attempt{Tenant: f.res.Tenant, Connection: f.conn, Identifier: email, IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "signup"})

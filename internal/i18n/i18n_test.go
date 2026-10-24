@@ -341,3 +341,10 @@ func TestTenantSettingsHostedLocaleFallback(t *testing.T) {
 		t.Fatal("missing hosted fallback")
 	}
 }
+
+func TestThrottleCopyDoesNotPromiseShortLockout(t *testing.T) {
+	text := New(&store.Tenant{}, "en").T(KeyTooManyAttempts)
+	if !strings.Contains(text, "Too many attempts") || strings.Contains(text, "minutes") {
+		t.Fatalf("throttle copy promises short lockout: %q", text)
+	}
+}

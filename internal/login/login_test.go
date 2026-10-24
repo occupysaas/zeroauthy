@@ -1006,3 +1006,62 @@ func TestProtectionStoreFailureBeforeCredentials(t *testing.T) {
 		t.Fatal("failed protection mutated user")
 	}
 }
+
+func TestSignupMalformedDoesNotSpendRegistrationBudget(t *testing.T) {
+	for _, missing := range []string{"email", "password", "username"} {
+		t.Run(missing, func(t *testing.T) {
+			e := newEnv(t)
+			setProtectionLimits(t, e.st, 3, 30, 1)
+			tn := mustTenant(t, e, "acme")
+			c, err := e.st.Connections().GetByName(context.Background(), tn.ID, "Username-Password-Authentication")
+			if err != nil {
+				t.Fatal(err)
+			}
+			c.RequiresUsername = true
+			if err := e.st.Connections().Update(context.Background(), c); err != nil {
+				t.Fatal(err)
+			}
+			b := e.browser("acme.example.test")
+			_, state, csrf := b.begin(t, "screen_hint", "signup")
+			form := url.Values{"state": {state}, "csrf": {csrf}, "email": {"fresh@acme.test"}, "username": {"freshuser"}, "password": {"long enough pw"}}
+			valid := form.Get(missing)
+			form.Del(missing)
+			if rec := b.do(t, "POST", "/u/signup", form); rec.Code != 400 {
+				t.Fatalf("missing field: %d", rec.Code)
+			}
+			form.Set(missing, valid)
+			if rec := b.do(t, "POST", "/u/signup", form); rec.Code != 302 {
+				t.Fatalf("malformed request spent budget: %d", rec.Code)
+			}
+		})
+	}
+}
+func TestSignupPasswordPolicyFailureSpendsRegistrationBudget(t *testing.T) {
+	e := newEnv(t)
+	setProtectionLimits(t, e.st, 3, 30, 1)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t, "screen_hint", "signup")
+	form := url.Values{"state": {state}, "csrf": {csrf}, "email": {"fresh@acme.test"}, "password": {"x"}}
+	if rec := b.do(t, "POST", "/u/signup", form); rec.Code != 400 {
+		t.Fatal(rec.Code)
+	}
+	form.Set("password", "long enough pw")
+	if rec := b.do(t, "POST", "/u/signup", form); rec.Code != 429 {
+		t.Fatalf("policy failure not charged: %d", rec.Code)
+	}
+}
+
+func TestSignupDuplicateSpendsRegistrationBudget(t *testing.T) {
+	e := newEnv(t)
+	setProtectionLimits(t, e.st, 3, 30, 1)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t, "screen_hint", "signup")
+	form := url.Values{"state": {state}, "csrf": {csrf}, "email": {"alice@acme.test"}, "password": {"long enough pw"}}
+	if rec := b.do(t, "POST", "/u/signup", form); rec.Code != 400 {
+		t.Fatal(rec.Code)
+	}
+	form.Set("email", "fresh@acme.test")
+	if rec := b.do(t, "POST", "/u/signup", form); rec.Code != 429 {
+		t.Fatalf("duplicate not charged: %d", rec.Code)
+	}
+}

@@ -99,16 +99,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	}
 
 	user, err := h.Database.Login(ctx, conn, username, password)
-	outcome := "failure"
-	if err == nil || errors.Is(err, identity.ErrUserBlocked) {
-		outcome = "success"
-	} else if !errors.Is(err, identity.ErrInvalidCredentials) && !errors.Is(err, identity.ErrPasswordChangeRequired) && !identity.ScriptRaised(err) {
-		var refusal *identity.UnauthorizedError
-		if !errors.As(err, &refusal) {
-			outcome = "refund"
-		}
-	}
-	if finishErr := svc.Finish(ctx, decision.Receipt, outcome); finishErr != nil {
+	if finishErr := svc.Finish(ctx, decision.Receipt, protection.CredentialOutcome(err)); finishErr != nil {
 		h.log().ErrorContext(ctx, "protection completion", "err", finishErr)
 		return nil, serverError()
 	}
