@@ -76,3 +76,8 @@ const (
 	KeyPasswordLeaked    = "zeroauthy.common.password-leaked"
 	KeyBreachUnavailable = "zeroauthy.common.breach-unavailable"
 )
+
+const (
+	KeyCaptchaInvalid     = "zeroauthy.captcha.invalid"
+	KeyCaptchaUnavailable = "zeroauthy.captcha.unavailable"
+)

@@ -63,6 +63,9 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid_request", "the connection is not enabled for this application")
 		return
 	}
+	if h.directChallenge(w, r, res, "reset-send", store.ProtectionReceipt{}) {
+		return
+	}
 	// An unknown user gets the same answer and no email, so the response
 	// does not reveal which addresses have accounts (D-0018).
 	// A custom database script that fails or refuses gets the same answer

@@ -29,6 +29,7 @@ var funcs = template.FuncMap{
 }
 
 func parsePage(names ...string) *template.Template {
+	names = append(names, "templates/captcha.html")
 	return template.Must(template.New("").Funcs(funcs).ParseFS(files, names...))
 }
 
@@ -56,6 +57,7 @@ var (
 
 // Tenant is the branding and language of a hosted page.
 type Tenant struct {
+	Captcha      *Captcha
 	SupportEmail string
 	SupportURL   string
 	Name         string
@@ -161,6 +163,7 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 	}
 	nonce := newNonce()
 	setHeaders(w, nonce, "'none'", formAction)
+	captchaHeaders(w, t.Captcha)
 	write(w, status, pages[name], "layout", page{Tenant: t, Nonce: nonce, Data: data})
 }
 

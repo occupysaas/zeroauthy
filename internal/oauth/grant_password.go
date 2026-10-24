@@ -98,6 +98,18 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		return nil, tooManyRequests()
 	}
 
+	required, err := svc.RequireChallenge(ctx, protection.Attempt{Tenant: res.Tenant, IP: clientIPFrom(ctx), Flow: "login"})
+	if err != nil || required {
+		if finishErr := svc.Finish(ctx, decision.Receipt, "refund"); finishErr != nil {
+			return nil, serverError()
+		}
+		if err != nil {
+			return nil, serverError()
+		}
+		return nil, &Error{Status: http.StatusUnauthorized, Code: "requires_verification", Description: "Complete verification using interactive web login."}
+	}
+	attemptID := secrets.RandomString(32)
+
 	var breachErr error
 	user, err := h.Database.LoginWithCheck(ctx, conn, username, password, func(ctx context.Context) error {
 		breachErr = svc.CheckPassword(ctx, res.Tenant, "login", identity.EffectivePassword(conn, password))
@@ -112,6 +124,16 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		h.log().ErrorContext(ctx, "protection completion", "err", finishErr)
 		return nil, serverError()
 	}
+	riskErr := err
+	if breachErr != nil {
+		riskErr = breachErr
+	}
+	if protection.QualifyingFailure("login", riskErr) {
+		if err := svc.RecordFailure(ctx, protection.Attempt{Tenant: res.Tenant, IP: clientIPFrom(ctx), Flow: "login"}, attemptID); err != nil {
+			return nil, serverError()
+		}
+	}
+
 	if breachErr != nil {
 		if errors.Is(breachErr, protection.ErrPasswordLeaked) {
 			return nil, &Error{Status: http.StatusUnauthorized, Code: "password_leaked", Description: protection.ErrPasswordLeaked.Error()}

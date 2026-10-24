@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
 	"github.com/zeroauthy/zeroauthy/internal/protectionrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -24,10 +25,12 @@ type Decision struct {
 	Receipt store.ProtectionReceipt
 }
 type Service struct {
-	BreachChecker BreachChecker
-	Store         store.Store
-	Now           func() time.Time
-	Log           *slog.Logger
+	Wrapper         keys.Wrapper
+	CaptchaVerifier CaptchaVerifier
+	BreachChecker   BreachChecker
+	Store           store.Store
+	Now             func() time.Time
+	Log             *slog.Logger
 }
 
 func (s *Service) now() time.Time {

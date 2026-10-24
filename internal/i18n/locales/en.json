@@ -203,6 +203,13 @@
     "form-post": {
       "title": "Continuing…",
       "buttonText": "Continue"
+    },
+    "captcha": {
+      "invalid": "Complete the verification and try again.",
+      "unavailable": "Verification is unavailable. Please retry or contact support.",
+      "help": "Complete this verification to continue.",
+      "javascript": "Enable JavaScript to complete verification.",
+      "retry": "If verification does not load or expires, reload this page and try again."
     }
   }
 }

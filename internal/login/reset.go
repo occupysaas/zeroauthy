@@ -38,6 +38,9 @@ func (h *Handlers) ResetRequestPage(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
+	if !h.captchaPage(w, r, f, "reset-send") {
+		return
+	}
 	ui.RenderResetRequest(w, http.StatusOK, f.view, h.resetRequestData(f, f.txn.Params["login_hint"]))
 }
 
@@ -52,6 +55,14 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	f, ok := h.postedFlow(w, r)
 	if !ok {
+		return
+	}
+	attemptID := secrets.RandomString(32)
+	if err := h.submitCaptcha(r, f.res, &f.view, "reset-send", f.txn.ID, attemptID); err != nil {
+		status, key := captchaFailure(err)
+		data := h.resetRequestData(f, r.PostForm.Get("email"))
+		data.Error = f.view.L.T(key)
+		ui.RenderResetRequest(w, status, f.view, data)
 		return
 	}
 	ctx := r.Context()
@@ -143,6 +154,11 @@ func (h *Handlers) ResetPasswordPage(w http.ResponseWriter, r *http.Request) {
 		h.renderResetError(w, view, p)
 		return
 	}
+	if _, err := h.prepareCaptcha(r, res, &view, "reset", tk.ID); err != nil {
+		status, key := captchaFailure(err)
+		ui.RenderError(w, status, view, view.L.T(key))
+		return
+	}
 	csrf := secrets.RandomString(32)
 	setResetCookie(w, csrf, 900)
 	ui.RenderResetForm(w, http.StatusOK, view, ui.ResetFormData{Ticket: raw, CSRF: csrf})
@@ -169,6 +185,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	c, cerr := r.Cookie(resetCookie)
 	csrfOK := cerr == nil && c.Value != "" && subtle.ConstantTimeCompare([]byte(csrf), []byte(c.Value)) == 1
 
+	attemptID := secrets.RandomString(32)
 	// 2. The ticket. A forged or stale form still learns nothing beyond
 	// what the ticket holder could see by opening the link; once the
 	// ticket is used or expired that screen wins, otherwise a CSRF failure
@@ -180,6 +197,12 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if tk == nil {
+		if csrfOK {
+			if err := h.protectionService().RecordFailure(ctx, h.captchaAttempt(r, res, "reset"), attemptID); err != nil {
+				h.fail(w, r, err, nil)
+				return
+			}
+		}
 		h.renderResetError(w, view, p)
 		return
 	}
@@ -199,6 +222,12 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	// 3. The new password; the ticket stays usable while it is rejected.
 	pw := r.PostForm.Get("password")
 	form := ui.ResetFormData{Ticket: raw, CSRF: csrf}
+	if err := h.submitCaptcha(r, res, &view, "reset", tk.ID, attemptID); err != nil {
+		status, key := captchaFailure(err)
+		form.Error = view.L.T(key)
+		ui.RenderResetForm(w, status, view, form)
+		return
+	}
 	if pw != r.PostForm.Get("password_confirm") {
 		form.Error = view.L.T(i18n.KeyResetPasswordMismatch)
 		ui.RenderResetForm(w, http.StatusBadRequest, view, form)
@@ -222,6 +251,10 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	var pe *identity.PolicyError
 	if err := identity.CheckPassword(conn, identity.PersonOf(user), pw, history); errors.As(err, &pe) {
+		if riskErr := h.recordFailure(r, res, "reset", attemptID, err); riskErr != nil {
+			h.fail(w, r, riskErr, nil)
+			return
+		}
 		form.Error = policyMessage(view.L, pe)
 		ui.RenderResetForm(w, http.StatusBadRequest, view, form)
 		return
@@ -231,6 +264,10 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	pw = identity.EffectivePassword(conn, pw)
 	if err := h.protectionService().CheckPassword(ctx, res.Tenant, "pre-change-password", pw); err != nil {
+		if riskErr := h.recordFailure(r, res, "reset", attemptID, err); riskErr != nil {
+			h.fail(w, r, riskErr, nil)
+			return
+		}
 		status, key := breachFailure(err, http.StatusBadRequest)
 		form.Error = view.L.T(key)
 		ui.RenderResetForm(w, status, view, form)

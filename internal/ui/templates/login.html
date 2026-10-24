@@ -10,6 +10,7 @@
 <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" value="{{.Data.Login}}" required autofocus>
 <label for="password">{{t .Tenant.L "login.login.passwordPlaceholder"}}</label>
 <input id="password" name="password" type="password" autocomplete="current-password" required>
+{{template "captcha" .}}
 <button type="submit">{{t .Tenant.L "login.login.buttonText"}}</button>
 </form>
 {{if .Data.ForgotURL}}<p class="alt"><a href="{{.Data.ForgotURL}}">{{t .Tenant.L "login.login.forgotPasswordText"}}</a></p>{{end}}

@@ -1,0 +1,20 @@
+{{define "captcha"}}{{if .Tenant.Captcha}}
+<section aria-describedby="captcha-help">
+<p id="captcha-help">{{t .Tenant.L "zeroauthy.captcha.help"}}</p>
+{{if eq .Tenant.Captcha.Provider "hcaptcha"}}
+<div class="h-captcha" data-sitekey="{{.Tenant.Captcha.SiteKey}}"></div>
+<script nonce="{{.Nonce}}" src="https://js.hcaptcha.com/1/api.js" async defer></script>
+{{else if eq .Tenant.Captcha.Provider "recaptcha_v2"}}
+<div class="g-recaptcha" data-sitekey="{{.Tenant.Captcha.SiteKey}}"></div>
+<script nonce="{{.Nonce}}" src="https://www.google.com/recaptcha/api.js" async defer></script>
+{{else if eq .Tenant.Captcha.Provider "recaptcha_enterprise"}}
+<div class="g-recaptcha" data-sitekey="{{.Tenant.Captcha.SiteKey}}" data-action="{{.Tenant.Captcha.Action}}"></div>
+<script nonce="{{.Nonce}}" src="https://www.google.com/recaptcha/enterprise.js" async defer></script>
+{{else if eq .Tenant.Captcha.Provider "friendly_captcha"}}
+<div class="frc-captcha" data-sitekey="{{.Tenant.Captcha.SiteKey}}" data-puzzle-endpoint="https://api.friendlycaptcha.com/api/v1/puzzle"></div>
+<script nonce="{{.Nonce}}" type="module" src="https://cdn.jsdelivr.net/npm/friendly-challenge@0.9.18/widget.module.min.js" async defer></script>
+{{end}}
+<noscript><p role="alert">{{t .Tenant.L "zeroauthy.captcha.javascript"}}</p></noscript>
+<p>{{t .Tenant.L "zeroauthy.captcha.retry"}}</p>
+</section>
+{{end}}{{end}}

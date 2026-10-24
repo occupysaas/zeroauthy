@@ -190,6 +190,9 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
+	if !h.captchaPage(w, r, f, "login") {
+		return
+	}
 	ui.RenderLogin(w, http.StatusOK, f.view, ui.LoginData{
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: f.txn.Params["login_hint"], SignupURL: signupURL(f),
 		ForgotURL: h.forgotURL(f), RedirectURI: f.txn.Params["redirect_uri"],
@@ -250,6 +253,18 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	attemptID := secrets.RandomString(32)
+	if err := h.submitCaptcha(r, f.res, &f.view, "login", f.txn.ID, attemptID); err != nil {
+		if finishErr := svc.Finish(ctx, decision.Receipt, "refund"); finishErr != nil {
+			h.fail(w, r, finishErr, f)
+			return
+		}
+		status, key := captchaFailure(err)
+		data.Error = f.view.L.T(key)
+		ui.RenderLogin(w, status, f.view, data)
+		return
+	}
+
 	var breachErr error
 	user, err := h.Database.LoginWithCheck(ctx, f.conn, login, r.PostForm.Get("password"), func(ctx context.Context) error {
 		breachErr = svc.CheckPassword(ctx, f.res.Tenant, "login", identity.EffectivePassword(f.conn, r.PostForm.Get("password")))
@@ -264,6 +279,19 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, finishErr, f)
 		return
 	}
+	riskErr := err
+	if breachErr != nil {
+		riskErr = breachErr
+	}
+	if err := h.recordFailure(r, f.res, "login", attemptID, riskErr); err != nil {
+		h.fail(w, r, err, f)
+		return
+	}
+	// Refresh widget state after a failure may cross the local risk threshold.
+	if riskErr != nil {
+		_, _ = h.prepareCaptcha(r, f.res, &f.view, "login", f.txn.ID)
+	}
+
 	if breachErr != nil {
 		status, key := breachFailure(breachErr, http.StatusUnauthorized)
 		data.Error = f.view.L.T(key)
@@ -309,6 +337,9 @@ func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 	}
 	if f.conn.DisableSignup {
 		ui.RenderError(w, http.StatusForbidden, f.view, f.view.L.T(i18n.KeyErrSignupDisabled))
+		return
+	}
+	if !h.captchaPage(w, r, f, "signup") {
 		return
 	}
 	ui.RenderSignup(w, http.StatusOK, f.view, ui.SignupData{
@@ -362,6 +393,18 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		ui.RenderSignup(w, http.StatusTooManyRequests, f.view, data)
 		return
 	}
+	attemptID := secrets.RandomString(32)
+	if err := h.submitCaptcha(r, f.res, &f.view, "signup", f.txn.ID, attemptID); err != nil {
+		if finishErr := svc.Finish(r.Context(), decision.Receipt, "refund"); finishErr != nil {
+			h.fail(w, r, finishErr, f)
+			return
+		}
+		status, key := captchaFailure(err)
+		data.Error = f.view.L.T(key)
+		ui.RenderSignup(w, status, f.view, data)
+		return
+	}
+
 	// Registration spends its token regardless of the credential outcome.
 	if err := svc.Finish(r.Context(), decision.Receipt, "failure"); err != nil {
 		h.fail(w, r, err, f)
@@ -369,6 +412,10 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := svc.CheckPassword(r.Context(), f.res.Tenant, "pre-user-registration", identity.EffectivePassword(f.conn, r.PostForm.Get("password"))); err != nil {
+		if riskErr := h.recordFailure(r, f.res, "signup", attemptID, err); riskErr != nil {
+			h.fail(w, r, riskErr, f)
+			return
+		}
 		status, key := breachFailure(err, http.StatusBadRequest)
 		data.Error = f.view.L.T(key)
 		ui.RenderSignup(w, status, f.view, data)
@@ -377,6 +424,13 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
 		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"),
 	})
+	if riskErr := h.recordFailure(r, f.res, "signup", attemptID, err); riskErr != nil {
+		h.fail(w, r, riskErr, f)
+		return
+	}
+	if err != nil {
+		_, _ = h.prepareCaptcha(r, f.res, &f.view, "signup", f.txn.ID)
+	}
 	var pe *identity.PolicyError
 	var ue *identity.UnauthorizedError
 	switch {

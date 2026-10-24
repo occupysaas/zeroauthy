@@ -11,6 +11,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -82,11 +83,19 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusTooManyRequests, "too_many_requests", "too many sign-ups from this address; try again later")
 		return
 	}
+	if h.directChallenge(w, r, res, "signup", decision.Receipt) {
+		return
+	}
+	attemptID := secrets.RandomString(32)
 	if err := svc.Finish(ctx, decision.Receipt, "failure"); err != nil {
 		h.internal(w, r, "protection completion", err)
 		return
 	}
 	if err := svc.CheckPassword(ctx, res.Tenant, "pre-user-registration", identity.EffectivePassword(conn, fields["password"])); err != nil {
+		if riskErr := h.recordFailure(r, res, "signup", attemptID, err); riskErr != nil {
+			h.internal(w, r, "record risk", riskErr)
+			return
+		}
 		if errors.Is(err, protection.ErrPasswordLeaked) {
 			writeErr(w, http.StatusBadRequest, "password_leaked", protection.ErrPasswordLeaked.Error())
 		} else {
@@ -99,6 +108,10 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		GivenName: fields["given_name"], FamilyName: fields["family_name"], Name: fields["name"],
 		Nickname: fields["nickname"], Picture: fields["picture"], UserMetadata: meta,
 	})
+	if riskErr := h.recordFailure(r, res, "signup", attemptID, err); riskErr != nil {
+		h.internal(w, r, "record risk", riskErr)
+		return
+	}
 	var pe *identity.PolicyError
 	var ue *identity.UnauthorizedError
 	switch {
