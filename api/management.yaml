@@ -2205,7 +2205,7 @@ components:
           type: array
           items:
             type: string
-            format: url-with-placeholders
+            format: url
         session_lifetime:
           type: number
           default: 168
