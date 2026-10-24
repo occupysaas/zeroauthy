@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/protectionrules"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
@@ -129,6 +130,7 @@ func newFixture(t *testing.T) *fixture {
 	if err := seed.Apply(context.Background(), st, f, fixedNow, wrapper); err != nil {
 		t.Fatal(err)
 	}
+	setProtectionLimits(t, st, 3, 30, 50)
 	km := newTestKeys(t)
 	tenants, _ := st.Tenants().List(context.Background())
 	for _, tn := range tenants {
@@ -140,9 +142,7 @@ func newFixture(t *testing.T) *fixture {
 	log := slog.New(slog.DiscardHandler)
 	return &fixture{st: st, keys: km, scripts: scripts, wrapper: wrapper, h: &Handlers{
 		Store: st, Now: fixedNow, Wrapper: wrapper, Minter: &Minter{Keys: km, Now: fixedNow}, Log: log,
-		Database:     &identity.Database{Store: st, Now: fixedNow, Log: log, Scripts: &customdb.Client{Exec: scripts, Wrapper: wrapper}},
-		UserThrottle: identity.NewThrottle(3, 15*time.Minute, 15*time.Minute),
-		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),
+		Database: &identity.Database{Store: st, Now: fixedNow, Log: log, Scripts: &customdb.Client{Exec: scripts, Wrapper: wrapper}},
 	}}
 }
 
@@ -163,4 +163,25 @@ func (f *fixture) tenantID(t *testing.T, name string) string {
 		t.Fatal(err)
 	}
 	return tn.ID
+}
+
+func setProtectionLimits(t *testing.T, st store.Store, brute, ip, registration int) {
+	t.Helper()
+	ctx := context.Background()
+	tenants, err := st.Tenants().List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tn := range tenants {
+		if !tn.ProtectionSettingsInitialized {
+			tn.ProtectionSettings = protectionrules.Defaults()
+			tn.ProtectionSettingsInitialized = true
+		}
+		tn.ProtectionSettings.BruteForce.MaxAttempts = brute
+		tn.ProtectionSettings.SuspiciousIP.Stage.PreLogin.MaxAttempts = ip
+		tn.ProtectionSettings.SuspiciousIP.Stage.PreUserRegistration.MaxAttempts = registration
+		if err := st.Tenants().Update(ctx, tn); err != nil {
+			t.Fatal(err)
+		}
+	}
 }

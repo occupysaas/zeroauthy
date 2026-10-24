@@ -7,10 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
-	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/passhash/passhashtest"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -115,7 +113,7 @@ func TestPasswordGrantThrottle(t *testing.T) {
 // A public client cannot pick its own throttling IP with auth0-forwarded-for.
 func TestForwardedForOnlyForConfidentialClients(t *testing.T) {
 	f := newFixture(t)
-	f.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	setProtectionLimits(t, f.st, 3, 2, 2)
 	for i := range 2 {
 		call := tokenCall{host: "acme.example.test", form: pw("ropg-public", "", "nobody@acme.test", "nope"),
 			header: map[string]string{"auth0-forwarded-for": fmt.Sprintf("10.0.0.%d", i)}}
@@ -138,7 +136,7 @@ func TestForwardedForOnlyForConfidentialClients(t *testing.T) {
 // confidential client could mint a fresh throttle key per request.
 func TestForwardedForMustBeAnIP(t *testing.T) {
 	f := newFixture(t)
-	f.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	setProtectionLimits(t, f.st, 3, 2, 2)
 	for i := range 2 {
 		f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "nobody@acme.test", "nope"),
 			header: map[string]string{"auth0-forwarded-for": fmt.Sprintf("not-an-ip-%d", i)}})

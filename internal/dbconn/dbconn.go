@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -23,11 +24,10 @@ const maxBodyBytes = 64 << 10
 
 // Handlers serves the /dbconnections endpoints.
 type Handlers struct {
+	Protection        *protection.Service
 	Store             store.Store
 	Database          *identity.Database
 	Mailer            email.Mailer // used by password-reset sends
-	IPThrottle        *identity.Throttle
-	SendThrottle      *identity.Throttle // per-email reset sends
 	TrustProxyHeaders bool
 	Log               *slog.Logger
 	Now               func() time.Time
@@ -108,4 +108,11 @@ func parseBody(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
 		return m, true
 	}
 	return bad("content type must be application/json or application/x-www-form-urlencoded")
+}
+
+func (h *Handlers) protectionService() *protection.Service {
+	if h.Protection != nil {
+		return h.Protection
+	}
+	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log}
 }

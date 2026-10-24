@@ -18,6 +18,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -30,16 +31,15 @@ const maxFormBytes = 16 << 10
 var errTxn = errors.New("login: invalid or expired transaction")
 
 type Handlers struct {
-	Store    store.Store
-	Sessions *session.Manager
-	Authz    *authz.Handlers
-	Database *identity.Database
-	Resets   *dbconn.Handlers // nil disables the hosted password reset pages
+	Protection *protection.Service
+	Store      store.Store
+	Sessions   *session.Manager
+	Authz      *authz.Handlers
+	Database   *identity.Database
+	Resets     *dbconn.Handlers // nil disables the hosted password reset pages
 	// Verification sends the verification email after a signup; nil sends
 	// none.
 	Verification *VerificationMailer
-	UserThrottle *identity.Throttle
-	IPThrottle   *identity.Throttle
 	// Device code entry limits (/activate). Each counts misses; a code
 	// that is found refunds its attempt.
 	DeviceTxnThrottle    *identity.Throttle // key: transaction ID
@@ -238,19 +238,32 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	login := r.PostForm.Get("username")
 	data := ui.LoginData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: login, SignupURL: signupURL(f), ForgotURL: h.forgotURL(f), RedirectURI: f.txn.Params["redirect_uri"]}
 
-	userKey := identity.UserThrottleKey(f.res.Tenant.ID, f.conn.Name, login)
-	ipKey := identity.IPThrottleKey(f.res.Tenant.ID, httpx.ClientIP(r, h.TrustProxyHeaders))
-	// A connection with brute-force protection off is not throttled.
-	userThrottle, ipThrottle := identity.ThrottleFor(f.conn, h.UserThrottle), identity.ThrottleFor(f.conn, h.IPThrottle)
-	// Attempt counts the try up front; it is undone or cleared below once
-	// the password turns out to be correct.
-	if !ipThrottle.Attempt(ipKey) || !userThrottle.Attempt(userKey) {
+	svc := h.protectionService()
+	decision, err := svc.Begin(ctx, protection.Attempt{Tenant: f.res.Tenant, Connection: f.conn, Identifier: login, IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "login"})
+	if err != nil {
+		h.fail(w, r, err, f)
+		return
+	}
+	if !decision.Allowed {
 		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
 		ui.RenderLogin(w, http.StatusTooManyRequests, f.view, data)
 		return
 	}
 
 	user, err := h.Database.Login(ctx, f.conn, login, r.PostForm.Get("password"))
+	outcome := "failure"
+	if err == nil || errors.Is(err, identity.ErrUserBlocked) {
+		outcome = "success"
+	} else if !errors.Is(err, identity.ErrInvalidCredentials) && !errors.Is(err, identity.ErrPasswordChangeRequired) && !identity.ScriptRaised(err) {
+		var refusal *identity.UnauthorizedError
+		if !errors.As(err, &refusal) {
+			outcome = "refund"
+		}
+	}
+	if finishErr := svc.Finish(ctx, decision.Receipt, outcome); finishErr != nil {
+		h.fail(w, r, finishErr, f)
+		return
+	}
 	var ue *identity.UnauthorizedError
 	switch {
 	case errors.Is(err, identity.ErrInvalidCredentials):
@@ -264,8 +277,6 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		ui.RenderLogin(w, http.StatusForbidden, f.view, data)
 		return
 	case errors.Is(err, identity.ErrUserBlocked):
-		userThrottle.Success(userKey)
-		ipThrottle.Refund(ipKey)
 		data.Error = f.view.L.T(i18n.KeyUserBlocked)
 		ui.RenderLogin(w, http.StatusForbidden, f.view, data)
 		return
@@ -278,15 +289,9 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		// A failure the script raised counts as a failed attempt; one that
 		// kept the script from answering does not (D-0023).
-		if !identity.ScriptRaised(err) {
-			userThrottle.Refund(userKey)
-			ipThrottle.Refund(ipKey)
-		}
 		h.fail(w, r, err, f)
 		return
 	}
-	userThrottle.Success(userKey)
-	ipThrottle.Refund(ipKey)
 	h.complete(w, r, f, user)
 }
 
@@ -318,13 +323,23 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		RequiresUsername: f.conn.RequiresUsername, LoginURL: "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
 		RedirectURI: f.txn.Params["redirect_uri"],
 	}
-	// Every signup hashes a password and stores a user, so each attempt
-	// counts against the IP limit and none is refunded.
-	if !h.IPThrottle.Attempt(identity.IPThrottleKey(f.res.Tenant.ID, httpx.ClientIP(r, h.TrustProxyHeaders))) {
+	svc := h.protectionService()
+	decision, err := svc.Begin(r.Context(), protection.Attempt{Tenant: f.res.Tenant, Connection: f.conn, Identifier: email, IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "signup"})
+	if err != nil {
+		h.fail(w, r, err, f)
+		return
+	}
+	if !decision.Allowed {
 		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
 		ui.RenderSignup(w, http.StatusTooManyRequests, f.view, data)
 		return
 	}
+	// Registration spends its token regardless of the credential outcome.
+	if err := svc.Finish(r.Context(), decision.Receipt, "failure"); err != nil {
+		h.fail(w, r, err, f)
+		return
+	}
+
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
 		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"),
 	})
@@ -400,4 +415,11 @@ func policyText(l *i18n.Localizer, pe *identity.PolicyError) string {
 		return l.T(i18n.KeyPasswordPolicyAlias, pe.Vars...)
 	}
 	return l.T(pe.Key, pe.Vars...)
+}
+
+func (h *Handlers) protectionService() *protection.Service {
+	if h.Protection != nil {
+		return h.Protection
+	}
+	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -87,14 +88,30 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		return nil, serverError()
 	}
 
-	userKey := identity.UserThrottleKey(tenantID, conn.Name, username)
-	ipKey := identity.IPThrottleKey(tenantID, clientIPFrom(ctx))
-	// A connection with brute-force protection off is not throttled.
-	userThrottle, ipThrottle := identity.ThrottleFor(conn, h.UserThrottle), identity.ThrottleFor(conn, h.IPThrottle)
-	if !ipThrottle.Attempt(ipKey) || !userThrottle.Attempt(userKey) {
+	svc := h.protectionService()
+	decision, err := svc.Begin(ctx, protection.Attempt{Tenant: res.Tenant, Connection: conn, Identifier: username, IP: clientIPFrom(ctx), Flow: "login"})
+	if err != nil {
+		h.log().ErrorContext(ctx, "protection admission", "err", err)
+		return nil, serverError()
+	}
+	if !decision.Allowed {
 		return nil, tooManyRequests()
 	}
+
 	user, err := h.Database.Login(ctx, conn, username, password)
+	outcome := "failure"
+	if err == nil || errors.Is(err, identity.ErrUserBlocked) {
+		outcome = "success"
+	} else if !errors.Is(err, identity.ErrInvalidCredentials) && !errors.Is(err, identity.ErrPasswordChangeRequired) && !identity.ScriptRaised(err) {
+		var refusal *identity.UnauthorizedError
+		if !errors.As(err, &refusal) {
+			outcome = "refund"
+		}
+	}
+	if finishErr := svc.Finish(ctx, decision.Receipt, outcome); finishErr != nil {
+		h.log().ErrorContext(ctx, "protection completion", "err", finishErr)
+		return nil, serverError()
+	}
 	var ue *identity.UnauthorizedError
 	switch {
 	case errors.Is(err, identity.ErrInvalidCredentials):
@@ -104,8 +121,6 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		h.log().InfoContext(ctx, "password grant: password change required", "tenant", tenantID, "client_id", c.ClientID, "connection", conn.Name)
 		return nil, &Error{Status: http.StatusForbidden, Code: "invalid_grant", Description: "Password change required."}
 	case errors.Is(err, identity.ErrUserBlocked):
-		userThrottle.Success(userKey)
-		ipThrottle.Refund(ipKey)
 		return nil, invalidGrant("user is blocked")
 	case errors.As(err, &ue):
 		// A custom database script refused the user; its message is meant
@@ -114,15 +129,9 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	case err != nil:
 		// A failure the script raised counts as a failed attempt; one that
 		// kept the script from answering does not (D-0023).
-		if !identity.ScriptRaised(err) {
-			userThrottle.Refund(userKey)
-			ipThrottle.Refund(ipKey)
-		}
 		h.log().ErrorContext(ctx, "password grant", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
-	userThrottle.Success(userKey)
-	ipThrottle.Refund(ipKey)
 	now := h.now().UTC()
 	if err := h.Store.Users().RecordLogin(ctx, tenantID, user.UserID, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {
 		h.log().WarnContext(ctx, "record login", "tenant", tenantID, "err", err)

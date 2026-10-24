@@ -10,6 +10,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -55,10 +56,7 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tenantID := res.Tenant.ID
-	if !h.IPThrottle.Attempt(identity.IPThrottleKey(tenantID, httpx.ClientIP(r, h.TrustProxyHeaders))) {
-		writeErr(w, http.StatusTooManyRequests, "too_many_requests", "too many sign-ups from this address; try again later")
-		return
-	}
+
 	if _, err := h.Store.Clients().Get(ctx, tenantID, fields["client_id"]); errors.Is(err, store.ErrNotFound) {
 		writeErr(w, http.StatusBadRequest, "invalid_request", "unknown client")
 		return
@@ -72,6 +70,20 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		h.internal(w, r, "load connection", err)
+		return
+	}
+	svc := h.protectionService()
+	decision, err := svc.Begin(ctx, protection.Attempt{Tenant: res.Tenant, Connection: conn, Identifier: fields["email"], IP: httpx.ClientIP(r, h.TrustProxyHeaders), Flow: "signup"})
+	if err != nil {
+		h.internal(w, r, "protection admission", err)
+		return
+	}
+	if !decision.Allowed {
+		writeErr(w, http.StatusTooManyRequests, "too_many_requests", "too many sign-ups from this address; try again later")
+		return
+	}
+	if err := svc.Finish(ctx, decision.Receipt, "failure"); err != nil {
+		h.internal(w, r, "protection completion", err)
 		return
 	}
 	user, err := h.Database.Signup(ctx, conn, identity.SignupInput{

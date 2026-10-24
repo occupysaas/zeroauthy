@@ -13,9 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -87,11 +85,9 @@ func newFlowEnvSeed(t *testing.T, seedText string, adjust func(*Deps)) *flowEnv 
 	km := keys.NewManager(st.SigningKeys(), w)
 	d := Deps{
 		Store: st, Keys: km, Wrapper: w, Resolver: tenant.NewResolver(st.Tenants(), "", false),
-		Log:          slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Sessions:     &session.Manager{Store: st},
-		Mailer:       discardMailer{},
-		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
-		IPThrottle:   identity.NewThrottle(100, time.Minute, time.Minute),
+		Log:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Sessions: &session.Manager{Store: st},
+		Mailer:   discardMailer{},
 	}
 	if adjust != nil {
 		adjust(&d)

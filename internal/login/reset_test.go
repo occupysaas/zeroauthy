@@ -13,7 +13,6 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
-	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -262,16 +261,15 @@ func TestResetCookieAndPages(t *testing.T) {
 
 func TestResetRequestSendLimit(t *testing.T) {
 	e := newEnv(t)
-	e.h.Resets.SendThrottle = identity.NewThrottle(2, time.Hour, time.Hour)
 	b := e.browser("acme.example.test")
 	_, state, csrf := b.begin(t)
-	for range 3 {
+	for range 4 {
 		if rec := b.do(t, "POST", "/u/reset-password/request", url.Values{"state": {state}, "csrf": {csrf}, "email": {"alice@acme.test"}}); rec.Code != 200 {
 			t.Fatalf("request = %d", rec.Code)
 		}
 	}
-	if len(e.mail.sent) != 2 {
-		t.Fatalf("sent %d emails, want 2", len(e.mail.sent))
+	if len(e.mail.sent) != 3 {
+		t.Fatalf("sent %d emails, want 3", len(e.mail.sent))
 	}
 }
 
@@ -288,23 +286,20 @@ func TestResetRequestUsernameSendsNothing(t *testing.T) {
 	}
 }
 
-// The forgot-password form counts against the per-IP limit; once it is
-// reached the form is shown again with 429, whatever the address.
-func TestResetRequestIPThrottle(t *testing.T) {
+// Reset sends have their own shared budget, independent of login IP state.
+func TestResetRequestDoesNotSpendLoginIPBudget(t *testing.T) {
 	e := newEnv(t)
-	e.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	setProtectionLimits(t, e.st, 3, 1, 50)
 	b := e.browser("acme.example.test")
 	_, state, csrf := b.begin(t)
-	var rec *httptest.ResponseRecorder
 	for _, addr := range []string{"nobody@acme.test", "nobody2@acme.test", "alice@acme.test"} {
-		rec = b.do(t, "POST", "/u/reset-password/request", url.Values{"state": {state}, "csrf": {csrf}, "email": {addr}})
+		rec := b.do(t, "POST", "/u/reset-password/request", url.Values{"state": {state}, "csrf": {csrf}, "email": {addr}})
+		if rec.Code != 200 {
+			t.Fatalf("generic reset response: %d", rec.Code)
+		}
 	}
-	if rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "Too many attempts") ||
-		!strings.Contains(rec.Body.String(), `action="/u/reset-password/request"`) {
-		t.Fatalf("third request = %d %s", rec.Code, rec.Body)
-	}
-	if len(e.mail.sent) != 0 {
-		t.Fatalf("sent %d emails while throttled", len(e.mail.sent))
+	if len(e.mail.sent) != 1 {
+		t.Fatalf("sent %d emails", len(e.mail.sent))
 	}
 }
 
@@ -627,5 +622,72 @@ func TestResetRefusesHistoryAndPersonalData(t *testing.T) {
 	hist, _ := e.st.PasswordHistories().List(ctx, c.TenantID, e.user(t, "alice@acme.test").UserID)
 	if len(hist) != 2 {
 		t.Fatalf("stored history = %d, want 2", len(hist))
+	}
+}
+
+func TestFailedResetPreservesAutomaticBlock(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	login := func() int {
+		return b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"wrong"}}).Code
+	}
+	for range 3 {
+		if code := login(); code != 401 {
+			t.Fatal(code)
+		}
+	}
+	if rec := completeReset(t, e.browser("acme.example.test"), e.issueTicket(t, "alice@acme.test", time.Hour), "x"); rec.Code != 400 {
+		t.Fatalf("weak reset: %d", rec.Code)
+	}
+	if code := login(); code != 429 {
+		t.Fatalf("failed reset cleared block: %d", code)
+	}
+}
+
+type historyFailureStore struct{ store.Store }
+
+func (s historyFailureStore) PasswordHistories() store.PasswordHistories {
+	return historyFailure{s.Store.PasswordHistories()}
+}
+func (s historyFailureStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(historyFailureStore{tx}) })
+}
+
+type historyFailure struct{ store.PasswordHistories }
+
+func (historyFailure) Add(context.Context, string, string, []byte, int) error {
+	return store.ErrInvalid
+}
+
+func TestLegacyResetHistoryFailurePreservesBlock(t *testing.T) {
+	le := newLegacyResetEnv(t)
+	ctx := context.Background()
+	b := le.browser("acme.example.test")
+	ticket := le.requestLegacyReset(t, b)
+	tn := mustTenant(t, le.env, "acme")
+	conn, err := le.st.Connections().GetByName(ctx, tn.ID, "Legacy-DB")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.PasswordOptions.History = store.PasswordHistory{Active: true, Size: 2}
+	if err := le.st.Connections().Update(ctx, conn); err != nil {
+		t.Fatal(err)
+	}
+	d, err := le.st.Protection().Reserve(ctx, []store.ProtectionLimit{{Key: store.ProtectionKey{TenantID: tn.ID, Kind: store.ProtectionBruteForce, ConnectionID: conn.ID, Identifier: "dave@legacy.test"}, Algorithm: "brute-force", Capacity: 1, Lockout: time.Hour}}, fixedNow())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := le.st.Protection().Complete(ctx, d.Receipt, "failure", fixedNow()); err != nil {
+		t.Fatal(err)
+	}
+	le.h.Store = historyFailureStore{le.st}
+	le.h.Database.Store = le.h.Store
+	if rec := completeReset(t, b, ticket, "new legacy pw 1"); rec.Code != 500 {
+		t.Fatalf("history failure: %d", rec.Code)
+	}
+	blocks, err := le.st.Protection().Blocks(ctx, tn.ID, store.ProtectionFilter{Kind: store.ProtectionBruteForce}, fixedNow())
+	if err != nil || len(blocks) != 1 {
+		t.Fatalf("failed reset cleared automatic block: %+v %v", blocks, err)
 	}
 }

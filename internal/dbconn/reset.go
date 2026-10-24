@@ -11,6 +11,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -113,9 +114,31 @@ func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *st
 // RequestReset sends user a reset link in the background, unless the user
 // is blocked or has reached the per-user send limit. The hosted
 // forgot-password page and /dbconnections/change_password share the limit.
-func (h *Handlers) RequestReset(res tenant.Resolved, conn *store.Connection, user *store.User, clientID, lang string) {
-	if user.Blocked || !h.SendThrottle.Attempt("reset|"+res.Tenant.ID+"|"+conn.Name+"|"+user.UserID) {
-		return
+func (h *Handlers) RequestReset(res tenant.Resolved, conn *store.Connection, user *store.User, clientID, lang string) error {
+	if user.Blocked {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	svc := h.protectionService()
+	identifier := user.UserID
+	for i := range user.Identities {
+		id := &user.Identities[i]
+		if id.Connection == conn.Name && id.Provider == store.StrategyDatabase {
+			identifier = protection.IdentityIdentifier(user, id)
+			break
+		}
+	}
+	decision, err := svc.Begin(ctx, protection.Attempt{Tenant: res.Tenant, Connection: conn, Identifier: identifier, Flow: "reset-send"})
+	if err != nil {
+		return err
+	}
+	if !decision.Allowed {
+		return nil
+	}
+	// Sending failures retain their charge, as does an abandoned background send.
+	if err := svc.Finish(ctx, decision.Receipt, "failure"); err != nil {
+		return err
 	}
 	h.goRun(func() {
 		// The request context ends with the response.
@@ -125,6 +148,7 @@ func (h *Handlers) RequestReset(res tenant.Resolved, conn *store.Connection, use
 			h.log().Error("send reset email", "err", err, "tenant", res.Tenant.ID, "user_id", user.UserID)
 		}
 	})
+	return nil
 }
 
 // goRun runs f in the background; see RunInBackground.

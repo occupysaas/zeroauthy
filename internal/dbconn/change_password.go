@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -43,10 +42,6 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	tenantID := res.Tenant.ID
-	if !h.IPThrottle.Attempt(identity.IPThrottleKey(tenantID, httpx.ClientIP(r, h.TrustProxyHeaders))) {
-		writeErr(w, http.StatusTooManyRequests, "too_many_requests", "too many requests from this address; try again later")
-		return
-	}
 	if id := fields["client_id"]; id != "" {
 		if _, err := h.Store.Clients().Get(ctx, tenantID, id); errors.Is(err, store.ErrNotFound) {
 			writeErr(w, http.StatusBadRequest, "invalid_request", "unknown client")
@@ -76,7 +71,10 @@ func (h *Handlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var ue *identity.UnauthorizedError
 	switch {
 	case err == nil:
-		h.RequestReset(res, conn, user, fields["client_id"], i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language")))
+		if err := h.RequestReset(res, conn, user, fields["client_id"], i18n.Negotiate(res.Tenant, "", r.Header.Get("Accept-Language"))); err != nil {
+			h.internal(w, r, "reset admission", err)
+			return
+		}
 	case errors.Is(err, store.ErrNotFound), errors.As(err, &ue), errors.Is(err, identity.ErrScript):
 	default:
 		h.internal(w, r, "find user", err)

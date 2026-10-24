@@ -11,9 +11,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -92,10 +90,8 @@ func newMgmtEnvOn(t *testing.T, st store.Store, seedText string, adjust func(*De
 		Store: st, Keys: km, Wrapper: w,
 		Resolver: tenant.NewResolver(st.Tenants(), "", false),
 		Sessions: &session.Manager{Store: st}, Mailer: discardMailer{},
-		Log:          slog.New(slog.NewTextHandler(io.Discard, nil)),
-		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
-		IPThrottle:   identity.NewThrottle(100, time.Minute, time.Minute),
-		SystemHost:   mgmtSystemHost,
+		Log:        slog.New(slog.NewTextHandler(io.Discard, nil)),
+		SystemHost: mgmtSystemHost,
 	}
 	if adjust != nil {
 		adjust(&d)

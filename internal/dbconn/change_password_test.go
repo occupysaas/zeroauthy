@@ -5,10 +5,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
-	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -100,32 +99,29 @@ func TestChangePasswordBlockedUserGetsNoEmail(t *testing.T) {
 
 func TestChangePasswordSendLimit(t *testing.T) {
 	e := newEnv(t)
-	e.h.SendThrottle = identity.NewThrottle(2, time.Hour, time.Hour)
-	for range 3 {
+	for range 4 {
 		e.post(t, "/dbconnections/change_password", "application/json",
 			`{"connection":"Username-Password-Authentication","email":"alice@acme.test"}`)
 	}
-	if len(e.mail.sent) != 2 {
-		t.Fatalf("sent %d emails, want 2 (the third is silently skipped)", len(e.mail.sent))
+	if len(e.mail.sent) != 3 {
+		t.Fatalf("sent %d emails, want 3 (the fourth is silently skipped)", len(e.mail.sent))
 	}
 }
 
-func TestChangePasswordIPThrottle(t *testing.T) {
+func TestChangePasswordDoesNotSpendLoginIPBudget(t *testing.T) {
 	e := newEnv(t)
-	e.h.IPThrottle = identity.NewThrottle(2, time.Hour, time.Hour)
-	var code int
-	var body map[string]any
-	for range 3 {
-		code, body, _ = e.post(t, "/dbconnections/change_password", "application/json",
-			`{"connection":"Username-Password-Authentication","email":"alice@acme.test"}`)
+	setProtectionLimits(t, e.st, 3, 1, 50)
+	for range 4 {
+		code, _, _ := e.post(t, "/dbconnections/change_password", "application/json", `{"connection":"Username-Password-Authentication","email":"alice@acme.test"}`)
+		if code != 200 {
+			t.Fatalf("generic reset response = %d", code)
+		}
 	}
-	if code != 429 || body["error"] != "too_many_requests" || len(e.mail.sent) != 2 {
-		t.Fatalf("third request = %d %v, sent %d", code, body, len(e.mail.sent))
+	if len(e.mail.sent) != 3 {
+		t.Fatalf("send budget: %d", len(e.mail.sent))
 	}
 }
 
-// An address over the email length cap cannot belong to a user: it gets the
-// usual 200 and no email, and never reaches the store (MySQL would reject it).
 func TestChangePasswordOverlongEmail(t *testing.T) {
 	e := newEnv(t)
 	code, _, text := e.post(t, "/dbconnections/change_password", "application/json",
@@ -202,5 +198,19 @@ func TestImportChangePassword(t *testing.T) {
 	}
 	if n := len(e.scripts.Requests()); n != 1 {
 		t.Fatalf("script calls = %d, want 1", n)
+	}
+}
+
+func TestSharedResetSendHandlers(t *testing.T) {
+	e := newEnv(t)
+	for range 4 {
+		e.h.Protection = &protection.Service{Store: e.st, Now: fixedNow, Log: e.h.Log}
+		code, _, _ := e.post(t, "/dbconnections/change_password", "application/json", `{"connection":"Username-Password-Authentication","email":"alice@acme.test"}`)
+		if code != 200 {
+			t.Fatalf("generic response: %d", code)
+		}
+	}
+	if len(e.mail.sent) != 3 {
+		t.Fatalf("shared budget sent %d emails, want 3", len(e.mail.sent))
 	}
 }

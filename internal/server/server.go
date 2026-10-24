@@ -26,12 +26,14 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/oauth"
 	"github.com/zeroauthy/zeroauthy/internal/oidc"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 type Deps struct {
+	Protection *protection.Service
 	// BreachCheckerAvailable is set only after successful checker construction.
 	BreachCheckerAvailable bool
 
@@ -56,10 +58,7 @@ type Deps struct {
 
 	// Scripts runs custom database scripts; nil makes customized
 	// connections fail.
-	Scripts *customdb.Client
-
-	UserThrottle      *identity.Throttle
-	IPThrottle        *identity.Throttle
+	Scripts           *customdb.Client
 	TrustProxyHeaders bool
 
 	// BaseDomain is server.base_domain, and SystemHost the system tenant's
@@ -150,20 +149,24 @@ func New(d Deps) http.Handler {
 	// One mailer sends every verification email: after a signup (API and
 	// hosted page) and for the Management API's verify_email.
 	verification := &login.VerificationMailer{Store: d.Store, Mailer: d.Mailer, BaseDomain: d.BaseDomain, Log: d.Log}
-	// One instance serves the API and the hosted reset pages, so they share
-	// the per-user reset send limit.
+	// All password flows use the store-backed policy service. Reset send
+	// budgets also remain shared across independently constructed servers.
+	sharedProtection := d.Protection
+	if sharedProtection == nil {
+		sharedProtection = &protection.Service{Store: d.Store, Log: d.Log}
+	}
 	dbconnHandlers := &dbconn.Handlers{
 		Store: d.Store, Database: db,
-		IPThrottle: d.IPThrottle, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
-		Mailer: d.Mailer, SendThrottle: identity.NewThrottle(3, time.Hour, time.Hour),
+		Protection: sharedProtection, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
+		Mailer:       d.Mailer,
 		Verification: verification,
 	}
 	lg := &login.Handlers{
 		Store: d.Store, Sessions: d.Sessions, Authz: az,
-		Database:     db,
-		Resets:       dbconnHandlers,
-		Verification: verification,
-		UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
+		Database:          db,
+		Resets:            dbconnHandlers,
+		Verification:      verification,
+		Protection:        sharedProtection,
 		DeviceTxnThrottle: d.DeviceTxnThrottle, DeviceIPThrottle: d.DeviceIPThrottle, DeviceTenantThrottle: d.DeviceTenantThrottle,
 		TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 	}
@@ -175,9 +178,9 @@ func New(d Deps) http.Handler {
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
 				Store: d.Store, Log: d.Log, Minter: &oauth.Minter{Keys: d.Keys}, Wrapper: d.Wrapper,
-				BaseDomain:   d.BaseDomain,
-				Database:     db,
-				UserThrottle: d.UserThrottle, IPThrottle: d.IPThrottle,
+				BaseDomain:        d.BaseDomain,
+				Database:          db,
+				Protection:        sharedProtection,
 				TrustProxyHeaders: d.TrustProxyHeaders,
 			},
 			authz:  az,

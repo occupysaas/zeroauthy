@@ -20,6 +20,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/oauth"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
+	"github.com/zeroauthy/zeroauthy/internal/protectionrules"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -124,6 +127,7 @@ func newEnv(t *testing.T) *env {
 	if err := seed.Apply(context.Background(), st, f, fixedNow, wrapper); err != nil {
 		t.Fatal(err)
 	}
+	setProtectionLimits(t, st, 3, 30, 50)
 	sm := &session.Manager{Store: st, Now: fixedNow}
 	logs := &syncBuffer{}
 	log := slog.New(slog.NewTextHandler(logs, nil))
@@ -133,9 +137,7 @@ func newEnv(t *testing.T) *env {
 		Store: st, Sessions: sm, Authz: az, Log: log,
 		Database: &identity.Database{Store: st, Now: fixedNow, Log: log,
 			Scripts: &customdb.Client{Exec: scripts, Wrapper: wrapper}},
-		UserThrottle: identity.NewThrottle(3, 15*time.Minute, 15*time.Minute),
-		IPThrottle:   identity.NewThrottle(30, 15*time.Minute, 15*time.Minute),
-		Now:          fixedNow,
+		Now: fixedNow,
 
 		DeviceTxnThrottle:    identity.NewThrottle(5, authz.TxnLifetime, authz.TxnLifetime),
 		DeviceIPThrottle:     identity.NewThrottle(10, 15*time.Minute, 15*time.Minute),
@@ -144,10 +146,8 @@ func newEnv(t *testing.T) *env {
 	mail := &recorder{}
 	h.Resets = &dbconn.Handlers{
 		Store: st, Now: fixedNow, Mailer: mail, Go: func(f func()) { f() },
-		Database:     h.Database,
-		SendThrottle: identity.NewThrottle(100, time.Hour, time.Hour),
-		IPThrottle:   identity.NewThrottle(100, time.Hour, time.Hour),
-		Log:          log,
+		Database: h.Database,
+		Log:      log,
 	}
 	h.Verification = &VerificationMailer{Store: st, Mailer: mail, Now: fixedNow, Log: log, Go: func(f func()) { f() }}
 	mux := http.NewServeMux()
@@ -425,7 +425,7 @@ func mustTenant(t *testing.T, e *env, name string) *store.Tenant {
 
 func TestIPThrottle(t *testing.T) {
 	e := newEnv(t)
-	e.h.IPThrottle = identity.NewThrottle(3, 15*time.Minute, 15*time.Minute)
+	setProtectionLimits(t, e.st, 3, 3, 3)
 	b := e.browser("acme.example.test")
 	_, state, csrf := b.begin(t)
 	var last int
@@ -440,7 +440,7 @@ func TestIPThrottle(t *testing.T) {
 
 func TestSuccessfulLoginsRefundIPAttempt(t *testing.T) {
 	e := newEnv(t)
-	e.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	setProtectionLimits(t, e.st, 3, 2, 2)
 	for i := 0; i < 5; i++ {
 		b := e.browser("acme.example.test")
 		_, state, csrf := b.begin(t)
@@ -488,7 +488,7 @@ func TestFormPagesAllowClientOriginInFormAction(t *testing.T) {
 
 func TestSignupIPThrottle(t *testing.T) {
 	e := newEnv(t)
-	e.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	setProtectionLimits(t, e.st, 3, 2, 2)
 	signup := func(email string) *httptest.ResponseRecorder {
 		b := e.browser("acme.example.test")
 		_, state, csrf := b.begin(t, "screen_hint", "signup")
@@ -741,7 +741,7 @@ func TestLegacyLoginUnauthorizedMessage(t *testing.T) {
 
 func TestLegacyLoginScriptFailureRefundsThrottles(t *testing.T) {
 	e := newEnv(t)
-	e.h.IPThrottle = identity.NewThrottle(2, 15*time.Minute, 15*time.Minute)
+	setProtectionLimits(t, e.st, 3, 2, 2)
 	failing := true
 	e.scripts.Funcs[store.ScriptLogin] = func(args []any) (any, error) {
 		if failing {
@@ -886,5 +886,123 @@ func TestLegacyLoginLogsMaskScriptErrors(t *testing.T) {
 	out := e.logs.String()
 	if !strings.Contains(out, "login page") || strings.Contains(out, "cfg-secret-9f3a") {
 		t.Fatalf("log = %s", out)
+	}
+}
+
+// Independent handler instances must share reservations, even when their
+// protection services are freshly constructed.
+func TestSharedProtectionHandlers(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	tenant := mustTenant(t, e, "acme")
+	tenant.ProtectionSettings = protectionrules.Defaults()
+	tenant.ProtectionSettings.BruteForce.MaxAttempts = 3
+	tenant.ProtectionSettingsInitialized = true
+	if err := e.st.Tenants().Update(context.Background(), tenant); err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		e.h.Protection = &protection.Service{Store: e.st, Now: fixedNow, Log: e.h.Log}
+		rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"wrong"}})
+		if rec.Code != 401 {
+			t.Fatalf("wrong password: %d", rec.Code)
+		}
+	}
+	e.h.Protection = &protection.Service{Store: e.st, Now: fixedNow, Log: e.h.Log}
+	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"alice password 1"}})
+	if rec.Code != 429 || b.cookies[session.CookieName] != nil {
+		t.Fatalf("shared block bypassed: %d", rec.Code)
+	}
+}
+
+func setProtectionLimits(t *testing.T, st store.Store, brute, ip, registration int) {
+	t.Helper()
+	ctx := context.Background()
+	tenants, err := st.Tenants().List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tn := range tenants {
+		if !tn.ProtectionSettingsInitialized {
+			tn.ProtectionSettings = protectionrules.Defaults()
+			tn.ProtectionSettingsInitialized = true
+		}
+		tn.ProtectionSettings.BruteForce.MaxAttempts = brute
+		tn.ProtectionSettings.SuspiciousIP.Stage.PreLogin.MaxAttempts = ip
+		tn.ProtectionSettings.SuspiciousIP.Stage.PreUserRegistration.MaxAttempts = registration
+		if err := st.Tenants().Update(ctx, tn); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestSharedHostedPasswordGrantProtection(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	tn := mustTenant(t, e, "acme")
+	c, err := e.st.Clients().Get(ctx, tn.ID, "spa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.GrantTypes = append(c.GrantTypes, "password")
+	c.IsFirstParty = true
+	if err := e.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	tn.DefaultDirectory = "Username-Password-Authentication"
+	if err := e.st.Tenants().Update(ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	hosted := func(password string) int {
+		return b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {password}}).Code
+	}
+	grant := func(password string) int {
+		// A fresh handler and service still see the same persisted admission state.
+		h := &oauth.Handlers{Store: e.st, Database: e.h.Database, Now: fixedNow, Log: e.h.Log}
+		r := httptest.NewRequest("POST", "https://acme.example.test/oauth/token", strings.NewReader(url.Values{"grant_type": {"password"}, "client_id": {"spa"}, "username": {"alice1"}, "password": {password}}.Encode()))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+		tenant.NewResolver(e.st.Tenants(), "", false).Middleware(http.HandlerFunc(h.OauthToken)).ServeHTTP(rec, r)
+		return rec.Code
+	}
+	if code := hosted("wrong"); code != 401 {
+		t.Fatal(code)
+	}
+	if code := grant("wrong"); code != 400 {
+		t.Fatalf("grant wrong credentials: %d", code)
+	}
+	if code := hosted("wrong"); code != 401 {
+		t.Fatal(code)
+	}
+	if code := grant("alice password 1"); code != 429 {
+		t.Fatalf("grant bypassed hosted failures: %d", code)
+	}
+	if code := hosted("alice password 1"); code != 429 {
+		t.Fatalf("hosted bypassed grant failure: %d", code)
+	}
+}
+
+type unavailableProtectionStore struct{ store.Store }
+
+func (s unavailableProtectionStore) Protection() store.Protection {
+	return store.UnimplementedProtection{}
+}
+
+func TestProtectionStoreFailureBeforeCredentials(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	e.h.Protection = &protection.Service{Store: unavailableProtectionStore{e.st}, Now: fixedNow, Log: e.h.Log}
+	before := e.user(t, "alice@acme.test")
+	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"alice password 1"}})
+	if rec.Code != 500 || b.cookies[session.CookieName] != nil {
+		t.Fatalf("store failure admitted login: %d", rec.Code)
+	}
+	after := e.user(t, "alice@acme.test")
+	if after.Version != before.Version || after.LoginsCount != before.LoginsCount {
+		t.Fatal("failed protection mutated user")
 	}
 }

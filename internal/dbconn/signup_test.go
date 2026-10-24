@@ -19,6 +19,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/protectionrules"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
@@ -86,6 +87,7 @@ func newEnv(t *testing.T) *env {
 	if err := seed.Apply(context.Background(), st, f, fixedNow, wrapper); err != nil {
 		t.Fatal(err)
 	}
+	setProtectionLimits(t, st, 3, 30, 50)
 	tn, err := st.Tenants().GetByName(context.Background(), "acme")
 	if err != nil {
 		t.Fatal(err)
@@ -96,9 +98,7 @@ func newEnv(t *testing.T) *env {
 	log := slog.New(slog.NewTextHandler(logs, nil))
 	return &env{st: st, tenantID: tn.ID, strict: true, mail: mail, scripts: scripts, logs: logs, h: &Handlers{
 		Store: st, Now: fixedNow, Mailer: mail, Go: func(f func()) { f() }, Log: log,
-		SendThrottle: identity.NewThrottle(100, time.Hour, time.Hour),
-		Database:     &identity.Database{Store: st, Now: fixedNow, Log: log, Scripts: &customdb.Client{Exec: scripts}},
-		IPThrottle:   identity.NewThrottle(100, time.Hour, time.Hour),
+		Database: &identity.Database{Store: st, Now: fixedNow, Log: log, Scripts: &customdb.Client{Exec: scripts}},
 	}}
 }
 
@@ -244,7 +244,7 @@ func TestSignupConflict(t *testing.T) {
 
 func TestSignupIPThrottle(t *testing.T) {
 	e := newEnv(t)
-	e.h.IPThrottle = identity.NewThrottle(1, time.Hour, time.Hour)
+	setProtectionLimits(t, e.st, 3, 1, 1)
 	b := func(n int) string {
 		return fmt.Sprintf(`{"client_id":"app","connection":"Username-Password-Authentication","email":"t%d@acme.test","password":"a good password 1"}`, n)
 	}
@@ -420,5 +420,26 @@ func TestSignupSendsVerificationEmail(t *testing.T) {
 	}
 	if len(v.sent) != 1 {
 		t.Fatalf("sent = %v after a failed signup", v.sent)
+	}
+}
+
+func setProtectionLimits(t *testing.T, st store.Store, brute, ip, registration int) {
+	t.Helper()
+	ctx := context.Background()
+	tenants, err := st.Tenants().List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tn := range tenants {
+		if !tn.ProtectionSettingsInitialized {
+			tn.ProtectionSettings = protectionrules.Defaults()
+			tn.ProtectionSettingsInitialized = true
+		}
+		tn.ProtectionSettings.BruteForce.MaxAttempts = brute
+		tn.ProtectionSettings.SuspiciousIP.Stage.PreLogin.MaxAttempts = ip
+		tn.ProtectionSettings.SuspiciousIP.Stage.PreUserRegistration.MaxAttempts = registration
+		if err := st.Tenants().Update(ctx, tn); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

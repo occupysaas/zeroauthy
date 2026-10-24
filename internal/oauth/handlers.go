@@ -10,13 +10,15 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 type Handlers struct {
-	Store store.Store
-	Log   *slog.Logger
-	Now   func() time.Time
+	Protection *protection.Service
+	Store      store.Store
+	Log        *slog.Logger
+	Now        func() time.Time
 
 	// BaseDomain is server.base_domain; it names each tenant's Management
 	// API identifier (tenant.ManagementAPIIdentifier).
@@ -28,11 +30,9 @@ type Handlers struct {
 	// sealed secret fail to authenticate; legacy hashes still work.
 	Wrapper keys.Wrapper
 
-	// Database, UserThrottle and IPThrottle serve the password grants.
+	// Database and Protection serve the password grants.
 	// The throttles are the hosted login's, so both paths share limits.
 	Database          *identity.Database
-	UserThrottle      *identity.Throttle
-	IPThrottle        *identity.Throttle
 	TrustProxyHeaders bool
 }
 
@@ -48,4 +48,11 @@ func (h *Handlers) log() *slog.Logger {
 		return h.Log
 	}
 	return slog.Default()
+}
+
+func (h *Handlers) protectionService() *protection.Service {
+	if h.Protection != nil {
+		return h.Protection
+	}
+	return &protection.Service{Store: h.Store, Now: h.Now, Log: h.Log}
 }

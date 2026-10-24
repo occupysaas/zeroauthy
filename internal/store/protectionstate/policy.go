@@ -29,11 +29,17 @@ func (s *State) Policy(old, next store.ProtectionSettings) {
 func UserFilters(u *store.User, connections []*store.Connection) []store.ProtectionFilter {
 	var fs []store.ProtectionFilter
 	for _, c := range connections {
-		for _, identity := range u.Identities {
+		for i := range u.Identities {
+			identity := &u.Identities[i]
 			if identity.Connection != c.Name {
 				continue
 			}
-			for _, alias := range []string{u.Email, u.Username, u.UserID, identity.UserID} {
+			email, username := u.IdentityLogin(identity)
+			aliases := []string{email, username}
+			if email == "" && username == "" {
+				aliases = append(aliases, identity.UserID)
+			}
+			for _, alias := range aliases {
 				if alias != "" {
 					fs = append(fs, store.ProtectionFilter{ConnectionID: c.ID, Identifier: strings.ToLower(strings.TrimSpace(alias))})
 				}

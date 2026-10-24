@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -44,8 +44,7 @@ func (h *Handlers) ResetRequestPage(w http.ResponseWriter, r *http.Request) {
 // ResetRequestSubmit serves POST /u/reset-password/request. It always shows
 // the same page, so the response does not reveal whether the address has an
 // account; the link is emailed only to an existing, unblocked user within
-// the send limit. Requests count against the per-IP limit; a throttled one
-// gets the form again with 429.
+// the send limit. Exhausted send budgets preserve the generic response.
 func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 	if h.Resets == nil {
 		http.NotFound(w, r)
@@ -55,20 +54,15 @@ func (h *Handlers) ResetRequestSubmit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	// Each request counts against the per-IP limit shared with the login
-	// form. The throttled page says nothing about the address.
-	if !h.IPThrottle.Attempt(identity.IPThrottleKey(f.res.Tenant.ID, httpx.ClientIP(r, h.TrustProxyHeaders))) {
-		data := h.resetRequestData(f, r.PostForm.Get("email"))
-		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
-		ui.RenderResetRequest(w, http.StatusTooManyRequests, f.view, data)
-		return
-	}
 	ctx := r.Context()
 	user, err := h.Resets.FindByEmail(ctx, f.conn, r.PostForm.Get("email"))
 	var ue *identity.UnauthorizedError
 	switch {
 	case err == nil:
-		h.Resets.RequestReset(f.res, f.conn, user, f.txn.ClientID, f.view.L.Lang())
+		if err := h.Resets.RequestReset(f.res, f.conn, user, f.txn.ClientID, f.view.L.Lang()); err != nil {
+			h.fail(w, r, err, f)
+			return
+		}
 	case errors.As(err, &ue), errors.Is(err, store.ErrNotFound), errors.Is(err, identity.ErrScript):
 		// Nothing to send; the page must not say so. identity has logged
 		// a script failure.
@@ -237,10 +231,10 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	pw = identity.EffectivePassword(conn, pw)
 
-	// 5. Hash the new password of a local connection.
+	// 5. Hash outside the transaction for local credentials or legacy history.
 	legacy := identity.IsLegacy(conn)
 	var hash string
-	if !legacy {
+	if !legacy || (conn.PasswordOptions.History.Active && conn.PasswordOptions.History.Size > 0) {
 		if hash, err = secrets.Hash(pw); err != nil {
 			h.fail(w, r, err, nil)
 			return
@@ -315,8 +309,11 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		if _, err := tx.PasswordResetTickets().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
 			return err
 		}
+		if err := protection.ClearIdentity(ctx, tx, conn, user); err != nil {
+			return err
+		}
 		if legacy {
-			return nil
+			return identity.RecordPassword(ctx, tx, conn, tk.UserID, hash)
 		}
 		if err := tx.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); err != nil {
 			return err
@@ -330,14 +327,6 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, nil)
 		return
 	}
-	// A legacy store already has the password (step 7), so nothing is
-	// stored locally but the history.
-	if legacy {
-		if err := h.Database.RecordLegacyPassword(ctx, conn, tk.UserID, pw); err != nil {
-			h.fail(w, r, err, nil)
-			return
-		}
-	}
 	h.log().InfoContext(ctx, "password reset", "tenant", res.Tenant.ID, "user_id", tk.UserID)
 	// A Management API ticket with mark_email_as_verified also verifies
 	// the email (U6). Its result_url is not used: Auth0's page shows the
@@ -346,13 +335,6 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		if err := h.setEmailVerified(ctx, res.Tenant.ID, tk.UserID, now); err != nil {
 			h.log().ErrorContext(ctx, "reset: mark email verified", "tenant", res.Tenant.ID, "user_id", tk.UserID, "err", err)
 		}
-	}
-
-	// 9. A password change unblocks a user locked by brute-force
-	// protection, as on Auth0.
-	h.UserThrottle.Success(identity.UserThrottleKey(res.Tenant.ID, tk.Connection, user.Email))
-	if user.Username != "" {
-		h.UserThrottle.Success(identity.UserThrottleKey(res.Tenant.ID, tk.Connection, user.Username))
 	}
 
 	// 10. Clear the form and session cookies.
