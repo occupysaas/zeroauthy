@@ -213,3 +213,24 @@ func TestCaptchaEnterpriseTransactionAction(t *testing.T) {
 		t.Fatal("enterprise action does not bind local transaction")
 	}
 }
+func TestCaptchaProviderFailureClassification(t *testing.T) {
+	for _, provider := range []string{"recaptcha_v2", "hcaptcha", "friendly_captcha"} {
+		for _, tc := range []struct {
+			code string
+			want error
+		}{{"invalid-input-secret", ErrCaptchaUnavailable}, {"missing-input-secret", ErrCaptchaUnavailable}, {"sitekey-secret-mismatch", ErrCaptchaUnavailable}, {"internal-error", ErrCaptchaUnavailable}, {"unknown-error", ErrCaptchaUnavailable}, {"timeout-or-duplicate", ErrCaptchaInvalid}, {"invalid-input-response", ErrCaptchaInvalid}, {"solution_invalid", ErrCaptchaInvalid}, {"secret_invalid", ErrCaptchaUnavailable}} {
+			t.Run(provider+"/"+tc.code, func(t *testing.T) {
+				s, c := captchaFixture(t, provider, breachTransport(func(*http.Request) (*http.Response, error) {
+					return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"success":false,"error-codes":["` + tc.code + `"]}`))}, nil
+				}))
+				err := s.VerifyChallenge(context.Background(), c, "proof")
+				if !errors.Is(err, tc.want) {
+					t.Fatalf("got %v want %v", err, tc.want)
+				}
+				if QualifyingFailure("login", err) != (tc.want == ErrCaptchaInvalid) {
+					t.Fatal("wrong risk classification")
+				}
+			})
+		}
+	}
+}

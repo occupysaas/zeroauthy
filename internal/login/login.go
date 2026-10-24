@@ -289,7 +289,9 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	// Refresh widget state after a failure may cross the local risk threshold.
 	if riskErr != nil {
-		_, _ = h.prepareCaptcha(r, f.res, &f.view, "login", f.txn.ID)
+		if !h.captchaPage(w, r, f, "login") {
+			return
+		}
 	}
 
 	if breachErr != nil {
@@ -416,6 +418,9 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 			h.fail(w, r, riskErr, f)
 			return
 		}
+		if !h.captchaPage(w, r, f, "signup") {
+			return
+		}
 		status, key := breachFailure(err, http.StatusBadRequest)
 		data.Error = f.view.L.T(key)
 		ui.RenderSignup(w, status, f.view, data)
@@ -429,7 +434,9 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		_, _ = h.prepareCaptcha(r, f.res, &f.view, "signup", f.txn.ID)
+		if !h.captchaPage(w, r, f, "signup") {
+			return
+		}
 	}
 	var pe *identity.PolicyError
 	var ue *identity.UnauthorizedError

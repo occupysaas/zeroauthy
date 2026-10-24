@@ -12,6 +12,7 @@ import (
 )
 
 type captchaStub struct {
+	err   error
 	calls int
 	last  protection.CaptchaChallenge
 }
@@ -19,6 +20,9 @@ type captchaStub struct {
 func (c *captchaStub) Verify(_ context.Context, ch protection.CaptchaChallenge, response string) error {
 	c.calls++
 	c.last = ch
+	if c.err != nil {
+		return c.err
+	}
 	if response != "good" {
 		return protection.ErrCaptchaInvalid
 	}
@@ -154,5 +158,63 @@ func TestCaptchaUnavailablePreservesLogin(t *testing.T) {
 	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"alice password 1"}})
 	if rec.Code != 503 || rec.Header().Get("Location") != "" {
 		t.Fatal(rec.Code, rec.Body.String())
+	}
+}
+func TestCaptchaRiskRefreshUnavailable(t *testing.T) {
+	for _, kind := range []string{"login", "signup", "reset"} {
+		t.Run(kind, func(t *testing.T) {
+			e := newEnv(t)
+			b := e.browser("acme.example.test")
+			_, state, csrf := b.begin(t)
+			tn := mustTenant(t, e, "acme")
+			tn.ProtectionSettings.Bot.ChallengePasswordPolicy = "when_risky"
+			tn.ProtectionSettings.Bot.ChallengePasswordResetPolicy = "when_risky"
+			tn.ProtectionSettings.Bot.BotDetectionLevel = "high"
+			if err := e.st.Tenants().Update(context.Background(), tn); err != nil {
+				t.Fatal(err)
+			}
+			path := "/u/" + kind
+			form := url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "email": {"new@acme.test"}, "password": {"wrong"}}
+			if kind == "signup" {
+				form.Set("password", "a")
+			}
+			if kind == "reset" {
+				raw := e.issueTicket(t, "alice@acme.test", time.Hour)
+				page := b.do(t, "GET", "/u/reset-password?ticket="+raw, nil)
+				csrf := csrfField.FindStringSubmatch(page.Body.String())
+				if csrf == nil {
+					t.Fatal(page.Body.String())
+				}
+				path = "/u/reset-password"
+				form = url.Values{"ticket": {raw}, "csrf": {csrf[1]}, "password": {"a"}, "password_confirm": {"a"}}
+			}
+			rec := b.do(t, "POST", path, form)
+			if rec.Code != 503 || !strings.Contains(rec.Body.String(), "Verification is unavailable") {
+				t.Fatal(rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestCaptchaProviderUnavailableDoesNotRecordRisk(t *testing.T) {
+	e := newEnv(t)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	tn := mustTenant(t, e, "acme")
+	tn.ProtectionSettings.Bot.ChallengePasswordPolicy = "always"
+	tn.ProtectionSettings.CAPTCHA.ActiveProviderID = "hcaptcha"
+	tn.ProtectionSettings.CAPTCHA.HCaptcha.SiteKey = "site"
+	if err := e.st.Tenants().Update(context.Background(), tn); err != nil {
+		t.Fatal(err)
+	}
+	e.h.Protection = &protection.Service{Store: e.st, Now: fixedNow, CaptchaVerifier: &captchaStub{err: protection.ErrCaptchaUnavailable}}
+	rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "password": {"wrong"}, "h-captcha-response": {"good"}})
+	if rec.Code != 503 {
+		t.Fatal(rec.Code)
+	}
+	// A direct repository query uses the test browser's address.
+	count, err := e.st.Protection().RiskCount(context.Background(), tn.ID, "192.0.2.1", fixedNow())
+	if err != nil || count != 0 {
+		t.Fatal(count, err)
 	}
 }

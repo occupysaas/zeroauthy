@@ -255,6 +255,13 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 			h.fail(w, r, riskErr, nil)
 			return
 		}
+
+		if _, err := h.prepareCaptcha(r, res, &view, "reset", tk.ID); err != nil {
+			status, key := captchaFailure(err)
+			form.Error = view.L.T(key)
+			ui.RenderResetForm(w, status, view, form)
+			return
+		}
 		form.Error = policyMessage(view.L, pe)
 		ui.RenderResetForm(w, http.StatusBadRequest, view, form)
 		return
@@ -266,6 +273,13 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := h.protectionService().CheckPassword(ctx, res.Tenant, "pre-change-password", pw); err != nil {
 		if riskErr := h.recordFailure(r, res, "reset", attemptID, err); riskErr != nil {
 			h.fail(w, r, riskErr, nil)
+			return
+		}
+
+		if _, err := h.prepareCaptcha(r, res, &view, "reset", tk.ID); err != nil {
+			status, key := captchaFailure(err)
+			form.Error = view.L.T(key)
+			ui.RenderResetForm(w, status, view, form)
 			return
 		}
 		status, key := breachFailure(err, http.StatusBadRequest)
