@@ -40,6 +40,9 @@ const (
 
 // Handlers serves the Management API and the system API.
 type Handlers struct {
+	// BreachCheckerAvailable reports an actually constructed server-side checker.
+	BreachCheckerAvailable bool
+
 	Store store.Store
 	// Wrapper seals and opens client secrets (D-0038).
 	Wrapper keys.Wrapper

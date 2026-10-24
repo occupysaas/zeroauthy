@@ -276,3 +276,64 @@ func (a mgmtAPI) GetTenantSettings(w http.ResponseWriter, r *http.Request, p mgm
 func (a mgmtAPI) UpdateTenantSettings(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.UpdateTenantSettings, "update:tenant_settings")
 }
+
+func (a mgmtAPI) GetBruteForceProtection(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetProtection(w, r, "brute-force-protection") }, "read:attack_protection")
+}
+
+func (a mgmtAPI) UpdateBruteForceProtection(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateProtection(w, r, "brute-force-protection") }, "update:attack_protection")
+}
+
+func (a mgmtAPI) GetSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetProtection(w, r, "suspicious-ip-throttling") }, "read:attack_protection")
+}
+
+func (a mgmtAPI) UpdateSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateProtection(w, r, "suspicious-ip-throttling") }, "update:attack_protection")
+}
+
+func (a mgmtAPI) GetBreachedPasswordDetection(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetProtection(w, r, "breached-password-detection") }, "read:attack_protection")
+}
+
+func (a mgmtAPI) UpdateBreachedPasswordDetection(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) {
+		a.h.UpdateProtection(w, r, "breached-password-detection")
+	}, "update:attack_protection")
+}
+
+func (a mgmtAPI) GetBotDetection(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetProtection(w, r, "bot-detection") }, "read:attack_protection")
+}
+
+func (a mgmtAPI) UpdateBotDetection(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateProtection(w, r, "bot-detection") }, "update:attack_protection")
+}
+
+func (a mgmtAPI) GetCaptcha(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetProtection(w, r, "captcha") }, "read:attack_protection")
+}
+
+func (a mgmtAPI) UpdateCaptcha(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateProtection(w, r, "captcha") }, "update:attack_protection")
+}
+
+func (a mgmtAPI) GetUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request, p mgmtapi.GetUserBlocksByIdentifierParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UserBlocks(w, r, "") }, "read:users")
+}
+func (a mgmtAPI) DeleteUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request, p mgmtapi.DeleteUserBlocksByIdentifierParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UserBlocks(w, r, "") }, "update:users")
+}
+func (a mgmtAPI) GetUserBlocks(w http.ResponseWriter, r *http.Request, id string, p mgmtapi.GetUserBlocksParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UserBlocks(w, r, id) }, "read:users")
+}
+func (a mgmtAPI) DeleteUserBlocks(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UserBlocks(w, r, id) }, "update:users")
+}
+func (a mgmtAPI) GetIPBlock(w http.ResponseWriter, r *http.Request, ip string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.IPBlock(w, r, ip) }, "read:anomaly_blocks")
+}
+func (a mgmtAPI) DeleteIPBlock(w http.ResponseWriter, r *http.Request, ip string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.IPBlock(w, r, ip) }, "delete:anomaly_blocks")
+}

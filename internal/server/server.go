@@ -32,6 +32,9 @@ import (
 )
 
 type Deps struct {
+	// BreachCheckerAvailable is set only after successful checker construction.
+	BreachCheckerAvailable bool
+
 	Store    store.Store
 	Keys     *keys.Manager
 	Resolver *tenant.Resolver
@@ -229,7 +232,8 @@ func New(d Deps) http.Handler {
 	mh := &mgmt.Handlers{
 		Store: d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify,
-		TrustProxyHeaders: d.TrustProxyHeaders,
+		TrustProxyHeaders:      d.TrustProxyHeaders,
+		BreachCheckerAvailable: d.BreachCheckerAvailable,
 	}
 	if len(d.ExportKey) > 0 {
 		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}

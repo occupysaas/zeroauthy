@@ -60,6 +60,546 @@ func (e AppType) Valid() bool {
 	}
 }
 
+// Defines values for BotDetectionBotDetectionLevel.
+const (
+	BotDetectionBotDetectionLevelHigh   BotDetectionBotDetectionLevel = "high"
+	BotDetectionBotDetectionLevelLow    BotDetectionBotDetectionLevel = "low"
+	BotDetectionBotDetectionLevelMedium BotDetectionBotDetectionLevel = "medium"
+)
+
+// Valid indicates whether the value is a known member of the BotDetectionBotDetectionLevel enum.
+func (e BotDetectionBotDetectionLevel) Valid() bool {
+	switch e {
+	case BotDetectionBotDetectionLevelHigh:
+		return true
+	case BotDetectionBotDetectionLevelLow:
+		return true
+	case BotDetectionBotDetectionLevelMedium:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BotDetectionChallengePasswordPolicy.
+const (
+	BotDetectionChallengePasswordPolicyAlways    BotDetectionChallengePasswordPolicy = "always"
+	BotDetectionChallengePasswordPolicyNever     BotDetectionChallengePasswordPolicy = "never"
+	BotDetectionChallengePasswordPolicyWhenRisky BotDetectionChallengePasswordPolicy = "when_risky"
+)
+
+// Valid indicates whether the value is a known member of the BotDetectionChallengePasswordPolicy enum.
+func (e BotDetectionChallengePasswordPolicy) Valid() bool {
+	switch e {
+	case BotDetectionChallengePasswordPolicyAlways:
+		return true
+	case BotDetectionChallengePasswordPolicyNever:
+		return true
+	case BotDetectionChallengePasswordPolicyWhenRisky:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BotDetectionChallengePasswordResetPolicy.
+const (
+	BotDetectionChallengePasswordResetPolicyAlways    BotDetectionChallengePasswordResetPolicy = "always"
+	BotDetectionChallengePasswordResetPolicyNever     BotDetectionChallengePasswordResetPolicy = "never"
+	BotDetectionChallengePasswordResetPolicyWhenRisky BotDetectionChallengePasswordResetPolicy = "when_risky"
+)
+
+// Valid indicates whether the value is a known member of the BotDetectionChallengePasswordResetPolicy enum.
+func (e BotDetectionChallengePasswordResetPolicy) Valid() bool {
+	switch e {
+	case BotDetectionChallengePasswordResetPolicyAlways:
+		return true
+	case BotDetectionChallengePasswordResetPolicyNever:
+		return true
+	case BotDetectionChallengePasswordResetPolicyWhenRisky:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BotDetectionChallengePasswordlessPolicy.
+const (
+	BotDetectionChallengePasswordlessPolicyAlways    BotDetectionChallengePasswordlessPolicy = "always"
+	BotDetectionChallengePasswordlessPolicyNever     BotDetectionChallengePasswordlessPolicy = "never"
+	BotDetectionChallengePasswordlessPolicyWhenRisky BotDetectionChallengePasswordlessPolicy = "when_risky"
+)
+
+// Valid indicates whether the value is a known member of the BotDetectionChallengePasswordlessPolicy enum.
+func (e BotDetectionChallengePasswordlessPolicy) Valid() bool {
+	switch e {
+	case BotDetectionChallengePasswordlessPolicyAlways:
+		return true
+	case BotDetectionChallengePasswordlessPolicyNever:
+		return true
+	case BotDetectionChallengePasswordlessPolicyWhenRisky:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BotDetectionUpdateBotDetectionLevel.
+const (
+	BotDetectionUpdateBotDetectionLevelHigh   BotDetectionUpdateBotDetectionLevel = "high"
+	BotDetectionUpdateBotDetectionLevelLow    BotDetectionUpdateBotDetectionLevel = "low"
+	BotDetectionUpdateBotDetectionLevelMedium BotDetectionUpdateBotDetectionLevel = "medium"
+)
+
+// Valid indicates whether the value is a known member of the BotDetectionUpdateBotDetectionLevel enum.
+func (e BotDetectionUpdateBotDetectionLevel) Valid() bool {
+	switch e {
+	case BotDetectionUpdateBotDetectionLevelHigh:
+		return true
+	case BotDetectionUpdateBotDetectionLevelLow:
+		return true
+	case BotDetectionUpdateBotDetectionLevelMedium:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BotDetectionUpdateChallengePasswordPolicy.
+const (
+	BotDetectionUpdateChallengePasswordPolicyAlways    BotDetectionUpdateChallengePasswordPolicy = "always"
+	BotDetectionUpdateChallengePasswordPolicyNever     BotDetectionUpdateChallengePasswordPolicy = "never"
+	BotDetectionUpdateChallengePasswordPolicyWhenRisky BotDetectionUpdateChallengePasswordPolicy = "when_risky"
+)
+
+// Valid indicates whether the value is a known member of the BotDetectionUpdateChallengePasswordPolicy enum.
+func (e BotDetectionUpdateChallengePasswordPolicy) Valid() bool {
+	switch e {
+	case BotDetectionUpdateChallengePasswordPolicyAlways:
+		return true
+	case BotDetectionUpdateChallengePasswordPolicyNever:
+		return true
+	case BotDetectionUpdateChallengePasswordPolicyWhenRisky:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BotDetectionUpdateChallengePasswordResetPolicy.
+const (
+	BotDetectionUpdateChallengePasswordResetPolicyAlways    BotDetectionUpdateChallengePasswordResetPolicy = "always"
+	BotDetectionUpdateChallengePasswordResetPolicyNever     BotDetectionUpdateChallengePasswordResetPolicy = "never"
+	BotDetectionUpdateChallengePasswordResetPolicyWhenRisky BotDetectionUpdateChallengePasswordResetPolicy = "when_risky"
+)
+
+// Valid indicates whether the value is a known member of the BotDetectionUpdateChallengePasswordResetPolicy enum.
+func (e BotDetectionUpdateChallengePasswordResetPolicy) Valid() bool {
+	switch e {
+	case BotDetectionUpdateChallengePasswordResetPolicyAlways:
+		return true
+	case BotDetectionUpdateChallengePasswordResetPolicyNever:
+		return true
+	case BotDetectionUpdateChallengePasswordResetPolicyWhenRisky:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BotDetectionUpdateChallengePasswordlessPolicy.
+const (
+	BotDetectionUpdateChallengePasswordlessPolicyAlways    BotDetectionUpdateChallengePasswordlessPolicy = "always"
+	BotDetectionUpdateChallengePasswordlessPolicyNever     BotDetectionUpdateChallengePasswordlessPolicy = "never"
+	BotDetectionUpdateChallengePasswordlessPolicyWhenRisky BotDetectionUpdateChallengePasswordlessPolicy = "when_risky"
+)
+
+// Valid indicates whether the value is a known member of the BotDetectionUpdateChallengePasswordlessPolicy enum.
+func (e BotDetectionUpdateChallengePasswordlessPolicy) Valid() bool {
+	switch e {
+	case BotDetectionUpdateChallengePasswordlessPolicyAlways:
+		return true
+	case BotDetectionUpdateChallengePasswordlessPolicyNever:
+		return true
+	case BotDetectionUpdateChallengePasswordlessPolicyWhenRisky:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionAdminNotificationFrequency.
+const (
+	BreachedPasswordDetectionAdminNotificationFrequencyDaily       BreachedPasswordDetectionAdminNotificationFrequency = "daily"
+	BreachedPasswordDetectionAdminNotificationFrequencyImmediately BreachedPasswordDetectionAdminNotificationFrequency = "immediately"
+	BreachedPasswordDetectionAdminNotificationFrequencyMonthly     BreachedPasswordDetectionAdminNotificationFrequency = "monthly"
+	BreachedPasswordDetectionAdminNotificationFrequencyWeekly      BreachedPasswordDetectionAdminNotificationFrequency = "weekly"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionAdminNotificationFrequency enum.
+func (e BreachedPasswordDetectionAdminNotificationFrequency) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionAdminNotificationFrequencyDaily:
+		return true
+	case BreachedPasswordDetectionAdminNotificationFrequencyImmediately:
+		return true
+	case BreachedPasswordDetectionAdminNotificationFrequencyMonthly:
+		return true
+	case BreachedPasswordDetectionAdminNotificationFrequencyWeekly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionMethod.
+const (
+	BreachedPasswordDetectionMethodEnhanced BreachedPasswordDetectionMethod = "enhanced"
+	BreachedPasswordDetectionMethodStandard BreachedPasswordDetectionMethod = "standard"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionMethod enum.
+func (e BreachedPasswordDetectionMethod) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionMethodEnhanced:
+		return true
+	case BreachedPasswordDetectionMethodStandard:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionShields.
+const (
+	BreachedPasswordDetectionShieldsAdminNotification BreachedPasswordDetectionShields = "admin_notification"
+	BreachedPasswordDetectionShieldsBlock             BreachedPasswordDetectionShields = "block"
+	BreachedPasswordDetectionShieldsUserNotification  BreachedPasswordDetectionShields = "user_notification"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionShields enum.
+func (e BreachedPasswordDetectionShields) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionShieldsAdminNotification:
+		return true
+	case BreachedPasswordDetectionShieldsBlock:
+		return true
+	case BreachedPasswordDetectionShieldsUserNotification:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionStagePreChangePasswordShields.
+const (
+	BreachedPasswordDetectionStagePreChangePasswordShieldsAdminNotification BreachedPasswordDetectionStagePreChangePasswordShields = "admin_notification"
+	BreachedPasswordDetectionStagePreChangePasswordShieldsBlock             BreachedPasswordDetectionStagePreChangePasswordShields = "block"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionStagePreChangePasswordShields enum.
+func (e BreachedPasswordDetectionStagePreChangePasswordShields) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionStagePreChangePasswordShieldsAdminNotification:
+		return true
+	case BreachedPasswordDetectionStagePreChangePasswordShieldsBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionStagePreUserRegistrationShields.
+const (
+	BreachedPasswordDetectionStagePreUserRegistrationShieldsAdminNotification BreachedPasswordDetectionStagePreUserRegistrationShields = "admin_notification"
+	BreachedPasswordDetectionStagePreUserRegistrationShieldsBlock             BreachedPasswordDetectionStagePreUserRegistrationShields = "block"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionStagePreUserRegistrationShields enum.
+func (e BreachedPasswordDetectionStagePreUserRegistrationShields) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionStagePreUserRegistrationShieldsAdminNotification:
+		return true
+	case BreachedPasswordDetectionStagePreUserRegistrationShieldsBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionUpdateAdminNotificationFrequency.
+const (
+	BreachedPasswordDetectionUpdateAdminNotificationFrequencyDaily       BreachedPasswordDetectionUpdateAdminNotificationFrequency = "daily"
+	BreachedPasswordDetectionUpdateAdminNotificationFrequencyImmediately BreachedPasswordDetectionUpdateAdminNotificationFrequency = "immediately"
+	BreachedPasswordDetectionUpdateAdminNotificationFrequencyMonthly     BreachedPasswordDetectionUpdateAdminNotificationFrequency = "monthly"
+	BreachedPasswordDetectionUpdateAdminNotificationFrequencyWeekly      BreachedPasswordDetectionUpdateAdminNotificationFrequency = "weekly"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionUpdateAdminNotificationFrequency enum.
+func (e BreachedPasswordDetectionUpdateAdminNotificationFrequency) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionUpdateAdminNotificationFrequencyDaily:
+		return true
+	case BreachedPasswordDetectionUpdateAdminNotificationFrequencyImmediately:
+		return true
+	case BreachedPasswordDetectionUpdateAdminNotificationFrequencyMonthly:
+		return true
+	case BreachedPasswordDetectionUpdateAdminNotificationFrequencyWeekly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionUpdateMethod.
+const (
+	BreachedPasswordDetectionUpdateMethodEnhanced BreachedPasswordDetectionUpdateMethod = "enhanced"
+	BreachedPasswordDetectionUpdateMethodStandard BreachedPasswordDetectionUpdateMethod = "standard"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionUpdateMethod enum.
+func (e BreachedPasswordDetectionUpdateMethod) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionUpdateMethodEnhanced:
+		return true
+	case BreachedPasswordDetectionUpdateMethodStandard:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionUpdateShields.
+const (
+	BreachedPasswordDetectionUpdateShieldsAdminNotification BreachedPasswordDetectionUpdateShields = "admin_notification"
+	BreachedPasswordDetectionUpdateShieldsBlock             BreachedPasswordDetectionUpdateShields = "block"
+	BreachedPasswordDetectionUpdateShieldsUserNotification  BreachedPasswordDetectionUpdateShields = "user_notification"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionUpdateShields enum.
+func (e BreachedPasswordDetectionUpdateShields) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionUpdateShieldsAdminNotification:
+		return true
+	case BreachedPasswordDetectionUpdateShieldsBlock:
+		return true
+	case BreachedPasswordDetectionUpdateShieldsUserNotification:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionUpdateStagePreChangePasswordShields.
+const (
+	BreachedPasswordDetectionUpdateStagePreChangePasswordShieldsAdminNotification BreachedPasswordDetectionUpdateStagePreChangePasswordShields = "admin_notification"
+	BreachedPasswordDetectionUpdateStagePreChangePasswordShieldsBlock             BreachedPasswordDetectionUpdateStagePreChangePasswordShields = "block"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionUpdateStagePreChangePasswordShields enum.
+func (e BreachedPasswordDetectionUpdateStagePreChangePasswordShields) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionUpdateStagePreChangePasswordShieldsAdminNotification:
+		return true
+	case BreachedPasswordDetectionUpdateStagePreChangePasswordShieldsBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BreachedPasswordDetectionUpdateStagePreUserRegistrationShields.
+const (
+	BreachedPasswordDetectionUpdateStagePreUserRegistrationShieldsAdminNotification BreachedPasswordDetectionUpdateStagePreUserRegistrationShields = "admin_notification"
+	BreachedPasswordDetectionUpdateStagePreUserRegistrationShieldsBlock             BreachedPasswordDetectionUpdateStagePreUserRegistrationShields = "block"
+)
+
+// Valid indicates whether the value is a known member of the BreachedPasswordDetectionUpdateStagePreUserRegistrationShields enum.
+func (e BreachedPasswordDetectionUpdateStagePreUserRegistrationShields) Valid() bool {
+	switch e {
+	case BreachedPasswordDetectionUpdateStagePreUserRegistrationShieldsAdminNotification:
+		return true
+	case BreachedPasswordDetectionUpdateStagePreUserRegistrationShieldsBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BruteForceProtectionFormSubmissionMode.
+const (
+	BruteForceProtectionFormSubmissionModeAuto   BruteForceProtectionFormSubmissionMode = "auto"
+	BruteForceProtectionFormSubmissionModeManual BruteForceProtectionFormSubmissionMode = "manual"
+)
+
+// Valid indicates whether the value is a known member of the BruteForceProtectionFormSubmissionMode enum.
+func (e BruteForceProtectionFormSubmissionMode) Valid() bool {
+	switch e {
+	case BruteForceProtectionFormSubmissionModeAuto:
+		return true
+	case BruteForceProtectionFormSubmissionModeManual:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BruteForceProtectionMode.
+const (
+	BruteForceProtectionModeCountPerIdentifier      BruteForceProtectionMode = "count_per_identifier"
+	BruteForceProtectionModeCountPerIdentifierAndIp BruteForceProtectionMode = "count_per_identifier_and_ip"
+)
+
+// Valid indicates whether the value is a known member of the BruteForceProtectionMode enum.
+func (e BruteForceProtectionMode) Valid() bool {
+	switch e {
+	case BruteForceProtectionModeCountPerIdentifier:
+		return true
+	case BruteForceProtectionModeCountPerIdentifierAndIp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BruteForceProtectionShields.
+const (
+	BruteForceProtectionShieldsBlock            BruteForceProtectionShields = "block"
+	BruteForceProtectionShieldsUserNotification BruteForceProtectionShields = "user_notification"
+)
+
+// Valid indicates whether the value is a known member of the BruteForceProtectionShields enum.
+func (e BruteForceProtectionShields) Valid() bool {
+	switch e {
+	case BruteForceProtectionShieldsBlock:
+		return true
+	case BruteForceProtectionShieldsUserNotification:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BruteForceProtectionUpdateFormSubmissionMode.
+const (
+	BruteForceProtectionUpdateFormSubmissionModeAuto   BruteForceProtectionUpdateFormSubmissionMode = "auto"
+	BruteForceProtectionUpdateFormSubmissionModeManual BruteForceProtectionUpdateFormSubmissionMode = "manual"
+)
+
+// Valid indicates whether the value is a known member of the BruteForceProtectionUpdateFormSubmissionMode enum.
+func (e BruteForceProtectionUpdateFormSubmissionMode) Valid() bool {
+	switch e {
+	case BruteForceProtectionUpdateFormSubmissionModeAuto:
+		return true
+	case BruteForceProtectionUpdateFormSubmissionModeManual:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BruteForceProtectionUpdateMode.
+const (
+	BruteForceProtectionUpdateModeCountPerIdentifier      BruteForceProtectionUpdateMode = "count_per_identifier"
+	BruteForceProtectionUpdateModeCountPerIdentifierAndIp BruteForceProtectionUpdateMode = "count_per_identifier_and_ip"
+)
+
+// Valid indicates whether the value is a known member of the BruteForceProtectionUpdateMode enum.
+func (e BruteForceProtectionUpdateMode) Valid() bool {
+	switch e {
+	case BruteForceProtectionUpdateModeCountPerIdentifier:
+		return true
+	case BruteForceProtectionUpdateModeCountPerIdentifierAndIp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BruteForceProtectionUpdateShields.
+const (
+	BruteForceProtectionUpdateShieldsBlock            BruteForceProtectionUpdateShields = "block"
+	BruteForceProtectionUpdateShieldsUserNotification BruteForceProtectionUpdateShields = "user_notification"
+)
+
+// Valid indicates whether the value is a known member of the BruteForceProtectionUpdateShields enum.
+func (e BruteForceProtectionUpdateShields) Valid() bool {
+	switch e {
+	case BruteForceProtectionUpdateShieldsBlock:
+		return true
+	case BruteForceProtectionUpdateShieldsUserNotification:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CaptchaActiveProviderId.
+const (
+	CaptchaActiveProviderIdArkose              CaptchaActiveProviderId = "arkose"
+	CaptchaActiveProviderIdAuthChallenge       CaptchaActiveProviderId = "auth_challenge"
+	CaptchaActiveProviderIdFriendlyCaptcha     CaptchaActiveProviderId = "friendly_captcha"
+	CaptchaActiveProviderIdHcaptcha            CaptchaActiveProviderId = "hcaptcha"
+	CaptchaActiveProviderIdRecaptchaEnterprise CaptchaActiveProviderId = "recaptcha_enterprise"
+	CaptchaActiveProviderIdRecaptchaV2         CaptchaActiveProviderId = "recaptcha_v2"
+	CaptchaActiveProviderIdSimpleCaptcha       CaptchaActiveProviderId = "simple_captcha"
+)
+
+// Valid indicates whether the value is a known member of the CaptchaActiveProviderId enum.
+func (e CaptchaActiveProviderId) Valid() bool {
+	switch e {
+	case CaptchaActiveProviderIdArkose:
+		return true
+	case CaptchaActiveProviderIdAuthChallenge:
+		return true
+	case CaptchaActiveProviderIdFriendlyCaptcha:
+		return true
+	case CaptchaActiveProviderIdHcaptcha:
+		return true
+	case CaptchaActiveProviderIdRecaptchaEnterprise:
+		return true
+	case CaptchaActiveProviderIdRecaptchaV2:
+		return true
+	case CaptchaActiveProviderIdSimpleCaptcha:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CaptchaUpdateActiveProviderId.
+const (
+	CaptchaUpdateActiveProviderIdArkose              CaptchaUpdateActiveProviderId = "arkose"
+	CaptchaUpdateActiveProviderIdAuthChallenge       CaptchaUpdateActiveProviderId = "auth_challenge"
+	CaptchaUpdateActiveProviderIdFriendlyCaptcha     CaptchaUpdateActiveProviderId = "friendly_captcha"
+	CaptchaUpdateActiveProviderIdHcaptcha            CaptchaUpdateActiveProviderId = "hcaptcha"
+	CaptchaUpdateActiveProviderIdRecaptchaEnterprise CaptchaUpdateActiveProviderId = "recaptcha_enterprise"
+	CaptchaUpdateActiveProviderIdRecaptchaV2         CaptchaUpdateActiveProviderId = "recaptcha_v2"
+	CaptchaUpdateActiveProviderIdSimpleCaptcha       CaptchaUpdateActiveProviderId = "simple_captcha"
+)
+
+// Valid indicates whether the value is a known member of the CaptchaUpdateActiveProviderId enum.
+func (e CaptchaUpdateActiveProviderId) Valid() bool {
+	switch e {
+	case CaptchaUpdateActiveProviderIdArkose:
+		return true
+	case CaptchaUpdateActiveProviderIdAuthChallenge:
+		return true
+	case CaptchaUpdateActiveProviderIdFriendlyCaptcha:
+		return true
+	case CaptchaUpdateActiveProviderIdHcaptcha:
+		return true
+	case CaptchaUpdateActiveProviderIdRecaptchaEnterprise:
+		return true
+	case CaptchaUpdateActiveProviderIdRecaptchaV2:
+		return true
+	case CaptchaUpdateActiveProviderIdSimpleCaptcha:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClientCallbackUrlTemplate.
 const (
 	ClientCallbackUrlTemplateFalse ClientCallbackUrlTemplate = false
@@ -573,6 +1113,42 @@ const (
 func (e ResourceServerSettingsTokenDialect) Valid() bool {
 	switch e {
 	case ResourceServerSettingsTokenDialectAccessToken:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SuspiciousIpThrottlingShields.
+const (
+	SuspiciousIpThrottlingShieldsAdminNotification SuspiciousIpThrottlingShields = "admin_notification"
+	SuspiciousIpThrottlingShieldsBlock             SuspiciousIpThrottlingShields = "block"
+)
+
+// Valid indicates whether the value is a known member of the SuspiciousIpThrottlingShields enum.
+func (e SuspiciousIpThrottlingShields) Valid() bool {
+	switch e {
+	case SuspiciousIpThrottlingShieldsAdminNotification:
+		return true
+	case SuspiciousIpThrottlingShieldsBlock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SuspiciousIpThrottlingUpdateShields.
+const (
+	SuspiciousIpThrottlingUpdateShieldsAdminNotification SuspiciousIpThrottlingUpdateShields = "admin_notification"
+	SuspiciousIpThrottlingUpdateShieldsBlock             SuspiciousIpThrottlingUpdateShields = "block"
+)
+
+// Valid indicates whether the value is a known member of the SuspiciousIpThrottlingUpdateShields enum.
+func (e SuspiciousIpThrottlingUpdateShields) Valid() bool {
+	switch e {
+	case SuspiciousIpThrottlingUpdateShieldsAdminNotification:
+		return true
+	case SuspiciousIpThrottlingUpdateShieldsBlock:
 		return true
 	default:
 		return false
@@ -1442,6 +2018,222 @@ type AccessPolicyPolicy string
 // AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
 // (server-side web) or `non_interactive` (machine to machine).
 type AppType string
+
+// BotDetection defines model for BotDetection.
+type BotDetection struct {
+	Allowlist                    *[]string                                 `json:"allowlist,omitempty"`
+	BotDetectionLevel            *BotDetectionBotDetectionLevel            `json:"bot_detection_level,omitempty"`
+	ChallengePasswordPolicy      *BotDetectionChallengePasswordPolicy      `json:"challenge_password_policy,omitempty"`
+	ChallengePasswordResetPolicy *BotDetectionChallengePasswordResetPolicy `json:"challenge_password_reset_policy,omitempty"`
+	ChallengePasswordlessPolicy  *BotDetectionChallengePasswordlessPolicy  `json:"challenge_passwordless_policy,omitempty"`
+	MonitoringModeEnabled        *bool                                     `json:"monitoring_mode_enabled,omitempty"`
+}
+
+// BotDetectionBotDetectionLevel defines model for BotDetection.BotDetectionLevel.
+type BotDetectionBotDetectionLevel string
+
+// BotDetectionChallengePasswordPolicy defines model for BotDetection.ChallengePasswordPolicy.
+type BotDetectionChallengePasswordPolicy string
+
+// BotDetectionChallengePasswordResetPolicy defines model for BotDetection.ChallengePasswordResetPolicy.
+type BotDetectionChallengePasswordResetPolicy string
+
+// BotDetectionChallengePasswordlessPolicy defines model for BotDetection.ChallengePasswordlessPolicy.
+type BotDetectionChallengePasswordlessPolicy string
+
+// BotDetectionUpdate defines model for BotDetectionUpdate.
+type BotDetectionUpdate struct {
+	Allowlist                    *[]string                                       `json:"allowlist,omitempty"`
+	BotDetectionLevel            *BotDetectionUpdateBotDetectionLevel            `json:"bot_detection_level,omitempty"`
+	ChallengePasswordPolicy      *BotDetectionUpdateChallengePasswordPolicy      `json:"challenge_password_policy,omitempty"`
+	ChallengePasswordResetPolicy *BotDetectionUpdateChallengePasswordResetPolicy `json:"challenge_password_reset_policy,omitempty"`
+	ChallengePasswordlessPolicy  *BotDetectionUpdateChallengePasswordlessPolicy  `json:"challenge_passwordless_policy,omitempty"`
+	MonitoringModeEnabled        *bool                                           `json:"monitoring_mode_enabled,omitempty"`
+}
+
+// BotDetectionUpdateBotDetectionLevel defines model for BotDetectionUpdate.BotDetectionLevel.
+type BotDetectionUpdateBotDetectionLevel string
+
+// BotDetectionUpdateChallengePasswordPolicy defines model for BotDetectionUpdate.ChallengePasswordPolicy.
+type BotDetectionUpdateChallengePasswordPolicy string
+
+// BotDetectionUpdateChallengePasswordResetPolicy defines model for BotDetectionUpdate.ChallengePasswordResetPolicy.
+type BotDetectionUpdateChallengePasswordResetPolicy string
+
+// BotDetectionUpdateChallengePasswordlessPolicy defines model for BotDetectionUpdate.ChallengePasswordlessPolicy.
+type BotDetectionUpdateChallengePasswordlessPolicy string
+
+// BreachCheckerCapability Nonsecret zeroauthy operator capability. Available only after a server-side breach checker is constructed; no corpus or configuration details are exposed.
+type BreachCheckerCapability struct {
+	Available bool `json:"available"`
+}
+
+// BreachedPasswordDetection defines model for BreachedPasswordDetection.
+type BreachedPasswordDetection struct {
+	AdminNotificationFrequency *[]BreachedPasswordDetectionAdminNotificationFrequency `json:"admin_notification_frequency,omitempty"`
+	Enabled                    *bool                                                  `json:"enabled,omitempty"`
+	Method                     *BreachedPasswordDetectionMethod                       `json:"method,omitempty"`
+	Shields                    *[]BreachedPasswordDetectionShields                    `json:"shields,omitempty"`
+	Stage                      *struct {
+		PreChangePassword *struct {
+			Shields *[]BreachedPasswordDetectionStagePreChangePasswordShields `json:"shields,omitempty"`
+		} `json:"pre-change-password,omitempty"`
+		PreUserRegistration *struct {
+			Shields *[]BreachedPasswordDetectionStagePreUserRegistrationShields `json:"shields,omitempty"`
+		} `json:"pre-user-registration,omitempty"`
+	} `json:"stage,omitempty"`
+}
+
+// BreachedPasswordDetectionAdminNotificationFrequency defines model for BreachedPasswordDetection.AdminNotificationFrequency.
+type BreachedPasswordDetectionAdminNotificationFrequency string
+
+// BreachedPasswordDetectionMethod defines model for BreachedPasswordDetection.Method.
+type BreachedPasswordDetectionMethod string
+
+// BreachedPasswordDetectionShields defines model for BreachedPasswordDetection.Shields.
+type BreachedPasswordDetectionShields string
+
+// BreachedPasswordDetectionStagePreChangePasswordShields defines model for BreachedPasswordDetection.Stage.PreChangePassword.Shields.
+type BreachedPasswordDetectionStagePreChangePasswordShields string
+
+// BreachedPasswordDetectionStagePreUserRegistrationShields defines model for BreachedPasswordDetection.Stage.PreUserRegistration.Shields.
+type BreachedPasswordDetectionStagePreUserRegistrationShields string
+
+// BreachedPasswordDetectionUpdate defines model for BreachedPasswordDetectionUpdate.
+type BreachedPasswordDetectionUpdate struct {
+	AdminNotificationFrequency *[]BreachedPasswordDetectionUpdateAdminNotificationFrequency `json:"admin_notification_frequency,omitempty"`
+	Enabled                    *bool                                                        `json:"enabled,omitempty"`
+	Method                     *BreachedPasswordDetectionUpdateMethod                       `json:"method,omitempty"`
+	Shields                    *[]BreachedPasswordDetectionUpdateShields                    `json:"shields,omitempty"`
+	Stage                      *struct {
+		PreChangePassword *struct {
+			Shields *[]BreachedPasswordDetectionUpdateStagePreChangePasswordShields `json:"shields,omitempty"`
+		} `json:"pre-change-password,omitempty"`
+		PreUserRegistration *struct {
+			Shields *[]BreachedPasswordDetectionUpdateStagePreUserRegistrationShields `json:"shields,omitempty"`
+		} `json:"pre-user-registration,omitempty"`
+	} `json:"stage,omitempty"`
+}
+
+// BreachedPasswordDetectionUpdateAdminNotificationFrequency defines model for BreachedPasswordDetectionUpdate.AdminNotificationFrequency.
+type BreachedPasswordDetectionUpdateAdminNotificationFrequency string
+
+// BreachedPasswordDetectionUpdateMethod defines model for BreachedPasswordDetectionUpdate.Method.
+type BreachedPasswordDetectionUpdateMethod string
+
+// BreachedPasswordDetectionUpdateShields defines model for BreachedPasswordDetectionUpdate.Shields.
+type BreachedPasswordDetectionUpdateShields string
+
+// BreachedPasswordDetectionUpdateStagePreChangePasswordShields defines model for BreachedPasswordDetectionUpdate.Stage.PreChangePassword.Shields.
+type BreachedPasswordDetectionUpdateStagePreChangePasswordShields string
+
+// BreachedPasswordDetectionUpdateStagePreUserRegistrationShields defines model for BreachedPasswordDetectionUpdate.Stage.PreUserRegistration.Shields.
+type BreachedPasswordDetectionUpdateStagePreUserRegistrationShields string
+
+// BruteForceProtection defines model for BruteForceProtection.
+type BruteForceProtection struct {
+	Allowlist          *[]string                               `json:"allowlist,omitempty"`
+	Enabled            *bool                                   `json:"enabled,omitempty"`
+	FormSubmissionMode *BruteForceProtectionFormSubmissionMode `json:"form_submission_mode,omitempty"`
+	MaxAttempts        *int                                    `json:"max_attempts,omitempty"`
+	Mode               *BruteForceProtectionMode               `json:"mode,omitempty"`
+	Shields            *[]BruteForceProtectionShields          `json:"shields,omitempty"`
+}
+
+// BruteForceProtectionFormSubmissionMode defines model for BruteForceProtection.FormSubmissionMode.
+type BruteForceProtectionFormSubmissionMode string
+
+// BruteForceProtectionMode defines model for BruteForceProtection.Mode.
+type BruteForceProtectionMode string
+
+// BruteForceProtectionShields defines model for BruteForceProtection.Shields.
+type BruteForceProtectionShields string
+
+// BruteForceProtectionUpdate defines model for BruteForceProtectionUpdate.
+type BruteForceProtectionUpdate struct {
+	Allowlist          *[]string                                     `json:"allowlist,omitempty"`
+	Enabled            *bool                                         `json:"enabled,omitempty"`
+	FormSubmissionMode *BruteForceProtectionUpdateFormSubmissionMode `json:"form_submission_mode,omitempty"`
+	MaxAttempts        *int                                          `json:"max_attempts,omitempty"`
+	Mode               *BruteForceProtectionUpdateMode               `json:"mode,omitempty"`
+	Shields            *[]BruteForceProtectionUpdateShields          `json:"shields,omitempty"`
+}
+
+// BruteForceProtectionUpdateFormSubmissionMode defines model for BruteForceProtectionUpdate.FormSubmissionMode.
+type BruteForceProtectionUpdateFormSubmissionMode string
+
+// BruteForceProtectionUpdateMode defines model for BruteForceProtectionUpdate.Mode.
+type BruteForceProtectionUpdateMode string
+
+// BruteForceProtectionUpdateShields defines model for BruteForceProtectionUpdate.Shields.
+type BruteForceProtectionUpdateShields string
+
+// Captcha defines model for Captcha.
+type Captcha struct {
+	ActiveProviderId *CaptchaActiveProviderId `json:"active_provider_id,omitempty"`
+	Arkose           *struct {
+		ClientSubdomain *string `json:"client_subdomain,omitempty"`
+		FailOpen        *bool   `json:"fail_open,omitempty"`
+		SiteKey         string  `json:"site_key"`
+		VerifySubdomain *string `json:"verify_subdomain,omitempty"`
+	} `json:"arkose,omitempty"`
+	AuthChallenge *struct {
+		FailOpen bool `json:"fail_open"`
+	} `json:"auth_challenge,omitempty"`
+	FriendlyCaptcha *struct {
+		SiteKey string `json:"site_key"`
+	} `json:"friendly_captcha,omitempty"`
+	Hcaptcha *struct {
+		SiteKey string `json:"site_key"`
+	} `json:"hcaptcha,omitempty"`
+	RecaptchaEnterprise *struct {
+		ProjectId string `json:"project_id"`
+		SiteKey   string `json:"site_key"`
+	} `json:"recaptcha_enterprise,omitempty"`
+	RecaptchaV2 *struct {
+		SiteKey string `json:"site_key"`
+	} `json:"recaptcha_v2,omitempty"`
+	SimpleCaptcha *map[string]interface{} `json:"simple_captcha,omitempty"`
+}
+
+// CaptchaActiveProviderId defines model for Captcha.ActiveProviderId.
+type CaptchaActiveProviderId string
+
+// CaptchaUpdate defines model for CaptchaUpdate.
+type CaptchaUpdate struct {
+	ActiveProviderId *CaptchaUpdateActiveProviderId `json:"active_provider_id,omitempty"`
+	Arkose           *struct {
+		ClientSubdomain *string `json:"client_subdomain,omitempty"`
+		FailOpen        *bool   `json:"fail_open,omitempty"`
+		Secret          string  `json:"secret"`
+		SiteKey         string  `json:"site_key"`
+		VerifySubdomain *string `json:"verify_subdomain,omitempty"`
+	} `json:"arkose,omitempty"`
+	AuthChallenge *struct {
+		FailOpen bool `json:"fail_open"`
+	} `json:"auth_challenge,omitempty"`
+	FriendlyCaptcha *struct {
+		Secret  string `json:"secret"`
+		SiteKey string `json:"site_key"`
+	} `json:"friendly_captcha,omitempty"`
+	Hcaptcha *struct {
+		Secret  string `json:"secret"`
+		SiteKey string `json:"site_key"`
+	} `json:"hcaptcha,omitempty"`
+	RecaptchaEnterprise *struct {
+		ApiKey    string `json:"api_key"`
+		ProjectId string `json:"project_id"`
+		SiteKey   string `json:"site_key"`
+	} `json:"recaptcha_enterprise,omitempty"`
+	RecaptchaV2 *struct {
+		Secret  string `json:"secret"`
+		SiteKey string `json:"site_key"`
+	} `json:"recaptcha_v2,omitempty"`
+	SimpleCaptcha *map[string]interface{} `json:"simple_captcha,omitempty"`
+}
+
+// CaptchaUpdateActiveProviderId defines model for CaptchaUpdate.ActiveProviderId.
+type CaptchaUpdateActiveProviderId string
 
 // Client An application.
 type Client struct {
@@ -2501,9 +3293,59 @@ type SubjectTypeAuthorization struct {
 	User   *AccessPolicy `json:"user,omitempty"`
 }
 
+// SuspiciousIpThrottling defines model for SuspiciousIpThrottling.
+type SuspiciousIpThrottling struct {
+	Allowlist *[]string                        `json:"allowlist,omitempty"`
+	Enabled   *bool                            `json:"enabled,omitempty"`
+	Shields   *[]SuspiciousIpThrottlingShields `json:"shields,omitempty"`
+	Stage     *struct {
+		PreCustomTokenExchange *struct {
+			MaxAttempts *int `json:"max_attempts,omitempty"`
+			Rate        *int `json:"rate,omitempty"`
+		} `json:"pre-custom-token-exchange,omitempty"`
+		PreLogin *struct {
+			MaxAttempts *int `json:"max_attempts,omitempty"`
+			Rate        *int `json:"rate,omitempty"`
+		} `json:"pre-login,omitempty"`
+		PreUserRegistration *struct {
+			MaxAttempts *int `json:"max_attempts,omitempty"`
+			Rate        *int `json:"rate,omitempty"`
+		} `json:"pre-user-registration,omitempty"`
+	} `json:"stage,omitempty"`
+}
+
+// SuspiciousIpThrottlingShields defines model for SuspiciousIpThrottling.Shields.
+type SuspiciousIpThrottlingShields string
+
+// SuspiciousIpThrottlingUpdate defines model for SuspiciousIpThrottlingUpdate.
+type SuspiciousIpThrottlingUpdate struct {
+	Allowlist *[]string                              `json:"allowlist,omitempty"`
+	Enabled   *bool                                  `json:"enabled,omitempty"`
+	Shields   *[]SuspiciousIpThrottlingUpdateShields `json:"shields,omitempty"`
+	Stage     *struct {
+		PreCustomTokenExchange *struct {
+			MaxAttempts *int `json:"max_attempts,omitempty"`
+			Rate        *int `json:"rate,omitempty"`
+		} `json:"pre-custom-token-exchange,omitempty"`
+		PreLogin *struct {
+			MaxAttempts *int `json:"max_attempts,omitempty"`
+			Rate        *int `json:"rate,omitempty"`
+		} `json:"pre-login,omitempty"`
+		PreUserRegistration *struct {
+			MaxAttempts *int `json:"max_attempts,omitempty"`
+			Rate        *int `json:"rate,omitempty"`
+		} `json:"pre-user-registration,omitempty"`
+	} `json:"stage,omitempty"`
+}
+
+// SuspiciousIpThrottlingUpdateShields defines model for SuspiciousIpThrottlingUpdate.Shields.
+type SuspiciousIpThrottlingUpdateShields string
+
 // SystemTenant A tenant, as the system API reports it.
 type SystemTenant struct {
-	CreatedAt time.Time `json:"created_at"`
+	// BreachedPasswordChecker Nonsecret zeroauthy operator capability. Available only after a server-side breach checker is constructed; no corpus or configuration details are exposed.
+	BreachedPasswordChecker *BreachCheckerCapability `json:"breached_password_checker,omitempty"`
+	CreatedAt               time.Time                `json:"created_at"`
 
 	// Domains Custom domains the tenant answers on.
 	Domains      []string `json:"domains"`
@@ -3103,6 +3945,15 @@ type User struct {
 	AdditionalProperties map[string]interface{}  `json:"-"`
 }
 
+// UserBlocks defines model for UserBlocks.
+type UserBlocks struct {
+	BlockedFor []struct {
+		Connection *string `json:"connection,omitempty"`
+		Identifier *string `json:"identifier,omitempty"`
+		Ip         *string `json:"ip,omitempty"`
+	} `json:"blocked_for"`
+}
+
 // UserCreate A new user. `connection` is required; unknown properties are `400 invalid_body`.
 type UserCreate struct {
 	AppMetadata   *map[string]interface{} `json:"app_metadata,omitempty"`
@@ -3662,6 +4513,22 @@ type GetTenantSettingsParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// DeleteUserBlocksByIdentifierParams defines parameters for DeleteUserBlocksByIdentifier.
+type DeleteUserBlocksByIdentifierParams struct {
+	Identifier string `form:"identifier" json:"identifier"`
+}
+
+// GetUserBlocksByIdentifierParams defines parameters for GetUserBlocksByIdentifier.
+type GetUserBlocksByIdentifierParams struct {
+	Identifier                   string `form:"identifier" json:"identifier"`
+	ConsiderBruteForceEnablement *bool  `form:"consider_brute_force_enablement,omitempty" json:"consider_brute_force_enablement,omitempty"`
+}
+
+// GetUserBlocksParams defines parameters for GetUserBlocks.
+type GetUserBlocksParams struct {
+	ConsiderBruteForceEnablement *bool `form:"consider_brute_force_enablement,omitempty" json:"consider_brute_force_enablement,omitempty"`
+}
+
 // GetUsersParams defines parameters for GetUsers.
 type GetUsersParams struct {
 	// Page Page index of the results, from 0.
@@ -3750,6 +4617,21 @@ type UpdateTenantJSONRequestBody = TenantUpdate
 
 // TryConnectionScriptJSONRequestBody defines body for TryConnectionScript for application/json ContentType.
 type TryConnectionScriptJSONRequestBody = ScriptTry
+
+// UpdateBotDetectionJSONRequestBody defines body for UpdateBotDetection for application/json ContentType.
+type UpdateBotDetectionJSONRequestBody = BotDetectionUpdate
+
+// UpdateBreachedPasswordDetectionJSONRequestBody defines body for UpdateBreachedPasswordDetection for application/json ContentType.
+type UpdateBreachedPasswordDetectionJSONRequestBody = BreachedPasswordDetectionUpdate
+
+// UpdateBruteForceProtectionJSONRequestBody defines body for UpdateBruteForceProtection for application/json ContentType.
+type UpdateBruteForceProtectionJSONRequestBody = BruteForceProtectionUpdate
+
+// UpdateCaptchaJSONRequestBody defines body for UpdateCaptcha for application/json ContentType.
+type UpdateCaptchaJSONRequestBody = CaptchaUpdate
+
+// UpdateSuspiciousIpThrottlingJSONRequestBody defines body for UpdateSuspiciousIpThrottling for application/json ContentType.
+type UpdateSuspiciousIpThrottlingJSONRequestBody = SuspiciousIpThrottlingUpdate
 
 // CreateClientGrantJSONRequestBody defines body for CreateClientGrant for application/json ContentType.
 type CreateClientGrantJSONRequestBody = ClientGrantCreate
@@ -5316,6 +6198,42 @@ type ServerInterface interface {
 	// GetTenantJobs List a tenant's jobs
 	// (GET /api/system/tenants/{tenant}/jobs)
 	GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams)
+	// DeleteIPBlock Delete automatic blocks
+	// (DELETE /api/v2/anomaly/blocks/ips/{ip})
+	DeleteIPBlock(w http.ResponseWriter, r *http.Request, ip string)
+	// GetIPBlock Get automatic blocks
+	// (GET /api/v2/anomaly/blocks/ips/{ip})
+	GetIPBlock(w http.ResponseWriter, r *http.Request, ip string)
+	// GetBotDetection Get bot-detection
+	// (GET /api/v2/attack-protection/bot-detection)
+	GetBotDetection(w http.ResponseWriter, r *http.Request)
+	// UpdateBotDetection Update bot-detection
+	// (PATCH /api/v2/attack-protection/bot-detection)
+	UpdateBotDetection(w http.ResponseWriter, r *http.Request)
+	// GetBreachedPasswordDetection Get breached-password-detection
+	// (GET /api/v2/attack-protection/breached-password-detection)
+	GetBreachedPasswordDetection(w http.ResponseWriter, r *http.Request)
+	// UpdateBreachedPasswordDetection Update breached-password-detection
+	// (PATCH /api/v2/attack-protection/breached-password-detection)
+	UpdateBreachedPasswordDetection(w http.ResponseWriter, r *http.Request)
+	// GetBruteForceProtection Get brute-force-protection
+	// (GET /api/v2/attack-protection/brute-force-protection)
+	GetBruteForceProtection(w http.ResponseWriter, r *http.Request)
+	// UpdateBruteForceProtection Update brute-force-protection
+	// (PATCH /api/v2/attack-protection/brute-force-protection)
+	UpdateBruteForceProtection(w http.ResponseWriter, r *http.Request)
+	// GetCaptcha Get captcha
+	// (GET /api/v2/attack-protection/captcha)
+	GetCaptcha(w http.ResponseWriter, r *http.Request)
+	// UpdateCaptcha Update captcha
+	// (PATCH /api/v2/attack-protection/captcha)
+	UpdateCaptcha(w http.ResponseWriter, r *http.Request)
+	// GetSuspiciousIpThrottling Get suspicious-ip-throttling
+	// (GET /api/v2/attack-protection/suspicious-ip-throttling)
+	GetSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request)
+	// UpdateSuspiciousIpThrottling Update suspicious-ip-throttling
+	// (PATCH /api/v2/attack-protection/suspicious-ip-throttling)
+	UpdateSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request)
 	// GetClientGrants List client grants
 	// (GET /api/v2/client-grants)
 	GetClientGrants(w http.ResponseWriter, r *http.Request, params GetClientGrantsParams)
@@ -5433,6 +6351,18 @@ type ServerInterface interface {
 	// CreatePasswordChangeTicket Create a password-change ticket
 	// (POST /api/v2/tickets/password-change)
 	CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Request)
+	// DeleteUserBlocksByIdentifier Delete automatic blocks
+	// (DELETE /api/v2/user-blocks)
+	DeleteUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request, params DeleteUserBlocksByIdentifierParams)
+	// GetUserBlocksByIdentifier Get automatic blocks
+	// (GET /api/v2/user-blocks)
+	GetUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request, params GetUserBlocksByIdentifierParams)
+	// DeleteUserBlocks Delete automatic blocks
+	// (DELETE /api/v2/user-blocks/{user_id})
+	DeleteUserBlocks(w http.ResponseWriter, r *http.Request, userId string)
+	// GetUserBlocks Get automatic blocks
+	// (GET /api/v2/user-blocks/{user_id})
+	GetUserBlocks(w http.ResponseWriter, r *http.Request, userId string, params GetUserBlocksParams)
 	// GetUsers List or search users
 	// (GET /api/v2/users)
 	GetUsers(w http.ResponseWriter, r *http.Request, params GetUsersParams)
@@ -5526,6 +6456,78 @@ func (_ Unimplemented) TryConnectionScript(w http.ResponseWriter, r *http.Reques
 // GetTenantJobs List a tenant's jobs
 // (GET /api/system/tenants/{tenant}/jobs)
 func (_ Unimplemented) GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteIPBlock Delete automatic blocks
+// (DELETE /api/v2/anomaly/blocks/ips/{ip})
+func (_ Unimplemented) DeleteIPBlock(w http.ResponseWriter, r *http.Request, ip string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetIPBlock Get automatic blocks
+// (GET /api/v2/anomaly/blocks/ips/{ip})
+func (_ Unimplemented) GetIPBlock(w http.ResponseWriter, r *http.Request, ip string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetBotDetection Get bot-detection
+// (GET /api/v2/attack-protection/bot-detection)
+func (_ Unimplemented) GetBotDetection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateBotDetection Update bot-detection
+// (PATCH /api/v2/attack-protection/bot-detection)
+func (_ Unimplemented) UpdateBotDetection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetBreachedPasswordDetection Get breached-password-detection
+// (GET /api/v2/attack-protection/breached-password-detection)
+func (_ Unimplemented) GetBreachedPasswordDetection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateBreachedPasswordDetection Update breached-password-detection
+// (PATCH /api/v2/attack-protection/breached-password-detection)
+func (_ Unimplemented) UpdateBreachedPasswordDetection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetBruteForceProtection Get brute-force-protection
+// (GET /api/v2/attack-protection/brute-force-protection)
+func (_ Unimplemented) GetBruteForceProtection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateBruteForceProtection Update brute-force-protection
+// (PATCH /api/v2/attack-protection/brute-force-protection)
+func (_ Unimplemented) UpdateBruteForceProtection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetCaptcha Get captcha
+// (GET /api/v2/attack-protection/captcha)
+func (_ Unimplemented) GetCaptcha(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateCaptcha Update captcha
+// (PATCH /api/v2/attack-protection/captcha)
+func (_ Unimplemented) UpdateCaptcha(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSuspiciousIpThrottling Get suspicious-ip-throttling
+// (GET /api/v2/attack-protection/suspicious-ip-throttling)
+func (_ Unimplemented) GetSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateSuspiciousIpThrottling Update suspicious-ip-throttling
+// (PATCH /api/v2/attack-protection/suspicious-ip-throttling)
+func (_ Unimplemented) UpdateSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5760,6 +6762,30 @@ func (_ Unimplemented) CreateEmailVerificationTicket(w http.ResponseWriter, r *h
 // CreatePasswordChangeTicket Create a password-change ticket
 // (POST /api/v2/tickets/password-change)
 func (_ Unimplemented) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUserBlocksByIdentifier Delete automatic blocks
+// (DELETE /api/v2/user-blocks)
+func (_ Unimplemented) DeleteUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request, params DeleteUserBlocksByIdentifierParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUserBlocksByIdentifier Get automatic blocks
+// (GET /api/v2/user-blocks)
+func (_ Unimplemented) GetUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request, params GetUserBlocksByIdentifierParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUserBlocks Delete automatic blocks
+// (DELETE /api/v2/user-blocks/{user_id})
+func (_ Unimplemented) DeleteUserBlocks(w http.ResponseWriter, r *http.Request, userId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUserBlocks Get automatic blocks
+// (GET /api/v2/user-blocks/{user_id})
+func (_ Unimplemented) GetUserBlocks(w http.ResponseWriter, r *http.Request, userId string, params GetUserBlocksParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -6097,6 +7123,198 @@ func (siw *ServerInterfaceWrapper) GetTenantJobs(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTenantJobs(w, r, tenant, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteIPBlock operation middleware
+func (siw *ServerInterfaceWrapper) DeleteIPBlock(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ip" -------------
+	var ip string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ip", chi.URLParam(r, "ip"), &ip, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ip", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteIPBlock(w, r, ip)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetIPBlock operation middleware
+func (siw *ServerInterfaceWrapper) GetIPBlock(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "ip" -------------
+	var ip string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "ip", chi.URLParam(r, "ip"), &ip, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ip", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetIPBlock(w, r, ip)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBotDetection operation middleware
+func (siw *ServerInterfaceWrapper) GetBotDetection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBotDetection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateBotDetection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateBotDetection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateBotDetection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBreachedPasswordDetection operation middleware
+func (siw *ServerInterfaceWrapper) GetBreachedPasswordDetection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBreachedPasswordDetection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateBreachedPasswordDetection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateBreachedPasswordDetection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateBreachedPasswordDetection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBruteForceProtection operation middleware
+func (siw *ServerInterfaceWrapper) GetBruteForceProtection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBruteForceProtection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateBruteForceProtection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateBruteForceProtection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateBruteForceProtection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCaptcha operation middleware
+func (siw *ServerInterfaceWrapper) GetCaptcha(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCaptcha(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateCaptcha operation middleware
+func (siw *ServerInterfaceWrapper) UpdateCaptcha(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateCaptcha(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSuspiciousIpThrottling operation middleware
+func (siw *ServerInterfaceWrapper) GetSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSuspiciousIpThrottling(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSuspiciousIpThrottling operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSuspiciousIpThrottling(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7581,6 +8799,153 @@ func (siw *ServerInterfaceWrapper) CreatePasswordChangeTicket(w http.ResponseWri
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteUserBlocksByIdentifier operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteUserBlocksByIdentifierParams
+
+	// ------------- Required query parameter "identifier" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "identifier", r.URL.Query(), &params.Identifier, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "identifier"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUserBlocksByIdentifier(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUserBlocksByIdentifier operation middleware
+func (siw *ServerInterfaceWrapper) GetUserBlocksByIdentifier(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUserBlocksByIdentifierParams
+
+	// ------------- Required query parameter "identifier" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "identifier", r.URL.Query(), &params.Identifier, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "identifier"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "consider_brute_force_enablement" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "consider_brute_force_enablement", r.URL.Query(), &params.ConsiderBruteForceEnablement, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "consider_brute_force_enablement"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "consider_brute_force_enablement", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserBlocksByIdentifier(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteUserBlocks operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserBlocks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "user_id" -------------
+	var userId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUserBlocks(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUserBlocks operation middleware
+func (siw *ServerInterfaceWrapper) GetUserBlocks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "user_id" -------------
+	var userId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "user_id", chi.URLParam(r, "user_id"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "user_id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUserBlocksParams
+
+	// ------------- Optional query parameter "consider_brute_force_enablement" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "consider_brute_force_enablement", r.URL.Query(), &params.ConsiderBruteForceEnablement, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "consider_brute_force_enablement"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "consider_brute_force_enablement", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserBlocks(w, r, userId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetUsers operation middleware
 func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Request) {
 
@@ -8243,6 +9608,54 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/attack-protection/brute-force-protection", wrapper.GetBruteForceProtection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/attack-protection/brute-force-protection", wrapper.UpdateBruteForceProtection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/attack-protection/suspicious-ip-throttling", wrapper.GetSuspiciousIpThrottling)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/attack-protection/suspicious-ip-throttling", wrapper.UpdateSuspiciousIpThrottling)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/attack-protection/breached-password-detection", wrapper.GetBreachedPasswordDetection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/attack-protection/breached-password-detection", wrapper.UpdateBreachedPasswordDetection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/attack-protection/bot-detection", wrapper.GetBotDetection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/attack-protection/bot-detection", wrapper.UpdateBotDetection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/attack-protection/captcha", wrapper.GetCaptcha)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/attack-protection/captcha", wrapper.UpdateCaptcha)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/user-blocks", wrapper.DeleteUserBlocksByIdentifier)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/user-blocks", wrapper.GetUserBlocksByIdentifier)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/user-blocks/{user_id}", wrapper.DeleteUserBlocks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/user-blocks/{user_id}", wrapper.GetUserBlocks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/anomaly/blocks/ips/{ip}", wrapper.DeleteIPBlock)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/anomaly/blocks/ips/{ip}", wrapper.GetIPBlock)
+	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/tenants/settings", wrapper.GetTenantSettings)
 	})

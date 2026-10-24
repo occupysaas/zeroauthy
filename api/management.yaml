@@ -39,6 +39,10 @@ servers:
         default: tenant.example.com
         description: Any domain of the tenant.
 tags:
+  - name: attack-protection
+    description: Tenant attack protection policies.
+  - name: user-blocks
+    description: Automatic login and suspicious-IP blocks.
   - name: clients
     description: Applications (Auth0's `/api/v2/clients`).
   - name: resource-servers
@@ -65,6 +69,468 @@ security:
   - managementToken: []
   - operatorToken: []
 paths:
+  /api/v2/attack-protection/brute-force-protection:
+    get:
+      operationId: GetBruteForceProtection
+      summary: Get brute-force-protection
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/get-brute-force-protection
+      security:
+      - managementToken:
+        - read:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BruteForceProtection'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      operationId: UpdateBruteForceProtection
+      summary: Update brute-force-protection
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/patch-brute-force-protection
+      security:
+      - managementToken:
+        - update:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BruteForceProtection'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BruteForceProtectionUpdate'
+  /api/v2/attack-protection/suspicious-ip-throttling:
+    get:
+      operationId: GetSuspiciousIpThrottling
+      summary: Get suspicious-ip-throttling
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/get-suspicious-ip-throttling
+      security:
+      - managementToken:
+        - read:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuspiciousIpThrottling'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      operationId: UpdateSuspiciousIpThrottling
+      summary: Update suspicious-ip-throttling
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/patch-suspicious-ip-throttling
+      security:
+      - managementToken:
+        - update:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuspiciousIpThrottling'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspiciousIpThrottlingUpdate'
+  /api/v2/attack-protection/breached-password-detection:
+    get:
+      operationId: GetBreachedPasswordDetection
+      summary: Get breached-password-detection
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/get-breached-password-detection
+      security:
+      - managementToken:
+        - read:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BreachedPasswordDetection'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      operationId: UpdateBreachedPasswordDetection
+      summary: Update breached-password-detection
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/patch-breached-password-detection
+      security:
+      - managementToken:
+        - update:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BreachedPasswordDetection'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BreachedPasswordDetectionUpdate'
+  /api/v2/attack-protection/bot-detection:
+    get:
+      operationId: GetBotDetection
+      summary: Get bot-detection
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/get-bot-detection
+      security:
+      - managementToken:
+        - read:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotDetection'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      operationId: UpdateBotDetection
+      summary: Update bot-detection
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/patch-bot-detection
+      security:
+      - managementToken:
+        - update:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotDetection'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BotDetectionUpdate'
+  /api/v2/attack-protection/captcha:
+    get:
+      operationId: GetCaptcha
+      summary: Get captcha
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/get-captcha
+      security:
+      - managementToken:
+        - read:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Captcha'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      operationId: UpdateCaptcha
+      summary: Update captcha
+      tags:
+      - attack-protection
+      x-source:
+      - https://auth0.com/docs/api/management/v2/attack-protection/patch-captcha
+      security:
+      - managementToken:
+        - update:attack_protection
+      - operatorToken: []
+      responses:
+        '200':
+          description: Current policy; credentials are omitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Captcha'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaptchaUpdate'
+  /api/v2/user-blocks:
+    get:
+      operationId: GetUserBlocksByIdentifier
+      summary: Get automatic blocks
+      tags:
+      - user-blocks
+      x-source:
+      - https://auth0.com/docs/api/management/v2/user-blocks/get-user-blocks
+      security:
+      - managementToken:
+        - read:users
+      - operatorToken: []
+      parameters:
+      - name: identifier
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: consider_brute_force_enablement
+        in: query
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Automatic blocks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserBlocks'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: DeleteUserBlocksByIdentifier
+      summary: Delete automatic blocks
+      tags:
+      - user-blocks
+      x-source:
+      - https://auth0.com/docs/api/management/v2/user-blocks/delete-user-blocks
+      security:
+      - managementToken:
+        - update:users
+      - operatorToken: []
+      parameters:
+      - name: identifier
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Automatic blocks
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+  /api/v2/user-blocks/{user_id}:
+    get:
+      operationId: GetUserBlocks
+      summary: Get automatic blocks
+      tags:
+      - user-blocks
+      x-source:
+      - https://auth0.com/docs/api/management/v2/user-blocks/get-user-blocks-by-id
+      security:
+      - managementToken:
+        - read:users
+      - operatorToken: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: consider_brute_force_enablement
+        in: query
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Automatic blocks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserBlocks'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: DeleteUserBlocks
+      summary: Delete automatic blocks
+      tags:
+      - user-blocks
+      x-source:
+      - https://auth0.com/docs/api/management/v2/user-blocks/delete-user-blocks-by-id
+      security:
+      - managementToken:
+        - update:users
+      - operatorToken: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Automatic blocks
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+  /api/v2/anomaly/blocks/ips/{ip}:
+    get:
+      operationId: GetIPBlock
+      summary: Get automatic blocks
+      tags:
+      - user-blocks
+      x-source:
+      - https://auth0.com/docs/api/management/v2/anomaly/get-ips-by-id
+      security:
+      - managementToken:
+        - read:anomaly_blocks
+      - operatorToken: []
+      parameters:
+      - name: ip
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: IP is blocked
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: DeleteIPBlock
+      summary: Delete automatic blocks
+      tags:
+      - user-blocks
+      x-source:
+      - https://auth0.com/docs/api/management/v2/anomaly/delete-ips-by-id
+      security:
+      - managementToken:
+        - delete:anomaly_blocks
+      - operatorToken: []
+      parameters:
+      - name: ip
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: IP is blocked
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
   /api/v2/tenants/settings:
     get:
       operationId: getTenantSettings
@@ -1990,6 +2456,636 @@ components:
       description: Whether `fields` lists the fields to include (true) or to leave out (false).
       schema: {type: boolean, default: true}
   schemas:
+    BruteForceProtectionUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        shields:
+          type: array
+          items:
+            type: string
+            enum:
+            - block
+            - user_notification
+        allowlist:
+          type: array
+          items:
+            type: string
+            anyOf:
+            - type: string
+              format: ipv4
+            - type: string
+              format: cidr
+            - type: string
+              format: ipv6
+            - type: string
+              format: ipv6_cidr
+        mode:
+          type: string
+          default: count_per_identifier_and_ip
+          enum:
+          - count_per_identifier_and_ip
+          - count_per_identifier
+        max_attempts:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 100
+        form_submission_mode:
+          type: string
+          enum:
+          - auto
+          - manual
+    BruteForceProtection:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        shields:
+          type: array
+          items:
+            type: string
+            enum:
+            - block
+            - user_notification
+        allowlist:
+          type: array
+          items:
+            type: string
+            anyOf:
+            - type: string
+              format: ipv4
+            - type: string
+              format: cidr
+            - type: string
+              format: ipv6
+            - type: string
+              format: ipv6_cidr
+        mode:
+          type: string
+          default: count_per_identifier_and_ip
+          enum:
+          - count_per_identifier_and_ip
+          - count_per_identifier
+        max_attempts:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 100
+        form_submission_mode:
+          type: string
+          enum:
+          - auto
+          - manual
+    SuspiciousIpThrottlingUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        shields:
+          type: array
+          items:
+            type: string
+            enum:
+            - block
+            - admin_notification
+        allowlist:
+          type: array
+          items:
+            type: string
+            anyOf:
+            - type: string
+              format: ipv4
+            - type: string
+              format: cidr
+            - type: string
+              format: ipv6
+            - type: string
+              format: ipv6_cidr
+          maxItems: 100
+        stage:
+          type: object
+          additionalProperties: false
+          properties:
+            pre-login:
+              type: object
+              additionalProperties: false
+              properties:
+                max_attempts:
+                  type: integer
+                  default: 100
+                  minimum: 1
+                  maximum: 2500
+                rate:
+                  type: integer
+                  default: 864000
+                  minimum: 34560
+                  maximum: 86400000
+            pre-user-registration:
+              type: object
+              additionalProperties: false
+              properties:
+                max_attempts:
+                  type: integer
+                  default: 50
+                  minimum: 1
+                  maximum: 72000
+                rate:
+                  type: integer
+                  default: 1728000
+                  minimum: 1200
+                  maximum: 86400000
+            pre-custom-token-exchange:
+              type: object
+              additionalProperties: false
+              properties:
+                max_attempts:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 2500
+                rate:
+                  type: integer
+                  default: 8640000
+                  minimum: 34560
+                  maximum: 86400000
+    SuspiciousIpThrottling:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        shields:
+          type: array
+          items:
+            type: string
+            enum:
+            - block
+            - admin_notification
+        allowlist:
+          type: array
+          items:
+            type: string
+            anyOf:
+            - type: string
+              format: ipv4
+            - type: string
+              format: cidr
+            - type: string
+              format: ipv6
+            - type: string
+              format: ipv6_cidr
+          maxItems: 100
+        stage:
+          type: object
+          additionalProperties: false
+          properties:
+            pre-login:
+              type: object
+              additionalProperties: false
+              properties:
+                max_attempts:
+                  type: integer
+                  default: 100
+                  minimum: 1
+                  maximum: 2500
+                rate:
+                  type: integer
+                  default: 864000
+                  minimum: 34560
+                  maximum: 86400000
+            pre-user-registration:
+              type: object
+              additionalProperties: false
+              properties:
+                max_attempts:
+                  type: integer
+                  default: 50
+                  minimum: 1
+                  maximum: 72000
+                rate:
+                  type: integer
+                  default: 1728000
+                  minimum: 1200
+                  maximum: 86400000
+            pre-custom-token-exchange:
+              type: object
+              additionalProperties: false
+              properties:
+                max_attempts:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 2500
+                rate:
+                  type: integer
+                  default: 8640000
+                  minimum: 34560
+                  maximum: 86400000
+    BreachedPasswordDetectionUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+          default: true
+        shields:
+          type: array
+          items:
+            type: string
+            enum:
+            - block
+            - user_notification
+            - admin_notification
+        admin_notification_frequency:
+          type: array
+          items:
+            type: string
+            enum:
+            - immediately
+            - daily
+            - weekly
+            - monthly
+        method:
+          type: string
+          default: standard
+          enum:
+          - standard
+          - enhanced
+        stage:
+          type: object
+          additionalProperties: false
+          properties:
+            pre-user-registration:
+              type: object
+              additionalProperties: false
+              properties:
+                shields:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                    - block
+                    - admin_notification
+            pre-change-password:
+              type: object
+              additionalProperties: false
+              properties:
+                shields:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                    - block
+                    - admin_notification
+    BreachedPasswordDetection:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+          default: true
+        shields:
+          type: array
+          items:
+            type: string
+            enum:
+            - block
+            - user_notification
+            - admin_notification
+        admin_notification_frequency:
+          type: array
+          items:
+            type: string
+            enum:
+            - immediately
+            - daily
+            - weekly
+            - monthly
+        method:
+          type: string
+          default: standard
+          enum:
+          - standard
+          - enhanced
+        stage:
+          type: object
+          additionalProperties: false
+          properties:
+            pre-user-registration:
+              type: object
+              additionalProperties: false
+              properties:
+                shields:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                    - block
+                    - admin_notification
+            pre-change-password:
+              type: object
+              additionalProperties: false
+              properties:
+                shields:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                    - block
+                    - admin_notification
+    BotDetectionUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        bot_detection_level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+        challenge_password_policy:
+          type: string
+          enum:
+          - never
+          - when_risky
+          - always
+        challenge_passwordless_policy:
+          type: string
+          enum:
+          - never
+          - when_risky
+          - always
+        challenge_password_reset_policy:
+          type: string
+          enum:
+          - never
+          - when_risky
+          - always
+        allowlist:
+          type: array
+          items:
+            type: string
+            oneOf:
+            - type: string
+              format: ipv4
+            - type: string
+              format: ipv6
+            - type: string
+              format: cidr
+            - type: string
+              format: ipv6_cidr
+        monitoring_mode_enabled:
+          type: boolean
+    BotDetection:
+      type: object
+      additionalProperties: false
+      properties:
+        bot_detection_level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+        challenge_password_policy:
+          type: string
+          enum:
+          - never
+          - when_risky
+          - always
+        challenge_passwordless_policy:
+          type: string
+          enum:
+          - never
+          - when_risky
+          - always
+        challenge_password_reset_policy:
+          type: string
+          enum:
+          - never
+          - when_risky
+          - always
+        allowlist:
+          type: array
+          items:
+            type: string
+            oneOf:
+            - type: string
+              format: ipv4
+            - type: string
+              format: ipv6
+            - type: string
+              format: cidr
+            - type: string
+              format: ipv6_cidr
+        monitoring_mode_enabled:
+          type: boolean
+    CaptchaUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        active_provider_id:
+          type: string
+          maxLength: 36
+          enum:
+          - arkose
+          - auth_challenge
+          - friendly_captcha
+          - hcaptcha
+          - recaptcha_v2
+          - recaptcha_enterprise
+          - simple_captcha
+        arkose:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          - secret
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+            secret:
+              type: string
+              maxLength: 100
+            client_subdomain:
+              type: string
+              maxLength: 100
+            verify_subdomain:
+              type: string
+              maxLength: 100
+            fail_open:
+              type: boolean
+        auth_challenge:
+          type: object
+          additionalProperties: false
+          required:
+          - fail_open
+          properties:
+            fail_open:
+              type: boolean
+        hcaptcha:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          - secret
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+            secret:
+              type: string
+              maxLength: 100
+        friendly_captcha:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          - secret
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+            secret:
+              type: string
+              maxLength: 100
+        recaptcha_enterprise:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          - api_key
+          - project_id
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+            api_key:
+              type: string
+              maxLength: 100
+            project_id:
+              type: string
+              maxLength: 100
+        recaptcha_v2:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          - secret
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+            secret:
+              type: string
+              maxLength: 100
+        simple_captcha:
+          type: object
+          additionalProperties: true
+    Captcha:
+      type: object
+      additionalProperties: false
+      properties:
+        active_provider_id:
+          type: string
+          maxLength: 36
+          enum:
+          - arkose
+          - auth_challenge
+          - friendly_captcha
+          - hcaptcha
+          - recaptcha_v2
+          - recaptcha_enterprise
+          - simple_captcha
+        arkose:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+            client_subdomain:
+              type: string
+              maxLength: 100
+            verify_subdomain:
+              type: string
+              maxLength: 100
+            fail_open:
+              type: boolean
+        auth_challenge:
+          type: object
+          additionalProperties: false
+          required:
+          - fail_open
+          properties:
+            fail_open:
+              type: boolean
+        hcaptcha:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+        friendly_captcha:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+        recaptcha_enterprise:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          - project_id
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+            project_id:
+              type: string
+              maxLength: 100
+        recaptcha_v2:
+          type: object
+          additionalProperties: false
+          required:
+          - site_key
+          properties:
+            site_key:
+              type: string
+              maxLength: 100
+        simple_captcha:
+          type: object
+          additionalProperties: true
+    UserBlocks:
+      type: object
+      required:
+      - blocked_for
+      properties:
+        blocked_for:
+          type: array
+          items:
+            type: object
+            properties:
+              identifier:
+                type: string
+              ip:
+                type: string
+              connection:
+                type: string
     TenantSettings:
       type: object
       additionalProperties: false
@@ -3716,11 +4812,19 @@ components:
             properties:
               client_id: {type: string}
         next: {type: string, description: Pass as `from` for the next page; absent on the last page.}
+    BreachCheckerCapability:
+      description: Nonsecret zeroauthy operator capability. Available only after a server-side breach checker is constructed; no corpus or configuration details are exposed.
+      type: object
+      required: [available]
+      properties:
+        available: {type: boolean}
     SystemTenant:
       type: object
       description: A tenant, as the system API reports it.
       required: [name, friendly_name, domains, host, management_api_identifier, seeded, reserved, created_at]
       properties:
+        breached_password_checker:
+          $ref: "#/components/schemas/BreachCheckerCapability"
         name: {type: string, description: "The tenant's name: a DNS label, its subdomain under the base domain."}
         friendly_name: {type: string}
         domains: {type: array, items: {type: string}, description: Custom domains the tenant answers on.}

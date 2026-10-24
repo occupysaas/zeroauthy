@@ -72,7 +72,8 @@ func (h *Handlers) tenantView(t *store.Tenant) mgmtapi.SystemTenant {
 	}
 	return mgmtapi.SystemTenant{
 		Name: t.Name, FriendlyName: t.FriendlyName, Domains: domains,
-		Host: host, ManagementApiIdentifier: id,
+		BreachedPasswordChecker: &mgmtapi.BreachCheckerCapability{Available: h.BreachCheckerAvailable},
+		Host:                    host, ManagementApiIdentifier: id,
 		Seeded: t.Seeded, Reserved: t.Reserved, CreatedAt: t.CreatedAt.UTC(),
 	}
 }
