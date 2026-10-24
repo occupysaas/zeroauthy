@@ -12,7 +12,7 @@ try {
   assert.equal(settings.friendly_name, 'M19 SDK');
   assert.equal(settings.session_lifetime, 48);
   assert.equal(settings.session_cookie.mode, 'non-persistent');
-  const patches = [{ enabled: false, max_attempts: 7 }, { enabled: false, stage: { 'pre-login': { max_attempts: 8 } } }, { enabled: false }, { challenge_password_policy: 'never' }, {}];
+  const patches = [{ enabled: false, max_attempts: 7 }, { enabled: false, stage: { 'pre-login': { max_attempts: 8 } } }, { enabled: false }, { challenge_password_policy: 'never' }, { active_provider_id: snapshots[4].active_provider_id === 'auth_challenge' ? 'simple_captcha' : 'auth_challenge' }];
   for (const [i, key] of features.entries()) {
     await m.attackProtection[key].update(patches[i]);
     const value = await m.attackProtection[key].get();
@@ -43,7 +43,9 @@ try {
   await assert.rejects(reader.anomaly.blocks.unblockIp('192.0.2.19'), e => e.statusCode === 403);
 } finally {
   await m.tenants.settings.update({ friendly_name: saved.friendly_name, session_lifetime: saved.session_lifetime, idle_session_lifetime: saved.idle_session_lifetime, session_cookie: saved.session_cookie });
-  // CAPTCHA credentials cannot be recovered from GET; this case never changes them.
+  // Restore only the provider selector; credential objects were never changed.
+  await m.attackProtection.captcha.update({ active_provider_id: snapshots[4].active_provider_id });
+  assert.deepEqual(await m.attackProtection.captcha.get(), snapshots[4]);
   for (let i = 0; i < 4; i++) await m.attackProtection[features[i]].update(snapshots[i]);
 }
 console.log('m19-node-auth0: settings, all feature methods, nested preservation, blocks and scopes passed');

@@ -2,7 +2,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import https from 'node:https';
 
 const bin = process.env.AUTH0_BIN;
 const cert = process.env.E2E_CERT;
@@ -42,7 +41,7 @@ try {
   api('PATCH', 'tenants/settings', { friendly_name: 'M19 CLI' });
   assert.equal(auth0('tenant-settings', 'show', '--json').friendly_name, 'M19 CLI');
   for (const [i, path] of paths.entries()) {
-    const patch = i < 3 ? { enabled: false } : i === 3 ? { challenge_password_policy: 'never' } : {};
+    const patch = i < 3 ? { enabled: false } : i === 3 ? { challenge_password_policy: 'never' } : { active_provider_id: policies[4].active_provider_id === 'auth_challenge' ? 'simple_captcha' : 'auth_challenge' };
     api('PATCH', `attack-protection/${path}`, patch);
     const value = i < 4 ? auth0('protection', path, 'show', '--json') : api('GET', `attack-protection/${path}`);
     for (const [k, v] of Object.entries(patch)) assert.deepEqual(value[k], v);
@@ -54,14 +53,16 @@ try {
   assert.equal(nested.stage['pre-login'].max_attempts, 9);
   assert.equal(nested.stage['pre-login'].rate, policies[1].stage['pre-login'].rate);
   assert.deepEqual(nested.stage['pre-user-registration'], policies[1].stage['pre-user-registration']);
-  assert.throws(() => api('GET', 'anomaly/blocks/ips/192.0.2.19'));
-  assert.throws(() => api('GET', 'user-blocks/auth0%7Cm19unknown'));
-  assert.throws(() => api('DELETE', 'user-blocks/auth0%7Cm19unknown'));
+  assert.throws(() => api('GET', 'anomaly/blocks/ips/192.0.2.19'), /\b404: API request failed:/);
+  assert.throws(() => api('GET', 'user-blocks/auth0%7Cm19unknown'), error => /\b404: API request failed:/.test(error.message) && error.message.includes('inexistent_user'));
+  assert.throws(() => api('DELETE', 'user-blocks/auth0%7Cm19unknown'), error => /\b404: API request failed:/.test(error.message) && error.message.includes('inexistent_user'));
   assert.deepEqual(api('GET', 'user-blocks?identifier=m19-unknown%40e2e.local'), { blocked_for: [] });
   api('DELETE', 'user-blocks?identifier=m19-unknown%40e2e.local');
   api('DELETE', 'anomaly/blocks/ips/192.0.2.19');
 } finally {
   api('PATCH', 'tenants/settings', { friendly_name: saved.friendly_name });
+  api('PATCH', 'attack-protection/captcha', { active_provider_id: policies[4].active_provider_id });
+  assert.deepEqual(api('GET', 'attack-protection/captcha'), policies[4]);
   for (let i = 0; i < 4; i++) api('PATCH', `attack-protection/${paths[i]}`, policies[i]);
   fs.rmSync(env.HOME, { recursive: true, force: true });
 }

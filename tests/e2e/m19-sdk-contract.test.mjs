@@ -13,7 +13,9 @@ test('pinned management methods use the frozen resource paths and parse JSON', a
   for (const [name, path] of [['bruteForceProtection','brute-force-protection'], ['suspiciousIpThrottling','suspicious-ip-throttling'], ['breachedPasswordDetection','breached-password-detection'], ['botDetection','bot-detection'], ['captcha','captcha']]) {
     assert.equal((await m.attackProtection[name].get()).sentinel, 'parsed');
     assert.ok(requests.at(-1).url.endsWith(`/attack-protection/${path}`));
-    await m.attackProtection[name].update({}); assert.equal(requests.at(-1).method, 'PATCH');
+    const patch = name === 'captcha' ? { active_provider_id: 'simple_captcha' } : {};
+    await m.attackProtection[name].update(patch); assert.equal(requests.at(-1).method, 'PATCH');
+    assert.deepEqual(JSON.parse(requests.at(-1).body), patch);
   }
   await m.userBlocks.listByIdentifier({ identifier: 'alice@example.test' });
   assert.equal(new URL(requests.at(-1).url).searchParams.get('identifier'), 'alice@example.test');

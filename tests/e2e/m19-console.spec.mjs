@@ -75,10 +75,12 @@ test('settings, automatic blocks, breach refusal and hosted challenge replay', a
     const held = new Promise(resolve => { release = resolve; });
     let received;
     const started = new Promise(resolve => { received = resolve; });
+    let delivered;
+    const fulfilled = new Promise(resolve => { delivered = resolve; });
     await page.route('https://localhost:8443/api/v2/tenants/settings', async route => {
       if (route.request().method() !== 'GET') return route.continue();
       const response = await route.fetch(); received(); await held;
-      await route.fulfill({ response });
+      await route.fulfill({ response }); delivered();
     });
     await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Settings', exact: true }).click();
     await started;
@@ -91,7 +93,15 @@ test('settings, automatic blocks, breach refusal and hosted challenge replay', a
     await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Settings', exact: true }).click();
     await expect(page.locator('#friendly_name')).not.toHaveValue('M19 Browser');
     const otherName = await page.locator('#friendly_name').inputValue();
-    release(); await page.unroute('https://localhost:8443/api/v2/tenants/settings');
+    const delayedResponse = page.waitForResponse(response => response.url() === 'https://localhost:8443/api/v2/tenants/settings' && response.request().method() === 'GET');
+    release();
+    await fulfilled;
+    await (await delayedResponse).finished();
+    // Let fetch JSON parsing, Vue's microtask update, and rendering finish
+    // before an assertion that could otherwise pass against the old DOM.
+    await page.waitForLoadState('networkidle');
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await page.unroute('https://localhost:8443/api/v2/tenants/settings');
     await expect(page.locator('#friendly_name')).toHaveValue(otherName);
 
   } finally {
