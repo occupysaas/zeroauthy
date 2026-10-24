@@ -10,15 +10,6 @@ async function open(key: string) {
 }
 
 describe('settings-style planned previews', () => {
-  it('attack protection has three panels', async () => {
-    const { wrapper, calls } = await open('attack-protection')
-    expect(wrapper.get('h1').text()).toBe('Attack protection')
-    expect(wrapper.findAll('h2').map((h) => h.text())).toEqual(['Brute-force protection', 'Breached password detection', 'Suspicious IP throttling'])
-    assertPreviewInert(wrapper)
-    expect(calls.length).toBe(0)
-    wrapper.unmount()
-  })
-
   it('multi-factor lists factors and policy', async () => {
     const { wrapper, calls } = await open('mfa')
     expect(wrapper.get('h1').text()).toBe('Multi-factor')
@@ -29,22 +20,6 @@ describe('settings-style planned previews', () => {
     expect(wrapper.findAll('[role=switch]')).toHaveLength(8)
     expect(wrapper.findAll('fieldset label').map((l) => l.text())).toEqual(['Never', 'Always', 'Adaptive'])
     assertPreviewInert(wrapper)
-    expect(calls.length).toBe(0)
-    wrapper.unmount()
-  })
-
-  it('tenant settings tabs switch the panel', async () => {
-    const { wrapper, calls } = await open('settings')
-    expect(wrapper.get('h1').text()).toBe('Tenant settings')
-    const tabs = () => wrapper.findAll('[role=tab]')
-    expect(tabs().map((x) => x.text())).toEqual(['General', 'Session', 'Languages', 'Login'])
-    expect(wrapper.text()).toContain('Friendly name')
-    for (const [name, field] of [['Session', 'Inactivity timeout'], ['Languages', 'Default language'], ['Login', 'Default login route'], ['General', 'Friendly name']] as const) {
-      await tabs().find((x) => x.text() === name)!.trigger('mousedown')
-      expect(wrapper.text()).toContain(field)
-      if (name === 'Session') expect(wrapper.text()).not.toContain('Friendly name')
-      assertPreviewInert(wrapper)
-    }
     expect(calls.length).toBe(0)
     wrapper.unmount()
   })

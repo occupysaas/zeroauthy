@@ -8,6 +8,7 @@ import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Tag from '../../ui/Tag.vue'
+import BlocksPanel from './BlocksPanel.vue'
 import ActionsMenu from './ActionsMenu.vue'
 import AppsTab from './AppsTab.vue'
 import DetailsTab from './DetailsTab.vue'
@@ -66,7 +67,7 @@ function identities(list: UserIdentity[]) {
         <Tag v-if="user.blocked" class="ml-2">{{ t('users.blocked') }}</Tag>
       </h1>
       <p class="muted">{{ user.user_id }}</p>
-      <ActionsMenu :tenant="tenant" :user="user" @updated="user = $event" />
+      <ActionsMenu :tenant="tenant" :user="user" @updated="user = $event" @blocks="tab = 'blocks'" />
       <TabsRoot v-model="tab" class="mt-4">
         <TabsList class="tabs" :aria-label="user.name || user.email || user.user_id">
           <TabsTrigger class="tab" value="details">{{ t('userd.tabs.details') }}</TabsTrigger>
@@ -74,6 +75,7 @@ function identities(list: UserIdentity[]) {
           <TabsTrigger class="tab" value="identities">{{ t('userd.tabs.identities') }}</TabsTrigger>
           <TabsTrigger class="tab" value="sessions">{{ t('userd.tabs.sessions') }}</TabsTrigger>
           <TabsTrigger class="tab" value="apps">{{ t('userd.tabs.apps') }}</TabsTrigger>
+          <TabsTrigger class="tab" value="blocks">{{ t('policy.loginBlocks') }}</TabsTrigger>
           <TabsTrigger class="tab" value="raw">{{ t('userd.tabs.raw') }}</TabsTrigger>
         </TabsList>
         <TabsContent value="details"><DetailsTab :tenant="tenant" :user="user" @saved="user = $event" /></TabsContent>
@@ -81,6 +83,7 @@ function identities(list: UserIdentity[]) {
         <TabsContent value="identities"><IdentitiesTab :tenant="tenant" :user="user" @identities="identities" /></TabsContent>
         <TabsContent value="sessions"><SessionsTab :tenant="tenant" :user="user" /></TabsContent>
         <TabsContent value="apps"><AppsTab :tenant="tenant" :user="user" /></TabsContent>
+        <TabsContent value="blocks"><BlocksPanel :tenant="tenant" :user="user" /></TabsContent>
         <TabsContent value="raw"><RawTab :user="user" /></TabsContent>
       </TabsRoot>
     </template>

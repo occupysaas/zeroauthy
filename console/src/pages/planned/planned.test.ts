@@ -6,6 +6,8 @@ import PlannedPage from './PlannedPage.vue'
 import PreviewTable from './PreviewTable.vue'
 import Toggle from '../../ui/Toggle.vue'
 import { assertPreviewInert } from './preview'
+import { plannedPages } from './index'
+import { isPlanned, sections } from '../../layout/sections'
 import { mountAt } from '../../test/mount'
 
 const never = () => ({ status: 500, body: {} })
@@ -67,4 +69,9 @@ describe('assertPreviewInert', () => {
     const w = page(() => [h('input')])
     expect(() => assertPreviewInert(w)).toThrow()
   })
+})
+
+it('keeps the remaining planned sections and promotes only settings and attack protection', () => {
+  expect(Object.keys(plannedPages).sort()).toEqual(['actions', 'branding', 'custom-domains', 'emails', 'logs', 'mfa', 'organizations', 'roles', 'social'])
+  for (const key of ['settings', 'attack-protection']) expect(isPlanned(sections.find(s => s.key === key)!)).toBe(false)
 })

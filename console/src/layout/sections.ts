@@ -31,14 +31,14 @@ export const sections: Section[] = [
   },
   { key: 'roles', label: 'nav.roles', group: 'navGroup.userManagement', path: 'roles', status: { planned: 'later', api: ['/api/v2/roles'] } },
   { key: 'organizations', label: 'nav.organizations', group: 'navGroup.userManagement', path: 'organizations', status: { planned: 'later', api: ['/api/v2/organizations'] } },
-  { key: 'attack-protection', label: 'nav.attackProtection', group: 'navGroup.security', path: 'attack-protection', status: { planned: 'slice 5', api: ['/api/v2/attack-protection/*'] } },
+  { key: 'attack-protection', label: 'nav.attackProtection', group: 'navGroup.security', path: 'attack-protection', status: 'live' },
   { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: { planned: 'later', api: ['/api/v2/guardian/*'] } },
   { key: 'actions', label: 'nav.actions', group: 'navGroup.actions', path: 'actions', status: { planned: 'later', api: ['/api/v2/actions'] } },
   { key: 'branding', label: 'nav.branding', group: 'navGroup.branding', path: 'branding', status: { planned: 'later', api: ['/api/v2/branding', '/api/v2/prompts'] } },
   { key: 'emails', label: 'nav.emails', group: 'navGroup.branding', path: 'emails', status: { planned: 'later', api: ['/api/v2/email-templates', '/api/v2/emails/provider'] } },
   { key: 'custom-domains', label: 'nav.customDomains', group: 'navGroup.branding', path: 'custom-domains', status: { planned: 'later', api: ['/api/v2/custom-domains'] } },
   { key: 'logs', label: 'nav.logs', group: 'navGroup.monitoring', path: 'logs', status: { planned: 'later', api: ['/api/v2/logs', '/api/v2/log-streams'] } },
-  { key: 'settings', label: 'nav.settings', group: 'navGroup.settings', path: 'settings', status: { planned: 'slice 5', api: ['/api/v2/tenants/settings'] } },
+  { key: 'settings', label: 'nav.settings', group: 'navGroup.settings', path: 'settings', status: 'live' },
   { key: 'operators', label: 'nav.operators', group: 'navGroup.system', path: 'operators', status: 'live', systemOnly: true },
 ]
 

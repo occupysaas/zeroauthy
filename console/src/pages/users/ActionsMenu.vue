@@ -12,7 +12,7 @@ import TicketDialog from './TicketDialog.vue'
 
 const { t } = useI18n()
 const props = defineProps<{ tenant: SystemTenant; user: User }>()
-const emit = defineEmits<{ updated: [User] }>()
+const emit = defineEmits<{ updated: [User]; blocks: [] }>()
 const { api } = useServices()
 const router = useRouter()
 
@@ -111,6 +111,7 @@ async function remove() {
     <div class="row" role="group" :aria-label="t('userd.actions')">
       <Button v-if="!user.blocked" @click="ask('block')">{{ t('userd.block') }}</Button>
       <Button v-else @click="unblock">{{ t('userd.unblock') }}</Button>
+      <Button @click="emit('blocks')">{{ t('policy.viewBlocks') }}</Button>
       <Button @click="ask('password')">{{ t('userd.changePassword') }}</Button>
       <Button @click="ask('email')">{{ t('userd.changeEmail') }}</Button>
       <Button @click="ask('reset')">{{ t('userd.createResetLink') }}</Button>

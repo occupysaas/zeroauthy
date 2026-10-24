@@ -4,6 +4,150 @@
  */
 
 export interface paths {
+    "/api/v2/attack-protection/brute-force-protection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get brute-force-protection */
+        get: operations["GetBruteForceProtection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update brute-force-protection */
+        patch: operations["UpdateBruteForceProtection"];
+        trace?: never;
+    };
+    "/api/v2/attack-protection/suspicious-ip-throttling": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get suspicious-ip-throttling */
+        get: operations["GetSuspiciousIpThrottling"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update suspicious-ip-throttling */
+        patch: operations["UpdateSuspiciousIpThrottling"];
+        trace?: never;
+    };
+    "/api/v2/attack-protection/breached-password-detection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get breached-password-detection */
+        get: operations["GetBreachedPasswordDetection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update breached-password-detection */
+        patch: operations["UpdateBreachedPasswordDetection"];
+        trace?: never;
+    };
+    "/api/v2/attack-protection/bot-detection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get bot-detection */
+        get: operations["GetBotDetection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update bot-detection */
+        patch: operations["UpdateBotDetection"];
+        trace?: never;
+    };
+    "/api/v2/attack-protection/captcha": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get captcha */
+        get: operations["GetCaptcha"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update captcha */
+        patch: operations["UpdateCaptcha"];
+        trace?: never;
+    };
+    "/api/v2/user-blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get automatic blocks */
+        get: operations["GetUserBlocksByIdentifier"];
+        put?: never;
+        post?: never;
+        /** Delete automatic blocks */
+        delete: operations["DeleteUserBlocksByIdentifier"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/user-blocks/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get automatic blocks */
+        get: operations["GetUserBlocks"];
+        put?: never;
+        post?: never;
+        /** Delete automatic blocks */
+        delete: operations["DeleteUserBlocks"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/anomaly/blocks/ips/{ip}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get automatic blocks */
+        get: operations["GetIPBlock"];
+        put?: never;
+        post?: never;
+        /** Delete automatic blocks */
+        delete: operations["DeleteIPBlock"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/tenants/settings": {
         parameters: {
             query?: never;
@@ -1182,6 +1326,216 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        BruteForceProtectionUpdate: {
+            enabled?: boolean;
+            shields?: ("block" | "user_notification")[];
+            allowlist?: (string)[];
+            /**
+             * @default count_per_identifier_and_ip
+             * @enum {string}
+             */
+            mode: "count_per_identifier_and_ip" | "count_per_identifier";
+            /** @default 10 */
+            max_attempts: number;
+            /** @enum {string} */
+            form_submission_mode?: "auto" | "manual";
+        };
+        BruteForceProtection: {
+            enabled?: boolean;
+            shields?: ("block" | "user_notification")[];
+            allowlist?: (string)[];
+            /**
+             * @default count_per_identifier_and_ip
+             * @enum {string}
+             */
+            mode: "count_per_identifier_and_ip" | "count_per_identifier";
+            /** @default 10 */
+            max_attempts: number;
+            /** @enum {string} */
+            form_submission_mode?: "auto" | "manual";
+        };
+        SuspiciousIpThrottlingUpdate: {
+            enabled?: boolean;
+            shields?: ("block" | "admin_notification")[];
+            allowlist?: (string)[];
+            stage?: {
+                "pre-login"?: {
+                    /** @default 100 */
+                    max_attempts: number;
+                    /** @default 864000 */
+                    rate: number;
+                };
+                "pre-user-registration"?: {
+                    /** @default 50 */
+                    max_attempts: number;
+                    /** @default 1728000 */
+                    rate: number;
+                };
+                "pre-custom-token-exchange"?: {
+                    /** @default 10 */
+                    max_attempts: number;
+                    /** @default 8640000 */
+                    rate: number;
+                };
+            };
+        };
+        SuspiciousIpThrottling: {
+            enabled?: boolean;
+            shields?: ("block" | "admin_notification")[];
+            allowlist?: (string)[];
+            stage?: {
+                "pre-login"?: {
+                    /** @default 100 */
+                    max_attempts: number;
+                    /** @default 864000 */
+                    rate: number;
+                };
+                "pre-user-registration"?: {
+                    /** @default 50 */
+                    max_attempts: number;
+                    /** @default 1728000 */
+                    rate: number;
+                };
+                "pre-custom-token-exchange"?: {
+                    /** @default 10 */
+                    max_attempts: number;
+                    /** @default 8640000 */
+                    rate: number;
+                };
+            };
+        };
+        BreachedPasswordDetectionUpdate: {
+            /** @default true */
+            enabled: boolean;
+            shields?: ("block" | "user_notification" | "admin_notification")[];
+            admin_notification_frequency?: ("immediately" | "daily" | "weekly" | "monthly")[];
+            /**
+             * @default standard
+             * @enum {string}
+             */
+            method: "standard" | "enhanced";
+            stage?: {
+                "pre-user-registration"?: {
+                    shields?: ("block" | "admin_notification")[];
+                };
+                "pre-change-password"?: {
+                    shields?: ("block" | "admin_notification")[];
+                };
+            };
+        };
+        BreachedPasswordDetection: {
+            /** @default true */
+            enabled: boolean;
+            shields?: ("block" | "user_notification" | "admin_notification")[];
+            admin_notification_frequency?: ("immediately" | "daily" | "weekly" | "monthly")[];
+            /**
+             * @default standard
+             * @enum {string}
+             */
+            method: "standard" | "enhanced";
+            stage?: {
+                "pre-user-registration"?: {
+                    shields?: ("block" | "admin_notification")[];
+                };
+                "pre-change-password"?: {
+                    shields?: ("block" | "admin_notification")[];
+                };
+            };
+        };
+        BotDetectionUpdate: {
+            /** @enum {string} */
+            bot_detection_level?: "low" | "medium" | "high";
+            /** @enum {string} */
+            challenge_password_policy?: "never" | "when_risky" | "always";
+            /** @enum {string} */
+            challenge_passwordless_policy?: "never" | "when_risky" | "always";
+            /** @enum {string} */
+            challenge_password_reset_policy?: "never" | "when_risky" | "always";
+            allowlist?: (string)[];
+            monitoring_mode_enabled?: boolean;
+        };
+        BotDetection: {
+            /** @enum {string} */
+            bot_detection_level?: "low" | "medium" | "high";
+            /** @enum {string} */
+            challenge_password_policy?: "never" | "when_risky" | "always";
+            /** @enum {string} */
+            challenge_passwordless_policy?: "never" | "when_risky" | "always";
+            /** @enum {string} */
+            challenge_password_reset_policy?: "never" | "when_risky" | "always";
+            allowlist?: (string)[];
+            monitoring_mode_enabled?: boolean;
+        };
+        CaptchaUpdate: {
+            /** @enum {string} */
+            active_provider_id?: "arkose" | "auth_challenge" | "friendly_captcha" | "hcaptcha" | "recaptcha_v2" | "recaptcha_enterprise" | "simple_captcha";
+            arkose?: {
+                site_key: string;
+                secret: string;
+                client_subdomain?: string;
+                verify_subdomain?: string;
+                fail_open?: boolean;
+            };
+            auth_challenge?: {
+                fail_open: boolean;
+            };
+            hcaptcha?: {
+                site_key: string;
+                secret: string;
+            };
+            friendly_captcha?: {
+                site_key: string;
+                secret: string;
+            };
+            recaptcha_enterprise?: {
+                site_key: string;
+                api_key: string;
+                project_id: string;
+            };
+            recaptcha_v2?: {
+                site_key: string;
+                secret: string;
+            };
+            simple_captcha?: {
+                [key: string]: unknown;
+            };
+        };
+        Captcha: {
+            /** @enum {string} */
+            active_provider_id?: "arkose" | "auth_challenge" | "friendly_captcha" | "hcaptcha" | "recaptcha_v2" | "recaptcha_enterprise" | "simple_captcha";
+            arkose?: {
+                site_key: string;
+                client_subdomain?: string;
+                verify_subdomain?: string;
+                fail_open?: boolean;
+            };
+            auth_challenge?: {
+                fail_open: boolean;
+            };
+            hcaptcha?: {
+                site_key: string;
+            };
+            friendly_captcha?: {
+                site_key: string;
+            };
+            recaptcha_enterprise?: {
+                site_key: string;
+                project_id: string;
+            };
+            recaptcha_v2?: {
+                site_key: string;
+            };
+            simple_captcha?: {
+                [key: string]: unknown;
+            };
+        };
+        UserBlocks: {
+            blocked_for: {
+                identifier?: string;
+                ip?: string;
+                connection?: string;
+            }[];
+        };
         TenantSettings: {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             change_password?: {
@@ -2226,8 +2580,13 @@ export interface components {
             /** @description Pass as `from` for the next page; absent on the last page. */
             next?: string;
         };
+        /** @description Nonsecret zeroauthy operator capability. Available only after a server-side breach checker is constructed; no corpus or configuration details are exposed. */
+        BreachCheckerCapability: {
+            available: boolean;
+        };
         /** @description A tenant, as the system API reports it. */
         SystemTenant: {
+            breached_password_checker?: components["schemas"]["BreachCheckerCapability"];
             /** @description The tenant's name: a DNS label, its subdomain under the base domain. */
             name: string;
             friendly_name: string;
@@ -2730,6 +3089,407 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    GetBruteForceProtection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BruteForceProtection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    UpdateBruteForceProtection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BruteForceProtectionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BruteForceProtection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetSuspiciousIpThrottling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuspiciousIpThrottling"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    UpdateSuspiciousIpThrottling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuspiciousIpThrottlingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuspiciousIpThrottling"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetBreachedPasswordDetection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BreachedPasswordDetection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    UpdateBreachedPasswordDetection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BreachedPasswordDetectionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BreachedPasswordDetection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetBotDetection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BotDetection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    UpdateBotDetection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BotDetectionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BotDetection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetCaptcha: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Captcha"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    UpdateCaptcha: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaptchaUpdate"];
+            };
+        };
+        responses: {
+            /** @description Current policy; credentials are omitted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Captcha"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    GetUserBlocksByIdentifier: {
+        parameters: {
+            query: {
+                identifier: string;
+                consider_brute_force_enablement?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Automatic blocks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserBlocks"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    DeleteUserBlocksByIdentifier: {
+        parameters: {
+            query: {
+                identifier: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Automatic blocks */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    GetUserBlocks: {
+        parameters: {
+            query?: {
+                consider_brute_force_enablement?: boolean;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Automatic blocks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserBlocks"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    DeleteUserBlocks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Automatic blocks */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    GetIPBlock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ip: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description IP is blocked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    DeleteIPBlock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ip: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description IP is blocked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     getTenantSettings: {
         parameters: {
             query?: {

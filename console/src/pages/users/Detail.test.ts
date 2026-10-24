@@ -574,3 +574,13 @@ describe('actions', () => {
     wrapper.unmount()
   })
 })
+
+it('opens automatic login blocks from actions without changing the administrative block', async () => {
+  const { handler } = world({ user: user({ blocked: true }) })
+  const { wrapper, calls } = await mountAt(Detail, path, c => c.url.includes('/user-blocks/') ? { status: 200, body: { blocked_for: [] } } : handler(c))
+  await click(button('View login blocks'))
+  expect(wrapper.text()).toContain('No automatic login blocks')
+  expect(wrapper.text()).toContain('Unblock')
+  expect(writes(calls)).toHaveLength(0)
+  wrapper.unmount()
+})

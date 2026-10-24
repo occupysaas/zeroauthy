@@ -1,0 +1,3 @@
+import type { TenantSettings } from '../../api/client'
+// Public hosted locale inventory; deliberately independent of console translations.
+export const hostedLocales = ["am", "ar", "ar-EG", "ar-SA", "az", "bg", "bn", "bs", "ca-ES", "cnr", "cs", "cy", "da", "de", "el", "en", "en-CA", "es", "es-419", "es-AR", "es-MX", "et", "eu-ES", "fa", "fi", "fr", "fr-CA", "fr-FR", "gl-ES", "gu", "he", "hi", "hr", "hu", "hy", "id", "is", "it", "ja", "ka", "kk", "kn", "ko", "lt", "lv", "mk", "ml", "mn", "mr", "ms", "my", "nb", "nl", "nn", "no", "pa", "pl", "pt", "pt-BR", "pt-PT", "ro", "ru", "sk", "sl", "so", "sq", "sr", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk", "ur", "vi", "zgh", "zh-CN", "zh-HK", "zh-MO", "zh-TW"] satisfies NonNullable<TenantSettings['enabled_locales']>

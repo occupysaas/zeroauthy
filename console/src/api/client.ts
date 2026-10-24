@@ -43,6 +43,20 @@ export type JobError = components['schemas']['JobError']
 export type UsersExportJobCreate = components['schemas']['UsersExportJobCreate']
 export type ManagementError = components['schemas']['ManagementError']
 
+export type TenantSettings = components['schemas']['TenantSettings']
+export type TenantSettingsPatch = components['schemas']['TenantSettingsPatch']
+export type BruteForceProtection = components['schemas']['BruteForceProtection']
+export type BruteForceProtectionUpdate = components['schemas']['BruteForceProtectionUpdate']
+export type SuspiciousIpThrottling = components['schemas']['SuspiciousIpThrottling']
+export type SuspiciousIpThrottlingUpdate = components['schemas']['SuspiciousIpThrottlingUpdate']
+export type BreachedPasswordDetection = components['schemas']['BreachedPasswordDetection']
+export type BreachedPasswordDetectionUpdate = components['schemas']['BreachedPasswordDetectionUpdate']
+export type BotDetection = components['schemas']['BotDetection']
+export type BotDetectionUpdate = components['schemas']['BotDetectionUpdate']
+export type Captcha = components['schemas']['Captcha']
+export type CaptchaUpdate = components['schemas']['CaptchaUpdate']
+export type UserBlocks = components['schemas']['UserBlocks']
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -92,6 +106,55 @@ export class Api {
   // tenantOrigin is where a tenant's Management API answers.
   static tenantOrigin(t: Pick<SystemTenant, 'host'>): string {
     return 'https://' + t.host
+  }
+
+  getTenantSettings(t: SystemTenant): Promise<TenantSettings> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/tenants/settings')
+  }
+  updateTenantSettings(t: SystemTenant, body: TenantSettingsPatch): Promise<TenantSettings> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/tenants/settings', { body })
+  }
+  getUserBlocks(t: SystemTenant, id: string): Promise<UserBlocks> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/user-blocks/' + encodeURIComponent(id))
+  }
+  deleteUserBlocks(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/user-blocks/' + encodeURIComponent(id))
+  }
+  getIPBlock(t: SystemTenant, ip: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/anomaly/blocks/ips/' + encodeURIComponent(ip))
+  }
+  deleteIPBlock(t: SystemTenant, ip: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/anomaly/blocks/ips/' + encodeURIComponent(ip))
+  }
+  getBruteForceProtection(t: SystemTenant): Promise<BruteForceProtection> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/brute-force-protection')
+  }
+  updateBruteForceProtection(t: SystemTenant, body: BruteForceProtectionUpdate): Promise<BruteForceProtection> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/brute-force-protection', { body })
+  }
+  getSuspiciousIpThrottling(t: SystemTenant): Promise<SuspiciousIpThrottling> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/suspicious-ip-throttling')
+  }
+  updateSuspiciousIpThrottling(t: SystemTenant, body: SuspiciousIpThrottlingUpdate): Promise<SuspiciousIpThrottling> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/suspicious-ip-throttling', { body })
+  }
+  getBreachedPasswordDetection(t: SystemTenant): Promise<BreachedPasswordDetection> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/breached-password-detection')
+  }
+  updateBreachedPasswordDetection(t: SystemTenant, body: BreachedPasswordDetectionUpdate): Promise<BreachedPasswordDetection> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/breached-password-detection', { body })
+  }
+  getBotDetection(t: SystemTenant): Promise<BotDetection> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/bot-detection')
+  }
+  updateBotDetection(t: SystemTenant, body: BotDetectionUpdate): Promise<BotDetection> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/bot-detection', { body })
+  }
+  getCaptcha(t: SystemTenant): Promise<Captcha> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/attack-protection/captcha')
+  }
+  updateCaptcha(t: SystemTenant, body: CaptchaUpdate): Promise<Captcha> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/captcha', { body })
   }
 
   listClients(t: SystemTenant, q: { page: number; per_page: number; app_type?: string }): Promise<ClientPage> {
