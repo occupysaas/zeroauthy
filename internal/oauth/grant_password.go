@@ -98,10 +98,25 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		return nil, tooManyRequests()
 	}
 
-	user, err := h.Database.Login(ctx, conn, username, password)
-	if finishErr := svc.Finish(ctx, decision.Receipt, protection.CredentialOutcome(err)); finishErr != nil {
+	var breachErr error
+	user, err := h.Database.LoginWithCheck(ctx, conn, username, password, func(ctx context.Context) error {
+		breachErr = svc.CheckPassword(ctx, res.Tenant, "login", identity.EffectivePassword(conn, password))
+		return breachErr
+	})
+	outcome := protection.CredentialOutcome(err)
+	if breachErr != nil {
+		// Credentials were proved before the policy refusal.
+		outcome = "success"
+	}
+	if finishErr := svc.Finish(ctx, decision.Receipt, outcome); finishErr != nil {
 		h.log().ErrorContext(ctx, "protection completion", "err", finishErr)
 		return nil, serverError()
+	}
+	if breachErr != nil {
+		if errors.Is(breachErr, protection.ErrPasswordLeaked) {
+			return nil, &Error{Status: http.StatusUnauthorized, Code: "password_leaked", Description: protection.ErrPasswordLeaked.Error()}
+		}
+		return nil, &Error{Status: http.StatusServiceUnavailable, Code: "temporarily_unavailable", Description: protection.ErrBreachUnavailable.Error()}
 	}
 	var ue *identity.UnauthorizedError
 	switch {
@@ -122,12 +137,6 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		// kept the script from answering does not (D-0023).
 		h.log().ErrorContext(ctx, "password grant", "tenant", tenantID, "err", err)
 		return nil, serverError()
-	}
-	if err := svc.CheckPassword(ctx, res.Tenant, "login", identity.EffectivePassword(conn, password)); err != nil {
-		if errors.Is(err, protection.ErrPasswordLeaked) {
-			return nil, &Error{Status: http.StatusUnauthorized, Code: "password_leaked", Description: protection.ErrPasswordLeaked.Error()}
-		}
-		return nil, &Error{Status: http.StatusServiceUnavailable, Code: "temporarily_unavailable", Description: protection.ErrBreachUnavailable.Error()}
 	}
 	now := h.now().UTC()
 	if err := h.Store.Users().RecordLogin(ctx, tenantID, user.UserID, now, httpx.CanonicalIP(clientIPFrom(ctx))); err != nil {

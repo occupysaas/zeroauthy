@@ -2,6 +2,7 @@ package login
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"reflect"
 	"testing"
@@ -9,6 +10,8 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/session"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 type breachStub struct {
@@ -94,5 +97,58 @@ func TestBreachHostedLoginAndSignup(t *testing.T) {
 	rec = b.do(t, "POST", "/u/signup", form)
 	if rec.Code != 400 || c.calls != 2 {
 		t.Fatal("signup", rec.Code, c.calls)
+	}
+}
+
+func TestBreachLegacyHostedPreservesProfile(t *testing.T) {
+	for _, exists := range []bool{false, true} {
+		for _, unavailable := range []bool{false, true} {
+			e := newEnv(t)
+			ctx := context.Background()
+			tn := mustTenant(t, e, "acme")
+			e.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+				return map[string]any{"user_id": 42, "email": "dave@legacy.test", "name": "before"}, nil
+			}
+			conn, err := e.st.Connections().GetByName(ctx, tn.ID, "Legacy-DB")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var before *store.User
+			if exists {
+				before, err = e.h.Database.Login(ctx, conn, "dave@legacy.test", "dave legacy 1")
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			e.scripts.Funcs[store.ScriptLogin] = func([]any) (any, error) {
+				return map[string]any{"user_id": 42, "email": "dave@legacy.test", "name": "changed"}, nil
+			}
+			tn.ProtectionSettings.BreachedPassword.Enabled = true
+			tn.ProtectionSettings.BreachedPassword.Shields = []string{"block"}
+			if err := e.st.Tenants().Update(ctx, tn); err != nil {
+				t.Fatal(err)
+			}
+			c := &breachStub{}
+			want := 401
+			if unavailable {
+				c.err = protection.ErrBreachUnavailable
+				want = 503
+			}
+			e.h.Protection = &protection.Service{Store: e.st, BreachChecker: c}
+			b := e.browser("acme.example.test")
+			state, csrf := b.legacyBegin(t)
+			rec := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"dave legacy 1"}})
+			if rec.Code != want || rec.Header().Get("Location") != "" || b.cookies[session.CookieName] != nil {
+				t.Fatal("session issued or wrong refusal", rec.Code)
+			}
+			after, err := e.st.Users().Get(ctx, tn.ID, "auth0|42")
+			if exists {
+				if err != nil || !reflect.DeepEqual(before, after) {
+					t.Fatal("legacy profile changed", err)
+				}
+			} else if !errors.Is(err, store.ErrNotFound) {
+				t.Fatal("legacy profile created", err)
+			}
+		}
 	}
 }

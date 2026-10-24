@@ -250,9 +250,24 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.Database.Login(ctx, f.conn, login, r.PostForm.Get("password"))
-	if finishErr := svc.Finish(ctx, decision.Receipt, protection.CredentialOutcome(err)); finishErr != nil {
+	var breachErr error
+	user, err := h.Database.LoginWithCheck(ctx, f.conn, login, r.PostForm.Get("password"), func(ctx context.Context) error {
+		breachErr = svc.CheckPassword(ctx, f.res.Tenant, "login", identity.EffectivePassword(f.conn, r.PostForm.Get("password")))
+		return breachErr
+	})
+	outcome := protection.CredentialOutcome(err)
+	if breachErr != nil {
+		// Credentials were proved before the policy refusal.
+		outcome = "success"
+	}
+	if finishErr := svc.Finish(ctx, decision.Receipt, outcome); finishErr != nil {
 		h.fail(w, r, finishErr, f)
+		return
+	}
+	if breachErr != nil {
+		status, key := breachFailure(breachErr, http.StatusUnauthorized)
+		data.Error = f.view.L.T(key)
+		ui.RenderLogin(w, status, f.view, data)
 		return
 	}
 	var ue *identity.UnauthorizedError
@@ -281,12 +296,6 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		// A failure the script raised counts as a failed attempt; one that
 		// kept the script from answering does not (D-0023).
 		h.fail(w, r, err, f)
-		return
-	}
-	if err := svc.CheckPassword(ctx, f.res.Tenant, "login", identity.EffectivePassword(f.conn, r.PostForm.Get("password"))); err != nil {
-		status, key := breachFailure(err, http.StatusUnauthorized)
-		data.Error = f.view.L.T(key)
-		ui.RenderLogin(w, status, f.view, data)
 		return
 	}
 	h.complete(w, r, f, user)

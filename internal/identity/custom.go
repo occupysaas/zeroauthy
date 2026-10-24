@@ -106,7 +106,7 @@ func (d *Database) scripts(ctx context.Context, conn *store.Connection, script s
 // customLogin authenticates a user of a legacy connection through the login
 // script. The script decides every time; the local record is never used to
 // check a password.
-func (d *Database) customLogin(ctx context.Context, conn *store.Connection, login, password string) (*store.User, error) {
+func (d *Database) customLogin(ctx context.Context, conn *store.Connection, login, password string, check func(context.Context) error) (*store.User, error) {
 	login = strings.TrimSpace(login)
 	if len(password) > MaxPasswordBytes || len(login) > maxLoginLength {
 		return nil, ErrInvalidCredentials
@@ -118,6 +118,11 @@ func (d *Database) customLogin(ctx context.Context, conn *store.Connection, logi
 	p, err := d.runLogin(ctx, conn, c, login, password)
 	if err != nil {
 		return nil, err
+	}
+	if check != nil {
+		if err := check(ctx); err != nil {
+			return nil, err
+		}
 	}
 	u, err := d.upsertProfile(ctx, conn, p, true)
 	if err != nil {
@@ -148,7 +153,7 @@ func (d *Database) runLogin(ctx context.Context, conn *store.Connection, c *cust
 // reset lookup), or nil. The login script checks the password, and on
 // success the user is stored, or completed, with a hash of it, so later
 // logins are checked locally.
-func (d *Database) importLogin(ctx context.Context, conn *store.Connection, login, password string, u *store.User) (*store.User, error) {
+func (d *Database) importLogin(ctx context.Context, conn *store.Connection, login, password string, u *store.User, check func(context.Context) error) (*store.User, error) {
 	c, err := d.scripts(ctx, conn, store.ScriptLogin)
 	if err != nil {
 		return nil, err
@@ -156,6 +161,11 @@ func (d *Database) importLogin(ctx context.Context, conn *store.Connection, logi
 	p, err := d.runLogin(ctx, conn, c, login, password)
 	if err != nil {
 		return nil, err
+	}
+	if check != nil {
+		if err := check(ctx); err != nil {
+			return nil, err
+		}
 	}
 	hash, err := secrets.Hash(password)
 	if err != nil {

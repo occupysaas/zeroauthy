@@ -105,10 +105,37 @@ func (d *Database) now() time.Time {
 // or created by a reset lookup) is checked by the login script and
 // migrated; every other user is checked locally.
 func (d *Database) Login(ctx context.Context, conn *store.Connection, login, password string) (*store.User, error) {
+	return d.LoginWithCheck(ctx, conn, login, password, nil)
+}
+
+// LoginWithCheck runs check only after credentials have been verified. Legacy
+// script profiles and first-time custom imports are not persisted until check
+// succeeds. Existing imported-hash upgrades intentionally retain Login's behavior;
+// check still runs before the caller may issue a session or token.
+func (d *Database) LoginWithCheck(ctx context.Context, conn *store.Connection, login, password string, check func(context.Context) error) (*store.User, error) {
 	password = EffectivePassword(conn, password)
 	if IsLegacy(conn) {
-		return d.customLogin(ctx, conn, login, password)
+		return d.customLogin(ctx, conn, login, password, check)
 	}
+	checked := false
+	checkOnce := func(ctx context.Context) error {
+		if check == nil || checked {
+			return nil
+		}
+		checked = true
+		return check(ctx)
+	}
+	u, err := d.loginLocal(ctx, conn, login, password, checkOnce)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkOnce(ctx); err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
+func (d *Database) loginLocal(ctx context.Context, conn *store.Connection, login, password string, check func(context.Context) error) (*store.User, error) {
 	norm := NormalizeLogin(login)
 	// An over-long login matches no user; it is not sent to the store.
 	if len(password) > MaxPasswordBytes || len(norm) > maxLoginLength {
@@ -126,7 +153,7 @@ func (d *Database) Login(ctx context.Context, conn *store.Connection, login, pas
 		return d.importedLogin(ctx, conn, u, norm, imported, password, true)
 	}
 	if hash == "" && IsCustom(conn) {
-		return d.importLogin(ctx, conn, strings.TrimSpace(login), password, u)
+		return d.importLogin(ctx, conn, strings.TrimSpace(login), password, u, check)
 	}
 	return verifyLocal(u, hash, password)
 }
