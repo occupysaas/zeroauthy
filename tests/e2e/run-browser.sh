@@ -85,7 +85,12 @@ CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
 export ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem" ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem" \
   ZEROAUTHY_EMAIL__DIR="$work/mail" ZEROAUTHY_STORAGE__DSN="sqlite://$work/e2e.db" \
   ZEROAUTHY_STORAGE__AUTO_MIGRATE=true ZEROAUTHY_SECURITY__MASTER_KEY="$(openssl rand -base64 32)"
-start "$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1
+if [[ "${E2E_M19_HARNESS:-0}" == 1 ]]; then
+  CGO_ENABLED=0 go build -o "$work/protection-server" ./tests/e2e/protection-server
+  start "$work/protection-server" >"$work/server.log" 2>&1
+else
+  start "$work/zeroauthy" serve --config tests/e2e/config.yaml >"$work/server.log" 2>&1
+fi
 server_pid=$started
 
 cd tests/e2e
@@ -144,6 +149,11 @@ if [[ $status -eq 0 ]]; then
   export E2E_ADMIN_SETUP_URL_M18
 fi
 
+if [[ $status -eq 0 && "${E2E_M19_HARNESS:-0}" == 1 ]]; then
+  E2E_ADMIN_SETUP_URL_M19="$(cd ../.. && "$work/zeroauthy" admin create --email operator-m19@e2e.local --config tests/e2e/config.yaml | grep '^https://')" || status=$?
+  export E2E_ADMIN_SETUP_URL_M19
+fi
+
 # run_fg CMD...: like start, but waits for it, so a signal to this script runs
 # the trap at once (and kills the group) instead of after the command ends.
 run_fg() {
@@ -158,7 +168,7 @@ if [[ $status -eq 0 ]]; then
     run_fg "$runtime" run --rm --network host --ipc host \
       -v "$PWD:/e2e" -v "$work:$work:ro" -v "$work/mail:$work/mail" -w /e2e \
       -e NODE_EXTRA_CA_CERTS="$work/cert.pem" -e E2E_MAIL_DIR="$work/mail" \
-      -e PLAYWRIGHT_FORCE_ASYNC_LOADER=1 -e E2E_ADMIN_SETUP_URL_M18 \
+      -e PLAYWRIGHT_FORCE_ASYNC_LOADER=1 -e E2E_ADMIN_SETUP_URL_M18 -e E2E_ADMIN_SETUP_URL_M19 -e E2E_M19_HARNESS \
       mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test "$@" || status=$?
   else
     # m10-device's client (auth0.net) is built once here and run per test with

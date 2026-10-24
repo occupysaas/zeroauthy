@@ -157,7 +157,9 @@ tenants:
         audience: "https://localhost:8443/api/v2/"
         scopes: ["read:connections", "read:users", "create:users", "update:users", "delete:users", "read:users_app_metadata", "update:users_app_metadata",
                  "create:user_tickets", "read:grants", "delete:grants", "read:sessions", "delete:sessions",
-                 "read:refresh_tokens", "delete:refresh_tokens"]
+                 "read:refresh_tokens", "delete:refresh_tokens",
+                 "read:tenant_settings", "update:tenant_settings", "read:attack_protection", "update:attack_protection",
+                 "read:user_blocks", "delete:user_blocks", "read:anomaly_blocks", "delete:anomaly_blocks"]
       - client_id: e2e-m2m
         audience: https://api.e2e.local
         scopes: ["read:things"]
@@ -260,4 +262,6 @@ tenants:
                  "read:client_grants", "create:client_grants", "update:client_grants", "delete:client_grants",
                  "read:connections", "create:connections", "update:connections", "delete:connections",
                  "read:connections_options", "update:connections_options",
-                 "read:users", "create:users", "update:users", "delete:users", "read:users_app_metadata", "update:users_app_metadata"]
+                 "read:users", "create:users", "update:users", "delete:users", "read:users_app_metadata", "update:users_app_metadata",
+                 "read:tenant_settings", "update:tenant_settings", "read:attack_protection", "update:attack_protection",
+                 "read:user_blocks", "delete:user_blocks", "read:anomaly_blocks", "delete:anomaly_blocks"]
