@@ -1182,3 +1182,46 @@ func (s *Server) JobsReadFile(r *storev1.ScopedKey, stream grpc.ServerStreamingS
 func (s *Server) JobsDeleteExpired(ctx context.Context, r *storev1.DeleteExpiredRequest) (*storev1.CountResult, error) {
 	return count(s, r.TxId, func(st store.Store) (int, error) { return st.Jobs().DeleteExpired(ctx, tsFromPB(r.Before)) }), nil
 }
+
+func (s *Server) EmailProvidersGet(ctx context.Context, r *storev1.TenantScope) (*storev1.EmailProviderResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.EmailProvider, error) { return st.EmailProviders().Get(ctx, r.TenantId) }, emailProviderToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.EmailProviderResult{Error: e, Value: v}, nil
+}
+func (s *Server) EmailProvidersPut(ctx context.Context, r *storev1.EmailProviderWrite) (*storev1.Result, error) {
+	return write(s, r.TxId, r.Value, emailProviderFromPB, func(st store.Store, p *store.EmailProvider) error {
+		return st.EmailProviders().Put(ctx, p, r.ExpectedRevision)
+	}), nil
+}
+func (s *Server) EmailProvidersDelete(ctx context.Context, r *storev1.EmailProviderDeleteRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error { return st.EmailProviders().Delete(ctx, r.TenantId, r.ExpectedRevision) }), nil
+}
+func (s *Server) EmailTemplatesGet(ctx context.Context, r *storev1.EmailTemplateKey) (*storev1.EmailTemplateResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.EmailTemplate, error) {
+		return st.EmailTemplates().Get(ctx, r.TenantId, r.Name)
+	}, emailTemplateToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.EmailTemplateResult{Error: e, Value: v}, nil
+}
+func (s *Server) EmailTemplatesPut(ctx context.Context, r *storev1.EmailTemplateWrite) (*storev1.Result, error) {
+	return write(s, r.TxId, r.Value, emailTemplateFromPB, func(st store.Store, t *store.EmailTemplate) error {
+		return st.EmailTemplates().Put(ctx, t, r.ExpectedRevision)
+	}), nil
+}
+func (s *Server) EmailNotificationsClaim(ctx context.Context, r *storev1.EmailNotificationClaimRequest) (*storev1.EmailNotificationClaimResult, error) {
+	var claimed bool
+	err := s.with(r.TxId, func(st store.Store) (e error) {
+		claimed, e = st.EmailNotifications().Claim(ctx, r.TenantId, r.SubjectId, r.Purpose, r.EventKey, tsFromPB(r.Now), tsFromPB(r.ExpiresAt), int(r.Limit))
+		return e
+	})
+	return &storev1.EmailNotificationClaimResult{Error: errToPB(err), Claimed: claimed}, nil
+}
+func (s *Server) EmailNotificationsSweep(ctx context.Context, r *storev1.EmailNotificationSweepRequest) (*storev1.CountResult, error) {
+	return count(s, r.TxId, func(st store.Store) (int, error) {
+		return st.EmailNotifications().Sweep(ctx, tsFromPB(r.Before), int(r.Limit))
+	}), nil
+}

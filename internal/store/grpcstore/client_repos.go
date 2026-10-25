@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
@@ -98,6 +99,51 @@ func decList[P, T any](op string, err error, e *storev1.Error, pbs []P, dec func
 // ---- tenants ----
 
 type clientTenants struct{ c *Client }
+
+type clientEmailProviders struct{ c *Client }
+type clientEmailTemplates struct{ c *Client }
+type clientEmailNotifications struct{ c *Client }
+
+func (a clientEmailProviders) Get(ctx context.Context, tenant string) (*store.EmailProvider, error) {
+	r, err := a.c.rpc.EmailProvidersGet(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenant})
+	return decOne("EmailProvidersGet", err, r.GetError(), r.GetValue(), emailProviderFromPB)
+}
+func (a clientEmailProviders) Put(ctx context.Context, p *store.EmailProvider, expected int64) error {
+	return put("EmailProvidersPut", p, emailProviderToPB, func(pb *storev1.EmailProvider) (result, error) {
+		return a.c.rpc.EmailProvidersPut(ctx, &storev1.EmailProviderWrite{TxId: a.c.txID, Value: pb, ExpectedRevision: expected})
+	})
+}
+func (a clientEmailProviders) Delete(ctx context.Context, tenant string, expected int64) error {
+	r, err := a.c.rpc.EmailProvidersDelete(ctx, &storev1.EmailProviderDeleteRequest{TxId: a.c.txID, TenantId: tenant, ExpectedRevision: expected})
+	return do("EmailProvidersDelete", r, err)
+}
+func (a clientEmailTemplates) Get(ctx context.Context, tenant, name string) (*store.EmailTemplate, error) {
+	r, err := a.c.rpc.EmailTemplatesGet(ctx, &storev1.EmailTemplateKey{TxId: a.c.txID, TenantId: tenant, Name: name})
+	return decOne("EmailTemplatesGet", err, r.GetError(), r.GetValue(), emailTemplateFromPB)
+}
+func (a clientEmailTemplates) Put(ctx context.Context, t *store.EmailTemplate, expected int64) error {
+	return put("EmailTemplatesPut", t, emailTemplateToPB, func(pb *storev1.EmailTemplate) (result, error) {
+		return a.c.rpc.EmailTemplatesPut(ctx, &storev1.EmailTemplateWrite{TxId: a.c.txID, Value: pb, ExpectedRevision: expected})
+	})
+}
+func (a clientEmailNotifications) Claim(ctx context.Context, tenant, subject, purpose, event string, now, expires time.Time, limit int) (bool, error) {
+	var exp *timestamppb.Timestamp
+	if !expires.IsZero() {
+		exp = tsToPB(expires)
+	}
+	r, err := a.c.rpc.EmailNotificationsClaim(ctx, &storev1.EmailNotificationClaimRequest{TxId: a.c.txID, TenantId: tenant, SubjectId: subject, Purpose: purpose, EventKey: event, Now: tsToPB(now), ExpiresAt: exp, Limit: int32(limit)})
+	if err != nil {
+		return false, rpcErr("EmailNotificationsClaim", err)
+	}
+	if e := errFromPB(r.GetError()); e != nil {
+		return false, e
+	}
+	return r.GetClaimed(), nil
+}
+func (a clientEmailNotifications) Sweep(ctx context.Context, before time.Time, limit int) (int, error) {
+	r, err := a.c.rpc.EmailNotificationsSweep(ctx, &storev1.EmailNotificationSweepRequest{TxId: a.c.txID, Before: tsToPB(before), Limit: int32(limit)})
+	return counted("EmailNotificationsSweep", r, err)
+}
 
 func (a clientTenants) Create(ctx context.Context, t *store.Tenant) error {
 	if err := store.ValidateProtectionSecrets(t.ProtectionSettings.CAPTCHA); err != nil {

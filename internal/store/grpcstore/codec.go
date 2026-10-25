@@ -521,6 +521,51 @@ func customSigningKeySetFromPB(pb *storev1.CustomSigningKeySet) (*store.CustomSi
 	return &store.CustomSigningKeySet{TenantID: pb.TenantId, JWKS: cloneBytes(pb.Jwks)}, nil
 }
 
+func emailProviderToPB(p *store.EmailProvider) (*storev1.EmailProvider, error) {
+	if p == nil {
+		return nil, nil
+	}
+	b, err := json.Marshal(p.PublicConfig)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.EmailProvider{TenantId: p.TenantID, Name: p.Name, Enabled: p.Enabled, DefaultFrom: p.DefaultFrom, PublicConfigJson: string(b), SealedCredentials: cloneBytes(p.SealedCredentials), Revision: p.Revision}, nil
+}
+func emailProviderFromPB(pb *storev1.EmailProvider) (*store.EmailProvider, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	p := &store.EmailProvider{TenantID: pb.TenantId, Name: pb.Name, Enabled: pb.Enabled, DefaultFrom: pb.DefaultFrom, SealedCredentials: cloneBytes(pb.SealedCredentials), Revision: pb.Revision}
+	if pb.PublicConfigJson != "" && pb.PublicConfigJson != "null" {
+		if err := json.Unmarshal([]byte(pb.PublicConfigJson), &p.PublicConfig); err != nil {
+			return nil, err
+		}
+	}
+	return p, nil
+}
+func emailTemplateToPB(t *store.EmailTemplate) (*storev1.EmailTemplate, error) {
+	if t == nil {
+		return nil, nil
+	}
+	b, err := json.Marshal(t.Fields)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.EmailTemplate{TenantId: t.TenantID, Name: t.Name, FieldsJson: string(b), Revision: t.Revision}, nil
+}
+func emailTemplateFromPB(pb *storev1.EmailTemplate) (*store.EmailTemplate, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	t := &store.EmailTemplate{TenantID: pb.TenantId, Name: pb.Name, Revision: pb.Revision}
+	if pb.FieldsJson != "" && pb.FieldsJson != "null" {
+		if err := json.Unmarshal([]byte(pb.FieldsJson), &t.Fields); err != nil {
+			return nil, err
+		}
+	}
+	return t, nil
+}
+
 // ---- connection ----
 
 func connectionToPB(c *store.Connection) (*storev1.Connection, error) {

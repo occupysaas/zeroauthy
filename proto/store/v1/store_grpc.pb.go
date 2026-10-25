@@ -74,6 +74,13 @@ const (
 	StoreService_CustomSigningKeysGet_FullMethodName                   = "/zeroauthy.store.v1.StoreService/CustomSigningKeysGet"
 	StoreService_CustomSigningKeysReplace_FullMethodName               = "/zeroauthy.store.v1.StoreService/CustomSigningKeysReplace"
 	StoreService_CustomSigningKeysDelete_FullMethodName                = "/zeroauthy.store.v1.StoreService/CustomSigningKeysDelete"
+	StoreService_EmailProvidersGet_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EmailProvidersGet"
+	StoreService_EmailProvidersPut_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EmailProvidersPut"
+	StoreService_EmailProvidersDelete_FullMethodName                   = "/zeroauthy.store.v1.StoreService/EmailProvidersDelete"
+	StoreService_EmailTemplatesGet_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EmailTemplatesGet"
+	StoreService_EmailTemplatesPut_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EmailTemplatesPut"
+	StoreService_EmailNotificationsClaim_FullMethodName                = "/zeroauthy.store.v1.StoreService/EmailNotificationsClaim"
+	StoreService_EmailNotificationsSweep_FullMethodName                = "/zeroauthy.store.v1.StoreService/EmailNotificationsSweep"
 	StoreService_ConnectionsCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ConnectionsCreate"
 	StoreService_ConnectionsGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ConnectionsGet"
 	StoreService_ConnectionsGetByName_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ConnectionsGetByName"
@@ -279,6 +286,13 @@ type StoreServiceClient interface {
 	CustomSigningKeysGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*CustomSigningKeySetResult, error)
 	CustomSigningKeysReplace(ctx context.Context, in *CustomSigningKeySetWrite, opts ...grpc.CallOption) (*Result, error)
 	CustomSigningKeysDelete(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*Result, error)
+	EmailProvidersGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*EmailProviderResult, error)
+	EmailProvidersPut(ctx context.Context, in *EmailProviderWrite, opts ...grpc.CallOption) (*Result, error)
+	EmailProvidersDelete(ctx context.Context, in *EmailProviderDeleteRequest, opts ...grpc.CallOption) (*Result, error)
+	EmailTemplatesGet(ctx context.Context, in *EmailTemplateKey, opts ...grpc.CallOption) (*EmailTemplateResult, error)
+	EmailTemplatesPut(ctx context.Context, in *EmailTemplateWrite, opts ...grpc.CallOption) (*Result, error)
+	EmailNotificationsClaim(ctx context.Context, in *EmailNotificationClaimRequest, opts ...grpc.CallOption) (*EmailNotificationClaimResult, error)
+	EmailNotificationsSweep(ctx context.Context, in *EmailNotificationSweepRequest, opts ...grpc.CallOption) (*CountResult, error)
 	ConnectionsCreate(ctx context.Context, in *ConnectionWrite, opts ...grpc.CallOption) (*Result, error)
 	ConnectionsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ConnectionResult, error)
 	ConnectionsGetByName(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ConnectionResult, error)
@@ -928,6 +942,76 @@ func (c *storeServiceClient) CustomSigningKeysDelete(ctx context.Context, in *Te
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_CustomSigningKeysDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailProvidersGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*EmailProviderResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmailProviderResult)
+	err := c.cc.Invoke(ctx, StoreService_EmailProvidersGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailProvidersPut(ctx context.Context, in *EmailProviderWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_EmailProvidersPut_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailProvidersDelete(ctx context.Context, in *EmailProviderDeleteRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_EmailProvidersDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailTemplatesGet(ctx context.Context, in *EmailTemplateKey, opts ...grpc.CallOption) (*EmailTemplateResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmailTemplateResult)
+	err := c.cc.Invoke(ctx, StoreService_EmailTemplatesGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailTemplatesPut(ctx context.Context, in *EmailTemplateWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_EmailTemplatesPut_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailNotificationsClaim(ctx context.Context, in *EmailNotificationClaimRequest, opts ...grpc.CallOption) (*EmailNotificationClaimResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmailNotificationClaimResult)
+	err := c.cc.Invoke(ctx, StoreService_EmailNotificationsClaim_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) EmailNotificationsSweep(ctx context.Context, in *EmailNotificationSweepRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_EmailNotificationsSweep_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1911,6 +1995,13 @@ type StoreServiceServer interface {
 	CustomSigningKeysGet(context.Context, *TenantScope) (*CustomSigningKeySetResult, error)
 	CustomSigningKeysReplace(context.Context, *CustomSigningKeySetWrite) (*Result, error)
 	CustomSigningKeysDelete(context.Context, *TenantScope) (*Result, error)
+	EmailProvidersGet(context.Context, *TenantScope) (*EmailProviderResult, error)
+	EmailProvidersPut(context.Context, *EmailProviderWrite) (*Result, error)
+	EmailProvidersDelete(context.Context, *EmailProviderDeleteRequest) (*Result, error)
+	EmailTemplatesGet(context.Context, *EmailTemplateKey) (*EmailTemplateResult, error)
+	EmailTemplatesPut(context.Context, *EmailTemplateWrite) (*Result, error)
+	EmailNotificationsClaim(context.Context, *EmailNotificationClaimRequest) (*EmailNotificationClaimResult, error)
+	EmailNotificationsSweep(context.Context, *EmailNotificationSweepRequest) (*CountResult, error)
 	ConnectionsCreate(context.Context, *ConnectionWrite) (*Result, error)
 	ConnectionsGet(context.Context, *ScopedKey) (*ConnectionResult, error)
 	ConnectionsGetByName(context.Context, *ScopedKey) (*ConnectionResult, error)
@@ -2180,6 +2271,27 @@ func (UnimplementedStoreServiceServer) CustomSigningKeysReplace(context.Context,
 }
 func (UnimplementedStoreServiceServer) CustomSigningKeysDelete(context.Context, *TenantScope) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method CustomSigningKeysDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailProvidersGet(context.Context, *TenantScope) (*EmailProviderResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailProvidersGet not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailProvidersPut(context.Context, *EmailProviderWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailProvidersPut not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailProvidersDelete(context.Context, *EmailProviderDeleteRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailProvidersDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailTemplatesGet(context.Context, *EmailTemplateKey) (*EmailTemplateResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailTemplatesGet not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailTemplatesPut(context.Context, *EmailTemplateWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailTemplatesPut not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailNotificationsClaim(context.Context, *EmailNotificationClaimRequest) (*EmailNotificationClaimResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailNotificationsClaim not implemented")
+}
+func (UnimplementedStoreServiceServer) EmailNotificationsSweep(context.Context, *EmailNotificationSweepRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmailNotificationsSweep not implemented")
 }
 func (UnimplementedStoreServiceServer) ConnectionsCreate(context.Context, *ConnectionWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConnectionsCreate not implemented")
@@ -3443,6 +3555,132 @@ func _StoreService_CustomSigningKeysDelete_Handler(srv interface{}, ctx context.
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).CustomSigningKeysDelete(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailProvidersGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailProvidersGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailProvidersGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailProvidersGet(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailProvidersPut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmailProviderWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailProvidersPut(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailProvidersPut_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailProvidersPut(ctx, req.(*EmailProviderWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailProvidersDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmailProviderDeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailProvidersDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailProvidersDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailProvidersDelete(ctx, req.(*EmailProviderDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailTemplatesGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmailTemplateKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailTemplatesGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailTemplatesGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailTemplatesGet(ctx, req.(*EmailTemplateKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailTemplatesPut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmailTemplateWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailTemplatesPut(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailTemplatesPut_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailTemplatesPut(ctx, req.(*EmailTemplateWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailNotificationsClaim_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmailNotificationClaimRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailNotificationsClaim(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailNotificationsClaim_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailNotificationsClaim(ctx, req.(*EmailNotificationClaimRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_EmailNotificationsSweep_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmailNotificationSweepRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).EmailNotificationsSweep(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_EmailNotificationsSweep_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).EmailNotificationsSweep(ctx, req.(*EmailNotificationSweepRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -5196,6 +5434,34 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CustomSigningKeysDelete",
 			Handler:    _StoreService_CustomSigningKeysDelete_Handler,
+		},
+		{
+			MethodName: "EmailProvidersGet",
+			Handler:    _StoreService_EmailProvidersGet_Handler,
+		},
+		{
+			MethodName: "EmailProvidersPut",
+			Handler:    _StoreService_EmailProvidersPut_Handler,
+		},
+		{
+			MethodName: "EmailProvidersDelete",
+			Handler:    _StoreService_EmailProvidersDelete_Handler,
+		},
+		{
+			MethodName: "EmailTemplatesGet",
+			Handler:    _StoreService_EmailTemplatesGet_Handler,
+		},
+		{
+			MethodName: "EmailTemplatesPut",
+			Handler:    _StoreService_EmailTemplatesPut_Handler,
+		},
+		{
+			MethodName: "EmailNotificationsClaim",
+			Handler:    _StoreService_EmailNotificationsClaim_Handler,
+		},
+		{
+			MethodName: "EmailNotificationsSweep",
+			Handler:    _StoreService_EmailNotificationsSweep_Handler,
 		},
 		{
 			MethodName: "ConnectionsCreate",

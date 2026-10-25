@@ -123,6 +123,14 @@ service StoreService {
   rpc CustomSigningKeysReplace(CustomSigningKeySetWrite) returns (Result);
   rpc CustomSigningKeysDelete(TenantScope) returns (Result);
 
+  rpc EmailProvidersGet(TenantScope) returns (EmailProviderResult);
+  rpc EmailProvidersPut(EmailProviderWrite) returns (Result);
+  rpc EmailProvidersDelete(EmailProviderDeleteRequest) returns (Result);
+  rpc EmailTemplatesGet(EmailTemplateKey) returns (EmailTemplateResult);
+  rpc EmailTemplatesPut(EmailTemplateWrite) returns (Result);
+  rpc EmailNotificationsClaim(EmailNotificationClaimRequest) returns (EmailNotificationClaimResult);
+  rpc EmailNotificationsSweep(EmailNotificationSweepRequest) returns (CountResult);
+
   rpc ConnectionsCreate(ConnectionWrite) returns (Result);
   rpc ConnectionsGet(ScopedKey) returns (ConnectionResult);
   rpc ConnectionsGetByName(ScopedKey) returns (ConnectionResult);
@@ -403,6 +411,25 @@ message SigningKeyCertificateRequest { string tx_id = 1; string tenant_id = 2; s
 message CustomSigningKeySet { string tenant_id = 1; bytes jwks = 2; }
 message CustomSigningKeySetResult { Error error = 1; CustomSigningKeySet value = 2; }
 message CustomSigningKeySetWrite { string tx_id = 1; CustomSigningKeySet value = 2; }
+
+// Email provider credentials are opaque ciphertext to storage plugins.
+message EmailProvider {
+  string tenant_id = 1; string name = 2; bool enabled = 3; string default_from = 4;
+  string public_config_json = 5; bytes sealed_credentials = 6; int64 revision = 7;
+}
+message EmailProviderResult { Error error = 1; EmailProvider value = 2; }
+message EmailProviderWrite { string tx_id = 1; EmailProvider value = 2; int64 expected_revision = 3; }
+message EmailProviderDeleteRequest { string tx_id = 1; string tenant_id = 2; int64 expected_revision = 3; }
+message EmailTemplate { string tenant_id = 1; string name = 2; string fields_json = 3; int64 revision = 4; }
+message EmailTemplateKey { string tx_id = 1; string tenant_id = 2; string name = 3; }
+message EmailTemplateResult { Error error = 1; EmailTemplate value = 2; }
+message EmailTemplateWrite { string tx_id = 1; EmailTemplate value = 2; int64 expected_revision = 3; }
+message EmailNotificationClaimRequest {
+  string tx_id = 1; string tenant_id = 2; string subject_id = 3; string purpose = 4; string event_key = 5;
+  google.protobuf.Timestamp now = 6; google.protobuf.Timestamp expires_at = 7; int32 limit = 8;
+}
+message EmailNotificationClaimResult { Error error = 1; bool claimed = 2; }
+message EmailNotificationSweepRequest { string tx_id = 1; google.protobuf.Timestamp before = 2; int32 limit = 3; }
 
 // PasswordPolicy is the password policy of plugins older than Plan 15: a
 // minimum length and a number of required character classes. Connection
