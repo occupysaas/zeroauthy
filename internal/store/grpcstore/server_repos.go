@@ -378,10 +378,92 @@ func (s *Server) SigningKeysList(ctx context.Context, r *storev1.TenantScope) (*
 	return &storev1.SigningKeyList{Error: e, Values: vs}, nil
 }
 
+func (s *Server) SigningKeysGet(ctx context.Context, r *storev1.ScopedKey) (*storev1.SigningKeyResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.SigningKey, error) {
+		return st.SigningKeys().Get(ctx, r.TenantId, r.Key)
+	}, signingKeyToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.SigningKeyResult{Error: e, Value: v}, nil
+}
+
 func (s *Server) SigningKeysRotate(ctx context.Context, r *storev1.SigningKeysRotateRequest) (*storev1.Result, error) {
 	return write(s, r.TxId, r.Next, signingKeyFromPB, func(st store.Store, k *store.SigningKey) error {
 		return st.SigningKeys().Rotate(ctx, r.TenantId, k)
 	}), nil
+}
+
+func (s *Server) SigningKeysRotateWithResult(ctx context.Context, r *storev1.SigningKeysRotateRequest) (*storev1.SigningKeyRotationResult, error) {
+	var result *store.SigningKeyRotation
+	err := checkTS(r.At)
+	if err == nil {
+		next, decodeErr := signingKeyFromPB(r.Next)
+		err = decodeErr
+		if err == nil && next == nil {
+			err = errMissingValue
+		}
+		if err == nil {
+			err = s.with(r.TxId, func(st store.Store) (e error) {
+				result, e = st.SigningKeys().RotateWithResult(ctx, r.TenantId, next, tsFromPB(r.At))
+				return e
+			})
+		}
+	}
+	pb, encErr := signingKeyRotationToPB(result)
+	if encErr != nil {
+		return nil, encodeFault(encErr)
+	}
+	return &storev1.SigningKeyRotationResult{Error: errToPB(err), Value: pb}, nil
+}
+
+func (s *Server) SigningKeysRevoke(ctx context.Context, r *storev1.SigningKeyRevokeRequest) (*storev1.SigningKeyResult, error) {
+	var result *store.SigningKey
+	err := checkTS(r.At)
+	if err == nil {
+		err = s.with(r.TxId, func(st store.Store) (e error) {
+			result, e = st.SigningKeys().Revoke(ctx, r.TenantId, r.Kid, tsFromPB(r.At))
+			return e
+		})
+	}
+	pb, encErr := signingKeyToPB(result)
+	if encErr != nil {
+		return nil, encodeFault(encErr)
+	}
+	return &storev1.SigningKeyResult{Error: errToPB(err), Value: pb}, nil
+}
+
+func (s *Server) SigningKeysSetCertificate(ctx context.Context, r *storev1.SigningKeyCertificateRequest) (*storev1.SigningKeyResult, error) {
+	var result *store.SigningKey
+	err := s.with(r.TxId, func(st store.Store) (e error) {
+		result, e = st.SigningKeys().SetCertificateIfAbsent(ctx, r.TenantId, r.Kid, r.Der)
+		return e
+	})
+	pb, encErr := signingKeyToPB(result)
+	if encErr != nil {
+		return nil, encodeFault(encErr)
+	}
+	return &storev1.SigningKeyResult{Error: errToPB(err), Value: pb}, nil
+}
+
+func (s *Server) CustomSigningKeysGet(ctx context.Context, r *storev1.TenantScope) (*storev1.CustomSigningKeySetResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.CustomSigningKeySet, error) {
+		return st.CustomSigningKeys().Get(ctx, r.TenantId)
+	}, customSigningKeySetToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.CustomSigningKeySetResult{Error: e, Value: v}, nil
+}
+
+func (s *Server) CustomSigningKeysReplace(ctx context.Context, r *storev1.CustomSigningKeySetWrite) (*storev1.Result, error) {
+	return write(s, r.TxId, r.Value, customSigningKeySetFromPB, func(st store.Store, set *store.CustomSigningKeySet) error {
+		return st.CustomSigningKeys().Replace(ctx, set)
+	}), nil
+}
+
+func (s *Server) CustomSigningKeysDelete(ctx context.Context, r *storev1.TenantScope) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error { return st.CustomSigningKeys().Delete(ctx, r.TenantId) }), nil
 }
 
 // ---- connections ----

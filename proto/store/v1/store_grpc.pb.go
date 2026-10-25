@@ -66,6 +66,13 @@ const (
 	StoreService_SigningKeysCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SigningKeysCreate"
 	StoreService_SigningKeysList_FullMethodName                        = "/zeroauthy.store.v1.StoreService/SigningKeysList"
 	StoreService_SigningKeysRotate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SigningKeysRotate"
+	StoreService_SigningKeysGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/SigningKeysGet"
+	StoreService_SigningKeysRotateWithResult_FullMethodName            = "/zeroauthy.store.v1.StoreService/SigningKeysRotateWithResult"
+	StoreService_SigningKeysRevoke_FullMethodName                      = "/zeroauthy.store.v1.StoreService/SigningKeysRevoke"
+	StoreService_SigningKeysSetCertificate_FullMethodName              = "/zeroauthy.store.v1.StoreService/SigningKeysSetCertificate"
+	StoreService_CustomSigningKeysGet_FullMethodName                   = "/zeroauthy.store.v1.StoreService/CustomSigningKeysGet"
+	StoreService_CustomSigningKeysReplace_FullMethodName               = "/zeroauthy.store.v1.StoreService/CustomSigningKeysReplace"
+	StoreService_CustomSigningKeysDelete_FullMethodName                = "/zeroauthy.store.v1.StoreService/CustomSigningKeysDelete"
 	StoreService_ConnectionsCreate_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ConnectionsCreate"
 	StoreService_ConnectionsGet_FullMethodName                         = "/zeroauthy.store.v1.StoreService/ConnectionsGet"
 	StoreService_ConnectionsGetByName_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ConnectionsGetByName"
@@ -263,6 +270,13 @@ type StoreServiceClient interface {
 	SigningKeysCreate(ctx context.Context, in *SigningKeyWrite, opts ...grpc.CallOption) (*Result, error)
 	SigningKeysList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*SigningKeyList, error)
 	SigningKeysRotate(ctx context.Context, in *SigningKeysRotateRequest, opts ...grpc.CallOption) (*Result, error)
+	SigningKeysGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SigningKeyResult, error)
+	SigningKeysRotateWithResult(ctx context.Context, in *SigningKeysRotateRequest, opts ...grpc.CallOption) (*SigningKeyRotationResult, error)
+	SigningKeysRevoke(ctx context.Context, in *SigningKeyRevokeRequest, opts ...grpc.CallOption) (*SigningKeyResult, error)
+	SigningKeysSetCertificate(ctx context.Context, in *SigningKeyCertificateRequest, opts ...grpc.CallOption) (*SigningKeyResult, error)
+	CustomSigningKeysGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*CustomSigningKeySetResult, error)
+	CustomSigningKeysReplace(ctx context.Context, in *CustomSigningKeySetWrite, opts ...grpc.CallOption) (*Result, error)
+	CustomSigningKeysDelete(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*Result, error)
 	ConnectionsCreate(ctx context.Context, in *ConnectionWrite, opts ...grpc.CallOption) (*Result, error)
 	ConnectionsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ConnectionResult, error)
 	ConnectionsGetByName(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*ConnectionResult, error)
@@ -832,6 +846,76 @@ func (c *storeServiceClient) SigningKeysRotate(ctx context.Context, in *SigningK
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_SigningKeysRotate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) SigningKeysGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*SigningKeyResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SigningKeyResult)
+	err := c.cc.Invoke(ctx, StoreService_SigningKeysGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) SigningKeysRotateWithResult(ctx context.Context, in *SigningKeysRotateRequest, opts ...grpc.CallOption) (*SigningKeyRotationResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SigningKeyRotationResult)
+	err := c.cc.Invoke(ctx, StoreService_SigningKeysRotateWithResult_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) SigningKeysRevoke(ctx context.Context, in *SigningKeyRevokeRequest, opts ...grpc.CallOption) (*SigningKeyResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SigningKeyResult)
+	err := c.cc.Invoke(ctx, StoreService_SigningKeysRevoke_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) SigningKeysSetCertificate(ctx context.Context, in *SigningKeyCertificateRequest, opts ...grpc.CallOption) (*SigningKeyResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SigningKeyResult)
+	err := c.cc.Invoke(ctx, StoreService_SigningKeysSetCertificate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomSigningKeysGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*CustomSigningKeySetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomSigningKeySetResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomSigningKeysGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomSigningKeysReplace(ctx context.Context, in *CustomSigningKeySetWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_CustomSigningKeysReplace_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomSigningKeysDelete(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_CustomSigningKeysDelete_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1807,6 +1891,13 @@ type StoreServiceServer interface {
 	SigningKeysCreate(context.Context, *SigningKeyWrite) (*Result, error)
 	SigningKeysList(context.Context, *TenantScope) (*SigningKeyList, error)
 	SigningKeysRotate(context.Context, *SigningKeysRotateRequest) (*Result, error)
+	SigningKeysGet(context.Context, *ScopedKey) (*SigningKeyResult, error)
+	SigningKeysRotateWithResult(context.Context, *SigningKeysRotateRequest) (*SigningKeyRotationResult, error)
+	SigningKeysRevoke(context.Context, *SigningKeyRevokeRequest) (*SigningKeyResult, error)
+	SigningKeysSetCertificate(context.Context, *SigningKeyCertificateRequest) (*SigningKeyResult, error)
+	CustomSigningKeysGet(context.Context, *TenantScope) (*CustomSigningKeySetResult, error)
+	CustomSigningKeysReplace(context.Context, *CustomSigningKeySetWrite) (*Result, error)
+	CustomSigningKeysDelete(context.Context, *TenantScope) (*Result, error)
 	ConnectionsCreate(context.Context, *ConnectionWrite) (*Result, error)
 	ConnectionsGet(context.Context, *ScopedKey) (*ConnectionResult, error)
 	ConnectionsGetByName(context.Context, *ScopedKey) (*ConnectionResult, error)
@@ -2052,6 +2143,27 @@ func (UnimplementedStoreServiceServer) SigningKeysList(context.Context, *TenantS
 }
 func (UnimplementedStoreServiceServer) SigningKeysRotate(context.Context, *SigningKeysRotateRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method SigningKeysRotate not implemented")
+}
+func (UnimplementedStoreServiceServer) SigningKeysGet(context.Context, *ScopedKey) (*SigningKeyResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SigningKeysGet not implemented")
+}
+func (UnimplementedStoreServiceServer) SigningKeysRotateWithResult(context.Context, *SigningKeysRotateRequest) (*SigningKeyRotationResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SigningKeysRotateWithResult not implemented")
+}
+func (UnimplementedStoreServiceServer) SigningKeysRevoke(context.Context, *SigningKeyRevokeRequest) (*SigningKeyResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SigningKeysRevoke not implemented")
+}
+func (UnimplementedStoreServiceServer) SigningKeysSetCertificate(context.Context, *SigningKeyCertificateRequest) (*SigningKeyResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SigningKeysSetCertificate not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomSigningKeysGet(context.Context, *TenantScope) (*CustomSigningKeySetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomSigningKeysGet not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomSigningKeysReplace(context.Context, *CustomSigningKeySetWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomSigningKeysReplace not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomSigningKeysDelete(context.Context, *TenantScope) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomSigningKeysDelete not implemented")
 }
 func (UnimplementedStoreServiceServer) ConnectionsCreate(context.Context, *ConnectionWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConnectionsCreate not implemented")
@@ -3171,6 +3283,132 @@ func _StoreService_SigningKeysRotate_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).SigningKeysRotate(ctx, req.(*SigningKeysRotateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_SigningKeysGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScopedKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SigningKeysGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SigningKeysGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SigningKeysGet(ctx, req.(*ScopedKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_SigningKeysRotateWithResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SigningKeysRotateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SigningKeysRotateWithResult(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SigningKeysRotateWithResult_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SigningKeysRotateWithResult(ctx, req.(*SigningKeysRotateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_SigningKeysRevoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SigningKeyRevokeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SigningKeysRevoke(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SigningKeysRevoke_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SigningKeysRevoke(ctx, req.(*SigningKeyRevokeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_SigningKeysSetCertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SigningKeyCertificateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).SigningKeysSetCertificate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_SigningKeysSetCertificate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).SigningKeysSetCertificate(ctx, req.(*SigningKeyCertificateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomSigningKeysGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomSigningKeysGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomSigningKeysGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomSigningKeysGet(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomSigningKeysReplace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomSigningKeySetWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomSigningKeysReplace(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomSigningKeysReplace_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomSigningKeysReplace(ctx, req.(*CustomSigningKeySetWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomSigningKeysDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomSigningKeysDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomSigningKeysDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomSigningKeysDelete(ctx, req.(*TenantScope))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -4892,6 +5130,34 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SigningKeysRotate",
 			Handler:    _StoreService_SigningKeysRotate_Handler,
+		},
+		{
+			MethodName: "SigningKeysGet",
+			Handler:    _StoreService_SigningKeysGet_Handler,
+		},
+		{
+			MethodName: "SigningKeysRotateWithResult",
+			Handler:    _StoreService_SigningKeysRotateWithResult_Handler,
+		},
+		{
+			MethodName: "SigningKeysRevoke",
+			Handler:    _StoreService_SigningKeysRevoke_Handler,
+		},
+		{
+			MethodName: "SigningKeysSetCertificate",
+			Handler:    _StoreService_SigningKeysSetCertificate_Handler,
+		},
+		{
+			MethodName: "CustomSigningKeysGet",
+			Handler:    _StoreService_CustomSigningKeysGet_Handler,
+		},
+		{
+			MethodName: "CustomSigningKeysReplace",
+			Handler:    _StoreService_CustomSigningKeysReplace_Handler,
+		},
+		{
+			MethodName: "CustomSigningKeysDelete",
+			Handler:    _StoreService_CustomSigningKeysDelete_Handler,
 		},
 		{
 			MethodName: "ConnectionsCreate",

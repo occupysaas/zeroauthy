@@ -114,6 +114,13 @@ service StoreService {
   rpc SigningKeysCreate(SigningKeyWrite) returns (Result);
   rpc SigningKeysList(TenantScope) returns (SigningKeyList);
   rpc SigningKeysRotate(SigningKeysRotateRequest) returns (Result);
+  rpc SigningKeysGet(ScopedKey) returns (SigningKeyResult);
+  rpc SigningKeysRotateWithResult(SigningKeysRotateRequest) returns (SigningKeyRotationResult);
+  rpc SigningKeysRevoke(SigningKeyRevokeRequest) returns (SigningKeyResult);
+  rpc SigningKeysSetCertificate(SigningKeyCertificateRequest) returns (SigningKeyResult);
+  rpc CustomSigningKeysGet(TenantScope) returns (CustomSigningKeySetResult);
+  rpc CustomSigningKeysReplace(CustomSigningKeySetWrite) returns (Result);
+  rpc CustomSigningKeysDelete(TenantScope) returns (Result);
 
   rpc ConnectionsCreate(ConnectionWrite) returns (Result);
   rpc ConnectionsGet(ScopedKey) returns (ConnectionResult);
@@ -379,7 +386,19 @@ message SigningKey {
   optional bytes private_key = 5; // absent = nil
   optional bytes public_jwk = 6;  // absent = nil
   google.protobuf.Timestamp created_at = 7;
+  optional bytes certificate_der = 8;
+  google.protobuf.Timestamp current_since = 9;
+  google.protobuf.Timestamp current_until = 10;
+  google.protobuf.Timestamp revoked_at = 11;
 }
+message SigningKeyResult { Error error = 1; SigningKey value = 2; }
+message SigningKeyRotation { SigningKey current = 1; SigningKey next = 2; }
+message SigningKeyRotationResult { Error error = 1; SigningKeyRotation value = 2; }
+message SigningKeyRevokeRequest { string tx_id = 1; string tenant_id = 2; string kid = 3; google.protobuf.Timestamp at = 4; }
+message SigningKeyCertificateRequest { string tx_id = 1; string tenant_id = 2; string kid = 3; bytes der = 4; }
+message CustomSigningKeySet { string tenant_id = 1; bytes jwks = 2; }
+message CustomSigningKeySetResult { Error error = 1; CustomSigningKeySet value = 2; }
+message CustomSigningKeySetWrite { string tx_id = 1; CustomSigningKeySet value = 2; }
 
 // PasswordPolicy is the password policy of plugins older than Plan 15: a
 // minimum length and a number of required character classes. Connection
@@ -598,7 +617,7 @@ message UserGrantsListRequest {
 
 message SigningKeyWrite { string tx_id = 1; SigningKey value = 2; }
 message SigningKeyList { Error error = 1; repeated SigningKey values = 2; }
-message SigningKeysRotateRequest { string tx_id = 1; string tenant_id = 2; SigningKey next = 3; }
+message SigningKeysRotateRequest { string tx_id = 1; string tenant_id = 2; SigningKey next = 3; google.protobuf.Timestamp at = 4; }
 
 message ConnectionWrite { string tx_id = 1; Connection value = 2; }
 message ConnectionResult { Error error = 1; Connection value = 2; }

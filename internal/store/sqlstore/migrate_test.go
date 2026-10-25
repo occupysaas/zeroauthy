@@ -172,9 +172,32 @@ func TestSchemaConstraints(t *testing.T) {
 
 func TestLatestVersion(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 16 {
-			t.Errorf("%s LatestVersion = %d, want 16", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 17 {
+			t.Errorf("%s LatestVersion = %d, want 17", d.name, v)
 		}
+	}
+}
+
+func TestSigningMigration(t *testing.T) {
+	ctx := context.Background()
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := openAtVersion(t, mk(t), 16)
+			mustExec(t, s, `INSERT INTO signing_keys (tenant_id, kid, alg, status, private_key, public_jwk, created_at) VALUES ('legacy','kid','RS256','current',?,?,123)`, []byte("sealed"), []byte(`{"kid":"kid"}`))
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			got, err := s.SigningKeys().Get(ctx, "legacy", "kid")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.KID != "kid" || got.Status != store.KeyCurrent || got.CreatedAt.UnixMicro() != 123 || len(got.CertificateDER) != 0 || got.CurrentSince != nil || got.CurrentUntil != nil || got.RevokedAt != nil {
+				t.Fatalf("legacy signing record changed: %+v", got)
+			}
+			if _, err := s.CustomSigningKeys().Get(ctx, "legacy"); !errors.Is(err, store.ErrNotFound) {
+				t.Fatalf("custom set should begin absent: %v", err)
+			}
+		})
 	}
 }
 

@@ -378,10 +378,55 @@ func (a clientSigningKeys) List(ctx context.Context, tenantID string) ([]*store.
 	return decList("SigningKeysList", err, r.GetError(), r.GetValues(), signingKeyFromPB)
 }
 
+func (a clientSigningKeys) Get(ctx context.Context, tenantID, kid string) (*store.SigningKey, error) {
+	r, err := a.c.rpc.SigningKeysGet(ctx, &storev1.ScopedKey{TxId: a.c.txID, TenantId: tenantID, Key: kid})
+	return decOne("SigningKeysGet", tooOld(err), r.GetError(), r.GetValue(), signingKeyFromPB)
+}
+
 func (a clientSigningKeys) Rotate(ctx context.Context, tenantID string, next *store.SigningKey) error {
 	return put("SigningKeysRotate", next, signingKeyToPB, func(pb *storev1.SigningKey) (result, error) {
 		return a.c.rpc.SigningKeysRotate(ctx, &storev1.SigningKeysRotateRequest{TxId: a.c.txID, TenantId: tenantID, Next: pb})
 	})
+}
+
+func (a clientSigningKeys) RotateWithResult(ctx context.Context, tenantID string, next *store.SigningKey, at time.Time) (*store.SigningKeyRotation, error) {
+	pb, err := signingKeyToPB(next)
+	if err != nil {
+		return nil, err
+	}
+	r, err := a.c.rpc.SigningKeysRotateWithResult(ctx, &storev1.SigningKeysRotateRequest{TxId: a.c.txID, TenantId: tenantID, Next: pb, At: tsToPB(at)})
+	return decOne("SigningKeysRotateWithResult", tooOld(err), r.GetError(), r.GetValue(), signingKeyRotationFromPB)
+}
+
+func (a clientSigningKeys) Revoke(ctx context.Context, tenantID, kid string, at time.Time) (*store.SigningKey, error) {
+	r, err := a.c.rpc.SigningKeysRevoke(ctx, &storev1.SigningKeyRevokeRequest{TxId: a.c.txID, TenantId: tenantID, Kid: kid, At: tsToPB(at)})
+	return decOne("SigningKeysRevoke", tooOld(err), r.GetError(), r.GetValue(), signingKeyFromPB)
+}
+
+func (a clientSigningKeys) SetCertificateIfAbsent(ctx context.Context, tenantID, kid string, der []byte) (*store.SigningKey, error) {
+	r, err := a.c.rpc.SigningKeysSetCertificate(ctx, &storev1.SigningKeyCertificateRequest{TxId: a.c.txID, TenantId: tenantID, Kid: kid, Der: cloneBytes(der)})
+	return decOne("SigningKeysSetCertificate", tooOld(err), r.GetError(), r.GetValue(), signingKeyFromPB)
+}
+
+type clientCustomSigningKeys struct{ c *Client }
+
+func (a clientCustomSigningKeys) Get(ctx context.Context, tenantID string) (*store.CustomSigningKeySet, error) {
+	r, err := a.c.rpc.CustomSigningKeysGet(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+	return decOne("CustomSigningKeysGet", tooOld(err), r.GetError(), r.GetValue(), customSigningKeySetFromPB)
+}
+
+func (a clientCustomSigningKeys) Replace(ctx context.Context, set *store.CustomSigningKeySet) error {
+	pb, err := customSigningKeySetToPB(set)
+	if err != nil {
+		return err
+	}
+	r, err := a.c.rpc.CustomSigningKeysReplace(ctx, &storev1.CustomSigningKeySetWrite{TxId: a.c.txID, Value: pb})
+	return do("CustomSigningKeysReplace", r, tooOld(err))
+}
+
+func (a clientCustomSigningKeys) Delete(ctx context.Context, tenantID string) error {
+	r, err := a.c.rpc.CustomSigningKeysDelete(ctx, &storev1.TenantScope{TxId: a.c.txID, TenantId: tenantID})
+	return do("CustomSigningKeysDelete", r, tooOld(err))
 }
 
 // ---- connections ----

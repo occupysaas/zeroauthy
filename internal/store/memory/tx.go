@@ -55,6 +55,7 @@ func (s *Store) snapshot() *state {
 		clientGrants:       cloneMap(s.clientGrants, cloneClientGrant),
 		userGrants:         cloneMap(s.userGrants, cloneUserGrant),
 		signingKeys:        cloneMap(s.signingKeys, cloneSigningKey),
+		customSigningKeys:  cloneMap(s.customSigningKeys, cloneCustomSigningKeySet),
 		connections:        cloneMap(s.connections, cloneConnection),
 		passwordHistories:  clonePasswordHistories(s.passwordHistories),
 		users:              cloneMap(s.users, cloneUser),
@@ -80,6 +81,7 @@ func (s *Store) restore(snap *state) {
 	s.protection, s.proofs = snap.protection, snap.proofs
 	s.tenants, s.clients, s.resourceServers = snap.tenants, snap.clients, snap.resourceServers
 	s.clientGrants, s.signingKeys, s.connections = snap.clientGrants, snap.signingKeys, snap.connections
+	s.customSigningKeys = snap.customSigningKeys
 	s.userGrants = snap.userGrants
 	s.users, s.sessions, s.transactions = snap.users, snap.sessions, snap.transactions
 	s.authCodes, s.refreshTokens, s.resetTickets = snap.authCodes, snap.refreshTokens, snap.resetTickets

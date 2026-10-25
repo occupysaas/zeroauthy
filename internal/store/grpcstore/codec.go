@@ -454,7 +454,9 @@ func signingKeyToPB(k *store.SigningKey) (*storev1.SigningKey, error) {
 	}
 	return &storev1.SigningKey{
 		TenantId: k.TenantID, Kid: k.KID, Alg: k.Alg, Status: string(k.Status),
-		PrivateKey: k.PrivateKey, PublicJwk: k.PublicJWK, CreatedAt: tsToPB(k.CreatedAt),
+		PrivateKey: cloneBytes(k.PrivateKey), PublicJwk: cloneBytes(k.PublicJWK), CreatedAt: tsToPB(k.CreatedAt),
+		CertificateDer: cloneBytes(k.CertificateDER), CurrentSince: optTSToPB(k.CurrentSince),
+		CurrentUntil: optTSToPB(k.CurrentUntil), RevokedAt: optTSToPB(k.RevokedAt),
 	}, nil
 }
 
@@ -462,13 +464,61 @@ func signingKeyFromPB(pb *storev1.SigningKey) (*store.SigningKey, error) {
 	if pb == nil {
 		return nil, nil
 	}
-	if err := checkTS(pb.CreatedAt); err != nil {
-		return nil, err
+	for _, ts := range []*timestamppb.Timestamp{pb.CreatedAt, pb.CurrentSince, pb.CurrentUntil, pb.RevokedAt} {
+		if err := checkTS(ts); err != nil {
+			return nil, err
+		}
 	}
 	return &store.SigningKey{
 		TenantID: pb.TenantId, KID: pb.Kid, Alg: pb.Alg, Status: store.KeyStatus(pb.Status),
 		PrivateKey: cloneBytes(pb.PrivateKey), PublicJWK: cloneBytes(pb.PublicJwk), CreatedAt: tsFromPB(pb.CreatedAt),
+		CertificateDER: cloneBytes(pb.CertificateDer), CurrentSince: optTSFromPB(pb.CurrentSince),
+		CurrentUntil: optTSFromPB(pb.CurrentUntil), RevokedAt: optTSFromPB(pb.RevokedAt),
 	}, nil
+}
+
+func signingKeyRotationToPB(r *store.SigningKeyRotation) (*storev1.SigningKeyRotation, error) {
+	if r == nil {
+		return nil, nil
+	}
+	curr, err := signingKeyToPB(r.Current)
+	if err != nil {
+		return nil, err
+	}
+	next, err := signingKeyToPB(r.Next)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.SigningKeyRotation{Current: curr, Next: next}, nil
+}
+
+func signingKeyRotationFromPB(pb *storev1.SigningKeyRotation) (*store.SigningKeyRotation, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	curr, err := signingKeyFromPB(pb.Current)
+	if err != nil {
+		return nil, err
+	}
+	next, err := signingKeyFromPB(pb.Next)
+	if err != nil {
+		return nil, err
+	}
+	return &store.SigningKeyRotation{Current: curr, Next: next}, nil
+}
+
+func customSigningKeySetToPB(set *store.CustomSigningKeySet) (*storev1.CustomSigningKeySet, error) {
+	if set == nil {
+		return nil, nil
+	}
+	return &storev1.CustomSigningKeySet{TenantId: set.TenantID, Jwks: cloneBytes(set.JWKS)}, nil
+}
+
+func customSigningKeySetFromPB(pb *storev1.CustomSigningKeySet) (*store.CustomSigningKeySet, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	return &store.CustomSigningKeySet{TenantID: pb.TenantId, JWKS: cloneBytes(pb.Jwks)}, nil
 }
 
 // ---- connection ----

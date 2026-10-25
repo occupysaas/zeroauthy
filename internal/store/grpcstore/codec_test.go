@@ -251,9 +251,11 @@ func TestCodecDefaultsForOldPlugins(t *testing.T) {
 }
 
 func TestSigningKeyRoundTrip(t *testing.T) {
+	since, until, revoked := nanoTime.Add(time.Minute), nanoTime.Add(time.Hour), nanoTime.Add(2*time.Hour)
 	roundTrip(t, "full", &store.SigningKey{
 		TenantID: "ten", KID: "k1", Alg: "RS256", Status: store.KeyCurrent,
 		PrivateKey: []byte{0, 1, 2, 255}, PublicJWK: []byte(`{"kty":"RSA"}`), CreatedAt: nanoTime,
+		CertificateDER: []byte{4, 5, 6}, CurrentSince: &since, CurrentUntil: &until, RevokedAt: &revoked,
 	}, signingKeyToPB, signingKeyFromPB)
 	roundTrip(t, "empty", &store.SigningKey{PrivateKey: []byte{}, PublicJWK: []byte{}}, signingKeyToPB, signingKeyFromPB)
 	roundTrip(t, "zero", &store.SigningKey{}, signingKeyToPB, signingKeyFromPB)

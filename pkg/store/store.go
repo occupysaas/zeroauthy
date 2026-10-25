@@ -37,6 +37,7 @@ type (
 	ClientGrants             = store.ClientGrants
 	UserGrants               = store.UserGrants
 	SigningKeys              = store.SigningKeys
+	CustomSigningKeys        = store.CustomSigningKeys
 	Connections              = store.Connections
 	PasswordHistories        = store.PasswordHistories
 	Users                    = store.Users

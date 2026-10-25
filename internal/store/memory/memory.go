@@ -37,6 +37,7 @@ type state struct {
 	clientGrants       map[key]*store.ClientGrant             // by (tenant, ID)
 	userGrants         map[key]*store.UserGrant               // by (tenant, ID)
 	signingKeys        map[key]*store.SigningKey              // by (tenant, KID)
+	customSigningKeys  map[string]*store.CustomSigningKeySet  // by tenant
 	connections        map[key]*store.Connection              // by (tenant, ID)
 	passwordHistories  map[key][][]byte                       // by (tenant, UserID), oldest first
 	users              map[key]*store.User                    // by (tenant, UserID)
@@ -64,6 +65,7 @@ func New() *Store {
 		clientGrants:       map[key]*store.ClientGrant{},
 		userGrants:         map[key]*store.UserGrant{},
 		signingKeys:        map[key]*store.SigningKey{},
+		customSigningKeys:  map[string]*store.CustomSigningKeySet{},
 		connections:        map[key]*store.Connection{},
 		passwordHistories:  map[key][][]byte{},
 		users:              map[key]*store.User{},

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"maps"
 	"slices"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -58,6 +59,24 @@ func cloneSigningKey(k *store.SigningKey) *store.SigningKey {
 	out := *k
 	out.PrivateKey = slices.Clone(k.PrivateKey)
 	out.PublicJWK = slices.Clone(k.PublicJWK)
+	out.CertificateDER = slices.Clone(k.CertificateDER)
+	out.CurrentSince = cloneTime(k.CurrentSince)
+	out.CurrentUntil = cloneTime(k.CurrentUntil)
+	out.RevokedAt = cloneTime(k.RevokedAt)
+	return &out
+}
+
+func cloneTime(t *time.Time) *time.Time {
+	if t == nil {
+		return nil
+	}
+	v := *t
+	return &v
+}
+
+func cloneCustomSigningKeySet(s *store.CustomSigningKeySet) *store.CustomSigningKeySet {
+	out := *s
+	out.JWKS = slices.Clone(s.JWKS)
 	return &out
 }
 

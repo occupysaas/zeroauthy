@@ -9,6 +9,10 @@
 //   - Implement Protection atomically in the shared backing store, including
 //     transaction views. New hosts fail closed with a plugin-too-old diagnostic
 //     if any protection RPC is missing; there is no local counter fallback.
+//   - Implement the extended SigningKeys lifecycle and CustomSigningKeys in
+//     the shared backing store, including transaction views and tenant deletion.
+//     Plugins missing any new signing-key RPC fail closed with an upgrade error;
+//     rotation never falls back to the legacy result-less RPC.
 //   - Keep main to a single call, storeplugin.Serve(yourStore).
 //   - Stdout carries the go-plugin handshake, so write logs to stderr only.
 //     Lines on stderr that start with "[ERROR] " reach the host's log.

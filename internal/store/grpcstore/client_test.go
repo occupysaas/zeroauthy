@@ -395,6 +395,23 @@ func TestOldPluginOperatorsTooOld(t *testing.T) {
 	}
 }
 
+func TestOldPluginSigningLifecycleTooOld(t *testing.T) {
+	c := serveOldPlugin(t)
+	ctx := context.Background()
+	_, errGet := c.SigningKeys().Get(ctx, "t", "k")
+	_, errRotate := c.SigningKeys().RotateWithResult(ctx, "t", &store.SigningKey{TenantID: "t", KID: "n", Status: store.KeyNext}, time.Now())
+	_, errRevoke := c.SigningKeys().Revoke(ctx, "t", "k", time.Now())
+	_, errCert := c.SigningKeys().SetCertificateIfAbsent(ctx, "t", "k", []byte{1})
+	_, errCustomGet := c.CustomSigningKeys().Get(ctx, "t")
+	errCustomReplace := c.CustomSigningKeys().Replace(ctx, &store.CustomSigningKeySet{TenantID: "t", JWKS: []byte(`{"keys":[]}`)})
+	errCustomDelete := c.CustomSigningKeys().Delete(ctx, "t")
+	for name, err := range map[string]error{"Get": errGet, "RotateWithResult": errRotate, "Revoke": errRevoke, "SetCertificateIfAbsent": errCert, "Custom.Get": errCustomGet, "Custom.Replace": errCustomReplace, "Custom.Delete": errCustomDelete} {
+		if !errors.Is(err, errPluginTooOld) || !strings.Contains(err.Error(), "too old") {
+			t.Errorf("%s: err = %v, want actionable plugin upgrade error", name, err)
+		}
+	}
+}
+
 // Users.List needs a Plan 17 plugin.
 func TestOldPluginUserListTooOld(t *testing.T) {
 	c := serveOldPlugin(t)
