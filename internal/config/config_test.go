@@ -151,16 +151,21 @@ func TestEmailSettings(t *testing.T) {
 	if err != nil || cfg.Email.SMTP.Port != 2525 {
 		t.Fatalf("port override = %+v, %v", cfg.Email, err)
 	}
+	cfg, err = Load("", []string{base, sysHost, "ZEROAUTHY_EMAIL__ALLOW_LOCAL_SMTP=127.0.0.1:2525"})
+	if err != nil || len(cfg.Email.AllowLocalSMTP) != 1 || cfg.Email.AllowLocalSMTP[0] != "127.0.0.1:2525" {
+		t.Fatalf("local SMTP allowlist = %+v, %v", cfg.Email.AllowLocalSMTP, err)
+	}
 	cases := map[string]struct {
 		env  []string
 		want string
 	}{
-		"dir without dir":   {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=dir"}, "email.dir is required"},
-		"smtp without host": {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=smtp"}, "email.smtp.host"},
-		"port zero":         {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=smtp", "ZEROAUTHY_EMAIL__SMTP__HOST=h", "ZEROAUTHY_EMAIL__SMTP__PORT=0"}, "email.smtp.port"},
-		"port too large":    {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=smtp", "ZEROAUTHY_EMAIL__SMTP__HOST=h", "ZEROAUTHY_EMAIL__SMTP__PORT=70000"}, "email.smtp.port"},
-		"bad driver":        {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=pigeon"}, "email.driver"},
-		"from with newline": {[]string{base, sysHost, "ZEROAUTHY_EMAIL__FROM=a@x.test\nBcc: b@x.test"}, "email.from"},
+		"dir without dir":              {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=dir"}, "email.dir is required"},
+		"smtp without host":            {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=smtp"}, "email.smtp.host"},
+		"port zero":                    {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=smtp", "ZEROAUTHY_EMAIL__SMTP__HOST=h", "ZEROAUTHY_EMAIL__SMTP__PORT=0"}, "email.smtp.port"},
+		"port too large":               {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=smtp", "ZEROAUTHY_EMAIL__SMTP__HOST=h", "ZEROAUTHY_EMAIL__SMTP__PORT=70000"}, "email.smtp.port"},
+		"bad driver":                   {[]string{base, sysHost, "ZEROAUTHY_EMAIL__DRIVER=pigeon"}, "email.driver"},
+		"from with newline":            {[]string{base, sysHost, "ZEROAUTHY_EMAIL__FROM=a@x.test\nBcc: b@x.test"}, "email.from"},
+		"invalid local SMTP allowlist": {[]string{base, sysHost, "ZEROAUTHY_EMAIL__ALLOW_LOCAL_SMTP=127.0.0.1:nope"}, "email.allow_local_smtp"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

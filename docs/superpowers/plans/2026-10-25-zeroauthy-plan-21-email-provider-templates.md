@@ -115,11 +115,11 @@ Encryption signatures: `keys.SealEmailProvider(w Wrapper, tenantID, provider str
 
 **Interfaces:** Implements Task 3 unchanged. Provider/template keys include tenant IDs; claims use a unique compound key. Provider revision counters survive configuration deletion; CAS, counter allocation and claim-limit operations serialize through database transactions, not a process mutex. Add expiry index for bounded sweep.
 
-- [ ] Enable shared email conformance for SQL and add `TestEmailRestart`, `TestEmailConcurrentHandles`, `TestEmailUpgradeWithoutRecords`, `TestEmailCredentialsAtRest`. Assert two separately opened handles cannot exceed claim limit or lose a provider update, rollback restores ciphertext/revision, and legacy installations retain empty configuration after upgrade.
-- [ ] Run the focused SQLite tests and capture failures; compile migration statements for all three dialect paths before implementation.
-- [ ] Implement schema and repositories using existing dialect/transaction conventions. Preserve ciphertext as bytes and JSON shape/null distinctions from the inventory. All queries include tenant keys; all cascade paths delete claims/configuration.
-- [ ] Run `go test ./internal/store/sqlstore -run Email -count=1`, then `./scripts/test-sql.sh` for actual SQLite/PostgreSQL/MySQL parity. Record actual outcomes; never substitute SQLite for the other dialects.
-- [ ] Commit `feat(store): persist tenant email settings across SQL backends`.
+- [x] Enable shared email conformance for SQL and add `TestEmailRestart`, `TestEmailConcurrentHandles`, `TestEmailUpgradeWithoutRecords`, `TestEmailCredentialsAtRest`. Assert two separately opened handles cannot exceed claim limit or lose a provider update, rollback restores ciphertext/revision, and legacy installations retain empty configuration after upgrade.
+- [x] Run the focused SQLite tests and capture failures; compile migration statements for all three dialect paths before implementation.
+- [x] Implement schema and repositories using existing dialect/transaction conventions. Preserve ciphertext as bytes and JSON shape/null distinctions from the inventory. All queries include tenant keys; all cascade paths delete claims/configuration.
+- [x] Run `go test ./internal/store/sqlstore -run Email -count=1`, then `./scripts/test-sql.sh` for actual SQLite/PostgreSQL/MySQL parity. Record actual outcomes; never substitute SQLite for the other dialects.
+- [x] Commit `feat(sqlstore): persist email providers and claims`.
 
 ## Task 5: Carry the email contract across plugin/gRPC stores
 
@@ -127,10 +127,10 @@ Encryption signatures: `keys.SealEmailProvider(w Wrapper, tenantID, provider str
 
 **Interfaces:** Task 3 repositories cross RPC with opaque ciphertext, int64 revisions, timestamp presence and unchanged claim semantics. Transactional callback views must use the transaction's repositories.
 
-- [ ] Write `TestEmailGRPCRollback`, `TestEmailGRPCClaims`, `TestEmailGRPCUnimplemented`, and codec round-trip cases for nested fields, empty/null settings, ciphertext and permanent expiry. Assert unsupported server operations propagate an error rather than falling back to empty config/global delivery.
-- [ ] Run `go test ./internal/store/grpcstore -run Email -count=1` and observe failure. Add RPCs/codecs/client/server wrappers following existing protection/signing patterns; regenerate using repository generation commands.
-- [ ] Run shared conformance plus SQL-backed gRPC rollback and concurrency tests with `-race`. Confirm sentinel credentials do not appear in error/debug output and generated files are reproducible.
-- [ ] Commit `feat(store): expose email repositories over gRPC`.
+- [x] Write `TestEmailGRPCRollback`, `TestEmailGRPCClaims`, `TestEmailGRPCUnimplemented`, and codec round-trip cases for nested fields, empty/null settings, ciphertext and permanent expiry. Assert unsupported server operations propagate an error rather than falling back to empty config/global delivery.
+- [x] Run `go test ./internal/store/grpcstore -run Email -count=1` and observe failure. Add RPCs/codecs/client/server wrappers following existing protection/signing patterns; regenerate using repository generation commands.
+- [x] Run shared conformance plus SQL-backed gRPC rollback and concurrency tests with `-race`. Confirm sentinel credentials do not appear in error/debug output and generated files are reproducible.
+- [x] Commit `feat(store): expose email repositories over gRPC`.
 
 ## Task 6: Implement the nine provider transports
 
@@ -138,11 +138,11 @@ Encryption signatures: `keys.SealEmailProvider(w Wrapper, tenantID, provider str
 
 **Interfaces:** Define `providers.Config struct { Name string; Credentials, Settings map[string]any }`, `providers.Message struct { From, To, Subject, Text, HTML string }`, `providers.Transport interface { Send(context.Context, Message) error }`. `providers.Factory.New(ctx context.Context, tenantID string, revision int64, cfg Config) (Transport,error)` uses injected dialer/HTTP client/clock for tests; production construction fixes endpoints and enforces outbound policy. No provider imports parent `email`.
 
-- [ ] Write table-driven `TestProviderProtocols` against local HTTP/SMTP fakes. Assert exact auth/payload/sender mapping, EU/default region, SES SigV4 with official reference vectors, Azure signing, MS365 token cache tenant/revision isolation including delete/recreate with new credentials, and single Graph send, and redacted errors. Test every executable name; `custom` must reject construction.
-- [ ] Write `TestOutboundPolicy`: DNS rebinding, multiple-address private answers, IPv4-mapped IPv6, metadata/loopback, invalid region/domain injection, redirects, TLS certificate mismatch, STARTTLS refusal and operator allowlist. Test public default vs explicitly allowlisted local SMTP. No test disables production TLS globally.
-- [ ] Run `go test ./internal/email/providers -count=1` and capture red results. Implement each adapter from Task 1 vendor sources, centralized bounded errors/deadlines and fixed host policy; translate provider acceptance responses accurately.
-- [ ] Add slow response, over-64-KiB error, disconnect-after-acceptance and cancelled-context cases; assert no retry/fallback and no secret in errors. Run `go test -race ./internal/email/providers ./internal/config`.
-- [ ] Commit independently testable adapter groups if useful, ending with all nine passing: `feat(email): add tenant SMTP and HTTP provider transports`. Do not omit complex providers while marking this task complete.
+- [x] Write table-driven `TestProviderProtocols` against local HTTP/SMTP fakes. Assert exact auth/payload/sender mapping, EU/default region, SES SigV4 with official reference vectors, Azure signing, MS365 token cache tenant/revision isolation including delete/recreate with new credentials, and single Graph send, and redacted errors. Test every executable name; `custom` must reject construction.
+- [x] Write `TestOutboundPolicy`: DNS rebinding, multiple-address private answers, IPv4-mapped IPv6, metadata/loopback, invalid region/domain injection, redirects, TLS certificate mismatch, STARTTLS refusal and operator allowlist. Test public default vs explicitly allowlisted local SMTP. No test disables production TLS globally.
+- [x] Run `go test ./internal/email/providers -count=1` and capture red results. Implement each adapter from Task 1 vendor sources, centralized bounded errors/deadlines and fixed host policy; translate provider acceptance responses accurately.
+- [x] Add slow response, over-64-KiB error, disconnect-after-acceptance and cancelled-context cases; assert no retry/fallback and no secret in errors. Run `go test -race ./internal/email/providers ./internal/config`.
+- [x] Commit `feat(email): add tenant SMTP and HTTP provider transports`.
 
 ## Task 7: Compose tenant delivery and legacy fallback
 

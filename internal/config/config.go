@@ -7,9 +7,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
 	"net/mail"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -138,6 +140,9 @@ type Email struct {
 	// LogLinks makes the log driver print reset links in full. Off by
 	// default: a logged link lets anyone who reads the log reset a password.
 	LogLinks bool `koanf:"log_links"`
+	// AllowLocalSMTP permits explicit host:port targets that resolve to private
+	// addresses. Leave empty in production unless local relay use is deliberate.
+	AllowLocalSMTP []string `koanf:"allow_local_smtp"`
 }
 
 type SMTP struct {
@@ -312,6 +317,13 @@ func (c *Config) validate() error {
 	}
 	if a, err := mail.ParseAddress(c.Email.From); err != nil || strings.ContainsAny(c.Email.From, "\r\n") || a.Address == "" {
 		errs = append(errs, fmt.Errorf("email.from %q is not a valid address", c.Email.From))
+	}
+	for _, target := range c.Email.AllowLocalSMTP {
+		host, port, err := net.SplitHostPort(target)
+		portNum, portErr := strconv.Atoi(port)
+		if err != nil || host == "" || host == "*" || strings.ContainsAny(host, " \t\r\n") || portErr != nil || portNum < 1 || portNum > 65535 {
+			errs = append(errs, fmt.Errorf("email.allow_local_smtp entry %q must be host:port", target))
+		}
 	}
 	if err := errors.Join(errs...); err != nil {
 		return fmt.Errorf("config: %w", err)
