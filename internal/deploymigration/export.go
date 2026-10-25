@@ -1,0 +1,294 @@
+// Package deploymigration reads untrusted Auth0 Deploy CLI exports and
+// prepares an offline, credential-preserving bootstrap.
+package deploymigration
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"go.yaml.in/yaml/v3"
+)
+
+type Export struct {
+	Resources map[string]json.RawMessage
+	Files     map[string][]byte
+}
+
+// LoadExport parses either a single YAML export or a directory export. It
+// preserves resource JSON and script bytes as inert data; no script is run.
+func LoadExport(path, format string) (Export, error) {
+	out := Export{Resources: map[string]json.RawMessage{}, Files: map[string][]byte{}}
+	switch format {
+	case "yaml":
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return Export{}, errors.New("deploymigration: cannot read YAML export")
+		}
+		v, err := parseYAML(b)
+		if err != nil {
+			return Export{}, errors.New("deploymigration: invalid YAML export")
+		}
+		if err := checkExportReferences(v, filepath.Dir(path)); err != nil {
+			return Export{}, err
+		}
+		root, ok := v.(map[string]any)
+		if !ok {
+			return Export{}, errors.New("deploymigration: YAML export root must be an object")
+		}
+		for name, value := range root {
+			raw, err := json.Marshal(value)
+			if err != nil {
+				return Export{}, errors.New("deploymigration: invalid YAML resource")
+			}
+			out.Resources[name] = raw
+		}
+	case "directory":
+		root, err := filepath.Abs(path)
+		if err != nil {
+			return Export{}, errors.New("deploymigration: invalid directory path")
+		}
+		info, err := os.Stat(root)
+		if err != nil || !info.IsDir() {
+			return Export{}, errors.New("deploymigration: directory export is unavailable")
+		}
+		groups := map[string][]json.RawMessage{}
+		err = filepath.WalkDir(root, func(p string, d os.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return errors.New("deploymigration: unreadable directory export")
+			}
+			if d.Type()&os.ModeSymlink != 0 {
+				return errors.New("deploymigration: symlinks are not allowed in directory exports")
+			}
+			if d.IsDir() {
+				return nil
+			}
+			rel, err := filepath.Rel(root, p)
+			if err != nil || filepath.IsAbs(rel) || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+				return errors.New("deploymigration: invalid export path")
+			}
+			rel = filepath.ToSlash(rel)
+			b, err := os.ReadFile(p)
+			if err != nil {
+				return errors.New("deploymigration: unreadable export file")
+			}
+			ext := strings.ToLower(filepath.Ext(rel))
+			if ext != ".json" && ext != ".yaml" && ext != ".yml" {
+				out.Files[rel] = b
+				return nil
+			}
+			var value any
+			if ext == ".json" {
+				if err := validateJSONNoDuplicates(b); err != nil {
+					return errors.New("deploymigration: invalid JSON resource")
+				}
+				if err := json.Unmarshal(b, &value); err != nil {
+					return errors.New("deploymigration: invalid JSON resource")
+				}
+			} else {
+				value, err = parseYAML(b)
+				if err != nil {
+					return errors.New("deploymigration: invalid YAML resource")
+				}
+			}
+			if err := checkExportReferences(value, root); err != nil {
+				return err
+			}
+			name := resourceName(rel)
+			if name == "" {
+				out.Files[rel] = b
+				return nil
+			}
+			if name == "tenant" || name == "attackProtection" {
+				raw, err := json.Marshal(value)
+				if err != nil {
+					return err
+				}
+				out.Resources[name] = raw
+				return nil
+			}
+			raw, err := json.Marshal(value)
+			if err != nil {
+				return errors.New("deploymigration: invalid resource data")
+			}
+			groups[name] = append(groups[name], raw)
+			return nil
+		})
+		if err != nil {
+			return Export{}, err
+		}
+		for name, rows := range groups {
+			raw, _ := json.Marshal(rows)
+			out.Resources[name] = raw
+		}
+	default:
+		return Export{}, errors.New("deploymigration: format must be yaml or directory")
+	}
+	return out, nil
+}
+
+func checkExportReferences(value any, root string) error {
+	var visit func(any, string) error
+	visit = func(v any, key string) error {
+		switch x := v.(type) {
+		case map[string]any:
+			for k, child := range x {
+				if err := visit(child, k); err != nil {
+					return err
+				}
+			}
+		case []any:
+			for _, child := range x {
+				if err := visit(child, key); err != nil {
+					return err
+				}
+			}
+		case string:
+			p, isRef := x, false
+			if strings.HasPrefix(strings.ToLower(x), "file://") {
+				p, isRef = x[len("file://"):], true
+			}
+			if !isRef && (strings.Contains(strings.ToLower(key), "file") || strings.EqualFold(key, "path")) {
+				isRef = true
+			}
+			if !isRef {
+				return nil
+			}
+			p = filepath.FromSlash(p)
+			clean := filepath.Clean(p)
+			if p == "" || filepath.IsAbs(p) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+				return errors.New("deploymigration: absolute and parent file references are not allowed")
+			}
+			if root != "" {
+				base, err := filepath.Abs(root)
+				if err != nil {
+					return errors.New("deploymigration: invalid export root")
+				}
+				target := filepath.Join(base, clean)
+				rel, err := filepath.Rel(base, target)
+				if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+					return errors.New("deploymigration: file reference escapes export root")
+				}
+			}
+		}
+		return nil
+	}
+	return visit(value, "")
+}
+
+func resourceName(path string) string {
+	parts := strings.Split(filepath.ToSlash(path), "/")
+	base := strings.TrimSuffix(parts[len(parts)-1], filepath.Ext(parts[len(parts)-1]))
+	candidate := parts[0]
+	if len(parts) == 1 {
+		candidate = base
+	}
+	switch strings.ToLower(candidate) {
+	case "clients", "client":
+		return "clients"
+	case "resourceservers", "resource-servers", "resource_servers":
+		return "resourceServers"
+	case "clientgrants", "client-grants", "client_grants":
+		return "clientGrants"
+	case "connections", "connection":
+		return "connections"
+	case "databases", "database":
+		return "databases"
+	case "tenant":
+		return "tenant"
+	case "attackprotection", "attack-protection", "attack_protection":
+		return "attackProtection"
+	default:
+		return ""
+	}
+}
+
+func parseYAML(b []byte) (any, error) {
+	var n yaml.Node
+	if err := yaml.Unmarshal(b, &n); err != nil {
+		return nil, err
+	}
+	if err := checkYAMLKeys(&n); err != nil {
+		return nil, err
+	}
+	var v any
+	if err := n.Decode(&v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func checkYAMLKeys(n *yaml.Node) error {
+	if n.Kind == yaml.MappingNode {
+		seen := map[string]bool{}
+		for i := 0; i < len(n.Content); i += 2 {
+			k := n.Content[i]
+			if seen[k.Value] {
+				return errors.New("duplicate key")
+			}
+			seen[k.Value] = true
+		}
+	}
+	for _, c := range n.Content {
+		if err := checkYAMLKeys(c); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateJSONNoDuplicates(b []byte) error {
+	d := json.NewDecoder(bytes.NewReader(b))
+	if err := walkJSON(d); err != nil {
+		return err
+	}
+	if _, err := d.Token(); err != io.EOF {
+		return errors.New("trailing JSON")
+	}
+	return nil
+}
+
+func walkJSON(d *json.Decoder) error {
+	t, err := d.Token()
+	if err != nil {
+		return err
+	}
+	delim, ok := t.(json.Delim)
+	if !ok {
+		return nil
+	}
+	switch delim {
+	case '{':
+		seen := map[string]bool{}
+		for d.More() {
+			k, err := d.Token()
+			if err != nil {
+				return err
+			}
+			key, ok := k.(string)
+			if !ok || seen[key] {
+				return errors.New("duplicate or invalid JSON member")
+			}
+			seen[key] = true
+			if err := walkJSON(d); err != nil {
+				return err
+			}
+		}
+		_, err = d.Token()
+		return err
+	case '[':
+		for d.More() {
+			if err := walkJSON(d); err != nil {
+				return err
+			}
+		}
+		_, err = d.Token()
+		return err
+	default:
+		return errors.New("invalid JSON delimiter")
+	}
+}

@@ -237,6 +237,15 @@ func Parse(data []byte) (*File, error) {
 	return &f, nil
 }
 
+// ValidateFile revalidates an in-memory seed after a trusted preparation step
+// and refreshes its normalized shared-rule projections.
+func ValidateFile(f *File) error {
+	if f == nil {
+		return errors.New("seed: nil file")
+	}
+	return f.validate()
+}
+
 type Branding struct {
 	LogoURL      string `yaml:"logo_url"`
 	PrimaryColor string `yaml:"primary_color"`
