@@ -141,6 +141,8 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 ### Plan 22 — Branding and Universal Login (full design)
 
+**Draft design and plan (2026-10-25):** [standalone spec](2026-10-25-zeroauthy-branding-universal-login-design.md) and [implementation plan](../plans/2026-10-25-zeroauthy-plan-22-branding-universal-login.md). These propose restricted Liquid/HTML/CSS templates, identifier-first database login, safe partials and isolated preview. The draft explicitly defers ACUL and tenant JavaScript and corrects the future Actions partial-field contract below; it is not an implementation or parity record.
+
 The maintainer's own priority: sign-in pages that look like the customer's site, on the customer's domain (with Plan 23).
 
 **Endpoints:**
