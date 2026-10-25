@@ -12,6 +12,9 @@ var ErrInvalidTemplate = errors.New("invalid email template")
 
 var templateFields = map[string]bool{"template": true, "body": true, "from": true, "subject": true, "syntax": true, "enabled": true, "resultUrl": true, "urlLifetimeInSeconds": true, "includeEmailInRedirect": true}
 var templateNames = map[string]bool{"verify_email": true, "verify_email_by_code": true, "auth_email_by_code": true, "reset_email": true, "reset_email_by_code": true, "welcome_email": true, "blocked_account": true, "stolen_credentials": true, "enrollment_email": true, "mfa_oob_code": true, "user_invitation": true, "async_approval": true, "change_password": true, "password_reset": true}
+
+// KnownTemplate reports whether name belongs to the supported email template inventory.
+func KnownTemplate(name string) bool { return templateNames[name] }
 var liquidFilters = map[string]bool{"escape": true, "escape_once": true, "upcase": true, "downcase": true, "capitalize": true, "strip": true, "lstrip": true, "rstrip": true, "append": true, "prepend": true, "replace": true, "replace_first": true, "remove": true, "remove_first": true, "truncate": true, "truncatewords": true, "default": true, "size": true, "first": true, "last": true, "join": true, "date": true}
 
 func ValidateTemplate(raw map[string]json.RawMessage, partial bool) error {

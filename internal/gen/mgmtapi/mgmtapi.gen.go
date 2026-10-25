@@ -2928,6 +2928,27 @@ type CustomSigningJWKS struct {
 	Keys []map[string]interface{} `json:"keys"`
 }
 
+// EmailPreview defines model for EmailPreview.
+type EmailPreview struct {
+	From      string `json:"from"`
+	Html      string `json:"html"`
+	ResultUrl string `json:"resultUrl"`
+	Subject   string `json:"subject"`
+	Text      string `json:"text"`
+}
+
+// EmailPreviewRequest defines model for EmailPreviewRequest.
+type EmailPreviewRequest struct {
+	// Overrides Bounded preview-only body, subject, from and variables overrides.
+	Overrides *struct {
+		Body      *string                 `json:"body,omitempty"`
+		From      *string                 `json:"from,omitempty"`
+		Subject   *string                 `json:"subject,omitempty"`
+		Variables *map[string]interface{} `json:"variables,omitempty"`
+	} `json:"overrides,omitempty"`
+	Template string `json:"template"`
+}
+
 // EmailProvider defines model for EmailProvider.
 type EmailProvider struct {
 	DefaultFromAddress *string                 `json:"default_from_address,omitempty"`
@@ -2975,6 +2996,11 @@ type EmailTemplatePatch struct {
 
 // EmailTemplatePatchSyntax defines model for EmailTemplatePatch.Syntax.
 type EmailTemplatePatchSyntax string
+
+// EmailTestRequest defines model for EmailTestRequest.
+type EmailTestRequest struct {
+	Template string `json:"template"`
+}
 
 // EmailVerificationTicketCreate Unknown properties are `400 invalid_body`.
 type EmailVerificationTicketCreate struct {
@@ -4385,6 +4411,9 @@ type NotFound = ManagementError
 // ScriptRuntimeUnavailable Auth0's Management API error shape.
 type ScriptRuntimeUnavailable = ManagementError
 
+// TooManyRequests Auth0's Management API error shape.
+type TooManyRequests = ManagementError
+
 // Unauthorized Auth0's Management API error shape.
 type Unauthorized = ManagementError
 
@@ -4786,6 +4815,12 @@ type UpdateTenantJSONRequestBody = TenantUpdate
 
 // TryConnectionScriptJSONRequestBody defines body for TryConnectionScript for application/json ContentType.
 type TryConnectionScriptJSONRequestBody = ScriptTry
+
+// PreviewTenantEmailJSONRequestBody defines body for PreviewTenantEmail for application/json ContentType.
+type PreviewTenantEmailJSONRequestBody = EmailPreviewRequest
+
+// TestTenantEmailJSONRequestBody defines body for TestTenantEmail for application/json ContentType.
+type TestTenantEmailJSONRequestBody = EmailTestRequest
 
 // UpdateBotDetectionJSONRequestBody defines body for UpdateBotDetection for application/json ContentType.
 type UpdateBotDetectionJSONRequestBody = BotDetectionUpdate
@@ -6382,6 +6417,12 @@ type ServerInterface interface {
 	// TryConnectionScript Try a custom database script
 	// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 	TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string)
+	// PreviewTenantEmail Preview a saved tenant email template.
+	// (POST /api/system/tenants/{tenant}/emails/preview)
+	PreviewTenantEmail(w http.ResponseWriter, r *http.Request, tenant string)
+	// TestTenantEmail Send a saved tenant email template to the verified operator.
+	// (POST /api/system/tenants/{tenant}/emails/test)
+	TestTenantEmail(w http.ResponseWriter, r *http.Request, tenant string)
 	// GetTenantJobs List a tenant's jobs
 	// (GET /api/system/tenants/{tenant}/jobs)
 	GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams)
@@ -6691,6 +6732,18 @@ func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name
 // TryConnectionScript Try a custom database script
 // (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 func (_ Unimplemented) TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PreviewTenantEmail Preview a saved tenant email template.
+// (POST /api/system/tenants/{tenant}/emails/preview)
+func (_ Unimplemented) PreviewTenantEmail(w http.ResponseWriter, r *http.Request, tenant string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TestTenantEmail Send a saved tenant email template to the verified operator.
+// (POST /api/system/tenants/{tenant}/emails/test)
+func (_ Unimplemented) TestTenantEmail(w http.ResponseWriter, r *http.Request, tenant string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7404,6 +7457,58 @@ func (siw *ServerInterfaceWrapper) TryConnectionScript(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.TryConnectionScript(w, r, tenant, id, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PreviewTenantEmail operation middleware
+func (siw *ServerInterfaceWrapper) PreviewTenantEmail(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PreviewTenantEmail(w, r, tenant)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TestTenantEmail operation middleware
+func (siw *ServerInterfaceWrapper) TestTenantEmail(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TestTenantEmail(w, r, tenant)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10674,6 +10779,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/jobs", wrapper.GetTenantJobs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/emails/preview", wrapper.PreviewTenantEmail)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/emails/test", wrapper.TestTenantEmail)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try", wrapper.TryConnectionScript)

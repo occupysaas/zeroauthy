@@ -44,6 +44,15 @@ export type UsersExportJobCreate = components['schemas']['UsersExportJobCreate']
 export type ManagementError = components['schemas']['ManagementError']
 export type ManagedSigningKey = components['schemas']['ManagedSigningKey']
 export type CustomSigningJWKS = components['schemas']['CustomSigningJWKS']
+export type EmailProvider = components['schemas']['EmailProvider']
+export type EmailProviderWrite = components['schemas']['EmailProviderWrite']
+export type EmailTemplate = components['schemas']['EmailTemplate']
+export type EmailTemplatePatch = components['schemas']['EmailTemplatePatch']
+export type EmailPreview = components['schemas']['EmailPreview']
+export type EmailTemplateName =
+  | 'verify_email' | 'verify_email_by_code' | 'auth_email_by_code' | 'reset_email' | 'reset_email_by_code'
+  | 'welcome_email' | 'blocked_account' | 'stolen_credentials' | 'enrollment_email' | 'mfa_oob_code'
+  | 'user_invitation' | 'async_approval' | 'change_password' | 'password_reset'
 
 export type TenantSettings = components['schemas']['TenantSettings']
 export type TenantSettingsPatch = components['schemas']['TenantSettingsPatch']
@@ -347,6 +356,42 @@ export class Api {
 
   createVerificationEmailJob(t: SystemTenant, userId: string): Promise<Job> {
     return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/jobs/verification-email', { body: { user_id: userId } })
+  }
+
+  getEmailProvider(t: SystemTenant): Promise<EmailProvider> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/emails/provider')
+  }
+
+  createEmailProvider(t: SystemTenant, body: EmailProviderWrite): Promise<EmailProvider> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/emails/provider', { body })
+  }
+
+  updateEmailProvider(t: SystemTenant, body: EmailProviderWrite): Promise<EmailProvider> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/emails/provider', { body })
+  }
+
+  deleteEmailProvider(t: SystemTenant): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/emails/provider')
+  }
+
+  getEmailTemplate(t: SystemTenant, name: EmailTemplateName): Promise<EmailTemplate> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/email-templates/' + encodeURIComponent(name))
+  }
+
+  createEmailTemplate(t: SystemTenant, body: EmailTemplate): Promise<EmailTemplate> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/email-templates', { body })
+  }
+
+  putEmailTemplate(t: SystemTenant, name: EmailTemplateName, body: EmailTemplate): Promise<EmailTemplate> {
+    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/email-templates/' + encodeURIComponent(name), { body })
+  }
+
+  previewTenantEmail(t: Pick<SystemTenant, 'name'>, body: { template: EmailTemplateName; overrides?: Record<string, unknown> }): Promise<EmailPreview> {
+    return this.request(this.systemOrigin, 'POST', `/api/system/tenants/${encodeURIComponent(t.name)}/emails/preview`, { body })
+  }
+
+  testTenantEmail(t: Pick<SystemTenant, 'name'>, body: { template: EmailTemplateName }): Promise<void> {
+    return this.request(this.systemOrigin, 'POST', `/api/system/tenants/${encodeURIComponent(t.name)}/emails/test`, { body })
   }
 
   getConnection(t: SystemTenant, id: string): Promise<Connection> {

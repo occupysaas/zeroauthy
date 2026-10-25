@@ -35,7 +35,7 @@ export const sections: Section[] = [
   { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: { planned: 'later', api: ['/api/v2/guardian/*'] } },
   { key: 'actions', label: 'nav.actions', group: 'navGroup.actions', path: 'actions', status: { planned: 'later', api: ['/api/v2/actions'] } },
   { key: 'branding', label: 'nav.branding', group: 'navGroup.branding', path: 'branding', status: { planned: 'later', api: ['/api/v2/branding', '/api/v2/prompts'] } },
-  { key: 'emails', label: 'nav.emails', group: 'navGroup.branding', path: 'emails', status: { planned: 'later', api: ['/api/v2/email-templates', '/api/v2/emails/provider'] } },
+  { key: 'emails', label: 'nav.emails', group: 'navGroup.branding', path: 'emails', status: 'live' },
   { key: 'custom-domains', label: 'nav.customDomains', group: 'navGroup.branding', path: 'custom-domains', status: { planned: 'later', api: ['/api/v2/custom-domains'] } },
   { key: 'logs', label: 'nav.logs', group: 'navGroup.monitoring', path: 'logs', status: { planned: 'later', api: ['/api/v2/logs', '/api/v2/log-streams'] } },
   { key: 'settings', label: 'nav.settings', group: 'navGroup.settings', path: 'settings', status: 'live' },

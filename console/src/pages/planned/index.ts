@@ -2,7 +2,6 @@ import { h, type Component } from 'vue'
 import { isPlanned, sections } from '../../layout/sections'
 import Actions from './Actions.vue'
 import Branding from './Branding.vue'
-import Emails from './Emails.vue'
 import MultiFactor from './MultiFactor.vue'
 import CustomDomains from './CustomDomains.vue'
 import Logs from './Logs.vue'
@@ -21,7 +20,6 @@ const dedicated: Record<string, Component> = {
   actions: Actions,
   mfa: MultiFactor,
   branding: Branding,
-  emails: Emails,
   social: Social,
   roles: Roles,
   organizations: Organizations,

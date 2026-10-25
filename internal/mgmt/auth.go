@@ -101,7 +101,12 @@ func Auth(cfg Config) func(http.Handler) http.Handler {
 				WriteError(w, http.StatusInternalServerError, "internal_error", "Internal error")
 				return
 			}
-			c, err := cfg.authenticate(r, res)
+			authRes, err := cfg.operatorTarget(r.Context(), r, res)
+			if err != nil {
+				Fail(w, err)
+				return
+			}
+			c, err := cfg.authenticate(r, authRes)
 			if err != nil {
 				Fail(w, err)
 				return
@@ -109,6 +114,25 @@ func Auth(cfg Config) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(WithCaller(r.Context(), c)))
 		})
 	}
+}
+
+// operatorTarget binds the two system email extension routes to the path
+// tenant for both token and persisted operator grant checks. The request's
+// resolved system tenant remains in context for system-host routing.
+func (cfg Config) operatorTarget(ctx context.Context, r *http.Request, base tenant.Resolved) (tenant.Resolved, error) {
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 6 || parts[0] != "api" || parts[1] != "system" || parts[2] != "tenants" || parts[4] != "emails" || (parts[5] != "preview" && parts[5] != "test") {
+		return base, nil
+	}
+	t, err := cfg.Store.Tenants().GetByName(ctx, parts[3])
+	if errors.Is(err, store.ErrNotFound) {
+		return tenant.Resolved{}, &Error{Status: http.StatusNotFound, Code: "inexistent_tenant", Message: "The tenant does not exist"}
+	}
+	if err != nil {
+		cfg.log().ErrorContext(ctx, "management API: load target tenant", "err", err)
+		return tenant.Resolved{}, &Error{Status: http.StatusInternalServerError, Code: "internal_error", Message: "Internal error"}
+	}
+	return tenant.Resolved{Tenant: t, Host: base.Host}, nil
 }
 
 func invalidToken(message string) *Error {

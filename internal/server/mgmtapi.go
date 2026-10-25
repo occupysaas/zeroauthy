@@ -222,6 +222,14 @@ func (a mgmtAPI) TryConnectionScript(w http.ResponseWriter, r *http.Request, ten
 	a.h.TryConnectionScript(w, r, tenant, id, name)
 }
 
+func (a mgmtAPI) PreviewTenantEmail(w http.ResponseWriter, r *http.Request, tenant string) {
+	a.h.PreviewEmail(w, r, tenant)
+}
+
+func (a mgmtAPI) TestTenantEmail(w http.ResponseWriter, r *http.Request, tenant string) {
+	a.h.TestEmail(w, r, tenant)
+}
+
 // GetUserSessions: read:sessions.
 func (a mgmtAPI) GetUserSessions(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetUserSessionsParams) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetUserSessions(w, r, id) }, "read:sessions")

@@ -254,6 +254,133 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 	return s.deliver(ctx, event.TenantID, msg, provider)
 }
 
+// Preview renders a stored tenant template with synthetic example.invalid
+// context. Overrides are limited to presentation fields and extra variables.
+func (s *Service) Preview(ctx context.Context, tenantID, name string, overrides map[string]any) (Rendered, error) {
+	return s.renderSynthetic(ctx, tenantID, name, "preview@example.invalid", overrides)
+}
+
+// SendTest renders a stored tenant template for a verified operator selected
+// by the caller and submits it through that tenant's current provider.
+func (s *Service) SendTest(ctx context.Context, tenantID, name, recipient string) error {
+	if recipient == "" {
+		return store.ErrInvalid
+	}
+	rendered, provider, err := s.renderTemplate(ctx, tenantID, name, recipient, nil)
+	if err != nil {
+		return err
+	}
+	msg := Message{From: rendered.From, To: recipient, Subject: rendered.Subject, Text: rendered.Text, HTML: rendered.HTML}
+	if msg.From == "" {
+		msg.From = s.DefaultFrom
+	}
+	if msg.From == "" {
+		msg.From = "zeroauthy@localhost"
+	}
+	if err = validateMessage(msg.From, msg); err != nil {
+		return err
+	}
+	return s.deliver(ctx, tenantID, msg, provider)
+}
+
+func (s *Service) renderSynthetic(ctx context.Context, tenantID, name, recipient string, overrides map[string]any) (Rendered, error) {
+	returned, _, err := s.renderTemplate(ctx, tenantID, name, recipient, overrides)
+	return returned, err
+}
+
+func (s *Service) renderTemplate(ctx context.Context, tenantID, name, recipient string, overrides map[string]any) (Rendered, *store.EmailProvider, error) {
+	if s == nil || s.Store == nil || s.Renderer == nil {
+		return Rendered{}, nil, ErrServiceUnavailable
+	}
+	policy, err := s.Resolve(ctx, tenantID, name)
+	if err != nil {
+		return Rendered{}, nil, err
+	}
+	if policy.Template == nil {
+		return Rendered{}, nil, store.ErrNotFound
+	}
+	if !policy.Enabled {
+		return Rendered{}, nil, store.ErrInvalid
+	}
+	tenant, err := s.Store.Tenants().Get(ctx, tenantID)
+	if err != nil {
+		return Rendered{}, nil, err
+	}
+	url := "https://example.invalid/" + name
+	fields := map[string]string{}
+	for _, key := range []string{"from", "subject", "resultUrl"} {
+		if value, ok := policy.Template.Fields[key].(string); ok {
+			fields[key] = value
+		}
+	}
+	body, ok := policy.Template.Fields["body"].(string)
+	if !ok || body == "" {
+		return Rendered{}, nil, store.ErrInvalid
+	}
+	fields["body"], fields["html"] = body, body
+	fields["resultUrl"] = url
+	vars := map[string]any{}
+	for k, v := range overrides {
+		switch k {
+		case "from", "subject":
+			value, ok := v.(string)
+			if !ok || len(value) > 1024 {
+				return Rendered{}, nil, store.ErrInvalid
+			}
+			fields[k] = value
+		case "body":
+			value, ok := v.(string)
+			if !ok || len(value) > 128<<10 {
+				return Rendered{}, nil, store.ErrInvalid
+			}
+			fields["body"], fields["html"] = value, value
+		case "variables":
+			value, ok := v.(map[string]any)
+			if !ok {
+				return Rendered{}, nil, store.ErrInvalid
+			}
+			vars = value
+		default:
+			return Rendered{}, nil, store.ErrInvalid
+		}
+	}
+	ctxVars, err := BuildRenderContext(tenantRenderMap(tenant), map[string]any{"email": recipient, "email_verified": true}, nil, "en", url)
+	if err != nil {
+		return Rendered{}, nil, err
+	}
+	for key, value := range vars {
+		if key == "tenant" || key == "user" || key == "application" || key == "language" || key == "url" {
+			return Rendered{}, nil, store.ErrInvalid
+		}
+		ctxVars[key] = value
+	}
+	projected, _, err := projectVariables(ctxVars, 0)
+	if err != nil {
+		return Rendered{}, nil, err
+	}
+	rendered, err := s.Renderer.Render(ctx, RenderInput{Fields: fields, Variables: projected.(map[string]any)})
+	if err != nil {
+		return Rendered{}, nil, err
+	}
+	provider, err := s.providerSnapshot(ctx, tenantID)
+	if err != nil {
+		return Rendered{}, nil, err
+	}
+	if rendered.From == "" && provider != nil {
+		rendered.From = provider.DefaultFrom
+	}
+	if rendered.From == "" {
+		rendered.From = s.DefaultFrom
+	}
+	if rendered.From == "" {
+		rendered.From = "zeroauthy@localhost"
+	}
+	if rendered.ResultURL == "" {
+		rendered.ResultURL = url
+	}
+	return rendered, provider, nil
+}
+
 func validateMessage(from string, msg Message) error {
 	if err := validateEnvelope(msg); err != nil {
 		return err

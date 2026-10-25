@@ -26,6 +26,11 @@ describe('sections', () => {
     expect(new Set(keys).size).toBe(keys.length)
   })
 
+  it('ships tenant email configuration as a live section', () => {
+    expect(sections.find((s) => s.key === 'emails')?.status).toBe('live')
+    expect(routes.find((r) => r.name === 'emails')?.path).toBe('/t/:tenant/emails')
+  })
+
   it('hides Operators outside the system tenant and lists it last inside', () => {
     expect(visibleSections(false).map((s) => s.key)).not.toContain('operators')
     expect(visibleSections(true).at(-1)?.key).toBe('operators')

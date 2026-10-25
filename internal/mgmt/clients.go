@@ -18,6 +18,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -60,6 +61,7 @@ type Handlers struct {
 	// Verification sends verification emails for /users; nil logs and
 	// sends nothing.
 	Verification VerificationSender
+	EmailService *email.Service
 	// Notify wakes the job workers after a job is stored; nil does
 	// nothing (the workers poll).
 	Notify func()

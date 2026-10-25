@@ -39,7 +39,11 @@ type RenderInput struct {
 }
 
 type Rendered struct {
-	From, Subject, Text, HTML, ResultURL string
+	From      string `json:"from"`
+	Subject   string `json:"subject"`
+	Text      string `json:"text"`
+	HTML      string `json:"html"`
+	ResultURL string `json:"resultUrl"`
 }
 
 type Renderer interface {

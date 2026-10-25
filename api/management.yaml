@@ -2324,6 +2324,70 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/system/tenants/{tenant}/emails/preview:
+    parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+    post:
+      operationId: previewTenantEmail
+      tags: [system]
+      summary: Preview a saved tenant email template.
+      description: |
+        A zeroauthy-specific extension. Requires a console operator whose
+        signed and persisted tenant grants both include the target tenant.
+        Renders an enabled, saved template with synthetic `example.invalid`
+        URLs. Overrides affect this preview only and are never saved.
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/EmailPreviewRequest"}
+      responses:
+        "200":
+          description: Rendered synthetic preview.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/EmailPreview"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+  /api/system/tenants/{tenant}/emails/test:
+    parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+    post:
+      operationId: testTenantEmail
+      tags: [system]
+      summary: Send a saved tenant email template to the verified operator.
+      description: |
+        A zeroauthy-specific extension. The verified operator address is
+        selected by the server; request recipients are not accepted. Requires
+        a saved enabled template and both signed and persisted tenant grants.
+        `204` means the provider accepted the message, not that delivery is
+        confirmed. A started attempt consumes its distributed rate limit.
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/EmailTestRequest"}
+      responses:
+        "204": {description: The provider accepted the test message.}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+        "502": {description: The provider did not accept the message.}
   /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try:
     parameters:
       - name: tenant
@@ -2757,6 +2821,36 @@ components:
         resultUrl: {type: string, nullable: true}
         urlLifetimeInSeconds: {type: integer, format: int64, nullable: true}
         includeEmailInRedirect: {type: boolean, nullable: true}
+    EmailPreviewRequest:
+      type: object
+      additionalProperties: false
+      required: [template]
+      properties:
+        template: {type: string}
+        overrides:
+          type: object
+          additionalProperties: false
+          description: Bounded preview-only body, subject, from and variables overrides.
+          properties:
+            body: {type: string}
+            subject: {type: string}
+            from: {type: string}
+            variables: {type: object, additionalProperties: true}
+    EmailTestRequest:
+      type: object
+      additionalProperties: false
+      required: [template]
+      properties:
+        template: {type: string}
+    EmailPreview:
+      type: object
+      required: [from, subject, text, html, resultUrl]
+      properties:
+        from: {type: string}
+        subject: {type: string}
+        text: {type: string}
+        html: {type: string}
+        resultUrl: {type: string}
     ManagedSigningKey:
       type: object
       required: [kid, alg, current, next, previous, revoked]
@@ -5648,6 +5742,11 @@ components:
           schema: {type: object}
     NotFound:
       description: The resource does not exist.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    TooManyRequests:
+      description: A distributed preview or test email limit was reached.
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}

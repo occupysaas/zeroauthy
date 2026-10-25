@@ -1259,6 +1259,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/emails/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a saved tenant email template.
+         * @description A zeroauthy-specific extension. Requires a console operator whose
+         *     signed and persisted tenant grants both include the target tenant.
+         *     Renders an enabled, saved template with synthetic `example.invalid`
+         *     URLs. Overrides affect this preview only and are never saved.
+         */
+        post: operations["previewTenantEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/tenants/{tenant}/emails/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a saved tenant email template to the verified operator.
+         * @description A zeroauthy-specific extension. The verified operator address is
+         *     selected by the server; request recipients are not accepted. Requires
+         *     a saved enabled template and both signed and persisted tenant grants.
+         *     `204` means the provider accepted the message, not that delivery is
+         *     confirmed. A started attempt consumes its distributed rate limit.
+         */
+        post: operations["testTenantEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try": {
         parameters: {
             query?: never;
@@ -1569,6 +1622,28 @@ export interface components {
             /** Format: int64 */
             urlLifetimeInSeconds?: number | null;
             includeEmailInRedirect?: boolean | null;
+        };
+        EmailPreviewRequest: {
+            template: string;
+            /** @description Bounded preview-only body, subject, from and variables overrides. */
+            overrides?: {
+                body?: string;
+                subject?: string;
+                from?: string;
+                variables?: {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        EmailTestRequest: {
+            template: string;
+        };
+        EmailPreview: {
+            from: string;
+            subject: string;
+            text: string;
+            html: string;
+            resultUrl: string;
         };
         ManagedSigningKey: {
             kid: string;
@@ -3328,6 +3403,15 @@ export interface components {
         };
         /** @description The resource does not exist. */
         NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ManagementError"];
+            };
+        };
+        /** @description A distributed preview or test email limit was reached. */
+        TooManyRequests: {
             headers: {
                 [name: string]: unknown;
             };
@@ -5478,6 +5562,75 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    previewTenantEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Rendered synthetic preview. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailPreview"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    testTenantEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The tenant's name. */
+                tenant: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailTestRequest"];
+            };
+        };
+        responses: {
+            /** @description The provider accepted the test message. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            /** @description The provider did not accept the message. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     tryConnectionScript: {
