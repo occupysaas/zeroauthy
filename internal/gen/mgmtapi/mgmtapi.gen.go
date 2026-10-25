@@ -882,6 +882,36 @@ func (e ConnectionCreateStrategy) Valid() bool {
 	}
 }
 
+// Defines values for EmailTemplateSyntax.
+const (
+	EmailTemplateSyntaxLiquid EmailTemplateSyntax = "liquid"
+)
+
+// Valid indicates whether the value is a known member of the EmailTemplateSyntax enum.
+func (e EmailTemplateSyntax) Valid() bool {
+	switch e {
+	case EmailTemplateSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EmailTemplatePatchSyntax.
+const (
+	EmailTemplatePatchSyntaxLiquid EmailTemplatePatchSyntax = "liquid"
+)
+
+// Valid indicates whether the value is a known member of the EmailTemplatePatchSyntax enum.
+func (e EmailTemplatePatchSyntax) Valid() bool {
+	switch e {
+	case EmailTemplatePatchSyntaxLiquid:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobStatus.
 const (
 	Completed JobStatus = "completed"
@@ -2898,6 +2928,54 @@ type CustomSigningJWKS struct {
 	Keys []map[string]interface{} `json:"keys"`
 }
 
+// EmailProvider defines model for EmailProvider.
+type EmailProvider struct {
+	DefaultFromAddress *string                 `json:"default_from_address,omitempty"`
+	Enabled            bool                    `json:"enabled"`
+	Name               string                  `json:"name"`
+	Settings           *map[string]interface{} `json:"settings,omitempty"`
+}
+
+// EmailProviderWrite defines model for EmailProviderWrite.
+type EmailProviderWrite struct {
+	Credentials        *map[string]interface{} `json:"credentials,omitempty"`
+	DefaultFromAddress *string                 `json:"default_from_address,omitempty"`
+	Enabled            *bool                   `json:"enabled,omitempty"`
+	Name               *string                 `json:"name,omitempty"`
+	Settings           *map[string]interface{} `json:"settings,omitempty"`
+}
+
+// EmailTemplate defines model for EmailTemplate.
+type EmailTemplate struct {
+	Body                   string               `json:"body"`
+	Enabled                bool                 `json:"enabled"`
+	From                   *string              `json:"from,omitempty"`
+	IncludeEmailInRedirect *bool                `json:"includeEmailInRedirect,omitempty"`
+	ResultUrl              *string              `json:"resultUrl,omitempty"`
+	Subject                string               `json:"subject"`
+	Syntax                 *EmailTemplateSyntax `json:"syntax,omitempty"`
+	Template               string               `json:"template"`
+	UrlLifetimeInSeconds   *int64               `json:"urlLifetimeInSeconds,omitempty"`
+}
+
+// EmailTemplateSyntax defines model for EmailTemplate.Syntax.
+type EmailTemplateSyntax string
+
+// EmailTemplatePatch defines model for EmailTemplatePatch.
+type EmailTemplatePatch struct {
+	Body                   *string                   `json:"body,omitempty"`
+	Enabled                *bool                     `json:"enabled,omitempty"`
+	From                   *string                   `json:"from,omitempty"`
+	IncludeEmailInRedirect *bool                     `json:"includeEmailInRedirect,omitempty"`
+	ResultUrl              *string                   `json:"resultUrl,omitempty"`
+	Subject                *string                   `json:"subject,omitempty"`
+	Syntax                 *EmailTemplatePatchSyntax `json:"syntax,omitempty"`
+	UrlLifetimeInSeconds   *int64                    `json:"urlLifetimeInSeconds,omitempty"`
+}
+
+// EmailTemplatePatchSyntax defines model for EmailTemplatePatch.Syntax.
+type EmailTemplatePatchSyntax string
+
 // EmailVerificationTicketCreate Unknown properties are `400 invalid_body`.
 type EmailVerificationTicketCreate struct {
 	ClientId *string `json:"client_id,omitempty"`
@@ -4745,6 +4823,21 @@ type UpdateConnectionJSONRequestBody = ConnectionUpdate
 // UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
 type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
 
+// CreateEmailTemplateJSONRequestBody defines body for CreateEmailTemplate for application/json ContentType.
+type CreateEmailTemplateJSONRequestBody = EmailTemplate
+
+// PatchEmailTemplateJSONRequestBody defines body for PatchEmailTemplate for application/json ContentType.
+type PatchEmailTemplateJSONRequestBody = EmailTemplatePatch
+
+// PutEmailTemplateJSONRequestBody defines body for PutEmailTemplate for application/json ContentType.
+type PutEmailTemplateJSONRequestBody = EmailTemplate
+
+// PatchEmailProviderJSONRequestBody defines body for PatchEmailProvider for application/json ContentType.
+type PatchEmailProviderJSONRequestBody = EmailProviderWrite
+
+// CreateEmailProviderJSONRequestBody defines body for CreateEmailProvider for application/json ContentType.
+type CreateEmailProviderJSONRequestBody = EmailProviderWrite
+
 // CreateUsersExportJobJSONRequestBody defines body for CreateUsersExportJob for application/json ContentType.
 type CreateUsersExportJobJSONRequestBody = UsersExportJobCreate
 
@@ -6382,6 +6475,30 @@ type ServerInterface interface {
 	// UpdateConnectionClients Enable or disable applications on a connection
 	// (PATCH /api/v2/connections/{id}/clients)
 	UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string)
+	// CreateEmailTemplate Create a named email template.
+	// (POST /api/v2/email-templates)
+	CreateEmailTemplate(w http.ResponseWriter, r *http.Request)
+	// GetEmailTemplate Get one named email template.
+	// (GET /api/v2/email-templates/{templateName})
+	GetEmailTemplate(w http.ResponseWriter, r *http.Request, templateName string)
+	// PatchEmailTemplate Partially update one named email template.
+	// (PATCH /api/v2/email-templates/{templateName})
+	PatchEmailTemplate(w http.ResponseWriter, r *http.Request, templateName string)
+	// PutEmailTemplate Replace or create one named email template.
+	// (PUT /api/v2/email-templates/{templateName})
+	PutEmailTemplate(w http.ResponseWriter, r *http.Request, templateName string)
+	// DeleteEmailProvider Delete the tenant email provider.
+	// (DELETE /api/v2/emails/provider)
+	DeleteEmailProvider(w http.ResponseWriter, r *http.Request)
+	// GetEmailProvider Get the tenant email provider without credentials.
+	// (GET /api/v2/emails/provider)
+	GetEmailProvider(w http.ResponseWriter, r *http.Request)
+	// PatchEmailProvider Partially update the tenant email provider.
+	// (PATCH /api/v2/emails/provider)
+	PatchEmailProvider(w http.ResponseWriter, r *http.Request)
+	// CreateEmailProvider Create the tenant email provider.
+	// (POST /api/v2/emails/provider)
+	CreateEmailProvider(w http.ResponseWriter, r *http.Request)
 	// DeleteGrantsByUser Delete a user's grants
 	// (DELETE /api/v2/grants)
 	DeleteGrantsByUser(w http.ResponseWriter, r *http.Request, params DeleteGrantsByUserParams)
@@ -6760,6 +6877,54 @@ func (_ Unimplemented) GetConnectionClients(w http.ResponseWriter, r *http.Reque
 // UpdateConnectionClients Enable or disable applications on a connection
 // (PATCH /api/v2/connections/{id}/clients)
 func (_ Unimplemented) UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateEmailTemplate Create a named email template.
+// (POST /api/v2/email-templates)
+func (_ Unimplemented) CreateEmailTemplate(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetEmailTemplate Get one named email template.
+// (GET /api/v2/email-templates/{templateName})
+func (_ Unimplemented) GetEmailTemplate(w http.ResponseWriter, r *http.Request, templateName string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PatchEmailTemplate Partially update one named email template.
+// (PATCH /api/v2/email-templates/{templateName})
+func (_ Unimplemented) PatchEmailTemplate(w http.ResponseWriter, r *http.Request, templateName string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PutEmailTemplate Replace or create one named email template.
+// (PUT /api/v2/email-templates/{templateName})
+func (_ Unimplemented) PutEmailTemplate(w http.ResponseWriter, r *http.Request, templateName string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteEmailProvider Delete the tenant email provider.
+// (DELETE /api/v2/emails/provider)
+func (_ Unimplemented) DeleteEmailProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetEmailProvider Get the tenant email provider without credentials.
+// (GET /api/v2/emails/provider)
+func (_ Unimplemented) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PatchEmailProvider Partially update the tenant email provider.
+// (PATCH /api/v2/emails/provider)
+func (_ Unimplemented) PatchEmailProvider(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateEmailProvider Create the tenant email provider.
+// (POST /api/v2/emails/provider)
+func (_ Unimplemented) CreateEmailProvider(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8312,6 +8477,154 @@ func (siw *ServerInterfaceWrapper) UpdateConnectionClients(w http.ResponseWriter
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateConnectionClients(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEmailTemplate operation middleware
+func (siw *ServerInterfaceWrapper) CreateEmailTemplate(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEmailTemplate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetEmailTemplate operation middleware
+func (siw *ServerInterfaceWrapper) GetEmailTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "templateName" -------------
+	var templateName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateName", chi.URLParam(r, "templateName"), &templateName, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "templateName", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEmailTemplate(w, r, templateName)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PatchEmailTemplate operation middleware
+func (siw *ServerInterfaceWrapper) PatchEmailTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "templateName" -------------
+	var templateName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateName", chi.URLParam(r, "templateName"), &templateName, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "templateName", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchEmailTemplate(w, r, templateName)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutEmailTemplate operation middleware
+func (siw *ServerInterfaceWrapper) PutEmailTemplate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "templateName" -------------
+	var templateName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "templateName", chi.URLParam(r, "templateName"), &templateName, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "templateName", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutEmailTemplate(w, r, templateName)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteEmailProvider operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEmailProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteEmailProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetEmailProvider operation middleware
+func (siw *ServerInterfaceWrapper) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEmailProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PatchEmailProvider operation middleware
+func (siw *ServerInterfaceWrapper) PatchEmailProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchEmailProvider(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEmailProvider operation middleware
+func (siw *ServerInterfaceWrapper) CreateEmailProvider(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEmailProvider(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10394,6 +10707,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/hooks", wrapper.GetHooks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/emails/provider", wrapper.DeleteEmailProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/emails/provider", wrapper.GetEmailProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/emails/provider", wrapper.PatchEmailProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/emails/provider", wrapper.CreateEmailProvider)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/email-templates", wrapper.CreateEmailTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/email-templates/{templateName}", wrapper.GetEmailTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/email-templates/{templateName}", wrapper.PatchEmailTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/email-templates/{templateName}", wrapper.PutEmailTemplate)
 	})
 
 	return r

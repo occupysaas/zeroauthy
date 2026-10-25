@@ -1464,10 +1464,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/emails/provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the tenant email provider without credentials. */
+        get: operations["GetEmailProvider"];
+        put?: never;
+        /** Create the tenant email provider. */
+        post: operations["CreateEmailProvider"];
+        /** Delete the tenant email provider. */
+        delete: operations["DeleteEmailProvider"];
+        options?: never;
+        head?: never;
+        /** Partially update the tenant email provider. */
+        patch: operations["PatchEmailProvider"];
+        trace?: never;
+    };
+    "/api/v2/email-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a named email template. */
+        post: operations["CreateEmailTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/email-templates/{templateName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateName: string;
+            };
+            cookie?: never;
+        };
+        /** Get one named email template. */
+        get: operations["GetEmailTemplate"];
+        /** Replace or create one named email template. */
+        put: operations["PutEmailTemplate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Partially update one named email template. */
+        patch: operations["PatchEmailTemplate"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        EmailProvider: {
+            name: string;
+            enabled: boolean;
+            default_from_address?: string;
+            settings?: {
+                [key: string]: unknown;
+            };
+        };
+        EmailProviderWrite: {
+            name?: string;
+            enabled?: boolean;
+            default_from_address?: string | null;
+            credentials?: {
+                [key: string]: unknown;
+            };
+            settings?: {
+                [key: string]: unknown;
+            };
+        };
+        EmailTemplate: {
+            template: string;
+            body: string;
+            from?: string | null;
+            subject: string;
+            /** @enum {string} */
+            syntax?: "liquid";
+            enabled: boolean;
+            resultUrl?: string | null;
+            /** Format: int64 */
+            urlLifetimeInSeconds?: number | null;
+            includeEmailInRedirect?: boolean | null;
+        };
+        EmailTemplatePatch: {
+            body?: string | null;
+            from?: string | null;
+            subject?: string | null;
+            /** @enum {string|null} */
+            syntax?: "liquid" | null;
+            enabled?: boolean | null;
+            resultUrl?: string | null;
+            /** Format: int64 */
+            urlLifetimeInSeconds?: number | null;
+            includeEmailInRedirect?: boolean | null;
+        };
         ManagedSigningKey: {
             kid: string;
             alg: string;
@@ -5689,6 +5791,217 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    GetEmailProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redacted provider configuration. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailProvider"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    CreateEmailProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailProviderWrite"];
+            };
+        };
+        responses: {
+            /** @description Created redacted provider. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailProvider"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    DeleteEmailProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Provider deleted or absent. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    PatchEmailProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailProviderWrite"];
+            };
+        };
+        responses: {
+            /** @description Updated redacted provider. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailProvider"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    CreateEmailTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailTemplate"];
+            };
+        };
+        responses: {
+            /** @description Created email template. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    GetEmailTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Email template. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailTemplate"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    PutEmailTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateName: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailTemplate"];
+            };
+        };
+        responses: {
+            /** @description Saved email template. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    PatchEmailTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateName: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailTemplatePatch"];
+            };
+        };
+        responses: {
+            /** @description Saved email template. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailTemplate"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }

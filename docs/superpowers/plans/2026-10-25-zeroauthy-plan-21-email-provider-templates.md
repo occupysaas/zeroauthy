@@ -162,11 +162,11 @@ Encryption signatures: `keys.SealEmailProvider(w Wrapper, tenantID, provider str
 
 **Interfaces:** Generated operation IDs: `GetEmailProvider`, `CreateEmailProvider`, `PatchEmailProvider`, `DeleteEmailProvider`, `CreateEmailTemplate`, `GetEmailTemplate`, `PutEmailTemplate`, `PatchEmailTemplate`; use the handler signature pattern of existing generated interfaces. Provider rule helpers: `ValidateProvider(raw map[string]json.RawMessage, current *store.EmailProvider) error` and `ProjectProvider(*store.EmailProvider) map[string]any`; projection never opens secrets. Use Task 3 CAS and Task 2 validation. Extend the actual existing scope catalog wherever Task 1 locates it, not only a UI permission list.
 
-- [ ] Write HTTP tests for all eight operations with full-scope, read-only, missing-scope, wrong issuer/audience/tenant and reserved-tenant credentials. Assert Task 1 statuses and all field/null/default semantics. Test no-record 404, create conflict, PUT vs PATCH and disabled-only `custom`.
-- [ ] Write `TestProviderSecretPatch` with sentinel secrets: omitted preserve, replacement changes, blank/mask rejects, kind switch drops old, concurrent updates retry at most three times and one conflict has no partial writes. Assert GET/create/patch/export/log/error never contains the sentinel; test invalid template source fails save.
-- [ ] Run focused management/server tests to see failures. Keep operation scope checks in `internal/tenantsetup` catalog and handler routing aligned. Implement schemas with `x-source`, generated handlers, scope catalog and rules. Audit successful writes using existing repository logging conventions, with tenant/actor/template/provider names only. Add limits before decoding request bodies.
-- [ ] Run `go generate ./...`, console type generation, `go test -race ./internal/mgmt ./internal/server ./api`, and verify a second generation creates no diff.
-- [ ] Commit `feat(mgmt): manage tenant email providers and templates`.
+- [x] Write HTTP tests for all eight operations with full-scope, read-only, missing-scope, wrong issuer/audience/tenant and reserved-tenant credentials. Assert Task 1 statuses and all field/null/default semantics. Test no-record 404, create conflict, PUT vs PATCH and disabled-only `custom`.
+- [x] Write `TestProviderSecretPatch` with sentinel secrets: omitted preserve, replacement changes, blank/mask rejects, kind switch drops old, concurrent updates retry at most three times and one conflict has no partial writes. Assert GET/create/patch/export/log/error never contains the sentinel; test invalid template source fails save.
+- [x] Run focused management/server tests to see failures. Keep operation scope checks in `internal/tenantsetup` catalog and handler routing aligned. Implement schemas with `x-source`, generated handlers, scope catalog and rules. Audit successful writes using existing repository logging conventions, with tenant/actor/template/provider names only. Add limits before decoding request bodies.
+- [x] Run `go generate ./...`, console type generation, `go test -race ./internal/mgmt ./internal/server ./api`, and verify a second generation creates no diff.
+- [x] Commit `feat(mgmt): manage tenant email providers and templates`.
 
 ## Task 9: Integrate verification, reset, welcome and import messages
 

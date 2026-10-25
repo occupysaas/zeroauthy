@@ -309,6 +309,31 @@ func (a mgmtAPI) UpdateTenantSettings(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, a.h.UpdateTenantSettings, "update:tenant_settings")
 }
 
+func (a mgmtAPI) GetEmailProvider(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.GetEmailProvider, "read:email_provider")
+}
+func (a mgmtAPI) CreateEmailProvider(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateEmailProvider, "create:email_provider")
+}
+func (a mgmtAPI) PatchEmailProvider(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.PatchEmailProvider, "update:email_provider")
+}
+func (a mgmtAPI) DeleteEmailProvider(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.DeleteEmailProvider, "delete:email_provider")
+}
+func (a mgmtAPI) CreateEmailTemplate(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateEmailTemplate, "create:email_templates")
+}
+func (a mgmtAPI) GetEmailTemplate(w http.ResponseWriter, r *http.Request, name string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetEmailTemplate(w, r, name) }, "read:email_templates")
+}
+func (a mgmtAPI) PutEmailTemplate(w http.ResponseWriter, r *http.Request, name string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PutEmailTemplate(w, r, name) }, "update:email_templates")
+}
+func (a mgmtAPI) PatchEmailTemplate(w http.ResponseWriter, r *http.Request, name string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PatchEmailTemplate(w, r, name) }, "update:email_templates")
+}
+
 func (a mgmtAPI) GetBruteForceProtection(w http.ResponseWriter, r *http.Request) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetProtection(w, r, "brute-force-protection") }, "read:attack_protection")
 }

@@ -2569,6 +2569,108 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
 
+  /api/v2/emails/provider:
+    get:
+      operationId: GetEmailProvider
+      tags: [emails]
+      summary: Get the tenant email provider without credentials.
+      x-source: [https://auth0.com/docs/api/management/v2/emails/get-provider]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "200": {description: Redacted provider configuration., content: {application/json: {schema: {$ref: "#/components/schemas/EmailProvider"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    post:
+      operationId: CreateEmailProvider
+      tags: [emails]
+      summary: Create the tenant email provider.
+      x-source: [https://auth0.com/docs/api/management/v2/emails/post-provider]
+      security: [{managementToken: []}, {operatorToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/EmailProviderWrite"}}}}
+      responses:
+        "201": {description: Created redacted provider., content: {application/json: {schema: {$ref: "#/components/schemas/EmailProvider"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+    patch:
+      operationId: PatchEmailProvider
+      tags: [emails]
+      summary: Partially update the tenant email provider.
+      x-source: [https://auth0.com/docs/api/management/v2/emails/patch-provider]
+      security: [{managementToken: []}, {operatorToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/EmailProviderWrite"}}}}
+      responses:
+        "200": {description: Updated redacted provider., content: {application/json: {schema: {$ref: "#/components/schemas/EmailProvider"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: DeleteEmailProvider
+      tags: [emails]
+      summary: Delete the tenant email provider.
+      x-source: [https://auth0.com/docs/api/management/v2/emails/delete-provider]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "204": {description: Provider deleted or absent.}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/email-templates:
+    post:
+      operationId: CreateEmailTemplate
+      tags: [emails]
+      summary: Create a named email template.
+      x-source: [https://auth0.com/docs/api/management/v2/email-templates/post-email-templates]
+      security: [{managementToken: []}, {operatorToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/EmailTemplate"}}}}
+      responses:
+        "200": {description: Created email template., content: {application/json: {schema: {$ref: "#/components/schemas/EmailTemplate"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /api/v2/email-templates/{templateName}:
+    parameters:
+      - {name: templateName, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: GetEmailTemplate
+      tags: [emails]
+      summary: Get one named email template.
+      x-source: [https://auth0.com/docs/api/management/v2/email-templates/get-email-template]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "200": {description: Email template., content: {application/json: {schema: {$ref: "#/components/schemas/EmailTemplate"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    put:
+      operationId: PutEmailTemplate
+      tags: [emails]
+      summary: Replace or create one named email template.
+      x-source: [https://auth0.com/docs/api/management/v2/email-templates/put-email-template]
+      security: [{managementToken: []}, {operatorToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/EmailTemplate"}}}}
+      responses:
+        "200": {description: Saved email template., content: {application/json: {schema: {$ref: "#/components/schemas/EmailTemplate"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    patch:
+      operationId: PatchEmailTemplate
+      tags: [emails]
+      summary: Partially update one named email template.
+      x-source: [https://auth0.com/docs/api/management/v2/email-templates/patch-email-template]
+      security: [{managementToken: []}, {operatorToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/EmailTemplatePatch"}}}}
+      responses:
+        "200": {description: Saved email template., content: {application/json: {schema: {$ref: "#/components/schemas/EmailTemplate"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
 components:
   securitySchemes:
     managementToken:
@@ -2613,6 +2715,48 @@ components:
       description: Whether `fields` lists the fields to include (true) or to leave out (false).
       schema: {type: boolean, default: true}
   schemas:
+    EmailProvider:
+      type: object
+      required: [name, enabled]
+      properties:
+        name: {type: string}
+        enabled: {type: boolean}
+        default_from_address: {type: string}
+        settings: {type: object, additionalProperties: true}
+    EmailProviderWrite:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        enabled: {type: boolean}
+        default_from_address: {type: string, nullable: true}
+        credentials: {type: object, additionalProperties: true}
+        settings: {type: object, additionalProperties: true}
+    EmailTemplate:
+      type: object
+      required: [template, body, subject, enabled]
+      properties:
+        template: {type: string}
+        body: {type: string}
+        from: {type: string, nullable: true}
+        subject: {type: string}
+        syntax: {type: string, enum: [liquid]}
+        enabled: {type: boolean}
+        resultUrl: {type: string, nullable: true}
+        urlLifetimeInSeconds: {type: integer, format: int64, nullable: true}
+        includeEmailInRedirect: {type: boolean, nullable: true}
+    EmailTemplatePatch:
+      type: object
+      additionalProperties: false
+      properties:
+        body: {type: string, nullable: true}
+        from: {type: string, nullable: true}
+        subject: {type: string, nullable: true}
+        syntax: {type: string, enum: [liquid], nullable: true}
+        enabled: {type: boolean, nullable: true}
+        resultUrl: {type: string, nullable: true}
+        urlLifetimeInSeconds: {type: integer, format: int64, nullable: true}
+        includeEmailInRedirect: {type: boolean, nullable: true}
     ManagedSigningKey:
       type: object
       required: [kid, alg, current, next, previous, revoked]
