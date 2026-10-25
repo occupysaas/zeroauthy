@@ -335,7 +335,14 @@ type SigningKey struct {
 	PrivateKey []byte
 	// PublicJWK is the public key as a JSON Web Key.
 	PublicJWK []byte
-	CreatedAt time.Time
+	// CertificateDER is the stable, public X.509 representation of this key.
+	// It is backfilled without changing the signing identity.
+	CertificateDER []byte
+	CreatedAt      time.Time
+	// Lifecycle timestamps remain nil when a reliable historical value is absent.
+	CurrentSince *time.Time
+	CurrentUntil *time.Time
+	RevokedAt    *time.Time
 }
 
 // Branding customizes the hosted login pages.

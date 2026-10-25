@@ -67,6 +67,8 @@ type (
 	SubjectTypeAuthorization = store.SubjectTypeAuthorization
 	KeyStatus                = store.KeyStatus
 	SigningKey               = store.SigningKey
+	SigningKeyRotation       = store.SigningKeyRotation
+	CustomSigningKeySet      = store.CustomSigningKeySet
 	PasswordOptions          = store.PasswordOptions
 	PasswordComplexity       = store.PasswordComplexity
 	PasswordHistory          = store.PasswordHistory

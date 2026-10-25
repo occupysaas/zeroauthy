@@ -15,6 +15,10 @@ func TestAliasesAreIdentical(t *testing.T) {
 	var _ internal.Store = s
 	var u *store.User = &internal.User{}
 	_ = u
+	var rotation store.SigningKeyRotation = internal.SigningKeyRotation{}
+	var custom store.CustomSigningKeySet = internal.CustomSigningKeySet{}
+	_ = rotation
+	_ = custom
 	if !errors.Is(internal.ErrNotFound, store.ErrNotFound) ||
 		!errors.Is(internal.ErrConflict, store.ErrConflict) ||
 		!errors.Is(internal.ErrAlreadyUsed, store.ErrAlreadyUsed) {
