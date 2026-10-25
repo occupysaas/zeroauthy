@@ -1,6 +1,6 @@
 # zeroauthy — Plan 19 design: tenant settings, attack protection and user blocks
 
-- **Status:** Approved for implementation by the user on 2026-10-21; Task 1 contracts frozen on 2026-10-22. Tasks 1–11 implemented and reviewed; Task 12 final verification in progress (2026-10-24).
+- **Status:** Complete. Tasks 1–12 implemented, reviewed and verified (2026-10-25). The final review's suspicious-IP legacy-policy transition finding was fixed and re-reviewed.
 - **Date:** 2026-10-21
 - **Roadmap:** [Management roadmap, Plan 19](2026-10-19-zeroauthy-management-roadmap-design.md#plan-19--tenant-settings-attack-protection-user-blocks-slice-5a).
 - **Implementation plan:** [Plan 19](../plans/2026-10-21-zeroauthy-plan-19-tenant-settings-attack-protection.md).

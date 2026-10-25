@@ -5,9 +5,9 @@
 - **Scope:** every Auth0 Management API v2 resource not covered by slices 1–4 (applications, APIs, client grants, database connections, users and jobs), broken into plans with an order, dependencies and a short design each.
 - **Inputs:** the management design (`2026-10-18-zeroauthy-management-design.md`), the users design (`2026-10-19-zeroauthy-users-design.md`), the compatibility matrix, the follow-ups file, and the maintainer's 2026-10-19 rulings.
 
-## 0. Where we are (2026-10-24)
+## 0. Where we are (2026-10-25)
 
-**Plans done:** 18. **Implemented, final verification in progress:** 1 (Plan 19). **Left in this roadmap:** 20 (Plans 19–38); the five "full" plans will likely split, so expect roughly 25–30 more plans.
+**Plans done:** 19. **Implemented, verifying:** 0. **Left in this roadmap:** 19 (Plans 20–38); the five "full" plans will likely split, so expect roughly 24–29 more plans.
 
 ### Done
 
@@ -22,6 +22,7 @@
 | 15 | **Database connections** and enabled clients |
 | 16 | Console frame: every section routed, planned pages previewed |
 | 17–18 | Users, search, identities, sessions, refresh tokens, grants, tickets; import/export and verification-email jobs |
+| 19 | Tenant settings, attack protection, user blocks and shared password-flow enforcement |
 
 ### Management API coverage by resource
 
@@ -29,13 +30,12 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done** | 10 | clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18) |
-| **Implemented, verifying** | 3 | tenant settings, attack protection, user blocks (Plan 19) |
+| **Done** | 13 | clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19) |
 | **Planned, short design** | 10 | signing keys, email provider, email templates, social strategies II, roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
 | **Planned, full design** | 15 | branding, themes, prompts and custom text, custom domains, social strategies I, Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
-Read as resource groups, about 24% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
+Read as resource groups, about 31% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
 
 ## 1. Goal and ground rules
 
@@ -92,7 +92,7 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 ### Plan 19 — Tenant settings, attack protection, user blocks (slice 5a)
 
-**Implementation records (2026-10-24):** [standalone spec](2026-10-21-zeroauthy-tenant-settings-attack-protection-design.md) and [implementation plan](../plans/2026-10-21-zeroauthy-plan-19-tenant-settings-attack-protection.md). Tasks 1–11 are implemented and reviewed; Task 12 is running final verification. Database tests deferred during implementation now run.
+**Implementation records (2026-10-25):** [standalone spec](2026-10-21-zeroauthy-tenant-settings-attack-protection-design.md), [implementation plan](../plans/2026-10-21-zeroauthy-plan-19-tenant-settings-attack-protection.md), and operator guides ([tenant settings](../../tenant-settings.md), [attack protection](../../attack-protection.md)). Tasks 1–12 are implemented, reviewed and verified. The final whole-branch review's legacy suspicious-IP transition finding was fixed and re-reviewed. Local SQLite/PostgreSQL/MySQL, race, console, source, CLI/SDK/browser and conformance checks passed with the documented warning/review/skip counts. No live Auth0 tenant or CAPTCHA/breach provider was called.
 
 **Endpoints:**
 - `GET/PATCH /api/v2/tenants/settings`: every documented field. Enforced where zeroauthy has the feature: `friendly_name`, `picture_url`, `support_email`, `support_url`, `default_audience`, `default_directory`, `session_lifetime`, `idle_session_lifetime`, `enabled_locales`, `device_flow`, `pushed_authorization_requests_supported`, `skip_non_verifiable_callback_uri_confirmation_prompt`, `session_cookie.mode` and `allowed_logout_urls`. Flags (except read-only disable_impersonation), `default_redirection_uri`, `error_page`, `customize_mfa_in_postlogin_action` and other inventoried future fields are stored, not enforced, until their plan.

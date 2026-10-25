@@ -19,8 +19,11 @@ credentials. A store failure refuses protected authentication temporarily.
 Explicit legacy `security.login_max_attempts` / `login_lockout_seconds`
 initialize an absent policy once, transactionally, with a compatibility warning
 and legacy IP semantics. Unspecified defaults select the new policy defaults.
-Seed/API policies win; restarting never overwrites them. Editing the relevant
-policy exits legacy semantics. Legacy markers are not public API fields.
+Seed/API policies win; restarting never overwrites them. Editing brute-force
+settings exits the legacy brute-force duration/threshold mode; editing
+suspicious-IP settings exits the legacy IP fixed-window override while retaining
+the brute-force duration until that policy is edited. Legacy markers are not
+public API fields.
 
 Brute force defaults to ten failures and a 30-day block. Keys use normalized
 identity, stable connection and (unless identifier-only mode) canonical IP.

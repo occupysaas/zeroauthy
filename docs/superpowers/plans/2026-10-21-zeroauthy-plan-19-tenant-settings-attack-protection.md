@@ -10,7 +10,7 @@
 
 **Spec:** [Tenant settings and attack protection design](../specs/2026-10-21-zeroauthy-tenant-settings-attack-protection-design.md). Read it with the roadmap's Plan 19 section and `CLEAN_ROOM.md` before execution.
 
-**Status:** Approved for implementation by the user on 2026-10-21. Tasks 1–11 are implemented and reviewed; Task 12 documentation and required verification are complete, with final whole-branch review pending. Observed/documented/local-fallback distinctions remain. Based on repository commit `2e175f3`. D-0045 and the observation notes freeze local choices without claiming unobserved upstream parity.
+**Status:** Complete. Tasks 1–12 are implemented, reviewed and verified. The final whole-branch review finding on the legacy suspicious-IP policy transition was fixed in `54afbb8` and scoped re-review passed. Observed/documented/local-fallback distinctions remain. Based on repository commit `2e175f3`. D-0045 and the observation notes freeze local choices without claiming unobserved upstream parity.
 
 ## Global Constraints
 
@@ -199,8 +199,8 @@ Use [T1–T3](../../compat/observations/management-tenant-settings.md) and [A1�
 
 - [x] **Step 1: Document** duration units/seed precedence, migration of explicit legacy settings, shared-store requirements, supported/inert fields/providers, exact failure policy, local risk difference, corpus configuration/format, proxy trust and automatic-versus-administrative unblock. Include a recovery recipe using a separately authorized Management client for a locked console operator. Record Plan 21 notification/unblock-link follow-ups and leave device/general rate-limiting work open.
 - [x] **Step 2: Verify implementation.** Run `gofmt -l` on changed Go files (expect no output), `go vet ./...`, `go test -race ./...`, `./scripts/test-sql.sh`, `go generate ./...`, `make console`, `make check-sources`, `make e2e`, and `make conformance`. Regeneration must produce no unexpected diff; compare against committed generated outputs. Report actual unavailable services or source-fetch failures and do not label failed checks passing.
-- [ ] **Step 3: Review coverage.** Match every spec §8 acceptance criterion and T/A evidence row to tests/docs; verify all five Review Focus items have their named cases. Check the only remaining process-local limits are explicitly deferred ones. Review the full implementation diff, then update task checkboxes and roadmap counts based on actual completion.
-- [ ] **Step 4: Commit** `docs: tenant settings and attack protection; Plan 19 records`.
+- [x] **Step 3: Review coverage.** Match every spec §8 acceptance criterion and T/A evidence row to tests/docs; verify all five Review Focus items have their named cases. Check the only remaining process-local limits are explicitly deferred ones. Review the full implementation diff, then update task checkboxes and roadmap counts based on actual completion. The final whole-branch review found one legacy suspicious-IP override transition bug; commit `54afbb8` fixes it and scoped re-review passes.
+- [x] **Step 4: Commit** `docs: tenant settings and attack protection; Plan 19 records` (commit `095fedf`; final review fix `54afbb8`).
 
 ## Planning review
 
