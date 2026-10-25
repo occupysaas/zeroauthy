@@ -102,6 +102,9 @@ func testCustomSigningKeys(t *testing.T, newStore Factory) {
 
 	t.Run("ConcurrentReplaceCollision", func(t *testing.T) {
 		s := open(t, newStore)
+		// The serialization lock is the tenant row, so exercise concurrent
+		// replacements against a real tenant as the API does.
+		mustNoErr(t, s.Tenants().Create(ctx, newTenant("a")))
 		mustNoErr(t, s.SigningKeys().Create(ctx, newSigningKey("ten_a", "same", store.KeyCurrent, 0)))
 		const n = 8
 		var wg sync.WaitGroup
