@@ -2,6 +2,8 @@ package keys
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/base64"
 	"errors"
 	"testing"
@@ -90,16 +92,11 @@ func TestJWKSFollowsRotation(t *testing.T) {
 		t.Fatal(err)
 	}
 	got = kids(set)
-	if len(got) != 3 {
-		t.Fatalf("after second rotate kids = %v; want 3 published keys", got)
+	if len(got) != 4 {
+		t.Fatalf("after second rotate kids = %v; want current, next and both retained previous keys", got)
 	}
-	if got[2] != next {
-		t.Fatalf("after second rotate kids = %v; want original next (now previous) last", got)
-	}
-	for _, k := range got {
-		if k == cur {
-			t.Fatal("revoked key still published")
-		}
+	if got[2] != cur || got[3] != next {
+		t.Fatalf("after second rotate previous keys = %v; want retained keys [%s %s]", got[2:], cur, next)
 	}
 }
 
@@ -233,6 +230,21 @@ func TestVerifyRejectsOtherAlgorithms(t *testing.T) {
 		if err := m.Verify(ctx, "ten_a", raw, &got); !errors.Is(err, ErrInvalidToken) {
 			t.Errorf("%s: Verify err = %v, claims %v", name, err, got)
 		}
+	}
+	noKidKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	noKidSigner, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: noKidKey}, (&jose.SignerOptions{}).WithType("JWT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	noKid, err := jwt.Signed(noKidSigner).Claims(map[string]any{"sub": "u1"}).Serialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Verify(ctx, "ten_a", noKid, nil); !errors.Is(err, ErrInvalidToken) {
+		t.Fatalf("missing kid accepted: %v", err)
 	}
 }
 

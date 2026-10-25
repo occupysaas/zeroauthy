@@ -7,7 +7,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/zeroauthy/zeroauthy/internal/keycert"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -51,6 +51,13 @@ func (m *Manager) Ensure(ctx context.Context, tenantID string) error {
 	if err != nil {
 		return err
 	}
+	if err := m.backfill(ctx, tenantID, ks); err != nil {
+		return err
+	}
+	ks, err = m.store.List(ctx, tenantID)
+	if err != nil {
+		return err
+	}
 	have := map[store.KeyStatus]bool{}
 	for _, k := range ks {
 		have[k.Status] = true
@@ -59,9 +66,13 @@ func (m *Manager) Ensure(ctx context.Context, tenantID string) error {
 		if have[status] {
 			continue
 		}
-		k, err := m.generate(tenantID, status)
+		at := m.now().UTC()
+		k, err := m.generateAt(tenantID, status, at)
 		if err != nil {
 			return err
+		}
+		if status == store.KeyCurrent {
+			k.CurrentSince = &at
 		}
 		if err := m.store.Create(ctx, k); err != nil && !errors.Is(err, store.ErrConflict) {
 			return err
@@ -72,13 +83,46 @@ func (m *Manager) Ensure(ctx context.Context, tenantID string) error {
 
 // Rotate promotes next to current and publishes a fresh next key.
 func (m *Manager) Rotate(ctx context.Context, tenantID string) error {
+	_, err := m.RotateWithResult(ctx, tenantID)
+	return err
+}
+
+func (m *Manager) RotateWithResult(ctx context.Context, tenantID string) (*store.SigningKeyRotation, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	next, err := m.generate(tenantID, store.KeyNext)
+	at := m.now().UTC()
+	before, err := m.store.List(ctx, tenantID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return m.store.Rotate(ctx, tenantID, next)
+	var retired string
+	for _, k := range before {
+		if k.Status == store.KeyCurrent {
+			retired = k.KID
+			break
+		}
+	}
+	next, err := m.generateAt(tenantID, store.KeyNext, at)
+	if err != nil {
+		return nil, err
+	}
+	result, err := m.store.RotateWithResult(ctx, tenantID, next, at)
+	if err != nil {
+		return nil, err
+	}
+	if retired != "" {
+		m.signers.Delete(tenantID + "|" + retired)
+	}
+	return result, nil
+}
+
+func (m *Manager) Revoke(ctx context.Context, tenantID, kid string) (*store.SigningKey, error) {
+	k, err := m.store.Revoke(ctx, tenantID, kid, m.now().UTC())
+	if err != nil {
+		return nil, err
+	}
+	m.signers.Delete(tenantID + "|" + kid)
+	return k, nil
 }
 
 // Sign serializes claims as a JWT signed with the tenant's current key.
@@ -101,27 +145,14 @@ func (m *Manager) Sign(ctx context.Context, tenantID string, claims any) (string
 
 // JWKS returns the tenant's published keys: current, next, previous.
 func (m *Manager) JWKS(ctx context.Context, tenantID string) (jose.JSONWebKeySet, error) {
-	ks, err := m.store.List(ctx, tenantID)
-	if err != nil {
-		return jose.JSONWebKeySet{}, err
-	}
-	set := jose.JSONWebKeySet{Keys: []jose.JSONWebKey{}}
-	for _, status := range []store.KeyStatus{store.KeyCurrent, store.KeyNext, store.KeyPrevious} {
-		for _, k := range ks {
-			if k.Status != status {
-				continue
-			}
-			var jwk jose.JSONWebKey
-			if err := json.Unmarshal(k.PublicJWK, &jwk); err != nil {
-				return jose.JSONWebKeySet{}, fmt.Errorf("keys: stored JWK %s: %w", k.KID, err)
-			}
-			set.Keys = append(set.Keys, jwk)
-		}
-	}
-	return set, nil
+	return m.VerificationKeys(ctx, tenantID)
 }
 
 func (m *Manager) generate(tenantID string, status store.KeyStatus) (*store.SigningKey, error) {
+	return m.generateAt(tenantID, status, m.now().UTC())
+}
+
+func (m *Manager) generateAt(tenantID string, status store.KeyStatus, at time.Time) (*store.SigningKey, error) {
 	priv, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
 		return nil, err
@@ -144,14 +175,26 @@ func (m *Manager) generate(tenantID string, status store.KeyStatus) (*store.Sign
 	if err != nil {
 		return nil, err
 	}
+	at = at.UTC()
+	certDER, err := keycert.Create(priv, at)
+	if err != nil {
+		return nil, err
+	}
+	now := at
+	var since *time.Time
+	if status == store.KeyCurrent {
+		since = &now
+	}
 	return &store.SigningKey{
-		TenantID:   tenantID,
-		KID:        pub.KeyID,
-		Alg:        string(jose.RS256),
-		Status:     status,
-		PrivateKey: sealed,
-		PublicJWK:  pubJSON,
-		CreatedAt:  m.now().UTC(),
+		TenantID:       tenantID,
+		KID:            pub.KeyID,
+		Alg:            string(jose.RS256),
+		Status:         status,
+		PrivateKey:     sealed,
+		PublicJWK:      pubJSON,
+		CreatedAt:      at,
+		CertificateDER: certDER,
+		CurrentSince:   since,
 	}, nil
 }
 
