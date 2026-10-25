@@ -126,3 +126,34 @@ func TestCAPTCHAUnrelatedPatchPreservesLargeNumber(t *testing.T) {
 		t.Fatalf("unrelated patch rounded large number: got %s", got)
 	}
 }
+
+func TestSuspiciousIPEditExitsOnlyLegacyIPMode(t *testing.T) {
+	current := Defaults()
+	current.LegacyIPMaxAttempts = 20
+	current.LegacyLockoutSeconds = 900
+	for _, tc := range []struct {
+		name   string
+		patch  map[string]any
+		wantIP int
+	}{
+		{"capacity and rate", map[string]any{"stage": map[string]any{"pre-login": map[string]any{"max_attempts": 2, "rate": 34560}}}, 0},
+		{"same-value edit", map[string]any{"enabled": true}, 0},
+		{"empty patch", map[string]any{}, 20},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := Apply(current, "suspicious-ip-throttling", tc.patch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if out.LegacyIPMaxAttempts != tc.wantIP {
+				t.Fatalf("legacy IP capacity = %d, want %d", out.LegacyIPMaxAttempts, tc.wantIP)
+			}
+			if out.LegacyLockoutSeconds != 900 || !reflect.DeepEqual(out.BruteForce, current.BruteForce) {
+				t.Fatal("suspicious-IP edit changed legacy brute-force settings")
+			}
+			if current.LegacyIPMaxAttempts != 20 {
+				t.Fatal("input mutated")
+			}
+		})
+	}
+}

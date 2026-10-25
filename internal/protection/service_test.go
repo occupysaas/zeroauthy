@@ -156,3 +156,69 @@ func TestServiceMonitoringAllowlistAndCurrentPolicy(t *testing.T) {
 		t.Fatalf("current blocking policy ignored: %+v %v", d, err)
 	}
 }
+
+func TestServiceSuspiciousIPEditExitsLegacyWindow(t *testing.T) {
+	for _, sameValue := range []bool{false, true} {
+		t.Run(map[bool]string{false: "new capacity and rate", true: "same-value edit invalidates legacy bucket"}[sameValue], func(t *testing.T) {
+			s, tenant, conn := serviceFixture(t)
+			ctx := context.Background()
+			now := s.Now()
+			s.Now = func() time.Time { return now }
+			tenant.ProtectionSettings.LegacyIPMaxAttempts = 1
+			tenant.ProtectionSettings.LegacyLockoutSeconds = 900
+			tenant.ProtectionSettings.SuspiciousIP.Stage.PreLogin = store.ProtectionRate{MaxAttempts: 2, Rate: 34560}
+			if err := s.Store.Tenants().Update(ctx, tenant); err != nil {
+				t.Fatal(err)
+			}
+			a := protection.Attempt{Tenant: tenant, Connection: conn, Identifier: "legacy", IP: "192.0.2.1", Flow: "login"}
+			admit := func(want bool) {
+				t.Helper()
+				d, err := s.Begin(ctx, a)
+				if err != nil || d.Allowed != want {
+					t.Fatalf("admission = %v, want %v: %v", d.Allowed, want, err)
+				}
+				if d.Allowed {
+					if err := s.Finish(ctx, d.Receipt, "failure"); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			admit(true)
+			admit(false)
+			patch := map[string]any{"stage": map[string]any{"pre-login": map[string]any{"max_attempts": 3, "rate": 40000}}}
+			capacity, refill := 3, 40*time.Second
+			if sameValue {
+				patch = map[string]any{"enabled": true}
+				capacity, refill = 2, 34560*time.Millisecond
+			}
+			var err error
+			tenant.ProtectionSettings, err = protectionrules.Apply(tenant.ProtectionSettings, "suspicious-ip-throttling", patch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := s.Store.Tenants().Update(ctx, tenant); err != nil {
+				t.Fatal(err)
+			}
+			// Fresh identifiers isolate the IP budget from the brute-force budget.
+			for i := range capacity {
+				a.Identifier = string(rune('a' + i))
+				admit(true)
+			}
+			a.Identifier = "next"
+			admit(false)
+			now = now.Add(refill - time.Millisecond)
+			admit(false)
+			now = now.Add(time.Millisecond)
+			admit(true)
+			// The pre-edit brute-force failure survives the policy change.
+			now = now.Add(refill)
+			a.Identifier = "legacy"
+			admit(true)
+			now = now.Add(refill)
+			admit(false)
+			// Its legacy 900-second expiry still applies, rather than 30 days.
+			now = now.Add(900 * time.Second)
+			admit(true)
+		})
+	}
+}

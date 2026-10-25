@@ -79,5 +79,8 @@ func Apply(current store.ProtectionSettings, feature string, patch map[string]an
 		out.LegacyLockoutSeconds = 0
 		out.LegacyIPMaxAttempts = 0
 	}
+	if feature == "suspicious-ip-throttling" && len(patch) > 0 {
+		out.LegacyIPMaxAttempts = 0
+	}
 	return out, nil
 }
