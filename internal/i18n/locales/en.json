@@ -168,6 +168,11 @@
       "body": "Please confirm that this is the email address of your ${companyName} account. The link below works once and expires in 5 days. If you did not create an account, you can ignore this email.",
       "button": "Verify my email address"
     },
+    "email-welcome": {
+      "subject": "Welcome to ${companyName}",
+      "heading": "Welcome",
+      "body": "Your ${companyName} account is ready. You can now sign in and continue to your application."
+    },
     "email-import-done": {
       "subject": "User import ${job} on ${tenant} has finished",
       "subject-failed": "User import ${job} on ${tenant} did not finish",

@@ -35,6 +35,9 @@ const (
 	KeyErrLogoutURL           = "zeroauthy.error.logout-url-not-allowed"
 	KeyEmailResetSubject      = "zeroauthy.email-reset-password.subject"
 	KeyEmailVerifySubject     = "zeroauthy.email-verify-email.subject"
+	KeyEmailWelcomeSubject    = "zeroauthy.email-welcome.subject"
+	KeyEmailWelcomeHeading    = "zeroauthy.email-welcome.heading"
+	KeyEmailWelcomeBody       = "zeroauthy.email-welcome.body"
 	// The user import completion email goes to operators, in English.
 	KeyEmailImportDoneSubject   = "zeroauthy.email-import-done.subject"
 	KeyEmailImportFailedSubject = "zeroauthy.email-import-done.subject-failed"

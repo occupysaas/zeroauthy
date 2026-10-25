@@ -28,6 +28,7 @@ type Handlers struct {
 	Store             store.Store
 	Database          *identity.Database
 	Mailer            email.Mailer // used by password-reset sends
+	Email             *email.Service
 	TrustProxyHeaders bool
 	Log               *slog.Logger
 	Now               func() time.Time

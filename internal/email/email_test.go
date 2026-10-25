@@ -264,6 +264,13 @@ func TestVerifyEmailMessageLocales(t *testing.T) {
 	}
 }
 
+func TestWelcomeEmailMessage(t *testing.T) {
+	m := WelcomeEmailMessage(i18n.New(&store.Tenant{Name: "zeroauthy", FriendlyName: "zeroauthy"}, "en"))
+	if m.Subject != "Welcome to zeroauthy" || !strings.Contains(m.Text, "account is ready") || !strings.Contains(m.HTML, "Welcome") {
+		t.Fatalf("welcome = %+v", m)
+	}
+}
+
 // SendVerifyEmail addresses the message and sends it through the mailer.
 func TestSenderSendVerifyEmail(t *testing.T) {
 	dir := t.TempDir()

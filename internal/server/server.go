@@ -17,6 +17,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/email"
+	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -35,12 +36,13 @@ import (
 type Deps struct {
 	Protection *protection.Service
 
-	Store    store.Store
-	Keys     *keys.Manager
-	Resolver *tenant.Resolver
-	Sessions *session.Manager
-	Log      *slog.Logger
-	Mailer   email.Mailer
+	Store        store.Store
+	Keys         *keys.Manager
+	Resolver     *tenant.Resolver
+	Sessions     *session.Manager
+	Log          *slog.Logger
+	Mailer       email.Mailer
+	EmailService *email.Service
 
 	// JobNotify wakes the job workers after a job is stored; nil does
 	// nothing.
@@ -120,6 +122,10 @@ func (a authAPI) OidcLogoutPost(w http.ResponseWriter, r *http.Request) { a.oidc
 var _ authapi.ServerInterface = authAPI{}
 
 func New(d Deps) http.Handler {
+	if d.EmailService == nil {
+		renderer, _ := email.NewRenderer()
+		d.EmailService = &email.Service{Store: d.Store, Wrapper: d.Wrapper, Renderer: renderer, Providers: &providers.Factory{}, Fallback: d.Mailer, DefaultFrom: "zeroauthy@localhost"}
+	}
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, requestLog(d.Log), recoverer(d.Log))
 
@@ -146,7 +152,7 @@ func New(d Deps) http.Handler {
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
 	// hosted page) and for the Management API's verify_email.
-	verification := &login.VerificationMailer{Store: d.Store, Mailer: d.Mailer, BaseDomain: d.BaseDomain, Log: d.Log}
+	verification := &login.VerificationMailer{Store: d.Store, Mailer: d.Mailer, Email: d.EmailService, BaseDomain: d.BaseDomain, Log: d.Log}
 	// All password flows use the store-backed policy service. Reset send
 	// budgets also remain shared across independently constructed servers.
 	sharedProtection := d.Protection
@@ -157,6 +163,7 @@ func New(d Deps) http.Handler {
 		Store: d.Store, Database: db,
 		Protection: sharedProtection, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 		Mailer:       d.Mailer,
+		Email:        d.EmailService,
 		Verification: verification,
 	}
 	lg := &login.Handlers{

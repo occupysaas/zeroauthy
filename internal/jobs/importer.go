@@ -75,6 +75,7 @@ type Importer struct {
 	// Mailer sends the completion email to the tenant's operators; nil
 	// sends none.
 	Mailer email.Mailer
+	Email  *email.Service
 	Log    *slog.Logger
 	Now    func() time.Time
 	// Batch overrides ImportBatch when positive.
@@ -733,7 +734,7 @@ func (p Importer) update(ctx context.Context, tx store.Store, conn *store.Connec
 // job asked for it (send_completion_email, default true). A failure is
 // logged; it never changes the job.
 func (p Importer) notify(ctx context.Context, st store.Store, j *store.Job, status store.JobStatus, details string, sum store.JobSummary) {
-	if p.Mailer == nil || !paramBool(j, ParamSendCompletionEmail, true) {
+	if (p.Mailer == nil && p.Email == nil) || !paramBool(j, ParamSendCompletionEmail, true) {
 		return
 	}
 	// The job may be ending because ctx is done; the email still goes.
@@ -758,8 +759,14 @@ func (p Importer) notify(ctx context.Context, st store.Store, j *store.Job, stat
 	for _, addr := range to {
 		m := msg
 		m.To = addr
-		if err := p.Mailer.Send(ctx, m); err != nil {
-			fail("send", err)
+		var sendErr error
+		if p.Email != nil {
+			sendErr = p.Email.SendMessage(ctx, j.TenantID, m)
+		} else {
+			sendErr = p.Mailer.Send(ctx, m)
+		}
+		if sendErr != nil {
+			fail("send", sendErr)
 		}
 	}
 }

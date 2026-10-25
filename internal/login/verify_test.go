@@ -1,8 +1,11 @@
 package login
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"regexp"
 	"strings"
@@ -11,8 +14,12 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/email"
+	"github.com/zeroauthy/zeroauthy/internal/email/providers"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 // issueVerification stores an email verification ticket for the user that
@@ -31,6 +38,182 @@ func (e *env) issueVerification(t *testing.T, userID, connection, resultURL stri
 		t.Fatal(err)
 	}
 	return raw
+}
+
+type ticketCountStore struct {
+	store.Store
+	creates int
+}
+type ticketCountRepo struct {
+	store.EmailVerificationTickets
+	owner *ticketCountStore
+}
+
+func (s *ticketCountStore) EmailVerificationTickets() store.EmailVerificationTickets {
+	return ticketCountRepo{EmailVerificationTickets: s.Store.EmailVerificationTickets(), owner: s}
+}
+func (r ticketCountRepo) Create(ctx context.Context, t *store.EmailVerificationTicket) error {
+	r.owner.creates++
+	return r.EmailVerificationTickets.Create(ctx, t)
+}
+
+func TestEmailTemplateTicketPolicy(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	tn := mustTenant(t, e, "acme")
+	u := e.user(t, "alice@acme.test")
+	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{6}, 32))
+	renderer, _ := email.NewRenderer()
+	svc := &email.Service{Store: e.st, Wrapper: w, Renderer: renderer, Providers: &providers.Factory{}, Fallback: e.mail, DefaultFrom: "zeroauthy@example.test", Now: fixedNow}
+	counted := &ticketCountStore{Store: e.st}
+	mailer := &VerificationMailer{Store: counted, Mailer: e.mail, Email: svc, Now: fixedNow}
+	res := tenant.Resolved{Tenant: tn, Host: "acme.example.test"}
+	put := func(seconds int64, enabled bool, result string) {
+		fields := map[string]any{"body": "<a href=\"{{ url }}\">verify</a>", "subject": "Verify", "enabled": enabled, "syntax": "liquid", "urlLifetimeInSeconds": seconds, "resultUrl": result, "includeEmailInRedirect": true}
+		old, err := e.st.EmailTemplates().Get(ctx, tn.ID, "verify_email")
+		expected := int64(0)
+		if err == nil {
+			expected = old.Revision
+		}
+		if err := e.st.EmailTemplates().Put(ctx, &store.EmailTemplate{TenantID: tn.ID, Name: "verify_email", Fields: fields}, expected); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct {
+		seconds int64
+		want    time.Duration
+	}{{0, dbconn.VerificationTicketLifetime}, {604800, 604800 * time.Second}} {
+		put(tc.seconds, true, "https://app.acme.test/cb")
+		if err := mailer.Send(ctx, res, u, "spa", "en"); err != nil {
+			t.Fatalf("lifetime %d: %v", tc.seconds, err)
+		}
+		if len(e.mail.sent) == 0 {
+			t.Fatal("custom verification email missing")
+		}
+		match := regexp.MustCompile(`ticket=([A-Za-z0-9]+)`).FindStringSubmatch(e.mail.sent[len(e.mail.sent)-1].HTML)
+		if len(match) < 2 {
+			t.Fatalf("missing ticket in message: %s", e.mail.sent[len(e.mail.sent)-1].Text)
+		}
+		ticket := match[1]
+		row, err := e.st.EmailVerificationTickets().GetByTokenHash(ctx, tn.ID, secrets.HashToken(ticket))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := row.ExpiresAt.Sub(fixedNow()); got != tc.want {
+			t.Fatalf("lifetime=%s want %s", got, tc.want)
+		}
+		if row.ClientID != "spa" || row.ResultURL != "https://app.acme.test/cb" || !row.IncludeEmailInRedirect {
+			t.Fatalf("ticket policy fields: %+v", row)
+		}
+	}
+	before := counted.creates
+	for _, tc := range []struct {
+		seconds int64
+		url     string
+	}{{604801, "https://app.acme.test/cb"}, {0, "https://evil.example/cb"}, {0, "https://app.acme.test/cb-evil"}, {0, "{{ user.app_metadata.redirect }}"}} {
+		put(tc.seconds, true, tc.url)
+		if err := mailer.Send(ctx, res, u, "spa", "en"); err == nil {
+			t.Errorf("unsafe template policy accepted: %d %q", tc.seconds, tc.url)
+		}
+	}
+	if counted.creates != before {
+		t.Fatal("rejected policy created a ticket")
+	}
+	put(0, false, "https://app.acme.test/cb")
+	count := len(e.mail.sent)
+	if err := mailer.Send(ctx, res, u, "spa", "en"); err != nil {
+		t.Fatal(err)
+	}
+	if counted.creates != before || len(e.mail.sent) != count {
+		t.Fatal("disabled template created a ticket or sent mail")
+	}
+}
+
+func welcomeService(t *testing.T, e *env) *email.Service {
+	t.Helper()
+	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{6}, 32))
+	renderer, _ := email.NewRenderer()
+	svc := &email.Service{Store: e.st, Wrapper: w, Renderer: renderer, Providers: &providers.Factory{}, Fallback: e.mail, DefaultFrom: "zeroauthy@example.test", Now: fixedNow}
+	tn := mustTenant(t, e, "acme")
+	if err := e.st.EmailTemplates().Put(context.Background(), &store.EmailTemplate{TenantID: tn.ID, Name: "welcome_email", Fields: map[string]any{"body": "<p>Welcome {{ user.email | escape }}</p>", "subject": "Welcome to {{ tenant.name }}", "enabled": true, "syntax": "liquid"}}, 0); err != nil {
+		t.Fatal(err)
+	}
+	e.h.Verification.Email = svc
+	e.h.Verification.Mailer = e.mail
+	e.h.Verification.Go = func(f func()) { f() }
+	return svc
+}
+
+func TestWelcomeAfterVerification(t *testing.T) {
+	e := newEnv(t)
+	welcomeService(t, e)
+	u := e.user(t, "alice@acme.test")
+	ticket := e.issueVerification(t, u.UserID, "Username-Password-Authentication", "", false, "en", time.Hour)
+	b := e.browser("acme.example.test")
+	if rec := b.do(t, "GET", verifyPath+ticket, nil); rec.Code != 200 || !e.verified(t, u.UserID) {
+		t.Fatalf("verify=%d verified=%v", rec.Code, e.verified(t, u.UserID))
+	}
+	if len(e.mail.sent) != 1 || e.mail.sent[0].Subject != "Welcome to acme" || !strings.Contains(e.mail.sent[0].Text, u.Email) {
+		t.Fatalf("welcome after verify: %+v", e.mail.sent)
+	}
+	b.do(t, "GET", verifyPath+ticket, nil)
+	if len(e.mail.sent) != 1 {
+		t.Fatalf("verification replay sent another welcome: %d", len(e.mail.sent))
+	}
+}
+
+func TestWelcomeSignupBothPaths(t *testing.T) {
+	e := newEnv(t)
+	welcomeService(t, e)
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t, "screen_hint", "signup")
+	rec := b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"hosted@acme.test"}, "password": {"hosted good password 1"}})
+	if rec.Code != 302 || len(e.mail.sent) != 1 {
+		t.Fatalf("hosted signup=%d emails=%+v", rec.Code, e.mail.sent)
+	}
+	link := verifyLinkPattern.FindStringSubmatch(e.mail.sent[0].Text)
+	if len(link) != 2 {
+		t.Fatalf("hosted verification message=%+v", e.mail.sent[0])
+	}
+	if rec = b.do(t, "GET", verifyPath+link[1], nil); rec.Code != 200 || len(e.mail.sent) != 2 || e.mail.sent[1].To != "hosted@acme.test" {
+		t.Fatalf("hosted verify=%d emails=%+v", rec.Code, e.mail.sent)
+	}
+	api := &dbconn.Handlers{Store: e.st, Database: e.h.Database, Verification: e.h.Verification, Now: fixedNow, Go: func(f func()) { f() }}
+	body := `{"client_id":"spa","connection":"Username-Password-Authentication","email":"api@acme.test","password":"api good password 1"}`
+	req := httptest.NewRequest("POST", "https://acme.example.test/dbconnections/signup", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	wrapped := tenant.NewResolver(e.st.Tenants(), "", false).Middleware(http.HandlerFunc(api.Signup))
+	rr := httptest.NewRecorder()
+	wrapped.ServeHTTP(rr, req)
+	if rr.Code != 200 || len(e.mail.sent) != 3 {
+		t.Fatalf("API signup=%d %s emails=%+v", rr.Code, rr.Body, e.mail.sent)
+	}
+	link = verifyLinkPattern.FindStringSubmatch(e.mail.sent[2].Text)
+	if len(link) != 2 {
+		t.Fatalf("API verification message=%+v", e.mail.sent[2])
+	}
+	if rec = b.do(t, "GET", verifyPath+link[1], nil); rec.Code != 200 || len(e.mail.sent) != 4 || e.mail.sent[3].To != "api@acme.test" {
+		t.Fatalf("API verify=%d emails=%+v", rec.Code, e.mail.sent)
+	}
+}
+
+type failingWelcomeMailer struct{}
+
+func (failingWelcomeMailer) Send(context.Context, email.Message) error {
+	return errors.New("send failed")
+}
+
+func TestWelcomeSendFailureDoesNotUndoVerification(t *testing.T) {
+	e := newEnv(t)
+	svc := welcomeService(t, e)
+	svc.Fallback = failingWelcomeMailer{}
+	e.h.Verification.Mailer = failingWelcomeMailer{}
+	u := e.user(t, "alice@acme.test")
+	ticket := e.issueVerification(t, u.UserID, "Username-Password-Authentication", "", false, "en", time.Hour)
+	b := e.browser("acme.example.test")
+	if rec := b.do(t, "GET", verifyPath+ticket, nil); rec.Code != 200 || !e.verified(t, u.UserID) {
+		t.Fatalf("mail failure reversed verification: %d verified=%v", rec.Code, e.verified(t, u.UserID))
+	}
 }
 
 func (e *env) verified(t *testing.T, userID string) bool {

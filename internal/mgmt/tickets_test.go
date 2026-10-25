@@ -185,6 +185,20 @@ func TestEmailVerificationTicket(t *testing.T) {
 	}
 }
 
+func TestEmailTicketAPIOverridesTenantTemplatePolicy(t *testing.T) {
+	e := newUsersEnv(t)
+	u := e.mustCreate(t, map[string]any{"email": "bob@x.test", "verify_email": false})
+	id := u["user_id"].(string)
+	if err := e.st.EmailTemplates().Put(context.Background(), &store.EmailTemplate{TenantID: e.tn.ID, Name: "verify_email", Fields: map[string]any{"body": "Custom", "subject": "Custom", "enabled": true, "urlLifetimeInSeconds": 600, "resultUrl": "https://app.test/from-template", "includeEmailInRedirect": true}}, 0); err != nil {
+		t.Fatal(err)
+	}
+	_, out := e.verifyTicket(t, map[string]any{"user_id": id, "ttl_sec": 90, "result_url": "https://app.test/from-api", "includeEmailInRedirect": false})
+	tk := e.verificationTicket(t, out["ticket"].(string))
+	if tk.ResultURL != "https://app.test/from-api" || tk.IncludeEmailInRedirect || tk.ExpiresAt.Sub(tk.CreatedAt) != 90*time.Second {
+		t.Fatalf("explicit ticket API policy was replaced by email template: %+v", tk)
+	}
+}
+
 // An email change drops the user's open verification and reset links, so a link
 // sent to the old address cannot verify the new one.
 func TestEmailChangeDropsVerificationTickets(t *testing.T) {

@@ -15,6 +15,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
+	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/passhash"
@@ -633,6 +634,83 @@ func TestImportCompletionEmail(t *testing.T) {
 	e.run(e.importer(), []byte(`[{"email":"b@x.test"}]`), map[string]any{ParamSendCompletionEmail: false})
 	if len(e.mail.sent) != 0 {
 		t.Errorf("send_completion_email false sent %d emails", len(e.mail.sent))
+	}
+}
+
+type plan21ProviderFactory struct{ sent []providers.Message }
+type plan21ProviderTransport struct{ factory *plan21ProviderFactory }
+
+func (f *plan21ProviderFactory) New(context.Context, string, int64, providers.Config) (providers.Transport, error) {
+	return plan21ProviderTransport{f}, nil
+}
+func (t plan21ProviderTransport) Send(_ context.Context, m providers.Message) error {
+	t.factory.sent = append(t.factory.sent, m)
+	return nil
+}
+
+func TestImportCompletionTenantProvider(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	e := newImpEnv(t, st)
+	const sysID = "ten_system"
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: sysID, Name: tenant.SystemName}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Users().Create(ctx, &store.User{TenantID: sysID, UserID: "auth0|operator", Email: "operator@example.test"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Operators().Upsert(ctx, &store.Operator{TenantID: sysID, UserID: "auth0|operator", Tenants: []string{"acme"}}); err != nil {
+		t.Fatal(err)
+	}
+	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{0x71}, 32))
+	sealed, err := keys.SealEmailProvider(w, impTenant, "sendgrid", []byte(`{"api_key":"secret"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.EmailProviders().Put(ctx, &store.EmailProvider{TenantID: impTenant, Name: "sendgrid", Enabled: true, DefaultFrom: "noreply@example.test", SealedCredentials: sealed}, 0); err != nil {
+		t.Fatal(err)
+	}
+	factory := &plan21ProviderFactory{}
+	renderer, _ := email.NewRenderer()
+	service := &email.Service{Store: st, Wrapper: w, Renderer: renderer, Providers: factory}
+	p := e.importer()
+	p.Email = service
+	p.Mailer = nil
+	e.run(p, []byte(`[{"email":"new@example.test"}]`), map[string]any{ParamSendCompletionEmail: true})
+	if len(factory.sent) != 1 || factory.sent[0].To != "operator@example.test" || len(e.mail.sent) != 0 {
+		t.Fatalf("completion route provider=%+v fallback=%+v", factory.sent, e.mail.sent)
+	}
+}
+
+func TestNoWelcomeFromManagementImport(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	e := newImpEnv(t, st)
+	const sysID = "ten_system"
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: sysID, Name: tenant.SystemName}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Users().Create(ctx, &store.User{TenantID: sysID, UserID: "auth0|operator", Email: "operator@example.test"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Operators().Upsert(ctx, &store.Operator{TenantID: sysID, UserID: "auth0|operator", Tenants: []string{"acme"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.EmailTemplates().Put(ctx, &store.EmailTemplate{TenantID: impTenant, Name: "welcome_email", Fields: map[string]any{"body": "Welcome", "subject": "Welcome", "enabled": true}}, 0); err != nil {
+		t.Fatal(err)
+	}
+	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{0x72}, 32))
+	sealed, _ := keys.SealEmailProvider(w, impTenant, "sendgrid", []byte(`{"api_key":"secret"}`))
+	_ = st.EmailProviders().Put(ctx, &store.EmailProvider{TenantID: impTenant, Name: "sendgrid", Enabled: true, DefaultFrom: "noreply@example.test", SealedCredentials: sealed}, 0)
+	factory := &plan21ProviderFactory{}
+	renderer, _ := email.NewRenderer()
+	service := &email.Service{Store: st, Wrapper: w, Renderer: renderer, Providers: factory}
+	p := e.importer()
+	p.Email = service
+	p.Mailer = nil
+	e.run(p, []byte(`[{"email":"imported@example.test","email_verified":true}]`), map[string]any{ParamSendCompletionEmail: true})
+	if len(factory.sent) != 1 || factory.sent[0].To != "operator@example.test" {
+		t.Fatalf("management import sent user welcome: %+v", factory.sent)
 	}
 }
 

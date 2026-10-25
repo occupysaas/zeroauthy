@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
+	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -162,6 +163,11 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
+	emailRenderer, err := email.NewRenderer()
+	if err != nil {
+		return nil, err
+	}
+	tenantEmail := &email.Service{Store: st, Wrapper: wrapper, Renderer: emailRenderer, Providers: &providers.Factory{LocalSMTPAllowlist: cfg.Email.AllowLocalSMTP}, Fallback: mailer, DefaultFrom: cfg.Email.From}
 	if cfg.Email.Driver == "" || cfg.Email.Driver == "log" {
 		log.Warn("email.driver is log: emails are written to the server log and not delivered; reset links are redacted unless email.log_links is true")
 	}
@@ -186,10 +192,10 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		Store: st, Workers: cfg.Jobs.Workers, LeaseFor: cfg.Jobs.Lease, Log: log,
 		Processors: map[store.JobType]jobs.Processor{
 			store.JobVerificationEmail: jobs.VerifyEmail{
-				Sender: &login.VerificationMailer{Store: st, Mailer: mailer, BaseDomain: cfg.Server.BaseDomain, Log: log},
+				Sender: &login.VerificationMailer{Store: st, Mailer: mailer, Email: tenantEmail, BaseDomain: cfg.Server.BaseDomain, Log: log},
 				Log:    log,
 			},
-			store.JobUsersImport: jobs.Importer{Mailer: mailer, Log: log},
+			store.JobUsersImport: jobs.Importer{Mailer: mailer, Email: tenantEmail, Log: log},
 			store.JobUsersExport: jobs.Exporter{View: mgmt.UserJSON, Log: log},
 		},
 	}
@@ -220,16 +226,17 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		jobs:       jobRunner,
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
-			Store:     st,
-			Keys:      km,
-			Resolver:  tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),
-			Sessions:  &session.Manager{Store: st, TrustProxyHeaders: cfg.Server.TrustProxyHeaders},
-			Log:       log,
-			Mailer:    mailer,
-			JobNotify: jobRunner.Notify,
-			ExportKey: exportKey,
-			Wrapper:   wrapper,
-			Scripts:   &customdb.Client{Exec: runner, Wrapper: wrapper},
+			Store:        st,
+			Keys:         km,
+			Resolver:     tenant.NewResolver(st.Tenants(), cfg.Server.BaseDomain, cfg.Server.TrustProxyHeaders),
+			Sessions:     &session.Manager{Store: st, TrustProxyHeaders: cfg.Server.TrustProxyHeaders},
+			Log:          log,
+			Mailer:       mailer,
+			EmailService: tenantEmail,
+			JobNotify:    jobRunner.Notify,
+			ExportKey:    exportKey,
+			Wrapper:      wrapper,
+			Scripts:      &customdb.Client{Exec: runner, Wrapper: wrapper},
 
 			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper},
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,

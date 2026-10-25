@@ -101,13 +101,42 @@ func ResetLink(issuer, raw string) string {
 // StartReset creates a single-use ticket for user and emails the reset link.
 // It sends synchronously; callers run it through h.goRun.
 func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *store.Connection, user *store.User, clientID, lang string) error {
-	raw, err := IssueTicket(ctx, h.Store, res.Tenant.ID, user.UserID, conn.Name, clientID, lang, h.now(), TicketLifetime)
+	var policy email.Policy
+	if h.Email != nil {
+		var err error
+		policy, err = h.Email.Resolve(ctx, res.Tenant.ID, "reset_email")
+		if err != nil {
+			return err
+		}
+		if policy.Template != nil {
+			if !policy.Enabled {
+				return nil
+			}
+			if err = email.ValidateEmailRedirect(ctx, h.Store, res.Tenant.ID, clientID, policy.ResultURL); err != nil {
+				return err
+			}
+		}
+	}
+	lifetime := TicketLifetime
+	if policy.Template != nil && policy.Lifetime > 0 {
+		lifetime = policy.Lifetime
+	}
+	raw, err := IssueResetTicket(ctx, h.Store, store.PasswordResetTicket{
+		TenantID: res.Tenant.ID, UserID: user.UserID, Connection: conn.Name, ClientID: clientID, Lang: lang,
+		ResultURL: policy.ResultURL, IncludeEmailInRedirect: policy.IncludeEmailInRedirect,
+	}, 43, h.now(), lifetime)
 	if err != nil {
 		return err
 	}
 	link := ResetLink(res.Issuer(), raw)
+	if policy.Template != nil {
+		return h.Email.Send(ctx, email.Event{TenantID: res.Tenant.ID, UserID: user.UserID, ClientID: clientID, Template: "reset_email", Language: lang, URL: link})
+	}
 	m := email.ResetPassword(i18n.New(res.Tenant, lang), link)
 	m.To = user.Email
+	if h.Email != nil {
+		return h.Email.SendMessage(ctx, res.Tenant.ID, m)
+	}
 	return h.Mailer.Send(ctx, m)
 }
 

@@ -28,6 +28,9 @@ type VerificationMailer struct {
 	// Mailer sends the email. Without one nothing is sent and nothing
 	// fails, so a signup still succeeds.
 	Mailer email.Mailer
+	// Email routes tenant templates and providers; Mailer remains the
+	// compatibility fallback when a flow has no configured template.
+	Email *email.Service
 	// BaseDomain is server.base_domain. It names the tenant's host when the
 	// context does not carry the request's (a background job).
 	BaseDomain string
@@ -86,9 +89,39 @@ func (m *VerificationMailer) Send(ctx context.Context, res tenant.Resolved, u *s
 	if u.Email == "" {
 		return nil
 	}
-	if m.Mailer == nil {
+	if m.Mailer == nil && m.Email == nil {
 		m.log().DebugContext(ctx, "verification email not sent: no mailer is configured", "tenant", res.Tenant.ID, "user_id", u.UserID)
 		return nil
+	}
+	var policy email.Policy
+	if m.Email != nil {
+		var err error
+		policy, err = m.Email.Resolve(ctx, res.Tenant.ID, "verify_email")
+		if err != nil {
+			return err
+		}
+		if policy.Template != nil {
+			if !policy.Enabled {
+				return nil
+			}
+			if err = email.ValidateEmailRedirect(ctx, m.Store, res.Tenant.ID, clientID, policy.ResultURL); err != nil {
+				return err
+			}
+		}
+	}
+	if policy.Template != nil {
+		lifetime := policy.Lifetime
+		if lifetime == 0 {
+			lifetime = dbconn.VerificationTicketLifetime
+		}
+		raw, err := dbconn.IssueVerificationTicket(ctx, m.Store, store.EmailVerificationTicket{
+			TenantID: res.Tenant.ID, UserID: u.UserID, Connection: dbconn.VerificationConnection(u), ClientID: clientID, Lang: lang,
+			Email: strings.ToLower(u.Email), ResultURL: policy.ResultURL, IncludeEmailInRedirect: policy.IncludeEmailInRedirect,
+		}, m.now(), lifetime)
+		if err != nil {
+			return err
+		}
+		return m.Email.Send(ctx, email.Event{TenantID: res.Tenant.ID, UserID: u.UserID, ClientID: clientID, Template: "verify_email", Language: lang, URL: dbconn.VerificationLink(res.Issuer(), raw)})
 	}
 	raw, err := dbconn.IssueVerificationTicket(ctx, m.Store, store.EmailVerificationTicket{
 		TenantID: res.Tenant.ID, UserID: u.UserID, Connection: dbconn.VerificationConnection(u), ClientID: clientID, Lang: lang,
@@ -97,9 +130,12 @@ func (m *VerificationMailer) Send(ctx context.Context, res tenant.Resolved, u *s
 	if err != nil {
 		return err
 	}
-	return email.Sender{Mailer: m.Mailer}.SendVerifyEmail(ctx, email.VerifyEmail{
-		To: u.Email, L: i18n.New(res.Tenant, lang), Link: dbconn.VerificationLink(res.Issuer(), raw),
-	})
+	msg := email.VerifyEmailMessage(i18n.New(res.Tenant, lang), dbconn.VerificationLink(res.Issuer(), raw))
+	msg.To = u.Email
+	if m.Email != nil {
+		return m.Email.SendMessage(ctx, res.Tenant.ID, msg)
+	}
+	return m.Mailer.Send(ctx, msg)
 }
 
 // SendInBackground sends the verification email after a signup without
@@ -111,6 +147,19 @@ func (m *VerificationMailer) SendInBackground(res tenant.Resolved, u *store.User
 		defer cancel()
 		if err := m.Send(ctx, res, u, clientID, lang); err != nil {
 			m.log().Error("send verification email", "err", err, "tenant", res.Tenant.ID, "user_id", u.UserID)
+		}
+	})
+}
+
+func (m *VerificationMailer) SendWelcomeInBackground(tenantID, userID, clientID, language string) {
+	if m.Email == nil {
+		return
+	}
+	dbconn.RunInBackground(m.log(), m.Go, func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := m.Email.Welcome(ctx, tenantID, userID, clientID, language); err != nil {
+			m.log().Error("send welcome email", "err", err, "tenant", tenantID, "user_id", userID)
 		}
 	})
 }
@@ -329,6 +378,9 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	h.log().InfoContext(ctx, "email verified", "tenant", res.Tenant.ID, "user_id", tk.UserID)
+	if h.Verification != nil {
+		h.Verification.SendWelcomeInBackground(res.Tenant.ID, tk.UserID, tk.ClientID, tk.Lang)
+	}
 	h.finishVerification(w, view, tk, user.Email, verifySuccess)
 }
 

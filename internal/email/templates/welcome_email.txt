@@ -1,0 +1,3 @@
+{{t .L "zeroauthy.email-welcome.heading"}}
+
+{{t .L "zeroauthy.email-welcome.body"}}
