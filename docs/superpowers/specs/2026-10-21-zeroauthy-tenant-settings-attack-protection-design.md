@@ -1,6 +1,6 @@
 # zeroauthy — Plan 19 design: tenant settings, attack protection and user blocks
 
-- **Status:** Approved for implementation by the user on 2026-10-21; Task 1 contracts frozen on 2026-10-22. Runtime implementation remains pending.
+- **Status:** Approved for implementation by the user on 2026-10-21; Task 1 contracts frozen on 2026-10-22. Tasks 1–11 implemented and reviewed; Task 12 final verification in progress (2026-10-24).
 - **Date:** 2026-10-21
 - **Roadmap:** [Management roadmap, Plan 19](2026-10-19-zeroauthy-management-roadmap-design.md#plan-19--tenant-settings-attack-protection-user-blocks-slice-5a).
 - **Implementation plan:** [Plan 19](../plans/2026-10-21-zeroauthy-plan-19-tenant-settings-attack-protection.md).
@@ -140,7 +140,7 @@ A provider without transaction-bound proofs cannot prove which local transaction
 
 The current public CAPTCHA schema also lists `arkose`, `auth_challenge`, `simple_captcha`. Frozen local decision (D-0045): store these configurations but mark their verification unavailable in this milestone; do not build an undocumented substitute or treat any token as success. A required challenge with no supported configured verifier fails closed with an actionable localized error. This is an explicit scope exception alongside the roadmap's vendor-dependent providers. Do not add Turnstile unless Task 1 confirms a documented wire contract and updates the plan.
 
-Provider credentials are encrypted using existing key wrapping, redacted exactly as A1 requires on the public API, and write-only in the UI. Omitted credentials preserve existing secrets; explicit clearing follows A1. Hosted CSP adds only the active provider's documented script/frame/connect origins; no wildcard or blanket `unsafe-inline`. Widget markup is original. No CAPTCHA scripts load on the console or when no challenge is required. Accessible errors/retry are provided when provider JS fails.
+Provider credentials are encrypted using existing key wrapping, redacted exactly as A1 requires on the public API, and write-only in the UI. Omitting the complete provider object preserves existing secrets; supplying it requires complete required credential children. Explicit clearing follows A1. Hosted CSP adds only the active provider's documented script/frame/connect origins; no wildcard or blanket `unsafe-inline`. Widget markup is original. No CAPTCHA scripts load on the console or when no challenge is required. Accessible errors/retry are provided when provider JS fails.
 
 ## 7. Console
 

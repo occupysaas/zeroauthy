@@ -23,13 +23,13 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 | Before | Item |
 |---|---|
-| Multi-instance deployments | Login throttling is in-process; move counters to the store or a shared cache. |
+| Multi-instance deployments | **Closed in Plan 19:** password-login counters are shared in the store. Device and general rate limits remain open. |
 | Large tenants | CORS origin checks list all clients per cross-origin request; index origins. |
 | Hosted login (spec §7) | Template override directory. Imported bcrypt verification and upgrade closed in Plan 18. |
 
 ## Plan 2 deferred review findings
 
-- Login throttle pruning is O(n) and in-process.
+- **Closed in Plan 19:** password-login counters and bounded expiry cleanup use shared storage.
 - CORS: OPTIONS/CORS are not in the OpenAPI contract.
 - Untested branches: fragment/form_post error delivery; `Resume` re-validation failure; public client without PKCE; deleted audience; default ID token lifetime; `auth_time` value; store-error throttle refund; signup error re-render CSP.
 
@@ -91,9 +91,9 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 - Email verification emails. **Closed in Plan 17** (signup and user creation send the verification email; `/u/email-verification` consumes the ticket).
 - MFA (`mfa_required`).
-- Breached-password detection.
+- **Closed in Plan 19:** configured range/file breach checks; notification delivery remains Plan 21.
 - The `organization` parameter on `change_password`.
-- Move the `change_password` send limit into the store; it is per-process today, which multi-instance deployments need fixed.
+- **Closed in Plan 19:** reset-email sends share the store-backed three/hour budget.
 
 ## Plan 5 deferred review findings
 
@@ -114,7 +114,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 - MariaDB support (it lacks the `utf8mb4_0900_bin` collation that MySQL 8.0.17+ provides).
 - Down-migrations; today migrations only move forward.
-- Move the login throttles and the `change_password` send limit into the store, for multi-instance deployments.
+- **Closed in Plan 19:** login and reset-email limits use shared storage.
 - MySQL stores several user-supplied values in `VARCHAR(255)` columns (wider or `TEXT` elsewhere), so a longer value fails only on MySQL. Email addresses are now capped at 254 bytes (D-0020); add validation-layer length limits for the rest so every driver accepts the same values: `resource_servers.identifier` and `client_grants.audience` (`TEXT` on SQLite and PostgreSQL), the seed's `client_id`, connection names and tenant names.
 - Tenant reads (`Tenants().Get`/`GetByName`/`GetByDomain` and `List`) take separate statements for the tenant rows and their domains, outside a transaction, so a read concurrent with `Update` can see the new row with the old domains (a torn read).
 - `storetest.Suites` and `RunSuites` are unused in the repository since the SQL drivers run the full suite; keep them for plugin authors bringing suites up one at a time, or unexport them.
@@ -260,7 +260,7 @@ Notes for the session that writes Plan 15 (design §2 slice 3: `/api/v2/connecti
 
 - **SQL suite and conformance:** the cloud session ran the Postgres suite for the connection migrations but not MySQL, and could not run `make conformance` (no container runtime). Run `scripts/test-sql.sh` and `make conformance` where containers exist.
 - **Stored, not enforced** (D-0042): `authentication_methods` and `passkey_options`, `attributes` and `precedence`, `mfa`, `disable_self_service_change_password`, `non_persistent_attrs`, `display_name`, `show_as_button`, `metadata`, `realms` beyond the default, `connected_accounts`, `authentication`, unknown option keys, and `set_user_root_attributes: never_on_login` (behaves as `on_each_login`). Each becomes work when the feature behind it exists (passwordless and passkeys, MFA, attributes, social and enterprise connections).
-- **Attack protection (slice 5):** `brute_force_protection` only switches zeroauthy's existing login throttle; thresholds and tenant-level attack protection settings wait for slice 5.
+- **Closed in Plan 19:** `brute_force_protection` gates only the connection's shared brute-force policy; tenant thresholds and independent protection settings are live.
 - **Users API (slice 4):** `/api/v2/users` would let the E2E checks confirm that deleting a connection deleted its users through the API instead of through sign-in.
 - **Seed vs API rules:** seeded connections keep the seed's defaults (minimum length 8) and skip the API-only checks (name pattern, 72-character cap, the `set_user_root_attributes` rule). Tightening the seed is open.
 - **Connection delete:** the cascade scans all users (O(users), several statements each) and the scan is not locked, so a user created while a delete runs can be left behind. Authorization codes, transactions, device codes and pushed requests for the connection's users are not deleted (they expire).
@@ -330,3 +330,17 @@ exports and signed downloads, and verification-email jobs in the console.
 MFA factors are accepted and ignored until Plan 33. Completion emails use
 English because operators have no locale. As recorded in D-0044, unusable
 imported hashes require reset, and cleartext password schemes are refused.
+
+
+## Plan 19 follow-ups
+
+- Plan 21: deliver protection user/admin notifications and unblock email links;
+  current shields emit redacted events/rate-limited warnings only.
+- General Authentication API rate limiting, shared device activation counters
+  and custom-script Try limiting remain open.
+- Stored-only tenant fields/flags retain the per-field owners in
+  `compat/observations/management-tenant-settings.md`; Plan 34 owns passwordless
+  bot policy, Plan 35 custom-token-exchange protection.
+- Arkose/Auth Challenge/Simple CAPTCHA verification and proprietary bot/corpus
+  equivalence remain unsupported. Real-provider widget/account smoke tests
+  are separate from the local mocked browser/provider suite.

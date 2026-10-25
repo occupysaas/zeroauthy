@@ -110,7 +110,7 @@ func TestM19TwoHTTPInstances(t *testing.T) {
 		return request(h, "POST", "/oauth/token", "", map[string]any{"grant_type": "http://auth0.com/oauth/grant-type/password-realm", "client_id": "e2e-node", "client_secret": "e2e-node-secret-not-for-production", "realm": "Username-Password-Authentication", "username": "alice@e2e.local", "password": password})
 	}
 	for _, h := range []http.Handler{h1, h2} {
-		if status, out := login(h, "wrong"); status != 403 && status != 401 {
+		if status, out := login(h, "wrong"); status != http.StatusBadRequest || out["error"] != "invalid_grant" {
 			t.Fatal(status, out)
 		}
 	}
@@ -122,6 +122,18 @@ func TestM19TwoHTTPInstances(t *testing.T) {
 	}
 	for _, h := range []http.Handler{h1, h2, h1} {
 		reset(h)
+	}
+	// Reset delivery is asynchronous; wait for the admitted sends before restart.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		messages, err := os.ReadDir(mailDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(messages) >= 3 || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 	messages, err := os.ReadDir(mailDir)
 	if err != nil || len(messages) != 3 {

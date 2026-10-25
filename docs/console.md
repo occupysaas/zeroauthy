@@ -64,8 +64,7 @@ session.
   deliver it and the Management API it will use, and a disabled preview of
   the page: the fields and tables Auth0's reference lists, with empty states
   and no sample data. Controls do nothing and the pages make no requests;
-  only in-page navigation (the Tenant settings tabs, the Email templates
-  picker) works. Actions is a placeholder only: triggers, the code editor and
+  only in-page navigation (such as the Email templates picker) works. Actions is a placeholder only: triggers, the code editor and
   the deploy flow need their own design.
 - **Home:** the tenant's domain, discovery URL and Management API
   identifier, the number of applications, and a banner when the seed file
@@ -221,3 +220,22 @@ host.
 
 `console/dist` and the generated `console/src/api/schema.d.ts` are committed;
 CI rebuilds them and fails on a difference.
+
+
+## Tenant settings and protection
+
+**Tenant settings** is live: General, Sessions, Languages and Advanced tabs
+save only edited fields. Session units are explicit; hosted language choices
+are independent of console language. Stored-only settings and seed overwrite
+behavior are labeled. See [tenant-settings.md](tenant-settings.md).
+
+**Attack protection** is live with five independently saved feature panels,
+checker-availability information and IP anomaly lookup/unblock. CAPTCHA
+credential inputs stay blank after save; editing a provider requires complete
+replacement credentials. Unsupported providers and deferred notifications
+remain labeled. Tenant switches discard dirty state and ignore stale replies.
+
+User detail's **Automatic blocks** controls inspect and clear login blocks,
+with confirmation, separately from administrative Block. See
+[attack-protection.md](attack-protection.md#inspect-unblock-and-recover) for
+recovery using an independent Management client if console login is blocked.

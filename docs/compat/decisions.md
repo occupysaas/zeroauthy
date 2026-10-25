@@ -784,3 +784,16 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Direct API:** ROPG has no inline CAPTCHA completion protocol. Return requires_verification and require interactive web login. Signup/reset also refuse required challenges where no documented proof transport was established; no invented public required parameter. Local hosted forms bind proof acceptance to existing transaction/reset context and globally consume proof hashes at most once.
 - **Provider versions:** Enterprise uses an API key for projects.assessments.create, not bearer API-key auth or legacy siteverify. Friendly v1 widget + solution/secret/sitekey verification is the frozen local choice; Auth0's public configuration page does not explicitly guarantee its version. v2 response/X-API-Key verification is incompatible and is not silently substituted.
 - **Differences and limits:** Sparse/forced tenant projection fields, reset/merge defaults, existing-session lifetime changes, automatic connection/identity rules, local breach errors, local risk and verifier availability must be recorded in the compatibility matrix when implemented. Tests of these choices are local fixtures, not fabricated observations. No unresolved source ambiguity is permission to claim upstream parity.
+
+
+### D-0045 implementation addendum (2026-10-24)
+
+The runtime and console now implement Plan 19. Operator guides are
+[tenant settings](../tenant-settings.md) and [attack protection](../attack-protection.md).
+Seed top-level durations retain seconds and old validators; nested settings use
+API units and reject duplicates. Empty device masks retain runtime fallback;
+unusable nonempty masks refuse issuance. Huge session lifetimes saturate at
+year 9999. Required provider service/credential failures are unavailable and
+do not count as user risk. Notification delivery/unblock links remain Plan 21;
+device/general/Try limits remain open. No new module or adapted licensed code
+was introduced, so NOTICE is unchanged.

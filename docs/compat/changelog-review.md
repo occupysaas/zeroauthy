@@ -73,3 +73,12 @@ Okta products) need no row; the "Reviewed through" date covers them.
 | 2026-04-02 | Custom prompt fields reach custom database scripts | Sub-project 2 | open |
 | 2026-09-17 | Custom user IDs at signup via a pre-registration Action | Sub-project 2 | open |
 | 2025-07-21 | Passkeys on custom database connections | Sub-project 2 | open |
+
+
+## Plan 19 implementation disposition (2026-10-24)
+
+Tenant settings, attack policy APIs, automatic blocks and console controls now
+implement the frozen 2026-10-22 evidence. D-0045 and the compatibility matrix
+retain the explicit local bot-risk/provider/corpus differences. CLI stays at
+1.37.0 and node-auth0 at 7.4.0. This is an implementation record, not a new
+upstream changelog review; the reviewed-through date above is unchanged.

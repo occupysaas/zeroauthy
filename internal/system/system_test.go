@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/email"
-	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/server"
@@ -171,12 +170,10 @@ func TestCreateOperatorLinkWorks(t *testing.T) {
 	host := srv.Listener.Addr().String()
 	srv.Config.Handler = server.New(server.Deps{
 		Store: st, Keys: km, Wrapper: w, Resolver: tenant.NewResolver(st.Tenants(), "", false),
-		Log:          slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Sessions:     &session.Manager{Store: st},
-		Mailer:       discardMailer{},
-		UserThrottle: identity.NewThrottle(10, time.Minute, time.Minute),
-		IPThrottle:   identity.NewThrottle(100, time.Minute, time.Minute),
-		SystemHost:   host,
+		Log:        slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Sessions:   &session.Manager{Store: st},
+		Mailer:     discardMailer{},
+		SystemHost: host,
 	})
 	srv.StartTLS()
 	t.Cleanup(srv.Close)

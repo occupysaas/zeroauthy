@@ -31,7 +31,7 @@ features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–17)
+**Done** (Plans 1–18)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -44,15 +44,19 @@ each with its console screens; the full breakdown is in the
   connections, users (with search, identity linking, sessions, refresh tokens,
   grants and tickets), user import/export jobs and verification email
 
-**Next** (Plan 19)
+**Implemented; final verification in progress** (Plan 19)
 
-- Tenant settings and attack protection
+- [Tenant settings](docs/tenant-settings.md), [attack protection and automatic blocks](docs/attack-protection.md)
 
-**Later** (Plans 19–38)
+**Next** (Plan 20)
+
+- Signing keys and an `auth0-deploy-cli` round trip
+
+**Later** (Plans 20–38)
 
 | Plans | Area |
 |---|---|
-| 19–21 | Tenant settings and attack protection; signing keys and an `auth0-deploy-cli` round trip; email provider and templates |
+| 20–21 | Signing keys and an `auth0-deploy-cli` round trip; email provider and templates |
 | 22–23 | Branding and Universal Login page templates; custom domains with automatic certificates |
 | 24–25 | Social connections (generic OAuth 2 and OIDC, Google, Apple, Facebook, Microsoft, …) |
 | 26–28 | Roles and permissions; Actions |
@@ -60,8 +64,8 @@ each with its console screens; the full breakdown is in the
 | 33–35 | MFA; passwordless and SMS; `private_key_jwt`, JAR and token exchange |
 | 36–38 | Enterprise connections (OIDC, Okta, Entra ID, SAML, WS-Federation, AD/LDAP), SCIM, Forms and Flows |
 
-Of Auth0's roughly 40 Management API resource groups, 9 are done, 1 is
-specified, 28 are planned and 4 are not planned (Rules, Hooks and
+Of Auth0's roughly 40 Management API resource groups, 10 are done, 3 are
+implemented pending final verification, 25 are planned and 4 are not planned (Rules, Hooks and
 rules-configs, which Auth0 is retiring, and customer-managed encryption keys).
 
 ## Quick start

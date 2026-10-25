@@ -5,7 +5,7 @@ Every zeroauthy tenant serves Auth0's Management API v2 at
 **applications** (`/api/v2/clients`), **APIs** (`/api/v2/resource-servers`),
 **client grants** (`/api/v2/client-grants`) and **database connections**
 (`/api/v2/connections`). Slice 4 adds **users**, sessions, refresh tokens,
-grants and tickets; later slices add tenant settings (design
+grants and tickets. Plan 19 adds tenant settings and attack protection (design
 `docs/superpowers/specs/2026-10-18-zeroauthy-management-design.md`).
 
 The contract is [api/management.yaml](../api/management.yaml). Behaviour
@@ -278,8 +278,8 @@ four types); this table is not verified against Auth0's runtime. Legacy
   characters before hashing. Switching to `error` later locks out users who
   still type a longer password; they need a reset.
 - **`brute_force_protection`** switches zeroauthy's login throttle for this
-  connection. Its thresholds stay zeroauthy's until tenant attack protection
-  (slice 5).
+  connection only; thresholds follow the tenant attack-protection policy
+  ([guide](attack-protection.md)). Other protections remain independent.
 - **Usernames:** `validation.username` `min` and `max` (1 to 128, `min` below
   `max`), with `requires_username`.
 - **Seeded connections** keep the seed's own rules (minimum length 8), not the
@@ -504,3 +504,14 @@ for operator tokens only (D-0040). Auth0 has no equivalent.
 
 The system tenant cannot be changed or deleted here. Tenants created through
 this API are never touched by the seed.
+
+
+## Tenant settings and attack protection (Plan 19)
+
+[Tenant settings](tenant-settings.md) covers GET/PATCH settings, API hours and
+minutes versus legacy seed seconds, runtime consumers and stored-only fields.
+[Attack protection](attack-protection.md) covers all five GET/PATCH policy
+resources, user-block and IP-anomaly reads/deletes, exact scopes, shared-store
+requirements, encrypted credentials, unavailable-checker behavior and recovery.
+Automatic blocks are separate from the user's administrative `blocked` flag.
+The public responses contain neither internal receipts nor provider secrets.

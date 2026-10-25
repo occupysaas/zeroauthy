@@ -5,9 +5,9 @@
 - **Scope:** every Auth0 Management API v2 resource not covered by slices 1–4 (applications, APIs, client grants, database connections, users and jobs), broken into plans with an order, dependencies and a short design each.
 - **Inputs:** the management design (`2026-10-18-zeroauthy-management-design.md`), the users design (`2026-10-19-zeroauthy-users-design.md`), the compatibility matrix, the follow-ups file, and the maintainer's 2026-10-19 rulings.
 
-## 0. Where we are (2026-10-21)
+## 0. Where we are (2026-10-24)
 
-**Plans done:** 18. **Specified, not built:** 1 (Plan 19, draft for review). **Left in this roadmap:** 20 (Plans 19–38); the five "full" plans will likely split, so expect roughly 25–30 more plans.
+**Plans done:** 18. **Implemented, final verification in progress:** 1 (Plan 19). **Left in this roadmap:** 20 (Plans 19–38); the five "full" plans will likely split, so expect roughly 25–30 more plans.
 
 ### Done
 
@@ -30,7 +30,8 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 | Status | Count | Resources |
 |---|---|---|
 | **Done** | 10 | clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18) |
-| **Planned, short design** | 13 | tenant settings, attack protection, user blocks, signing keys, email provider, email templates, social strategies II, roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
+| **Implemented, verifying** | 3 | tenant settings, attack protection, user blocks (Plan 19) |
+| **Planned, short design** | 10 | signing keys, email provider, email templates, social strategies II, roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
 | **Planned, full design** | 15 | branding, themes, prompts and custom text, custom domains, social strategies I, Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
@@ -91,17 +92,17 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 ### Plan 19 — Tenant settings, attack protection, user blocks (slice 5a)
 
-**Draft documents (2026-10-21):** [standalone spec](2026-10-21-zeroauthy-tenant-settings-attack-protection-design.md) and [implementation plan](../plans/2026-10-21-zeroauthy-plan-19-tenant-settings-attack-protection.md). Implementation has not started; contract observation is Task 1.
+**Implementation records (2026-10-24):** [standalone spec](2026-10-21-zeroauthy-tenant-settings-attack-protection-design.md) and [implementation plan](../plans/2026-10-21-zeroauthy-plan-19-tenant-settings-attack-protection.md). Tasks 1–11 are implemented and reviewed; Task 12 is running final verification. Database tests deferred during implementation now run.
 
 **Endpoints:**
-- `GET/PATCH /api/v2/tenants/settings`: every documented field. Enforced where zeroauthy has the feature: `friendly_name`, `picture_url`, `support_email`, `support_url`, `default_audience`, `default_directory`, `session_lifetime`, `idle_session_lifetime`, `enabled_locales`, `flags` that map to built behaviour, `device_flow`, `pushed_authorization_requests_supported`, `skip_non_verifiable_callback_uri_confirmation_prompt`, `sessions` (cookie mode), `allowed_logout_urls`, `default_redirection_uri`, `error_page`, `customize_mfa_in_postlogin_action` and the rest stored, not enforced, until their plan.
+- `GET/PATCH /api/v2/tenants/settings`: every documented field. Enforced where zeroauthy has the feature: `friendly_name`, `picture_url`, `support_email`, `support_url`, `default_audience`, `default_directory`, `session_lifetime`, `idle_session_lifetime`, `enabled_locales`, `device_flow`, `pushed_authorization_requests_supported`, `skip_non_verifiable_callback_uri_confirmation_prompt`, `session_cookie.mode` and `allowed_logout_urls`. Flags (except read-only disable_impersonation), `default_redirection_uri`, `error_page`, `customize_mfa_in_postlogin_action` and other inventoried future fields are stored, not enforced, until their plan.
 - `/api/v2/attack-protection/brute-force-protection`, `/breached-password-detection`, `/suspicious-ip-throttling`, `/bot-detection`, `/captcha`.
 - `/api/v2/user-blocks` (by identifier, by user ID; list and unblock), `/api/v2/anomaly/blocks/ips/{ip}` (check and unblock).
 
 **Runtime:**
-- Login throttles move into the store (the Plan 2, 5 and 6 multi-instance follow-ups), keyed as Auth0 keys them (user plus IP for brute force; IP for suspicious-IP throttling), with Auth0's thresholds as defaults and the `shields` (`block`, `user_notification`, `admin_notification`) and `allowlist`.
+- Login throttles move into the store (the Plan 2, 5 and 6 multi-instance follow-ups), using the frozen documented/local rules (connection and identity plus optional IP for brute force; IP for suspicious-IP throttling), with Auth0's thresholds as defaults and the `shields` (`block`, `user_notification`, `admin_notification`) and `allowlist`.
 - Breached password detection: checks at signup, login and reset against a k-anonymity range API (Have I Been Pwned's Pwned Passwords, opt-in, outbound HTTPS) or an offline list file; Auth0's shields (`block`, `user_notification`, `admin_notification`) and stages.
-- CAPTCHA: server-side verification for the documented providers zeroauthy can reach (reCAPTCHA v2 and Enterprise, hCaptcha, Friendly Captcha, Cloudflare Turnstile if Auth0 lists it at build time); providers that need a vendor contract (Arkose, Auth0's own challenge) stored, not enforced. Bot detection levels drive when the CAPTCHA appears.
+- CAPTCHA: server-side verification for the documented providers zeroauthy can reach (reCAPTCHA v2 and Enterprise, hCaptcha, Friendly Captcha v1); providers that need a vendor contract (Arkose, Auth Challenge, Simple CAPTCHA) stored but unavailable; required challenges fail closed. Turnstile has no frozen wire contract. Bot detection levels drive when the CAPTCHA appears.
 - The "blocked account" and "breached password" notification emails wait for Plan 21; until then the `user_notification` shield logs a warning (a decision).
 
 **Console:** Tenant settings (General, Sessions, Advanced, Languages) and Attack protection become live; the user detail gains "unblock" for brute-force blocks.
