@@ -41,6 +41,7 @@ type Store interface {
 	ClientGrants() ClientGrants
 	UserGrants() UserGrants
 	SigningKeys() SigningKeys
+	CustomSigningKeys() CustomSigningKeys
 	Connections() Connections
 	PasswordHistories() PasswordHistories
 	Users() Users
@@ -194,12 +195,23 @@ type SigningKeys interface {
 	// List returns all of a tenant's keys, every status, ordered by
 	// CreatedAt then KID.
 	List(ctx context.Context, tenantID string) ([]*SigningKey, error)
-	// Rotate atomically moves previous→revoked, current→previous and
-	// next→current, then stores next. It returns an error and changes
-	// nothing if next.Status is not KeyNext.
+	Get(ctx context.Context, tenantID, kid string) (*SigningKey, error)
+	// Rotate atomically moves current→previous and next→current, retaining
+	// every unrevoked previous key, then stores the supplied next key.
 	// If the tenant has no next key it returns ErrNotFound and changes
 	// nothing. A duplicate KID returns ErrConflict and changes nothing.
 	Rotate(ctx context.Context, tenantID string, next *SigningKey) error
+	RotateWithResult(ctx context.Context, tenantID string, next *SigningKey, at time.Time) (*SigningKeyRotation, error)
+	Revoke(ctx context.Context, tenantID, kid string, at time.Time) (*SigningKey, error)
+	SetCertificateIfAbsent(ctx context.Context, tenantID, kid string, der []byte) (*SigningKey, error)
+}
+
+// CustomSigningKeys stores a validated public JWKS independently of managed
+// signing keys. The repository also prevents ID collisions between the sets.
+type CustomSigningKeys interface {
+	Get(ctx context.Context, tenantID string) (*CustomSigningKeySet, error)
+	Replace(ctx context.Context, set *CustomSigningKeySet) error
+	Delete(ctx context.Context, tenantID string) error
 }
 
 // Connections stores identity sources, keyed by (TenantID, ID). Name is
