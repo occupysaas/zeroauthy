@@ -1,11 +1,11 @@
 # zeroauthy — Plan 20 design: signing keys and deploy-cli migration
 
-- **Status:** Draft for review; implementation has not started. Proposed local decisions below are not prior maintainer approvals or observed Auth0 behavior.
+- **Status:** Implementation contract frozen by D-0046 on 2026-10-25. Live observer evidence remains unavailable; local fallbacks below are not observed Auth0 behavior.
 - **Date:** 2026-10-25
 - **Roadmap:** [Plan 20, slice 5b](2026-10-19-zeroauthy-management-roadmap-design.md#plan-20--signing-keys-and-the-auth0-deploy-cli-round-trip-slice-5b).
 - **Basis:** Plan 19 completed and merged at `d9ecb6e`. Follow [CLEAN_ROOM.md](../../../CLEAN_ROOM.md), D-0039 and D-0041 in [the decision log](../../compat/decisions.md), and the existing client/connection/API observation notes.
-- **Deliverable of this document:** the design for Plan 20. A separate implementation plan follows design approval.
-- **Implementation plan:** [Plan 20 implementation tasks](../plans/2026-10-25-zeroauthy-plan-20-signing-keys-deploy-cli.md), requested on 2026-10-25. Product implementation has not started.
+- **Deliverable of this document:** the design contract for Plan 20.
+- **Implementation plan:** [Plan 20 implementation tasks](../plans/2026-10-25-zeroauthy-plan-20-signing-keys-deploy-cli.md), requested on 2026-10-25. Task 1 froze the local contract and records the unavailable upstream observation lane.
 
 ## 1. Outcome and scope
 
@@ -178,9 +178,9 @@ Review focus: (1) arbitrary uploaded keys never expand internal trust; (2) revoc
 
 The future implementation plan must map each K/D row and acceptance criterion to a task and named verification. Follow repository rules governing when tests may run. The present database hold in AGENTS.md is explicitly scoped to Plan 19; this document neither extends nor removes it. Spec authoring requires document/link review, not database execution. At implementation completion, run affected store/SQL suites, Go race/static checks, generation checks, console build/tests, SDK/CLI/browser round trips and OIDC conformance; record actual results and unavailable lanes.
 
-## 8. Decisions proposed by this draft
+## 8. Decisions frozen for implementation (D-0046)
 
-These are design recommendations, to be accepted or changed during review:
+These are local implementation decisions, not prior maintainer approvals or live observations:
 
 1. Preserve unrevoked prior managed keys by default, with K2 resolving any upstream retirement difference before coding.
 2. Add durable certificates and a non-rotating backfill; use the local certificate policy in §3.4 where public evidence is silent.
@@ -188,6 +188,8 @@ These are design recommendations, to be accepted or changed during review:
 4. Preserve known client IDs/secrets through the existing create-only seed and a checked migration recipe, without changing public client-create semantics.
 5. Rename ordinary tenants' built-in Management API resource to `Auth0 Management API` for unmodified deploy-cli compatibility.
 6. Pin deploy-cli 9.1.0 and use an explicit, tested exclusion/normalization manifest that later plans shrink.
+
+The separate live observer lane was unavailable on 2026-10-25. Publicly documented success contracts and scopes are recorded in `docs/compat/observations/management-signing-keys.md`; unresolved server-specific fields/errors use explicit local behavior and must not be described as observed. The full pinned handler inventory and the local minimum fixture set are recorded in `tests/e2e/deploy-cli/manifest.json` and `docs/compat/observations/management-deploy-cli.md`.
 
 The implementation author can choose package/file boundaries, SQL locking/CAS details, certificate encoding helpers and fixture layout within these contracts. Wire behavior and security boundaries belong in evidence/decisions, not undocumented implementation choices.
 

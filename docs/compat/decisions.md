@@ -797,3 +797,12 @@ year 9999. Required provider service/credential failures are unavailable and
 do not count as user risk. Notification delivery/unblock links remain Plan 21;
 device/general/Try limits remain open. No new module or adapted licensed code
 was introduced, so NOTICE is unchanged.
+
+## D-0046: Plan 20 signing-key and deploy-cli local contract
+
+- **Context:** Public documentation and the pinned deploy-cli package leave runtime history, exact errors, registry support and several migration edge cases unresolved. The implementation session had no separate observer report or disposable-tenant authorization, so it made no live Management API calls.
+- **Sources:** `observations/management-signing-keys.md`, `observations/management-deploy-cli.md`; Auth0 public Management API signing-key docs; Auth0 `auth0-deploy-cli` v9.1.0, MIT, tag `v9.1.0`, commit `b8178b4bf48f31d05e61f55918bba75d4c846c37`; RFC 7517 and RFC 5652.
+- **Decision:** Until sanitized observer evidence supersedes it, follow documented scopes and success statuses; retain every unrevoked previous key; allow revoke only for previous keys; retain the first revocation timestamp on repeated calls. Backfill stable self-signed RSA/SHA-256 certificates without changing key identity and do not invent historical lifecycle timestamps. Custom public JWKS is limited to 1–10 validated public RSA/EC keys, stored separately, never published or trusted internally, and cannot reuse a managed key ID. The exact local field, validation and error contracts are tested, but are not represented as observed Auth0 behavior.
+- **Migration contract:** Pin deploy-cli 9.1.0 and inventory all handler keys in `tests/e2e/deploy-cli/manifest.json`. Include nonempty clients, resource servers, client grants, databases, connections, tenant and attack-protection fixtures. Secret preservation requires the protected create-only bootstrap. The observer-only upstream export lane is unavailable until separately supplied.
+- **Retired resources:** Only the finite collection GET paths for `/api/v2/rules`, `/api/v2/rules-configs` and `/api/v2/hooks` are in scope; writes are rejected and no wildcard success shim is allowed.
+- **Rationale:** These defaults preserve token verification and migration data unless an operation explicitly and irreversibly revokes a key. Local tests can establish zeroauthy's behavior; public docs and package source do not justify claiming unobserved server parity.
