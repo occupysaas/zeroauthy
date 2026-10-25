@@ -137,3 +137,5 @@ func (s *Store) Ping(context.Context) error                   { return nil }
 func (s *Store) Close() error                                 { return nil }
 
 var _ store.Store = (*Store)(nil)
+
+func (s *Store) HostedLogins() store.HostedLogins { return store.UnimplementedHostedLogins{} }

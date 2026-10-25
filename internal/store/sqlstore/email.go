@@ -332,3 +332,5 @@ func validPublicEmailConfig(p *store.EmailProvider) bool {
 	}
 	return true
 }
+
+func (s *Store) HostedLogins() store.HostedLogins { return store.UnimplementedHostedLogins{} }

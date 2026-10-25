@@ -56,3 +56,7 @@ func (r authTransactions) DeleteExpired(ctx context.Context, before time.Time) (
 	res, err := r.s.write(ctx, r.s.sweep(), `DELETE FROM auth_transactions WHERE expires_at <= ?`, micros(before))
 	return affected(res, err)
 }
+
+func (r authTransactions) CompareAndSwapHosted(ctx context.Context, tenantID, id string, expectedRevision int64, next store.HostedLoginState, now time.Time) error {
+	return store.ErrHostedLoginRepositoryUnavailable
+}

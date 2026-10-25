@@ -135,3 +135,5 @@ func (c *Client) EmailVerificationTickets() store.EmailVerificationTickets {
 func (c *Client) PasswordResetTickets() store.PasswordResetTickets {
 	return clientPasswordResetTickets{c}
 }
+
+func (c *Client) HostedLogins() store.HostedLogins { return store.UnimplementedHostedLogins{} }

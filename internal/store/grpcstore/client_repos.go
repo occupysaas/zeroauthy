@@ -1133,3 +1133,7 @@ func (c *Client) requireTenantSettings(ctx context.Context) error {
 	}
 	return errFromPB(r.GetError())
 }
+
+func (r clientAuthTransactions) CompareAndSwapHosted(ctx context.Context, tenantID, id string, expectedRevision int64, next store.HostedLoginState, now time.Time) error {
+	return store.ErrHostedLoginRepositoryUnavailable
+}
