@@ -268,6 +268,11 @@ func (a clientResourceServers) List(ctx context.Context, tenantID string) ([]*st
 	return decList("ResourceServersList", tooOld(err), r.GetError(), r.GetValues(), resourceServerFromPB)
 }
 
+func (a clientResourceServers) RenameSystem(ctx context.Context, tenantID, identifier, name string) error {
+	r, err := a.c.rpc.ResourceServersRenameSystem(ctx, &storev1.ResourceServerRenameSystemRequest{TxId: a.c.txID, TenantId: tenantID, Identifier: identifier, Name: name})
+	return do("ResourceServersRenameSystem", r, tooOld(err))
+}
+
 // ---- client grants ----
 
 type clientClientGrants struct{ c *Client }

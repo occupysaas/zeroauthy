@@ -85,6 +85,27 @@ func (r resourceServers) List(ctx context.Context, tenantID string) ([]*store.Re
 	return out, rows.Err()
 }
 
+func (r resourceServers) RenameSystem(ctx context.Context, tenantID, identifier, name string) error {
+	res, err := r.s.write(ctx, nil, `UPDATE resource_servers SET name = ? WHERE tenant_id = ? AND identifier = ? AND is_system = ?`, name, tenantID, identifier, true)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		return nil
+	}
+	// Some SQL drivers report changed rows rather than matched rows. A
+	// repeated startup upgrade with the same name is still a successful no-op.
+	_, err = r.one(ctx, `SELECT `+resourceServerCols+` FROM resource_servers WHERE tenant_id = ? AND identifier = ? AND is_system = ?`, tenantID, identifier, true)
+	if errors.Is(err, store.ErrNotFound) {
+		return store.ErrNotFound
+	}
+	return err
+}
+
 func (r resourceServers) one(ctx context.Context, q string, args ...any) (*store.ResourceServer, error) {
 	rs, err := scanResourceServer(r.s.queryRow(ctx, q, args...))
 	if errors.Is(err, sql.ErrNoRows) {

@@ -51,6 +51,7 @@ const (
 	StoreService_ResourceServersUpdate_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ResourceServersUpdate"
 	StoreService_ResourceServersDelete_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ResourceServersDelete"
 	StoreService_ResourceServersList_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ResourceServersList"
+	StoreService_ResourceServersRenameSystem_FullMethodName            = "/zeroauthy.store.v1.StoreService/ResourceServersRenameSystem"
 	StoreService_ClientGrantsCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ClientGrantsCreate"
 	StoreService_ClientGrantsFind_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ClientGrantsFind"
 	StoreService_ClientGrantsUpdate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ClientGrantsUpdate"
@@ -255,6 +256,7 @@ type StoreServiceClient interface {
 	ResourceServersUpdate(ctx context.Context, in *ResourceServerWrite, opts ...grpc.CallOption) (*Result, error)
 	ResourceServersDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
 	ResourceServersList(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*ResourceServerList, error)
+	ResourceServersRenameSystem(ctx context.Context, in *ResourceServerRenameSystemRequest, opts ...grpc.CallOption) (*Result, error)
 	ClientGrantsCreate(ctx context.Context, in *ClientGrantWrite, opts ...grpc.CallOption) (*Result, error)
 	ClientGrantsFind(ctx context.Context, in *ClientGrantsFindRequest, opts ...grpc.CallOption) (*ClientGrantResult, error)
 	ClientGrantsUpdate(ctx context.Context, in *ClientGrantWrite, opts ...grpc.CallOption) (*Result, error)
@@ -696,6 +698,16 @@ func (c *storeServiceClient) ResourceServersList(ctx context.Context, in *Tenant
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResourceServerList)
 	err := c.cc.Invoke(ctx, StoreService_ResourceServersList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ResourceServersRenameSystem(ctx context.Context, in *ResourceServerRenameSystemRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_ResourceServersRenameSystem_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1876,6 +1888,7 @@ type StoreServiceServer interface {
 	ResourceServersUpdate(context.Context, *ResourceServerWrite) (*Result, error)
 	ResourceServersDelete(context.Context, *ScopedKey) (*Result, error)
 	ResourceServersList(context.Context, *TenantScope) (*ResourceServerList, error)
+	ResourceServersRenameSystem(context.Context, *ResourceServerRenameSystemRequest) (*Result, error)
 	ClientGrantsCreate(context.Context, *ClientGrantWrite) (*Result, error)
 	ClientGrantsFind(context.Context, *ClientGrantsFindRequest) (*ClientGrantResult, error)
 	ClientGrantsUpdate(context.Context, *ClientGrantWrite) (*Result, error)
@@ -2098,6 +2111,9 @@ func (UnimplementedStoreServiceServer) ResourceServersDelete(context.Context, *S
 }
 func (UnimplementedStoreServiceServer) ResourceServersList(context.Context, *TenantScope) (*ResourceServerList, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResourceServersList not implemented")
+}
+func (UnimplementedStoreServiceServer) ResourceServersRenameSystem(context.Context, *ResourceServerRenameSystemRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResourceServersRenameSystem not implemented")
 }
 func (UnimplementedStoreServiceServer) ClientGrantsCreate(context.Context, *ClientGrantWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClientGrantsCreate not implemented")
@@ -3013,6 +3029,24 @@ func _StoreService_ResourceServersList_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).ResourceServersList(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ResourceServersRenameSystem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResourceServerRenameSystemRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ResourceServersRenameSystem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ResourceServersRenameSystem_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ResourceServersRenameSystem(ctx, req.(*ResourceServerRenameSystemRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -5070,6 +5104,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResourceServersList",
 			Handler:    _StoreService_ResourceServersList_Handler,
+		},
+		{
+			MethodName: "ResourceServersRenameSystem",
+			Handler:    _StoreService_ResourceServersRenameSystem_Handler,
 		},
 		{
 			MethodName: "ClientGrantsCreate",

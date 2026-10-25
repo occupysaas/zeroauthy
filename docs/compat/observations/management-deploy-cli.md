@@ -17,7 +17,7 @@
 
 ## D2 retired-resource boundary
 
-Pinned handler paths are `lib/tools/auth0/handlers/{rules,rulesConfigs,hooks}.js`; the adapters live under the corresponding YAML/directory handler paths. Only the documented collection read paths needed for export are in the Plan 20 shim inventory: `GET /api/v2/rules`, `GET /api/v2/rules-configs`, and `GET /api/v2/hooks`. These collection handlers are separate from signing-key APIs and do not authorize wildcard fallback routing. Task 6 checks required read scopes and rejects writes for unsupported execution features. Exact tenant-specific error identifiers remain a local contract because no observer report was supplied.
+Pinned handler paths are `lib/tools/auth0/handlers/{rules,rulesConfigs,hooks}.js`; the adapters live under the corresponding YAML/directory handler paths. Only the documented collection read paths needed for export are in the Plan 20 shim inventory: `GET /api/v2/rules`, `GET /api/v2/rules-configs`, and `GET /api/v2/hooks`. Public references document Rules and Hooks as arrays, with optional totals for the paged collections; rules-config keys are a collection. The implementation returns empty collections and never executes scripts. The local scope mapping is `read:rules` for rules and rules-configs and `read:hooks` for hooks, following the documented Rules/Hook scope families; rules-config scope was not independently established. Writes are rejected and no wildcard fallback is used. Exact tenant-specific errors remain a local contract because no observer report was supplied.
 
 ## Changelog review
 

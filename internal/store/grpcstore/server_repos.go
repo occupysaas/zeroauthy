@@ -244,6 +244,12 @@ func (s *Server) ResourceServersList(ctx context.Context, r *storev1.TenantScope
 	return &storev1.ResourceServerList{Error: e, Values: vs}, nil
 }
 
+func (s *Server) ResourceServersRenameSystem(ctx context.Context, r *storev1.ResourceServerRenameSystemRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.ResourceServers().RenameSystem(ctx, r.TenantId, r.Identifier, r.Name)
+	}), nil
+}
+
 func (s *Server) ClientGrantsCreate(ctx context.Context, r *storev1.ClientGrantWrite) (*storev1.Result, error) {
 	return write(s, r.TxId, r.Value, clientGrantFromPB, func(st store.Store, g *store.ClientGrant) error {
 		return st.ClientGrants().Create(ctx, g)

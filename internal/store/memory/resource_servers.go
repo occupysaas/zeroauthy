@@ -103,6 +103,18 @@ func (r resourceServers) List(_ context.Context, tenantID string) ([]*store.Reso
 	return out, nil
 }
 
+func (r resourceServers) RenameSystem(_ context.Context, tenantID, identifier, name string) error {
+	r.s.lock()
+	defer r.s.unlock()
+	for _, rs := range r.s.resourceServers {
+		if rs.TenantID == tenantID && rs.Identifier == identifier && rs.IsSystem {
+			rs.Name = name
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
 // identifierTaken reports whether another resource server in the tenant
 // uses rs.Identifier. The caller holds the lock.
 func (r resourceServers) identifierTaken(rs *store.ResourceServer) bool {

@@ -2,6 +2,8 @@ package storetest
 
 import (
 	"context"
+	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -31,6 +33,84 @@ func newResourceServer(tenantID, id, identifier string) *store.ResourceServer {
 
 func testResourceServers(t *testing.T, newStore Factory) {
 	ctx := context.Background()
+
+	t.Run("RenameSystemPreservesSettings", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newResourceServer("ten_a", "system", "https://api.test")
+		want.Name = "old name"
+		if err := s.ResourceServers().Create(ctx, want); err != nil {
+			t.Fatal(err)
+		}
+		ordinary := newResourceServer("ten_a", "ordinary", "https://ordinary.test")
+		ordinary.IsSystem = false
+		ordinary.Name = "old name"
+		if err := s.ResourceServers().Create(ctx, ordinary); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.ResourceServers().RenameSystem(ctx, "ten_a", want.Identifier, "new name"); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.ResourceServers().RenameSystem(ctx, "ten_a", want.Identifier, "new name"); err != nil {
+			t.Fatalf("repeated rename: %v", err)
+		}
+		got, err := s.ResourceServers().Get(ctx, "ten_a", "system")
+		if err != nil {
+			t.Fatal(err)
+		}
+		want.Name = "new name"
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("name-only rename: got %#v want %#v", got, want)
+		}
+		gotOrdinary, err := s.ResourceServers().Get(ctx, "ten_a", "ordinary")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(gotOrdinary, ordinary) {
+			t.Fatalf("ordinary resource changed: %#v", gotOrdinary)
+		}
+		if err := s.ResourceServers().RenameSystem(ctx, "ten_a", ordinary.Identifier, "wrong"); err != store.ErrNotFound {
+			t.Fatalf("ordinary rename error = %v", err)
+		}
+		if err := s.ResourceServers().RenameSystem(ctx, "ten_b", want.Identifier, "wrong"); err != store.ErrNotFound {
+			t.Fatalf("cross-tenant rename error = %v", err)
+		}
+	})
+
+	t.Run("RenameSystemTransactions", func(t *testing.T) {
+		s := open(t, newStore)
+		want := newResourceServer("ten_a", "tx-system", "https://tx-api.test")
+		if err := s.ResourceServers().Create(ctx, want); err != nil {
+			t.Fatal(err)
+		}
+		rollback := errors.New("roll back rename")
+		if err := s.WithTx(ctx, func(tx store.Store) error {
+			if err := tx.ResourceServers().RenameSystem(ctx, "ten_a", want.Identifier, "uncommitted"); err != nil {
+				return err
+			}
+			return rollback
+		}); !errors.Is(err, rollback) {
+			t.Fatalf("rollback error = %v", err)
+		}
+		got, err := s.ResourceServers().Get(ctx, "ten_a", want.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Name != want.Name {
+			t.Fatalf("rolled-back rename persisted: %q", got.Name)
+		}
+		if err := s.WithTx(ctx, func(tx store.Store) error {
+			return tx.ResourceServers().RenameSystem(ctx, "ten_a", want.Identifier, "committed")
+		}); err != nil {
+			t.Fatal(err)
+		}
+		got, err = s.ResourceServers().Get(ctx, "ten_a", want.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Name != "committed" {
+			t.Fatalf("committed rename missing: %q", got.Name)
+		}
+	})
 
 	t.Run("CRUD", func(t *testing.T) {
 		s := open(t, newStore)

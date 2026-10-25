@@ -29,6 +29,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
 )
 
 type App struct {
@@ -149,6 +150,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		return nil, err
 	}
 	for _, tn := range tenants {
+		if err := tenantsetup.UpgradeManagementAPIName(ctx, st, tn, cfg.Server.BaseDomain); err != nil {
+			return nil, fmt.Errorf("app: upgrade Management API for tenant %q: %w", tn.Name, err)
+		}
 		if err := km.Ensure(ctx, tn.ID); err != nil {
 			return nil, fmt.Errorf("app: signing keys for tenant %q: %w", tn.Name, err)
 		}

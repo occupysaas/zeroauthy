@@ -53,6 +53,16 @@ func (a mgmtAPI) DeleteCustomSigningKeys(w http.ResponseWriter, r *http.Request)
 	scoped(w, r, a.h.DeleteCustomSigningKeys, "update:signing_keys")
 }
 
+func (a mgmtAPI) GetRules(w http.ResponseWriter, r *http.Request, p mgmtapi.GetRulesParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetRules(w, r, p) }, "read:rules")
+}
+func (a mgmtAPI) GetRulesConfigs(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.GetRulesConfigs, "read:rules")
+}
+func (a mgmtAPI) GetHooks(w http.ResponseWriter, r *http.Request, p mgmtapi.GetHooksParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetHooks(w, r, p) }, "read:hooks")
+}
+
 // UpdateClient: update:clients, or update:client_keys for the secret; the
 // handler checks which the body needs.
 func (a mgmtAPI) UpdateClient(w http.ResponseWriter, r *http.Request, id string) {

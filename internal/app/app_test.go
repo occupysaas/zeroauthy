@@ -41,6 +41,14 @@ func TestNewSeedsAndServes(t *testing.T) {
 	if rec.Code != 200 || len(rec.Body.String()) < 100 {
 		t.Fatalf("jwks after startup: %d %s (keys should be ensured for seeded tenants)", rec.Code, rec.Body)
 	}
+	tn, err := a.store.Tenants().GetByName(context.Background(), "acme")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rs, err := a.store.ResourceServers().GetByIdentifier(context.Background(), tn.ID, "https://acme.example.test/api/v2/")
+	if err != nil || rs.Name != "Auth0 Management API" {
+		t.Fatalf("Management API after startup: %+v err=%v", rs, err)
+	}
 }
 
 func TestNewRejectsBadSeed(t *testing.T) {

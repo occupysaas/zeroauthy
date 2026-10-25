@@ -2007,6 +2007,33 @@ func (e UsersExportJobCreateFormat) Valid() bool {
 	}
 }
 
+// Defines values for GetHooksParamsTriggerId.
+const (
+	CredentialsExchange  GetHooksParamsTriggerId = "credentials-exchange"
+	PostChangePassword   GetHooksParamsTriggerId = "post-change-password"
+	PostUserRegistration GetHooksParamsTriggerId = "post-user-registration"
+	PreUserRegistration  GetHooksParamsTriggerId = "pre-user-registration"
+	SendPhoneMessage     GetHooksParamsTriggerId = "send-phone-message"
+)
+
+// Valid indicates whether the value is a known member of the GetHooksParamsTriggerId enum.
+func (e GetHooksParamsTriggerId) Valid() bool {
+	switch e {
+	case CredentialsExchange:
+		return true
+	case PostChangePassword:
+		return true
+	case PostUserRegistration:
+		return true
+	case PreUserRegistration:
+		return true
+	case SendPhoneMessage:
+		return true
+	default:
+		return false
+	}
+}
+
 // AccessPolicy defines model for AccessPolicy.
 type AccessPolicy struct {
 	Policy *AccessPolicyPolicy `json:"policy,omitempty"`
@@ -4479,6 +4506,29 @@ type GetGrants200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// GetHooksParams defines parameters for GetHooks.
+type GetHooksParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *IncludeTotals `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+	Enabled       *bool          `form:"enabled,omitempty" json:"enabled,omitempty"`
+
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned.
+	Fields *Fields `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields           `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+	TriggerId     *GetHooksParamsTriggerId `form:"triggerId,omitempty" json:"triggerId,omitempty"`
+}
+
+// GetHooksParamsTriggerId defines parameters for GetHooks.
+type GetHooksParamsTriggerId string
+
 // GetJobErrors200JSONResponseBody0 defines parameters for GetJobErrors.
 type GetJobErrors200JSONResponseBody0 = []JobError
 
@@ -4521,6 +4571,25 @@ type GetResourceServers200JSONResponseBody struct {
 type GetResourceServerParams struct {
 	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. No field is always returned.
 	Fields *string `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+}
+
+// GetRulesParams defines parameters for GetRules.
+type GetRulesParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *IncludeTotals `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+	Enabled       *bool          `form:"enabled,omitempty" json:"enabled,omitempty"`
+
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned.
+	Fields *Fields `form:"fields,omitempty" json:"fields,omitempty"`
 
 	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
@@ -6322,6 +6391,9 @@ type ServerInterface interface {
 	// DeleteGrant Delete a grant
 	// (DELETE /api/v2/grants/{id})
 	DeleteGrant(w http.ResponseWriter, r *http.Request, id string)
+	// GetHooks Return an empty compatibility list for retired Hooks.
+	// (GET /api/v2/hooks)
+	GetHooks(w http.ResponseWriter, r *http.Request, params GetHooksParams)
 	// CreateUsersExportJob Export users to a file
 	// (POST /api/v2/jobs/users-exports)
 	CreateUsersExportJob(w http.ResponseWriter, r *http.Request)
@@ -6379,6 +6451,12 @@ type ServerInterface interface {
 	// UpdateResourceServer Update an API
 	// (PATCH /api/v2/resource-servers/{id})
 	UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string)
+	// GetRules Return an empty compatibility list for retired Rules.
+	// (GET /api/v2/rules)
+	GetRules(w http.ResponseWriter, r *http.Request, params GetRulesParams)
+	// GetRulesConfigs Return no retired Rules configuration keys.
+	// (GET /api/v2/rules-configs)
+	GetRulesConfigs(w http.ResponseWriter, r *http.Request)
 	// DeleteSession Delete a session
 	// (DELETE /api/v2/sessions/{id})
 	DeleteSession(w http.ResponseWriter, r *http.Request, id string)
@@ -6703,6 +6781,12 @@ func (_ Unimplemented) DeleteGrant(w http.ResponseWriter, r *http.Request, id st
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetHooks Return an empty compatibility list for retired Hooks.
+// (GET /api/v2/hooks)
+func (_ Unimplemented) GetHooks(w http.ResponseWriter, r *http.Request, params GetHooksParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // CreateUsersExportJob Export users to a file
 // (POST /api/v2/jobs/users-exports)
 func (_ Unimplemented) CreateUsersExportJob(w http.ResponseWriter, r *http.Request) {
@@ -6814,6 +6898,18 @@ func (_ Unimplemented) GetResourceServer(w http.ResponseWriter, r *http.Request,
 // UpdateResourceServer Update an API
 // (PATCH /api/v2/resource-servers/{id})
 func (_ Unimplemented) UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetRules Return an empty compatibility list for retired Rules.
+// (GET /api/v2/rules)
+func (_ Unimplemented) GetRules(w http.ResponseWriter, r *http.Request, params GetRulesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetRulesConfigs Return no retired Rules configuration keys.
+// (GET /api/v2/rules-configs)
+func (_ Unimplemented) GetRulesConfigs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8382,6 +8478,117 @@ func (siw *ServerInterfaceWrapper) DeleteGrant(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// GetHooks operation middleware
+func (siw *ServerInterfaceWrapper) GetHooks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetHooksParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "enabled" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "enabled", r.URL.Query(), &params.Enabled, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "enabled"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "enabled", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "triggerId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "triggerId", r.URL.Query(), &params.TriggerId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "triggerId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "triggerId", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHooks(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateUsersExportJob operation middleware
 func (siw *ServerInterfaceWrapper) CreateUsersExportJob(w http.ResponseWriter, r *http.Request) {
 
@@ -8860,6 +9067,118 @@ func (siw *ServerInterfaceWrapper) UpdateResourceServer(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateResourceServer(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRules operation middleware
+func (siw *ServerInterfaceWrapper) GetRules(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRulesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "enabled" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "enabled", r.URL.Query(), &params.Enabled, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "enabled"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "enabled", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRules(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRulesConfigs operation middleware
+func (siw *ServerInterfaceWrapper) GetRulesConfigs(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRulesConfigs(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10066,6 +10385,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/v2/keys/custom-signing", wrapper.PutCustomSigningKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/rules", wrapper.GetRules)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/rules-configs", wrapper.GetRulesConfigs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/hooks", wrapper.GetHooks)
 	})
 
 	return r

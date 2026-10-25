@@ -39,6 +39,10 @@ servers:
         default: tenant.example.com
         description: Any domain of the tenant.
 tags:
+  - name: signing-keys
+    description: Tenant managed and stored-only custom signing keys.
+  - name: retired-resources
+    description: Read-only empty compatibility collections for retired extensibility.
   - name: attack-protection
     description: Tenant attack protection policies.
   - name: user-blocks
@@ -2503,6 +2507,61 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+
+  /api/v2/rules:
+    get:
+      operationId: GetRules
+      tags: [retired-resources]
+      summary: Return an empty compatibility list for retired Rules.
+      x-source: [https://auth0.com/docs/api/management/v2/rules/get-rules]
+      security: [{managementToken: []}, {operatorToken: []}]
+      parameters:
+        - {$ref: "#/components/parameters/page"}
+        - {$ref: "#/components/parameters/per_page"}
+        - {$ref: "#/components/parameters/include_totals"}
+        - name: enabled
+          in: query
+          schema: {type: boolean}
+        - {$ref: "#/components/parameters/fields"}
+        - {$ref: "#/components/parameters/include_fields"}
+      responses:
+        "200": {description: Empty list; rule scripts are not supported., content: {application/json: {schema: {type: array, items: {type: object}}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/rules-configs:
+    get:
+      operationId: GetRulesConfigs
+      tags: [retired-resources]
+      summary: Return no retired Rules configuration keys.
+      x-source: [https://auth0.com/docs/api/management/v2/rules-configs/get-rules-configs]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "200": {description: Empty list; rule configuration values are not supported., content: {application/json: {schema: {type: array, items: {type: object}}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/hooks:
+    get:
+      operationId: GetHooks
+      tags: [retired-resources]
+      summary: Return an empty compatibility list for retired Hooks.
+      x-source: [https://auth0.com/docs/api/management/v2/hooks/get-hooks]
+      security: [{managementToken: []}, {operatorToken: []}]
+      parameters:
+        - {$ref: "#/components/parameters/page"}
+        - {$ref: "#/components/parameters/per_page"}
+        - {$ref: "#/components/parameters/include_totals"}
+        - name: enabled
+          in: query
+          schema: {type: boolean}
+        - {$ref: "#/components/parameters/fields"}
+        - {$ref: "#/components/parameters/include_fields"}
+        - name: triggerId
+          in: query
+          schema: {type: string, enum: [credentials-exchange, pre-user-registration, post-user-registration, post-change-password, send-phone-message]}
+      responses:
+        "200": {description: Empty list; hook scripts are not supported., content: {application/json: {schema: {type: array, items: {type: object}}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
 
 components:
   securitySchemes:

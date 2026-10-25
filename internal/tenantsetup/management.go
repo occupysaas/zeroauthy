@@ -11,7 +11,7 @@ import (
 
 // ManagementAPIName is the name of each tenant's Management API resource
 // server (Auth0 lists its own as "Auth0 Management API").
-const ManagementAPIName = "zeroauthy Management API"
+const ManagementAPIName = "Auth0 Management API"
 
 // ManagementAPIScopes are the Management API scopes, with Auth0's names,
 // for the resources zeroauthy stores. Later slices add more.
@@ -61,6 +61,8 @@ var ManagementAPIScopes = []store.Scope{
 	{Value: "read:signing_keys", Description: "Read signing keys"},
 	{Value: "create:signing_keys", Description: "Rotate signing keys"},
 	{Value: "update:signing_keys", Description: "Revoke signing keys"},
+	{Value: "read:rules", Description: "Read retired Rules compatibility collections"},
+	{Value: "read:hooks", Description: "Read retired Hooks compatibility collections"},
 }
 
 // ManagementAPI creates or repairs the tenant's Management API resource
@@ -90,6 +92,23 @@ func ManagementAPI(ctx context.Context, st store.Store, t *store.Tenant, baseDom
 		return nil, err
 	}
 	return st.ResourceServers().GetByIdentifier(ctx, t.ID, id)
+}
+
+// UpgradeManagementAPIName updates only the name of an existing ordinary
+// tenant system API. It does not create a missing resource or touch settings.
+func UpgradeManagementAPIName(ctx context.Context, st store.Store, t *store.Tenant, baseDomain string) error {
+	if t == nil || t.Reserved {
+		return nil
+	}
+	identifier := tenant.ManagementAPIIdentifier(t, baseDomain)
+	if identifier == "" {
+		return nil
+	}
+	err := st.ResourceServers().RenameSystem(ctx, t.ID, identifier, ManagementAPIName)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	return err
 }
 
 // IsManagementAPIScope reports whether s is one of ManagementAPIScopes.

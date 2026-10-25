@@ -140,6 +140,9 @@ type ResourceServers interface {
 	// List returns the tenant's resource servers ordered by CreatedAt,
 	// then ID.
 	List(ctx context.Context, tenantID string) ([]*ResourceServer, error)
+	// RenameSystem atomically changes only Name on the matching system resource.
+	// It never rewrites other fields from a potentially stale snapshot.
+	RenameSystem(ctx context.Context, tenantID, identifier, name string) error
 }
 
 // ClientGrants stores API authorizations of clients, keyed by

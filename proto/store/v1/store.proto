@@ -96,6 +96,7 @@ service StoreService {
   rpc ResourceServersUpdate(ResourceServerWrite) returns (Result);
   rpc ResourceServersDelete(ScopedKey) returns (Result);
   rpc ResourceServersList(TenantScope) returns (ResourceServerList);
+  rpc ResourceServersRenameSystem(ResourceServerRenameSystemRequest) returns (Result);
 
   rpc ClientGrantsCreate(ClientGrantWrite) returns (Result);
   rpc ClientGrantsFind(ClientGrantsFindRequest) returns (ClientGrantResult);
@@ -366,6 +367,9 @@ message ResourceServer {
   bool is_system = 13;
   string origin = 14;                                // "api" or empty (seed)
   int64 token_lifetime_for_web = 15;                 // 0 = the default
+}
+message ResourceServerRenameSystemRequest {
+  string tx_id = 1; string tenant_id = 2; string identifier = 3; string name = 4;
 }
 
 message ClientGrant {
