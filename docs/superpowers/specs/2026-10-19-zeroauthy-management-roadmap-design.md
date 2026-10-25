@@ -111,7 +111,7 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 ### Plan 20 — Signing keys and the `auth0-deploy-cli` round trip (slice 5b)
 
-**Design record (2026-10-25):** [standalone draft spec](2026-10-25-zeroauthy-signing-keys-deploy-cli-design.md). Covers lifecycle/certificate upgrades, migration decisions and acceptance criteria; implementation has not started.
+**Design records (2026-10-25):** [standalone draft spec](2026-10-25-zeroauthy-signing-keys-deploy-cli-design.md) and [implementation plan](../plans/2026-10-25-zeroauthy-plan-20-signing-keys-deploy-cli.md). Cover lifecycle/certificate upgrades, migration decisions, evidence gates and acceptance criteria; implementation has not started.
 
 **Endpoints:** `GET /api/v2/keys/signing`, `GET /api/v2/keys/signing/{kid}`, `POST /api/v2/keys/signing/rotate`, `PUT /api/v2/keys/signing/{kid}/revoke`; GET/PUT/DELETE `/api/v2/keys/custom-signing` stores custom **public** JWKS. Public documentation describes custom-domain key distribution, not private-key signing; the draft defers publication to Plan 23 and prohibits using uploaded keys for zeroauthy's internal token verification. `/api/v2/keys/encryption` (customer-managed root key) is listed in §5.
 

@@ -5,6 +5,7 @@
 - **Roadmap:** [Plan 20, slice 5b](2026-10-19-zeroauthy-management-roadmap-design.md#plan-20--signing-keys-and-the-auth0-deploy-cli-round-trip-slice-5b).
 - **Basis:** Plan 19 completed and merged at `d9ecb6e`. Follow [CLEAN_ROOM.md](../../../CLEAN_ROOM.md), D-0039 and D-0041 in [the decision log](../../compat/decisions.md), and the existing client/connection/API observation notes.
 - **Deliverable of this document:** the design for Plan 20. A separate implementation plan follows design approval.
+- **Implementation plan:** [Plan 20 implementation tasks](../plans/2026-10-25-zeroauthy-plan-20-signing-keys-deploy-cli.md), requested on 2026-10-25. Product implementation has not started.
 
 ## 1. Outcome and scope
 
