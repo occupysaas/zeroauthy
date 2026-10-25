@@ -6428,7 +6428,7 @@ type ServerInterface interface {
 	// (GET /api/v2/keys/signing/{kid})
 	GetSigningKey(w http.ResponseWriter, r *http.Request, kid string)
 	// RevokeSigningKey Revoke an eligible previous signing key.
-	// (PUT /api/v2/keys/signing/{kid})
+	// (PUT /api/v2/keys/signing/{kid}/revoke)
 	RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string)
 	// DeleteRefreshToken Delete a refresh token
 	// (DELETE /api/v2/refresh-tokens/{id})
@@ -6854,7 +6854,7 @@ func (_ Unimplemented) GetSigningKey(w http.ResponseWriter, r *http.Request, kid
 }
 
 // RevokeSigningKey Revoke an eligible previous signing key.
-// (PUT /api/v2/keys/signing/{kid})
+// (PUT /api/v2/keys/signing/{kid}/revoke)
 func (_ Unimplemented) RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -10372,7 +10372,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v2/keys/signing/{kid}", wrapper.GetSigningKey)
 	})
 	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/api/v2/keys/signing/{kid}", wrapper.RevokeSigningKey)
+		r.Put(options.BaseURL+"/api/v2/keys/signing/{kid}/revoke", wrapper.RevokeSigningKey)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/keys/signing/rotate", wrapper.RotateSigningKeys)

@@ -2446,6 +2446,12 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/keys/signing/{kid}/revoke:
+    parameters:
+      - name: kid
+        in: path
+        required: true
+        schema: {type: string, minLength: 1}
     put:
       operationId: RevokeSigningKey
       tags: [signing-keys]

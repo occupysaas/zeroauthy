@@ -42,6 +42,8 @@ export type JobPage = components['schemas']['JobPage']
 export type JobError = components['schemas']['JobError']
 export type UsersExportJobCreate = components['schemas']['UsersExportJobCreate']
 export type ManagementError = components['schemas']['ManagementError']
+export type ManagedSigningKey = components['schemas']['ManagedSigningKey']
+export type CustomSigningJWKS = components['schemas']['CustomSigningJWKS']
 
 export type TenantSettings = components['schemas']['TenantSettings']
 export type TenantSettingsPatch = components['schemas']['TenantSettingsPatch']
@@ -113,6 +115,27 @@ export class Api {
   }
   updateTenantSettings(t: SystemTenant, body: TenantSettingsPatch): Promise<TenantSettings> {
     return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/tenants/settings', { body })
+  }
+  listSigningKeys(t: SystemTenant): Promise<ManagedSigningKey[]> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/keys/signing')
+  }
+  getSigningKey(t: SystemTenant, kid: string): Promise<ManagedSigningKey> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/keys/signing/' + encodeURIComponent(kid))
+  }
+  rotateSigningKeys(t: SystemTenant): Promise<ManagedSigningKey> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/keys/signing/rotate')
+  }
+  revokeSigningKey(t: SystemTenant, kid: string): Promise<ManagedSigningKey> {
+    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/keys/signing/' + encodeURIComponent(kid) + '/revoke')
+  }
+  getCustomSigningKeys(t: SystemTenant): Promise<CustomSigningJWKS> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/keys/custom-signing')
+  }
+  putCustomSigningKeys(t: SystemTenant, body: CustomSigningJWKS): Promise<CustomSigningJWKS> {
+    return this.request(Api.tenantOrigin(t), 'PUT', '/api/v2/keys/custom-signing', { body })
+  }
+  deleteCustomSigningKeys(t: SystemTenant): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/keys/custom-signing')
   }
   getUserBlocks(t: SystemTenant, id: string): Promise<UserBlocks> {
     return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/user-blocks/' + encodeURIComponent(id))
