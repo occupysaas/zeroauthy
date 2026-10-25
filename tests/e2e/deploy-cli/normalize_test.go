@@ -24,6 +24,23 @@ func TestCompareRoundTrip(t *testing.T) {
 	}
 }
 
+func TestCompareClientsWithoutNameMatchByClientID(t *testing.T) {
+	client := json.RawMessage(`[{"client_id":"e2e-cli-admin","app_type":"non_interactive"}]`)
+	source := deploymigration.Export{Resources: map[string]json.RawMessage{
+		"clients":         client,
+		"resourceServers": json.RawMessage(`[{"id":"api","identifier":"https://api.test"}]`),
+		"clientGrants":    json.RawMessage(`[{"client_id":"e2e-cli-admin","audience":"api","scopes":["read"]}]`),
+	}}
+	target := deploymigration.Export{Resources: map[string]json.RawMessage{
+		"clients":         client,
+		"resourceServers": json.RawMessage(`[{"id":"api","identifier":"https://api.test"}]`),
+		"clientGrants":    json.RawMessage(`[{"client_id":"e2e-cli-admin","audience":"api","scopes":["read"]}]`),
+	}}
+	if r := Compare(source, target, testManifest(), Domains{}); !r.Equivalent {
+		t.Fatalf("same client ID without name rejected: %+v", r.Differences)
+	}
+}
+
 func TestCompareRejectsLostScope(t *testing.T) {
 	s := deploymigration.Export{Resources: map[string]json.RawMessage{"clientGrants": json.RawMessage(`[{"client_id":"c","audience":"api","scopes":["read","write"]}]`)}}
 	target := deploymigration.Export{Resources: map[string]json.RawMessage{"clientGrants": json.RawMessage(`[{"client_id":"c","audience":"api","scopes":["read"]}]`)}}

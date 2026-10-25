@@ -46,7 +46,7 @@ func Compare(source, target deploymigration.Export, manifest Manifest, domains D
 			addDiff(&r, name, "$", "resource family is not classified by the manifest")
 		}
 	}
-	clientMap := identityMap(source.Resources["clients"], target.Resources["clients"], "name", "client_id", &r, "clients")
+	clientMap := clientIdentityMap(source.Resources["clients"], target.Resources["clients"], &r)
 	apiMap := identityMap(source.Resources["resourceServers"], target.Resources["resourceServers"], "identifier", "id", &r, "resourceServers")
 	connMap := identityMap(source.Resources["connections"], target.Resources["connections"], "name", "id", &r, "connections")
 	compareFiles(source.Files, target.Files, &r)
@@ -138,6 +138,50 @@ func identityMap(srcRaw, dstRaw json.RawMessage, identity, id string, r *Report,
 		seen[k] = true
 		newIDs[now] = true
 		out[now] = old
+	}
+	return out
+}
+
+// clientIdentityMap follows deploy-cli's client matching order: stable
+// client_id first, then name for imports where IDs were generated anew.
+func clientIdentityMap(srcRaw, dstRaw json.RawMessage, r *Report) map[string]string {
+	src, _, se := decodeRows(srcRaw)
+	dst, _, de := decodeRows(dstRaw)
+	out := map[string]string{}
+	if se != nil || de != nil {
+		return out
+	}
+	byID, byName := map[string]string{}, map[string]string{}
+	for _, o := range src {
+		id, _ := o["client_id"].(string)
+		name, _ := o["name"].(string)
+		if id == "" || byID[id] != "" {
+			addDiff(r, "clients", "client_id", "missing or duplicate identity")
+			continue
+		}
+		byID[id] = id
+		if name != "" {
+			if byName[name] != "" {
+				addDiff(r, "clients", "name", "duplicate fallback identity")
+			} else {
+				byName[name] = id
+			}
+		}
+	}
+	seen := map[string]bool{}
+	for _, o := range dst {
+		id, _ := o["client_id"].(string)
+		name, _ := o["name"].(string)
+		old := byID[id]
+		if old == "" && name != "" {
+			old = byName[name]
+		}
+		if id == "" || old == "" || seen[old] {
+			addDiff(r, "clients", "client_id", "target identity has no unique source match")
+			continue
+		}
+		seen[old] = true
+		out[id] = old
 	}
 	return out
 }
@@ -285,6 +329,9 @@ func compareRecords(name string, src, dst []object, m Manifest, domains Domains,
 }
 func naturalKey(o object, f string) string {
 	v, _ := o[f].(string)
+	if v == "" && f == "name" {
+		v, _ = o["client_id"].(string)
+	}
 	if v == "" && (f == "name" && (o["friendly_name"] != nil || o["breached_password_detection"] != nil)) {
 		return "$singleton"
 	}
