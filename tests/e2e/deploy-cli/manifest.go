@@ -81,6 +81,14 @@ func ValidateManifest(m Manifest, registry []string) error {
 			return errors.New("manifest omits a registered handler")
 		}
 	}
+	allowed := map[string]string{
+		"clients.client_id": "reference-map", "clients.client_secret": "secret-bootstrap-or-omitted", "clients.created_at": "read-only", "clients.updated_at": "read-only",
+		"resourceServers.id": "reference-map", "resourceServers.client_id": "read-only", "resourceServers.is_system": "system-exclusion",
+		"clientGrants.id": "reference-map", "clientGrants.client_id": "reference-map", "clientGrants.audience": "reference-map",
+		"connections.id": "reference-map", "connections.enabled_clients[].client_id": "reference-map",
+		"databases.id": "reference-map", "databases.enabled_clients[].client_id": "reference-map",
+		"tenant.updated_at": "read-only", "tenant.default_audience": "tenant-url", "attackProtection.updated_at": "read-only",
+	}
 	for _, n := range m.Normalizations {
 		e, ok := entries[n.Resource]
 		if !ok || e.Status != "included" || n.Path == "" || n.Rule == "" || n.Reason == "" {
@@ -88,6 +96,9 @@ func ValidateManifest(m Manifest, registry []string) error {
 		}
 		if strings.Contains(n.Path, "*") || strings.HasPrefix(n.Path, ".") || strings.Contains(n.Path, "..") {
 			return errors.New("normalization path is not field-specific")
+		}
+		if allowed[n.Resource+"."+n.Path] != n.Rule {
+			return errors.New("normalization is outside its approved resource fields")
 		}
 		switch n.Rule {
 		case "reference-map", "secret-bootstrap-or-omitted", "read-only", "system-exclusion", "tenant-url":
@@ -100,7 +111,7 @@ func ValidateManifest(m Manifest, registry []string) error {
 func Exclusions(m Manifest) []string {
 	out := []string{}
 	for _, e := range m.Resources {
-		if e.Status == "excluded" {
+		if e.Status == "excluded" || e.Status == "tool-unsupported" {
 			out = append(out, e.Name)
 		}
 	}

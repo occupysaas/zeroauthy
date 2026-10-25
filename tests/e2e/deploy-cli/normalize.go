@@ -46,6 +46,8 @@ func Compare(source, target deploymigration.Export, manifest Manifest, domains D
 			addDiff(&r, name, "$", "resource family is not classified by the manifest")
 		}
 	}
+	validateReferences(source, entries, &r)
+	validateReferences(target, entries, &r)
 	clientMap := clientIdentityMap(source.Resources["clients"], target.Resources["clients"], &r)
 	apiMap := identityMap(source.Resources["resourceServers"], target.Resources["resourceServers"], "identifier", "id", &r, "resourceServers")
 	connMap := identityMap(source.Resources["connections"], target.Resources["connections"], "name", "id", &r, "connections")
@@ -113,31 +115,45 @@ func identityMap(srcRaw, dstRaw json.RawMessage, identity, id string, r *Report,
 	if e1 != nil || e2 != nil {
 		return out
 	}
-	by := map[string]string{}
-	oldIDs := map[string]bool{}
+	type itemIdentity struct{ natural, stable string }
+	byNatural, byStable := map[string]itemIdentity{}, map[string]itemIdentity{}
 	for _, v := range s {
 		k, _ := v[identity].(string)
 		old, _ := v[id].(string)
-		if k == "" || old == "" || by[k] != "" || oldIDs[old] {
+		if k == "" || byNatural[k].natural != "" {
 			addDiff(r, resource, identity, "missing or duplicate natural identity")
 			continue
 		}
-		by[k] = old
-		oldIDs[old] = true
+		entry := itemIdentity{natural: k, stable: old}
+		byNatural[k] = entry
+		if old != "" {
+			if _, duplicate := byStable[old]; duplicate {
+				addDiff(r, resource, id, "duplicate stable identity")
+				continue
+			}
+			byStable[old] = entry
+		}
 	}
 	seen := map[string]bool{}
 	newIDs := map[string]bool{}
 	for _, v := range d {
 		k, _ := v[identity].(string)
 		now, _ := v[id].(string)
-		old := by[k]
-		if old == "" || now == "" || seen[k] || newIDs[now] {
+		entry, ok := byStable[now]
+		if !ok {
+			entry, ok = byNatural[k]
+		}
+		if !ok || seen[entry.natural] || (now != "" && newIDs[now]) {
 			addDiff(r, resource, identity, "target identity has no unique source match")
 			continue
 		}
-		seen[k] = true
-		newIDs[now] = true
-		out[now] = old
+		seen[entry.natural] = true
+		if now != "" {
+			newIDs[now] = true
+			if entry.stable != "" {
+				out[now] = entry.stable
+			}
+		}
 	}
 	return out
 }
@@ -151,20 +167,31 @@ func clientIdentityMap(srcRaw, dstRaw json.RawMessage, r *Report) map[string]str
 	if se != nil || de != nil {
 		return out
 	}
-	byID, byName := map[string]string{}, map[string]string{}
+	type identity struct{ key, sourceID string }
+	byID, byName := map[string]identity{}, map[string]identity{}
 	for _, o := range src {
 		id, _ := o["client_id"].(string)
 		name, _ := o["name"].(string)
-		if id == "" || byID[id] != "" {
-			addDiff(r, "clients", "client_id", "missing or duplicate identity")
+		if id == "" && name == "" {
+			addDiff(r, "clients", "client_id", "client has no supported identity")
 			continue
 		}
-		byID[id] = id
+		sourceIdentity := identity{sourceID: id}
+		if id != "" {
+			sourceIdentity.key = "id:" + id
+			if _, duplicate := byID[id]; duplicate {
+				addDiff(r, "clients", "client_id", "duplicate stable identity")
+				continue
+			}
+			byID[id] = sourceIdentity
+		} else {
+			sourceIdentity.key = "name:" + name
+		}
 		if name != "" {
-			if byName[name] != "" {
+			if _, duplicate := byName[name]; duplicate {
 				addDiff(r, "clients", "name", "duplicate fallback identity")
 			} else {
-				byName[name] = id
+				byName[name] = sourceIdentity
 			}
 		}
 	}
@@ -172,16 +199,18 @@ func clientIdentityMap(srcRaw, dstRaw json.RawMessage, r *Report) map[string]str
 	for _, o := range dst {
 		id, _ := o["client_id"].(string)
 		name, _ := o["name"].(string)
-		old := byID[id]
-		if old == "" && name != "" {
-			old = byName[name]
+		matched, ok := byID[id]
+		if !ok && name != "" {
+			matched, ok = byName[name]
 		}
-		if id == "" || old == "" || seen[old] {
+		if !ok || seen[matched.key] {
 			addDiff(r, "clients", "client_id", "target identity has no unique source match")
 			continue
 		}
-		seen[old] = true
-		out[id] = old
+		seen[matched.key] = true
+		if id != "" && matched.sourceID != "" {
+			out[id] = matched.sourceID
+		}
 	}
 	return out
 }
@@ -198,7 +227,13 @@ func mapObjectIDs(rows []object, m map[string]string) {
 func mapEnabledClientRefs(rows []object, clients map[string]string) {
 	for _, o := range rows {
 		items, _ := o["enabled_clients"].([]any)
-		for _, item := range items {
+		for i, item := range items {
+			if id, ok := item.(string); ok {
+				if mapped := clients[id]; mapped != "" {
+					items[i] = mapped
+				}
+				continue
+			}
 			entry, _ := item.(map[string]any)
 			id, _ := entry["client_id"].(string)
 			if mapped := clients[id]; mapped != "" {
@@ -207,6 +242,68 @@ func mapEnabledClientRefs(rows []object, clients map[string]string) {
 		}
 	}
 }
+
+// Validate references independently on each side: two equally broken exports
+// must never pass merely because their dangling IDs happen to be identical.
+func validateReferences(export deploymigration.Export, entries map[string]ManifestResource, r *Report) {
+	clients := map[string]bool{}
+	rows, _, _ := decodeRows(export.Resources["clients"])
+	for _, row := range rows {
+		for _, field := range []string{"client_id", "name"} {
+			if id, ok := row[field].(string); ok && id != "" {
+				clients[id] = true
+			}
+		}
+		if raw, exists := row["client_secret"]; exists {
+			secret, ok := raw.(string)
+			upper := strings.ToUpper(secret)
+			if !ok || strings.Trim(secret, "*") == "" || strings.Contains(upper, "REDACTED") || strings.HasPrefix(upper, "YOUR_") || row["token_endpoint_auth_method"] == "none" {
+				addDiff(r, "clients", "client_secret", "invalid secret placeholder or public-client credential")
+			}
+		}
+	}
+	apis := map[string]bool{}
+	rows, _, _ = decodeRows(export.Resources["resourceServers"])
+	for _, row := range rows {
+		for _, field := range []string{"id", "identifier"} {
+			if id, ok := row[field].(string); ok && id != "" {
+				apis[id] = true
+			}
+		}
+	}
+	if entries["clientGrants"].Status == "included" {
+		rows, _, _ = decodeRows(export.Resources["clientGrants"])
+		for _, row := range rows {
+			client, _ := row["client_id"].(string)
+			audience, _ := row["audience"].(string)
+			if !clients[client] {
+				addDiff(r, "clientGrants", "client_id", "client reference is not present in export")
+			}
+			if !apis[audience] {
+				addDiff(r, "clientGrants", "audience", "API reference is not present in export")
+			}
+		}
+	}
+	for _, resource := range []string{"connections", "databases"} {
+		if entries[resource].Status != "included" {
+			continue
+		}
+		rows, _, _ = decodeRows(export.Resources[resource])
+		for _, row := range rows {
+			refs, _ := row["enabled_clients"].([]any)
+			for _, ref := range refs {
+				id, _ := ref.(string)
+				if obj, ok := ref.(map[string]any); ok {
+					id, _ = obj["client_id"].(string)
+				}
+				if !clients[id] {
+					addDiff(r, resource, "enabled_clients", "client reference is not present in export")
+				}
+			}
+		}
+	}
+}
+
 func compareFiles(source, target map[string][]byte, r *Report) {
 	all := map[string]bool{}
 	for k := range source {
@@ -263,6 +360,8 @@ func compareGrants(src, dst []object, clients, apis map[string]string, r *Report
 		}
 		delete(normalized, "id")
 		delete(s, "id")
+		sortNamedSets("clientGrants", s)
+		sortNamedSets("clientGrants", normalized)
 		if !reflect.DeepEqual(s, normalized) {
 			addDiff(r, "clientGrants", "scopes", "grant fields or scopes differ")
 		}
@@ -319,6 +418,8 @@ func compareRecords(name string, src, dst []object, m Manifest, domains Domains,
 			delete(a, "id")
 			delete(b, "id")
 		}
+		sortNamedSets(name, a)
+		sortNamedSets(name, b)
 		if !reflect.DeepEqual(a, b) {
 			addDiff(r, name, "$", "resource fields differ")
 		}
@@ -327,6 +428,27 @@ func compareRecords(name string, src, dst []object, m Manifest, domains Domains,
 		addDiff(r, name, "$", "source resources were dropped")
 	}
 }
+
+// These resource-specific arrays represent sets. Every other array keeps
+// its order, and sorting never removes duplicates or fields.
+func sortNamedSets(resource string, row object) {
+	fields := map[string][]string{
+		"clientGrants": {"scope", "scopes"}, "clients": {"grant_types"},
+		"resourceServers": {"scopes"}, "connections": {"enabled_clients"}, "databases": {"enabled_clients"},
+	}
+	for _, field := range fields[resource] {
+		values, ok := row[field].([]any)
+		if !ok {
+			continue
+		}
+		sort.SliceStable(values, func(i, j int) bool {
+			a, _ := json.Marshal(values[i])
+			b, _ := json.Marshal(values[j])
+			return string(a) < string(b)
+		})
+	}
+}
+
 func naturalKey(o object, f string) string {
 	v, _ := o[f].(string)
 	if v == "" && f == "name" {

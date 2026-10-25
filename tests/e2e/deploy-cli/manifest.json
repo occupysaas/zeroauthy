@@ -13,8 +13,8 @@
     {"name":"hooks","status":"excluded","owner":"roadmap: retired hooks shim only; execution is not implemented","reason":"Hooks execution is not implemented","fixture":null},
     {"name":"pages","status":"excluded","owner":"roadmap: hosted-page milestones","reason":"Hosted page configuration is outside Plan 20","fixture":null},
     {"name":"resourceServers","status":"included","owner":"Plan 20","reason":"Nonempty API configuration and grant relationships are required for migration comparison","fixture":"fixtures/resource-servers.json"},
-    {"name":"databases","status":"included","owner":"Plan 20","reason":"Database connection resource serialization must survive import and repeat import","fixture":"fixtures/databases.json"},
-    {"name":"connections","status":"included","owner":"Plan 20","reason":"Connection settings and enabled-client relationships are in scope","fixture":"fixtures/connections.json"},
+    {"name":"databases","status":"tool-unsupported","owner":"roadmap: Actions support","reason":"Pinned 9.1.0 unconditionally queries the unimplemented Actions API before exporting or importing database connections; synthetic parser fixtures remain covered","fixture":null},
+    {"name":"connections","status":"tool-unsupported","owner":"roadmap: external identity providers","reason":"Pinned generic connections handler filters out strategy auth0; zeroauthy currently implements only database connections","fixture":null},
     {"name":"clients","status":"included","owner":"Plan 20","reason":"Client identity, settings and credential omission are in scope","fixture":"fixtures/clients.json"},
     {"name":"tenant","status":"included","owner":"Plan 20","reason":"Tenant defaults are in scope","fixture":"fixtures/tenant.json"},
     {"name":"emailProvider","status":"excluded","owner":"roadmap: email provider milestone","reason":"Email provider secrets and delivery are outside Plan 20","fixture":null},
@@ -38,7 +38,7 @@
     {"name":"actionModules","status":"excluded","owner":"roadmap: Actions milestone","reason":"Action modules are outside Plan 20","fixture":null},
     {"name":"triggers","status":"excluded","owner":"roadmap: Actions milestone","reason":"Action triggers are outside Plan 20","fixture":null},
     {"name":"organizations","status":"excluded","owner":"roadmap: Organizations milestone","reason":"Organizations are outside Plan 20","fixture":null},
-    {"name":"attackProtection","status":"included","owner":"Plan 20","reason":"Tenant attack-protection settings are an initial nonempty family","fixture":"fixtures/attack-protection.json"},
+    {"name":"attackProtection","status":"tool-unsupported","owner":"roadmap: phone provider protection","reason":"Pinned 9.1.0 queries the unimplemented phone-provider-protection API; direct Plan 19 SDK/API coverage remains authoritative","fixture":null},
     {"name":"riskAssessment","status":"excluded","owner":"roadmap: risk assessment milestone","reason":"Risk assessment resources are outside Plan 20","fixture":null},
     {"name":"logStreams","status":"excluded","owner":"roadmap: log streams milestone","reason":"Log destinations are outside Plan 20","fixture":null},
     {"name":"customDomains","status":"excluded","owner":"Plan 23","reason":"Custom-domain provisioning and custom-key publication are deferred","fixture":null},
@@ -69,8 +69,6 @@
     {"resource":"clientGrants","path":"id","rule":"reference-map","reason":"Grant IDs may differ; client, audience and subject identity must still match"},
     {"resource":"clientGrants","path":"client_id","rule":"reference-map","reason":"Grant client references are compared after explicit client mapping"},
     {"resource":"clientGrants","path":"audience","rule":"reference-map","reason":"Grant audience is mapped only through a matched resource server identifier"},
-    {"resource":"connections","path":"enabled_clients[].client_id","rule":"reference-map","reason":"Connection enablement references destination client IDs"},
-    {"resource":"tenant","path":"updated_at","rule":"read-only","reason":"Destination update time is generated locally"},
-    {"resource":"attackProtection","path":"updated_at","rule":"read-only","reason":"Destination update time is generated locally"}
+    {"resource":"tenant","path":"updated_at","rule":"read-only","reason":"Destination update time is generated locally"}
   ]
 }

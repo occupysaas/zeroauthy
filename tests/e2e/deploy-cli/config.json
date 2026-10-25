@@ -1,0 +1,6 @@
+{
+  "AUTH0_DOMAIN": "cli.e2e.test",
+  "AUTH0_CLIENT_ID": "e2e-cli-admin",
+  "AUTH0_EXCLUDED_CLIENTS": ["E2E auth0-cli", "E2E deploy target admin"],
+  "AUTH0_ALLOW_DELETE": false
+}

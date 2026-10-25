@@ -546,7 +546,7 @@ var ignoredClientFields = []string{
 	"cross_origin_authentication", "cross_origin_auth", "cross_origin_loc",
 	"custom_login_page_on", "custom_login_page", "initiate_login_uri",
 	"native_social_login", "mobile", "organization_usage", "organization_require_behavior",
-	"is_token_endpoint_ip_header_trusted", "allowed_clients",
+	"is_token_endpoint_ip_header_trusted", "allowed_clients", "created_at", "updated_at",
 }
 
 // clientBody is what readClientBody learned beyond the Spec.

@@ -85,3 +85,36 @@ func TestLoadExportBoundaries(t *testing.T) {
 		t.Fatal("script payload was not preserved inertly")
 	}
 }
+
+func TestLoadDirectoryMapsDeployCliGrantsFolder(t *testing.T) {
+	root := t.TempDir()
+	grants := filepath.Join(root, "grants")
+	if err := os.Mkdir(grants, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(grants, "fixture.json"), []byte(`{"client_id":"app","audience":"https://api.test","scope":["read"]}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	export, err := LoadExport(root, "directory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(export.Resources["clientGrants"]); got != `[{"audience":"https://api.test","client_id":"app","scope":["read"]}]` {
+		t.Fatalf("client grant folder was not mapped: %s", got)
+	}
+}
+
+func TestLoadExportRejectsAmbiguousClientIdentities(t *testing.T) {
+	for _, clients := range []string{
+		`[{"client_id":"one","name":"App"},{"client_id":"two","name":"App"}]`,
+		`[{"client_id":"one","name":"App"},{"client_id":"one","name":"Other"}]`,
+	} {
+		file := filepath.Join(t.TempDir(), "tenant.yaml")
+		if err := os.WriteFile(file, []byte("clients: "+clients), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadExport(file, "yaml"); err == nil {
+			t.Fatal("ambiguous client identity accepted")
+		}
+	}
+}

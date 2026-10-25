@@ -41,12 +41,68 @@ func TestCompareClientsWithoutNameMatchByClientID(t *testing.T) {
 	}
 }
 
+func TestCompareClientsFallBackToNameWhenClientIDIsAbsent(t *testing.T) {
+	export := deploymigration.Export{Resources: map[string]json.RawMessage{
+		"clients":         json.RawMessage(`[{"name":"Deploy fixture","app_type":"spa"}]`),
+		"resourceServers": json.RawMessage(`[{"id":"api","name":"API","identifier":"https://api.test"}]`),
+		"clientGrants":    json.RawMessage(`[{"client_id":"Deploy fixture","audience":"api","scopes":["read"]}]`),
+	}}
+	if r := Compare(export, export, testManifest(), Domains{}); !r.Equivalent {
+		t.Fatalf("same named client without ID rejected: %+v", r.Differences)
+	}
+}
+
+func TestCompareResourceServersFallBackToIdentifierWhenIDIsAbsent(t *testing.T) {
+	export := deploymigration.Export{Resources: map[string]json.RawMessage{
+		"clients":         json.RawMessage(`[{"client_id":"client","name":"App","app_type":"spa"}]`),
+		"resourceServers": json.RawMessage(`[{"identifier":"https://api.test","name":"API"}]`),
+		"clientGrants":    json.RawMessage(`[{"client_id":"client","audience":"https://api.test","scopes":["read"]}]`),
+	}}
+	if r := Compare(export, export, testManifest(), Domains{}); !r.Equivalent {
+		t.Fatalf("same API identifier without ID rejected: %+v", r.Differences)
+	}
+}
+
+func comparisonFixture() deploymigration.Export {
+	return deploymigration.Export{Resources: map[string]json.RawMessage{
+		"clients":         json.RawMessage(`[{"client_id":"c","name":"App","app_type":"spa","callbacks":["https://a.test","https://b.test"]}]`),
+		"resourceServers": json.RawMessage(`[{"id":"api","identifier":"https://api.test"}]`),
+		"clientGrants":    json.RawMessage(`[{"client_id":"c","audience":"api","scope":["read","write"]}]`),
+	}}
+}
 func TestCompareRejectsLostScope(t *testing.T) {
-	s := deploymigration.Export{Resources: map[string]json.RawMessage{"clientGrants": json.RawMessage(`[{"client_id":"c","audience":"api","scopes":["read","write"]}]`)}}
-	target := deploymigration.Export{Resources: map[string]json.RawMessage{"clientGrants": json.RawMessage(`[{"client_id":"c","audience":"api","scopes":["read"]}]`)}}
-	r := Compare(s, target, testManifest(), Domains{})
+	source, target := comparisonFixture(), comparisonFixture()
+	if !Compare(source, target, testManifest(), Domains{}).Equivalent {
+		t.Fatal("baseline must be equivalent")
+	}
+	target.Resources["clientGrants"] = json.RawMessage(`[{"client_id":"c","audience":"api","scope":["read"]}]`)
+	r := Compare(source, target, testManifest(), Domains{})
 	if r.Equivalent {
 		t.Fatal("lost scope was normalized away")
+	}
+	for _, d := range r.Differences {
+		if d.Resource != "clientGrants" {
+			t.Fatalf("unrelated failure: %+v", d)
+		}
+	}
+}
+
+func TestCompareRejectsDataLoss(t *testing.T) {
+	for _, tc := range []struct{ name, resource, changed string }{
+		{"empty", "clients", `[]`},
+		{"duplicate name", "clients", `[{"client_id":"c","name":"App","app_type":"spa"},{"client_id":"other","name":"App","app_type":"spa"}]`},
+		{"ordered callbacks", "clients", `[{"client_id":"c","name":"App","app_type":"spa","callbacks":["https://b.test","https://a.test"]}]`},
+		{"unknown field", "clients", `[{"client_id":"c","name":"App","app_type":"spa","mystery":true}]`},
+		{"wrong grant client", "clientGrants", `[{"client_id":"another","audience":"api","scope":["read","write"]}]`},
+		{"missing grant", "clientGrants", `[]`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			source, target := comparisonFixture(), comparisonFixture()
+			target.Resources[tc.resource] = json.RawMessage(tc.changed)
+			if Compare(source, target, testManifest(), Domains{}).Equivalent {
+				t.Fatal("data loss accepted")
+			}
+		})
 	}
 }
 
@@ -74,4 +130,46 @@ func TestCompareRejectsSecretsAndUnknownFieldChanges(t *testing.T) {
 
 func testManifest() Manifest {
 	return Manifest{ToolVersion: "9.1.0", Resources: []ManifestResource{{Name: "clients", Status: "included"}, {Name: "resourceServers", Status: "included"}, {Name: "clientGrants", Status: "included"}}, Normalizations: []Normalization{{Resource: "clients", Path: "client_id", Rule: "reference-map"}, {Resource: "resourceServers", Path: "id", Rule: "reference-map"}, {Resource: "clientGrants", Path: "id", Rule: "reference-map"}, {Resource: "clientGrants", Path: "client_id", Rule: "reference-map"}, {Resource: "clientGrants", Path: "audience", Rule: "reference-map"}}}
+}
+
+func TestCompareRejectsSharedDanglingReferencesAndMaskedSecrets(t *testing.T) {
+	for _, change := range []struct{ resource, raw string }{
+		{"clientGrants", `[{"client_id":"missing","audience":"api","scope":["read"]}]`},
+		{"clientGrants", `[{"client_id":"c","audience":"missing-api","scope":["read"]}]`},
+		{"clients", `[{"client_id":"c","name":"App","app_type":"spa","client_secret":"********"}]`},
+	} {
+		source := comparisonFixture()
+		source.Resources[change.resource] = json.RawMessage(change.raw)
+		if Compare(source, source, testManifest(), Domains{}).Equivalent {
+			t.Fatalf("invalid self-comparison accepted for %s", change.resource)
+		}
+	}
+}
+func TestCompareMapsStringConnectionReferences(t *testing.T) {
+	source, target := comparisonFixture(), comparisonFixture()
+	source.Resources["connections"] = json.RawMessage(`[{"id":"old","name":"Users","enabled_clients":["c"]}]`)
+	target.Resources["clients"] = json.RawMessage(`[{"client_id":"new","name":"App","app_type":"spa","callbacks":["https://a.test","https://b.test"]}]`)
+	target.Resources["clientGrants"] = json.RawMessage(`[{"client_id":"new","audience":"api","scope":["read","write"]}]`)
+	target.Resources["connections"] = json.RawMessage(`[{"id":"new-con","name":"Users","enabled_clients":["new"]}]`)
+	m := testManifest()
+	m.Resources = append(m.Resources, ManifestResource{Name: "connections", Status: "included"})
+	if r := Compare(source, target, m, Domains{}); !r.Equivalent {
+		t.Fatalf("valid connection mapping rejected: %+v", r.Differences)
+	}
+	target.Resources["connections"] = json.RawMessage(`[{"id":"new-con","name":"Users","enabled_clients":["missing"]}]`)
+	if Compare(source, target, m, Domains{}).Equivalent {
+		t.Fatal("wrong enabled client accepted")
+	}
+}
+
+func TestCompareTreatsOnlyDeclaredScopeArraysAsSets(t *testing.T) {
+	source, target := comparisonFixture(), comparisonFixture()
+	target.Resources["clientGrants"] = json.RawMessage(`[{"client_id":"c","audience":"api","scope":["write","read"]}]`)
+	if r := Compare(source, target, testManifest(), Domains{}); !r.Equivalent {
+		t.Fatalf("reordered scope set rejected: %+v", r.Differences)
+	}
+	target.Resources["clients"] = json.RawMessage(`[{"client_id":"c","name":"App","app_type":"spa","callbacks":["https://b.test","https://a.test"]}]`)
+	if Compare(source, target, testManifest(), Domains{}).Equivalent {
+		t.Fatal("ordered callback change concealed")
+	}
 }

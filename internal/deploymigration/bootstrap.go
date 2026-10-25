@@ -26,21 +26,41 @@ type BootstrapResult struct {
 type BootstrapOptions struct{ ExcludedClientIDs []string }
 
 type exportedClient struct {
-	ClientID               string            `json:"client_id"`
-	Name                   string            `json:"name"`
-	AppType                string            `json:"app_type"`
-	AuthMethod             string            `json:"token_endpoint_auth_method"`
-	GrantTypes             []string          `json:"grant_types"`
-	Callbacks              []string          `json:"callbacks"`
-	AllowedLogoutURLs      []string          `json:"allowed_logout_urls"`
-	WebOrigins             []string          `json:"web_origins"`
-	AllowedOrigins         []string          `json:"allowed_origins"`
-	IDTokenLifetime        int               `json:"id_token_lifetime"`
-	IsFirstParty           *bool             `json:"is_first_party"`
-	ThirdPartySecurityMode string            `json:"third_party_security_mode"`
-	RedirectionPolicy      string            `json:"redirection_policy"`
-	RefreshToken           seed.RefreshToken `json:"refresh_token"`
-	RequirePAR             bool              `json:"require_pushed_authorization_requests"`
+	ClientID               string               `json:"client_id"`
+	Name                   string               `json:"name"`
+	AppType                string               `json:"app_type"`
+	AuthMethod             string               `json:"token_endpoint_auth_method"`
+	GrantTypes             []string             `json:"grant_types"`
+	Callbacks              []string             `json:"callbacks"`
+	AllowedLogoutURLs      []string             `json:"allowed_logout_urls"`
+	WebOrigins             []string             `json:"web_origins"`
+	AllowedOrigins         []string             `json:"allowed_origins"`
+	IDTokenLifetime        int                  `json:"id_token_lifetime"`
+	IsFirstParty           *bool                `json:"is_first_party"`
+	ThirdPartySecurityMode string               `json:"third_party_security_mode"`
+	RedirectionPolicy      string               `json:"redirection_policy"`
+	RefreshToken           exportedRefreshToken `json:"refresh_token"`
+	Tenant                 string               `json:"tenant"`
+	CreatedAt              string               `json:"created_at"`
+	UpdatedAt              string               `json:"updated_at"`
+	OIDCConformant         *bool                `json:"oidc_conformant"`
+	JWTConfiguration       struct {
+		Alg           string `json:"alg"`
+		Lifetime      int    `json:"lifetime_in_seconds"`
+		SecretEncoded bool   `json:"secret_encoded"`
+	} `json:"jwt_configuration"`
+	SkipConfirmation *bool `json:"skip_non_verifiable_callback_uri_confirmation_prompt"`
+	RequirePAR       bool  `json:"require_pushed_authorization_requests"`
+}
+
+type exportedRefreshToken struct {
+	RotationType              string `json:"rotation_type"`
+	ExpirationType            string `json:"expiration_type"`
+	Leeway                    int    `json:"leeway"`
+	TokenLifetime             int    `json:"token_lifetime"`
+	IdleTokenLifetime         int    `json:"idle_token_lifetime"`
+	InfiniteTokenLifetime     bool   `json:"infinite_token_lifetime"`
+	InfiniteIdleTokenLifetime bool   `json:"infinite_idle_token_lifetime"`
 }
 
 // PrepareBootstrap combines a destination's local create-only bootstrap with
@@ -90,6 +110,15 @@ func PrepareBootstrap(source Export, bootstrap *seed.File, credentials map[strin
 			continue
 		}
 		seenID[c.ClientID], seenName[c.Name] = true, true
+		if (c.OIDCConformant != nil && !*c.OIDCConformant) || (c.JWTConfiguration.Alg != "" && c.JWTConfiguration.Alg != "RS256") || c.JWTConfiguration.SecretEncoded {
+			return nil, errors.New("deploymigration: source client has unsupported token settings")
+		}
+		if c.JWTConfiguration.Lifetime != 0 {
+			if c.IDTokenLifetime != 0 && c.IDTokenLifetime != c.JWTConfiguration.Lifetime {
+				return nil, errors.New("deploymigration: conflicting ID-token lifetimes")
+			}
+			c.IDTokenLifetime = c.JWTConfiguration.Lifetime
+		}
 		pub := c.AuthMethod == store.AuthMethodNone
 		secret := credentials[c.ClientID]
 		if pub && secret != "" {
@@ -105,7 +134,7 @@ func PrepareBootstrap(source Export, bootstrap *seed.File, credentials map[strin
 			TokenEndpointAuthMethod: c.AuthMethod, GrantTypes: slices.Clone(c.GrantTypes), Callbacks: slices.Clone(c.Callbacks),
 			AllowedLogoutURLs: slices.Clone(c.AllowedLogoutURLs), WebOrigins: slices.Clone(c.WebOrigins), AllowedOrigins: slices.Clone(c.AllowedOrigins),
 			IDTokenLifetime: c.IDTokenLifetime, IsFirstParty: c.IsFirstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode,
-			RedirectionPolicy: c.RedirectionPolicy, RefreshToken: c.RefreshToken, RequirePushedAuthorizationRequests: c.RequirePAR})
+			RedirectionPolicy: c.RedirectionPolicy, RefreshToken: seed.RefreshToken{RotationType: c.RefreshToken.RotationType, ExpirationType: c.RefreshToken.ExpirationType, Leeway: c.RefreshToken.Leeway, TokenLifetime: c.RefreshToken.TokenLifetime, IdleTokenLifetime: c.RefreshToken.IdleTokenLifetime}, SkipNonVerifiableCallbackURIConfirmationPrompt: c.SkipConfirmation, RequirePushedAuthorizationRequests: c.RequirePAR})
 	}
 	for id, secret := range credentials {
 		if secret == "" || (!neededSecrets[id] && !excluded[id]) {
@@ -187,6 +216,9 @@ func CheckBootstrap(ctx context.Context, st store.Store, f *seed.File, w keys.Wr
 		if in.TokenEndpointAuthMethod != store.AuthMethodNone {
 			matched := false
 			for _, secret := range current.Secrets {
+				if secret.ExpiresAt != nil && !secret.ExpiresAt.After(time.Now()) {
+					continue
+				}
 				var got string
 				if len(secret.Sealed) > 0 {
 					got, err = keys.OpenClientSecret(w, current.TenantID, current.ClientID, secret.Sealed)

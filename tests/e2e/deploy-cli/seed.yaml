@@ -1,0 +1,94 @@
+# Isolated, non-production fixture for the Plan 20 deploy-cli harness.
+tenants:
+  - name: e2ecli
+    friendly_name: E2E deploy CLI
+    domains: [cli.e2e.test]
+    resource_servers:
+      - identifier: https://fixture.cli.e2e.test
+        name: Deploy fixture API
+        token_lifetime: 86400
+        scopes:
+          - {value: "read:fixture", description: "Read fixture data"}
+          - {value: "write:fixture", description: "Write fixture data"}
+    clients:
+      - client_id: e2e-cli-admin
+        name: E2E auth0-cli
+        app_type: non_interactive
+        client_secret: e2e-cli-admin-secret-not-for-production
+        grant_types: [client_credentials]
+      - client_id: e2e-cli-fixture
+        name: E2E deploy fixture
+        app_type: non_interactive
+        client_secret: e2e-cli-fixture-secret-not-for-production
+        grant_types: [client_credentials]
+    client_grants:
+      - client_id: e2e-cli-admin
+        audience: "https://cli.e2e.test/api/v2/"
+        scopes:
+          - read:clients
+          - create:clients
+          - update:clients
+          - delete:clients
+          - read:client_keys
+          - update:client_keys
+          - read:resource_servers
+          - create:resource_servers
+          - update:resource_servers
+          - delete:resource_servers
+          - read:client_grants
+          - create:client_grants
+          - update:client_grants
+          - delete:client_grants
+          - read:connections
+          - create:connections
+          - update:connections
+          - delete:connections
+          - read:connections_options
+          - update:connections_options
+          - read:tenant_settings
+          - update:tenant_settings
+          - read:attack_protection
+          - update:attack_protection
+          - read:anomaly_blocks
+          - delete:anomaly_blocks
+      - client_id: e2e-cli-fixture
+        audience: https://fixture.cli.e2e.test
+        scopes: [read:fixture, write:fixture]
+  - name: e2ecli-target
+    friendly_name: E2E deploy target
+    domains: [target.cli.e2e.test]
+    clients:
+      - client_id: e2e-cli-target-admin
+        name: E2E deploy target admin
+        app_type: non_interactive
+        client_secret: e2e-cli-target-admin-secret-not-for-production
+        grant_types: [client_credentials]
+    client_grants:
+      - client_id: e2e-cli-target-admin
+        audience: "https://target.cli.e2e.test/api/v2/"
+        scopes:
+          - read:client_keys
+          - read:clients
+          - create:clients
+          - update:clients
+          - delete:clients
+          - read:resource_servers
+          - create:resource_servers
+          - update:resource_servers
+          - delete:resource_servers
+          - read:client_grants
+          - create:client_grants
+          - update:client_grants
+          - delete:client_grants
+          - read:connections
+          - create:connections
+          - update:connections
+          - delete:connections
+          - read:connections_options
+          - update:connections_options
+          - read:tenant_settings
+          - update:tenant_settings
+          - read:attack_protection
+          - update:attack_protection
+          - read:anomaly_blocks
+          - delete:anomaly_blocks

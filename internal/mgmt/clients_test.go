@@ -231,7 +231,8 @@ func TestCreateClientRefusals(t *testing.T) {
 	// auth0-cli's apps create sends them.
 	out := e.mustCreate(t, map[string]any{"name": "cli", "description": "", "client_metadata": map[string]any{},
 		"oidc_conformant": true, "jwt_configuration": map[string]any{"alg": "RS256"}, "app_type": "spa",
-		"grant_types": []string{"implicit", "authorization_code", "refresh_token"}, "token_endpoint_auth_method": "none"})
+		"grant_types": []string{"implicit", "authorization_code", "refresh_token"}, "token_endpoint_auth_method": "none",
+		"created_at": "2026-10-20T12:00:00Z", "updated_at": "2026-10-21T12:00:00Z"})
 	if out["description"] != nil || !slices.Contains(strs(out["grant_types"]), "implicit") {
 		t.Fatalf("cli create = %v", out)
 	}

@@ -128,6 +128,27 @@ func LoadExport(path, format string) (Export, error) {
 	default:
 		return Export{}, errors.New("deploymigration: format must be yaml or directory")
 	}
+	if raw := out.Resources["clients"]; len(raw) > 0 {
+		var rows []struct {
+			ID   string `json:"client_id"`
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal(raw, &rows); err != nil {
+			return Export{}, errors.New("deploymigration: client collection must be an array")
+		}
+		ids, names := map[string]bool{}, map[string]bool{}
+		for _, row := range rows {
+			if (row.ID == "" && row.Name == "") || (row.ID != "" && ids[row.ID]) || (row.Name != "" && names[row.Name]) {
+				return Export{}, errors.New("deploymigration: client identities are missing or ambiguous")
+			}
+			if row.ID != "" {
+				ids[row.ID] = true
+			}
+			if row.Name != "" {
+				names[row.Name] = true
+			}
+		}
+	}
 	return out, nil
 }
 
@@ -206,6 +227,10 @@ func resourceName(path string) string {
 	case "resourceservers", "resource-servers", "resource_servers":
 		return "resourceServers"
 	case "clientgrants", "client-grants", "client_grants":
+		return "clientGrants"
+	case "grants":
+		// auth0-deploy-cli 9.1.0 stores client grants under grants/ in
+		// directory exports, although the Management API family is clientGrants.
 		return "clientGrants"
 	case "connections", "connection":
 		return "connections"

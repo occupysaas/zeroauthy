@@ -83,3 +83,24 @@ func TestCLIRegistryValidation(t *testing.T) {
 		t.Fatalf("exclusions: %s", b)
 	}
 }
+
+func TestManifestToolUnsupportedIsExplicitlyExcluded(t *testing.T) {
+	m := Manifest{Resources: []ManifestResource{{Name: "databases", Status: "tool-unsupported"}}}
+	if got := Exclusions(m); len(got) != 1 || got[0] != "databases" {
+		t.Fatalf("unavailable handler would be invoked: %v", got)
+	}
+}
+func TestManifestRejectsUnownedFieldNormalization(t *testing.T) {
+	m, err := LoadManifest("manifest.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, r := range m.Resources {
+		names = append(names, r.Name)
+	}
+	m.Normalizations = append(m.Normalizations, Normalization{Resource: "clients", Path: "name", Rule: "read-only", Reason: "would conceal changed application identity"})
+	if ValidateManifest(m, names) == nil {
+		t.Fatal("client identity could be discarded by unapproved normalization")
+	}
+}
