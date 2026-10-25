@@ -1,0 +1,8 @@
+clients:
+  - client_id: script-client
+    name: Script fixture
+    app_type: spa
+    token_endpoint_auth_method: none
+    grant_types: [authorization_code]
+custom_database_scripts:
+  login: file://scripts/login.js

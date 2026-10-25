@@ -1,0 +1,1 @@
+[{"id":"api-1","name":"Example API","identifier":"https://api.example.test","scopes":[{"value":"read:items","description":"Read items"}]}]

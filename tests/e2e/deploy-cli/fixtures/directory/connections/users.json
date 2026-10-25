@@ -1,0 +1,1 @@
+{"id":"con-1","name":"users","strategy":"auth0","enabled_clients":[{"client_id":"client-1"}]}

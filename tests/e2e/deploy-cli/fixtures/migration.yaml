@@ -1,0 +1,29 @@
+clients:
+  - client_id: client-1
+    name: Example SPA
+    app_type: spa
+    token_endpoint_auth_method: none
+    grant_types: [authorization_code]
+resourceServers:
+  - id: api-1
+    name: Example API
+    identifier: https://api.example.test
+    scopes: [{value: read:items, description: Read items}]
+clientGrants:
+  - id: grant-1
+    client_id: client-1
+    audience: api-1
+    scopes: [read:items]
+connections:
+  - id: con-1
+    name: users
+    strategy: auth0
+    enabled_clients: [{client_id: client-1}]
+databases:
+  - name: users
+    strategy: auth0
+    enabled_clients: [client-1]
+tenant:
+  friendly_name: Migration fixture
+attackProtection:
+  breached_password_detection: {shields: [block]}

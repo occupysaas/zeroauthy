@@ -46,8 +46,26 @@ func TestLoadExportBoundaries(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "configs", "client.json"), []byte(`{"x":1}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LoadExport(local, "yaml"); err != nil {
+	loaded, err := LoadExport(local, "yaml")
+	if err != nil {
 		t.Fatalf("safe relative reference rejected: %v", err)
+	}
+	if string(loaded.Files["configs/client.json"]) != `{"x":1}` {
+		t.Fatal("referenced file was not hashed as input data")
+	}
+	outside := filepath.Join(t.TempDir(), "outside.json")
+	if err := os.WriteFile(outside, []byte(`{}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(dir, "configs", "escape.json")); err != nil {
+		t.Fatal(err)
+	}
+	escape := filepath.Join(dir, "escape.yaml")
+	if err := os.WriteFile(escape, []byte("clients:\n  - client_id: a\n    config_file: file://configs/escape.json\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadExport(escape, "yaml"); err == nil {
+		t.Fatal("symlink escape reference accepted")
 	}
 
 	// Script payloads are retained as bytes and are never evaluated.

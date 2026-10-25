@@ -33,7 +33,7 @@ func LoadExport(path, format string) (Export, error) {
 		if err != nil {
 			return Export{}, errors.New("deploymigration: invalid YAML export")
 		}
-		if err := checkExportReferences(v, filepath.Dir(path)); err != nil {
+		if err := checkExportReferences(v, filepath.Dir(path), out.Files); err != nil {
 			return Export{}, err
 		}
 		root, ok := v.(map[string]any)
@@ -95,7 +95,7 @@ func LoadExport(path, format string) (Export, error) {
 					return errors.New("deploymigration: invalid YAML resource")
 				}
 			}
-			if err := checkExportReferences(value, root); err != nil {
+			if err := checkExportReferences(value, root, out.Files); err != nil {
 				return err
 			}
 			name := resourceName(rel)
@@ -131,7 +131,7 @@ func LoadExport(path, format string) (Export, error) {
 	return out, nil
 }
 
-func checkExportReferences(value any, root string) error {
+func checkExportReferences(value any, root string, files map[string][]byte) error {
 	var visit func(any, string) error
 	visit = func(v any, key string) error {
 		switch x := v.(type) {
@@ -173,6 +173,19 @@ func checkExportReferences(value any, root string) error {
 				if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 					return errors.New("deploymigration: file reference escapes export root")
 				}
+				cur := base
+				for _, part := range strings.Split(rel, string(filepath.Separator)) {
+					cur = filepath.Join(cur, part)
+					info, statErr := os.Lstat(cur)
+					if statErr != nil || info.Mode()&os.ModeSymlink != 0 {
+						return errors.New("deploymigration: referenced file is unavailable or unsafe")
+					}
+				}
+				b, readErr := os.ReadFile(target)
+				if readErr != nil {
+					return errors.New("deploymigration: referenced file is unreadable")
+				}
+				files[filepath.ToSlash(clean)] = b
 			}
 		}
 		return nil
