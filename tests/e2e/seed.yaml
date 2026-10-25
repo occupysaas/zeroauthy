@@ -159,6 +159,7 @@ tenants:
                  "create:user_tickets", "read:grants", "delete:grants", "read:sessions", "delete:sessions",
                  "read:refresh_tokens", "delete:refresh_tokens",
                  "read:tenant_settings", "update:tenant_settings", "read:attack_protection", "update:attack_protection",
+                 "read:signing_keys", "create:signing_keys", "update:signing_keys", "read:rules", "read:hooks",
                  "read:anomaly_blocks", "delete:anomaly_blocks"]
       - client_id: e2e-m2m
         audience: https://api.e2e.local
@@ -264,4 +265,4 @@ tenants:
                  "read:connections_options", "update:connections_options",
                  "read:users", "create:users", "update:users", "delete:users", "read:users_app_metadata", "update:users_app_metadata",
                  "read:tenant_settings", "update:tenant_settings", "read:attack_protection", "update:attack_protection",
-                 "read:anomaly_blocks", "delete:anomaly_blocks"]
+                 "read:anomaly_blocks", "delete:anomaly_blocks", "read:signing_keys", "create:signing_keys", "update:signing_keys", "read:rules", "read:hooks"]

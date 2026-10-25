@@ -1,0 +1,100 @@
+import { test, expect } from '@playwright/test';
+import { generateKeyPairSync, X509Certificate } from 'node:crypto';
+import { ManagementClient } from 'auth0';
+
+test('operator rotates and revokes a tenant signing key and sees custom-key limits', async ({ page }) => {
+  test.setTimeout(60_000);
+  const setup = process.env.E2E_ADMIN_SETUP_URL_M20;
+  test.skip(!setup, 'Use run-m20-signing.sh to create the local operator');
+  await page.goto(setup);
+  await page.fill('#password', 'Operator-Password-2026');
+  await page.fill('#password_confirm', 'Operator-Password-2026');
+  await page.click('button[type=submit]');
+  await expect(page.locator('h1')).toHaveText('Password changed');
+  await page.goto('https://system.localhost:8443/admin/');
+  await page.waitForURL(/\/u\/login/);
+  await page.fill('#username', 'operator-m20@e2e.local');
+  await page.fill('#password', 'Operator-Password-2026');
+  await page.click('button[type=submit]');
+  await page.waitForURL(/\/admin\/t\/e2e\/$/);
+  let management = new ManagementClient({ domain: 'localhost:8443', clientId: 'e2e-m17-admin', clientSecret: 'e2e-m17-admin-secret-not-for-production' });
+  const sdkKeys = await management.keys.signing.list();
+  expect(sdkKeys.some(key => key.current)).toBe(true);
+  await management.keys.signing.get(sdkKeys.find(key => key.current).kid);
+  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Tenant settings', exact: true }).click();
+  await page.getByRole('tab', { name: 'Signing keys', exact: true }).click();
+  await expect(page.getByRole('table')).toContainText('Current');
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Rotate keys' }).click();
+  const previous = page.getByRole('row').filter({ hasText: sdkKeys.find(key => key.current).kid });
+  await expect(previous).toContainText('Previous');
+  expect((await management.keys.signing.list()).some(key => key.current && key.kid !== sdkKeys.find(key => key.current).kid)).toBe(true);
+  page.once('dialog', dialog => dialog.accept());
+  await previous.getByRole('button', { name: 'Revoke previous key' }).click();
+  await expect(previous).toContainText('Revoked');
+  // The SDK cached a token signed by the key just revoked. Recover through
+  // client credentials before making another administrative request.
+  management = new ManagementClient({ domain: 'localhost:8443', clientId: 'e2e-m17-admin', clientSecret: 'e2e-m17-admin-secret-not-for-production' });
+  // Commit the next rotation, then drop its response. The UI must refresh
+  // authoritative state and send exactly one mutation.
+  const currentBeforeDrop = (await management.keys.signing.list()).find(key => key.current).kid;
+  let rotations = 0;
+  await page.route('**/api/v2/keys/signing/rotate', async route => {
+    rotations++;
+    const response = await route.fetch();
+    expect(response.status()).toBe(201);
+    await route.abort('failed');
+  });
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Rotate keys' }).click();
+  await expect(page.getByRole('row').filter({ hasText: currentBeforeDrop })).toContainText('Previous');
+  await expect(page.getByRole('button', { name: 'Rotate keys' })).toBeEnabled();
+  expect(rotations).toBe(1);
+  await page.unroute('**/api/v2/keys/signing/rotate');
+  const publicRow = page.getByRole('row').filter({ hasText: 'Current' }).filter({ has: page.locator('td') });
+  const downloadEvent = page.waitForEvent('download');
+  await publicRow.getByRole('button', { name: 'Download certificate' }).click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toMatch(/\.pem$/);
+  const stream = await download.createReadStream();
+  const chunks = []; for await (const chunk of stream) chunks.push(chunk);
+  const certificate = new X509Certificate(Buffer.concat(chunks));
+  expect(certificate.publicKey.asymmetricKeyType).toBe('rsa');
+  await page.getByRole('tab', { name: 'Custom signing keys' }).click();
+  await expect(page.getByText(/Custom public keys are stored only/)).toBeVisible();
+  await expect(page.getByText(/do not sign tokens/)).toBeVisible();
+  const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const jwk = { ...publicKey.export({ format: 'jwk' }), kid: 'custom-m20', use: 'sig', alg: 'RS256' };
+  await page.locator('#custom-signing-jwks').fill(JSON.stringify({ keys: [jwk] }, null, 2));
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Replace keys' }).click();
+  await expect(page.locator('#custom-signing-jwks')).toHaveValue(/custom-m20/);
+  await expect.poll(async () => (await management.keys.customSigning.get()).keys[0].kid).toBe('custom-m20');
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Delete keys' }).click();
+  await expect(page.locator('#custom-signing-jwks')).not.toHaveValue(/custom-m20/);
+  await page.getByRole('tab', { name: 'Signing keys', exact: true }).click();
+  // Exercise a real read-only scoped credential through the browser request
+  // path, retaining the UI's existing operator session for navigation.
+  const readerToken = await fetch('https://localhost:8443/oauth/token', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ grant_type: 'client_credentials', client_id: 'e2e-m17-admin', client_secret: 'e2e-m17-admin-secret-not-for-production', audience: 'https://localhost:8443/api/v2/', scope: 'read:signing_keys' }) }).then(r => r.json());
+  await page.route('**/api/v2/keys/signing/rotate', route => route.continue({ headers: { ...route.request().headers(), authorization: `Bearer ${readerToken.access_token}` } }));
+  const beforeDenied = (await management.keys.signing.list()).find(key => key.current).kid;
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Rotate keys' }).click();
+  await expect(page.getByRole('alert')).toContainText(/scope|permission|Forbidden/i);
+  expect((await management.keys.signing.list()).find(key => key.current).kid).toBe(beforeDenied);
+  await page.unroute('**/api/v2/keys/signing/rotate');
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route('https://localhost:8443/api/v2/keys/signing', async route => { const response = await route.fetch(); await gate; await route.fulfill({ response }); });
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+  await page.getByRole('button', { name: 'Switch tenant' }).click();
+  await page.getByRole('menuitem', { name: /^system/ }).click();
+  release();
+  await page.waitForURL(/\/admin\/t\/system\/$/);
+  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Tenant settings', exact: true }).click();
+  await page.getByRole('tab', { name: 'Signing keys', exact: true }).click();
+  await expect(page.getByText('Signing key changes are unavailable for the reserved system tenant.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Rotate keys' })).toBeDisabled();
+  await expect(page.getByRole('table')).toHaveCount(0);
+});

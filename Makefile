@@ -1,4 +1,4 @@
-.PHONY: build test test-sql lint generate check-sources e2e conformance console
+.PHONY: build test test-sql lint generate check-sources e2e e2e-deploy e2e-signing conformance console
 
 build:
 	CGO_ENABLED=0 go build -trimpath -o bin/zeroauthy ./cmd/zeroauthy
@@ -23,6 +23,12 @@ check-sources:
 e2e:
 	./tests/e2e/run-m3.sh
 	./tests/e2e/run-browser.sh
+
+e2e-deploy:
+	./tests/e2e/run-m20-deploy.sh
+
+e2e-signing:
+	./tests/e2e/run-m20-signing.sh
 
 conformance:
 	./tests/conformance/run.sh $(PLANS)

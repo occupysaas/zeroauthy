@@ -154,6 +154,12 @@ if [[ $status -eq 0 && "${E2E_M19_HARNESS:-0}" == 1 ]]; then
   export E2E_ADMIN_SETUP_URL_M19
 fi
 
+if [[ $status -eq 0 && "${E2E_M20_HARNESS:-0}" == 1 ]]; then
+  E2E_ADMIN_SETUP_URL_M20="$(cd ../.. && "$work/zeroauthy" admin create --email operator-m20@e2e.local --config tests/e2e/config.yaml | grep '^https://')" || status=$?
+  export E2E_ADMIN_SETUP_URL_M20
+  NODE_EXTRA_CA_CERTS="$work/cert.pem" node m20-node-auth0.mjs || status=$?
+fi
+
 # run_fg CMD...: like start, but waits for it, so a signal to this script runs
 # the trap at once (and kills the group) instead of after the command ends.
 run_fg() {
@@ -168,7 +174,7 @@ if [[ $status -eq 0 ]]; then
     run_fg "$runtime" run --rm --network host --ipc host \
       -v "$PWD:/e2e" -v "$work:$work:ro" -v "$work/mail:$work/mail" -w /e2e \
       -e NODE_EXTRA_CA_CERTS="$work/cert.pem" -e E2E_MAIL_DIR="$work/mail" \
-      -e PLAYWRIGHT_FORCE_ASYNC_LOADER=1 -e E2E_ADMIN_SETUP_URL_M18 -e E2E_ADMIN_SETUP_URL_M19 -e E2E_M19_HARNESS \
+      -e PLAYWRIGHT_FORCE_ASYNC_LOADER=1 -e E2E_ADMIN_SETUP_URL_M18 -e E2E_ADMIN_SETUP_URL_M19 -e E2E_ADMIN_SETUP_URL_M20 -e E2E_M19_HARNESS -e E2E_M20_HARNESS \
       mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test "$@" || status=$?
   else
     # m10-device's client (auth0.net) is built once here and run per test with

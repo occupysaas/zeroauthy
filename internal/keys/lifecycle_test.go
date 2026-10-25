@@ -95,3 +95,5 @@ func TestSigningTrustExcludesCustomKeys(t *testing.T) {
 		t.Fatalf("custom forged token accepted: %v", err)
 	}
 }
+
+func TestM20CustomKeyForgery(t *testing.T) { TestSigningTrustExcludesCustomKeys(t) }

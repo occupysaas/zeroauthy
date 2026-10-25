@@ -1,7 +1,11 @@
 package grpcstore
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"net"
 	"path/filepath"
 	"testing"
@@ -70,4 +74,65 @@ func TestConformance(t *testing.T) {
 
 func TestConformanceSQLite(t *testing.T) {
 	storetest.Run(t, func(t *testing.T) store.Store { return inProcessSQLite(t) })
+}
+
+// These assertions run against SQL savepoints behind real gRPC transaction
+// handles. A callback failure must undo rotation, revocation and custom writes.
+func TestSigningLifecycleSQLiteRollback(t *testing.T) {
+	ctx := context.Background()
+	st := inProcessSQLite(t)
+	defer st.Close()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "rollback", Name: "rollback"}); err != nil {
+		t.Fatal(err)
+	}
+	w, err := keys.NewLocalWrapper(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	km := keys.NewManager(st.SigningKeys(), w)
+	if err = km.Ensure(ctx, "rollback"); err != nil {
+		t.Fatal(err)
+	}
+	before, err := st.SigningKeys().List(ctx, "rollback")
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := json.Marshal(before)
+	if err != nil {
+		t.Fatal(err)
+	}
+	aborted := errors.New("injected rollback")
+	err = st.WithTx(ctx, func(tx store.Store) error {
+		m := keys.NewManager(tx.SigningKeys(), w)
+		if _, err := m.RotateWithResult(ctx, "rollback"); err != nil {
+			return err
+		}
+		if _, err := m.Revoke(ctx, "rollback", before[0].KID); err != nil {
+			return err
+		}
+		if err := tx.CustomSigningKeys().Replace(ctx, &store.CustomSigningKeySet{TenantID: "rollback", JWKS: json.RawMessage(`{"keys":[{"kid":"custom-rollback","kty":"RSA","n":"abc","e":"AQAB"}]}`)}); err != nil {
+			return err
+		}
+		return aborted
+	})
+	if !errors.Is(err, aborted) {
+		t.Fatalf("callback error=%v", err)
+	}
+	after, err := st.SigningKeys().List(ctx, "rollback")
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := json.Marshal(after)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(snapshot, actual) {
+		t.Fatal("aborted gRPC SQL transaction leaked managed key state")
+	}
+	if _, err = st.CustomSigningKeys().Get(ctx, "rollback"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("aborted custom set=%v", err)
+	}
+	if _, err = km.RotateWithResult(ctx, "rollback"); err != nil {
+		t.Fatalf("rotation after rollback=%v", err)
+	}
 }
