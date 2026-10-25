@@ -11,6 +11,13 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Rationale:**
 -->
 
+## D-0047: Email provider and template contracts
+
+- **Context:** Public email documentation and the pinned Management SDK define routes, names and some provider credential families, while runtime behavior and some lifecycle details are not observable in this execution.
+- **Sources:** Auth0 Management API email/provider and email-template references; Auth0 `auth0` npm SDK 7.4.0; details and evidence classes are in `observations/management-email.md` and `internal/emailrules/inventory.json`.
+- **Decision:** Implement the eight documented Management operations and nine executable provider names, while keeping `custom` disabled until Actions exists. Keep credentials write-only and envelope-encrypted. Store all fourteen SDK template names; only `reset_email` drives reset-link delivery, with legacy names separate. Treat absent live evidence as unavailable and use the inventory's explicitly labeled local fallbacks.
+- **Rationale:** This follows documented routes and resource shape without claiming that local security and lifecycle choices were observed upstream.
+
 ## D-0001: Access tokens carry `jti`
 
 - **Context:** Public Auth0 docs list the standard access token claims but do not say whether a token ID is included.

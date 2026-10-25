@@ -45,11 +45,11 @@ Tasks 1–2 freeze the contract and renderer feasibility; Tasks 3–5 implement 
 
 **Interfaces:** Produces the exact endpoint/provider/template/variable/settings inventory consumed by Tasks 2, 6 and 8. `inventory.json` records source URL and evidence class for every group; raw credentials and tenant identifiers are prohibited.
 
-- [ ] Read the linked public API references and changelog; inspect the already pinned node-auth0/deploy-cli types under their licenses. Verify the eight operation routes, scopes and statuses. Record all fourteen names including `auth_email_by_code`; correct the roadmap collection POST path.
-- [ ] Freeze create/replace/patch/null/unknown-field/error behavior, redacted credential metadata, provider settings, zero/null lifetime, legacy aliases and template defaults. Use the spec's named local fallbacks where docs are silent; record upstream observations as unavailable unless a separate authorized observer supplies notes.
-- [ ] For every provider, record the vendor's official send/auth documentation, URL construction, required credential/settings fields, TLS/regions and success/error meanings. Resolve Azure/MS365 credential variants here, not by guesswork in adapter code. Record SDK method signatures and import/export resource names.
-- [ ] Write `TestEmailInventoryComplete`: assert 8 operations, 14 template names, 9 executable provider names plus disabled-only `custom`, nonempty sources and evidence classes, and no duplicate route/method or schema field. Run `go test ./internal/emailrules -run TestEmailInventoryComplete -count=1`; demonstrate failure before loading the completed inventory, then PASS.
-- [ ] Commit `docs: freeze Plan 21 email compatibility contract` with inventory and corrected spec. Do not label documentation review as live observation.
+- [x] Read the linked public API references and changelog; inspect the already pinned node-auth0/deploy-cli types under their licenses. Verify the eight operation routes, scopes and statuses. Record all fourteen names including `auth_email_by_code`; the roadmap collection POST path was already correct.
+- [x] Freeze create/replace/patch/null/unknown-field/error behavior, redacted credential metadata, provider settings, zero/null lifetime, legacy aliases and template defaults. Use the spec's named local fallbacks where docs are silent; record upstream observations as unavailable unless a separate authorized observer supplies notes.
+- [x] For every provider, record the vendor's official send/auth documentation, URL construction, required credential/settings fields, TLS/regions and success/error meanings. Resolve Azure/MS365 credential variants here, not by guesswork in adapter code. Record SDK method signatures and import/export resource names.
+- [x] Write `TestEmailInventoryComplete`: assert 8 operations, 14 template names, 9 executable provider names plus disabled-only `custom`, nonempty sources and evidence classes, and no duplicate route/method or schema field. Run `go test ./internal/emailrules -run TestEmailInventoryComplete -count=1`; demonstrate failure before loading the completed inventory, then PASS.
+- [x] Commit `docs: freeze Plan 21 email compatibility contract` with inventory. Do not label documentation review as live observation.
 
 ## Task 2: Prove and implement bounded Liquid rendering
 

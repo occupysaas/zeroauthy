@@ -1,0 +1,52 @@
+{
+  "evidence": {
+    "public_docs": "https://auth0.com/docs/api/management/v2/emails/post-provider",
+    "template_docs": "https://auth0.com/docs/api/management/v2/email-templates/post-email-templates",
+    "template_update_docs": "https://auth0.com/docs/api/management/v2/email-templates/patch-email-templates-by-template-name",
+    "template_liquid_docs": "https://auth0.com/docs/customize/email/email-templates/supported-liquid-syntax",
+    "provider_overview": "https://auth0.com/docs/customize/email/smtp-email-providers",
+    "sdk": "auth0 npm 7.4.0, MIT, tests/e2e/node_modules/auth0/dist/cjs/management/api/resources/{emails,emailTemplates} and api/types/types.d.ts",
+    "upstream_observation": "unavailable; no separate authorized observer report was supplied"
+  },
+  "operations": [
+    {"method":"GET","route":"/api/v2/emails/provider","scope":"read:email_provider","status":200,"sdk":"emails.provider.get","source":"public_docs+sdk"},
+    {"method":"POST","route":"/api/v2/emails/provider","scope":"create:email_provider","status":201,"sdk":"emails.provider.create","source":"public_docs+sdk"},
+    {"method":"PATCH","route":"/api/v2/emails/provider","scope":"update:email_provider","status":200,"sdk":"emails.provider.update","source":"public_docs+sdk"},
+    {"method":"DELETE","route":"/api/v2/emails/provider","scope":"delete:email_provider","status":204,"sdk":"emails.provider.delete","source":"public_docs+sdk"},
+    {"method":"POST","route":"/api/v2/email-templates","scope":"create:email_templates","status":200,"sdk":"emailTemplates.create","source":"public_docs+sdk"},
+    {"method":"GET","route":"/api/v2/email-templates/{templateName}","scope":"read:email_templates","status":200,"sdk":"emailTemplates.get","source":"public_docs+sdk"},
+    {"method":"PUT","route":"/api/v2/email-templates/{templateName}","scope":"update:email_templates","status":200,"sdk":"emailTemplates.set","source":"public_docs+sdk"},
+    {"method":"PATCH","route":"/api/v2/email-templates/{templateName}","scope":"update:email_templates","status":200,"sdk":"emailTemplates.update","source":"public_docs+sdk"}
+  ],
+  "providers": [
+    {"name":"smtp","executable":true,"credentials":["smtp_host","smtp_port","smtp_user","smtp_pass"],"settings":["headers"],"source":"sdk+local_security_policy","protocol":"SMTP with verified TLS; local outbound policy","vendor_doc":"https://www.rfc-editor.org/rfc/rfc8314.html"},
+    {"name":"sendgrid","executable":true,"credentials":["api_key"],"settings":[],"source":"sdk+vendor_docs","endpoint":"https://api.sendgrid.com/v3/mail/send","vendor_doc":"https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send"},
+    {"name":"mailgun","executable":true,"credentials":["api_key","domain"],"optional":["region=eu|null"],"settings":[],"source":"sdk+vendor_docs","endpoint":"https://api.mailgun.net/v3/{domain}/messages; EU https://api.eu.mailgun.net/v3/{domain}/messages","vendor_doc":"https://documentation.mailgun.com/docs/mailgun/api-reference/openapi-final/tag/Messages/"},
+    {"name":"mandrill","executable":true,"credentials":["api_key"],"settings":[],"source":"sdk+vendor_docs","endpoint":"https://mandrillapp.com/api/1.0/messages/send.json","vendor_doc":"https://mailchimp.com/developer/transactional/api/messages/send-new-message/"},
+    {"name":"sparkpost","executable":true,"credentials":["api_key"],"optional":["region=eu|null"],"settings":[],"source":"sdk+vendor_docs","endpoint":"https://api.sparkpost.com/api/v1/transmissions; EU https://api.eu.sparkpost.com/api/v1/transmissions","vendor_doc":"https://developers.sparkpost.com/api/transmissions/"},
+    {"name":"ses","executable":true,"credentials":["accessKeyId","secretAccessKey","region"],"settings":["message.configuration_set_name"],"source":"sdk+AWS_docs","protocol":"SES HTTPS SendEmail with SigV4","vendor_doc":"https://docs.aws.amazon.com/ses/latest/APIReference/API_SendEmail.html"},
+    {"name":"azure_cs","executable":true,"credentials":["connectionString"],"settings":[],"source":"sdk+Azure_docs","protocol":"Azure Communication Services Email send","vendor_doc":"https://learn.microsoft.com/azure/communication-services/quickstarts/email/send-email"},
+    {"name":"ms365","executable":true,"credentials":["tenantId","clientId","clientSecret"],"settings":[],"source":"sdk+Microsoft_docs","protocol":"client-credentials OAuth then Graph sendMail","vendor_doc":"https://learn.microsoft.com/graph/api/user-sendmail?view=graph-rest-1.0"},
+    {"name":"resend","executable":true,"credentials":["api_key"],"settings":[],"source":"vendor_docs","endpoint":"https://api.resend.com/emails","vendor_doc":"https://resend.com/docs/api-reference/emails/send-email"},
+    {"name":"custom","executable":false,"enabled_only":false,"credentials":[],"settings":[],"source":"local_decision","reason":"Stored for compatibility; Actions execution is not implemented"}
+  ],
+  "templates": ["verify_email","verify_email_by_code","auth_email_by_code","reset_email","reset_email_by_code","welcome_email","blocked_account","stolen_credentials","enrollment_email","mfa_oob_code","user_invitation","async_approval","change_password","password_reset"],
+  "template_fields": ["template","body","from","subject","syntax","enabled","resultUrl","urlLifetimeInSeconds","includeEmailInRedirect"],
+  "template_rules": {
+    "syntax": "liquid only",
+    "create": "POST collection creates; conflict if already configured (local fallback)",
+    "put": "named PUT replaces or creates; required values supplied and omitted optional values reset to defaults (local fallback)",
+    "patch": "named PATCH updates supplied non-null fields; explicit false and zero are values; field-specific null behavior; unknown fields rejected (local fallback)",
+    "identity": "path templateName is authoritative and body cannot change it",
+    "get_absent": 404,
+    "template_delete": "not exposed",
+    "lifetime": "null or zero uses existing flow default; positive seconds capped at 604800 (local security fallback)",
+    "aliases": "reset_email active; change_password and password_reset independently stored; no implicit alias/double dispatch"
+  },
+  "credential_redaction": "Provider credentials are write-only; public projections expose only allowlisted nonsecret configuration and never secret presence or values. Secrets are envelope encrypted with tenant/provider bound AAD.",
+  "normalizations": [
+    {"path":"provider.region","rule":"Mailgun and SparkPost accept eu or null only","source":"sdk types/docs"},
+    {"path":"settings","rule":"allow only provider-specific implemented settings; SMTP headers and SES configuration_set_name only","source":"sdk docs/local policy"}
+  ],
+  "changelog_review": {"reviewed_through":"2026-10-25","result":"No newer email provider/template compatibility change found in public changelog pages checked; live tenant behavior was not observed."}
+}
