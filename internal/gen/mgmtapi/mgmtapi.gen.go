@@ -2991,6 +2991,7 @@ type EmailTemplatePatch struct {
 	ResultUrl              *string                   `json:"resultUrl,omitempty"`
 	Subject                *string                   `json:"subject,omitempty"`
 	Syntax                 *EmailTemplatePatchSyntax `json:"syntax,omitempty"`
+	Template               *string                   `json:"template,omitempty"`
 	UrlLifetimeInSeconds   *int64                    `json:"urlLifetimeInSeconds,omitempty"`
 }
 

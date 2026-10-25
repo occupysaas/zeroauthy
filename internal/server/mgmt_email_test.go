@@ -41,6 +41,9 @@ func TestManagementEmailProviderAndTemplateAPIs(t *testing.T) {
 	if status, body := c.do(h, "PATCH", base, admin, map[string]any{"enabled": false}); status != http.StatusOK || strings.Contains(string(body), secret) {
 		t.Fatalf("patch provider leaked or failed: %d %s", status, body)
 	}
+	if status, body := c.do(h, "PATCH", base, admin, map[string]any{"credentials": map[string]any{"api_key": "##SENDGRID_API_KEY##"}}); status != http.StatusOK || strings.Contains(string(body), "##SENDGRID_API_KEY##") {
+		t.Fatalf("deploy credential placeholder patch: %d %s", status, body)
+	}
 	if status, body := c.do(h, "PATCH", base, admin, map[string]any{"credentials": map[string]any{"api_key": ""}}); status != http.StatusBadRequest || strings.Contains(string(body), secret) {
 		t.Fatalf("blank credential patch: %d %s", status, body)
 	}
@@ -59,6 +62,9 @@ func TestManagementEmailProviderAndTemplateAPIs(t *testing.T) {
 	if status, _ := c.do(h, "DELETE", base, admin, nil); status != http.StatusNoContent {
 		t.Fatalf("delete custom provider: %d", status)
 	}
+	if status, _ := c.do(h, "POST", base, admin, map[string]any{"name": "sendgrid", "enabled": true, "credentials": map[string]any{"api_key": "##SENDGRID_API_KEY##"}}); status != http.StatusBadRequest {
+		t.Fatalf("placeholder cannot configure a new provider: %d", status)
+	}
 
 	templates := "https://acme.example.test/api/v2/email-templates"
 	body := map[string]any{"template": "verify_email", "body": "<p>Hello {{ user.email | escape }}</p>", "subject": "Verify", "enabled": true}
@@ -71,6 +77,12 @@ func TestManagementEmailProviderAndTemplateAPIs(t *testing.T) {
 	item := templates + "/verify_email"
 	if status, raw := c.do(h, "GET", item, admin, nil); status != http.StatusOK {
 		t.Fatalf("get template: %d %s", status, raw)
+	}
+	if status, raw := c.do(h, "PATCH", item, admin, map[string]any{"template": "verify_email", "subject": "SDK update"}); status != http.StatusOK {
+		t.Fatalf("SDK patch with matching template identity: %d %s", status, raw)
+	}
+	if status, _ := c.do(h, "PATCH", item, admin, map[string]any{"template": "reset_email"}); status != http.StatusBadRequest {
+		t.Fatalf("mismatched template identity: %d", status)
 	}
 	if status, raw := c.do(h, "PATCH", item, admin, map[string]any{"enabled": false, "from": nil}); status != http.StatusOK {
 		t.Fatalf("patch template: %d %s", status, raw)

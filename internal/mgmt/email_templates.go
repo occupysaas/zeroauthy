@@ -101,9 +101,12 @@ func (h *Handlers) PatchEmailTemplate(w http.ResponseWriter, r *http.Request, na
 		Fail(w, err)
 		return
 	}
-	if _, ok := raw["template"]; ok {
-		Fail(w, emailInvalid())
-		return
+	if bodyName, ok := raw["template"]; ok {
+		var requested string
+		if json.Unmarshal(bodyName, &requested) != nil || requested != name {
+			Fail(w, emailInvalid())
+			return
+		}
 	}
 	if emailrules.ValidateTemplate(raw, true) != nil {
 		Fail(w, emailInvalid())

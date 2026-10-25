@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/emailrules"
@@ -172,6 +173,16 @@ func (h *Handlers) writeProvider(r *http.Request, tenantID string, current *stor
 			return nil, store.ErrInvalid
 		}
 		for k, val := range incoming {
+			// auth0-deploy-cli emits ##NAME## placeholders for provider
+			// credentials in public exports. They identify private values that
+			// must be configured separately, so they must never replace a
+			// destination's already configured credential.
+			if placeholder, ok := val.(string); ok && isEmailCredentialPlaceholder(placeholder) {
+				if _, configured := creds[k]; !configured {
+					return nil, store.ErrInvalid
+				}
+				continue
+			}
 			if val == nil {
 				delete(creds, k)
 			} else {
@@ -236,6 +247,10 @@ func (h *Handlers) writeProvider(r *http.Request, tenantID string, current *stor
 		return nil, err
 	}
 	return h.Store.EmailProviders().Get(r.Context(), tenantID)
+}
+
+func isEmailCredentialPlaceholder(value string) bool {
+	return strings.HasPrefix(value, "##") && strings.HasSuffix(value, "##") && len(value) > 4 && !strings.ContainsAny(value[2:len(value)-2], "#\r\n")
 }
 
 func (h *Handlers) emailWriteError(w http.ResponseWriter, r *http.Request, what string, err error) {

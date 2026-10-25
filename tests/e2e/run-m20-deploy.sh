@@ -48,8 +48,12 @@ stop_server() {
   kill -TERM -- "-$server_pid"
   wait "$server_pid" || true
 }
-for mode in generated preserved; do
-  for format in yaml directory; do
+modes=(generated preserved)
+formats=(yaml directory)
+if [[ -n "${E2E_M20_ONLY_MODE:-}" ]]; then modes=("$E2E_M20_ONLY_MODE"); fi
+if [[ -n "${E2E_M20_ONLY_FORMAT:-}" ]]; then formats=("$E2E_M20_ONLY_FORMAT"); fi
+for mode in "${modes[@]}"; do
+  for format in "${formats[@]}"; do
     export E2E_M20_MODE="$mode" E2E_M20_FORMAT="$format"
     export E2E_M20_WORK="$work/$mode-$format"
     mkdir -m 700 "$E2E_M20_WORK"

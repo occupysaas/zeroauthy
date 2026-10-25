@@ -372,7 +372,7 @@ func compareGrants(src, dst []object, clients, apis map[string]string, r *Report
 	}
 }
 func compareRecords(name string, src, dst []object, m Manifest, domains Domains, r *Report) {
-	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name"}[name]
+	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template"}[name]
 	by := map[string]object{}
 	for _, o := range src {
 		k := naturalKey(o, keyField)

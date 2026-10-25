@@ -1612,6 +1612,7 @@ export interface components {
             includeEmailInRedirect?: boolean | null;
         };
         EmailTemplatePatch: {
+            template?: string;
             body?: string | null;
             from?: string | null;
             subject?: string | null;

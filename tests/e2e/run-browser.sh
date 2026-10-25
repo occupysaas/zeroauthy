@@ -61,9 +61,19 @@ wait_for() {
 }
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost,DNS:system.localhost" \
+  -addext "subjectAltName=DNS:localhost,DNS:system.localhost,DNS:secondary.localhost,IP:127.0.0.1" \
   -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
 chmod 644 "$work/key.pem"
+
+if [[ "${E2E_M21_HARNESS:-0}" == 1 ]]; then
+  export SSL_CERT_FILE="$work/cert.pem"
+  CGO_ENABLED=0 go build -o "$work/email-server" ./tests/e2e/email-server
+  E2E_SMTP_CERT="$work/cert.pem" E2E_SMTP_KEY="$work/key.pem" \
+    start "$work/email-server" >"$work/email-server.log" 2>&1
+  smtp_pid=$started
+  export E2E_EMAIL_SINK_URL=http://127.0.0.1:2527
+  wait_for "$E2E_EMAIL_SINK_URL/messages" "$smtp_pid"
+fi
 
 if curl -sf -H "Authorization: Bearer e2e-legacy-token" http://127.0.0.1:8099/stats >/dev/null; then
   echo "port 8099 is already in use by another legacy store" >&2
@@ -160,6 +170,12 @@ if [[ $status -eq 0 && "${E2E_M20_HARNESS:-0}" == 1 ]]; then
   NODE_EXTRA_CA_CERTS="$work/cert.pem" node m20-node-auth0.mjs || status=$?
 fi
 
+if [[ $status -eq 0 && "${E2E_M21_HARNESS:-0}" == 1 ]]; then
+  E2E_ADMIN_SETUP_URL_M21="$(cd ../.. && "$work/zeroauthy" admin create --email operator-m21@e2e.local --config tests/e2e/config.yaml | grep '^https://')" || status=$?
+  export E2E_ADMIN_SETUP_URL_M21
+  if [[ $status -eq 0 ]]; then NODE_EXTRA_CA_CERTS="$work/cert.pem" node m21-node-auth0.mjs || status=$?; fi
+fi
+
 # run_fg CMD...: like start, but waits for it, so a signal to this script runs
 # the trap at once (and kills the group) instead of after the command ends.
 run_fg() {
@@ -174,7 +190,7 @@ if [[ $status -eq 0 ]]; then
     run_fg "$runtime" run --rm --network host --ipc host \
       -v "$PWD:/e2e" -v "$work:$work:ro" -v "$work/mail:$work/mail" -w /e2e \
       -e NODE_EXTRA_CA_CERTS="$work/cert.pem" -e E2E_MAIL_DIR="$work/mail" \
-      -e PLAYWRIGHT_FORCE_ASYNC_LOADER=1 -e E2E_ADMIN_SETUP_URL_M18 -e E2E_ADMIN_SETUP_URL_M19 -e E2E_ADMIN_SETUP_URL_M20 -e E2E_M19_HARNESS -e E2E_M20_HARNESS \
+      -e PLAYWRIGHT_FORCE_ASYNC_LOADER=1 -e E2E_ADMIN_SETUP_URL_M18 -e E2E_ADMIN_SETUP_URL_M19 -e E2E_ADMIN_SETUP_URL_M20 -e E2E_ADMIN_SETUP_URL_M21 -e E2E_EMAIL_SINK_URL -e E2E_M19_HARNESS -e E2E_M20_HARNESS -e E2E_M21_HARNESS \
       mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test "$@" || status=$?
   else
     # m10-device's client (auth0.net) is built once here and run per test with

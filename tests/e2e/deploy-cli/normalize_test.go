@@ -24,6 +24,29 @@ func TestCompareRoundTrip(t *testing.T) {
 	}
 }
 
+func TestCompareEmailResourcesStrictly(t *testing.T) {
+	source := comparisonFixture()
+	target := comparisonFixture()
+	source.Resources["emailProvider"] = json.RawMessage(`{"name":"smtp","enabled":true,"default_from_address":"mail@example.test"}`)
+	target.Resources["emailProvider"] = json.RawMessage(`{"name":"smtp","enabled":true,"default_from_address":"mail@example.test"}`)
+	source.Resources["emailTemplates"] = json.RawMessage(`[{"template":"verify_email","enabled":true,"subject":"Verify","body":"Hello"}]`)
+	target.Resources["emailTemplates"] = json.RawMessage(`[{"template":"verify_email","enabled":true,"subject":"Verify","body":"Hello"}]`)
+	m := testManifest()
+	m.Resources = append(m.Resources, ManifestResource{Name: "emailProvider", Status: "included"}, ManifestResource{Name: "emailTemplates", Status: "included"})
+	if !Compare(source, target, m, Domains{}).Equivalent {
+		t.Fatal("equal email resources differ")
+	}
+	target.Resources["emailProvider"] = json.RawMessage(`{"name":"smtp","enabled":false,"default_from_address":"mail@example.test"}`)
+	if Compare(source, target, m, Domains{}).Equivalent {
+		t.Fatal("changed provider setting was normalized away")
+	}
+	target.Resources["emailProvider"] = source.Resources["emailProvider"]
+	target.Resources["emailTemplates"] = json.RawMessage(`[{"template":"verify_email","enabled":true,"subject":"Different","body":"Hello"}]`)
+	if Compare(source, target, m, Domains{}).Equivalent {
+		t.Fatal("changed template was normalized away")
+	}
+}
+
 func TestCompareClientsWithoutNameMatchByClientID(t *testing.T) {
 	client := json.RawMessage(`[{"client_id":"e2e-cli-admin","app_type":"non_interactive"}]`)
 	source := deploymigration.Export{Resources: map[string]json.RawMessage{

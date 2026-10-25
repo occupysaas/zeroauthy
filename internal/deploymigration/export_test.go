@@ -104,6 +104,36 @@ func TestLoadDirectoryMapsDeployCliGrantsFolder(t *testing.T) {
 	}
 }
 
+func TestLoadDirectoryMapsEmailProviderAndTemplates(t *testing.T) {
+	root := t.TempDir()
+	for name, content := range map[string]string{
+		"emails/provider.json":     `{"name":"smtp","enabled":false,"default_from_address":"mail@example.test"}`,
+		"emails/verify_email.json": `{"template":"verify_email","enabled":true,"subject":"Verify","body":"Hello"}`,
+		"emails/verify_email.html": `Hello`,
+	} {
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	export, err := LoadExport(root, "directory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(export.Resources["emailProvider"]); got != `[{"default_from_address":"mail@example.test","enabled":false,"name":"smtp"}]` {
+		t.Fatalf("provider mapping = %s", got)
+	}
+	if got := string(export.Resources["emailTemplates"]); got != `[{"body":"Hello","enabled":true,"subject":"Verify","template":"verify_email"}]` {
+		t.Fatalf("template mapping = %s", got)
+	}
+	if got := string(export.Files["emails/verify_email.html"]); got != "Hello" {
+		t.Fatalf("template HTML export file = %q", got)
+	}
+}
+
 func TestLoadExportRejectsAmbiguousClientIdentities(t *testing.T) {
 	for _, clients := range []string{
 		`[{"client_id":"one","name":"App"},{"client_id":"two","name":"App"}]`,

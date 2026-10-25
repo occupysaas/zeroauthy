@@ -1,0 +1,1 @@
+{"template":"verify_email","enabled":true,"subject":"Deploy verify","body":"<p>Verify {{ user.email | escape }}</p>"}

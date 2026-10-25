@@ -2813,6 +2813,7 @@ components:
       type: object
       additionalProperties: false
       properties:
+        template: {type: string}
         body: {type: string, nullable: true}
         from: {type: string, nullable: true}
         subject: {type: string, nullable: true}

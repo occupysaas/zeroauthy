@@ -1,0 +1,1 @@
+{"name":"sendgrid","enabled":true,"default_from_address":"deploy@example.test","settings":{"region":"us"}}

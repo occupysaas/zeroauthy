@@ -218,6 +218,12 @@ func resourceName(path string) string {
 	parts := strings.Split(filepath.ToSlash(path), "/")
 	base := strings.TrimSuffix(parts[len(parts)-1], filepath.Ext(parts[len(parts)-1]))
 	candidate := parts[0]
+	if len(parts) > 1 && strings.EqualFold(parts[0], "emails") {
+		if strings.EqualFold(base, "provider") {
+			return "emailProvider"
+		}
+		return "emailTemplates"
+	}
 	if len(parts) == 1 {
 		candidate = base
 	}
@@ -240,6 +246,10 @@ func resourceName(path string) string {
 		return "tenant"
 	case "attackprotection", "attack-protection", "attack_protection":
 		return "attackProtection"
+	case "emailprovider", "email-provider", "email_provider":
+		return "emailProvider"
+	case "emailtemplates", "email-templates", "email_templates":
+		return "emailTemplates"
 	default:
 		return ""
 	}

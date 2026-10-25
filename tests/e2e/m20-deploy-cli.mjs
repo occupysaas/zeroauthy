@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import https from 'node:https';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +14,7 @@ const mode = process.env.E2E_M20_MODE;
 assert.ok(['yaml', 'directory'].includes(format));
 assert.ok(['generated', 'preserved'].includes(mode));
 const secrets = ['e2e-cli-admin-secret-not-for-production', 'e2e-cli-target-admin-secret-not-for-production', 'e2e-cli-fixture-secret-not-for-production'];
+const emailSecret = 'm21-deploy-private-provider-secret';
 const sourceConfig = { ...JSON.parse(await readFile(process.env.E2E_M20_CONFIG, 'utf8')), AUTH0_CLIENT_SECRET: secrets[0], AUTH0_EXPORT_IDENTIFIERS: false };
 const targetConfig = { ...sourceConfig, AUTH0_DOMAIN: 'target.cli.e2e.test', AUTH0_CLIENT_ID: 'e2e-cli-target-admin', AUTH0_CLIENT_SECRET: secrets[1] };
 const bin = path.join(e2e, 'node_modules/.bin/a0deploy');
@@ -53,6 +54,14 @@ async function exportTo(config, name) {
   deploy('export', config, folder);
   return format === 'yaml' ? path.join(folder, 'tenant.yaml') : folder;
 }
+async function assertNoEmailSecrets(exportPath) {
+  const files = format === 'yaml'
+    ? [await readFile(exportPath, 'utf8')]
+    : await Promise.all((await readdir(exportPath, { recursive: true })).map(name => readFile(path.join(exportPath, name), 'utf8').catch(() => '')));
+  const joined = files.join('\n');
+  assert.equal(joined.includes(emailSecret), false, 'public deploy export contains provider credential');
+  assert.equal(joined.includes('********'), false, 'public deploy export contains a credential mask');
+}
 function request(config, method, route, body, token) {
   return new Promise((resolve, reject) => {
     const req = https.request({ hostname: '127.0.0.1', port: 8443, servername: config.AUTH0_DOMAIN, path: route, method, headers: { host: config.AUTH0_DOMAIN, 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) } }, res => {
@@ -89,10 +98,18 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   const registryPath = path.join(work, 'registry.json'); await writeFile(registryPath, JSON.stringify([...new Set(names)].sort()));
   assert.equal(comparator(['validate-manifest', '--registry', registryPath, '--manifest', 'tests/e2e/deploy-cli/manifest.json']).status, 0);
   await inventory(sourceConfig);
+  // Provider credentials are written from this isolated test process only.
+  // They are never placed in a checked-in seed or recovered by GET/export.
+  await api(sourceConfig, 'POST', 'emails/provider', { name: 'sendgrid', enabled: true, default_from_address: 'deploy@example.test', credentials: { api_key: emailSecret } });
+  await api(sourceConfig, 'POST', 'email-templates', { template: 'verify_email', enabled: true, subject: 'Deploy verify', body: '<p>Verify {{ user.email | escape }}</p>' });
+  const publicProvider = await api(sourceConfig, 'GET', 'emails/provider');
+  assert.equal(JSON.stringify(publicProvider).includes(emailSecret), false, 'provider read returned its private credential');
+  assert.equal(JSON.stringify(publicProvider).includes('********'), false, 'provider read returned a credential mask');
   const collision = await api(sourceConfig, 'POST', 'resource-servers', { name: 'Auth0 Management API', identifier: 'https://collision.cli.e2e.test' });
   await inventory(sourceConfig, true);
   await api(sourceConfig, 'DELETE', `resource-servers/${collision.id}`);
-  await exportTo('source', 'source-export');
+  const sourcePublicExport = await exportTo('source', 'source-export');
+  await assertNoEmailSecrets(sourcePublicExport);
   if (mode === 'preserved') {
     await writeFile(path.join(work, 'source.json'), JSON.stringify({ ...sourceConfig, AUTH0_EXPORT_IDENTIFIERS: true }), { mode: 0o600 });
     const bootstrapExport = await exportTo('source', 'bootstrap-export');
@@ -111,11 +128,20 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   process.exit(0);
 }
 const baseline = checkedCompare(sourcePath, sourcePath);
-assert.equal(baseline.equivalent, true); assert.ok(baseline.counts.every(row => row.source > 0));
+assert.equal(baseline.equivalent, true, JSON.stringify(baseline)); assert.ok(baseline.counts.every(row => row.source > 0));
 const exportClients = async config => (await api(config, 'GET', 'clients')).filter(c => c.name === 'E2E deploy fixture');
 const original = (await exportClients(sourceConfig))[0];
 const toolBefore = await api(targetConfig, 'GET', `clients/${targetConfig.AUTH0_CLIENT_ID}`);
+// This target-side private configuration is the explicit reinjection point.
+// The subsequent CLI import omits credentials and its PATCH must preserve it.
+  await api(targetConfig, 'POST', 'emails/provider', { name: 'sendgrid', enabled: false, default_from_address: 'target-before-import@example.test', credentials: { api_key: emailSecret } });
+assertPrivateEmailCredential();
 deploy('import', 'target', sourcePath);
+function assertPrivateEmailCredential() {
+  const result = spawnSync('go', ['test', './tests/e2e/deploy-cli', '-run', '^TestE2EPrivateEmailProviderCredentialAfterImport$', '-count=1'], { cwd: root, encoding: 'utf8', env: { ...process.env, E2E_EMAIL_PRIVATE_SECRET: emailSecret } });
+  assert.equal(result.status, 0, `private email credential did not survive import: ${(result.stdout + result.stderr).replaceAll(emailSecret, '[redacted]')}`);
+}
+assertPrivateEmailCredential();
 let targetPath = await exportTo('target', 'target-first');
 assert.equal(checkedCompare(sourcePath, targetPath).equivalent, true, 'first round trip differs');
 const imported = (await exportClients(targetConfig))[0];
@@ -141,6 +167,17 @@ const grant = grants.find(g => g.client_id === original.client_id);
 await api(sourceConfig, 'PATCH', `client-grants/${grant.id}`, { scope: ['read:fixture'] });
 const updated = await exportTo('source', 'source-updated');
 assert.equal(checkedCompare(updated, targetPath).equivalent, false, 'negative scope/setting change escaped comparator');
+await api(sourceConfig, 'PATCH', 'emails/provider', { enabled: false });
+await api(sourceConfig, 'PATCH', 'email-templates/verify_email', { subject: 'Changed deploy verify' });
+const changedEmail = await exportTo('source', 'source-email-updated');
+assert.equal(checkedCompare(changedEmail, targetPath).equivalent, false, 'negative provider/template change escaped comparator');
+deploy('import', 'target', changedEmail);
+assertPrivateEmailCredential();
+targetPath = await exportTo('target', 'target-email-updated');
+assert.equal(checkedCompare(changedEmail, targetPath).equivalent, true, 'email resource update differs');
+const targetProvider = await api(targetConfig, 'GET', 'emails/provider');
+assert.equal(JSON.stringify(targetProvider).includes(emailSecret), false, 'target provider read returned its private credential');
+assert.equal(JSON.stringify(targetProvider).includes('********'), false, 'target provider read returned a credential mask');
 deploy('import', 'target', updated);
 targetPath = await exportTo('target', 'target-updated');
 const report = checkedCompare(updated, targetPath);
