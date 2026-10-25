@@ -126,7 +126,9 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 ### Plan 21 — Email provider and email templates
 
-**Endpoints:** `GET/POST/PATCH/DELETE /api/v2/emails/provider`; `GET/POST/PUT/PATCH /api/v2/email-templates/{templateName}` for every documented template name (`verify_email`, `verify_email_by_code`, `reset_email`, `reset_email_by_code`, `welcome_email`, `blocked_account`, `stolen_credentials`, `enrollment_email`, `mfa_oob_code`, `user_invitation`, `change_password`, `password_reset`, `async_approval` and any added since).
+**Planning documents (2026-10-25):** [standalone spec](2026-10-25-zeroauthy-email-provider-templates-design.md) and [implementation plan](../plans/2026-10-25-zeroauthy-plan-21-email-provider-templates.md). Proposed; implementation has not started. These documents preserve global mailer fallback and existing OIDC/ticket behavior, and distinguish active delivery from stored-only future workflows.
+
+**Endpoints:** `GET/POST/PATCH/DELETE /api/v2/emails/provider`; `POST /api/v2/email-templates` and `GET/PUT/PATCH /api/v2/email-templates/{templateName}` for every documented template name (`verify_email`, `verify_email_by_code`, `auth_email_by_code`, `reset_email`, `reset_email_by_code`, `welcome_email`, `blocked_account`, `stolen_credentials`, `enrollment_email`, `mfa_oob_code`, `user_invitation`, `change_password`, `password_reset`, `async_approval` and any added since).
 
 **Runtime:**
 - Provider per tenant, replacing the global SMTP config as the default: `smtp` and the HTTP providers zeroauthy can implement without vendor SDKs (`sendgrid`, `mailgun`, `mandrill`, `sparkpost`, `ses`, `azure_cs`, `ms365`, `resend` as Auth0 lists them at build time), and Auth0's `custom` provider (an Action) once Plan 27 lands. The server-wide SMTP setting stays as the fallback, so self-hosters need no per-tenant setup.
