@@ -14,7 +14,7 @@ import (
 )
 
 // Message is one email. Text is required; HTML is optional.
-type Message struct{ To, Subject, Text, HTML string }
+type Message struct{ From, To, Subject, Text, HTML string }
 
 type Mailer interface {
 	Send(ctx context.Context, m Message) error

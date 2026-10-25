@@ -11,6 +11,7 @@ import (
 	"net/mail"
 	"net/smtp"
 	"net/textproto"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ type smtpTransport struct {
 	host       string
 	port       int
 	user, pass string
+	headers    map[string]string
 }
 
 func (t *smtpTransport) Send(ctx context.Context, m Message) error {
@@ -85,7 +87,7 @@ func (t *smtpTransport) Send(ctx context.Context, m Message) error {
 	if err != nil {
 		return errors.New("email provider: SMTP message rejected")
 	}
-	content := buildMIME(m)
+	content := buildMIME(m, t.headers)
 	if _, err = w.Write([]byte(content)); err != nil {
 		return errors.New("email provider: SMTP message write failed")
 	}
@@ -97,12 +99,28 @@ func (t *smtpTransport) Send(ctx context.Context, m Message) error {
 	}
 	return nil
 }
-func buildMIME(m Message) string {
+func buildMIME(m Message, custom map[string]string) string {
 	var body bytes.Buffer
 	mw := multipart.NewWriter(&body)
 	boundary := mw.Boundary()
 	var out strings.Builder
 	out.WriteString("From: " + m.From + "\r\nTo: " + m.To + "\r\nSubject: " + strings.ReplaceAll(m.Subject, "\r", "") + "\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=\"" + boundary + "\"\r\n\r\n")
+	keys := make([]string, 0, len(custom))
+	for key := range custom {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	if len(keys) > 0 {
+		headerIndex := strings.Index(out.String(), "\r\n\r\n")
+		prefix := out.String()[:headerIndex]
+		suffix := out.String()[headerIndex:]
+		out.Reset()
+		out.WriteString(prefix)
+		for _, key := range keys {
+			out.WriteString(textproto.CanonicalMIMEHeaderKey(key) + ": " + custom[key] + "\r\n")
+		}
+		out.WriteString(suffix)
+	}
 	for _, part := range []struct{ typ, text string }{{"text/plain", m.Text}, {"text/html", m.HTML}} {
 		header := textproto.MIMEHeader{}
 		header.Set("Content-Type", part.typ+"; charset=utf-8")
@@ -115,4 +133,30 @@ func buildMIME(m Message) string {
 	_ = mw.Close()
 	out.Write(body.Bytes())
 	return out.String()
+}
+
+func normalizeSMTPHeaders(value any) (map[string]string, error) {
+	if value == nil {
+		return nil, nil
+	}
+	raw, ok := value.(map[string]any)
+	if !ok {
+		return nil, errors.New("email provider: SMTP headers must be an object")
+	}
+	out := make(map[string]string, len(raw))
+	reserved := map[string]bool{"from": true, "to": true, "subject": true, "cc": true, "bcc": true, "reply-to": true, "content-type": true, "content-transfer-encoding": true, "mime-version": true, "received": true, "return-path": true, "dkim-signature": true, "authentication-results": true}
+	for key, v := range raw {
+		text, ok := v.(string)
+		lower := strings.ToLower(key)
+		if !ok || key == "" || reserved[lower] || strings.ContainsAny(text, "\r\n") || len(text) > 998 {
+			return nil, errors.New("email provider: invalid SMTP header")
+		}
+		for _, r := range key {
+			if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("!#$%&'*+-.^_`|~", r)) {
+				return nil, errors.New("email provider: invalid SMTP header")
+			}
+		}
+		out[key] = text
+	}
+	return out, nil
 }

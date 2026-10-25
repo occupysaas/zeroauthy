@@ -14,11 +14,17 @@ import (
 
 // build renders m as an RFC 5322 message with a multipart/alternative body.
 func build(from string, m Message, now time.Time) ([]byte, error) {
-	if strings.ContainsAny(m.To+m.Subject, "\r\n") {
+	if m.From != "" {
+		from = m.From
+	}
+	if err := validateMessage(from, m); err != nil {
 		return nil, ErrHeaderInjection
 	}
-	if a, err := mail.ParseAddress(m.To); err != nil || a.Name != "" || a.Address != m.To {
-		return nil, ErrHeaderInjection
+	addr, _ := mail.ParseAddress(from)
+	if addr.Name != "" {
+		from = addr.String()
+	} else {
+		from = addr.Address
 	}
 	boundary := "za-" + secrets.RandomString(24)
 	var b bytes.Buffer

@@ -41,6 +41,22 @@ func TestProviderProtocols(t *testing.T) {
 	}
 }
 
+func TestSMTPHeaderSettings(t *testing.T) {
+	headers, err := normalizeSMTPHeaders(map[string]any{"X-Trace-ID": "tenant-123", "List-Unsubscribe": "<mailto:unsubscribe@example.test>"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw := buildMIME(Message{From: "a@example.test", To: "b@example.test", Subject: "Hi", Text: "body"}, headers)
+	if !strings.Contains(raw, "X-Trace-Id: tenant-123\r\n") || !strings.Contains(raw, "List-Unsubscribe: <mailto:unsubscribe@example.test>\r\n") {
+		t.Fatalf("custom SMTP headers missing: %s", raw)
+	}
+	for _, bad := range []any{map[string]any{"X-Test": "ok\r\nBcc:evil@example.test"}, map[string]any{"From": "attacker@example.test"}, map[string]any{"bad header": "x"}, "not-an-object"} {
+		if _, err := normalizeSMTPHeaders(bad); err == nil {
+			t.Errorf("unsafe SMTP headers accepted: %#v", bad)
+		}
+	}
+}
+
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }

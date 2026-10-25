@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"net"
+	"net/mail"
 	"net/smtp"
 	"strconv"
 	"time"
@@ -52,7 +53,15 @@ func (s *smtpMailer) Send(ctx context.Context, m Message) error {
 			return err
 		}
 	}
-	if err := c.Mail(s.envelope); err != nil {
+	envelope := s.envelope
+	if m.From != "" {
+		addr, e := mail.ParseAddress(m.From)
+		if e != nil {
+			return ErrHeaderInjection
+		}
+		envelope = addr.Address
+	}
+	if err := c.Mail(envelope); err != nil {
 		return err
 	}
 	if err := c.Rcpt(m.To); err != nil {

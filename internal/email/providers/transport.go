@@ -61,9 +61,13 @@ func (f *Factory) New(ctx context.Context, tenantID string, revision int64, cfg 
 	}
 	switch cfg.Name {
 	case "smtp":
-		host := str(cfg.Credentials, "smtp_host")
+		host := providerValue(cfg, "smtp_host")
 		port := 587
-		if raw, ok := cfg.Credentials["smtp_port"]; ok {
+		raw, ok := cfg.Credentials["smtp_port"]
+		if !ok {
+			raw, ok = cfg.Settings["smtp_port"]
+		}
+		if ok {
 			var valid bool
 			port, valid = integerExact(raw)
 			if !valid {
@@ -73,16 +77,20 @@ func (f *Factory) New(ctx context.Context, tenantID string, revision int64, cfg 
 		if host == "" || port < 1 || port > 65535 {
 			return nil, errors.New("email provider: invalid SMTP settings")
 		}
-		return &smtpTransport{f: f, host: host, port: port, user: str(cfg.Credentials, "smtp_user"), pass: str(cfg.Credentials, "smtp_pass")}, nil
+		headers, err := normalizeSMTPHeaders(cfg.Settings["headers"])
+		if err != nil {
+			return nil, err
+		}
+		return &smtpTransport{f: f, host: host, port: port, user: providerValue(cfg, "smtp_user"), pass: str(cfg.Credentials, "smtp_pass"), headers: headers}, nil
 	case "sendgrid":
 		return httpTransport(f, cfg.Name, str(cfg.Credentials, "api_key"), "https://api.sendgrid.com/v3/mail/send", nil)
 	case "mailgun":
-		domain := str(cfg.Credentials, "domain")
+		domain := providerValue(cfg, "domain")
 		if !validDomain(domain) {
 			return nil, errors.New("email provider: invalid Mailgun domain")
 		}
 		base := "https://api.mailgun.net"
-		region := str(cfg.Credentials, "region")
+		region := providerValue(cfg, "region")
 		if region != "" && !strings.EqualFold(region, "eu") {
 			return nil, errors.New("email provider: invalid Mailgun region")
 		}
@@ -94,7 +102,7 @@ func (f *Factory) New(ctx context.Context, tenantID string, revision int64, cfg 
 		return httpTransport(f, cfg.Name, str(cfg.Credentials, "api_key"), "https://mandrillapp.com/api/1.0/messages/send.json", nil)
 	case "sparkpost":
 		base := "https://api.sparkpost.com"
-		region := str(cfg.Credentials, "region")
+		region := providerValue(cfg, "region")
 		if region != "" && !strings.EqualFold(region, "eu") {
 			return nil, errors.New("email provider: invalid SparkPost region")
 		}
@@ -105,10 +113,10 @@ func (f *Factory) New(ctx context.Context, tenantID string, revision int64, cfg 
 	case "resend":
 		return httpTransport(f, cfg.Name, str(cfg.Credentials, "api_key"), "https://api.resend.com/emails", nil)
 	case "ses":
-		if str(cfg.Credentials, "accessKeyId") == "" || str(cfg.Credentials, "secretAccessKey") == "" || !validRegion(str(cfg.Credentials, "region")) {
+		if str(cfg.Credentials, "accessKeyId") == "" || str(cfg.Credentials, "secretAccessKey") == "" || !validRegion(providerValue(cfg, "region")) {
 			return nil, errors.New("email provider: invalid SES credentials or region")
 		}
-		return &sesTransport{f: f, access: str(cfg.Credentials, "accessKeyId"), secret: str(cfg.Credentials, "secretAccessKey"), region: str(cfg.Credentials, "region"), configurationSet: str(cfg.Settings, "configuration_set_name")}, nil
+		return &sesTransport{f: f, access: str(cfg.Credentials, "accessKeyId"), secret: str(cfg.Credentials, "secretAccessKey"), region: providerValue(cfg, "region"), configurationSet: str(cfg.Settings, "configuration_set_name")}, nil
 	case "azure_cs":
 		endpoint, key, err := parseAzureConnectionString(str(cfg.Credentials, "connectionString"))
 		if err != nil {
@@ -126,6 +134,12 @@ func (f *Factory) New(ctx context.Context, tenantID string, revision int64, cfg 
 	default:
 		return nil, errors.New("email provider: unsupported provider")
 	}
+}
+func providerValue(c Config, key string) string {
+	if v := str(c.Credentials, key); v != "" {
+		return v
+	}
+	return str(c.Settings, key)
 }
 
 func httpTransport(f *Factory, name, key, endpoint string, extra map[string]string) (Transport, error) {
