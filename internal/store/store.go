@@ -55,6 +55,9 @@ type Store interface {
 	EmailVerificationTickets() EmailVerificationTickets
 	Operators() Operators
 	Jobs() Jobs
+	EmailProviders() EmailProviders
+	EmailTemplates() EmailTemplates
+	EmailNotifications() EmailNotifications
 	// WithTx runs fn against a transactional view of the store. If fn
 	// returns an error, none of its writes persist. Drivers serialize
 	// transactions; the memory driver also serializes them with writes made

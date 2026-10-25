@@ -103,11 +103,11 @@ type EmailNotifications interface {
 
 Encryption signatures: `keys.SealEmailProvider(w Wrapper, tenantID, provider string, plaintext []byte) ([]byte,error)` and matching `OpenEmailProvider(..., sealed []byte) ([]byte,error)`.
 
-- [ ] Write shared tests for no-record reads, create/update CAS, delete, deep copies, wrong tenant, transactional rollback of all repositories, exact revision changes, delete/recreate monotonic revision and rejection of stale pre-delete CAS updates/deletes, permanent/window claims, concurrent limit enforcement, expired claim cleanup and user/tenant deletion. Write envelope tests that wrong tenant/provider/AAD/master key fail and sentinel secret never appears in stored bytes/errors.
-- [ ] Run `go test ./internal/keys ./internal/store/memory ./pkg/storetest -run 'Email|Provider' -count=1`; observe failure before implementing new repositories/crypto helpers.
-- [ ] Implement records, encryption, exported plugin aliases and memory repositories, including transaction snapshots and cascade paths. Do not store cleartext in public config or claims. Public projection uses Task 1 allowlists rather than removing only known secret keys.
-- [ ] Run the same focused tests with `-race`; run the memory conformance package in full. Confirm legacy tenants require no new email record and existing mailer-focused tests compile.
-- [ ] Commit `feat(store): add email configuration and notification claims`.
+- [x] Write shared tests for no-record reads, create/update CAS, delete, deep copies, wrong tenant, transactional rollback of all repositories, exact revision changes, delete/recreate monotonic revision and rejection of stale pre-delete CAS updates/deletes, permanent/window claims, concurrent limit enforcement, expired claim cleanup and user/tenant deletion. Write envelope tests that wrong tenant/provider/AAD/master key fail and sentinel secret never appears in stored bytes/errors.
+- [x] Run the focused tests before implementation; missing repository types/methods and envelope helpers failed compilation as expected. The literal `-run 'Email|Provider'` did not select the `TestConformance` parent suite, so the verified selector was `-run 'TestConformance/Email|EmailProvider'`.
+- [x] Implement records, encryption, exported plugin aliases and memory repositories, including transaction snapshots and cascade paths. Public config and claims do not retain cleartext credentials; secret-bearing nested public-config keys are rejected.
+- [x] Run the focused tests with `-race`; run the memory conformance package in full. Confirm existing mailer-focused tests still compile. Existing tenants remain empty because repositories are not pre-populated.
+- [x] Commit `feat(store): add email configuration and notification claims`.
 
 ## Task 4: Persist email configuration and claims in SQL
 

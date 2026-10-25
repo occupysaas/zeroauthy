@@ -185,6 +185,7 @@ func (r users) Delete(_ context.Context, tenantID, userID string) error {
 // holds the lock; Connections.Delete uses it too.
 func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
 	for id := range gone {
+		s.deleteEmailClaims(tenantID, id)
 		if p := s.protection[tenantID]; p != nil {
 			if u := s.users[key{tenantID, id}]; u != nil {
 				var cs []*store.Connection

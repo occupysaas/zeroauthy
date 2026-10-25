@@ -59,5 +59,6 @@ func (r operators) Delete(_ context.Context, tenantID, userID string) error {
 		return store.ErrNotFound
 	}
 	delete(r.s.operators, k)
+	r.s.deleteOperatorEmailClaims(userID)
 	return nil
 }

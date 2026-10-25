@@ -47,30 +47,34 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
-		protection:         cloneMap(s.protection, func(p *protectionstate.State) *protectionstate.State { return p.Clone() }),
-		proofs:             maps.Clone(s.proofs),
-		tenants:            cloneMap(s.tenants, cloneTenant),
-		clients:            cloneMap(s.clients, cloneClient),
-		resourceServers:    cloneMap(s.resourceServers, cloneResourceServer),
-		clientGrants:       cloneMap(s.clientGrants, cloneClientGrant),
-		userGrants:         cloneMap(s.userGrants, cloneUserGrant),
-		signingKeys:        cloneMap(s.signingKeys, cloneSigningKey),
-		customSigningKeys:  cloneMap(s.customSigningKeys, cloneCustomSigningKeySet),
-		connections:        cloneMap(s.connections, cloneConnection),
-		passwordHistories:  clonePasswordHistories(s.passwordHistories),
-		users:              cloneMap(s.users, cloneUser),
-		sessions:           cloneMap(s.sessions, cloneSession),
-		transactions:       cloneMap(s.transactions, cloneAuthTransaction),
-		authCodes:          cloneMap(s.authCodes, cloneAuthCode),
-		pushedAuthRequests: cloneMap(s.pushedAuthRequests, clonePushedAuthRequest),
-		deviceCodes:        cloneMap(s.deviceCodes, cloneDeviceCode),
-		refreshTokens:      cloneMap(s.refreshTokens, cloneRefreshToken),
-		resetTickets:       cloneMap(s.resetTickets, cloneResetTicket),
-		verifyTickets:      cloneMap(s.verifyTickets, cloneVerifyTicket),
-		operators:          cloneMap(s.operators, cloneOperator),
-		jobs:               cloneMap(s.jobs, cloneJob),
-		jobErrors:          cloneJobErrorMap(s.jobErrors),
-		jobFiles:           cloneJobFiles(s.jobFiles),
+		protection:             cloneMap(s.protection, func(p *protectionstate.State) *protectionstate.State { return p.Clone() }),
+		proofs:                 maps.Clone(s.proofs),
+		tenants:                cloneMap(s.tenants, cloneTenant),
+		clients:                cloneMap(s.clients, cloneClient),
+		resourceServers:        cloneMap(s.resourceServers, cloneResourceServer),
+		clientGrants:           cloneMap(s.clientGrants, cloneClientGrant),
+		userGrants:             cloneMap(s.userGrants, cloneUserGrant),
+		signingKeys:            cloneMap(s.signingKeys, cloneSigningKey),
+		customSigningKeys:      cloneMap(s.customSigningKeys, cloneCustomSigningKeySet),
+		connections:            cloneMap(s.connections, cloneConnection),
+		passwordHistories:      clonePasswordHistories(s.passwordHistories),
+		users:                  cloneMap(s.users, cloneUser),
+		sessions:               cloneMap(s.sessions, cloneSession),
+		transactions:           cloneMap(s.transactions, cloneAuthTransaction),
+		authCodes:              cloneMap(s.authCodes, cloneAuthCode),
+		pushedAuthRequests:     cloneMap(s.pushedAuthRequests, clonePushedAuthRequest),
+		deviceCodes:            cloneMap(s.deviceCodes, cloneDeviceCode),
+		refreshTokens:          cloneMap(s.refreshTokens, cloneRefreshToken),
+		resetTickets:           cloneMap(s.resetTickets, cloneResetTicket),
+		verifyTickets:          cloneMap(s.verifyTickets, cloneVerifyTicket),
+		operators:              cloneMap(s.operators, cloneOperator),
+		jobs:                   cloneMap(s.jobs, cloneJob),
+		jobErrors:              cloneJobErrorMap(s.jobErrors),
+		jobFiles:               cloneJobFiles(s.jobFiles),
+		emailProviders:         cloneMap(s.emailProviders, cloneEmailProvider),
+		emailProviderRevisions: maps.Clone(s.emailProviderRevisions),
+		emailTemplates:         cloneMap(s.emailTemplates, cloneEmailTemplate),
+		emailNotifications:     maps.Clone(s.emailNotifications),
 	}
 }
 
@@ -89,6 +93,8 @@ func (s *Store) restore(snap *state) {
 	s.verifyTickets = snap.verifyTickets
 	s.operators, s.passwordHistories = snap.operators, snap.passwordHistories
 	s.jobs, s.jobErrors, s.jobFiles = snap.jobs, snap.jobErrors, snap.jobFiles
+	s.emailProviders, s.emailProviderRevisions = snap.emailProviders, snap.emailProviderRevisions
+	s.emailTemplates, s.emailNotifications = snap.emailTemplates, snap.emailNotifications
 }
 
 func cloneMap[K comparable, V any](m map[K]*V, clone func(*V) *V) map[K]*V {

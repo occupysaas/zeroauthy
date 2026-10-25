@@ -126,6 +126,11 @@ func (c *Client) DeviceCodes() store.DeviceCodes               { return clientDe
 func (c *Client) RefreshTokens() store.RefreshTokens           { return clientRefreshTokens{c} }
 func (c *Client) Operators() store.Operators                   { return clientOperators{c} }
 func (c *Client) Jobs() store.Jobs                             { return clientJobs{c} }
+func (c *Client) EmailProviders() store.EmailProviders         { return store.UnimplementedEmailProviders{} }
+func (c *Client) EmailTemplates() store.EmailTemplates         { return store.UnimplementedEmailTemplates{} }
+func (c *Client) EmailNotifications() store.EmailNotifications {
+	return store.UnimplementedEmailNotifications{}
+}
 func (c *Client) EmailVerificationTickets() store.EmailVerificationTickets {
 	return clientEmailVerificationTickets{c}
 }

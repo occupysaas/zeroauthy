@@ -87,6 +87,10 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(s.userGrants, id)
 	purge(s.signingKeys, id)
 	delete(s.customSigningKeys, id)
+	delete(s.emailProviders, id)
+	delete(s.emailProviderRevisions, id)
+	purge(s.emailTemplates, id)
+	purgeEmailClaims(s.emailNotifications, id)
 	purge(s.connections, id)
 	purge(s.passwordHistories, id)
 	purge(s.users, id)
@@ -107,6 +111,14 @@ func (r tenants) Delete(_ context.Context, id string) error {
 
 // purge deletes the entries of one tenant from m.
 func purge[V any](m map[key]V, tenantID string) {
+	for k := range m {
+		if k.tenant == tenantID {
+			delete(m, k)
+		}
+	}
+}
+
+func purgeEmailClaims(m map[emailClaimKey]store.EmailNotification, tenantID string) {
 	for k := range m {
 		if k.tenant == tenantID {
 			delete(m, k)

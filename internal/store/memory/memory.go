@@ -27,60 +27,68 @@ type Store struct {
 // transactions and the writes made outside any transaction, so a
 // transaction that rolls back never undoes a write that is not its own.
 type state struct {
-	protection         map[string]*protectionstate.State
-	proofs             map[string]time.Time
-	txMu               sync.Mutex
-	mu                 sync.RWMutex
-	tenants            map[string]*store.Tenant               // by ID
-	clients            map[key]*store.Client                  // by (tenant, client ID)
-	resourceServers    map[key]*store.ResourceServer          // by (tenant, ID)
-	clientGrants       map[key]*store.ClientGrant             // by (tenant, ID)
-	userGrants         map[key]*store.UserGrant               // by (tenant, ID)
-	signingKeys        map[key]*store.SigningKey              // by (tenant, KID)
-	customSigningKeys  map[string]*store.CustomSigningKeySet  // by tenant
-	connections        map[key]*store.Connection              // by (tenant, ID)
-	passwordHistories  map[key][][]byte                       // by (tenant, UserID), oldest first
-	users              map[key]*store.User                    // by (tenant, UserID)
-	sessions           map[key]*store.LoginSession            // by (tenant, ID)
-	transactions       map[key]*store.AuthTransaction         // by (tenant, ID)
-	authCodes          map[key]*store.AuthCode                // by (tenant, CodeHash)
-	pushedAuthRequests map[key]*store.PushedAuthRequest       // by (tenant, IDHash)
-	deviceCodes        map[key]*store.DeviceCode              // by (tenant, DeviceCodeHash)
-	refreshTokens      map[key]*store.RefreshToken            // by (tenant, ID)
-	resetTickets       map[key]*store.PasswordResetTicket     // by (tenant, ID)
-	verifyTickets      map[key]*store.EmailVerificationTicket // by (tenant, ID)
-	operators          map[key]*store.Operator                // by (tenant, UserID)
-	jobs               map[key]*store.Job                     // by (tenant, ID)
-	jobErrors          map[key][]store.JobError               // by (tenant, job ID), by Index
-	jobFiles           map[key]jobFile                        // by (tenant, job ID)
+	protection             map[string]*protectionstate.State
+	proofs                 map[string]time.Time
+	txMu                   sync.Mutex
+	mu                     sync.RWMutex
+	tenants                map[string]*store.Tenant               // by ID
+	clients                map[key]*store.Client                  // by (tenant, client ID)
+	resourceServers        map[key]*store.ResourceServer          // by (tenant, ID)
+	clientGrants           map[key]*store.ClientGrant             // by (tenant, ID)
+	userGrants             map[key]*store.UserGrant               // by (tenant, ID)
+	signingKeys            map[key]*store.SigningKey              // by (tenant, KID)
+	customSigningKeys      map[string]*store.CustomSigningKeySet  // by tenant
+	connections            map[key]*store.Connection              // by (tenant, ID)
+	passwordHistories      map[key][][]byte                       // by (tenant, UserID), oldest first
+	users                  map[key]*store.User                    // by (tenant, UserID)
+	sessions               map[key]*store.LoginSession            // by (tenant, ID)
+	transactions           map[key]*store.AuthTransaction         // by (tenant, ID)
+	authCodes              map[key]*store.AuthCode                // by (tenant, CodeHash)
+	pushedAuthRequests     map[key]*store.PushedAuthRequest       // by (tenant, IDHash)
+	deviceCodes            map[key]*store.DeviceCode              // by (tenant, DeviceCodeHash)
+	refreshTokens          map[key]*store.RefreshToken            // by (tenant, ID)
+	resetTickets           map[key]*store.PasswordResetTicket     // by (tenant, ID)
+	verifyTickets          map[key]*store.EmailVerificationTicket // by (tenant, ID)
+	operators              map[key]*store.Operator                // by (tenant, UserID)
+	jobs                   map[key]*store.Job                     // by (tenant, ID)
+	jobErrors              map[key][]store.JobError               // by (tenant, job ID), by Index
+	jobFiles               map[key]jobFile                        // by (tenant, job ID)
+	emailProviders         map[string]*store.EmailProvider
+	emailProviderRevisions map[string]int64
+	emailTemplates         map[key]*store.EmailTemplate
+	emailNotifications     map[emailClaimKey]store.EmailNotification
 }
 
 // New returns an empty store.
 func New() *Store {
 	return &Store{state: &state{
 		protection: map[string]*protectionstate.State{}, proofs: map[string]time.Time{},
-		tenants:            map[string]*store.Tenant{},
-		clients:            map[key]*store.Client{},
-		resourceServers:    map[key]*store.ResourceServer{},
-		clientGrants:       map[key]*store.ClientGrant{},
-		userGrants:         map[key]*store.UserGrant{},
-		signingKeys:        map[key]*store.SigningKey{},
-		customSigningKeys:  map[string]*store.CustomSigningKeySet{},
-		connections:        map[key]*store.Connection{},
-		passwordHistories:  map[key][][]byte{},
-		users:              map[key]*store.User{},
-		sessions:           map[key]*store.LoginSession{},
-		transactions:       map[key]*store.AuthTransaction{},
-		authCodes:          map[key]*store.AuthCode{},
-		pushedAuthRequests: map[key]*store.PushedAuthRequest{},
-		deviceCodes:        map[key]*store.DeviceCode{},
-		refreshTokens:      map[key]*store.RefreshToken{},
-		resetTickets:       map[key]*store.PasswordResetTicket{},
-		verifyTickets:      map[key]*store.EmailVerificationTicket{},
-		operators:          map[key]*store.Operator{},
-		jobs:               map[key]*store.Job{},
-		jobErrors:          map[key][]store.JobError{},
-		jobFiles:           map[key]jobFile{},
+		tenants:                map[string]*store.Tenant{},
+		clients:                map[key]*store.Client{},
+		resourceServers:        map[key]*store.ResourceServer{},
+		clientGrants:           map[key]*store.ClientGrant{},
+		userGrants:             map[key]*store.UserGrant{},
+		signingKeys:            map[key]*store.SigningKey{},
+		customSigningKeys:      map[string]*store.CustomSigningKeySet{},
+		connections:            map[key]*store.Connection{},
+		passwordHistories:      map[key][][]byte{},
+		users:                  map[key]*store.User{},
+		sessions:               map[key]*store.LoginSession{},
+		transactions:           map[key]*store.AuthTransaction{},
+		authCodes:              map[key]*store.AuthCode{},
+		pushedAuthRequests:     map[key]*store.PushedAuthRequest{},
+		deviceCodes:            map[key]*store.DeviceCode{},
+		refreshTokens:          map[key]*store.RefreshToken{},
+		resetTickets:           map[key]*store.PasswordResetTicket{},
+		verifyTickets:          map[key]*store.EmailVerificationTicket{},
+		operators:              map[key]*store.Operator{},
+		jobs:                   map[key]*store.Job{},
+		jobErrors:              map[key][]store.JobError{},
+		jobFiles:               map[key]jobFile{},
+		emailProviders:         map[string]*store.EmailProvider{},
+		emailProviderRevisions: map[string]int64{},
+		emailTemplates:         map[key]*store.EmailTemplate{},
+		emailNotifications:     map[emailClaimKey]store.EmailNotification{},
 	}}
 }
 
@@ -120,9 +128,12 @@ func (s *Store) PasswordResetTickets() store.PasswordResetTickets { return reset
 func (s *Store) EmailVerificationTickets() store.EmailVerificationTickets {
 	return verifyTickets{s}
 }
-func (s *Store) Operators() store.Operators { return operators{s} }
-func (s *Store) Jobs() store.Jobs           { return jobs{s} }
-func (s *Store) Ping(context.Context) error { return nil }
-func (s *Store) Close() error               { return nil }
+func (s *Store) Operators() store.Operators                   { return operators{s} }
+func (s *Store) Jobs() store.Jobs                             { return jobs{s} }
+func (s *Store) EmailProviders() store.EmailProviders         { return emailProviders{s} }
+func (s *Store) EmailTemplates() store.EmailTemplates         { return emailTemplates{s} }
+func (s *Store) EmailNotifications() store.EmailNotifications { return emailNotifications{s} }
+func (s *Store) Ping(context.Context) error                   { return nil }
+func (s *Store) Close() error                                 { return nil }
 
 var _ store.Store = (*Store)(nil)
