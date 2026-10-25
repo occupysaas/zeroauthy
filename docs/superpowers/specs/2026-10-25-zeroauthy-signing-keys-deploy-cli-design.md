@@ -196,3 +196,28 @@ The implementation author can choose package/file boundaries, SQL locking/CAS de
 ## 9. Design review
 
 A separate builder review on 2026-10-25 identified two planning gaps: credential verification for confidential clients without the client-credentials grant, and user APIs colliding with deploy-cli's excluded system API name. Sections 5.2–5.3 now specify internal secret comparison with a separate M2M fixture, and preflight rejection of the name collision. Re-review found no important planning questions beyond the explicitly assigned Task 1 evidence gate. Local document links and whitespace were checked; no implementation or database tests were run for this documentation change.
+
+## 10. Execution resolution (2026-10-25)
+
+The local implementation and required available checks are complete; the
+implementation plan contains the command/results and acceptance mapping.
+The pinned SDK uses `PUT /api/v2/keys/signing/{kid}/revoke`; the OpenAPI,
+console client and HTTP/SDK/CLI tests use that path.
+
+Installed CLI evidence resolves the initial seven-family fixture aspiration:
+real CLI comparison includes clients, resource servers, client grants and
+tenant settings. Version 9.1.0 always probes the absent Actions API for
+`databases`, filters `auth0` out of generic `connections`, and queries the
+absent phone-provider-protection API for `attackProtection`. The checked-in
+manifest marks these as tool-unsupported with owners/reasons, so they cannot
+be silently removed from a failing run or counted passing. Inert parser and
+direct API coverage remain. The cost of this scope ruling is that migrations
+of those families are unavailable through this pinned tool until those APIs
+are implemented; it avoids inventing future-resource success shims.
+
+Both local formats pass generated-ID and offline-preserved-ID/secret modes,
+repeat/update imports, target-only resource survival and runtime credentials.
+An identifier-bearing export is used only for bootstrap; ordinary name-based
+imports preserve the existing public create validation. Live Auth0 observation
+remains unavailable and carries an explicit follow-up. No local result is
+presented as upstream behavior or OIDF certification.

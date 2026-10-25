@@ -7,7 +7,7 @@
 
 ## 0. Where we are (2026-10-25)
 
-**Plans done:** 19. **Implemented, verifying:** 0. **Left in this roadmap:** 19 (Plans 20–38); the five "full" plans will likely split, so expect roughly 24–29 more plans.
+**Plans done:** 20. **Implemented, verifying:** 0. **Left in this roadmap:** 18 (Plans 21–38); the five "full" plans will likely split, so expect roughly 24–29 more plans.
 
 ### Done
 
@@ -23,6 +23,7 @@
 | 16 | Console frame: every section routed, planned pages previewed |
 | 17–18 | Users, search, identities, sessions, refresh tokens, grants, tickets; import/export and verification-email jobs |
 | 19 | Tenant settings, attack protection, user blocks and shared password-flow enforcement |
+| 20 | Managed signing keys, stored-only custom JWKS, console controls and local Deploy CLI migration for supported families |
 
 ### Management API coverage by resource
 
@@ -30,12 +31,12 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done** | 13 | clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19) |
-| **Planned, short design** | 10 | signing keys, email provider, email templates, social strategies II, roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
+| **Done** | 14 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19) |
+| **Planned, short design** | 9 | email provider, email templates, social strategies II, roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
 | **Planned, full design** | 15 | branding, themes, prompts and custom text, custom domains, social strategies I, Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
-Read as resource groups, about 31% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
+Read as resource groups, about 33% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
 
 ## 1. Goal and ground rules
 
@@ -111,11 +112,11 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 ### Plan 20 — Signing keys and the `auth0-deploy-cli` round trip (slice 5b)
 
-**Design records (2026-10-25):** [standalone draft spec](2026-10-25-zeroauthy-signing-keys-deploy-cli-design.md) and [implementation plan](../plans/2026-10-25-zeroauthy-plan-20-signing-keys-deploy-cli.md). Cover lifecycle/certificate upgrades, migration decisions, evidence gates and acceptance criteria; implementation has not started.
+**Design and execution records (2026-10-25):** [standalone spec](2026-10-25-zeroauthy-signing-keys-deploy-cli-design.md) and [implementation plan](../plans/2026-10-25-zeroauthy-plan-20-signing-keys-deploy-cli.md). Managed signing APIs, stored-only custom JWKS, console controls and offline bootstrap are implemented. Local Deploy CLI YAML/directory generated/preserved-credential round trips pass for clients, APIs, grants and tenant settings. Database/provider/attack-protection handlers are explicitly tool-unsupported pending their required APIs. Upstream observer evidence remains unavailable. See [signing-keys.md](../../signing-keys.md), [deploy-cli.md](../../deploy-cli.md), and the plan's acceptance record.
 
 **Endpoints:** `GET /api/v2/keys/signing`, `GET /api/v2/keys/signing/{kid}`, `POST /api/v2/keys/signing/rotate`, `PUT /api/v2/keys/signing/{kid}/revoke`; GET/PUT/DELETE `/api/v2/keys/custom-signing` stores custom **public** JWKS. Public documentation describes custom-domain key distribution, not private-key signing; the draft defers publication to Plan 23 and prohibits using uploaded keys for zeroauthy's internal token verification. `/api/v2/keys/encryption` (customer-managed root key) is listed in §5.
 
-**Runtime:** the existing key manager's rotation becomes reachable from the API; revoke removes a key from JWKS and refuses tokens it signed.
+**Runtime:** the key manager exposes rotate and revoke through the API; previous keys are retained until explicit revocation. Custom public keys remain outside canonical JWKS and internal token trust.
 
 **Round trip:** `auth0-deploy-cli` export from an Auth0 tenant (the maintainer's dev tenant), import into zeroauthy, export from zeroauthy, and compare. Resource types that zeroauthy does not have yet are listed in `AUTH0_EXCLUDED`; each later plan removes its types from that list, so the round trip grows with the roadmap. Open decisions carried from the follow-ups and settled here: keeping client IDs and secrets on migration (D-0039), the system API name (D-0041).
 

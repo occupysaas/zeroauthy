@@ -505,6 +505,19 @@ for operator tokens only (D-0040). Auth0 has no equivalent.
 The system tenant cannot be changed or deleted here. Tenants created through
 this API are never touched by the seed.
 
+## Signing keys and deploy migration (Plan 20)
+
+Signing-key endpoints use `read:signing_keys`, `create:signing_keys`, and
+`update:signing_keys`. Rotation retains eligible previous keys; custom public
+JWKS remain stored-only and are not trusted by zeroauthy's token verifiers.
+See [signing-keys.md](signing-keys.md) for the lifecycle and cache limits.
+
+Offline credential-preserving bootstrap and Deploy CLI comparison commands are
+in [deploy-cli.md](deploy-cli.md). The pinned CLI passes local YAML/directory round trips for clients, APIs,
+grants and tenant settings in generated-ID and preserved-credential modes.
+Three handlers have explicit tool-support limitations; upstream observations
+remain unavailable.
+
 
 ## Tenant settings and attack protection (Plan 19)
 

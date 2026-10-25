@@ -31,7 +31,7 @@ features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–18)
+**Done** (Plans 1–20)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -44,19 +44,20 @@ each with its console screens; the full breakdown is in the
   connections, users (with search, identity linking, sessions, refresh tokens,
   grants and tickets), user import/export jobs and verification email
 
-**Implemented; final verification in progress** (Plan 19)
+**Tenant settings and attack protection (Plan 19)**
 
 - [Tenant settings](docs/tenant-settings.md), [attack protection and automatic blocks](docs/attack-protection.md)
 
-**Next** (Plan 20)
+**Signing keys and deployment migration (Plan 20)**
 
-- Signing keys and an `auth0-deploy-cli` round trip
+- Managed signing keys, stored-only custom public JWKS, and credential-preserving bootstrap are implemented.
+- The pinned Deploy CLI passes local YAML/directory imports for clients, APIs, grants and tenant settings, with generated or preserved credentials. Three handlers await future APIs; the upstream observer lane remains unavailable. See [signing keys](docs/signing-keys.md) and [Deploy CLI migration](docs/deploy-cli.md) for current limits.
 
-**Later** (Plans 20–38)
+**Later** (Plans 21–38)
 
 | Plans | Area |
 |---|---|
-| 20–21 | Signing keys and an `auth0-deploy-cli` round trip; email provider and templates |
+| 21 | Email provider and templates |
 | 22–23 | Branding and Universal Login page templates; custom domains with automatic certificates |
 | 24–25 | Social connections (generic OAuth 2 and OIDC, Google, Apple, Facebook, Microsoft, …) |
 | 26–28 | Roles and permissions; Actions |
@@ -152,6 +153,12 @@ is a minimal template. Check your driver by running
 `storetest.Run` (package `pkg/storetest`) with a factory that calls
 `storeplugin.Open` on your built binary. Transactions work across the
 boundary; see decision D-0021 for the protocol.
+
+Plan 20 adds result-returning rotation/revocation, certificate compare-and-set,
+and the separate custom public-key repository to the storage contract. Rebuild
+storage plugins against the current `pkg/storeplugin`; missing lifecycle RPCs
+fail closed with an upgrade diagnostic. Transaction views and tenant deletion
+must cover both managed keys and custom sets; run `pkg/storetest` conformance.
 
 The SQL drivers have a schema. Apply pending migrations with
 `zeroauthy migrate --config zeroauthy.yaml` before starting a new version,

@@ -36,3 +36,14 @@ Public docs describe custom keys as public-key distribution; they do not authori
 - Public certificate fields, list ordering, omitted nullable times and error identifiers follow the checked-in OpenAPI contract and local tests until a separate observer supplies sanitized notes.
 
 The authorized observer may add dated results after testing a disposable tenant. No credentials, tenant identifiers, raw responses, hosted UI data or personal data belong here.
+
+## Local client verification (2026-10-25)
+
+The installed node-auth0 7.4.0 signing client confirms the revoke path is
+`keys/signing/{kid}/revoke`; the initial local OpenAPI path lacking `/revoke`
+was corrected before completion. The full local SDK/CLI runner exercises all
+seven operations, missing scopes, wrong tenants and retired collections.
+Pinned jwks-rsa 4.1.0 coverage distinguishes unknown-key refresh from a cached
+old key: the cached key still verifies its mathematical signature after local
+revocation, while zeroauthy rejects that token and omits the key from canonical
+JWKS. This is local evidence, not an Auth0 tenant observation.

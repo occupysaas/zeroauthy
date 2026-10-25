@@ -239,3 +239,9 @@ User detail's **Automatic blocks** controls inspect and clear login blocks,
 with confirmation, separately from administrative Block. See
 [attack-protection.md](attack-protection.md#inspect-unblock-and-recover) for
 recovery using an independent Management client if console login is blocked.
+
+**Signing keys** and **Custom signing keys** are separate Settings tabs. The
+managed tab shows public certificate metadata, allows certificate downloads,
+and requires confirmation for rotation or eligible previous-key revocation.
+The custom-key tab accepts public JWKS only and labels the data stored-only:
+it does not sign tokens or authorize token verification.

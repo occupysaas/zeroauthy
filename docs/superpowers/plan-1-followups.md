@@ -230,7 +230,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 - **Pushed down the road** (design §2), each needing its own design: passwordless and phone reset, organizations and RBAC, MFA, branding and email-template editors, custom domains, logs and log streams, event streams, Actions and Forms, enterprise connections, the marketplace and integration catalogues.
 - **Per-tenant admins:** operators carry a tenant list already (`["*"]` today); the system API cannot set it yet, and tenant-scoped operator tokens need a design.
 - **Store-level client pagination and filtering:** `GET /api/v2/clients` pages in memory over `Clients.List`; users (slice 4) need it in the store. **Closed in Plan 17:** `Clients.List` filters and pages in the store.
-- **Keeping client IDs and secrets on migration:** `auth0-deploy-cli` exports no secrets and Auth0 refuses a supplied `client_id` (D-0039, open for slice 5).
+- **Keeping client IDs and secrets on migration (D-0039):** Plan 20 implements an offline fresh-target credential bootstrap and matching rerun preflight. Local YAML/directory generated/preserved-ID import, repeat-import and runtime credential checks pass. Upstream Auth0 export parity remains unverified.
 - **Client fields** accepted and ignored today (`description`, `client_metadata`, `logo_uri`, organizations and others, D-0039) could be stored and returned.
 - **Rate-limit headers** on the Management API once a limiter exists.
 - **Tenant log** for Management API writes; they go to the server log today.
@@ -241,7 +241,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 - **SQL suite and conformance:** the cloud session ran the Postgres suite for migrations 0010 to 0012 (from installed binaries) but not MySQL, and could not run `make conformance` (no container runtime). Run `scripts/test-sql.sh` and `make conformance` where containers exist.
 - **Store plugins:** the `ResourceServers.Delete` cascade (client grants, user grants, refresh tokens for the audience) is part of the store contract; third-party store plugins must implement it.
-- **System API name:** the system Management API is "zeroauthy Management API" while `auth0-deploy-cli` excludes Auth0's by name, so a deploy-cli export includes it. Matching Auth0's name is a maintainer decision (D-0041).
+- **System API name (D-0041):** Plan 20 renames only the known built-in API to `Auth0 Management API`, checks for user API name collisions before export/bootstrap, and records the finite exclusion. Local preflight collision checks and pinned CLI round trips pass for the supported families; upstream observations remain unavailable.
 - **Signing algorithms:** `HS256` and `PS256` (and `signing_secret`) are not supported.
 - **Fields accepted but inert:** the organization, rich authorization, `consent_policy`, `proof_of_possession` and `token_encryption` fields; `token_lifetime_for_web`.
 - **Connections** for new applications: still slice 3; a console-created application logs no user in until then.
@@ -344,3 +344,16 @@ imported hashes require reset, and cleartext password schemes are refused.
 - Arkose/Auth Challenge/Simple CAPTCHA verification and proprietary bot/corpus
   equivalence remain unsupported. Real-provider widget/account smoke tests
   are separate from the local mocked browser/provider suite.
+
+## Plan 20 compatibility follow-ups
+
+- The authorized Auth0 observer export/import comparison remains unavailable.
+- Deploy CLI 9.1.0 database migration requires Actions API support; its generic
+  connections handler excludes `auth0`, so external-provider migration waits
+  for those providers. Its attack-protection handler also requires the future
+  phone-provider-protection API. The versioned manifest records all three as
+  tool-unsupported, with direct API and inert parser fixture coverage retained.
+- Custom public-key publication belongs to Plan 23. Custom sets remain stored
+  only and never authorize tokens. Additional signing algorithms, root-key
+  encryption controls, automatic rotation and per-tenant operator-role design
+  remain outside this milestone.
