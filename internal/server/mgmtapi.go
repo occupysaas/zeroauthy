@@ -31,6 +31,28 @@ func (a mgmtAPI) GetClient(w http.ResponseWriter, r *http.Request, id string, p 
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetClient(w, r, id, p) }, "read:clients")
 }
 
+func (a mgmtAPI) ListSigningKeys(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.ListSigningKeys, "read:signing_keys")
+}
+func (a mgmtAPI) GetSigningKey(w http.ResponseWriter, r *http.Request, kid string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetSigningKey(w, r, kid) }, "read:signing_keys")
+}
+func (a mgmtAPI) RotateSigningKeys(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.RotateSigningKeys, "create:signing_keys")
+}
+func (a mgmtAPI) RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RevokeSigningKey(w, r, kid) }, "update:signing_keys")
+}
+func (a mgmtAPI) GetCustomSigningKeys(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.GetCustomSigningKeys, "read:signing_keys")
+}
+func (a mgmtAPI) PutCustomSigningKeys(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.PutCustomSigningKeys, "update:signing_keys")
+}
+func (a mgmtAPI) DeleteCustomSigningKeys(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.DeleteCustomSigningKeys, "update:signing_keys")
+}
+
 // UpdateClient: update:clients, or update:client_keys for the secret; the
 // handler checks which the body needs.
 func (a mgmtAPI) UpdateClient(w http.ResponseWriter, r *http.Request, id string) {

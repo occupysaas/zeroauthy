@@ -2412,6 +2412,98 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/ManagementError"}
+  /api/v2/keys/signing:
+    get:
+      operationId: ListSigningKeys
+      tags: [signing-keys]
+      summary: List tenant-managed signing keys.
+      x-source: [https://auth0.com/docs/api/management/v2/keys/get-signing-keys]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "200":
+          description: Managed public signing-key metadata.
+          content: {application/json: {schema: {type: array, items: {$ref: "#/components/schemas/ManagedSigningKey"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/keys/signing/{kid}:
+    parameters:
+      - name: kid
+        in: path
+        required: true
+        schema: {type: string, minLength: 1}
+    get:
+      operationId: GetSigningKey
+      tags: [signing-keys]
+      summary: Read one tenant-managed signing key.
+      x-source: [https://auth0.com/docs/api/management/v2/keys/get-signing-key]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "200": {description: Managed signing key., content: {application/json: {schema: {$ref: "#/components/schemas/ManagedSigningKey"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    put:
+      operationId: RevokeSigningKey
+      tags: [signing-keys]
+      summary: Revoke an eligible previous signing key.
+      x-source: [https://auth0.com/docs/api/management/v2/keys/put-signing-keys]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "200": {description: Revoked signing key., content: {application/json: {schema: {$ref: "#/components/schemas/ManagedSigningKey"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/v2/keys/signing/rotate:
+    post:
+      operationId: RotateSigningKeys
+      tags: [signing-keys]
+      summary: Rotate tenant-managed signing keys.
+      x-source: [https://auth0.com/docs/api/management/v2/keys/post-signing-keys]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "201": {description: The queued key promoted by this operation., content: {application/json: {schema: {$ref: "#/components/schemas/ManagedSigningKey"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/keys/custom-signing:
+    get:
+      operationId: GetCustomSigningKeys
+      tags: [signing-keys]
+      summary: Read the stored custom public JWKS.
+      x-source: [https://auth0.com/docs/api/management/v2/keys/get-custom-signing-keys]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "200": {description: Stored custom public key set., content: {application/json: {schema: {$ref: "#/components/schemas/CustomSigningJWKS"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    put:
+      operationId: PutCustomSigningKeys
+      tags: [signing-keys]
+      summary: Replace the stored custom public JWKS.
+      x-source: [https://auth0.com/docs/api/management/v2/keys/put-custom-signing-keys]
+      security: [{managementToken: []}, {operatorToken: []}]
+      requestBody:
+        required: true
+        content: {application/json: {schema: {$ref: "#/components/schemas/CustomSigningJWKS"}}}
+      responses:
+        "200": {description: Stored custom public key set., content: {application/json: {schema: {$ref: "#/components/schemas/CustomSigningJWKS"}}}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+    delete:
+      operationId: DeleteCustomSigningKeys
+      tags: [signing-keys]
+      summary: Delete the stored custom public JWKS.
+      x-source: [https://auth0.com/docs/api/management/v2/keys/delete-custom-signing-keys]
+      security: [{managementToken: []}, {operatorToken: []}]
+      responses:
+        "204": {description: Custom public keys deleted.}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
 components:
   securitySchemes:
     managementToken:
@@ -2456,6 +2548,33 @@ components:
       description: Whether `fields` lists the fields to include (true) or to leave out (false).
       schema: {type: boolean, default: true}
   schemas:
+    ManagedSigningKey:
+      type: object
+      required: [kid, alg, current, next, previous, revoked]
+      properties:
+        kid: {type: string}
+        alg: {type: string}
+        cert: {type: string}
+        fingerprint: {type: string}
+        thumbprint: {type: string}
+        pkcs7: {type: string}
+        current: {type: boolean}
+        next: {type: boolean}
+        previous: {type: boolean}
+        revoked: {type: boolean}
+        current_since: {type: string, format: date-time}
+        current_until: {type: string, format: date-time}
+        revoked_at: {type: string, format: date-time}
+    CustomSigningJWKS:
+      type: object
+      required: [keys]
+      additionalProperties: false
+      properties:
+        keys:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: {type: object}
     BruteForceProtectionUpdate:
       type: object
       additionalProperties: false

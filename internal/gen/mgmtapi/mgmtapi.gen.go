@@ -2866,6 +2866,11 @@ type ConnectionSettings struct {
 // `enabled_clients` are unknown properties.
 type ConnectionUpdate = ConnectionSettings
 
+// CustomSigningJWKS defines model for CustomSigningJWKS.
+type CustomSigningJWKS struct {
+	Keys []map[string]interface{} `json:"keys"`
+}
+
 // EmailVerificationTicketCreate Unknown properties are `400 invalid_body`.
 type EmailVerificationTicketCreate struct {
 	ClientId *string `json:"client_id,omitempty"`
@@ -2963,6 +2968,23 @@ type ListTotals struct {
 
 	// Total The number of results on all pages.
 	Total int `json:"total"`
+}
+
+// ManagedSigningKey defines model for ManagedSigningKey.
+type ManagedSigningKey struct {
+	Alg          string     `json:"alg"`
+	Cert         *string    `json:"cert,omitempty"`
+	Current      bool       `json:"current"`
+	CurrentSince *time.Time `json:"current_since,omitempty"`
+	CurrentUntil *time.Time `json:"current_until,omitempty"`
+	Fingerprint  *string    `json:"fingerprint,omitempty"`
+	Kid          string     `json:"kid"`
+	Next         bool       `json:"next"`
+	Pkcs7        *string    `json:"pkcs7,omitempty"`
+	Previous     bool       `json:"previous"`
+	Revoked      bool       `json:"revoked"`
+	RevokedAt    *time.Time `json:"revoked_at,omitempty"`
+	Thumbprint   *string    `json:"thumbprint,omitempty"`
 }
 
 // ManagementError Auth0's Management API error shape.
@@ -4663,6 +4685,9 @@ type CreateUsersImportJobMultipartRequestBody = UsersImportJobCreate
 // CreateVerificationEmailJobJSONRequestBody defines body for CreateVerificationEmailJob for application/json ContentType.
 type CreateVerificationEmailJobJSONRequestBody = VerificationEmailJobCreate
 
+// PutCustomSigningKeysJSONRequestBody defines body for PutCustomSigningKeys for application/json ContentType.
+type PutCustomSigningKeysJSONRequestBody = CustomSigningJWKS
+
 // CreateResourceServerJSONRequestBody defines body for CreateResourceServer for application/json ContentType.
 type CreateResourceServerJSONRequestBody = ResourceServerCreate
 
@@ -6312,6 +6337,27 @@ type ServerInterface interface {
 	// GetJobErrors Get the errors of a job
 	// (GET /api/v2/jobs/{id}/errors)
 	GetJobErrors(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteCustomSigningKeys Delete the stored custom public JWKS.
+	// (DELETE /api/v2/keys/custom-signing)
+	DeleteCustomSigningKeys(w http.ResponseWriter, r *http.Request)
+	// GetCustomSigningKeys Read the stored custom public JWKS.
+	// (GET /api/v2/keys/custom-signing)
+	GetCustomSigningKeys(w http.ResponseWriter, r *http.Request)
+	// PutCustomSigningKeys Replace the stored custom public JWKS.
+	// (PUT /api/v2/keys/custom-signing)
+	PutCustomSigningKeys(w http.ResponseWriter, r *http.Request)
+	// ListSigningKeys List tenant-managed signing keys.
+	// (GET /api/v2/keys/signing)
+	ListSigningKeys(w http.ResponseWriter, r *http.Request)
+	// RotateSigningKeys Rotate tenant-managed signing keys.
+	// (POST /api/v2/keys/signing/rotate)
+	RotateSigningKeys(w http.ResponseWriter, r *http.Request)
+	// GetSigningKey Read one tenant-managed signing key.
+	// (GET /api/v2/keys/signing/{kid})
+	GetSigningKey(w http.ResponseWriter, r *http.Request, kid string)
+	// RevokeSigningKey Revoke an eligible previous signing key.
+	// (PUT /api/v2/keys/signing/{kid})
+	RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string)
 	// DeleteRefreshToken Delete a refresh token
 	// (DELETE /api/v2/refresh-tokens/{id})
 	DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string)
@@ -6684,6 +6730,48 @@ func (_ Unimplemented) GetJob(w http.ResponseWriter, r *http.Request, id string)
 // GetJobErrors Get the errors of a job
 // (GET /api/v2/jobs/{id}/errors)
 func (_ Unimplemented) GetJobErrors(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteCustomSigningKeys Delete the stored custom public JWKS.
+// (DELETE /api/v2/keys/custom-signing)
+func (_ Unimplemented) DeleteCustomSigningKeys(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetCustomSigningKeys Read the stored custom public JWKS.
+// (GET /api/v2/keys/custom-signing)
+func (_ Unimplemented) GetCustomSigningKeys(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PutCustomSigningKeys Replace the stored custom public JWKS.
+// (PUT /api/v2/keys/custom-signing)
+func (_ Unimplemented) PutCustomSigningKeys(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListSigningKeys List tenant-managed signing keys.
+// (GET /api/v2/keys/signing)
+func (_ Unimplemented) ListSigningKeys(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RotateSigningKeys Rotate tenant-managed signing keys.
+// (POST /api/v2/keys/signing/rotate)
+func (_ Unimplemented) RotateSigningKeys(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetSigningKey Read one tenant-managed signing key.
+// (GET /api/v2/keys/signing/{kid})
+func (_ Unimplemented) GetSigningKey(w http.ResponseWriter, r *http.Request, kid string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RevokeSigningKey Revoke an eligible previous signing key.
+// (PUT /api/v2/keys/signing/{kid})
+func (_ Unimplemented) RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8388,6 +8476,128 @@ func (siw *ServerInterfaceWrapper) GetJobErrors(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteCustomSigningKeys operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCustomSigningKeys(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCustomSigningKeys(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCustomSigningKeys operation middleware
+func (siw *ServerInterfaceWrapper) GetCustomSigningKeys(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustomSigningKeys(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutCustomSigningKeys operation middleware
+func (siw *ServerInterfaceWrapper) PutCustomSigningKeys(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutCustomSigningKeys(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSigningKeys operation middleware
+func (siw *ServerInterfaceWrapper) ListSigningKeys(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSigningKeys(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RotateSigningKeys operation middleware
+func (siw *ServerInterfaceWrapper) RotateSigningKeys(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RotateSigningKeys(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSigningKey operation middleware
+func (siw *ServerInterfaceWrapper) GetSigningKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "kid" -------------
+	var kid string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "kid", chi.URLParam(r, "kid"), &kid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSigningKey(w, r, kid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeSigningKey operation middleware
+func (siw *ServerInterfaceWrapper) RevokeSigningKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "kid" -------------
+	var kid string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "kid", chi.URLParam(r, "kid"), &kid, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kid", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeSigningKey(w, r, kid)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteRefreshToken operation middleware
 func (siw *ServerInterfaceWrapper) DeleteRefreshToken(w http.ResponseWriter, r *http.Request) {
 
@@ -9835,6 +10045,27 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try", wrapper.TryConnectionScript)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/keys/signing", wrapper.ListSigningKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/keys/signing/{kid}", wrapper.GetSigningKey)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/keys/signing/{kid}", wrapper.RevokeSigningKey)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/keys/signing/rotate", wrapper.RotateSigningKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/keys/custom-signing", wrapper.DeleteCustomSigningKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/keys/custom-signing", wrapper.GetCustomSigningKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/keys/custom-signing", wrapper.PutCustomSigningKeys)
 	})
 
 	return r

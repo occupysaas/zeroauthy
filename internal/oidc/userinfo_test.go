@@ -25,6 +25,7 @@ var uiNow = time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC)
 type uiEnv struct {
 	km  *keys.Manager
 	srv http.Handler
+	st  store.Store
 }
 
 // failingUsers is a store whose Users().Get fails with an infrastructure error.
@@ -70,7 +71,7 @@ func newUserinfoEnvWith(t *testing.T, wrap func(store.Store) store.Store) *uiEnv
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /userinfo", h.Userinfo)
 	mux.HandleFunc("POST /userinfo", h.Userinfo)
-	return &uiEnv{km: km, srv: contract.Wrap(t, tenant.NewResolver(st.Tenants(), "", false).Middleware(mux))}
+	return &uiEnv{km: km, st: st, srv: contract.Wrap(t, tenant.NewResolver(st.Tenants(), "", false).Middleware(mux))}
 }
 
 func (e *uiEnv) token(t *testing.T, tenantID string, claims map[string]any) string {
