@@ -89,14 +89,15 @@ func TestProviderPatchConflictRetriesAreBounded(t *testing.T) {
 	}
 	before, _ := e.st.EmailProviders().Get(t.Context(), e.tn.ID)
 	repo := &conflictProviderRepo{EmailProviders: e.st.EmailProviders()}
-	h := *e.h
-	h.Store = conflictProviderStore{Store: e.st, repo: repo}
+	oldStore := e.h.Store
+	e.h.Store = conflictProviderStore{Store: e.st, repo: repo}
+	t.Cleanup(func() { e.h.Store = oldStore })
 	req := httptest.NewRequest("PATCH", "https://login.acme.test/api/v2/emails/provider", strings.NewReader(`{"enabled":false}`))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: e.tn, Host: "login.acme.test"})
 	req = req.WithContext(mgmt.WithCaller(ctx, m2mCaller("update:email_provider")))
 	rec := httptest.NewRecorder()
-	h.PatchEmailProvider(rec, req)
+	e.h.PatchEmailProvider(rec, req)
 	if rec.Code != http.StatusConflict || repo.writes != 3 {
 		t.Fatalf("conflicts=%d response=%d %s", repo.writes, rec.Code, rec.Body)
 	}

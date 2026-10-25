@@ -1,18 +1,26 @@
-package email
+package email_test
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/sqlstore"
+	"github.com/zeroauthy/zeroauthy/internal/system"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 type sqlEmailTransport struct {
@@ -45,10 +53,10 @@ func (f *sqlEmailFactory) New(_ context.Context, _ string, rev int64, cfg provid
 
 type sqlEmailFallback struct {
 	mu       sync.Mutex
-	messages []Message
+	messages []email.Message
 }
 
-func (f *sqlEmailFallback) Send(_ context.Context, m Message) error {
+func (f *sqlEmailFallback) Send(_ context.Context, m email.Message) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.messages = append(f.messages, m)
@@ -109,9 +117,12 @@ func TestSQLTwoServerCurrentConfigClaimsRestartAndLegacyFallback(t *testing.T) {
 	transport := &sqlEmailTransport{}
 	factory := &sqlEmailFactory{transport: transport}
 	fallback := &sqlEmailFallback{}
-	renderer, _ := NewRenderer()
-	service := func(st store.Store) *Service {
-		return &Service{Store: st, Wrapper: w, Renderer: renderer, Providers: factory, Fallback: fallback, DefaultFrom: "legacy@example.test", Now: func() time.Time { return time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC) }}
+	renderer, _ := email.NewRenderer()
+	serviceAt := func(st store.Store, at time.Time) *email.Service {
+		return &email.Service{Store: st, Wrapper: w, Renderer: renderer, Providers: factory, Fallback: fallback, DefaultFrom: "legacy@example.test", Now: func() time.Time { return at }}
+	}
+	service := func(st store.Store) *email.Service {
+		return serviceAt(st, time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC))
 	}
 	serviceB := service(b)
 	if err = serviceB.Welcome(ctx, "mail-tenant", "auth0|welcome", "", "en"); err != nil {
@@ -139,7 +150,7 @@ func TestSQLTwoServerCurrentConfigClaimsRestartAndLegacyFallback(t *testing.T) {
 	if err = a.EmailProviders().Put(ctx, updated, 1); err != nil {
 		t.Fatal(err)
 	}
-	if err = serviceB.SendMessage(ctx, "mail-tenant", Message{To: "config@example.test", Subject: "current", Text: "current"}); err != nil {
+	if err = serviceB.SendMessage(ctx, "mail-tenant", email.Message{To: "config@example.test", Subject: "current", Text: "current"}); err != nil {
 		t.Fatal(err)
 	}
 	if got := factory.revisions[len(factory.revisions)-1]; got != 2 {
@@ -163,7 +174,7 @@ func TestSQLTwoServerCurrentConfigClaimsRestartAndLegacyFallback(t *testing.T) {
 		t.Fatalf("distributed fourth test claim = %v,%v", ok, e)
 	}
 
-	if err = serviceB.SendMessage(ctx, "legacy-tenant", Message{To: "old@example.test", Subject: "legacy", Text: "legacy"}); err != nil {
+	if err = serviceB.SendMessage(ctx, "legacy-tenant", email.Message{To: "old@example.test", Subject: "legacy", Text: "legacy"}); err != nil {
 		t.Fatal(err)
 	}
 	if len(fallback.messages) != 1 || fallback.messages[0].To != "old@example.test" {
@@ -171,20 +182,35 @@ func TestSQLTwoServerCurrentConfigClaimsRestartAndLegacyFallback(t *testing.T) {
 	}
 	transport.failure = errors.New("fixture failure")
 	failedTestWindow := start.Add(10 * time.Minute)
-	claimed, err := a.EmailNotifications().Claim(ctx, "mail-tenant", "operator", "test", failedTestWindow.Format("200601021504"), now, failedTestWindow.Add(10*time.Minute), 3)
-	if err != nil || !claimed {
-		t.Fatalf("failed test-send claim = %v, %v", claimed, err)
+	failedTestNow := failedTestWindow.Add(time.Minute)
+	failedTestEvent := fmt.Sprint(failedTestWindow.Unix())
+	systemTenant, err := system.Ensure(ctx, b, system.Config{Host: "system.email.test", Wrapper: w})
+	if err != nil {
+		t.Fatal(err)
 	}
-	if err = serviceB.SendTest(ctx, "mail-tenant", "welcome_email", "operator@example.test"); err == nil {
-		t.Fatal("failed test-send delivery was hidden")
+	if err = b.Users().Create(ctx, &store.User{TenantID: systemTenant.ID, UserID: "operator", Email: "operator@example.test", EmailVerified: true}); err != nil {
+		t.Fatal(err)
+	}
+	messageCount := len(transport.messages)
+	request := httptest.NewRequest(http.MethodPost, "https://system.email.test/api/system/tenants/mail-tenant/emails/test", strings.NewReader(`{"template":"welcome_email"}`))
+	requestContext := tenant.WithResolved(request.Context(), tenant.Resolved{Tenant: systemTenant, Host: "system.email.test"})
+	requestContext = mgmt.WithCaller(requestContext, mgmt.Caller{Kind: mgmt.Operator, UserID: "operator", Tenants: []string{"mail-tenant"}})
+	request = request.WithContext(requestContext)
+	recorder := httptest.NewRecorder()
+	(&mgmt.Handlers{Store: b, Wrapper: w, EmailService: serviceAt(b, failedTestNow), SystemHost: "system.email.test", Now: func() time.Time { return failedTestNow }}).TestEmail(recorder, request, "mail-tenant")
+	if recorder.Code != http.StatusBadGateway {
+		t.Fatalf("failed test-send status = %d, body=%s", recorder.Code, recorder.Body)
+	}
+	if got := len(transport.messages); got != messageCount+1 {
+		t.Fatalf("failed test-send did not reach transport: before=%d after=%d", messageCount, got)
 	}
 	for i := 0; i < 2; i++ {
-		claimed, err = b.EmailNotifications().Claim(ctx, "mail-tenant", "operator", "test", failedTestWindow.Format("200601021504"), now, failedTestWindow.Add(10*time.Minute), 3)
+		claimed, err := a.EmailNotifications().Claim(ctx, "mail-tenant", "operator", "test", failedTestEvent, failedTestNow, failedTestWindow.Add(10*time.Minute), 3)
 		if err != nil || !claimed {
 			t.Fatalf("distributed test claim %d after failed send = %v, %v", i, claimed, err)
 		}
 	}
-	claimed, err = a.EmailNotifications().Claim(ctx, "mail-tenant", "operator", "test", failedTestWindow.Format("200601021504"), now, failedTestWindow.Add(10*time.Minute), 3)
+	claimed, err := b.EmailNotifications().Claim(ctx, "mail-tenant", "operator", "test", failedTestEvent, failedTestNow, failedTestWindow.Add(10*time.Minute), 3)
 	if err != nil || claimed {
 		t.Fatalf("failed test-send attempt was refunded from distributed limit: %v, %v", claimed, err)
 	}
@@ -214,7 +240,7 @@ func TestSQLTwoServerCurrentConfigClaimsRestartAndLegacyFallback(t *testing.T) {
 	if _, e := b.EmailTemplates().Get(ctx, "mail-tenant", "welcome_email"); !errors.Is(e, store.ErrNotFound) {
 		t.Fatalf("tenant deletion kept template: %v", e)
 	}
-	if err = service(b).SendMessage(ctx, "legacy-tenant", Message{To: "still-legacy@example.test", Subject: "legacy", Text: "legacy"}); err != nil {
+	if err = service(b).SendMessage(ctx, "legacy-tenant", email.Message{To: "still-legacy@example.test", Subject: "legacy", Text: "legacy"}); err != nil {
 		t.Fatal(err)
 	}
 	if len(fallback.messages) != 2 {

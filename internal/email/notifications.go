@@ -94,12 +94,12 @@ func (s *Service) Notify(ctx context.Context, tenantID, userID, purpose string) 
 // SecurityNotificationMessage creates localized default copy when a tenant
 // has enabled a security notification shield without installing a custom template.
 func SecurityNotificationMessage(l *i18n.Localizer, purpose, to string) Message {
-	key := i18n.KeyEmailBlockedAccount
+	subjectKey, bodyKey := i18n.KeyEmailBlockedAccountSubject, i18n.KeyEmailBlockedAccountBody
 	if purpose == "stolen_credentials" {
-		key = i18n.KeyEmailStolenCredentials
+		subjectKey, bodyKey = i18n.KeyEmailStolenCredentialsSubject, i18n.KeyEmailStolenCredentialsBody
 	}
-	body := l.T(key + ".body")
-	return Message{To: to, Subject: l.T(key + ".subject"), Text: body, HTML: fmt.Sprintf("<p>%s</p>", html.EscapeString(body))}
+	body := l.T(bodyKey)
+	return Message{To: to, Subject: l.T(subjectKey), Text: body, HTML: fmt.Sprintf("<p>%s</p>", html.EscapeString(body))}
 }
 
 var ErrUnsafeEmailRedirect = errors.New("email: result URL is not an exact trusted HTTPS destination")

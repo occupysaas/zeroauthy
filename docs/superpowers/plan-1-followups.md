@@ -91,7 +91,7 @@ Deferred findings from the Plan 1 reviews (2026-10-13). Items under
 
 - Email verification emails. **Closed in Plan 17** (signup and user creation send the verification email; `/u/email-verification` consumes the ticket).
 - MFA (`mfa_required`).
-- **Closed in Plan 19:** configured range/file breach checks; notification delivery remains Plan 21.
+- **Closed in Plan 19:** configured range/file breach checks. Plan 21 adds user blocked-account and stolen-credential notices; administrator notices and email unblock links remain deferred.
 - The `organization` parameter on `change_password`.
 - **Closed in Plan 19:** reset-email sends share the store-backed three/hour budget.
 
@@ -334,8 +334,7 @@ imported hashes require reset, and cleartext password schemes are refused.
 
 ## Plan 19 follow-ups
 
-- Plan 21: deliver protection user/admin notifications and unblock email links;
-  current shields emit redacted events/rate-limited warnings only.
+- **Closed in Plan 21:** user notifications for authoritative blocked-account and breach events. Administrator notices and email unblock links remain deferred; current user messages do not contain unblock links.
 - General Authentication API rate limiting, shared device activation counters
   and custom-script Try limiting remain open.
 - Stored-only tenant fields/flags retain the per-field owners in

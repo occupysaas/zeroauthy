@@ -1,6 +1,6 @@
 # zeroauthy — Plan 21 design: email providers and templates
 
-- **Status:** Proposed implementation contract; documentation only. No implementation or live provider testing is claimed.
+- **Status:** Implemented per the execution record in [Plan 21](../plans/2026-10-25-zeroauthy-plan-21-email-provider-templates.md); local adapter, SDK, deploy-cli and browser lanes ran. No live provider or upstream tenant testing is claimed.
 - **Date:** 2026-10-25
 - **Baseline:** Plan 20, `5919dc6`; [management roadmap](2026-10-19-zeroauthy-management-roadmap-design.md#plan-21--email-provider-and-email-templates).
 - **Implementation:** [Plan 21 tasks](../plans/2026-10-25-zeroauthy-plan-21-email-provider-templates.md).

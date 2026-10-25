@@ -126,18 +126,18 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 ### Plan 21 — Email provider and email templates
 
-**Planning documents (2026-10-25):** [standalone spec](2026-10-25-zeroauthy-email-provider-templates-design.md) and [implementation plan](../plans/2026-10-25-zeroauthy-plan-21-email-provider-templates.md). Proposed; implementation has not started. These documents preserve global mailer fallback and existing OIDC/ticket behavior, and distinguish active delivery from stored-only future workflows.
+**Implementation record (2026-10-25):** [standalone design](2026-10-25-zeroauthy-email-provider-templates-design.md), [implementation plan](../plans/2026-10-25-zeroauthy-plan-21-email-provider-templates.md), and [operator guide](../../email.md). Implemented and covered by local Go, SQL, SDK, deploy-cli and browser lanes. Live upstream observation and paid-provider delivery were not performed; formal OIDF certification is not claimed.
 
 **Endpoints:** `GET/POST/PATCH/DELETE /api/v2/emails/provider`; `POST /api/v2/email-templates` and `GET/PUT/PATCH /api/v2/email-templates/{templateName}` for every documented template name (`verify_email`, `verify_email_by_code`, `auth_email_by_code`, `reset_email`, `reset_email_by_code`, `welcome_email`, `blocked_account`, `stolen_credentials`, `enrollment_email`, `mfa_oob_code`, `user_invitation`, `change_password`, `password_reset`, `async_approval` and any added since).
 
 **Runtime:**
-- Provider per tenant, replacing the global SMTP config as the default: `smtp` and the HTTP providers zeroauthy can implement without vendor SDKs (`sendgrid`, `mailgun`, `mandrill`, `sparkpost`, `ses`, `azure_cs`, `ms365`, `resend` as Auth0 lists them at build time), and Auth0's `custom` provider (an Action) once Plan 27 lands. The server-wide SMTP setting stays as the fallback, so self-hosters need no per-tenant setup.
-- Templates use Liquid, as Auth0's do, with Auth0's documented variables (`user`, `application`, `tenant`, `url`, `support_url`, `friendly_name` …). A permissively licensed Go Liquid engine (recorded in NOTICE) renders them; untrusted templates run with no file or network access.
-- `welcome_email` after signup and verification; `blocked_account` and `stolen_credentials` for Plan 19's shields; templates for later plans' emails (MFA, invitations) are stored now and wired in those plans.
+- Tenant providers: SMTP, SendGrid, Mailgun, Mandrill, SparkPost, SES, Azure Communication Services, MS365 and Resend. The server-wide driver remains the fallback when no tenant provider is enabled. `custom` is stored disabled until Actions execution exists.
+- Restricted Liquid evaluator with bounded parsing and execution; no external Liquid engine dependency. Provider credentials are envelope-encrypted and write-only. See `docs/email.md` for TLS, outbound policy, template escaping and secret reinjection.
+- Verification, reset, welcome and user security notices are active. Code, MFA, invitation and approval templates remain stored-only until their workflows are implemented. Welcome and security sends use durable claims; uncertain sends are not retried.
 
-**Console:** Email templates and Email provider pages go live; a "send test email" action (Auth0 has one in its dashboard; the API equivalent is whatever Task 1 finds, else a system API extension logged as a decision).
+**Console:** Provider, template and isolated preview pages are implemented. Zeroauthy-specific system-host preview and test-send routes target an authenticated operator's authorized tenant and verified address; details are in D-0047 and `docs/email.md`.
 
-**E2E:** node-auth0 `emails` and `emailTemplates`; Playwright signup with a welcome email from a custom template captured by the dir driver.
+**E2E:** node-auth0 `emails` and `emailTemplates`; actual deploy-cli YAML/directory import; Playwright signup, verification, welcome replay and second-tenant SMTP isolation. `make e2e-email` runs the dedicated browser lane and is included in CI. Local conformance results and unavailable handlers are recorded in the Plan 21 acceptance record.
 
 ### Plan 22 — Branding and Universal Login (full design)
 

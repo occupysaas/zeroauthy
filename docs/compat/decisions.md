@@ -18,6 +18,21 @@ them. Each entry: context, sources consulted, decision, rationale.
 - **Decision:** Implement the eight documented Management operations and nine executable provider names, while keeping `custom` disabled until Actions exists. Keep credentials write-only and envelope-encrypted. Store all fourteen SDK template names; only `reset_email` drives reset-link delivery, with legacy names separate. Treat absent live evidence as unavailable and use the inventory's explicitly labeled local fallbacks.
 - **Rationale:** This follows documented routes and resource shape without claiming that local security and lifecycle choices were observed upstream.
 
+- **D-0047 implementation addendum (2026-10-25):** The nine named providers
+  use local protocol adapters; `custom` remains stored-only. The bounded
+  renderer is an original restricted evaluator, so no Liquid dependency or
+  third-party license notice was added. The enabled tenant provider is read
+  for each send and never fails over after an error. Welcome, security and
+  operator preview/test sends use durable fixed-window claims; uncertain
+  started sends are not retried. Preview/test endpoints are zeroauthy system
+  extensions, with test messages addressed only to the verified operator.
+  node-auth0 7.4.0, deploy-cli 9.1.0, browser and local conformance lanes were
+  exercised as recorded in the Plan 21 acceptance record. The deploy CLI
+  inserts `##NAME##` secret placeholders in public exports; same-provider
+  imports preserve destination credentials for those placeholders and reject
+  them when no private destination credential exists. No live upstream tenant,
+  paid provider account or formal OIDF certification was used.
+
 ## D-0001: Access tokens carry `jti`
 
 - **Context:** Public Auth0 docs list the standard access token claims but do not say whether a token ID is included.
@@ -802,8 +817,9 @@ Seed top-level durations retain seconds and old validators; nested settings use
 API units and reject duplicates. Empty device masks retain runtime fallback;
 unusable nonempty masks refuse issuance. Huge session lifetimes saturate at
 year 9999. Required provider service/credential failures are unavailable and
-do not count as user risk. Notification delivery/unblock links remain Plan 21;
-device/general/Try limits remain open. No new module or adapted licensed code
+do not count as user risk. Plan 21 adds user blocked-account and breach
+notifications; administrator notices and email unblock links remain deferred.
+Device/general/Try limits remain open. No new module or adapted licensed code
 was introduced, so NOTICE is unchanged.
 
 ## D-0046: Plan 20 signing-key and deploy-cli local contract

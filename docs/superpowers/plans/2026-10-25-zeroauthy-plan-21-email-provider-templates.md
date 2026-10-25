@@ -6,9 +6,9 @@
 
 **Architecture:** Explicit tenant-aware delivery composes validated persisted provider/template snapshots, a bounded renderer and transport adapters. Existing ticket and identity services retain security decisions; email hooks receive authoritative events only. Provider secrets use existing envelope encryption, and notification claims serialize duplicate suppression across stores and instances.
 
-**Tech Stack:** Existing Go 1.26.7, Vue/TypeScript, OpenAPI generation, memory/SQLite/PostgreSQL/MySQL, protobuf/gRPC, Vitest/Playwright and pinned Auth0 client tools. A permissively licensed Go Liquid dependency is selected and pinned only after Task 2 proves resource bounds; no vendor transport SDKs.
+**Tech Stack:** Existing Go 1.26.7, Vue/TypeScript, OpenAPI generation, memory/SQLite/PostgreSQL/MySQL, protobuf/gRPC, Vitest/Playwright and pinned Auth0 client tools. Liquid rendering uses an original restricted evaluator; no external Liquid engine or vendor transport SDKs were adopted.
 
-**Spec:** [Plan 21 design](../specs/2026-10-25-zeroauthy-email-provider-templates-design.md). Read it before executing this plan. This is a proposed implementation plan, not an implementation record.
+**Spec:** [Plan 21 design](../specs/2026-10-25-zeroauthy-email-provider-templates-design.md). Execution outcomes and verification evidence are recorded at the end of this plan.
 
 ## Global Constraints
 
@@ -223,10 +223,10 @@ Encryption signatures: `keys.SealEmailProvider(w Wrapper, tenantID, provider str
 
 **Interfaces:** Produces operator instructions covering server fallback, provider credentials/TLS/outbound allowlists, templates and escaping, active/stored-only workflows, test-send semantics, delivery uncertainty, fixed-window throttles, plugin upgrades and migration secret reinjection. No claim of upstream observation or OIDF certification without its own evidence.
 
-- [ ] Review AC1–AC10 against Tasks 1–12; obtain the final implementation review required by the execution skill, fix material findings, and rerun affected tests. Confirm old tests remain in place and no unrelated OIDC behavior changed.
-- [ ] Run `git diff --check`, changed-file gofmt checks, `go vet ./...`, `go test -race ./...`, `./scripts/test-sql.sh`, `go generate ./...`, `make console`, `make check-sources`, `make e2e`, `make e2e-email`, `make e2e-deploy`, and `make conformance`. Compare generated outputs across a second run. Expected: exit 0; record conformance pass/warning/review/skip counts, not just command success.
-- [ ] Record actual command/date/results and all unavailable live provider/upstream lanes. Check source attribution for Liquid and official adapter protocol docs. Do not mark Tasks 1–13 complete from this proposed plan.
-- [ ] Commit `docs: email providers and templates; Plan 21 records`. Integration/merge/push is a separate execution decision and is not part of this documentation request.
+- [x] Review AC1–AC10 against Tasks 1–12; obtain the final implementation review required by the execution skill, fix material findings, and rerun affected tests. Confirm old tests remain in place and no unrelated OIDC behavior changed.
+- [x] Run `git diff --check`, changed-file gofmt checks, `go vet ./...`, `go test -race ./...`, `./scripts/test-sql.sh`, `go generate ./...`, `make console`, `make check-sources`, `make e2e`, `make e2e-email`, `make e2e-deploy`, and `make conformance`. Compare generated outputs across a second run. Expected: exit 0; record conformance pass/warning/review/skip counts, not just command success.
+- [x] Record actual command/date/results and all unavailable live provider/upstream lanes. Check source attribution for Liquid and official adapter protocol docs. Do not mark Tasks 1–13 complete from this proposed plan.
+- [x] Commit `docs: email providers and templates; Plan 21 records`. Integration/merge/push is a separate execution decision and is not part of this documentation request.
 
 ## Acceptance mapping and execution handoff
 
@@ -243,4 +243,35 @@ Encryption signatures: `keys.SealEmailProvider(w Wrapper, tenantID, provider str
 | AC9 browser/conformance | 12, 13 |
 | AC10 docs/limitations | 1, 13 |
 
-Implementation has not started. Review the spec and plan before execution; either native or task-by-task subagent execution can follow these interfaces. Native execution is a reasonable default because store, rendering and delivery boundaries are tightly coupled, with independent whole-branch review before completion.
+## Plan 21 implementation and acceptance record — 2026-10-25
+
+AC1–AC10 were reviewed against the Task 1 inventory, Tasks 2–12 implementation and the local verification results below. The fresh whole-branch review found a gap in the SQL failed-test-send quota assertion. It was fixed by invoking `mgmt.Handlers.TestEmail` with a fixed test clock and failing transport; the second SQL handle then verified the remaining two quota slots and the denied fourth claim. The reviewer confirmed the fix and found no material documentation issue. Existing tests were retained. The Task 13 source changes affect email localization and provenance only; the full OpenID conformance run completed with zero failed conditions.
+
+| Acceptance | Evidence and result |
+|---|---|
+| AC1 contract/API | Sourced inventory; eight Management operations; node-auth0 7.4.0 provider/template CRUD, scopes, redaction, errors and tenant isolation passed. |
+| AC2 stores/secrets | Memory, SQLite, PostgreSQL, MySQL and gRPC conformance/race coverage passed; provider envelope and export/import secret checks passed. Cross-dialect SQL script passed. |
+| AC3 fallback/legacy | Two-server SQLite email integration passed for current configuration, dedupe, restart, tenant deletion, failed-provider no-fallback and unaffected legacy driver. Existing mail and auth tests remain. |
+| AC4 transports | Local protocol/authentication/TLS/error tests pass for all nine named executable provider adapters; no paid-provider send was made. |
+| AC5 rendering | Restricted Liquid evaluator limits and capability tests pass under the full race suite; preview stays sandboxed. |
+| AC6 runtime/OIDC | Verification/reset/welcome/protection flow tests pass. OpenID conformance completed with 0 failed conditions; formal certification remains pending. |
+| AC7 console | `make console` and dedicated Playwright email lane pass; stored-only status, secret omission, tenant race and uncertain-send behavior are covered. |
+| AC8 SDK/migration | Actual node-auth0 and auth0-deploy-cli 9.1.0 lanes pass. All four YAML/directory × generated/preserved combinations preserve target credentials and strict comparisons. |
+| AC9 browser/conformance | `make e2e` passed 24 browser tests and skipped the three dedicated M19–M21 suites; `make e2e-email` passed its email browser test. Conformance counts are below. |
+| AC10 docs/limitations | [Operator guide](../../email.md), compatibility matrix, D-0047, roadmap and this record separate active/stored-only behavior and unavailable observations. Provider protocol sources are listed in `internal/emailrules/inventory.json`; no external Liquid engine or adapted licensed code was added, so `NOTICE` remains unchanged. |
+
+### Verification results
+
+- `git diff --check`; changed Go files passed `gofmt -l`; no existing test file was deleted.
+- `go vet ./...` — passed.
+- `go test -race ./...` — passed across all packages.
+- `./scripts/test-sql.sh` — passed with PostgreSQL 17 and MySQL 8.4; SQL store race suite completed in 557.6 seconds. SQLite ran as part of the repository suites.
+- `go generate ./...` — passed twice; the generated diff was identical on both runs (SHA-256 `3f5bcfc0d31a6d57b17abd6c555b7546611879a1051971859fe8f281b2a0f6a9`).
+- `make console` — passed lint, typecheck, 46 test files / 339 tests, and production build. Vite reported the existing 602 kB JavaScript chunk size warning.
+- `make check-sources` — passed for Authentication API and Management API provenance links.
+- `make e2e` — SDK and CLI paths passed; Playwright reported 24 passed, 3 skipped. The skips are M19, M20 and M21 tests covered by separate lanes.
+- `make e2e-email` — node-auth0 email scenarios passed; Playwright reported 1 passed.
+- `make e2e-deploy` — all four format/credential-mode combinations passed. `databases`, generic `connections` and `attackProtection` handlers were reported unavailable because their required APIs are outside this milestone. The upstream lane was unavailable because no observer credentials were supplied; no upstream call was made.
+- `make conformance` — passed with zero failed conditions. Basic: 35 modules (21 passed, 6 warnings, 4 review, 4 skipped); Config: 1 passed; Form Post: 35 (21 passed, 6 warnings, 4 review, 4 skipped); RP-Initiated Logout: 11 (3 passed, 8 review). Overall: 46 passed, 12 warnings, 16 review, 8 skipped, 0 failed. Formal OIDF certification remains pending.
+
+No live upstream tenant or paid third-party email provider was used. An email credential placeholder emitted by deploy-cli is treated as a preserve-existing-secret marker; import rejects that marker when no destination secret exists. This behavior is covered by the isolated actual CLI lane and Management tests.

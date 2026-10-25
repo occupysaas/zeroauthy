@@ -21,6 +21,11 @@ and open standards. It is not affiliated with Auth0 or Okta. See
 > and an admin console ([docs/console.md](docs/console.md)). See the
 > [compatibility matrix](docs/compat/matrix.md).
 
+Tenant-configurable email providers, bounded Liquid templates, previews and
+operator test sends are also available. Existing tenants can keep the
+server-wide email driver; see [docs/email.md](docs/email.md) for provider,
+template and migration guidance.
+
 ![The zeroauthy admin console: a tenant's applications](docs/pics/console-applications.png)
 
 ## Roadmap
@@ -31,7 +36,7 @@ features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–20)
+**Done** (Plans 1–21)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -43,6 +48,8 @@ each with its console screens; the full breakdown is in the
 - Management API and console: applications, APIs, client grants, database
   connections, users (with search, identity linking, sessions, refresh tokens,
   grants and tickets), user import/export jobs and verification email
+- Tenant email providers and templates, signup welcome and security notices;
+  see [docs/email.md](docs/email.md) for active workflows and stored-only limits
 
 **Tenant settings and attack protection (Plan 19)**
 
@@ -53,11 +60,10 @@ each with its console screens; the full breakdown is in the
 - Managed signing keys, stored-only custom public JWKS, and credential-preserving bootstrap are implemented.
 - The pinned Deploy CLI passes local YAML/directory imports for clients, APIs, grants and tenant settings, with generated or preserved credentials. Three handlers await future APIs; the upstream observer lane remains unavailable. See [signing keys](docs/signing-keys.md) and [Deploy CLI migration](docs/deploy-cli.md) for current limits.
 
-**Later** (Plans 21–38)
+**Later** (Plans 22–38)
 
 | Plans | Area |
 |---|---|
-| 21 | Email provider and templates |
 | 22–23 | Branding and Universal Login page templates; custom domains with automatic certificates |
 | 24–25 | Social connections (generic OAuth 2 and OIDC, Google, Apple, Facebook, Microsoft, …) |
 | 26–28 | Roles and permissions; Actions |
