@@ -22,8 +22,8 @@ var notificationWarning struct {
 	next time.Time
 }
 
-func (s *Service) notifications(ctx context.Context, tenant, feature string, shields []string) {
-	if !slices.Contains(shields, "user_notification") && !slices.Contains(shields, "admin_notification") {
+func (s *Service) adminNotifications(ctx context.Context, tenant, feature string, shields []string) {
+	if !slices.Contains(shields, "admin_notification") {
 		return
 	}
 	notificationWarning.Lock()
@@ -38,6 +38,28 @@ func (s *Service) notifications(ctx context.Context, tenant, feature string, shi
 		if log == nil {
 			log = slog.Default()
 		}
-		log.WarnContext(ctx, "protection notifications deferred", "tenant", tenant, "feature", feature)
+		log.WarnContext(ctx, "protection admin notification deferred", "tenant", tenant, "feature", feature)
 	}
+}
+
+func (s *Service) notify(ctx context.Context, tenant, user, purpose string) {
+	if s.Notifier == nil {
+		return
+	}
+	goSend := s.Go
+	if goSend == nil {
+		goSend = func(f func()) { go f() }
+	}
+	log := s.Log
+	if log == nil {
+		log = slog.Default()
+	}
+	goSend(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := s.Notifier.Notify(ctx, tenant, user, purpose); err != nil {
+			// Do not include provider errors or user supplied identifiers in logs.
+			log.WarnContext(ctx, "protection user notification failed", "tenant", tenant, "purpose", purpose)
+		}
+	})
 }

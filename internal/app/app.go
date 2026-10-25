@@ -238,7 +238,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Wrapper:      wrapper,
 			Scripts:      &customdb.Client{Exec: runner, Wrapper: wrapper},
 
-			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper},
+			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
 			BaseDomain:        cfg.Server.BaseDomain,
 			SystemHost:        systemHost,

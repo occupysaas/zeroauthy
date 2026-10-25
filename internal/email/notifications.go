@@ -3,10 +3,13 @@ package email
 import (
 	"context"
 	"errors"
+	"fmt"
+	"html"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -39,6 +42,64 @@ func (s *Service) Welcome(ctx context.Context, tenantID, userID, clientID, langu
 		return nil
 	}
 	return s.Send(ctx, Event{TenantID: tenantID, UserID: userID, ClientID: clientID, Template: "welcome_email", Language: language})
+}
+
+// Notify sends a security notification to a canonical, verified tenant user.
+// Claims are scoped to a purpose and fixed UTC calendar day; uncertain sends
+// retain the claim for that day.
+func (s *Service) Notify(ctx context.Context, tenantID, userID, purpose string) error {
+	if s == nil || s.Store == nil || tenantID == "" || userID == "" {
+		return ErrServiceUnavailable
+	}
+	if purpose != "blocked_account" && purpose != "stolen_credentials" {
+		return store.ErrInvalid
+	}
+	user, err := s.Store.Users().Get(ctx, tenantID, userID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !user.EmailVerified || user.Email == "" {
+		return nil
+	}
+	policy, err := s.Resolve(ctx, tenantID, purpose)
+	if err != nil {
+		return err
+	}
+	if policy.Template != nil && !policy.Enabled {
+		return nil
+	}
+	now := s.clock().UTC()
+	day := now.Format("2006-01-02")
+	expires := now.Truncate(24 * time.Hour).Add(24 * time.Hour)
+	claimed, err := s.Store.EmailNotifications().Claim(ctx, tenantID, userID, purpose, day, now, expires, 1)
+	if err != nil {
+		return err
+	}
+	if !claimed {
+		return nil
+	}
+	if policy.Template != nil {
+		return s.Send(ctx, Event{TenantID: tenantID, UserID: userID, Template: purpose, Language: "en"})
+	}
+	tenant, err := s.Store.Tenants().Get(ctx, tenantID)
+	if err != nil {
+		return err
+	}
+	return s.SendMessage(ctx, tenantID, SecurityNotificationMessage(i18n.New(tenant, "en"), purpose, user.Email))
+}
+
+// SecurityNotificationMessage creates localized default copy when a tenant
+// has enabled a security notification shield without installing a custom template.
+func SecurityNotificationMessage(l *i18n.Localizer, purpose, to string) Message {
+	key := i18n.KeyEmailBlockedAccount
+	if purpose == "stolen_credentials" {
+		key = i18n.KeyEmailStolenCredentials
+	}
+	body := l.T(key + ".body")
+	return Message{To: to, Subject: l.T(key + ".subject"), Text: body, HTML: fmt.Sprintf("<p>%s</p>", html.EscapeString(body))}
 }
 
 var ErrUnsafeEmailRedirect = errors.New("email: result URL is not an exact trusted HTTPS destination")

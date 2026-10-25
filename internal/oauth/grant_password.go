@@ -112,7 +112,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 
 	var breachErr error
 	user, err := h.Database.LoginWithCheck(ctx, conn, username, password, func(ctx context.Context) error {
-		breachErr = svc.CheckPassword(ctx, res.Tenant, "login", identity.EffectivePassword(conn, password))
+		breachErr = svc.CheckPasswordForUser(ctx, res.Tenant, "login", identity.EffectivePassword(conn, password), decision.SubjectID)
 		return breachErr
 	})
 	outcome := protection.CredentialOutcome(err)

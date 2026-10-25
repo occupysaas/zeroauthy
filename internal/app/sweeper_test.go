@@ -20,6 +20,7 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	must(st.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
 	must(st.AuthTransactions().Create(ctx, &store.AuthTransaction{TenantID: "t", ID: "old", ExpiresAt: now.Add(-time.Minute)}))
 	must(st.AuthTransactions().Create(ctx, &store.AuthTransaction{TenantID: "t", ID: "new", ExpiresAt: now.Add(time.Minute)}))
 	must(st.Sessions().Create(ctx, &store.LoginSession{TenantID: "t", ID: "old", TokenHash: "h1", ExpiresAt: now.Add(time.Hour), IdleExpiresAt: now.Add(-time.Second)}))
@@ -42,10 +43,18 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 	must(st.DeviceCodes().Create(ctx, &store.DeviceCode{TenantID: "t", DeviceCodeHash: "ancient", UserCodeHash: "ua", ExpiresAt: now.Add(-25 * time.Hour)}))
 	must(st.Jobs().Create(ctx, &store.Job{TenantID: "t", ID: "old", Type: store.JobUsersExport, Status: store.JobCompleted, ExpiresAt: now.Add(-time.Second)}))
 	must(st.Jobs().Create(ctx, &store.Job{TenantID: "t", ID: "new", Type: store.JobUsersExport, Status: store.JobCompleted, ExpiresAt: now.Add(time.Hour)}))
+	mustClaim, err := st.EmailNotifications().Claim(ctx, "t", "u", "blocked_account", "expired", now.Add(-time.Hour), now.Add(-time.Minute), 1)
+	if err != nil || !mustClaim {
+		t.Fatalf("claim=%v,%v", mustClaim, err)
+	}
+	mustClaim, err = st.EmailNotifications().Claim(ctx, "t", "u", "welcome", "permanent", now.Add(-time.Hour), time.Time{}, 1)
+	if err != nil || !mustClaim {
+		t.Fatalf("permanent claim=%v,%v", mustClaim, err)
+	}
 
 	n, err := sweep(ctx, st, now)
-	if err != nil || n != 9 {
-		t.Fatalf("sweep = %d, %v; want 9, nil", n, err)
+	if err != nil || n != 10 {
+		t.Fatalf("sweep = %d, %v; want 10, nil", n, err)
 	}
 	if _, err := st.Jobs().Get(ctx, "t", "old"); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("expired job kept: %v", err)
@@ -88,5 +97,11 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 	}
 	if _, err := st.PasswordResetTickets().GetByTokenHash(ctx, "t", "p1"); !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("expired reset ticket kept: %v", err)
+	}
+	if ok, err := st.EmailNotifications().Claim(ctx, "t", "u", "blocked_account", "expired", now, now.Add(time.Hour), 1); err != nil || !ok {
+		t.Errorf("expired claim kept: %v,%v", ok, err)
+	}
+	if ok, err := st.EmailNotifications().Claim(ctx, "t", "u", "welcome", "permanent", now, time.Time{}, 1); err != nil || ok {
+		t.Errorf("permanent claim swept: %v,%v", ok, err)
 	}
 }

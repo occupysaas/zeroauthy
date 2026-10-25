@@ -267,7 +267,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	var breachErr error
 	user, err := h.Database.LoginWithCheck(ctx, f.conn, login, r.PostForm.Get("password"), func(ctx context.Context) error {
-		breachErr = svc.CheckPassword(ctx, f.res.Tenant, "login", identity.EffectivePassword(f.conn, r.PostForm.Get("password")))
+		breachErr = svc.CheckPasswordForUser(ctx, f.res.Tenant, "login", identity.EffectivePassword(f.conn, r.PostForm.Get("password")), decision.SubjectID)
 		return breachErr
 	})
 	outcome := protection.CredentialOutcome(err)

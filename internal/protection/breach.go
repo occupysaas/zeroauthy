@@ -139,6 +139,12 @@ func (c *RangeChecker) Check(ctx context.Context, password string) (bool, error)
 // CheckPassword re-reads policy so edits take effect on the next submission.
 // No underlying error, submitted password or digest crosses this boundary.
 func (s *Service) CheckPassword(ctx context.Context, tenant *store.Tenant, stage, password string) error {
+	return s.CheckPasswordForUser(ctx, tenant, stage, password, "")
+}
+
+// CheckPasswordForUser adds a canonical subject only for the post credential
+// verification login path. Other callers retain the original interface.
+func (s *Service) CheckPasswordForUser(ctx context.Context, tenant *store.Tenant, stage, password, userID string) error {
 	if tenant == nil {
 		return ErrBreachUnavailable
 	}
@@ -181,8 +187,13 @@ func (s *Service) CheckPassword(ctx context.Context, tenant *store.Tenant, stage
 		return nil
 	}
 	s.Event(ctx, tenant.ID, "breached-password", "detected", "")
-	s.notifications(ctx, tenant.ID, "breached-password", shields)
+	s.adminNotifications(ctx, tenant.ID, "breached-password", shields)
+	if stage == "login" && userID != "" && slices.Contains(shields, "user_notification") {
+		s.notify(ctx, tenant.ID, userID, "stolen_credentials")
+	}
 	if slices.Contains(shields, "block") {
+		// User notices are valid only for an identified account during login.
+		// Other stages do not carry a verified subject identity.
 		return ErrPasswordLeaked
 	}
 	return nil

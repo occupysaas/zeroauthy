@@ -35,6 +35,9 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 		{st.RefreshTokens().DeleteExpired, now},
 		{st.PasswordResetTickets().DeleteExpired, now},
 		{st.EmailVerificationTickets().DeleteExpired, now},
+		{func(ctx context.Context, before time.Time) (int, error) {
+			return st.EmailNotifications().Sweep(ctx, before, 100)
+		}, now},
 		{st.Jobs().DeleteExpired, now},
 	}
 	total := 0

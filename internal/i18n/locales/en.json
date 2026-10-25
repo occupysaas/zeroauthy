@@ -173,6 +173,14 @@
       "heading": "Welcome",
       "body": "Your ${companyName} account is ready. You can now sign in and continue to your application."
     },
+    "email-blocked-account": {
+      "subject": "Your ${companyName} account was temporarily blocked",
+      "body": "We blocked sign-in attempts to your ${companyName} account after repeated failures. If this was you, wait before trying again. If it was not you, reset your password."
+    },
+    "email-stolen-credentials": {
+      "subject": "Choose a new ${companyName} password",
+      "body": "The password used for your ${companyName} account appeared in a known data breach. We blocked the sign-in. Choose a new, unique password before trying again."
+    },
     "email-import-done": {
       "subject": "User import ${job} on ${tenant} has finished",
       "subject-failed": "User import ${job} on ${tenant} did not finish",

@@ -159,6 +159,9 @@ func New(d Deps) http.Handler {
 	if sharedProtection == nil {
 		sharedProtection = &protection.Service{Store: d.Store, Log: d.Log}
 	}
+	if sharedProtection.Notifier == nil && d.EmailService != nil {
+		sharedProtection.Notifier = d.EmailService
+	}
 	dbconnHandlers := &dbconn.Handlers{
 		Store: d.Store, Database: db,
 		Protection: sharedProtection, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,

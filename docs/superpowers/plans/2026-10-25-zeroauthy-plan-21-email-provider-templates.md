@@ -186,11 +186,11 @@ Encryption signatures: `keys.SealEmailProvider(w Wrapper, tenantID, provider str
 
 **Interfaces:** Add `protection.Notifier interface { Notify(ctx context.Context, tenantID, userID, purpose string) error }` to `protection.Service`; implement it on `email.Service`. Purposes are `blocked_account` and `stolen_credentials`. Claim keys use purpose and fixed UTC 24-hour windows with limit 1; resolve canonical user address from the tenant store, not the supplied identifier.
 
-- [ ] Write `TestNotificationAfterAuthoritativeEvent`, `TestNotificationAliasRecipient`, `TestNotificationConcurrentInstances`, `TestNotificationFailedSendClaim`, `TestAdminNotificationStillDeferred`. Assert no notification at `Begin` merely because a shield exists, no mail to unknown/attacker identifiers, no suspicious-IP user notice, both purposes independent, concurrent instances send once, uncertain failure retains claim.
-- [ ] Run `go test ./internal/protection ./internal/email -run Notification -count=1` and capture failures. Move user notification calls to actual block/breach outcomes; preserve monitor/block semantics and existing public responses. Keep admin warning distinct. A notification failure never reverses the security decision.
-- [ ] Wire bounded asynchronous sends with redacted outcomes; connect claim sweep to existing bounded maintenance and cascade subject deletion. Add boundary tests across midnight UTC and verify the documented fixed-window semantics (not a sliding 24-hour claim).
-- [ ] Run `go test -race ./internal/protection ./internal/email ./internal/login ./internal/dbconn`, plus shared claim conformance on SQL/gRPC after wiring changes.
-- [ ] Commit `feat(protection): deliver tenant security notification emails`.
+- [x] Write `TestNotificationAfterAuthoritativeEvent`, `TestNotificationAliasRecipient`, `TestNotificationConcurrentInstances`, `TestNotificationFailedSendClaim`, `TestAdminNotificationStillDeferred`. Assert no notification at `Begin` merely because a shield exists, no mail to unknown/attacker identifiers, no suspicious-IP user notice, both purposes independent, concurrent instances send once, uncertain failure retains claim.
+- [x] Run `go test ./internal/protection ./internal/email -run Notification -count=1` and capture failures. Move user notification calls to actual block/breach outcomes; preserve monitor/block semantics and existing public responses. Keep admin warning distinct. A notification failure never reverses the security decision.
+- [x] Wire bounded asynchronous sends with redacted outcomes; connect claim sweep to existing bounded maintenance and cascade subject deletion. Add boundary tests across midnight UTC and verify the documented fixed-window semantics (not a sliding 24-hour claim).
+- [x] Run `go test -race ./internal/protection ./internal/email ./internal/login ./internal/dbconn`, plus shared claim conformance on SQL/gRPC after wiring changes.
+- [x] Commit `feat(protection): deliver tenant security notification emails`.
 
 ## Task 11: Provide operator preview/test APIs and live console pages
 

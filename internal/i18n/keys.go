@@ -38,6 +38,8 @@ const (
 	KeyEmailWelcomeSubject    = "zeroauthy.email-welcome.subject"
 	KeyEmailWelcomeHeading    = "zeroauthy.email-welcome.heading"
 	KeyEmailWelcomeBody       = "zeroauthy.email-welcome.body"
+	KeyEmailBlockedAccount    = "zeroauthy.email-blocked-account"
+	KeyEmailStolenCredentials = "zeroauthy.email-stolen-credentials"
 	// The user import completion email goes to operators, in English.
 	KeyEmailImportDoneSubject   = "zeroauthy.email-import-done.subject"
 	KeyEmailImportFailedSubject = "zeroauthy.email-import-done.subject-failed"

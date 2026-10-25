@@ -23,6 +23,11 @@ type Decision struct {
 	Allowed bool
 	RetryAt time.Time
 	Receipt store.ProtectionReceipt
+	// SubjectID is set only when login identifier resolution found a tenant user.
+	SubjectID string
+}
+type Notifier interface {
+	Notify(context.Context, string, string, string) error
 }
 type Service struct {
 	Wrapper         keys.Wrapper
@@ -31,6 +36,8 @@ type Service struct {
 	Store           store.Store
 	Now             func() time.Time
 	Log             *slog.Logger
+	Notifier        Notifier
+	Go              func(func())
 }
 
 func (s *Service) now() time.Time {
@@ -60,9 +67,11 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 	}
 	ip := CanonicalIP(a.IP)
 	identifier := loginid.Normalize(a.Identifier)
+	var subjectID string
 	if a.Flow == "login" {
 		u, e := s.Store.Users().FindByLogin(ctx, tenant.ID, conn.Name, identifier)
 		if e == nil {
+			subjectID = u.UserID
 			if id := u.IdentityByLogin(conn.Name, identifier); id != nil {
 				identifier = IdentityIdentifier(u, id)
 			}
@@ -81,7 +90,7 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 		} else {
 			s.Event(ctx, tenant.ID, "brute-force", "monitor", conn.ID)
 		}
-		s.notifications(ctx, tenant.ID, "brute-force", p.BruteForce.Shields)
+		s.adminNotifications(ctx, tenant.ID, "brute-force", p.BruteForce.Shields)
 	}
 	if (a.Flow == "login" || a.Flow == "signup") && p.SuspiciousIP.Enabled && !Allowlisted(ip, p.SuspiciousIP.Allowlist) {
 		if slices.Contains(p.SuspiciousIP.Shields, "block") {
@@ -99,7 +108,7 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 		} else {
 			s.Event(ctx, tenant.ID, "suspicious-ip", "monitor", conn.ID)
 		}
-		s.notifications(ctx, tenant.ID, "suspicious-ip", p.SuspiciousIP.Shields)
+		s.adminNotifications(ctx, tenant.ID, "suspicious-ip", p.SuspiciousIP.Shields)
 	}
 	if a.Flow == "reset-send" {
 		limits = append(limits, store.ProtectionLimit{Key: store.ProtectionKey{TenantID: tenant.ID, Kind: store.ProtectionResetMail, ConnectionID: conn.ID, Identifier: identifier}, Algorithm: "fixed-window", Capacity: 3, Window: time.Hour})
@@ -114,8 +123,20 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 	d, err := s.Store.Protection().Reserve(ctx, limits, now)
 	if err == nil && !d.Allowed {
 		s.Event(ctx, tenant.ID, a.Flow, "denied", conn.ID)
+		if subjectID != "" && a.Flow == "login" && slices.Contains(p.BruteForce.Shields, "block") && slices.Contains(p.BruteForce.Shields, "user_notification") {
+			filter := store.ProtectionFilter{Kind: store.ProtectionBruteForce, ConnectionID: conn.ID, Identifier: identifier}
+			if p.BruteForce.Mode != "count_per_identifier" {
+				filter.IP = ip
+			}
+			blocks, blockErr := s.Store.Protection().Blocks(ctx, tenant.ID, filter, now)
+			if blockErr != nil {
+				s.Event(ctx, tenant.ID, "brute-force", "notification-check-failed", conn.ID)
+			} else if len(blocks) > 0 {
+				s.notify(ctx, tenant.ID, subjectID, "blocked_account")
+			}
+		}
 	}
-	return Decision{Allowed: d.Allowed, RetryAt: d.RetryAt, Receipt: d.Receipt}, err
+	return Decision{Allowed: d.Allowed, RetryAt: d.RetryAt, Receipt: d.Receipt, SubjectID: subjectID}, err
 }
 
 // Finish deliberately survives request cancellation. Credential outcomes retain
