@@ -340,6 +340,9 @@ func deleteUser(ctx context.Context, tx *Store, tenantID, userID string) error {
 			return e
 		}
 	}
+	if _, e = tx.exec(ctx, `DELETE FROM email_notifications WHERE tenant_id=? AND subject_id=?`, tenantID, userID); e != nil {
+		return e
+	}
 
 	for _, table := range userDependents {
 		if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND user_id = ?`, tenantID, userID); err != nil {

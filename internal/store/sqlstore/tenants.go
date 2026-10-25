@@ -148,7 +148,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 // tenantTables are the tables whose rows belong to one tenant, by
 // tenant_id. Delete empties them before it deletes the tenant row.
 var tenantTables = []string{
-	"protection_reservations", "protection_receipts", "protection_buckets", "protection_risk_events", "job_files", "job_errors", "jobs", "operators", "password_reset_tickets", "email_verification_tickets", "refresh_tokens", "device_codes", "pushed_auth_requests",
+	"protection_reservations", "protection_receipts", "protection_buckets", "protection_risk_events", "job_files", "job_errors", "jobs", "operators", "email_notifications", "email_templates", "email_providers", "email_provider_revisions", "password_reset_tickets", "email_verification_tickets", "refresh_tokens", "device_codes", "pushed_auth_requests",
 	"auth_codes", "auth_transactions", "sessions", "user_grants", "user_logins", "password_history", "users",
 	"connections", "custom_signing_keys", "signing_keys", "client_grants", "resource_servers", "clients", "tenant_domains",
 }

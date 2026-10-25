@@ -1,0 +1,5 @@
+CREATE TABLE email_provider_revisions (tenant_id TEXT PRIMARY KEY, revision BIGINT NOT NULL, FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE);
+CREATE TABLE email_providers (tenant_id TEXT PRIMARY KEY, name TEXT NOT NULL, enabled BOOLEAN NOT NULL, default_from TEXT NOT NULL, public_config TEXT NOT NULL, sealed_credentials BLOB NOT NULL, revision BIGINT NOT NULL, FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE);
+CREATE TABLE email_templates (tenant_id TEXT NOT NULL, name TEXT NOT NULL, fields TEXT NOT NULL, revision BIGINT NOT NULL, PRIMARY KEY (tenant_id, name), FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE);
+CREATE TABLE email_notifications (tenant_id TEXT NOT NULL, subject_id TEXT NOT NULL, purpose TEXT NOT NULL, event_key TEXT NOT NULL, count INTEGER NOT NULL, expires_at BIGINT NULL, PRIMARY KEY (tenant_id, subject_id, purpose, event_key), FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE);
+CREATE INDEX email_notifications_expiry ON email_notifications (expires_at);

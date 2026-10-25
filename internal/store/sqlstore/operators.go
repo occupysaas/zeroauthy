@@ -86,9 +86,15 @@ func (r operators) List(ctx context.Context, tenantID string) ([]*store.Operator
 }
 
 func (r operators) Delete(ctx context.Context, tenantID, userID string) error {
-	res, err := r.s.write(ctx, nil, `DELETE FROM operators WHERE tenant_id = ? AND user_id = ?`, tenantID, userID)
-	if err != nil {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		res, err := tx.exec(ctx, `DELETE FROM operators WHERE tenant_id = ? AND user_id = ?`, tenantID, userID)
+		if err != nil {
+			return err
+		}
+		if err = expectRow(res); err != nil {
+			return err
+		}
+		_, err = tx.exec(ctx, `DELETE FROM email_notifications WHERE subject_id=? AND LOWER(purpose) IN ('preview','test')`, userID)
 		return err
-	}
-	return expectRow(res)
+	})
 }
