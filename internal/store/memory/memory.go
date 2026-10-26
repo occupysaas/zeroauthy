@@ -70,6 +70,14 @@ type state struct {
 	emailNotifications     map[emailClaimKey]store.EmailNotification
 }
 
+// NewWithClock returns an empty store whose storage time (attempt budgets,
+// due lists and lease expiry) comes from now, for deterministic tests.
+func NewWithClock(now func() time.Time) *Store {
+	s := New()
+	s.now = now
+	return s
+}
+
 // New returns an empty store.
 func New() *Store {
 	return &Store{state: &state{
