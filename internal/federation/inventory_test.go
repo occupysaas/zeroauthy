@@ -30,6 +30,16 @@ func TestFederationInventory(t *testing.T) {
 			ID, Method, Path, Response, Source string
 			Scopes                             []string
 			Status                             int
+			Pagination                         struct {
+				SelectBy                             []string `json:"select_by"`
+				CheckpointWins                       bool     `json:"checkpoint_wins"`
+				ResponseFields                       []string `json:"response_fields"`
+				FirstPage, Continuation, Termination string
+				IncludeTotals                        string   `json:"include_totals"`
+				OmittedFields                        []string `json:"omitted_fields"`
+				DefaultTake                          int      `json:"default_take"`
+				MaxTake                              int      `json:"max_take"`
+			} `json:"pagination"`
 		}
 		Patch    struct{ Options, Secret, Immutable []string }
 		Identity struct {
@@ -47,11 +57,29 @@ func TestFederationInventory(t *testing.T) {
 			RootFields                   []string `json:"root_fields"`
 			ExtraClaims                  string   `json:"extra_claims"`
 		}
-		Unsupported map[string]struct{ Disposition, Reason, Source string }
+		Unsupported             map[string]struct{ Disposition, Reason, Source string }
+		UpstreamParameterPolicy struct {
+			RejectedKeys                []string `json:"rejected_keys"`
+			AllValuesRejected           bool     `json:"all_values_rejected"`
+			RejectAliasesToRejectedKeys bool     `json:"reject_aliases_to_rejected_keys"`
+		} `json:"upstream_parameter_policy"`
 	}
 	if err := json.Unmarshal(b, &inv); err != nil {
 		t.Fatal(err)
 	}
+	t.Run("assurance_parameters_rejected_before_inert_storage", func(t *testing.T) {
+		for _, key := range []string{"acr_values", "max_age", "claims", "prompt"} {
+			if !slices.Contains(inv.UpstreamParameterPolicy.RejectedKeys, key) {
+				t.Errorf("assurance parameter %s can be stored inert instead of rejected", key)
+			}
+		}
+		if !inv.UpstreamParameterPolicy.AllValuesRejected {
+			t.Error("reserved parameter rejection must apply to every value, including prompt=login/max_age=0")
+		}
+		if !inv.UpstreamParameterPolicy.RejectAliasesToRejectedKeys {
+			t.Error("aliases to rejected assurance parameters must also be rejected")
+		}
+	})
 	if len(inv.Strategies) != 3 {
 		t.Fatalf("need exactly three strategies, got %d", len(inv.Strategies))
 	}
@@ -108,6 +136,29 @@ func TestFederationInventory(t *testing.T) {
 		}
 		operations[op.ID] = true
 	}
+	t.Run("connection_list_checkpoint_contract", func(t *testing.T) {
+		for _, op := range inv.Operations {
+			if op.ID != "ListConnections" {
+				continue
+			}
+			p := op.Pagination
+			if !slices.Equal(p.SelectBy, []string{"take", "from"}) || !p.CheckpointWins {
+				t.Error("take/from presence must select checkpoint ahead of offset parameters")
+			}
+			if !slices.Equal(p.ResponseFields, []string{"connections", "next?"}) || !strings.Contains(op.Response, "{connections:[...],next?}") {
+				t.Error("connection-list checkpoint response must carry connections and optional next")
+			}
+			if p.FirstPage != "omit from; supply take" || p.Continuation != "send previous next unchanged as from" || p.Termination != "next absent on terminal or empty page; never empty-string next" {
+				t.Error("checkpoint first/continuation/termination semantics missing")
+			}
+			if p.IncludeTotals != "ignored in checkpoint mode, including when true" || !slices.Equal(p.OmittedFields, []string{"start", "limit", "length", "total"}) {
+				t.Error("checkpoint must omit offset summary fields regardless of include_totals")
+			}
+			if p.DefaultTake != 50 || p.MaxTake != 100 {
+				t.Error("checkpoint take must default to 50 and be bounded at 100")
+			}
+		}
+	})
 	for _, id := range []string{"ListConnections", "CreateConnection", "GetConnection", "UpdateConnection", "DeleteConnection", "GetConnectionClients", "UpdateConnectionClients", "GetUser", "ListUsers", "ListUsersByEmail", "LinkIdentity", "UnlinkIdentity", "ExportUsers"} {
 		if !operations[id] {
 			t.Errorf("missing operation %s", id)

@@ -57,8 +57,15 @@ All local restrictions below are implementation decisions, not observed parity.
   [Enabled-client GET](https://auth0.com/docs/api/management/v2/connections/get-connection-clients)
   returns `{clients:[{client_id}],next?}`; [PATCH](https://auth0.com/docs/api/management/v2/connections/patch-clients)
   accepts `{client_id,status}` entries and returns 204. Connection create returns
-  201, update/read 200 and delete 204. Existing page/totals behavior remains;
-  checkpoint clients and SDK pagination must also work. Public schemas gate
+  201, update/read 200 and delete 204. Existing page/totals behavior remains.
+  [Connection listing](https://auth0.com/docs/api/management/v2/connections/get-connections)
+  also has checkpoint `{connections:[...],next?}` responses. Presence of take or
+  from selects checkpoint locally and wins over page/per_page. Start with take
+  and no from; take defaults to 50 when omitted and accepts 1–100. Continue with
+  the previous next unchanged as from. Terminal/empty pages omit next entirely.
+  Checkpoint mode ignores include_totals even when true and omits offset
+  start/limit/length/total fields. This preserves the existing handler and the
+  pinned SDK's connections/next iteration; it is now frozen in the operation row. Public schemas gate
   options with read:connections_options, and Deploy CLI warns about both read
   and update options scopes. This plan preserves existing local nonsecret options
   projections under ordinary connection scopes; that is a recorded difference,
@@ -140,7 +147,12 @@ documents upstream_params value/alias maps; OAuth docs also document authParams
 and authParamsMap. Locally these maps can round-trip only as explicitly diagnosed
 inert settings. Known OAuth protocol overrides, domain restriction or required
 custom authentication settings are rejected (inventory has the exact reserved
-keys). Unknown harmless Extra values may round-trip but never affect login.
+keys). Assurance parameters acr_values, max_age, claims and prompt are explicitly
+rejected for every value, including max_age=0, null/empty and all prompt values
+(login, consent, select_account, none). This applies to map targets and dynamic
+aliases before inert storage, so an unsupported assurance or reauthentication
+request cannot silently become inert. Unknown harmless Extra values may
+round-trip but never affect login.
 customHeaders and fieldsMap cannot silently substitute for client authentication
 or the required script. Google hd is a provider hint only. Configured Google
 social domain restrictions are rejected because this task freezes no supported

@@ -294,8 +294,35 @@
         "read:connections"
       ],
       "status": 200,
-      "response": "array; include_totals yields {connections,start,limit,length,total}",
-      "source": "https://auth0.com/docs/api/management/v2/connections/get-connections"
+      "response": "offset: array; include_totals yields {connections,start,limit,length,total}; checkpoint: {connections:[...],next?} without offset summary fields",
+      "source": "https://auth0.com/docs/api/management/v2/connections/get-connections",
+      "pagination": {
+        "select_by": [
+          "take",
+          "from"
+        ],
+        "checkpoint_wins": true,
+        "selection": "presence of either take or from selects checkpoint, even empty from; page/per_page are ignored in checkpoint mode",
+        "response_fields": [
+          "connections",
+          "next?"
+        ],
+        "firstPage": "omit from; supply take",
+        "continuation": "send previous next unchanged as from",
+        "termination": "next absent on terminal or empty page; never empty-string next",
+        "include_totals": "ignored in checkpoint mode, including when true",
+        "omitted_fields": [
+          "start",
+          "limit",
+          "length",
+          "total"
+        ],
+        "default_take": 50,
+        "min_take": 1,
+        "max_take": 100,
+        "source": "https://auth0.com/docs/api/management/v2/connections/get-connections",
+        "evidence": "public docs specify checkpoint take/from, default 50/max 100, next omission, no totals; presence-based selection/offset precedence preserves existing local handler; pinned SDK 7.4.0 consumes connections/next"
+      }
     },
     {
       "id": "CreateConnection",
@@ -772,7 +799,11 @@
       "allowed_domains",
       "authentication",
       "authorization",
-      "Authorization"
+      "Authorization",
+      "acr_values",
+      "max_age",
+      "claims",
+      "prompt"
     ],
     "diagnostic": "only option/key names and inert classification; never values/tokens",
     "unsupported_dynamic_request": [
@@ -780,7 +811,10 @@
       "connection_scope",
       "arbitrary upstream query forwarding"
     ],
-    "reserved_aliases": "reject a map target or alias referring to a rejected key; do not interpret alias/value as executable code"
+    "reserved_aliases": "reject a map target or alias referring to a rejected key; do not interpret alias/value as executable code",
+    "all_values_rejected": true,
+    "reject_aliases_to_rejected_keys": true,
+    "assurance_policy": "acr_values/max_age/claims/prompt reject for every value, including null/empty and all prompt values (login, consent, select_account, none); reject both parameter targets and dynamic aliases before inert storage; never silently downgrade assurance or reauthentication requirements"
   },
   "profile_validation": {
     "strings": "present null/wrong type rejected; UTF-8 without NUL; bounds in limits; root fields optional except user_id",

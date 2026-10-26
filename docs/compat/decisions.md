@@ -917,6 +917,12 @@ existing `template` alias; PUT retains `template`. No ACUL claim is implied.
 
 ## Plan 24 — frozen federation contract (2026-10-26)
 
+Connection-list checkpoint mode preserves the existing take/from presence
+selection ahead of page/per_page, default take=50 (1–100),
+`{connections:[...],next?}` envelope, previous-next-to-from continuation and
+next omission at the terminal/empty page. include_totals does not add summary
+fields in checkpoint mode, even when true.
+
 The [source inventory](observations/social-connections.md) and
 `internal/federation/inventory.json` govern subsequent implementation tasks.
 Only google-oauth2, oauth2 and back-channel oidc are active. Public PKCE examples
@@ -944,7 +950,9 @@ Mandatory S256, immutable issuer/client binding, bounded script/network behavior
 first provisioning under never_on_login, and the explicit context/metadata
 allowlists are local policies. Unsupported configured Google domain restrictions
 fail validation; hd is only a hint. Parameter maps may round-trip inertly with
-diagnostics, but protocol/domain/authentication overrides are rejected.
+diagnostics, but protocol/domain/authentication overrides are rejected. In particular,
+acr_values, max_age, claims and prompt are rejected for every value and for
+aliases naming those keys, before any inert-map storage.
 
 Pinned MIT sources inspected: node-auth0 v7.4.0 management connections/types/users;
 auth0-cli v1.37.0 commit a6239f907a81238e081a4abb1882c028558b2655
