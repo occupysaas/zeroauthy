@@ -314,6 +314,14 @@ func (h *Handlers) CreateVerificationEmailJob(w http.ResponseWriter, r *http.Req
 		Fail(w, errTicketNoEmail)
 		return
 	}
+	// The link's domain is chosen now and kept: a later default change does
+	// not retarget the queued job.
+	host, err := h.notificationHost(r)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
+	params["selected_origin"] = host
 	j := NewJob(tn.ID, store.JobVerificationEmail, h.now())
 	j.Params = params
 	if err := h.CreateJob(r, j); err != nil {

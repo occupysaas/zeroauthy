@@ -58,13 +58,18 @@ func (m *VerificationMailer) log() *slog.Logger {
 // language. clientID is the application the email is for, or empty. The
 // link uses the host of the request in ctx when it was addressed to the
 // tenant, otherwise the tenant's first host.
-func (m *VerificationMailer) SendVerification(ctx context.Context, tenantID string, u *store.User, clientID string) error {
+// SendVerification emails u a verification link on host, or, when host is
+// empty, on the request's host (authentication flows) or the canonical host.
+func (m *VerificationMailer) SendVerification(ctx context.Context, tenantID string, u *store.User, clientID, host string) error {
 	if u.Email == "" {
 		return nil
 	}
 	res, err := m.resolve(ctx, tenantID)
 	if err != nil {
 		return err
+	}
+	if host != "" {
+		res.Host = host
 	}
 	return m.Send(ctx, res, u, clientID, i18n.Negotiate(res.Tenant, "", ""))
 }
@@ -77,12 +82,10 @@ func (m *VerificationMailer) resolve(ctx context.Context, tenantID string) (tena
 	if err != nil {
 		return tenant.Resolved{}, err
 	}
-	issuers := tenant.Issuers(t, m.BaseDomain)
-	if len(issuers) == 0 {
+	if t.CanonicalHost == "" {
 		return tenant.Resolved{}, fmt.Errorf("login: tenant %q has no host for a verification link", t.Name)
 	}
-	host := strings.TrimSuffix(strings.TrimPrefix(issuers[0], "https://"), "/")
-	return tenant.Resolved{Tenant: t, Host: host}, nil
+	return tenant.Resolved{Tenant: t, Host: t.CanonicalHost}, nil
 }
 
 // Send emails u a verification link in lang. It sends synchronously.
@@ -116,7 +119,7 @@ func (m *VerificationMailer) Send(ctx context.Context, res tenant.Resolved, u *s
 			lifetime = dbconn.VerificationTicketLifetime
 		}
 		raw, err := dbconn.IssueVerificationTicket(ctx, m.Store, store.EmailVerificationTicket{
-			TenantID: res.Tenant.ID, UserID: u.UserID, Connection: dbconn.VerificationConnection(u), ClientID: clientID, Lang: lang,
+			Origin: res.Origin(), TenantID: res.Tenant.ID, UserID: u.UserID, Connection: dbconn.VerificationConnection(u), ClientID: clientID, Lang: lang,
 			Email: strings.ToLower(u.Email), ResultURL: policy.ResultURL, IncludeEmailInRedirect: policy.IncludeEmailInRedirect,
 		}, m.now(), lifetime)
 		if err != nil {
@@ -125,7 +128,7 @@ func (m *VerificationMailer) Send(ctx context.Context, res tenant.Resolved, u *s
 		return m.Email.Send(ctx, email.Event{TenantID: res.Tenant.ID, UserID: u.UserID, ClientID: clientID, Template: "verify_email", Language: lang, URL: dbconn.VerificationLink(res.Issuer(), raw)})
 	}
 	raw, err := dbconn.IssueVerificationTicket(ctx, m.Store, store.EmailVerificationTicket{
-		TenantID: res.Tenant.ID, UserID: u.UserID, Connection: dbconn.VerificationConnection(u), ClientID: clientID, Lang: lang,
+		Origin: res.Origin(), TenantID: res.Tenant.ID, UserID: u.UserID, Connection: dbconn.VerificationConnection(u), ClientID: clientID, Lang: lang,
 		Email: strings.ToLower(u.Email),
 	}, m.now(), dbconn.VerificationTicketLifetime)
 	if err != nil {
@@ -281,7 +284,7 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 	hash := secrets.HashToken(raw)
 	tickets := h.Store.EmailVerificationTickets()
 	tk, err := tickets.GetByTokenHash(ctx, res.Tenant.ID, hash)
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || err == nil && res.CheckOrigin(tk.Origin) != nil {
 		h.finishVerification(w, view, nil, "", verifyFailed)
 		return
 	} else if err != nil {

@@ -425,12 +425,13 @@ func TestClientGrantManagementAPI(t *testing.T) {
 }
 
 // The tenant's Management API is created with its first token; a grant to
-// it before then creates it.
+// it before then creates it. Its identifier is the pinned canonical host's,
+// even when a base domain is configured later.
 func TestClientGrantManagementAPINotYetCreated(t *testing.T) {
 	e := newClientsEnv(t)
 	e.h.BaseDomain = baseDomain
 	c := e.mustCreate(t, map[string]any{"name": "M2M", "app_type": "non_interactive"})["client_id"].(string)
-	own := "https://acme.example.com/api/v2/"
+	own := "https://login.acme.test/api/v2/"
 	rec, out := e.call(t, e.tn, m2mCaller(allCGScopes...), "POST", "/api/v2/client-grants", map[string]any{"client_id": c, "audience": own, "scope": []string{"read:clients"}}, e.h.CreateClientGrant)
 	if rec.Code != 201 {
 		t.Fatalf("create = %d %v", rec.Code, out)

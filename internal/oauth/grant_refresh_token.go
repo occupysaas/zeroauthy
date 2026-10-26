@@ -35,6 +35,10 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		h.log().ErrorContext(ctx, "load refresh token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
+	if res.CheckOrigin(rt.Origin) != nil {
+		// Bound to another public origin: never rotate or revoke it here.
+		return nil, invalid
+	}
 	if rt.ClientID != c.ClientID {
 		// Never rotate or revoke on behalf of a client that does not own the token.
 		h.log().WarnContext(ctx, "refresh token presented by another client", "tenant", tenantID, "client_id", c.ClientID, "owner", rt.ClientID)
@@ -107,6 +111,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	err = h.mintTx(ctx, tenantID, rt.UserID, &version, func(tx store.Store) error {
 		if rt.Rotating {
 			next, raw := h.newRefreshToken(c, tenantID, refreshGrant{
+				origin:   res.Origin(),
 				familyID: rt.FamilyID, userID: rt.UserID, sessionID: rt.SessionID, audience: rt.Audience,
 				scopes: rt.Scopes, authTime: rt.AuthTime, expiresAt: rt.ExpiresAt,
 			})

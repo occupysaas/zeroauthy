@@ -21,6 +21,11 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	}
 	tenantID := res.Tenant.ID
 	now := h.now()
+	// A code is redeemed only on the origin that issued it; another alias
+	// must not consume it (or trigger replay revocation).
+	if pre, err := h.Store.AuthCodes().Get(ctx, tenantID, secrets.HashToken(code)); err == nil && res.CheckOrigin(pre.Origin) != nil {
+		return nil, invalidGrant("invalid authorization code")
+	}
 	ac, err := h.Store.AuthCodes().Consume(ctx, tenantID, secrets.HashToken(code), now)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
@@ -84,6 +89,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			expiresAt = now.UTC().Add(absolute)
 		}
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+			origin:   res.Origin(),
 			familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID,
 			audience: ac.Audience, scopes: scopes, authTime: ac.AuthTime, expiresAt: expiresAt,
 		})

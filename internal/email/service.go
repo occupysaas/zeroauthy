@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"net/mail"
+	"net/url"
 	"strings"
 	"time"
 
@@ -206,7 +208,7 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 		}
 		app = map[string]any{"clientID": client.ClientID, "name": client.Name, "app_metadata": map[string]any{}}
 	}
-	vars, err := BuildRenderContext(tenantRenderMap(tenant), userRenderMap(user), app, event.Language, event.URL)
+	vars, err := s.renderContext(ctx, event.TenantID, tenantRenderMap(tenant), userRenderMap(user), app, event.Language, event.URL)
 	if err != nil {
 		return err
 	}
@@ -344,7 +346,7 @@ func (s *Service) renderTemplate(ctx context.Context, tenantID, name, recipient 
 			return Rendered{}, nil, store.ErrInvalid
 		}
 	}
-	ctxVars, err := BuildRenderContext(tenantRenderMap(tenant), map[string]any{"email": recipient, "email_verified": true}, nil, "en", url)
+	ctxVars, err := BuildRenderContext(tenantRenderMap(tenant), map[string]any{"email": recipient, "email_verified": true}, nil, nil, "en", url)
 	if err != nil {
 		return Rendered{}, nil, err
 	}
@@ -472,4 +474,25 @@ func htmlToText(source string) string {
 			return ""
 		}
 	}
+}
+
+// renderContext is BuildRenderContext with the custom domain of the link: an
+// API custom domain of this tenant named by the link's host contributes its
+// public name and metadata; canonical and operator hosts contribute none.
+func (s *Service) renderContext(ctx context.Context, tenantID string, tenant, user, application map[string]any, language, link string) (map[string]any, error) {
+	var cd map[string]any
+	if u, err := url.Parse(link); err == nil && u.Host != "" {
+		pd, err := customdomain.PublicContext(ctx, s.Store, tenantID, u.Host)
+		if err != nil {
+			return nil, err
+		}
+		if pd != nil {
+			md := make(map[string]any, len(pd.Metadata))
+			for k, v := range pd.Metadata {
+				md[k] = v
+			}
+			cd = map[string]any{"domain": pd.Domain, "domain_metadata": md}
+		}
+	}
+	return BuildRenderContext(tenant, user, application, cd, language, link)
 }

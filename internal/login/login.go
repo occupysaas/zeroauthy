@@ -86,7 +86,7 @@ func (h *Handlers) loadTxn(r *http.Request, state string) (*flow, error) {
 		return nil, errTxn
 	}
 	txn, err := h.Store.AuthTransactions().Get(ctx, res.Tenant.ID, state)
-	if err != nil {
+	if err != nil || res.CheckOrigin(txn.Origin) != nil {
 		return nil, errTxn
 	}
 	c, err := r.Cookie(authz.TxnCookiePrefix + txn.ID)

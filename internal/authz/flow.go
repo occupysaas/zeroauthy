@@ -92,7 +92,7 @@ func (h *Handlers) validateFlow(ctx context.Context, res tenant.Resolved, fr *fl
 	case err != nil:
 		h.log().ErrorContext(ctx, "load device code", "tenant", res.Tenant.ID, "err", err)
 		return nil, errServer(), false
-	case dc.ClientID != client.ClientID || dc.Status != store.DeviceCodePending || !h.now().Before(dc.ExpiresAt):
+	case dc.ClientID != client.ClientID || dc.Status != store.DeviceCodePending || !h.now().Before(dc.ExpiresAt) || res.CheckOrigin(dc.Origin) != nil:
 		return nil, errCodeNotPending, false
 	}
 	return client, nil, false

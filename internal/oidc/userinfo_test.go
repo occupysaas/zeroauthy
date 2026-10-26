@@ -49,8 +49,8 @@ func newUserinfoEnvWith(t *testing.T, wrap func(store.Store) store.Store) *uiEnv
 	ctx := context.Background()
 	st := memory.New()
 	for _, tn := range []*store.Tenant{
-		{ID: "ten_a", Name: "acme", Domains: []string{"acme.example.test"}},
-		{ID: "ten_b", Name: "globex", Domains: []string{"globex.example.test"}},
+		{ID: "ten_a", Name: "acme", CanonicalHost: "acme.example.test", Domains: []string{"acme.example.test"}},
+		{ID: "ten_b", Name: "globex", CanonicalHost: "globex.example.test", Domains: []string{"globex.example.test"}},
 	} {
 		_ = st.Tenants().Create(ctx, tn)
 	}

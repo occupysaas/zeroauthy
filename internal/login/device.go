@@ -109,7 +109,7 @@ func (h *Handlers) checkCode(w http.ResponseWriter, r *http.Request, f *flow, co
 	case err != nil && !errors.Is(err, store.ErrNotFound):
 		h.fail(w, r, err, f)
 		return
-	case err != nil || !h.usable(dc):
+	case err != nil || !h.usable(dc) || f.res.CheckOrigin(dc.Origin) != nil:
 		data.ErrorKey = i18n.KeyDeviceInvalidExpiredCode
 		ui.RenderDeviceCode(w, http.StatusBadRequest, f.view, data)
 		return
@@ -194,7 +194,7 @@ func (h *Handlers) DeviceConfirmSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.Authz.EndTxn(w, r, f.res, f.txn)
-	if err != nil || !h.usable(dc) || dc.ClientID != f.txn.ClientID {
+	if err != nil || !h.usable(dc) || dc.ClientID != f.txn.ClientID || f.res.CheckOrigin(dc.Origin) != nil {
 		// Decided, expired or removed since the page was shown: start over.
 		entry, err := h.newEntry(w, r, f.res, uiLocales)
 		if err != nil {

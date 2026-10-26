@@ -133,11 +133,12 @@ func clientToken(t *testing.T, h http.Handler, host, aud, id, secret string) str
 }
 
 // A seeded client grant for the canonical identifier gives a token through
-// the token endpoint, which /api/v2 accepts on every host of the tenant.
+// each host's token endpoint, which /api/v2 accepts on that same host.
 func TestManagementAPIMounted(t *testing.T) {
 	h := newMgmtServer(t)
-	tok := m2mToken(t, h, "login.acme.test", "https://acme.example.test/api/v2/")
 	for _, host := range []string{"acme.example.test", "login.acme.test"} {
+		// A token from this host's token endpoint carries its issuer.
+		tok := m2mToken(t, h, host, "https://acme.example.test/api/v2/")
 		rec, body := send(h, "GET", "https://"+host+"/api/v2/nothing-yet", map[string]string{"Authorization": "Bearer " + tok})
 		if rec.Code != 404 || body["statusCode"] != float64(404) || body["error"] != "Not Found" {
 			t.Errorf("%s with token: %d %v", host, rec.Code, body)

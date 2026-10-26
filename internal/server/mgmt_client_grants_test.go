@@ -32,7 +32,7 @@ func grantToken(h http.Handler, id, secret, aud, scope string) (int, map[string]
 func TestManagementClientGrantsThroughServer(t *testing.T) {
 	h, _ := newMgmtEnv(t)
 	reader := m2mToken(t, h, "acme.example.test", acmeMgmtAPI)
-	admin := clientToken(t, h, "login.acme.test", acmeMgmtAPI, "admin", "admin-s3cret")
+	admin := clientToken(t, h, "acme.example.test", acmeMgmtAPI, "admin", "admin-s3cret")
 	rsBase := "https://acme.example.test/api/v2/resource-servers"
 	base := "https://acme.example.test/api/v2/client-grants"
 	const aud = "https://api.orders.test/v1"
@@ -62,7 +62,7 @@ func TestManagementClientGrantsThroughServer(t *testing.T) {
 		t.Errorf("list without a token = %d", rec.Code)
 	}
 
-	rec, grant := sendJSON(h, "POST", "https://login.acme.test/api/v2/client-grants", admin, map[string]any{"client_id": cid, "audience": aud, "scope": []string{"read:orders"}})
+	rec, grant := sendJSON(h, "POST", "https://acme.example.test/api/v2/client-grants", admin, map[string]any{"client_id": cid, "audience": aud, "scope": []string{"read:orders"}})
 	id, _ := grant["id"].(string)
 	if rec.Code != 201 || !strings.HasPrefix(id, "cgr_") || len(id) != 20 {
 		t.Fatalf("create grant = %d %s", rec.Code, rec.Body)
@@ -148,7 +148,7 @@ func TestManagementClientGrantsThroughServer(t *testing.T) {
 // Management API token, with allow_all_scopes covering every scope.
 func TestManagementAPIGrantThroughServer(t *testing.T) {
 	h, _ := newMgmtEnv(t)
-	admin := clientToken(t, h, "login.acme.test", acmeMgmtAPI, "admin", "admin-s3cret")
+	admin := clientToken(t, h, "acme.example.test", acmeMgmtAPI, "admin", "admin-s3cret")
 	base := "https://acme.example.test/api/v2/client-grants"
 	rec, app := sendJSON(h, "POST", "https://acme.example.test/api/v2/clients", admin, map[string]any{"name": "Ops", "app_type": "non_interactive"})
 	cid, secret := app["client_id"].(string), app["client_secret"].(string)
@@ -181,7 +181,7 @@ func TestManagementAPIGrantThroughServer(t *testing.T) {
 // granted like any other, and serves tokens.
 func TestManagementClientGrantLookalikeAPI(t *testing.T) {
 	h, _ := newMgmtEnv(t)
-	admin := clientToken(t, h, "login.acme.test", acmeMgmtAPI, "admin", "admin-s3cret")
+	admin := clientToken(t, h, "acme.example.test", acmeMgmtAPI, "admin", "admin-s3cret")
 	const aud = "https://api.example.com/api/v2/"
 	if rec, _ := sendJSON(h, "POST", "https://acme.example.test/api/v2/resource-servers", admin, map[string]any{"identifier": aud, "scopes": []map[string]any{{"value": "read:things"}}}); rec.Code != 201 {
 		t.Fatalf("create API = %d %s", rec.Code, rec.Body)

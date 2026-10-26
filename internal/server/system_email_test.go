@@ -194,10 +194,14 @@ func TestSystemEmailPreviewTargetGrantAndLimits(t *testing.T) {
 		}
 	}
 	admin := clientToken(t, h, "acme.example.test", acmeMgmtAPI, "admin", "admin-s3cret")
-	if rec, _ := sendRaw(h, "POST", "https://"+mgmtSystemHost+"/api/system/tenants/acme/emails/preview", admin, map[string]any{"template": "verify_email"}); rec.Code != http.StatusForbidden {
+	// A tenant's M2M token never reaches the system API: its issuer is not
+	// the system host's (401), and it carries no operator claim (403).
+	if rec, _ := sendRaw(h, "POST", "https://"+mgmtSystemHost+"/api/system/tenants/acme/emails/preview", admin, map[string]any{"template": "verify_email"}); rec.Code != http.StatusUnauthorized && rec.Code != http.StatusForbidden {
 		t.Fatalf("M2M preview=%d", rec.Code)
 	}
-	if rec, _ := sendRaw(h, "POST", "https://"+mgmtSystemHost+"/api/system/tenants/acme/emails/test", admin, map[string]any{"template": "verify_email"}); rec.Code != http.StatusForbidden {
+	// A tenant's M2M token never reaches the system API: its issuer is not
+	// the system host's (401), and it carries no operator claim (403).
+	if rec, _ := sendRaw(h, "POST", "https://"+mgmtSystemHost+"/api/system/tenants/acme/emails/test", admin, map[string]any{"template": "verify_email"}); rec.Code != http.StatusUnauthorized && rec.Code != http.StatusForbidden {
 		t.Fatalf("M2M test=%d", rec.Code)
 	}
 	for i, want := range []int{http.StatusNoContent, http.StatusNoContent, http.StatusNoContent, http.StatusTooManyRequests} {

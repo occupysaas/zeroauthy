@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"html/template"
 	"log/slog"
 	"net"
@@ -79,6 +80,8 @@ type Tenant struct {
 	Partials                                PartialSlots
 	partialOrigins                          []string
 	warnings                                *[]string
+	// CustomDomain is the public custom domain of the request, or nil.
+	CustomDomain *customdomain.PublicDomain
 }
 
 type PartialSlots struct{ FormContentStart, FormContentEnd, FormFooterStart, FormFooterEnd template.HTML }
@@ -102,6 +105,7 @@ func TenantView(t *store.Tenant, l *i18n.Localizer) Tenant {
 // stored theme keeps the built-in presentation and original functional widget.
 func RequestTenant(r *http.Request, t *store.Tenant, l *i18n.Localizer) Tenant {
 	view := TenantView(t, l)
+	view.CustomDomain = customdomain.PublicDomainFromContext(r.Context())
 	c := hostedlogin.Configuration(r.Context())
 	if c == nil || t.Reserved {
 		return view
@@ -255,7 +259,8 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 				"application": map[string]any{"name": t.L.ApplicationName()},
 				"tenant":      map[string]any{"name": t.Name, "support_email": t.SupportEmail, "support_url": t.SupportURL},
 				"prompt":      map[string]any{"name": prompt, "screen": map[string]any{"name": screen, "text": t.L.ScreenText(prompt, screen)}}, "locale": map[string]any{"language": t.L.Lang()},
-				"branding": map[string]any{"logo_url": t.LogoURL, "primary_color": t.PrimaryColor},
+				"branding":      map[string]any{"logo_url": t.LogoURL, "primary_color": t.PrimaryColor},
+				"custom_domain": customDomainVars(t.CustomDomain),
 			}})
 			if err == nil {
 				body = out.HTML
@@ -564,4 +569,14 @@ func RenderDeviceConfirm(w http.ResponseWriter, t Tenant, d DeviceConfirmData) {
 // RenderDeviceResult tells the user whether the device was given access.
 func RenderDeviceResult(w http.ResponseWriter, t Tenant, allowed bool) {
 	render(w, http.StatusOK, "device_result", t, allowed, "'none'")
+}
+
+// customDomainVars is the template context of a public custom domain: its
+// name and metadata. Origin aliases, proofs, keys and certificates never
+// appear; canonical hosts get an empty object.
+func customDomainVars(pd *customdomain.PublicDomain) map[string]any {
+	if pd == nil {
+		return map[string]any{}
+	}
+	return map[string]any{"domain": pd.Domain, "domain_metadata": pd.Metadata}
 }

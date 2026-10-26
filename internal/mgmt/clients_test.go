@@ -45,6 +45,7 @@ func newClientsEnv(t *testing.T) *clientsEnv {
 	}
 	tn, err := tenantsetup.UpsertTenant(ctx, st, "acme", now, func(tn *store.Tenant) error {
 		tn.Domains = []string{"login.acme.test"}
+		tn.CanonicalHost = "login.acme.test"
 		tn.PushedAuthorizationRequestsSupported = true
 		return nil
 	})
@@ -63,6 +64,12 @@ func newClientsEnv(t *testing.T) *clientsEnv {
 // call runs fn as the handler of a request to tn by caller.
 func (e *clientsEnv) call(t *testing.T, tn *store.Tenant, caller mgmt.Caller, method, target string, body any, fn http.HandlerFunc) (*httptest.ResponseRecorder, any) {
 	t.Helper()
+	return e.callWith(t, tn, caller, method, target, body, nil, fn)
+}
+
+// callWith is call with extra request headers.
+func (e *clientsEnv) callWith(t *testing.T, tn *store.Tenant, caller mgmt.Caller, method, target string, body any, header http.Header, fn http.HandlerFunc) (*httptest.ResponseRecorder, any) {
+	t.Helper()
 	var rd *bytes.Reader
 	switch b := body.(type) {
 	case nil:
@@ -77,6 +84,9 @@ func (e *clientsEnv) call(t *testing.T, tn *store.Tenant, caller mgmt.Caller, me
 		rd = bytes.NewReader(data)
 	}
 	req := httptest.NewRequest(method, "https://login.acme.test"+target, rd)
+	for k, v := range header {
+		req.Header[http.CanonicalHeaderKey(k)] = v
+	}
 	ctx := tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: tn, Host: "login.acme.test"})
 	req = req.WithContext(mgmt.WithCaller(ctx, caller))
 	rec := httptest.NewRecorder()

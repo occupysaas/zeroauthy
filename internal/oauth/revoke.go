@@ -49,6 +49,9 @@ func (h *Handlers) revoke(w http.ResponseWriter, r *http.Request, res tenant.Res
 		h.log().ErrorContext(ctx, "load refresh token", "tenant", tenantID, "err", err)
 		return serverError()
 	}
+	if res.CheckOrigin(rt.Origin) != nil {
+		return nil // another origin's token is unknown here (RFC 7009 §2.2)
+	}
 	if rt.ClientID != c.ClientID {
 		return invalidGrant("the token was not issued to this client")
 	}

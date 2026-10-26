@@ -221,7 +221,9 @@ func (cfg Config) m2m(ctx context.Context, res tenant.Resolved, raw string) (Cal
 	if aud == "" {
 		return Caller{}, invalidToken("Invalid token: the tenant has no Management API")
 	}
-	std, extra, err := cfg.verify(ctx, res.Tenant.ID, raw, aud, tenant.Issuers(res.Tenant, cfg.BaseDomain))
+	// Only the serving public origin's issuer: a token minted on another
+	// alias of the same tenant is not accepted here.
+	std, extra, err := cfg.verify(ctx, res.Tenant.ID, raw, aud, []string{res.Issuer()})
 	if err != nil {
 		return Caller{}, err
 	}

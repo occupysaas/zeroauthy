@@ -37,7 +37,7 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 		h.log().ErrorContext(ctx, "load device code", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
-	if d.ClientID != c.ClientID {
+	if d.ClientID != c.ClientID || res.CheckOrigin(d.Origin) != nil {
 		return nil, deviceInvalidGrant("invalid device code")
 	}
 	now := h.now()
@@ -87,6 +87,7 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 			expiresAt = now.UTC().Add(absolute)
 		}
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+			origin:   res.Origin(),
 			familyID: familyForDevice(hash), userID: user.UserID, audience: dc.Audience, scopes: scopes, expiresAt: expiresAt,
 		})
 	}

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/hostname"
@@ -508,7 +507,7 @@ func (s *Service) SetDefault(ctx context.Context, tenantID, host string) (*store
 		if t.CanonicalHost != "" && name == t.CanonicalHost {
 			return tx.CustomDomains().SetDefault(ctx, tenantID, "")
 		}
-		d, err := s.byHost(ctx, tx, tenantID, name)
+		d, err := domainByHost(ctx, tx, tenantID, name)
 		if err != nil {
 			return err
 		}
@@ -521,51 +520,9 @@ func (s *Service) SetDefault(ctx context.Context, tenantID, host string) (*store
 	return out, err
 }
 
-func (s *Service) byHost(ctx context.Context, st store.Store, tenantID, host string) (*store.CustomDomain, error) {
-	h, err := st.CustomDomains().GetHost(ctx, host)
-	if err != nil {
-		return nil, err
-	}
-	if h.TenantID != tenantID || h.Kind != store.HostPublic {
-		return nil, store.ErrNotFound
-	}
-	return st.CustomDomains().Get(ctx, tenantID, h.DomainID)
-}
-
-// NotificationOrigin picks the public host for a new user-facing link: an
-// explicit selection must be the canonical host or a usable same-tenant domain
-// (else ErrDomainUnavailable, 503); otherwise a usable default, else canonical.
+// NotificationOrigin is SelectNotificationOrigin on this service's store.
 func (s *Service) NotificationOrigin(ctx context.Context, tenantID, explicit string) (string, error) {
-	t, err := s.st.Tenants().Get(ctx, tenantID)
-	if err != nil {
-		return "", err
-	}
-	if explicit != "" {
-		// The canonical host may be a legacy operator host with a port.
-		name, err := hostname.NormalizeOperatorHost(strings.TrimSpace(explicit))
-		if err != nil {
-			return "", ErrDomainUnavailable
-		}
-		if name == t.CanonicalHost {
-			return name, nil
-		}
-		d, err := s.byHost(ctx, s.st, tenantID, name)
-		if errors.Is(err, store.ErrNotFound) || err == nil && !Usable(d) {
-			return "", ErrDomainUnavailable
-		}
-		if err != nil {
-			return "", err
-		}
-		return d.Domain, nil
-	}
-	d, err := s.Default(ctx, tenantID)
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		return "", err
-	}
-	if Usable(d) {
-		return d.Domain, nil
-	}
-	return t.CanonicalHost, nil
+	return SelectNotificationOrigin(ctx, s.st, tenantID, explicit)
 }
 
 // ProveOwnership re-checks the DNS proof outside any transaction; the

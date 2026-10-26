@@ -56,6 +56,8 @@ func (p ProxyPolicy) legacy(peer netip.Addr) bool {
 // Admission is an authenticated custom-domain request.
 type Admission struct {
 	TenantID, PublicHost, ClientIP, DomainID string
+
+	public *PublicDomain // template context: public name and metadata only
 }
 
 // forwarding headers never reach handlers behind an admitted custom domain.
@@ -105,7 +107,7 @@ func (s *Service) Admit(r *http.Request) (Admission, error) {
 		return Admission{}, ErrMisdirected
 	}
 	peer := peerAddr(r)
-	adm := Admission{TenantID: d.TenantID, PublicHost: d.Domain, DomainID: d.ID, ClientIP: peer.String()}
+	adm := Admission{TenantID: d.TenantID, PublicHost: d.Domain, DomainID: d.ID, ClientIP: peer.String(), public: publicOf(d)}
 	if d.Type == TypeManaged {
 		return adm, nil
 	}
@@ -144,7 +146,7 @@ func (s *Service) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		ip, _ := netip.ParseAddr(adm.ClientIP)
-		r = r.WithContext(httpx.WithClientIP(r.Context(), ip))
+		r = r.WithContext(WithPublicDomain(httpx.WithClientIP(r.Context(), ip), adm.public))
 		r.Host = adm.PublicHost
 		for _, h := range forwarding {
 			r.Header.Del(h)

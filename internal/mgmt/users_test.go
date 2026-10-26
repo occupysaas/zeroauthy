@@ -33,7 +33,7 @@ type recordingSender struct {
 	sent []string // user IDs
 }
 
-func (s *recordingSender) SendVerification(_ context.Context, _ string, u *store.User, _ string) error {
+func (s *recordingSender) SendVerification(_ context.Context, _ string, u *store.User, _, _ string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.sent = append(s.sent, u.UserID)

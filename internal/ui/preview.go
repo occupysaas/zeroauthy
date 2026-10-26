@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"html"
 	"io"
 	"net/http"
@@ -77,6 +78,8 @@ func Preview(ctx context.Context, config *store.HostedLoginConfig, screen, langu
 		view.LogoURL = "https://example.invalid/preview-logo"
 	}
 	view.FontURL, view.FaviconURL, view.BackgroundImageURL = "", "", ""
+	// Synthetic example data: preview never resolves a real tenant hostname.
+	view.CustomDomain = &customdomain.PublicDomain{Domain: "login.example.com", Metadata: map[string]string{"brand": "example"}}
 	view.warnings = &warnings
 	prompt, promptScreen := promptForPage(name)
 	if name == "login" || name == "login_id" || name == "login_password" || name == "signup" {

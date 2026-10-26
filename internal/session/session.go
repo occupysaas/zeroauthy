@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 const CookieName = "za_session"
@@ -72,7 +73,9 @@ func (m *Manager) Current(ctx context.Context, r *http.Request, t *store.Tenant)
 		return nil, nil
 	}
 	s, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(c.Value))
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || err == nil && !sameOrigin(r, s) {
+		// Another public origin's session is not this request's session; it
+		// is neither extended nor ended here.
 		return nil, nil
 	}
 	if err != nil {
@@ -118,6 +121,7 @@ func (m *Manager) Start(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	absolute, idle := lifetimes(t, mode)
 	token := secrets.RandomString(43)
 	s := &store.LoginSession{
+		Origin:          requestOrigin(r),
 		CookieMode:      mode,
 		TenantID:        t.ID,
 		ID:              secrets.RandomString(24),
@@ -183,7 +187,9 @@ func (m *Manager) End(ctx context.Context, w http.ResponseWriter, r *http.Reques
 		return nil, nil
 	}
 	s, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(c.Value))
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || err == nil && !sameOrigin(r, s) {
+		// Another public origin's session is not this request's session; it
+		// is neither extended nor ended here.
 		return nil, nil
 	}
 	if err != nil {
@@ -203,7 +209,9 @@ func (m *Manager) Lookup(ctx context.Context, r *http.Request, t *store.Tenant) 
 		return nil, nil
 	}
 	s, err := m.Store.Sessions().GetByTokenHash(ctx, t.ID, secrets.HashToken(c.Value))
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || err == nil && !sameOrigin(r, s) {
+		// Another public origin's session is not this request's session; it
+		// is neither extended nor ended here.
 		return nil, nil
 	}
 	if err != nil {
@@ -214,4 +222,19 @@ func (m *Manager) Lookup(ctx context.Context, r *http.Request, t *store.Tenant) 
 		return nil, nil
 	}
 	return s, nil
+}
+
+// requestOrigin is the resolved public origin of r ("" outside tenant routing).
+func requestOrigin(r *http.Request) string {
+	if res, ok := tenant.FromContext(r.Context()); ok {
+		return res.Origin()
+	}
+	return ""
+}
+
+// sameOrigin reports whether session s may be used on r's public origin; a
+// legacy session without an origin belongs to the canonical origin.
+func sameOrigin(r *http.Request, s *store.LoginSession) bool {
+	res, ok := tenant.FromContext(r.Context())
+	return !ok || res.CheckOrigin(s.Origin) == nil
 }
