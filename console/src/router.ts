@@ -3,6 +3,8 @@ import type { Api } from './api/client'
 import type { Auth } from './auth/auth'
 import type { Services } from './context'
 import ApiCreate from './pages/apis/Create.vue'
+import CustomDomains from './pages/custom-domains/CustomDomains.vue'
+import CustomDomainDetail from './pages/custom-domains/DomainDetail.vue'
 import ApiDetail from './pages/apis/Detail.vue'
 import ApiList from './pages/apis/List.vue'
 import ApplicationCreate from './pages/applications/Create.vue'
@@ -60,6 +62,8 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/attack-protection', name: 'attack-protection', component: AttackProtection },
   { path: '/t/:tenant/emails', name: 'emails', component: EmailSettings },
   { path: '/t/:tenant/branding', name: 'branding', component: Branding },
+  { path: '/t/:tenant/custom-domains', name: 'custom-domains', component: CustomDomains },
+  { path: '/t/:tenant/custom-domains/:id', name: 'custom-domain', component: CustomDomainDetail },
   ...sections.filter(isPlanned).map((s) => ({
     path: '/t/:tenant/' + s.path,
     name: s.key,

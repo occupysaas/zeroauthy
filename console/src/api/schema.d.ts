@@ -1175,6 +1175,163 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/custom-domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List custom domains
+         * @description API custom domains of the tenant. `q` accepts at most eight exact
+         *     quoted `domain`, `status` or `type` terms joined with `AND` (1024 bytes);
+         *     `fields`/`include_fields` project the listed public fields and `sort`
+         *     accepts `domain:1`. Operator aliases never appear here.
+         *
+         *     Requires `read:custom_domains`.
+         */
+        get: operations["getCustomDomains"];
+        put?: never;
+        /**
+         * Create a custom domain
+         * @description Claims `domain` (pending) and returns its TXT ownership proof. The
+         *     domain is never ready on creation. `auth0_managed_certs` needs this
+         *     deployment's ACME issuance (`503` otherwise); `self_managed_certs` needs
+         *     origin TLS for the origin namespace. At most 100 domains per tenant.
+         *
+         *     Requires `create:custom_domains`.
+         */
+        post: operations["createCustomDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/custom-domains/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the default custom domain
+         * @description The configured default custom domain, also while it is temporarily
+         *     unavailable, or `{"domain": <canonical host>}` when the canonical host
+         *     is the default.
+         *
+         *     Requires `read:custom_domains`.
+         */
+        get: operations["getDefaultCustomDomain"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set the default custom domain
+         * @description `domain` names a ready custom domain of this tenant, or the canonical
+         *     host (which clears the default). New notification links use it.
+         *
+         *     Requires `update:custom_domains`.
+         */
+        patch: operations["setDefaultCustomDomain"];
+        trace?: never;
+    };
+    "/api/v2/custom-domains/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The custom domain's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a custom domain
+         * @description One custom domain. Proxy keys and private material are never shown.
+         *
+         *     Requires `read:custom_domains`.
+         */
+        get: operations["getCustomDomain"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a custom domain
+         * @description Stops serving the domain, releases its names and clears it as default.
+         *
+         *     Requires `delete:custom_domains`.
+         */
+        delete: operations["deleteCustomDomain"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a custom domain
+         * @description Changes `tls_policy`, `custom_client_ip_header` (null or empty disables
+         *     the override), `domain_metadata` and `relying_party_identifier`.
+         *
+         *     Requires `update:custom_domains`.
+         */
+        patch: operations["updateCustomDomain"];
+        trace?: never;
+    };
+    "/api/v2/custom-domains/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The custom domain's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify a custom domain
+         * @description Checks the TXT proof. A self-managed domain becomes ready here, and
+         *     the first successful call alone returns `cname_api_key`, the proxy key.
+         *     One attempt per domain per 30 seconds and 20 per tenant per minute.
+         *
+         *     Requires `update:custom_domains`.
+         */
+        post: operations["verifyCustomDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/custom-domains/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The custom domain's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test a custom domain
+         * @description Fetches the domain's discovery document over a bounded, address-checked
+         *     connection. A not-ready domain is `409`; an observed failure is `200`
+         *     with `success: false`.
+         *
+         *     Requires `update:custom_domains`.
+         */
+        post: operations["testCustomDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/jobs/verification-email": {
         parameters: {
             query?: never;
@@ -3282,6 +3439,83 @@ export interface components {
             /** @description An ID token for the secondary, issued to the calling client. */
             link_with?: string;
         };
+        CustomDomainVerification: {
+            methods?: {
+                /** @enum {string} */
+                name?: "txt";
+                /** @description The TXT value to publish. */
+                record?: string;
+                /** @description The TXT record name. */
+                domain?: string;
+            }[];
+            /** @enum {string} */
+            status?: "verified" | "pending" | "failed";
+            error_msg?: string;
+            /** Format: date-time */
+            last_verified_at?: string;
+        };
+        CustomDomain: {
+            custom_domain_id?: string;
+            domain?: string;
+            primary?: boolean;
+            /** @enum {string} */
+            status?: "pending_verification" | "ready" | "failed";
+            /** @enum {string} */
+            type?: "auth0_managed_certs" | "self_managed_certs";
+            /** @description The private origin host a proxy or CNAME targets. */
+            origin_domain_name?: string;
+            verification?: components["schemas"]["CustomDomainVerification"];
+            is_default?: boolean;
+            /** @enum {string|null} */
+            custom_client_ip_header?: "true-client-ip" | "cf-connecting-ip" | "x-forwarded-for" | "x-azure-clientip" | "" | null;
+            /** @enum {string} */
+            tls_policy?: "recommended";
+            domain_metadata?: {
+                [key: string]: string;
+            };
+            certificate?: {
+                /** @enum {string} */
+                status?: "provisioning" | "provisioning_failed" | "provisioned" | "renewing_failed";
+                error_msg?: string;
+                /** Format: date-time */
+                renews_before?: string;
+            };
+            relying_party_identifier?: string;
+        };
+        CustomDomainVerified: components["schemas"]["CustomDomain"] & {
+            /** @description The proxy key, returned only by the first successful verification of a self-managed domain. */
+            cname_api_key?: string;
+        };
+        CustomDomainCreate: {
+            domain: string;
+            /** @enum {string} */
+            type: "auth0_managed_certs" | "self_managed_certs";
+            /** @enum {string} */
+            verification_method?: "txt";
+            /** @enum {string} */
+            tls_policy?: "recommended";
+            custom_client_ip_header?: string | null;
+            domain_metadata?: {
+                [key: string]: string;
+            };
+            relying_party_identifier?: string;
+        };
+        CustomDomainUpdate: {
+            /** @enum {string} */
+            tls_policy?: "recommended";
+            custom_client_ip_header?: string | null;
+            domain_metadata?: {
+                [key: string]: string;
+            };
+            relying_party_identifier?: string | null;
+        };
+        CustomDomainDefaultUpdate: {
+            domain: string;
+        };
+        CustomDomainTest: {
+            success?: boolean;
+            message?: string;
+        };
         Ticket: {
             /** @description The ticket's URL. Its token is shown only here. */
             ticket: string;
@@ -3582,6 +3816,24 @@ export interface components {
         };
         /** @description The resource does not exist. */
         NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ManagementError"];
+            };
+        };
+        /** @description The request body is larger than 64 KiB. */
+        PayloadTooLarge: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ManagementError"];
+            };
+        };
+        /** @description A required service is unavailable (`custom_domain_unavailable`, `temporarily_unavailable`). */
+        ServiceUnavailable: {
             headers: {
                 [name: string]: unknown;
             };
@@ -5856,6 +6108,269 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    getCustomDomains: {
+        parameters: {
+            query?: {
+                q?: string;
+                /** @description Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned. */
+                fields?: components["parameters"]["fields"];
+                /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
+                include_fields?: components["parameters"]["include_fields"];
+                sort?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The custom domains. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomain"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createCustomDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomDomainCreate"];
+            };
+        };
+        responses: {
+            /** @description The new custom domain. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getDefaultCustomDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The default domain. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    setDefaultCustomDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomDomainDefaultUpdate"];
+            };
+        };
+        responses: {
+            /** @description The default domain. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getCustomDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The custom domain's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The custom domain. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    deleteCustomDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The custom domain's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    updateCustomDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The custom domain's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomDomainUpdate"];
+            };
+        };
+        responses: {
+            /** @description The custom domain. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomain"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    verifyCustomDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The custom domain's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The custom domain. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomainVerified"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    testCustomDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The custom domain's ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomDomainTest"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["TooManyRequests"];
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     createVerificationEmailJob: {
