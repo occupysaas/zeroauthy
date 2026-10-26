@@ -69,7 +69,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 19 | Tenant settings, attack protection, user blocks | short | 17 |
 | 20 | Signing keys, `auth0-deploy-cli` round trip | short | 19 |
 | 21 | Email provider and email templates | short | 19 |
-| 22 | Branding: themes, settings, Universal Login page templates, prompts and custom text | full | 21 |
+| 22 | Branding: themes, settings, Universal Login page templates, prompts and custom text | full (done) | 21 |
 | 23 | Custom domains with automatic certificates | full | 19 |
 | 24 | Social connections I: generic OAuth 2 and OIDC, Google | full | 17 |
 | 25 | Social connections II: Apple, Facebook, Microsoft, GitHub, the rest of the common list | short | 24 |
@@ -141,30 +141,17 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 ### Plan 22 — Branding and Universal Login (full design)
 
-**Draft design and plan (2026-10-25):** [standalone spec](2026-10-25-zeroauthy-branding-universal-login-design.md) and [implementation plan](../plans/2026-10-25-zeroauthy-plan-22-branding-universal-login.md). These propose restricted Liquid/HTML/CSS templates, identifier-first database login, safe partials and isolated preview. The draft explicitly defers ACUL and tenant JavaScript and corrects the future Actions partial-field contract below; it is not an implementation or parity record.
+**Implemented (2026-10-26):** [spec](2026-10-25-zeroauthy-branding-universal-login-design.md), [plan](../plans/2026-10-25-zeroauthy-plan-22-branding-universal-login.md), [acceptance record](../plan-22-implementation-record.md), and [operator guide](../../branding.md).
 
-The maintainer's own priority: sign-in pages that look like the customer's site, on the customer's domain (with Plan 23).
+**API and persistence:** All 16 branding/theme/template/prompt/custom-text/partial operations, scoped tenant isolation, canonical configuration with CAS, seed ownership and one-time legacy migration. Memory, SQLite, PostgreSQL, MySQL and additive gRPC support are verified. Creating a theme activates it; deleting the default restores base branding.
 
-**Endpoints:**
-- `GET/PATCH /api/v2/branding` (`colors.primary`, `colors.page_background`, `favicon_url`, `logo_url`, `font.url`);
-- `GET/PUT/DELETE /api/v2/branding/templates/universal-login` (the page template);
-- `/api/v2/branding/themes` (`POST`, `GET/PATCH/DELETE /{themeId}`, `GET /default`): the full theme (borders, colors, fonts, page background, widget);
-- `GET/PATCH /api/v2/prompts` (`universal_login_experience`, `identifier_first`, `webauthn_platform_first_factor`);
-- `GET/PUT /api/v2/prompts/{prompt}/custom-text/{language}` (storage exists since Plan 4);
-- `GET/PUT /api/v2/prompts/{prompt}/partials` (custom form fields injected into widget slots);
-- `/api/v2/prompts/{prompt}/screen/{screen}/rendering` (Advanced Customizations for Universal Login) is listed for the full design to decide: it needs Auth0's client-side SDK contract.
+**Runtime:** Original hosted pages use typed theme styles and a bounded Liquid/HTML/CSS subset with trusted head/widget insertion and built-in fallback. Identifier-first database login binds both steps to the existing authorization transaction and protection pipeline. Four partial slots on login/identifier/password/signup support accessible transient `ulp-` fields. Locale aliases share one custom-text resource. Email rendering retains its existing mode and limits.
 
-**Runtime:**
-- Every hosted page renders inside the tenant's page template. The template is Liquid with Auth0's tags (`{%- auth0:head -%}`, `{%- auth0:widget -%}`) and variables (`application`, `organization`, `prompt`, `locale`, `user`, `branding`, `tenant`, `custom_domain`, `transaction`); a template written for Auth0 renders unchanged. Auth0's limits (size, required tags) are enforced.
-- Theme and branding values become CSS custom properties consumed by the widget; the widget's markup stays zeroauthy's own (CLEAN_ROOM.md: the behaviour and contract are Auth0's, the look is not copied).
-- `identifier_first` switches the login page to the two-step identifier flow.
-- Partials render into documented slots and their form values reach Actions (Plan 27) as `event.prompt` data; until then they are stored and rendered.
+**Console:** Accessible resource editors preserve drafts, reject stale replies and handle uncertain writes. Synthetic preview renders saved settings plus drafts in a capability-free sandbox with no network access.
 
-**Design questions for the full design:** template sandboxing (no network, no file access, render time limit), CSP for templates that load external fonts and scripts, how a template preview works in the console, what happens to zeroauthy's own template override directory (the Plan 2 follow-up).
+**Verified boundaries:** Actual pinned Node SDK and Auth0 CLI exercise all 16 operations; branded and baseline browser/email lanes and local OpenID conformance pass. Strict Deploy CLI YAML/directory × generated/preserved credential migrations cover unblocked families. Template export remains unavailable because the pinned CLI requires custom-domain discovery. Exact live upstream observation is unavailable; no certification or unrestricted Auth0-template parity is claimed.
 
-**Console:** Universal Login page: branding fields, theme editor, template editor with a live preview rendered by the server in a sandboxed frame, custom text per prompt and language.
-
-**E2E:** auth0-cli `universal-login` (`customize`, `templates`, `prompts`) commands; Playwright: a template and theme set through the API render on `/u/login`, custom text replaces a catalog string.
+**Deferred/stored-only:** Classic, WebAuthn/social controls, Actions validation/forwarding, organization context, custom domains and ACUL require later plans. Captured partial values remain in the expiring transaction and never reach metadata, tokens, mail or custom database scripts. Tenant JavaScript and arbitrary HTML/CSS are rejected. Tenant templates supersede the old filesystem template-directory follow-up.
 
 ### Plan 23 — Custom domains with automatic certificates (full design)
 

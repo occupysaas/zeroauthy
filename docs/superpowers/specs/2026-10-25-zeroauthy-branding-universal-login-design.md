@@ -1,6 +1,6 @@
 # zeroauthy — Plan 22 design: branding and Universal Login
 
-- **Status:** Draft for maintainer review; no implementation or upstream parity claim.
+- **Status:** Implemented 2026-10-26; see the [implementation record](../plan-22-implementation-record.md) for actual verification and compatibility limits. No live upstream parity claim.
 - **Date:** 2026-10-25
 - **Baseline:** Plan 21 implemented; repository HEAD `75e04ce`.
 - **Roadmap:** [Plan 22](2026-10-19-zeroauthy-management-roadmap-design.md#plan-22--branding-and-universal-login-full-design).
@@ -15,7 +15,7 @@ Included: branding settings, theme lifecycle, Universal Login page templates, pr
 
 Excluded: custom domains/certificates (Plan 23), social discovery (24), Actions validation/execution (27–28), organizations (29), WebAuthn/MFA/passwordless (33–34), Classic Login's hosted JavaScript runtime, and Advanced Customizations for Universal Login (ACUL). ACUL requires its own client SDK/protocol design; do not expose successful inert screen-rendering APIs. No asset hosting, remote template fetching, filesystem template override directory, or copied Auth0 widget DOM. The old template-directory follow-up is superseded by tenant templates, not silently implemented as a second precedence layer.
 
-**Local design recommendations:** security restrictions, fallback policy, limits, theme activation and future-feature disposition below are choices for review, not prior maintainer rulings or observed Auth0 behavior. This draft deliberately narrows the roadmap's promise that every Auth0 template runs unchanged. Supported Liquid/HTML templates round-trip; scripts and unsupported capabilities fail validation with a documented difference. The maintainer authorized Plan 22 implementation on 2026-10-25.
+**Local design recommendations:** security restrictions, fallback policy, limits, theme activation and future-feature disposition below are local choices, not observed Auth0 behavior; execution rulings and their costs are preserved in the implementation record. This design deliberately narrows the roadmap's promise that every Auth0 template runs unchanged. Supported Liquid/HTML templates round-trip; scripts and unsupported capabilities fail validation with a documented difference. The maintainer authorized Plan 22 implementation on 2026-10-25.
 
 ## 2. Evidence and contract freeze
 
