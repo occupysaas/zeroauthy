@@ -136,4 +136,4 @@ func (c *Client) PasswordResetTickets() store.PasswordResetTickets {
 	return clientPasswordResetTickets{c}
 }
 
-func (c *Client) HostedLogins() store.HostedLogins { return store.UnimplementedHostedLogins{} }
+func (c *Client) HostedLogins() store.HostedLogins { return clientHostedLogins{c} }

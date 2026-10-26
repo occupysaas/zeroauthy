@@ -22,7 +22,7 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
+	view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	q := r.URL.Query()
 	returnTo := q.Get("returnTo")
 	allowed := res.Tenant.AllowedLogoutURLs

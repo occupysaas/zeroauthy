@@ -352,8 +352,9 @@ func TestSessionRoundTrip(t *testing.T) {
 func TestAuthTransactionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.AuthTransaction{
 		TenantID: "ten", ID: "st", CookieHash: "ch", CSRFToken: "csrf", ClientID: "cid",
-		Params:    map[string]string{"scope": "openid profile", "state": "xyz", "empty": ""},
-		ExpiresAt: nanoTime.Add(time.Hour), CreatedAt: nanoTime,
+		Params:      map[string]string{"scope": "openid profile", "state": "xyz", "empty": ""},
+		HostedState: store.HostedLoginState{Step: "password", Identifier: "ada@example.test", ConnectionID: "db", PromptFields: map[string]string{"ulp-team": "blue"}, Revision: 1, FormConfigRevision: 2, FormScreen: "login-password"},
+		ExpiresAt:   nanoTime.Add(time.Hour), CreatedAt: nanoTime,
 	}, authTransactionToPB, authTransactionFromPB)
 	roundTrip(t, "empty", &store.AuthTransaction{Params: map[string]string{}}, authTransactionToPB, authTransactionFromPB)
 	roundTrip(t, "zero", &store.AuthTransaction{}, authTransactionToPB, authTransactionFromPB)
@@ -679,4 +680,12 @@ func TestTenantSettingsLargeNumberRoundTrip(t *testing.T) {
 	}
 	in.ProtectionSettings.CAPTCHA.SimpleCaptcha = map[string]any{"large": json.Number("9007199254740993")}
 	roundTrip(t, "large settings integers", in, tenantToPB, tenantFromPB)
+}
+
+func TestHostedLoginConfigRoundTrip(t *testing.T) {
+	template := `<html><head>{% auth0:head %}</head><body>{% auth0:widget %}</body></html>`
+	full := &store.HostedLoginConfig{TenantID: "ten", Revision: 3, Branding: map[string]any{"colors": map[string]any{"primary": "#112233"}}, Template: &template, Themes: map[string]map[string]any{"abc": {"colors": map[string]any{"primary_button": "#445566"}}}, DefaultThemeID: "abc", Prompts: map[string]any{"identifier_first": true}, CustomText: store.CustomText{"login": {"en": {"login": {"title": "Welcome"}}}}, Partials: map[string]map[string]map[string]string{"login": {"login": {"form-content-start": "<p>Hi</p>"}}}}
+	roundTrip(t, "full", full, hostedLoginConfigToPB, hostedLoginConfigFromPB)
+	roundTrip(t, "empty", &store.HostedLoginConfig{Branding: map[string]any{}}, hostedLoginConfigToPB, hostedLoginConfigFromPB)
+	roundTrip(t, "zero", &store.HostedLoginConfig{}, hostedLoginConfigToPB, hostedLoginConfigFromPB)
 }

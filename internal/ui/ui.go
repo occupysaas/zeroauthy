@@ -4,6 +4,7 @@ package ui
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"html/template"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -36,6 +38,8 @@ func parsePage(names ...string) *template.Template {
 var (
 	pages = map[string]*template.Template{
 		"login":              parsePage("templates/layout.html", "templates/login.html"),
+		"login_id":           parsePage("templates/layout.html", "templates/login_id.html"),
+		"login_password":     parsePage("templates/layout.html", "templates/login_password.html"),
 		"signup":             parsePage("templates/layout.html", "templates/signup.html"),
 		"consent":            parsePage("templates/layout.html", "templates/consent.html"),
 		"error":              parsePage("templates/layout.html", "templates/error.html"),
@@ -67,7 +71,11 @@ type Tenant struct {
 	// HasClientName selects the login and signup subtitle that names the
 	// application; without it the subtitle names only the tenant, so a
 	// client ID is never shown to end users.
-	HasClientName bool
+	HasClientName                           bool
+	FaviconURL, FontURL, BackgroundImageURL string
+	ThemeCSS                                template.CSS
+	config                                  *store.HostedLoginConfig
+	renderContext                           context.Context
 }
 
 // TenantView builds the page branding and language for a tenant.
@@ -79,12 +87,45 @@ func TenantView(t *store.Tenant, l *i18n.Localizer) Tenant {
 	return Tenant{SupportEmail: t.SupportEmail, SupportURL: t.SupportURL, Name: name, LogoURL: t.Branding.LogoURL, PrimaryColor: t.Branding.PrimaryColor, L: l}
 }
 
+// RequestTenant adds the request's hosted presentation snapshot. A malformed
+// stored theme keeps the built-in presentation and original functional widget.
+func RequestTenant(r *http.Request, t *store.Tenant, l *i18n.Localizer) Tenant {
+	view := TenantView(t, l)
+	c := hostedlogin.Configuration(r.Context())
+	if c == nil || t.Reserved {
+		return view
+	}
+	view.config = c
+	view.renderContext = r.Context()
+	theme, err := hostedlogin.ResolveTheme(c)
+	if err != nil {
+		slog.WarnContext(r.Context(), "hosted theme fallback", "tenant", t.ID)
+		return view
+	}
+	view.LogoURL, view.PrimaryColor = theme.LogoURL, theme.PrimaryColor
+	view.FaviconURL, view.FontURL, view.BackgroundImageURL = theme.FaviconURL, theme.FontURL, theme.BackgroundImageURL
+	view.ThemeCSS = template.CSS(theme.CSS()) // only fixed properties with typed, validated values
+	return view
+}
+
 type LoginData struct {
 	State, CSRF, Login string
 	SignupURL          string // empty hides the signup link
 	ForgotURL          string // empty hides the forgot-password link
 	Error              string
 	RedirectURI        string // the client's callback; its origin is allowed as form-action
+}
+
+type LoginStageData struct {
+	LoginData
+	Revision int64
+}
+
+func RenderLoginIdentifier(w http.ResponseWriter, status int, t Tenant, d LoginStageData) {
+	render(w, status, "login_id", t, d, formActionFor(d.RedirectURI))
+}
+func RenderLoginPassword(w http.ResponseWriter, status int, t Tenant, d LoginStageData) {
+	render(w, status, "login_password", t, d, formActionFor(d.RedirectURI))
 }
 
 type SignupData struct {
@@ -162,9 +203,67 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 		t.L = i18n.Default()
 	}
 	nonce := newNonce()
+	var buf bytes.Buffer
+	if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data}); err != nil {
+		slog.Error("render page", "template", name, "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if buf.Len() > 512<<10 {
+		t.L = t.L.WithoutCustom()
+		buf.Reset()
+		if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data}); err != nil || buf.Len() > 512<<10 {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		slog.Warn("hosted text fallback", "page", name)
+	}
+	body := buf.String()
+	imageOrigins := []string{}
+	if t.config != nil && t.config.Template != nil {
+		_, head, hasHead := strings.Cut(body, "<head>")
+		head, _, hasHeadEnd := strings.Cut(head, "</head>")
+		_, widget, hasBody := strings.Cut(body, "<body>")
+		widget, _, hasBodyEnd := strings.Cut(widget, "</body>")
+		ctx := t.renderContext
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		if hasHead && hasHeadEnd && hasBody && hasBodyEnd {
+			prompt, screen := promptForPage(name)
+			out, err := (hostedlogin.Renderer{}).Render(ctx, hostedlogin.RenderInput{Source: *t.config.Template, Head: head, Widget: widget, Nonce: nonce, Variables: map[string]any{
+				"tenant": map[string]any{"name": t.Name, "support_email": t.SupportEmail, "support_url": t.SupportURL},
+				"prompt": map[string]any{"name": prompt, "screen": map[string]any{"name": screen, "text": t.L.ScreenText(prompt, screen)}}, "locale": map[string]any{"language": t.L.Lang()},
+				"branding": map[string]any{"logo_url": t.LogoURL, "primary_color": t.PrimaryColor},
+			}})
+			if err == nil {
+				body = out.HTML
+				imageOrigins = out.AssetOrigins
+			} else {
+				slog.WarnContext(ctx, "hosted template fallback", "tenant", t.config.TenantID)
+			}
+		}
+	}
 	setHeaders(w, nonce, "'none'", formAction)
+	if t.config != nil {
+		for _, asset := range []string{t.LogoURL, t.FaviconURL, t.BackgroundImageURL} {
+			if o := hostedlogin.AssetOrigin(asset); o != "" && !slices.Contains(imageOrigins, o) {
+				imageOrigins = append(imageOrigins, o)
+			}
+		}
+		images := "'self'"
+		if len(imageOrigins) > 0 {
+			images += " " + strings.Join(imageOrigins, " ")
+		}
+		csp := strings.Replace(w.Header().Get("Content-Security-Policy"), "img-src https:", "img-src "+images, 1)
+		if o := hostedlogin.AssetOrigin(t.FontURL); o != "" {
+			csp += "; font-src " + o
+		}
+		w.Header().Set("Content-Security-Policy", csp)
+	}
 	captchaHeaders(w, t.Captcha)
-	write(w, status, pages[name], "layout", page{Tenant: t, Nonce: nonce, Data: data})
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(body))
 }
 
 // RenderFormPost writes the OAuth 2.0 Form Post Response Mode page in the
@@ -195,6 +294,34 @@ func RenderWebMessage(w http.ResponseWriter, targetOrigin string, response map[s
 }
 
 func newNonce() string { return secrets.RandomString(22) }
+
+func promptForPage(page string) (string, string) {
+	switch page {
+	case "login_id":
+		return "login-id", "login-id"
+	case "login_password":
+		return "login-password", "login-password"
+	case "reset_request":
+		return "reset-password", "reset-password-request"
+	case "reset_email_sent":
+		return "reset-password", "reset-password-email"
+	case "reset_password":
+		return "reset-password", "reset-password"
+	case "reset_success":
+		return "reset-password", "reset-password-success"
+	case "reset_error":
+		return "reset-password", "reset-password-error"
+	case "email_verification":
+		return "email-verification", "email-verification-result"
+	case "logout_confirm":
+		return "logout", "logout"
+	case "device_code":
+		return "device-flow", "device-code-activation"
+	case "device_confirm":
+		return "device-flow", "device-code-confirmation"
+	}
+	return page, page
+}
 
 // setHeaders applies the shared security headers. frameAncestors is a CSP
 // source ("'none'" or an origin); formAction likewise.

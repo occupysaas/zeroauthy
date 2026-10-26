@@ -181,7 +181,7 @@ func New(d Deps) http.Handler {
 
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
-		tr.Use(d.Resolver.Middleware, cors(d.Store))
+		tr.Use(d.Resolver.Middleware, cors(d.Store), hostedPresentation(d.Store))
 		authapi.HandlerWithOptions(authAPI{
 			oidc: &oidc.Handlers{Keys: d.Keys, Store: d.Store, Sessions: d.Sessions, Log: d.Log},
 			oauth: &oauth.Handlers{
@@ -208,6 +208,9 @@ func New(d Deps) http.Handler {
 		tr.Options("/dbconnections/change_password", preflight)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)
+		tr.Get("/u/login/password", lg.LoginPasswordGet)
+		tr.Post("/u/login/password", lg.LoginPasswordPost)
+		tr.Post("/u/login/identifier", lg.LoginIdentifierResetPost)
 		tr.Get("/u/consent", lg.ConsentPage)
 		tr.Post("/u/consent", lg.ConsentSubmit)
 		tr.Get("/u/signup", lg.SignupPage)

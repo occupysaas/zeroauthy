@@ -17,6 +17,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantview"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
 )
 
@@ -130,7 +131,11 @@ func (m *VerificationMailer) Send(ctx context.Context, res tenant.Resolved, u *s
 	if err != nil {
 		return err
 	}
-	msg := email.VerifyEmailMessage(i18n.New(res.Tenant, lang), dbconn.VerificationLink(res.Issuer(), raw))
+	localized, err := tenantview.Localized(ctx, m.Store, res.Tenant)
+	if err != nil {
+		return err
+	}
+	msg := email.VerifyEmailMessage(i18n.New(localized, lang), dbconn.VerificationLink(res.Issuer(), raw))
 	msg.To = u.Email
 	if m.Email != nil {
 		return m.Email.SendMessage(ctx, res.Tenant.ID, msg)
@@ -267,7 +272,7 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 		h.fail(w, r, errTxn, nil)
 		return
 	}
-	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
+	view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	raw := r.URL.Query().Get("ticket")
 	if raw == "" {
 		h.finishVerification(w, view, nil, "", verifyFailed)
@@ -283,7 +288,7 @@ func (h *Handlers) EmailVerificationPage(w http.ResponseWriter, r *http.Request)
 		h.fail(w, r, err, nil)
 		return
 	}
-	view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, tk.Lang))
+	view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, tk.Lang))
 	user, err := h.Store.Users().Get(ctx, res.Tenant.ID, tk.UserID)
 	if errors.Is(err, store.ErrNotFound) {
 		h.finishVerification(w, view, nil, "", verifyFailed)

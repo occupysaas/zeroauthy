@@ -136,7 +136,7 @@
       "response": "200 application/json prompts",
       "disposition": "effective",
       "sources": [
-        "https://auth0.com/docs/api/management/v2/prompts/get-settings"
+        "https://auth0.com/docs/api/management/v2/prompts/get-prompts"
       ],
       "sdk": "prompts.getSettings"
     },
@@ -148,7 +148,7 @@
       "response": "200 application/json prompts",
       "disposition": "effective",
       "sources": [
-        "https://auth0.com/docs/api/management/v2/prompts/patch-settings"
+        "https://auth0.com/docs/api/management/v2/prompts/patch-prompts"
       ],
       "sdk": "prompts.updateSettings"
     },
@@ -160,7 +160,7 @@
       "response": "200 application/json text map",
       "disposition": "effective",
       "sources": [
-        "https://auth0.com/docs/api/management/v2/prompts/get-custom-texts-by-language"
+        "https://auth0.com/docs/api/management/v2/prompts/get-custom-text-by-language"
       ],
       "sdk": "prompts.customText.get"
     },
@@ -172,7 +172,7 @@
       "response": "200 empty",
       "disposition": "effective",
       "sources": [
-        "https://auth0.com/docs/api/management/v2/prompts/put-custom-texts-by-language"
+        "https://auth0.com/docs/api/management/v2/prompts/put-custom-text-by-language"
       ],
       "sdk": "prompts.customText.set"
     },

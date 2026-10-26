@@ -115,7 +115,11 @@ func (s *syncBuffer) String() string {
 
 func newEnv(t *testing.T) *env {
 	t.Helper()
-	st := memory.New()
+	return newEnvWithStore(t, memory.New())
+}
+
+func newEnvWithStore(t *testing.T, st store.Store) *env {
+	t.Helper()
 	f, err := seed.Parse([]byte(loginSeed))
 	if err != nil {
 		t.Fatal(err)
@@ -154,6 +158,9 @@ func newEnv(t *testing.T) *env {
 	mux.HandleFunc("GET /authorize", az.Authorize)
 	mux.HandleFunc("GET /u/login", h.LoginPage)
 	mux.HandleFunc("POST /u/login", h.LoginSubmit)
+	mux.HandleFunc("GET /u/login/password", h.LoginPasswordGet)
+	mux.HandleFunc("POST /u/login/password", h.LoginPasswordPost)
+	mux.HandleFunc("POST /u/login/identifier", h.LoginIdentifierResetPost)
 	mux.HandleFunc("GET /u/consent", h.ConsentPage)
 	mux.HandleFunc("POST /u/consent", h.ConsentSubmit)
 	mux.HandleFunc("GET /u/signup", h.SignupPage)

@@ -37,6 +37,8 @@ var allowedThemeFields = func() map[string]bool {
 	return fields
 }()
 
+func ValidThemeField(group, field string) bool { return allowedThemeFields[group+"."+field] }
+
 func FromLegacy(t *store.Tenant) *store.HostedLoginConfig {
 	if t == nil {
 		return nil
@@ -123,6 +125,17 @@ func validate(c, current *store.HostedLoginConfig) error {
 func validPrompt(p string) bool {
 	switch p {
 	case "login", "login-id", "login-password", "signup", "signup-id", "signup-password", "login-passwordless", "passkeys", "confirmation", "customized-consent":
+		return true
+	}
+	return false
+}
+func ValidPrompt(p string) bool { return validPrompt(p) }
+func ValidTextPrompt(p string) bool {
+	if validPrompt(p) {
+		return true
+	}
+	switch p {
+	case "logout", "reset-password", "email-verification", "consent", "device-flow", "zeroauthy":
 		return true
 	}
 	return false
@@ -242,6 +255,9 @@ func Merge(current *store.HostedLoginConfig, resource string, body []byte) (*sto
 		if err != nil {
 			return nil, err
 		}
+		if value, present := patch["colors"]; present && value == nil {
+			return nil, fmt.Errorf("%w: colors cannot be null", errInvalid)
+		}
 		if colors, ok := patch["colors"].(map[string]any); ok {
 			for key, value := range colors {
 				if value == nil && (key == "primary" || key == "page_background") {
@@ -288,6 +304,45 @@ func Merge(current *store.HostedLoginConfig, resource string, body []byte) (*sto
 		if next.DefaultThemeID == id {
 			next.DefaultThemeID = ""
 		}
+	case strings.HasPrefix(resource, "theme:update:"):
+		id := strings.TrimPrefix(resource, "theme:update:")
+		if _, ok := next.Themes[id]; !ok {
+			return nil, store.ErrNotFound
+		}
+		patch, err := decodeObject(body)
+		if err != nil {
+			return nil, err
+		}
+		next.Themes[id] = mergeMap(next.Themes[id], patch)
+	case strings.HasPrefix(resource, "text:"):
+		parts := strings.Split(strings.TrimPrefix(resource, "text:"), ":")
+		if len(parts) != 2 || !ValidTextPrompt(parts[0]) || parts[1] == "" {
+			return nil, errInvalid
+		}
+		var screens map[string]map[string]string
+		if err := json.Unmarshal(body, &screens); err != nil || screens == nil {
+			return nil, errInvalid
+		}
+		if next.CustomText == nil {
+			next.CustomText = store.CustomText{}
+		}
+		if next.CustomText[parts[0]] == nil {
+			next.CustomText[parts[0]] = map[string]map[string]map[string]string{}
+		}
+		next.CustomText[parts[0]][parts[1]] = screens
+	case strings.HasPrefix(resource, "partials:"):
+		prompt := strings.TrimPrefix(resource, "partials:")
+		if !validPrompt(prompt) {
+			return nil, errInvalid
+		}
+		var screens map[string]map[string]string
+		if err := json.Unmarshal(body, &screens); err != nil || screens == nil {
+			return nil, errInvalid
+		}
+		if next.Partials == nil {
+			next.Partials = map[string]map[string]map[string]string{}
+		}
+		next.Partials[prompt] = screens
 	default:
 		return nil, fmt.Errorf("%w: unknown resource", errInvalid)
 	}

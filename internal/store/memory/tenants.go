@@ -87,6 +87,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(s.userGrants, id)
 	purge(s.signingKeys, id)
 	delete(s.customSigningKeys, id)
+	delete(s.hostedLogins, id)
 	delete(s.emailProviders, id)
 	delete(s.emailProviderRevisions, id)
 	purge(s.emailTemplates, id)

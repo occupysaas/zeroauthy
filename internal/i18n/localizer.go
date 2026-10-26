@@ -74,6 +74,18 @@ func (l *Localizer) WithVar(name, value string) *Localizer {
 	return &c
 }
 
+// WithoutCustom keeps language and public variables while restoring catalog
+// copy, for a rendering fallback after legacy text exceeds output budgets.
+func (l *Localizer) WithoutCustom() *Localizer {
+	if l == nil {
+		return english
+	}
+	copy := *l
+	copy.custom = nil
+	copy.vars = maps.Clone(l.vars)
+	return &copy
+}
+
 // Lang returns the chosen language tag ("en" for a nil localizer).
 func (l *Localizer) Lang() string {
 	if l == nil || l.lang == "" {
@@ -121,6 +133,30 @@ func (l *Localizer) T(key string, kv ...string) string {
 // this language.
 func (l *Localizer) HasCustom(key string) bool {
 	return l != nil && strings.TrimSpace(l.custom[key]) != ""
+}
+
+// ScreenText is the public localized text projection for a hosted screen.
+// Each value goes through the same placeholders and locale fallback as T.
+func (l *Localizer) ScreenText(prompt, screen string) map[string]string {
+	if l == nil {
+		l = english
+	}
+	prefix := prompt + "." + screen + "."
+	out := map[string]string{}
+	for key := range catalogs["en"] {
+		if name, ok := strings.CutPrefix(key, prefix); ok {
+			out[name] = l.T(key)
+		}
+	}
+	for key := range l.custom {
+		if name, ok := strings.CutPrefix(key, prefix); ok {
+			if custom, ok := strings.CutPrefix(name, "var-"); ok && custom != "" {
+				name = "var" + strings.ToUpper(custom[:1]) + custom[1:]
+			}
+			out[name] = l.T(key)
+		}
+	}
+	return out
 }
 
 func builtin(lang, key string) (string, bool) {

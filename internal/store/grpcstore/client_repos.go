@@ -3,6 +3,7 @@ package grpcstore
 import (
 	"cmp"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -1135,5 +1136,37 @@ func (c *Client) requireTenantSettings(ctx context.Context) error {
 }
 
 func (r clientAuthTransactions) CompareAndSwapHosted(ctx context.Context, tenantID, id string, expectedRevision int64, next store.HostedLoginState, now time.Time) error {
-	return store.ErrHostedLoginRepositoryUnavailable
+	raw, err := json.Marshal(next)
+	if err != nil {
+		return err
+	}
+	result, err := r.c.rpc.AuthTransactionsCompareAndSwapHosted(ctx, &storev1.HostedStateCASRequest{TxId: r.c.txID, TenantId: tenantID, Id: id, ExpectedRevision: expectedRevision, NextJson: string(raw), Now: tsToPB(now)})
+	if status.Code(err) == codes.Unimplemented {
+		return store.ErrHostedLoginRepositoryUnavailable
+	}
+	return do("AuthTransactionsCompareAndSwapHosted", result, err)
+}
+
+type clientHostedLogins struct{ c *Client }
+
+func (r clientHostedLogins) Get(ctx context.Context, tenantID string) (*store.HostedLoginConfig, error) {
+	result, err := r.c.rpc.HostedLoginsGet(ctx, &storev1.TenantScope{TxId: r.c.txID, TenantId: tenantID})
+	if status.Code(err) == codes.Unimplemented {
+		return nil, store.ErrHostedLoginRepositoryUnavailable
+	}
+	if err != nil {
+		return nil, rpcErr("HostedLoginsGet", err)
+	}
+	return decOne("HostedLoginsGet", nil, result.GetError(), result.GetValue(), hostedLoginConfigFromPB)
+}
+func (r clientHostedLogins) Put(ctx context.Context, c *store.HostedLoginConfig, expected int64) error {
+	pb, err := hostedLoginConfigToPB(c)
+	if err != nil {
+		return err
+	}
+	result, err := r.c.rpc.HostedLoginsPut(ctx, &storev1.HostedLoginConfigWrite{TxId: r.c.txID, Value: pb, ExpectedRevision: expected})
+	if status.Code(err) == codes.Unimplemented {
+		return store.ErrHostedLoginRepositoryUnavailable
+	}
+	return do("HostedLoginsPut", result, err)
 }

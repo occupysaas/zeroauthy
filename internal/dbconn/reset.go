@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/tenantview"
 )
 
 // TicketLifetime is how long a password reset link works (D-0019).
@@ -132,7 +133,11 @@ func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *st
 	if policy.Template != nil {
 		return h.Email.Send(ctx, email.Event{TenantID: res.Tenant.ID, UserID: user.UserID, ClientID: clientID, Template: "reset_email", Language: lang, URL: link})
 	}
-	m := email.ResetPassword(i18n.New(res.Tenant, lang), link)
+	localized, err := tenantview.Localized(ctx, h.Store, res.Tenant)
+	if err != nil {
+		return err
+	}
+	m := email.ResetPassword(i18n.New(localized, lang), link)
 	m.To = user.Email
 	if h.Email != nil {
 		return h.Email.SendMessage(ctx, res.Tenant.ID, m)

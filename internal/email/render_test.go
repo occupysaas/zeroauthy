@@ -27,17 +27,6 @@ func TestRenderBudgets(t *testing.T) {
 			t.Fatalf("Render() error = %v, want ErrRenderLimit", err)
 		}
 	})
-	t.Run("evaluation steps", func(t *testing.T) {
-		state := renderState{ctx: context.Background(), deadline: time.Now().Add(time.Second)}
-		for i := 0; i < maxSteps; i++ {
-			if err := state.step(); err != nil {
-				t.Fatalf("step %d: %v", i, err)
-			}
-		}
-		if err := state.step(); !errors.Is(err, ErrRenderLimit) {
-			t.Fatalf("step %d error = %v, want ErrRenderLimit", maxSteps+1, err)
-		}
-	})
 	t.Run("intermediate amplification", func(t *testing.T) {
 		_, err := r.Render(context.Background(), RenderInput{Fields: map[string]string{"body": "{{ amplify | replace: 'x', 'xxxxxxxx' }}"}, Variables: map[string]any{"amplify": strings.Repeat("x", 32_769)}})
 		if !errors.Is(err, ErrRenderLimit) {

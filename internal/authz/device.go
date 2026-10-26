@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"errors"
 	"maps"
 	"net/http"
 	"strings"
@@ -33,6 +34,15 @@ func (h *Handlers) CreateTxn(w http.ResponseWriter, r *http.Request, res tenant.
 		Params:     params,
 		ExpiresAt:  now.Add(TxnLifetime),
 		CreatedAt:  now,
+	}
+	if !res.Tenant.Reserved && params[ParamStage] == "" && params["screen_hint"] != "signup" {
+		config, err := h.Store.HostedLogins().Get(r.Context(), res.Tenant.ID)
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return nil, err
+		}
+		if err == nil && config.Prompts["identifier_first"] == true {
+			txn.HostedState.Step = "identifier"
+		}
 	}
 	if err := h.Store.AuthTransactions().Create(r.Context(), txn); err != nil {
 		return nil, err

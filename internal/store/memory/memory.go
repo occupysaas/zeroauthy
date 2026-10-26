@@ -53,6 +53,7 @@ type state struct {
 	jobs                   map[key]*store.Job                     // by (tenant, ID)
 	jobErrors              map[key][]store.JobError               // by (tenant, job ID), by Index
 	jobFiles               map[key]jobFile                        // by (tenant, job ID)
+	hostedLogins           map[string]*store.HostedLoginConfig
 	emailProviders         map[string]*store.EmailProvider
 	emailProviderRevisions map[string]int64
 	emailTemplates         map[key]*store.EmailTemplate
@@ -85,6 +86,7 @@ func New() *Store {
 		jobs:                   map[key]*store.Job{},
 		jobErrors:              map[key][]store.JobError{},
 		jobFiles:               map[key]jobFile{},
+		hostedLogins:           map[string]*store.HostedLoginConfig{},
 		emailProviders:         map[string]*store.EmailProvider{},
 		emailProviderRevisions: map[string]int64{},
 		emailTemplates:         map[key]*store.EmailTemplate{},
@@ -137,5 +139,3 @@ func (s *Store) Ping(context.Context) error                   { return nil }
 func (s *Store) Close() error                                 { return nil }
 
 var _ store.Store = (*Store)(nil)
-
-func (s *Store) HostedLogins() store.HostedLogins { return store.UnimplementedHostedLogins{} }

@@ -116,6 +116,7 @@ func cloneSession(s *store.LoginSession) *store.LoginSession {
 func cloneAuthTransaction(t *store.AuthTransaction) *store.AuthTransaction {
 	out := *t
 	out.Params = maps.Clone(t.Params)
+	out.HostedState = t.HostedState.Clone()
 	return &out
 }
 

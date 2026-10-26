@@ -196,6 +196,21 @@ func (listingPlugin) ConnectionsList(context.Context, *storev1.TenantScope) (*st
 
 func serveOldPlugin(t *testing.T) *Client { return serveWith(t, oldPlugin{}) }
 
+func TestOldPluginHostedLoginUnavailable(t *testing.T) {
+	c := serveOldPlugin(t)
+	defer c.Close()
+	ctx := context.Background()
+	if _, err := c.HostedLogins().Get(ctx, "tenant"); !errors.Is(err, store.ErrHostedLoginRepositoryUnavailable) {
+		t.Fatalf("get error=%v", err)
+	}
+	if err := c.HostedLogins().Put(ctx, &store.HostedLoginConfig{TenantID: "tenant"}, 0); !errors.Is(err, store.ErrHostedLoginRepositoryUnavailable) {
+		t.Fatalf("put error=%v", err)
+	}
+	if err := c.AuthTransactions().CompareAndSwapHosted(ctx, "tenant", "flow", 0, store.HostedLoginState{}, time.Now()); !errors.Is(err, store.ErrHostedLoginRepositoryUnavailable) {
+		t.Fatalf("transition error=%v", err)
+	}
+}
+
 func serveWith(t *testing.T, srv storev1.StoreServiceServer) *Client {
 	t.Helper()
 	lis := bufconn.Listen(1 << 20)

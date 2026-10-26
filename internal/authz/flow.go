@@ -102,7 +102,7 @@ func (h *Handlers) validateFlow(ctx context.Context, res tenant.Resolved, fr *fl
 // error page. A device code that is no longer pending reads as an expired
 // session: the user starts over on the device page.
 func (h *Handlers) flowError(w http.ResponseWriter, r *http.Request, res tenant.Resolved, fr flowReq, e *Error) {
-	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, fr.UILocales))
+	view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, fr.UILocales))
 	status, title, detail := http.StatusBadRequest, i18n.KeyErrInvalidRequest, e.Description
 	switch {
 	case e == errCodeNotPending:

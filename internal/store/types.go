@@ -748,14 +748,15 @@ type LoginSession struct {
 
 // AuthTransaction holds an /authorize request while the user logs in.
 type AuthTransaction struct {
-	TenantID   string
-	ID         string // the "state" of the hosted login pages
-	CookieHash string // secrets.HashToken of the za_txn_<ID> cookie value
-	CSRFToken  string
-	ClientID   string
-	Params     map[string]string // the validated authorize request
-	ExpiresAt  time.Time
-	CreatedAt  time.Time
+	HostedState HostedLoginState
+	TenantID    string
+	ID          string // the "state" of the hosted login pages
+	CookieHash  string // secrets.HashToken of the za_txn_<ID> cookie value
+	CSRFToken   string
+	ClientID    string
+	Params      map[string]string // the validated authorize request
+	ExpiresAt   time.Time
+	CreatedAt   time.Time
 }
 
 // AuthCode is an issued authorization code.

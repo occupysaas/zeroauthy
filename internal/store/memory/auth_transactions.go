@@ -54,6 +54,17 @@ func (r authTransactions) DeleteExpired(_ context.Context, before time.Time) (in
 	return n, nil
 }
 
-func (r authTransactions) CompareAndSwapHosted(ctx context.Context, tenantID, id string, expectedRevision int64, next store.HostedLoginState, now time.Time) error {
-	return store.ErrHostedLoginRepositoryUnavailable
+func (r authTransactions) CompareAndSwapHosted(_ context.Context, tenantID, id string, expectedRevision int64, next store.HostedLoginState, now time.Time) error {
+	r.s.lock()
+	defer r.s.unlock()
+	txn := r.s.transactions[key{tenantID, id}]
+	if txn == nil || !txn.ExpiresAt.After(now) {
+		return store.ErrNotFound
+	}
+	if txn.HostedState.Revision != expectedRevision {
+		return store.ErrConflict
+	}
+	txn.HostedState = next.Clone()
+	txn.HostedState.Revision = expectedRevision + 1
+	return nil
 }

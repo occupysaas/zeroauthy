@@ -14,6 +14,55 @@ type mgmtAPI struct{ h *mgmt.Handlers }
 
 var _ mgmtapi.ServerInterface = mgmtAPI{}
 
+func (a mgmtAPI) GetBranding(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.GetBranding, "read:branding")
+}
+func (a mgmtAPI) UpdateBranding(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.UpdateBranding, "update:branding")
+}
+func (a mgmtAPI) GetUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.GetUniversalLoginTemplate, "read:branding")
+}
+func (a mgmtAPI) PutUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.PutUniversalLoginTemplate, "update:branding")
+}
+func (a mgmtAPI) DeleteUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.DeleteUniversalLoginTemplate, "update:branding")
+}
+func (a mgmtAPI) CreateBrandingTheme(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateBrandingTheme, "create:branding")
+}
+func (a mgmtAPI) GetDefaultBrandingTheme(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.GetDefaultBrandingTheme, "read:branding")
+}
+func (a mgmtAPI) GetBrandingTheme(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetBrandingTheme(w, r, id) }, "read:branding")
+}
+func (a mgmtAPI) UpdateBrandingTheme(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateBrandingTheme(w, r, id) }, "update:branding")
+}
+func (a mgmtAPI) DeleteBrandingTheme(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteBrandingTheme(w, r, id) }, "delete:branding")
+}
+func (a mgmtAPI) GetPromptSettings(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.GetPromptSettings, "read:prompts")
+}
+func (a mgmtAPI) UpdatePromptSettings(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.UpdatePromptSettings, "update:prompts")
+}
+func (a mgmtAPI) GetPromptCustomText(w http.ResponseWriter, r *http.Request, prompt, language string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetPromptCustomText(w, r, prompt, language) }, "read:prompts")
+}
+func (a mgmtAPI) PutPromptCustomText(w http.ResponseWriter, r *http.Request, prompt, language string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PutPromptCustomText(w, r, prompt, language) }, "update:prompts")
+}
+func (a mgmtAPI) GetPromptPartials(w http.ResponseWriter, r *http.Request, prompt string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetPromptPartials(w, r, prompt) }, "read:prompts")
+}
+func (a mgmtAPI) PutPromptPartials(w http.ResponseWriter, r *http.Request, prompt string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PutPromptPartials(w, r, prompt) }, "update:prompts")
+}
+
 // scoped runs fn for a caller holding any of scopes.
 func scoped(w http.ResponseWriter, r *http.Request, fn http.HandlerFunc, scopes ...string) {
 	mgmt.Require(scopes...)(fn).ServeHTTP(w, r)

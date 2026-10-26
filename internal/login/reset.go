@@ -107,7 +107,7 @@ func (h *Handlers) renderResetError(w http.ResponseWriter, view ui.Tenant, p res
 // returns the error screen to show, or err for a storage failure. view is
 // in the ticket's language when the ticket exists, otherwise the request's.
 func (h *Handlers) resetTicket(r *http.Request, res tenant.Resolved, raw string) (tk *store.PasswordResetTicket, view ui.Tenant, p resetProblem, err error) {
-	view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
+	view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	if raw == "" {
 		return nil, view, resetInvalid, nil
 	}
@@ -118,7 +118,7 @@ func (h *Handlers) resetTicket(r *http.Request, res tenant.Resolved, raw string)
 	if err != nil {
 		return nil, view, resetInvalid, err
 	}
-	view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, tk.Lang))
+	view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, tk.Lang))
 	switch {
 	case tk.UsedAt != nil:
 		return nil, view, resetUsed, nil
@@ -177,7 +177,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxFormBytes)
 	if err := r.ParseForm(); err != nil {
-		h.renderResetError(w, ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, "")), resetInvalid)
+		h.renderResetError(w, ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, "")), resetInvalid)
 		return
 	}
 	// 1. CSRF: the form's token must match the za_reset cookie.
