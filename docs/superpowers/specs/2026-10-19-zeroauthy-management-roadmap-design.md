@@ -155,6 +155,8 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 ### Plan 23 — Custom domains with automatic certificates (full design)
 
+**Draft design and plan (2026-10-26):** [standalone spec](2026-10-26-zeroauthy-custom-domains-design.md) and [implementation plan](../plans/2026-10-26-zeroauthy-plan-23-custom-domains.md). Covers the nine-operation API, verified domain registry, authenticated proxies, shared ACME HTTP-01/TLS-ALPN-01, DigitalOcean DNS-01 hosted wildcard, issuer/link binding and migration. The spec records local choices and pinned-tool limits; this is not an implementation or live parity record.
+
 **Endpoints:** `GET/POST /api/v2/custom-domains`, `GET/PATCH/DELETE /api/v2/custom-domains/{id}`, `POST /api/v2/custom-domains/{id}/verify`, `GET/PATCH /api/v2/custom-domains/default`; fields `type` (`auth0_managed_certs` and `self_managed_certs`), `verification` methods, `custom_client_ip_header`, `tls_policy`, `domain_metadata`, `status`.
 
 **Runtime:**
