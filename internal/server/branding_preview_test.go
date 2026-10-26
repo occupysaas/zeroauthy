@@ -39,6 +39,11 @@ func TestBrandingPreviewAuthAndNoSideEffects(t *testing.T) {
 	if rec.Code != http.StatusOK || !strings.Contains(html, "Preview wrapper") || !strings.Contains(html, "script-src &#39;none&#39;") {
 		t.Fatalf("preview=%d %s", rec.Code, rec.Body.String())
 	}
+	previewTheme := strings.Repeat("2", 32)
+	rec, _ = sendRaw(h, "POST", base, token, map[string]any{"screen": "login", "overrides": map[string]any{"themes": map[string]any{previewTheme: map[string]any{"colors": map[string]any{"primary_button": "#654321"}}}, "default_theme_id": previewTheme}})
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "#654321") {
+		t.Fatalf("unsaved theme preview=%d %s", rec.Code, rec.Body)
+	}
 	after, err := st.HostedLogins().Get(ctx, target.ID)
 	if err != nil {
 		t.Fatal(err)

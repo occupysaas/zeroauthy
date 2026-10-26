@@ -131,8 +131,33 @@ func validPrompt(p string) bool {
 	return false
 }
 func ValidPrompt(p string) bool { return validPrompt(p) }
+
+var documentedText = func() struct {
+	Prompts map[string]bool
+	Screens map[string]bool
+} {
+	var inventory struct {
+		Prompts []string `json:"custom_text_prompts"`
+		Screens []string `json:"custom_text_screens"`
+	}
+	if err := json.Unmarshal(inventoryBytes, &inventory); err != nil {
+		panic(err)
+	}
+	result := struct {
+		Prompts map[string]bool
+		Screens map[string]bool
+	}{map[string]bool{}, map[string]bool{}}
+	for _, p := range inventory.Prompts {
+		result.Prompts[p] = true
+	}
+	for _, s := range inventory.Screens {
+		result.Screens[s] = true
+	}
+	return result
+}()
+
 func ValidTextPrompt(p string) bool {
-	if validPrompt(p) {
+	if validPrompt(p) || documentedText.Prompts[p] {
 		return true
 	}
 	switch p {
@@ -325,7 +350,7 @@ func Merge(current *store.HostedLoginConfig, resource string, body []byte) (*sto
 			return nil, errInvalid
 		}
 		for screen, keys := range screens {
-			if keys == nil || (!i18n.KnownScreen(parts[0], screen) && (!validPrompt(parts[0]) || screen != parts[0])) {
+			if keys == nil || (!i18n.KnownScreen(parts[0], screen) && !documentedText.Screens[screen] && (!validPrompt(parts[0]) || screen != parts[0])) {
 				return nil, errInvalid
 			}
 			vars := 0

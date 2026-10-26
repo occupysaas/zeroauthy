@@ -356,3 +356,17 @@ imported hashes require reset, and cleartext password schemes are refused.
   only and never authorize tokens. Additional signing algorithms, root-key
   encryption controls, automatic rotation and per-tenant operator-role design
   remain outside this milestone.
+
+## Plan 22 disposition
+
+- The Plan 2 hosted-template override directory is superseded by tenant-scoped
+  Universal Login template management. There is no filesystem template loader.
+- Actions validation of transient `ulp-` fields remains future work. Captured
+  values are never added to custom-database script arguments; the changelog's
+  custom-DB prompt-context feature requires a separate documented contract.
+- Classic, WebAuthn-first, social controls, organizations, ACUL and custom-domain
+  provisioning remain deferred. Recognized future fields can be stored without
+  claiming those workflows run.
+- Deploy CLI template export remains limited by custom-domain discovery. Keep
+  the explicit omission assertion until that handler's real prerequisite exists;
+  do not add a fabricated domain or empty success response.

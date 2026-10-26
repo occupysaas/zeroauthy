@@ -87,3 +87,12 @@ implement the frozen 2026-10-22 evidence. D-0045 and the compatibility matrix
 retain the explicit local bot-risk/provider/corpus differences. CLI stays at
 1.37.0 and node-auth0 at 7.4.0. This is an implementation record, not a new
 upstream changelog review; the reviewed-through date above is unchanged.
+
+## Plan 22 implementation disposition (2026-10-26)
+
+The implementation uses the frozen 2026-10-25 branding/prompt inventory and
+local restricted-rendering choices (D-0048). The pinned deploy client also
+provides the finite future prompt/screen enum used for text discovery. Classic,
+WebAuthn-first, ACUL, custom domains and custom prompt fields in custom-database
+scripts remain deferred. This is an implementation disposition, not a new live
+changelog review; it does not advance the reviewed-through date.

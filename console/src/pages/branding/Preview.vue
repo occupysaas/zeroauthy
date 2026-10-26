@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BrandingObject, BrandingPreview } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
+import { bindPreviewStyleNonce } from './preview'
 import { hostedLocales } from '../settings/hostedLocales'
 const props = defineProps<{ overrides?: BrandingObject; invalid?: boolean }>()
 const { t } = useI18n()
@@ -14,6 +15,7 @@ const tenant = useTenant()
 const screen = ref('login')
 const language = ref('en')
 const result = ref<BrandingPreview>()
+const sandboxDocument = computed(() => bindPreviewStyleNonce(result.value?.html ?? ''))
 const error = ref('')
 const busy = ref(false)
 let generation = 0
@@ -45,7 +47,7 @@ async function render() {
     <Button :disabled="busy || invalid || tenant?.reserved" @click="render">{{ t('branding.renderPreview') }}</Button>
     <template v-if="result">
       <ul v-if="result.warnings.length"><li v-for="warning in result.warnings" :key="warning">{{ warning }}</li></ul>
-      <iframe :title="t('branding.previewTitle')" sandbox="" :srcdoc="result.html" class="min-h-[42rem] w-full rounded border border-rule bg-white" />
+      <iframe :title="t('branding.previewTitle')" sandbox="" :srcdoc="sandboxDocument" class="min-h-[42rem] w-full rounded border border-rule bg-white" />
     </template>
   </section>
 </template>

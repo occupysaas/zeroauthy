@@ -74,6 +74,7 @@ const en = {
     "partials": "Enter JSON keyed by screen and slot. Form-content slots can contain accessible ulp- fields. Fields are transient and are never added to user metadata. An empty object clears this prompt."
   },
   "stored": {
+      "text": "Only supported hosted screen keys render today. Recognized future prompt and screen text is preserved for compatibility.",
     "theme": "widget.social_buttons_layout is stored for compatibility and has no runtime effect.",
     "prompts": "Classic experience and WebAuthn first factor are stored for compatibility. These settings do not activate unsupported flows.",
     "partials": "signup-id, signup-password, passwordless, passkeys, confirmation, customized-consent and secondary-actions slots are stored for compatibility. Active slots are form-content-start/end and form-footer-start/end on login, login-id, login-password and signup."

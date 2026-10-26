@@ -102,6 +102,17 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   // They are never placed in a checked-in seed or recovered by GET/export.
   await api(sourceConfig, 'POST', 'emails/provider', { name: 'sendgrid', enabled: true, default_from_address: 'deploy@example.test', credentials: { api_key: emailSecret } });
   await api(sourceConfig, 'POST', 'email-templates', { template: 'verify_email', enabled: true, subject: 'Deploy verify', body: '<p>Verify {{ user.email | escape }}</p>' });
+  const brandingFixture = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures/branding.json'), 'utf8'));
+  const themeFixture = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures/theme.json'), 'utf8'));
+  const promptFixture = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures/prompts.json'), 'utf8'));
+  await api(sourceConfig, 'PATCH', 'tenants/settings', { enabled_locales: ['en'] });
+  await api(sourceConfig, 'PATCH', 'branding', brandingFixture);
+  await api(sourceConfig, 'POST', 'branding/themes', themeFixture);
+  const { customText, partials, ...settings } = promptFixture;
+  await api(sourceConfig, 'PATCH', 'prompts', settings);
+  for (const [lang,prompts] of Object.entries(customText)) for (const [prompt,text] of Object.entries(prompts)) await api(sourceConfig,'PUT',`prompts/${prompt}/custom-text/${lang}`,text);
+  for (const [prompt,slots] of Object.entries(partials)) await api(sourceConfig,'PUT',`prompts/${prompt}/partials`,slots);
+  await api(sourceConfig,'PUT','branding/templates/universal-login',{template:'<html><head>{% auth0:head %}</head><body><p>Nonexportable template</p>{% auth0:widget %}</body></html>'});
   const publicProvider = await api(sourceConfig, 'GET', 'emails/provider');
   assert.equal(JSON.stringify(publicProvider).includes(emailSecret), false, 'provider read returned its private credential');
   assert.equal(JSON.stringify(publicProvider).includes('********'), false, 'provider read returned a credential mask');
@@ -110,6 +121,13 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   await api(sourceConfig, 'DELETE', `resource-servers/${collision.id}`);
   const sourcePublicExport = await exportTo('source', 'source-export');
   await assertNoEmailSecrets(sourcePublicExport);
+  // The pinned branding handler queries customDomains.list and omits the
+  // template on 404. Do not fake a custom domain or normalize this loss away.
+  assert.ok((await api(sourceConfig,'GET','branding/templates/universal-login')).template.includes('Nonexportable template'));
+  const exportConfig = format === 'yaml' ? parseYaml(await readFile(sourcePublicExport,'utf8')).branding : JSON.parse(await readFile(path.join(sourcePublicExport,'branding/branding.json'),'utf8'));
+  assert.ok(!exportConfig.templates?.length,'template limitation changed; update the explicit acceptance lane');
+  console.log('Plan 22 deploy template export: unavailable; pinned handler requires custom-domain discovery. Template CRUD is covered separately; ACUL excluded.');
+
   if (mode === 'preserved') {
     await writeFile(path.join(work, 'source.json'), JSON.stringify({ ...sourceConfig, AUTH0_EXPORT_IDENTIFIERS: true }), { mode: 0o600 });
     const bootstrapExport = await exportTo('source', 'bootstrap-export');
@@ -161,6 +179,23 @@ const repeated = (await exportClients(targetConfig))[0];
 assert.equal(repeated.client_id, imported.client_id); assert.ok(repeated.client_secret === imported.client_secret, 'repeat import changed credential');
 targetPath = await exportTo('target', 'target-repeat');
 assert.equal(checkedCompare(sourcePath, targetPath).equivalent, true, 'repeat import differs');
+await api(sourceConfig,'PATCH','branding',{colors:{primary:'#654321'}});
+const changedBranding=await exportTo('source','source-branding-changed');
+assert.equal(checkedCompare(changedBranding,targetPath).equivalent,false,'negative branding change escaped comparator');
+await api(sourceConfig,'PATCH','branding',{colors:{primary:'#123456'}});
+const currentTheme=await api(sourceConfig,'GET','branding/themes/default');
+await api(sourceConfig,'PATCH',`branding/themes/${currentTheme.themeId}`,{colors:{primary_button:'#654321'}});
+const changedTheme=await exportTo('source','source-theme-changed');
+assert.equal(checkedCompare(changedTheme,targetPath).equivalent,false,'negative theme change escaped comparator');
+await api(sourceConfig,'PATCH',`branding/themes/${currentTheme.themeId}`,{colors:{primary_button:'#123456'}});
+await api(sourceConfig,'PUT','prompts/login-id/custom-text/en',{'login-id':{title:'Changed deploy identify'}});
+const changedText=await exportTo('source','source-text-changed');
+assert.equal(checkedCompare(changedText,targetPath).equivalent,false,'negative text change escaped comparator');
+await api(sourceConfig,'PUT','prompts/login-id/custom-text/en',{'login-id':{title:'Deploy identify'}});
+await api(sourceConfig,'PUT','prompts/login-id/partials',{'login-id':{'form-footer-start':'<p>Changed footer</p>'}});
+const changedPartials=await exportTo('source','source-partials-changed');
+assert.equal(checkedCompare(changedPartials,targetPath).equivalent,false,'negative partial change escaped comparator');
+await api(sourceConfig,'PUT','prompts/login-id/partials',{'login-id':{'form-footer-start':'<p>Deploy footer</p>'}});
 await api(sourceConfig, 'PATCH', 'tenants/settings', { friendly_name: 'Updated deploy fixture' });
 const grants = await api(sourceConfig, 'GET', 'client-grants');
 const grant = grants.find(g => g.client_id === original.client_id);

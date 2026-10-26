@@ -87,6 +87,7 @@ func ValidateManifest(m Manifest, registry []string) error {
 		"clientGrants.id": "reference-map", "clientGrants.client_id": "reference-map", "clientGrants.audience": "reference-map",
 		"connections.id": "reference-map", "connections.enabled_clients[].client_id": "reference-map",
 		"databases.id": "reference-map", "databases.enabled_clients[].client_id": "reference-map",
+		"themes.themeId":    "reference-map",
 		"tenant.updated_at": "read-only", "tenant.default_audience": "tenant-url", "attackProtection.updated_at": "read-only",
 	}
 	for _, n := range m.Normalizations {

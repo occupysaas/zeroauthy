@@ -8,7 +8,7 @@ import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import { hostedLocales } from '../settings/hostedLocales'
 import ThemeFields from './ThemeFields.vue'
-import { themeFields } from './fields'
+import { themeFields, textPrompts } from './fields'
 
 const props = defineProps<{ kind: string }>()
 const emit = defineEmits<{ draft: [{ value: BrandingObject; invalid: boolean }] }>()
@@ -40,7 +40,7 @@ const resource = computed(() => {
 })
 const key = computed(() => `${tenant.value?.host}/${resource.value}`)
 const id = computed(() => 'branding-' + props.kind)
-const storedOnly = computed(() => props.kind === 'prompts' || props.kind === 'theme' || props.kind === 'partials')
+const storedOnly = computed(() => props.kind === 'text' || props.kind === 'prompts' || props.kind === 'theme' || props.kind === 'partials')
 function textOf(value: BrandingObject) {
   if (props.kind === 'template') return String(value.template ?? '')
   const copy = { ...value }; delete copy.themeId
@@ -82,7 +82,7 @@ watch([draft, loading], () => {
     switch (props.kind) {
       case 'branding': case 'prompts': override = { [props.kind]: value }; break
       case 'template': override = { template: draft.value }; break
-      case 'theme': override = { themes: { preview: value }, default_theme_id: 'preview' }; break
+      case 'theme': override = { themes: { '00000000000000000000000000000022': value }, default_theme_id: '00000000000000000000000000000022' }; break
       case 'text': override = { custom_text: { [prompt.value]: { [language.value]: value } } }; break
       default: override = { partials: { [prompt.value]: value } }
     }
@@ -142,7 +142,7 @@ const canClear = computed(() => ['template', 'text', 'partials'].includes(props.
     <p>{{ t(`branding.hints.${kind}`) }}</p>
     <Banner v-if="storedOnly" kind="info">{{ t(`branding.stored.${kind}`) }}</Banner>
     <div v-if="kind === 'text' || kind === 'partials'" class="grid gap-4 sm:grid-cols-2">
-      <Field :id="id + '-prompt'" :label="t('branding.prompt')"><select :id="id + '-prompt'" v-model="prompt" :disabled="busy"><option v-for="name in ['login', 'login-id', 'login-password', 'signup', 'signup-id', 'signup-password', 'login-passwordless', 'passkeys', 'confirmation', 'customized-consent', ...(kind === 'text' ? ['logout', 'reset-password', 'email-verification', 'consent', 'device-flow', 'zeroauthy'] : [])]" :key="name" :value="name">{{ name }}</option></select></Field>
+      <Field :id="id + '-prompt'" :label="t('branding.prompt')"><select :id="id + '-prompt'" v-model="prompt" :disabled="busy"><option v-for="name in (kind === 'text' ? textPrompts : ['login', 'login-id', 'login-password', 'signup', 'signup-id', 'signup-password', 'login-passwordless', 'passkeys', 'confirmation', 'customized-consent'])" :key="name" :value="name">{{ name }}</option></select></Field>
       <Field v-if="kind === 'text'" :id="id + '-language'" :label="t('branding.language')"><select :id="id + '-language'" v-model="language" :disabled="busy"><option v-for="code in hostedLocales" :key="code" :value="code">{{ code }}</option></select></Field>
     </div>
     <Field v-if="kind === 'theme'" :id="id + '-lookup'" :label="t('branding.themeLookup')" :hint="t('branding.themeLookupHint')"><input :id="id + '-lookup'" v-model.lazy="themeId" :disabled="busy" /></Field>

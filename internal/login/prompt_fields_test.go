@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/store/sqlstore"
 )
 
 func setPartials(t *testing.T, e *env, partials map[string]map[string]map[string]string) {
@@ -158,5 +160,84 @@ func TestSignupPartialFieldsStayTransient(t *testing.T) {
 	}
 	if _, err := e.st.AuthTransactions().Get(context.Background(), tn.ID, state); !errors.Is(err, store.ErrNotFound) {
 		t.Fatal("signup transaction retained fields")
+	}
+}
+
+func TestHostedBrandingAndPartialStateAfterRestart(t *testing.T) {
+	ctx := context.Background()
+	dsn := "sqlite://" + filepath.Join(t.TempDir(), "restart.db")
+	first, err := sqlstore.Open(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = first.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	e := newEnvWithStore(t, first)
+	enableIdentifier(t, e)
+	setPartials(t, e, map[string]map[string]map[string]string{"login-id": {"login-id": {"form-content-start": `<input aria-label="Team" name="ulp-team">`}}})
+	tn := mustTenant(t, e, "acme")
+	config, err := first.HostedLogins().Get(ctx, tn.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	themeID := strings.Repeat("a", 32)
+	config.Themes = map[string]map[string]any{themeID: {"colors": map[string]any{"primary_button": "#123456"}}}
+	config.DefaultThemeID = themeID
+	if err = first.HostedLogins().Put(ctx, config, config.Revision); err != nil {
+		t.Fatal(err)
+	}
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t)
+	step := b.do(t, "POST", "/u/login", url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "ulp-team": {"private-team"}})
+	if step.Code != 303 {
+		t.Fatalf("identifier=%d %s", step.Code, step.Body)
+	}
+	if err = first.Close(); err != nil {
+		t.Fatal(err)
+	}
+	second, err := sqlstore.Open(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Close()
+	restarted := newEnvWithStore(t, second)
+	b.e = restarted
+	persisted, err := second.HostedLogins().Get(ctx, tn.ID)
+	if err != nil || persisted.DefaultThemeID != themeID {
+		t.Fatalf("lost default: %+v %v", persisted, err)
+	}
+	txn, err := second.AuthTransactions().Get(ctx, tn.ID, state)
+	if err != nil || txn.HostedState.PromptFields["ulp-team"] != "private-team" {
+		t.Fatalf("lost captured state: %+v %v", txn, err)
+	}
+	independent := restarted.browser("acme.example.test")
+	denied := independent.do(t, "GET", step.Header().Get("Location"), nil)
+	if denied.Code != 400 {
+		t.Fatalf("different browser accessed persisted state: %d", denied.Code)
+	}
+	page := b.do(t, "GET", step.Header().Get("Location"), nil)
+	if page.Code != 200 || !strings.Contains(page.Body.String(), "#123456") {
+		t.Fatalf("restarted theme=%d %s", page.Code, page.Body)
+	}
+	form := url.Values{"state": {state}, "csrf": {csrf}, "hosted_revision": {revisionFrom(t, page.Body.String())}, "password": {"alice password 1"}}
+	done := b.do(t, "POST", "/u/login/password", form)
+	if done.Code != 302 {
+		t.Fatalf("restarted login=%d %s", done.Code, done.Body)
+	}
+	replay := b.do(t, "POST", "/u/login/password", form)
+	if replay.Code != 400 {
+		t.Fatalf("replay=%d", replay.Code)
+	}
+	user, err := second.Users().FindByLogin(ctx, tn.ID, "Username-Password-Authentication", "alice@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions, err := second.Sessions().ListByUser(ctx, tn.ID, user.UserID)
+	if err != nil || len(sessions) != 1 || user.LoginsCount != 1 {
+		t.Fatalf("duplicate login/session: logins=%d sessions=%d err=%v", user.LoginsCount, len(sessions), err)
+	}
+	if _, err := second.AuthTransactions().Get(ctx, tn.ID, state); !errors.Is(err, store.ErrNotFound) {
+		t.Fatal("captured state survived completion")
 	}
 }

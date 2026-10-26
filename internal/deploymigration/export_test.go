@@ -3,6 +3,7 @@ package deploymigration
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -146,5 +147,47 @@ func TestLoadExportRejectsAmbiguousClientIdentities(t *testing.T) {
 		if _, err := LoadExport(file, "yaml"); err == nil {
 			t.Fatal("ambiguous client identity accepted")
 		}
+	}
+}
+
+func TestLoadDirectoryBrandingPromptsAndThemes(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range map[string]string{
+		"branding/templates/universal-login.json":               `{"template":"universal-login","body":"./universal-login.html"}`,
+		"branding/templates/universal-login.html":               `<p>Template bytes</p>`,
+		"branding/branding.json":                                `{"colors":{"primary":"#123456"}}`,
+		"themes/theme.json":                                     `{"themeId":"old","displayName":"Example","colors":{"primary_button":"#123456"}}`,
+		"prompts/prompts.json":                                  `{"identifier_first":true}`,
+		"prompts/custom-text.json":                              `{"en":{"login":{"login":{"title":"Example"}}}}`,
+		"prompts/partials.json":                                 `{"login":[{"login":[{"name":"form-footer-start","template":"partials/login/login/form-footer-start.liquid"}]}]}`,
+		"prompts/partials/login/login/form-footer-start.liquid": `<p>Example footer</p>`,
+	} {
+		p := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	out, err := LoadExport(root, "directory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, resource := range []string{"branding", "themes", "prompts"} {
+		if len(out.Resources[resource]) == 0 {
+			t.Fatalf("missing %s", resource)
+		}
+	}
+	if !strings.Contains(string(out.Resources["branding"]), `"templates"`) || !strings.Contains(string(out.Resources["branding"]), `"colors"`) {
+		t.Fatalf("lost branding section: %s", out.Resources["branding"])
+	}
+	for _, key := range []string{"identifier_first", "customText", "partials"} {
+		if !strings.Contains(string(out.Resources["prompts"]), `"`+key+`"`) {
+			t.Fatalf("lost prompt section %s: %s", key, out.Resources["prompts"])
+		}
+	}
+	if string(out.Files["prompts/partials/login/login/form-footer-start.liquid"]) != "<p>Example footer</p>" {
+		t.Fatal("lost Liquid file")
 	}
 }

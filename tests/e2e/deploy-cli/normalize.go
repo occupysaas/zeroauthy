@@ -372,7 +372,7 @@ func compareGrants(src, dst []object, clients, apis map[string]string, r *Report
 	}
 }
 func compareRecords(name string, src, dst []object, m Manifest, domains Domains, r *Report) {
-	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template"}[name]
+	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template", "branding": "$singleton", "prompts": "$singleton", "themes": "displayName"}[name]
 	by := map[string]object{}
 	for _, o := range src {
 		k := naturalKey(o, keyField)
@@ -400,6 +400,10 @@ func compareRecords(name string, src, dst []object, m Manifest, domains Domains,
 					normalizeDomainPath(b, n.Path, domains)
 				}
 			}
+		}
+		if name == "themes" {
+			delete(a, "themeId")
+			delete(b, "themeId")
 		}
 		if name == "clients" {
 			delete(a, "client_id")
@@ -450,6 +454,9 @@ func sortNamedSets(resource string, row object) {
 }
 
 func naturalKey(o object, f string) string {
+	if f == "$singleton" {
+		return "$singleton"
+	}
 	v, _ := o[f].(string)
 	if v == "" && f == "name" {
 		v, _ = o["client_id"].(string)

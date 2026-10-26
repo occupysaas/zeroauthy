@@ -58,6 +58,12 @@ tenants:
           - read:email_templates
           - create:email_templates
           - update:email_templates
+          - read:branding
+          - update:branding
+          - create:branding
+          - delete:branding
+          - read:prompts
+          - update:prompts
       - client_id: e2e-cli-fixture
         audience: https://fixture.cli.e2e.test
         scopes: [read:fixture, write:fixture]
@@ -106,3 +112,9 @@ tenants:
           - read:email_templates
           - create:email_templates
           - update:email_templates
+          - read:branding
+          - update:branding
+          - create:branding
+          - delete:branding
+          - read:prompts
+          - update:prompts

@@ -69,3 +69,11 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | OpenID conformance: Config OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-config-certification-test-plan`; see `docs/conformance.md` |
 | OpenID conformance: Form Post OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-formpost-basic-certification-test-plan`; see `docs/conformance.md` |
 | OpenID conformance: RP-Initiated OP | local: passing (accepted warnings/skips per D-0036); certification: pending | OIDF suite, plan `oidcc-rp-initiated-logout-certification-test-plan`; see `docs/conformance.md` |
+
+| Plan 22 surface | Status | Boundary |
+|---|---|---|
+| Branding, page-template and theme Management APIs | Implemented | All 16 branding/prompt operations exercised by pinned Node SDK 7.4.0 and Auth0 CLI 1.37.0 against local tenants. Theme create activates; inactive updates do not; default deletion clears its pointer. Live upstream observation unavailable (D-0048). |
+| Prompt settings, localized custom text and partials | Implemented with stored-only fields | Identifier-first affects new transactions; Classic/WebAuthn-first remain stored only. Four slots on login/identifier/password/signup are active. Captured `ulp-` data stays transient. Recognized future groups are preserved without runtime claims. |
+| Hosted branding and bounded Liquid/HTML/CSS | Implemented restricted subset | Public escaped context, trusted head/widget insertion, typed CSS, bounded evaluation and built-in fallback. Arbitrary Auth0 templates/JavaScript are not supported. Original protocol-page CSP retained. Guide: [branding](../branding.md). |
+| Console branding editors and synthetic preview | Implemented | Labeled active theme controls and JSON for stored fields; no-network preview only in capability-free sandboxed srcdoc. Per-document style nonce handles inherited console CSP; no scripts/forms/navigation. |
+| Deploy CLI branding/theme/prompt migration | Supported local families | Nonempty YAML/directory × generated/preserved credentials; strict comparison detects changed content. Template export explicitly unavailable because the pinned handler requires custom-domain discovery; ACUL discovery also unavailable. No missing resource is normalized away. |

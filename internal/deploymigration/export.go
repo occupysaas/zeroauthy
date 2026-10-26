@@ -57,6 +57,8 @@ func LoadExport(path, format string) (Export, error) {
 			return Export{}, errors.New("deploymigration: directory export is unavailable")
 		}
 		groups := map[string][]json.RawMessage{}
+		prompts := map[string]any{}
+		var brandingTemplates []any
 		err = filepath.WalkDir(root, func(p string, d os.DirEntry, walkErr error) error {
 			if walkErr != nil {
 				return errors.New("deploymigration: unreadable directory export")
@@ -98,12 +100,35 @@ func LoadExport(path, format string) (Export, error) {
 			if err := checkExportReferences(value, root, out.Files); err != nil {
 				return err
 			}
+			if strings.HasPrefix(rel, "branding/templates/") {
+				brandingTemplates = append(brandingTemplates, value)
+				return nil
+			}
+			if strings.HasPrefix(rel, "prompts/") {
+				switch rel {
+				case "prompts/prompts.json":
+					settings, ok := value.(map[string]any)
+					if !ok {
+						return errors.New("deploymigration: invalid prompt settings")
+					}
+					for key, field := range settings {
+						prompts[key] = field
+					}
+				case "prompts/custom-text.json":
+					prompts["customText"] = value
+				case "prompts/partials.json":
+					prompts["partials"] = value
+				default:
+					out.Files[rel] = b
+				}
+				return nil
+			}
 			name := resourceName(rel)
 			if name == "" {
 				out.Files[rel] = b
 				return nil
 			}
-			if name == "tenant" || name == "attackProtection" {
+			if name == "tenant" || name == "attackProtection" || name == "branding" {
 				raw, err := json.Marshal(value)
 				if err != nil {
 					return err
@@ -124,6 +149,21 @@ func LoadExport(path, format string) (Export, error) {
 		for name, rows := range groups {
 			raw, _ := json.Marshal(rows)
 			out.Resources[name] = raw
+		}
+		if len(prompts) > 0 {
+			raw, _ := json.Marshal(prompts)
+			out.Resources["prompts"] = raw
+		}
+		if len(brandingTemplates) > 0 {
+			branding := map[string]any{}
+			if raw := out.Resources["branding"]; len(raw) > 0 {
+				if err := json.Unmarshal(raw, &branding); err != nil {
+					return Export{}, errors.New("deploymigration: invalid branding settings")
+				}
+			}
+			branding["templates"] = brandingTemplates
+			raw, _ := json.Marshal(branding)
+			out.Resources["branding"] = raw
 		}
 	default:
 		return Export{}, errors.New("deploymigration: format must be yaml or directory")
@@ -250,6 +290,10 @@ func resourceName(path string) string {
 		return "emailProvider"
 	case "emailtemplates", "email-templates", "email_templates":
 		return "emailTemplates"
+	case "branding":
+		return "branding"
+	case "themes":
+		return "themes"
 	default:
 		return ""
 	}

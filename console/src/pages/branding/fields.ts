@@ -401,7 +401,7 @@ export const activeThemeFields: ThemeField[] = [
   {
     "path": "widget.logo_height",
     "kind": "number",
-    "min": 16,
+    "min": 0,
     "max": 200
   },
   {
@@ -419,3 +419,5 @@ export const activeThemeFields: ThemeField[] = [
     "kind": "text"
   }
 ]
+
+export const textPrompts = ["login", "login-id", "login-password", "login-passwordless", "login-email-verification", "signup", "signup-id", "signup-password", "phone-identifier-enrollment", "phone-identifier-challenge", "email-identifier-challenge", "reset-password", "custom-form", "consent", "customized-consent", "logout", "mfa-push", "mfa-otp", "mfa-voice", "mfa-phone", "mfa-webauthn", "mfa-sms", "mfa-email", "mfa-recovery-code", "mfa", "status", "device-flow", "email-verification", "email-otp-challenge", "organizations", "invitation", "common", "captcha", "passkeys", "brute-force-protection", "zeroauthy"] as const

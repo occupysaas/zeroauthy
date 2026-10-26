@@ -1,0 +1,54 @@
+// Actual pinned node-auth0 7.4.0 calls against only the local TLS service.
+import assert from 'node:assert/strict';
+import { ManagementClient } from 'auth0';
+const secret = 'e2e-m17-admin-secret-not-for-production';
+async function token(domain, scope) {
+  const r = await fetch(`https://${domain}/oauth/token`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ grant_type: 'client_credentials', client_id: 'e2e-m17-admin', client_secret: secret, audience: `https://${domain}/api/v2/`, ...(scope ? { scope } : {}) }) });
+  const body = await r.json(); assert.equal(r.status, 200, JSON.stringify(body)); return body.access_token;
+}
+const make = async (domain, scope) => new ManagementClient({ domain, token: await token(domain, scope), maxRetries: 0 });
+const m = await make('localhost:8443');
+const secondary = await make('secondary.localhost:8443');
+const template = '<html><head>{% auth0:head %}</head><body><p class="za-decoration">M22 wrapper</p>{% auth0:widget %}</body></html>';
+assert.equal((await m.branding.update({ colors: { primary: '#123456', page_background: '#eef0f2' } })).colors.primary, '#123456');
+assert.equal((await m.branding.get()).colors.page_background, '#eef0f2');
+assert.notEqual((await secondary.branding.get()).colors?.primary, '#123456');
+const a = await m.branding.themes.create({ displayName: 'M22 first', colors: { primary_button: '#345678' } });
+assert.ok(a.themeId);
+assert.equal((await m.branding.themes.getDefault()).themeId, a.themeId);
+const b = await m.branding.themes.create({ displayName: 'M22 second', borders: { button_border_radius: 10 } });
+await m.branding.themes.update(a.themeId, { displayName: 'M22 edited inactive' });
+assert.equal((await m.branding.themes.getDefault()).themeId, b.themeId);
+assert.equal((await m.branding.themes.get(a.themeId)).displayName, 'M22 edited inactive');
+await m.branding.themes.delete(b.themeId);
+await assert.rejects(m.branding.themes.getDefault(), e => e.statusCode === 404);
+await m.branding.themes.delete(a.themeId);
+await m.branding.templates.updateUniversalLogin({ template });
+assert.equal((await m.branding.templates.getUniversalLogin()).template, template);
+const raw = await fetch('https://localhost:8443/api/v2/branding/templates/universal-login', { method: 'PUT', headers: { authorization: `Bearer ${await token('localhost:8443')}`, 'content-type': 'text/html' }, body: template });
+assert.equal(raw.status, 200); assert.equal(await raw.text(), '');
+await assert.rejects(m.branding.templates.updateUniversalLogin({ template: '<script>unsafe()</script>' }), e => e.statusCode === 400);
+await m.branding.templates.deleteUniversalLogin();
+await assert.rejects(m.branding.templates.getUniversalLogin(), e => e.statusCode === 404);
+await m.prompts.updateSettings({ universal_login_experience: 'new', identifier_first: true });
+assert.equal((await m.prompts.getSettings()).identifier_first, true);
+await m.prompts.customText.set('login-id', 'en', { 'login-id': { title: 'M22 identify', 'var-team': 'Example team' } });
+assert.equal((await m.prompts.customText.get('login-id', 'en'))['login-id'].title, 'M22 identify');
+const slots = { 'login-id': { 'form-content-start': '<label for="ulp-team">Team</label><input id="ulp-team" name="ulp-team" type="text">' } };
+await m.prompts.partials.set('login-id', slots);
+assert.deepEqual(await m.prompts.partials.get('login-id'), slots);
+await m.prompts.partials.set('login-id', {}); assert.deepEqual(await m.prompts.partials.get('login-id'), {});
+await m.prompts.customText.set('login-id', 'en', {}); assert.deepEqual(await m.prompts.customText.get('login-id', 'en'), {});
+const reader = await make('localhost:8443', 'read:branding read:prompts');
+assert.ok(await reader.branding.get()); assert.ok(await reader.prompts.getSettings());
+for (const write of [() => reader.branding.update({}), () => reader.branding.themes.create({}), () => reader.branding.templates.updateUniversalLogin({ template }), () => reader.prompts.updateSettings({ identifier_first: false }), () => reader.prompts.customText.set('login', 'en', {}), () => reader.prompts.partials.set('login', {})]) await assert.rejects(write(), e => e.statusCode === 403);
+const wrong = await make('localhost:8443', 'read:tenant_settings');
+await assert.rejects(wrong.branding.get(), e => e.statusCode === 403);
+await assert.rejects(wrong.prompts.getSettings(), e => e.statusCode === 403);
+await assert.rejects(secondary.branding.themes.get(a.themeId), e => e.statusCode === 404);
+// Leave stable fixtures for the independent browser context.
+await m.branding.templates.updateUniversalLogin({ template });
+await m.prompts.partials.set('login-id', slots);
+await m.prompts.customText.set('login-id', 'en', { 'login-id': { title: 'M22 identify' } });
+await m.prompts.updateSettings({ identifier_first: false });
+console.log('m22-node-auth0: all 16 operations, lifecycle, content types, clearing, scopes, unsafe content and tenant isolation passed');

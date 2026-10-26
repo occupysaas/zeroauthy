@@ -39,3 +39,16 @@ describe('Universal Login preview', () => {
     wrapper.unmount()
   })
 })
+
+it('binds validated preview styles to the inherited console CSP nonce', async () => {
+ const parent = '0123456789012345678901'
+ const child = 'abcdefghijklmnopqrstuv'
+ const meta = document.createElement('meta'); meta.name = 'zeroauthy-preview-style-nonce'; meta.content = parent; document.head.append(meta)
+ const { wrapper } = await mountAt(Preview, '/t/acme/branding', () => ({ status: 200, body: { html: `<html><head><meta http-equiv="Content-Security-Policy" content="style-src 'nonce-${child}'"><style nonce="${child}">body {display:grid}</style></head><body>Example</body></html>`, warnings: [] } }))
+ await wrapper.find('button').trigger('click'); await flushPromises()
+ const doc = wrapper.find('iframe').attributes('srcdoc')
+ expect(doc).toContain(`style-src 'nonce-${parent}'`)
+ expect(doc).toContain(`<style nonce="${parent}">`)
+ expect(doc).not.toContain(child)
+ wrapper.unmount(); meta.remove()
+})

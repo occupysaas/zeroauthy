@@ -61,7 +61,7 @@ wait_for() {
 }
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost,DNS:system.localhost,DNS:secondary.localhost,IP:127.0.0.1" \
+  -addext "subjectAltName=DNS:localhost,DNS:system.localhost,DNS:secondary.localhost,DNS:cli.e2e.test,IP:127.0.0.1" \
   -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
 chmod 644 "$work/key.pem"
 
@@ -176,6 +176,27 @@ if [[ $status -eq 0 && "${E2E_M21_HARNESS:-0}" == 1 ]]; then
   if [[ $status -eq 0 ]]; then NODE_EXTRA_CA_CERTS="$work/cert.pem" node m21-node-auth0.mjs || status=$?; fi
 fi
 
+if [[ $status -eq 0 && "${E2E_M22_HARNESS:-0}" == 1 ]]; then
+  E2E_ADMIN_SETUP_URL_M22="$(cd ../.. && "$work/zeroauthy" admin create --email operator-m22@e2e.local --config tests/e2e/config.yaml | grep '^https://')" || status=$?
+  export E2E_ADMIN_SETUP_URL_M22
+  if [[ $status -eq 0 ]]; then NODE_EXTRA_CA_CERTS="$work/cert.pem" node m22-node-auth0.mjs || status=$?; fi
+  if [[ $status -eq 0 ]]; then
+    GOBIN="$work/bin" go install github.com/auth0/auth0-cli/cmd/auth0@v1.37.0 || status=$?
+    start node connect-proxy.mjs >"$work/proxy.log" 2>&1
+    proxy_ready=0
+    for _ in $(seq 1 50); do
+      if curl -s --max-time 1 -o /dev/null http://127.0.0.1:8098; then proxy_ready=1; break; fi
+      sleep 0.1
+    done
+    if [[ "$proxy_ready" == 1 ]]; then
+      AUTH0_BIN="$work/bin/auth0" E2E_CERT="$work/cert.pem" node m22-mgmt-cli.mjs || status=$?
+    else
+      echo "Plan 22 CLI proxy did not become ready" >&2
+      status=1
+    fi
+  fi
+fi
+
 # run_fg CMD...: like start, but waits for it, so a signal to this script runs
 # the trap at once (and kills the group) instead of after the command ends.
 run_fg() {
@@ -190,7 +211,7 @@ if [[ $status -eq 0 ]]; then
     run_fg "$runtime" run --rm --network host --ipc host \
       -v "$PWD:/e2e" -v "$work:$work:ro" -v "$work/mail:$work/mail" -w /e2e \
       -e NODE_EXTRA_CA_CERTS="$work/cert.pem" -e E2E_MAIL_DIR="$work/mail" \
-      -e PLAYWRIGHT_FORCE_ASYNC_LOADER=1 -e E2E_ADMIN_SETUP_URL_M18 -e E2E_ADMIN_SETUP_URL_M19 -e E2E_ADMIN_SETUP_URL_M20 -e E2E_ADMIN_SETUP_URL_M21 -e E2E_EMAIL_SINK_URL -e E2E_M19_HARNESS -e E2E_M20_HARNESS -e E2E_M21_HARNESS \
+      -e PLAYWRIGHT_FORCE_ASYNC_LOADER=1 -e E2E_ADMIN_SETUP_URL_M18 -e E2E_ADMIN_SETUP_URL_M19 -e E2E_ADMIN_SETUP_URL_M20 -e E2E_ADMIN_SETUP_URL_M21 -e E2E_ADMIN_SETUP_URL_M22 -e E2E_EMAIL_SINK_URL -e E2E_M19_HARNESS -e E2E_M20_HARNESS -e E2E_M21_HARNESS \
       mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test "$@" || status=$?
   else
     # m10-device's client (auth0.net) is built once here and run per test with

@@ -245,3 +245,12 @@ managed tab shows public certificate metadata, allows certificate downloads,
 and requires confirmation for rotation or eligible previous-key revocation.
 The custom-key tab accepts public JWKS only and labels the data stored-only:
 it does not sign tokens or authorize token verification.
+
+**Universal Login** has live branding settings, theme, page-template, prompts,
+custom-text, partials and synthetic-preview tabs. Active theme components have
+keyboard-usable controls; JSON preserves stored-only fields. Drafts survive tab
+changes and errors. Failed reads lock writes, stale tenant/prompt/locale replies
+are ignored, and uncertain writes refresh once without automatic retry. Preview
+HTML only enters an iframe sandbox with no capabilities; images/fonts are
+blocked and replaced with placeholders. See [branding.md](branding.md) for
+syntax, limits, theme lifecycle and transient-field behavior.

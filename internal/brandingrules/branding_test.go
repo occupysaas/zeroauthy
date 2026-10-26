@@ -109,3 +109,14 @@ func TestThemeCountBound(t *testing.T) {
 		t.Fatal("21st theme accepted")
 	}
 }
+
+func TestDeployPromptDiscoveryFutureGroups(t *testing.T) {
+	for _, prompt := range []string{"mfa-push", "phone-identifier-enrollment", "login-email-verification", "common", "captcha", "brute-force-protection"} {
+		if !ValidTextPrompt(prompt) {
+			t.Errorf("pinned deploy client probes documented future text group %q", prompt)
+		}
+	}
+	if ValidTextPrompt("unrecognized-prompt") {
+		t.Fatal("unknown group accepted")
+	}
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/zeroauthy/zeroauthy/internal/deploymigration"
@@ -194,5 +195,35 @@ func TestCompareTreatsOnlyDeclaredScopeArraysAsSets(t *testing.T) {
 	target.Resources["clients"] = json.RawMessage(`[{"client_id":"c","name":"App","app_type":"spa","callbacks":["https://b.test","https://a.test"]}]`)
 	if Compare(source, target, testManifest(), Domains{}).Equivalent {
 		t.Fatal("ordered callback change concealed")
+	}
+}
+
+func TestCompareHostedResourcesStrictly(t *testing.T) {
+	source, target := comparisonFixture(), comparisonFixture()
+	m := testManifest()
+	for name, raw := range map[string]string{
+		"branding": `{"colors":{"primary":"#123456"}}`,
+		"themes":   `[{"themeId":"old","displayName":"Example","colors":{"primary_button":"#123456"}}]`,
+		"prompts":  `{"identifier_first":true,"customText":{"en":{"login":{"login":{"title":"Hello"}}}},"partials":{"login":{"login":{"form-footer-start":"<p>Footer</p>"}}}}`,
+	} {
+		source.Resources[name] = json.RawMessage(raw)
+		target.Resources[name] = json.RawMessage(raw)
+		m.Resources = append(m.Resources, ManifestResource{Name: name, Status: "included"})
+	}
+	m.Normalizations = append(m.Normalizations, Normalization{Resource: "themes", Path: "themeId", Rule: "reference-map", Reason: "Active default theme identity mapped by displayName"})
+	target.Resources["themes"] = json.RawMessage(`[{"themeId":"new","displayName":"Example","colors":{"primary_button":"#123456"}}]`)
+	if r := Compare(source, target, m, Domains{}); !r.Equivalent {
+		t.Fatalf("equal hosted config differs: %+v", r.Differences)
+	}
+	for _, name := range []string{"branding", "themes", "prompts"} {
+		saved := target.Resources[name]
+		target.Resources[name] = json.RawMessage(strings.ReplaceAll(string(saved), "#123456", "#abcdef"))
+		if name == "prompts" {
+			target.Resources[name] = json.RawMessage(strings.ReplaceAll(string(saved), "Hello", "Changed"))
+		}
+		if Compare(source, target, m, Domains{}).Equivalent {
+			t.Errorf("lost changed %s field", name)
+		}
+		target.Resources[name] = saved
 	}
 }
