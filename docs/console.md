@@ -254,3 +254,19 @@ are ignored, and uncertain writes refresh once without automatic retry. Preview
 HTML only enters an iframe sandbox with no capabilities; images/fonts are
 blocked and replaced with placeholders. See [branding.md](branding.md) for
 syntax, limits, theme lifecycle and transient-field behavior.
+
+## Custom domains
+
+Branding → Custom domains lists verified and pending names and the configured
+notification default. Add a managed-TLS or customer-proxy domain, publish the
+TXT proof, then Verify. DNS instructions distinguish proof from traffic routing.
+The detail page shows certificate progress/expiry and safe retry errors; Test
+checks bounded discovery connectivity. Only ready domains can become default;
+Use canonical resets the pointer. A configured but unavailable default stays
+visible. Relying Party ID is labeled stored-only.
+
+The first successful proxy Verify reveals a one-time key. Save it to the proxy
+secret manager before dismissing it. Navigation clears it; uncertain replies do
+not trigger a second Verify. Delete/recreate is the recovery path. Failed reads
+lock writes, and tenant/domain changes invalidate stale responses and polls.
+See [custom-domains.md](custom-domains.md) for deployment trust and rollout.

@@ -195,3 +195,17 @@ follow-up. There is no filesystem template loading path. Evidence and local
 choices are recorded in [the field inventory](../internal/brandingrules/inventory.json)
 and [observation availability](compat/observations/branding-prompts.md). No live
 upstream parity observation or certification is claimed.
+
+## Custom-domain context and template export
+
+Plan 23 adds public `custom_domain.domain` and bounded `custom_domain.metadata`
+to full hosted-page templates and notification email. Private origin aliases,
+proof, keys and certificate material are excluded. Synthetic preview uses an
+example domain without DNS resolution. Partial templates currently do not
+receive this context. ACUL remains excluded.
+
+Template GET now returns documented `body` plus the existing `template` alias;
+PUT still accepts `template`. The Deploy CLI's nonempty custom-domain inventory
+prerequisite can now be satisfied by real declarations. The strict migration
+lane checks nonempty template bodies; it supersedes Plan 22's historical
+unavailable-template result. See [Deploy CLI migration](deploy-cli.md).

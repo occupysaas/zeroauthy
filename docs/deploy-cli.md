@@ -111,9 +111,39 @@ are matched only through the exported theme's stable display name; no other
 theme fields are dropped. Directory prompt settings/custom-text/partials files
 are combined without executing Liquid.
 
-Page-template CRUD is covered by the actual Node SDK and CLI API commands in
-`make e2e-branding`. Deploy CLI 9.1.0 queries custom-domain discovery before
-exporting a page template; this prerequisite is unavailable. The migration lane
-saves a nonempty template and asserts that the tool omits it, reporting the
-limitation separately. It neither fakes a domain nor declares that template
-round trip successful. ACUL screen-renderer discovery also remains unavailable.
+Plan 23 supersedes the former unavailable-template lane. Real custom-domain
+inventory lets pinned Deploy CLI 9.1.0 export a nonempty Universal Login
+`body`; strict comparisons retain template content in YAML and directory modes.
+GET also preserves the `template` alias for existing SDK consumers. ACUL remains
+excluded and is not counted as a successful empty export.
+
+## Staged custom-domain migration
+
+A destination's global hostname registry owns its domain declarations. Use a
+separate destination deployment for a same-hostname migration; two tenants in
+one deployment cannot both own that hostname. Never transport proxy keys,
+certificate/account private material, origin aliases or target-specific proofs.
+Keep original source exports for strict comparison, and prepare import copies
+that remove target-local IDs, status, verification, certificate, timestamps and
+`origin_domain_name`. This is explicit import preparation, not permission to
+ignore user settings or silently drop a resource family.
+
+Import declarations with `is_default: false` first. Publish each destination's
+new TXT proof and verify through its Management API. Only then import the final
+source default. A one-shot import selecting an unverified default must fail;
+CLI import may already have applied earlier declarations, so inspect the target
+before retrying. For a canonical-default source, explicitly PATCH the target's
+`custom-domains/default` with its canonical hostname before final import: pinned
+CLI only applies `is_default:true` and cannot clear an old custom default.
+
+The API supports `x-azure-clientip` and empty-string disabled override, but
+pinned CLI accepts only `true-client-ip`, `cf-connecting-ip`, `x-forwarded-for`
+or null. Its import rejects the two API-only values. These are tool-unavailable
+round trips: choose a supported source configuration explicitly, or migrate
+those fields through the Management API outside CLI; never normalize them away.
+
+Comparisons preserve domain/type/header/TLS/metadata/RP/default/template values.
+Read-only IDs and proof state are destination-local. The dedicated lane checks
+missing and changed values, repeat stability, explicit default preparation and
+all four YAML/directory × generated/preserved credential modes. See
+[custom domains](custom-domains.md) for ownership, origin and rollout rules.

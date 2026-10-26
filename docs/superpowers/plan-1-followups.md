@@ -370,3 +370,13 @@ imported hashes require reset, and cleartext password schemes are refused.
 - Deploy CLI template export remains limited by custom-domain discovery. Keep
   the explicit omission assertion until that handler's real prerequisite exists;
   do not add a fabricated domain or empty success response.
+
+## Plan 23 disposition
+
+Custom-domain registry, console administration, shared automatic TLS and public
+origin binding supersede the earlier generic custom-domain deferral. See
+[operator guide](../custom-domains.md). Keep custom public signing JWKS publication,
+WebAuthn RP enforcement, ACUL, additional DNS providers and challenge delegation
+open. Full-page hosted/email context includes public domain metadata; prompt
+partials do not yet receive it. Hosted wildcard retry backoff is per worker and
+can restart early; a durable deployment-resource retry schedule remains a follow-up.

@@ -56,3 +56,22 @@ never a passing issuance test. No public CA order or real provider write authori
 Fixture pin resolved from the official GHCR 2.8.0 manifest: linux/amd64 image
 `ghcr.io/letsencrypt/pebble@sha256:358790ea96cb0bafc00679fb117919c58fe11120276572d92c23b89152e5a24d`.
 Pebble is MPL-2.0, isolated test service only; see tests/e2e/domains/fixtures.lock.json.
+
+
+## Local implementation acceptance (2026-10-26)
+
+The nine-operation contract now has local API/console/client coverage. This is
+implementation evidence, not an authenticated upstream observation. High-level
+CLI `domains` commands cover eight operations; Test uses raw `auth0 api`.
+Self-managed fixture hosts use real scoped Create/Verify requests and TXT proof;
+managed issuance uses local Pebble and shared SQL handles. No fixture sets an
+unproved domain ready through direct store writes at the client boundary.
+
+Actual directory export shape is `custom-domains/custom-domains.json` (one array)
+and `branding/templates/universal_login.json` with a body file beside it. YAML
+uses `branding_templates/universal_login.html`. Safe reference loading includes
+those bytes in strict comparisons and refuses missing bodies. The previous
+Plan 22 template-export-unavailable result is superseded when real custom-domain
+inventory is supplied. The API-only header and explicit default preparation
+limits above remain. Final command results and exact conformance counts are in
+the [implementation record](../../superpowers/2026-10-26-plan-23-implementation-record.md).

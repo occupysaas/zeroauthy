@@ -134,3 +134,14 @@ used for this work.
 For source references, local choices and evidence limits, see the
 [email contract observation](compat/observations/management-email.md) and
 [decision D-0047](compat/decisions.md#d-0047-email-provider-and-template-contracts).
+
+## Domain-bound notification links
+
+Custom-domain authentication workflows keep their public origin. Management
+API ticket and verification-email job creation selects an explicit usable
+`auth0-custom-domain`, then the tenant's usable default, then canonical. An
+invalid explicit choice fails before ticket/job creation. Queued jobs retain
+that selection across default changes and recheck it before creating tickets
+or sending: unavailable ownership/readiness produces a visible failure and no
+mail, rather than silently switching domains. Legacy jobs use canonical.
+See [custom domains](custom-domains.md) for migration and recovery details.
