@@ -114,14 +114,13 @@ func TestEnsureIsIdempotent(t *testing.T) {
 		t.Fatalf("second Ensure changed things: %+v %+v", first, second)
 	}
 
-	// A new system host replaces the old one.
-	moved, err := system.Ensure(ctx, st, system.Config{Host: "console.example.test", Wrapper: wrapper(t)})
-	if err != nil || !slices.Equal(moved.Domains, []string{"console.example.test"}) {
-		t.Fatalf("moved = %+v, %v", moved, err)
+	// Identity changes require a coordinated migration, including the console.
+	if _, err := system.Ensure(ctx, st, system.Config{Host: "console.example.test", Wrapper: wrapper(t)}); err == nil {
+		t.Fatal("system canonical host moved implicitly")
 	}
 	c, _ := st.Clients().Get(ctx, first.ID, system.ConsoleClientID)
-	if !slices.Equal(c.Callbacks, []string{"https://console.example.test/admin/callback"}) {
-		t.Errorf("callbacks = %v", c.Callbacks)
+	if !slices.Equal(c.Callbacks, []string{"https://admin.example.test/admin/callback"}) {
+		t.Errorf("callbacks changed on rejected move = %v", c.Callbacks)
 	}
 }
 

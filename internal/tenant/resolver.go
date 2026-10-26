@@ -13,8 +13,10 @@ import (
 // ErrUnknownTenant means no tenant serves the requested host.
 var ErrUnknownTenant = errors.New("tenant: unknown host")
 
-// Resolver finds the tenant for a host. A host matches a tenant if it is
-// <tenant name>.<base domain> (checked first) or in the tenant's Domains.
+// Resolver finds the tenant through the active registry projection exposed by
+// Tenants.GetByDomain. Canonical names must be claimed before serving requests.
+// With a base domain, system.<base domain> also reaches the reserved system
+// tenant when server.system_host names another host; startup reserves it.
 type Resolver struct {
 	tenants           store.Tenants
 	baseDomain        string
@@ -31,25 +33,21 @@ func NewResolver(t store.Tenants, baseDomain string, trustProxyHeaders bool) *Re
 
 func (r *Resolver) Resolve(ctx context.Context, host string) (Resolved, error) {
 	h := NormalizeHost(host)
-	// <name>.<base domain> is resolved by name first so that a custom
-	// domain can never shadow another tenant's base-domain host.
-	if r.baseDomain != "" {
-		if name, ok := strings.CutSuffix(h, "."+r.baseDomain); ok && name != "" && !strings.Contains(name, ".") {
-			t, err := r.tenants.GetByName(ctx, name)
-			if err == nil {
-				return Resolved{Tenant: t, Host: h}, nil
-			}
-			if !errors.Is(err, store.ErrNotFound) {
-				return Resolved{}, err
-			}
-		}
-	}
 	t, err := r.tenants.GetByDomain(ctx, h)
 	if err == nil {
 		return Resolved{Tenant: t, Host: h}, nil
 	}
 	if !errors.Is(err, store.ErrNotFound) {
 		return Resolved{}, err
+	}
+	if r.baseDomain != "" && h == SystemName+"."+r.baseDomain {
+		t, err := r.tenants.GetByName(ctx, SystemName)
+		if err == nil && t.Reserved {
+			return Resolved{Tenant: t, Host: h}, nil
+		}
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return Resolved{}, err
+		}
 	}
 	return Resolved{}, ErrUnknownTenant
 }

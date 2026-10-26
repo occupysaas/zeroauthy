@@ -95,6 +95,14 @@ func ensure(ctx context.Context, st store.Store, host string, now time.Time, w k
 		return nil, fmt.Errorf("a tenant named %q exists that is not zeroauthy's system tenant; rename or delete it", tenant.SystemName)
 	} else if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return nil, err
+	} else if err == nil {
+		canonical := existing.CanonicalHost
+		if canonical == "" && len(existing.Domains) > 0 {
+			canonical = tenant.NormalizeHost(existing.Domains[0])
+		}
+		if canonical != "" && canonical != host {
+			return nil, fmt.Errorf("system canonical host %q differs from configured %q; explicit identity migration required", canonical, host)
+		}
 	}
 	if other, err := st.Tenants().GetByDomain(ctx, host); err == nil && other.Name != tenant.SystemName {
 		return nil, fmt.Errorf("the system host %q is already used by tenant %q; choose another server.system_host", host, other.Name)
@@ -104,6 +112,7 @@ func ensure(ctx context.Context, st store.Store, host string, now time.Time, w k
 	tn, err := tenantsetup.UpsertTenant(ctx, st, tenant.SystemName, now, func(t *store.Tenant) error {
 		t.Reserved, t.Seeded = true, false
 		t.Domains = []string{host}
+		t.CanonicalHost = host
 		t.DefaultDirectory = OperatorsConnection
 		if t.FriendlyName == "" {
 			t.FriendlyName = "zeroauthy"

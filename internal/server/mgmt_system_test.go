@@ -262,3 +262,48 @@ func TestSystemTenantUsersKeepLastOperator(t *testing.T) {
 		t.Errorf("block with another operator = %d %s", rec.Code, rec.Body)
 	}
 }
+
+func TestSystemAPICanonicalIdentity(t *testing.T) {
+	h, st := newMgmtEnvWith(t, func(d *Deps) { d.BaseDomain = "" })
+	op, _ := operatorToken(t, st, "op@example.test")
+	endpoint := "https://" + mgmtSystemHost + "/api/system/tenants"
+	rec, _ := sendRaw(h, "POST", endpoint, op, map[string]any{"name": "newtenant", "domains": []string{"first.newtenant.test", "second.newtenant.test"}})
+	if rec.Code != 201 {
+		t.Fatalf("create=%d %s", rec.Code, rec.Body)
+	}
+	tn, _ := st.Tenants().GetByName(context.Background(), "newtenant")
+	if tn.CanonicalHost != "first.newtenant.test" {
+		t.Fatalf("canonical=%q", tn.CanonicalHost)
+	}
+	rec, _ = sendRaw(h, "PATCH", endpoint+"/newtenant", op, map[string]any{"domains": []string{"second.newtenant.test", "first.newtenant.test"}})
+	if rec.Code != 200 {
+		t.Fatalf("reorder=%d %s", rec.Code, rec.Body)
+	}
+	rows, _ := st.ResourceServers().List(context.Background(), tn.ID)
+	if len(rows) != 1 || rows[0].Identifier != "https://first.newtenant.test/api/v2/" {
+		t.Fatalf("audience rotated: %+v", rows)
+	}
+	rec, _ = sendRaw(h, "PATCH", endpoint+"/newtenant", op, map[string]any{"domains": []string{"second.newtenant.test"}})
+	if rec.Code != 409 {
+		t.Fatalf("remove canonical=%d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestSystemAPICanonicalClaimConflicts(t *testing.T) {
+	h, st := newMgmtEnvWith(t, func(d *Deps) { d.BaseDomain = "example.test" })
+	ctx := context.Background()
+	op, _ := operatorToken(t, st, "op@example.test")
+	acme, _ := st.Tenants().GetByName(ctx, "acme")
+	// Privileged aliases, just as API claims, reserve names against future tenants.
+	acme.Domains = append(acme.Domains, "future.example.test")
+	if err := st.Tenants().Update(ctx, acme); err != nil {
+		t.Fatal(err)
+	}
+	rec, _ := sendRaw(h, "POST", "https://"+mgmtSystemHost+"/api/system/tenants", op, map[string]any{"name": "future"})
+	if rec.Code != 409 {
+		t.Fatalf("canonical ownership=%d %s", rec.Code, rec.Body)
+	}
+	if _, err := st.Tenants().GetByName(ctx, "future"); err == nil {
+		t.Fatal("failed create left a tenant")
+	}
+}

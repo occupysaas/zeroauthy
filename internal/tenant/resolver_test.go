@@ -17,7 +17,7 @@ func newTestStore(t *testing.T) store.Store {
 	s := memory.New()
 	ctx := context.Background()
 	for _, tn := range []*store.Tenant{
-		{ID: "ten_acme", Name: "acme", Domains: []string{"login.acme.test"}},
+		{ID: "ten_acme", Name: "acme", CanonicalHost: "acme.auth.example.test", Domains: []string{"login.acme.test"}},
 		{ID: "ten_globex", Name: "globex", Domains: []string{"localhost:8443"}},
 	} {
 		if err := s.Tenants().Create(ctx, tn); err != nil {
@@ -136,14 +136,14 @@ func (failingTenants) GetByDomain(context.Context, string) (*store.Tenant, error
 }
 
 // A custom domain that looks like another tenant's base-domain host must
-// never shadow that tenant.
+// never shadow that tenant: the pinned canonical claim owns the name.
 func TestBaseDomainHostBeatsCustomDomain(t *testing.T) {
 	s := newTestStore(t)
 	err := s.Tenants().Create(context.Background(), &store.Tenant{
 		ID: "ten_evil", Name: "evil", Domains: []string{"acme.auth.example.test"},
 	})
-	if err != nil {
-		t.Fatal(err)
+	if !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("shadowing claim = %v", err)
 	}
 	r := NewResolver(s.Tenants(), "auth.example.test", false)
 	got, err := r.Resolve(context.Background(), "acme.auth.example.test")
@@ -182,5 +182,20 @@ func TestResolveSystemHost(t *testing.T) {
 		if err != nil || got.Tenant.ID != "ten_sys" {
 			t.Errorf("base %q, host %q: %+v, %v", tc.base, tc.host, got, err)
 		}
+	}
+}
+
+// A name match must not route an unclaimed hostname before reconciliation.
+func TestResolverRequiresActiveRegistry(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "a", Name: "a", Domains: []string{"a.example.test"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.CustomDomains().PutHost(ctx, &store.HostBinding{Host: "a.auth.example.test", TenantID: "a", DomainID: "pending", Kind: store.HostPublic}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewResolver(st.Tenants(), "auth.example.test", false).Resolve(ctx, "a.auth.example.test"); !errors.Is(err, ErrUnknownTenant) {
+		t.Fatalf("pending name resolved: %v", err)
 	}
 }

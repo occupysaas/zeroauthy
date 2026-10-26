@@ -61,7 +61,7 @@ func newEnv(t *testing.T) *env {
 	for _, name := range []string{"acme", "globex"} {
 		tn, err := tenantsetup.UpsertTenant(ctx, st, name, now, func(tn *store.Tenant) error {
 			tn.Domains = []string{"login." + name + ".test"}
-			return nil
+			return tenantsetup.InitializeCanonical(tn, base)
 		})
 		if err != nil {
 			t.Fatal(err)

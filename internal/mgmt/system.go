@@ -183,7 +183,7 @@ func (h *Handlers) CreateTenant(w http.ResponseWriter, r *http.Request) {
 				t.FriendlyName = *b.FriendlyName
 			}
 			t.DefaultDirectory = DefaultConnection
-			return nil
+			return tenantsetup.InitializeCanonical(t, h.BaseDomain)
 		})
 		if errors.Is(err, store.ErrConflict) {
 			return conflict("a domain is already used by another tenant")
@@ -250,6 +250,13 @@ func (h *Handlers) UpdateTenant(w http.ResponseWriter, r *http.Request, name str
 		if b.Domains != nil {
 			if t.Domains, err = h.domains(*b.Domains); err != nil {
 				return err
+			}
+			// Reordering never moves identity; removal needs a migration.
+			if err := tenantsetup.InitializeCanonical(t, h.BaseDomain); err != nil {
+				return err
+			}
+			if h.BaseDomain == "" && t.CanonicalHost != "" && !slices.Contains(t.Domains, t.CanonicalHost) {
+				return conflict("domains: %q is the tenant's canonical host and cannot be removed", t.CanonicalHost)
 			}
 		}
 		if err := tx.Tenants().Update(r.Context(), t); errors.Is(err, store.ErrConflict) {

@@ -88,6 +88,9 @@ func ManagementAPI(ctx context.Context, st store.Store, t *store.Tenant, baseDom
 	if t.Reserved {
 		return nil, errors.New("tenantsetup: the system tenant has no machine-to-machine Management API; only operators manage it")
 	}
+	if err := ValidateManagementAPIIdentity(ctx, st, t, baseDomain); err != nil {
+		return nil, err
+	}
 	id := tenant.ManagementAPIIdentifier(t, baseDomain)
 	if id == "" {
 		return nil, errors.New("tenantsetup: the tenant has no host, so no Management API identifier")

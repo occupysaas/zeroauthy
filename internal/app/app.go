@@ -119,6 +119,10 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	km := keys.NewManager(st.SigningKeys(), wrapper)
 
 	systemHost := tenant.SystemHost(cfg.Server.BaseDomain, cfg.Server.SystemHost)
+	// origin_domain defaults to base_domain until its own setting exists.
+	if err := tenantsetup.ReconcileDomains(ctx, st, cfg.Server.BaseDomain, systemHost, cfg.Server.BaseDomain); err != nil {
+		return nil, fmt.Errorf("app: domain reconciliation: %w", err)
+	}
 	if cfg.Seed != "" {
 		f, err := seed.Load(cfg.Seed)
 		if err != nil {
