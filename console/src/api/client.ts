@@ -82,6 +82,9 @@ export class ApiError extends Error {
 
 type Query = Record<string, string | number | boolean | undefined>
 
+export type BrandingPreview = { html: string; warnings: string[] }
+export type BrandingObject = Record<string, unknown>
+
 export class Api {
   constructor(
     // systemOrigin is where the system API lives (the console's origin).
@@ -117,6 +120,16 @@ export class Api {
   // tenantOrigin is where a tenant's Management API answers.
   static tenantOrigin(t: Pick<SystemTenant, 'host'>): string {
     return 'https://' + t.host
+  }
+
+  getBrandingResource<T = BrandingObject>(t: SystemTenant, resource: string): Promise<T> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/' + resource)
+  }
+  writeBrandingResource<T = BrandingObject>(t: SystemTenant, method: 'PATCH' | 'PUT' | 'POST' | 'DELETE', resource: string, body?: unknown): Promise<T> {
+    return this.request(Api.tenantOrigin(t), method, '/api/v2/' + resource, { body })
+  }
+  previewTenantBranding(t: SystemTenant, body: { screen: string; language: string; overrides?: BrandingObject }): Promise<BrandingPreview> {
+    return this.request(this.systemOrigin, 'POST', '/api/system/tenants/' + encodeURIComponent(t.name) + '/branding/preview', { body })
   }
 
   getTenantSettings(t: SystemTenant): Promise<TenantSettings> {

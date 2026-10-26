@@ -353,7 +353,7 @@ func TestAuthTransactionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.AuthTransaction{
 		TenantID: "ten", ID: "st", CookieHash: "ch", CSRFToken: "csrf", ClientID: "cid",
 		Params:      map[string]string{"scope": "openid profile", "state": "xyz", "empty": ""},
-		HostedState: store.HostedLoginState{Step: "password", Identifier: "ada@example.test", ConnectionID: "db", PromptFields: map[string]string{"ulp-team": "blue"}, Revision: 1, FormConfigRevision: 2, FormScreen: "login-password"},
+		HostedState: store.HostedLoginState{Step: "password", Identifier: "ada@example.test", ConnectionID: "db", PromptFields: map[string]string{"ulp-team": "blue"}, FormFields: map[string]string{"ulp-team": "text"}, Revision: 1, FormConfigRevision: 2, FormScreen: "login-password", FormLanguage: "en"},
 		ExpiresAt:   nanoTime.Add(time.Hour), CreatedAt: nanoTime,
 	}, authTransactionToPB, authTransactionFromPB)
 	roundTrip(t, "empty", &store.AuthTransaction{Params: map[string]string{}}, authTransactionToPB, authTransactionFromPB)

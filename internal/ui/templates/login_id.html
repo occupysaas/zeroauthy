@@ -6,9 +6,13 @@
 <input type="hidden" name="state" value="{{.Data.State}}">
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">
 <input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
+{{.Tenant.Partials.FormContentStart}}
 <label for="username">{{t .Tenant.L "login-id.login-id.usernamePlaceholder"}}</label>
 <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" value="{{.Data.Login}}" required autofocus>
+{{.Tenant.Partials.FormContentEnd}}
 <button type="submit">{{t .Tenant.L "login-id.login-id.buttonText"}}</button>
 </form>
+{{.Tenant.Partials.FormFooterStart}}
 {{if .Data.SignupURL}}<p class="alt"><a href="{{.Data.SignupURL}}">{{t .Tenant.L "login.login.signupActionLinkText"}}</a></p>{{end}}
+{{.Tenant.Partials.FormFooterEnd}}
 {{end}}

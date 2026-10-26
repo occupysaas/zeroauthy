@@ -99,6 +99,9 @@ func TestCaptchaHostedSignupAndReset(t *testing.T) {
 				_, state, csrf := b.begin(t)
 				form = url.Values{"state": {state}, "csrf": {csrf}, "email": {"new@acme.test"}, "password": {"new password 123"}}
 				path = "/u/signup"
+				if kind == "signup" {
+					b.do(t, "GET", "/u/signup?state="+state, nil)
+				}
 				if kind == "reset-send" {
 					path = "/u/reset-password/request"
 					form.Set("email", "alice@acme.test")
@@ -177,6 +180,7 @@ func TestCaptchaRiskRefreshUnavailable(t *testing.T) {
 			form := url.Values{"state": {state}, "csrf": {csrf}, "username": {"alice@acme.test"}, "email": {"new@acme.test"}, "password": {"wrong"}}
 			if kind == "signup" {
 				form.Set("password", "a")
+				b.do(t, "GET", "/u/signup?state="+state, nil)
 			}
 			if kind == "reset" {
 				raw := e.issueTicket(t, "alice@acme.test", time.Hour)

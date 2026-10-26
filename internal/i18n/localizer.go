@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -151,12 +152,24 @@ func (l *Localizer) ScreenText(prompt, screen string) map[string]string {
 	for key := range l.custom {
 		if name, ok := strings.CutPrefix(key, prefix); ok {
 			if custom, ok := strings.CutPrefix(name, "var-"); ok && custom != "" {
-				name = "var" + strings.ToUpper(custom[:1]) + custom[1:]
+				runes := []rune(custom)
+				runes[0] = unicode.ToUpper(runes[0])
+				name = "var" + string(runes)
 			}
 			out[name] = l.T(key)
 		}
 	}
 	return out
+}
+
+func KnownScreen(prompt, screen string) bool {
+	prefix := prompt + "." + screen + "."
+	for key := range catalogs["en"] {
+		if strings.HasPrefix(key, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func builtin(lang, key string) (string, bool) {

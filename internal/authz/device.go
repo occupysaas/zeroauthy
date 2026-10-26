@@ -35,7 +35,7 @@ func (h *Handlers) CreateTxn(w http.ResponseWriter, r *http.Request, res tenant.
 		ExpiresAt:  now.Add(TxnLifetime),
 		CreatedAt:  now,
 	}
-	if !res.Tenant.Reserved && params[ParamStage] == "" && params["screen_hint"] != "signup" {
+	if !res.Tenant.Reserved && params[ParamStage] == "" {
 		config, err := h.Store.HostedLogins().Get(r.Context(), res.Tenant.ID)
 		if err != nil && !errors.Is(err, store.ErrNotFound) {
 			return nil, err

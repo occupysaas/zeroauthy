@@ -71,7 +71,7 @@ func testHostedTransition(t *testing.T, newStore Factory) {
 	expiry := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
 	original := &store.AuthTransaction{TenantID: "ten_hostedstate", ID: "txn-1", CookieHash: "cookie", CSRFToken: "csrf", ClientID: "client", Params: map[string]string{"redirect_uri": "https://app.test/callback"}, ExpiresAt: expiry, CreatedAt: expiry.Add(-time.Hour)}
 	mustNoErr(t, s.AuthTransactions().Create(ctx, original))
-	next := store.HostedLoginState{Step: "password", Identifier: "ada@example.test", ConnectionID: "db", PromptFields: map[string]string{"ulp-team": "blue"}}
+	next := store.HostedLoginState{Step: "password", Identifier: "ada@example.test", ConnectionID: "db", PromptFields: map[string]string{"ulp-team": "blue"}, FormFields: map[string]string{"ulp-team": "text"}}
 	mustNoErr(t, s.AuthTransactions().CompareAndSwapHosted(ctx, original.TenantID, original.ID, 0, next, expiry.Add(-time.Minute)))
 	got, err := s.AuthTransactions().Get(ctx, original.TenantID, original.ID)
 	mustNoErr(t, err)
@@ -79,9 +79,10 @@ func testHostedTransition(t *testing.T, newStore Factory) {
 		t.Fatalf("transition mutated auth transaction: %#v", got)
 	}
 	got.HostedState.PromptFields["ulp-team"] = "red"
+	got.HostedState.FormFields["ulp-team"] = "password"
 	fresh, err := s.AuthTransactions().Get(ctx, original.TenantID, original.ID)
 	mustNoErr(t, err)
-	if fresh.HostedState.PromptFields["ulp-team"] != "blue" {
+	if fresh.HostedState.PromptFields["ulp-team"] != "blue" || fresh.HostedState.FormFields["ulp-team"] != "text" {
 		t.Fatal("hosted state leaked mutable map")
 	}
 	if err := s.AuthTransactions().CompareAndSwapHosted(ctx, original.TenantID, original.ID, 0, next, expiry.Add(-time.Minute)); !errors.Is(err, store.ErrConflict) {

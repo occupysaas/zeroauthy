@@ -135,8 +135,8 @@ func TestWidgetCannotBeDecoration(t *testing.T) {
 func TestPartialControlSafety(t *testing.T) {
 	for _, source := range []string{
 		`<input name="password" type="text">`,
-		`<input name="ulp-note" type="password">`,
-		`<input name="ulp-document" type="file">`,
+		`<input aria-label="Additional information" name="ulp-note" type="password">`,
+		`<input aria-label="Additional information" name="ulp-document" type="file">`,
 		`<textarea name="csrf"></textarea>`,
 		`<button type="submit">Continue</button>`,
 	} {
@@ -144,7 +144,7 @@ func TestPartialControlSafety(t *testing.T) {
 			t.Errorf("accepted unsafe partial control: %q", source)
 		}
 	}
-	if err := ValidateSource(`<label for="note">Note</label><input id="note" name="ulp-note" type="text">`, true); err != nil {
+	if err := ValidateSource(`<label for="note">Note</label><input aria-label="Additional information" id="note" name="ulp-note" type="text">`, true); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -175,5 +175,12 @@ func TestTemplateTagWhitespace(t *testing.T) {
 		if _, err := (Renderer{}).Render(context.Background(), RenderInput{Source: source, Widget: "<form></form>"}); err != nil {
 			t.Errorf("whitespace rejected: %v", err)
 		}
+	}
+}
+
+func TestTemplateSkippedFilterRejectedAtSave(t *testing.T) {
+	source := `<html><head>{% auth0:head %}</head><body>{% if false %}{{tenant.name | unsupported}}{% endif %}{% auth0:widget %}</body></html>`
+	if ValidateSource(source, false) == nil {
+		t.Fatal("unknown filter in skipped branch accepted")
 	}
 }

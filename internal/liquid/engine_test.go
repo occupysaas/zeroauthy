@@ -30,3 +30,10 @@ func TestRenderHostedOutputBudget(t *testing.T) {
 		t.Fatal("output above 512 KiB accepted")
 	}
 }
+
+func TestRenderHostedFilterBudget(t *testing.T) {
+	out, err := Render(context.Background(), `{{ value | replace: 'x', 'xxxxxxxx' }}`, map[string]any{"value": strings.Repeat("x", 40000)}, nil, Limits{})
+	if err != nil || len(out) != 320000 {
+		t.Fatalf("hosted filter budget: bytes=%d err=%v", len(out), err)
+	}
+}

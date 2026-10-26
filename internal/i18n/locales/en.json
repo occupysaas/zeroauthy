@@ -137,7 +137,9 @@
     "common": {
       "password-leaked": "This password has appeared in a data breach. Choose a different password, or reset it before signing in.",
       "breach-unavailable": "The password security check is temporarily unavailable. Please try again later.",
-      "too-many-attempts": "Too many attempts. Please try again later."
+      "too-many-attempts": "Too many attempts. Please try again later.",
+      "hosted-form-changed": "This form has changed. Review it and submit again.",
+      "hosted-fields-invalid": "Check the additional fields and try again."
     },
     "login": {
       "description-no-client": "Sign in to ${companyName} to continue."

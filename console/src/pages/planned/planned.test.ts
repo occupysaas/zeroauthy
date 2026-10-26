@@ -72,7 +72,7 @@ describe('assertPreviewInert', () => {
 })
 
 it('keeps only sections that are still planned', () => {
-  expect(Object.keys(plannedPages).sort()).toEqual(['actions', 'branding', 'custom-domains', 'logs', 'mfa', 'organizations', 'roles', 'social'])
+  expect(Object.keys(plannedPages).sort()).toEqual(['actions', 'custom-domains', 'logs', 'mfa', 'organizations', 'roles', 'social'])
   expect(isPlanned(sections.find(s => s.key === 'emails')!)).toBe(false)
   for (const key of ['settings', 'attack-protection']) expect(isPlanned(sections.find(s => s.key === key)!)).toBe(false)
 })

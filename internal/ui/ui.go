@@ -27,7 +27,7 @@ var files embed.FS
 
 var funcs = template.FuncMap{
 	// t renders a catalog key: {{t .Tenant.L "login.login.title" "name" "value"}}.
-	"t": func(l *i18n.Localizer, key string, kv ...string) string { return l.T(key, kv...) },
+	"t": func(l *i18n.Localizer, key string, kv ...string) template.HTML { return renderText(l.T(key, kv...)) },
 }
 
 func parsePage(names ...string) *template.Template {
@@ -76,6 +76,17 @@ type Tenant struct {
 	ThemeCSS                                template.CSS
 	config                                  *store.HostedLoginConfig
 	renderContext                           context.Context
+	Partials                                PartialSlots
+	partialOrigins                          []string
+	warnings                                *[]string
+}
+
+type PartialSlots struct{ FormContentStart, FormContentEnd, FormFooterStart, FormFooterEnd template.HTML }
+
+// ApplyPartials accepts only the output of the restricted partial renderer.
+func ApplyPartials(t *Tenant, out hostedlogin.PartialOutput) {
+	t.Partials = PartialSlots{template.HTML(out.Slots["form-content-start"]), template.HTML(out.Slots["form-content-end"]), template.HTML(out.Slots["form-footer-start"]), template.HTML(out.Slots["form-footer-end"])}
+	t.partialOrigins = append([]string(nil), out.AssetOrigins...)
 }
 
 // TenantView builds the page branding and language for a tenant.
@@ -114,6 +125,7 @@ type LoginData struct {
 	ForgotURL          string // empty hides the forgot-password link
 	Error              string
 	RedirectURI        string // the client's callback; its origin is allowed as form-action
+	HostedRevision     *int64
 }
 
 type LoginStageData struct {
@@ -134,6 +146,7 @@ type SignupData struct {
 	LoginURL                     string
 	Error                        string
 	RedirectURI                  string // the client's callback; its origin is allowed as form-action
+	HostedRevision               *int64
 }
 
 type page struct {
@@ -203,6 +216,10 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 		t.L = i18n.Default()
 	}
 	nonce := newNonce()
+	t.Partials = PartialSlots{
+		template.HTML(hostedlogin.NonceStyles(string(t.Partials.FormContentStart), nonce)), template.HTML(hostedlogin.NonceStyles(string(t.Partials.FormContentEnd), nonce)),
+		template.HTML(hostedlogin.NonceStyles(string(t.Partials.FormFooterStart), nonce)), template.HTML(hostedlogin.NonceStyles(string(t.Partials.FormFooterEnd), nonce)),
+	}
 	var buf bytes.Buffer
 	if err := pages[name].ExecuteTemplate(&buf, "layout", page{Tenant: t, Nonce: nonce, Data: data}); err != nil {
 		slog.Error("render page", "template", name, "err", err)
@@ -217,9 +234,12 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 			return
 		}
 		slog.Warn("hosted text fallback", "page", name)
+		if t.warnings != nil {
+			*t.warnings = append(*t.warnings, "Oversized custom text was replaced by built-in copy.")
+		}
 	}
 	body := buf.String()
-	imageOrigins := []string{}
+	imageOrigins := append([]string(nil), t.partialOrigins...)
 	if t.config != nil && t.config.Template != nil {
 		_, head, hasHead := strings.Cut(body, "<head>")
 		head, _, hasHeadEnd := strings.Cut(head, "</head>")
@@ -238,9 +258,16 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 			}})
 			if err == nil {
 				body = out.HTML
-				imageOrigins = out.AssetOrigins
+				for _, origin := range out.AssetOrigins {
+					if !slices.Contains(imageOrigins, origin) {
+						imageOrigins = append(imageOrigins, origin)
+					}
+				}
 			} else {
 				slog.WarnContext(ctx, "hosted template fallback", "tenant", t.config.TenantID)
+				if t.warnings != nil {
+					*t.warnings = append(*t.warnings, "The page template could not be rendered; the built-in page is shown.")
+				}
 			}
 		}
 	}

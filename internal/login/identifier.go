@@ -38,15 +38,18 @@ func passwordLocation(f *flow) string {
 
 func (h *Handlers) LoginIdentifierPost(w http.ResponseWriter, r *http.Request) { h.LoginSubmit(w, r) }
 func (h *Handlers) identifierPost(w http.ResponseWriter, r *http.Request, f *flow) {
-	if !postedHostedRevision(r, f) {
-		h.fail(w, r, errTxn, f)
+	identifier := strings.TrimSpace(r.PostForm.Get("username"))
+	if !h.guardHostedForm(w, r, f, "login-id", "login-id", func(status int, message string) {
+		d := h.stageData(f, identifier)
+		d.Error = message
+		h.renderIdentifier(w, r, status, f, d)
+	}) {
 		return
 	}
-	identifier := strings.TrimSpace(r.PostForm.Get("username"))
 	if !utf8.ValidString(identifier) || len(identifier) > 320 || identifier == "" {
 		d := h.stageData(f, identifier)
 		d.Error = f.view.L.T(i18n.KeyInvalidIdentifier)
-		ui.RenderLoginIdentifier(w, http.StatusBadRequest, f.view, d)
+		h.renderIdentifier(w, r, http.StatusBadRequest, f, d)
 		return
 	}
 	next := f.txn.HostedState.Clone()
@@ -73,15 +76,22 @@ func (h *Handlers) LoginPasswordGet(w http.ResponseWriter, r *http.Request) {
 	if !h.captchaPage(w, r, f, "login") {
 		return
 	}
-	ui.RenderLoginPassword(w, http.StatusOK, f.view, h.stageData(f, f.txn.HostedState.Identifier))
+	h.renderLoginStage(w, r, http.StatusOK, f, h.stageData(f, f.txn.HostedState.Identifier).LoginData)
 }
 func (h *Handlers) LoginPasswordPost(w http.ResponseWriter, r *http.Request) {
 	f, ok := h.postedFlow(w, r)
 	if !ok {
 		return
 	}
-	if f.txn.HostedState.Step != "password" || f.txn.HostedState.ConnectionID != f.conn.ID || !postedHostedRevision(r, f) {
+	if f.txn.HostedState.Step != "password" || f.txn.HostedState.ConnectionID != f.conn.ID {
 		h.fail(w, r, errTxn, f)
+		return
+	}
+	if !h.guardHostedForm(w, r, f, "login-password", "login-password", func(status int, message string) {
+		data := h.stageData(f, f.txn.HostedState.Identifier).LoginData
+		data.Error = message
+		h.renderLoginStage(w, r, status, f, data)
+	}) {
 		return
 	}
 	next := f.txn.HostedState.Clone()
@@ -123,8 +133,17 @@ func (h *Handlers) renderLoginStage(w http.ResponseWriter, r *http.Request, stat
 			return
 		}
 		data.Login = next.Identifier
+	}
+	if f.txn.HostedState.Step == "password" {
+		if !h.prepareHostedForm(w, r, f, "login-password", "login-password") {
+			return
+		}
 		ui.RenderLoginPassword(w, status, f.view, ui.LoginStageData{LoginData: data, Revision: f.txn.HostedState.Revision})
 		return
 	}
+	if !h.prepareHostedForm(w, r, f, "login", "login") {
+		return
+	}
+	data.HostedRevision = hostedRevision(f)
 	ui.RenderLogin(w, status, f.view, data)
 }

@@ -223,6 +223,7 @@ type renderState struct {
 	steps, iterations, depth int
 	deadline                 time.Time
 	maxOutput                int
+	maxSource                int
 }
 
 type templateNode interface {
@@ -341,12 +342,15 @@ func (s *renderState) checkContext() error {
 	}
 	return nil
 }
-func (s *renderState) output(b *strings.Builder) error {
-	max := s.maxOutput
-	if max == 0 {
-		max = maxOutputBytes
+func (s *renderState) outputBudget() int {
+	if s.maxOutput > 0 {
+		return s.maxOutput
 	}
-	if b.Len() > max {
+	return maxOutputBytes
+}
+
+func (s *renderState) output(b *strings.Builder) error {
+	if b.Len() > s.outputBudget() {
 		return ErrRenderLimit
 	}
 	return nil
@@ -373,7 +377,7 @@ func RenderLiquid(parent context.Context, source string, variables map[string]an
 	if !ok {
 		return "", ErrRenderSyntax
 	}
-	state := renderState{ctx: ctx, deadline: time.Now().Add(maxRenderTime), vars: cloneMap(varMap), maxOutput: outputLimit}
+	state := renderState{ctx: ctx, deadline: time.Now().Add(maxRenderTime), vars: cloneMap(varMap), maxOutput: outputLimit, maxSource: len(source)}
 	nodes, _, err := state.parse(source, 0)
 	if err != nil {
 		return "", err
@@ -430,7 +434,11 @@ func (s *renderState) parse(source string, depth int) ([]templateNode, string, e
 	if err := s.ctx.Err(); err != nil {
 		return nil, "", err
 	}
-	if len(source) > maxBodyBytes {
+	limit := s.maxSource
+	if limit == 0 {
+		limit = maxBodyBytes
+	}
+	if len(source) > limit {
 		return nil, "", ErrRenderLimit
 	}
 	if strings.Count(source, "{{") != strings.Count(source, "}}") || strings.Count(source, "{%") != strings.Count(source, "%}") {
@@ -716,13 +724,13 @@ func applyFilter(state *renderState, value any, spec string) (any, error) {
 	a := stringify(arg)
 	switch name {
 	case "escape":
-		if escapedSize(s) > maxOutputBytes {
+		if escapedSize(s) > state.outputBudget() {
 			return nil, ErrRenderLimit
 		}
 		return html.EscapeString(s), nil
 	case "escape_once":
 		decoded := html.UnescapeString(s)
-		if escapedSize(decoded) > maxOutputBytes {
+		if escapedSize(decoded) > state.outputBudget() {
 			return nil, ErrRenderLimit
 		}
 		return html.EscapeString(decoded), nil
@@ -742,9 +750,9 @@ func applyFilter(state *renderState, value any, spec string) (any, error) {
 	case "rstrip":
 		return strings.TrimRight(s, " \t\r\n"), nil
 	case "append":
-		return boundedConcat(s, a)
+		return boundedConcat(s, a, state.outputBudget())
 	case "prepend":
-		return boundedConcat(a, s)
+		return boundedConcat(a, s, state.outputBudget())
 	case "replace", "replace_first", "remove", "remove_first":
 		if len(p) < 2 {
 			return nil, ErrRenderSyntax
@@ -767,11 +775,11 @@ func applyFilter(state *renderState, value any, spec string) (any, error) {
 		if old == "" {
 			return s, nil
 		}
-		if count < 0 && projectedReplacementSize(s, old, rep) > maxOutputBytes {
+		if count < 0 && projectedReplacementSize(s, old, rep) > state.outputBudget() {
 			return nil, ErrRenderLimit
 		}
 		out := strings.Replace(s, old, rep, count)
-		if len(out) > maxOutputBytes {
+		if len(out) > state.outputBudget() {
 			return nil, ErrRenderLimit
 		}
 		return out, nil
@@ -836,7 +844,7 @@ func applyFilter(state *renderState, value any, spec string) (any, error) {
 			for i, v := range arr {
 				items[i] = stringify(v)
 				estimated += len(items[i])
-				if estimated > maxOutputBytes {
+				if estimated > state.outputBudget() {
 					return nil, ErrRenderLimit
 				}
 			}
@@ -849,8 +857,8 @@ func applyFilter(state *renderState, value any, spec string) (any, error) {
 		return nil, ErrRenderSyntax
 	}
 }
-func boundedConcat(a, b string) (string, error) {
-	if len(a)+len(b) > maxOutputBytes {
+func boundedConcat(a, b string, limit int) (string, error) {
+	if len(a)+len(b) > limit {
 		return "", ErrRenderLimit
 	}
 	return a + b, nil

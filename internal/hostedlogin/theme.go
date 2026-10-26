@@ -2,6 +2,7 @@ package hostedlogin
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"sort"
 	"strconv"
@@ -34,7 +35,13 @@ func ValidatePresentation(c *store.HostedLoginConfig) error {
 			return err
 		}
 	}
-	return nil
+	screens := map[string]map[string]string{}
+	for prompt, parts := range c.Partials {
+		for screen, slots := range parts {
+			screens[prompt+"/"+screen] = slots
+		}
+	}
+	return ValidatePartials(screens)
 }
 
 func (t Theme) CSS() string {
@@ -313,7 +320,29 @@ func safeAssetURL(s string) bool {
 		return true
 	}
 	u, err := url.Parse(s)
-	return err == nil && u.Scheme == "https" && u.Host != "" && u.User == nil && u.Fragment == "" && !strings.ContainsAny(s, "\"'<>\\\n\r")
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" || strings.ContainsAny(s, "\"'<>\\\n\r") {
+		return false
+	}
+	host := u.Hostname()
+	if net.ParseIP(host) == nil {
+		for _, label := range strings.Split(strings.TrimSuffix(host, "."), ".") {
+			if label == "" || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
+				return false
+			}
+			for _, r := range label {
+				if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '-' {
+					return false
+				}
+			}
+		}
+	}
+	if port := u.Port(); port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return false
+		}
+	}
+	return true
 }
 func AssetOrigin(s string) string {
 	if !safeAssetURL(s) || s == "" {

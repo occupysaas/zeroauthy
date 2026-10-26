@@ -24,20 +24,4 @@ describe('settings-style planned previews', () => {
     wrapper.unmount()
   })
 
-  it('branding shows four fields and disabled colors', async () => {
-    const { wrapper, calls } = await open('branding')
-    expect(wrapper.get('h1').text()).toBe('Universal Login')
-    const labels = wrapper.findAll('label').map((l) => l.text())
-    for (const l of ['Logo URL', 'Favicon URL', 'Primary color', 'Page background color']) expect(labels).toContain(l)
-    const primary = wrapper.get('input#br-primary')
-    const bg = wrapper.get('input#br-bg')
-    expect(primary.attributes('disabled')).toBeDefined()
-    expect(bg.attributes('disabled')).toBeDefined()
-    expect((primary.element as HTMLInputElement).value).toBe('#d7141a')
-    expect((bg.element as HTMLInputElement).value).toBe('#ffffff')
-    assertPreviewInert(wrapper)
-    expect(calls.length).toBe(0)
-    wrapper.unmount()
-  })
-
 })

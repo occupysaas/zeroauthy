@@ -6,6 +6,8 @@
 <form method="post" action="/u/signup" novalidate>
 <input type="hidden" name="state" value="{{.Data.State}}">
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+{{if .Data.HostedRevision}}<input type="hidden" name="hosted_revision" value="{{.Data.HostedRevision}}">{{end}}
+{{.Tenant.Partials.FormContentStart}}
 <label for="email">{{t .Tenant.L "signup.signup.emailPlaceholder"}}</label>
 <input id="email" name="email" type="email" autocomplete="email" value="{{.Data.Email}}" required autofocus>
 {{if .Data.RequiresUsername}}
@@ -15,7 +17,10 @@
 <label for="password">{{t .Tenant.L "signup.signup.passwordPlaceholder"}}</label>
 <input id="password" name="password" type="password" autocomplete="new-password" required>
 {{template "captcha" .}}
+{{.Tenant.Partials.FormContentEnd}}
 <button type="submit">{{t .Tenant.L "signup.signup.buttonText"}}</button>
 </form>
+{{.Tenant.Partials.FormFooterStart}}
 <p class="alt">{{t .Tenant.L "signup.signup.loginActionText"}} <a href="{{.Data.LoginURL}}">{{t .Tenant.L "signup.signup.loginActionLinkText"}}</a></p>
+{{.Tenant.Partials.FormFooterEnd}}
 {{end}}

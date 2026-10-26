@@ -931,7 +931,7 @@ func TestConnectionEnabledThroughAPILogsIn(t *testing.T) {
 	if csrf == nil {
 		t.Fatalf("no csrf: %s", page)
 	}
-	form := url.Values{"state": {loginURL.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"dana@acme.test"}, "password": {"a long enough password 1"}}
+	form := url.Values{"hosted_revision": {hostedRevision(page)}, "state": {loginURL.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"dana@acme.test"}, "password": {"a long enough password 1"}}
 	req, _ := http.NewRequest("POST", "https://acme.example.test/u/login", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp2, err := client.Do(req)

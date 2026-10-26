@@ -119,6 +119,8 @@ func TestIdentifierFirstRetryResetAndSettingChange(t *testing.T) {
 	if err := e.st.HostedLogins().Put(context.Background(), c, c.Revision); err != nil {
 		t.Fatal(err)
 	}
+	password = b.do(t, "GET", "/u/login/password?state="+state, nil)
+	oldRevision = revisionFrom(t, password.Body.String())
 	wrong := b.do(t, "POST", "/u/login/password", url.Values{"state": {state}, "csrf": {csrf}, "hosted_revision": {oldRevision}, "password": {"wrong"}})
 	if wrong.Code != http.StatusUnauthorized || !strings.Contains(wrong.Body.String(), `action="/u/login/password"`) {
 		t.Fatalf("wrong password=%d %s", wrong.Code, wrong.Body.String())
@@ -127,7 +129,7 @@ func TestIdentifierFirstRetryResetAndSettingChange(t *testing.T) {
 		t.Fatal("denial did not rotate revision")
 	}
 	stale := b.do(t, "POST", "/u/login/password", url.Values{"state": {state}, "csrf": {csrf}, "hosted_revision": {oldRevision}, "password": {"alice password 1"}})
-	if stale.Code != http.StatusBadRequest {
+	if stale.Code != http.StatusConflict {
 		t.Fatalf("stale=%d", stale.Code)
 	}
 	reset := b.do(t, "POST", "/u/login/identifier", url.Values{"state": {state}, "csrf": {csrf}, "hosted_revision": {revisionFrom(t, wrong.Body.String())}})
@@ -262,5 +264,16 @@ func TestIdentifierFirstBindingsAndCrash(t *testing.T) {
 	e.h.Now = func() time.Time { return txn.ExpiresAt }
 	if response := b.do(t, "GET", "/u/login?state="+state, nil); response.Code != http.StatusBadRequest {
 		t.Fatalf("expired flow=%d", response.Code)
+	}
+}
+
+func TestIdentifierFirstAfterSignupNavigation(t *testing.T) {
+	e := newEnv(t)
+	enableIdentifier(t, e)
+	b := e.browser("acme.example.test")
+	_, state, _ := b.begin(t, "screen_hint", "signup")
+	page := b.do(t, "GET", "/u/login?state="+state, nil)
+	if strings.Contains(page.Body.String(), `id="password"`) {
+		t.Fatal("signup navigation lost captured identifier-first setting")
 	}
 }

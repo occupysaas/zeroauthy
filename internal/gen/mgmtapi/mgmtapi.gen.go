@@ -4424,6 +4424,13 @@ type DeleteTenantParams struct {
 	Confirm string `form:"confirm" json:"confirm"`
 }
 
+// PreviewTenantBrandingJSONBody defines parameters for PreviewTenantBranding.
+type PreviewTenantBrandingJSONBody struct {
+	Language  *string                 `json:"language,omitempty"`
+	Overrides *map[string]interface{} `json:"overrides,omitempty"`
+	Screen    string                  `json:"screen"`
+}
+
 // GetTenantJobsParams defines parameters for GetTenantJobs.
 type GetTenantJobsParams struct {
 	// Page Page index of the results, from 0.
@@ -4834,6 +4841,9 @@ type CreateTenantJSONRequestBody = TenantCreate
 
 // UpdateTenantJSONRequestBody defines body for UpdateTenant for application/json ContentType.
 type UpdateTenantJSONRequestBody = TenantUpdate
+
+// PreviewTenantBrandingJSONRequestBody defines body for PreviewTenantBranding for application/json ContentType.
+type PreviewTenantBrandingJSONRequestBody PreviewTenantBrandingJSONBody
 
 // TryConnectionScriptJSONRequestBody defines body for TryConnectionScript for application/json ContentType.
 type TryConnectionScriptJSONRequestBody = ScriptTry
@@ -6457,6 +6467,9 @@ type ServerInterface interface {
 	// UpdateTenant Update a tenant
 	// (PATCH /api/system/tenants/{name})
 	UpdateTenant(w http.ResponseWriter, r *http.Request, name string)
+	// PreviewTenantBranding Preview tenant Universal Login branding.
+	// (POST /api/system/tenants/{tenant}/branding/preview)
+	PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string)
 	// TryConnectionScript Try a custom database script
 	// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 	TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string)
@@ -6817,6 +6830,12 @@ func (_ Unimplemented) DeleteTenant(w http.ResponseWriter, r *http.Request, name
 // UpdateTenant Update a tenant
 // (PATCH /api/system/tenants/{name})
 func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PreviewTenantBranding Preview tenant Universal Login branding.
+// (POST /api/system/tenants/{tenant}/branding/preview)
+func (_ Unimplemented) PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7600,6 +7619,32 @@ func (siw *ServerInterfaceWrapper) UpdateTenant(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateTenant(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PreviewTenantBranding operation middleware
+func (siw *ServerInterfaceWrapper) PreviewTenantBranding(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PreviewTenantBranding(w, r, tenant)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -11340,6 +11385,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/jobs", wrapper.GetTenantJobs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/branding/preview", wrapper.PreviewTenantBranding)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/emails/preview", wrapper.PreviewTenantEmail)

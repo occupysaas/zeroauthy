@@ -67,11 +67,13 @@ func (UnimplementedHostedLogins) Put(context.Context, *HostedLoginConfig, int64)
 type HostedLoginState struct {
 	Step, Identifier, ConnectionID string
 	PromptFields                   map[string]string
+	FormFields                     map[string]string
 	Revision, FormConfigRevision   int64
-	FormScreen                     string
+	FormScreen, FormLanguage       string
 }
 
 func (s HostedLoginState) Clone() HostedLoginState {
 	s.PromptFields = maps.Clone(s.PromptFields)
+	s.FormFields = maps.Clone(s.FormFields)
 	return s
 }

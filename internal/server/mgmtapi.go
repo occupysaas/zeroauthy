@@ -451,3 +451,7 @@ func (a mgmtAPI) GetIPBlock(w http.ResponseWriter, r *http.Request, ip string) {
 func (a mgmtAPI) DeleteIPBlock(w http.ResponseWriter, r *http.Request, ip string) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.IPBlock(w, r, ip) }, "delete:anomaly_blocks")
 }
+
+func (a mgmtAPI) PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string) {
+	a.h.PreviewBranding(w, r, tenant)
+}

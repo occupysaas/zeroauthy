@@ -48,6 +48,9 @@ func ValidateSource(source string, partial bool) error {
 		return err
 	}
 	normalized := normalizeTags(source)
+	if partial && (strings.Contains(normalized, headMarker) || strings.Contains(normalized, widgetMarker)) {
+		return ErrTemplate
+	}
 	if !partial {
 		if strings.Count(normalized, headMarker) != 1 || strings.Count(normalized, widgetMarker) < 1 {
 			return ErrTemplate
@@ -59,7 +62,7 @@ func ValidateSource(source string, partial bool) error {
 	if err := validateHTML(normalized, partial); err != nil {
 		return err
 	}
-	if _, err := liquid.Render(context.Background(), normalized, map[string]any{}, nil, liquid.Limits{MaxSourceBytes: len(normalized), MaxOutputBytes: 512 << 10}); err != nil {
+	if err := liquid.Validate(context.Background(), normalized, liquid.Limits{MaxSourceBytes: len(normalized), MaxOutputBytes: 512 << 10}); err != nil {
 		return err
 	}
 	return nil
@@ -76,6 +79,9 @@ func normalizeTags(s string) string {
 	})
 }
 func (Renderer) Render(ctx context.Context, in RenderInput) (RenderOutput, error) {
+	if err := ctx.Err(); err != nil {
+		return RenderOutput{}, err
+	}
 	if err := ValidateSource(in.Source, false); err != nil {
 		return RenderOutput{}, err
 	}

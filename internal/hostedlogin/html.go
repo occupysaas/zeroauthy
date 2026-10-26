@@ -73,6 +73,12 @@ func validateHTML(source string, partial bool) error {
 			}
 			for _, a := range t.Attr {
 				k := strings.ToLower(a.Key)
+				if k == "id" {
+					switch a.Val {
+					case "state", "csrf", "username", "password", "email", "connection", "redirect_uri", "ticket", "hosted_revision":
+						return errHTML
+					}
+				}
 				if strings.HasPrefix(k, "on") || k == "style" || k == "formaction" || k == "srcdoc" || k == "hidden" || k == "inert" || k == "aria-hidden" || k == "form" || k == "autofocus" || k == "contenteditable" {
 					return errHTML
 				}
@@ -91,6 +97,9 @@ func validateHTML(source string, partial bool) error {
 			}
 			if tt == html.StartTagToken && !voidElement(tag) {
 				depth++
+				if depth > 32 {
+					return errHTML
+				}
 			}
 		}
 		if tt == html.TextToken && inStyle {
@@ -113,6 +122,12 @@ func validateHTML(source string, partial bool) error {
 }
 
 func allowedElement(tag string, partial bool) bool {
+	if partial {
+		switch tag {
+		case "html", "head", "body", "title":
+			return false
+		}
+	}
 	switch tag {
 	case "html", "head", "body", "title", "style", "div", "main", "section", "article", "aside", "header", "footer", "nav", "p", "span", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "dl", "dt", "dd", "a", "img", "br", "hr", "strong", "em", "b", "i", "small", "blockquote", "code", "pre":
 		return true

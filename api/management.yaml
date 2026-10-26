@@ -2769,6 +2769,54 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/system/tenants/{tenant}/branding/preview:
+    parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+    post:
+      x-source:
+        - https://auth0.com/docs/customize/login-pages/universal-login/customize-templates
+      operationId: previewTenantBranding
+      tags: [system]
+      summary: Preview tenant Universal Login branding.
+      description: |
+        A zeroauthy-specific extension requiring a console operator with signed
+        and persisted target tenant grants and read branding/prompts access.
+        Renders synthetic data without saving overrides or authentication state.
+        External assets and navigation are blocked. Display only in an iframe
+        sandbox granting no capabilities.
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [screen]
+              properties:
+                screen: {type: string}
+                language: {type: string}
+                overrides: {type: object, additionalProperties: true}
+      responses:
+        "200":
+          description: Synthetic isolated preview.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [html, warnings]
+                properties:
+                  html: {type: string}
+                  warnings: {type: array, items: {type: string}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
   /api/system/tenants/{tenant}/emails/preview:
     parameters:
       - name: tenant

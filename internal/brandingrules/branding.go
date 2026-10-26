@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -110,7 +111,7 @@ func validate(c, current *store.HostedLoginConfig) error {
 			return fmt.Errorf("%w: prompt", errInvalid)
 		}
 		for screen, slots := range screens {
-			if screen == "" {
+			if screen != prompt || slots == nil {
 				return fmt.Errorf("%w: screen", errInvalid)
 			}
 			for slot, source := range slots {
@@ -323,6 +324,23 @@ func Merge(current *store.HostedLoginConfig, resource string, body []byte) (*sto
 		if err := json.Unmarshal(body, &screens); err != nil || screens == nil {
 			return nil, errInvalid
 		}
+		for screen, keys := range screens {
+			if keys == nil || (!i18n.KnownScreen(parts[0], screen) && (!validPrompt(parts[0]) || screen != parts[0])) {
+				return nil, errInvalid
+			}
+			vars := 0
+			for key, text := range keys {
+				if strings.TrimSpace(text) == "" {
+					return nil, errInvalid
+				}
+				if strings.HasPrefix(key, "var-") {
+					vars++
+				}
+			}
+			if vars > 30 {
+				return nil, errInvalid
+			}
+		}
 		if next.CustomText == nil {
 			next.CustomText = store.CustomText{}
 		}
@@ -352,7 +370,7 @@ func Merge(current *store.HostedLoginConfig, resource string, body []byte) (*sto
 	return next, nil
 }
 func decodeObject(b []byte) (map[string]any, error) {
-	if len(b) > 2<<20 {
+	if len(b) > 2<<20 || !utf8.Valid(b) {
 		return nil, errInvalid
 	}
 	var m map[string]any

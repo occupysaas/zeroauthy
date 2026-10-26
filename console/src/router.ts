@@ -22,6 +22,7 @@ import UserImportExport from './pages/users/ImportExport.vue'
 import { plannedPages } from './pages/planned'
 import Settings from './pages/settings/TenantSettings.vue'
 import AttackProtection from './pages/attack-protection/AttackProtection.vue'
+import Branding from './pages/branding/Branding.vue'
 import EmailSettings from './pages/emails/Emails.vue'
 import Root from './pages/Root.vue'
 import { isPlanned, sections } from './layout/sections'
@@ -58,6 +59,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/settings', name: 'settings', component: Settings },
   { path: '/t/:tenant/attack-protection', name: 'attack-protection', component: AttackProtection },
   { path: '/t/:tenant/emails', name: 'emails', component: EmailSettings },
+  { path: '/t/:tenant/branding', name: 'branding', component: Branding },
   ...sections.filter(isPlanned).map((s) => ({
     path: '/t/:tenant/' + s.path,
     name: s.key,

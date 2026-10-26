@@ -129,3 +129,18 @@ func TestPluginUnavailableBranding(t *testing.T) {
 		t.Fatalf("unavailable repository returned %d: %s", response.Code, response.Body.String())
 	}
 }
+
+func TestPartialCrossScreenNamesRejected(t *testing.T) {
+	e := newClientsEnv(t)
+	for i, prompt := range []string{"login-id", "login-password"} {
+		body := map[string]any{prompt: map[string]any{"form-content-start": `<input aria-label="Additional information" name="ulp-team">`}}
+		response, _ := e.call(t, e.tn, m2mCaller("update:prompts"), "PUT", "/api/v2/prompts/"+prompt+"/partials", body, func(w http.ResponseWriter, r *http.Request) { e.h.PutPromptPartials(w, r, prompt) })
+		expected := http.StatusOK
+		if i == 1 {
+			expected = http.StatusBadRequest
+		}
+		if response.Code != expected {
+			t.Fatalf("prompt=%s status=%d body=%s", prompt, response.Code, response.Body.String())
+		}
+	}
+}

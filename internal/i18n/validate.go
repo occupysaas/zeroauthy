@@ -85,8 +85,17 @@ func ValidateCustomText(enabled []string, ct store.CustomText) error {
 				continue
 			}
 			for screen, keys := range screens {
+				variables := map[string]bool{}
 				for k, text := range keys {
 					full := prompt + "." + screen + "." + k
+					if name, custom := strings.CutPrefix(k, "var-"); custom {
+						canonical := strings.ToLower(name)
+						if canonical == "" || variables[canonical] || len(variables) >= 30 {
+							errs = append(errs, fmt.Errorf("custom_text.%s.%s: invalid or duplicate custom variable", prompt, lang))
+							continue
+						}
+						variables[canonical] = true
+					}
 					if strings.TrimSpace(text) == "" {
 						errs = append(errs, fmt.Errorf("custom_text.%s.%s: %q is empty; remove it to use the built-in text", prompt, lang, full))
 						continue
