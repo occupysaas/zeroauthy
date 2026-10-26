@@ -1,8 +1,10 @@
 package deploymigration
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -189,5 +191,99 @@ func TestLoadDirectoryBrandingPromptsAndThemes(t *testing.T) {
 	}
 	if string(out.Files["prompts/partials/login/login/form-footer-start.liquid"]) != "<p>Example footer</p>" {
 		t.Fatal("lost Liquid file")
+	}
+}
+
+func TestDirectoryCustomDomains(t *testing.T) {
+	for _, folder := range []string{"customDomains", "custom-domains", "custom_domains"} {
+		t.Run(folder, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.Mkdir(filepath.Join(dir, folder), 0700); err != nil {
+				t.Fatal(err)
+			}
+			body := `{"domain":"login.example.test","type":"self_managed_certs","custom_client_ip_header":null,"domain_metadata":{"brand":"example"},"is_default":true}`
+			if err := os.WriteFile(filepath.Join(dir, folder, "login.json"), []byte(body), 0600); err != nil {
+				t.Fatal(err)
+			}
+			export, err := LoadExport(dir, "directory")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var want, got []map[string]any
+			json.Unmarshal([]byte("["+body+"]"), &want)
+			json.Unmarshal(export.Resources["customDomains"], &got)
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("custom domain not parsed as a resource: %s", export.Resources["customDomains"])
+			}
+			if len(export.Files) != 0 {
+				t.Fatal("custom domain treated as an opaque file")
+			}
+		})
+	}
+}
+
+func TestBrandingTemplateBodyReferences(t *testing.T) {
+	for _, format := range []string{"yaml", "directory"} {
+		t.Run(format, func(t *testing.T) {
+			dir := t.TempDir()
+			folder := "branding_templates"
+			input := filepath.Join(dir, "tenant.yaml")
+			if format == "directory" {
+				folder = "branding/templates"
+				input = dir
+			}
+			if err := os.MkdirAll(filepath.Join(dir, folder), 0700); err != nil {
+				t.Fatal(err)
+			}
+			bodyFile := filepath.Join(dir, folder, "universal_login.html")
+			if err := os.WriteFile(bodyFile, []byte("<p>Original template</p>"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if format == "yaml" {
+				os.WriteFile(input, []byte("branding:\n  templates:\n    - template: universal_login\n      body: ./branding_templates/universal_login.html\n"), 0600)
+			} else {
+				os.WriteFile(filepath.Join(dir, folder, "universal_login.json"), []byte(`{"template":"universal_login","body":"./universal_login.html"}`), 0600)
+			}
+			first, err := LoadExport(input, format)
+			if err != nil {
+				t.Fatal(err)
+			}
+			key := folder + "/universal_login.html"
+			if string(first.Files[key]) != "<p>Original template</p>" {
+				t.Fatal("actual CLI template body bytes missing")
+			}
+			os.WriteFile(bodyFile, []byte("<p>Changed template</p>"), 0600)
+			changed, err := LoadExport(input, format)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if reflect.DeepEqual(first.Files, changed.Files) {
+				t.Fatal("changed template body invisible")
+			}
+			os.Remove(bodyFile)
+			if _, err := LoadExport(input, format); err == nil {
+				t.Fatal("missing template body accepted")
+			}
+		})
+	}
+}
+
+func TestDirectoryCustomDomainCollectionFile(t *testing.T) {
+	dir := t.TempDir()
+	folder := filepath.Join(dir, "custom-domains")
+	if err := os.Mkdir(folder, 0700); err != nil {
+		t.Fatal(err)
+	}
+	body := `[{"domain":"login.example.test","type":"self_managed_certs"},{"domain":"second.example.test","type":"auth0_managed_certs"}]`
+	if err := os.WriteFile(filepath.Join(folder, "custom-domains.json"), []byte(body), 0600); err != nil {
+		t.Fatal(err)
+	}
+	export, err := LoadExport(dir, "directory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rows []map[string]any
+	if err := json.Unmarshal(export.Resources["customDomains"], &rows); err != nil || len(rows) != 2 {
+		t.Fatalf("pinned CLI collection incorrectly nested: %s %v", export.Resources["customDomains"], err)
 	}
 }

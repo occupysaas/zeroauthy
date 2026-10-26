@@ -40,6 +40,15 @@ func LoadExport(path, format string) (Export, error) {
 		if !ok {
 			return Export{}, errors.New("deploymigration: YAML export root must be an object")
 		}
+		if branding, ok := root["branding"].(map[string]any); ok {
+			if templates, ok := branding["templates"].([]any); ok {
+				for _, definition := range templates {
+					if err := checkTemplateBodyReference(definition, filepath.Dir(path), "", out.Files); err != nil {
+						return Export{}, err
+					}
+				}
+			}
+		}
 		for name, value := range root {
 			raw, err := json.Marshal(value)
 			if err != nil {
@@ -101,6 +110,9 @@ func LoadExport(path, format string) (Export, error) {
 				return err
 			}
 			if strings.HasPrefix(rel, "branding/templates/") {
+				if err := checkTemplateBodyReference(value, root, filepath.Dir(rel), out.Files); err != nil {
+					return err
+				}
 				brandingTemplates = append(brandingTemplates, value)
 				return nil
 			}
@@ -127,6 +139,21 @@ func LoadExport(path, format string) (Export, error) {
 			if name == "" {
 				out.Files[rel] = b
 				return nil
+			}
+			if name == "customDomains" {
+				if rows, ok := value.([]any); ok {
+					for _, row := range rows {
+						if _, ok := row.(map[string]any); !ok {
+							return errors.New("deploymigration: invalid custom-domain collection")
+						}
+						raw, err := json.Marshal(row)
+						if err != nil {
+							return err
+						}
+						groups[name] = append(groups[name], raw)
+					}
+					return nil
+				}
 			}
 			if name == "tenant" || name == "attackProtection" || name == "branding" {
 				raw, err := json.Marshal(value)
@@ -278,6 +305,8 @@ func resourceName(path string) string {
 		// auth0-deploy-cli 9.1.0 stores client grants under grants/ in
 		// directory exports, although the Management API family is clientGrants.
 		return "clientGrants"
+	case "customdomains", "custom-domains", "custom_domains":
+		return "customDomains"
 	case "connections", "connection":
 		return "connections"
 	case "databases", "database":
@@ -383,4 +412,35 @@ func walkJSON(d *json.Decoder) error {
 	default:
 		return errors.New("invalid JSON delimiter")
 	}
+}
+
+// The pinned Deploy CLI stores Universal Login template body as a relative
+// HTML filename, not a file:// URL. YAML resolves it against the export root;
+// directory exports resolve it beside the template definition JSON. Retain
+// bytes in Files so strict comparisons detect changed or missing content.
+func checkTemplateBodyReference(definition any, root, base string, files map[string][]byte) error {
+	def, ok := definition.(map[string]any)
+	if !ok {
+		return errors.New("deploymigration: invalid branding template definition")
+	}
+	body, ok := def["body"].(string)
+	if !ok {
+		return errors.New("deploymigration: missing branding template body")
+	}
+	// Inline synthetic fixtures remain field-preserved; real CLI body paths
+	// always begin ./ (or an explicit file:// reference).
+	if !strings.HasPrefix(body, "./") && !strings.HasPrefix(body, "file://") && !strings.HasPrefix(body, "../") && !filepath.IsAbs(body) {
+		return nil
+	}
+	body = strings.TrimPrefix(body, "file://")
+	if filepath.IsAbs(body) {
+		return errors.New("deploymigration: absolute template references are not allowed")
+	}
+	for _, part := range strings.Split(filepath.ToSlash(body), "/") {
+		if part == ".." {
+			return errors.New("deploymigration: parent template references are not allowed")
+		}
+	}
+	rel := filepath.Join(base, filepath.FromSlash(body))
+	return checkExportReferences(map[string]any{"body_file": rel}, root, files)
 }
