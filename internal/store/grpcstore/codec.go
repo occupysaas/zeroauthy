@@ -822,10 +822,14 @@ func authTransactionToPB(a *store.AuthTransaction) (*storev1.AuthTransaction, er
 	if a == nil {
 		return nil, nil
 	}
+	hosted, err := json.Marshal(a.HostedState)
+	if err != nil {
+		return nil, err
+	}
 	return &storev1.AuthTransaction{
 		TenantId: a.TenantID, Id: a.ID, CookieHash: a.CookieHash, CsrfToken: a.CSRFToken,
 		ClientId: a.ClientID, Params: stringMapToPB(a.Params),
-		ExpiresAt: tsToPB(a.ExpiresAt), CreatedAt: tsToPB(a.CreatedAt),
+		ExpiresAt: tsToPB(a.ExpiresAt), CreatedAt: tsToPB(a.CreatedAt), HostedStateJson: string(hosted),
 	}, nil
 }
 
@@ -836,11 +840,17 @@ func authTransactionFromPB(pb *storev1.AuthTransaction) (*store.AuthTransaction,
 	if err := checkTS(pb.ExpiresAt, pb.CreatedAt); err != nil {
 		return nil, err
 	}
-	return &store.AuthTransaction{
+	a := &store.AuthTransaction{
 		TenantID: pb.TenantId, ID: pb.Id, CookieHash: pb.CookieHash, CSRFToken: pb.CsrfToken,
 		ClientID: pb.ClientId, Params: stringMapFromPB(pb.Params),
 		ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
-	}, nil
+	}
+	if pb.HostedStateJson != "" {
+		if err := json.Unmarshal([]byte(pb.HostedStateJson), &a.HostedState); err != nil {
+			return nil, err
+		}
+	}
+	return a, nil
 }
 
 // ---- auth code ----
@@ -1180,4 +1190,27 @@ func userQueryFromPB(pb *storev1.UserQuery) *store.UserQuery {
 		q.Kids = append(q.Kids, userQueryFromPB(k))
 	}
 	return q
+}
+
+func hostedLoginConfigToPB(c *store.HostedLoginConfig) (*storev1.HostedLoginConfig, error) {
+	if c == nil {
+		return nil, nil
+	}
+	raw, err := json.Marshal(c)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.HostedLoginConfig{TenantId: c.TenantID, Revision: c.Revision, ConfigJson: string(raw)}, nil
+}
+func hostedLoginConfigFromPB(pb *storev1.HostedLoginConfig) (*store.HostedLoginConfig, error) {
+	if pb == nil {
+		return nil, nil
+	}
+	var c store.HostedLoginConfig
+	if err := json.Unmarshal([]byte(pb.ConfigJson), &c); err != nil {
+		return nil, err
+	}
+	c.TenantID = pb.TenantId
+	c.Revision = pb.Revision
+	return &c, nil
 }

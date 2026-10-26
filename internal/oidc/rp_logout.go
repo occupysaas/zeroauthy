@@ -43,12 +43,12 @@ func (h *Handlers) OidcLogout(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxLogoutFormBytes)
 	}
 	if err := r.ParseForm(); err != nil {
-		view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
+		view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 		ui.RenderError(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrLogoutInvalid))
 		return
 	}
 	p := r.Form
-	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, p.Get("ui_locales")))
+	view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, p.Get("ui_locales")))
 	fail := func(status int, key string) { ui.RenderError(w, status, view, view.L.T(key)) }
 	confirmed := r.Method == http.MethodPost && p.Get("confirm") == "yes"
 	if confirmed && !confirmationValid(r, p.Get("csrf")) {

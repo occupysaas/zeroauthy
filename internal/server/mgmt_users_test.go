@@ -332,7 +332,7 @@ func TestDeleteUserMidFlow(t *testing.T) {
 	resp = post(dc, "/device/confirmation", url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrfRe.FindStringSubmatch(body)[1]}, "action": {"confirm"}})
 	loc, _ = resp.Location()
 	_, body = fetch(t, dc, e.base+loc.RequestURI())
-	resp = post(dc, "/u/login", url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrfRe.FindStringSubmatch(body)[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}})
+	resp = post(dc, "/u/login", url.Values{"hosted_revision": {hostedRevision(body)}, "state": {loc.Query().Get("state")}, "csrf": {csrfRe.FindStringSubmatch(body)[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}})
 	if loc, _ = resp.Location(); loc == nil || loc.Path != "/device/success" {
 		t.Fatalf("device login = %d %v", resp.StatusCode, loc)
 	}

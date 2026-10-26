@@ -149,6 +149,15 @@ func fetch(t *testing.T, c *http.Client, u string) (*http.Response, string) {
 }
 
 var csrfRe = regexp.MustCompile(`name="csrf" value="([^"]+)"`)
+var hostedRevisionRe = regexp.MustCompile(`name="hosted_revision" value="([0-9]+)"`)
+
+func hostedRevision(page string) string {
+	m := hostedRevisionRe.FindStringSubmatch(page)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
 
 func TestEndToEndCodeFlow(t *testing.T) {
 	e := newFlowEnv(t)
@@ -166,7 +175,7 @@ func TestEndToEndCodeFlow(t *testing.T) {
 	if csrf == nil {
 		t.Fatalf("no csrf: %s", page)
 	}
-	form := url.Values{"state": {loginURL.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}}
+	form := url.Values{"hosted_revision": {hostedRevision(page)}, "state": {loginURL.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}}
 	req, _ := http.NewRequest("POST", e.base+"/u/login", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, body := mustDo(t, c, req)
@@ -310,7 +319,7 @@ func (e *flowEnv) codeFlowAs(t *testing.T, c *http.Client, username, password st
 		if csrf == nil {
 			t.Fatalf("no csrf: %s", page)
 		}
-		form := url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "username": {username}, "password": {password}}
+		form := url.Values{"hosted_revision": {hostedRevision(page)}, "state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "username": {username}, "password": {password}}
 		req, _ := http.NewRequest("POST", e.base+"/u/login", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		resp, _ = mustDo(t, c, req)
@@ -405,7 +414,7 @@ func TestEndToEndConsentFlow(t *testing.T) {
 	if csrf == nil {
 		t.Fatalf("no csrf: %s", page)
 	}
-	resp, body := post("/u/login", url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}})
+	resp, body := post("/u/login", url.Values{"hosted_revision": {hostedRevision(page)}, "state": {loc.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}})
 	loc, _ = resp.Location()
 	if loc == nil || loc.Path != "/u/consent" {
 		t.Fatalf("login = %d %v %s", resp.StatusCode, loc, body)
@@ -464,7 +473,7 @@ func TestEndToEndDeviceFlow(t *testing.T) {
 		t.Fatalf("confirm = %d %v", resp.StatusCode, loc)
 	}
 	_, body = fetch(t, c, e.base+loc.RequestURI())
-	resp, _ = post("/u/login", url.Values{"state": {loc.Query().Get("state")}, "csrf": {csrfRe.FindStringSubmatch(body)[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}})
+	resp, _ = post("/u/login", url.Values{"hosted_revision": {hostedRevision(body)}, "state": {loc.Query().Get("state")}, "csrf": {csrfRe.FindStringSubmatch(body)[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}})
 	loc, _ = resp.Location()
 	if resp.StatusCode != 302 || loc == nil || loc.Path != "/device/success" {
 		t.Fatalf("login = %d %v", resp.StatusCode, loc)
@@ -504,7 +513,7 @@ func TestEndToEndAuthorizePost(t *testing.T) {
 	if csrf == nil {
 		t.Fatalf("no csrf: %s", page)
 	}
-	form := url.Values{"state": {loginURL.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}}
+	form := url.Values{"hosted_revision": {hostedRevision(page)}, "state": {loginURL.Query().Get("state")}, "csrf": {csrf[1]}, "username": {"alice@flow.test"}, "password": {"alice password 1"}}
 	req, _ := http.NewRequest("POST", e.base+"/u/login", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, body = mustDo(t, c, req)

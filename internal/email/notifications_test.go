@@ -198,6 +198,32 @@ func TestSecurityNotificationMessageCopy(t *testing.T) {
 	}
 }
 
+func TestCanonicalSecurityNotificationText(t *testing.T) {
+	ctx, st, _, fallback, _, svc := emailServiceFixture(t)
+	u := &store.User{TenantID: "tenant-a", UserID: "u-canonical", Email: "canonical@example.test", EmailVerified: true}
+	if err := st.Users().Create(ctx, u); err != nil {
+		t.Fatal(err)
+	}
+	tenant, err := st.Tenants().Get(ctx, "tenant-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tenant.CustomText = store.CustomText{"zeroauthy": {"en": {"email-blocked-account": {"subject": "Legacy subject"}}}}
+	if err := st.Tenants().Update(ctx, tenant); err != nil {
+		t.Fatal(err)
+	}
+	c := &store.HostedLoginConfig{TenantID: "tenant-a", CustomText: store.CustomText{"zeroauthy": {"en": {"email-blocked-account": {"subject": "Canonical subject"}}}}}
+	if err := st.HostedLogins().Put(ctx, c, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Notify(ctx, "tenant-a", u.UserID, "blocked_account"); err != nil {
+		t.Fatal(err)
+	}
+	if len(fallback.messages) != 1 || fallback.messages[0].Subject != "Canonical subject" {
+		t.Fatalf("notification=%+v", fallback.messages)
+	}
+}
+
 func TestWelcomeFailedSendKeepsPermanentClaim(t *testing.T) {
 	ctx, st, _, fallback, _, svc := emailServiceFixture(t)
 	fallback.err = errors.New("transport failed")

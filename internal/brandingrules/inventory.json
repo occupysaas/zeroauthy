@@ -1,0 +1,702 @@
+{
+  "evidence": {
+    "public_docs": "https://auth0.com/docs/api/management/v2/branding/post-branding-theme",
+    "prompts_docs": "https://auth0.com/docs/api/management/v2/prompts/put-partials",
+    "sdk": "auth0 npm 7.4.0 MIT, local pinned management client",
+    "deploy_cli": "auth0-deploy-cli 9.1.0 MIT; branding export queries customDomains.list and omits templates when no custom domain",
+    "upstream_observation": "unavailable: no separate observer report or credentials in this worktree; documented/local choices only",
+    "changelog": "https://auth0.com/changelog fetched 2026-10-25; newest October 22; CIMD, application profiles, brute-force unblock; no Plan 22 change"
+  },
+  "operations": [
+    {
+      "method": "GET",
+      "route": "/api/v2/branding",
+      "scope": "read:branding",
+      "request": "none",
+      "response": "200 application/json branding",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/get-branding"
+      ],
+      "sdk": "branding.get"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v2/branding",
+      "scope": "update:branding",
+      "request": "application/json branding patch",
+      "response": "200 application/json branding",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/patch-branding"
+      ],
+      "sdk": "branding.update"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v2/branding/templates/universal-login",
+      "scope": "read:branding",
+      "request": "none",
+      "response": "200 application/json template",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/get-universal-login"
+      ],
+      "sdk": "branding.templates.getUniversalLogin"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/v2/branding/templates/universal-login",
+      "scope": "update:branding",
+      "request": "application/json {template:string} or text/html",
+      "response": "200 empty",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/put-universal-login"
+      ],
+      "sdk": "branding.templates.updateUniversalLogin"
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/v2/branding/templates/universal-login",
+      "scope": "update:branding",
+      "request": "none",
+      "response": "204 empty",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/delete-universal-login"
+      ],
+      "sdk": "branding.templates.deleteUniversalLogin"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v2/branding/themes",
+      "scope": "create:branding",
+      "request": "application/json complete theme",
+      "response": "200 application/json theme",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/post-branding-theme"
+      ],
+      "sdk": "branding.themes.create"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v2/branding/themes/default",
+      "scope": "read:branding",
+      "request": "none",
+      "response": "200 application/json theme",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/get-default-branding-theme"
+      ],
+      "sdk": "branding.themes.getDefault"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v2/branding/themes/{themeId}",
+      "scope": "read:branding",
+      "request": "none",
+      "response": "200 application/json theme",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/get-branding-theme"
+      ],
+      "sdk": "branding.themes.get"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v2/branding/themes/{themeId}",
+      "scope": "update:branding",
+      "request": "application/json theme patch",
+      "response": "200 application/json theme",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/patch-branding-theme"
+      ],
+      "sdk": "branding.themes.update"
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/v2/branding/themes/{themeId}",
+      "scope": "delete:branding",
+      "request": "none",
+      "response": "204 empty",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/branding/delete-branding-theme"
+      ],
+      "sdk": "branding.themes.delete"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v2/prompts",
+      "scope": "read:prompts",
+      "request": "none",
+      "response": "200 application/json prompts",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/prompts/get-prompts"
+      ],
+      "sdk": "prompts.getSettings"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v2/prompts",
+      "scope": "update:prompts",
+      "request": "application/json prompt settings",
+      "response": "200 application/json prompts",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/prompts/patch-prompts"
+      ],
+      "sdk": "prompts.updateSettings"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v2/prompts/{prompt}/custom-text/{language}",
+      "scope": "read:prompts",
+      "request": "none",
+      "response": "200 application/json text map",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/prompts/get-custom-text-by-language"
+      ],
+      "sdk": "prompts.customText.get"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/v2/prompts/{prompt}/custom-text/{language}",
+      "scope": "update:prompts",
+      "request": "application/json screen text map",
+      "response": "200 empty",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/prompts/put-custom-text-by-language"
+      ],
+      "sdk": "prompts.customText.set"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v2/prompts/{prompt}/partials",
+      "scope": "read:prompts",
+      "request": "none",
+      "response": "200 application/json partial map",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/prompts/get-partials"
+      ],
+      "sdk": "prompts.partials.get"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/v2/prompts/{prompt}/partials",
+      "scope": "update:prompts",
+      "request": "application/json partial map",
+      "response": "200 empty",
+      "disposition": "effective",
+      "sources": [
+        "https://auth0.com/docs/api/management/v2/prompts/put-partials"
+      ],
+      "sdk": "prompts.partials.set"
+    }
+  ],
+  "theme_fields": [
+    {
+      "name": "borders.button_border_radius",
+      "runtimeTarget": "--za-borders-button-border-radius",
+      "disposition": "effective"
+    },
+    {
+      "name": "borders.button_border_weight",
+      "runtimeTarget": "--za-borders-button-border-weight",
+      "disposition": "effective"
+    },
+    {
+      "name": "borders.buttons_style",
+      "runtimeTarget": "--za-borders-buttons-style",
+      "disposition": "effective"
+    },
+    {
+      "name": "borders.input_border_radius",
+      "runtimeTarget": "--za-borders-input-border-radius",
+      "disposition": "effective"
+    },
+    {
+      "name": "borders.input_border_weight",
+      "runtimeTarget": "--za-borders-input-border-weight",
+      "disposition": "effective"
+    },
+    {
+      "name": "borders.inputs_style",
+      "runtimeTarget": "--za-borders-inputs-style",
+      "disposition": "effective"
+    },
+    {
+      "name": "borders.show_widget_shadow",
+      "runtimeTarget": "--za-borders-show-widget-shadow",
+      "disposition": "effective"
+    },
+    {
+      "name": "borders.widget_border_weight",
+      "runtimeTarget": "--za-borders-widget-border-weight",
+      "disposition": "effective"
+    },
+    {
+      "name": "borders.widget_corner_radius",
+      "runtimeTarget": "--za-borders-widget-corner-radius",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.body_text",
+      "runtimeTarget": "--za-colors-body-text",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.error",
+      "runtimeTarget": "--za-colors-error",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.header",
+      "runtimeTarget": "--za-colors-header",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.icons",
+      "runtimeTarget": "--za-colors-icons",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.input_background",
+      "runtimeTarget": "--za-colors-input-background",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.input_border",
+      "runtimeTarget": "--za-colors-input-border",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.input_filled_text",
+      "runtimeTarget": "--za-colors-input-filled-text",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.input_labels_placeholders",
+      "runtimeTarget": "--za-colors-input-labels-placeholders",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.links_focused_components",
+      "runtimeTarget": "--za-colors-links-focused-components",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.primary_button",
+      "runtimeTarget": "--za-colors-primary-button",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.primary_button_label",
+      "runtimeTarget": "--za-colors-primary-button-label",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.secondary_button_border",
+      "runtimeTarget": "--za-colors-secondary-button-border",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.secondary_button_label",
+      "runtimeTarget": "--za-colors-secondary-button-label",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.success",
+      "runtimeTarget": "--za-colors-success",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.widget_background",
+      "runtimeTarget": "--za-colors-widget-background",
+      "disposition": "effective"
+    },
+    {
+      "name": "colors.widget_border",
+      "runtimeTarget": "--za-colors-widget-border",
+      "disposition": "effective"
+    },
+    {
+      "name": "fonts.body_text",
+      "runtimeTarget": "--za-fonts-body-text",
+      "disposition": "effective"
+    },
+    {
+      "name": "fonts.buttons_text",
+      "runtimeTarget": "--za-fonts-buttons-text",
+      "disposition": "effective"
+    },
+    {
+      "name": "fonts.font_url",
+      "runtimeTarget": "--za-fonts-font-url",
+      "disposition": "effective"
+    },
+    {
+      "name": "fonts.input_labels",
+      "runtimeTarget": "--za-fonts-input-labels",
+      "disposition": "effective"
+    },
+    {
+      "name": "fonts.links",
+      "runtimeTarget": "--za-fonts-links",
+      "disposition": "effective"
+    },
+    {
+      "name": "fonts.links_style",
+      "runtimeTarget": "--za-fonts-links-style",
+      "disposition": "effective"
+    },
+    {
+      "name": "fonts.reference_text_size",
+      "runtimeTarget": "--za-fonts-reference-text-size",
+      "disposition": "effective"
+    },
+    {
+      "name": "fonts.subtitle",
+      "runtimeTarget": "--za-fonts-subtitle",
+      "disposition": "effective"
+    },
+    {
+      "name": "fonts.title",
+      "runtimeTarget": "--za-fonts-title",
+      "disposition": "effective"
+    },
+    {
+      "name": "page_background.background_color",
+      "runtimeTarget": "--za-page-background-background-color",
+      "disposition": "effective"
+    },
+    {
+      "name": "page_background.background_image_url",
+      "runtimeTarget": "--za-page-background-background-image-url",
+      "disposition": "effective"
+    },
+    {
+      "name": "page_background.page_layout",
+      "runtimeTarget": "--za-page-background-page-layout",
+      "disposition": "effective"
+    },
+    {
+      "name": "widget.header_text_alignment",
+      "runtimeTarget": "--za-widget-header-text-alignment",
+      "disposition": "effective"
+    },
+    {
+      "name": "widget.logo_height",
+      "runtimeTarget": "--za-widget-logo-height",
+      "disposition": "effective"
+    },
+    {
+      "name": "widget.logo_position",
+      "runtimeTarget": "--za-widget-logo-position",
+      "disposition": "effective"
+    },
+    {
+      "name": "widget.logo_url",
+      "runtimeTarget": "--za-widget-logo-url",
+      "disposition": "effective"
+    },
+    {
+      "name": "widget.social_buttons_layout",
+      "runtimeTarget": "",
+      "disposition": "stored_only"
+    }
+  ],
+  "partial_slots": [
+    {
+      "prompt": "login",
+      "screen": "login",
+      "slot": "form-content-start",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login",
+      "screen": "login",
+      "slot": "form-content-end",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login",
+      "screen": "login",
+      "slot": "form-footer-start",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login",
+      "screen": "login",
+      "slot": "form-footer-end",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login",
+      "screen": "login",
+      "slot": "secondary-actions-start",
+      "disposition": "stored_only"
+    },
+    {
+      "prompt": "login",
+      "screen": "login",
+      "slot": "secondary-actions-end",
+      "disposition": "stored_only"
+    },
+    {
+      "prompt": "login-id",
+      "screen": "login-id",
+      "slot": "form-content-start",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login-id",
+      "screen": "login-id",
+      "slot": "form-content-end",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login-id",
+      "screen": "login-id",
+      "slot": "form-footer-start",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login-id",
+      "screen": "login-id",
+      "slot": "form-footer-end",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login-id",
+      "screen": "login-id",
+      "slot": "secondary-actions-start",
+      "disposition": "stored_only"
+    },
+    {
+      "prompt": "login-id",
+      "screen": "login-id",
+      "slot": "secondary-actions-end",
+      "disposition": "stored_only"
+    },
+    {
+      "prompt": "login-password",
+      "screen": "login-password",
+      "slot": "form-content-start",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login-password",
+      "screen": "login-password",
+      "slot": "form-content-end",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login-password",
+      "screen": "login-password",
+      "slot": "form-footer-start",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login-password",
+      "screen": "login-password",
+      "slot": "form-footer-end",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "login-password",
+      "screen": "login-password",
+      "slot": "secondary-actions-start",
+      "disposition": "stored_only"
+    },
+    {
+      "prompt": "login-password",
+      "screen": "login-password",
+      "slot": "secondary-actions-end",
+      "disposition": "stored_only"
+    },
+    {
+      "prompt": "signup",
+      "screen": "signup",
+      "slot": "form-content-start",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "signup",
+      "screen": "signup",
+      "slot": "form-content-end",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "signup",
+      "screen": "signup",
+      "slot": "form-footer-start",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "signup",
+      "screen": "signup",
+      "slot": "form-footer-end",
+      "disposition": "effective"
+    },
+    {
+      "prompt": "signup",
+      "screen": "signup",
+      "slot": "secondary-actions-start",
+      "disposition": "stored_only"
+    },
+    {
+      "prompt": "signup",
+      "screen": "signup",
+      "slot": "secondary-actions-end",
+      "disposition": "stored_only"
+    }
+  ],
+  "limits": {
+    "page_template": "100 KiB UTF-8 local (Auth0 public support says 102400 characters)",
+    "partial": "10000 characters and 40 KiB local",
+    "aggregate": "1 MiB local",
+    "render": "100 ms and 512 KiB output local"
+  },
+  "prompts": {
+    "active": [
+      "universal_login_experience:new",
+      "identifier_first:true"
+    ],
+    "stored_only": [
+      "universal_login_experience:classic",
+      "webauthn_platform_first_factor:true"
+    ],
+    "unsupported": [
+      "advanced_customizations_rendering"
+    ]
+  },
+  "template_variables": [
+    "application",
+    "organization",
+    "prompt",
+    "locale",
+    "user",
+    "branding",
+    "tenant",
+    "custom_domain",
+    "transaction"
+  ],
+  "template_tags": [
+    "auth0:head",
+    "auth0:widget"
+  ],
+  "template_filters": "Plan 21 existing bounded Liquid subset; full Auth0 Liquid parity unavailable",
+  "lifecycle": "Local: latest-created theme becomes default; delete default clears selection; absent template/theme 404; delete template idempotent 204; no upstream observation",
+  "custom_text_prompts": [
+    "login",
+    "login-id",
+    "login-password",
+    "login-passwordless",
+    "login-email-verification",
+    "signup",
+    "signup-id",
+    "signup-password",
+    "phone-identifier-enrollment",
+    "phone-identifier-challenge",
+    "email-identifier-challenge",
+    "reset-password",
+    "custom-form",
+    "consent",
+    "customized-consent",
+    "logout",
+    "mfa-push",
+    "mfa-otp",
+    "mfa-voice",
+    "mfa-phone",
+    "mfa-webauthn",
+    "mfa-sms",
+    "mfa-email",
+    "mfa-recovery-code",
+    "mfa",
+    "status",
+    "device-flow",
+    "email-verification",
+    "email-otp-challenge",
+    "organizations",
+    "invitation",
+    "common",
+    "captcha",
+    "passkeys",
+    "brute-force-protection"
+  ],
+  "custom_text_screens": [
+    "login",
+    "login-id",
+    "login-password",
+    "login-email-verification",
+    "signup",
+    "signup-id",
+    "signup-password",
+    "reset-password-request",
+    "reset-password-email",
+    "reset-password",
+    "reset-password-success",
+    "reset-password-error",
+    "consent",
+    "status",
+    "mfa-detect-browser-capabilities",
+    "mfa-enroll-result",
+    "mfa-login-options",
+    "mfa-begin-enroll-options",
+    "mfa-otp-enrollment-qr",
+    "mfa-otp-enrollment-code",
+    "mfa-otp-challenge",
+    "mfa-voice-challenge",
+    "mfa-sms-challenge",
+    "mfa-recovery-code-enrollment",
+    "mfa-recovery-code-challenge",
+    "mfa-country-codes",
+    "mfa-sms-enrollment",
+    "mfa-voice-enrollment",
+    "mfa-phone-challenge",
+    "mfa-phone-enrollment",
+    "mfa-webauthn-roaming-enrollment",
+    "mfa-webauthn-platform-enrollment",
+    "mfa-webauthn-platform-challenge",
+    "mfa-webauthn-roaming-challenge",
+    "mfa-webauthn-change-key-nickname",
+    "mfa-webauthn-enrollment-success",
+    "mfa-webauthn-error",
+    "mfa-webauthn-not-available-error",
+    "mfa-sms-list",
+    "mfa-email-challenge",
+    "mfa-email-list",
+    "mfa-push-welcome",
+    "mfa-push-list",
+    "mfa-push-enrollment-qr",
+    "mfa-push-enrollment-code",
+    "mfa-push-success",
+    "mfa-push-challenge-push",
+    "device-code-activation",
+    "device-code-activation-allowed",
+    "device-code-activation-denied",
+    "device-code-confirmation",
+    "email-verification-result",
+    "email-otp-challenge",
+    "redeem-ticket",
+    "organization-selection",
+    "pre-login-organization-picker",
+    "accept-invitation",
+    "login-passwordless-email-code",
+    "login-passwordless-email-link",
+    "login-passwordless-sms-otp",
+    "passkey-enrollment",
+    "passkey-enrollment-local",
+    "brute-force-protection-unblock",
+    "brute-force-protection-unblock-success",
+    "brute-force-protection-unblock-failure"
+  ]
+}

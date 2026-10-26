@@ -11,6 +11,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenantview"
 )
 
 // Welcome sends the tenant's enabled welcome template once per verified
@@ -85,6 +86,10 @@ func (s *Service) Notify(ctx context.Context, tenantID, userID, purpose string) 
 		return s.Send(ctx, Event{TenantID: tenantID, UserID: userID, Template: purpose, Language: "en"})
 	}
 	tenant, err := s.Store.Tenants().Get(ctx, tenantID)
+	if err != nil {
+		return err
+	}
+	tenant, err = tenantview.Localized(ctx, s.Store, tenant)
 	if err != nil {
 		return err
 	}

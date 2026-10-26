@@ -137,7 +137,9 @@
     "common": {
       "password-leaked": "This password has appeared in a data breach. Choose a different password, or reset it before signing in.",
       "breach-unavailable": "The password security check is temporarily unavailable. Please try again later.",
-      "too-many-attempts": "Too many attempts. Please try again later."
+      "too-many-attempts": "Too many attempts. Please try again later.",
+      "hosted-form-changed": "This form has changed. Review it and submit again.",
+      "hosted-fields-invalid": "Check the additional fields and try again."
     },
     "login": {
       "description-no-client": "Sign in to ${companyName} to continue."
@@ -223,6 +225,24 @@
       "help": "Complete this verification to continue.",
       "javascript": "Enable JavaScript to complete verification.",
       "retry": "If verification does not load or expires, reload this page and try again."
+    }
+  },
+  "login-id": {
+    "login-id": {
+      "title": "Sign in",
+      "description": "Enter your email or username to continue to ${companyName}.",
+      "usernamePlaceholder": "Email or username",
+      "buttonText": "Continue",
+      "invalid-identifier": "Enter your email or username."
+    }
+  },
+  "login-password": {
+    "login-password": {
+      "title": "Enter your password",
+      "description": "Continue signing in to ${companyName}.",
+      "passwordPlaceholder": "Password",
+      "buttonText": "Sign in",
+      "editEmailText": "Use a different account"
     }
   }
 }

@@ -39,6 +39,10 @@ servers:
         default: tenant.example.com
         description: Any domain of the tenant.
 tags:
+  - name: branding
+    description: Tenant branding, themes and Universal Login page template.
+  - name: prompts
+    description: Universal Login prompt settings, text and partials.
   - name: signing-keys
     description: Tenant managed and stored-only custom signing keys.
   - name: retired-resources
@@ -73,6 +77,447 @@ security:
   - managementToken: []
   - operatorToken: []
 paths:
+  /api/v2/branding:
+    get:
+      operationId: GetBranding
+      summary: GetBranding addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/get-branding
+      security:
+        - managementToken: [read:branding]
+        - operatorToken: []
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      operationId: UpdateBranding
+      summary: UpdateBranding addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/patch-branding
+      security:
+        - managementToken: [update:branding]
+        - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+  /api/v2/branding/templates/universal-login:
+    get:
+      operationId: GetUniversalLoginTemplate
+      summary: GetUniversalLoginTemplate addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/get-universal-login
+      security:
+        - managementToken: [read:branding]
+        - operatorToken: []
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    put:
+      operationId: PutUniversalLoginTemplate
+      summary: PutUniversalLoginTemplate addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/put-universal-login
+      security:
+        - managementToken: [update:branding]
+        - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+          text/html:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      operationId: DeleteUniversalLoginTemplate
+      summary: DeleteUniversalLoginTemplate addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/delete-universal-login
+      security:
+        - managementToken: [update:branding]
+        - operatorToken: []
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+  /api/v2/branding/themes:
+    post:
+      operationId: CreateBrandingTheme
+      summary: CreateBrandingTheme addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/post-branding-theme
+      security:
+        - managementToken: [create:branding]
+        - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+  /api/v2/branding/themes/default:
+    get:
+      operationId: GetDefaultBrandingTheme
+      summary: GetDefaultBrandingTheme addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/get-default-branding-theme
+      security:
+        - managementToken: [read:branding]
+        - operatorToken: []
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+  /api/v2/branding/themes/{themeId}:
+    parameters:
+      - name: themeId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: GetBrandingTheme
+      summary: GetBrandingTheme addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/get-branding-theme
+      security:
+        - managementToken: [read:branding]
+        - operatorToken: []
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      operationId: UpdateBrandingTheme
+      summary: UpdateBrandingTheme addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/patch-branding-theme
+      security:
+        - managementToken: [update:branding]
+        - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      operationId: DeleteBrandingTheme
+      summary: DeleteBrandingTheme addressed to the current tenant
+      tags: [branding]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/branding/delete-branding-theme
+      security:
+        - managementToken: [delete:branding]
+        - operatorToken: []
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+  /api/v2/prompts:
+    get:
+      operationId: GetPromptSettings
+      summary: GetPromptSettings addressed to the current tenant
+      tags: [prompts]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/prompts/get-prompts
+      security:
+        - managementToken: [read:prompts]
+        - operatorToken: []
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    patch:
+      operationId: UpdatePromptSettings
+      summary: UpdatePromptSettings addressed to the current tenant
+      tags: [prompts]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/prompts/patch-prompts
+      security:
+        - managementToken: [update:prompts]
+        - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+  /api/v2/prompts/{prompt}/custom-text/{language}:
+    parameters:
+      - name: prompt
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: language
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: GetPromptCustomText
+      summary: GetPromptCustomText addressed to the current tenant
+      tags: [prompts]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/prompts/get-custom-text-by-language
+      security:
+        - managementToken: [read:prompts]
+        - operatorToken: []
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    put:
+      operationId: PutPromptCustomText
+      summary: PutPromptCustomText addressed to the current tenant
+      tags: [prompts]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/prompts/put-custom-text-by-language
+      security:
+        - managementToken: [update:prompts]
+        - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+  /api/v2/prompts/{prompt}/partials:
+    parameters:
+      - name: prompt
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: GetPromptPartials
+      summary: GetPromptPartials addressed to the current tenant
+      tags: [prompts]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/prompts/get-partials
+      security:
+        - managementToken: [read:prompts]
+        - operatorToken: []
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+    put:
+      operationId: PutPromptPartials
+      summary: PutPromptPartials addressed to the current tenant
+      tags: [prompts]
+      x-source:
+        - https://auth0.com/docs/api/management/v2/prompts/put-partials
+      security:
+        - managementToken: [update:prompts]
+        - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/Forbidden"
   /api/v2/attack-protection/brute-force-protection:
     get:
       operationId: GetBruteForceProtection
@@ -2324,6 +2769,54 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/system/tenants/{tenant}/branding/preview:
+    parameters:
+      - name: tenant
+        in: path
+        required: true
+        description: The tenant's name.
+        schema: {type: string}
+    post:
+      x-source:
+        - https://auth0.com/docs/customize/login-pages/universal-login/customize-templates
+      operationId: previewTenantBranding
+      tags: [system]
+      summary: Preview tenant Universal Login branding.
+      description: |
+        A zeroauthy-specific extension requiring a console operator with signed
+        and persisted target tenant grants and read branding/prompts access.
+        Renders synthetic data without saving overrides or authentication state.
+        External assets and navigation are blocked. Display only in an iframe
+        sandbox granting no capabilities.
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [screen]
+              properties:
+                screen: {type: string}
+                language: {type: string}
+                overrides: {type: object, additionalProperties: true}
+      responses:
+        "200":
+          description: Synthetic isolated preview.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [html, warnings]
+                properties:
+                  html: {type: string}
+                  warnings: {type: array, items: {type: string}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
   /api/system/tenants/{tenant}/emails/preview:
     parameters:
       - name: tenant

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -74,6 +75,27 @@ func (l *Localizer) WithVar(name, value string) *Localizer {
 	return &c
 }
 
+// ApplicationName returns only the public display name already provided by
+// the request's application lookup. It never falls back to a client ID.
+func (l *Localizer) ApplicationName() string {
+	if l == nil {
+		return ""
+	}
+	return l.vars["clientName"]
+}
+
+// WithoutCustom keeps language and public variables while restoring catalog
+// copy, for a rendering fallback after legacy text exceeds output budgets.
+func (l *Localizer) WithoutCustom() *Localizer {
+	if l == nil {
+		return english
+	}
+	copy := *l
+	copy.custom = nil
+	copy.vars = maps.Clone(l.vars)
+	return &copy
+}
+
 // Lang returns the chosen language tag ("en" for a nil localizer).
 func (l *Localizer) Lang() string {
 	if l == nil || l.lang == "" {
@@ -121,6 +143,42 @@ func (l *Localizer) T(key string, kv ...string) string {
 // this language.
 func (l *Localizer) HasCustom(key string) bool {
 	return l != nil && strings.TrimSpace(l.custom[key]) != ""
+}
+
+// ScreenText is the public localized text projection for a hosted screen.
+// Each value goes through the same placeholders and locale fallback as T.
+func (l *Localizer) ScreenText(prompt, screen string) map[string]string {
+	if l == nil {
+		l = english
+	}
+	prefix := prompt + "." + screen + "."
+	out := map[string]string{}
+	for key := range catalogs["en"] {
+		if name, ok := strings.CutPrefix(key, prefix); ok {
+			out[name] = l.T(key)
+		}
+	}
+	for key := range l.custom {
+		if name, ok := strings.CutPrefix(key, prefix); ok {
+			if custom, ok := strings.CutPrefix(name, "var-"); ok && custom != "" {
+				runes := []rune(custom)
+				runes[0] = unicode.ToUpper(runes[0])
+				name = "var" + string(runes)
+			}
+			out[name] = l.T(key)
+		}
+	}
+	return out
+}
+
+func KnownScreen(prompt, screen string) bool {
+	prefix := prompt + "." + screen + "."
+	for key := range catalogs["en"] {
+		if strings.HasPrefix(key, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func builtin(lang, key string) (string, bool) {

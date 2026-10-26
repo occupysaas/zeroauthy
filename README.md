@@ -36,7 +36,7 @@ features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–21)
+**Done** (Plans 1–22)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -60,19 +60,22 @@ each with its console screens; the full breakdown is in the
 - Managed signing keys, stored-only custom public JWKS, and credential-preserving bootstrap are implemented.
 - The pinned Deploy CLI passes local YAML/directory imports for clients, APIs, grants and tenant settings, with generated or preserved credentials. Three handlers await future APIs; the upstream observer lane remains unavailable. See [signing keys](docs/signing-keys.md) and [Deploy CLI migration](docs/deploy-cli.md) for current limits.
 
-**Later** (Plans 22–38)
+**Branding and Universal Login (Plan 22)**
+
+- Tenant branding, themes, bounded page templates, identifier-first login, localized text and transient form partials; console editors with isolated preview. See [branding](docs/branding.md) and the [implementation record](docs/superpowers/plan-22-implementation-record.md) for supported syntax and compatibility limits.
+
+**Later** (Plans 23–38)
 
 | Plans | Area |
 |---|---|
-| 22–23 | Branding and Universal Login page templates; custom domains with automatic certificates |
+| 23 | Custom domains with automatic certificates |
 | 24–25 | Social connections (generic OAuth 2 and OIDC, Google, Apple, Facebook, Microsoft, …) |
 | 26–28 | Roles and permissions; Actions |
 | 29–32 | Organizations; logs, log streams and stats; event streams |
 | 33–35 | MFA; passwordless and SMS; `private_key_jwt`, JAR and token exchange |
 | 36–38 | Enterprise connections (OIDC, Okta, Entra ID, SAML, WS-Federation, AD/LDAP), SCIM, Forms and Flows |
 
-Of Auth0's roughly 40 Management API resource groups, 10 are done, 3 are
-implemented pending final verification, 25 are planned and 4 are not planned (Rules, Hooks and
+Of Auth0's roughly 40 Management API resource groups, 13 are done, 25 are planned and 4 are not planned (Rules, Hooks and
 rules-configs, which Auth0 is retiring, and customer-managed encryption keys).
 
 ## Quick start

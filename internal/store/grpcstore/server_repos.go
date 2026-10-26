@@ -2,6 +2,7 @@ package grpcstore
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -1223,5 +1224,27 @@ func (s *Server) EmailNotificationsClaim(ctx context.Context, r *storev1.EmailNo
 func (s *Server) EmailNotificationsSweep(ctx context.Context, r *storev1.EmailNotificationSweepRequest) (*storev1.CountResult, error) {
 	return count(s, r.TxId, func(st store.Store) (int, error) {
 		return st.EmailNotifications().Sweep(ctx, tsFromPB(r.Before), int(r.Limit))
+	}), nil
+}
+
+func (s *Server) HostedLoginsGet(ctx context.Context, r *storev1.TenantScope) (*storev1.HostedLoginConfigResult, error) {
+	v, e, err := one(s, r.TxId, func(st store.Store) (*store.HostedLoginConfig, error) { return st.HostedLogins().Get(ctx, r.TenantId) }, hostedLoginConfigToPB)
+	if err != nil {
+		return nil, err
+	}
+	return &storev1.HostedLoginConfigResult{Error: e, Value: v}, nil
+}
+func (s *Server) HostedLoginsPut(ctx context.Context, r *storev1.HostedLoginConfigWrite) (*storev1.Result, error) {
+	return write(s, r.TxId, r.Value, hostedLoginConfigFromPB, func(st store.Store, c *store.HostedLoginConfig) error {
+		return st.HostedLogins().Put(ctx, c, r.ExpectedRevision)
+	}), nil
+}
+func (s *Server) AuthTransactionsCompareAndSwapHosted(ctx context.Context, r *storev1.HostedStateCASRequest) (*storev1.Result, error) {
+	var next store.HostedLoginState
+	if err := json.Unmarshal([]byte(r.NextJson), &next); err != nil {
+		return &storev1.Result{Error: errToPB(store.ErrInvalid)}, nil
+	}
+	return exec(s, r.TxId, func(st store.Store) error {
+		return st.AuthTransactions().CompareAndSwapHosted(ctx, r.TenantId, r.Id, r.ExpectedRevision, next, tsFromPB(r.Now))
 	}), nil
 }

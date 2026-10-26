@@ -103,3 +103,17 @@ credentials or resume by replacing them. Ephemeral memory storage is refused.
 The upstream observer helper only exports. It never imports to Auth0. Store
 observer exports in restricted locations and do not attach raw exports or
 credential files to issues or logs.
+
+Plan 22 adds nonempty branding settings, the active default theme, prompt
+settings, custom text and partials to the strict local round trip. Each family
+has a negative comparison that must detect a changed field or file. Theme IDs
+are matched only through the exported theme's stable display name; no other
+theme fields are dropped. Directory prompt settings/custom-text/partials files
+are combined without executing Liquid.
+
+Page-template CRUD is covered by the actual Node SDK and CLI API commands in
+`make e2e-branding`. Deploy CLI 9.1.0 queries custom-domain discovery before
+exporting a page template; this prerequisite is unavailable. The migration lane
+saves a nonempty template and asserts that the tool omits it, reporting the
+limitation separately. It neither fakes a domain nor declares that template
+round trip successful. ACUL screen-renderer discovery also remains unavailable.

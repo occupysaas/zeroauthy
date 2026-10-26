@@ -59,7 +59,7 @@ func (h *Handlers) newEntry(w http.ResponseWriter, r *http.Request, res tenant.R
 		return nil, err
 	}
 	l := i18n.ForRequest(res.Tenant, r, uiLocales)
-	return &flow{res: res, view: ui.TenantView(res.Tenant, l), txn: txn}, nil
+	return &flow{res: res, view: ui.RequestTenant(r, res.Tenant, l), txn: txn}, nil
 }
 
 // checkCode looks up the code typed on the entry transaction f, within
@@ -225,5 +225,5 @@ func (h *Handlers) deviceResult(w http.ResponseWriter, r *http.Request, allowed 
 		h.fail(w, r, errTxn, nil)
 		return
 	}
-	ui.RenderDeviceResult(w, ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, "")), allowed)
+	ui.RenderDeviceResult(w, ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, "")), allowed)
 }

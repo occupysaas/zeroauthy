@@ -74,6 +74,8 @@ const (
 	StoreService_CustomSigningKeysGet_FullMethodName                   = "/zeroauthy.store.v1.StoreService/CustomSigningKeysGet"
 	StoreService_CustomSigningKeysReplace_FullMethodName               = "/zeroauthy.store.v1.StoreService/CustomSigningKeysReplace"
 	StoreService_CustomSigningKeysDelete_FullMethodName                = "/zeroauthy.store.v1.StoreService/CustomSigningKeysDelete"
+	StoreService_HostedLoginsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/HostedLoginsGet"
+	StoreService_HostedLoginsPut_FullMethodName                        = "/zeroauthy.store.v1.StoreService/HostedLoginsPut"
 	StoreService_EmailProvidersGet_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EmailProvidersGet"
 	StoreService_EmailProvidersPut_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EmailProvidersPut"
 	StoreService_EmailProvidersDelete_FullMethodName                   = "/zeroauthy.store.v1.StoreService/EmailProvidersDelete"
@@ -116,6 +118,7 @@ const (
 	StoreService_AuthTransactionsGet_FullMethodName                    = "/zeroauthy.store.v1.StoreService/AuthTransactionsGet"
 	StoreService_AuthTransactionsDelete_FullMethodName                 = "/zeroauthy.store.v1.StoreService/AuthTransactionsDelete"
 	StoreService_AuthTransactionsDeleteExpired_FullMethodName          = "/zeroauthy.store.v1.StoreService/AuthTransactionsDeleteExpired"
+	StoreService_AuthTransactionsCompareAndSwapHosted_FullMethodName   = "/zeroauthy.store.v1.StoreService/AuthTransactionsCompareAndSwapHosted"
 	StoreService_AuthCodesCreate_FullMethodName                        = "/zeroauthy.store.v1.StoreService/AuthCodesCreate"
 	StoreService_AuthCodesConsume_FullMethodName                       = "/zeroauthy.store.v1.StoreService/AuthCodesConsume"
 	StoreService_AuthCodesGet_FullMethodName                           = "/zeroauthy.store.v1.StoreService/AuthCodesGet"
@@ -286,6 +289,8 @@ type StoreServiceClient interface {
 	CustomSigningKeysGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*CustomSigningKeySetResult, error)
 	CustomSigningKeysReplace(ctx context.Context, in *CustomSigningKeySetWrite, opts ...grpc.CallOption) (*Result, error)
 	CustomSigningKeysDelete(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*Result, error)
+	HostedLoginsGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*HostedLoginConfigResult, error)
+	HostedLoginsPut(ctx context.Context, in *HostedLoginConfigWrite, opts ...grpc.CallOption) (*Result, error)
 	EmailProvidersGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*EmailProviderResult, error)
 	EmailProvidersPut(ctx context.Context, in *EmailProviderWrite, opts ...grpc.CallOption) (*Result, error)
 	EmailProvidersDelete(ctx context.Context, in *EmailProviderDeleteRequest, opts ...grpc.CallOption) (*Result, error)
@@ -329,6 +334,7 @@ type StoreServiceClient interface {
 	AuthTransactionsGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*AuthTransactionResult, error)
 	AuthTransactionsDelete(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*Result, error)
 	AuthTransactionsDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
+	AuthTransactionsCompareAndSwapHosted(ctx context.Context, in *HostedStateCASRequest, opts ...grpc.CallOption) (*Result, error)
 	AuthCodesCreate(ctx context.Context, in *AuthCodeWrite, opts ...grpc.CallOption) (*Result, error)
 	AuthCodesConsume(ctx context.Context, in *ConsumeRequest, opts ...grpc.CallOption) (*AuthCodeResult, error)
 	AuthCodesGet(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (*AuthCodeResult, error)
@@ -948,6 +954,26 @@ func (c *storeServiceClient) CustomSigningKeysDelete(ctx context.Context, in *Te
 	return out, nil
 }
 
+func (c *storeServiceClient) HostedLoginsGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*HostedLoginConfigResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HostedLoginConfigResult)
+	err := c.cc.Invoke(ctx, StoreService_HostedLoginsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) HostedLoginsPut(ctx context.Context, in *HostedLoginConfigWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_HostedLoginsPut_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storeServiceClient) EmailProvidersGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*EmailProviderResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EmailProviderResult)
@@ -1362,6 +1388,16 @@ func (c *storeServiceClient) AuthTransactionsDeleteExpired(ctx context.Context, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CountResult)
 	err := c.cc.Invoke(ctx, StoreService_AuthTransactionsDeleteExpired_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) AuthTransactionsCompareAndSwapHosted(ctx context.Context, in *HostedStateCASRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_AuthTransactionsCompareAndSwapHosted_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1995,6 +2031,8 @@ type StoreServiceServer interface {
 	CustomSigningKeysGet(context.Context, *TenantScope) (*CustomSigningKeySetResult, error)
 	CustomSigningKeysReplace(context.Context, *CustomSigningKeySetWrite) (*Result, error)
 	CustomSigningKeysDelete(context.Context, *TenantScope) (*Result, error)
+	HostedLoginsGet(context.Context, *TenantScope) (*HostedLoginConfigResult, error)
+	HostedLoginsPut(context.Context, *HostedLoginConfigWrite) (*Result, error)
 	EmailProvidersGet(context.Context, *TenantScope) (*EmailProviderResult, error)
 	EmailProvidersPut(context.Context, *EmailProviderWrite) (*Result, error)
 	EmailProvidersDelete(context.Context, *EmailProviderDeleteRequest) (*Result, error)
@@ -2038,6 +2076,7 @@ type StoreServiceServer interface {
 	AuthTransactionsGet(context.Context, *ScopedKey) (*AuthTransactionResult, error)
 	AuthTransactionsDelete(context.Context, *ScopedKey) (*Result, error)
 	AuthTransactionsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
+	AuthTransactionsCompareAndSwapHosted(context.Context, *HostedStateCASRequest) (*Result, error)
 	AuthCodesCreate(context.Context, *AuthCodeWrite) (*Result, error)
 	AuthCodesConsume(context.Context, *ConsumeRequest) (*AuthCodeResult, error)
 	AuthCodesGet(context.Context, *ScopedKey) (*AuthCodeResult, error)
@@ -2272,6 +2311,12 @@ func (UnimplementedStoreServiceServer) CustomSigningKeysReplace(context.Context,
 func (UnimplementedStoreServiceServer) CustomSigningKeysDelete(context.Context, *TenantScope) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method CustomSigningKeysDelete not implemented")
 }
+func (UnimplementedStoreServiceServer) HostedLoginsGet(context.Context, *TenantScope) (*HostedLoginConfigResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method HostedLoginsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) HostedLoginsPut(context.Context, *HostedLoginConfigWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method HostedLoginsPut not implemented")
+}
 func (UnimplementedStoreServiceServer) EmailProvidersGet(context.Context, *TenantScope) (*EmailProviderResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method EmailProvidersGet not implemented")
 }
@@ -2397,6 +2442,9 @@ func (UnimplementedStoreServiceServer) AuthTransactionsDelete(context.Context, *
 }
 func (UnimplementedStoreServiceServer) AuthTransactionsDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method AuthTransactionsDeleteExpired not implemented")
+}
+func (UnimplementedStoreServiceServer) AuthTransactionsCompareAndSwapHosted(context.Context, *HostedStateCASRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method AuthTransactionsCompareAndSwapHosted not implemented")
 }
 func (UnimplementedStoreServiceServer) AuthCodesCreate(context.Context, *AuthCodeWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method AuthCodesCreate not implemented")
@@ -3559,6 +3607,42 @@ func _StoreService_CustomSigningKeysDelete_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_HostedLoginsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).HostedLoginsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_HostedLoginsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).HostedLoginsGet(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_HostedLoginsPut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HostedLoginConfigWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).HostedLoginsPut(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_HostedLoginsPut_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).HostedLoginsPut(ctx, req.(*HostedLoginConfigWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StoreService_EmailProvidersGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TenantScope)
 	if err := dec(in); err != nil {
@@ -4311,6 +4395,24 @@ func _StoreService_AuthTransactionsDeleteExpired_Handler(srv interface{}, ctx co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).AuthTransactionsDeleteExpired(ctx, req.(*DeleteExpiredRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_AuthTransactionsCompareAndSwapHosted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HostedStateCASRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).AuthTransactionsCompareAndSwapHosted(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_AuthTransactionsCompareAndSwapHosted_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).AuthTransactionsCompareAndSwapHosted(ctx, req.(*HostedStateCASRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -5436,6 +5538,14 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StoreService_CustomSigningKeysDelete_Handler,
 		},
 		{
+			MethodName: "HostedLoginsGet",
+			Handler:    _StoreService_HostedLoginsGet_Handler,
+		},
+		{
+			MethodName: "HostedLoginsPut",
+			Handler:    _StoreService_HostedLoginsPut_Handler,
+		},
+		{
 			MethodName: "EmailProvidersGet",
 			Handler:    _StoreService_EmailProvidersGet_Handler,
 		},
@@ -5602,6 +5712,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AuthTransactionsDeleteExpired",
 			Handler:    _StoreService_AuthTransactionsDeleteExpired_Handler,
+		},
+		{
+			MethodName: "AuthTransactionsCompareAndSwapHosted",
+			Handler:    _StoreService_AuthTransactionsCompareAndSwapHosted_Handler,
 		},
 		{
 			MethodName: "AuthCodesCreate",

@@ -1,0 +1,20 @@
+{
+  "universal_login_experience": "new",
+  "identifier_first": true,
+  "customText": {
+    "en": {
+      "login-id": {
+        "login-id": {
+          "title": "Deploy identify"
+        }
+      }
+    }
+  },
+  "partials": {
+    "login-id": {
+      "login-id": {
+        "form-footer-start": "<p>Deploy footer</p>"
+      }
+    }
+  }
+}

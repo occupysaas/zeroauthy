@@ -4424,6 +4424,13 @@ type DeleteTenantParams struct {
 	Confirm string `form:"confirm" json:"confirm"`
 }
 
+// PreviewTenantBrandingJSONBody defines parameters for PreviewTenantBranding.
+type PreviewTenantBrandingJSONBody struct {
+	Language  *string                 `json:"language,omitempty"`
+	Overrides *map[string]interface{} `json:"overrides,omitempty"`
+	Screen    string                  `json:"screen"`
+}
+
 // GetTenantJobsParams defines parameters for GetTenantJobs.
 type GetTenantJobsParams struct {
 	// Page Page index of the results, from 0.
@@ -4443,6 +4450,18 @@ type GetTenantJobs200JSONResponseBody0 = []Job
 type GetTenantJobs200JSONResponseBody struct {
 	union json.RawMessage
 }
+
+// UpdateBrandingJSONBody defines parameters for UpdateBranding.
+type UpdateBrandingJSONBody map[string]interface{}
+
+// PutUniversalLoginTemplateJSONBody defines parameters for PutUniversalLoginTemplate.
+type PutUniversalLoginTemplateJSONBody map[string]interface{}
+
+// CreateBrandingThemeJSONBody defines parameters for CreateBrandingTheme.
+type CreateBrandingThemeJSONBody map[string]interface{}
+
+// UpdateBrandingThemeJSONBody defines parameters for UpdateBrandingTheme.
+type UpdateBrandingThemeJSONBody map[string]interface{}
 
 // GetClientGrantsParams defines parameters for GetClientGrants.
 type GetClientGrantsParams struct {
@@ -4645,6 +4664,15 @@ type GetJobErrors200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// UpdatePromptSettingsJSONBody defines parameters for UpdatePromptSettings.
+type UpdatePromptSettingsJSONBody map[string]interface{}
+
+// PutPromptCustomTextJSONBody defines parameters for PutPromptCustomText.
+type PutPromptCustomTextJSONBody map[string]interface{}
+
+// PutPromptPartialsJSONBody defines parameters for PutPromptPartials.
+type PutPromptPartialsJSONBody map[string]interface{}
+
 // GetResourceServersParams defines parameters for GetResourceServers.
 type GetResourceServersParams struct {
 	// Page Page index of the results, from 0.
@@ -4814,6 +4842,9 @@ type CreateTenantJSONRequestBody = TenantCreate
 // UpdateTenantJSONRequestBody defines body for UpdateTenant for application/json ContentType.
 type UpdateTenantJSONRequestBody = TenantUpdate
 
+// PreviewTenantBrandingJSONRequestBody defines body for PreviewTenantBranding for application/json ContentType.
+type PreviewTenantBrandingJSONRequestBody PreviewTenantBrandingJSONBody
+
 // TryConnectionScriptJSONRequestBody defines body for TryConnectionScript for application/json ContentType.
 type TryConnectionScriptJSONRequestBody = ScriptTry
 
@@ -4837,6 +4868,18 @@ type UpdateCaptchaJSONRequestBody = CaptchaUpdate
 
 // UpdateSuspiciousIpThrottlingJSONRequestBody defines body for UpdateSuspiciousIpThrottling for application/json ContentType.
 type UpdateSuspiciousIpThrottlingJSONRequestBody = SuspiciousIpThrottlingUpdate
+
+// UpdateBrandingJSONRequestBody defines body for UpdateBranding for application/json ContentType.
+type UpdateBrandingJSONRequestBody UpdateBrandingJSONBody
+
+// PutUniversalLoginTemplateJSONRequestBody defines body for PutUniversalLoginTemplate for application/json ContentType.
+type PutUniversalLoginTemplateJSONRequestBody PutUniversalLoginTemplateJSONBody
+
+// CreateBrandingThemeJSONRequestBody defines body for CreateBrandingTheme for application/json ContentType.
+type CreateBrandingThemeJSONRequestBody CreateBrandingThemeJSONBody
+
+// UpdateBrandingThemeJSONRequestBody defines body for UpdateBrandingTheme for application/json ContentType.
+type UpdateBrandingThemeJSONRequestBody UpdateBrandingThemeJSONBody
 
 // CreateClientGrantJSONRequestBody defines body for CreateClientGrant for application/json ContentType.
 type CreateClientGrantJSONRequestBody = ClientGrantCreate
@@ -4885,6 +4928,15 @@ type CreateVerificationEmailJobJSONRequestBody = VerificationEmailJobCreate
 
 // PutCustomSigningKeysJSONRequestBody defines body for PutCustomSigningKeys for application/json ContentType.
 type PutCustomSigningKeysJSONRequestBody = CustomSigningJWKS
+
+// UpdatePromptSettingsJSONRequestBody defines body for UpdatePromptSettings for application/json ContentType.
+type UpdatePromptSettingsJSONRequestBody UpdatePromptSettingsJSONBody
+
+// PutPromptCustomTextJSONRequestBody defines body for PutPromptCustomText for application/json ContentType.
+type PutPromptCustomTextJSONRequestBody PutPromptCustomTextJSONBody
+
+// PutPromptPartialsJSONRequestBody defines body for PutPromptPartials for application/json ContentType.
+type PutPromptPartialsJSONRequestBody PutPromptPartialsJSONBody
 
 // CreateResourceServerJSONRequestBody defines body for CreateResourceServer for application/json ContentType.
 type CreateResourceServerJSONRequestBody = ResourceServerCreate
@@ -6415,6 +6467,9 @@ type ServerInterface interface {
 	// UpdateTenant Update a tenant
 	// (PATCH /api/system/tenants/{name})
 	UpdateTenant(w http.ResponseWriter, r *http.Request, name string)
+	// PreviewTenantBranding Preview tenant Universal Login branding.
+	// (POST /api/system/tenants/{tenant}/branding/preview)
+	PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string)
 	// TryConnectionScript Try a custom database script
 	// (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 	TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string)
@@ -6463,6 +6518,36 @@ type ServerInterface interface {
 	// UpdateSuspiciousIpThrottling Update suspicious-ip-throttling
 	// (PATCH /api/v2/attack-protection/suspicious-ip-throttling)
 	UpdateSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request)
+	// GetBranding GetBranding addressed to the current tenant
+	// (GET /api/v2/branding)
+	GetBranding(w http.ResponseWriter, r *http.Request)
+	// UpdateBranding UpdateBranding addressed to the current tenant
+	// (PATCH /api/v2/branding)
+	UpdateBranding(w http.ResponseWriter, r *http.Request)
+	// DeleteUniversalLoginTemplate DeleteUniversalLoginTemplate addressed to the current tenant
+	// (DELETE /api/v2/branding/templates/universal-login)
+	DeleteUniversalLoginTemplate(w http.ResponseWriter, r *http.Request)
+	// GetUniversalLoginTemplate GetUniversalLoginTemplate addressed to the current tenant
+	// (GET /api/v2/branding/templates/universal-login)
+	GetUniversalLoginTemplate(w http.ResponseWriter, r *http.Request)
+	// PutUniversalLoginTemplate PutUniversalLoginTemplate addressed to the current tenant
+	// (PUT /api/v2/branding/templates/universal-login)
+	PutUniversalLoginTemplate(w http.ResponseWriter, r *http.Request)
+	// CreateBrandingTheme CreateBrandingTheme addressed to the current tenant
+	// (POST /api/v2/branding/themes)
+	CreateBrandingTheme(w http.ResponseWriter, r *http.Request)
+	// GetDefaultBrandingTheme GetDefaultBrandingTheme addressed to the current tenant
+	// (GET /api/v2/branding/themes/default)
+	GetDefaultBrandingTheme(w http.ResponseWriter, r *http.Request)
+	// DeleteBrandingTheme DeleteBrandingTheme addressed to the current tenant
+	// (DELETE /api/v2/branding/themes/{themeId})
+	DeleteBrandingTheme(w http.ResponseWriter, r *http.Request, themeId string)
+	// GetBrandingTheme GetBrandingTheme addressed to the current tenant
+	// (GET /api/v2/branding/themes/{themeId})
+	GetBrandingTheme(w http.ResponseWriter, r *http.Request, themeId string)
+	// UpdateBrandingTheme UpdateBrandingTheme addressed to the current tenant
+	// (PATCH /api/v2/branding/themes/{themeId})
+	UpdateBrandingTheme(w http.ResponseWriter, r *http.Request, themeId string)
 	// GetClientGrants List client grants
 	// (GET /api/v2/client-grants)
 	GetClientGrants(w http.ResponseWriter, r *http.Request, params GetClientGrantsParams)
@@ -6589,6 +6674,24 @@ type ServerInterface interface {
 	// RevokeSigningKey Revoke an eligible previous signing key.
 	// (PUT /api/v2/keys/signing/{kid}/revoke)
 	RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string)
+	// GetPromptSettings GetPromptSettings addressed to the current tenant
+	// (GET /api/v2/prompts)
+	GetPromptSettings(w http.ResponseWriter, r *http.Request)
+	// UpdatePromptSettings UpdatePromptSettings addressed to the current tenant
+	// (PATCH /api/v2/prompts)
+	UpdatePromptSettings(w http.ResponseWriter, r *http.Request)
+	// GetPromptCustomText GetPromptCustomText addressed to the current tenant
+	// (GET /api/v2/prompts/{prompt}/custom-text/{language})
+	GetPromptCustomText(w http.ResponseWriter, r *http.Request, prompt string, language string)
+	// PutPromptCustomText PutPromptCustomText addressed to the current tenant
+	// (PUT /api/v2/prompts/{prompt}/custom-text/{language})
+	PutPromptCustomText(w http.ResponseWriter, r *http.Request, prompt string, language string)
+	// GetPromptPartials GetPromptPartials addressed to the current tenant
+	// (GET /api/v2/prompts/{prompt}/partials)
+	GetPromptPartials(w http.ResponseWriter, r *http.Request, prompt string)
+	// PutPromptPartials PutPromptPartials addressed to the current tenant
+	// (PUT /api/v2/prompts/{prompt}/partials)
+	PutPromptPartials(w http.ResponseWriter, r *http.Request, prompt string)
 	// DeleteRefreshToken Delete a refresh token
 	// (DELETE /api/v2/refresh-tokens/{id})
 	DeleteRefreshToken(w http.ResponseWriter, r *http.Request, id string)
@@ -6730,6 +6833,12 @@ func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// PreviewTenantBranding Preview tenant Universal Login branding.
+// (POST /api/system/tenants/{tenant}/branding/preview)
+func (_ Unimplemented) PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // TryConnectionScript Try a custom database script
 // (POST /api/system/tenants/{tenant}/connections/{id}/scripts/{name}/try)
 func (_ Unimplemented) TryConnectionScript(w http.ResponseWriter, r *http.Request, tenant string, id string, name string) {
@@ -6823,6 +6932,66 @@ func (_ Unimplemented) GetSuspiciousIpThrottling(w http.ResponseWriter, r *http.
 // UpdateSuspiciousIpThrottling Update suspicious-ip-throttling
 // (PATCH /api/v2/attack-protection/suspicious-ip-throttling)
 func (_ Unimplemented) UpdateSuspiciousIpThrottling(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetBranding GetBranding addressed to the current tenant
+// (GET /api/v2/branding)
+func (_ Unimplemented) GetBranding(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateBranding UpdateBranding addressed to the current tenant
+// (PATCH /api/v2/branding)
+func (_ Unimplemented) UpdateBranding(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUniversalLoginTemplate DeleteUniversalLoginTemplate addressed to the current tenant
+// (DELETE /api/v2/branding/templates/universal-login)
+func (_ Unimplemented) DeleteUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUniversalLoginTemplate GetUniversalLoginTemplate addressed to the current tenant
+// (GET /api/v2/branding/templates/universal-login)
+func (_ Unimplemented) GetUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PutUniversalLoginTemplate PutUniversalLoginTemplate addressed to the current tenant
+// (PUT /api/v2/branding/templates/universal-login)
+func (_ Unimplemented) PutUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateBrandingTheme CreateBrandingTheme addressed to the current tenant
+// (POST /api/v2/branding/themes)
+func (_ Unimplemented) CreateBrandingTheme(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetDefaultBrandingTheme GetDefaultBrandingTheme addressed to the current tenant
+// (GET /api/v2/branding/themes/default)
+func (_ Unimplemented) GetDefaultBrandingTheme(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteBrandingTheme DeleteBrandingTheme addressed to the current tenant
+// (DELETE /api/v2/branding/themes/{themeId})
+func (_ Unimplemented) DeleteBrandingTheme(w http.ResponseWriter, r *http.Request, themeId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetBrandingTheme GetBrandingTheme addressed to the current tenant
+// (GET /api/v2/branding/themes/{themeId})
+func (_ Unimplemented) GetBrandingTheme(w http.ResponseWriter, r *http.Request, themeId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateBrandingTheme UpdateBrandingTheme addressed to the current tenant
+// (PATCH /api/v2/branding/themes/{themeId})
+func (_ Unimplemented) UpdateBrandingTheme(w http.ResponseWriter, r *http.Request, themeId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7075,6 +7244,42 @@ func (_ Unimplemented) GetSigningKey(w http.ResponseWriter, r *http.Request, kid
 // RevokeSigningKey Revoke an eligible previous signing key.
 // (PUT /api/v2/keys/signing/{kid}/revoke)
 func (_ Unimplemented) RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPromptSettings GetPromptSettings addressed to the current tenant
+// (GET /api/v2/prompts)
+func (_ Unimplemented) GetPromptSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdatePromptSettings UpdatePromptSettings addressed to the current tenant
+// (PATCH /api/v2/prompts)
+func (_ Unimplemented) UpdatePromptSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPromptCustomText GetPromptCustomText addressed to the current tenant
+// (GET /api/v2/prompts/{prompt}/custom-text/{language})
+func (_ Unimplemented) GetPromptCustomText(w http.ResponseWriter, r *http.Request, prompt string, language string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PutPromptCustomText PutPromptCustomText addressed to the current tenant
+// (PUT /api/v2/prompts/{prompt}/custom-text/{language})
+func (_ Unimplemented) PutPromptCustomText(w http.ResponseWriter, r *http.Request, prompt string, language string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPromptPartials GetPromptPartials addressed to the current tenant
+// (GET /api/v2/prompts/{prompt}/partials)
+func (_ Unimplemented) GetPromptPartials(w http.ResponseWriter, r *http.Request, prompt string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PutPromptPartials PutPromptPartials addressed to the current tenant
+// (PUT /api/v2/prompts/{prompt}/partials)
+func (_ Unimplemented) PutPromptPartials(w http.ResponseWriter, r *http.Request, prompt string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -7414,6 +7619,32 @@ func (siw *ServerInterfaceWrapper) UpdateTenant(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateTenant(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PreviewTenantBranding operation middleware
+func (siw *ServerInterfaceWrapper) PreviewTenantBranding(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PreviewTenantBranding(w, r, tenant)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7770,6 +8001,182 @@ func (siw *ServerInterfaceWrapper) UpdateSuspiciousIpThrottling(w http.ResponseW
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateSuspiciousIpThrottling(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBranding operation middleware
+func (siw *ServerInterfaceWrapper) GetBranding(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBranding(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateBranding operation middleware
+func (siw *ServerInterfaceWrapper) UpdateBranding(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateBranding(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteUniversalLoginTemplate operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUniversalLoginTemplate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUniversalLoginTemplate operation middleware
+func (siw *ServerInterfaceWrapper) GetUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUniversalLoginTemplate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutUniversalLoginTemplate operation middleware
+func (siw *ServerInterfaceWrapper) PutUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutUniversalLoginTemplate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateBrandingTheme operation middleware
+func (siw *ServerInterfaceWrapper) CreateBrandingTheme(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateBrandingTheme(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDefaultBrandingTheme operation middleware
+func (siw *ServerInterfaceWrapper) GetDefaultBrandingTheme(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDefaultBrandingTheme(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteBrandingTheme operation middleware
+func (siw *ServerInterfaceWrapper) DeleteBrandingTheme(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "themeId" -------------
+	var themeId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "themeId", chi.URLParam(r, "themeId"), &themeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "themeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteBrandingTheme(w, r, themeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBrandingTheme operation middleware
+func (siw *ServerInterfaceWrapper) GetBrandingTheme(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "themeId" -------------
+	var themeId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "themeId", chi.URLParam(r, "themeId"), &themeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "themeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBrandingTheme(w, r, themeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateBrandingTheme operation middleware
+func (siw *ServerInterfaceWrapper) UpdateBrandingTheme(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "themeId" -------------
+	var themeId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "themeId", chi.URLParam(r, "themeId"), &themeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "themeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateBrandingTheme(w, r, themeId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9224,6 +9631,156 @@ func (siw *ServerInterfaceWrapper) RevokeSigningKey(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// GetPromptSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetPromptSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPromptSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePromptSettings operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePromptSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePromptSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPromptCustomText operation middleware
+func (siw *ServerInterfaceWrapper) GetPromptCustomText(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "prompt" -------------
+	var prompt string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "prompt", chi.URLParam(r, "prompt"), &prompt, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prompt", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "language" -------------
+	var language string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "language", chi.URLParam(r, "language"), &language, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPromptCustomText(w, r, prompt, language)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutPromptCustomText operation middleware
+func (siw *ServerInterfaceWrapper) PutPromptCustomText(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "prompt" -------------
+	var prompt string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "prompt", chi.URLParam(r, "prompt"), &prompt, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prompt", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "language" -------------
+	var language string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "language", chi.URLParam(r, "language"), &language, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "language", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutPromptCustomText(w, r, prompt, language)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPromptPartials operation middleware
+func (siw *ServerInterfaceWrapper) GetPromptPartials(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "prompt" -------------
+	var prompt string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "prompt", chi.URLParam(r, "prompt"), &prompt, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prompt", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPromptPartials(w, r, prompt)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutPromptPartials operation middleware
+func (siw *ServerInterfaceWrapper) PutPromptPartials(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "prompt" -------------
+	var prompt string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "prompt", chi.URLParam(r, "prompt"), &prompt, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prompt", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutPromptPartials(w, r, prompt)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteRefreshToken operation middleware
 func (siw *ServerInterfaceWrapper) DeleteRefreshToken(w http.ResponseWriter, r *http.Request) {
 
@@ -10557,6 +11114,54 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/branding", wrapper.GetBranding)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/branding", wrapper.UpdateBranding)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/branding/templates/universal-login", wrapper.DeleteUniversalLoginTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/branding/templates/universal-login", wrapper.GetUniversalLoginTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/branding/templates/universal-login", wrapper.PutUniversalLoginTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/branding/themes", wrapper.CreateBrandingTheme)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/branding/themes/default", wrapper.GetDefaultBrandingTheme)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/branding/themes/{themeId}", wrapper.DeleteBrandingTheme)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/branding/themes/{themeId}", wrapper.GetBrandingTheme)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/branding/themes/{themeId}", wrapper.UpdateBrandingTheme)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/prompts", wrapper.GetPromptSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/prompts", wrapper.UpdatePromptSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/prompts/{prompt}/custom-text/{language}", wrapper.GetPromptCustomText)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/prompts/{prompt}/custom-text/{language}", wrapper.PutPromptCustomText)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/prompts/{prompt}/partials", wrapper.GetPromptPartials)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v2/prompts/{prompt}/partials", wrapper.PutPromptPartials)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/attack-protection/brute-force-protection", wrapper.GetBruteForceProtection)
 	})
 	r.Group(func(r chi.Router) {
@@ -10780,6 +11385,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/jobs", wrapper.GetTenantJobs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/branding/preview", wrapper.PreviewTenantBranding)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/system/tenants/{tenant}/emails/preview", wrapper.PreviewTenantEmail)

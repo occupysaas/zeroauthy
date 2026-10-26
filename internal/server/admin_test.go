@@ -29,10 +29,15 @@ func TestConsoleServedOnSystemHost(t *testing.T) {
 	// The index and every deep link (Review Focus 5) answer the console.
 	for _, p := range []string{"/admin/", "/admin/callback?code=x&state=y", "/admin/t/acme/applications/xyz", "/admin/t/acme/"} {
 		rec := get(sys + p)
-		if rec.Code != 200 || rec.Body.String() != string(index) || rec.Header().Get("Cache-Control") != "no-cache" {
+		if rec.Code != 200 || regexp.MustCompile(`<meta name="zeroauthy-preview-style-nonce" content="[A-Za-z0-9_-]{22}">`).ReplaceAllString(rec.Body.String(), "") != string(index) || rec.Header().Get("Cache-Control") != "no-cache" {
 			t.Errorf("%s = %d %q", p, rec.Code, rec.Header().Get("Cache-Control"))
 		}
 		csp := rec.Header().Get("Content-Security-Policy")
+		nonce := regexp.MustCompile(`<meta name="zeroauthy-preview-style-nonce" content="([A-Za-z0-9_-]{22})">`).FindStringSubmatch(rec.Body.String())
+		if len(nonce) != 2 || !strings.Contains(csp, "style-src 'self' 'nonce-"+nonce[1]+"'") {
+			t.Fatal("preview style nonce not bound to document CSP")
+		}
+
 		for _, want := range []string{"script-src 'self'", "frame-ancestors 'none'", "connect-src 'self' https://acme.example.test https://login.acme.test https://" + mgmtSystemHost, "default-src 'none'"} {
 			if !strings.Contains(csp, want) {
 				t.Errorf("%s: CSP %q lacks %q", p, csp, want)

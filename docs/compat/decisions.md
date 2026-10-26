@@ -843,3 +843,42 @@ was introduced, so NOTICE is unchanged.
   versioned tool limitations, not successful migrations or new empty shims.
   D-0039's credential-preservation recipe and D-0041's built-in API name are
   resolved for supported local migrations; upstream parity remains unobserved.
+
+## D-0048: Branding and Universal Login local contract (Plan 22)
+
+- **Evidence:** Public API documentation and the pinned MIT Node SDK 7.4.0,
+  Auth0 CLI 1.37.0 and Deploy CLI 9.1.0. The frozen operation/field inventory is
+  `internal/brandingrules/inventory.json`; `observations/branding-prompts.md`
+  records unavailable live upstream evidence. Local tests establish zeroauthy's
+  behavior, not unobserved server parity.
+- **Storage and ownership:** A tenant aggregate with CAS owns branding,
+  templates, themes/default pointer, prompt settings, text and partials. Legacy
+  branding/text projects once. Omitted seed sections preserve API configuration.
+  Older plugins fail visibly rather than returning empty records. Theme creation
+  activates it; updating an inactive theme does not; deleting the default clears
+  the pointer without selecting another theme.
+- **Rendering:** Share the bounded email Liquid evaluator while preserving email
+  behavior and limits. Hosted HTML/CSS is a restricted subset, public context
+  is projected and escaped, and branch-sensitive trusted markers preserve the
+  head/widget. Invalid presentation falls back without altering authentication
+  fields/status/CSRF/CAPTCHA. Protocol pages and reserved-system login retain
+  their existing CSP. Full Liquid/Auth0-template parity is not promised.
+- **Preview:** Synthetic server fixtures, no state/config writes, strict no-network
+  CSP and a sandbox granting no capabilities. Because `srcdoc` inherits the
+  console CSP, validated styles rebind to a per-document console style nonce;
+  scripts remain disabled. External image placeholders are intentional.
+- **State:** Identifier-first is captured at transaction creation. CAS precedes
+  password authentication; uncertain infrastructure failures require a fresh
+  transaction. Accessible `ulp-` fields bind exact rendered declarations,
+  configuration revision, state revision, screen and locale. They live only in
+  the expiring transaction, never metadata/claims/logs/mail/custom-DB arguments.
+  Future Actions validation and custom-DB prompt context need separate designs.
+- **Compatibility limits:** Classic/WebAuthn-first settings, unsupported theme
+  controls, recognized future text/partials are stored only. ACUL, tenant
+  JavaScript, custom domains, social controls and organizations remain deferred.
+  Public template APIs supersede the old filesystem-template-directory follow-up.
+- **Tool boundary:** Deploy CLI exports branding settings, the default theme,
+  prompts, custom text and partials. Template export requires custom-domain
+  discovery and is explicitly unavailable; no empty success shim or fabricated
+  domain is added. Missing templates are not normalized away. ACUL discovery
+  remains unavailable and is reported by the pinned tool.

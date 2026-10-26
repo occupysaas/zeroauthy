@@ -51,6 +51,20 @@ func checkLocale(t string) error {
 	return nil
 }
 
+// CanonicalLocale gives API resource paths one identity, including callers
+// that vary letter case. Tenant enabled-locale policy remains separately checked.
+func CanonicalLocale(value string) (string, error) {
+	tag, err := language.Parse(value)
+	if err != nil {
+		return "", err
+	}
+	canonical := tag.String()
+	if err := checkLocale(canonical); err != nil {
+		return "", err
+	}
+	return canonical, nil
+}
+
 // zeroauthyPrompt is the custom-text prompt for zeroauthy's own keys.
 const zeroauthyPrompt = "zeroauthy"
 
@@ -85,8 +99,17 @@ func ValidateCustomText(enabled []string, ct store.CustomText) error {
 				continue
 			}
 			for screen, keys := range screens {
+				variables := map[string]bool{}
 				for k, text := range keys {
 					full := prompt + "." + screen + "." + k
+					if name, custom := strings.CutPrefix(k, "var-"); custom {
+						canonical := strings.ToLower(name)
+						if canonical == "" || variables[canonical] || len(variables) >= 30 {
+							errs = append(errs, fmt.Errorf("custom_text.%s.%s: invalid or duplicate custom variable", prompt, lang))
+							continue
+						}
+						variables[canonical] = true
+					}
 					if strings.TrimSpace(text) == "" {
 						errs = append(errs, fmt.Errorf("custom_text.%s.%s: %q is empty; remove it to use the built-in text", prompt, lang, full))
 						continue

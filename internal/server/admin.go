@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -56,6 +57,9 @@ func (a admin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodHead {
 		return
 	}
+	nonce := secrets.RandomString(22)
+	h.Set("Content-Security-Policy", strings.Replace(a.csp(r), "style-src 'self'", "style-src 'self' 'nonce-"+nonce+"'", 1))
+	index = []byte(strings.Replace(string(index), "<head>", `<head><meta name="zeroauthy-preview-style-nonce" content="`+nonce+`">`, 1))
 	_, _ = w.Write(index)
 }
 

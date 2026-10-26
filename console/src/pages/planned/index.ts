@@ -1,7 +1,6 @@
 import { h, type Component } from 'vue'
 import { isPlanned, sections } from '../../layout/sections'
 import Actions from './Actions.vue'
-import Branding from './Branding.vue'
 import MultiFactor from './MultiFactor.vue'
 import CustomDomains from './CustomDomains.vue'
 import Logs from './Logs.vue'
@@ -19,7 +18,6 @@ function bare(key: string): Component {
 const dedicated: Record<string, Component> = {
   actions: Actions,
   mfa: MultiFactor,
-  branding: Branding,
   social: Social,
   roles: Roles,
   organizations: Organizations,

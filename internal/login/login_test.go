@@ -115,7 +115,11 @@ func (s *syncBuffer) String() string {
 
 func newEnv(t *testing.T) *env {
 	t.Helper()
-	st := memory.New()
+	return newEnvWithStore(t, memory.New())
+}
+
+func newEnvWithStore(t *testing.T, st store.Store) *env {
+	t.Helper()
 	f, err := seed.Parse([]byte(loginSeed))
 	if err != nil {
 		t.Fatal(err)
@@ -154,6 +158,9 @@ func newEnv(t *testing.T) *env {
 	mux.HandleFunc("GET /authorize", az.Authorize)
 	mux.HandleFunc("GET /u/login", h.LoginPage)
 	mux.HandleFunc("POST /u/login", h.LoginSubmit)
+	mux.HandleFunc("GET /u/login/password", h.LoginPasswordGet)
+	mux.HandleFunc("POST /u/login/password", h.LoginPasswordPost)
+	mux.HandleFunc("POST /u/login/identifier", h.LoginIdentifierResetPost)
 	mux.HandleFunc("GET /u/consent", h.ConsentPage)
 	mux.HandleFunc("POST /u/consent", h.ConsentSubmit)
 	mux.HandleFunc("GET /u/signup", h.SignupPage)
@@ -175,9 +182,10 @@ func newEnv(t *testing.T) *env {
 
 // browser is a minimal cookie-keeping client for one host.
 type browser struct {
-	e       *env
-	host    string
-	cookies map[string]*http.Cookie
+	e             *env
+	host          string
+	cookies       map[string]*http.Cookie
+	formRevisions map[string]string // hidden form values observed in rendered pages
 	// acceptLanguage, when set, is sent as the Accept-Language header.
 	acceptLanguage string
 	// remoteAddr, when set, is the request's RemoteAddr (host:port).
@@ -198,6 +206,16 @@ func (b *browser) do(t *testing.T, method, path string, form url.Values) *httpte
 func (b *browser) send(method, path string, form url.Values) *httptest.ResponseRecorder {
 	var r *http.Request
 	if form != nil {
+		// Model a browser submitting the hidden revision from its last rendered
+		// form. Tests of missing/stale bindings supply an explicit value.
+		if state := form.Get("state"); state != "" && !form.Has("hosted_revision") && b.formRevisions[state] != "" {
+			copy := url.Values{}
+			for k, values := range form {
+				copy[k] = append([]string(nil), values...)
+			}
+			copy.Set("hosted_revision", b.formRevisions[state])
+			form = copy
+		}
 		r = httptest.NewRequest(method, "https://"+b.host+path, strings.NewReader(form.Encode()))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	} else {
@@ -214,6 +232,14 @@ func (b *browser) send(method, path string, form url.Values) *httptest.ResponseR
 	}
 	rec := httptest.NewRecorder()
 	b.e.srv.ServeHTTP(rec, r)
+	if revision := hostedRevisionField.FindStringSubmatch(rec.Body.String()); revision != nil {
+		if state := regexp.MustCompile(`name="state" value="([^"]+)"`).FindStringSubmatch(rec.Body.String()); state != nil {
+			if b.formRevisions == nil {
+				b.formRevisions = map[string]string{}
+			}
+			b.formRevisions[state[1]] = revision[1]
+		}
+	}
 	for _, c := range rec.Result().Cookies() {
 		if c.MaxAge < 0 {
 			delete(b.cookies, c.Name)
@@ -568,6 +594,7 @@ func TestLoginPageFollowsAcceptLanguageAndPolicyVariables(t *testing.T) {
 		t.Fatal("default must be English")
 	}
 	// A short password shows the English policy text with ${min} filled in.
+	b.do(t, "GET", "/u/signup?state="+state, nil)
 	rec = b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"new@acme.test"}, "password": {"short"}})
 	if !strings.Contains(rec.Body.String(), "at least 8 characters") {
 		t.Fatalf("policy message:\n%s", rec.Body)
@@ -754,6 +781,7 @@ func TestLegacyLoginScriptFailureRefundsThrottles(t *testing.T) {
 	form := url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"dave legacy 1"}}
 	// More failures than either limit allows: none of them count.
 	for i := 0; i < 5; i++ {
+		b.do(t, "GET", "/u/login?state="+state, nil)
 		rec := b.do(t, "POST", "/u/login", form)
 		if rec.Code != http.StatusInternalServerError || !strings.Contains(rec.Body.String(), "Something went wrong") {
 			t.Fatalf("script failure %d = %d %s", i, rec.Code, rec.Body)
@@ -763,6 +791,7 @@ func TestLegacyLoginScriptFailureRefundsThrottles(t *testing.T) {
 		t.Fatalf("failure not logged: %s", e.logs)
 	}
 	failing = false
+	b.do(t, "GET", "/u/login?state="+state, nil)
 	if rec := b.do(t, "POST", "/u/login", form); rec.Code != 302 {
 		t.Fatalf("login after failures = %d %s", rec.Code, rec.Body)
 	}
@@ -798,10 +827,12 @@ func TestLegacyLoginScriptRaisedErrorCounts(t *testing.T) {
 	state, csrf := b.legacyBegin(t)
 	form := url.Values{"state": {state}, "csrf": {csrf}, "username": {"dave@legacy.test"}, "password": {"guess"}}
 	for i := 0; i < 3; i++ { // the per-user limit is 3
+		b.do(t, "GET", "/u/login?state="+state, nil)
 		if rec := b.do(t, "POST", "/u/login", form); rec.Code != http.StatusInternalServerError {
 			t.Fatalf("attempt %d = %d %s", i, rec.Code, rec.Body)
 		}
 	}
+	b.do(t, "GET", "/u/login?state="+state, nil)
 	if rec := b.do(t, "POST", "/u/login", form); rec.Code != http.StatusTooManyRequests {
 		t.Fatalf("attempt after the limit = %d %s", rec.Code, rec.Body)
 	}

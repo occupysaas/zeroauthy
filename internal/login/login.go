@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -72,6 +73,7 @@ type flow struct {
 	conn *store.Connection
 	// clientName is the application's name, or its client ID when it has none.
 	clientName string
+	config     *store.HostedLoginConfig
 }
 
 // loadTxn validates the transaction named by state: it must exist in this
@@ -94,12 +96,27 @@ func (h *Handlers) loadTxn(r *http.Request, state string) (*flow, error) {
 	if !h.now().Before(txn.ExpiresAt) {
 		return nil, errTxn
 	}
+	config := hostedlogin.Configuration(ctx)
+	if config == nil && !res.Tenant.Reserved {
+		config, err = (hostedlogin.Service{Store: h.Store}).Load(ctx, res.Tenant.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	viewRequest := r
+	if config != nil {
+		res.Tenant = hostedlogin.LocalizedTenant(res.Tenant, config)
+		viewRequest = r.WithContext(hostedlogin.WithConfiguration(ctx, config))
+	}
 	clientName, named := txn.ClientID, false
 	if c, err := h.Store.Clients().Get(ctx, res.Tenant.ID, txn.ClientID); err == nil && c.Name != "" {
 		clientName, named = c.Name, true
 	}
 	l := i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]).WithVar("clientName", clientName)
-	f := &flow{res: res, view: ui.TenantView(res.Tenant, l), txn: txn, clientName: clientName}
+	if r.Method == http.MethodPost && txn.HostedState.FormLanguage != "" {
+		l = i18n.New(res.Tenant, txn.HostedState.FormLanguage).WithVar("clientName", clientName)
+	}
+	f := &flow{res: res, view: ui.RequestTenant(viewRequest, res.Tenant, l), txn: txn, clientName: clientName, config: config}
 	f.view.HasClientName = named
 	return f, nil
 }
@@ -155,7 +172,7 @@ func (h *Handlers) fail(w http.ResponseWriter, r *http.Request, err error, f *fl
 	if f != nil {
 		view = f.view
 	} else if res, ok := tenant.FromContext(r.Context()); ok {
-		view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
+		view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	}
 	switch {
 	case errors.Is(err, errTxn):
@@ -190,10 +207,21 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
+	switch f.txn.HostedState.Step {
+	case "identifier":
+		h.renderIdentifier(w, r, http.StatusOK, f, h.stageData(f, f.txn.Params["login_hint"]))
+		return
+	case "password":
+		http.Redirect(w, r, passwordLocation(f), http.StatusSeeOther)
+		return
+	case "authenticating":
+		h.fail(w, r, errTxn, f)
+		return
+	}
 	if !h.captchaPage(w, r, f, "login") {
 		return
 	}
-	ui.RenderLogin(w, http.StatusOK, f.view, ui.LoginData{
+	h.renderLoginStage(w, r, http.StatusOK, f, ui.LoginData{
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: f.txn.Params["login_hint"], SignupURL: signupURL(f),
 		ForgotURL: h.forgotURL(f), RedirectURI: f.txn.Params["redirect_uri"],
 	})
@@ -237,8 +265,26 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if f.txn.HostedState.Step == "identifier" {
+		h.identifierPost(w, r, f)
+		return
+	}
+	if f.txn.HostedState.Step != "" {
+		h.fail(w, r, errTxn, f)
+		return
+	}
+	if !h.guardHostedForm(w, r, f, "login", "login", func(status int, message string) {
+		data := h.stageData(f, r.PostForm.Get("username")).LoginData
+		data.Error = message
+		h.renderLoginStage(w, r, status, f, data)
+	}) {
+		return
+	}
+	h.authenticateLogin(w, r, f, r.PostForm.Get("username"))
+}
+
+func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *flow, login string) {
 	ctx := r.Context()
-	login := r.PostForm.Get("username")
 	data := ui.LoginData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Login: login, SignupURL: signupURL(f), ForgotURL: h.forgotURL(f), RedirectURI: f.txn.Params["redirect_uri"]}
 
 	svc := h.protectionService()
@@ -249,7 +295,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	if !decision.Allowed {
 		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
-		ui.RenderLogin(w, http.StatusTooManyRequests, f.view, data)
+		h.renderLoginStage(w, r, http.StatusTooManyRequests, f, data)
 		return
 	}
 
@@ -261,7 +307,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		status, key := captchaFailure(err)
 		data.Error = f.view.L.T(key)
-		ui.RenderLogin(w, status, f.view, data)
+		h.renderLoginStage(w, r, status, f, data)
 		return
 	}
 
@@ -297,7 +343,7 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	if breachErr != nil {
 		status, key := breachFailure(breachErr, http.StatusUnauthorized)
 		data.Error = f.view.L.T(key)
-		ui.RenderLogin(w, status, f.view, data)
+		h.renderLoginStage(w, r, status, f, data)
 		return
 	}
 	var ue *identity.UnauthorizedError
@@ -305,22 +351,22 @@ func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, identity.ErrInvalidCredentials):
 		h.log().InfoContext(ctx, "login failed", "tenant", f.res.Tenant.ID, "connection", f.conn.Name)
 		data.Error = f.view.L.T(i18n.KeyWrongCredentials)
-		ui.RenderLogin(w, http.StatusUnauthorized, f.view, data)
+		h.renderLoginStage(w, r, http.StatusUnauthorized, f, data)
 		return
 	case errors.Is(err, identity.ErrPasswordChangeRequired):
 		h.log().InfoContext(ctx, "login failed: password change required", "tenant", f.res.Tenant.ID, "connection", f.conn.Name)
 		data.Error = f.view.L.T(i18n.KeyPasswordChangeRequired)
-		ui.RenderLogin(w, http.StatusForbidden, f.view, data)
+		h.renderLoginStage(w, r, http.StatusForbidden, f, data)
 		return
 	case errors.Is(err, identity.ErrUserBlocked):
 		data.Error = f.view.L.T(i18n.KeyUserBlocked)
-		ui.RenderLogin(w, http.StatusForbidden, f.view, data)
+		h.renderLoginStage(w, r, http.StatusForbidden, f, data)
 		return
 	case errors.As(err, &ue):
 		// A custom database script refused the user with a message meant
 		// for them (D-0023); the attempt still counts.
 		data.Error = ue.Message
-		ui.RenderLogin(w, http.StatusUnauthorized, f.view, data)
+		h.renderLoginStage(w, r, http.StatusUnauthorized, f, data)
 		return
 	case err != nil:
 		// A failure the script raised counts as a failed attempt; one that
@@ -344,7 +390,7 @@ func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 	if !h.captchaPage(w, r, f, "signup") {
 		return
 	}
-	ui.RenderSignup(w, http.StatusOK, f.view, ui.SignupData{
+	h.renderSignup(w, r, http.StatusOK, f, ui.SignupData{
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Email: f.txn.Params["login_hint"],
 		RequiresUsername: f.conn.RequiresUsername, LoginURL: "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
 		RedirectURI: f.txn.Params["redirect_uri"],
@@ -361,6 +407,9 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		State: f.txn.ID, CSRF: f.txn.CSRFToken, Email: email, Username: username,
 		RequiresUsername: f.conn.RequiresUsername, LoginURL: "/u/login?" + url.Values{"state": {f.txn.ID}}.Encode(),
 		RedirectURI: f.txn.Params["redirect_uri"],
+	}
+	if !h.guardHostedForm(w, r, f, "signup", "signup", func(status int, message string) { data.Error = message; h.renderSignup(w, r, status, f, data) }) {
+		return
 	}
 	// Missing required fields are malformed forms, not registration attempts.
 	// Nonempty passwords still reach policy validation after the reservation.
@@ -381,7 +430,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 			h.fail(w, r, malformed, f)
 			return
 		}
-		ui.RenderSignup(w, http.StatusBadRequest, f.view, data)
+		h.renderSignup(w, r, http.StatusBadRequest, f, data)
 		return
 	}
 	svc := h.protectionService()
@@ -392,7 +441,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	if !decision.Allowed {
 		data.Error = f.view.L.T(i18n.KeyTooManyAttempts)
-		ui.RenderSignup(w, http.StatusTooManyRequests, f.view, data)
+		h.renderSignup(w, r, http.StatusTooManyRequests, f, data)
 		return
 	}
 	attemptID := secrets.RandomString(32)
@@ -403,7 +452,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		status, key := captchaFailure(err)
 		data.Error = f.view.L.T(key)
-		ui.RenderSignup(w, status, f.view, data)
+		h.renderSignup(w, r, status, f, data)
 		return
 	}
 
@@ -423,7 +472,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		status, key := breachFailure(err, http.StatusBadRequest)
 		data.Error = f.view.L.T(key)
-		ui.RenderSignup(w, status, f.view, data)
+		h.renderSignup(w, r, status, f, data)
 		return
 	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
@@ -443,15 +492,15 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.As(err, &ue):
 		data.Error = ue.Message
-		ui.RenderSignup(w, http.StatusUnauthorized, f.view, data)
+		h.renderSignup(w, r, http.StatusUnauthorized, f, data)
 		return
 	case errors.As(err, &pe):
 		data.Error = policyMessage(f.view.L, pe)
-		ui.RenderSignup(w, http.StatusBadRequest, f.view, data)
+		h.renderSignup(w, r, http.StatusBadRequest, f, data)
 		return
 	case errors.Is(err, identity.ErrUserExists):
 		data.Error = f.view.L.T(i18n.KeyEmailInUse)
-		ui.RenderSignup(w, http.StatusBadRequest, f.view, data)
+		h.renderSignup(w, r, http.StatusBadRequest, f, data)
 		return
 	case errors.Is(err, identity.ErrSignupDisabled):
 		ui.RenderError(w, http.StatusForbidden, f.view, f.view.L.T(i18n.KeyErrSignupDisabled))

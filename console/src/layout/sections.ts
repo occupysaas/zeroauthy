@@ -34,7 +34,7 @@ export const sections: Section[] = [
   { key: 'attack-protection', label: 'nav.attackProtection', group: 'navGroup.security', path: 'attack-protection', status: 'live' },
   { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: { planned: 'later', api: ['/api/v2/guardian/*'] } },
   { key: 'actions', label: 'nav.actions', group: 'navGroup.actions', path: 'actions', status: { planned: 'later', api: ['/api/v2/actions'] } },
-  { key: 'branding', label: 'nav.branding', group: 'navGroup.branding', path: 'branding', status: { planned: 'later', api: ['/api/v2/branding', '/api/v2/prompts'] } },
+  { key: 'branding', label: 'nav.branding', group: 'navGroup.branding', path: 'branding', status: 'live' },
   { key: 'emails', label: 'nav.emails', group: 'navGroup.branding', path: 'emails', status: 'live' },
   { key: 'custom-domains', label: 'nav.customDomains', group: 'navGroup.branding', path: 'custom-domains', status: { planned: 'later', api: ['/api/v2/custom-domains'] } },
   { key: 'logs', label: 'nav.logs', group: 'navGroup.monitoring', path: 'logs', status: { planned: 'later', api: ['/api/v2/logs', '/api/v2/log-streams'] } },

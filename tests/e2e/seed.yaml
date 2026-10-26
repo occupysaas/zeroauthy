@@ -162,7 +162,7 @@ tenants:
                  "read:signing_keys", "create:signing_keys", "update:signing_keys", "read:rules", "read:hooks",
                  "read:anomaly_blocks", "delete:anomaly_blocks",
                  "read:email_provider", "create:email_provider", "update:email_provider", "delete:email_provider",
-                 "read:email_templates", "create:email_templates", "update:email_templates"]
+                 "read:email_templates", "create:email_templates", "update:email_templates", "read:branding", "update:branding", "create:branding", "delete:branding", "read:prompts", "update:prompts"]
       - client_id: e2e-m2m
         audience: https://api.e2e.local
         scopes: ["read:things"]
@@ -267,4 +267,4 @@ tenants:
                  "read:connections_options", "update:connections_options",
                  "read:users", "create:users", "update:users", "delete:users", "read:users_app_metadata", "update:users_app_metadata",
                  "read:tenant_settings", "update:tenant_settings", "read:attack_protection", "update:attack_protection",
-                 "read:anomaly_blocks", "delete:anomaly_blocks", "read:signing_keys", "create:signing_keys", "update:signing_keys", "read:rules", "read:hooks"]
+                 "read:anomaly_blocks", "delete:anomaly_blocks", "read:signing_keys", "create:signing_keys", "update:signing_keys", "read:rules", "read:hooks", "read:branding", "update:branding", "create:branding", "delete:branding", "read:prompts", "update:prompts"]

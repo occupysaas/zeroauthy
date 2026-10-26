@@ -6,13 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/apirules"
+	"github.com/zeroauthy/zeroauthy/internal/brandingrules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
+	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -113,6 +116,11 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			return err
 		}
 	}
+	if !(createOnly && exists) {
+		if err := applyHostedLogin(ctx, st, tn, in); err != nil {
+			return fmt.Errorf("hosted login: %w", err)
+		}
+	}
 
 	if f.mgmtChecked && tenant.ManagementAPIIdentifier(tn, f.baseDomain) != "" {
 		if _, err := tenantsetup.ManagementAPI(ctx, st, tn, f.baseDomain, now); err != nil {
@@ -159,6 +167,58 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 		}
 	}
 	return nil
+}
+
+func applyHostedLogin(ctx context.Context, st store.Store, tn *store.Tenant, in Tenant) error {
+	current, err := (hostedlogin.Service{Store: st}).Load(ctx, tn.ID)
+	if err != nil {
+		return err
+	}
+	next := current.Clone()
+	branding, hasBranding := in.supplied["branding"].(map[string]any)
+	if in.supplied == nil {
+		hasBranding = true
+		branding = map[string]any{"logo_url": in.Branding.LogoURL, "primary_color": in.Branding.PrimaryColor}
+	}
+	if hasBranding {
+		if next.Branding == nil {
+			next.Branding = map[string]any{}
+		}
+		if _, ok := branding["logo_url"]; ok {
+			if in.Branding.LogoURL == "" {
+				delete(next.Branding, "logo_url")
+			} else {
+				next.Branding["logo_url"] = in.Branding.LogoURL
+			}
+		}
+		if _, ok := branding["primary_color"]; ok {
+			colors, _ := next.Branding["colors"].(map[string]any)
+			colors = store.CloneSettings(colors)
+			if colors == nil {
+				colors = map[string]any{}
+			}
+			if in.Branding.PrimaryColor == "" {
+				delete(colors, "primary")
+			} else {
+				colors["primary"] = strings.ToLower(in.Branding.PrimaryColor)
+			}
+			if len(colors) == 0 {
+				delete(next.Branding, "colors")
+			} else {
+				next.Branding["colors"] = colors
+			}
+		}
+	}
+	if _, ok := in.supplied["custom_text"]; ok || in.supplied == nil {
+		next.CustomText = in.CustomText.Clone()
+	}
+	if reflect.DeepEqual(current, next) {
+		return nil
+	}
+	if err := brandingrules.ValidateUpdate(current, next); err != nil {
+		return err
+	}
+	return st.HostedLogins().Put(ctx, next, current.Revision)
 }
 
 func applyResourceServer(ctx context.Context, st store.Store, tenantID string, in ResourceServer, now time.Time, createOnly bool) error {

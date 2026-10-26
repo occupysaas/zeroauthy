@@ -71,6 +71,7 @@ func (s *Store) snapshot() *state {
 		jobs:                   cloneMap(s.jobs, cloneJob),
 		jobErrors:              cloneJobErrorMap(s.jobErrors),
 		jobFiles:               cloneJobFiles(s.jobFiles),
+		hostedLogins:           cloneMap(s.hostedLogins, func(c *store.HostedLoginConfig) *store.HostedLoginConfig { return c.Clone() }),
 		emailProviders:         cloneMap(s.emailProviders, cloneEmailProvider),
 		emailProviderRevisions: maps.Clone(s.emailProviderRevisions),
 		emailTemplates:         cloneMap(s.emailTemplates, cloneEmailTemplate),
@@ -93,6 +94,7 @@ func (s *Store) restore(snap *state) {
 	s.verifyTickets = snap.verifyTickets
 	s.operators, s.passwordHistories = snap.operators, snap.passwordHistories
 	s.jobs, s.jobErrors, s.jobFiles = snap.jobs, snap.jobErrors, snap.jobFiles
+	s.hostedLogins = snap.hostedLogins
 	s.emailProviders, s.emailProviderRevisions = snap.emailProviders, snap.emailProviderRevisions
 	s.emailTemplates, s.emailNotifications = snap.emailTemplates, snap.emailNotifications
 }

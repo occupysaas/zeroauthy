@@ -94,6 +94,7 @@ func TestBreachHostedLoginAndSignup(t *testing.T) {
 		t.Fatal("login", rec.Code, c.calls)
 	}
 	form.Set("email", "new@acme.test")
+	b.do(t, "GET", "/u/signup?state="+state, nil)
 	rec = b.do(t, "POST", "/u/signup", form)
 	if rec.Code != 400 || c.calls != 2 {
 		t.Fatal("signup", rec.Code, c.calls)

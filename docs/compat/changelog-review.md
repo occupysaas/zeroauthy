@@ -44,6 +44,8 @@ Okta products) need no row; the "Reviewed through" date covers them.
 | 2026-10-25 | 2026-10-21 (newest entry found) | Codex (Plan 20 implementation) | Re-read the public changelog through 2026-10-25. No newer signing-key, deploy-cli migration or retired Rules/Hooks change found; the Oct 21 CLI Agent Mode entry does not affect these surfaces. See Plan 20's documented evidence boundary in `observations/management-signing-keys.md` and `observations/management-deploy-cli.md`. |
 | 2026-10-25 | 2026-10-21 (newest entry found) | Codex (Plan 21 implementation) | Reviewed public changelog pages through 2026-10-25 for email provider and template changes. No newer relevant change was identified in the pages checked; tenant behavior remains unobserved. See `observations/management-email.md`. |
 
+| 2026-10-25 | 2026-10-22 (newest entry found) | Codex (Plan 22 implementation) | Fetched the full public changelog HTML (4.4 MB) and extracted dated entries, not search snippets. Since the previous review: Oct 22 CIMD dynamic registration and Application Profiles EA concern future OAuth/application work; the Oct 22 configurable brute-force unblock mode belongs to the Plan 19 follow-up. No newer branding/theme/template/prompt entry through Oct 25. No upstream tenant was queried. |
+
 ## Relevant entries
 
 | Date | Summary | Surface | Impact | Outcome |
@@ -61,6 +63,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 
 | Entry date | Feature, in our words | Target milestone / sub-project | Status |
 |---|---|---|---|
+| 2026-10-22 | Configurable automatic/manual recovery-link unblock mode for brute-force protection | Plan 19 follow-up | open |
 | 2025-10-28 | Confirmation step for non-verifiable callback URIs; `prompt=none` limits | Milestone 10 (Plan 9) | done (Plan 9) |
 | 2025-10-10 | Private-key-JWT client assertions must use the issuer string as `aud` | When `private_key_jwt` client auth is added | open |
 | 2025-08-11 / 2026-04-14 | Multi-resource refresh tokens (one refresh token, several APIs) | Later (refresh tokens) | open |
@@ -84,3 +87,12 @@ implement the frozen 2026-10-22 evidence. D-0045 and the compatibility matrix
 retain the explicit local bot-risk/provider/corpus differences. CLI stays at
 1.37.0 and node-auth0 at 7.4.0. This is an implementation record, not a new
 upstream changelog review; the reviewed-through date above is unchanged.
+
+## Plan 22 implementation disposition (2026-10-26)
+
+The implementation uses the frozen 2026-10-25 branding/prompt inventory and
+local restricted-rendering choices (D-0048). The pinned deploy client also
+provides the finite future prompt/screen enum used for text discovery. Classic,
+WebAuthn-first, ACUL, custom domains and custom prompt fields in custom-database
+scripts remain deferred. This is an implementation disposition, not a new live
+changelog review; it does not advance the reviewed-through date.

@@ -6,13 +6,18 @@
 <form method="post" action="/u/login" novalidate>
 <input type="hidden" name="state" value="{{.Data.State}}">
 <input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+{{if .Data.HostedRevision}}<input type="hidden" name="hosted_revision" value="{{.Data.HostedRevision}}">{{end}}
+{{.Tenant.Partials.FormContentStart}}
 <label for="username">{{t .Tenant.L "login.login.usernamePlaceholder"}}</label>
 <input id="username" name="username" type="text" autocomplete="username" autocapitalize="none" value="{{.Data.Login}}" required autofocus>
 <label for="password">{{t .Tenant.L "login.login.passwordPlaceholder"}}</label>
 <input id="password" name="password" type="password" autocomplete="current-password" required>
 {{template "captcha" .}}
+{{.Tenant.Partials.FormContentEnd}}
 <button type="submit">{{t .Tenant.L "login.login.buttonText"}}</button>
 </form>
+{{.Tenant.Partials.FormFooterStart}}
 {{if .Data.ForgotURL}}<p class="alt"><a href="{{.Data.ForgotURL}}">{{t .Tenant.L "login.login.forgotPasswordText"}}</a></p>{{end}}
 {{if .Data.SignupURL}}<p class="alt">{{t .Tenant.L "login.login.signupActionText"}} <a href="{{.Data.SignupURL}}">{{t .Tenant.L "login.login.signupActionLinkText"}}</a></p>{{end}}
+{{.Tenant.Partials.FormFooterEnd}}
 {{end}}

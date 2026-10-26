@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -172,9 +173,59 @@ func TestSchemaConstraints(t *testing.T) {
 
 func TestLatestVersion(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 18 {
-			t.Errorf("%s LatestVersion = %d, want 18", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 19 {
+			t.Errorf("%s LatestVersion = %d, want 19", d.name, v)
 		}
+	}
+}
+
+func TestMigration0019PreservesLegacyHostedData(t *testing.T) {
+	ctx := context.Background()
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := openAtVersion(t, mk(t), 18)
+			tenant := &store.Tenant{ID: "legacy", Name: "legacy", Branding: store.Branding{LogoURL: "https://example.test/logo.svg", PrimaryColor: "#123456"}, CustomText: store.CustomText{"login": {"en": {"login": {"title": strings.Repeat("A", 1<<20)}}}}}
+			args, err := tenantArgs(tenant)
+			if err != nil {
+				t.Fatal(err)
+			}
+			placeholders := strings.TrimSuffix(strings.Repeat("?,", len(args)), ",")
+			if _, err := s.exec(ctx, "INSERT INTO tenants ("+tenantCols+") VALUES ("+placeholders+")", args...); err != nil {
+				t.Fatal(err)
+			}
+			mustExec(t, s, `INSERT INTO auth_transactions (tenant_id,id,cookie_hash,csrf_token,client_id,params,expires_at,created_at) VALUES ('legacy','flow','cookie','csrf','spa','{"scope":"openid"}',9999999999999999,1)`)
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			got, err := (hostedlogin.Service{Store: s}).Load(ctx, "legacy")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Branding["logo_url"] != "https://example.test/logo.svg" || len(got.CustomText["login"]["en"]["login"]["title"]) != 1<<20 {
+				t.Fatal("legacy branding or oversized text lost")
+			}
+			tx, err := s.AuthTransactions().Get(ctx, "legacy", "flow")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tx.HostedState.Step != "" || tx.HostedState.Revision != 0 || tx.Params["scope"] != "openid" {
+				t.Fatalf("in-flight transaction changed: %+v", tx)
+			}
+			got.Branding["logo_url"] = "https://example.test/new.svg"
+			if err := s.HostedLogins().Put(ctx, got, got.Revision); err != nil {
+				t.Fatal(err)
+			}
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			after, err := s.HostedLogins().Get(ctx, "legacy")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if after.Branding["logo_url"] != "https://example.test/new.svg" {
+				t.Fatal("migration overwrote API edit")
+			}
+		})
 	}
 }
 

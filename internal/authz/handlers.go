@@ -86,7 +86,7 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, q.Get("ui_locales")))
+	view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, q.Get("ui_locales")))
 	req := ParseRequest(q)
 	if q.Has("request_uri") {
 		pushed, perr := h.resolvePushed(ctx, res.Tenant, q)
@@ -96,7 +96,7 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		}
 		if pushed != nil {
 			req = *pushed
-			view = ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
+			view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
 		}
 	}
 	client, verr, redirectable := ValidateRequest(ctx, h.Store, res.Tenant, &req)
@@ -250,7 +250,7 @@ func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tena
 // invalidTxn shows the generic error page for a transaction used at the
 // wrong step.
 func (h *Handlers) invalidTxn(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction) {
-	view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]))
+	view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, txn.Params["ui_locales"]))
 	ui.RenderErrorDetail(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrInvalidRequest), view.L.T(i18n.KeyErrSessionExpired))
 }
 
@@ -340,7 +340,7 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 // device flows use refuse.
 func (h *Handlers) deny(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, e *Error) {
 	if access.ShowErrorPage(client) {
-		view := ui.TenantView(res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
+		view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
 		if e.Code == "server_error" {
 			renderPageError(w, view, e)
 			return

@@ -58,6 +58,7 @@ type Store interface {
 	EmailProviders() EmailProviders
 	EmailTemplates() EmailTemplates
 	EmailNotifications() EmailNotifications
+	HostedLogins() HostedLogins
 	// WithTx runs fn against a transactional view of the store. If fn
 	// returns an error, none of its writes persist. Drivers serialize
 	// transactions; the memory driver also serializes them with writes made
@@ -355,6 +356,7 @@ type Sessions interface {
 
 // AuthTransactions stores in-progress logins, keyed by (TenantID, ID).
 type AuthTransactions interface {
+	CompareAndSwapHosted(ctx context.Context, tenantID, id string, expectedRevision int64, next HostedLoginState, now time.Time) error
 	// Create returns ErrConflict if the ID exists.
 	Create(ctx context.Context, t *AuthTransaction) error
 	Get(ctx context.Context, tenantID, id string) (*AuthTransaction, error)
