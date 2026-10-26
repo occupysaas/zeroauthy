@@ -882,6 +882,315 @@ func (e ConnectionCreateStrategy) Valid() bool {
 	}
 }
 
+// Defines values for CustomDomainCertificateStatus.
+const (
+	CustomDomainCertificateStatusProvisioned        CustomDomainCertificateStatus = "provisioned"
+	CustomDomainCertificateStatusProvisioning       CustomDomainCertificateStatus = "provisioning"
+	CustomDomainCertificateStatusProvisioningFailed CustomDomainCertificateStatus = "provisioning_failed"
+	CustomDomainCertificateStatusRenewingFailed     CustomDomainCertificateStatus = "renewing_failed"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainCertificateStatus enum.
+func (e CustomDomainCertificateStatus) Valid() bool {
+	switch e {
+	case CustomDomainCertificateStatusProvisioned:
+		return true
+	case CustomDomainCertificateStatusProvisioning:
+		return true
+	case CustomDomainCertificateStatusProvisioningFailed:
+		return true
+	case CustomDomainCertificateStatusRenewingFailed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainCustomClientIpHeader.
+const (
+	CustomDomainCustomClientIpHeaderCfConnectingIp CustomDomainCustomClientIpHeader = "cf-connecting-ip"
+	CustomDomainCustomClientIpHeaderEmpty          CustomDomainCustomClientIpHeader = ""
+	CustomDomainCustomClientIpHeaderTrueClientIp   CustomDomainCustomClientIpHeader = "true-client-ip"
+	CustomDomainCustomClientIpHeaderXAzureClientip CustomDomainCustomClientIpHeader = "x-azure-clientip"
+	CustomDomainCustomClientIpHeaderXForwardedFor  CustomDomainCustomClientIpHeader = "x-forwarded-for"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainCustomClientIpHeader enum.
+func (e CustomDomainCustomClientIpHeader) Valid() bool {
+	switch e {
+	case CustomDomainCustomClientIpHeaderCfConnectingIp:
+		return true
+	case CustomDomainCustomClientIpHeaderEmpty:
+		return true
+	case CustomDomainCustomClientIpHeaderTrueClientIp:
+		return true
+	case CustomDomainCustomClientIpHeaderXAzureClientip:
+		return true
+	case CustomDomainCustomClientIpHeaderXForwardedFor:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainStatus.
+const (
+	CustomDomainStatusFailed              CustomDomainStatus = "failed"
+	CustomDomainStatusPendingVerification CustomDomainStatus = "pending_verification"
+	CustomDomainStatusReady               CustomDomainStatus = "ready"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainStatus enum.
+func (e CustomDomainStatus) Valid() bool {
+	switch e {
+	case CustomDomainStatusFailed:
+		return true
+	case CustomDomainStatusPendingVerification:
+		return true
+	case CustomDomainStatusReady:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainTlsPolicy.
+const (
+	CustomDomainTlsPolicyRecommended CustomDomainTlsPolicy = "recommended"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainTlsPolicy enum.
+func (e CustomDomainTlsPolicy) Valid() bool {
+	switch e {
+	case CustomDomainTlsPolicyRecommended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainType.
+const (
+	CustomDomainTypeAuth0ManagedCerts CustomDomainType = "auth0_managed_certs"
+	CustomDomainTypeSelfManagedCerts  CustomDomainType = "self_managed_certs"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainType enum.
+func (e CustomDomainType) Valid() bool {
+	switch e {
+	case CustomDomainTypeAuth0ManagedCerts:
+		return true
+	case CustomDomainTypeSelfManagedCerts:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainCreateTlsPolicy.
+const (
+	CustomDomainCreateTlsPolicyRecommended CustomDomainCreateTlsPolicy = "recommended"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainCreateTlsPolicy enum.
+func (e CustomDomainCreateTlsPolicy) Valid() bool {
+	switch e {
+	case CustomDomainCreateTlsPolicyRecommended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainCreateType.
+const (
+	CustomDomainCreateTypeAuth0ManagedCerts CustomDomainCreateType = "auth0_managed_certs"
+	CustomDomainCreateTypeSelfManagedCerts  CustomDomainCreateType = "self_managed_certs"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainCreateType enum.
+func (e CustomDomainCreateType) Valid() bool {
+	switch e {
+	case CustomDomainCreateTypeAuth0ManagedCerts:
+		return true
+	case CustomDomainCreateTypeSelfManagedCerts:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainCreateVerificationMethod.
+const (
+	CustomDomainCreateVerificationMethodTxt CustomDomainCreateVerificationMethod = "txt"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainCreateVerificationMethod enum.
+func (e CustomDomainCreateVerificationMethod) Valid() bool {
+	switch e {
+	case CustomDomainCreateVerificationMethodTxt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainUpdateTlsPolicy.
+const (
+	CustomDomainUpdateTlsPolicyRecommended CustomDomainUpdateTlsPolicy = "recommended"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainUpdateTlsPolicy enum.
+func (e CustomDomainUpdateTlsPolicy) Valid() bool {
+	switch e {
+	case CustomDomainUpdateTlsPolicyRecommended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainVerificationMethodsName.
+const (
+	CustomDomainVerificationMethodsNameTxt CustomDomainVerificationMethodsName = "txt"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainVerificationMethodsName enum.
+func (e CustomDomainVerificationMethodsName) Valid() bool {
+	switch e {
+	case CustomDomainVerificationMethodsNameTxt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainVerificationStatus.
+const (
+	CustomDomainVerificationStatusFailed   CustomDomainVerificationStatus = "failed"
+	CustomDomainVerificationStatusPending  CustomDomainVerificationStatus = "pending"
+	CustomDomainVerificationStatusVerified CustomDomainVerificationStatus = "verified"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainVerificationStatus enum.
+func (e CustomDomainVerificationStatus) Valid() bool {
+	switch e {
+	case CustomDomainVerificationStatusFailed:
+		return true
+	case CustomDomainVerificationStatusPending:
+		return true
+	case CustomDomainVerificationStatusVerified:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainVerifiedCertificateStatus.
+const (
+	CustomDomainVerifiedCertificateStatusProvisioned        CustomDomainVerifiedCertificateStatus = "provisioned"
+	CustomDomainVerifiedCertificateStatusProvisioning       CustomDomainVerifiedCertificateStatus = "provisioning"
+	CustomDomainVerifiedCertificateStatusProvisioningFailed CustomDomainVerifiedCertificateStatus = "provisioning_failed"
+	CustomDomainVerifiedCertificateStatusRenewingFailed     CustomDomainVerifiedCertificateStatus = "renewing_failed"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainVerifiedCertificateStatus enum.
+func (e CustomDomainVerifiedCertificateStatus) Valid() bool {
+	switch e {
+	case CustomDomainVerifiedCertificateStatusProvisioned:
+		return true
+	case CustomDomainVerifiedCertificateStatusProvisioning:
+		return true
+	case CustomDomainVerifiedCertificateStatusProvisioningFailed:
+		return true
+	case CustomDomainVerifiedCertificateStatusRenewingFailed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainVerifiedCustomClientIpHeader.
+const (
+	CustomDomainVerifiedCustomClientIpHeaderCfConnectingIp CustomDomainVerifiedCustomClientIpHeader = "cf-connecting-ip"
+	CustomDomainVerifiedCustomClientIpHeaderEmpty          CustomDomainVerifiedCustomClientIpHeader = ""
+	CustomDomainVerifiedCustomClientIpHeaderTrueClientIp   CustomDomainVerifiedCustomClientIpHeader = "true-client-ip"
+	CustomDomainVerifiedCustomClientIpHeaderXAzureClientip CustomDomainVerifiedCustomClientIpHeader = "x-azure-clientip"
+	CustomDomainVerifiedCustomClientIpHeaderXForwardedFor  CustomDomainVerifiedCustomClientIpHeader = "x-forwarded-for"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainVerifiedCustomClientIpHeader enum.
+func (e CustomDomainVerifiedCustomClientIpHeader) Valid() bool {
+	switch e {
+	case CustomDomainVerifiedCustomClientIpHeaderCfConnectingIp:
+		return true
+	case CustomDomainVerifiedCustomClientIpHeaderEmpty:
+		return true
+	case CustomDomainVerifiedCustomClientIpHeaderTrueClientIp:
+		return true
+	case CustomDomainVerifiedCustomClientIpHeaderXAzureClientip:
+		return true
+	case CustomDomainVerifiedCustomClientIpHeaderXForwardedFor:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainVerifiedStatus.
+const (
+	CustomDomainVerifiedStatusFailed              CustomDomainVerifiedStatus = "failed"
+	CustomDomainVerifiedStatusPendingVerification CustomDomainVerifiedStatus = "pending_verification"
+	CustomDomainVerifiedStatusReady               CustomDomainVerifiedStatus = "ready"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainVerifiedStatus enum.
+func (e CustomDomainVerifiedStatus) Valid() bool {
+	switch e {
+	case CustomDomainVerifiedStatusFailed:
+		return true
+	case CustomDomainVerifiedStatusPendingVerification:
+		return true
+	case CustomDomainVerifiedStatusReady:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainVerifiedTlsPolicy.
+const (
+	CustomDomainVerifiedTlsPolicyRecommended CustomDomainVerifiedTlsPolicy = "recommended"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainVerifiedTlsPolicy enum.
+func (e CustomDomainVerifiedTlsPolicy) Valid() bool {
+	switch e {
+	case CustomDomainVerifiedTlsPolicyRecommended:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CustomDomainVerifiedType.
+const (
+	CustomDomainVerifiedTypeAuth0ManagedCerts CustomDomainVerifiedType = "auth0_managed_certs"
+	CustomDomainVerifiedTypeSelfManagedCerts  CustomDomainVerifiedType = "self_managed_certs"
+)
+
+// Valid indicates whether the value is a known member of the CustomDomainVerifiedType enum.
+func (e CustomDomainVerifiedType) Valid() bool {
+	switch e {
+	case CustomDomainVerifiedTypeAuth0ManagedCerts:
+		return true
+	case CustomDomainVerifiedTypeSelfManagedCerts:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EmailTemplateSyntax.
 const (
 	EmailTemplateSyntaxLiquid EmailTemplateSyntax = "liquid"
@@ -914,19 +1223,19 @@ func (e EmailTemplatePatchSyntax) Valid() bool {
 
 // Defines values for JobStatus.
 const (
-	Completed JobStatus = "completed"
-	Failed    JobStatus = "failed"
-	Pending   JobStatus = "pending"
+	JobStatusCompleted JobStatus = "completed"
+	JobStatusFailed    JobStatus = "failed"
+	JobStatusPending   JobStatus = "pending"
 )
 
 // Valid indicates whether the value is a known member of the JobStatus enum.
 func (e JobStatus) Valid() bool {
 	switch e {
-	case Completed:
+	case JobStatusCompleted:
 		return true
-	case Failed:
+	case JobStatusFailed:
 		return true
-	case Pending:
+	case JobStatusPending:
 		return true
 	default:
 		return false
@@ -2923,6 +3232,148 @@ type ConnectionSettings struct {
 // `enabled_clients` are unknown properties.
 type ConnectionUpdate = ConnectionSettings
 
+// CustomDomain defines model for CustomDomain.
+type CustomDomain struct {
+	Certificate *struct {
+		ErrorMsg     *string                        `json:"error_msg,omitempty"`
+		RenewsBefore *time.Time                     `json:"renews_before,omitempty"`
+		Status       *CustomDomainCertificateStatus `json:"status,omitempty"`
+	} `json:"certificate,omitempty"`
+	CustomClientIpHeader *CustomDomainCustomClientIpHeader `json:"custom_client_ip_header,omitempty"`
+	CustomDomainId       *string                           `json:"custom_domain_id,omitempty"`
+	Domain               *string                           `json:"domain,omitempty"`
+	DomainMetadata       *map[string]string                `json:"domain_metadata,omitempty"`
+	IsDefault            *bool                             `json:"is_default,omitempty"`
+
+	// OriginDomainName The private origin host a proxy or CNAME targets.
+	OriginDomainName       *string                   `json:"origin_domain_name,omitempty"`
+	Primary                *bool                     `json:"primary,omitempty"`
+	RelyingPartyIdentifier *string                   `json:"relying_party_identifier,omitempty"`
+	Status                 *CustomDomainStatus       `json:"status,omitempty"`
+	TlsPolicy              *CustomDomainTlsPolicy    `json:"tls_policy,omitempty"`
+	Type                   *CustomDomainType         `json:"type,omitempty"`
+	Verification           *CustomDomainVerification `json:"verification,omitempty"`
+}
+
+// CustomDomainCertificateStatus defines model for CustomDomain.Certificate.Status.
+type CustomDomainCertificateStatus string
+
+// CustomDomainCustomClientIpHeader defines model for CustomDomain.CustomClientIpHeader.
+type CustomDomainCustomClientIpHeader string
+
+// CustomDomainStatus defines model for CustomDomain.Status.
+type CustomDomainStatus string
+
+// CustomDomainTlsPolicy defines model for CustomDomain.TlsPolicy.
+type CustomDomainTlsPolicy string
+
+// CustomDomainType defines model for CustomDomain.Type.
+type CustomDomainType string
+
+// CustomDomainCreate defines model for CustomDomainCreate.
+type CustomDomainCreate struct {
+	CustomClientIpHeader   *string                               `json:"custom_client_ip_header,omitempty"`
+	Domain                 string                                `json:"domain"`
+	DomainMetadata         *map[string]string                    `json:"domain_metadata,omitempty"`
+	RelyingPartyIdentifier *string                               `json:"relying_party_identifier,omitempty"`
+	TlsPolicy              *CustomDomainCreateTlsPolicy          `json:"tls_policy,omitempty"`
+	Type                   CustomDomainCreateType                `json:"type"`
+	VerificationMethod     *CustomDomainCreateVerificationMethod `json:"verification_method,omitempty"`
+}
+
+// CustomDomainCreateTlsPolicy defines model for CustomDomainCreate.TlsPolicy.
+type CustomDomainCreateTlsPolicy string
+
+// CustomDomainCreateType defines model for CustomDomainCreate.Type.
+type CustomDomainCreateType string
+
+// CustomDomainCreateVerificationMethod defines model for CustomDomainCreate.VerificationMethod.
+type CustomDomainCreateVerificationMethod string
+
+// CustomDomainDefaultUpdate defines model for CustomDomainDefaultUpdate.
+type CustomDomainDefaultUpdate struct {
+	Domain string `json:"domain"`
+}
+
+// CustomDomainTest defines model for CustomDomainTest.
+type CustomDomainTest struct {
+	Message *string `json:"message,omitempty"`
+	Success *bool   `json:"success,omitempty"`
+}
+
+// CustomDomainUpdate defines model for CustomDomainUpdate.
+type CustomDomainUpdate struct {
+	CustomClientIpHeader   *string                      `json:"custom_client_ip_header,omitempty"`
+	DomainMetadata         *map[string]string           `json:"domain_metadata,omitempty"`
+	RelyingPartyIdentifier *string                      `json:"relying_party_identifier,omitempty"`
+	TlsPolicy              *CustomDomainUpdateTlsPolicy `json:"tls_policy,omitempty"`
+}
+
+// CustomDomainUpdateTlsPolicy defines model for CustomDomainUpdate.TlsPolicy.
+type CustomDomainUpdateTlsPolicy string
+
+// CustomDomainVerification defines model for CustomDomainVerification.
+type CustomDomainVerification struct {
+	ErrorMsg       *string    `json:"error_msg,omitempty"`
+	LastVerifiedAt *time.Time `json:"last_verified_at,omitempty"`
+	Methods        *[]struct {
+		// Domain The TXT record name.
+		Domain *string                              `json:"domain,omitempty"`
+		Name   *CustomDomainVerificationMethodsName `json:"name,omitempty"`
+
+		// Record The TXT value to publish.
+		Record *string `json:"record,omitempty"`
+	} `json:"methods,omitempty"`
+	Status *CustomDomainVerificationStatus `json:"status,omitempty"`
+}
+
+// CustomDomainVerificationMethodsName defines model for CustomDomainVerification.Methods.Name.
+type CustomDomainVerificationMethodsName string
+
+// CustomDomainVerificationStatus defines model for CustomDomainVerification.Status.
+type CustomDomainVerificationStatus string
+
+// CustomDomainVerified defines model for CustomDomainVerified.
+type CustomDomainVerified struct {
+	Certificate *struct {
+		ErrorMsg     *string                                `json:"error_msg,omitempty"`
+		RenewsBefore *time.Time                             `json:"renews_before,omitempty"`
+		Status       *CustomDomainVerifiedCertificateStatus `json:"status,omitempty"`
+	} `json:"certificate,omitempty"`
+
+	// CnameApiKey The proxy key, returned only by the first successful verification of a self-managed domain.
+	CnameApiKey          *string                                   `json:"cname_api_key,omitempty"`
+	CustomClientIpHeader *CustomDomainVerifiedCustomClientIpHeader `json:"custom_client_ip_header,omitempty"`
+	CustomDomainId       *string                                   `json:"custom_domain_id,omitempty"`
+	Domain               *string                                   `json:"domain,omitempty"`
+	DomainMetadata       *map[string]string                        `json:"domain_metadata,omitempty"`
+	IsDefault            *bool                                     `json:"is_default,omitempty"`
+
+	// OriginDomainName The private origin host a proxy or CNAME targets.
+	OriginDomainName       *string                        `json:"origin_domain_name,omitempty"`
+	Primary                *bool                          `json:"primary,omitempty"`
+	RelyingPartyIdentifier *string                        `json:"relying_party_identifier,omitempty"`
+	Status                 *CustomDomainVerifiedStatus    `json:"status,omitempty"`
+	TlsPolicy              *CustomDomainVerifiedTlsPolicy `json:"tls_policy,omitempty"`
+	Type                   *CustomDomainVerifiedType      `json:"type,omitempty"`
+	Verification           *CustomDomainVerification      `json:"verification,omitempty"`
+}
+
+// CustomDomainVerifiedCertificateStatus defines model for CustomDomainVerified.Certificate.Status.
+type CustomDomainVerifiedCertificateStatus string
+
+// CustomDomainVerifiedCustomClientIpHeader defines model for CustomDomainVerified.CustomClientIpHeader.
+type CustomDomainVerifiedCustomClientIpHeader string
+
+// CustomDomainVerifiedStatus defines model for CustomDomainVerified.Status.
+type CustomDomainVerifiedStatus string
+
+// CustomDomainVerifiedTlsPolicy defines model for CustomDomainVerified.TlsPolicy.
+type CustomDomainVerifiedTlsPolicy string
+
+// CustomDomainVerifiedType defines model for CustomDomainVerified.Type.
+type CustomDomainVerifiedType string
+
 // CustomSigningJWKS defines model for CustomSigningJWKS.
 type CustomSigningJWKS struct {
 	Keys []map[string]interface{} `json:"keys"`
@@ -4409,8 +4860,14 @@ type Forbidden = ManagementError
 // NotFound Auth0's Management API error shape.
 type NotFound = ManagementError
 
+// PayloadTooLarge Auth0's Management API error shape.
+type PayloadTooLarge = ManagementError
+
 // ScriptRuntimeUnavailable Auth0's Management API error shape.
 type ScriptRuntimeUnavailable = ManagementError
+
+// ServiceUnavailable Auth0's Management API error shape.
+type ServiceUnavailable = ManagementError
 
 // TooManyRequests Auth0's Management API error shape.
 type TooManyRequests = ManagementError
@@ -4597,6 +5054,18 @@ type GetConnectionClientsParams struct {
 
 // UpdateConnectionClientsJSONBody defines parameters for UpdateConnectionClients.
 type UpdateConnectionClientsJSONBody = []ConnectionClientStatus
+
+// GetCustomDomainsParams defines parameters for GetCustomDomains.
+type GetCustomDomainsParams struct {
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// Fields Comma-separated fields to include or, with `include_fields=false`, to leave out. `tenant` is always returned.
+	Fields *Fields `form:"fields,omitempty" json:"fields,omitempty"`
+
+	// IncludeFields Whether `fields` lists the fields to include (true) or to leave out (false).
+	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
+	Sort          *string        `form:"sort,omitempty" json:"sort,omitempty"`
+}
 
 // DeleteGrantsByUserParams defines parameters for DeleteGrantsByUser.
 type DeleteGrantsByUserParams struct {
@@ -4901,6 +5370,15 @@ type UpdateConnectionJSONRequestBody = ConnectionUpdate
 
 // UpdateConnectionClientsJSONRequestBody defines body for UpdateConnectionClients for application/json ContentType.
 type UpdateConnectionClientsJSONRequestBody = UpdateConnectionClientsJSONBody
+
+// CreateCustomDomainJSONRequestBody defines body for CreateCustomDomain for application/json ContentType.
+type CreateCustomDomainJSONRequestBody = CustomDomainCreate
+
+// SetDefaultCustomDomainJSONRequestBody defines body for SetDefaultCustomDomain for application/json ContentType.
+type SetDefaultCustomDomainJSONRequestBody = CustomDomainDefaultUpdate
+
+// UpdateCustomDomainJSONRequestBody defines body for UpdateCustomDomain for application/json ContentType.
+type UpdateCustomDomainJSONRequestBody = CustomDomainUpdate
 
 // CreateEmailTemplateJSONRequestBody defines body for CreateEmailTemplate for application/json ContentType.
 type CreateEmailTemplateJSONRequestBody = EmailTemplate
@@ -6602,6 +7080,33 @@ type ServerInterface interface {
 	// UpdateConnectionClients Enable or disable applications on a connection
 	// (PATCH /api/v2/connections/{id}/clients)
 	UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string)
+	// GetCustomDomains List custom domains
+	// (GET /api/v2/custom-domains)
+	GetCustomDomains(w http.ResponseWriter, r *http.Request, params GetCustomDomainsParams)
+	// CreateCustomDomain Create a custom domain
+	// (POST /api/v2/custom-domains)
+	CreateCustomDomain(w http.ResponseWriter, r *http.Request)
+	// GetDefaultCustomDomain Get the default custom domain
+	// (GET /api/v2/custom-domains/default)
+	GetDefaultCustomDomain(w http.ResponseWriter, r *http.Request)
+	// SetDefaultCustomDomain Set the default custom domain
+	// (PATCH /api/v2/custom-domains/default)
+	SetDefaultCustomDomain(w http.ResponseWriter, r *http.Request)
+	// DeleteCustomDomain Delete a custom domain
+	// (DELETE /api/v2/custom-domains/{id})
+	DeleteCustomDomain(w http.ResponseWriter, r *http.Request, id string)
+	// GetCustomDomain Get a custom domain
+	// (GET /api/v2/custom-domains/{id})
+	GetCustomDomain(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateCustomDomain Update a custom domain
+	// (PATCH /api/v2/custom-domains/{id})
+	UpdateCustomDomain(w http.ResponseWriter, r *http.Request, id string)
+	// TestCustomDomain Test a custom domain
+	// (POST /api/v2/custom-domains/{id}/test)
+	TestCustomDomain(w http.ResponseWriter, r *http.Request, id string)
+	// VerifyCustomDomain Verify a custom domain
+	// (POST /api/v2/custom-domains/{id}/verify)
+	VerifyCustomDomain(w http.ResponseWriter, r *http.Request, id string)
 	// CreateEmailTemplate Create a named email template.
 	// (POST /api/v2/email-templates)
 	CreateEmailTemplate(w http.ResponseWriter, r *http.Request)
@@ -7100,6 +7605,60 @@ func (_ Unimplemented) GetConnectionClients(w http.ResponseWriter, r *http.Reque
 // UpdateConnectionClients Enable or disable applications on a connection
 // (PATCH /api/v2/connections/{id}/clients)
 func (_ Unimplemented) UpdateConnectionClients(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetCustomDomains List custom domains
+// (GET /api/v2/custom-domains)
+func (_ Unimplemented) GetCustomDomains(w http.ResponseWriter, r *http.Request, params GetCustomDomainsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateCustomDomain Create a custom domain
+// (POST /api/v2/custom-domains)
+func (_ Unimplemented) CreateCustomDomain(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetDefaultCustomDomain Get the default custom domain
+// (GET /api/v2/custom-domains/default)
+func (_ Unimplemented) GetDefaultCustomDomain(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetDefaultCustomDomain Set the default custom domain
+// (PATCH /api/v2/custom-domains/default)
+func (_ Unimplemented) SetDefaultCustomDomain(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteCustomDomain Delete a custom domain
+// (DELETE /api/v2/custom-domains/{id})
+func (_ Unimplemented) DeleteCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetCustomDomain Get a custom domain
+// (GET /api/v2/custom-domains/{id})
+func (_ Unimplemented) GetCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateCustomDomain Update a custom domain
+// (PATCH /api/v2/custom-domains/{id})
+func (_ Unimplemented) UpdateCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TestCustomDomain Test a custom domain
+// (POST /api/v2/custom-domains/{id}/test)
+func (_ Unimplemented) TestCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// VerifyCustomDomain Verify a custom domain
+// (POST /api/v2/custom-domains/{id}/verify)
+func (_ Unimplemented) VerifyCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -8990,6 +9549,250 @@ func (siw *ServerInterfaceWrapper) UpdateConnectionClients(w http.ResponseWriter
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateConnectionClients(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCustomDomains operation middleware
+func (siw *ServerInterfaceWrapper) GetCustomDomains(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCustomDomainsParams
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "fields", r.URL.Query(), &params.Fields, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_fields" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_fields", r.URL.Query(), &params.IncludeFields, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_fields"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_fields", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustomDomains(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCustomDomain operation middleware
+func (siw *ServerInterfaceWrapper) CreateCustomDomain(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCustomDomain(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDefaultCustomDomain operation middleware
+func (siw *ServerInterfaceWrapper) GetDefaultCustomDomain(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDefaultCustomDomain(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetDefaultCustomDomain operation middleware
+func (siw *ServerInterfaceWrapper) SetDefaultCustomDomain(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetDefaultCustomDomain(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteCustomDomain operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCustomDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCustomDomain(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCustomDomain operation middleware
+func (siw *ServerInterfaceWrapper) GetCustomDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustomDomain(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateCustomDomain operation middleware
+func (siw *ServerInterfaceWrapper) UpdateCustomDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateCustomDomain(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TestCustomDomain operation middleware
+func (siw *ServerInterfaceWrapper) TestCustomDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TestCustomDomain(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// VerifyCustomDomain operation middleware
+func (siw *ServerInterfaceWrapper) VerifyCustomDomain(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VerifyCustomDomain(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -11349,6 +12152,33 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/jobs/users-exports", wrapper.CreateUsersExportJob)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/custom-domains", wrapper.GetCustomDomains)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/custom-domains", wrapper.CreateCustomDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/custom-domains/default", wrapper.GetDefaultCustomDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/custom-domains/default", wrapper.SetDefaultCustomDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/custom-domains/{id}", wrapper.DeleteCustomDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/custom-domains/{id}", wrapper.GetCustomDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/custom-domains/{id}", wrapper.UpdateCustomDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/custom-domains/{id}/verify", wrapper.VerifyCustomDomain)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/custom-domains/{id}/test", wrapper.TestCustomDomain)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/jobs/verification-email", wrapper.CreateVerificationEmailJob)

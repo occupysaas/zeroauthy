@@ -73,7 +73,9 @@ func (h *Handlers) GetUniversalLoginTemplate(w http.ResponseWriter, r *http.Requ
 		Fail(w, &Error{Status: http.StatusNotFound, Code: "not_found", Message: "Template not found"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"template": *c.Template})
+	// body is the public GET contract (Deploy CLI reads it); template stays
+	// for existing consumers. Both carry the same saved template.
+	writeJSON(w, http.StatusOK, map[string]any{"body": *c.Template, "template": *c.Template})
 }
 func (h *Handlers) PutUniversalLoginTemplate(w http.ResponseWriter, r *http.Request) {
 	raw, err := hostedBody(w, r)

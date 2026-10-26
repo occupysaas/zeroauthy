@@ -162,7 +162,11 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
-	domains, acmeWorker, err := certificateWorker(cfg, st, tlsManager, systemHost)
+	domains, err := domainService(cfg, st, tlsManager, systemHost, log)
+	if err != nil {
+		return nil, err
+	}
+	acmeWorker, err := certificateWorker(cfg, tlsManager, domains)
 	if err != nil {
 		return nil, err
 	}
@@ -272,6 +276,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
 			BaseDomain:        cfg.Server.BaseDomain,
 			SystemHost:        systemHost,
+			Domains:           domains,
 
 			DeviceTxnThrottle: identity.NewThrottle(sec.DeviceActivationTxnMaxMisses, authz.TxnLifetime, authz.TxnLifetime),
 			DeviceIPThrottle: identity.NewThrottleOrOff(sec.DeviceActivationIPMaxMisses,
@@ -361,29 +366,65 @@ func certificateManager(ctx context.Context, cfg *config.Config, st store.Store,
 	return m, nil
 }
 
-// certificateWorker builds the domain service the certificate worker uses to
-// re-prove ownership, and the worker itself, when ACME is on.
-func certificateWorker(cfg *config.Config, st store.Store, m *certificates.Manager, systemHost string) (*customdomain.Service, *certificates.Worker, error) {
+// domainService builds the custom domain service: API operations, proxy
+// admission and ownership proof. Managed domains need ACME; self-managed
+// ones need origin TLS (the ACME manager's coverage, or a static certificate
+// covering the origin namespace). Without a usable resolver the API is off.
+func domainService(cfg *config.Config, st store.Store, m *certificates.Manager, systemHost string, log *slog.Logger) (*customdomain.Service, error) {
+	resolver := cfg.Server.CustomDomains.DNSResolver
+	if resolver == "" {
+		var err error
+		if resolver, err = customdomain.SystemResolver(); err != nil {
+			if m != nil {
+				return nil, fmt.Errorf("app: set server.custom_domains.dns_resolver: %w", err)
+			}
+			log.Warn("custom domains are unavailable: no DNS resolver; set server.custom_domains.dns_resolver", "err", err)
+			return nil, nil
+		}
+	}
+	proxies, err := cfg.Server.TrustedProxies()
+	if err != nil {
+		return nil, err
+	}
+	origin := cfg.Server.OriginDomain()
+	originTLS := false
+	switch {
+	case origin == "":
+	case m != nil:
+		originTLS = m.CoversOrigin(origin)
+	case cfg.Server.TLSCertFile != "":
+		originTLS = staticCovers(cfg.Server.TLSCertFile, cfg.Server.TLSKeyFile, "cd-0."+origin)
+	}
+	return customdomain.NewService(st, &customdomain.BoundedResolver{Server: resolver}, customdomain.ServiceConfig{
+		BaseDomain: cfg.Server.BaseDomain, SystemHost: systemHost, OriginDomain: origin,
+		ManagedEnabled: m != nil, OriginTLSReady: originTLS,
+		Proxy: customdomain.ProxyPolicy{Trusted: proxies, LegacyTrust: cfg.Server.TrustProxyHeaders},
+	}, time.Now, rand.Reader), nil
+}
+
+// staticCovers reports whether the static certificate serves host.
+func staticCovers(certFile, keyFile, host string) bool {
+	c, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil || len(c.Certificate) == 0 {
+		return false
+	}
+	leaf, err := x509.ParseCertificate(c.Certificate[0])
+	return err == nil && leaf.VerifyHostname(host) == nil
+}
+
+// certificateWorker builds the ACME worker when ACME is on; it re-proves
+// ownership through the domain service.
+func certificateWorker(cfg *config.Config, m *certificates.Manager, domains *customdomain.Service) (*certificates.Worker, error) {
 	if m == nil {
-		return nil, nil, nil
+		return nil, nil
 	}
 	resolver := cfg.Server.CustomDomains.DNSResolver
 	if resolver == "" {
 		var err error
 		if resolver, err = customdomain.SystemResolver(); err != nil {
-			return nil, nil, fmt.Errorf("app: set server.custom_domains.dns_resolver: %w", err)
+			return nil, fmt.Errorf("app: set server.custom_domains.dns_resolver: %w", err)
 		}
 	}
-	proxies, err := cfg.Server.TrustedProxies()
-	if err != nil {
-		return nil, nil, err
-	}
-	origin := cfg.Server.OriginDomain()
-	domains := customdomain.NewService(st, &customdomain.BoundedResolver{Server: resolver}, customdomain.ServiceConfig{
-		BaseDomain: cfg.Server.BaseDomain, SystemHost: systemHost, OriginDomain: origin,
-		ManagedEnabled: true, OriginTLSReady: origin != "" && m.CoversOrigin(origin),
-		Proxy: customdomain.ProxyPolicy{Trusted: proxies, LegacyTrust: cfg.Server.TrustProxyHeaders},
-	}, time.Now, rand.Reader)
 	roots, err := x509.SystemCertPool()
 	if err != nil {
 		roots = x509.NewCertPool()
@@ -392,7 +433,7 @@ func certificateWorker(cfg *config.Config, st store.Store, m *certificates.Manag
 	if a.CABundleFile != "" {
 		b, err := os.ReadFile(a.CABundleFile)
 		if err != nil || !roots.AppendCertsFromPEM(b) {
-			return nil, nil, fmt.Errorf("app: server.acme.ca_bundle_file %q has no usable certificates", a.CABundleFile)
+			return nil, fmt.Errorf("app: server.acme.ca_bundle_file %q has no usable certificates", a.CABundleFile)
 		}
 	}
 	var hosted *certificates.HostedConfig
@@ -401,7 +442,7 @@ func certificateWorker(cfg *config.Config, st store.Store, m *certificates.Manag
 		raw, err := os.ReadFile(w.TokenFile)
 		token := strings.TrimSpace(string(raw))
 		if err != nil || token == "" {
-			return nil, nil, fmt.Errorf("app: server.acme.hosted_wildcard.token_file %q is unreadable or empty", w.TokenFile)
+			return nil, fmt.Errorf("app: server.acme.hosted_wildcard.token_file %q is unreadable or empty", w.TokenFile)
 		}
 		hosted = &certificates.HostedConfig{
 			BaseDomain: cfg.Server.BaseDomain, Zone: w.Zone, Provider: certificates.NewDigitalOcean(token),
@@ -413,7 +454,7 @@ func certificateWorker(cfg *config.Config, st store.Store, m *certificates.Manag
 	worker := certificates.NewWorker(m, certificates.NewACMECA(a.DirectoryURL, roots), domains, certificates.WorkerConfig{
 		Owner: owner, Email: a.Email, Challenge: a.Challenge, Roots: roots, Workers: a.Workers, Hosted: hosted,
 	})
-	return domains, worker, nil
+	return worker, nil
 }
 
 // Serve listens until ctx is cancelled, then shuts down gracefully.

@@ -261,7 +261,8 @@ func ValidatePatch(raw []byte, current *store.CustomDomain) (PatchInput, error) 
 // reads or edits of grandfathered tenants above the cap.
 func ValidateDomainCount(existing int) error {
 	if existing < 0 || existing >= 100 {
-		return invalid("custom domain limit reached")
+		// A conflict (409), like the repository's atomic cap.
+		return fmt.Errorf("customdomain: custom domain limit reached: %w", store.ErrConflict)
 	}
 	return nil
 }

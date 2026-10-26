@@ -455,3 +455,48 @@ func (a mgmtAPI) DeleteIPBlock(w http.ResponseWriter, r *http.Request, ip string
 func (a mgmtAPI) PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string) {
 	a.h.PreviewBranding(w, r, tenant)
 }
+
+// GetCustomDomains: read:custom_domains.
+func (a mgmtAPI) GetCustomDomains(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetCustomDomainsParams) {
+	scoped(w, r, a.h.GetCustomDomains, "read:custom_domains")
+}
+
+// CreateCustomDomain: create:custom_domains.
+func (a mgmtAPI) CreateCustomDomain(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.CreateCustomDomain, "create:custom_domains")
+}
+
+// GetDefaultCustomDomain: read:custom_domains.
+func (a mgmtAPI) GetDefaultCustomDomain(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.GetDefaultCustomDomain, "read:custom_domains")
+}
+
+// SetDefaultCustomDomain: update:custom_domains.
+func (a mgmtAPI) SetDefaultCustomDomain(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, a.h.SetDefaultCustomDomain, "update:custom_domains")
+}
+
+// GetCustomDomain: read:custom_domains.
+func (a mgmtAPI) GetCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetCustomDomain(w, r, id) }, "read:custom_domains")
+}
+
+// UpdateCustomDomain: update:custom_domains.
+func (a mgmtAPI) UpdateCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateCustomDomain(w, r, id) }, "update:custom_domains")
+}
+
+// DeleteCustomDomain: delete:custom_domains.
+func (a mgmtAPI) DeleteCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteCustomDomain(w, r, id) }, "delete:custom_domains")
+}
+
+// VerifyCustomDomain: update:custom_domains.
+func (a mgmtAPI) VerifyCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.VerifyCustomDomain(w, r, id) }, "update:custom_domains")
+}
+
+// TestCustomDomain: update:custom_domains.
+func (a mgmtAPI) TestCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.TestCustomDomain(w, r, id) }, "update:custom_domains")
+}

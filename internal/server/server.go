@@ -255,6 +255,7 @@ func New(d Deps) http.Handler {
 		TrustProxyHeaders:      d.TrustProxyHeaders,
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,
 		Protection:             sharedProtection,
+		Domains:                d.Domains,
 	}
 	if len(d.ExportKey) > 0 {
 		mh.Export = &mgmt.ExportLink{Key: d.ExportKey}
@@ -295,7 +296,16 @@ func New(d Deps) http.Handler {
 	if d.Domains != nil {
 		// Admission precedes everything, logging included, so proxy keys and
 		// spoofed forwarding headers never reach a handler or a log line.
-		return d.Domains.Middleware(r)
+		// Operational endpoints answer on any host and never consult the
+		// registry, so liveness survives a store outage.
+		admitted := d.Domains.Middleware(r)
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.URL.Path == "/healthz" || req.URL.Path == "/readyz" {
+				r.ServeHTTP(w, req)
+				return
+			}
+			admitted.ServeHTTP(w, req)
+		})
 	}
 	return r
 }

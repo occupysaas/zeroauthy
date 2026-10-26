@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"crypto/tls"
+	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"io"
 	"log/slog"
 	"os"
@@ -110,4 +112,20 @@ func tokenFile(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return p
+}
+
+// The custom domain service is wired without ACME too: self-managed domains
+// need origin TLS, managed ones need ACME, and both report 503 otherwise.
+func TestStartupDomainServiceWithoutACME(t *testing.T) {
+	cfg := &config.Config{Server: config.Server{BaseDomain: "auth.example.test", CustomDomains: config.CustomDomains{DNSResolver: "127.0.0.1:53"}}}
+	a, err := build(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), memory.New(), make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.domains == nil || a.acme != nil || a.tls != nil {
+		t.Fatalf("domains=%v acme=%v tls=%v", a.domains != nil, a.acme != nil, a.tls != nil)
+	}
+	if _, err := a.domains.Create(context.Background(), "nobody", customdomain.CreateInput{Domain: "id.example.org", Type: customdomain.TypeManaged}); !errors.Is(err, customdomain.ErrManagedUnavailable) {
+		t.Fatalf("managed without ACME = %v", err)
+	}
 }
