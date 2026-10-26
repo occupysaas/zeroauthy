@@ -16,7 +16,8 @@ type VerificationSender interface {
 
 // VerifyEmail runs verification_email jobs: it emails the user a
 // verification link. The job's Params hold "user_id" and, optionally,
-// "client_id" (strings).
+// "client_id" (strings). "selected_origin" holds the selected notification
+// origin (string); origin selection/delivery is implemented with the origin flow.
 type VerifyEmail struct {
 	// Sender may be nil: nothing is sent and the job completes.
 	Sender VerificationSender
