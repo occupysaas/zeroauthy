@@ -5,11 +5,14 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"github.com/zeroauthy/zeroauthy/internal/certificates"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -46,6 +49,10 @@ type App struct {
 	// tls serves certificates when ACME is on; nil keeps static or
 	// externally terminated TLS exactly as configured.
 	tls *certificates.Manager
+	// acme issues and renews managed certificates; domains proves ownership
+	// for it. Both are nil when ACME is off.
+	acme    *certificates.Worker
+	domains *customdomain.Service
 }
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error) {
@@ -155,6 +162,10 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err != nil {
 		return nil, err
 	}
+	domains, acmeWorker, err := certificateWorker(cfg, st, tlsManager, systemHost)
+	if err != nil {
+		return nil, err
+	}
 	if err := seed.InitializeProtection(ctx, st, cfg.Security, log); err != nil {
 		return nil, err
 	}
@@ -236,6 +247,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	sec := cfg.Security
 	return &App{
 		tls:        tlsManager,
+		acme:       acmeWorker,
+		domains:    domains,
 		cfg:        cfg,
 		log:        log,
 		store:      st,
@@ -348,6 +361,48 @@ func certificateManager(ctx context.Context, cfg *config.Config, st store.Store,
 	return m, nil
 }
 
+// certificateWorker builds the domain service the certificate worker uses to
+// re-prove ownership, and the worker itself, when ACME is on.
+func certificateWorker(cfg *config.Config, st store.Store, m *certificates.Manager, systemHost string) (*customdomain.Service, *certificates.Worker, error) {
+	if m == nil {
+		return nil, nil, nil
+	}
+	resolver := cfg.Server.CustomDomains.DNSResolver
+	if resolver == "" {
+		var err error
+		if resolver, err = customdomain.SystemResolver(); err != nil {
+			return nil, nil, fmt.Errorf("app: set server.custom_domains.dns_resolver: %w", err)
+		}
+	}
+	proxies, err := cfg.Server.TrustedProxies()
+	if err != nil {
+		return nil, nil, err
+	}
+	origin := cfg.Server.OriginDomain()
+	domains := customdomain.NewService(st, &customdomain.BoundedResolver{Server: resolver}, customdomain.ServiceConfig{
+		BaseDomain: cfg.Server.BaseDomain, SystemHost: systemHost, OriginDomain: origin,
+		ManagedEnabled: true, OriginTLSReady: origin != "" && m.CoversOrigin(origin),
+		Proxy: customdomain.ProxyPolicy{Trusted: proxies, LegacyTrust: cfg.Server.TrustProxyHeaders},
+	}, time.Now, rand.Reader)
+	roots, err := x509.SystemCertPool()
+	if err != nil {
+		roots = x509.NewCertPool()
+	}
+	a := cfg.Server.ACME
+	if a.CABundleFile != "" {
+		b, err := os.ReadFile(a.CABundleFile)
+		if err != nil || !roots.AppendCertsFromPEM(b) {
+			return nil, nil, fmt.Errorf("app: server.acme.ca_bundle_file %q has no usable certificates", a.CABundleFile)
+		}
+	}
+	host, _ := os.Hostname()
+	owner := host + "-" + secrets.RandomString(8)
+	worker := certificates.NewWorker(m, certificates.NewACMECA(a.DirectoryURL, roots), domains, certificates.WorkerConfig{
+		Owner: owner, Email: a.Email, Challenge: a.Challenge, Roots: roots, Workers: a.Workers,
+	})
+	return domains, worker, nil
+}
+
 // Serve listens until ctx is cancelled, then shuts down gracefully.
 func (a *App) Serve(ctx context.Context) error {
 	srv := a.httpServer()
@@ -364,6 +419,40 @@ func (a *App) Serve(ctx context.Context) error {
 		}
 	}()
 	a.log.Info("listening", "addr", a.cfg.Server.Listen, "tls", useTLS)
+	if a.tls != nil && a.cfg.Server.ACME.HTTPListen != "" {
+		// HTTP-01 challenges and HTTPS redirects for registered hosts only.
+		challenges := &http.Server{
+			Addr: a.cfg.Server.ACME.HTTPListen, Handler: a.tls.HTTPHandler(nil),
+			ReadHeaderTimeout: 10 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second,
+		}
+		go func() {
+			if err := challenges.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				select {
+				case errc <- fmt.Errorf("app: challenge listener: %w", err):
+				default: // the main listener already failed
+				}
+			}
+		}()
+		defer func() {
+			sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = challenges.Shutdown(sctx)
+		}()
+		a.log.Info("listening for ACME HTTP-01", "addr", a.cfg.Server.ACME.HTTPListen)
+	}
+	if a.acme != nil {
+		acmeCtx, stopACME := context.WithCancel(ctx)
+		acmeDone := make(chan struct{})
+		go func() { defer close(acmeDone); a.acme.Run(acmeCtx) }()
+		defer func() {
+			stopACME()
+			select {
+			case <-acmeDone:
+			case <-time.After(10 * time.Second):
+				a.log.Warn("certificate worker did not stop within 10s; its leases expire on their own")
+			}
+		}()
+	}
 	go a.sweepLoop(ctx, sweepInterval)
 	if a.jobs != nil && a.jobs.Workers > 0 {
 		// Workers stop with Serve, which waits a little for the job they

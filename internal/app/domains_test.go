@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -64,5 +65,35 @@ func TestStartupTLSCoverage(t *testing.T) {
 	}
 	if tc, err := a.tls.TLSConfig(); err != nil || tc.MinVersion != tls.VersionTLS12 {
 		t.Fatalf("tls config = %+v, %v", tc, err)
+	}
+}
+
+// With HTTP-01 ACME, Serve also runs the challenge listener and the
+// certificate worker, and stops both on shutdown.
+func TestServeACMELifecycle(t *testing.T) {
+	acme := config.ACME{Enabled: true, DirectoryURL: "https://127.0.0.1:1/directory", Email: "ops@example.test", TermsAccepted: true,
+		DeploymentID: "prod-1", Challenge: "http-01", HTTPListen: "127.0.0.1:0", Workers: 1,
+		HostedWildcard: config.HostedWildcard{Enabled: true, Zone: "example.test", TokenFile: "/dev/null"}}
+	cfg := &config.Config{Server: config.Server{Listen: "127.0.0.1:0", BaseDomain: "auth.example.test", ACME: acme,
+		CustomDomains: config.CustomDomains{DNSResolver: "127.0.0.1:53"}}}
+	a, err := build(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), memory.New(), make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.acme == nil || a.domains == nil {
+		t.Fatal("ACME worker or domain service not built")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- a.Serve(ctx) }()
+	time.Sleep(200 * time.Millisecond)
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("serve = %v", err)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("Serve did not stop")
 	}
 }

@@ -60,7 +60,7 @@ func (m *Manager) TLSConfig() (*tls.Config, error) {
 	return &tls.Config{
 		MinVersion:     tls.VersionTLS12,
 		GetCertificate: m.GetCertificate,
-		NextProtos:     []string{"h2", "http/1.1"},
+		NextProtos:     []string{"h2", "http/1.1", ALPNProto},
 	}, nil
 }
 
@@ -77,6 +77,9 @@ func (m *Manager) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, 
 	defer cancel()
 	if hello.ServerName == "" {
 		return nil, ErrNoCertificate
+	}
+	if isALPNChallenge(hello) {
+		return m.alpnChallenge(ctx, hello)
 	}
 	host, err := hostname.NormalizeDNSName(hello.ServerName)
 	if err != nil {

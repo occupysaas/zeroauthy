@@ -142,7 +142,7 @@ func (s *Service) Create(ctx context.Context, tenantID string, in CreateInput) (
 		if err := tx.CustomDomains().Create(ctx, d); err != nil {
 			return err
 		}
-		for _, h := range s.bindings(d, false) {
+		for _, h := range bindings(d, false) {
 			if err := tx.CustomDomains().PutHost(ctx, h); err != nil {
 				return err
 			}
@@ -155,7 +155,7 @@ func (s *Service) Create(ctx context.Context, tenantID string, in CreateInput) (
 	return d, nil
 }
 
-func (s *Service) bindings(d *store.CustomDomain, active bool) []*store.HostBinding {
+func bindings(d *store.CustomDomain, active bool) []*store.HostBinding {
 	out := []*store.HostBinding{{Host: d.Domain, TenantID: d.TenantID, DomainID: d.ID, Generation: d.Generation, Kind: store.HostPublic, Active: active}}
 	if d.OriginHost != "" {
 		out = append(out, &store.HostBinding{Host: d.OriginHost, TenantID: d.TenantID, DomainID: d.ID, Generation: d.Generation, Kind: store.HostOrigin, Active: active})
@@ -341,7 +341,11 @@ func (s *Service) activate(ctx context.Context, tx store.Store, d *store.CustomD
 }
 
 func (s *Service) setActive(ctx context.Context, tx store.Store, d *store.CustomDomain, active bool) error {
-	for _, h := range s.bindings(d, active) {
+	return setActive(ctx, tx, d, active)
+}
+
+func setActive(ctx context.Context, tx store.Store, d *store.CustomDomain, active bool) error {
+	for _, h := range bindings(d, active) {
 		if err := tx.CustomDomains().PutHost(ctx, h); err != nil {
 			return err
 		}
@@ -562,4 +566,37 @@ func (s *Service) NotificationOrigin(ctx context.Context, tenantID, explicit str
 		return d.Domain, nil
 	}
 	return t.CanonicalHost, nil
+}
+
+// ProveOwnership re-checks the DNS proof outside any transaction; the
+// certificate worker calls it before every issuance and renewal.
+func (s *Service) ProveOwnership(ctx context.Context, d *store.CustomDomain) error {
+	switch outcome, reason := s.prove(ctx, d); outcome {
+	case proofMatched:
+		return nil
+	case proofMissing:
+		return fmt.Errorf("%w: %s", ErrProofMissing, reason)
+	default:
+		return fmt.Errorf("%w: %s", ErrProofUncertain, reason)
+	}
+}
+
+var (
+	// ErrProofMissing: DNS answered without the expected proof.
+	ErrProofMissing = errors.New("customdomain: ownership proof missing")
+	// ErrProofUncertain: the resolver failed; ownership is not revoked.
+	ErrProofUncertain = errors.New("customdomain: ownership proof could not be checked")
+)
+
+// ActivateManaged publishes a managed domain's new certificate inside the
+// caller's transaction, which must already have checked the worker's lease
+// and that d is the current generation. The domain becomes (or stays) ready
+// and is next due at renewAt.
+func ActivateManaged(ctx context.Context, tx store.Store, d *store.CustomDomain, certKey string, now, renewAt time.Time) error {
+	d.ActiveCertificateKey, d.Lifecycle, d.Status, d.ProofStatus = certKey, LifecycleActive, StatusReady, ProofVerified
+	d.NextAttemptAt, d.AttemptCount, d.LastFailure, d.UpdatedAt = &renewAt, 0, "", now
+	if err := setActive(ctx, tx, d, true); err != nil {
+		return err
+	}
+	return tx.CustomDomains().Update(ctx, d, d.Revision)
 }

@@ -396,6 +396,7 @@ func TestACMEConfig(t *testing.T) {
 		"origin url":       append(slices.Clone(base), "ZEROAUTHY_SERVER__CUSTOM_DOMAINS__ORIGIN_DOMAIN=https://o.test"),
 		"origin port":      append(slices.Clone(base), "ZEROAUTHY_SERVER__CUSTOM_DOMAINS__ORIGIN_DOMAIN=o.test:8443"),
 		"unknown acme key": append(slices.Clone(on), "ZEROAUTHY_SERVER__ACME__INSECURE=true"),
+		"resolver host":    append(slices.Clone(base), "ZEROAUTHY_SERVER__CUSTOM_DOMAINS__DNS_RESOLVER=dns.example.test:53"),
 	} {
 		if _, err := Load("", env); err == nil {
 			t.Errorf("%s accepted", name)

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"os"
 	"strings"
 	"time"
 
@@ -247,4 +248,36 @@ func (r *BoundedResolver) roundTrip(ctx context.Context, network string, query [
 		return nil, err
 	}
 	return buf, nil
+}
+
+// ParseResolvConf returns the first usable nameserver in resolv.conf format
+// as host:port. Link-local addresses with zones are skipped.
+func ParseResolvConf(r io.Reader) (string, error) {
+	data, err := io.ReadAll(io.LimitReader(r, 64<<10))
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		f := strings.Fields(line)
+		if len(f) < 2 || f[0] != "nameserver" {
+			continue
+		}
+		a, err := netip.ParseAddr(f[1])
+		if err != nil || a.Zone() != "" {
+			continue
+		}
+		return net.JoinHostPort(a.String(), "53"), nil
+	}
+	return "", errors.New("customdomain: no usable nameserver in resolv.conf")
+}
+
+// SystemResolver is the host's configured resolver, the default when
+// server.custom_domains.dns_resolver is unset.
+func SystemResolver() (string, error) {
+	f, err := os.Open("/etc/resolv.conf")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	return ParseResolvConf(f)
 }

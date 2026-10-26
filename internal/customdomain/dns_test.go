@@ -168,3 +168,17 @@ func TestBoundedResolverSize(t *testing.T) {
 		t.Fatalf("oversize = %v", err)
 	}
 }
+
+func TestSystemResolver(t *testing.T) {
+	for conf, want := range map[string]string{
+		"# c\nsearch x\nnameserver 192.0.2.53\nnameserver 192.0.2.54\n": "192.0.2.53:53",
+		"nameserver 2001:db8::53\n":                                     "[2001:db8::53]:53",
+		"nameserver fe80::1%eth0\nnameserver 192.0.2.9\n":               "192.0.2.9:53",
+		"search only\n": "",
+	} {
+		got, err := customdomain.ParseResolvConf(strings.NewReader(conf))
+		if got != want || (want == "") != (err != nil) {
+			t.Errorf("%q = %q, %v", conf, got, err)
+		}
+	}
+}

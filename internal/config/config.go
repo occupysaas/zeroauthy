@@ -105,6 +105,9 @@ type CustomDomains struct {
 	// OriginDomain is the operator DNS suffix of private origin aliases
 	// (cd-<hex>.<origin_domain>); it defaults to base_domain.
 	OriginDomain string `koanf:"origin_domain"`
+	// DNSResolver (host:port) answers ownership-proof and diagnostic
+	// lookups; it defaults to the host's first resolv.conf nameserver.
+	DNSResolver string `koanf:"dns_resolver"`
 }
 
 // OriginDomain is the effective origin suffix, normalized; "" when neither
@@ -282,6 +285,11 @@ func (s *Server) validateACME() []error {
 	if o := s.CustomDomains.OriginDomain; o != "" {
 		if h, err := hostname.NormalizeDNSName(o); err != nil || h != tenant.NormalizeHost(o) {
 			errs = append(errs, fmt.Errorf("server.custom_domains.origin_domain %q must be a DNS name without scheme or port", o))
+		}
+	}
+	if r := s.CustomDomains.DNSResolver; r != "" {
+		if _, err := netip.ParseAddrPort(r); err != nil {
+			errs = append(errs, fmt.Errorf("server.custom_domains.dns_resolver %q must be an IP address and port", r))
 		}
 	}
 	if a.HostedWildcard.Enabled {
