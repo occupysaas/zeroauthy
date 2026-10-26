@@ -26,8 +26,8 @@ func (r clientGrants) Create(_ context.Context, g *store.ClientGrant) error {
 }
 
 func (r clientGrants) Find(_ context.Context, tenantID, clientID, audience, subjectType string) (*store.ClientGrant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	g, ok := r.find(tenantID, clientID, audience, subjectType)
 	if !ok {
 		return nil, store.ErrNotFound
@@ -63,8 +63,8 @@ func (r clientGrants) Delete(_ context.Context, tenantID, id string) error {
 }
 
 func (r clientGrants) List(_ context.Context, tenantID string, f store.ClientGrantFilter, p store.Page) ([]*store.ClientGrant, int, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var all []*store.ClientGrant
 	for k, g := range r.s.clientGrants {
 		if k.tenant == tenantID && (f.ClientID == "" || g.ClientID == f.ClientID) &&

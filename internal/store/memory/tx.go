@@ -13,13 +13,14 @@ import (
 
 // WithTx snapshots every map, runs fn, and restores the snapshot unless fn
 // returns nil (including when fn panics or calls runtime.Goexit, e.g. via
-// t.Fatal). Transactions are serialized by txMu, and so are writes made
-// outside any transaction, so a restore never undoes another caller's
-// write. fn receives a view of the store whose writes skip txMu; a nested
+// t.Fatal). txMu excludes external readers and writers until final lease
+// validation and any rollback finish. fn receives a view of the store whose
+// reads and writes skip txMu; a nested
 // WithTx on it joins the enclosing transaction like a savepoint in the SQL
 // drivers: an error or panic from fn undoes fn's writes only, and the
-// enclosing transaction continues. fn must use the store it is given: a
-// write through the outer store would wait for the transaction to end.
+// enclosing transaction continues. fn must use the store it is given for both
+// reads and writes: operations through the outer store wait for the transaction
+// to end, so calling them synchronously from fn would deadlock.
 func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	if s.tx {
 		return s.savepoint(fn)

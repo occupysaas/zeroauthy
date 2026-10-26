@@ -33,8 +33,8 @@ func (r resetTickets) Create(_ context.Context, t *store.PasswordResetTicket) er
 }
 
 func (r resetTickets) GetByTokenHash(_ context.Context, tenantID, tokenHash string) (*store.PasswordResetTicket, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	t, ok := r.findByHash(tenantID, tokenHash)
 	if !ok {
 		return nil, store.ErrNotFound

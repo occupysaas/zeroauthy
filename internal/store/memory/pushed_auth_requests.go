@@ -36,8 +36,8 @@ func (r pushedAuthRequests) Consume(_ context.Context, tenantID, idHash string, 
 }
 
 func (r pushedAuthRequests) Get(_ context.Context, tenantID, idHash string) (*store.PushedAuthRequest, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	p, ok := r.s.pushedAuthRequests[key{tenantID, idHash}]
 	if !ok {
 		return nil, store.ErrNotFound

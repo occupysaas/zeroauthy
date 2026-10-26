@@ -25,8 +25,8 @@ func (r deviceCodes) Create(_ context.Context, d *store.DeviceCode) error {
 }
 
 func (r deviceCodes) Get(_ context.Context, tenantID, deviceCodeHash string) (*store.DeviceCode, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	d, ok := r.s.deviceCodes[key{tenantID, deviceCodeHash}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -35,8 +35,8 @@ func (r deviceCodes) Get(_ context.Context, tenantID, deviceCodeHash string) (*s
 }
 
 func (r deviceCodes) GetByUserCode(_ context.Context, tenantID, userCodeHash string) (*store.DeviceCode, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	for _, d := range r.s.deviceCodes {
 		if d.TenantID == tenantID && d.UserCodeHash == userCodeHash {
 			return cloneDeviceCode(d), nil

@@ -33,8 +33,8 @@ func cloneEmailTemplate(t *store.EmailTemplate) *store.EmailTemplate {
 }
 
 func (r emailProviders) Get(_ context.Context, tenantID string) (*store.EmailProvider, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	p, ok := r.s.emailProviders[tenantID]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -138,8 +138,8 @@ func nonsecretConfig(value any, depth int) bool {
 }
 
 func (r emailTemplates) Get(_ context.Context, tenantID, name string) (*store.EmailTemplate, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	t, ok := r.s.emailTemplates[key{tenantID, name}]
 	if !ok {
 		return nil, store.ErrNotFound

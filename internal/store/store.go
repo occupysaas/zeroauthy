@@ -63,8 +63,9 @@ type Store interface {
 	HostedLogins() HostedLogins
 	// WithTx runs fn against a transactional view of the store. If fn
 	// returns an error, none of its writes persist. Drivers serialize
-	// transactions; the memory driver also serializes them with writes made
-	// outside any transaction, so fn must not write through the outer store.
+	// transactions; the memory driver also excludes outside reads and writes
+	// until completion. fn must use its supplied view for reads and writes;
+	// synchronous operations through the outer memory store would deadlock.
 	// A nested WithTx call inside fn runs inline and joins the outer transaction.
 	WithTx(ctx context.Context, fn func(tx Store) error) error
 	Ping(ctx context.Context) error

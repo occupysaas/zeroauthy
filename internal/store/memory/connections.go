@@ -23,8 +23,8 @@ func (r connections) Create(_ context.Context, c *store.Connection) error {
 }
 
 func (r connections) Get(_ context.Context, tenantID, id string) (*store.Connection, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	c, ok := r.s.connections[key{tenantID, id}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -33,8 +33,8 @@ func (r connections) Get(_ context.Context, tenantID, id string) (*store.Connect
 }
 
 func (r connections) GetByName(_ context.Context, tenantID, name string) (*store.Connection, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	for k, c := range r.s.connections {
 		if k.tenant == tenantID && c.Name == name {
 			return cloneConnection(c), nil
@@ -58,8 +58,8 @@ func (r connections) Update(_ context.Context, c *store.Connection) error {
 }
 
 func (r connections) List(_ context.Context, tenantID string, f store.ConnectionFilter, p store.Page) ([]*store.Connection, int, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var all []*store.Connection
 	for k, c := range r.s.connections {
 		if k.tenant == tenantID && (f.Name == "" || c.Name == f.Name) &&

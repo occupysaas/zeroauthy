@@ -15,8 +15,8 @@ type customDomains struct{ s *Store }
 func (s *Store) CustomDomains() store.CustomDomains { return customDomains{s} }
 
 func (r customDomains) Get(_ context.Context, tenant, id string) (*store.CustomDomain, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	d := r.s.customDomains[key{tenant, id}]
 	if d == nil {
 		return nil, store.ErrNotFound
@@ -24,8 +24,8 @@ func (r customDomains) Get(_ context.Context, tenant, id string) (*store.CustomD
 	return d.Clone(), nil
 }
 func (r customDomains) List(_ context.Context, tenant string) ([]*store.CustomDomain, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	out := []*store.CustomDomain{}
 	for k, d := range r.s.customDomains {
 		if k.tenant == tenant {
@@ -39,8 +39,8 @@ func (r customDomains) ListDue(_ context.Context, limit int) ([]*store.CustomDom
 	if limit < 1 {
 		return nil, store.ErrInvalid
 	}
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	now := r.s.now()
 	out := []*store.CustomDomain{}
 	for _, d := range r.s.customDomains {
@@ -171,8 +171,8 @@ func (r customDomains) GetHost(_ context.Context, host string) (*store.HostBindi
 	if err != nil {
 		return nil, store.ErrInvalid
 	}
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	h := r.s.hostBindings[name]
 	if h == nil {
 		return nil, store.ErrNotFound
@@ -231,8 +231,8 @@ func (r customDomains) DeleteHost(_ context.Context, host, tenant, id string) er
 	return nil
 }
 func (r customDomains) GetDefault(_ context.Context, tenant string) (string, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	if r.s.tenants[tenant] == nil {
 		return "", store.ErrNotFound
 	}

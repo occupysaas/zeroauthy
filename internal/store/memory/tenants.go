@@ -29,8 +29,8 @@ func (r tenants) Create(_ context.Context, t *store.Tenant) error {
 }
 
 func (r tenants) Get(_ context.Context, id string) (*store.Tenant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	t, ok := r.s.tenants[id]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -47,8 +47,8 @@ func (r tenants) GetByDomain(_ context.Context, domain string) (*store.Tenant, e
 	if err != nil {
 		return nil, store.ErrNotFound
 	}
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	h := r.s.hostBindings[name]
 	if h == nil || !h.Active || h.Kind == store.HostOrigin {
 		return nil, store.ErrNotFound
@@ -84,8 +84,8 @@ func (r tenants) Update(_ context.Context, t *store.Tenant) error {
 }
 
 func (r tenants) List(context.Context) ([]*store.Tenant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	out := make([]*store.Tenant, 0, len(r.s.tenants))
 	for _, t := range r.s.tenants {
 		out = append(out, cloneTenant(t))
@@ -170,8 +170,8 @@ func purgeEmailClaims(m map[emailClaimKey]store.EmailNotification, tenantID stri
 }
 
 func (r tenants) find(match func(*store.Tenant) bool) (*store.Tenant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	for _, t := range r.s.tenants {
 		if match(t) {
 			return cloneTenant(t), nil

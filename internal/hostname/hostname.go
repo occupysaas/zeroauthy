@@ -13,22 +13,57 @@ import (
 
 func NormalizeDNSName(raw string) (string, error) { return normalizeName(raw, true) }
 
-// NormalizeOperatorHost retains local operator host/port support. Public API
-// callers must use NormalizeDNSName, which never accepts ports or local names.
+// NormalizeOperatorHost retains privileged local/IP aliases and host/port
+// support. It collapses the HTTPS default port, including bracketed IPv6 forms.
+// Public API callers must use NormalizeDNSName, which rejects ports and IPs.
 func NormalizeOperatorHost(raw string) (string, error) {
-	if strings.Contains(raw, ":") {
-		host, port, err := net.SplitHostPort(raw)
-		n, e := strconv.Atoi(port)
-		if err != nil || e != nil || n < 1 || n > 65535 {
+	if raw == "" || strings.TrimSpace(raw) != raw || strings.ContainsAny(raw, "/@\\*?#") {
+		return "", errors.New("invalid operator host")
+	}
+	host, port := raw, ""
+	bracketed := strings.HasPrefix(raw, "[")
+	if bracketed && strings.HasSuffix(raw, "]") {
+		host = raw[1 : len(raw)-1]
+	} else if strings.Contains(raw, ":") {
+		var err error
+		host, port, err = net.SplitHostPort(raw)
+		if err != nil {
 			return "", errors.New("invalid operator host port")
 		}
-		name, e := normalizeName(host, false)
-		if e != nil {
-			return "", e
-		}
-		return net.JoinHostPort(name, strconv.Itoa(n)), nil
 	}
-	return normalizeName(raw, false)
+	ip := net.ParseIP(host)
+	if bracketed && ip == nil {
+		return "", errors.New("invalid operator IP literal")
+	}
+	if port != "" {
+		for _, ch := range port {
+			if ch < '0' || ch > '9' {
+				return "", errors.New("invalid operator host port")
+			}
+		}
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return "", errors.New("invalid operator host port")
+		}
+		port = strconv.Itoa(n)
+	}
+	var name string
+	if ip != nil {
+		name = ip.String()
+	} else {
+		var err error
+		name, err = normalizeName(host, false)
+		if err != nil {
+			return "", err
+		}
+	}
+	if port == "" || port == "443" {
+		if strings.Contains(name, ":") {
+			return "[" + name + "]", nil
+		}
+		return name, nil
+	}
+	return net.JoinHostPort(name, port), nil
 }
 
 func normalizeName(raw string, public bool) (string, error) {

@@ -23,8 +23,8 @@ func (r clients) Create(_ context.Context, c *store.Client) error {
 }
 
 func (r clients) Get(_ context.Context, tenantID, clientID string) (*store.Client, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	c, ok := r.s.clients[key{tenantID, clientID}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -70,8 +70,8 @@ func (r clients) Delete(_ context.Context, tenantID, clientID string) error {
 }
 
 func (r clients) List(_ context.Context, tenantID string, f store.ClientFilter, p store.Page) ([]*store.Client, int, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var all []*store.Client
 	for k, c := range r.s.clients {
 		if k.tenant == tenantID && (len(f.AppTypes) == 0 || slices.Contains(f.AppTypes, string(c.AppType))) &&

@@ -25,8 +25,8 @@ func (r passwordHistories) Add(_ context.Context, tenantID, userID string, hash 
 }
 
 func (r passwordHistories) List(_ context.Context, tenantID, userID string) ([][]byte, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	h := r.s.passwordHistories[key{tenantID, userID}]
 	out := make([][]byte, len(h))
 	for i, b := range h {

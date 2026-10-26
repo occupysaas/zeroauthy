@@ -32,8 +32,8 @@ func (r signingKeys) Create(_ context.Context, k *store.SigningKey) error {
 }
 
 func (r signingKeys) Get(_ context.Context, tenantID, kid string) (*store.SigningKey, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	k, ok := r.s.signingKeys[key{tenantID, kid}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -42,8 +42,8 @@ func (r signingKeys) Get(_ context.Context, tenantID, kid string) (*store.Signin
 }
 
 func (r signingKeys) List(_ context.Context, tenantID string) ([]*store.SigningKey, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var out []*store.SigningKey
 	for k, sk := range r.s.signingKeys {
 		if k.tenant == tenantID {
@@ -155,8 +155,8 @@ type customSigningKeys struct{ s *Store }
 func (s *Store) CustomSigningKeys() store.CustomSigningKeys { return customSigningKeys{s} }
 
 func (r customSigningKeys) Get(_ context.Context, tenantID string) (*store.CustomSigningKeySet, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	set, ok := r.s.customSigningKeys[tenantID]
 	if !ok {
 		return nil, store.ErrNotFound

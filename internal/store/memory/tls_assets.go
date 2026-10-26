@@ -13,8 +13,8 @@ type tlsAssets struct{ s *Store }
 
 func (s *Store) TLSAssets() store.TLSAssets { return tlsAssets{s} }
 func (r tlsAssets) Get(_ context.Context, key string) (*store.TLSAsset, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	a := r.s.tlsAssets[key]
 	if a == nil {
 		return nil, store.ErrNotFound
@@ -60,8 +60,8 @@ func (r tlsAssets) ListExpired(_ context.Context, limit int) ([]*store.TLSAsset,
 	if limit < 1 {
 		return nil, store.ErrInvalid
 	}
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	now := r.s.now()
 	out := []*store.TLSAsset{}
 	for _, a := range r.s.tlsAssets {
