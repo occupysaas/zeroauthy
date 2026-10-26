@@ -145,7 +145,7 @@ func TestTenantRoundTrip(t *testing.T) {
 		SettingsExtra: map[string]any{"flags": map[string]any{"enable_sso": true}}, SettingsPresence: map[string]bool{"device_flow.mask": true},
 		ProtectionSettings: fullProtectionSettings(), ProtectionSettingsInitialized: true,
 		EphemeralSessionLifetime: 7200, IdleEphemeralSessionLifetime: 3600, SessionCookieMode: "non-persistent",
-		ID: "ten", Name: "acme", FriendlyName: "Acme", Domains: []string{"a.example.test", "b.example.test"},
+		CanonicalHost: "canonical.example", ID: "ten", Name: "acme", FriendlyName: "Acme", Domains: []string{"a.example.test", "b.example.test"},
 		DefaultAudience: "https://api", AllowedLogoutURLs: []string{"https://x/out"}, EnabledLocales: []string{"en", "de"},
 		CustomText:      store.CustomText{"login": {"en": {"login": {"title": "Hi", "description": "Welcome"}}, "de": {"login": {"title": "Hallo"}}}},
 		SessionLifetime: 3600, IdleSessionLifetime: 1800,
@@ -339,6 +339,7 @@ func TestUserRoundTrip(t *testing.T) {
 
 func TestSessionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.LoginSession{
+		Origin:   "https://login.example",
 		TenantID: "ten", ID: "sid", TokenHash: "th", UserID: "auth0|u1", Connection: "db", CookieMode: "non-persistent",
 		AuthenticatedAt: nanoTime, ClientIDs: []string{"c1", "c2"},
 		ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
@@ -351,6 +352,7 @@ func TestSessionRoundTrip(t *testing.T) {
 
 func TestAuthTransactionRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.AuthTransaction{
+		Origin:   "https://login.example",
 		TenantID: "ten", ID: "st", CookieHash: "ch", CSRFToken: "csrf", ClientID: "cid",
 		Params:      map[string]string{"scope": "openid profile", "state": "xyz", "empty": ""},
 		HostedState: store.HostedLoginState{Step: "password", Identifier: "ada@example.test", ConnectionID: "db", PromptFields: map[string]string{"ulp-team": "blue"}, FormFields: map[string]string{"ulp-team": "text"}, Revision: 1, FormConfigRevision: 2, FormScreen: "login-password", FormLanguage: "en"},
@@ -362,6 +364,7 @@ func TestAuthTransactionRoundTrip(t *testing.T) {
 
 func TestAuthCodeRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.AuthCode{
+		Origin:   "https://login.example",
 		TenantID: "ten", CodeHash: "ch", ClientID: "cid", RedirectURI: "https://cb", UserID: "auth0|u1",
 		SessionID: "sid", Scopes: []string{"openid", "email"}, Audience: "https://api", Nonce: "n",
 		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime,
@@ -374,6 +377,7 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 
 func TestRefreshTokenRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.RefreshToken{
+		Origin:   "https://login.example",
 		TenantID: "ten", ID: "rt", TokenHash: "th", FamilyID: "fam", ClientID: "cid", UserID: "auth0|u1",
 		SessionID: "sid", Scopes: []string{"openid", "offline_access"}, Audience: "https://api",
 		AuthTime: nanoTime, Rotating: true, ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute),
@@ -385,6 +389,7 @@ func TestRefreshTokenRoundTrip(t *testing.T) {
 
 func TestPasswordResetTicketRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.PasswordResetTicket{
+		Origin:   "https://login.example",
 		TenantID: "ten", ID: "tk", TokenHash: "th", UserID: "auth0|u1", Connection: "db", ClientID: "cid",
 		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
 		ResultURL: "https://app.test/done", IncludeEmailInRedirect: true, MarkEmailVerified: true,
@@ -394,6 +399,7 @@ func TestPasswordResetTicketRoundTrip(t *testing.T) {
 
 func TestEmailVerificationTicketRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.EmailVerificationTicket{
+		Origin:   "https://login.example",
 		TenantID: "ten", ID: "tk", TokenHash: "th", UserID: "auth0|u1", Connection: "db", ClientID: "cid",
 		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
 		ResultURL: "https://app.test/done", IncludeEmailInRedirect: true, Email: "a@b.test",
@@ -498,6 +504,8 @@ func TestErrorMapping(t *testing.T) {
 }
 
 func TestPushedAuthRequestCodecRoundTrip(t *testing.T) {
+	roundTrip(t, "full", &store.PushedAuthRequest{TenantID: "ten", IDHash: "h", ClientID: "cid", Origin: "https://login.example", Params: map[string]string{"state": "s"}, ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime, UsedAt: &nanoTime}, pushedAuthRequestToPB, pushedAuthRequestFromPB)
+	roundTrip(t, "zero", &store.PushedAuthRequest{}, pushedAuthRequestToPB, pushedAuthRequestFromPB)
 	used := time.Date(2026, 1, 2, 3, 4, 5, 6000, time.UTC)
 	for _, in := range []*store.PushedAuthRequest{
 		{TenantID: "t", IDHash: "h", ClientID: "c", Params: map[string]string{"state": "s", "ext-a": "b"},
@@ -534,6 +542,7 @@ func TestPARFieldsDefaultOffForOldPlugins(t *testing.T) {
 
 func TestDeviceCodeCodecRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.DeviceCode{
+		Origin:   "https://login.example",
 		TenantID: "ten", DeviceCodeHash: "dh", UserCodeHash: "uh", ClientID: "c",
 		Scopes: []string{"openid", "email"}, Audience: "https://api", Status: store.DeviceCodeApproved,
 		UserID: "u", GrantedScopes: []string{"openid"},
@@ -637,7 +646,7 @@ func TestJobRoundTrip(t *testing.T) {
 	roundTrip(t, "full", &store.Job{
 		TenantID: "ten", ID: "job_1", Type: store.JobUsersImport, Status: store.JobProcessing,
 		ConnectionID: "con_1", Connection: "Database", ExternalID: "ext",
-		Params: map[string]any{"upsert": true, "n": float64(3), "nested": map[string]any{"a": []any{"x", nil}}},
+		Params: map[string]any{"upsert": true, "n": float64(3), "selected_origin": "https://login.example", "nested": map[string]any{"a": []any{"x", nil}}},
 		Input:  []byte(`[{"email":"a@example.test"}]`), Progress: 2,
 		Summary:       store.JobSummary{Failed: 1, Updated: 2, Inserted: 3, Total: 6},
 		StatusDetails: "details", Attempts: 2, LeaseOwner: "w1", LeaseUntil: nanoTime.Add(time.Minute),

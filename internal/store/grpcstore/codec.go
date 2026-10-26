@@ -122,6 +122,10 @@ func errToPB(err error) *storev1.Error {
 	switch {
 	case err == nil:
 		return nil
+	case errors.Is(err, store.ErrCustomDomainRepositoryUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_CUSTOM_DOMAIN_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrTLSAssetRepositoryUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_TLS_ASSET_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrNotFound):
 		return &storev1.Error{Kind: storev1.Error_KIND_NOT_FOUND, Message: err.Error()}
 	case errors.Is(err, store.ErrConflict):
@@ -142,6 +146,10 @@ func errFromPB(e *storev1.Error) error {
 		return nil
 	}
 	switch e.Kind {
+	case storev1.Error_KIND_CUSTOM_DOMAIN_UNAVAILABLE:
+		return store.ErrCustomDomainRepositoryUnavailable
+	case storev1.Error_KIND_TLS_ASSET_UNAVAILABLE:
+		return store.ErrTLSAssetRepositoryUnavailable
 	case storev1.Error_KIND_NOT_FOUND:
 		return store.ErrNotFound
 	case storev1.Error_KIND_CONFLICT:
@@ -162,7 +170,8 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		return nil, nil
 	}
 	pb := &storev1.Tenant{
-		Id: t.ID, Name: t.Name, FriendlyName: t.FriendlyName,
+		CanonicalHost: t.CanonicalHost,
+		Id:            t.ID, Name: t.Name, FriendlyName: t.FriendlyName,
 		SupportEmail: t.SupportEmail, SupportUrl: t.SupportURL, PictureUrl: t.PictureURL,
 		ProtectionSettingsInitialized: t.ProtectionSettingsInitialized,
 		EphemeralSessionLifetime:      int64(t.EphemeralSessionLifetime), IdleEphemeralSessionLifetime: int64(t.IdleEphemeralSessionLifetime), SessionCookieMode: t.SessionCookieMode,
@@ -214,7 +223,8 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		return nil, err
 	}
 	t := &store.Tenant{
-		ID: pb.Id, Name: pb.Name, FriendlyName: pb.FriendlyName,
+		CanonicalHost: pb.CanonicalHost,
+		ID:            pb.Id, Name: pb.Name, FriendlyName: pb.FriendlyName,
 		SupportEmail: pb.SupportEmail, SupportURL: pb.SupportUrl, PictureURL: pb.PictureUrl,
 		ProtectionSettingsInitialized: pb.ProtectionSettingsInitialized,
 		EphemeralSessionLifetime:      int(pb.EphemeralSessionLifetime), IdleEphemeralSessionLifetime: int(pb.IdleEphemeralSessionLifetime), SessionCookieMode: pb.SessionCookieMode,
@@ -788,6 +798,7 @@ func sessionToPB(s *store.LoginSession) (*storev1.LoginSession, error) {
 		return nil, nil
 	}
 	return &storev1.LoginSession{
+		Origin:     s.Origin,
 		CookieMode: s.CookieMode,
 		TenantId:   s.TenantID, Id: s.ID, TokenHash: s.TokenHash, UserId: s.UserID,
 		Connection: s.Connection, AuthenticatedAt: tsToPB(s.AuthenticatedAt),
@@ -806,6 +817,7 @@ func sessionFromPB(pb *storev1.LoginSession) (*store.LoginSession, error) {
 		return nil, err
 	}
 	return &store.LoginSession{
+		Origin:     pb.Origin,
 		CookieMode: pb.CookieMode,
 		TenantID:   pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, AuthenticatedAt: tsFromPB(pb.AuthenticatedAt),
@@ -827,6 +839,7 @@ func authTransactionToPB(a *store.AuthTransaction) (*storev1.AuthTransaction, er
 		return nil, err
 	}
 	return &storev1.AuthTransaction{
+		Origin:   a.Origin,
 		TenantId: a.TenantID, Id: a.ID, CookieHash: a.CookieHash, CsrfToken: a.CSRFToken,
 		ClientId: a.ClientID, Params: stringMapToPB(a.Params),
 		ExpiresAt: tsToPB(a.ExpiresAt), CreatedAt: tsToPB(a.CreatedAt), HostedStateJson: string(hosted),
@@ -841,6 +854,7 @@ func authTransactionFromPB(pb *storev1.AuthTransaction) (*store.AuthTransaction,
 		return nil, err
 	}
 	a := &store.AuthTransaction{
+		Origin:   pb.Origin,
 		TenantID: pb.TenantId, ID: pb.Id, CookieHash: pb.CookieHash, CSRFToken: pb.CsrfToken,
 		ClientID: pb.ClientId, Params: stringMapFromPB(pb.Params),
 		ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
@@ -860,6 +874,7 @@ func authCodeToPB(c *store.AuthCode) (*storev1.AuthCode, error) {
 		return nil, nil
 	}
 	return &storev1.AuthCode{
+		Origin:   c.Origin,
 		TenantId: c.TenantID, CodeHash: c.CodeHash, ClientId: c.ClientID, RedirectUri: c.RedirectURI,
 		UserId: c.UserID, SessionId: c.SessionID, Scopes: stringsToPB(c.Scopes), Audience: c.Audience,
 		Nonce: c.Nonce, CodeChallenge: c.CodeChallenge, CodeChallengeMethod: c.CodeChallengeMethod,
@@ -876,6 +891,7 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 		return nil, err
 	}
 	return &store.AuthCode{
+		Origin:   pb.Origin,
 		TenantID: pb.TenantId, CodeHash: pb.CodeHash, ClientID: pb.ClientId, RedirectURI: pb.RedirectUri,
 		UserID: pb.UserId, SessionID: pb.SessionId, Scopes: stringsFromPB(pb.Scopes), Audience: pb.Audience,
 		Nonce: pb.Nonce, CodeChallenge: pb.CodeChallenge, CodeChallengeMethod: pb.CodeChallengeMethod,
@@ -891,6 +907,7 @@ func pushedAuthRequestToPB(p *store.PushedAuthRequest) (*storev1.PushedAuthReque
 		return nil, nil
 	}
 	return &storev1.PushedAuthRequest{
+		Origin:   p.Origin,
 		TenantId: p.TenantID, IdHash: p.IDHash, ClientId: p.ClientID, Params: stringMapToPB(p.Params),
 		ExpiresAt: tsToPB(p.ExpiresAt), CreatedAt: tsToPB(p.CreatedAt), UsedAt: optTSToPB(p.UsedAt),
 	}, nil
@@ -904,6 +921,7 @@ func pushedAuthRequestFromPB(pb *storev1.PushedAuthRequest) (*store.PushedAuthRe
 		return nil, err
 	}
 	return &store.PushedAuthRequest{
+		Origin:   pb.Origin,
 		TenantID: pb.TenantId, IDHash: pb.IdHash, ClientID: pb.ClientId, Params: stringMapFromPB(pb.Params),
 		ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt), UsedAt: optTSFromPB(pb.UsedAt),
 	}, nil
@@ -916,6 +934,7 @@ func deviceCodeToPB(d *store.DeviceCode) (*storev1.DeviceCode, error) {
 		return nil, nil
 	}
 	return &storev1.DeviceCode{
+		Origin:   d.Origin,
 		TenantId: d.TenantID, DeviceCodeHash: d.DeviceCodeHash, UserCodeHash: d.UserCodeHash, ClientId: d.ClientID,
 		Scopes: stringsToPB(d.Scopes), Audience: d.Audience, Status: string(d.Status), UserId: d.UserID,
 		GrantedScopes: stringsToPB(d.GrantedScopes),
@@ -932,6 +951,7 @@ func deviceCodeFromPB(pb *storev1.DeviceCode) (*store.DeviceCode, error) {
 		return nil, err
 	}
 	return &store.DeviceCode{
+		Origin:   pb.Origin,
 		TenantID: pb.TenantId, DeviceCodeHash: pb.DeviceCodeHash, UserCodeHash: pb.UserCodeHash, ClientID: pb.ClientId,
 		Scopes: stringsFromPB(pb.Scopes), Audience: pb.Audience, Status: store.DeviceCodeStatus(pb.Status), UserID: pb.UserId,
 		GrantedScopes: stringsFromPB(pb.GrantedScopes),
@@ -957,6 +977,7 @@ func refreshTokenToPB(r *store.RefreshToken) (*storev1.RefreshToken, error) {
 		return nil, nil
 	}
 	return &storev1.RefreshToken{
+		Origin:   r.Origin,
 		TenantId: r.TenantID, Id: r.ID, TokenHash: r.TokenHash, FamilyId: r.FamilyID,
 		ClientId: r.ClientID, UserId: r.UserID, SessionId: r.SessionID, Scopes: stringsToPB(r.Scopes),
 		Audience: r.Audience, AuthTime: tsToPB(r.AuthTime), Rotating: r.Rotating,
@@ -973,6 +994,7 @@ func refreshTokenFromPB(pb *storev1.RefreshToken) (*store.RefreshToken, error) {
 		return nil, err
 	}
 	return &store.RefreshToken{
+		Origin:   pb.Origin,
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, FamilyID: pb.FamilyId,
 		ClientID: pb.ClientId, UserID: pb.UserId, SessionID: pb.SessionId, Scopes: stringsFromPB(pb.Scopes),
 		Audience: pb.Audience, AuthTime: tsFromPB(pb.AuthTime), Rotating: pb.Rotating,
@@ -988,6 +1010,7 @@ func passwordResetTicketToPB(p *store.PasswordResetTicket) (*storev1.PasswordRes
 		return nil, nil
 	}
 	return &storev1.PasswordResetTicket{
+		Origin:   p.Origin,
 		TenantId: p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
 		Connection: p.Connection, ClientId: p.ClientID, Lang: p.Lang,
 		ExpiresAt: tsToPB(p.ExpiresAt), UsedAt: optTSToPB(p.UsedAt), CreatedAt: tsToPB(p.CreatedAt),
@@ -1003,6 +1026,7 @@ func passwordResetTicketFromPB(pb *storev1.PasswordResetTicket) (*store.Password
 		return nil, err
 	}
 	return &store.PasswordResetTicket{
+		Origin:   pb.Origin,
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
@@ -1017,6 +1041,7 @@ func emailVerificationTicketToPB(p *store.EmailVerificationTicket) (*storev1.Ema
 		return nil, nil
 	}
 	return &storev1.EmailVerificationTicket{
+		Origin:   p.Origin,
 		TenantId: p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
 		Connection: p.Connection, ClientId: p.ClientID, Lang: p.Lang,
 		ExpiresAt: tsToPB(p.ExpiresAt), UsedAt: optTSToPB(p.UsedAt), CreatedAt: tsToPB(p.CreatedAt),
@@ -1032,6 +1057,7 @@ func emailVerificationTicketFromPB(pb *storev1.EmailVerificationTicket) (*store.
 		return nil, err
 	}
 	return &store.EmailVerificationTicket{
+		Origin:   pb.Origin,
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
