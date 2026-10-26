@@ -45,6 +45,7 @@ describe('the one-time proxy key', () => {
     expect(calls.filter(c => c.url.endsWith('/verify'))).toHaveLength(1)
     expect(calls.filter(c => c.method === 'GET').length).toBeGreaterThan(gets)
     expect(wrapper.text()).toContain('cannot be shown again')
+    expect((wrapper.find('form button[type=submit]').element as HTMLButtonElement).disabled).toBe(false)
   })
 
   it('reports rate limits without retrying', async () => {

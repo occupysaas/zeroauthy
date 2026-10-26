@@ -511,7 +511,11 @@ func (s *Service) SetDefault(ctx context.Context, tenantID, host string) (*store
 		if err != nil {
 			return err
 		}
-		if !Usable(d) {
+		usable, err := ServingUsable(ctx, tx, d, s.clock())
+		if err != nil {
+			return err
+		}
+		if !usable {
 			return ErrNotReady
 		}
 		out = d
@@ -522,7 +526,7 @@ func (s *Service) SetDefault(ctx context.Context, tenantID, host string) (*store
 
 // NotificationOrigin is SelectNotificationOrigin on this service's store.
 func (s *Service) NotificationOrigin(ctx context.Context, tenantID, explicit string) (string, error) {
-	return SelectNotificationOrigin(ctx, s.st, tenantID, explicit)
+	return selectNotificationOrigin(ctx, s.st, tenantID, explicit, s.clock())
 }
 
 // ProveOwnership re-checks the DNS proof outside any transaction; the

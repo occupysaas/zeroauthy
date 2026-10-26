@@ -23,10 +23,22 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	now := h.now()
 	// A code is redeemed only on the origin that issued it; another alias
 	// must not consume it (or trigger replay revocation).
-	if pre, err := h.Store.AuthCodes().Get(ctx, tenantID, secrets.HashToken(code)); err == nil && res.CheckOrigin(pre.Origin) != nil {
+	pre, err := h.Store.AuthCodes().Get(ctx, tenantID, secrets.HashToken(code))
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, invalidGrant("invalid authorization code")
+	}
+	if err != nil {
+		h.log().ErrorContext(ctx, "load authorization code origin", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	}
+	if res.CheckOrigin(pre.Origin) != nil {
 		return nil, invalidGrant("invalid authorization code")
 	}
 	ac, err := h.Store.AuthCodes().Consume(ctx, tenantID, secrets.HashToken(code), now)
+	// Also defend token issuance and replay revocation against a stale store read.
+	if ac != nil && res.CheckOrigin(ac.Origin) != nil {
+		return nil, invalidGrant("invalid authorization code")
+	}
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		return nil, invalidGrant("invalid authorization code")

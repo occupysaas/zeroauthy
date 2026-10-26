@@ -20,42 +20,64 @@ const domain = ref<CustomDomain | null>(null)
 const error = ref('')
 const notice = ref('')
 const pending = ref(false)
+const readable = ref(false)
+const dirty = ref(false)
 // secret holds the one-time key from this page's own verify reply only.
 const secret = ref('')
 const header = ref<string>('')
 const metadata = ref('')
 const rp = ref('')
 let generation = 0
-onBeforeUnmount(() => { generation++; secret.value = '' })
+let readSequence = 0
+let poll: ReturnType<typeof setTimeout> | undefined
+let polls = 0
+function stopPoll() { clearTimeout(poll); poll = undefined }
+onBeforeUnmount(() => { generation++; readSequence++; stopPoll(); secret.value = '' })
 
 const id = computed(() => (typeof route.params.id === 'string' ? route.params.id : ''))
 
-function fill(d: CustomDomain) {
+function fill(d: CustomDomain, preserveDraft = false) {
   domain.value = d
+  if (preserveDraft && dirty.value) return
+  dirty.value = false
   header.value = d.custom_client_ip_header ?? ''
   metadata.value = Object.entries(d.domain_metadata ?? {}).map(([k, v]) => `${k}=${v}`).join('\n')
   rp.value = d.relying_party_identifier ?? ''
 }
 
-async function load() {
+async function load(preserveDraft = false) {
   const tn = tenant.value
   if (!tn || !id.value) return
-  const current = ++generation
+  const current = generation
+  const sequence = ++readSequence
   error.value = ''
   try {
     const d = await api.getCustomDomain(tn, id.value)
-    if (current === generation) fill(d)
+    if (current === generation && sequence === readSequence) { fill(d, preserveDraft); readable.value = true }
   } catch (e) {
-    if (current === generation) error.value = errorMessage(e)
+    if (current === generation && sequence === readSequence) { readable.value = false; error.value = errorMessage(e) }
   }
 }
-watch([tenant, id], () => { secret.value = ''; notice.value = ''; domain.value = null; void load() }, { immediate: true })
+function schedulePoll(current: number) {
+  if (current !== generation || polls >= 120) return
+  poll = setTimeout(async () => {
+    polls++
+    if (!pending.value) await load(true)
+    schedulePoll(current)
+  }, 5000)
+}
+watch([tenant, id], () => {
+  generation++; readSequence++; stopPoll(); polls = 0
+  pending.value = false; readable.value = false; dirty.value = false
+  secret.value = ''; notice.value = ''; domain.value = null
+  void load(); schedulePoll(generation)
+}, { immediate: true })
 
 const certificate = computed(() => domain.value?.certificate)
 
 async function verify() {
   const tn = tenant.value
-  if (!tn || !domain.value || pending.value) return
+  if (!tn || !domain.value || !readable.value || pending.value) return
   pending.value = true
   error.value = ''
   notice.value = ''
@@ -85,17 +107,20 @@ async function verify() {
 
 async function test() {
   const tn = tenant.value
-  if (!tn || !domain.value || pending.value) return
+  if (!tn || !domain.value || !readable.value || pending.value) return
+  const current = generation
   pending.value = true
   error.value = ''
   notice.value = ''
   try {
     const res = await api.testCustomDomain(tn, domain.value.custom_domain_id!)
+    if (current !== generation) return
     notice.value = res.success ? t('customDomain.testOk') : t('customDomain.testFailed', { message: res.message ?? '' })
   } catch (e) {
+    if (current !== generation) return
     error.value = e instanceof ApiError && e.status === 429 ? t('customDomain.retryAfter', { seconds: e.retryAfter ?? 30 }) : errorMessage(e)
   } finally {
-    pending.value = false
+    if (current === generation) pending.value = false
   }
 }
 
@@ -111,7 +136,8 @@ function parseMetadata(text: string): Record<string, string> {
 
 async function save() {
   const tn = tenant.value
-  if (!tn || !domain.value || pending.value) return
+  if (!tn || !domain.value || !readable.value || pending.value) return
+  const current = generation
   pending.value = true
   error.value = ''
   notice.value = ''
@@ -121,27 +147,32 @@ async function save() {
       domain_metadata: parseMetadata(metadata.value),
       relying_party_identifier: rp.value,
     })
+    if (current !== generation) return
     fill(d)
     notice.value = t('customDomain.saved')
   } catch (e) {
+    if (current !== generation) return
     error.value = errorMessage(e)
   } finally {
-    pending.value = false
+    if (current === generation) pending.value = false
   }
 }
 
 async function remove() {
   const tn = tenant.value
-  if (!tn || !domain.value || pending.value) return
+  if (!tn || !domain.value || !readable.value || pending.value) return
   if (!globalThis.confirm(t('customDomain.confirmDelete', { domain: domain.value.domain }))) return
+  const current = generation
   pending.value = true
   try {
     await api.deleteCustomDomain(tn, domain.value.custom_domain_id!)
+    if (current !== generation) return
     await router.push({ name: 'custom-domains', params: { tenant: tn.name } })
   } catch (e) {
+    if (current !== generation) return
     error.value = errorMessage(e)
   } finally {
-    pending.value = false
+    if (current === generation) pending.value = false
   }
 }
 </script>
@@ -167,11 +198,11 @@ async function remove() {
         </template>
       </dl>
       <div class="row mb-4">
-        <Button :disabled="pending" @click="verify">{{ pending ? t('customDomain.verifying') : t('customDomain.verify') }}</Button>
-        <Button :disabled="pending || domain.status !== 'ready'" @click="test">{{ t('customDomain.test') }}</Button>
+        <Button :disabled="!readable || pending" @click="verify">{{ pending ? t('customDomain.verifying') : t('customDomain.verify') }}</Button>
+        <Button :disabled="!readable || pending || domain.status !== 'ready'" @click="test">{{ t('customDomain.test') }}</Button>
       </div>
       <DNSInstructions :domain="domain" />
-      <form id="domain-settings" aria-labelledby="settings-title" @submit.prevent="save">
+      <form id="domain-settings" aria-labelledby="settings-title" @submit.prevent="save" @input="dirty = true" @change="dirty = true">
         <h2 id="settings-title">{{ t('customDomain.settings') }}</h2>
         <label for="client-ip">{{ t('customDomain.clientIP') }}</label>
         <select id="client-ip" v-model="header" aria-describedby="client-ip-help">
@@ -188,9 +219,9 @@ async function remove() {
         <label for="rp">{{ t('customDomain.rp') }}</label>
         <input id="rp" v-model="rp" type="text" aria-describedby="rp-help">
         <p id="rp-help">{{ t('customDomain.rpHelp') }}</p>
-        <button type="submit" class="button" :disabled="pending">{{ t('customDomain.save') }}</button>
+        <button type="submit" class="button" :disabled="!readable || pending">{{ t('customDomain.save') }}</button>
       </form>
-      <Button variant="danger" class="mt-4" :disabled="pending" @click="remove">{{ t('customDomain.delete') }}</Button>
+      <Button variant="danger" class="mt-4" :disabled="!readable || pending" @click="remove">{{ t('customDomain.delete') }}</Button>
     </template>
   </div>
 </template>

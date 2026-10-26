@@ -271,3 +271,27 @@ func TestDomainSecretExposure(t *testing.T) {
 		}
 	}
 }
+
+func TestExpiredManagedDomainReadProjection(t *testing.T) {
+	e := newDomainsEnv(t, customdomain.ServiceConfig{ManagedEnabled: true})
+	rec, out := e.call("POST", "", e.token, `{"domain":"expired.acme.test","type":"auth0_managed_certs"}`)
+	if rec.Code != 201 {
+		t.Fatal(rec.Code, out)
+	}
+	ctx := context.Background()
+	id := obj(out)["custom_domain_id"].(string)
+	d, _ := e.st.CustomDomains().Get(ctx, e.acme.ID, id)
+	a := &store.TLSAsset{Key: "cert/expired-projection", Kind: store.TLSAssetCertificate, TenantID: d.TenantID, DomainID: d.ID, Generation: d.Generation, PublicData: store.TLSPublicData{Version: 1, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(-time.Second)}}
+	if err := e.st.TLSAssets().Put(ctx, a, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.st.WithTx(ctx, func(tx store.Store) error {
+		return customdomain.ActivateManaged(ctx, tx, d, a.Key, time.Now(), time.Now().Add(time.Hour))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rec, out = e.call("GET", "/"+id, e.token, "")
+	if rec.Code != 200 || obj(out)["status"] == "ready" {
+		t.Fatalf("expired certificate advertised ready: %d %v", rec.Code, out)
+	}
+}

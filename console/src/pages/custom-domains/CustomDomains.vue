@@ -23,29 +23,46 @@ const pending = ref(false)
 const name = ref('')
 const kind = ref<'auth0_managed_certs' | 'self_managed_certs'>('auth0_managed_certs')
 let generation = 0
-onBeforeUnmount(() => { generation++ })
+let readSequence = 0
+let poll: ReturnType<typeof setTimeout> | undefined
+let polls = 0
+function stopPoll() { clearTimeout(poll); poll = undefined }
+onBeforeUnmount(() => { generation++; readSequence++; stopPoll() })
 
-async function load() {
+async function load(background = false) {
   const tn = tenant.value
   if (!tn) return
-  const current = ++generation
-  loading.value = true
+  const current = generation
+  const sequence = ++readSequence
+  if (!background) loading.value = true
   error.value = ''
   try {
     const [list, def] = await Promise.all([api.listCustomDomains(tn), api.getDefaultCustomDomain(tn)])
-    if (current !== generation) return
+    if (current !== generation || sequence !== readSequence) return
     domains.value = list
     configuredDefault.value = def.custom_domain_id ? def : null
     readable.value = true
   } catch (e) {
-    if (current !== generation) return
+    if (current !== generation || sequence !== readSequence) return
     readable.value = false
     error.value = errorMessage(e)
   } finally {
-    if (current === generation) loading.value = false
+    if (current === generation && sequence === readSequence) loading.value = false
   }
 }
-watch(tenant, () => { domains.value = []; configuredDefault.value = null; readable.value = false; void load() }, { immediate: true })
+function schedulePoll(current: number) {
+  if (current !== generation || polls >= 120) return
+  poll = setTimeout(async () => {
+    polls++
+    if (!pending.value) await load(true)
+    schedulePoll(current)
+  }, 5000)
+}
+watch(tenant, () => {
+  generation++; readSequence++; stopPoll(); polls = 0
+  pending.value = false; domains.value = []; configuredDefault.value = null; readable.value = false
+  void load(); schedulePoll(generation)
+}, { immediate: true })
 
 const canonical = computed(() => tenant.value?.host ?? '')
 const readyDomains = computed(() => domains.value.filter(d => d.status === 'ready'))
@@ -55,32 +72,37 @@ const unusableDefault = computed(() => configuredDefault.value && configuredDefa
 async function add() {
   const tn = tenant.value
   if (!tn || !readable.value || pending.value || !name.value.trim()) return
+  const current = generation
   pending.value = true
   error.value = ''
   try {
     const created = await api.createCustomDomain(tn, { domain: name.value.trim(), type: kind.value })
+    if (current !== generation) return
     name.value = ''
     await router.push({ name: 'custom-domain', params: { tenant: tn.name, id: created.custom_domain_id } })
   } catch (e) {
+    if (current !== generation) return
     error.value = errorMessage(e)
   } finally {
-    pending.value = false
+    if (current === generation) pending.value = false
   }
 }
 
 async function setDefault(host: string) {
   const tn = tenant.value
   if (!tn || !readable.value || pending.value) return
+  const current = generation
   pending.value = true
   error.value = ''
   try {
     await api.setDefaultCustomDomain(tn, host)
   } catch (e) {
+    if (current !== generation) return
     error.value = errorMessage(e)
   } finally {
-    pending.value = false
+    if (current === generation) pending.value = false
   }
-  await load()
+  if (current === generation) await load()
 }
 </script>
 
@@ -90,7 +112,7 @@ async function setDefault(host: string) {
     <p>{{ t('customDomain.intro') }}</p>
     <Banner v-if="!readable && !loading" kind="error">
       {{ t('customDomain.loadFailed') }} {{ error }}
-      <Button variant="ghost" @click="load">{{ t('retry') }}</Button>
+      <Button variant="ghost" @click="load()">{{ t('retry') }}</Button>
     </Banner>
     <Banner v-else-if="error" kind="error">{{ error }}</Banner>
     <Banner v-if="unusableDefault" kind="warn">{{ t('customDomain.defaultUnavailable', { domain: unusableDefault }) }}</Banner>

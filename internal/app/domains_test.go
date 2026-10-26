@@ -2,14 +2,17 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"errors"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"io"
 	"log/slog"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -127,5 +130,89 @@ func TestStartupDomainServiceWithoutACME(t *testing.T) {
 	}
 	if _, err := a.domains.Create(context.Background(), "nobody", customdomain.CreateInput{Domain: "id.example.org", Type: customdomain.TypeManaged}); !errors.Is(err, customdomain.ErrManagedUnavailable) {
 		t.Fatalf("managed without ACME = %v", err)
+	}
+}
+
+func TestServeRunsDomainProofLifecycleWithoutACME(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	cfg := &config.Config{Server: config.Server{Listen: "127.0.0.1:0", BaseDomain: "auth.example.test", CustomDomains: config.CustomDomains{DNSResolver: "127.0.0.1:53"}}}
+	a, err := build(ctx, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), st, make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "proof", Name: "proof", CanonicalHost: "proof.auth.example.test"}); err != nil {
+		t.Fatal(err)
+	}
+	var now atomic.Bool
+	clock := func() time.Time {
+		if now.Load() {
+			return time.Now()
+		}
+		return time.Now().Add(-2 * time.Minute)
+	}
+	proofDNS := &domainTestDNS{}
+	a.domains = customdomain.NewService(st, proofDNS, customdomain.ServiceConfig{ManagedEnabled: true}, clock, rand.Reader)
+	d, err := a.domains.Create(ctx, "proof", customdomain.CreateInput{Domain: "login.proof.test", Type: customdomain.TypeManaged})
+	if err != nil {
+		t.Fatal(err)
+	}
+	proofDNS.value = customdomain.ProofValue(d)
+	now.Store(true)
+	runCtx, cancel := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() { done <- a.Serve(runCtx) }()
+	defer func() {
+		cancel()
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Errorf("Serve: %v", err)
+			}
+		case <-time.After(5 * time.Second):
+			t.Error("Serve failed to stop")
+		}
+	}()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		cur, err := st.CustomDomains().Get(ctx, "proof", d.ID)
+		if err == nil && cur.Lifecycle == customdomain.LifecycleIssuing {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("Serve never ran the due ownership proof without ACME")
+}
+
+type domainTestDNS struct{ value string }
+
+func (d *domainTestDNS) LookupTXT(context.Context, string) ([]string, error) {
+	return []string{d.value}, nil
+}
+func (d *domainTestDNS) LookupCNAME(context.Context, string) (string, error) {
+	return "", customdomain.ErrDNSNotFound
+}
+func (d *domainTestDNS) LookupNetIP(context.Context, string, string) ([]netip.Addr, error) {
+	return nil, customdomain.ErrDNSNotFound
+}
+
+func TestStartupReservesConfiguredOriginNamespace(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "a", Name: "a", CanonicalHost: "a.auth.example.test"}); err != nil {
+		t.Fatal(err)
+	}
+	d := &store.CustomDomain{TenantID: "a", ID: "cd_existing", Domain: "login.private.example.test", Type: customdomain.TypeManaged, Source: customdomain.SourceAPI, Generation: 1, Lifecycle: customdomain.LifecycleProofPending, Status: customdomain.StatusPending}
+	if err := st.CustomDomains().Create(ctx, d); err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config.Config{Server: config.Server{BaseDomain: "auth.example.test", CustomDomains: config.CustomDomains{OriginDomain: "private.example.test", DNSResolver: "127.0.0.1:53"}}}
+	a, err := build(ctx, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), st, make([]byte, 32))
+	if a != nil {
+		a.Close()
+	}
+	if err == nil {
+		t.Fatal("startup accepted an API host under the new private-origin namespace")
 	}
 }

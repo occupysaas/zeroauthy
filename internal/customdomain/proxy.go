@@ -97,7 +97,11 @@ func (s *Service) Admit(r *http.Request) (Admission, error) {
 	if err != nil {
 		return Admission{}, err
 	}
-	if !b.Active || b.Generation != d.Generation || !Usable(d) || b.Kind == store.HostOrigin && d.Type != TypeSelfManaged {
+	usable, err := ServingUsable(r.Context(), s.st, d, s.clock())
+	if err != nil {
+		return Admission{}, err
+	}
+	if !b.Active || b.Generation != d.Generation || !usable || b.Kind == store.HostOrigin && d.Type != TypeSelfManaged {
 		return Admission{}, ErrUnknownHost
 	}
 	if r.TLS == nil {

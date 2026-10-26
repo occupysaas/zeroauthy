@@ -60,7 +60,15 @@ func (h *Handlers) resolvePushed(ctx context.Context, t *store.Tenant, q url.Val
 	now := h.now()
 	// Another origin's request URI is unusable here and stays unconsumed.
 	if res, ok := tenant.FromContext(ctx); ok {
-		if pre, err := h.Store.PushedAuthRequests().Get(ctx, t.ID, secrets.HashToken(id)); err == nil && res.CheckOrigin(pre.Origin) != nil {
+		pre, err := h.Store.PushedAuthRequests().Get(ctx, t.ID, secrets.HashToken(id))
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, errPushedUnusable()
+		}
+		if err != nil {
+			h.log().ErrorContext(ctx, "load pushed request origin", "tenant", t.ID, "err", err)
+			return nil, errServer()
+		}
+		if res.CheckOrigin(pre.Origin) != nil {
 			return nil, errPushedUnusable()
 		}
 	}

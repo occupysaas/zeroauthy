@@ -213,7 +213,7 @@ func intentKey(resource, value string) string {
 
 // authorizeDNS presents every DNS-01 value first (apex and wildcard values
 // coexist at one name), waits for propagation, asks the CA to validate, and
-// always removes the records it created.
+// removes owned records only while it still owns the resource lease.
 func (w *Worker) authorizeDNS(ctx context.Context, lease store.TLSLease, t target, acct crypto.Signer, accountURL string, authzURLs []string) error {
 	type pending struct {
 		url  string
@@ -227,12 +227,7 @@ func (w *Worker) authorizeDNS(ctx context.Context, lease store.TLSLease, t targe
 	defer func() {
 		cctx := context.WithoutCancel(ctx)
 		for i, rec := range records {
-			if rec.Created {
-				if err := w.cfg.Hosted.Provider.CleanUp(cctx, rec); err != nil {
-					continue // keep the intent; expiry cleanup retries
-				}
-			}
-			_ = w.fenced(cctx, lease, func(tx store.Store) error { return deleteIfPresent(cctx, tx, intents[i]) })
+			_ = w.cleanDNSIntent(cctx, lease, intents[i], rec)
 		}
 	}()
 	for _, url := range authzURLs {
@@ -379,4 +374,32 @@ func (w *Worker) waitAuthorization(ctx context.Context, acct crypto.Signer, acco
 		}
 	}
 	return errors.New("certificates: authorization did not complete")
+}
+
+// Cleanup belongs to the current resource lease, just like presentation.
+// A delayed worker must leave its records/intents for its successor. Provider
+// I/O is bounded and stays outside the lease-check/publication transactions.
+func (w *Worker) cleanDNSIntent(ctx context.Context, lease store.TLSLease, key string, rec DNSRecord) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	// Extend ownership for longer than the bounded provider request. Checking
+	// an almost-expired lease alone permits takeover while DELETE is in flight.
+	renewed, err := w.m.st.TLSAssets().RenewLease(ctx, lease, leaseDuration)
+	if err != nil {
+		return err
+	}
+	lease = *renewed
+	row, err := w.m.st.TLSAssets().Get(ctx, key)
+	if err != nil {
+		return err
+	}
+	if row.PublicData.Identifier != lease.Key || row.PublicData.DNSRecordID != rec.ID {
+		return errStale
+	}
+	if rec.Created {
+		if err := w.cfg.Hosted.Provider.CleanUp(ctx, rec); err != nil {
+			return err
+		}
+	}
+	return w.fenced(ctx, lease, func(tx store.Store) error { return tx.TLSAssets().Delete(ctx, key, row.Revision) })
 }

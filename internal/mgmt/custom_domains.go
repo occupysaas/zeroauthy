@@ -92,8 +92,14 @@ func (h *Handlers) customDomainJSON(r *http.Request, d *store.CustomDomain, defa
 	if d.LastFailure != "" && d.ProofStatus != customdomain.ProofVerified {
 		verification["error_msg"] = d.LastFailure
 	}
+	status := d.Status
+	if d.Type == customdomain.TypeManaged && status == customdomain.StatusReady {
+		if live, err := customdomain.ServingUsable(r.Context(), h.Store, d, time.Now()); err != nil || !live {
+			status = customdomain.StatusFailed
+		}
+	}
 	out := map[string]any{
-		"custom_domain_id": d.ID, "domain": d.Domain, "primary": false, "status": d.Status, "type": d.Type,
+		"custom_domain_id": d.ID, "domain": d.Domain, "primary": false, "status": status, "type": d.Type,
 		"verification": verification, "is_default": d.ID == defaultID, "custom_client_ip_header": header,
 		"tls_policy": d.TLSPolicy, "domain_metadata": md, "relying_party_identifier": d.RelyingPartyIdentifier,
 	}
@@ -132,6 +138,10 @@ func certificateJSON(r *http.Request, h *Handlers, d *store.CustomDomain) map[st
 	if d.ActiveCertificateKey != "" {
 		if a, err := h.Store.TLSAssets().Get(r.Context(), d.ActiveCertificateKey); err == nil && !a.PublicData.NotAfter.IsZero() {
 			c["renews_before"] = a.PublicData.NotAfter.UTC().Format(time.RFC3339)
+			if !time.Now().Before(a.PublicData.NotAfter) {
+				c["status"] = "renewing_failed"
+				c["error_msg"] = "the certificate has expired"
+			}
 		}
 	}
 	return c

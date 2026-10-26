@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -18,6 +19,10 @@ func (e *usersEnv) customDomain(t *testing.T, tenantID, id, host string, ready b
 		Status: customdomain.StatusPending, Lifecycle: customdomain.LifecycleIssuing, DomainMetadata: map[string]string{"brand": "acme"}}
 	if ready {
 		d.Status, d.Lifecycle = customdomain.StatusReady, customdomain.LifecycleActive
+		d.ActiveCertificateKey = "cert/" + tenantID + "/" + id
+		if err := e.st.TLSAssets().Put(ctx, &store.TLSAsset{Key: d.ActiveCertificateKey, Kind: store.TLSAssetCertificate, TenantID: tenantID, DomainID: id, Generation: d.Generation, PublicData: store.TLSPublicData{Version: 1, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour)}}, 0); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := e.st.CustomDomains().Create(ctx, d); err != nil {
 		t.Fatal(err)

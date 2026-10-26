@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/hostname"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -32,6 +33,9 @@ func CheckOrigin(storedOrigin, canonicalOrigin, requestOrigin string) error {
 // domain (else ErrDomainUnavailable, 503); otherwise a usable default, else
 // canonical. Request Host never participates.
 func SelectNotificationOrigin(ctx context.Context, st store.Store, tenantID, explicitHost string) (string, error) {
+	return selectNotificationOrigin(ctx, st, tenantID, explicitHost, time.Now())
+}
+func selectNotificationOrigin(ctx context.Context, st store.Store, tenantID, explicitHost string, now time.Time) (string, error) {
 	t, err := st.Tenants().Get(ctx, tenantID)
 	if err != nil {
 		return "", err
@@ -46,8 +50,15 @@ func SelectNotificationOrigin(ctx context.Context, st store.Store, tenantID, exp
 			return name, nil
 		}
 		d, err := domainByHost(ctx, st, tenantID, name)
-		if errors.Is(err, store.ErrNotFound) || err == nil && !Usable(d) {
+		if errors.Is(err, store.ErrNotFound) {
 			return "", ErrDomainUnavailable
+		}
+		if err == nil {
+			var usable bool
+			usable, err = ServingUsable(ctx, st, d, now)
+			if err == nil && !usable {
+				return "", ErrDomainUnavailable
+			}
 		}
 		if err != nil {
 			return "", err
@@ -63,8 +74,14 @@ func SelectNotificationOrigin(ctx context.Context, st store.Store, tenantID, exp
 		if err != nil && !errors.Is(err, store.ErrNotFound) {
 			return "", err
 		}
-		if Usable(d) {
-			return d.Domain, nil
+		if err == nil {
+			usable, err := ServingUsable(ctx, st, d, now)
+			if err != nil {
+				return "", err
+			}
+			if usable {
+				return d.Domain, nil
+			}
 		}
 	}
 	return t.CanonicalHost, nil
@@ -82,8 +99,17 @@ func OriginUsable(ctx context.Context, st store.Store, tenantID, host string) er
 		return nil
 	}
 	d, err := domainByHost(ctx, st, tenantID, host)
-	if errors.Is(err, store.ErrNotFound) || err == nil && !Usable(d) {
+	if errors.Is(err, store.ErrNotFound) {
 		return ErrDomainUnavailable
+	}
+	if err == nil {
+		usable, e := ServingUsable(ctx, st, d, time.Now())
+		if e != nil {
+			return e
+		}
+		if !usable {
+			return ErrDomainUnavailable
+		}
 	}
 	return err
 }
@@ -142,4 +168,26 @@ func publicOf(d *store.CustomDomain) *PublicDomain {
 		md[k] = v
 	}
 	return &PublicDomain{Domain: d.Domain, Metadata: md}
+}
+
+// ServingUsable additionally checks the active managed certificate at the
+// instant of use, independent of worker availability and retry schedules.
+func ServingUsable(ctx context.Context, st store.Store, d *store.CustomDomain, now time.Time) (bool, error) {
+	if !Usable(d) {
+		return false, nil
+	}
+	if d.Type != TypeManaged {
+		return true, nil
+	}
+	if d.ActiveCertificateKey == "" {
+		return false, nil
+	}
+	asset, err := st.TLSAssets().Get(ctx, d.ActiveCertificateKey)
+	if errors.Is(err, store.ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return asset.Kind == store.TLSAssetCertificate && asset.TenantID == d.TenantID && asset.DomainID == d.ID && asset.Generation == d.Generation && !now.Before(asset.PublicData.NotBefore) && now.Before(asset.PublicData.NotAfter), nil
 }

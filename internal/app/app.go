@@ -134,8 +134,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if cfg.Server.TrustProxyHeaders && len(cfg.Server.TrustedProxyCIDRs) == 0 {
 		log.Warn("server.trust_proxy_headers without server.trusted_proxy_cidrs is deprecated: forwarded headers are trusted from every peer")
 	}
-	// origin_domain defaults to base_domain until its own setting exists.
-	if err := tenantsetup.ReconcileDomains(ctx, st, cfg.Server.BaseDomain, systemHost, cfg.Server.BaseDomain); err != nil {
+	if err := tenantsetup.ReconcileDomains(ctx, st, cfg.Server.BaseDomain, systemHost, cfg.Server.OriginDomain()); err != nil {
 		return nil, fmt.Errorf("app: domain reconciliation: %w", err)
 	}
 	if cfg.Seed != "" {
@@ -494,6 +493,19 @@ func (a *App) Serve(ctx context.Context) error {
 		}()
 		a.log.Info("listening for ACME HTTP-01", "addr", a.cfg.Server.ACME.HTTPListen)
 	}
+	if a.domains != nil {
+		proofCtx, stopProof := context.WithCancel(ctx)
+		proofDone := make(chan struct{})
+		go func() { defer close(proofDone); a.domainProofLoop(proofCtx, 30*time.Second) }()
+		defer func() {
+			stopProof()
+			select {
+			case <-proofDone:
+			case <-time.After(10 * time.Second):
+				a.log.Warn("domain proof worker did not stop within 10s")
+			}
+		}()
+	}
 	if a.acme != nil {
 		acmeCtx, stopACME := context.WithCancel(ctx)
 		acmeDone := make(chan struct{})
@@ -549,3 +561,20 @@ func (a *App) Close() error {
 }
 
 func seconds(n int) time.Duration { return time.Duration(n) * time.Second }
+
+// Proof retries and ownership-loss checks run independently of issuance;
+// customer-proxy domains need the same lifecycle even with ACME disabled.
+func (a *App) domainProofLoop(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		if err := a.domains.CheckDue(ctx); err != nil && ctx.Err() == nil {
+			a.log.Warn("domain ownership checks failed", "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}

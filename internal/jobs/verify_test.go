@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -61,17 +62,29 @@ func TestVerifyEmailOrigin(t *testing.T) {
 		t.Fatal(err)
 	}
 	d := &store.CustomDomain{TenantID: "t1", ID: "cd_1", Domain: "id.t1.test", Type: customdomain.TypeManaged, Generation: 1,
-		Status: customdomain.StatusReady, Lifecycle: customdomain.LifecycleActive}
+		Status: customdomain.StatusReady, Lifecycle: customdomain.LifecycleActive, ActiveCertificateKey: "cert/job-origin"}
 	if err := st.CustomDomains().Create(ctx, d); err != nil {
 		t.Fatal(err)
 	}
 	if err := st.CustomDomains().PutHost(ctx, &store.HostBinding{Host: d.Domain, TenantID: "t1", DomainID: d.ID, Generation: 1, Kind: store.HostPublic, Active: true}); err != nil {
 		t.Fatal(err)
 	}
+	asset := &store.TLSAsset{Key: d.ActiveCertificateKey, Kind: store.TLSAssetCertificate, TenantID: d.TenantID, DomainID: d.ID, Generation: d.Generation, PublicData: store.TLSPublicData{Version: 1, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour)}}
+	if err := st.TLSAssets().Put(ctx, asset, 0); err != nil {
+		t.Fatal(err)
+	}
 	job := &store.Job{TenantID: "t1", ID: "job_x", Params: map[string]any{"user_id": "auth0|u1", "selected_origin": "id.t1.test"}}
 	s := &fakeSender{}
 	if status, _, err := (VerifyEmail{Sender: s}).Run(ctx, st, job, nil); status != store.JobCompleted || err != nil || s.calls[0] != "auth0|u1/@id.t1.test" {
 		t.Fatalf("selected = %v %v %v", status, err, s.calls)
+	}
+	asset, _ = st.TLSAssets().Get(ctx, asset.Key)
+	asset.PublicData.NotAfter = time.Now().Add(-time.Second)
+	if err := st.TLSAssets().Put(ctx, asset, asset.Revision); err != nil {
+		t.Fatal(err)
+	}
+	if status, details, err := (VerifyEmail{Sender: s}).Run(ctx, st, job, nil); status != store.JobFailed || err != nil || details == "" || len(s.calls) != 1 {
+		t.Fatalf("expired certificate: %s %q %v calls=%v", status, details, err, s.calls)
 	}
 	d.Status, d.Lifecycle = customdomain.StatusPending, customdomain.LifecycleSuspended
 	if err := st.CustomDomains().Update(ctx, d, d.Revision); err != nil {

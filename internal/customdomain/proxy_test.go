@@ -205,6 +205,10 @@ func TestDomainHostSNI(t *testing.T) {
 	m := f.create(t, "acme", "id.acme.test", customdomain.TypeManaged)
 	cur := f.get(t, m)
 	cur.Lifecycle, cur.Status, cur.ProofStatus = customdomain.LifecycleActive, customdomain.StatusReady, customdomain.ProofVerified
+	cur.ActiveCertificateKey = "cert/managed-host-sni"
+	if err := f.st.TLSAssets().Put(context.Background(), &store.TLSAsset{Key: cur.ActiveCertificateKey, Kind: store.TLSAssetCertificate, TenantID: cur.TenantID, DomainID: cur.ID, Generation: cur.Generation, PublicData: store.TLSPublicData{Version: 1, NotBefore: f.clk.now().Add(-time.Hour), NotAfter: f.clk.now().Add(time.Hour)}}, 0); err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 	if err := f.st.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.CustomDomains().Update(ctx, cur, cur.Revision); err != nil {

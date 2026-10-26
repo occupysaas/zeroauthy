@@ -58,7 +58,11 @@ func (s *Service) Test(ctx context.Context, tenantID, id string) (Diagnostic, er
 	if err != nil {
 		return Diagnostic{}, err
 	}
-	if !Usable(d) {
+	usable, err := ServingUsable(ctx, s.st, d, s.clock())
+	if err != nil {
+		return Diagnostic{}, err
+	}
+	if !usable {
 		return Diagnostic{}, ErrNotReady
 	}
 	retry, err := s.st.CustomDomains().AdmitAttempt(ctx, tenantID, id)

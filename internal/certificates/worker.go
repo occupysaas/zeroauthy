@@ -173,15 +173,19 @@ func (w *Worker) cleanup(ctx context.Context) {
 		case store.TLSAssetOrder, store.TLSAssetChallenge:
 			_ = w.m.st.TLSAssets().Delete(ctx, a.Key, a.Revision)
 		case store.TLSAssetDNSIntent:
-			// Remove a record we created before forgetting it; ambiguous or
-			// pre-existing records are never deleted.
-			if h := w.cfg.Hosted; h != nil && a.PublicData.Status == "created" {
-				rec := DNSRecord{ID: a.PublicData.DNSRecordID, Zone: h.Zone, Name: a.PublicData.RecordName, Value: a.PublicData.RecordValue, Created: true}
-				if err := h.Provider.CleanUp(ctx, rec); err != nil {
-					continue
-				}
+			if h := w.cfg.Hosted; h != nil {
+				_ = w.withLease(ctx, a.PublicData.Identifier, func(ctx context.Context, lease store.TLSLease) error {
+					cur, err := w.m.st.TLSAssets().Get(ctx, a.Key)
+					if err != nil {
+						return err
+					}
+					if cur.Revision != a.Revision || w.m.clock().Before(cur.ExpiresAt) {
+						return nil
+					}
+					rec := DNSRecord{ID: cur.PublicData.DNSRecordID, Zone: h.Zone, Name: cur.PublicData.RecordName, Value: cur.PublicData.RecordValue, Created: cur.PublicData.Status == "created"}
+					return w.cleanDNSIntent(ctx, lease, cur.Key, rec)
+				})
 			}
-			_ = w.m.st.TLSAssets().Delete(ctx, a.Key, a.Revision)
 		}
 	}
 }

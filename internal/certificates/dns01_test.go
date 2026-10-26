@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -322,4 +323,86 @@ func TestDNS01Propagation(t *testing.T) {
 	if err := hw.host[1].Reconcile(ctx, hw.key()); err == nil || time.Since(start) > time.Second {
 		t.Fatalf("cancel = %v after %s", err, time.Since(start))
 	}
+}
+
+func TestDNS01StaleWorkerCannotCleanSuccessorRecord(t *testing.T) {
+	hw := newHostedWorld(t)
+	ctx := context.Background()
+	successorReady := make(chan struct{})
+	releaseSuccessor := make(chan struct{})
+	successorDone := make(chan error, 1)
+	var calls atomic.Int32
+	var adopted []provider.Record
+	hw.fake.acceptErr = func() error {
+		switch calls.Add(1) {
+		case 1:
+			adopted = hw.srv.Records()
+			if len(adopted) != 2 {
+				return errors.New("missing apex/wildcard values")
+			}
+			hw.clock.add(121 * time.Second)
+			go func() { successorDone <- hw.host[1].Reconcile(ctx, hw.key()) }()
+			select {
+			case <-successorReady:
+			case <-time.After(5 * time.Second):
+				return errors.New("successor failed to resume order")
+			}
+			return errors.New("delayed CA response after takeover")
+		case 2:
+			close(successorReady)
+			<-releaseSuccessor
+		}
+		return nil
+	}
+	if err := hw.host[0].Reconcile(ctx, hw.key()); err == nil {
+		t.Error("stale worker reported success")
+	}
+	for _, r := range adopted {
+		if !slices.Contains(hw.srv.TXT("_acme-challenge.auth.example.test"), r.Data) {
+			t.Errorf("stale cleanup removed successor's TXT record ID %d", r.ID)
+		}
+	}
+	close(releaseSuccessor)
+	select {
+	case err := <-successorDone:
+		if err != nil {
+			t.Fatalf("resumed order: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("successor did not finish")
+	}
+	if hw.fake.newOrders != 1 {
+		t.Fatalf("successor did not reuse the saved order: %d", hw.fake.newOrders)
+	}
+	if len(hw.srv.Records()) != 0 {
+		t.Fatal("current owner failed to clean records")
+	}
+}
+
+// Finishing near expiry must renew ownership before a bounded external delete,
+// so a normal lease takeover cannot happen in the middle of that request.
+func TestDNS01CleanupRenewsLeaseBeforeProviderCall(t *testing.T) {
+	hw := newHostedWorld(t)
+	ctx := context.Background()
+	original := hw.cfg.Provider
+	hw.cfg.Provider = &cleanupHookProvider{DNSProvider: original, before: func() {
+		hw.clock.add(2 * time.Second)
+		if _, err := hw.st.TLSAssets().ClaimLease(ctx, hw.key(), "competing-cleanup", 120*time.Second); !errors.Is(err, store.ErrConflict) {
+			t.Errorf("cleanup allowed a normal takeover during provider call: %v", err)
+		}
+	}}
+	hw.fake.acceptErr = func() error { hw.clock.add(119 * time.Second); return errors.New("near-expiry cleanup") }
+	if err := hw.host[0].Reconcile(ctx, hw.key()); err == nil {
+		t.Fatal("fixture failure missing")
+	}
+}
+
+type cleanupHookProvider struct {
+	certificates.DNSProvider
+	before func()
+}
+
+func (p *cleanupHookProvider) CleanUp(ctx context.Context, r certificates.DNSRecord) error {
+	p.before()
+	return p.DNSProvider.CleanUp(ctx, r)
 }
