@@ -15,7 +15,9 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/brandingrules"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
+	"github.com/zeroauthy/zeroauthy/internal/hostname"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -74,7 +76,20 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 	exists := err == nil
 	domains := make([]string, len(in.Domains))
 	for i, d := range in.Domains {
-		domains[i] = tenant.NormalizeHost(d)
+		var err error
+		domains[i], err = hostname.NormalizeOperatorHost(d)
+		if err != nil {
+			return fmt.Errorf("operator alias %q: %w", d, store.ErrInvalid)
+		}
+	}
+	// Validate the old identity before applying configuration can hide drift.
+	if exists {
+		if err := tenantsetup.InitializeCanonical(existing, f.baseDomain); err != nil {
+			return err
+		}
+		if err := tenantsetup.ValidateManagementAPIIdentity(ctx, st, existing, f.baseDomain); err != nil {
+			return err
+		}
 	}
 	var tn *store.Tenant
 	if createOnly && exists {
@@ -104,6 +119,17 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			if exists {
 				preserveOmittedTenant(tn, before, in.supplied)
 			}
+			if exists {
+				tn.CanonicalHost = existing.CanonicalHost
+			}
+			if err := tenantsetup.InitializeCanonical(tn, f.baseDomain); err != nil {
+				return err
+			}
+			// A base-domain canonical is an implicit identity, not a required
+			// entry in existing operator configuration.
+			if f.baseDomain == "" && tn.CanonicalHost != "" && !slices.Contains(tn.Domains, tn.CanonicalHost) {
+				return fmt.Errorf("cannot remove canonical host %q: %w", tn.CanonicalHost, store.ErrConflict)
+			}
 			if err := applyTenantSettings(tn, in, w); err != nil {
 				return err
 			}
@@ -112,6 +138,19 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			tn.Seeded = !createOnly
 			return nil
 		})
+		if err != nil {
+			return err
+		}
+		if _, supplied := in.supplied["domains"]; supplied || in.supplied == nil || !exists {
+			aliases := slices.Clone(tn.Domains)
+			if f.baseDomain != "" && !slices.Contains(aliases, tn.CanonicalHost) {
+				aliases = append(aliases, tn.CanonicalHost)
+			}
+			if err := customdomain.ReconcileOperatorAliases(ctx, st, tn.ID, aliases); err != nil {
+				return err
+			}
+		}
+		tn, err = st.Tenants().Get(ctx, tn.ID)
 		if err != nil {
 			return err
 		}

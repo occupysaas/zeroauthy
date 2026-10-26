@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"maps"
 	"math"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/store"
-	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 // maxTicketTTL bounds ttl_sec. Auth0 accepts very large values (U6); this
@@ -244,10 +244,24 @@ func (h *Handlers) passwordChangeTarget(r *http.Request, in *ticketBody) (*store
 	return nil, "", errUserNotFound
 }
 
-// ticketLink is the ticket's URL on the host the request used.
-func ticketLink(r *http.Request, link func(issuer, raw string) string, raw string) string {
-	res, _ := tenant.FromContext(r.Context())
-	return link(res.Issuer(), raw)
+// CustomDomainHeader selects the public domain of a new user-facing link.
+const CustomDomainHeader = "auth0-custom-domain"
+
+// notificationHost chooses the host of a new link: the auth0-custom-domain
+// header (canonical or a usable domain of this tenant), else a usable
+// default, else canonical. The request's own Host never decides. An
+// unusable or foreign selection is 503 before anything is created.
+func (h *Handlers) notificationHost(r *http.Request) (string, error) {
+	host, err := customdomain.SelectNotificationOrigin(r.Context(), h.Store, resolved(r).ID, r.Header.Get(CustomDomainHeader))
+	switch {
+	case errors.Is(err, customdomain.ErrDomainUnavailable):
+		return "", &Error{Status: http.StatusServiceUnavailable, Code: "custom_domain_unavailable", Message: "The selected custom domain is not available."}
+	case err != nil:
+		return "", internalError(h, r, "select notification domain", err)
+	case host == "":
+		return "", internalError(h, r, "select notification domain", errors.New("tenant has no canonical host"))
+	}
+	return host, nil
 }
 
 // CreatePasswordChangeTicket serves POST /tickets/password-change (U6):
@@ -276,8 +290,13 @@ func (h *Handlers) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Req
 		Fail(w, err)
 		return
 	}
+	host, err := h.notificationHost(r)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
 	raw, err := dbconn.IssueResetTicket(r.Context(), h.Store, store.PasswordResetTicket{
-		TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID,
+		Origin: "https://" + host, TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID,
 		ResultURL: in.resultURL, IncludeEmailInRedirect: in.includeEmail, MarkEmailVerified: in.markVerified,
 	}, dbconn.TicketTokenLength, h.now(), in.lifetime())
 	if err != nil {
@@ -285,7 +304,7 @@ func (h *Handlers) CreatePasswordChangeTicket(w http.ResponseWriter, r *http.Req
 		return
 	}
 	h.audit(r, "create password change ticket", "user_id", u.UserID, "connection", connection, "ttl_sec", int64(in.lifetime()/time.Second))
-	writeJSON(w, http.StatusCreated, map[string]string{"ticket": ticketLink(r, dbconn.PasswordChangeLink, raw)})
+	writeJSON(w, http.StatusCreated, map[string]string{"ticket": dbconn.PasswordChangeLink("https://"+host+"/", raw)})
 }
 
 // CreateEmailVerificationTicket serves POST /tickets/email-verification
@@ -325,8 +344,13 @@ func (h *Handlers) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.
 		Fail(w, err)
 		return
 	}
+	host, err := h.notificationHost(r)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
 	raw, err := dbconn.IssueVerificationTicket(r.Context(), h.Store, store.EmailVerificationTicket{
-		TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID, Email: strings.ToLower(u.Email),
+		Origin: "https://" + host, TenantID: u.TenantID, UserID: u.UserID, Connection: connection, ClientID: in.clientID, Email: strings.ToLower(u.Email),
 		ResultURL: in.resultURL, IncludeEmailInRedirect: in.includeEmail,
 	}, h.now(), in.lifetime())
 	if err != nil {
@@ -334,5 +358,5 @@ func (h *Handlers) CreateEmailVerificationTicket(w http.ResponseWriter, r *http.
 		return
 	}
 	h.audit(r, "create email verification ticket", "user_id", u.UserID, "connection", connection, "ttl_sec", int64(in.lifetime()/time.Second))
-	writeJSON(w, http.StatusCreated, map[string]string{"ticket": ticketLink(r, dbconn.VerificationLink, raw)})
+	writeJSON(w, http.StatusCreated, map[string]string{"ticket": dbconn.VerificationLink("https://"+host+"/", raw)})
 }

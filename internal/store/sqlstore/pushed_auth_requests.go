@@ -13,7 +13,7 @@ type pushedAuthRequests struct{ s *Store }
 
 func (s *Store) PushedAuthRequests() store.PushedAuthRequests { return pushedAuthRequests{s} }
 
-const pushedAuthRequestCols = `tenant_id, id_hash, client_id, params, expires_at, created_at, used_at`
+const pushedAuthRequestCols = `tenant_id, id_hash, client_id, params, expires_at, created_at, used_at, origin`
 
 func (r pushedAuthRequests) Create(ctx context.Context, p *store.PushedAuthRequest) error {
 	params, err := toJSON(p.Params)
@@ -23,8 +23,8 @@ func (r pushedAuthRequests) Create(ctx context.Context, p *store.PushedAuthReque
 	// Retried on deadlock: on MySQL an INSERT can be the victim of a cycle
 	// with DeleteExpired's range DELETE (gap locks).
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO pushed_auth_requests (`+pushedAuthRequestCols+`) VALUES (?,?,?,?,?,?,?)`,
-			p.TenantID, p.IDHash, p.ClientID, params, micros(p.ExpiresAt), micros(p.CreatedAt), nullMicros(p.UsedAt))
+		_, err := tx.exec(ctx, `INSERT INTO pushed_auth_requests (`+pushedAuthRequestCols+`) VALUES (?,?,?,?,?,?,?,?)`,
+			p.TenantID, p.IDHash, p.ClientID, params, micros(p.ExpiresAt), micros(p.CreatedAt), nullMicros(p.UsedAt), p.Origin)
 		return tx.conflict(err)
 	})
 }
@@ -88,7 +88,7 @@ func scanPushedAuthRequest(row scanner) (*store.PushedAuthRequest, error) {
 	var params string
 	var exp, created int64
 	var used sql.NullInt64
-	if err := row.Scan(&p.TenantID, &p.IDHash, &p.ClientID, &params, &exp, &created, &used); err != nil {
+	if err := row.Scan(&p.TenantID, &p.IDHash, &p.ClientID, &params, &exp, &created, &used, &p.Origin); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(params, &p.Params); err != nil {

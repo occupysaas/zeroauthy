@@ -46,6 +46,10 @@ var ManagementAPIScopes = []store.Scope{
 	{Value: "create:users_app_metadata", Description: "Set users' app_metadata on creation"},
 	{Value: "update:users_app_metadata", Description: "Update users' app_metadata"},
 	{Value: "create:user_tickets", Description: "Create password-change and email verification tickets"},
+	{Value: "read:custom_domains", Description: "Read custom domains"},
+	{Value: "create:custom_domains", Description: "Create custom domains"},
+	{Value: "update:custom_domains", Description: "Update, verify and test custom domains"},
+	{Value: "delete:custom_domains", Description: "Delete custom domains"},
 	{Value: "read:grants", Description: "Read user consents"},
 	{Value: "delete:grants", Description: "Revoke user consents"},
 	{Value: "read:refresh_tokens", Description: "Read refresh tokens"},
@@ -87,6 +91,9 @@ var ManagementAPIScopes = []store.Scope{
 func ManagementAPI(ctx context.Context, st store.Store, t *store.Tenant, baseDomain string, now time.Time) (*store.ResourceServer, error) {
 	if t.Reserved {
 		return nil, errors.New("tenantsetup: the system tenant has no machine-to-machine Management API; only operators manage it")
+	}
+	if err := ValidateManagementAPIIdentity(ctx, st, t, baseDomain); err != nil {
+		return nil, err
 	}
 	id := tenant.ManagementAPIIdentifier(t, baseDomain)
 	if id == "" {

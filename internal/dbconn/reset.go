@@ -123,7 +123,7 @@ func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *st
 		lifetime = policy.Lifetime
 	}
 	raw, err := IssueResetTicket(ctx, h.Store, store.PasswordResetTicket{
-		TenantID: res.Tenant.ID, UserID: user.UserID, Connection: conn.Name, ClientID: clientID, Lang: lang,
+		Origin: res.Origin(), TenantID: res.Tenant.ID, UserID: user.UserID, Connection: conn.Name, ClientID: clientID, Lang: lang,
 		ResultURL: policy.ResultURL, IncludeEmailInRedirect: policy.IncludeEmailInRedirect,
 	}, 43, h.now(), lifetime)
 	if err != nil {

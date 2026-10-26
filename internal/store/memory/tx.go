@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"maps"
+	"slices"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/protectionstate"
@@ -11,13 +13,14 @@ import (
 
 // WithTx snapshots every map, runs fn, and restores the snapshot unless fn
 // returns nil (including when fn panics or calls runtime.Goexit, e.g. via
-// t.Fatal). Transactions are serialized by txMu, and so are writes made
-// outside any transaction, so a restore never undoes another caller's
-// write. fn receives a view of the store whose writes skip txMu; a nested
+// t.Fatal). txMu excludes external readers and writers until final lease
+// validation and any rollback finish. fn receives a view of the store whose
+// reads and writes skip txMu; a nested
 // WithTx on it joins the enclosing transaction like a savepoint in the SQL
 // drivers: an error or panic from fn undoes fn's writes only, and the
-// enclosing transaction continues. fn must use the store it is given: a
-// write through the outer store would wait for the transaction to end.
+// enclosing transaction continues. fn must use the store it is given for both
+// reads and writes: operations through the outer store wait for the transaction
+// to end, so calling them synchronously from fn would deadlock.
 func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	if s.tx {
 		return s.savepoint(fn)
@@ -37,7 +40,23 @@ func (s *Store) savepoint(fn func(store.Store) error) error {
 			s.restore(snap)
 		}
 	}()
-	err := fn(&Store{state: s.state, tx: true})
+	view := &Store{state: s.state, tx: true, checkedLeases: map[string]store.TLSLease{}}
+	err := fn(view)
+	if err == nil {
+		s.mu.Lock()
+		for _, l := range view.checkedLeases {
+			if !(tlsAssets{view}).valid(l) {
+				err = store.ErrConflict
+				break
+			}
+		}
+		s.mu.Unlock()
+	}
+	if err == nil && s.tx {
+		for k, l := range view.checkedLeases {
+			s.checkedLeases[k] = l
+		}
+	}
 	ok = err == nil
 	return err
 }
@@ -47,6 +66,13 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
+		customDomains:          cloneMap(s.customDomains, (*store.CustomDomain).Clone),
+		hostBindings:           cloneMap(s.hostBindings, func(h *store.HostBinding) *store.HostBinding { c := *h; return &c }),
+		domainDefaults:         maps.Clone(s.domainDefaults),
+		domainAttempts:         maps.Clone(s.domainAttempts),
+		tenantAttempts:         cloneAttemptTimes(s.tenantAttempts),
+		tlsAssets:              cloneMap(s.tlsAssets, (*store.TLSAsset).Clone),
+		tlsLeases:              cloneMap(s.tlsLeases, func(l *store.TLSLease) *store.TLSLease { c := *l; return &c }),
 		protection:             cloneMap(s.protection, func(p *protectionstate.State) *protectionstate.State { return p.Clone() }),
 		proofs:                 maps.Clone(s.proofs),
 		tenants:                cloneMap(s.tenants, cloneTenant),
@@ -83,6 +109,9 @@ func (s *Store) snapshot() *state {
 func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.customDomains, s.hostBindings, s.domainDefaults = snap.customDomains, snap.hostBindings, snap.domainDefaults
+	s.domainAttempts, s.tenantAttempts = snap.domainAttempts, snap.tenantAttempts
+	s.tlsAssets, s.tlsLeases = snap.tlsAssets, snap.tlsLeases
 	s.protection, s.proofs = snap.protection, snap.proofs
 	s.tenants, s.clients, s.resourceServers = snap.tenants, snap.clients, snap.resourceServers
 	s.clientGrants, s.signingKeys, s.connections = snap.clientGrants, snap.signingKeys, snap.connections
@@ -131,6 +160,14 @@ func cloneJobFiles(m map[key]jobFile) map[key]jobFile {
 	out := make(map[key]jobFile, len(m))
 	for k, f := range m {
 		out[k] = cloneJobFile(f)
+	}
+	return out
+}
+
+func cloneAttemptTimes(m map[string][]time.Time) map[string][]time.Time {
+	out := make(map[string][]time.Time, len(m))
+	for k, v := range m {
+		out[k] = slices.Clone(v)
 	}
 	return out
 }

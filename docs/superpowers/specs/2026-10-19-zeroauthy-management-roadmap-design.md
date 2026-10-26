@@ -31,12 +31,12 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done** | 14 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19) |
-| **Planned, short design** | 9 | email provider, email templates, social strategies II, roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
-| **Planned, full design** | 15 | branding, themes, prompts and custom text, custom domains, social strategies I, Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
+| **Done** | 20 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23) |
+| **Planned, short design** | 7 | social strategies II, roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
+| **Planned, full design** | 11 | social strategies I, Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
-Read as resource groups, about 33% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
+Read as the roadmap's resource groupings, about 48% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
 
 ## 1. Goal and ground rules
 
@@ -66,11 +66,11 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 |---|---|---|---|
 | 17 | Users, tickets, grants, sessions, refresh tokens (users design) | short (done) | — |
 | 18 | Jobs: user import with hashes, export, verification email (users design) | short (done) | 17 |
-| 19 | Tenant settings, attack protection, user blocks | short | 17 |
-| 20 | Signing keys, `auth0-deploy-cli` round trip | short | 19 |
-| 21 | Email provider and email templates | short | 19 |
+| 19 | Tenant settings, attack protection, user blocks | short (done) | 17 |
+| 20 | Signing keys, `auth0-deploy-cli` round trip | short (done) | 19 |
+| 21 | Email provider and email templates | short (done) | 19 |
 | 22 | Branding: themes, settings, Universal Login page templates, prompts and custom text | full (done) | 21 |
-| 23 | Custom domains with automatic certificates | full | 19 |
+| 23 | Custom domains with automatic certificates | full (done) | 19 |
 | 24 | Social connections I: generic OAuth 2 and OIDC, Google | full | 17 |
 | 25 | Social connections II: Apple, Facebook, Microsoft, GitHub, the rest of the common list | short | 24 |
 | 26 | Roles and permissions (RBAC) | short | 17 |
@@ -149,28 +149,36 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 
 **Console:** Accessible resource editors preserve drafts, reject stale replies and handle uncertain writes. Synthetic preview renders saved settings plus drafts in a capability-free sandbox with no network access.
 
-**Verified boundaries:** Actual pinned Node SDK and Auth0 CLI exercise all 16 operations; branded and baseline browser/email lanes and local OpenID conformance pass. Strict Deploy CLI YAML/directory × generated/preserved credential migrations cover unblocked families. Template export remains unavailable because the pinned CLI requires custom-domain discovery. Exact live upstream observation is unavailable; no certification or unrestricted Auth0-template parity is claimed.
+**Verified boundaries:** Actual pinned Node SDK and Auth0 CLI exercise all 16 operations; branded and baseline browser/email lanes and local OpenID conformance pass. Strict Deploy CLI YAML/directory × generated/preserved credential migrations cover unblocked families. Plan 23 supersedes the former unavailable-template result with real custom-domain inventory and strict template-body round trips. Exact live upstream observation is unavailable; no certification or unrestricted Auth0-template parity is claimed.
 
-**Deferred/stored-only:** Classic, WebAuthn/social controls, Actions validation/forwarding, organization context, custom domains and ACUL require later plans. Captured partial values remain in the expiring transaction and never reach metadata, tokens, mail or custom database scripts. Tenant JavaScript and arbitrary HTML/CSS are rejected. Tenant templates supersede the old filesystem template-directory follow-up.
+**Deferred/stored-only:** Classic, WebAuthn/social controls, Actions validation/forwarding, organization context and ACUL require later plans. Custom domains are implemented by Plan 23. Captured partial values remain in the expiring transaction and never reach metadata, tokens, mail or custom database scripts. Tenant JavaScript and arbitrary HTML/CSS are rejected. Tenant templates supersede the old filesystem template-directory follow-up.
 
-### Plan 23 — Custom domains with automatic certificates (full design)
+### Plan 23 — Custom domains with automatic certificates (implemented)
 
-**Draft design and plan (2026-10-26):** [standalone spec](2026-10-26-zeroauthy-custom-domains-design.md) and [implementation plan](../plans/2026-10-26-zeroauthy-plan-23-custom-domains.md). Covers the nine-operation API, verified domain registry, authenticated proxies, shared ACME HTTP-01/TLS-ALPN-01, DigitalOcean DNS-01 hosted wildcard, issuer/link binding and migration. The spec records local choices and pinned-tool limits; this is not an implementation or live parity record.
+[Design](2026-10-26-zeroauthy-custom-domains-design.md),
+[implementation record](../2026-10-26-plan-23-implementation-record.md),
+[operator guide](../../custom-domains.md).
 
-**Endpoints:** `GET/POST /api/v2/custom-domains`, `GET/PATCH/DELETE /api/v2/custom-domains/{id}`, `POST /api/v2/custom-domains/{id}/verify`, `GET/PATCH /api/v2/custom-domains/default`; fields `type` (`auth0_managed_certs` and `self_managed_certs`), `verification` methods, `custom_client_ip_header`, `tls_policy`, `domain_metadata`, `status`.
+**API/storage:** Nine scoped operations (including Test and default selection),
+TXT ownership proof, one normalized global host owner, pinned canonical identity,
+additive memory/SQLite/PostgreSQL/MySQL/gRPC state and fenced TLS leases.
 
-**Runtime:**
-- Custom domains become the source of the tenant's `domains` (the system API keeps working and writes the same data).
-- Verification as Auth0 documents it (a CNAME or TXT record), checked by DNS lookups with a retry schedule.
-- `auth0_managed_certs` (named zeroauthy-managed in our wording): certificates issued and renewed by ACME (Let's Encrypt or any ACME CA in config) with a store-backed certificate cache so several instances share certificates; HTTP-01 and TLS-ALPN-01.
-- `self_managed_certs`: zeroauthy sits behind the customer's proxy; Auth0's `cname-api-key` header check and `custom_client_ip_header`.
-- Issuer and token `iss` follow the domain the request arrived on, as Auth0 does for custom domains (Task 1 confirms which claims change).
+**Runtime:** Managed HTTP-01/TLS-ALPN-01 ACME, encrypted shared account/orders/keys,
+renewal/expiry, cross-replica challenges, authenticated customer proxies and
+bounded public-only diagnostics. Deployment-owned apex/wildcard DNS-01 uses
+DigitalOcean, as a local extension. Authentication artifacts and notification
+links retain their public origin; canonical Management API audiences stay stable.
 
-**Hosting (the maintainer's later offer):** the design also covers wildcard subdomains under `base_domain` (one DNS-01 wildcard certificate, provider plug-in for DigitalOcean DNS first) so new tenants get HTTPS without per-tenant issuance. This part is a zeroauthy extension, documented as such.
+**Console/tooling:** Accessible add/detail/proof/diagnostics/default controls,
+one-time secret recovery, stale-response guards and bounded polling. Pinned
+SDK/CLI exercise nine operations; strict Deploy CLI migrations include real
+domains and nonempty Universal Login template body files, with explicit
+proof/default staging and canonical-default preparation.
 
-**Console:** Custom domains page: add, show the DNS record to create, verify, status.
-
-**E2E:** auth0-cli `domains` commands; an ACME test CA (Pebble) in a container issuing a certificate for a test domain; sign-in on the custom domain.
+**Boundaries:** Exact live Auth0/provider behavior is unobserved. RP ID and custom
+public signing JWKS remain stored-only; ACUL, prompt-partial domain context,
+additional DNS providers and challenge delegation remain follow-ups. The operator
+guide defines fleet rollout/rollback and legacy noncanonical reauthentication.
 
 ### Plan 24 — Social connections I: generic OAuth 2 and OIDC, Google (full design; slice 6a)
 

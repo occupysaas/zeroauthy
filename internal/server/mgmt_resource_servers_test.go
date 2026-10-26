@@ -19,7 +19,7 @@ import (
 func TestManagementResourceServersThroughServer(t *testing.T) {
 	h, st := newMgmtEnv(t)
 	reader := m2mToken(t, h, "acme.example.test", acmeMgmtAPI)
-	admin := clientToken(t, h, "login.acme.test", acmeMgmtAPI, "admin", "admin-s3cret")
+	admin := clientToken(t, h, "acme.example.test", acmeMgmtAPI, "admin", "admin-s3cret")
 	base := "https://acme.example.test/api/v2/resource-servers"
 	const aud = "https://api.orders.test/v1"
 
@@ -27,7 +27,7 @@ func TestManagementResourceServersThroughServer(t *testing.T) {
 	if rec.Code != 403 || !strings.Contains(rec.Body.String(), "insufficient_scope") {
 		t.Fatalf("create with read:resource_servers = %d %s", rec.Code, rec.Body)
 	}
-	rec, created := sendJSON(h, "POST", "https://login.acme.test/api/v2/resource-servers", admin, map[string]any{
+	rec, created := sendJSON(h, "POST", "https://acme.example.test/api/v2/resource-servers", admin, map[string]any{
 		"identifier": aud, "name": "Orders", "scopes": []map[string]any{{"value": "read:orders", "description": "Read"}, {"value": "write:orders"}},
 	})
 	id, _ := created["id"].(string)

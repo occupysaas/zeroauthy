@@ -17,8 +17,8 @@ func cloneOperator(o *store.Operator) *store.Operator {
 }
 
 func (r operators) Get(_ context.Context, tenantID, userID string) (*store.Operator, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	o, ok := r.s.operators[key{tenantID, userID}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -39,8 +39,8 @@ func (r operators) Upsert(_ context.Context, o *store.Operator) error {
 }
 
 func (r operators) List(_ context.Context, tenantID string) ([]*store.Operator, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var out []*store.Operator
 	for k, o := range r.s.operators {
 		if k.tenant == tenantID {

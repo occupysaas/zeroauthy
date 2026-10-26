@@ -8,9 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"math/rand/v2"
 	"net"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -39,8 +41,9 @@ type Store struct {
 
 // txState is the state of one transaction shared by its nested calls.
 type txState struct {
-	depth  int   // savepoints currently open
-	broken error // set when a ROLLBACK TO SAVEPOINT failed; see savepoint
+	checkedLeases map[string]store.TLSLease
+	depth         int   // savepoints currently open
+	broken        error // set when a ROLLBACK TO SAVEPOINT failed; see savepoint
 }
 
 // usable returns the error that broke s's transaction, if any.
@@ -207,6 +210,9 @@ func (s *Store) atomic(ctx context.Context, opts *sql.TxOptions, fn func(t *Stor
 	if err := t.st.broken; err != nil { // fn carried on after a failed rollback
 		return err
 	}
+	if err := t.validateCheckedLeases(ctx); err != nil {
+		return err
+	}
 	finished = true
 	return tx.Commit()
 }
@@ -227,12 +233,14 @@ func (s *Store) savepoint(ctx context.Context, fn func(t *Store) error) (err err
 	if _, err := s.q.ExecContext(ctx, "SAVEPOINT "+name); err != nil {
 		return err
 	}
+	before := maps.Clone(s.st.checkedLeases)
 	ok := false
 	var fnErr error
 	defer func() {
 		if ok {
 			return
 		}
+		s.st.checkedLeases = before
 		if _, rbErr := s.q.ExecContext(ctx, "ROLLBACK TO SAVEPOINT "+name); rbErr != nil {
 			cause := rbErr
 			if fnErr != nil && s.d.isDeadlock(fnErr) {
@@ -331,3 +339,5 @@ func (s *Store) retry(ctx context.Context, op func() error) error {
 		}
 	}
 }
+
+func sortedLeaseKeys(m map[string]store.TLSLease) []string { return slices.Sorted(maps.Keys(m)) }

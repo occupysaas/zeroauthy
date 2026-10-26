@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, cp } from 'node:fs/promises';
 import https from 'node:https';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,10 +36,15 @@ targetConfig.AUTH0_EXCLUDED = sourceConfig.AUTH0_EXCLUDED;
 assert.ok(unavailable.every(name => excluded.includes(name)), 'manifest must explicitly exclude unavailable handlers');
 await writeFile(path.join(work, 'manifest.json'), JSON.stringify(manifest), { mode: 0o600 });
 for (const [name, config] of [['source', sourceConfig], ['target', targetConfig]]) await writeFile(path.join(work, `${name}.json`), JSON.stringify(config), { mode: 0o600 });
-function deploy(command, config, input) {
+function deploy(command, config, input, expectedFailure) {
   const result = spawnSync(bin, [command, '--config_file', path.join(work, `${config}.json`), ...(command === 'export' ? ['--format', format, '--output_folder', input] : ['--input_file', input]), '--proxy_url', 'http://127.0.0.1:8098'], { cwd: e2e, encoding: 'utf8', env: { ...process.env, AUTH0_ALLOW_DELETE: 'false' } });
   // Tool failure logs can contain complete application payloads. Keep them in
   // restricted scratch storage and emit only operation/status to the console.
+  if (expectedFailure) {
+    assert.notEqual(result.status, 0, expectedFailure);
+    assert.match(`${result.stdout}${result.stderr}`, expectedFailure === 'unverified default import must fail' ? /custom_domain_not_ready|custom domain is not ready/i : /custom_client_ip_header|enum/i);
+    return;
+  }
   if (result.status !== 0) {
     let log = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     for (const secret of secrets) log = log.replaceAll(secret, '[redacted]');
@@ -52,19 +57,22 @@ async function exportTo(config, name) {
   const folder = path.join(work, name);
   await mkdir(folder, { recursive: true });
   deploy('export', config, folder);
-  return format === 'yaml' ? path.join(folder, 'tenant.yaml') : folder;
+  const exportPath = format === 'yaml' ? path.join(folder, 'tenant.yaml') : folder;
+  await assertNoEmailSecrets(exportPath);
+  return exportPath;
 }
 async function assertNoEmailSecrets(exportPath) {
   const files = format === 'yaml'
     ? [await readFile(exportPath, 'utf8')]
     : await Promise.all((await readdir(exportPath, { recursive: true })).map(name => readFile(path.join(exportPath, name), 'utf8').catch(() => '')));
   const joined = files.join('\n');
+  for (const secret of proxySecrets) assert.equal(joined.includes(secret), false, 'deploy export contains a proxy secret');
   assert.equal(joined.includes(emailSecret), false, 'public deploy export contains provider credential');
   assert.equal(joined.includes('********'), false, 'public deploy export contains a credential mask');
 }
 function request(config, method, route, body, token) {
   return new Promise((resolve, reject) => {
-    const req = https.request({ hostname: '127.0.0.1', port: 8443, servername: config.AUTH0_DOMAIN, path: route, method, headers: { host: config.AUTH0_DOMAIN, 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) } }, res => {
+    const req = https.request({ hostname: '127.0.0.1', port: config.AUTH0_DOMAIN === targetConfig.AUTH0_DOMAIN ? 8444 : 8443, servername: config.AUTH0_DOMAIN, path: route, method, headers: { host: config.AUTH0_DOMAIN, 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) } }, res => {
       let data = ''; res.setEncoding('utf8'); res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
         if (res.statusCode < 200 || res.statusCode >= 300) { reject(new Error(`local ${method} ${route.split('?')[0]} returned ${res.statusCode}`)); return; }
@@ -75,6 +83,7 @@ function request(config, method, route, body, token) {
   });
 }
 const tokens = new Map();
+const proxySecrets = [];
 async function api(config, method, route, body) {
   if (!tokens.has(config.AUTH0_DOMAIN)) {
     const token = await request(config, 'POST', '/oauth/token', { grant_type: 'client_credentials', client_id: config.AUTH0_CLIENT_ID, client_secret: config.AUTH0_CLIENT_SECRET, audience: `https://${config.AUTH0_DOMAIN}/api/v2/` });
@@ -88,6 +97,33 @@ async function inventory(config, expectFailure = false) {
   const result = comparator(['preflight-inventory', '--input', file]);
   assert.equal(result.status === 0, !expectFailure, 'pre-export collision preflight result');
 }
+
+const templateBody = '<html><head>{% auth0:head %}</head><body><p>Exportable deploy template</p>{% auth0:widget %}</body></html>';
+async function prove(config, domain) {
+  const method = domain.verification.methods.find(m => m.name === 'txt');
+  const response = await fetch('http://127.0.0.1:8064/proof', {method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({name:method.domain,value:method.record})});
+  assert.equal(response.status,204);
+  const verified = await api(config,'POST',`custom-domains/${domain.custom_domain_id}/verify`,{});
+  assert.equal(verified.status,'ready');
+  assert.ok(verified.cname_api_key, 'explicit verification must return the new proxy secret once');
+  proxySecrets.push(verified.cname_api_key);
+  assert.equal((await api(config,'GET',`custom-domains/${domain.custom_domain_id}`)).cname_api_key,undefined);
+}
+async function prepareImport(input, name, mutate = () => {}) {
+  const folder=path.join(work,name);await mkdir(folder,{recursive:true});
+  let destination;
+  if(format==='yaml') {destination=path.join(folder,'tenant.yaml');await cp(path.dirname(input),folder,{recursive:true});}
+  else {destination=folder;await cp(input,folder,{recursive:true});}
+  const file=format==='yaml'?destination:path.join(destination,'custom-domains/custom-domains.json');
+  const data=format==='yaml'?parseYaml(await readFile(file,'utf8')):JSON.parse(await readFile(file,'utf8'));
+  const domains=format==='yaml'?data.customDomains:data;
+  assert.ok(domains?.length,'migration must contain real custom-domain declarations');
+  for(const d of domains) for(const key of ['custom_domain_id','verification','status','origin_domain_name','certificate','primary']) delete d[key];
+  mutate(domains);
+  await writeFile(file,format==='yaml'?dumpYaml(data):JSON.stringify(data),{mode:0o600});
+  return destination;
+}
+
 const sourcePath = format === 'yaml' ? path.join(work, 'source-export/tenant.yaml') : path.join(work, 'source-export');
 if (process.env.E2E_M20_PHASE === 'prepare') {
   const registrySource = await readFile(path.join(e2e, 'node_modules/auth0-deploy-cli/lib/tools/auth0/handlers/index.js'), 'utf8');
@@ -112,7 +148,10 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   await api(sourceConfig, 'PATCH', 'prompts', settings);
   for (const [lang,prompts] of Object.entries(customText)) for (const [prompt,text] of Object.entries(prompts)) await api(sourceConfig,'PUT',`prompts/${prompt}/custom-text/${lang}`,text);
   for (const [prompt,slots] of Object.entries(partials)) await api(sourceConfig,'PUT',`prompts/${prompt}/partials`,slots);
-  await api(sourceConfig,'PUT','branding/templates/universal-login',{template:'<html><head>{% auth0:head %}</head><body><p>Nonexportable template</p>{% auth0:widget %}</body></html>'});
+  await api(sourceConfig,'PUT','branding/templates/universal-login',{template:templateBody});
+  const declarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/custom-domains.json'),'utf8'));
+  for(const declaration of declarations) {const d=await api(sourceConfig,'POST','custom-domains',declaration);await prove(sourceConfig,d);}
+  await api(sourceConfig,'PATCH','custom-domains/default',{domain:declarations[0].domain});
   const publicProvider = await api(sourceConfig, 'GET', 'emails/provider');
   assert.equal(JSON.stringify(publicProvider).includes(emailSecret), false, 'provider read returned its private credential');
   assert.equal(JSON.stringify(publicProvider).includes('********'), false, 'provider read returned a credential mask');
@@ -121,12 +160,10 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   await api(sourceConfig, 'DELETE', `resource-servers/${collision.id}`);
   const sourcePublicExport = await exportTo('source', 'source-export');
   await assertNoEmailSecrets(sourcePublicExport);
-  // The pinned branding handler queries customDomains.list and omits the
-  // template on 404. Do not fake a custom domain or normalize this loss away.
-  assert.ok((await api(sourceConfig,'GET','branding/templates/universal-login')).template.includes('Nonexportable template'));
-  const exportConfig = format === 'yaml' ? parseYaml(await readFile(sourcePublicExport,'utf8')).branding : JSON.parse(await readFile(path.join(sourcePublicExport,'branding/branding.json'),'utf8'));
-  assert.ok(!exportConfig.templates?.length,'template limitation changed; update the explicit acceptance lane');
-  console.log('Plan 22 deploy template export: unavailable; pinned handler requires custom-domain discovery. Template CRUD is covered separately; ACUL excluded.');
+  assert.equal((await api(sourceConfig,'GET','branding/templates/universal-login')).body,templateBody);
+  const exportConfig = format === 'yaml' ? parseYaml(await readFile(sourcePublicExport,'utf8')).branding : JSON.parse(await readFile(path.join(sourcePublicExport,'branding/templates/universal_login.json'),'utf8'));
+  if(format==='yaml') assert.ok(exportConfig.templates?.length,'nonempty Universal Login template must export');
+  else assert.ok(exportConfig.body,'directory template body reference must export');
 
   if (mode === 'preserved') {
     await writeFile(path.join(work, 'source.json'), JSON.stringify({ ...sourceConfig, AUTH0_EXPORT_IDENTIFIERS: true }), { mode: 0o600 });
@@ -139,7 +176,7 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
     await writeFile(credentials, JSON.stringify({ 'e2e-cli-fixture': secrets[2] }), { mode: 0o600 });
     const args = ['migration', 'bootstrap', '--config', 'tests/e2e/config.yaml', '--input', bootstrapExport, '--format', format, '--bootstrap-seed', bootstrap, '--credentials-file', credentials];
     for (const suffix of [['--check'], [], []]) {
-      const result = spawnSync(process.env.E2E_M20_BINARY, [...args, ...suffix], { cwd: root, encoding: 'utf8', env: { ...process.env, ZEROAUTHY_SEED_MODE: 'create_only' } });
+      const result = spawnSync(process.env.E2E_M20_BINARY, [...args, ...suffix], { cwd: root, encoding: 'utf8', env: { ...process.env, ZEROAUTHY_SEED_MODE: 'create_only', ZEROAUTHY_STORAGE__DSN: process.env.E2E_M20_TARGET_DSN } });
       assert.equal(result.status, 0, `offline bootstrap failed: ${result.stderr?.replaceAll(secrets[2], '[redacted]')}`);
     }
   }
@@ -154,7 +191,14 @@ const toolBefore = await api(targetConfig, 'GET', `clients/${targetConfig.AUTH0_
 // The subsequent CLI import omits credentials and its PATCH must preserve it.
   await api(targetConfig, 'POST', 'emails/provider', { name: 'sendgrid', enabled: false, default_from_address: 'target-before-import@example.test', credentials: { api_key: emailSecret } });
 assertPrivateEmailCredential();
-deploy('import', 'target', sourcePath);
+const finalImport=await prepareImport(sourcePath,'final-import');
+deploy('import','target',finalImport,'unverified default import must fail');
+assert.equal((await api(targetConfig,'GET','custom-domains/default')).domain,'target.cli.e2e.test');
+const declarationsImport=await prepareImport(sourcePath,'declarations-import',domains=>{for(const d of domains)d.is_default=false;});
+deploy('import','target',declarationsImport);
+const pending=await api(targetConfig,'GET','custom-domains');
+assert.ok(pending.length>0);for(const d of pending) {assert.equal(d.status,'pending_verification');await prove(targetConfig,d);}
+deploy('import', 'target', finalImport);
 function assertPrivateEmailCredential() {
   const result = spawnSync('go', ['test', './tests/e2e/deploy-cli', '-run', '^TestE2EPrivateEmailProviderCredentialAfterImport$', '-count=1'], { cwd: root, encoding: 'utf8', env: { ...process.env, E2E_EMAIL_PRIVATE_SECRET: emailSecret } });
   assert.equal(result.status, 0, `private email credential did not survive import: ${(result.stdout + result.stderr).replaceAll(emailSecret, '[redacted]')}`);
@@ -172,7 +216,7 @@ assert.ok(JSON.stringify(toolAfter) === JSON.stringify(toolBefore), 'deployment 
 // delete only this test-created record before comparing migration resources.
 const extra = await api(targetConfig, 'POST', 'clients', { name: 'Target-only application', app_type: 'spa', token_endpoint_auth_method: 'none', grant_types: ['authorization_code'] });
 const extraBefore = await api(targetConfig, 'GET', `clients/${extra.client_id}`);
-deploy('import', 'target', sourcePath);
+deploy('import', 'target', finalImport);
 assert.ok(JSON.stringify(await api(targetConfig, 'GET', `clients/${extra.client_id}`)) === JSON.stringify(extraBefore), 'deletion-disabled import changed target-only resource');
 await api(targetConfig, 'DELETE', `clients/${extra.client_id}`);
 const repeated = (await exportClients(targetConfig))[0];
@@ -206,14 +250,14 @@ await api(sourceConfig, 'PATCH', 'emails/provider', { enabled: false });
 await api(sourceConfig, 'PATCH', 'email-templates/verify_email', { subject: 'Changed deploy verify' });
 const changedEmail = await exportTo('source', 'source-email-updated');
 assert.equal(checkedCompare(changedEmail, targetPath).equivalent, false, 'negative provider/template change escaped comparator');
-deploy('import', 'target', changedEmail);
+deploy('import', 'target', await prepareImport(changedEmail,'email-import'));
 assertPrivateEmailCredential();
 targetPath = await exportTo('target', 'target-email-updated');
 assert.equal(checkedCompare(changedEmail, targetPath).equivalent, true, 'email resource update differs');
 const targetProvider = await api(targetConfig, 'GET', 'emails/provider');
 assert.equal(JSON.stringify(targetProvider).includes(emailSecret), false, 'target provider read returned its private credential');
 assert.equal(JSON.stringify(targetProvider).includes('********'), false, 'target provider read returned a credential mask');
-deploy('import', 'target', updated);
+deploy('import', 'target', await prepareImport(updated,'updated-import'));
 targetPath = await exportTo('target', 'target-updated');
 const report = checkedCompare(updated, targetPath);
 assert.equal(report.equivalent, true, 'updated round trip differs');
@@ -222,4 +266,35 @@ const token = await request(targetConfig, 'POST', '/oauth/token', { grant_type: 
 assert.ok(token.access_token); assert.equal(token.scope, 'read:fixture');
 const claims = JSON.parse(Buffer.from(token.access_token.split('.')[1], 'base64url'));
 assert.equal(claims.iss, `https://${targetConfig.AUTH0_DOMAIN}/`); assert.ok([claims.aud].flat().includes('https://fixture.cli.e2e.test'));
+await api(sourceConfig,'PATCH','emails/provider',{enabled:true});
+await api(sourceConfig,'PATCH','email-templates/verify_email',{subject:'Deploy verify'});
+assert.equal(checkedCompare(await exportTo('source','source-domain-baseline'),targetPath).equivalent,true,'domain negative baseline differs');
+// Compare actual exports after mutating each writable migration setting.
+const sourceDomain=(await api(sourceConfig,'GET','custom-domains'))[0];
+for(const [field,value] of Object.entries({custom_client_ip_header:'true-client-ip',domain_metadata:{region:'changed'},relying_party_identifier:'login.migrate.e2e.test'})) {
+ await api(sourceConfig,'PATCH',`custom-domains/${sourceDomain.custom_domain_id}`,{[field]:value});
+ const changed=await exportTo('source',`source-domain-${field}`);
+ assert.equal(checkedCompare(changed,targetPath).equivalent,false,`changed ${field} escaped comparator`);
+ await api(sourceConfig,'PATCH',`custom-domains/${sourceDomain.custom_domain_id}`,{[field]:sourceDomain[field]});
+}
+await api(sourceConfig,'PUT','branding/templates/universal-login',{template:templateBody.replace('Exportable','Changed')});
+assert.equal(checkedCompare(await exportTo('source','source-template-changed'),targetPath).equivalent,false,'changed Universal Login body escaped comparator');
+await api(sourceConfig,'PUT','branding/templates/universal-login',{template:templateBody});
+// CLI only applies true defaults. A canonical source requires explicit reset.
+await api(sourceConfig,'PATCH','custom-domains/default',{domain:sourceConfig.AUTH0_DOMAIN});
+const canonicalSource=await exportTo('source','canonical-source');
+deploy('import','target',await prepareImport(canonicalSource,'canonical-import'));
+const uncleared=await exportTo('target','canonical-uncleared');
+assert.equal(checkedCompare(canonicalSource,uncleared).equivalent,false,'CLI silently cleared canonical default');
+await api(targetConfig,'PATCH','custom-domains/default',{domain:targetConfig.AUTH0_DOMAIN});
+deploy('import','target',await prepareImport(canonicalSource,'canonical-prepared'));
+assert.equal(checkedCompare(canonicalSource,await exportTo('target','canonical-cleared')).equivalent,true,'explicit canonical preparation differs');
+for(const header of ['x-azure-clientip','']) {
+ const rejected=await prepareImport(canonicalSource,`header-${header||'empty'}`,domains=>{domains[0].custom_client_ip_header=header;});
+ deploy('import','target',rejected,`pinned CLI must reject API-only header ${header||'empty'}`);
+ const row=(await api(sourceConfig,'GET','custom-domains'))[0];
+ await api(sourceConfig,'PATCH',`custom-domains/${row.custom_domain_id}`,{custom_client_ip_header:header});
+ assert.equal((await api(sourceConfig,'GET',`custom-domains/${row.custom_domain_id}`)).custom_client_ip_header,header);
+}
+console.log('Plan 23 deploy: staged DNS/API proof, canonical reset and template body round trips passed; x-azure-clientip/empty header tool-unavailable (actual CLI rejection); ACUL excluded.');
 process.stdout.write(`Plan 20 deploy-cli: version=9.1.0 format=${format} mode=${mode} lane=local import=passed repeat=passed credentials=passed update=passed targetOnly=passed negative=detected runtime=passed counts=${JSON.stringify(report.counts)}\n`);

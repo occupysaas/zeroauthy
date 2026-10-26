@@ -97,3 +97,18 @@ provides the finite future prompt/screen enum used for text discovery. Classic,
 WebAuthn-first, ACUL, custom domains and custom prompt fields in custom-database
 scripts remain deferred. This is an implementation disposition, not a new live
 changelog review; it does not advance the reviewed-through date.
+
+## 2026-10-26 — Plan 23 custom domains
+
+Fetched the full public changelog because the browser response exceeded its size
+limit. Latest visible entry remains October 22, 2026; no later custom-domain
+contract change was found. Current public API multiple-domain schemas supersede
+older single-domain setup prose. The nine-operation inventory uses TXT ownership
+proof and recommended TLS only. Live tenant observation remains unavailable.
+
+Plan 23 implementation disposition: the frozen nine-operation inventory now
+has local API/console/runtime implementation. Template GET supplies `body`
+while preserving the `template` alias. Local hosted wildcard, TXT-only proof,
+proxy admission and canonical-origin upgrade rules are recorded in the custom
+domain guide. This does not advance the reviewed-through date or imply a live
+upstream tenant observation. ACUL and WebAuthn RP enforcement remain deferred.

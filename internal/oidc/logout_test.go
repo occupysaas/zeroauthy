@@ -40,13 +40,13 @@ func newLogoutEnv(t *testing.T, wrap func(store.Store) store.Store) *logoutEnv {
 	t.Helper()
 	ctx := context.Background()
 	st := memory.New()
-	tn := &store.Tenant{ID: "ten_a", Name: "acme", Domains: []string{"acme.example.test"}, AllowedLogoutURLs: []string{"https://acme.test/bye"},
+	tn := &store.Tenant{ID: "ten_a", Name: "acme", CanonicalHost: "acme.example.test", Domains: []string{"acme.example.test"}, AllowedLogoutURLs: []string{"https://acme.test/bye"},
 		EnabledLocales: []string{"en", "fr"},
 		CustomText: store.CustomText{
 			"logout":    {"fr": {"logout": {"title": "Se déconnecter ?"}}},
 			"zeroauthy": {"fr": {"logged-out": {"title": "Vous êtes déconnecté"}}},
 		}}
-	for _, x := range []*store.Tenant{tn, {ID: "ten_b", Name: "globex", Domains: []string{"globex.example.test"}}} {
+	for _, x := range []*store.Tenant{tn, {ID: "ten_b", Name: "globex", CanonicalHost: "globex.example.test", Domains: []string{"globex.example.test"}}} {
 		if err := st.Tenants().Create(ctx, x); err != nil {
 			t.Fatal(err)
 		}

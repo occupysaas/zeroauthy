@@ -23,8 +23,8 @@ func (r resourceServers) Create(_ context.Context, rs *store.ResourceServer) err
 }
 
 func (r resourceServers) Get(_ context.Context, tenantID, id string) (*store.ResourceServer, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	rs, ok := r.s.resourceServers[key{tenantID, id}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -33,8 +33,8 @@ func (r resourceServers) Get(_ context.Context, tenantID, id string) (*store.Res
 }
 
 func (r resourceServers) GetByIdentifier(_ context.Context, tenantID, identifier string) (*store.ResourceServer, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	for k, rs := range r.s.resourceServers {
 		if k.tenant == tenantID && rs.Identifier == identifier {
 			return cloneResourceServer(rs), nil
@@ -89,8 +89,8 @@ func (r resourceServers) Delete(_ context.Context, tenantID, id string) error {
 }
 
 func (r resourceServers) List(_ context.Context, tenantID string) ([]*store.ResourceServer, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var out []*store.ResourceServer
 	for k, rs := range r.s.resourceServers {
 		if k.tenant == tenantID {

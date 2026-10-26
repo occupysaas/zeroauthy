@@ -1,4 +1,4 @@
-.PHONY: build test test-sql lint generate check-sources e2e e2e-deploy e2e-signing e2e-email e2e-branding conformance console
+.PHONY: build test test-sql lint generate check-sources e2e e2e-deploy e2e-signing e2e-email e2e-branding e2e-domains conformance console
 
 build:
 	CGO_ENABLED=0 go build -trimpath -o bin/zeroauthy ./cmd/zeroauthy
@@ -35,6 +35,10 @@ e2e-email:
 
 e2e-branding:
 	./tests/e2e/run-m22-branding.sh
+
+e2e-domains:
+	./tests/e2e/domains/run-acme.sh http01,tlsalpn,dns01
+	./tests/e2e/run-m23-domains.sh
 
 conformance:
 	./tests/conformance/run.sh $(PLANS)

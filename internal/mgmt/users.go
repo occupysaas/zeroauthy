@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"maps"
 	"net/http"
 	"slices"
@@ -27,7 +28,7 @@ import (
 // clientID is the application the email is for, or empty. Task 10's mailer
 // implements it.
 type VerificationSender interface {
-	SendVerification(ctx context.Context, tenantID string, u *store.User, clientID string) error
+	SendVerification(ctx context.Context, tenantID string, u *store.User, clientID, host string) error
 }
 
 // maxSearchResults is how deep offset paging reaches into a user search
@@ -479,7 +480,13 @@ func (h *Handlers) sendVerification(r *http.Request, u *store.User, clientID str
 		h.log().DebugContext(r.Context(), "management API: verification email not sent: no sender is configured", "user_id", u.UserID)
 		return
 	}
-	if err := h.Verification.SendVerification(r.Context(), u.TenantID, u, clientID); err != nil {
+	// Same domain choice as tickets: never the request's own Host.
+	host, err := customdomain.SelectNotificationOrigin(r.Context(), h.Store, u.TenantID, r.Header.Get(CustomDomainHeader))
+	if err != nil {
+		h.log().WarnContext(r.Context(), "management API: verification email not sent: no usable domain", "user_id", u.UserID, "err", err)
+		return
+	}
+	if err := h.Verification.SendVerification(r.Context(), u.TenantID, u, clientID, host); err != nil {
 		h.log().ErrorContext(r.Context(), "management API: send verification email", "user_id", u.UserID, "err", err)
 	}
 }

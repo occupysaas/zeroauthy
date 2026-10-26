@@ -21,8 +21,8 @@ func (r userGrants) find(tenantID, clientID, userID, audience string) (*store.Us
 }
 
 func (r userGrants) Find(_ context.Context, tenantID, clientID, userID, audience string) (*store.UserGrant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	g, ok := r.find(tenantID, clientID, userID, audience)
 	if !ok {
 		return nil, store.ErrNotFound
@@ -47,8 +47,8 @@ func (r userGrants) Upsert(_ context.Context, g *store.UserGrant) (*store.UserGr
 }
 
 func (r userGrants) List(_ context.Context, tenantID string, f store.UserGrantFilter, p store.Page) ([]*store.UserGrant, int, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var all []*store.UserGrant
 	for k, g := range r.s.userGrants {
 		if k.tenant == tenantID && (f.UserID == "" || g.UserID == f.UserID) &&
@@ -70,8 +70,8 @@ func (r userGrants) List(_ context.Context, tenantID string, f store.UserGrantFi
 }
 
 func (r userGrants) ListByUser(_ context.Context, tenantID, userID string) ([]*store.UserGrant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var out []*store.UserGrant
 	for k, g := range r.s.userGrants {
 		if k.tenant == tenantID && g.UserID == userID {
@@ -85,8 +85,8 @@ func (r userGrants) ListByUser(_ context.Context, tenantID, userID string) ([]*s
 }
 
 func (r userGrants) ListByAudience(_ context.Context, tenantID, audience string) ([]*store.UserGrant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var out []*store.UserGrant
 	for k, g := range r.s.userGrants {
 		if k.tenant == tenantID && g.Audience == audience {

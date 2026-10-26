@@ -40,8 +40,8 @@ func (r authCodes) Consume(_ context.Context, tenantID, codeHash string, at time
 }
 
 func (r authCodes) Get(_ context.Context, tenantID, codeHash string) (*store.AuthCode, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	c, ok := r.s.authCodes[key{tenantID, codeHash}]
 	if !ok {
 		return nil, store.ErrNotFound

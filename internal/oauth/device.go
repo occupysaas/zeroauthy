@@ -114,7 +114,7 @@ func (h *Handlers) deviceCode(w http.ResponseWriter, r *http.Request, res tenant
 			return nil, serverError()
 		}
 		err = h.Store.DeviceCodes().Create(ctx, &store.DeviceCode{
-			TenantID: t.ID, DeviceCodeHash: secrets.HashToken(deviceCode),
+			Origin: res.Origin(), TenantID: t.ID, DeviceCodeHash: secrets.HashToken(deviceCode),
 			UserCodeHash: secrets.HashToken(devicecode.Normalize(userCode)),
 			ClientID:     c.ClientID, Scopes: scopes, Audience: aud, Status: store.DeviceCodePending,
 			ExpiresAt: now.Add(DeviceCodeLifetime), CreatedAt: now,

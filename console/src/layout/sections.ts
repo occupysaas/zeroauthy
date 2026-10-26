@@ -36,7 +36,7 @@ export const sections: Section[] = [
   { key: 'actions', label: 'nav.actions', group: 'navGroup.actions', path: 'actions', status: { planned: 'later', api: ['/api/v2/actions'] } },
   { key: 'branding', label: 'nav.branding', group: 'navGroup.branding', path: 'branding', status: 'live' },
   { key: 'emails', label: 'nav.emails', group: 'navGroup.branding', path: 'emails', status: 'live' },
-  { key: 'custom-domains', label: 'nav.customDomains', group: 'navGroup.branding', path: 'custom-domains', status: { planned: 'later', api: ['/api/v2/custom-domains'] } },
+  { key: 'custom-domains', label: 'nav.customDomains', group: 'navGroup.branding', path: 'custom-domains', status: 'live' },
   { key: 'logs', label: 'nav.logs', group: 'navGroup.monitoring', path: 'logs', status: { planned: 'later', api: ['/api/v2/logs', '/api/v2/log-streams'] } },
   { key: 'settings', label: 'nav.settings', group: 'navGroup.settings', path: 'settings', status: 'live' },
   { key: 'operators', label: 'nav.operators', group: 'navGroup.system', path: 'operators', status: 'live', systemOnly: true },

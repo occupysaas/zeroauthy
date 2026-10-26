@@ -882,3 +882,34 @@ was introduced, so NOTICE is unchanged.
   discovery and is explicitly unavailable; no empty success shim or fabricated
   domain is added. Missing templates are not normalized away. ACUL discovery
   remains unavailable and is reported by the pinned tool.
+
+## Plan 23 — frozen custom-domain contracts (2026-10-26)
+
+Public API schemas and the local design govern the nine-operation inventory in
+`internal/customdomain/inventory.json`; the pending creation description wins over
+ready sample values, string-only metadata wins over SDK nullable values, and the
+diagnostic operation requires update scope locally. Upstream errorCode details
+remain unobserved. See observations/custom-domains.md for licensed client provenance,
+strict query limits, stored-only RP IDs and Deploy CLI header/default constraints.
+Universal Login template GET adds documented `body` while preserving the
+existing `template` alias; PUT retains `template`. No ACUL claim is implied.
+
+
+### Plan 23 implementation choices
+
+- One global normalized hostname owner; pinned canonical API audience; existing
+  privileged aliases preserve upgrade identity. Roll out a stopped/drained fleet,
+  not mixed old/new resolver nodes. Legacy empty-origin grants mean canonical.
+- Background ownership checks run independently of ACME. Managed notification
+  origins recheck certificate validity at selection/execution even if workers
+  are stopped; implicit fallback retains the configured default pointer.
+- DNS cleanup requires the current resource lease before the bounded provider
+  call; stale workers leave shared challenge records to their successor.
+- Certificate/account material uses shared wrapper keys and versioned AAD.
+  Hosted wildcard retry backoff remains per-worker memory, a documented limit.
+- Template GET supplies body+template. Strict Deploy CLI migration uses explicit
+  destination preparation, staged proof/default import and API-only-header
+  rejection; target-specific identity/proof/origin fields are not portable.
+- Custom public signing JWKS publication, WebAuthn RP enforcement, ACUL, prompt
+  partial domain context and additional DNS providers remain follow-ups. No
+  unavailable observer/provider lane is labeled as live passing evidence.

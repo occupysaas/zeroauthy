@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Serialize local lanes sharing HTTPS port 8443.
+exec 9>/tmp/zeroauthy-e2e8443.lock
+flock 9
 cd "$(dirname "$0")/../.."
 
 work="$(mktemp -d)"
@@ -19,10 +22,19 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost,DNS:cli.e2e.test,DNS:target.cli.e2e.test" \
+  -addext "subjectAltName=DNS:localhost,DNS:cli.e2e.test,DNS:target.cli.e2e.test,DNS:*.origin.e2e.test" \
   -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
 CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
-PROXY_PORT=8098 TARGET_PORT=8443 start node tests/e2e/connect-proxy.mjs >"$work/proxy.log" 2>&1
+start node tests/e2e/deploy-cli/connect-proxy.mjs >"$work/proxy.log" 2>&1
+go build -o "$work/dns-fixture" ./tests/e2e/deploy-cli/dns-fixture
+start "$work/dns-fixture" >"$work/dns.log" 2>&1
+for _ in $(seq 1 60); do
+  if curl -sf http://127.0.0.1:8064/healthz >/dev/null; then break; fi
+  sleep 0.2
+done
+export ZEROAUTHY_SERVER__CUSTOM_DOMAINS__DNS_RESOLVER=127.0.0.1:8063
+export ZEROAUTHY_SERVER__CUSTOM_DOMAINS__ORIGIN_DOMAIN=origin.e2e.test
+export ZEROAUTHY_SERVER__TRUSTED_PROXY_CIDRS=127.0.0.0/8
 export ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem"
 export ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem"
 export ZEROAUTHY_STORAGE__AUTO_MIGRATE=true
@@ -36,7 +48,7 @@ serve() {
   start "$work/zeroauthy" serve --config tests/e2e/config.yaml >>"$E2E_M20_WORK/server.log" 2>&1
   server_pid="$started"
   for _ in $(seq 1 60); do
-    if curl -sf --cacert "$work/cert.pem" https://localhost:8443/healthz >/dev/null; then return; fi
+    if curl -sf --cacert "$work/cert.pem" https://localhost:${serve_port}/healthz >/dev/null; then return; fi
     if ! kill -0 "$server_pid" 2>/dev/null; then break; fi
     sleep 0.2
   done
@@ -57,20 +69,25 @@ for mode in "${modes[@]}"; do
     export E2E_M20_MODE="$mode" E2E_M20_FORMAT="$format"
     export E2E_M20_WORK="$work/$mode-$format"
     mkdir -m 700 "$E2E_M20_WORK"
-    export ZEROAUTHY_STORAGE__DSN="sqlite://$E2E_M20_WORK/e2e.db"
-    export ZEROAUTHY_SEED="$E2E_M20_WORK/seed.yaml"
-    if [[ "$mode" == preserved ]]; then
-      sed '/^  - name: e2ecli-target/,$d' tests/e2e/deploy-cli/seed.yaml >"$ZEROAUTHY_SEED"
-    else
-      cp tests/e2e/deploy-cli/seed.yaml "$ZEROAUTHY_SEED"
-    fi
+    export E2E_M20_SOURCE_DSN="sqlite://$E2E_M20_WORK/source.db"
+    export E2E_M20_TARGET_DSN="sqlite://$E2E_M20_WORK/target.db"
+    export E2E_M20_SOURCE_SEED="$E2E_M20_WORK/source-seed.yaml"
+    export E2E_M20_TARGET_SEED="$E2E_M20_WORK/target-seed.yaml"
+    node --input-type=module -e 'import fs from "node:fs"; import yaml from "./tests/e2e/node_modules/js-yaml/index.js"; const fixture=yaml.load(fs.readFileSync("tests/e2e/deploy-cli/seed.yaml","utf8")); fs.writeFileSync(process.env.E2E_M20_SOURCE_SEED,yaml.dump({tenants:[fixture.tenants[0]]})); fs.writeFileSync(process.env.E2E_M20_TARGET_SEED,yaml.dump({tenants:[fixture.tenants[1]]}));'
+    export ZEROAUTHY_STORAGE__DSN="$E2E_M20_SOURCE_DSN" ZEROAUTHY_SEED="$E2E_M20_SOURCE_SEED" ZEROAUTHY_SERVER__LISTEN=:8443
+    serve_port=8443
     serve
+    source_pid="$server_pid"
+    # The offline bootstrap requires an existing schema but an absent target
+    # tenant. Migrate the separate destination before the preserved-ID lane.
+    ZEROAUTHY_STORAGE__DSN="$E2E_M20_TARGET_DSN" "$work/zeroauthy" migrate --config tests/e2e/config.yaml >"$E2E_M20_WORK/target-migration.log" 2>&1
     E2E_M20_PHASE=prepare node tests/e2e/m20-deploy-cli.mjs
-    stop_server
-    # Startup creates signing keys for the offline-bootstrapped tenant. The
-    # create-only seed must not overwrite its preserved client credentials.
+    export ZEROAUTHY_STORAGE__DSN="$E2E_M20_TARGET_DSN" ZEROAUTHY_SEED="$E2E_M20_TARGET_SEED" ZEROAUTHY_SERVER__LISTEN=:8444
+    serve_port=8444
     serve
     E2E_M20_PHASE=verify node tests/e2e/m20-deploy-cli.mjs
+    stop_server
+    server_pid="$source_pid"
     stop_server
   done
 done

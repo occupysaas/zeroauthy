@@ -202,6 +202,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 			expiresAt = now.Add(absolute)
 		}
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+			origin:   res.Origin(),
 			familyID: "rtf_" + secrets.RandomString(32), userID: user.UserID,
 			audience: aud, scopes: scopes, authTime: now, expiresAt: expiresAt,
 		})

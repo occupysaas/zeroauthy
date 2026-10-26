@@ -6,6 +6,13 @@
 //
 // Notes for plugin authors:
 //
+//   - Implement CustomDomains and TLSAssets, including transactional host
+//     ownership, CAS revisions and lease fencing through actual commit. Persist
+//     Tenant.CanonicalHost and Origin on all eight grant/session/ticket models.
+//     CustomDomainsSupported probes both repositories with read-only bounded
+//     calls in the addressed transaction. Missing new RPCs fail with the exact
+//     repository-unavailable error; never return fake empty registry data.
+//     TLSAsset.Ciphertext is opaque sealed material, never plaintext private keys.
 //   - Implement Protection atomically in the shared backing store, including
 //     transaction views. New hosts fail closed with a plugin-too-old diagnostic
 //     if any protection RPC is missing; there is no local counter fallback.

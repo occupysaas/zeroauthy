@@ -21,8 +21,8 @@ func (r authTransactions) Create(_ context.Context, t *store.AuthTransaction) er
 }
 
 func (r authTransactions) Get(_ context.Context, tenantID, id string) (*store.AuthTransaction, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	t, ok := r.s.transactions[key{tenantID, id}]
 	if !ok {
 		return nil, store.ErrNotFound

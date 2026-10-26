@@ -72,8 +72,8 @@ func (r jobs) Create(_ context.Context, j *store.Job) error {
 }
 
 func (r jobs) Get(_ context.Context, tenantID, id string) (*store.Job, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	j, ok := r.s.jobs[key{tenantID, id}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -82,8 +82,8 @@ func (r jobs) Get(_ context.Context, tenantID, id string) (*store.Job, error) {
 }
 
 func (r jobs) List(_ context.Context, tenantID string, p store.Page) ([]*store.Job, int, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var all []*store.Job
 	for k, j := range r.s.jobs {
 		if k.tenant == tenantID {
@@ -109,8 +109,8 @@ func (r jobs) List(_ context.Context, tenantID string, p store.Page) ([]*store.J
 }
 
 func (r jobs) CountActive(_ context.Context, tenantID string, t store.JobType) (int, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	n := 0
 	for k, j := range r.s.jobs {
 		if k.tenant == tenantID && j.Type == t && (j.Status == store.JobPending || j.Status == store.JobProcessing) {
@@ -206,8 +206,8 @@ func endJob(j *store.Job, st store.JobStatus, details string, at time.Time) {
 }
 
 func (r jobs) Errors(_ context.Context, tenantID, id string) ([]store.JobError, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	k := key{tenantID, id}
 	if _, ok := r.s.jobs[k]; !ok {
 		return nil, store.ErrNotFound
@@ -243,14 +243,14 @@ func (r jobs) AppendFile(_ context.Context, tenantID, id, owner string, seq int,
 }
 
 func (r jobs) ReadFile(_ context.Context, tenantID, id string, fn func(chunk []byte) error) error {
-	r.s.mu.RLock()
+	r.s.readLock()
 	k := key{tenantID, id}
 	if _, ok := r.s.jobs[k]; !ok {
-		r.s.mu.RUnlock()
+		r.s.readUnlock()
 		return store.ErrNotFound
 	}
 	file := cloneJobFile(r.s.jobFiles[k])
-	r.s.mu.RUnlock()
+	r.s.readUnlock()
 	seqs := make([]int, 0, len(file))
 	for seq := range file {
 		seqs = append(seqs, seq)

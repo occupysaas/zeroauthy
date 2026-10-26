@@ -61,7 +61,7 @@ func newEnv(t *testing.T) *env {
 	for _, name := range []string{"acme", "globex"} {
 		tn, err := tenantsetup.UpsertTenant(ctx, st, name, now, func(tn *store.Tenant) error {
 			tn.Domains = []string{"login." + name + ".test"}
-			return nil
+			return tenantsetup.InitializeCanonical(tn, base)
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -157,12 +157,18 @@ func (e *env) checkError(t *testing.T, name string, code int, body map[string]an
 	}
 }
 
+// A local Management API token is accepted on the public origin that issued
+// it, not on every alias of the tenant; the audience never changes.
 func TestMgmtAuthM2MOnEveryHost(t *testing.T) {
 	e := newEnv(t)
 	for _, iss := range []string{"https://acme.example.com/", "https://login.acme.test/"} {
 		raw := e.mint(t, m2m("acme", iss, acmeAPI, "read:clients", "update:clients"))
 		for _, host := range []string{"acme.example.com", "login.acme.test"} {
 			code, body := e.do(t, host, "/read", "Bearer "+raw)
+			if iss != "https://"+host+"/" {
+				e.checkError(t, iss+" at "+host, code, body, http.StatusUnauthorized, "invalid_token")
+				continue
+			}
 			if code != 200 || body["Kind"] != float64(mgmt.M2M) || body["ClientID"] != "cli" ||
 				!slices.Equal(toStrings(body["Scopes"]), []string{"read:clients", "update:clients"}) {
 				t.Errorf("iss %s at %s: %d %v", iss, host, code, body)
@@ -257,6 +263,11 @@ func TestMgmtAuthNoM2MOnSystemTenant(t *testing.T) {
 		for _, iss := range []string{"https://" + systemHost + "/", "https://system.example.com/"} {
 			raw := e.mint(t, m2m(tenant.SystemName, iss, "https://system.example.com/api/v2/", "read:clients"))
 			code, body := e.do(t, host, "/read", "Bearer "+raw)
+			if iss != "https://"+host+"/" {
+				// Another alias's issuer fails first (serving-origin rule).
+				e.checkError(t, host+" "+iss, code, body, http.StatusUnauthorized, "invalid_token")
+				continue
+			}
 			e.checkError(t, host+" "+iss, code, body, http.StatusForbidden, "insufficient_scope")
 		}
 	}

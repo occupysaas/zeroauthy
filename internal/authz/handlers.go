@@ -311,6 +311,7 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 	now := h.now()
 	code := secrets.RandomString(43)
 	ac := &store.AuthCode{
+		Origin:              res.Origin(),
 		TenantID:            res.Tenant.ID,
 		CodeHash:            secrets.HashToken(code),
 		ClientID:            client.ClientID,

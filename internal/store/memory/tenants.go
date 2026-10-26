@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"github.com/zeroauthy/zeroauthy/internal/hostname"
 	"slices"
 	"strings"
 
@@ -19,13 +20,17 @@ func (r tenants) Create(_ context.Context, t *store.Tenant) error {
 	if _, ok := r.s.tenants[t.ID]; ok || r.collides(t) {
 		return store.ErrConflict
 	}
-	r.s.tenants[t.ID] = cloneTenant(t)
+	next, err := r.reconcileHosts(t)
+	if err != nil {
+		return err
+	}
+	r.s.tenants[t.ID] = next
 	return nil
 }
 
 func (r tenants) Get(_ context.Context, id string) (*store.Tenant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	t, ok := r.s.tenants[id]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -38,7 +43,21 @@ func (r tenants) GetByName(_ context.Context, name string) (*store.Tenant, error
 }
 
 func (r tenants) GetByDomain(_ context.Context, domain string) (*store.Tenant, error) {
-	return r.find(func(t *store.Tenant) bool { return slices.Contains(t.Domains, domain) })
+	name, err := hostname.NormalizeOperatorHost(domain)
+	if err != nil {
+		return nil, store.ErrNotFound
+	}
+	r.s.readLock()
+	defer r.s.readUnlock()
+	h := r.s.hostBindings[name]
+	if h == nil || !h.Active || h.Kind == store.HostOrigin {
+		return nil, store.ErrNotFound
+	}
+	t := r.s.tenants[h.TenantID]
+	if t == nil {
+		return nil, store.ErrNotFound
+	}
+	return cloneTenant(t), nil
 }
 
 func (r tenants) Update(_ context.Context, t *store.Tenant) error {
@@ -53,16 +72,20 @@ func (r tenants) Update(_ context.Context, t *store.Tenant) error {
 	if r.collides(t) {
 		return store.ErrConflict
 	}
+	next, err := r.reconcileHosts(t)
+	if err != nil {
+		return err
+	}
 	if p := r.s.protection[t.ID]; p != nil {
 		p.Policy(r.s.tenants[t.ID].ProtectionSettings, t.ProtectionSettings)
 	}
-	r.s.tenants[t.ID] = cloneTenant(t)
+	r.s.tenants[t.ID] = next
 	return nil
 }
 
 func (r tenants) List(context.Context) ([]*store.Tenant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	out := make([]*store.Tenant, 0, len(r.s.tenants))
 	for _, t := range r.s.tenants {
 		out = append(out, cloneTenant(t))
@@ -78,6 +101,25 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	if _, ok := r.s.tenants[id]; !ok {
 		return store.ErrNotFound
 	}
+	for k := range r.s.customDomains {
+		if k.tenant == id {
+			r.s.removeDomain(id, k.id)
+		}
+	}
+	for host, h := range r.s.hostBindings {
+		if h.TenantID == id {
+			delete(r.s.hostBindings, host)
+		}
+	}
+	for key, a := range r.s.tlsAssets {
+		if a.TenantID == id {
+			delete(r.s.tlsAssets, key)
+			r.s.expireLease(key)
+		}
+	}
+	delete(r.s.domainDefaults, id)
+	delete(r.s.tenantAttempts, id)
+	purge(r.s.domainAttempts, id)
 	delete(r.s.tenants, id)
 	delete(r.s.protection, id)
 	s := r.s
@@ -128,8 +170,8 @@ func purgeEmailClaims(m map[emailClaimKey]store.EmailNotification, tenantID stri
 }
 
 func (r tenants) find(match func(*store.Tenant) bool) (*store.Tenant, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	for _, t := range r.s.tenants {
 		if match(t) {
 			return cloneTenant(t), nil
@@ -162,4 +204,69 @@ func (r tenants) collides(t *store.Tenant) bool {
 		}
 	}
 	return false
+}
+
+// reconcileHosts validates the entire requested projection before mutating any
+// claim. Only operator claims are reconciled; API/origin ownership is retained.
+// The caller holds the write lock.
+func (r tenants) reconcileHosts(t *store.Tenant) (*store.Tenant, error) {
+	next := cloneTenant(t)
+	seen := map[string]bool{}
+	for i, host := range next.Domains {
+		name, err := hostname.NormalizeOperatorHost(host)
+		if err != nil {
+			return nil, store.ErrInvalid
+		}
+		if seen[name] {
+			return nil, store.ErrConflict
+		}
+		seen[name] = true
+		next.Domains[i] = name
+	}
+	if next.CanonicalHost != "" {
+		name, err := hostname.NormalizeOperatorHost(next.CanonicalHost)
+		if err != nil {
+			return nil, store.ErrInvalid
+		}
+		next.CanonicalHost = name
+	}
+	if old := r.s.tenants[t.ID]; old != nil && old.CanonicalHost != "" && old.CanonicalHost != next.CanonicalHost {
+		return nil, store.ErrConflict
+	}
+	if next.CanonicalHost != "" && !seen[next.CanonicalHost] {
+		seen[next.CanonicalHost] = true
+		next.Domains = append(next.Domains, next.CanonicalHost)
+	}
+	for host := range seen {
+		if h := r.s.hostBindings[host]; h != nil {
+			if h.TenantID != t.ID || h.Kind == store.HostOrigin || h.Kind == store.HostPublic && (!h.Active || host == next.CanonicalHost) {
+				return nil, store.ErrConflict
+			}
+		}
+	}
+	// Preserve active API domains even if an operator omitted them from input.
+	active := []string{}
+	for host, h := range r.s.hostBindings {
+		if h.TenantID == t.ID && h.Kind == store.HostPublic && h.Active && !seen[host] {
+			active = append(active, host)
+		}
+	}
+	slices.Sort(active)
+	next.Domains = append(next.Domains, active...)
+	for host, h := range r.s.hostBindings {
+		if h.TenantID == t.ID && h.Kind == store.HostOperator && !seen[host] {
+			delete(r.s.hostBindings, host)
+		}
+	}
+	for host := range seen {
+		if h := r.s.hostBindings[host]; h != nil && h.DomainID != "" {
+			continue
+		}
+		kind := store.HostOperator
+		if host == next.CanonicalHost {
+			kind = store.HostCanonical
+		}
+		r.s.hostBindings[host] = &store.HostBinding{Host: host, TenantID: t.ID, Kind: kind, Active: true}
+	}
+	return next, nil
 }

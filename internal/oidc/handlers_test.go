@@ -21,7 +21,7 @@ func setup(t *testing.T) (http.Handler, *keys.Manager) {
 	t.Helper()
 	ctx := context.Background()
 	st := memory.New()
-	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_acme", Name: "acme", Domains: []string{"acme.example.test"}}); err != nil {
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_acme", Name: "acme", CanonicalHost: "acme.example.test", Domains: []string{"acme.example.test"}}); err != nil {
 		t.Fatal(err)
 	}
 	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{3}, 32))
@@ -160,7 +160,7 @@ func TestDiscoveryAdvertisesPAROnlyWhenEnabled(t *testing.T) {
 
 	ctx := context.Background()
 	st := memory.New()
-	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_par", Name: "par", Domains: []string{"par.example.test"},
+	if err := st.Tenants().Create(ctx, &store.Tenant{ID: "ten_par", Name: "par", CanonicalHost: "par.example.test", Domains: []string{"par.example.test"},
 		PushedAuthorizationRequestsSupported: true}); err != nil {
 		t.Fatal(err)
 	}

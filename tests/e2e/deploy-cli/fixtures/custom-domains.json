@@ -1,0 +1,13 @@
+[
+  {
+    "domain": "login.migrate.e2e.test",
+    "type": "self_managed_certs",
+    "custom_client_ip_header": "cf-connecting-ip",
+    "tls_policy": "recommended",
+    "domain_metadata": {
+      "region": "east",
+      "purpose": "deploy"
+    },
+    "relying_party_identifier": "migrate.e2e.test"
+  }
+]

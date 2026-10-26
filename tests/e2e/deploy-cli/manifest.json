@@ -241,10 +241,10 @@
     },
     {
       "name": "customDomains",
-      "status": "excluded",
+      "status": "included",
       "owner": "Plan 23",
-      "reason": "Custom-domain provisioning and custom-key publication are deferred",
-      "fixture": null
+      "reason": "Real domain declarations and strict settings/default migration with separate DNS proof",
+      "fixture": "fixtures/custom-domains.json"
     },
     {
       "name": "themes",
@@ -424,6 +424,36 @@
       "path": "themeId",
       "rule": "reference-map",
       "reason": "The active exported theme matches by displayName; destination theme ID is generated."
+    },
+    {
+      "resource": "customDomains",
+      "path": "custom_domain_id",
+      "rule": "read-only",
+      "reason": "Target-local identity, proof or serving state; never imported as ownership evidence"
+    },
+    {
+      "resource": "customDomains",
+      "path": "verification",
+      "rule": "read-only",
+      "reason": "Target-local identity, proof or serving state; never imported as ownership evidence"
+    },
+    {
+      "resource": "customDomains",
+      "path": "status",
+      "rule": "read-only",
+      "reason": "Target-local identity, proof or serving state; never imported as ownership evidence"
+    },
+    {
+      "resource": "customDomains",
+      "path": "origin_domain_name",
+      "rule": "read-only",
+      "reason": "Target-local identity, proof or serving state; never imported as ownership evidence"
+    },
+    {
+      "resource": "customDomains",
+      "path": "certificate",
+      "rule": "read-only",
+      "reason": "Target-local identity, proof or serving state; never imported as ownership evidence"
     }
   ]
 }

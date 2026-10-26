@@ -26,6 +26,7 @@ func (h *Handlers) CreateTxn(w http.ResponseWriter, r *http.Request, res tenant.
 	}
 	cookieValue := secrets.RandomString(43)
 	txn := &store.AuthTransaction{
+		Origin:     res.Origin(),
 		TenantID:   res.Tenant.ID,
 		ID:         secrets.RandomString(24),
 		CookieHash: secrets.HashToken(cookieValue),

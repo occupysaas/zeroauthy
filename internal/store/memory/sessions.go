@@ -26,8 +26,8 @@ func (r sessions) Create(_ context.Context, s *store.LoginSession) error {
 }
 
 func (r sessions) GetByTokenHash(_ context.Context, tenantID, tokenHash string) (*store.LoginSession, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	s, ok := r.findByHash(tenantID, tokenHash)
 	if !ok {
 		return nil, store.ErrNotFound
@@ -36,8 +36,8 @@ func (r sessions) GetByTokenHash(_ context.Context, tenantID, tokenHash string) 
 }
 
 func (r sessions) Get(_ context.Context, tenantID, id string) (*store.LoginSession, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	s, ok := r.s.sessions[key{tenantID, id}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -46,8 +46,8 @@ func (r sessions) Get(_ context.Context, tenantID, id string) (*store.LoginSessi
 }
 
 func (r sessions) ListByUser(_ context.Context, tenantID, userID string) ([]*store.LoginSession, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var out []*store.LoginSession
 	for k, s := range r.s.sessions {
 		if k.tenant == tenantID && s.UserID == userID {

@@ -33,8 +33,8 @@ func (r verifyTickets) Create(_ context.Context, t *store.EmailVerificationTicke
 }
 
 func (r verifyTickets) GetByTokenHash(_ context.Context, tenantID, tokenHash string) (*store.EmailVerificationTicket, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	t, ok := r.findByHash(tenantID, tokenHash)
 	if !ok {
 		return nil, store.ErrNotFound

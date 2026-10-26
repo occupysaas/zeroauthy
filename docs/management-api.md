@@ -528,3 +528,19 @@ resources, user-block and IP-anomaly reads/deletes, exact scopes, shared-store
 requirements, encrypted credentials, unavailable-checker behavior and recovery.
 Automatic blocks are separate from the user's administrative `blocked` flag.
 The public responses contain neither internal receipts nor provider secrets.
+
+## Custom domains
+
+Nine scoped operations under `/api/v2/custom-domains` manage list/create,
+read/PATCH/delete by ID, POST verify/test and GET/PATCH `default`. The literal
+`default` route takes precedence over IDs. Pending creation does not activate
+a host. First successful explicit self-managed Verify returns a one-time proxy
+key; subsequent reads/verification never recover it. API fields are projected
+from internal state; private certificate/account/proof-token data is omitted.
+`origin_domain_name` is a proxy routing instruction, never the public issuer.
+
+See the [operator guide](custom-domains.md), [wire inventory](../internal/customdomain/inventory.json)
+and [compatibility evidence](compat/observations/custom-domains.md) for request
+limits, supported queries, scopes, errors and local/unobserved differences.
+Canonical API audiences remain stable across aliases; local Management API
+tokens must carry the origin serving the request as issuer.

@@ -84,7 +84,7 @@ func (h *Handlers) par(w http.ResponseWriter, r *http.Request, res tenant.Resolv
 	id := secrets.RandomString(64)
 	now := h.now().UTC()
 	if err := h.Store.PushedAuthRequests().Create(ctx, &store.PushedAuthRequest{
-		TenantID: t.ID, IDHash: secrets.HashToken(id), ClientID: c.ClientID, Params: req.Params(),
+		Origin: res.Origin(), TenantID: t.ID, IDHash: secrets.HashToken(id), ClientID: c.ClientID, Params: req.Params(),
 		ExpiresAt: now.Add(authz.PARLifetime), CreatedAt: now,
 	}); err != nil {
 		h.log().ErrorContext(ctx, "store pushed request", "tenant", t.ID, "client_id", c.ClientID, "err", err)

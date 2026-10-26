@@ -147,6 +147,11 @@ func (a clientEmailNotifications) Sweep(ctx context.Context, before time.Time, l
 }
 
 func (a clientTenants) Create(ctx context.Context, t *store.Tenant) error {
+	if t != nil && t.CanonicalHost != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	if err := store.ValidateProtectionSecrets(t.ProtectionSettings.CAPTCHA); err != nil {
 		return err
 	}
@@ -176,6 +181,11 @@ func (a clientTenants) GetByDomain(ctx context.Context, domain string) (*store.T
 }
 
 func (a clientTenants) Update(ctx context.Context, t *store.Tenant) error {
+	if t != nil && t.CanonicalHost != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	if err := store.ValidateProtectionSecrets(t.ProtectionSettings.CAPTCHA); err != nil {
 		return err
 	}
@@ -635,6 +645,11 @@ func (a clientUsers) Delete(ctx context.Context, tenantID, userID string) error 
 type clientSessions struct{ c *Client }
 
 func (a clientSessions) Create(ctx context.Context, v *store.LoginSession) error {
+	if v != nil && v.Origin != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	if v.CookieMode != "" {
 		if err := a.c.requireTenantSettings(ctx); err != nil {
 			return err
@@ -693,6 +708,11 @@ func (a clientSessions) DeleteExpired(ctx context.Context, before time.Time) (in
 type clientAuthTransactions struct{ c *Client }
 
 func (a clientAuthTransactions) Create(ctx context.Context, v *store.AuthTransaction) error {
+	if v != nil && v.Origin != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	return put("AuthTransactionsCreate", v, authTransactionToPB, func(pb *storev1.AuthTransaction) (result, error) {
 		return a.c.rpc.AuthTransactionsCreate(ctx, &storev1.AuthTransactionWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -718,6 +738,11 @@ func (a clientAuthTransactions) DeleteExpired(ctx context.Context, before time.T
 type clientAuthCodes struct{ c *Client }
 
 func (a clientAuthCodes) Create(ctx context.Context, v *store.AuthCode) error {
+	if v != nil && v.Origin != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	return put("AuthCodesCreate", v, authCodeToPB, func(pb *storev1.AuthCode) (result, error) {
 		return a.c.rpc.AuthCodesCreate(ctx, &storev1.AuthCodeWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -744,6 +769,11 @@ func (a clientAuthCodes) DeleteExpired(ctx context.Context, before time.Time) (i
 type clientPushedAuthRequests struct{ c *Client }
 
 func (a clientPushedAuthRequests) Create(ctx context.Context, v *store.PushedAuthRequest) error {
+	if v != nil && v.Origin != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	return put("PushedAuthRequestsCreate", v, pushedAuthRequestToPB, func(pb *storev1.PushedAuthRequest) (result, error) {
 		return a.c.rpc.PushedAuthRequestsCreate(ctx, &storev1.PushedAuthRequestWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -774,6 +804,11 @@ func (a clientPushedAuthRequests) DeleteExpired(ctx context.Context, before time
 type clientDeviceCodes struct{ c *Client }
 
 func (a clientDeviceCodes) Create(ctx context.Context, v *store.DeviceCode) error {
+	if v != nil && v.Origin != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	return put("DeviceCodesCreate", v, deviceCodeToPB, func(pb *storev1.DeviceCode) (result, error) {
 		return a.c.rpc.DeviceCodesCreate(ctx, &storev1.DeviceCodeWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -834,6 +869,11 @@ func (a clientDeviceCodes) DeleteExpired(ctx context.Context, before time.Time) 
 type clientRefreshTokens struct{ c *Client }
 
 func (a clientRefreshTokens) Create(ctx context.Context, v *store.RefreshToken) error {
+	if v != nil && v.Origin != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	return put("RefreshTokensCreate", v, refreshTokenToPB, func(pb *storev1.RefreshToken) (result, error) {
 		return a.c.rpc.RefreshTokensCreate(ctx, &storev1.RefreshTokenWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -860,6 +900,11 @@ func (a clientRefreshTokens) Revoke(ctx context.Context, tenantID, id string, at
 }
 
 func (a clientRefreshTokens) Rotate(ctx context.Context, tenantID, oldID string, next *store.RefreshToken, at time.Time, leeway time.Duration) error {
+	if next != nil && next.Origin != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	return put("RefreshTokensRotate", next, refreshTokenToPB, func(pb *storev1.RefreshToken) (result, error) {
 		return a.c.rpc.RefreshTokensRotate(ctx, &storev1.RefreshTokensRotateRequest{
 			TxId: a.c.txID, TenantId: tenantID, OldId: oldID, Next: pb, At: tsToPB(at), Leeway: durationpb.New(leeway)})
@@ -891,6 +936,11 @@ func (a clientRefreshTokens) DeleteExpired(ctx context.Context, before time.Time
 type clientPasswordResetTickets struct{ c *Client }
 
 func (a clientPasswordResetTickets) Create(ctx context.Context, v *store.PasswordResetTicket) error {
+	if v != nil && v.Origin != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	return put("PasswordResetTicketsCreate", v, passwordResetTicketToPB, func(pb *storev1.PasswordResetTicket) (result, error) {
 		return a.c.rpc.PasswordResetTicketsCreate(ctx, &storev1.PasswordResetTicketWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -922,6 +972,11 @@ func (a clientPasswordResetTickets) DeleteExpired(ctx context.Context, before ti
 type clientEmailVerificationTickets struct{ c *Client }
 
 func (a clientEmailVerificationTickets) Create(ctx context.Context, v *store.EmailVerificationTicket) error {
+	if v != nil && v.Origin != "" {
+		if err := a.c.requireCustomDomains(ctx); err != nil {
+			return err
+		}
+	}
 	return put("EmailVerificationTicketsCreate", v, emailVerificationTicketToPB, func(pb *storev1.EmailVerificationTicket) (result, error) {
 		r, err := a.c.rpc.EmailVerificationTicketsCreate(ctx, &storev1.EmailVerificationTicketWrite{TxId: a.c.txID, Value: pb})
 		return r, tooOld(err)

@@ -12,7 +12,9 @@ import (
 // Tenant is an isolated identity domain with its own clients, users,
 // connections and signing keys.
 type Tenant struct {
-	ID string
+	// CanonicalHost is the immutable canonical identity initialized by registry reconciliation.
+	CanonicalHost string
+	ID            string
 	// Name is unique and also serves as the subdomain under
 	// server.base_domain.
 	Name         string
@@ -721,6 +723,8 @@ type User struct {
 
 // LoginSession is a browser's authenticated session with a tenant.
 type LoginSession struct {
+	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
+	Origin string
 	// CookieMode is persisted at creation; later tenant edits do not change it.
 	CookieMode      string
 	TenantID        string
@@ -748,6 +752,8 @@ type LoginSession struct {
 
 // AuthTransaction holds an /authorize request while the user logs in.
 type AuthTransaction struct {
+	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
+	Origin      string
 	HostedState HostedLoginState
 	TenantID    string
 	ID          string // the "state" of the hosted login pages
@@ -761,6 +767,8 @@ type AuthTransaction struct {
 
 // AuthCode is an issued authorization code.
 type AuthCode struct {
+	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
+	Origin              string
 	TenantID            string
 	CodeHash            string // secrets.HashToken of the code
 	ClientID            string
@@ -782,6 +790,8 @@ type AuthCode struct {
 // PushedAuthRequest is an authorization request pushed to /oauth/par
 // (RFC 9126). The /authorize request that names it uses it once.
 type PushedAuthRequest struct {
+	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
+	Origin   string
 	TenantID string
 	// IDHash is secrets.HashToken of the opaque part of the request_uri.
 	IDHash   string
@@ -805,6 +815,8 @@ const (
 
 // DeviceCode is a device authorization request (RFC 8628).
 type DeviceCode struct {
+	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
+	Origin         string
 	TenantID       string
 	DeviceCodeHash string // secrets.HashToken(device_code)
 	UserCodeHash   string // secrets.HashToken(devicecode.Normalize(user_code))
@@ -857,6 +869,8 @@ type DevicePoll struct {
 // by rotating it form a family that shares FamilyID; reuse of a rotated
 // token revokes the whole family.
 type RefreshToken struct {
+	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
+	Origin    string
 	TenantID  string
 	ID        string // public identifier, used in logs
 	TokenHash string // secrets.HashToken of the token
@@ -922,6 +936,8 @@ func (ct CustomText) Clone() CustomText {
 // PasswordResetTicket is an issued password-reset link. Only the hash of
 // the ticket token is stored.
 type PasswordResetTicket struct {
+	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
+	Origin     string
 	TenantID   string
 	ID         string
 	TokenHash  string // secrets.HashToken of the ticket token
@@ -945,6 +961,8 @@ type PasswordResetTicket struct {
 // EmailVerificationTicket is an issued email verification link (Auth0's
 // email verification ticket).
 type EmailVerificationTicket struct {
+	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
+	Origin     string
 	TenantID   string
 	ID         string
 	TokenHash  string // secrets.HashToken of the ticket token
@@ -1037,7 +1055,8 @@ type Job struct {
 	// request gave them or the handler resolved them.
 	ConnectionID, Connection, ExternalID string
 	// Params are the request's options, as the handler stored them (JSON
-	// values only).
+	// values only). Verification-email jobs also store the selected origin in
+	// Params["selected_origin"] (string); empty/absent means canonical origin.
 	Params map[string]any
 	// Input is the import file (at most 512000 bytes); nil for other types.
 	// Finish clears it.

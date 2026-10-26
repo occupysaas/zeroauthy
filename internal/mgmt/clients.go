@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"io"
 	"log/slog"
 	"maps"
@@ -43,6 +44,8 @@ const (
 // Handlers serves the Management API and the system API.
 type Handlers struct {
 	Protection *protection.Service
+	// Domains serves the custom-domain operations; nil answers 503.
+	Domains *customdomain.Service
 	// BreachCheckerAvailable reports an actually constructed server-side checker.
 	BreachCheckerAvailable bool
 

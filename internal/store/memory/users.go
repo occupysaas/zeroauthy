@@ -26,8 +26,8 @@ func (r users) Create(_ context.Context, u *store.User) error {
 }
 
 func (r users) Get(_ context.Context, tenantID, userID string) (*store.User, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	u, ok := r.s.users[key{tenantID, userID}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -41,8 +41,8 @@ func (r users) GetForUpdate(ctx context.Context, tenantID, userID string) (*stor
 }
 
 func (r users) FindByLogin(_ context.Context, tenantID, connection, login string) (*store.User, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	if login == "" {
 		return nil, store.ErrNotFound
 	}
@@ -156,8 +156,8 @@ func (r users) BumpVersion(_ context.Context, tenantID, userID string) (int64, e
 }
 
 func (r users) FindByEmail(_ context.Context, tenantID, email string) ([]*store.User, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var out []*store.User
 	if email == "" {
 		return out, nil
@@ -271,8 +271,8 @@ func (r users) List(_ context.Context, tenantID string, q *store.UserQuery, s st
 	if err := s.Validate(); err != nil {
 		return nil, 0, err
 	}
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var all []*store.User
 	for k, u := range r.s.users {
 		if k.tenant == tenantID && m.Match(u) {

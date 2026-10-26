@@ -4,10 +4,15 @@ package app
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/certificates"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -41,6 +46,13 @@ type App struct {
 	jobs       *jobs.Runner
 	handler    http.Handler
 	breachFile *protection.FileChecker
+	// tls serves certificates when ACME is on; nil keeps static or
+	// externally terminated TLS exactly as configured.
+	tls *certificates.Manager
+	// acme issues and renews managed certificates; domains proves ownership
+	// for it. Both are nil when ACME is off.
+	acme    *certificates.Worker
+	domains *customdomain.Service
 }
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error) {
@@ -119,6 +131,12 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	km := keys.NewManager(st.SigningKeys(), wrapper)
 
 	systemHost := tenant.SystemHost(cfg.Server.BaseDomain, cfg.Server.SystemHost)
+	if cfg.Server.TrustProxyHeaders && len(cfg.Server.TrustedProxyCIDRs) == 0 {
+		log.Warn("server.trust_proxy_headers without server.trusted_proxy_cidrs is deprecated: forwarded headers are trusted from every peer")
+	}
+	if err := tenantsetup.ReconcileDomains(ctx, st, cfg.Server.BaseDomain, systemHost, cfg.Server.OriginDomain()); err != nil {
+		return nil, fmt.Errorf("app: domain reconciliation: %w", err)
+	}
 	if cfg.Seed != "" {
 		f, err := seed.Load(cfg.Seed)
 		if err != nil {
@@ -137,6 +155,18 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		log.Info("applied seed", "file", cfg.Seed, "mode", cfg.SeedMode, "tenants", len(f.Tenants))
 	}
 	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, Wrapper: wrapper}); err != nil {
+		return nil, err
+	}
+	tlsManager, err := certificateManager(ctx, cfg, st, wrapper)
+	if err != nil {
+		return nil, err
+	}
+	domains, err := domainService(cfg, st, tlsManager, systemHost, log)
+	if err != nil {
+		return nil, err
+	}
+	acmeWorker, err := certificateWorker(cfg, tlsManager, domains)
+	if err != nil {
 		return nil, err
 	}
 	if err := seed.InitializeProtection(ctx, st, cfg.Security, log); err != nil {
@@ -219,6 +249,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	}
 	sec := cfg.Security
 	return &App{
+		tls:        tlsManager,
+		acme:       acmeWorker,
+		domains:    domains,
 		cfg:        cfg,
 		log:        log,
 		store:      st,
@@ -242,6 +275,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
 			BaseDomain:        cfg.Server.BaseDomain,
 			SystemHost:        systemHost,
+			Domains:           domains,
 
 			DeviceTxnThrottle: identity.NewThrottle(sec.DeviceActivationTxnMaxMisses, authz.TxnLifetime, authz.TxnLifetime),
 			DeviceIPThrottle: identity.NewThrottleOrOff(sec.DeviceActivationIPMaxMisses,
@@ -302,19 +336,189 @@ func (a *App) httpServer() *http.Server {
 	}
 }
 
+// certificateManager builds the ACME-mode certificate manager, after the
+// registry is reconciled, and checks that every canonical and system host is
+// covered by the static certificate or the hosted wildcard.
+func certificateManager(ctx context.Context, cfg *config.Config, st store.Store, w keys.Wrapper) (*certificates.Manager, error) {
+	a := cfg.Server.ACME
+	if !a.Enabled {
+		return nil, nil
+	}
+	var static []tls.Certificate
+	if cfg.Server.TLSCertFile != "" {
+		c, err := tls.LoadX509KeyPair(cfg.Server.TLSCertFile, cfg.Server.TLSKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("app: static TLS certificate: %w", err)
+		}
+		static = append(static, c)
+	}
+	m, err := certificates.NewManager(st, w, certificates.Config{
+		DeploymentID: a.DeploymentID, DirectoryURL: a.DirectoryURL, BaseDomain: cfg.Server.BaseDomain,
+		HostedWildcard: a.HostedWildcard.Enabled, Static: static,
+	}, time.Now)
+	if err != nil {
+		return nil, err
+	}
+	if err := m.ValidateCoverage(ctx); err != nil {
+		return nil, fmt.Errorf("app: TLS coverage: %w", err)
+	}
+	return m, nil
+}
+
+// domainService builds the custom domain service: API operations, proxy
+// admission and ownership proof. Managed domains need ACME; self-managed
+// ones need origin TLS (the ACME manager's coverage, or a static certificate
+// covering the origin namespace). Without a usable resolver the API is off.
+func domainService(cfg *config.Config, st store.Store, m *certificates.Manager, systemHost string, log *slog.Logger) (*customdomain.Service, error) {
+	resolver := cfg.Server.CustomDomains.DNSResolver
+	if resolver == "" {
+		var err error
+		if resolver, err = customdomain.SystemResolver(); err != nil {
+			if m != nil {
+				return nil, fmt.Errorf("app: set server.custom_domains.dns_resolver: %w", err)
+			}
+			log.Warn("custom domains are unavailable: no DNS resolver; set server.custom_domains.dns_resolver", "err", err)
+			return nil, nil
+		}
+	}
+	proxies, err := cfg.Server.TrustedProxies()
+	if err != nil {
+		return nil, err
+	}
+	origin := cfg.Server.OriginDomain()
+	originTLS := false
+	switch {
+	case origin == "":
+	case m != nil:
+		originTLS = m.CoversOrigin(origin)
+	case cfg.Server.TLSCertFile != "":
+		originTLS = staticCovers(cfg.Server.TLSCertFile, cfg.Server.TLSKeyFile, "cd-0."+origin)
+	}
+	return customdomain.NewService(st, &customdomain.BoundedResolver{Server: resolver}, customdomain.ServiceConfig{
+		BaseDomain: cfg.Server.BaseDomain, SystemHost: systemHost, OriginDomain: origin,
+		ManagedEnabled: m != nil, OriginTLSReady: originTLS,
+		Proxy: customdomain.ProxyPolicy{Trusted: proxies, LegacyTrust: cfg.Server.TrustProxyHeaders},
+	}, time.Now, rand.Reader), nil
+}
+
+// staticCovers reports whether the static certificate serves host.
+func staticCovers(certFile, keyFile, host string) bool {
+	c, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil || len(c.Certificate) == 0 {
+		return false
+	}
+	leaf, err := x509.ParseCertificate(c.Certificate[0])
+	return err == nil && leaf.VerifyHostname(host) == nil
+}
+
+// certificateWorker builds the ACME worker when ACME is on; it re-proves
+// ownership through the domain service.
+func certificateWorker(cfg *config.Config, m *certificates.Manager, domains *customdomain.Service) (*certificates.Worker, error) {
+	if m == nil {
+		return nil, nil
+	}
+	resolver := cfg.Server.CustomDomains.DNSResolver
+	if resolver == "" {
+		var err error
+		if resolver, err = customdomain.SystemResolver(); err != nil {
+			return nil, fmt.Errorf("app: set server.custom_domains.dns_resolver: %w", err)
+		}
+	}
+	roots, err := x509.SystemCertPool()
+	if err != nil {
+		roots = x509.NewCertPool()
+	}
+	a := cfg.Server.ACME
+	if a.CABundleFile != "" {
+		b, err := os.ReadFile(a.CABundleFile)
+		if err != nil || !roots.AppendCertsFromPEM(b) {
+			return nil, fmt.Errorf("app: server.acme.ca_bundle_file %q has no usable certificates", a.CABundleFile)
+		}
+	}
+	var hosted *certificates.HostedConfig
+	if w := a.HostedWildcard; w.Enabled {
+		// The token stays in its deployment file: never tenant state or logs.
+		raw, err := os.ReadFile(w.TokenFile)
+		token := strings.TrimSpace(string(raw))
+		if err != nil || token == "" {
+			return nil, fmt.Errorf("app: server.acme.hosted_wildcard.token_file %q is unreadable or empty", w.TokenFile)
+		}
+		hosted = &certificates.HostedConfig{
+			BaseDomain: cfg.Server.BaseDomain, Zone: w.Zone, Provider: certificates.NewDigitalOcean(token),
+			Resolver: &customdomain.BoundedResolver{Server: resolver},
+		}
+	}
+	host, _ := os.Hostname()
+	owner := host + "-" + secrets.RandomString(8)
+	worker := certificates.NewWorker(m, certificates.NewACMECA(a.DirectoryURL, roots), domains, certificates.WorkerConfig{
+		Owner: owner, Email: a.Email, Challenge: a.Challenge, Roots: roots, Workers: a.Workers, Hosted: hosted,
+	})
+	return worker, nil
+}
+
 // Serve listens until ctx is cancelled, then shuts down gracefully.
 func (a *App) Serve(ctx context.Context) error {
 	srv := a.httpServer()
-	tls := a.cfg.Server.TLSCertFile != ""
+	useTLS := a.cfg.Server.TLSCertFile != "" || a.tls != nil
 	errc := make(chan error, 1)
 	go func() {
-		if tls {
+		if a.tls != nil {
+			srv.TLSConfig, _ = a.tls.TLSConfig()
+			errc <- srv.ListenAndServeTLS("", "")
+		} else if useTLS {
 			errc <- srv.ListenAndServeTLS(a.cfg.Server.TLSCertFile, a.cfg.Server.TLSKeyFile)
 		} else {
 			errc <- srv.ListenAndServe()
 		}
 	}()
-	a.log.Info("listening", "addr", a.cfg.Server.Listen, "tls", tls)
+	a.log.Info("listening", "addr", a.cfg.Server.Listen, "tls", useTLS)
+	if a.tls != nil && a.cfg.Server.ACME.HTTPListen != "" {
+		// HTTP-01 challenges and HTTPS redirects for registered hosts only.
+		challenges := &http.Server{
+			Addr: a.cfg.Server.ACME.HTTPListen, Handler: a.tls.HTTPHandler(nil),
+			ReadHeaderTimeout: 10 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second,
+		}
+		go func() {
+			if err := challenges.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				select {
+				case errc <- fmt.Errorf("app: challenge listener: %w", err):
+				default: // the main listener already failed
+				}
+			}
+		}()
+		defer func() {
+			sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = challenges.Shutdown(sctx)
+		}()
+		a.log.Info("listening for ACME HTTP-01", "addr", a.cfg.Server.ACME.HTTPListen)
+	}
+	if a.domains != nil {
+		proofCtx, stopProof := context.WithCancel(ctx)
+		proofDone := make(chan struct{})
+		go func() { defer close(proofDone); a.domainProofLoop(proofCtx, 30*time.Second) }()
+		defer func() {
+			stopProof()
+			select {
+			case <-proofDone:
+			case <-time.After(10 * time.Second):
+				a.log.Warn("domain proof worker did not stop within 10s")
+			}
+		}()
+	}
+	if a.acme != nil {
+		acmeCtx, stopACME := context.WithCancel(ctx)
+		acmeDone := make(chan struct{})
+		go func() { defer close(acmeDone); a.acme.Run(acmeCtx) }()
+		defer func() {
+			stopACME()
+			select {
+			case <-acmeDone:
+			case <-time.After(10 * time.Second):
+				a.log.Warn("certificate worker did not stop within 10s; its leases expire on their own")
+			}
+		}()
+	}
 	go a.sweepLoop(ctx, sweepInterval)
 	if a.jobs != nil && a.jobs.Workers > 0 {
 		// Workers stop with Serve, which waits a little for the job they
@@ -357,3 +561,20 @@ func (a *App) Close() error {
 }
 
 func seconds(n int) time.Duration { return time.Duration(n) * time.Second }
+
+// Proof retries and ownership-loss checks run independently of issuance;
+// customer-proxy domains need the same lifecycle even with ACME disabled.
+func (a *App) domainProofLoop(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		if err := a.domains.CheckDue(ctx); err != nil && ctx.Err() == nil {
+			a.log.Warn("domain ownership checks failed", "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}

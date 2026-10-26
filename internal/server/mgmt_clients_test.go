@@ -50,13 +50,13 @@ func tokenStatus(h http.Handler, id, secret string) int {
 func TestManagementClientsThroughServer(t *testing.T) {
 	h, st := newMgmtEnv(t)
 	reader := m2mToken(t, h, "acme.example.test", acmeMgmtAPI)
-	admin := clientToken(t, h, "login.acme.test", acmeMgmtAPI, "admin", "admin-s3cret")
+	admin := clientToken(t, h, "acme.example.test", acmeMgmtAPI, "admin", "admin-s3cret")
 
 	rec, _ := sendJSON(h, "POST", "https://acme.example.test/api/v2/clients", reader, map[string]any{"name": "x"})
 	if rec.Code != 403 || !strings.Contains(rec.Body.String(), "insufficient_scope") {
 		t.Fatalf("create with read:clients = %d %s", rec.Code, rec.Body)
 	}
-	rec, created := sendJSON(h, "POST", "https://login.acme.test/api/v2/clients", admin,
+	rec, created := sendJSON(h, "POST", "https://acme.example.test/api/v2/clients", admin,
 		map[string]any{"name": "Worker", "app_type": "non_interactive", "grant_types": []string{"client_credentials"}})
 	id, _ := created["client_id"].(string)
 	secret, _ := created["client_secret"].(string)

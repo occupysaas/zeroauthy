@@ -13,6 +13,10 @@ func ManagementAPIIdentifier(t *store.Tenant, baseDomain string) string {
 		return ""
 	}
 	switch {
+	// The reserved system tenant has no M2M Management API; its identifier
+	// keeps the pre-registry rule while its canonical is the system host.
+	case t.CanonicalHost != "" && !t.Reserved:
+		return "https://" + t.CanonicalHost + "/api/v2/"
 	case baseDomain != "":
 		return "https://" + NormalizeHost(t.Name+"."+NormalizeHost(baseDomain)) + "/api/v2/"
 	case len(t.Domains) > 0:

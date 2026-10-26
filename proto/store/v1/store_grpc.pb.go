@@ -20,6 +20,27 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	StoreService_Ping_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/Ping"
+	StoreService_CustomDomainsSupported_FullMethodName                 = "/zeroauthy.store.v1.StoreService/CustomDomainsSupported"
+	StoreService_CustomDomainsGet_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CustomDomainsGet"
+	StoreService_CustomDomainsList_FullMethodName                      = "/zeroauthy.store.v1.StoreService/CustomDomainsList"
+	StoreService_CustomDomainsListDue_FullMethodName                   = "/zeroauthy.store.v1.StoreService/CustomDomainsListDue"
+	StoreService_CustomDomainsCreate_FullMethodName                    = "/zeroauthy.store.v1.StoreService/CustomDomainsCreate"
+	StoreService_CustomDomainsUpdate_FullMethodName                    = "/zeroauthy.store.v1.StoreService/CustomDomainsUpdate"
+	StoreService_CustomDomainsDelete_FullMethodName                    = "/zeroauthy.store.v1.StoreService/CustomDomainsDelete"
+	StoreService_CustomDomainsGetHost_FullMethodName                   = "/zeroauthy.store.v1.StoreService/CustomDomainsGetHost"
+	StoreService_CustomDomainsPutHost_FullMethodName                   = "/zeroauthy.store.v1.StoreService/CustomDomainsPutHost"
+	StoreService_CustomDomainsDeleteHost_FullMethodName                = "/zeroauthy.store.v1.StoreService/CustomDomainsDeleteHost"
+	StoreService_CustomDomainsGetDefault_FullMethodName                = "/zeroauthy.store.v1.StoreService/CustomDomainsGetDefault"
+	StoreService_CustomDomainsSetDefault_FullMethodName                = "/zeroauthy.store.v1.StoreService/CustomDomainsSetDefault"
+	StoreService_CustomDomainsAdmitAttempt_FullMethodName              = "/zeroauthy.store.v1.StoreService/CustomDomainsAdmitAttempt"
+	StoreService_TLSAssetsGet_FullMethodName                           = "/zeroauthy.store.v1.StoreService/TLSAssetsGet"
+	StoreService_TLSAssetsPut_FullMethodName                           = "/zeroauthy.store.v1.StoreService/TLSAssetsPut"
+	StoreService_TLSAssetsDelete_FullMethodName                        = "/zeroauthy.store.v1.StoreService/TLSAssetsDelete"
+	StoreService_TLSAssetsListExpired_FullMethodName                   = "/zeroauthy.store.v1.StoreService/TLSAssetsListExpired"
+	StoreService_TLSAssetsClaimLease_FullMethodName                    = "/zeroauthy.store.v1.StoreService/TLSAssetsClaimLease"
+	StoreService_TLSAssetsRenewLease_FullMethodName                    = "/zeroauthy.store.v1.StoreService/TLSAssetsRenewLease"
+	StoreService_TLSAssetsCheckLease_FullMethodName                    = "/zeroauthy.store.v1.StoreService/TLSAssetsCheckLease"
+	StoreService_TLSAssetsReleaseLease_FullMethodName                  = "/zeroauthy.store.v1.StoreService/TLSAssetsReleaseLease"
 	StoreService_ProtectionReserve_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ProtectionReserve"
 	StoreService_ProtectionComplete_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ProtectionComplete"
 	StoreService_ProtectionBlocks_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ProtectionBlocks"
@@ -232,6 +253,28 @@ const (
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error)
+	// Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
+	CustomDomainsSupported(ctx context.Context, in *CustomDomainCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
+	CustomDomainsGet(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsList(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsListDue(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsCreate(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsUpdate(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsDelete(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsGetHost(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsPutHost(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsDeleteHost(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsGetDefault(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsSetDefault(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	CustomDomainsAdmitAttempt(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
+	TLSAssetsGet(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error)
+	TLSAssetsPut(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error)
+	TLSAssetsDelete(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error)
+	TLSAssetsListExpired(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error)
+	TLSAssetsClaimLease(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error)
+	TLSAssetsRenewLease(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error)
+	TLSAssetsCheckLease(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error)
+	TLSAssetsReleaseLease(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error)
 	// Required before writing Plan 19 tenant settings: old plugins must fail closed.
 	ProtectionReserve(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
 	ProtectionComplete(ctx context.Context, in *ProtectionRequest, opts ...grpc.CallOption) (*ProtectionResult, error)
@@ -408,6 +451,216 @@ func (c *storeServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_Ping_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsSupported(ctx context.Context, in *CustomDomainCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsSupported_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsGet(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsList(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsListDue(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsListDue_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsCreate(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsCreate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsUpdate(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsUpdate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsDelete(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsGetHost(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsGetHost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsPutHost(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsPutHost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsDeleteHost(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsDeleteHost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsGetDefault(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsGetDefault_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsSetDefault(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsSetDefault_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) CustomDomainsAdmitAttempt(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CustomDomainResult)
+	err := c.cc.Invoke(ctx, StoreService_CustomDomainsAdmitAttempt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TLSAssetsGet(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TLSAssetResult)
+	err := c.cc.Invoke(ctx, StoreService_TLSAssetsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TLSAssetsPut(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TLSAssetResult)
+	err := c.cc.Invoke(ctx, StoreService_TLSAssetsPut_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TLSAssetsDelete(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TLSAssetResult)
+	err := c.cc.Invoke(ctx, StoreService_TLSAssetsDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TLSAssetsListExpired(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TLSAssetResult)
+	err := c.cc.Invoke(ctx, StoreService_TLSAssetsListExpired_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TLSAssetsClaimLease(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TLSAssetResult)
+	err := c.cc.Invoke(ctx, StoreService_TLSAssetsClaimLease_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TLSAssetsRenewLease(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TLSAssetResult)
+	err := c.cc.Invoke(ctx, StoreService_TLSAssetsRenewLease_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TLSAssetsCheckLease(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TLSAssetResult)
+	err := c.cc.Invoke(ctx, StoreService_TLSAssetsCheckLease_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) TLSAssetsReleaseLease(ctx context.Context, in *TLSAssetRequest, opts ...grpc.CallOption) (*TLSAssetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TLSAssetResult)
+	err := c.cc.Invoke(ctx, StoreService_TLSAssetsReleaseLease_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1974,6 +2227,28 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceServer interface {
 	Ping(context.Context, *PingRequest) (*Result, error)
+	// Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
+	CustomDomainsSupported(context.Context, *CustomDomainCapabilitiesRequest) (*Result, error)
+	CustomDomainsGet(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsList(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsListDue(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsCreate(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsUpdate(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsDelete(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsGetHost(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsPutHost(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsDeleteHost(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsGetDefault(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsSetDefault(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	CustomDomainsAdmitAttempt(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
+	TLSAssetsGet(context.Context, *TLSAssetRequest) (*TLSAssetResult, error)
+	TLSAssetsPut(context.Context, *TLSAssetRequest) (*TLSAssetResult, error)
+	TLSAssetsDelete(context.Context, *TLSAssetRequest) (*TLSAssetResult, error)
+	TLSAssetsListExpired(context.Context, *TLSAssetRequest) (*TLSAssetResult, error)
+	TLSAssetsClaimLease(context.Context, *TLSAssetRequest) (*TLSAssetResult, error)
+	TLSAssetsRenewLease(context.Context, *TLSAssetRequest) (*TLSAssetResult, error)
+	TLSAssetsCheckLease(context.Context, *TLSAssetRequest) (*TLSAssetResult, error)
+	TLSAssetsReleaseLease(context.Context, *TLSAssetRequest) (*TLSAssetResult, error)
 	// Required before writing Plan 19 tenant settings: old plugins must fail closed.
 	ProtectionReserve(context.Context, *ProtectionRequest) (*ProtectionResult, error)
 	ProtectionComplete(context.Context, *ProtectionRequest) (*ProtectionResult, error)
@@ -2148,6 +2423,69 @@ type UnimplementedStoreServiceServer struct{}
 
 func (UnimplementedStoreServiceServer) Ping(context.Context, *PingRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsSupported(context.Context, *CustomDomainCapabilitiesRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsSupported not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsGet(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsList(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsList not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsListDue(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsListDue not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsCreate(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsCreate not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsUpdate(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsUpdate not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsDelete(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsGetHost(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsGetHost not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsPutHost(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsPutHost not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsDeleteHost(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsDeleteHost not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsGetDefault(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsGetDefault not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsSetDefault(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsSetDefault not implemented")
+}
+func (UnimplementedStoreServiceServer) CustomDomainsAdmitAttempt(context.Context, *CustomDomainRequest) (*CustomDomainResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method CustomDomainsAdmitAttempt not implemented")
+}
+func (UnimplementedStoreServiceServer) TLSAssetsGet(context.Context, *TLSAssetRequest) (*TLSAssetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method TLSAssetsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) TLSAssetsPut(context.Context, *TLSAssetRequest) (*TLSAssetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method TLSAssetsPut not implemented")
+}
+func (UnimplementedStoreServiceServer) TLSAssetsDelete(context.Context, *TLSAssetRequest) (*TLSAssetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method TLSAssetsDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) TLSAssetsListExpired(context.Context, *TLSAssetRequest) (*TLSAssetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method TLSAssetsListExpired not implemented")
+}
+func (UnimplementedStoreServiceServer) TLSAssetsClaimLease(context.Context, *TLSAssetRequest) (*TLSAssetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method TLSAssetsClaimLease not implemented")
+}
+func (UnimplementedStoreServiceServer) TLSAssetsRenewLease(context.Context, *TLSAssetRequest) (*TLSAssetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method TLSAssetsRenewLease not implemented")
+}
+func (UnimplementedStoreServiceServer) TLSAssetsCheckLease(context.Context, *TLSAssetRequest) (*TLSAssetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method TLSAssetsCheckLease not implemented")
+}
+func (UnimplementedStoreServiceServer) TLSAssetsReleaseLease(context.Context, *TLSAssetRequest) (*TLSAssetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method TLSAssetsReleaseLease not implemented")
 }
 func (UnimplementedStoreServiceServer) ProtectionReserve(context.Context, *ProtectionRequest) (*ProtectionResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method ProtectionReserve not implemented")
@@ -2631,6 +2969,384 @@ func _StoreService_Ping_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).Ping(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsSupported_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainCapabilitiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsSupported(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsSupported_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsSupported(ctx, req.(*CustomDomainCapabilitiesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsGet(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsList(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsListDue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsListDue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsListDue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsListDue(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsCreate(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsUpdate(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsDelete(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsGetHost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsGetHost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsGetHost_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsGetHost(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsPutHost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsPutHost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsPutHost_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsPutHost(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsDeleteHost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsDeleteHost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsDeleteHost_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsDeleteHost(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsGetDefault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsGetDefault(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsGetDefault_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsGetDefault(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsSetDefault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsSetDefault(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsSetDefault_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsSetDefault(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_CustomDomainsAdmitAttempt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CustomDomainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).CustomDomainsAdmitAttempt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_CustomDomainsAdmitAttempt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).CustomDomainsAdmitAttempt(ctx, req.(*CustomDomainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TLSAssetsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TLSAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TLSAssetsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TLSAssetsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TLSAssetsGet(ctx, req.(*TLSAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TLSAssetsPut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TLSAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TLSAssetsPut(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TLSAssetsPut_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TLSAssetsPut(ctx, req.(*TLSAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TLSAssetsDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TLSAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TLSAssetsDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TLSAssetsDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TLSAssetsDelete(ctx, req.(*TLSAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TLSAssetsListExpired_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TLSAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TLSAssetsListExpired(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TLSAssetsListExpired_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TLSAssetsListExpired(ctx, req.(*TLSAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TLSAssetsClaimLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TLSAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TLSAssetsClaimLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TLSAssetsClaimLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TLSAssetsClaimLease(ctx, req.(*TLSAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TLSAssetsRenewLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TLSAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TLSAssetsRenewLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TLSAssetsRenewLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TLSAssetsRenewLease(ctx, req.(*TLSAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TLSAssetsCheckLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TLSAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TLSAssetsCheckLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TLSAssetsCheckLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TLSAssetsCheckLease(ctx, req.(*TLSAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_TLSAssetsReleaseLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TLSAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).TLSAssetsReleaseLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_TLSAssetsReleaseLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).TLSAssetsReleaseLease(ctx, req.(*TLSAssetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -5320,6 +6036,90 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _StoreService_Ping_Handler,
+		},
+		{
+			MethodName: "CustomDomainsSupported",
+			Handler:    _StoreService_CustomDomainsSupported_Handler,
+		},
+		{
+			MethodName: "CustomDomainsGet",
+			Handler:    _StoreService_CustomDomainsGet_Handler,
+		},
+		{
+			MethodName: "CustomDomainsList",
+			Handler:    _StoreService_CustomDomainsList_Handler,
+		},
+		{
+			MethodName: "CustomDomainsListDue",
+			Handler:    _StoreService_CustomDomainsListDue_Handler,
+		},
+		{
+			MethodName: "CustomDomainsCreate",
+			Handler:    _StoreService_CustomDomainsCreate_Handler,
+		},
+		{
+			MethodName: "CustomDomainsUpdate",
+			Handler:    _StoreService_CustomDomainsUpdate_Handler,
+		},
+		{
+			MethodName: "CustomDomainsDelete",
+			Handler:    _StoreService_CustomDomainsDelete_Handler,
+		},
+		{
+			MethodName: "CustomDomainsGetHost",
+			Handler:    _StoreService_CustomDomainsGetHost_Handler,
+		},
+		{
+			MethodName: "CustomDomainsPutHost",
+			Handler:    _StoreService_CustomDomainsPutHost_Handler,
+		},
+		{
+			MethodName: "CustomDomainsDeleteHost",
+			Handler:    _StoreService_CustomDomainsDeleteHost_Handler,
+		},
+		{
+			MethodName: "CustomDomainsGetDefault",
+			Handler:    _StoreService_CustomDomainsGetDefault_Handler,
+		},
+		{
+			MethodName: "CustomDomainsSetDefault",
+			Handler:    _StoreService_CustomDomainsSetDefault_Handler,
+		},
+		{
+			MethodName: "CustomDomainsAdmitAttempt",
+			Handler:    _StoreService_CustomDomainsAdmitAttempt_Handler,
+		},
+		{
+			MethodName: "TLSAssetsGet",
+			Handler:    _StoreService_TLSAssetsGet_Handler,
+		},
+		{
+			MethodName: "TLSAssetsPut",
+			Handler:    _StoreService_TLSAssetsPut_Handler,
+		},
+		{
+			MethodName: "TLSAssetsDelete",
+			Handler:    _StoreService_TLSAssetsDelete_Handler,
+		},
+		{
+			MethodName: "TLSAssetsListExpired",
+			Handler:    _StoreService_TLSAssetsListExpired_Handler,
+		},
+		{
+			MethodName: "TLSAssetsClaimLease",
+			Handler:    _StoreService_TLSAssetsClaimLease_Handler,
+		},
+		{
+			MethodName: "TLSAssetsRenewLease",
+			Handler:    _StoreService_TLSAssetsRenewLease_Handler,
+		},
+		{
+			MethodName: "TLSAssetsCheckLease",
+			Handler:    _StoreService_TLSAssetsCheckLease_Handler,
+		},
+		{
+			MethodName: "TLSAssetsReleaseLease",
+			Handler:    _StoreService_TLSAssetsReleaseLease_Handler,
 		},
 		{
 			MethodName: "ProtectionReserve",

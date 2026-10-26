@@ -59,6 +59,28 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 // `error` field; gRPC status codes mean transport or plugin failure.
 service StoreService {
   rpc Ping(PingRequest) returns (Result);
+  // Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
+  rpc CustomDomainsSupported(CustomDomainCapabilitiesRequest) returns (Result);
+  rpc CustomDomainsGet(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsList(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsListDue(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsCreate(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsUpdate(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsDelete(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsGetHost(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsPutHost(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsDeleteHost(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsGetDefault(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsSetDefault(CustomDomainRequest) returns (CustomDomainResult);
+  rpc CustomDomainsAdmitAttempt(CustomDomainRequest) returns (CustomDomainResult);
+  rpc TLSAssetsGet(TLSAssetRequest) returns (TLSAssetResult);
+  rpc TLSAssetsPut(TLSAssetRequest) returns (TLSAssetResult);
+  rpc TLSAssetsDelete(TLSAssetRequest) returns (TLSAssetResult);
+  rpc TLSAssetsListExpired(TLSAssetRequest) returns (TLSAssetResult);
+  rpc TLSAssetsClaimLease(TLSAssetRequest) returns (TLSAssetResult);
+  rpc TLSAssetsRenewLease(TLSAssetRequest) returns (TLSAssetResult);
+  rpc TLSAssetsCheckLease(TLSAssetRequest) returns (TLSAssetResult);
+  rpc TLSAssetsReleaseLease(TLSAssetRequest) returns (TLSAssetResult);
   // Required before writing Plan 19 tenant settings: old plugins must fail closed.
   rpc ProtectionReserve(ProtectionRequest) returns (ProtectionResult);
   rpc ProtectionComplete(ProtectionRequest) returns (ProtectionResult);
@@ -252,6 +274,8 @@ message Error {
     KIND_CONFLICT = 2;    // store.ErrConflict
     KIND_ALREADY_USED = 3; // store.ErrAlreadyUsed
     KIND_INVALID = 4; // store.ErrInvalid
+    KIND_CUSTOM_DOMAIN_UNAVAILABLE = 5; // store.ErrCustomDomainRepositoryUnavailable
+    KIND_TLS_ASSET_UNAVAILABLE = 6; // store.ErrTLSAssetRepositoryUnavailable
   }
   Kind kind = 1;
   string message = 2; // human-readable; for KIND_UNSPECIFIED the whole error
@@ -328,6 +352,7 @@ message Tenant {
   int64 ephemeral_session_lifetime = 29; // internal seconds
   int64 idle_ephemeral_session_lifetime = 30; // internal seconds
   string session_cookie_mode = 31;
+  string canonical_host = 32;
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 
@@ -510,6 +535,7 @@ message LoginSession {
   google.protobuf.Timestamp updated_at = 11; google.protobuf.Timestamp last_interacted_at = 12;
   string initial_ip = 13; string initial_user_agent = 14; string last_ip = 15; string last_user_agent = 16;
   string cookie_mode = 17; // creation-time persistent/non-persistent choice
+  string origin = 18;
 }
 
 message AuthTransaction {
@@ -517,6 +543,7 @@ message AuthTransaction {
   string client_id = 5; StringMap params = 6;
   google.protobuf.Timestamp expires_at = 7; google.protobuf.Timestamp created_at = 8;
   string hosted_state_json = 9;
+  string origin = 10;
 }
 
 message AuthCode {
@@ -527,11 +554,13 @@ message AuthCode {
   google.protobuf.Timestamp created_at = 14;
   google.protobuf.Timestamp used_at = 15;     // absent = nil
   google.protobuf.Timestamp replayed_at = 16; // absent = nil
+  string origin = 17;
 }
 message PushedAuthRequest {
   string tenant_id = 1; string id_hash = 2; string client_id = 3; StringMap params = 4;
   google.protobuf.Timestamp expires_at = 5; google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp used_at = 7; // absent = nil
+  string origin = 8;
 }
 
 message DeviceCode {
@@ -541,6 +570,7 @@ message DeviceCode {
   optional google.protobuf.Timestamp last_polled_at = 10;      // absent = nil
   optional google.protobuf.Timestamp expired_reported_at = 11; // absent = nil
   google.protobuf.Timestamp expires_at = 12; google.protobuf.Timestamp created_at = 13;
+  string origin = 14;
 }
 
 message RefreshToken {
@@ -551,6 +581,7 @@ message RefreshToken {
   google.protobuf.Timestamp rotated_at = 14; // absent = nil
   google.protobuf.Timestamp revoked_at = 15; // absent = nil
   google.protobuf.Timestamp created_at = 16;
+  string origin = 17;
 }
 
 message PasswordResetTicket {
@@ -560,6 +591,7 @@ message PasswordResetTicket {
   google.protobuf.Timestamp used_at = 9; // absent = nil
   google.protobuf.Timestamp created_at = 10;
   string result_url = 11; bool include_email_in_redirect = 12; bool mark_email_verified = 13;
+  string origin = 14;
 }
 
 message EmailVerificationTicket {
@@ -570,6 +602,7 @@ message EmailVerificationTicket {
   google.protobuf.Timestamp created_at = 10;
   string result_url = 11; bool include_email_in_redirect = 12;
   string email = 13;
+  string origin = 14;
 }
 
 // A Management API job. type and status are store.JobType and
@@ -811,4 +844,62 @@ message ProtectionResult {
  Error error = 1; bool allowed = 2; string tenant_id = 3; string receipt_id = 4;
  google.protobuf.Timestamp retry_at = 5; repeated ProtectionBlock blocks = 6;
  int64 count = 7;
+}
+
+// ---- private custom-domain and encrypted TLS persistence (Plan 23) ----
+// These records are never public API DTOs. Ciphertext is an opaque sealed
+// envelope: never send plaintext TLS private keys or provider credentials.
+message CustomDomain {
+  string tenant_id = 1; string id = 2; string domain = 3; string type = 4;
+  string source = 5; string origin_host = 6; int64 generation = 7; int64 revision = 8;
+  string status = 9; string tls_policy = 10; string custom_client_ip_header = 11;
+  string relying_party_identifier = 12; StringMap domain_metadata = 13;
+  string verification_method = 14; string proof_record_name = 15;
+  string proof_record_value = 16; string proof_status = 17; optional bytes proof_token = 18;
+  google.protobuf.Timestamp proof_created_at = 19;
+  google.protobuf.Timestamp proof_verified_at = 20; google.protobuf.Timestamp last_proof_check_at = 21;
+  google.protobuf.Timestamp proof_failure_since = 22; string lifecycle = 23;
+  google.protobuf.Timestamp next_attempt_at = 24; int64 attempt_count = 25;
+  string last_failure = 26; optional bytes proxy_key_hash = 27; string active_certificate_key = 28;
+  google.protobuf.Timestamp created_at = 29; google.protobuf.Timestamp updated_at = 30;
+  bool custom_client_ip_header_null = 31;
+}
+message HostBinding {
+  string host = 1; string tenant_id = 2; string domain_id = 3;
+  int64 generation = 4; string kind = 5; bool active = 6;
+}
+message TLSPublicData {
+  int64 version = 1; string directory_url = 2; string account_url = 3; string order_url = 4;
+  string status = 5; string challenge_type = 6; string identifier = 7; string token = 8;
+  string key_authorization = 9; string record_name = 10; string record_value = 11;
+  string dns_record_id = 12; optional bytes certificate_chain_pem = 13; StringList sans = 14;
+  google.protobuf.Timestamp not_before = 15; google.protobuf.Timestamp not_after = 16;
+}
+message TLSAsset {
+  string key = 1; string kind = 2; string tenant_id = 3; string domain_id = 4;
+  int64 generation = 5; int64 revision = 6; optional bytes ciphertext = 7;
+  TLSPublicData public_data = 8; google.protobuf.Timestamp expires_at = 9;
+}
+message TLSLease {
+  string key = 1; string owner = 2; int64 fence = 3; google.protobuf.Timestamp until = 4;
+}
+// Probe both repositories without a tenant ID or mutation. A held transaction
+// must supply tx_id so the probe observes the same backing transaction view.
+message CustomDomainCapabilitiesRequest { string tx_id = 1; }
+message CustomDomainRequest {
+  string tx_id = 1; string tenant_id = 2; string id = 3; string host = 4;
+  string domain_id = 5; CustomDomain value = 6; HostBinding binding = 7;
+  int64 expected_revision = 8; int64 limit = 9;
+}
+message CustomDomainResult {
+  Error error = 1; CustomDomain value = 2; repeated CustomDomain values = 3;
+  HostBinding binding = 4; string default_id = 5; google.protobuf.Duration retry_after = 6;
+}
+message TLSAssetRequest {
+  string tx_id = 1; string key = 2; string owner = 3; TLSAsset value = 4;
+  TLSLease lease = 5; int64 expected_revision = 6; int64 limit = 7;
+  google.protobuf.Duration duration = 8;
+}
+message TLSAssetResult {
+  Error error = 1; TLSAsset value = 2; repeated TLSAsset values = 3; TLSLease lease = 4;
 }

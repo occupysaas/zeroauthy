@@ -19,17 +19,27 @@ type key struct{ tenant, id string }
 // transaction body gets a view of the same state with tx set.
 type Store struct {
 	*state
-	// tx marks a transaction's view: its writes already hold txMu.
-	tx bool
+	// tx marks a transaction's view: its reads and writes already hold txMu.
+	tx            bool
+	checkedLeases map[string]store.TLSLease
 }
 
-// state is the data of a Store and its locks. txMu serializes
-// transactions and the writes made outside any transaction, so a
-// transaction that rolls back never undoes a write that is not its own.
+// state is the data of a Store and its locks. txMu isolates transactions from
+// ordinary reads and writes, so uncommitted state is never externally visible
+// and rollback never undoes a write that is not its own. Ordinary readers share
+// txMu's read lock and mu's read lock, so independent reads can run together.
 type state struct {
+	now                    func() time.Time
+	customDomains          map[key]*store.CustomDomain
+	hostBindings           map[string]*store.HostBinding
+	domainDefaults         map[string]string
+	domainAttempts         map[key]time.Time
+	tenantAttempts         map[string][]time.Time
+	tlsAssets              map[string]*store.TLSAsset
+	tlsLeases              map[string]*store.TLSLease
 	protection             map[string]*protectionstate.State
 	proofs                 map[string]time.Time
-	txMu                   sync.Mutex
+	txMu                   sync.RWMutex
 	mu                     sync.RWMutex
 	tenants                map[string]*store.Tenant               // by ID
 	clients                map[key]*store.Client                  // by (tenant, client ID)
@@ -60,10 +70,26 @@ type state struct {
 	emailNotifications     map[emailClaimKey]store.EmailNotification
 }
 
+// NewWithClock returns an empty store whose storage time (attempt budgets,
+// due lists and lease expiry) comes from now, for deterministic tests.
+func NewWithClock(now func() time.Time) *Store {
+	s := New()
+	s.now = now
+	return s
+}
+
 // New returns an empty store.
 func New() *Store {
 	return &Store{state: &state{
-		protection: map[string]*protectionstate.State{}, proofs: map[string]time.Time{},
+		now:            time.Now,
+		customDomains:  map[key]*store.CustomDomain{},
+		hostBindings:   map[string]*store.HostBinding{},
+		domainDefaults: map[string]string{},
+		domainAttempts: map[key]time.Time{},
+		tenantAttempts: map[string][]time.Time{},
+		tlsAssets:      map[string]*store.TLSAsset{},
+		tlsLeases:      map[string]*store.TLSLease{},
+		protection:     map[string]*protectionstate.State{}, proofs: map[string]time.Time{},
 		tenants:                map[string]*store.Tenant{},
 		clients:                map[key]*store.Client{},
 		resourceServers:        map[key]*store.ResourceServer{},
@@ -108,6 +134,23 @@ func (s *Store) unlock() {
 	s.mu.Unlock()
 	if !s.tx {
 		s.txMu.Unlock()
+	}
+}
+
+// readLock waits for any external transaction before accessing shared maps.
+// Transaction-local reads skip the gate already held by their WithTx caller.
+// Lock ordering matches writes: txMu before mu, release in reverse order.
+func (s *Store) readLock() {
+	if !s.tx {
+		s.txMu.RLock()
+	}
+	s.mu.RLock()
+}
+
+func (s *Store) readUnlock() {
+	s.mu.RUnlock()
+	if !s.tx {
+		s.txMu.RUnlock()
 	}
 }
 

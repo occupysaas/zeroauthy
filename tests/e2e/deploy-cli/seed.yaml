@@ -58,6 +58,10 @@ tenants:
           - read:email_templates
           - create:email_templates
           - update:email_templates
+          - read:custom_domains
+          - create:custom_domains
+          - update:custom_domains
+          - delete:custom_domains
           - read:branding
           - update:branding
           - create:branding
@@ -112,6 +116,10 @@ tenants:
           - read:email_templates
           - create:email_templates
           - update:email_templates
+          - read:custom_domains
+          - create:custom_domains
+          - update:custom_domains
+          - delete:custom_domains
           - read:branding
           - update:branding
           - create:branding

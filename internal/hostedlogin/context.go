@@ -26,6 +26,16 @@ func ProjectContext(input map[string]any) map[string]any {
 				v[key] = s
 			}
 		}
+		if root == "custom_domain" {
+			// Public metadata values only (strings), never other domain state.
+			if md, ok := m["domain_metadata"].(map[string]string); ok {
+				public := make(map[string]any, len(md))
+				for k, value := range md {
+					public[k] = value
+				}
+				v["domain_metadata"] = public
+			}
+		}
 		if root == "prompt" {
 			if screen, ok := m["screen"].(map[string]any); ok {
 				public := map[string]any{}

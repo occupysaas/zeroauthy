@@ -41,8 +41,8 @@ func (r refreshTokens) Create(_ context.Context, t *store.RefreshToken) error {
 }
 
 func (r refreshTokens) GetByTokenHash(_ context.Context, tenantID, tokenHash string) (*store.RefreshToken, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	t, ok := r.findByHash(tenantID, tokenHash)
 	if !ok {
 		return nil, store.ErrNotFound
@@ -51,8 +51,8 @@ func (r refreshTokens) GetByTokenHash(_ context.Context, tenantID, tokenHash str
 }
 
 func (r refreshTokens) Get(_ context.Context, tenantID, id string) (*store.RefreshToken, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	t, ok := r.s.refreshTokens[key{tenantID, id}]
 	if !ok {
 		return nil, store.ErrNotFound
@@ -61,8 +61,8 @@ func (r refreshTokens) Get(_ context.Context, tenantID, id string) (*store.Refre
 }
 
 func (r refreshTokens) ListByUser(_ context.Context, tenantID, userID string) ([]*store.RefreshToken, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	var out []*store.RefreshToken
 	for k, t := range r.s.refreshTokens {
 		if k.tenant == tenantID && t.UserID == userID && t.RevokedAt == nil && t.RotatedAt == nil {

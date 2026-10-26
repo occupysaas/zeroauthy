@@ -112,7 +112,8 @@ func (h *Handlers) resetTicket(r *http.Request, res tenant.Resolved, raw string)
 		return nil, view, resetInvalid, nil
 	}
 	tk, err = h.Store.PasswordResetTickets().GetByTokenHash(r.Context(), res.Tenant.ID, secrets.HashToken(raw))
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || err == nil && res.CheckOrigin(tk.Origin) != nil {
+		// Another origin's link is invalid here, and is left unused.
 		return nil, view, resetInvalid, nil
 	}
 	if err != nil {

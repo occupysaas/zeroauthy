@@ -173,8 +173,8 @@ func TestSchemaConstraints(t *testing.T) {
 
 func TestLatestVersion(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 19 {
-			t.Errorf("%s LatestVersion = %d, want 19", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 20 {
+			t.Errorf("%s LatestVersion = %d, want 20", d.name, v)
 		}
 	}
 }
@@ -189,8 +189,8 @@ func TestMigration0019PreservesLegacyHostedData(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			placeholders := strings.TrimSuffix(strings.Repeat("?,", len(args)), ",")
-			if _, err := s.exec(ctx, "INSERT INTO tenants ("+tenantCols+") VALUES ("+placeholders+")", args...); err != nil {
+			placeholders := strings.TrimSuffix(strings.Repeat("?,", len(args)-1), ",")
+			if _, err := s.exec(ctx, "INSERT INTO tenants ("+strings.TrimSuffix(tenantCols, ", canonical_host")+") VALUES ("+placeholders+")", args[:len(args)-1]...); err != nil {
 				t.Fatal(err)
 			}
 			mustExec(t, s, `INSERT INTO auth_transactions (tenant_id,id,cookie_hash,csrf_token,client_id,params,expires_at,created_at) VALUES ('legacy','flow','cookie','csrf','spa','{"scope":"openid"}',9999999999999999,1)`)

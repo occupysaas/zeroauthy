@@ -76,7 +76,12 @@ func TestUniversalLoginTemplateContract(t *testing.T) {
 	if put.Code != http.StatusOK || put.Body.Len() != 0 {
 		t.Fatalf("put=%d body=%q", put.Code, put.Body.String())
 	}
-	get, _ := e.call(t, e.tn, m2mCaller("read:branding"), "GET", "/api/v2/branding/templates/universal-login", nil, e.h.GetUniversalLoginTemplate)
+	get, got := e.call(t, e.tn, m2mCaller("read:branding"), "GET", "/api/v2/branding/templates/universal-login", nil, e.h.GetUniversalLoginTemplate)
+	// The public GET contract returns body; the template alias stays for
+	// existing consumers. Both are the same saved template.
+	if m, _ := got.(map[string]any); m["body"] != source || m["template"] != source {
+		t.Fatalf("template GET = %v", got)
+	}
 	if get.Code != http.StatusOK || get.Body.String() == "" {
 		t.Fatalf("get=%d body=%q", get.Code, get.Body.String())
 	}

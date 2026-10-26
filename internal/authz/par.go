@@ -10,6 +10,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
 // Pushed authorization requests (RFC 9126, D-0028, D-0029).
@@ -57,6 +58,20 @@ func (h *Handlers) resolvePushed(ctx context.Context, t *store.Tenant, q url.Val
 		return nil, errPushedUnusable()
 	}
 	now := h.now()
+	// Another origin's request URI is unusable here and stays unconsumed.
+	if res, ok := tenant.FromContext(ctx); ok {
+		pre, err := h.Store.PushedAuthRequests().Get(ctx, t.ID, secrets.HashToken(id))
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, errPushedUnusable()
+		}
+		if err != nil {
+			h.log().ErrorContext(ctx, "load pushed request origin", "tenant", t.ID, "err", err)
+			return nil, errServer()
+		}
+		if res.CheckOrigin(pre.Origin) != nil {
+			return nil, errPushedUnusable()
+		}
+	}
 	p, err := h.Store.PushedAuthRequests().Consume(ctx, t.ID, secrets.HashToken(id), now)
 	switch {
 	case errors.Is(err, store.ErrNotFound), errors.Is(err, store.ErrAlreadyUsed):

@@ -7,6 +7,15 @@ package store
 import "github.com/zeroauthy/zeroauthy/internal/store"
 
 type (
+	CustomDomains               = store.CustomDomains
+	CustomDomain                = store.CustomDomain
+	HostBinding                 = store.HostBinding
+	TLSAssets                   = store.TLSAssets
+	TLSAsset                    = store.TLSAsset
+	TLSPublicData               = store.TLSPublicData
+	TLSLease                    = store.TLSLease
+	UnimplementedCustomDomains  = store.UnimplementedCustomDomains
+	UnimplementedTLSAssets      = store.UnimplementedTLSAssets
 	Protection                  = store.Protection
 	ProtectionSettings          = store.ProtectionSettings
 	BruteForcePolicy            = store.BruteForcePolicy
@@ -116,11 +125,13 @@ type (
 )
 
 var (
-	ErrNotFound                   = store.ErrNotFound
-	ErrConflict                   = store.ErrConflict
-	ErrAlreadyUsed                = store.ErrAlreadyUsed
-	ErrInvalid                    = store.ErrInvalid
-	ErrEmailRepositoryUnavailable = store.ErrEmailRepositoryUnavailable
+	ErrCustomDomainRepositoryUnavailable = store.ErrCustomDomainRepositoryUnavailable
+	ErrTLSAssetRepositoryUnavailable     = store.ErrTLSAssetRepositoryUnavailable
+	ErrNotFound                          = store.ErrNotFound
+	ErrConflict                          = store.ErrConflict
+	ErrAlreadyUsed                       = store.ErrAlreadyUsed
+	ErrInvalid                           = store.ErrInvalid
+	ErrEmailRepositoryUnavailable        = store.ErrEmailRepositoryUnavailable
 
 	ScriptNames      = store.ScriptNames
 	CharacterTypes   = store.CharacterTypes
@@ -128,10 +139,19 @@ var (
 )
 
 const (
-	DeviceCodePending  = store.DeviceCodePending
-	DeviceCodeApproved = store.DeviceCodeApproved
-	DeviceCodeDenied   = store.DeviceCodeDenied
-	DeviceCodeConsumed = store.DeviceCodeConsumed
+	HostCanonical       = store.HostCanonical
+	HostOperator        = store.HostOperator
+	HostPublic          = store.HostPublic
+	HostOrigin          = store.HostOrigin
+	TLSAssetAccount     = store.TLSAssetAccount
+	TLSAssetOrder       = store.TLSAssetOrder
+	TLSAssetCertificate = store.TLSAssetCertificate
+	TLSAssetChallenge   = store.TLSAssetChallenge
+	TLSAssetDNSIntent   = store.TLSAssetDNSIntent
+	DeviceCodePending   = store.DeviceCodePending
+	DeviceCodeApproved  = store.DeviceCodeApproved
+	DeviceCodeDenied    = store.DeviceCodeDenied
+	DeviceCodeConsumed  = store.DeviceCodeConsumed
 
 	PollPending  = store.PollPending
 	PollSlowDown = store.PollSlowDown

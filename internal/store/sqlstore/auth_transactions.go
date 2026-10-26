@@ -13,7 +13,7 @@ type authTransactions struct{ s *Store }
 
 func (s *Store) AuthTransactions() store.AuthTransactions { return authTransactions{s} }
 
-const authTxnCols = `tenant_id, id, cookie_hash, csrf_token, client_id, params, expires_at, created_at, hosted_state, hosted_revision`
+const authTxnCols = `tenant_id, id, cookie_hash, csrf_token, client_id, params, expires_at, created_at, hosted_state, hosted_revision, origin`
 
 func (r authTransactions) Create(ctx context.Context, t *store.AuthTransaction) error {
 	params, err := toJSON(t.Params)
@@ -24,8 +24,8 @@ func (r authTransactions) Create(ctx context.Context, t *store.AuthTransaction) 
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO auth_transactions (`+authTxnCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-		t.TenantID, t.ID, t.CookieHash, t.CSRFToken, t.ClientID, params, micros(t.ExpiresAt), micros(t.CreatedAt), hosted, t.HostedState.Revision)
+	_, err = r.s.write(ctx, nil, `INSERT INTO auth_transactions (`+authTxnCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+		t.TenantID, t.ID, t.CookieHash, t.CSRFToken, t.ClientID, params, micros(t.ExpiresAt), micros(t.CreatedAt), hosted, t.HostedState.Revision, t.Origin)
 	return r.s.conflict(err)
 }
 
@@ -36,7 +36,7 @@ func (r authTransactions) Get(ctx context.Context, tenantID, id string) (*store.
 	var rev int64
 	var exp, created int64
 	err := r.s.queryRow(ctx, `SELECT `+authTxnCols+` FROM auth_transactions WHERE tenant_id = ? AND id = ?`, tenantID, id).
-		Scan(&t.TenantID, &t.ID, &t.CookieHash, &t.CSRFToken, &t.ClientID, &params, &exp, &created, &hosted, &rev)
+		Scan(&t.TenantID, &t.ID, &t.CookieHash, &t.CSRFToken, &t.ClientID, &params, &exp, &created, &hosted, &rev, &t.Origin)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
 	}

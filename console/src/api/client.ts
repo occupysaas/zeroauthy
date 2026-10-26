@@ -67,6 +67,11 @@ export type BotDetectionUpdate = components['schemas']['BotDetectionUpdate']
 export type Captcha = components['schemas']['Captcha']
 export type CaptchaUpdate = components['schemas']['CaptchaUpdate']
 export type UserBlocks = components['schemas']['UserBlocks']
+export type CustomDomain = components['schemas']['CustomDomain']
+export type CustomDomainVerified = components['schemas']['CustomDomainVerified']
+export type CustomDomainCreate = components['schemas']['CustomDomainCreate']
+export type CustomDomainUpdate = components['schemas']['CustomDomainUpdate']
+export type CustomDomainTest = components['schemas']['CustomDomainTest']
 
 export class ApiError extends Error {
   constructor(
@@ -137,6 +142,35 @@ export class Api {
   }
   updateTenantSettings(t: SystemTenant, body: TenantSettingsPatch): Promise<TenantSettings> {
     return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/tenants/settings', { body })
+  }
+  listCustomDomains(t: SystemTenant): Promise<CustomDomain[]> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/custom-domains')
+  }
+  createCustomDomain(t: SystemTenant, body: CustomDomainCreate): Promise<CustomDomain> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/custom-domains', { body })
+  }
+  getCustomDomain(t: SystemTenant, id: string): Promise<CustomDomain> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/custom-domains/' + encodeURIComponent(id))
+  }
+  updateCustomDomain(t: SystemTenant, id: string, body: CustomDomainUpdate): Promise<CustomDomain> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/custom-domains/' + encodeURIComponent(id), { body })
+  }
+  deleteCustomDomain(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/custom-domains/' + encodeURIComponent(id))
+  }
+  // verifyCustomDomain is never retried: only its first successful reply can
+  // carry the one-time proxy key.
+  verifyCustomDomain(t: SystemTenant, id: string): Promise<CustomDomainVerified> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/custom-domains/' + encodeURIComponent(id) + '/verify')
+  }
+  testCustomDomain(t: SystemTenant, id: string): Promise<CustomDomainTest> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/custom-domains/' + encodeURIComponent(id) + '/test')
+  }
+  getDefaultCustomDomain(t: SystemTenant): Promise<CustomDomain> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/custom-domains/default')
+  }
+  setDefaultCustomDomain(t: SystemTenant, domain: string): Promise<CustomDomain> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/custom-domains/default', { body: { domain } })
   }
   listSigningKeys(t: SystemTenant): Promise<ManagedSigningKey[]> {
     return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/keys/signing')

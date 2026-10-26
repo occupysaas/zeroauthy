@@ -429,14 +429,14 @@ func TestSignupWithoutMailer(t *testing.T) {
 func TestVerificationMailerSendVerification(t *testing.T) {
 	e := newEnv(t)
 	alice := e.user(t, "alice@acme.test")
-	if err := e.h.Verification.SendVerification(context.Background(), alice.TenantID, alice, "spa"); err != nil {
+	if err := e.h.Verification.SendVerification(context.Background(), alice.TenantID, alice, "spa", ""); err != nil {
 		t.Fatal(err)
 	}
 	if len(e.mail.sent) != 1 || verifyLinkPattern.FindStringSubmatch(e.mail.sent[0].Text) == nil || e.mail.sent[0].To != "alice@acme.test" {
 		t.Fatalf("sent = %+v", e.mail.sent)
 	}
 	// A user without an email gets nothing.
-	if err := e.h.Verification.SendVerification(context.Background(), alice.TenantID, &store.User{TenantID: alice.TenantID, UserID: "auth0|x"}, ""); err != nil {
+	if err := e.h.Verification.SendVerification(context.Background(), alice.TenantID, &store.User{TenantID: alice.TenantID, UserID: "auth0|x"}, "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if len(e.mail.sent) != 1 {

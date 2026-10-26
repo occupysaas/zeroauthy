@@ -9,8 +9,8 @@ type hostedLogins struct{ s *Store }
 
 func (s *Store) HostedLogins() store.HostedLogins { return hostedLogins{s} }
 func (r hostedLogins) Get(_ context.Context, tenantID string) (*store.HostedLoginConfig, error) {
-	r.s.mu.RLock()
-	defer r.s.mu.RUnlock()
+	r.s.readLock()
+	defer r.s.readUnlock()
 	if c := r.s.hostedLogins[tenantID]; c != nil {
 		return c.Clone(), nil
 	}

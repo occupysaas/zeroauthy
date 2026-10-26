@@ -14,7 +14,7 @@ type deviceCodes struct{ s *Store }
 func (s *Store) DeviceCodes() store.DeviceCodes { return deviceCodes{s} }
 
 const deviceCodeCols = `tenant_id, device_code_hash, user_code_hash, client_id, scopes, audience, status, user_id,
- granted_scopes, last_polled_at, expired_reported_at, expires_at, created_at`
+ granted_scopes, last_polled_at, expired_reported_at, expires_at, created_at, origin`
 
 func (r deviceCodes) Create(ctx context.Context, d *store.DeviceCode) error {
 	scopes, err := toJSON(d.Scopes)
@@ -28,9 +28,9 @@ func (r deviceCodes) Create(ctx context.Context, d *store.DeviceCode) error {
 	// Retried on deadlock: on MySQL an INSERT can be the victim of a cycle
 	// with DeleteExpired's range DELETE (gap locks).
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO device_codes (`+deviceCodeCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		_, err := tx.exec(ctx, `INSERT INTO device_codes (`+deviceCodeCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			d.TenantID, d.DeviceCodeHash, d.UserCodeHash, d.ClientID, scopes, d.Audience, string(d.Status), d.UserID,
-			granted, nullMicros(d.LastPolledAt), nullMicros(d.ExpiredReportedAt), micros(d.ExpiresAt), micros(d.CreatedAt))
+			granted, nullMicros(d.LastPolledAt), nullMicros(d.ExpiredReportedAt), micros(d.ExpiresAt), micros(d.CreatedAt), d.Origin)
 		return tx.conflict(err)
 	})
 }
@@ -158,7 +158,7 @@ func scanDeviceCode(row scanner) (*store.DeviceCode, error) {
 	var polled, reported sql.NullInt64
 	var exp, created int64
 	if err := row.Scan(&d.TenantID, &d.DeviceCodeHash, &d.UserCodeHash, &d.ClientID, &scopes, &d.Audience, &status,
-		&d.UserID, &granted, &polled, &reported, &exp, &created); err != nil {
+		&d.UserID, &granted, &polled, &reported, &exp, &created, &d.Origin); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(scopes, &d.Scopes); err != nil {

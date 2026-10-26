@@ -2437,6 +2437,256 @@ paths:
         "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v2/custom-domains:
+    get:
+      parameters:
+        - {name: q, in: query, schema: {type: string}}
+        - {$ref: "#/components/parameters/fields"}
+        - {$ref: "#/components/parameters/include_fields"}
+        - {name: sort, in: query, schema: {type: string}}
+      operationId: getCustomDomains
+      tags: [custom-domains]
+      summary: List custom domains
+      description: |
+        API custom domains of the tenant. `q` accepts at most eight exact
+        quoted `domain`, `status` or `type` terms joined with `AND` (1024 bytes);
+        `fields`/`include_fields` project the listed public fields and `sort`
+        accepts `domain:1`. Operator aliases never appear here.
+
+        Requires `read:custom_domains`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/custom-domains/get-custom-domains
+      responses:
+        "200":
+          description: The custom domains.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/CustomDomain"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+    post:
+      operationId: createCustomDomain
+      tags: [custom-domains]
+      summary: Create a custom domain
+      description: |
+        Claims `domain` (pending) and returns its TXT ownership proof. The
+        domain is never ready on creation. `auth0_managed_certs` needs this
+        deployment's ACME issuance (`503` otherwise); `self_managed_certs` needs
+        origin TLS for the origin namespace. At most 100 domains per tenant.
+
+        Requires `create:custom_domains`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/custom-domains/post-custom-domains
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CustomDomainCreate"}
+      responses:
+        "201":
+          description: The new custom domain.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CustomDomain"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "413": {$ref: "#/components/responses/PayloadTooLarge"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v2/custom-domains/default:
+    get:
+      operationId: getDefaultCustomDomain
+      tags: [custom-domains]
+      summary: Get the default custom domain
+      description: |
+        The configured default custom domain, also while it is temporarily
+        unavailable, or `{"domain": <canonical host>}` when the canonical host
+        is the default.
+
+        Requires `read:custom_domains`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/custom-domains/get-default
+      responses:
+        "200":
+          description: The default domain.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CustomDomain"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+    patch:
+      operationId: setDefaultCustomDomain
+      tags: [custom-domains]
+      summary: Set the default custom domain
+      description: |
+        `domain` names a ready custom domain of this tenant, or the canonical
+        host (which clears the default). New notification links use it.
+
+        Requires `update:custom_domains`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/custom-domains/patch-default
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CustomDomainDefaultUpdate"}
+      responses:
+        "200":
+          description: The default domain.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CustomDomain"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "413": {$ref: "#/components/responses/PayloadTooLarge"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v2/custom-domains/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The custom domain's ID.
+        schema: {type: string}
+    get:
+      operationId: getCustomDomain
+      tags: [custom-domains]
+      summary: Get a custom domain
+      description: |
+        One custom domain. Proxy keys and private material are never shown.
+
+        Requires `read:custom_domains`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/custom-domains/get-custom-domains-by-id
+      responses:
+        "200":
+          description: The custom domain.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CustomDomain"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+    patch:
+      operationId: updateCustomDomain
+      tags: [custom-domains]
+      summary: Update a custom domain
+      description: |
+        Changes `tls_policy`, `custom_client_ip_header` (null or empty disables
+        the override), `domain_metadata` and `relying_party_identifier`.
+
+        Requires `update:custom_domains`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/custom-domains/patch-custom-domains-by-id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CustomDomainUpdate"}
+      responses:
+        "200":
+          description: The custom domain.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CustomDomain"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "413": {$ref: "#/components/responses/PayloadTooLarge"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+    delete:
+      operationId: deleteCustomDomain
+      tags: [custom-domains]
+      summary: Delete a custom domain
+      description: |
+        Stops serving the domain, releases its names and clears it as default.
+
+        Requires `delete:custom_domains`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/custom-domains/delete-custom-domains-by-id
+      responses:
+        "204": {description: Deleted.}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v2/custom-domains/{id}/verify:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The custom domain's ID.
+        schema: {type: string}
+    post:
+      operationId: verifyCustomDomain
+      tags: [custom-domains]
+      summary: Verify a custom domain
+      description: |
+        Checks the TXT proof. A self-managed domain becomes ready here, and
+        the first successful call alone returns `cname_api_key`, the proxy key.
+        One attempt per domain per 30 seconds and 20 per tenant per minute.
+
+        Requires `update:custom_domains`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/custom-domains/post-verify
+      responses:
+        "200":
+          description: The custom domain.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CustomDomainVerified"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v2/custom-domains/{id}/test:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The custom domain's ID.
+        schema: {type: string}
+    post:
+      operationId: testCustomDomain
+      tags: [custom-domains]
+      summary: Test a custom domain
+      description: |
+        Fetches the domain's discovery document over a bounded, address-checked
+        connection. A not-ready domain is `409`; an observed failure is `200`
+        with `success: false`.
+
+        Requires `update:custom_domains`.
+      x-source:
+        - https://auth0.com/docs/api/management/v2/custom-domains/post-test-domain
+      responses:
+        "200":
+          description: The outcome.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CustomDomainTest"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
   /api/v2/jobs/verification-email:
     post:
       operationId: createVerificationEmailJob
@@ -5964,6 +6214,81 @@ components:
             - {type: integer}
         connection_id: {type: string, description: The secondary identity's connection ID.}
         link_with: {type: string, description: "An ID token for the secondary, issued to the calling client."}
+    CustomDomainVerification:
+      type: object
+      properties:
+        methods:
+          type: array
+          items:
+            type: object
+            properties:
+              name: {type: string, enum: [txt]}
+              record: {type: string, description: The TXT value to publish.}
+              domain: {type: string, description: The TXT record name.}
+        status: {type: string, enum: [verified, pending, failed]}
+        error_msg: {type: string}
+        last_verified_at: {type: string, format: date-time}
+    CustomDomain:
+      type: object
+      properties:
+        custom_domain_id: {type: string}
+        domain: {type: string}
+        primary: {type: boolean}
+        status: {type: string, enum: [pending_verification, ready, failed]}
+        type: {type: string, enum: [auth0_managed_certs, self_managed_certs]}
+        origin_domain_name: {type: string, description: The private origin host a proxy or CNAME targets.}
+        verification: {$ref: "#/components/schemas/CustomDomainVerification"}
+        is_default: {type: boolean}
+        custom_client_ip_header: {type: string, nullable: true, enum: [true-client-ip, cf-connecting-ip, x-forwarded-for, x-azure-clientip, ""]}
+        tls_policy: {type: string, enum: [recommended]}
+        domain_metadata:
+          type: object
+          maxProperties: 10
+          additionalProperties: {type: string, maxLength: 255}
+        certificate:
+          type: object
+          properties:
+            status: {type: string, enum: [provisioning, provisioning_failed, provisioned, renewing_failed]}
+            error_msg: {type: string}
+            renews_before: {type: string, format: date-time}
+        relying_party_identifier: {type: string}
+    CustomDomainVerified:
+      allOf:
+        - {$ref: "#/components/schemas/CustomDomain"}
+        - type: object
+          properties:
+            cname_api_key: {type: string, description: "The proxy key, returned only by the first successful verification of a self-managed domain."}
+    CustomDomainCreate:
+      type: object
+      required: [domain, type]
+      additionalProperties: false
+      properties:
+        domain: {type: string}
+        type: {type: string, enum: [auth0_managed_certs, self_managed_certs]}
+        verification_method: {type: string, enum: [txt]}
+        tls_policy: {type: string, enum: [recommended]}
+        custom_client_ip_header: {type: string, nullable: true}
+        domain_metadata: {type: object, additionalProperties: {type: string}}
+        relying_party_identifier: {type: string}
+    CustomDomainUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        tls_policy: {type: string, enum: [recommended]}
+        custom_client_ip_header: {type: string, nullable: true}
+        domain_metadata: {type: object, additionalProperties: {type: string}}
+        relying_party_identifier: {type: string, nullable: true}
+    CustomDomainDefaultUpdate:
+      type: object
+      required: [domain]
+      additionalProperties: false
+      properties:
+        domain: {type: string}
+    CustomDomainTest:
+      type: object
+      properties:
+        success: {type: boolean}
+        message: {type: string}
     Ticket:
       type: object
       required: [ticket]
@@ -6240,6 +6565,16 @@ components:
           schema: {type: object}
     NotFound:
       description: The resource does not exist.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    PayloadTooLarge:
+      description: The request body is larger than 64 KiB.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
+    ServiceUnavailable:
+      description: A required service is unavailable (`custom_domain_unavailable`, `temporarily_unavailable`).
       content:
         application/json:
           schema: {$ref: "#/components/schemas/ManagementError"}
