@@ -882,3 +882,14 @@ was introduced, so NOTICE is unchanged.
   discovery and is explicitly unavailable; no empty success shim or fabricated
   domain is added. Missing templates are not normalized away. ACUL discovery
   remains unavailable and is reported by the pinned tool.
+
+## Plan 23 — frozen custom-domain contracts (2026-10-26)
+
+Public API schemas and the local design govern the nine-operation inventory in
+`internal/customdomain/inventory.json`; the pending creation description wins over
+ready sample values, string-only metadata wins over SDK nullable values, and the
+diagnostic operation requires update scope locally. Upstream errorCode details
+remain unobserved. See observations/custom-domains.md for licensed client provenance,
+strict query limits, stored-only RP IDs and Deploy CLI header/default constraints.
+Universal Login template GET will add documented `body` while preserving the
+existing `template` alias; PUT retains `template`. No ACUL claim is implied.

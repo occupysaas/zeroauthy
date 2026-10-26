@@ -1,0 +1,426 @@
+{
+  "version": 1,
+  "operations": [
+    {
+      "id": "ListCustomDomains",
+      "path": "/custom-domains",
+      "method": "GET",
+      "scope": "read:custom_domains",
+      "status": 200,
+      "request": [],
+      "response": [
+        "custom_domain_id",
+        "domain",
+        "primary",
+        "status",
+        "type",
+        "origin_domain_name",
+        "verification",
+        "is_default",
+        "custom_client_ip_header",
+        "tls_policy",
+        "domain_metadata",
+        "certificate",
+        "relying_party_identifier"
+      ],
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        429,
+        503
+      ],
+      "source": "https://auth0.com/docs/api/management/v2/custom-domains/get-custom-domains"
+    },
+    {
+      "id": "CreateCustomDomain",
+      "path": "/custom-domains",
+      "method": "POST",
+      "scope": "create:custom_domains",
+      "status": 201,
+      "request": [
+        "domain",
+        "type",
+        "verification_method",
+        "tls_policy",
+        "custom_client_ip_header",
+        "domain_metadata",
+        "relying_party_identifier"
+      ],
+      "response": [
+        "custom_domain_id",
+        "domain",
+        "primary",
+        "status",
+        "type",
+        "origin_domain_name",
+        "verification",
+        "is_default",
+        "custom_client_ip_header",
+        "tls_policy",
+        "domain_metadata",
+        "certificate",
+        "relying_party_identifier"
+      ],
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        429,
+        503
+      ],
+      "source": "https://auth0.com/docs/api/management/v2/custom-domains/post-custom-domains"
+    },
+    {
+      "id": "GetDefaultCustomDomain",
+      "path": "/custom-domains/default",
+      "method": "GET",
+      "scope": "read:custom_domains",
+      "status": 200,
+      "request": [],
+      "response": [
+        "custom_domain_id",
+        "domain",
+        "primary",
+        "status",
+        "type",
+        "origin_domain_name",
+        "verification",
+        "is_default",
+        "custom_client_ip_header",
+        "tls_policy",
+        "domain_metadata",
+        "certificate",
+        "relying_party_identifier"
+      ],
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        429,
+        503
+      ],
+      "source": "https://auth0.com/docs/api/management/v2/custom-domains/get-default"
+    },
+    {
+      "id": "SetDefaultCustomDomain",
+      "path": "/custom-domains/default",
+      "method": "PATCH",
+      "scope": "update:custom_domains",
+      "status": 200,
+      "request": [
+        "domain"
+      ],
+      "response": [
+        "custom_domain_id",
+        "domain",
+        "primary",
+        "status",
+        "type",
+        "origin_domain_name",
+        "verification",
+        "is_default",
+        "custom_client_ip_header",
+        "tls_policy",
+        "domain_metadata",
+        "certificate",
+        "relying_party_identifier"
+      ],
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        429,
+        503
+      ],
+      "source": "https://auth0.com/docs/api/management/v2/custom-domains/patch-default"
+    },
+    {
+      "id": "GetCustomDomain",
+      "path": "/custom-domains/{id}",
+      "method": "GET",
+      "scope": "read:custom_domains",
+      "status": 200,
+      "request": [],
+      "response": [
+        "custom_domain_id",
+        "domain",
+        "primary",
+        "status",
+        "type",
+        "origin_domain_name",
+        "verification",
+        "is_default",
+        "custom_client_ip_header",
+        "tls_policy",
+        "domain_metadata",
+        "certificate",
+        "relying_party_identifier"
+      ],
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        429,
+        503
+      ],
+      "source": "https://auth0.com/docs/api/management/v2/custom-domains/get-custom-domains-by-id"
+    },
+    {
+      "id": "UpdateCustomDomain",
+      "path": "/custom-domains/{id}",
+      "method": "PATCH",
+      "scope": "update:custom_domains",
+      "status": 200,
+      "request": [
+        "tls_policy",
+        "custom_client_ip_header",
+        "domain_metadata",
+        "relying_party_identifier"
+      ],
+      "response": [
+        "custom_domain_id",
+        "domain",
+        "primary",
+        "status",
+        "type",
+        "origin_domain_name",
+        "verification",
+        "is_default",
+        "custom_client_ip_header",
+        "tls_policy",
+        "domain_metadata",
+        "certificate",
+        "relying_party_identifier"
+      ],
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        429,
+        503
+      ],
+      "source": "https://auth0.com/docs/api/management/v2/custom-domains/patch-custom-domains-by-id"
+    },
+    {
+      "id": "DeleteCustomDomain",
+      "path": "/custom-domains/{id}",
+      "method": "DELETE",
+      "scope": "delete:custom_domains",
+      "status": 204,
+      "request": [],
+      "response": [],
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        429,
+        503
+      ],
+      "source": "https://auth0.com/docs/api/management/v2/custom-domains/delete-custom-domains-by-id"
+    },
+    {
+      "id": "VerifyCustomDomain",
+      "path": "/custom-domains/{id}/verify",
+      "method": "POST",
+      "scope": "update:custom_domains",
+      "status": 200,
+      "request": [],
+      "response": [
+        "custom_domain_id",
+        "domain",
+        "primary",
+        "status",
+        "type",
+        "origin_domain_name",
+        "verification",
+        "is_default",
+        "custom_client_ip_header",
+        "tls_policy",
+        "domain_metadata",
+        "certificate",
+        "relying_party_identifier",
+        "cname_api_key"
+      ],
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        429,
+        503
+      ],
+      "source": "https://auth0.com/docs/api/management/v2/custom-domains/post-verify"
+    },
+    {
+      "id": "TestCustomDomain",
+      "path": "/custom-domains/{id}/test",
+      "method": "POST",
+      "scope": "update:custom_domains",
+      "status": 200,
+      "request": [],
+      "response": [
+        "success",
+        "message"
+      ],
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        413,
+        429,
+        503
+      ],
+      "source": "https://auth0.com/docs/api/management/v2/custom-domains/post-test-domain"
+    }
+  ],
+  "public_fields": [
+    "custom_domain_id",
+    "domain",
+    "primary",
+    "status",
+    "type",
+    "origin_domain_name",
+    "verification",
+    "is_default",
+    "custom_client_ip_header",
+    "tls_policy",
+    "domain_metadata",
+    "certificate",
+    "relying_party_identifier"
+  ],
+  "enums": {
+    "type": [
+      "auth0_managed_certs",
+      "self_managed_certs"
+    ],
+    "status": [
+      "pending_verification",
+      "ready",
+      "failed"
+    ],
+    "verification_method": [
+      "txt"
+    ],
+    "verification_status": [
+      "verified",
+      "pending",
+      "failed"
+    ],
+    "certificate_status": [
+      "provisioning",
+      "provisioning_failed",
+      "provisioned",
+      "renewing_failed"
+    ],
+    "certificate_authority": [
+      "letsencrypt",
+      "googletrust"
+    ],
+    "tls_policy": [
+      "recommended"
+    ],
+    "custom_client_ip_header": [
+      "true-client-ip",
+      "cf-connecting-ip",
+      "x-forwarded-for",
+      "x-azure-clientip",
+      ""
+    ]
+  },
+  "limits": {
+    "domains": 100,
+    "body_bytes": 65536,
+    "metadata_properties": 10,
+    "metadata_value_characters": 255,
+    "hostname_bytes": 253,
+    "label_bytes": 63,
+    "query_bytes": 1024,
+    "query_terms": 8
+  },
+  "null_rules": {
+    "custom_client_ip_header": "null or empty disables; omitted create defaults x-forwarded-for",
+    "domain_metadata": "object string values only; null rejected; empty clears",
+    "relying_party_identifier": "omitted create uses domain; null patch clears",
+    "required_fields": "null and empty rejected",
+    "metadata_keys": "no additional per-key limit; body limit applies"
+  },
+  "query": {
+    "sort": [
+      "domain:1"
+    ],
+    "parameters": [
+      "q",
+      "fields",
+      "include_fields",
+      "sort"
+    ],
+    "q": "exact quoted domain/status/type terms joined with AND; max eight terms / 1024 bytes"
+  },
+  "capabilities": {
+    "active": [
+      "domain ownership",
+      "TLS >=1.2",
+      "client IP",
+      "default notification origin",
+      "domain_metadata"
+    ],
+    "stored-only": [
+      "relying_party_identifier"
+    ],
+    "tool-unavailable": [
+      "Deploy CLI x-azure-clientip and empty header",
+      "Deploy CLI clearing a custom default",
+      "ACUL",
+      "live upstream observation"
+    ]
+  },
+  "clients": {
+    "node-auth0": "7.4.0",
+    "auth0-cli": "1.37.0",
+    "auth0-deploy-cli": "9.1.0"
+  },
+  "errors": {
+    "400": "Bad Request",
+    "401": "Unauthorized",
+    "403": "Forbidden",
+    "404": "Not Found",
+    "409": "Conflict",
+    "413": "Payload Too Large",
+    "429": "Too Many Requests",
+    "503": "Service Unavailable"
+  },
+  "local_decisions": [
+    "pending create despite ready example",
+    "metadata null values rejected despite SDK nullable Record",
+    "test requires update scope (public page does not state scope)",
+    "canonical default returns domain only",
+    "upstream errorCode values unobserved; existing Management error envelope retained",
+    "metadata keys have no separately documented limit"
+  ]
+}
