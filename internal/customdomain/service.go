@@ -37,6 +37,7 @@ func (e *RateLimitError) Error() string {
 type ServiceConfig struct {
 	BaseDomain, SystemHost, OriginDomain string
 	ManagedEnabled, OriginTLSReady       bool
+	Proxy                                ProxyPolicy
 }
 
 // Service owns API domain proof and lifecycle. DNS I/O always happens outside
@@ -47,6 +48,7 @@ type Service struct {
 	cfg      ServiceConfig
 	clock    func() time.Time
 	random   io.Reader
+	probe    ProbeDeps
 }
 
 func NewService(st store.Store, resolver DNSResolver, cfg ServiceConfig, clock func() time.Time, random io.Reader) *Service {

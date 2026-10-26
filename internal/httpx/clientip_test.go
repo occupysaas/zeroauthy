@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"net/http/httptest"
+	"net/netip"
 	"strings"
 	"testing"
 )
@@ -45,5 +46,18 @@ func TestRecordedIP(t *testing.T) {
 	}
 	if got := RecordedIP(r, false); got != "10.0.0.1" {
 		t.Errorf("untrusted = %q", got)
+	}
+}
+
+// An address established by an authenticated proxy boundary wins over
+// forwarded headers and the peer, whatever the legacy trust setting.
+func TestClientIPFromContext(t *testing.T) {
+	r := httptest.NewRequest("GET", "/", nil)
+	r.Header.Set("X-Forwarded-For", "203.0.113.1")
+	r = r.WithContext(WithClientIP(r.Context(), netip.MustParseAddr("2001:db8::7")))
+	for _, trust := range []bool{true, false} {
+		if got := ClientIP(r, trust); got != "2001:db8::7" {
+			t.Errorf("trust=%v: %q", trust, got)
+		}
 	}
 }

@@ -328,3 +328,19 @@ func TestJobsSettings(t *testing.T) {
 		}
 	}
 }
+
+func TestTrustedProxyCIDRs(t *testing.T) {
+	cfg, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_SERVER__TRUSTED_PROXY_CIDRS=10.1.2.3/8, 2001:db8::/32"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := cfg.Server.TrustedProxies()
+	if err != nil || len(got) != 2 || got[0].String() != "10.0.0.0/8" || got[1].String() != "2001:db8::/32" {
+		t.Fatalf("prefixes = %v, %v", got, err)
+	}
+	for _, bad := range []string{"10.0.0.1", "not-a-cidr", "fe80::1%eth0/64"} {
+		if _, err := Load("", []string{"ZEROAUTHY_STORAGE__DSN=memory://", sysHost, "ZEROAUTHY_SERVER__TRUSTED_PROXY_CIDRS=" + bad}); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
+	}
+}

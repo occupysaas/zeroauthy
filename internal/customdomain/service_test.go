@@ -17,9 +17,12 @@ import (
 
 // fakeDNS answers TXT lookups from a mutable table; err overrides a name.
 type fakeDNS struct {
-	mu   sync.Mutex
-	txt  map[string][]string
-	errs map[string]error
+	mu      sync.Mutex
+	txt     map[string][]string
+	errs    map[string]error
+	ips     [][]netip.Addr // successive LookupNetIP answers; the last repeats
+	ipErr   error
+	ipCalls int
 }
 
 func (f *fakeDNS) set(name string, values ...string) {
@@ -49,7 +52,20 @@ func (f *fakeDNS) LookupCNAME(context.Context, string) (string, error) {
 	return "", customdomain.ErrDNSNotFound
 }
 func (f *fakeDNS) LookupNetIP(context.Context, string, string) ([]netip.Addr, error) {
-	return nil, customdomain.ErrDNSNotFound
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.ipCalls++
+	if f.ipErr != nil {
+		return nil, f.ipErr
+	}
+	if len(f.ips) == 0 {
+		return nil, customdomain.ErrDNSNotFound
+	}
+	out := f.ips[0]
+	if len(f.ips) > 1 {
+		f.ips = f.ips[1:]
+	}
+	return out, nil
 }
 
 type clock struct {

@@ -119,6 +119,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	km := keys.NewManager(st.SigningKeys(), wrapper)
 
 	systemHost := tenant.SystemHost(cfg.Server.BaseDomain, cfg.Server.SystemHost)
+	if cfg.Server.TrustProxyHeaders && len(cfg.Server.TrustedProxyCIDRs) == 0 {
+		log.Warn("server.trust_proxy_headers without server.trusted_proxy_cidrs is deprecated: forwarded headers are trusted from every peer")
+	}
 	// origin_domain defaults to base_domain until its own setting exists.
 	if err := tenantsetup.ReconcileDomains(ctx, st, cfg.Server.BaseDomain, systemHost, cfg.Server.BaseDomain); err != nil {
 		return nil, fmt.Errorf("app: domain reconciliation: %w", err)

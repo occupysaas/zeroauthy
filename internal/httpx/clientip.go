@@ -1,17 +1,31 @@
 package httpx
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/netip"
 	"strings"
 )
 
-// ClientIP is the address used for throttling. X-Forwarded-For is used
-// only when the deployment trusts proxy headers, and then only its
-// rightmost non-empty entry: that is the address the single trusted proxy
-// appended. Earlier entries are client-supplied and trivially spoofed.
+type clientIPKey struct{}
+
+// WithClientIP records the client address an authenticated proxy boundary
+// established. It overrides every other source for the rest of the request,
+// so throttling, logging and recorded addresses all share it.
+func WithClientIP(ctx context.Context, ip netip.Addr) context.Context {
+	return context.WithValue(ctx, clientIPKey{}, ip)
+}
+
+// ClientIP is the address used for throttling: the one an authenticated
+// proxy boundary established (WithClientIP), else X-Forwarded-For when the
+// deployment trusts proxy headers, and then only its rightmost non-empty
+// entry: that is the address the single trusted proxy appended. Earlier
+// entries are client-supplied and trivially spoofed.
 func ClientIP(r *http.Request, trustProxy bool) string {
+	if ip, ok := r.Context().Value(clientIPKey{}).(netip.Addr); ok {
+		return ip.String()
+	}
 	if trustProxy {
 		parts := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
 		for i := len(parts) - 1; i >= 0; i-- {

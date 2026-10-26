@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/mail"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -53,10 +54,15 @@ type Server struct {
 	// BaseDomain is empty. No other tenant may use it.
 	SystemHost string `koanf:"system_host"`
 	// TrustProxyHeaders honors X-Forwarded-Host. Enable it only behind a
-	// proxy that sets the header.
-	TrustProxyHeaders bool   `koanf:"trust_proxy_headers"`
-	TLSCertFile       string `koanf:"tls_cert_file"`
-	TLSKeyFile        string `koanf:"tls_key_file"`
+	// proxy that sets the header. Deprecated without TrustedProxyCIDRs.
+	TrustProxyHeaders bool `koanf:"trust_proxy_headers"`
+	// TrustedProxyCIDRs lists the immediate peers allowed to act as proxies:
+	// self-managed custom-domain proxies, and the only peers whose forwarded
+	// headers TrustProxyHeaders honors once any are listed. Entries may also
+	// be comma-separated (one environment variable).
+	TrustedProxyCIDRs []string `koanf:"trusted_proxy_cidrs"`
+	TLSCertFile       string   `koanf:"tls_cert_file"`
+	TLSKeyFile        string   `koanf:"tls_key_file"`
 }
 
 // Bootstrap configures the first console operator for automated installs.
@@ -217,6 +223,24 @@ func Load(path string, environ []string) (*Config, error) {
 	return cfg, nil
 }
 
+// TrustedProxies parses TrustedProxyCIDRs.
+func (s Server) TrustedProxies() ([]netip.Prefix, error) {
+	var out []netip.Prefix
+	for _, entry := range s.TrustedProxyCIDRs {
+		for _, raw := range strings.Split(entry, ",") {
+			if raw = strings.TrimSpace(raw); raw == "" {
+				continue
+			}
+			p, err := netip.ParsePrefix(raw)
+			if err != nil || p.Addr().Zone() != "" {
+				return nil, fmt.Errorf("server.trusted_proxy_cidrs: %q is not a CIDR prefix", raw)
+			}
+			out = append(out, p.Masked())
+		}
+	}
+	return out, nil
+}
+
 func (c *Config) validate() error {
 	var errs []error
 	switch c.Security.BreachedPasswords.Mode {
@@ -251,6 +275,9 @@ func (c *Config) validate() error {
 		if a, err := mail.ParseAddress(e); err != nil || a.Address != e {
 			errs = append(errs, fmt.Errorf("bootstrap.admin_email %q is not a valid address", e))
 		}
+	}
+	if _, err := c.Server.TrustedProxies(); err != nil {
+		errs = append(errs, err)
 	}
 	if (c.Server.TLSCertFile == "") != (c.Server.TLSKeyFile == "") {
 		errs = append(errs, errors.New("set both server.tls_cert_file and server.tls_key_file, or neither"))
