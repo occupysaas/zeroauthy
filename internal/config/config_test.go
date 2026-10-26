@@ -344,3 +344,72 @@ func TestTrustedProxyCIDRs(t *testing.T) {
 		}
 	}
 }
+
+func TestACMEConfig(t *testing.T) {
+	base := []string{"ZEROAUTHY_STORAGE__DSN=memory://", "ZEROAUTHY_SERVER__BASE_DOMAIN=auth.example.test"}
+	on := append(slices.Clone(base), "ZEROAUTHY_SERVER__ACME__ENABLED=true", "ZEROAUTHY_SERVER__ACME__EMAIL=ops@example.test",
+		"ZEROAUTHY_SERVER__ACME__TERMS_ACCEPTED=true", "ZEROAUTHY_SERVER__ACME__DEPLOYMENT_ID=prod-1", "ZEROAUTHY_SERVER__ACME__CHALLENGE=http-01")
+	cfg, err := Load("", base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := cfg.Server.ACME
+	if a.Enabled || a.DirectoryURL != "https://acme-v02.api.letsencrypt.org/directory" || a.Workers != 2 || a.HostedWildcard.Enabled {
+		t.Fatalf("defaults = %+v", a)
+	}
+	if got := cfg.Server.OriginDomain(); got != "auth.example.test" {
+		t.Fatalf("origin default = %q", got)
+	}
+	cfg, err = Load("", on)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Server.ACME.HTTPListen != ":80" {
+		t.Fatalf("http-01 listen default = %q", cfg.Server.ACME.HTTPListen)
+	}
+	alpn := append(slices.Clone(on[:len(on)-1]), "ZEROAUTHY_SERVER__ACME__CHALLENGE=tls-alpn-01")
+	if cfg, err := Load("", alpn); err != nil || cfg.Server.ACME.HTTPListen != "" {
+		t.Fatalf("tls-alpn = %+v, %v", cfg, err)
+	}
+	wild := append(slices.Clone(on), "ZEROAUTHY_SERVER__ACME__HOSTED_WILDCARD__ENABLED=true",
+		"ZEROAUTHY_SERVER__ACME__HOSTED_WILDCARD__ZONE=example.test", "ZEROAUTHY_SERVER__ACME__HOSTED_WILDCARD__TOKEN_FILE=/run/secrets/do")
+	if _, err := Load("", wild); err != nil {
+		t.Fatalf("hosted wildcard = %v", err)
+	}
+	for name, env := range map[string][]string{
+		"no email":         drop(on, "EMAIL"),
+		"bad email":        append(drop(on, "EMAIL"), "ZEROAUTHY_SERVER__ACME__EMAIL=not an address"),
+		"terms":            drop(on, "TERMS_ACCEPTED"),
+		"deployment":       drop(on, "DEPLOYMENT_ID"),
+		"no challenge":     drop(on, "CHALLENGE"),
+		"bad challenge":    append(drop(on, "CHALLENGE"), "ZEROAUTHY_SERVER__ACME__CHALLENGE=dns-01"),
+		"alpn with http":   append(slices.Clone(alpn), "ZEROAUTHY_SERVER__ACME__HTTP_LISTEN=:80"),
+		"http directory":   append(slices.Clone(on), "ZEROAUTHY_SERVER__ACME__DIRECTORY_URL=http://ca.test/dir"),
+		"workers 0":        append(slices.Clone(on), "ZEROAUTHY_SERVER__ACME__WORKERS=0"),
+		"workers 9":        append(slices.Clone(on), "ZEROAUTHY_SERVER__ACME__WORKERS=9"),
+		"wildcard off":     append(slices.Clone(base), "ZEROAUTHY_SERVER__ACME__HOSTED_WILDCARD__ENABLED=true"),
+		"wildcard zone":    drop(wild, "ZONE"),
+		"wildcard token":   drop(wild, "TOKEN_FILE"),
+		"zone mismatch":    append(drop(wild, "ZONE"), "ZEROAUTHY_SERVER__ACME__HOSTED_WILDCARD__ZONE=other.test"),
+		"wildcard no base": append(drop(wild, "BASE_DOMAIN"), sysHost),
+		"wildcard port":    append(drop(wild, "BASE_DOMAIN"), "ZEROAUTHY_SERVER__BASE_DOMAIN=auth.example.test:8443"),
+		"origin url":       append(slices.Clone(base), "ZEROAUTHY_SERVER__CUSTOM_DOMAINS__ORIGIN_DOMAIN=https://o.test"),
+		"origin port":      append(slices.Clone(base), "ZEROAUTHY_SERVER__CUSTOM_DOMAINS__ORIGIN_DOMAIN=o.test:8443"),
+		"unknown acme key": append(slices.Clone(on), "ZEROAUTHY_SERVER__ACME__INSECURE=true"),
+	} {
+		if _, err := Load("", env); err == nil {
+			t.Errorf("%s accepted", name)
+		}
+	}
+}
+
+// drop removes the environment entries whose key contains part.
+func drop(env []string, part string) []string {
+	out := []string{}
+	for _, e := range env {
+		if !strings.Contains(strings.SplitN(e, "=", 2)[0], part) {
+			out = append(out, e)
+		}
+	}
+	return out
+}

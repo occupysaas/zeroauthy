@@ -7,9 +7,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/hostname"
 	"net"
 	"net/mail"
 	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -60,9 +62,58 @@ type Server struct {
 	// self-managed custom-domain proxies, and the only peers whose forwarded
 	// headers TrustProxyHeaders honors once any are listed. Entries may also
 	// be comma-separated (one environment variable).
-	TrustedProxyCIDRs []string `koanf:"trusted_proxy_cidrs"`
-	TLSCertFile       string   `koanf:"tls_cert_file"`
-	TLSKeyFile        string   `koanf:"tls_key_file"`
+	TrustedProxyCIDRs []string      `koanf:"trusted_proxy_cidrs"`
+	ACME              ACME          `koanf:"acme"`
+	CustomDomains     CustomDomains `koanf:"custom_domains"`
+	TLSCertFile       string        `koanf:"tls_cert_file"`
+	TLSKeyFile        string        `koanf:"tls_key_file"`
+}
+
+// ACME is opt-in automatic certificate issuance for managed custom domains
+// and the hosted wildcard. It never disables certificate validation.
+type ACME struct {
+	Enabled bool `koanf:"enabled"`
+	// DirectoryURL is the CA's ACME directory (HTTPS only); accounts are
+	// bound to it, so staging and production never share an account.
+	DirectoryURL  string `koanf:"directory_url"`
+	Email         string `koanf:"email"`
+	TermsAccepted bool   `koanf:"terms_accepted"`
+	// DeploymentID is a stable identifier shared by every replica; it binds
+	// sealed TLS material to this deployment.
+	DeploymentID string `koanf:"deployment_id"`
+	// Challenge is http-01 or tls-alpn-01; there is no hidden fallback.
+	Challenge string `koanf:"challenge"`
+	// HTTPListen serves HTTP-01 challenges (default :80); it must be empty
+	// for tls-alpn-01.
+	HTTPListen string `koanf:"http_listen"`
+	// CABundleFile adds trust roots for the CA's issued chains.
+	CABundleFile   string         `koanf:"ca_bundle_file"`
+	Workers        int            `koanf:"workers"`
+	HostedWildcard HostedWildcard `koanf:"hosted_wildcard"`
+}
+
+// HostedWildcard issues base_domain and *.base_domain through DigitalOcean
+// DNS-01. The token stays in a deployment file, never in tenant state.
+type HostedWildcard struct {
+	Enabled   bool   `koanf:"enabled"`
+	Zone      string `koanf:"zone"`
+	TokenFile string `koanf:"token_file"`
+}
+
+// CustomDomains is deployment policy for API custom domains.
+type CustomDomains struct {
+	// OriginDomain is the operator DNS suffix of private origin aliases
+	// (cd-<hex>.<origin_domain>); it defaults to base_domain.
+	OriginDomain string `koanf:"origin_domain"`
+}
+
+// OriginDomain is the effective origin suffix, normalized; "" when neither
+// it nor base_domain is set.
+func (s Server) OriginDomain() string {
+	if s.CustomDomains.OriginDomain != "" {
+		return tenant.NormalizeHost(s.CustomDomains.OriginDomain)
+	}
+	return tenant.NormalizeHost(s.BaseDomain)
 }
 
 // Bootstrap configures the first console operator for automated installs.
@@ -161,7 +212,7 @@ type SMTP struct {
 
 func defaults() *Config {
 	return &Config{
-		Server:   Server{Listen: ":8080"},
+		Server:   Server{Listen: ":8080", ACME: ACME{DirectoryURL: "https://acme-v02.api.letsencrypt.org/directory", Workers: 2}},
 		Log:      Log{Level: "info", Format: "json"},
 		SeedMode: "apply",
 		Security: Security{
@@ -223,6 +274,67 @@ func Load(path string, environ []string) (*Config, error) {
 	return cfg, nil
 }
 
+// validateACME checks issuance settings and fills the HTTP-01 listener
+// default. Settings of a disabled feature are not interpreted.
+func (s *Server) validateACME() []error {
+	var errs []error
+	a := &s.ACME
+	if o := s.CustomDomains.OriginDomain; o != "" {
+		if h, err := hostname.NormalizeDNSName(o); err != nil || h != tenant.NormalizeHost(o) {
+			errs = append(errs, fmt.Errorf("server.custom_domains.origin_domain %q must be a DNS name without scheme or port", o))
+		}
+	}
+	if a.HostedWildcard.Enabled {
+		w := a.HostedWildcard
+		base, err := hostname.NormalizeDNSName(s.BaseDomain)
+		zone, zerr := hostname.NormalizeDNSName(w.Zone)
+		switch {
+		case !a.Enabled:
+			errs = append(errs, errors.New("server.acme.hosted_wildcard needs server.acme.enabled"))
+		case s.BaseDomain == "" || err != nil:
+			errs = append(errs, errors.New("server.acme.hosted_wildcard needs a portless DNS server.base_domain"))
+		case w.Zone == "" || zerr != nil:
+			errs = append(errs, errors.New("server.acme.hosted_wildcard.zone must name the DNS zone containing base_domain"))
+		case base != zone && !strings.HasSuffix(base, "."+zone):
+			errs = append(errs, fmt.Errorf("server.base_domain %q is not inside server.acme.hosted_wildcard.zone %q", base, zone))
+		}
+		if w.TokenFile == "" {
+			errs = append(errs, errors.New("server.acme.hosted_wildcard.token_file is required"))
+		}
+	}
+	if !a.Enabled {
+		return errs
+	}
+	if u, err := url.Parse(a.DirectoryURL); err != nil || u.Scheme != "https" || u.Host == "" {
+		errs = append(errs, fmt.Errorf("server.acme.directory_url %q must be an https URL", a.DirectoryURL))
+	}
+	if m, err := mail.ParseAddress(a.Email); err != nil || m.Address != a.Email {
+		errs = append(errs, errors.New("server.acme.email must be a valid contact address"))
+	}
+	if !a.TermsAccepted {
+		errs = append(errs, errors.New("server.acme.terms_accepted must be true to use the CA"))
+	}
+	if strings.TrimSpace(a.DeploymentID) == "" {
+		errs = append(errs, errors.New("server.acme.deployment_id is required and must be the same on every replica"))
+	}
+	switch a.Challenge {
+	case "http-01":
+		if a.HTTPListen == "" {
+			a.HTTPListen = ":80"
+		}
+	case "tls-alpn-01":
+		if a.HTTPListen != "" {
+			errs = append(errs, errors.New("server.acme.http_listen must be empty for tls-alpn-01"))
+		}
+	default:
+		errs = append(errs, errors.New("server.acme.challenge must be http-01 or tls-alpn-01"))
+	}
+	if a.Workers < 1 || a.Workers > 8 {
+		errs = append(errs, fmt.Errorf("server.acme.workers %d must be between 1 and 8", a.Workers))
+	}
+	return errs
+}
+
 // TrustedProxies parses TrustedProxyCIDRs.
 func (s Server) TrustedProxies() ([]netip.Prefix, error) {
 	var out []netip.Prefix
@@ -279,6 +391,7 @@ func (c *Config) validate() error {
 	if _, err := c.Server.TrustedProxies(); err != nil {
 		errs = append(errs, err)
 	}
+	errs = append(errs, c.Server.validateACME()...)
 	if (c.Server.TLSCertFile == "") != (c.Server.TLSKeyFile == "") {
 		errs = append(errs, errors.New("set both server.tls_cert_file and server.tls_key_file, or neither"))
 	}

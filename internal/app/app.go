@@ -4,8 +4,10 @@ package app
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/certificates"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -41,6 +43,9 @@ type App struct {
 	jobs       *jobs.Runner
 	handler    http.Handler
 	breachFile *protection.FileChecker
+	// tls serves certificates when ACME is on; nil keeps static or
+	// externally terminated TLS exactly as configured.
+	tls *certificates.Manager
 }
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error) {
@@ -146,6 +151,10 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if _, err := system.Ensure(ctx, st, system.Config{Host: systemHost, Wrapper: wrapper}); err != nil {
 		return nil, err
 	}
+	tlsManager, err := certificateManager(ctx, cfg, st, wrapper)
+	if err != nil {
+		return nil, err
+	}
 	if err := seed.InitializeProtection(ctx, st, cfg.Security, log); err != nil {
 		return nil, err
 	}
@@ -226,6 +235,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	}
 	sec := cfg.Security
 	return &App{
+		tls:        tlsManager,
 		cfg:        cfg,
 		log:        log,
 		store:      st,
@@ -309,19 +319,51 @@ func (a *App) httpServer() *http.Server {
 	}
 }
 
+// certificateManager builds the ACME-mode certificate manager, after the
+// registry is reconciled, and checks that every canonical and system host is
+// covered by the static certificate or the hosted wildcard.
+func certificateManager(ctx context.Context, cfg *config.Config, st store.Store, w keys.Wrapper) (*certificates.Manager, error) {
+	a := cfg.Server.ACME
+	if !a.Enabled {
+		return nil, nil
+	}
+	var static []tls.Certificate
+	if cfg.Server.TLSCertFile != "" {
+		c, err := tls.LoadX509KeyPair(cfg.Server.TLSCertFile, cfg.Server.TLSKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("app: static TLS certificate: %w", err)
+		}
+		static = append(static, c)
+	}
+	m, err := certificates.NewManager(st, w, certificates.Config{
+		DeploymentID: a.DeploymentID, DirectoryURL: a.DirectoryURL, BaseDomain: cfg.Server.BaseDomain,
+		HostedWildcard: a.HostedWildcard.Enabled, Static: static,
+	}, time.Now)
+	if err != nil {
+		return nil, err
+	}
+	if err := m.ValidateCoverage(ctx); err != nil {
+		return nil, fmt.Errorf("app: TLS coverage: %w", err)
+	}
+	return m, nil
+}
+
 // Serve listens until ctx is cancelled, then shuts down gracefully.
 func (a *App) Serve(ctx context.Context) error {
 	srv := a.httpServer()
-	tls := a.cfg.Server.TLSCertFile != ""
+	useTLS := a.cfg.Server.TLSCertFile != "" || a.tls != nil
 	errc := make(chan error, 1)
 	go func() {
-		if tls {
+		if a.tls != nil {
+			srv.TLSConfig, _ = a.tls.TLSConfig()
+			errc <- srv.ListenAndServeTLS("", "")
+		} else if useTLS {
 			errc <- srv.ListenAndServeTLS(a.cfg.Server.TLSCertFile, a.cfg.Server.TLSKeyFile)
 		} else {
 			errc <- srv.ListenAndServe()
 		}
 	}()
-	a.log.Info("listening", "addr", a.cfg.Server.Listen, "tls", tls)
+	a.log.Info("listening", "addr", a.cfg.Server.Listen, "tls", useTLS)
 	go a.sweepLoop(ctx, sweepInterval)
 	if a.jobs != nil && a.jobs.Workers > 0 {
 		// Workers stop with Serve, which waits a little for the job they
