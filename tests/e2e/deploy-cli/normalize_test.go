@@ -227,3 +227,69 @@ func TestCompareHostedResourcesStrictly(t *testing.T) {
 		target.Resources[name] = saved
 	}
 }
+
+func TestCompareCustomDomainsStrictMigration(t *testing.T) {
+	m := testManifest()
+	m.Resources = append(m.Resources, ManifestResource{Name: "customDomains", Status: "included"})
+	source, target := comparisonFixture(), comparisonFixture()
+	raw := `[{"domain":"login.example.test","type":"self_managed_certs","custom_client_ip_header":"cf-connecting-ip","tls_policy":"recommended","domain_metadata":{"region":"east"},"relying_party_identifier":"example.test","is_default":true}]`
+	source.Resources["customDomains"] = json.RawMessage(raw)
+	target.Resources["customDomains"] = json.RawMessage(raw)
+	if r := Compare(source, target, m, Domains{}); !r.Equivalent {
+		t.Fatalf("equal domain declarations rejected: %+v", r.Differences)
+	}
+	for _, field := range []string{"domain", "type", "custom_client_ip_header", "tls_policy", "domain_metadata", "relying_party_identifier", "is_default"} {
+		var rows []map[string]any
+		_ = json.Unmarshal([]byte(raw), &rows)
+		delete(rows[0], field)
+		target.Resources["customDomains"], _ = json.Marshal(rows)
+		if Compare(source, target, m, Domains{}).Equivalent {
+			t.Errorf("missing %s concealed", field)
+		}
+	}
+	target.Resources["customDomains"] = json.RawMessage(`[]`)
+	if Compare(source, target, m, Domains{}).Equivalent {
+		t.Fatal("missing domains concealed")
+	}
+}
+
+func TestCompareUniversalLoginTemplateBodyStrict(t *testing.T) {
+	m := testManifest()
+	m.Resources = append(m.Resources, ManifestResource{Name: "branding", Status: "included"})
+	source, target := comparisonFixture(), comparisonFixture()
+	source.Resources["branding"] = json.RawMessage(`{"templates":[{"template":"universal-login","body":"<html>Original</html>"}]}`)
+	target.Resources["branding"] = source.Resources["branding"]
+	if !Compare(source, target, m, Domains{}).Equivalent {
+		t.Fatal("equal body differs")
+	}
+	for _, raw := range []string{`{"templates":[]}`, `{"templates":[{"template":"universal-login","body":"<html>Changed</html>"}]}`} {
+		target.Resources["branding"] = json.RawMessage(raw)
+		if Compare(source, target, m, Domains{}).Equivalent {
+			t.Fatal("missing or changed template body concealed")
+		}
+	}
+}
+
+func TestCompareCustomDomainTargetLocalState(t *testing.T) {
+	m, err := LoadManifest("manifest.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Isolate this family while retaining the reviewed manifest normalizations.
+	m.Resources = []ManifestResource{{Name: "customDomains", Status: "included"}}
+	source := deploymigration.Export{Resources: map[string]json.RawMessage{"customDomains": json.RawMessage(`[{"domain":"login.example.test","type":"self_managed_certs","custom_domain_id":"source","origin_domain_name":"cd-source.origin.test","verification":{"record":"source-proof"},"status":"ready","custom_client_ip_header":null,"tls_policy":"recommended","domain_metadata":{"purpose":"deploy"},"relying_party_identifier":"example.test","is_default":true}]`)}}
+	target := deploymigration.Export{Resources: map[string]json.RawMessage{"customDomains": json.RawMessage(`[{"domain":"login.example.test","type":"self_managed_certs","custom_domain_id":"target","origin_domain_name":"cd-target.origin.test","verification":{"record":"target-proof"},"status":"pending_verification","custom_client_ip_header":null,"tls_policy":"recommended","domain_metadata":{"purpose":"deploy"},"relying_party_identifier":"example.test","is_default":true}]`)}}
+	if r := Compare(source, target, m, Domains{}); !r.Equivalent {
+		t.Fatalf("target-local proof or identity compared as declaration: %+v", r.Differences)
+	}
+	for field, value := range map[string]any{"domain": "other.example.test", "type": "auth0_managed_certs", "custom_client_ip_header": "x-forwarded-for", "tls_policy": "legacy", "domain_metadata": map[string]any{"purpose": "changed"}, "relying_party_identifier": "login.example.test", "is_default": false} {
+		var rows []map[string]any
+		_ = json.Unmarshal(target.Resources["customDomains"], &rows)
+		rows[0][field] = value
+		changed := deploymigration.Export{Resources: map[string]json.RawMessage{}}
+		changed.Resources["customDomains"], _ = json.Marshal(rows)
+		if Compare(source, changed, m, Domains{}).Equivalent {
+			t.Errorf("changed %s concealed", field)
+		}
+	}
+}

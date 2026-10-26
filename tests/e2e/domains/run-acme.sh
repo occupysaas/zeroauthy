@@ -19,14 +19,16 @@ pattern=$(IFS='|'; echo "${run[*]}")
 # podman-compose talks to Podman directly (no Docker API socket needed).
 if command -v podman-compose >/dev/null; then
 	compose=(podman-compose -f "$here/compose.yaml")
+ runtime=podman
 else
 	compose=(docker compose -f "$here/compose.yaml")
+ runtime=docker
 fi
 work=$(mktemp -d)
 cleanup() { "${compose[@]}" down --timeout 5 >/dev/null 2>&1 || true; rm -rf "$work"; }
 trap cleanup EXIT
 "${compose[@]}" up -d >/dev/null
-podman cp zeroauthy-domains-pebble:/test/certs/pebble.minica.pem "$work/minica.pem"
+"$runtime" cp zeroauthy-domains-pebble:/test/certs/pebble.minica.pem "$work/minica.pem"
 for _ in $(seq 1 50); do
 	curl -fsS --cacert "$work/minica.pem" https://localhost:14000/dir >/dev/null 2>&1 && break
 	sleep 0.2

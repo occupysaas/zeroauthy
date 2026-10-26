@@ -4,7 +4,8 @@
     "version": "2.8.0",
     "platform": "linux/amd64",
     "license": "MPL-2.0",
-    "source": "https://github.com/letsencrypt/pebble/tree/v2.8.0"
+    "source": "https://github.com/letsencrypt/pebble/tree/v2.8.0",
+    "configuration": "pebble-config.json (single deterministic 90-day profile, loopback listeners)"
   },
   "dns": {
     "module": "golang.org/x/net",
@@ -18,6 +19,14 @@
     "http_challenge": 5002,
     "tls_challenge": 5001,
     "dns": 8053,
-    "provider": 18080
+    "provider": 18080,
+    "domain_node_one": 9443,
+    "domain_node_two": 9444,
+    "domain_proxy_one": 9098,
+    "domain_proxy_two": 9099,
+    "domain_dns": 8073,
+    "domain_control": 9073,
+    "deploy_dns": 8063,
+    "deploy_dns_control": 8064
   }
 }

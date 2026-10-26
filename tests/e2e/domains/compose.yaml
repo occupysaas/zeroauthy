@@ -9,7 +9,9 @@ services:
     image: ghcr.io/letsencrypt/pebble@sha256:358790ea96cb0bafc00679fb117919c58fe11120276572d92c23b89152e5a24d
     container_name: zeroauthy-domains-pebble
     network_mode: host
-    command: ["-config", "test/config/pebble-config.json", "-dnsserver", "127.0.0.1:8053"]
+    volumes:
+      - ./pebble-config.json:/test/config/zeroauthy.json:ro
+    command: ["-config", "test/config/zeroauthy.json", "-dnsserver", "127.0.0.1:8053"]
     environment:
       PEBBLE_VA_NOSLEEP: "1"
       PEBBLE_WFE_NONCEREJECT: "0"
