@@ -18,6 +18,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"Tenants":                     testTenants,
 	"CustomDomainAttemptLimits":   testCustomDomainAttemptLimits,
 	"CustomDomainClaims":          testCustomDomainClaims,
+	"CustomDomainCap":             testCustomDomainCap,
 	"CustomDomainCAS":             testCustomDomainCAS,
 	"CustomDomainDefaultRollback": testCustomDomainDefaultRollback,
 	"CustomDomainCascade":         testCustomDomainCascade,
@@ -57,7 +58,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 
 // suiteOrder is the order Run executes the suites in.
 var suiteOrder = []string{
-	"CustomDomainAttemptLimits", "CustomDomainClaims", "CustomDomainCAS", "CustomDomainDefaultRollback", "CustomDomainCascade", "TLSAssetCopies", "TLSLeaseFence", "OriginRoundTrip",
+	"CustomDomainAttemptLimits", "CustomDomainClaims", "CustomDomainCap", "CustomDomainCAS", "CustomDomainDefaultRollback", "CustomDomainCascade", "TLSAssetCopies", "TLSLeaseFence", "OriginRoundTrip",
 	"Protection", "Tenants", "Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys",
 	"Connections", "PasswordHistories", "Users", "UserDelete", "UserList", "UserQueryMetadataTypes", "Sessions", "AuthTransactions", "AuthCodes",
 	"PushedAuthRequests",

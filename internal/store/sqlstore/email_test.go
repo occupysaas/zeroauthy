@@ -146,9 +146,8 @@ func TestEmailUpgradeWithoutRecords(t *testing.T) {
 	if err := s.migrateTo(ctx, 17); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Tenants().Create(ctx, emailTenant("legacy")); err != nil {
-		t.Fatal(err)
-	}
+	// Populate the version-17 schema directly; current repositories require 20.
+	mustExec(t, s, `INSERT INTO tenants (id,name,friendly_name,default_audience,allowed_logout_urls,enabled_locales,custom_text,session_lifetime,idle_session_lifetime,logo_url,primary_color,default_directory,created_at) VALUES ('legacy','legacy','','','[]','[]','{}',0,0,'','','',0)`)
 	if err := s.migrateTo(ctx, 18); err != nil {
 		t.Fatal(err)
 	}

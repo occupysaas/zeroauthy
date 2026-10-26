@@ -76,6 +76,15 @@ func (r customDomains) Create(_ context.Context, d *store.CustomDomain) error {
 	if r.s.tenants[d.TenantID] == nil {
 		return store.ErrNotFound
 	}
+	count := 0
+	for k := range r.s.customDomains {
+		if k.tenant == d.TenantID {
+			count++
+		}
+	}
+	if count >= 100 {
+		return store.ErrConflict
+	}
 	c := d.Clone()
 	c.Domain = name
 	c.Revision = 1

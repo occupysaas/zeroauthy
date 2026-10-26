@@ -2,6 +2,7 @@ package storetest
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -14,7 +15,7 @@ func domainFixture(tenant, id string) *store.CustomDomain {
 	at := ts(0)
 	return &store.CustomDomain{
 		TenantID: tenant, ID: id, Domain: id + ".customer.example", Type: "auth0_managed_certs", Source: store.OriginAPI, OriginHost: id + ".origin.example",
-		Generation: 1, Status: "pending", TLSPolicy: "recommended", CustomClientIPHeader: "x-forwarded-for", RelyingPartyIdentifier: "customer.example",
+		Generation: 1, Status: "pending", TLSPolicy: "recommended", CustomClientIPHeader: "x-forwarded-for", CustomClientIPHeaderNull: true, RelyingPartyIdentifier: "customer.example",
 		DomainMetadata: map[string]string{"team": "security"}, VerificationMethod: "txt", ProofRecordName: "_zeroauthy." + id + ".customer.example", ProofRecordValue: "proof-value", ProofStatus: "pending",
 		ProofToken: []byte("proof"), ProofCreatedAt: ts(-time.Hour), ProofVerifiedAt: &at, LastProofCheckAt: &at, ProofFailureSince: &at, Lifecycle: "proof_pending", NextAttemptAt: &at,
 		AttemptCount: 3, LastFailure: "retry", ProxyKeyHash: []byte("hash"), ActiveCertificateKey: "cert/" + id, CreatedAt: ts(-2 * time.Hour), UpdatedAt: ts(-time.Minute),
@@ -48,6 +49,7 @@ func testCustomDomainClaims(t *testing.T, newStore Factory) {
 		other = "ten_globex"
 	}
 	mustErrIs(t, s.CustomDomains().DeleteHost(ctx, h.Host, other, h.DomainID), store.ErrConflict)
+	mustErrIs(t, s.CustomDomains().DeleteHost(ctx, h.Host, "missing-tenant", h.DomainID), store.ErrConflict)
 	stolen := *h
 	stolen.DomainID = "different"
 	mustErrIs(t, s.CustomDomains().PutHost(ctx, &stolen), store.ErrConflict)
@@ -127,6 +129,13 @@ func testCustomDomainCAS(t *testing.T, newStore Factory) {
 	s := open(t, newStore)
 	mustNoErr(t, s.Tenants().Create(ctx, newTenant("acme")))
 	d := domainFixture("ten_acme", "b")
+	// An explicit null must remain distinguishable from an explicit empty header.
+	mustNoErr(t, json.Unmarshal([]byte(`{"CustomClientIPHeaderNull":true}`), d))
+	encoded, err := json.Marshal(d)
+	mustNoErr(t, err)
+	var fields map[string]any
+	mustNoErr(t, json.Unmarshal(encoded, &fields))
+	mustEqual(t, fields["CustomClientIPHeaderNull"], any(true))
 	mustNoErr(t, s.CustomDomains().Create(ctx, d))
 	mustEqual(t, d.Revision, int64(1))
 	mustErrIs(t, s.CustomDomains().Create(ctx, d), store.ErrConflict)
@@ -136,6 +145,7 @@ func testCustomDomainCAS(t *testing.T, newStore Factory) {
 	got, err := s.CustomDomains().Get(ctx, d.TenantID, d.ID)
 	mustNoErr(t, err)
 	want := domainFixture("ten_acme", "b")
+	mustNoErr(t, json.Unmarshal([]byte(`{"CustomClientIPHeaderNull":true}`), want))
 	want.Revision = 1
 	mustEqual(t, got, want)
 	mustEqual(t, got.DomainMetadata["team"], "security")
@@ -188,6 +198,16 @@ func testCustomDomainCAS(t *testing.T, newStore Factory) {
 	again, err := s.CustomDomains().Get(ctx, a.TenantID, a.ID)
 	mustNoErr(t, err)
 	mustEqual(t, string(again.ProxyKeyHash), "hash")
+	header := domainFixture(d.TenantID, "header")
+	header.CustomClientIPHeader = ""
+	mustNoErr(t, s.CustomDomains().Create(ctx, header))
+	header.CustomClientIPHeaderNull = false
+	mustNoErr(t, s.CustomDomains().Update(ctx, header, header.Revision))
+	empty, err := s.CustomDomains().Get(ctx, header.TenantID, header.ID)
+	mustNoErr(t, err)
+	mustEqual(t, empty.CustomClientIPHeader, "")
+	mustEqual(t, empty.CustomClientIPHeaderNull, false)
+	mustNoErr(t, s.CustomDomains().Delete(ctx, header.TenantID, header.ID, header.Revision))
 	mustNoErr(t, s.CustomDomains().Delete(ctx, d.TenantID, d.ID, got.Revision))
 	_, err = s.CustomDomains().Get(ctx, d.TenantID, d.ID)
 	mustErrIs(t, err, store.ErrNotFound)
@@ -308,4 +328,41 @@ func testCustomDomainAttemptLimits(t *testing.T, newStore Factory) {
 	retry, err = s.CustomDomains().AdmitAttempt(ctx, "ten_globex", "same")
 	mustNoErr(t, err)
 	mustEqual(t, retry, time.Duration(0))
+}
+
+// Direct writes and two services that both read 99 must not admit a 101st row.
+func testCustomDomainCap(t *testing.T, newStore Factory) {
+	ctx := context.Background()
+	s := open(t, newStore)
+	mustNoErr(t, s.Tenants().Create(ctx, newTenant("acme")))
+	for i := range 99 {
+		mustNoErr(t, s.CustomDomains().Create(ctx, domainFixture("ten_acme", fmt.Sprintf("domain-%03d", i))))
+	}
+	errs := parallel(2, func(i int) error {
+		return s.WithTx(ctx, func(tx store.Store) error {
+			rows, err := tx.CustomDomains().List(ctx, "ten_acme")
+			if err != nil {
+				return err
+			}
+			if len(rows) < 99 {
+				return fmt.Errorf("lost domains: %d", len(rows))
+			}
+			return tx.CustomDomains().Create(ctx, domainFixture("ten_acme", fmt.Sprintf("racer-%d", i)))
+		})
+	})
+	wins := 0
+	for _, err := range errs {
+		if err == nil {
+			wins++
+		} else {
+			mustErrIs(t, err, store.ErrConflict)
+		}
+	}
+	mustEqual(t, wins, 1)
+	rows, err := s.CustomDomains().List(ctx, "ten_acme")
+	mustNoErr(t, err)
+	mustEqual(t, len(rows), 100)
+	mustErrIs(t, s.CustomDomains().Create(ctx, domainFixture("ten_acme", "over-cap")), store.ErrConflict)
+	rows[0].LastFailure = "still editable"
+	mustNoErr(t, s.CustomDomains().Update(ctx, rows[0], rows[0].Revision))
 }

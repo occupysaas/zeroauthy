@@ -2,6 +2,7 @@ package storetest
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,8 +12,15 @@ import (
 // Origin must survive every consume, state mutation and refresh rotation. Empty
 // persisted origins remain empty so upgraded stores retain canonical semantics.
 func testOriginRoundTrip(t *testing.T, newStore Factory) {
-	for _, origin := range []string{"", "https://login.customer.example"} {
-		t.Run(origin, func(t *testing.T) {
+	for _, origin := range []string{"", "https://login.customer.example", "https://" + strings.Repeat("a", 63) + "." + strings.Repeat("b", 63) + "." + strings.Repeat("c", 63) + "." + strings.Repeat("d", 56) + ".test"} {
+		name := "canonical"
+		if origin != "" {
+			name = "custom"
+			if len(origin) > 255 {
+				name = "custom-long"
+			}
+		}
+		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
 			s := open(t, newStore)
 			tn := newTenant("acme")

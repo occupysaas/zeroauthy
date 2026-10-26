@@ -17,6 +17,7 @@ type CustomDomain struct {
 	TenantID, ID, Domain, Type, Source, OriginHost                     string
 	Generation, Revision                                               int64
 	Status, TLSPolicy, CustomClientIPHeader, RelyingPartyIdentifier    string
+	CustomClientIPHeaderNull                                           bool
 	DomainMetadata                                                     map[string]string
 	VerificationMethod, ProofRecordName, ProofRecordValue, ProofStatus string
 	ProofToken                                                         []byte

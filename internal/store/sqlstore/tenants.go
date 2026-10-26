@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/hostname"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -19,7 +20,7 @@ func (s *Store) Tenants() store.Tenants { return tenants{s} }
 const tenantCols = `id, name, friendly_name, default_audience, allowed_logout_urls, enabled_locales, custom_text,
  session_lifetime, idle_session_lifetime, logo_url, primary_color, default_directory, created_at,
  skip_non_verifiable_callback_uri_confirmation_prompt, use_scope_descriptions_for_consent, pushed_authorization_requests_supported,
- device_flow_charset, device_flow_mask, reserved, seeded, origin, support_email, support_url, picture_url, ephemeral_session_lifetime, idle_ephemeral_session_lifetime, session_cookie_mode, protection_initialized, settings_extra, settings_presence, protection_settings`
+ device_flow_charset, device_flow_mask, reserved, seeded, origin, support_email, support_url, picture_url, ephemeral_session_lifetime, idle_ephemeral_session_lifetime, session_cookie_mode, protection_initialized, settings_extra, settings_presence, protection_settings, canonical_host`
 
 // prefixed prefixes each comma-separated column name in cols with p.
 func prefixed(p, cols string) string {
@@ -39,10 +40,17 @@ func (r tenants) Create(ctx context.Context, t *store.Tenant) error {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+		if _, err := tx.exec(ctx, `INSERT INTO tenants (`+tenantCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
-		return tenants{tx}.putDomains(ctx, t.ID, t.Domains, false)
+		next, err := (tenants{tx}).reconcileHosts(ctx, t, nil)
+		if err != nil {
+			return err
+		}
+		if _, err = tx.exec(ctx, `UPDATE tenants SET canonical_host=? WHERE id=?`, next.CanonicalHost, next.ID); err != nil {
+			return err
+		}
+		return tenants{tx}.putDomains(ctx, next.ID, next.Domains, false)
 	})
 }
 
@@ -117,6 +125,11 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 		if err != nil {
 			return err
 		}
+		next, err := (tenants{tx}).reconcileHosts(ctx, t, old)
+		if err != nil {
+			return err
+		}
+		t = next
 		p, err := tx.loadProtection(ctx, t.ID, " AND kind IN (?,?,?)", store.ProtectionBruteForce, store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration)
 		if err != nil {
 			return err
@@ -134,7 +147,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
  enabled_locales=?, custom_text=?, session_lifetime=?, idle_session_lifetime=?, logo_url=?, primary_color=?,
  default_directory=?, created_at=?, skip_non_verifiable_callback_uri_confirmation_prompt=?,
  use_scope_descriptions_for_consent=?, pushed_authorization_requests_supported=?,
- device_flow_charset=?, device_flow_mask=?, reserved=?, seeded=?, origin=?, support_email=?, support_url=?, picture_url=?, ephemeral_session_lifetime=?, idle_ephemeral_session_lifetime=?, session_cookie_mode=?, protection_initialized=?, settings_extra=?, settings_presence=?, protection_settings=? WHERE id=?`, append(args[1:], t.ID)...)
+ device_flow_charset=?, device_flow_mask=?, reserved=?, seeded=?, origin=?, support_email=?, support_url=?, picture_url=?, ephemeral_session_lifetime=?, idle_ephemeral_session_lifetime=?, session_cookie_mode=?, protection_initialized=?, settings_extra=?, settings_presence=?, protection_settings=?, canonical_host=? WHERE id=?`, append(args[1:], t.ID)...)
 		if err != nil {
 			return tx.conflict(err)
 		}
@@ -166,6 +179,14 @@ func (r tenants) Delete(ctx context.Context, id string) error {
 		if err != nil {
 			return err
 		}
+		if err := tx.removeTLSAssets(ctx, id, ""); err != nil {
+			return err
+		}
+		for _, table := range []string{"custom_domain_defaults", "host_bindings", "custom_domain_attempts", "custom_tenant_attempts", "custom_domains"} {
+			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id=?`, id); err != nil {
+				return err
+			}
+		}
 		for _, table := range tenantTables {
 			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ?`, id); err != nil {
 				return err
@@ -185,7 +206,11 @@ func (r tenants) GetByName(ctx context.Context, name string) (*store.Tenant, err
 }
 
 func (r tenants) GetByDomain(ctx context.Context, domain string) (*store.Tenant, error) {
-	return r.one(ctx, `SELECT `+prefixed("t.", tenantCols)+` FROM tenants t JOIN tenant_domains d ON d.tenant_id = t.id WHERE d.domain = ?`, domain)
+	name, err := hostname.NormalizeOperatorHost(domain)
+	if err != nil {
+		return nil, store.ErrNotFound
+	}
+	return r.one(ctx, `SELECT `+prefixed("t.", tenantCols)+` FROM tenants t JOIN host_bindings d ON d.tenant_id = t.id WHERE d.host = ? AND d.active=true AND d.kind<>`+"'origin'", name)
 }
 
 func (r tenants) List(ctx context.Context) ([]*store.Tenant, error) {
@@ -259,7 +284,7 @@ func scanTenant(row scanner) (*store.Tenant, error) {
 		&t.SessionLifetime, &t.IdleSessionLifetime, &t.Branding.LogoURL, &t.Branding.PrimaryColor,
 		&t.DefaultDirectory, &created, &t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		&t.UseScopeDescriptionsForConsent, &t.PushedAuthorizationRequestsSupported,
-		&t.DeviceFlowCharset, &t.DeviceFlowMask, &t.Reserved, &t.Seeded, &t.Origin, &t.SupportEmail, &t.SupportURL, &t.PictureURL, &t.EphemeralSessionLifetime, &t.IdleEphemeralSessionLifetime, &t.SessionCookieMode, &t.ProtectionSettingsInitialized, &extra, &presence, &policy); err != nil {
+		&t.DeviceFlowCharset, &t.DeviceFlowMask, &t.Reserved, &t.Seeded, &t.Origin, &t.SupportEmail, &t.SupportURL, &t.PictureURL, &t.EphemeralSessionLifetime, &t.IdleEphemeralSessionLifetime, &t.SessionCookieMode, &t.ProtectionSettingsInitialized, &extra, &presence, &policy, &t.CanonicalHost); err != nil {
 		return nil, err
 	}
 	for _, j := range []struct {
@@ -313,5 +338,5 @@ func tenantArgs(t *store.Tenant) ([]any, error) {
 		t.SessionLifetime, t.IdleSessionLifetime, t.Branding.LogoURL, t.Branding.PrimaryColor,
 		t.DefaultDirectory, micros(t.CreatedAt), t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		t.UseScopeDescriptionsForConsent, t.PushedAuthorizationRequestsSupported,
-		t.DeviceFlowCharset, t.DeviceFlowMask, t.Reserved, t.Seeded, t.Origin, t.SupportEmail, t.SupportURL, t.PictureURL, t.EphemeralSessionLifetime, t.IdleEphemeralSessionLifetime, t.SessionCookieMode, t.ProtectionSettingsInitialized, extra, presence, policy}, nil
+		t.DeviceFlowCharset, t.DeviceFlowMask, t.Reserved, t.Seeded, t.Origin, t.SupportEmail, t.SupportURL, t.PictureURL, t.EphemeralSessionLifetime, t.IdleEphemeralSessionLifetime, t.SessionCookieMode, t.ProtectionSettingsInitialized, extra, presence, policy, t.CanonicalHost}, nil
 }
