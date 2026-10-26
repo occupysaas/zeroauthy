@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -391,6 +392,100 @@ func TestTLSLeaseStoredExpiryBoundary(t *testing.T) {
 			}
 			if next.Fence <= lease.Fence {
 				t.Fatal("expiry reset fence")
+			}
+		})
+	}
+}
+
+// A tenant row lock must not be combined with an old REPEATABLE READ snapshot
+// of its domain projection. Deleted API names must not become operator claims,
+// and API names activated since the snapshot must not cause duplicate inserts.
+func TestTenantProjectionCurrentAfterSnapshot(t *testing.T) {
+	ctx := context.Background()
+	for name, mk := range dsnsUnderTest(t) {
+		if name == "sqlite" {
+			continue
+		} // SQLite serializes these write transactions.
+		t.Run(name, func(t *testing.T) {
+			for _, change := range []string{"delete", "activate"} {
+				t.Run(change, func(t *testing.T) {
+					a, b := twoHandles(t, mk(t))
+					if err := a.Tenants().Create(ctx, &store.Tenant{ID: "tenant", Name: "tenant", CanonicalHost: "canonical.example.test"}); err != nil {
+						t.Fatal(err)
+					}
+					domain := &store.CustomDomain{TenantID: "tenant", ID: "custom", Domain: "api.example.test"}
+					activate := func() error {
+						return b.WithTx(ctx, func(tx store.Store) error {
+							if err := tx.CustomDomains().Create(ctx, domain); err != nil {
+								return err
+							}
+							if err := tx.CustomDomains().PutHost(ctx, &store.HostBinding{Host: domain.Domain, TenantID: domain.TenantID, DomainID: domain.ID, Kind: store.HostPublic, Active: true}); err != nil {
+								return err
+							}
+							tn, err := tx.Tenants().Get(ctx, "tenant")
+							if err != nil {
+								return err
+							}
+							tn.Domains = append(tn.Domains, domain.Domain)
+							return tx.Tenants().Update(ctx, tn)
+						})
+					}
+					if change == "delete" {
+						if err := activate(); err != nil {
+							t.Fatal(err)
+						}
+					}
+					var observed []string
+					err := a.WithTx(ctx, func(tx store.Store) error {
+						if _, err := tx.CustomDomains().List(ctx, "tenant"); err != nil {
+							return err
+						} // Establish MySQL snapshot without a tenant lock.
+						if change == "delete" {
+							if err := b.CustomDomains().Delete(ctx, domain.TenantID, domain.ID, domain.Revision); err != nil {
+								return err
+							}
+						} else {
+							if err := activate(); err != nil {
+								return err
+							}
+						}
+						tn, err := tx.Tenants().Get(ctx, "tenant")
+						if err != nil {
+							return err
+						}
+						observed = append([]string{}, tn.Domains...)
+						tn.FriendlyName = "metadata update"
+						return tx.Tenants().Update(ctx, tn)
+					})
+					if err != nil {
+						t.Fatalf("metadata update after %s: %v", change, err)
+					}
+					wantPresent := change == "activate"
+					if slices.Contains(observed, domain.Domain) != wantPresent {
+						t.Errorf("Get returned stale projection after %s: %v", change, observed)
+					}
+					got, err := a.Tenants().Get(ctx, "tenant")
+					if err != nil {
+						t.Fatal(err)
+					}
+					if slices.Contains(got.Domains, domain.Domain) != wantPresent {
+						t.Errorf("persisted stale projection after %s: %v", change, got.Domains)
+					}
+					h, err := a.CustomDomains().GetHost(ctx, domain.Domain)
+					_, routeErr := a.Tenants().GetByDomain(ctx, domain.Domain)
+					if wantPresent {
+						if err != nil || h.Kind != store.HostPublic || routeErr != nil {
+							t.Fatalf("API ownership changed: %+v %v route:%v", h, err, routeErr)
+						}
+					} else {
+						if !errors.Is(err, store.ErrNotFound) {
+							t.Errorf("deleted API name resurrected: %+v %v", h, err)
+						}
+						if !errors.Is(routeErr, store.ErrNotFound) {
+							t.Errorf("deleted API name remains routable: %v", routeErr)
+						}
+					}
+				})
 			}
 		})
 	}

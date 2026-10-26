@@ -72,7 +72,7 @@ func (r tenants) putDomains(ctx context.Context, id string, domains []string, ex
 	}
 	have := map[string]int{}
 	if existing {
-		rows, err := r.s.query(ctx, `SELECT domain, position FROM tenant_domains WHERE tenant_id = ?`, id)
+		rows, err := r.s.query(ctx, `SELECT domain, position FROM tenant_domains WHERE tenant_id = ?`+r.s.txLock(), id)
 		if err != nil {
 			return err
 		}
@@ -258,9 +258,11 @@ func (r tenants) one(ctx context.Context, q string, args ...any) (*store.Tenant,
 	return t, err
 }
 
-// domains returns a tenant's domains in the order they were given.
+// domains returns a tenant's domains in the order they were given. A
+// transaction reads the current projection, consistently with its locked tenant
+// row, even if an earlier nonlocking read established a MySQL snapshot.
 func (r tenants) domains(ctx context.Context, id string) ([]string, error) {
-	rows, err := r.s.query(ctx, `SELECT domain FROM tenant_domains WHERE tenant_id = ? ORDER BY position`, id)
+	rows, err := r.s.query(ctx, `SELECT domain FROM tenant_domains WHERE tenant_id = ? ORDER BY position`+r.s.txLock(), id)
 	if err != nil {
 		return nil, err
 	}
