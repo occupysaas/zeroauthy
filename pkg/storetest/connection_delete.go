@@ -2,6 +2,7 @@ package storetest
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -23,6 +24,7 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		t.Helper()
 		tn := newTenant(tenant)
 		tn.ID = tenant
+		tn.Domains = []string{strings.ReplaceAll(tenant, "_", "-") + ".example.test"}
 		tn.DefaultDirectory = "Database"
 		mustNoErr(t, s.Tenants().Create(ctx, tn))
 		mustNoErr(t, s.Connections().Create(ctx, newConnection(tenant, "con1", "Database")))
@@ -130,6 +132,7 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		mustEqual(t, tn.DefaultDirectory, "")
 		// Nothing else of the tenant changed.
 		want := newTenant("ten_a")
+		want.Domains = []string{"ten-a.example.test"}
 		want.ID, want.DefaultDirectory = "ten_a", ""
 		mustEqual(t, tn, want)
 		tn, err = s.Tenants().Get(ctx, "ten_b")

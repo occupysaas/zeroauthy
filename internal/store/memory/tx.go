@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"maps"
+	"slices"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/protectionstate"
@@ -37,7 +39,23 @@ func (s *Store) savepoint(fn func(store.Store) error) error {
 			s.restore(snap)
 		}
 	}()
-	err := fn(&Store{state: s.state, tx: true})
+	view := &Store{state: s.state, tx: true, checkedLeases: map[string]store.TLSLease{}}
+	err := fn(view)
+	if err == nil {
+		s.mu.Lock()
+		for _, l := range view.checkedLeases {
+			if !(tlsAssets{view}).valid(l) {
+				err = store.ErrConflict
+				break
+			}
+		}
+		s.mu.Unlock()
+	}
+	if err == nil && s.tx {
+		for k, l := range view.checkedLeases {
+			s.checkedLeases[k] = l
+		}
+	}
 	ok = err == nil
 	return err
 }
@@ -47,6 +65,13 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
+		customDomains:          cloneMap(s.customDomains, (*store.CustomDomain).Clone),
+		hostBindings:           cloneMap(s.hostBindings, func(h *store.HostBinding) *store.HostBinding { c := *h; return &c }),
+		domainDefaults:         maps.Clone(s.domainDefaults),
+		domainAttempts:         maps.Clone(s.domainAttempts),
+		tenantAttempts:         cloneAttemptTimes(s.tenantAttempts),
+		tlsAssets:              cloneMap(s.tlsAssets, (*store.TLSAsset).Clone),
+		tlsLeases:              cloneMap(s.tlsLeases, func(l *store.TLSLease) *store.TLSLease { c := *l; return &c }),
 		protection:             cloneMap(s.protection, func(p *protectionstate.State) *protectionstate.State { return p.Clone() }),
 		proofs:                 maps.Clone(s.proofs),
 		tenants:                cloneMap(s.tenants, cloneTenant),
@@ -83,6 +108,9 @@ func (s *Store) snapshot() *state {
 func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.customDomains, s.hostBindings, s.domainDefaults = snap.customDomains, snap.hostBindings, snap.domainDefaults
+	s.domainAttempts, s.tenantAttempts = snap.domainAttempts, snap.tenantAttempts
+	s.tlsAssets, s.tlsLeases = snap.tlsAssets, snap.tlsLeases
 	s.protection, s.proofs = snap.protection, snap.proofs
 	s.tenants, s.clients, s.resourceServers = snap.tenants, snap.clients, snap.resourceServers
 	s.clientGrants, s.signingKeys, s.connections = snap.clientGrants, snap.signingKeys, snap.connections
@@ -131,6 +159,14 @@ func cloneJobFiles(m map[key]jobFile) map[key]jobFile {
 	out := make(map[key]jobFile, len(m))
 	for k, f := range m {
 		out[k] = cloneJobFile(f)
+	}
+	return out
+}
+
+func cloneAttemptTimes(m map[string][]time.Time) map[string][]time.Time {
+	out := make(map[string][]time.Time, len(m))
+	for k, v := range m {
+		out[k] = slices.Clone(v)
 	}
 	return out
 }

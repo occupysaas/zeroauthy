@@ -8,14 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/url"
 	"strings"
 	"unicode/utf8"
 
-	"golang.org/x/net/idna"
-	"golang.org/x/net/publicsuffix"
-
+	"github.com/zeroauthy/zeroauthy/internal/hostname"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -53,33 +50,15 @@ func NormalizeDNSName(raw string) (string, error) {
 	return normalizeName(raw, true)
 }
 func normalizeName(raw string, public bool) (string, error) {
-	if raw == "" || strings.TrimSpace(raw) != raw || strings.ContainsAny(raw, ":/@\\*?#[]") {
-		return "", invalid("invalid DNS name")
-	}
-	ascii, err := idna.Lookup.ToASCII(raw)
-	if err != nil {
-		return "", invalid("invalid IDNA name")
-	}
-	name := strings.ToLower(strings.TrimSuffix(ascii, "."))
-	if len(name) == 0 || len(name) > 253 || net.ParseIP(name) != nil {
-		return "", invalid("invalid DNS name length or IP address")
-	}
-	labels := strings.Split(name, ".")
-	for _, label := range labels {
-		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
-			return "", invalid("invalid DNS label")
-		}
-		for _, ch := range label {
-			if !(ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9' || ch == '-') {
-				return "", invalid("invalid DNS label")
-			}
-		}
-	}
+	var name string
+	var err error
 	if public {
-		suffix, _ := publicsuffix.PublicSuffix(name)
-		if len(labels) < 2 || name == suffix {
-			return "", invalid("DNS name must be below a public suffix")
-		}
+		name, err = hostname.NormalizeDNSName(raw)
+	} else {
+		name, err = hostname.NormalizeOperatorHost(raw)
+	}
+	if err != nil {
+		return "", invalid(err.Error())
 	}
 	return name, nil
 }

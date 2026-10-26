@@ -20,13 +20,22 @@ type key struct{ tenant, id string }
 type Store struct {
 	*state
 	// tx marks a transaction's view: its writes already hold txMu.
-	tx bool
+	tx            bool
+	checkedLeases map[string]store.TLSLease
 }
 
 // state is the data of a Store and its locks. txMu serializes
 // transactions and the writes made outside any transaction, so a
 // transaction that rolls back never undoes a write that is not its own.
 type state struct {
+	now                    func() time.Time
+	customDomains          map[key]*store.CustomDomain
+	hostBindings           map[string]*store.HostBinding
+	domainDefaults         map[string]string
+	domainAttempts         map[key]time.Time
+	tenantAttempts         map[string][]time.Time
+	tlsAssets              map[string]*store.TLSAsset
+	tlsLeases              map[string]*store.TLSLease
 	protection             map[string]*protectionstate.State
 	proofs                 map[string]time.Time
 	txMu                   sync.Mutex
@@ -63,7 +72,15 @@ type state struct {
 // New returns an empty store.
 func New() *Store {
 	return &Store{state: &state{
-		protection: map[string]*protectionstate.State{}, proofs: map[string]time.Time{},
+		now:            time.Now,
+		customDomains:  map[key]*store.CustomDomain{},
+		hostBindings:   map[string]*store.HostBinding{},
+		domainDefaults: map[string]string{},
+		domainAttempts: map[key]time.Time{},
+		tenantAttempts: map[string][]time.Time{},
+		tlsAssets:      map[string]*store.TLSAsset{},
+		tlsLeases:      map[string]*store.TLSLease{},
+		protection:     map[string]*protectionstate.State{}, proofs: map[string]time.Time{},
 		tenants:                map[string]*store.Tenant{},
 		clients:                map[key]*store.Client{},
 		resourceServers:        map[key]*store.ResourceServer{},
