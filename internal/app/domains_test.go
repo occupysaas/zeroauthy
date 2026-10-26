@@ -55,7 +55,12 @@ func TestStartupTLSCoverage(t *testing.T) {
 	if _, err := build(ctx, cfg, log, memory.New(), make([]byte, 32)); err == nil || !strings.Contains(err.Error(), "covered") {
 		t.Fatalf("uncovered system host = %v", err)
 	}
+	cfg.Server.CustomDomains.DNSResolver = "127.0.0.1:53"
 	cfg.Server.ACME.HostedWildcard = config.HostedWildcard{Enabled: true, Zone: "example.test", TokenFile: "/dev/null"}
+	if _, err := build(ctx, cfg, log, memory.New(), make([]byte, 32)); err == nil || !strings.Contains(err.Error(), "token_file") {
+		t.Fatalf("empty token file = %v", err)
+	}
+	cfg.Server.ACME.HostedWildcard.TokenFile = tokenFile(t)
 	a, err := build(ctx, cfg, log, memory.New(), make([]byte, 32))
 	if err != nil {
 		t.Fatal(err)
@@ -73,7 +78,7 @@ func TestStartupTLSCoverage(t *testing.T) {
 func TestServeACMELifecycle(t *testing.T) {
 	acme := config.ACME{Enabled: true, DirectoryURL: "https://127.0.0.1:1/directory", Email: "ops@example.test", TermsAccepted: true,
 		DeploymentID: "prod-1", Challenge: "http-01", HTTPListen: "127.0.0.1:0", Workers: 1,
-		HostedWildcard: config.HostedWildcard{Enabled: true, Zone: "example.test", TokenFile: "/dev/null"}}
+		HostedWildcard: config.HostedWildcard{Enabled: true, Zone: "example.test", TokenFile: tokenFile(t)}}
 	cfg := &config.Config{Server: config.Server{Listen: "127.0.0.1:0", BaseDomain: "auth.example.test", ACME: acme,
 		CustomDomains: config.CustomDomains{DNSResolver: "127.0.0.1:53"}}}
 	a, err := build(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), memory.New(), make([]byte, 32))
@@ -96,4 +101,13 @@ func TestServeACMELifecycle(t *testing.T) {
 	case <-time.After(30 * time.Second):
 		t.Fatal("Serve did not stop")
 	}
+}
+
+func tokenFile(t *testing.T) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "do-token")
+	if err := os.WriteFile(p, []byte("dop_v1_test\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return p
 }

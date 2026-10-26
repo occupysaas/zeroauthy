@@ -76,10 +76,17 @@ func (f *fakeCA) NewOrder(_ context.Context, _ crypto.Signer, _ string, names []
 		a := fmt.Sprintf("%s/authz/%d", url, i)
 		o.AuthzURLs = append(o.AuthzURLs, a)
 		o.Identifiers = append(o.Identifiers, acme.AuthzID{Type: "dns", Value: n})
-		f.authz[a] = &acme.Authorization{URI: a, Status: acme.StatusPending, Identifier: acme.AuthzID{Type: "dns", Value: n}, Challenges: []*acme.Challenge{
-			{Type: "http-01", URI: a + "/http", Token: fmt.Sprintf("tok-%d-%d-h", f.newOrders, i), Status: acme.StatusPending},
-			{Type: "tls-alpn-01", URI: a + "/alpn", Token: fmt.Sprintf("tok-%d-%d-a", f.newOrders, i), Status: acme.StatusPending},
-		}}
+		value, wildcard := strings.CutPrefix(n, "*.")
+		if !wildcard {
+			value = n
+		}
+		chals := []*acme.Challenge{{Type: "dns-01", URI: a + "/dns", Token: fmt.Sprintf("tok-%d-%d-d", f.newOrders, i), Status: acme.StatusPending}}
+		if !wildcard {
+			chals = append(chals,
+				&acme.Challenge{Type: "http-01", URI: a + "/http", Token: fmt.Sprintf("tok-%d-%d-h", f.newOrders, i), Status: acme.StatusPending},
+				&acme.Challenge{Type: "tls-alpn-01", URI: a + "/alpn", Token: fmt.Sprintf("tok-%d-%d-a", f.newOrders, i), Status: acme.StatusPending})
+		}
+		f.authz[a] = &acme.Authorization{URI: a, Status: acme.StatusPending, Wildcard: wildcard, Identifier: acme.AuthzID{Type: "dns", Value: value}, Challenges: chals}
 	}
 	f.orders[url] = o
 	c := *o
@@ -176,6 +183,7 @@ func (f *fakeCA) Finalize(_ context.Context, _ crypto.Signer, _ string, finalize
 }
 
 func (f *fakeCA) HTTP01(_ crypto.Signer, token string) (string, error) { return token + ".thumb", nil }
+func (f *fakeCA) DNS01(_ crypto.Signer, token string) (string, error)  { return token + ".dns", nil }
 
 func (f *fakeCA) TLSALPN01(_ crypto.Signer, token, identifier string) (tls.Certificate, error) {
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)

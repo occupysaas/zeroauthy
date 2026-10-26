@@ -24,6 +24,7 @@ type CA interface {
 	Finalize(ctx context.Context, key crypto.Signer, accountURL, finalizeURL string, csr []byte) (chain [][]byte, err error)
 	HTTP01(key crypto.Signer, token string) (string, error)
 	TLSALPN01(key crypto.Signer, token, identifier string) (tls.Certificate, error)
+	DNS01(key crypto.Signer, token string) (string, error)
 }
 
 // acmeCA talks to one deployment-configured directory. Request content never
@@ -88,4 +89,8 @@ func (c *acmeCA) HTTP01(key crypto.Signer, token string) (string, error) {
 
 func (c *acmeCA) TLSALPN01(key crypto.Signer, token, identifier string) (tls.Certificate, error) {
 	return c.client(key, "").TLSALPN01ChallengeCert(token, identifier)
+}
+
+func (c *acmeCA) DNS01(key crypto.Signer, token string) (string, error) {
+	return c.client(key, "").DNS01ChallengeRecord(token)
 }

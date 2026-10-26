@@ -74,6 +74,23 @@ func (r *BoundedResolver) LookupCNAME(ctx context.Context, name string) (string,
 	return final, nil
 }
 
+// LookupNS returns the NS targets at exactly name (a zone cut), without
+// following CNAMEs into other names.
+func (r *BoundedResolver) LookupNS(ctx context.Context, name string) ([]string, error) {
+	rrs, final, err := r.resolve(ctx, name, dnsmessage.TypeNS)
+	if err != nil {
+		return nil, err
+	}
+	if final != "" {
+		return nil, ErrDNSNotFound
+	}
+	out := make([]string, 0, len(rrs))
+	for _, rr := range rrs {
+		out = append(out, strings.TrimSuffix(rr.Body.(*dnsmessage.NSResource).NS.String(), "."))
+	}
+	return out, nil
+}
+
 func (r *BoundedResolver) LookupNetIP(ctx context.Context, network, name string) ([]netip.Addr, error) {
 	var types []dnsmessage.Type
 	switch network {

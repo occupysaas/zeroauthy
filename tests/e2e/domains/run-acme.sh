@@ -10,6 +10,7 @@ for lane in ${lanes//,/ }; do
 	case $lane in
 	http01) run+=(TestPebbleHTTP01) ;;
 	tlsalpn) run+=(TestPebbleTLSALPN01) ;;
+	dns01) run+=(TestPebbleDNS01) ;;
 	*) echo "unknown lane $lane" >&2; exit 2 ;;
 	esac
 done

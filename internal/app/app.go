@@ -395,10 +395,23 @@ func certificateWorker(cfg *config.Config, st store.Store, m *certificates.Manag
 			return nil, nil, fmt.Errorf("app: server.acme.ca_bundle_file %q has no usable certificates", a.CABundleFile)
 		}
 	}
+	var hosted *certificates.HostedConfig
+	if w := a.HostedWildcard; w.Enabled {
+		// The token stays in its deployment file: never tenant state or logs.
+		raw, err := os.ReadFile(w.TokenFile)
+		token := strings.TrimSpace(string(raw))
+		if err != nil || token == "" {
+			return nil, nil, fmt.Errorf("app: server.acme.hosted_wildcard.token_file %q is unreadable or empty", w.TokenFile)
+		}
+		hosted = &certificates.HostedConfig{
+			BaseDomain: cfg.Server.BaseDomain, Zone: w.Zone, Provider: certificates.NewDigitalOcean(token),
+			Resolver: &customdomain.BoundedResolver{Server: resolver},
+		}
+	}
 	host, _ := os.Hostname()
 	owner := host + "-" + secrets.RandomString(8)
 	worker := certificates.NewWorker(m, certificates.NewACMECA(a.DirectoryURL, roots), domains, certificates.WorkerConfig{
-		Owner: owner, Email: a.Email, Challenge: a.Challenge, Roots: roots, Workers: a.Workers,
+		Owner: owner, Email: a.Email, Challenge: a.Challenge, Roots: roots, Workers: a.Workers, Hosted: hosted,
 	})
 	return domains, worker, nil
 }

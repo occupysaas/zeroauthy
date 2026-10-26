@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"io"
 	"net"
 	"net/http"
@@ -23,6 +24,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/store/memory"
+	"github.com/zeroauthy/zeroauthy/tests/e2e/domains/dns"
+	"github.com/zeroauthy/zeroauthy/tests/e2e/domains/provider"
 )
 
 // The local fixture (tests/e2e/domains/run-acme.sh) runs Pebble with this
@@ -195,5 +198,105 @@ func pebbleIssue(t *testing.T, challenge, host string) {
 	}
 	if _, err := cert.Leaf.Verify(x509.VerifyOptions{DNSName: host, Roots: issuedRoots, Intermediates: inter}); err != nil {
 		t.Fatalf("issued certificate does not verify: %v", err)
+	}
+}
+
+// TestPebbleDNS01 issues the hosted apex+wildcard certificate through DNS-01:
+// the real DigitalOcean adapter writes to a local fake API whose records the
+// local authoritative DNS serves to Pebble.
+func TestPebbleDNS01(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	directory, dirRoots, issuedRoots := pebbleEnv(t)
+	api := provider.New("dop_v1_fixture", "example.test")
+	ln, err := net.Listen("tcp", "127.0.0.1:18080")
+	if err != nil {
+		t.Fatal(err)
+	}
+	apiSrv := &http.Server{Handler: api, ReadHeaderTimeout: 5 * time.Second}
+	go func() { _ = apiSrv.Serve(ln) }()
+	t.Cleanup(func() { _ = apiSrv.Close() })
+	auth := &dns.Server{A: [4]byte{127, 0, 0, 1}, TXT: api.TXT}
+	if err := auth.Listen("127.0.0.1:8053"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(auth.Close)
+
+	st := memory.New()
+	for _, tn := range []*store.Tenant{
+		{ID: "acme", Name: "acme", CanonicalHost: "acme.auth.example.test"},
+		{ID: "sys", Name: "system", Reserved: true, CanonicalHost: "system.auth.example.test"},
+	} {
+		if err := st.Tenants().Create(ctx, tn); err != nil {
+			t.Fatal(err)
+		}
+	}
+	clock := &clk{t: time.Now()}
+	wr, _ := keys.NewLocalWrapper(make([]byte, 32))
+	hosted := &certificates.HostedConfig{
+		BaseDomain: "auth.example.test", Zone: "example.test",
+		Provider: certificates.NewDigitalOcean("dop_v1_fixture", certificates.WithEndpoint("http://127.0.0.1:18080", nil, 10*time.Second)),
+		Resolver: &customdomain.BoundedResolver{Server: "127.0.0.1:8053"}, PollMin: 100 * time.Millisecond, PollMax: time.Second,
+	}
+	var managers [2]*certificates.Manager
+	var workers [2]*certificates.Worker
+	for i := range workers {
+		m, err := certificates.NewManager(st, wr, certificates.Config{DeploymentID: "it", DirectoryURL: directory, BaseDomain: "auth.example.test", HostedWildcard: true}, clock.now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		managers[i] = m
+		workers[i] = certificates.NewWorker(m, certificates.NewACMECA(directory, dirRoots), nil, certificates.WorkerConfig{
+			Owner: "dns-" + string(rune('a'+i)), Email: "ops@example.test", Challenge: "http-01", Roots: issuedRoots, Hosted: hosted,
+		})
+	}
+	key := certificates.HostedResource("it", "auth.example.test")
+	if err := workers[0].Reconcile(ctx, key); err != nil {
+		t.Fatal(err)
+	}
+	check := func() *x509.Certificate {
+		t.Helper()
+		for _, sni := range []string{"acme.auth.example.test", "system.auth.example.test"} {
+			c, err := managers[1].GetCertificate(&tls.ClientHelloInfo{ServerName: sni})
+			if err != nil {
+				t.Fatalf("%s: %v", sni, err)
+			}
+			inter := x509.NewCertPool()
+			for _, der := range c.Certificate[1:] {
+				ic, _ := x509.ParseCertificate(der)
+				inter.AddCert(ic)
+			}
+			if _, err := c.Leaf.Verify(x509.VerifyOptions{DNSName: sni, Roots: issuedRoots, Intermediates: inter}); err != nil {
+				t.Fatalf("%s does not verify: %v", sni, err)
+			}
+		}
+		for _, sni := range []string{"a.b.auth.example.test", "login.acme.test"} {
+			if _, err := managers[1].GetCertificate(&tls.ClientHelloInfo{ServerName: sni}); err == nil {
+				t.Fatalf("%s served", sni)
+			}
+		}
+		if left := api.Records(); len(left) != 0 {
+			t.Fatalf("challenge records left: %v", left)
+		}
+		row, _ := st.TLSAssets().Get(ctx, certificates.HostedWildcardKey)
+		block, _ := pem.Decode(row.PublicData.CertificateChainPEM)
+		leaf, _ := x509.ParseCertificate(block.Bytes)
+		return leaf
+	}
+	first := check()
+	// A restarted or second worker does nothing before renewal time...
+	if err := workers[1].Reconcile(ctx, key); err != nil {
+		t.Fatal(err)
+	}
+	if again := check(); again.SerialNumber.Cmp(first.SerialNumber) != 0 {
+		t.Fatal("renewed early")
+	}
+	// ...and renews at it.
+	clock.set(certificates.RenewalTime(key, first.NotBefore, first.NotAfter))
+	if err := workers[1].Reconcile(ctx, key); err != nil {
+		t.Fatal(err)
+	}
+	if renewed := check(); renewed.SerialNumber.Cmp(first.SerialNumber) == 0 {
+		t.Fatal("not renewed")
 	}
 }

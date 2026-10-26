@@ -47,6 +47,7 @@ type WorkerConfig struct {
 	Roots     *x509.CertPool // trust for issued chains
 	Workers   int            // concurrent resources per process (default 2)
 	Poll      time.Duration  // due scan interval (default 30s)
+	Hosted    *HostedConfig  // nil: no hosted wildcard
 }
 
 // Worker issues and renews managed domain certificates. Leases with fencing
@@ -57,6 +58,10 @@ type Worker struct {
 	ca     CA
 	prover Prover
 	cfg    WorkerConfig
+
+	mu             sync.Mutex
+	hostedFailures int       // consecutive hosted wildcard failures
+	hostedNext     time.Time // hosted backoff (per process; leases serialize)
 }
 
 func NewWorker(m *Manager, ca CA, prover Prover, cfg WorkerConfig) *Worker {
@@ -126,6 +131,17 @@ func (w *Worker) Run(ctx context.Context) {
 				}()
 			}
 		}
+		if h := w.cfg.Hosted; h != nil {
+			key := HostedResource(w.m.cfg.DeploymentID, h.BaseDomain)
+			if _, running := busy.LoadOrStore(key, true); !running {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					defer busy.Delete(key)
+					_ = w.Reconcile(ctx, key)
+				}()
+			}
+		}
 		w.cleanup(ctx)
 		select {
 		case <-ctx.Done():
@@ -153,7 +169,18 @@ func (w *Worker) cleanup(ctx context.Context) {
 		return
 	}
 	for _, a := range rows {
-		if a.Kind == store.TLSAssetOrder || a.Kind == store.TLSAssetChallenge {
+		switch a.Kind {
+		case store.TLSAssetOrder, store.TLSAssetChallenge:
+			_ = w.m.st.TLSAssets().Delete(ctx, a.Key, a.Revision)
+		case store.TLSAssetDNSIntent:
+			// Remove a record we created before forgetting it; ambiguous or
+			// pre-existing records are never deleted.
+			if h := w.cfg.Hosted; h != nil && a.PublicData.Status == "created" {
+				rec := DNSRecord{ID: a.PublicData.DNSRecordID, Zone: h.Zone, Name: a.PublicData.RecordName, Value: a.PublicData.RecordValue, Created: true}
+				if err := h.Provider.CleanUp(ctx, rec); err != nil {
+					continue
+				}
+			}
 			_ = w.m.st.TLSAssets().Delete(ctx, a.Key, a.Revision)
 		}
 	}
@@ -165,10 +192,37 @@ var errStale = errors.New("certificates: work is stale")
 // Reconcile works one resource if its lease is free; a held lease is not an
 // error. Failures are recorded on the domain with a safe message and backoff.
 func (w *Worker) Reconcile(ctx context.Context, key string) error {
+	if strings.HasPrefix(key, "hosted/") {
+		return w.reconcileHosted(ctx, key)
+	}
 	tenantID, id, gen, ok := parseDomainResource(key)
 	if !ok {
 		return fmt.Errorf("certificates: unknown resource %q", key)
 	}
+	return w.withLease(ctx, key, func(ctx context.Context, lease store.TLSLease) error {
+		d, err := w.m.st.CustomDomains().Get(ctx, tenantID, id)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if d.Generation != gen || !w.due(d) && d.Lifecycle != customdomain.LifecycleIssuing {
+			return nil
+		}
+		if err := w.issue(ctx, lease, d); err != nil {
+			if !errors.Is(err, errStale) {
+				w.fail(context.WithoutCancel(ctx), lease, d, err)
+			}
+			return err
+		}
+		return nil
+	})
+}
+
+// withLease runs fn while holding key's lease, renewing it every 30s and
+// cancelling fn's context if renewal fails. A held lease is not an error.
+func (w *Worker) withLease(ctx context.Context, key string, fn func(context.Context, store.TLSLease) error) error {
 	lease, err := w.m.st.TLSAssets().ClaimLease(ctx, key, w.cfg.Owner, leaseDuration)
 	if errors.Is(err, store.ErrConflict) {
 		return nil
@@ -200,23 +254,7 @@ func (w *Worker) Reconcile(ctx context.Context, key string) error {
 		<-beat
 		_ = w.m.st.TLSAssets().ReleaseLease(context.Background(), *lease)
 	}()
-	d, err := w.m.st.CustomDomains().Get(ctx, tenantID, id)
-	if errors.Is(err, store.ErrNotFound) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	if d.Generation != gen || !w.due(d) && d.Lifecycle != customdomain.LifecycleIssuing {
-		return nil
-	}
-	if err := w.issue(ctx, *lease, d); err != nil {
-		if !errors.Is(err, errStale) {
-			w.fail(context.WithoutCancel(ctx), *lease, d, err)
-		}
-		return err
-	}
-	return nil
+	return fn(ctx, *lease)
 }
 
 func (w *Worker) issue(ctx context.Context, lease store.TLSLease, d *store.CustomDomain) error {
@@ -228,7 +266,8 @@ func (w *Worker) issue(ctx context.Context, lease store.TLSLease, d *store.Custo
 		return err
 	}
 	names := []string{d.Domain}
-	orderKey, orderURL, err := w.order(ctx, lease, d, acct, accountURL, names)
+	t := target{resource: DomainResource(d), tenantID: d.TenantID, domainID: d.ID, gen: d.Generation, names: names}
+	orderKey, orderURL, err := w.order(ctx, lease, t, acct, accountURL)
 	if err != nil {
 		return err
 	}
@@ -260,15 +299,10 @@ func (w *Worker) issue(ctx context.Context, lease store.TLSLease, d *store.Custo
 	if err != nil {
 		return err
 	}
-	var chainPEM []byte
-	for _, c := range der {
-		chainPEM = append(chainPEM, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: c})...)
-	}
-	keyDER, err := x509.MarshalPKCS8PrivateKey(orderKey)
+	chainPEM, keyPEM, err := encodePair(der, orderKey)
 	if err != nil {
 		return err
 	}
-	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER})
 	if err := ValidateCertificate(chainPEM, keyPEM, names, w.m.clock(), w.cfg.Roots); err != nil {
 		return errInvalidIssue{err}
 	}
@@ -459,18 +493,27 @@ func (w *Worker) account(ctx context.Context) (crypto.Signer, string, error) {
 	return nil, "", errors.New("certificates: ACME account changed concurrently")
 }
 
-// order loads the saved order for this generation or saves a new one (key,
+// target is what an order certifies: a domain generation or the hosted
+// wildcard (no tenant/domain owner).
+type target struct {
+	resource, tenantID, domainID string
+	gen                          int64
+	names                        []string
+}
+
+// order loads the saved order for this target or saves a new one (key,
 // SANs, directory, account) before asking the CA, then saves its URL.
-func (w *Worker) order(ctx context.Context, lease store.TLSLease, d *store.CustomDomain, acct crypto.Signer, accountURL string, names []string) (crypto.Signer, string, error) {
-	key := "order/" + DomainResource(d)
+func (w *Worker) order(ctx context.Context, lease store.TLSLease, t target, acct crypto.Signer, accountURL string) (crypto.Signer, string, error) {
+	key := "order/" + t.resource
+	names := t.names
 	row, err := w.m.st.TLSAssets().Get(ctx, key)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
-		_, sealed, err := w.newKey(store.TLSAssetOrder, key, d.TenantID, d.ID, d.Generation)
+		_, sealed, err := w.newKey(store.TLSAssetOrder, key, t.tenantID, t.domainID, t.gen)
 		if err != nil {
 			return nil, "", err
 		}
-		row = &store.TLSAsset{Key: key, Kind: store.TLSAssetOrder, TenantID: d.TenantID, DomainID: d.ID, Generation: d.Generation, Ciphertext: sealed,
+		row = &store.TLSAsset{Key: key, Kind: store.TLSAssetOrder, TenantID: t.tenantID, DomainID: t.domainID, Generation: t.gen, Ciphertext: sealed,
 			ExpiresAt:  w.m.clock().Add(recordTTL),
 			PublicData: store.TLSPublicData{Version: PublicDataVersion, DirectoryURL: w.m.cfg.DirectoryURL, AccountURL: accountURL, Status: "new", SANs: names}}
 		if err := w.fenced(ctx, lease, func(tx store.Store) error { return tx.TLSAssets().Put(ctx, row, 0) }); err != nil {
@@ -565,23 +608,7 @@ func (w *Worker) authorize(ctx context.Context, lease store.TLSLease, d *store.C
 	if err := w.ca.Accept(ctx, acct, accountURL, chal); err != nil {
 		return err
 	}
-	for range pollAttempts {
-		a, err := w.ca.Authorization(ctx, acct, accountURL, url)
-		if err != nil {
-			return err
-		}
-		switch a.Status {
-		case acme.StatusValid:
-			return nil
-		case acme.StatusPending, acme.StatusProcessing:
-		default:
-			return fmt.Errorf("certificates: authorization is %s", a.Status)
-		}
-		if err := sleep(ctx, pollInterval); err != nil {
-			return err
-		}
-	}
-	return errors.New("certificates: authorization did not complete")
+	return w.waitAuthorization(ctx, acct, accountURL, url)
 }
 
 func (w *Worker) waitOrder(ctx context.Context, acct crypto.Signer, accountURL, url string) (*acme.Order, error) {
