@@ -1041,6 +1041,7 @@ type Tenant struct {
 	IdleEphemeralSessionLifetime                   int64                  `protobuf:"varint,30,opt,name=idle_ephemeral_session_lifetime,json=idleEphemeralSessionLifetime,proto3" json:"idle_ephemeral_session_lifetime,omitempty"` // internal seconds
 	SessionCookieMode                              string                 `protobuf:"bytes,31,opt,name=session_cookie_mode,json=sessionCookieMode,proto3" json:"session_cookie_mode,omitempty"`
 	CanonicalHost                                  string                 `protobuf:"bytes,32,opt,name=canonical_host,json=canonicalHost,proto3" json:"canonical_host,omitempty"`
+	IdentityEpoch                                  int64                  `protobuf:"varint,33,opt,name=identity_epoch,json=identityEpoch,proto3" json:"identity_epoch,omitempty"` // Plan 24; absent = 0, maintained only by Federation
 	unknownFields                                  protoimpl.UnknownFields
 	sizeCache                                      protoimpl.SizeCache
 }
@@ -1297,6 +1298,13 @@ func (x *Tenant) GetCanonicalHost() string {
 		return x.CanonicalHost
 	}
 	return ""
+}
+
+func (x *Tenant) GetIdentityEpoch() int64 {
+	if x != nil {
+		return x.IdentityEpoch
+	}
+	return 0
 }
 
 type Branding struct {
@@ -4211,8 +4219,10 @@ type Connection struct {
 	BruteForceProtection         bool                   `protobuf:"varint,17,opt,name=brute_force_protection,json=bruteForceProtection,proto3" json:"brute_force_protection,omitempty"`
 	UsernameMin                  int64                  `protobuf:"varint,18,opt,name=username_min,json=usernameMin,proto3" json:"username_min,omitempty"`
 	UsernameMax                  int64                  `protobuf:"varint,19,opt,name=username_max,json=usernameMax,proto3" json:"username_max,omitempty"`
-	Origin                       string                 `protobuf:"bytes,20,opt,name=origin,proto3" json:"origin,omitempty"`                              // "api" or empty (seed)
-	ExtraJson                    []byte                 `protobuf:"bytes,21,opt,name=extra_json,json=extraJson,proto3,oneof" json:"extra_json,omitempty"` // absent = nil map; any JSON object
+	Origin                       string                 `protobuf:"bytes,20,opt,name=origin,proto3" json:"origin,omitempty"`                                                                          // "api" or empty (seed)
+	ExtraJson                    []byte                 `protobuf:"bytes,21,opt,name=extra_json,json=extraJson,proto3,oneof" json:"extra_json,omitempty"`                                             // absent = nil map; any JSON object
+	FederationRevision           int64                  `protobuf:"varint,22,opt,name=federation_revision,json=federationRevision,proto3" json:"federation_revision,omitempty"`                       // Plan 24; absent = 0
+	FederationSecretsSealed      []byte                 `protobuf:"bytes,23,opt,name=federation_secrets_sealed,json=federationSecretsSealed,proto3,oneof" json:"federation_secrets_sealed,omitempty"` // Plan 24; absent = nil; sealed, never plaintext
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache
 }
@@ -4390,6 +4400,20 @@ func (x *Connection) GetOrigin() string {
 func (x *Connection) GetExtraJson() []byte {
 	if x != nil {
 		return x.ExtraJson
+	}
+	return nil
+}
+
+func (x *Connection) GetFederationRevision() int64 {
+	if x != nil {
+		return x.FederationRevision
+	}
+	return 0
+}
+
+func (x *Connection) GetFederationSecretsSealed() []byte {
+	if x != nil {
+		return x.FederationSecretsSealed
 	}
 	return nil
 }
@@ -13122,7 +13146,7 @@ const file_store_proto_rawDesc = "" +
 	"\x06values\x18\x01 \x03(\v2).zeroauthy.store.v1.StringMap.ValuesEntryR\x06values\x1a9\n" +
 	"\vValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd5\r\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfc\r\n" +
 	"\x06Tenant\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
@@ -13159,7 +13183,8 @@ const file_store_proto_rawDesc = "" +
 	"\x1aephemeral_session_lifetime\x18\x1d \x01(\x03R\x18ephemeralSessionLifetime\x12E\n" +
 	"\x1fidle_ephemeral_session_lifetime\x18\x1e \x01(\x03R\x1cidleEphemeralSessionLifetime\x12.\n" +
 	"\x13session_cookie_mode\x18\x1f \x01(\tR\x11sessionCookieMode\x12%\n" +
-	"\x0ecanonical_host\x18  \x01(\tR\rcanonicalHostB\x13\n" +
+	"\x0ecanonical_host\x18  \x01(\tR\rcanonicalHost\x12%\n" +
+	"\x0eidentity_epoch\x18! \x01(\x03R\ridentityEpochB\x13\n" +
 	"\x11_custom_text_jsonB\x16\n" +
 	"\x14_settings_extra_jsonB\x19\n" +
 	"\x17_settings_presence_jsonB\x1b\n" +
@@ -13422,7 +13447,7 @@ const file_store_proto_rawDesc = "" +
 	"\n" +
 	"dictionary\x18\x03 \x01(\v2&.zeroauthy.store.v1.PasswordDictionaryR\n" +
 	"dictionary\x12J\n" +
-	"\fprofile_data\x18\x04 \x01(\v2'.zeroauthy.store.v1.PasswordProfileDataR\vprofileData\"\x8e\b\n" +
+	"\fprofile_data\x18\x04 \x01(\v2'.zeroauthy.store.v1.PasswordProfileDataR\vprofileData\"\x9e\t\n" +
 	"\n" +
 	"Connection\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
@@ -13449,9 +13474,12 @@ const file_store_proto_rawDesc = "" +
 	"\fusername_max\x18\x13 \x01(\x03R\vusernameMax\x12\x16\n" +
 	"\x06origin\x18\x14 \x01(\tR\x06origin\x12\"\n" +
 	"\n" +
-	"extra_json\x18\x15 \x01(\fH\x01R\textraJson\x88\x01\x01B\x17\n" +
+	"extra_json\x18\x15 \x01(\fH\x01R\textraJson\x88\x01\x01\x12/\n" +
+	"\x13federation_revision\x18\x16 \x01(\x03R\x12federationRevision\x12?\n" +
+	"\x19federation_secrets_sealed\x18\x17 \x01(\fH\x02R\x17federationSecretsSealed\x88\x01\x01B\x17\n" +
 	"\x15_configuration_sealedB\r\n" +
-	"\v_extra_json\"\xf0\x01\n" +
+	"\v_extra_jsonB\x1c\n" +
+	"\x1a_federation_secrets_sealed\"\xf0\x01\n" +
 	"\bIdentity\x12\x1e\n" +
 	"\n" +
 	"connection\x18\x01 \x01(\tR\n" +

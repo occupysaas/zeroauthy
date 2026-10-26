@@ -154,7 +154,7 @@ func TestTenantRoundTrip(t *testing.T) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: true, UseScopeDescriptionsForConsent: true,
 		PushedAuthorizationRequestsSupported: true,
 		DeviceFlowCharset:                    "digits", DeviceFlowMask: "###-###",
-		Reserved: true, Seeded: true, Origin: store.OriginAPI,
+		Reserved: true, Seeded: true, Origin: store.OriginAPI, IdentityEpoch: 7,
 	}, tenantToPB, tenantFromPB)
 	roundTrip(t, "empty", &store.Tenant{Domains: []string{}, AllowedLogoutURLs: []string{}, EnabledLocales: []string{}, CustomText: store.CustomText{}, SettingsExtra: map[string]any{}, SettingsPresence: map[string]bool{}, ProtectionSettings: store.ProtectionSettings{CAPTCHA: store.CAPTCHAPolicy{SimpleCaptcha: map[string]any{}}}}, tenantToPB, tenantFromPB)
 	roundTrip(t, "zero", &store.Tenant{}, tenantToPB, tenantFromPB)
@@ -276,6 +276,7 @@ func TestConnectionRoundTrip(t *testing.T) {
 			ProfileData: store.PasswordProfileData{Active: true, BlockedFields: []string{"name"}},
 		},
 		BruteForceProtection: true, UsernameMin: 3, UsernameMax: 40, Origin: store.OriginAPI,
+		FederationRevision: 4, FederationSecretsSealed: []byte("sealed-credentials"),
 		Extra:                        map[string]any{"a": map[string]any{"b": []any{"c", float64(1)}}},
 		CreatedAt:                    nanoTime,
 		EnabledDatabaseCustomization: true, ImportMode: true,

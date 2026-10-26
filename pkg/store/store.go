@@ -43,6 +43,11 @@ type (
 	HostedLoginState          = store.HostedLoginState
 	HostedLogins              = store.HostedLogins
 	UnimplementedHostedLogins = store.UnimplementedHostedLogins
+	Federation                = store.Federation
+	FederationAttempt         = store.FederationAttempt
+	FederationEndpoints       = store.FederationEndpoints
+	FederatedIdentityKey      = store.FederatedIdentityKey
+	UnimplementedFederation   = store.UnimplementedFederation
 	Store                     = store.Store
 	Tenants                   = store.Tenants
 	Clients                   = store.Clients
@@ -132,6 +137,7 @@ var (
 	ErrAlreadyUsed                       = store.ErrAlreadyUsed
 	ErrInvalid                           = store.ErrInvalid
 	ErrEmailRepositoryUnavailable        = store.ErrEmailRepositoryUnavailable
+	ErrFederationUnavailable             = store.ErrFederationUnavailable
 
 	ScriptNames      = store.ScriptNames
 	CharacterTypes   = store.CharacterTypes
@@ -148,6 +154,9 @@ const (
 	TLSAssetCertificate = store.TLSAssetCertificate
 	TLSAssetChallenge   = store.TLSAssetChallenge
 	TLSAssetDNSIntent   = store.TLSAssetDNSIntent
+	AttemptPending      = store.AttemptPending
+	AttemptClaimed      = store.AttemptClaimed
+	AttemptFinished     = store.AttemptFinished
 	DeviceCodePending   = store.DeviceCodePending
 	DeviceCodeApproved  = store.DeviceCodeApproved
 	DeviceCodeDenied    = store.DeviceCodeDenied

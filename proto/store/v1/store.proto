@@ -353,6 +353,7 @@ message Tenant {
   int64 idle_ephemeral_session_lifetime = 30; // internal seconds
   string session_cookie_mode = 31;
   string canonical_host = 32;
+  int64 identity_epoch = 33; // Plan 24; absent = 0, maintained only by Federation
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 
@@ -505,6 +506,8 @@ message Connection {
   int64 username_max = 19;
   string origin = 20;                 // "api" or empty (seed)
   optional bytes extra_json = 21;     // absent = nil map; any JSON object
+  int64 federation_revision = 22;     // Plan 24; absent = 0
+  optional bytes federation_secrets_sealed = 23; // Plan 24; absent = nil; sealed, never plaintext
 }
 
 message Identity {

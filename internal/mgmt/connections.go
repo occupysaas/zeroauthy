@@ -368,6 +368,11 @@ func setPlainConfiguration(s *connrules.Spec, plain map[string]string) {
 }
 
 func normalizeConnection(s *connrules.Spec) error {
+	if s.Federated() {
+		// Plan 24 Task 4 seals provider credentials before writes; until
+		// then federated strategies stay unavailable through the API.
+		return badBody("strategy %q is not supported", s.Strategy)
+	}
 	errs := connrules.NormalizeAPI(s)
 	if len(errs) == 0 {
 		return nil

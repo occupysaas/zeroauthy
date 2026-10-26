@@ -267,6 +267,10 @@ func (t *Tenant) validate() []error {
 			fail("connection %q: password_policy and password_options cannot both be set", c.Name)
 		}
 		spec := c.spec()
+		if spec.Federated() {
+			// Plan 24 Task 4 seals provider credentials before writes.
+			fail("connection %q: strategy %q is not supported", c.Name, spec.Strategy)
+		}
 		for _, err := range connrules.Normalize(&spec) {
 			fail("connection %q: %v", c.Name, err)
 		}

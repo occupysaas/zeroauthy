@@ -29,7 +29,12 @@ type Tenant struct {
 	// a legacy default. Currently device_flow.mask=true preserves an explicit
 	// empty mask; missing/false means the legacy default. Null device_flow clears
 	// that presence. Persist it alongside SettingsExtra in every driver.
-	SettingsPresence   map[string]bool
+	SettingsPresence map[string]bool
+	// IdentityEpoch increases with every user deletion or federated identity
+	// removal/transfer, in the same transaction; pending federation attempts
+	// captured at an older epoch cannot complete. Maintained through
+	// Federation, never by Tenants.Update.
+	IdentityEpoch      int64
 	ProtectionSettings ProtectionSettings
 	// ProtectionSettingsInitialized distinguishes an absent policy from explicit
 	// disabled values; initialization/legacy migration occurs once transactionally.
@@ -511,6 +516,13 @@ type Connection struct {
 	// IsDomainConnection marks a domain-level connection (Auth0's
 	// is_domain_connection).
 	IsDomainConnection bool
+	// FederationRevision increases monotonically with every effective
+	// authentication-configuration change of a federated connection;
+	// pending attempts of an older revision are rejected.
+	FederationRevision int64
+	// FederationSecretsSealed is the sealed provider credentials of a
+	// federated connection (federation.SealCredentials); never plaintext.
+	FederationSecretsSealed []byte
 }
 
 // ConnectionFilter narrows Connections.List. An empty Name matches all; Name
