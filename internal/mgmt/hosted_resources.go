@@ -200,6 +200,12 @@ func promptSettings(c *store.HostedLoginConfig) map[string]any {
 	return p
 }
 func (h *Handlers) GetPromptCustomText(w http.ResponseWriter, r *http.Request, prompt, language string) {
+	canonical, err := i18n.CanonicalLocale(language)
+	if err != nil {
+		Fail(w, badBody("invalid language"))
+		return
+	}
+	language = canonical
 	if !brandingrules.ValidTextPrompt(prompt) {
 		Fail(w, badBody("unknown prompt"))
 		return
@@ -210,11 +216,26 @@ func (h *Handlers) GetPromptCustomText(w http.ResponseWriter, r *http.Request, p
 	}
 	v := c.CustomText[prompt][language]
 	if v == nil {
+		for stored, screens := range c.CustomText[prompt] {
+			canonical, err := i18n.CanonicalLocale(stored)
+			if err == nil && canonical == language {
+				v = screens
+				break
+			}
+		}
+	}
+	if v == nil {
 		v = map[string]map[string]string{}
 	}
 	writeJSON(w, http.StatusOK, v)
 }
 func (h *Handlers) PutPromptCustomText(w http.ResponseWriter, r *http.Request, prompt, language string) {
+	canonical, localeErr := i18n.CanonicalLocale(language)
+	if localeErr != nil {
+		Fail(w, badBody("invalid language"))
+		return
+	}
+	language = canonical
 	raw, err := hostedBody(w, r)
 	if err != nil {
 		Fail(w, badBody("custom text body too large"))

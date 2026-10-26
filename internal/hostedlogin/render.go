@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"html"
 	"io"
 	"regexp"
 	"slices"
@@ -62,7 +61,7 @@ func ValidateSource(source string, partial bool) error {
 	if err := validateHTML(normalized, partial); err != nil {
 		return err
 	}
-	if err := liquid.Validate(context.Background(), normalized, liquid.Limits{MaxSourceBytes: len(normalized), MaxOutputBytes: 512 << 10}); err != nil {
+	if err := liquid.Validate(context.Background(), normalized, liquid.Limits{MaxSourceBytes: len(normalized), MaxOutputBytes: 512 << 10, EscapeVariables: true}); err != nil {
 		return err
 	}
 	return nil
@@ -86,7 +85,6 @@ func (Renderer) Render(ctx context.Context, in RenderInput) (RenderOutput, error
 		return RenderOutput{}, err
 	}
 	vars := ProjectContext(in.Variables)
-	escapeContext(vars)
 	source := normalizeTags(in.Source)
 	var token [16]byte
 	if _, err := rand.Read(token[:]); err != nil {
@@ -96,7 +94,7 @@ func (Renderer) Render(ctx context.Context, in RenderInput) (RenderOutput, error
 	headToken, widgetToken := headMarker+markerSuffix, widgetMarker+markerSuffix
 	source = strings.ReplaceAll(source, headMarker, headToken)
 	source = strings.ReplaceAll(source, widgetMarker, widgetToken)
-	out, err := liquid.Render(ctx, source, vars, nil, liquid.Limits{MaxSourceBytes: len(source), MaxOutputBytes: 512 << 10})
+	out, err := liquid.Render(ctx, source, vars, nil, liquid.Limits{MaxSourceBytes: len(source), MaxOutputBytes: 512 << 10, EscapeVariables: true})
 	if err != nil {
 		return RenderOutput{}, err
 	}
@@ -154,15 +152,4 @@ func (Renderer) Render(ctx context.Context, in RenderInput) (RenderOutput, error
 		return RenderOutput{}, liquid.ErrLimit
 	}
 	return RenderOutput{HTML: out, AssetOrigins: origins}, nil
-}
-
-func escapeContext(values map[string]any) {
-	for key, value := range values {
-		switch v := value.(type) {
-		case string:
-			values[key] = html.EscapeString(v)
-		case map[string]any:
-			escapeContext(v)
-		}
-	}
 }

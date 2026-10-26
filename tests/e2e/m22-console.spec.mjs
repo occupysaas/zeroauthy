@@ -25,6 +25,7 @@ test('branded combined and identifier login retain authentication and transient 
  await api('prompts', 'PATCH', { identifier_first: false });
  await begin(page);
  await expect(page.getByText('M22 wrapper', { exact: true })).toBeVisible();
+ await expect(page.getByText('APP[E2E SPA]', { exact: true })).toBeVisible();
  await expect(page.locator('#password')).toBeVisible();
  await page.fill('#username', 'alice@e2e.local'); await page.fill('#password', 'Correct-Horse-Battery-9');
  await page.locator('form[action="/u/login"] button[type=submit]').click();
@@ -141,6 +142,9 @@ test('console edits, sandbox preview and narrow/wide layouts stay isolated', asy
  await page.goto(`${ADMIN}t/e2e/branding`);
  await expect(page.locator('#branding-branding')).toBeEnabled();
  await page.getByRole('tab', { name: 'Theme', exact: true }).click();
+ await page.locator('#theme-colors-primary_button').focus();
+ await page.keyboard.press('Tab');
+ await expect(page.locator('#theme-colors-primary_button_label')).toBeFocused();
  await page.fill('#theme-colors-primary_button', '#234567');
  await page.getByRole('tab', { name: 'Preview', exact: true }).click();
  await page.getByRole('button', { name: 'Render preview', exact: true }).click();
@@ -154,7 +158,18 @@ test('console edits, sandbox preview and narrow/wide layouts stay isolated', asy
  await page.getByRole('tab', { name: 'Page template', exact: true }).click();
  const source = '<html><head>{% auth0:head %}</head><body><p>Console preview wrapper</p><img src="https://remote.example.test/image.svg" alt="Remote logo">{% auth0:widget %}</body></html>';
  await page.fill('#branding-template', source);
+ await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+ const templatePanel=page.getByRole('tabpanel',{name:'Page template',exact:true});
+ await expect(templatePanel.getByText('Changes saved.',{exact:true})).toBeVisible();
+ await page.fill('#branding-template',source.replace('Console preview wrapper','Unsaved later wrapper'));
+ await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await expect(page.locator('#branding-template')).toHaveValue(source);
  await page.getByRole('tab', { name: 'Preview', exact: true }).click();
+ await page.locator('#branding-preview-screen').focus();
+ await page.keyboard.press('Tab');
+ await expect(page.locator('#branding-preview-language')).toBeFocused();
+ await page.keyboard.press('Tab');
+ await expect(page.getByRole('button',{name:'Render preview',exact:true})).toBeFocused();
  const remoteRequests = [];
  page.on('request', request => { if (request.url().includes('remote.example.test')) remoteRequests.push(request.url()); });
  await page.getByRole('button', { name: 'Render preview', exact: true }).click();
@@ -168,13 +183,13 @@ test('console edits, sandbox preview and narrow/wide layouts stay isolated', asy
  await expect(page.locator('body')).not.toContainText('Console preview wrapper');
  expect(remoteRequests).toEqual([]);
  for (const width of [390, 1280]) {
-  await page.setViewportSize({ width, height: 900 });
+  await page.setViewportSize({ width, height: 1600 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const frameWidth=(await iframe.boundingBox()).width;
   await expect.poll(() => frame.locator('body').evaluate(el => document.documentElement.clientWidth)).toBeGreaterThan(frameWidth - 4);
   await expect.poll(() => frame.locator('main').evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThan(Math.min(370, (frameWidth - 2) * .8));
   expect(await frame.locator('body').evaluate(el => el.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: test.info().outputPath(`branding-${width}.png`), fullPage: true });
+  await page.screenshot({ path: test.info().outputPath(`branding-${width}.png`), fullPage: false });
  }
  // A failed render removes the prior document and reports the server error.
  await page.route('**/branding/preview', route => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'Preview rejected' }) }));
@@ -186,4 +201,22 @@ test('console edits, sandbox preview and narrow/wide layouts stay isolated', asy
  await expect(page.locator('#branding-template')).toHaveValue(source);
  await page.getByRole('button', { name: 'Clear configuration', exact: true }).click();
  await expect(page.getByRole('tabpanel', { name: 'Page template', exact: true }).getByText('Configuration cleared.', { exact: true })).toBeVisible();
+ // A late response from the previous tenant cannot overwrite the new editor.
+ let releaseOld; const held=new Promise(resolve=>{releaseOld=resolve;});
+ let signalOld; const oldStarted=new Promise(resolve=>{signalOld=resolve;});
+ let holdFirst=true;
+ await page.route('**/api/v2/branding',async route=>{
+  if(route.request().method()!=='GET'||!holdFirst) {await route.continue();return;}
+  holdFirst=false;signalOld();await held;await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'https://system.localhost:8443'},body:JSON.stringify({colors:{primary:'#abcdef'}})});
+ });
+ await page.goto(`${ADMIN}t/e2e/branding`);await oldStarted;
+ await page.getByRole('button',{name:'Switch tenant'}).click();
+ await page.getByRole('menuitem').filter({hasText:'secondary'}).click();
+ await page.waitForURL(/\/admin\/t\/secondary\/$/);
+ await page.getByRole('link',{name:'Universal Login',exact:true}).click();
+ await page.waitForURL(/\/admin\/t\/secondary\/branding/);
+ await expect(page.locator('#branding-branding')).toHaveValue('{}');
+ releaseOld();await expect(page.locator('#branding-branding')).toHaveValue('{}');
+ await page.unroute('**/api/v2/branding');
+
 });

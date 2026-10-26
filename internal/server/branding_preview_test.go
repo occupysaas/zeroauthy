@@ -130,3 +130,61 @@ type previewReadOnlyConfig struct{ store.HostedLogins }
 func (s previewReadOnlyConfig) Put(context.Context, *store.HostedLoginConfig, int64) error {
 	panic("preview wrote configuration")
 }
+
+func TestCustomTextLanguageIdentity(t *testing.T) {
+	h, st := newMgmtEnv(t)
+	ctx := context.Background()
+	token, _ := operatorToken(t, st, "language-op@example.test")
+	base := "https://acme.example.test/api/v2/prompts/login/custom-text/"
+	for _, item := range []struct{ language, title string }{{"en", "First"}, {"EN", "Replacement"}} {
+		rec, _ := sendRaw(h, "PUT", base+item.language, token, map[string]any{"login": map[string]any{"title": item.title}})
+		if rec.Code != 200 {
+			t.Fatalf("PUT %s=%d %s", item.language, rec.Code, rec.Body)
+		}
+	}
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	config, _ := st.HostedLogins().Get(ctx, tn.ID)
+	if len(config.CustomText["login"]) != 1 {
+		t.Errorf("case-equivalent language records: %v", config.CustomText["login"])
+	}
+	for _, language := range []string{"en", "EN"} {
+		rec, _ := sendRaw(h, "GET", base+language, token, nil)
+		if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Replacement") {
+			t.Errorf("GET %s=%d %s", language, rec.Code, rec.Body)
+		}
+	}
+	rec, _ := sendRaw(h, "PUT", base+"en", token, map[string]any{})
+	if rec.Code != 200 {
+		t.Fatal(rec.Body)
+	}
+	for _, language := range []string{"en", "EN"} {
+		rec, _ := sendRaw(h, "GET", base+language, token, nil)
+		if strings.TrimSpace(rec.Body.String()) != "{}" {
+			t.Errorf("clear left %s override: %s", language, rec.Body)
+		}
+	}
+}
+
+func TestBrandingPreviewDraftKeepsOtherResources(t *testing.T) {
+	h, st := newMgmtEnv(t)
+	ctx := context.Background()
+	token, _ := operatorToken(t, st, "preview-draft-op@example.test")
+	tn, _ := st.Tenants().GetByName(ctx, "acme")
+	tn.EnabledLocales = []string{"en", "fr"}
+	if err := st.Tenants().Update(ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	config, _ := st.HostedLogins().Get(ctx, tn.ID)
+	config.CustomText = store.CustomText{"login": {"en": {"login": {"title": "Saved English"}}, "fr": {"login": {"title": "Saved French"}}}, "signup": {"en": {"signup": {"title": "Saved signup"}}}}
+	config.Partials = map[string]map[string]map[string]string{"signup": {"signup": {"form-footer-start": "<p>Saved signup partial</p>"}}}
+	if err := st.HostedLogins().Put(ctx, config, config.Revision); err != nil {
+		t.Fatal(err)
+	}
+	overrides := map[string]any{"custom_text": map[string]any{"login": map[string]any{"en": map[string]any{"login": map[string]any{"title": "Draft English"}}}}, "partials": map[string]any{"login": map[string]any{"login": map[string]any{"form-footer-start": "<p>Draft footer</p>"}}}}
+	for _, item := range []struct{ screen, language, want string }{{"login", "fr", "Saved French"}, {"signup", "en", "Saved signup partial"}} {
+		rec, _ := sendRaw(h, "POST", "https://"+mgmtSystemHost+"/api/system/tenants/acme/branding/preview", token, map[string]any{"screen": item.screen, "language": item.language, "overrides": overrides})
+		if rec.Code != 200 || !strings.Contains(rec.Body.String(), item.want) {
+			t.Errorf("preview lost %s: status=%d %s", item.want, rec.Code, rec.Body)
+		}
+	}
+}

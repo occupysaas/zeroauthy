@@ -69,3 +69,38 @@ func TestPartialAggregateFieldBoundary(t *testing.T) {
 		t.Fatal("8 KiB plus one accepted")
 	}
 }
+
+func TestPartialHTMLFragmentBoundaries(t *testing.T) {
+	for _, source := range []string{
+		`<textarea name="ulp-note" aria-label="Note"/>`,
+		`<fieldset disabled></div>`,
+		`<div></form>`,
+		`<select name="ulp-note" aria-label="Note"/>`,
+	} {
+		slots := map[string]string{"form-content-start": source}
+		if err := ValidatePartials(map[string]map[string]string{"login": slots}); err == nil {
+			t.Errorf("save accepted parser-repaired fragment %s", source)
+		}
+		if _, err := RenderPartials(context.Background(), slots, nil, nil, ""); err == nil {
+			t.Errorf("render accepted parser-repaired fragment %s", source)
+		}
+	}
+	for _, source := range []string{`<input name="ulp-note" aria-label="Note"/>`, `<textarea name="ulp-note" aria-label="Note"></textarea>`} {
+		if _, err := RenderPartials(context.Background(), map[string]string{"form-content-start": source}, nil, nil, ""); err != nil {
+			t.Errorf("safe balanced fragment rejected: %s: %v", source, err)
+		}
+	}
+}
+
+func TestPartialExpressionsUseUnescapedValues(t *testing.T) {
+	out, err := RenderPartials(context.Background(), map[string]string{"form-footer-start": `{% if tenant.name == 'A&B' %}<p>RIGHT</p>{% else %}<p>WRONG</p>{% endif %}<p>LEN[{{tenant.name | size}}]</p><p>{{tenant.name | replace: '&', ' and '}}</p>`}, map[string]any{"tenant": map[string]any{"name": "A&B"}}, nil, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := out.Slots["form-footer-start"]
+	for _, want := range []string{"RIGHT", "LEN[3]", "A and B"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("missing %s: %s", want, html)
+		}
+	}
+}

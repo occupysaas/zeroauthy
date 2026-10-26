@@ -8,7 +8,12 @@ import (
 	"unicode/utf8"
 )
 
-type Limits struct{ MaxSourceBytes, MaxOutputBytes int }
+type Limits struct {
+	MaxSourceBytes, MaxOutputBytes int
+	// EscapeVariables escapes substitutions after evaluating expressions and
+	// filters. Email retains its existing explicitly escaped rendering mode.
+	EscapeVariables bool
+}
 
 var ErrLimit = errors.New("liquid limit exceeded")
 var ErrSyntax = errors.New("invalid liquid source")
@@ -29,7 +34,7 @@ func Render(ctx context.Context, source string, vars map[string]any, tags map[st
 		source = strings.ReplaceAll(source, "{% "+name+" %}", value)
 		source = strings.ReplaceAll(source, "{%- "+name+" -%}", value)
 	}
-	out, err := RenderLiquid(ctx, source, vars, maxOutput)
+	out, err := renderLiquid(ctx, source, vars, maxOutput, limits.EscapeVariables)
 	if err != nil {
 		return "", err
 	}

@@ -345,6 +345,11 @@ func Merge(current *store.HostedLoginConfig, resource string, body []byte) (*sto
 		if len(parts) != 2 || !ValidTextPrompt(parts[0]) || parts[1] == "" {
 			return nil, errInvalid
 		}
+		canonical, err := i18n.CanonicalLocale(parts[1])
+		if err != nil {
+			return nil, errInvalid
+		}
+		parts[1] = canonical
 		var screens map[string]map[string]string
 		if err := json.Unmarshal(body, &screens); err != nil || screens == nil {
 			return nil, errInvalid
@@ -371,6 +376,14 @@ func Merge(current *store.HostedLoginConfig, resource string, body []byte) (*sto
 		}
 		if next.CustomText[parts[0]] == nil {
 			next.CustomText[parts[0]] = map[string]map[string]map[string]string{}
+		}
+		// A replacement or clear owns every case-equivalent spelling. This
+		// also repairs records created by older case-sensitive API versions.
+		for existing := range next.CustomText[parts[0]] {
+			normalized, err := i18n.CanonicalLocale(existing)
+			if err == nil && normalized == parts[1] {
+				delete(next.CustomText[parts[0]], existing)
+			}
 		}
 		next.CustomText[parts[0]][parts[1]] = screens
 	case strings.HasPrefix(resource, "partials:"):

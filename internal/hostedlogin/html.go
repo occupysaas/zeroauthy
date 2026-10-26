@@ -13,7 +13,7 @@ var errHTML = errors.New("unsafe hosted template HTML")
 
 func validateHTML(source string, partial bool) error {
 	z := html.NewTokenizer(strings.NewReader(source))
-	depth := 0
+	stack := []string{}
 	inStyle := false
 	var css strings.Builder
 	for {
@@ -95,9 +95,14 @@ func validateHTML(source string, partial bool) error {
 					}
 				}
 			}
-			if tt == html.StartTagToken && !voidElement(tag) {
-				depth++
-				if depth > 32 {
+			// HTML ignores self-closing syntax on non-void elements. Such
+			// fragments can consume or disable the following trusted widget.
+			if tt == html.SelfClosingTagToken && !voidElement(tag) {
+				return errHTML
+			}
+			if !voidElement(tag) {
+				stack = append(stack, tag)
+				if len(stack) > 32 {
 					return errHTML
 				}
 			}
@@ -106,16 +111,19 @@ func validateHTML(source string, partial bool) error {
 			css.WriteString(t.Data)
 		}
 		if tt == html.EndTagToken {
+			if len(stack) == 0 || stack[len(stack)-1] != tag {
+				return errHTML
+			}
 			if tag == "style" {
 				if err := ValidateCSS(css.String()); err != nil {
 					return err
 				}
 				inStyle = false
 			}
-			depth--
+			stack = stack[:len(stack)-1]
 		}
 	}
-	if depth != 0 || inStyle {
+	if len(stack) != 0 || inStyle {
 		return errHTML
 	}
 	return nil

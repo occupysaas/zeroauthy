@@ -51,6 +51,20 @@ func checkLocale(t string) error {
 	return nil
 }
 
+// CanonicalLocale gives API resource paths one identity, including callers
+// that vary letter case. Tenant enabled-locale policy remains separately checked.
+func CanonicalLocale(value string) (string, error) {
+	tag, err := language.Parse(value)
+	if err != nil {
+		return "", err
+	}
+	canonical := tag.String()
+	if err := checkLocale(canonical); err != nil {
+		return "", err
+	}
+	return canonical, nil
+}
+
 // zeroauthyPrompt is the custom-text prompt for zeroauthy's own keys.
 const zeroauthyPrompt = "zeroauthy"
 

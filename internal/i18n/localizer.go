@@ -75,6 +75,15 @@ func (l *Localizer) WithVar(name, value string) *Localizer {
 	return &c
 }
 
+// ApplicationName returns only the public display name already provided by
+// the request's application lookup. It never falls back to a client ID.
+func (l *Localizer) ApplicationName() string {
+	if l == nil {
+		return ""
+	}
+	return l.vars["clientName"]
+}
+
 // WithoutCustom keeps language and public variables while restoring catalog
 // copy, for a rendering fallback after legacy text exceeds output budgets.
 func (l *Localizer) WithoutCustom() *Localizer {

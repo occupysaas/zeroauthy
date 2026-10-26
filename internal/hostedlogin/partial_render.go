@@ -32,7 +32,6 @@ func RenderPartials(parent context.Context, slots map[string]string, variables m
 	defer cancel()
 	out := PartialOutput{Slots: map[string]string{}, Fields: map[string]string{}}
 	vars := ProjectContext(variables)
-	escapeContext(vars)
 	total := 0
 	for _, slot := range []string{"form-content-start", "form-content-end", "form-footer-start", "form-footer-end"} {
 		source := slots[slot]
@@ -45,7 +44,7 @@ func RenderPartials(parent context.Context, slots map[string]string, variables m
 		if err := ValidateSource(source, true); err != nil {
 			return PartialOutput{}, err
 		}
-		rendered, err := liquid.Render(ctx, source, vars, nil, liquid.Limits{MaxSourceBytes: 40 << 10, MaxOutputBytes: 512 << 10})
+		rendered, err := liquid.Render(ctx, source, vars, nil, liquid.Limits{MaxSourceBytes: 40 << 10, MaxOutputBytes: 512 << 10, EscapeVariables: true})
 		if err != nil {
 			return PartialOutput{}, err
 		}

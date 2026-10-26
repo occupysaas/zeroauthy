@@ -9,7 +9,7 @@ async function token(domain, scope) {
 const make = async (domain, scope) => new ManagementClient({ domain, token: await token(domain, scope), maxRetries: 0 });
 const m = await make('localhost:8443');
 const secondary = await make('secondary.localhost:8443');
-const template = '<html><head>{% auth0:head %}</head><body><p class="za-decoration">M22 wrapper</p>{% auth0:widget %}</body></html>';
+const template = '<html><head>{% auth0:head %}</head><body><p class="za-decoration">M22 wrapper</p><p>APP[{{ application.name }}]</p>{% auth0:widget %}</body></html>';
 assert.equal((await m.branding.update({ colors: { primary: '#123456', page_background: '#eef0f2' } })).colors.primary, '#123456');
 assert.equal((await m.branding.get()).colors.page_background, '#eef0f2');
 assert.notEqual((await secondary.branding.get()).colors?.primary, '#123456');
@@ -36,6 +36,11 @@ await m.prompts.customText.set('login-id', 'en', { 'login-id': { title: 'M22 ide
 assert.equal((await m.prompts.customText.get('login-id', 'en'))['login-id'].title, 'M22 identify');
 const slots = { 'login-id': { 'form-content-start': '<label for="ulp-team">Team</label><input id="ulp-team" name="ulp-team" type="text">' } };
 await m.prompts.partials.set('login-id', slots);
+for (const unsafe of ['<textarea name="ulp-note" aria-label="Note"/>', '<fieldset disabled></div>']) await assert.rejects(m.prompts.partials.set('login', { login: { 'form-content-start': unsafe } }), e => e.statusCode === 400);
+await m.prompts.customText.set('login', 'EN', { login: { title: 'Case replacement' } });
+assert.equal((await m.prompts.customText.get('login', 'en')).login.title, 'Case replacement');
+await m.prompts.customText.set('login', 'en', {});
+assert.deepEqual(await m.prompts.customText.get('login', 'EN'), {});
 assert.deepEqual(await m.prompts.partials.get('login-id'), slots);
 await m.prompts.partials.set('login-id', {}); assert.deepEqual(await m.prompts.partials.get('login-id'), {});
 await m.prompts.customText.set('login-id', 'en', {}); assert.deepEqual(await m.prompts.customText.get('login-id', 'en'), {});

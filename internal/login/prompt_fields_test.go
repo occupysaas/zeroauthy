@@ -241,3 +241,18 @@ func TestHostedBrandingAndPartialStateAfterRestart(t *testing.T) {
 		t.Fatal("captured state survived completion")
 	}
 }
+
+func TestPartialInvalidStoredFragmentKeepsWidget(t *testing.T) {
+	for _, source := range []string{`<textarea name="ulp-note" aria-label="Note"/>`, `<fieldset disabled></div>`} {
+		e := newEnv(t)
+		setPartials(t, e, map[string]map[string]map[string]string{"login": {"login": {"form-content-start": source}}})
+		page, state, _ := e.browser("acme.example.test").begin(t)
+		if page.Code != 200 || !strings.Contains(page.Body.String(), `id="password"`) || !strings.Contains(page.Body.String(), `<button type="submit">`) || strings.Contains(page.Body.String(), source) {
+			t.Fatalf("fallback lost widget: status=%d %s", page.Code, page.Body)
+		}
+		txn, err := e.st.AuthTransactions().Get(context.Background(), mustTenant(t, e, "acme").ID, state)
+		if err != nil || len(txn.HostedState.FormFields) != 0 {
+			t.Fatalf("fallback declared controls: %+v %v", txn, err)
+		}
+	}
+}

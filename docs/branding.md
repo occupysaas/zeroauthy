@@ -41,7 +41,8 @@ which currently has no runtime effect.
 Template GET returns `{ "template": "..." }`. PUT accepts JSON with a `template`
 string or `text/html` and returns an empty 200 response; DELETE returns 204 and
 restores the built-in page. Custom-text and partial PUT replace their selected
-resource. Send `{}` to clear overrides and restore fallback.
+resource. Send `{}` to clear overrides and restore fallback. Language tags are
+canonicalized, so `en` and `EN` address the same overrides.
 
 ## Page templates
 
@@ -72,8 +73,9 @@ reserved roots can be empty until their feature exists. User metadata, secrets,
 transaction identifiers, tickets, tokens, passwords and raw captured fields
 are never projected into template context.
 
-HTML is validated before saving and after rendering. Text substitutions are
-escaped. Scripts, event attributes, inline style attributes, forms in the outer
+HTML is validated before saving and after rendering. Tags must balance exactly;
+self-closing non-void elements are rejected. Liquid comparisons and filters use
+original values; substitutions are escaped when emitted into HTML. Scripts, event attributes, inline style attributes, forms in the outer
 template, embedded documents, SVG/MathML and executable URLs are rejected.
 Decorative CSS is restricted to `.za-decoration` with bounded colors, spacing,
 font size/weight and alignment. It cannot position overlays, hide the widget,

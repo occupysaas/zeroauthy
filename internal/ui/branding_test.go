@@ -103,3 +103,23 @@ func TestOversizedLegacyTextFallback(t *testing.T) {
 		t.Fatalf("legacy fallback=%d bytes=%d", rec.Code, rec.Body.Len())
 	}
 }
+
+func TestPageTemplateApplicationContext(t *testing.T) {
+	source := `<html><head>{% auth0:head %}</head><body><p>APP[{{application.name}}]</p>{% auth0:widget %}</body></html>`
+	cfg := &store.HostedLoginConfig{TenantID: "t", Template: &source}
+	request := httptest.NewRequest("GET", "https://tenant.test/u/login", nil)
+	request = request.WithContext(hostedlogin.WithConfiguration(request.Context(), cfg))
+	view := RequestTenant(request, &store.Tenant{ID: "t", Name: "Tenant"}, i18n.Default().WithVar("clientName", "Example & App"))
+	rec := httptest.NewRecorder()
+	RenderLogin(rec, 200, view, LoginData{State: "state", CSRF: "csrf"})
+	if !strings.Contains(rec.Body.String(), "APP[Example &amp; App]") {
+		t.Fatalf("application context missing: %s", rec.Body)
+	}
+	preview, err := Preview(context.Background(), cfg, "login", "en")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(preview.HTML, "APP[Example application]") {
+		t.Fatalf("synthetic application context missing: %s", preview.HTML)
+	}
+}

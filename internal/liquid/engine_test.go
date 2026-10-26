@@ -37,3 +37,28 @@ func TestRenderHostedFilterBudget(t *testing.T) {
 		t.Fatalf("hosted filter budget: bytes=%d err=%v", len(out), err)
 	}
 }
+
+func TestQuotedFilterArgumentsKeepOperatorText(t *testing.T) {
+	out, err := Render(context.Background(), `{{value | replace: '&', ' and '}}`, map[string]any{"value": "A&B"}, nil, Limits{})
+	if err != nil || out != "A and B" {
+		t.Fatalf("quoted operator text=%q err=%v", out, err)
+	}
+}
+
+func TestHostedOutputEscapingPreservesEmailMode(t *testing.T) {
+	vars := map[string]any{"value": "<b>&lt;</b>"}
+	for _, source := range []string{`{{value}}`, `{{value | escape}}`, `{% assign escaped = value | escape %}{{escaped}}`, `{{value | escape_once}}`} {
+		out, err := Render(context.Background(), source, vars, nil, Limits{EscapeVariables: true})
+		want := "&lt;b&gt;&amp;lt;&lt;/b&gt;"
+		if strings.Contains(source, "escape_once") {
+			want = "&lt;b&gt;&lt;&lt;/b&gt;"
+		}
+		if err != nil || out != want {
+			t.Errorf("hosted %s=%q want=%q err=%v", source, out, want, err)
+		}
+	}
+	out, err := Render(context.Background(), `{{value}}`, vars, nil, Limits{})
+	if err != nil || out != "<b>&lt;</b>" {
+		t.Fatalf("email mode changed: %q %v", out, err)
+	}
+}

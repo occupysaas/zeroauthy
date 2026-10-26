@@ -224,6 +224,7 @@ type renderState struct {
 	deadline                 time.Time
 	maxOutput                int
 	maxSource                int
+	escapeVariables          bool
 }
 
 type templateNode interface {
@@ -231,6 +232,10 @@ type templateNode interface {
 }
 type textNode string
 type valueNode string
+
+// escapedValue records an explicit escape filter in auto-escaped hosted output.
+// Email always retains plain string results.
+type escapedValue string
 type assignNode struct{ name, expr string }
 type forNode struct {
 	name, expr string
@@ -260,7 +265,13 @@ func (n valueNode) render(s *renderState, b *strings.Builder) error {
 	if err != nil {
 		return err
 	}
-	b.WriteString(stringify(v))
+	output := stringify(v)
+	if s.escapeVariables {
+		if _, escaped := v.(escapedValue); !escaped {
+			output = html.EscapeString(output)
+		}
+	}
+	b.WriteString(output)
 	return s.output(b)
 }
 func (n assignNode) render(s *renderState, _ *strings.Builder) error {
@@ -359,6 +370,10 @@ func (s *renderState) output(b *strings.Builder) error {
 // RenderLiquid evaluates one source with the same bounded parser as email.
 // Hosted pages supply a larger output cap; email's existing limits stay fixed.
 func RenderLiquid(parent context.Context, source string, variables map[string]any, outputLimit int) (string, error) {
+	return renderLiquid(parent, source, variables, outputLimit, false)
+}
+
+func renderLiquid(parent context.Context, source string, variables map[string]any, outputLimit int, escapeVariables bool) (string, error) {
 	if activeRenders.Add(1) > maxConcurrent {
 		activeRenders.Add(-1)
 		return "", ErrRenderCapacity
@@ -377,7 +392,7 @@ func RenderLiquid(parent context.Context, source string, variables map[string]an
 	if !ok {
 		return "", ErrRenderSyntax
 	}
-	state := renderState{ctx: ctx, deadline: time.Now().Add(maxRenderTime), vars: cloneMap(varMap), maxOutput: outputLimit, maxSource: len(source)}
+	state := renderState{ctx: ctx, deadline: time.Now().Add(maxRenderTime), vars: cloneMap(varMap), maxOutput: outputLimit, maxSource: len(source), escapeVariables: escapeVariables}
 	nodes, _, err := state.parse(source, 0)
 	if err != nil {
 		return "", err
@@ -596,7 +611,7 @@ func (s *renderState) eval(expr string) (any, error) {
 		return v, nil
 	}
 	for _, op := range []string{" or ", " and ", " == ", " != ", " >= ", " <= ", " > ", " < ", " contains "} {
-		if i := strings.Index(expr, op); i > 0 {
+		if i := indexTopOperator(expr, op); i > 0 {
 			a, e := s.eval(expr[:i])
 			if e != nil {
 				return nil, e
@@ -703,6 +718,44 @@ func splitTop(s string, sep rune) []string {
 	}
 	return append(out, s[start:])
 }
+
+// Operators inside quoted literals or parenthesized subexpressions are data.
+func indexTopOperator(source, operator string) int {
+	var quote rune
+	depth := 0
+	for i, r := range source {
+		if quote != 0 {
+			if r == quote {
+				quote = 0
+			}
+			continue
+		}
+		if r == '\'' || r == '"' {
+			quote = r
+			continue
+		}
+		if r == '(' || r == '[' {
+			depth++
+			continue
+		}
+		if r == ')' || r == ']' {
+			depth--
+			continue
+		}
+		if depth == 0 && strings.HasPrefix(source[i:], operator) {
+			return i
+		}
+	}
+	return -1
+}
+
+func (s *renderState) escaped(value string) any {
+	if s.escapeVariables {
+		return escapedValue(value)
+	}
+	return value
+}
+
 func applyFilter(state *renderState, value any, spec string) (any, error) {
 	p := splitTop(spec, ':')
 	name := strings.TrimSpace(p[0])
@@ -727,13 +780,13 @@ func applyFilter(state *renderState, value any, spec string) (any, error) {
 		if escapedSize(s) > state.outputBudget() {
 			return nil, ErrRenderLimit
 		}
-		return html.EscapeString(s), nil
+		return state.escaped(html.EscapeString(s)), nil
 	case "escape_once":
 		decoded := html.UnescapeString(s)
 		if escapedSize(decoded) > state.outputBudget() {
 			return nil, ErrRenderLimit
 		}
-		return html.EscapeString(decoded), nil
+		return state.escaped(html.EscapeString(decoded)), nil
 	case "upcase":
 		return strings.ToUpper(s), nil
 	case "downcase":
@@ -809,6 +862,8 @@ func applyFilter(state *renderState, value any, spec string) (any, error) {
 	case "size":
 		switch v := value.(type) {
 		case string:
+			return len(v), nil
+		case escapedValue:
 			return len(v), nil
 		case []any:
 			return len(v), nil
@@ -923,6 +978,8 @@ func stringify(v any) string {
 		return ""
 	case string:
 		return x
+	case escapedValue:
+		return string(x)
 	case bool:
 		if x {
 			return "true"
@@ -945,6 +1002,8 @@ func truthy(v any) bool {
 	case bool:
 		return x
 	case string:
+		return x != ""
+	case escapedValue:
 		return x != ""
 	case float64:
 		return x != 0

@@ -74,7 +74,7 @@ function body(): BrandingObject {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(t('branding.objectRequired'))
   return value as BrandingObject
 }
-watch([draft, loading], () => {
+watch([draft, loading, remote], () => {
   if (loading.value || draft.value === textOf(remote.value)) { emit('draft', { value: {}, invalid: false }); return }
   try {
     const value = body()
@@ -113,7 +113,8 @@ async function change(remove = false, create = false) {
     if (mine !== generation) return
     if (remove) { remote.value = {}; draft.value = props.kind === 'template' ? '' : '{}' }
     else {
-      if (saved && typeof saved === 'object') remote.value = saved
+      if (props.kind === 'template') remote.value = { ...value }
+      else if (saved && typeof saved === 'object') remote.value = saved
       if (props.kind === 'theme' && saved) draft.value = textOf(saved)
     }
     status.value = t(remove ? 'branding.cleared' : 'branding.saved')

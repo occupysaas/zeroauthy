@@ -101,7 +101,26 @@ func (h *Handlers) PreviewBranding(w http.ResponseWriter, r *http.Request, name 
 		case "default_theme_id":
 			err = json.Unmarshal(value, &config.DefaultThemeID)
 		case "custom_text":
-			err = json.Unmarshal(value, &config.CustomText)
+			var updates store.CustomText
+			err = json.Unmarshal(value, &updates)
+			if err == nil {
+				if updates == nil {
+					config.CustomText = nil
+				} else {
+					for prompt, languages := range updates {
+						for language, screens := range languages {
+							raw, _ := json.Marshal(screens)
+							config, err = brandingrules.Merge(config, "text:"+prompt+":"+language, raw)
+							if err != nil {
+								break
+							}
+						}
+						if err != nil {
+							break
+						}
+					}
+				}
+			}
 		case "partials":
 			err = json.Unmarshal(value, &config.Partials)
 		default:

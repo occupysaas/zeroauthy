@@ -184,3 +184,18 @@ func TestTemplateSkippedFilterRejectedAtSave(t *testing.T) {
 		t.Fatal("unknown filter in skipped branch accepted")
 	}
 }
+
+func TestTemplateExpressionsUseUnescapedValues(t *testing.T) {
+	out, err := (Renderer{}).Render(context.Background(), RenderInput{Source: `<html><head>{% auth0:head %}</head><body>{% if tenant.name == 'A&B' %}<p>RIGHT</p>{% else %}<p>WRONG</p>{% endif %}<p>LEN[{{tenant.name | size}}]</p><p>{{tenant.name | replace: '&', ' and '}}</p><p>{{application.name}}</p>{% auth0:widget %}</body></html>`, Head: "", Widget: "<form></form>", Variables: map[string]any{"tenant": map[string]any{"name": "A&B"}, "application": map[string]any{"name": "<script>unsafe()</script>"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"RIGHT", "LEN[3]", "A and B", "&lt;script&gt;unsafe()&lt;/script&gt;"} {
+		if !strings.Contains(out.HTML, want) {
+			t.Errorf("missing %s: %s", want, out.HTML)
+		}
+	}
+	if strings.Contains(out.HTML, "<script>") {
+		t.Fatal("substitution emitted markup")
+	}
+}

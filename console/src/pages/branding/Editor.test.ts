@@ -117,3 +117,14 @@ it('offers keyboard-usable controls for every active theme component and preserv
   expect(wrapper.find('#theme-widget-social_buttons_layout').exists()).toBe(false)
   wrapper.unmount()
 })
+
+it('acknowledges an empty-200 template save and restores that saved snapshot on Cancel', async () => {
+ const { wrapper } = await mountAt(page('template'), '/t/acme/branding', c => c.method === 'GET' ? { status: 200, body: { template: '<p>A</p>' } } : { status: 200 })
+ await wrapper.find('textarea').setValue('<p>B</p>'); await wrapper.find('form').trigger('submit'); await flushPromises()
+ const editor = wrapper.findComponent(Editor)
+ expect(editor.emitted('draft')?.at(-1)).toEqual([{ value: {}, invalid: false }])
+ await wrapper.find('textarea').setValue('<p>C</p>')
+ await wrapper.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
+ expect((wrapper.find('textarea').element as HTMLTextAreaElement).value).toBe('<p>B</p>')
+ wrapper.unmount()
+})

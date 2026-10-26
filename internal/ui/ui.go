@@ -252,8 +252,9 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 		if hasHead && hasHeadEnd && hasBody && hasBodyEnd {
 			prompt, screen := promptForPage(name)
 			out, err := (hostedlogin.Renderer{}).Render(ctx, hostedlogin.RenderInput{Source: *t.config.Template, Head: head, Widget: widget, Nonce: nonce, Variables: map[string]any{
-				"tenant": map[string]any{"name": t.Name, "support_email": t.SupportEmail, "support_url": t.SupportURL},
-				"prompt": map[string]any{"name": prompt, "screen": map[string]any{"name": screen, "text": t.L.ScreenText(prompt, screen)}}, "locale": map[string]any{"language": t.L.Lang()},
+				"application": map[string]any{"name": t.L.ApplicationName()},
+				"tenant":      map[string]any{"name": t.Name, "support_email": t.SupportEmail, "support_url": t.SupportURL},
+				"prompt":      map[string]any{"name": prompt, "screen": map[string]any{"name": screen, "text": t.L.ScreenText(prompt, screen)}}, "locale": map[string]any{"language": t.L.Lang()},
 				"branding": map[string]any{"logo_url": t.LogoURL, "primary_color": t.PrimaryColor},
 			}})
 			if err == nil {
