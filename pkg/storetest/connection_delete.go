@@ -134,6 +134,11 @@ func testConnectionDelete(t *testing.T, newStore Factory) {
 		want := newTenant("ten_a")
 		want.Domains = []string{"ten-a.example.test"}
 		want.ID, want.DefaultDirectory = "ten_a", ""
+		// Deleting the connection's users moves the identity epoch (Plan 24).
+		if tn.IdentityEpoch < 1 {
+			t.Fatalf("identity epoch %d after deleting users", tn.IdentityEpoch)
+		}
+		want.IdentityEpoch = tn.IdentityEpoch
 		mustEqual(t, tn, want)
 		tn, err = s.Tenants().Get(ctx, "ten_b")
 		mustNoErr(t, err)

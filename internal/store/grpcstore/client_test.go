@@ -488,3 +488,31 @@ func TestOldPluginProtectionTooOld(t *testing.T) {
 		t.Fatalf("want plugin too old, got %v", err)
 	}
 }
+
+// An old plugin cannot provide atomic federation: every call reports the
+// repository unavailable, never an empty index or a fabricated epoch.
+func TestOldPluginFederationUnavailable(t *testing.T) {
+	c := serveOldPlugin(t)
+	defer c.Close()
+	ctx := context.Background()
+	k := store.FederatedIdentityKey{TenantID: "t", ConnectionID: "c", Subject: "s"}
+	f := c.Federation()
+	_, epochErr := f.IdentityEpoch(ctx, "t")
+	_, getErr := f.GetAttempt(ctx, "t", "s")
+	_, claimErr := f.ClaimAttempt(ctx, "t", "s", "c", "o", time.Now())
+	_, tokErr := f.GetTokens(ctx, k)
+	_, sweepErr := f.DeleteExpired(ctx, time.Now())
+	_, findErr := c.Users().FindByIdentity(ctx, "t", "c", "s")
+	for name, err := range map[string]error{
+		"epoch": epochErr, "bump": f.BumpIdentityEpoch(ctx, "t"),
+		"create": f.CreateAttempt(ctx, &store.FederationAttempt{TenantID: "t", StateHash: "s", ExpiresAt: time.Now(), CreatedAt: time.Now()}),
+		"get":    getErr, "claim": claimErr, "finish": f.FinishAttempt(ctx, "t", "s"),
+		"put identity": f.PutIdentity(ctx, k, "u"), "delete identity": f.DeleteIdentity(ctx, k, "u"),
+		"get tokens": tokErr, "put tokens": f.PutTokens(ctx, k, []byte("x")), "delete tokens": f.DeleteTokens(ctx, k),
+		"sweep": sweepErr, "find": findErr,
+	} {
+		if !errors.Is(err, store.ErrFederationUnavailable) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}

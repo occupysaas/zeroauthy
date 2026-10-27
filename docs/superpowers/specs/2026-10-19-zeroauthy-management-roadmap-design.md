@@ -182,6 +182,8 @@ guide defines fleet rollout/rollback and legacy noncanonical reauthentication.
 
 ### Plan 24 — Social connections I: generic OAuth 2 and OIDC, Google (full design; slice 6a)
 
+**Draft design and plan (2026-10-26):** [standalone spec](2026-10-26-zeroauthy-social-connections-design.md) and [implementation plan](../plans/2026-10-26-zeroauthy-plan-24-social-connections.md). Includes the basic `oidc` back-channel strategy ahead of Plan 36; enterprise discovery and remaining OIDC features stay there. Implemented 2026-10-26: see the [implementation record](../2026-10-26-plan-24-implementation-record.md) and [operator guide](../../social-connections.md).
+
 **Endpoints:** `/api/v2/connections` accepts strategies `oauth2` and `google-oauth2` with their documented `options`; `/users/{id}/identities` link and unlink social identities; `federated-connections-tokensets` stays out.
 
 **Runtime:** federated login from `/authorize` (`connection=` and buttons on the login page), state and PKCE to the upstream, ID token validation for OIDC upstreams, profile mapping into Auth0's normalized profile (`identities[].isSocial`, `access_token` storage rules), `set_user_root_attributes`, upstream token storage as Auth0 stores it (readable with `read:user_idp_tokens`), matching imported users by provider user ID (the users design import keeps `identities`).

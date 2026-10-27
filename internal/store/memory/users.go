@@ -19,10 +19,17 @@ func (r users) Create(_ context.Context, u *store.User) error {
 	if _, ok := r.s.users[k]; ok || r.loginTaken(u) {
 		return store.ErrConflict
 	}
+	fed, err := r.s.federatedKeys(u)
+	if err != nil {
+		return err
+	}
+	if err := r.s.checkIdentities(u.UserID, fed); err != nil {
+		return err
+	}
 	nu := cloneUser(u)
 	nu.Version = 0
 	r.s.users[k] = nu
-	return nil
+	return r.s.syncIdentities(u.TenantID, u.UserID, fed)
 }
 
 func (r users) Get(_ context.Context, tenantID, userID string) (*store.User, error) {
@@ -69,6 +76,13 @@ func (r users) Update(_ context.Context, u *store.User) error {
 	if r.loginTaken(u) {
 		return store.ErrConflict
 	}
+	fed, err := r.s.federatedKeys(u)
+	if err != nil {
+		return err
+	}
+	if err := r.s.checkIdentities(u.UserID, fed); err != nil {
+		return err
+	}
 	nu := cloneUser(u)
 	old := r.s.users[k]
 	nu.LastLogin, nu.LoginsCount, nu.LastIP = old.LastLogin, old.LoginsCount, old.LastIP
@@ -77,7 +91,7 @@ func (r users) Update(_ context.Context, u *store.User) error {
 		nu.Version++
 	}
 	r.s.users[k] = nu
-	return nil
+	return r.s.syncIdentities(u.TenantID, u.UserID, fed)
 }
 
 func (r users) RecordLogin(_ context.Context, tenantID, userID string, at time.Time, ip string) error {
@@ -184,6 +198,7 @@ func (r users) Delete(_ context.Context, tenantID, userID string) error {
 // deleteUsers removes the users and everything that names them. The caller
 // holds the lock; Connections.Delete uses it too.
 func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
+	s.dropFederation(tenantID, gone)
 	for id := range gone {
 		s.deleteEmailClaims(tenantID, id)
 		if p := s.protection[tenantID]; p != nil {

@@ -102,6 +102,9 @@ func (s *Store) snapshot() *state {
 		emailProviderRevisions: maps.Clone(s.emailProviderRevisions),
 		emailTemplates:         cloneMap(s.emailTemplates, cloneEmailTemplate),
 		emailNotifications:     maps.Clone(s.emailNotifications),
+		fedAttempts:            cloneMap(s.fedAttempts, (*store.FederationAttempt).Clone),
+		fedIdentities:          maps.Clone(s.fedIdentities),
+		fedTokens:              cloneFedTokens(s.fedTokens),
 	}
 }
 
@@ -126,6 +129,15 @@ func (s *Store) restore(snap *state) {
 	s.hostedLogins = snap.hostedLogins
 	s.emailProviders, s.emailProviderRevisions = snap.emailProviders, snap.emailProviderRevisions
 	s.emailTemplates, s.emailNotifications = snap.emailTemplates, snap.emailNotifications
+	s.fedAttempts, s.fedIdentities, s.fedTokens = snap.fedAttempts, snap.fedIdentities, snap.fedTokens
+}
+
+func cloneFedTokens(m map[fedKey][]byte) map[fedKey][]byte {
+	out := make(map[fedKey][]byte, len(m))
+	for k, v := range m {
+		out[k] = bytes.Clone(v)
+	}
+	return out
 }
 
 func cloneMap[K comparable, V any](m map[K]*V, clone func(*V) *V) map[K]*V {

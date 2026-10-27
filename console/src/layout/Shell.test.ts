@@ -45,7 +45,7 @@ describe('Shell sidebar', () => {
   it('tags planned sections and not live ones', async () => {
     const { wrapper } = await mountShell('/t/acme/')
     const link = (name: string) => wrapper.findAll(`${nav} a:not([target])`).find((a) => a.get('span').text() === name)!
-    expect(link('Social').attributes('title')).toMatch(/^slice 6: /)
+    expect(link('Social').text()).not.toContain('Planned') // shipped in Plan 24
     expect(link('Users').text()).not.toContain('Planned')
     expect(link('Roles').attributes('title')).toBe('later: /api/v2/roles')
     expect(link('Applications').text()).not.toContain('Planned')

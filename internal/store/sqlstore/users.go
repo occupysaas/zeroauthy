@@ -29,7 +29,10 @@ func (r users) Create(ctx context.Context, u *store.User) error {
 		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
-		return putLogins(ctx, tx, u, false)
+		if err := putLogins(ctx, tx, u, false); err != nil {
+			return err
+		}
+		return syncIdentities(ctx, tx, u, false)
 	})
 }
 
@@ -160,7 +163,10 @@ func (r users) Update(ctx context.Context, u *store.User) error {
 		if err := expectRow(res); err != nil {
 			return err
 		}
-		return putLogins(ctx, tx, u, true)
+		if err := putLogins(ctx, tx, u, true); err != nil {
+			return err
+		}
+		return syncIdentities(ctx, tx, u, true)
 	})
 }
 
@@ -341,6 +347,9 @@ func deleteUser(ctx context.Context, tx *Store, tenantID, userID string) error {
 		}
 	}
 	if _, e = tx.exec(ctx, `DELETE FROM email_notifications WHERE tenant_id=? AND subject_id=?`, tenantID, userID); e != nil {
+		return e
+	}
+	if e = dropUserFederation(ctx, tx, tenantID, userID); e != nil {
 		return e
 	}
 

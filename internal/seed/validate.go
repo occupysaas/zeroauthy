@@ -267,6 +267,14 @@ func (t *Tenant) validate() []error {
 			fail("connection %q: password_policy and password_options cannot both be set", c.Name)
 		}
 		spec := c.spec()
+		if c.Options != nil && !spec.Federated() {
+			fail("connection %q: options is only for the google-oauth2, oauth2 and oidc strategies", c.Name)
+		}
+		if spec.Federated() {
+			if _, named := c.Options["client_secret"]; !named {
+				fail("connection %q: options.client_secret is required", c.Name)
+			}
+		}
 		for _, err := range connrules.Normalize(&spec) {
 			fail("connection %q: %v", c.Name, err)
 		}

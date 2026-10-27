@@ -16,6 +16,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/hostname"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -379,9 +380,19 @@ func setConnection(c *store.Connection, in Connection, w keys.Wrapper) error {
 	if spec == nil {
 		return errors.New("the connection was not validated")
 	}
+	var prev *store.Connection
+	if len(c.FederationSecretsSealed) > 0 {
+		p := *c
+		prev = &p
+	}
 	// The seed owns the complexity half of the password options unless it
 	// names password_options; fields it does not name are left alone.
 	connrules.Apply(spec, c)
+	// Federated: seal the provider secret (re-using the stored blob when it
+	// is unchanged), keep the immutable bindings and move the revision.
+	if err := federation.ApplyConnection(w, prev, spec, c); err != nil {
+		return err
+	}
 	// The ID is final here (generated or existing), so the AAD stays valid
 	// across re-applies. Configuration is always re-sealed: sealing is
 	// randomized, so there is nothing to compare, and removing it clears it.

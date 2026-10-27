@@ -108,6 +108,9 @@ func (h *Handlers) renderIdentifier(w http.ResponseWriter, r *http.Request, stat
 		return
 	}
 	data.Revision = f.txn.HostedState.Revision
+	if data.Social == nil {
+		data.Social = h.socialButtons(r, f)
+	}
 	ui.RenderLoginIdentifier(w, status, f.view, data)
 }
 func (h *Handlers) renderSignup(w http.ResponseWriter, r *http.Request, status int, f *flow, data ui.SignupData) {

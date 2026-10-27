@@ -407,10 +407,11 @@ func TestClientGrantManagementAPI(t *testing.T) {
 		if out["allow_all_scopes"] != true {
 			t.Errorf("grant = %v", out)
 		}
-		// All the Management API's scopes, and never user grants.
+		// All the Management API's scopes but those that must be granted
+		// explicitly (read:user_idp_tokens), and never user grants.
 		g, _ := e.st.ClientGrants().Find(context.Background(), e.tn.ID, c, own, store.SubjectTypeClient)
-		if got := g.EffectiveScopes(e.mapi.Scopes); len(got) != len(tenantsetup.ManagementAPIScopes) {
-			t.Errorf("effective scopes = %d, want %d", len(got), len(tenantsetup.ManagementAPIScopes))
+		if got := g.EffectiveScopes(e.mapi.Scopes); len(got) != len(tenantsetup.ManagementAPIScopes)-len(store.ExplicitGrantScopes) {
+			t.Errorf("effective scopes = %d, want %d", len(got), len(tenantsetup.ManagementAPIScopes)-len(store.ExplicitGrantScopes))
 		}
 	})
 	t.Run("patch keeps the rules", func(t *testing.T) {

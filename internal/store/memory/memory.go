@@ -68,6 +68,9 @@ type state struct {
 	emailProviderRevisions map[string]int64
 	emailTemplates         map[key]*store.EmailTemplate
 	emailNotifications     map[emailClaimKey]store.EmailNotification
+	fedAttempts            map[key]*store.FederationAttempt // by (tenant, StateHash)
+	fedIdentities          map[fedKey]string                // owner UserID
+	fedTokens              map[fedKey][]byte                // sealed token records
 }
 
 // NewWithClock returns an empty store whose storage time (attempt budgets,
@@ -117,6 +120,9 @@ func New() *Store {
 		emailProviderRevisions: map[string]int64{},
 		emailTemplates:         map[key]*store.EmailTemplate{},
 		emailNotifications:     map[emailClaimKey]store.EmailNotification{},
+		fedAttempts:            map[key]*store.FederationAttempt{},
+		fedIdentities:          map[fedKey]string{},
+		fedTokens:              map[fedKey][]byte{},
 	}}
 }
 

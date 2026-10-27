@@ -32,7 +32,7 @@ var funcs = template.FuncMap{
 }
 
 func parsePage(names ...string) *template.Template {
-	names = append(names, "templates/captcha.html")
+	names = append(names, "templates/captcha.html", "templates/social.html")
 	return template.Must(template.New("").Funcs(funcs).ParseFS(files, names...))
 }
 
@@ -57,6 +57,7 @@ var (
 		"device_result":      parsePage("templates/layout.html", "templates/device_result.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
+	formGet    = parsePage("templates/form_get.html")
 	webMessage = parsePage("templates/web_message.html")
 )
 
@@ -125,11 +126,22 @@ func RequestTenant(r *http.Request, t *store.Tenant, l *i18n.Localizer) Tenant {
 
 type LoginData struct {
 	State, CSRF, Login string
-	SignupURL          string // empty hides the signup link
-	ForgotURL          string // empty hides the forgot-password link
-	Error              string
-	RedirectURI        string // the client's callback; its origin is allowed as form-action
-	HostedRevision     *int64
+	// Social are the federated connections offered as buttons; NoPassword
+	// hides the username/password form (an application with no database
+	// connection).
+	Social         []SocialButton
+	NoPassword     bool
+	SignupURL      string // empty hides the signup link
+	ForgotURL      string // empty hides the forgot-password link
+	Error          string
+	RedirectURI    string // the client's callback; its origin is allowed as form-action
+	HostedRevision *int64
+}
+
+// SocialButton is one federated connection choice: Label is the display
+// name (or the connection name), shown as original text, never a remote icon.
+type SocialButton struct {
+	Connection, Label string
 }
 
 type LoginStageData struct {
@@ -308,6 +320,19 @@ func RenderFormPost(w http.ResponseWriter, l *i18n.Localizer, action string, par
 	nonce := newNonce()
 	setHeaders(w, nonce, "'none'", origin(action))
 	write(w, http.StatusOK, formPost, "form_post.html", map[string]any{"Action": action, "Params": params, "Nonce": nonce, "L": l})
+}
+
+// RenderFormGet hands a browser on to action with params by an
+// auto-submitted GET form. A social choice is a form POST, and browsers apply
+// the login page's form-action policy to its redirects; this page ends that
+// navigation and allows only action's origin (Plan 24).
+func RenderFormGet(w http.ResponseWriter, l *i18n.Localizer, action string, params url.Values) {
+	if l == nil {
+		l = i18n.Default()
+	}
+	nonce := newNonce()
+	setHeaders(w, nonce, "'none'", origin(action))
+	write(w, http.StatusOK, formGet, "form_get.html", map[string]any{"Action": action, "Params": params, "Nonce": nonce, "L": l})
 }
 
 // RenderWebMessage writes the Web Message Response Mode page, which posts

@@ -32,6 +32,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -101,6 +102,26 @@ type Spec struct {
 	ShowAsButton      *bool             `json:"show_as_button,omitempty" yaml:"-"`
 	ConnectedAccounts map[string]any    `json:"connected_accounts,omitempty" yaml:"-"`
 	Authentication    map[string]any    `json:"authentication,omitempty" yaml:"-"`
+
+	// Federated strategies only, never part of the wire form. Apply leaves
+	// the sealed secret and revision alone (their writers own them);
+	// FromConnection fills all three. FederationIssuer is the issuer pinned
+	// at the first successful discovery and is immutable once set.
+	FederationSecretsSealed []byte `json:"-" yaml:"-"`
+	FederationRevision      int64  `json:"-" yaml:"-"`
+	FederationIssuer        string `json:"-" yaml:"-"`
+}
+
+// Federated reports whether s uses a federated strategy (Plan 24).
+func (s *Spec) Federated() bool { return rules.IsFederated(s.Strategy) }
+
+// FederationInput is s in the form the shared federated rules validate.
+func (s *Spec) FederationInput() rules.Input {
+	return rules.Input{
+		Strategy: s.Strategy, Name: s.Name, Options: s.Options.Extra,
+		RootAttributes: s.Options.SetUserRootAttributes, Authentication: s.Authentication,
+		HasSealedSecret: len(s.FederationSecretsSealed) > 0,
+	}
 }
 
 // Options is a connection's options. Known keys are typed; Extra holds the
@@ -247,6 +268,17 @@ func CreateDefaults(s *Spec) {
 	if s.Options.Extra == nil {
 		s.Options.Extra = map[string]any{}
 	}
+	if s.Federated() {
+		// Database defaults (mfa, passwords, passkeys) stay off federated
+		// connections; only the shared purpose objects apply.
+		if s.Authentication == nil {
+			s.Authentication = map[string]any{"active": true}
+		}
+		if s.ConnectedAccounts == nil {
+			s.ConnectedAccounts = map[string]any{"active": false}
+		}
+		return
+	}
 	e := s.Options.Extra
 	setDefault := func(k string, v any) {
 		if _, ok := e[k]; !ok {
@@ -294,8 +326,9 @@ func normalize(s *Spec, api bool) []error {
 	if s.Strategy == "" && !api {
 		s.Strategy = store.StrategyDatabase
 	}
-	if s.Strategy != store.StrategyDatabase {
-		fail("strategy %q is not supported (only %q)", s.Strategy, store.StrategyDatabase)
+	if s.Strategy != store.StrategyDatabase && !s.Federated() {
+		fail("strategy %q is not supported (only %q, %q, %q or %q)", s.Strategy,
+			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC)
 	}
 	for _, r := range s.Realms {
 		if r == "" {
@@ -315,6 +348,13 @@ func normalize(s *Spec, api bool) []error {
 	}
 
 	o := &s.Options
+	if s.Federated() {
+		errs = append(errs, normalizeFederated(s)...)
+		if api && o.Extra == nil {
+			o.Extra = map[string]any{}
+		}
+		return errs
+	}
 	errs = append(errs, normalizePasswords(o, api)...)
 
 	if api && o.BruteForceProtection == nil {
@@ -343,6 +383,28 @@ func normalize(s *Spec, api bool) []error {
 		o.Extra = map[string]any{}
 	}
 	return errs
+}
+
+// normalizeFederated checks a federated connection: no database options, the
+// shared Extra rules, then the strategy's own rules.
+func normalizeFederated(s *Spec) []error {
+	var errs []error
+	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
+	o := &s.Options
+	if o.PasswordOptions != nil || o.PasswordPolicy != "" || o.PasswordComplexity != nil ||
+		o.PasswordHistory != nil || o.PasswordDictionary != nil || o.PasswordNoPersonalInfo != nil ||
+		o.BruteForceProtection != nil || o.Validation != nil || o.RequiresUsername ||
+		o.EnabledDatabaseCustomization || o.ImportMode || len(o.CustomScripts) > 0 || len(o.Configuration) > 0 {
+		fail("database options are not supported on strategy %q", s.Strategy)
+	}
+	for _, k := range slices.Sorted(maps.Keys(ExtraSchema)) {
+		if _, ok := o.Extra[k]; ok {
+			fail("option %q is not supported on strategy %q", k, s.Strategy)
+		}
+	}
+	errs = append(errs, normalizeExtra(o)...)
+	_, ruleErrs := rules.Parse(s.FederationInput())
+	return append(errs, ruleErrs...)
 }
 
 func normalizeExtra(o *Options) []error {
@@ -521,6 +583,9 @@ func (s *Spec) topLevel() map[string]any {
 	if s.Authentication != nil {
 		top["authentication"] = cloneMap(s.Authentication)
 	}
+	if s.FederationIssuer != "" {
+		top["federation_issuer"] = s.FederationIssuer
+	}
 	return top
 }
 
@@ -534,9 +599,11 @@ func FromConnection(c *store.Connection) *Spec {
 	bf := c.BruteForceProtection
 	s := &Spec{
 		Name: c.Name, Strategy: c.Strategy,
-		EnabledClients:     orEmpty(c.EnabledClients),
-		IsDomainConnection: c.IsDomainConnection,
-		Realms:             []string{c.Name},
+		FederationSecretsSealed: slices.Clone(c.FederationSecretsSealed),
+		FederationRevision:      c.FederationRevision,
+		EnabledClients:          orEmpty(c.EnabledClients),
+		IsDomainConnection:      c.IsDomainConnection,
+		Realms:                  []string{c.Name},
 		Options: Options{
 			PasswordOptions:      fromPasswords(&c.PasswordOptions),
 			BruteForceProtection: &bf,
@@ -571,8 +638,35 @@ func FromConnection(c *store.Connection) *Spec {
 		}
 		s.ConnectedAccounts, _ = top["connected_accounts"].(map[string]any)
 		s.Authentication, _ = top["authentication"].(map[string]any)
+		s.FederationIssuer, _ = top["federation_issuer"].(string)
+	}
+	if s.Federated() {
+		// Database options have no meaning on federated connections.
+		s.Options.PasswordOptions, s.Options.BruteForceProtection, s.Options.Validation = nil, nil, nil
 	}
 	return s
+}
+
+// KeepFederationIssuer carries prev's pinned issuer into next when the
+// writer's Spec did not name one (the seed never does), so a re-apply never
+// unpins it.
+func KeepFederationIssuer(prev, next *store.Connection) {
+	top, _ := prev.Extra[topKey].(map[string]any)
+	issuer, _ := top["federation_issuer"].(string)
+	if issuer == "" {
+		return
+	}
+	if next.Extra == nil {
+		next.Extra = map[string]any{}
+	}
+	nt, _ := next.Extra[topKey].(map[string]any)
+	if nt == nil {
+		nt = map[string]any{}
+		next.Extra[topKey] = nt
+	}
+	if _, ok := nt["federation_issuer"]; !ok {
+		nt["federation_issuer"] = issuer
+	}
 }
 
 func stringList(v any) []string {

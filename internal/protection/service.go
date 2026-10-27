@@ -92,10 +92,13 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 		}
 		s.adminNotifications(ctx, tenant.ID, "brute-force", p.BruteForce.Shields)
 	}
-	if (a.Flow == "login" || a.Flow == "signup") && p.SuspiciousIP.Enabled && !Allowlisted(ip, p.SuspiciousIP.Allowlist) {
+	// Social flows (Plan 24) use the suspicious-IP budgets only: no email
+	// lookup and no password brute-force reservation.
+	social := a.Flow == "social-login" || a.Flow == "social-signup"
+	if (a.Flow == "login" || a.Flow == "signup" || social) && p.SuspiciousIP.Enabled && !Allowlisted(ip, p.SuspiciousIP.Allowlist) {
 		if slices.Contains(p.SuspiciousIP.Shields, "block") {
 			kind, rate := store.ProtectionSuspiciousIPLogin, p.SuspiciousIP.Stage.PreLogin
-			if a.Flow == "signup" {
+			if a.Flow == "signup" || a.Flow == "social-signup" {
 				kind, rate = store.ProtectionSuspiciousIPRegistration, p.SuspiciousIP.Stage.PreUserRegistration
 			}
 			limit := store.ProtectionLimit{Key: store.ProtectionKey{TenantID: tenant.ID, Kind: kind, IP: ip}, Algorithm: "token-bucket", Capacity: rate.MaxAttempts, Refill: time.Duration(rate.Rate) * time.Millisecond}
@@ -112,7 +115,7 @@ func (s *Service) Begin(ctx context.Context, a Attempt) (Decision, error) {
 	}
 	if a.Flow == "reset-send" {
 		limits = append(limits, store.ProtectionLimit{Key: store.ProtectionKey{TenantID: tenant.ID, Kind: store.ProtectionResetMail, ConnectionID: conn.ID, Identifier: identifier}, Algorithm: "fixed-window", Capacity: 3, Window: time.Hour})
-	} else if a.Flow != "login" && a.Flow != "signup" {
+	} else if a.Flow != "login" && a.Flow != "signup" && !social {
 		return Decision{}, store.ErrInvalid
 	}
 	now := s.now()
@@ -183,4 +186,24 @@ func ClearIdentity(ctx context.Context, st store.Store, conn *store.Connection, 
 		}
 	}
 	return nil
+}
+
+// IPBlocked reports whether ip is currently blocked by the suspicious-IP
+// shield, without reserving any attempt (the social callback rechecks blocks
+// without charging the pre-login budget twice).
+func (s *Service) IPBlocked(ctx context.Context, tenantID, ip string) (bool, error) {
+	ip = CanonicalIP(ip)
+	if ip == "" {
+		return false, nil
+	}
+	for _, kind := range []string{store.ProtectionSuspiciousIPLogin, store.ProtectionSuspiciousIPRegistration} {
+		blocks, err := s.Store.Protection().Blocks(ctx, tenantID, store.ProtectionFilter{Kind: kind, IP: ip}, s.now())
+		if err != nil {
+			return false, err
+		}
+		if len(blocks) > 0 {
+			return true, nil
+		}
+	}
+	return false, nil
 }

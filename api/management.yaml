@@ -1831,7 +1831,11 @@ paths:
       summary: Get a user
       description: |
         Requires `read:users`. A well-formed unknown ID is
-        `404 inexistent_user`.
+        `404 inexistent_user`. A client also granted `read:user_idp_tokens`
+        (explicitly: `allow_all_scopes` never implies it) receives
+        `identities[].access_token` and `identities[].refresh_token` of
+        federated identities, with `Cache-Control: no-store`; lists,
+        search, link responses, exports and operators never do (Plan 24).
       x-source:
         - https://auth0.com/docs/api/management/v2/users/get-users-by-id
       parameters:
@@ -5909,7 +5913,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0]}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc]}
             enabled_clients:
               type: array
               items: {type: string}
@@ -5926,6 +5930,9 @@ components:
         A connection. `options.configuration` values are opaque blobs, never
         plaintext. `enabled_clients` is returned by create only. `fields`
         can leave out any property but `id` and `is_domain_connection`.
+        For `google-oauth2`, `oauth2` and `oidc` connections
+        `options.client_secret` is write-only: it is sealed when written and
+        never returned (Plan 24).
       required: [id, is_domain_connection]
       properties:
         id: {type: string, description: "`con_` and 16 letters and digits for connections created through the API."}

@@ -92,6 +92,8 @@ func listFixtures() []listUser {
 func seedList(t *testing.T, s store.Store) {
 	t.Helper()
 	ctx := context.Background()
+	// u07's Google identity resolves to a real connection (Plan 24 index).
+	mustNoErr(t, s.Connections().Create(ctx, &store.Connection{TenantID: "ten_a", ID: "con_google", Name: "google-oauth2", Strategy: "google-oauth2", CreatedAt: ts(0)}))
 	for _, f := range listFixtures() {
 		mustNoErr(t, s.Users().Create(ctx, f.u))
 		for i := range f.logins {

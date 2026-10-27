@@ -744,7 +744,11 @@ export interface paths {
         /**
          * Get a user
          * @description Requires `read:users`. A well-formed unknown ID is
-         *     `404 inexistent_user`.
+         *     `404 inexistent_user`. A client also granted `read:user_idp_tokens`
+         *     (explicitly: `allow_all_scopes` never implies it) receives
+         *     `identities[].access_token` and `identities[].refresh_token` of
+         *     federated identities, with `Cache-Control: no-store`; lists,
+         *     search, link responses, exports and operators never do (Plan 24).
          */
         get: operations["getUser"];
         put?: never;
@@ -3193,7 +3197,7 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /** @enum {string} */
-            strategy: "auth0";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -3206,6 +3210,9 @@ export interface components {
          * @description A connection. `options.configuration` values are opaque blobs, never
          *     plaintext. `enabled_clients` is returned by create only. `fields`
          *     can leave out any property but `id` and `is_domain_connection`.
+         *     For `google-oauth2`, `oauth2` and `oidc` connections
+         *     `options.client_secret` is write-only: it is sealed when written and
+         *     never returned (Plan 24).
          */
         Connection: {
             /** @description `con_` and 16 letters and digits for connections created through the API. */

@@ -111,7 +111,7 @@ func TestNameAndStrategy(t *testing.T) {
 	for _, n := range []string{"", "-a", "a-", "a--b", "a_b", "a.b", "a b", strings.Repeat("a", 129)} {
 		wantErr(t, "name "+n, &Spec{Name: n, Strategy: "auth0"}, true, "name")
 	}
-	wantErr(t, "strategy", &Spec{Name: "a", Strategy: "google-oauth2"}, true, "strategy")
+	wantErr(t, "strategy", &Spec{Name: "a", Strategy: "samlp"}, true, "strategy")
 	wantErr(t, "no strategy", &Spec{Name: "a"}, true, "strategy")
 	wantErr(t, "seed strategy", &Spec{Name: "a", Strategy: "samlp"}, false, "not supported")
 	wantErr(t, "seed no name", &Spec{}, false, "name is required")

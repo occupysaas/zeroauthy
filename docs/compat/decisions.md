@@ -913,3 +913,89 @@ existing `template` alias; PUT retains `template`. No ACUL claim is implied.
 - Custom public signing JWKS publication, WebAuthn RP enforcement, ACUL, prompt
   partial domain context and additional DNS providers remain follow-ups. No
   unavailable observer/provider lane is labeled as live passing evidence.
+
+
+## Plan 24 — frozen federation contract (2026-10-26)
+
+Connection-list checkpoint mode preserves the existing take/from presence
+selection ahead of page/per_page, default take=50 (1–100),
+`{connections:[...],next?}` envelope, previous-next-to-from continuation and
+next omission at the terminal/empty page. include_totals does not add summary
+fields in checkpoint mode, even when true.
+
+The [source inventory](observations/social-connections.md) and
+`internal/federation/inventory.json` govern subsequent implementation tasks.
+Only google-oauth2, oauth2 and back-channel oidc are active. Public PKCE examples
+confirm OIDC `scopes` string; node-auth0 7.4.0 types use `scope`, which remains an
+unconfirmed alias and is rejected. Google supports email/profile flags, default
+openid profile email. Purpose uses the source-confirmed `authentication.active`
+object, already persisted by connrules, rather than a scalar false or enabled key.
+
+Supplied options replaces nonsecret settings; omitted sealed client_secret alone
+preserves credentials. All ordinary reads/exports omit provider secrets; explicit
+reinjection is required. Existing local connection scopes/public-options behavior
+is retained, a difference from the documented options-specific scope gate.
+Individual GetUser with read:users AND read:user_idp_tokens projects string
+identities[].access_token/refresh_token and no-store; all other projections omit
+these fields, even though upstream unlink schemas also declare scoped tokens.
+
+Google IDs retain provider|subject. OAuth/OIDC use provider|connection-name|subject
+as an explicit local format, with fixed-prefix parsing so subject separators are
+preserved. Connection names reject the separator. Immutable connection ID plus
+raw subject is authoritative; public-ID collision or ambiguous import fails closed
+without email matching or silent remapping. Generic upstream ID serialization,
+script context details and provider-specific error identifiers remain unobserved.
+
+Mandatory S256, immutable issuer/client binding, bounded script/network behavior,
+first provisioning under never_on_login, and the explicit context/metadata
+allowlists are local policies. Unsupported configured Google domain restrictions
+fail validation; hd is only a hint. Parameter maps may round-trip inertly with
+diagnostics, but protocol/domain/authentication overrides are rejected. In particular,
+acr_values, max_age, claims and prompt are rejected for every value and for
+aliases naming those keys, before any inert-map storage.
+
+Pinned MIT sources inspected: node-auth0 v7.4.0 management connections/types/users;
+auth0-cli v1.37.0 commit a6239f907a81238e081a4abb1882c028558b2655
+internal/cli/connections.go; auth0-deploy-cli v9.1.0 commit
+b8178b4bf48f31d05e61f55918bba75d4c846c37 connection/YAML/directory/default handlers.
+No source was copied. Social script files need explicit source materialization
+(directory JSON) or a YAML scalar include; no implicit .js path expansion exists.
+The tool also needs directory-provisioning discovery and skips empty desired
+client lists in one helper; Tasks 11–12 must resolve/report these actual dependencies.
+All real tool-runtime/provider/tenant comparisons remain deferred or unavailable.
+
+## D-0049: Social and OIDC federation runtime (Plan 24)
+
+Local runtime decisions on top of the frozen contract above; none is an
+observed upstream behaviour.
+
+- **Identity ownership:** the store maintains a `(tenant, connection ID,
+  subject)` index inside every user create/update/delete and connection
+  delete; an identity naming an unknown connection, or one of another
+  strategy, is refused. Federated identities never enter the email/username
+  login index. Upstream tokens are keyed by identity, not user, so linking
+  moves ownership without decrypting them.
+- **Identity epoch:** every user deletion and identity removal/transfer
+  increments a tenant epoch in the same transaction; attempts started before it
+  cannot complete. No tombstones or clock comparisons.
+- **Attempts:** single-use, superseded per login transaction, bound to a
+  per-attempt `za_fed_*` cookie, the transaction origin and the connection
+  revision; claim is one conditional write. The final transaction rechecks
+  attempt, epoch, revision, enablement and the callback host binding, resolves
+  the identity, writes tokens and creates the session; the login transaction is
+  ended by the existing resume path right after commit.
+- **Buttons:** a connection whose `show_as_button` was never named shows a
+  button; only an explicit `false` hides it (explicit `connection=` still
+  works). A posted social choice is handed to the provider by an auto-submitted
+  GET page whose CSP `form-action` admits only the provider origin, because
+  browsers apply the login page's `form-action` to redirects after a POST.
+- **Protection:** `social-login` spends the suspicious-IP pre-login budget at
+  the provider redirect; `social-signup` applies the registration budget to a
+  first provisioning; the callback checks current IP blocks without charging.
+- **Scope:** `read:user_idp_tokens` is excluded from `allow_all_scopes` and never
+  shown to operators.
+- **Profile scripts:** one short-lived Node 25+ process per execution with a
+  startup probe proving socket and fetch denial; OAuth2 is refused before the
+  provider redirect when the runtime is unavailable.
+- **MySQL:** every user-ID column becomes `VARBINARY(1280)` (subjects
+  `VARBINARY(1024)`) so 1024-byte subjects never truncate.

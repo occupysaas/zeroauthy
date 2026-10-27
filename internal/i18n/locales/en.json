@@ -142,7 +142,9 @@
       "hosted-fields-invalid": "Check the additional fields and try again."
     },
     "login": {
-      "description-no-client": "Sign in to ${companyName} to continue."
+      "description-no-client": "Sign in to ${companyName} to continue.",
+      "social-button": "Continue with ${connectionName}",
+      "social-separator": "or"
     },
     "signup": {
       "description-no-client": "Sign up for ${companyName} to continue.",
@@ -205,7 +207,9 @@
       "access-denied": "The application was not given access to your account.",
       "logout-unknown-client": "The application that asked to log you out is not registered. You are still logged in.",
       "logout-url-not-allowed": "The address to return to after logout is not allowed for this application. You are still logged in.",
-      "logout-invalid": "The logout request was not valid. You are still logged in."
+      "logout-invalid": "The logout request was not valid. You are still logged in.",
+      "social-failed": "We could not sign you in with that provider. Return to the application and try again.",
+      "social-denied": "Sign-in at the provider was cancelled or refused. Return to the application to try again."
     },
     "reset": {
       "not-changed": "Your password could not be changed. Try again or contact support."

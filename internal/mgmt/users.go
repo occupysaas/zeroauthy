@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -308,7 +309,56 @@ func (h *Handlers) GetUser(w http.ResponseWriter, r *http.Request, id string, _ 
 		Fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, ProjectKeeping(UserJSON(u), fields, include, nil))
+	view := UserJSON(u)
+	if caller, _ := CallerFrom(r.Context()); caller.Kind == M2M && slices.Contains(caller.Scopes, scopeIDPTokens) {
+		// Upstream tokens: individual GET only, to a client granted
+		// read:user_idp_tokens explicitly; never to operators (Plan 24).
+		w.Header().Set("Cache-Control", "no-store")
+		if err := h.addIDPTokens(r, u, view); err != nil {
+			Fail(w, internalError(h, r, "read upstream tokens", err))
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, ProjectKeeping(view, fields, include, nil))
+}
+
+// scopeIDPTokens gates identities[].access_token and refresh_token.
+const scopeIDPTokens = "read:user_idp_tokens"
+
+// addIDPTokens adds each federated identity's stored upstream tokens to
+// view's identities. An identity without a token record gets no fields.
+func (h *Handlers) addIDPTokens(r *http.Request, u *store.User, view map[string]any) error {
+	ids, _ := view["identities"].([]map[string]any)
+	for i := range u.Identities {
+		sub, ok, err := u.Identities[i].FederatedSubject()
+		if err != nil || !ok || i >= len(ids) {
+			continue
+		}
+		c, err := h.Store.Connections().GetByName(r.Context(), u.TenantID, u.Identities[i].Connection)
+		if errors.Is(err, store.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		key := store.FederatedIdentityKey{TenantID: u.TenantID, ConnectionID: c.ID, Subject: sub}
+		sealed, err := h.Store.Federation().GetTokens(r.Context(), key)
+		if errors.Is(err, store.ErrNotFound) || errors.Is(err, store.ErrFederationUnavailable) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		t, err := federation.OpenTokens(h.Wrapper, key, sealed)
+		if err != nil {
+			return err
+		}
+		ids[i]["access_token"] = t.AccessToken
+		if t.RefreshToken != "" {
+			ids[i]["refresh_token"] = t.RefreshToken
+		}
+	}
+	return nil
 }
 
 func (h *Handlers) getUser(r *http.Request, id string) (*store.User, error) {

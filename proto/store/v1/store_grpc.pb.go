@@ -97,6 +97,19 @@ const (
 	StoreService_CustomSigningKeysDelete_FullMethodName                = "/zeroauthy.store.v1.StoreService/CustomSigningKeysDelete"
 	StoreService_HostedLoginsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/HostedLoginsGet"
 	StoreService_HostedLoginsPut_FullMethodName                        = "/zeroauthy.store.v1.StoreService/HostedLoginsPut"
+	StoreService_FederationIdentityEpoch_FullMethodName                = "/zeroauthy.store.v1.StoreService/FederationIdentityEpoch"
+	StoreService_FederationBumpIdentityEpoch_FullMethodName            = "/zeroauthy.store.v1.StoreService/FederationBumpIdentityEpoch"
+	StoreService_FederationCreateAttempt_FullMethodName                = "/zeroauthy.store.v1.StoreService/FederationCreateAttempt"
+	StoreService_FederationGetAttempt_FullMethodName                   = "/zeroauthy.store.v1.StoreService/FederationGetAttempt"
+	StoreService_FederationClaimAttempt_FullMethodName                 = "/zeroauthy.store.v1.StoreService/FederationClaimAttempt"
+	StoreService_FederationFinishAttempt_FullMethodName                = "/zeroauthy.store.v1.StoreService/FederationFinishAttempt"
+	StoreService_FederationPutIdentity_FullMethodName                  = "/zeroauthy.store.v1.StoreService/FederationPutIdentity"
+	StoreService_FederationDeleteIdentity_FullMethodName               = "/zeroauthy.store.v1.StoreService/FederationDeleteIdentity"
+	StoreService_FederationGetTokens_FullMethodName                    = "/zeroauthy.store.v1.StoreService/FederationGetTokens"
+	StoreService_FederationPutTokens_FullMethodName                    = "/zeroauthy.store.v1.StoreService/FederationPutTokens"
+	StoreService_FederationDeleteTokens_FullMethodName                 = "/zeroauthy.store.v1.StoreService/FederationDeleteTokens"
+	StoreService_FederationDeleteExpired_FullMethodName                = "/zeroauthy.store.v1.StoreService/FederationDeleteExpired"
+	StoreService_UsersFindByIdentity_FullMethodName                    = "/zeroauthy.store.v1.StoreService/UsersFindByIdentity"
 	StoreService_EmailProvidersGet_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EmailProvidersGet"
 	StoreService_EmailProvidersPut_FullMethodName                      = "/zeroauthy.store.v1.StoreService/EmailProvidersPut"
 	StoreService_EmailProvidersDelete_FullMethodName                   = "/zeroauthy.store.v1.StoreService/EmailProvidersDelete"
@@ -334,6 +347,21 @@ type StoreServiceClient interface {
 	CustomSigningKeysDelete(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*Result, error)
 	HostedLoginsGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*HostedLoginConfigResult, error)
 	HostedLoginsPut(ctx context.Context, in *HostedLoginConfigWrite, opts ...grpc.CallOption) (*Result, error)
+	// Plan 24 federation. An older server answers Unimplemented and social
+	// login stays unavailable; nothing falls back to non-atomic behavior.
+	FederationIdentityEpoch(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*VersionResult, error)
+	FederationBumpIdentityEpoch(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*Result, error)
+	FederationCreateAttempt(ctx context.Context, in *FederationAttemptWrite, opts ...grpc.CallOption) (*Result, error)
+	FederationGetAttempt(ctx context.Context, in *FederationAttemptKey, opts ...grpc.CallOption) (*FederationAttemptResult, error)
+	FederationClaimAttempt(ctx context.Context, in *FederationClaimRequest, opts ...grpc.CallOption) (*FederationAttemptResult, error)
+	FederationFinishAttempt(ctx context.Context, in *FederationAttemptKey, opts ...grpc.CallOption) (*Result, error)
+	FederationPutIdentity(ctx context.Context, in *FederatedIdentityWrite, opts ...grpc.CallOption) (*Result, error)
+	FederationDeleteIdentity(ctx context.Context, in *FederatedIdentityWrite, opts ...grpc.CallOption) (*Result, error)
+	FederationGetTokens(ctx context.Context, in *FederatedIdentityRequest, opts ...grpc.CallOption) (*FederatedTokensResult, error)
+	FederationPutTokens(ctx context.Context, in *FederatedTokensWrite, opts ...grpc.CallOption) (*Result, error)
+	FederationDeleteTokens(ctx context.Context, in *FederatedIdentityRequest, opts ...grpc.CallOption) (*Result, error)
+	FederationDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error)
+	UsersFindByIdentity(ctx context.Context, in *UsersFindByIdentityRequest, opts ...grpc.CallOption) (*UserResult, error)
 	EmailProvidersGet(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*EmailProviderResult, error)
 	EmailProvidersPut(ctx context.Context, in *EmailProviderWrite, opts ...grpc.CallOption) (*Result, error)
 	EmailProvidersDelete(ctx context.Context, in *EmailProviderDeleteRequest, opts ...grpc.CallOption) (*Result, error)
@@ -1221,6 +1249,136 @@ func (c *storeServiceClient) HostedLoginsPut(ctx context.Context, in *HostedLogi
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_HostedLoginsPut_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationIdentityEpoch(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*VersionResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VersionResult)
+	err := c.cc.Invoke(ctx, StoreService_FederationIdentityEpoch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationBumpIdentityEpoch(ctx context.Context, in *TenantScope, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_FederationBumpIdentityEpoch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationCreateAttempt(ctx context.Context, in *FederationAttemptWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_FederationCreateAttempt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationGetAttempt(ctx context.Context, in *FederationAttemptKey, opts ...grpc.CallOption) (*FederationAttemptResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FederationAttemptResult)
+	err := c.cc.Invoke(ctx, StoreService_FederationGetAttempt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationClaimAttempt(ctx context.Context, in *FederationClaimRequest, opts ...grpc.CallOption) (*FederationAttemptResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FederationAttemptResult)
+	err := c.cc.Invoke(ctx, StoreService_FederationClaimAttempt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationFinishAttempt(ctx context.Context, in *FederationAttemptKey, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_FederationFinishAttempt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationPutIdentity(ctx context.Context, in *FederatedIdentityWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_FederationPutIdentity_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationDeleteIdentity(ctx context.Context, in *FederatedIdentityWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_FederationDeleteIdentity_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationGetTokens(ctx context.Context, in *FederatedIdentityRequest, opts ...grpc.CallOption) (*FederatedTokensResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FederatedTokensResult)
+	err := c.cc.Invoke(ctx, StoreService_FederationGetTokens_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationPutTokens(ctx context.Context, in *FederatedTokensWrite, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_FederationPutTokens_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationDeleteTokens(ctx context.Context, in *FederatedIdentityRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_FederationDeleteTokens_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) FederationDeleteExpired(ctx context.Context, in *DeleteExpiredRequest, opts ...grpc.CallOption) (*CountResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountResult)
+	err := c.cc.Invoke(ctx, StoreService_FederationDeleteExpired_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) UsersFindByIdentity(ctx context.Context, in *UsersFindByIdentityRequest, opts ...grpc.CallOption) (*UserResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserResult)
+	err := c.cc.Invoke(ctx, StoreService_UsersFindByIdentity_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2308,6 +2466,21 @@ type StoreServiceServer interface {
 	CustomSigningKeysDelete(context.Context, *TenantScope) (*Result, error)
 	HostedLoginsGet(context.Context, *TenantScope) (*HostedLoginConfigResult, error)
 	HostedLoginsPut(context.Context, *HostedLoginConfigWrite) (*Result, error)
+	// Plan 24 federation. An older server answers Unimplemented and social
+	// login stays unavailable; nothing falls back to non-atomic behavior.
+	FederationIdentityEpoch(context.Context, *TenantScope) (*VersionResult, error)
+	FederationBumpIdentityEpoch(context.Context, *TenantScope) (*Result, error)
+	FederationCreateAttempt(context.Context, *FederationAttemptWrite) (*Result, error)
+	FederationGetAttempt(context.Context, *FederationAttemptKey) (*FederationAttemptResult, error)
+	FederationClaimAttempt(context.Context, *FederationClaimRequest) (*FederationAttemptResult, error)
+	FederationFinishAttempt(context.Context, *FederationAttemptKey) (*Result, error)
+	FederationPutIdentity(context.Context, *FederatedIdentityWrite) (*Result, error)
+	FederationDeleteIdentity(context.Context, *FederatedIdentityWrite) (*Result, error)
+	FederationGetTokens(context.Context, *FederatedIdentityRequest) (*FederatedTokensResult, error)
+	FederationPutTokens(context.Context, *FederatedTokensWrite) (*Result, error)
+	FederationDeleteTokens(context.Context, *FederatedIdentityRequest) (*Result, error)
+	FederationDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error)
+	UsersFindByIdentity(context.Context, *UsersFindByIdentityRequest) (*UserResult, error)
 	EmailProvidersGet(context.Context, *TenantScope) (*EmailProviderResult, error)
 	EmailProvidersPut(context.Context, *EmailProviderWrite) (*Result, error)
 	EmailProvidersDelete(context.Context, *EmailProviderDeleteRequest) (*Result, error)
@@ -2654,6 +2827,45 @@ func (UnimplementedStoreServiceServer) HostedLoginsGet(context.Context, *TenantS
 }
 func (UnimplementedStoreServiceServer) HostedLoginsPut(context.Context, *HostedLoginConfigWrite) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method HostedLoginsPut not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationIdentityEpoch(context.Context, *TenantScope) (*VersionResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationIdentityEpoch not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationBumpIdentityEpoch(context.Context, *TenantScope) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationBumpIdentityEpoch not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationCreateAttempt(context.Context, *FederationAttemptWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationCreateAttempt not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationGetAttempt(context.Context, *FederationAttemptKey) (*FederationAttemptResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationGetAttempt not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationClaimAttempt(context.Context, *FederationClaimRequest) (*FederationAttemptResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationClaimAttempt not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationFinishAttempt(context.Context, *FederationAttemptKey) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationFinishAttempt not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationPutIdentity(context.Context, *FederatedIdentityWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationPutIdentity not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationDeleteIdentity(context.Context, *FederatedIdentityWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationDeleteIdentity not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationGetTokens(context.Context, *FederatedIdentityRequest) (*FederatedTokensResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationGetTokens not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationPutTokens(context.Context, *FederatedTokensWrite) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationPutTokens not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationDeleteTokens(context.Context, *FederatedIdentityRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationDeleteTokens not implemented")
+}
+func (UnimplementedStoreServiceServer) FederationDeleteExpired(context.Context, *DeleteExpiredRequest) (*CountResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method FederationDeleteExpired not implemented")
+}
+func (UnimplementedStoreServiceServer) UsersFindByIdentity(context.Context, *UsersFindByIdentityRequest) (*UserResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method UsersFindByIdentity not implemented")
 }
 func (UnimplementedStoreServiceServer) EmailProvidersGet(context.Context, *TenantScope) (*EmailProviderResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method EmailProvidersGet not implemented")
@@ -4355,6 +4567,240 @@ func _StoreService_HostedLoginsPut_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).HostedLoginsPut(ctx, req.(*HostedLoginConfigWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationIdentityEpoch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationIdentityEpoch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationIdentityEpoch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationIdentityEpoch(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationBumpIdentityEpoch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TenantScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationBumpIdentityEpoch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationBumpIdentityEpoch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationBumpIdentityEpoch(ctx, req.(*TenantScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationCreateAttempt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FederationAttemptWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationCreateAttempt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationCreateAttempt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationCreateAttempt(ctx, req.(*FederationAttemptWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationGetAttempt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FederationAttemptKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationGetAttempt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationGetAttempt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationGetAttempt(ctx, req.(*FederationAttemptKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationClaimAttempt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FederationClaimRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationClaimAttempt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationClaimAttempt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationClaimAttempt(ctx, req.(*FederationClaimRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationFinishAttempt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FederationAttemptKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationFinishAttempt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationFinishAttempt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationFinishAttempt(ctx, req.(*FederationAttemptKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationPutIdentity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FederatedIdentityWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationPutIdentity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationPutIdentity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationPutIdentity(ctx, req.(*FederatedIdentityWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationDeleteIdentity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FederatedIdentityWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationDeleteIdentity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationDeleteIdentity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationDeleteIdentity(ctx, req.(*FederatedIdentityWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationGetTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FederatedIdentityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationGetTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationGetTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationGetTokens(ctx, req.(*FederatedIdentityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationPutTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FederatedTokensWrite)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationPutTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationPutTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationPutTokens(ctx, req.(*FederatedTokensWrite))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationDeleteTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FederatedIdentityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationDeleteTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationDeleteTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationDeleteTokens(ctx, req.(*FederatedIdentityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_FederationDeleteExpired_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteExpiredRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).FederationDeleteExpired(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_FederationDeleteExpired_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).FederationDeleteExpired(ctx, req.(*DeleteExpiredRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_UsersFindByIdentity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UsersFindByIdentityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).UsersFindByIdentity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_UsersFindByIdentity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).UsersFindByIdentity(ctx, req.(*UsersFindByIdentityRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -6344,6 +6790,58 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HostedLoginsPut",
 			Handler:    _StoreService_HostedLoginsPut_Handler,
+		},
+		{
+			MethodName: "FederationIdentityEpoch",
+			Handler:    _StoreService_FederationIdentityEpoch_Handler,
+		},
+		{
+			MethodName: "FederationBumpIdentityEpoch",
+			Handler:    _StoreService_FederationBumpIdentityEpoch_Handler,
+		},
+		{
+			MethodName: "FederationCreateAttempt",
+			Handler:    _StoreService_FederationCreateAttempt_Handler,
+		},
+		{
+			MethodName: "FederationGetAttempt",
+			Handler:    _StoreService_FederationGetAttempt_Handler,
+		},
+		{
+			MethodName: "FederationClaimAttempt",
+			Handler:    _StoreService_FederationClaimAttempt_Handler,
+		},
+		{
+			MethodName: "FederationFinishAttempt",
+			Handler:    _StoreService_FederationFinishAttempt_Handler,
+		},
+		{
+			MethodName: "FederationPutIdentity",
+			Handler:    _StoreService_FederationPutIdentity_Handler,
+		},
+		{
+			MethodName: "FederationDeleteIdentity",
+			Handler:    _StoreService_FederationDeleteIdentity_Handler,
+		},
+		{
+			MethodName: "FederationGetTokens",
+			Handler:    _StoreService_FederationGetTokens_Handler,
+		},
+		{
+			MethodName: "FederationPutTokens",
+			Handler:    _StoreService_FederationPutTokens_Handler,
+		},
+		{
+			MethodName: "FederationDeleteTokens",
+			Handler:    _StoreService_FederationDeleteTokens_Handler,
+		},
+		{
+			MethodName: "FederationDeleteExpired",
+			Handler:    _StoreService_FederationDeleteExpired_Handler,
+		},
+		{
+			MethodName: "UsersFindByIdentity",
+			Handler:    _StoreService_UsersFindByIdentity_Handler,
 		},
 		{
 			MethodName: "EmailProvidersGet",

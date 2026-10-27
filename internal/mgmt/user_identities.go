@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4/jwt"
 
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -48,7 +49,7 @@ const linkWithLeeway = time.Minute
 // identityJSON renders one identity of a user. A linked identity carries its
 // profileData; the user's own does not (GET /users/{id}, U7).
 func identityJSON(id *store.Identity) map[string]any {
-	m := map[string]any{"connection": id.Connection, "user_id": id.UserID, "provider": id.Provider, "isSocial": false}
+	m := map[string]any{"connection": id.Connection, "user_id": id.UserID, "provider": id.Provider, "isSocial": rules.IsSocial(id.Provider)}
 	if id.Linked() {
 		m["profileData"] = id.ProfileData
 	}
@@ -286,6 +287,13 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 			moved.ProfileData["username"] = sec.Username
 		}
 		// The secondary goes first, so its logins are free for the primary.
+		// It gives its identity up before it is deleted: a federated
+		// identity's index entry moves to the primary in this transaction,
+		// and its sealed token record (keyed by identity) stays (Plan 24).
+		sec.Identities = nil
+		if err := tx.Users().Update(ctx, sec); err != nil {
+			return err
+		}
 		if err := tx.Users().Delete(ctx, tn.ID, secondary); err != nil {
 			return err
 		}

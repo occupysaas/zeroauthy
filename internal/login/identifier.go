@@ -125,6 +125,9 @@ func (h *Handlers) LoginIdentifierResetPost(w http.ResponseWriter, r *http.Reque
 // revision. Infrastructure failures and crashes retain authenticating, requiring
 // the browser to restart authorization instead of replaying an uncertain call.
 func (h *Handlers) renderLoginStage(w http.ResponseWriter, r *http.Request, status int, f *flow, data ui.LoginData) {
+	if data.Social == nil {
+		data.Social = h.socialButtons(r, f)
+	}
 	if f.txn.HostedState.Step == "authenticating" {
 		next := f.txn.HostedState.Clone()
 		next.Step = "password"

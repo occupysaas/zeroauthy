@@ -147,6 +147,21 @@ service StoreService {
 
   rpc HostedLoginsGet(TenantScope) returns (HostedLoginConfigResult);
   rpc HostedLoginsPut(HostedLoginConfigWrite) returns (Result);
+  // Plan 24 federation. An older server answers Unimplemented and social
+  // login stays unavailable; nothing falls back to non-atomic behavior.
+  rpc FederationIdentityEpoch(TenantScope) returns (VersionResult);
+  rpc FederationBumpIdentityEpoch(TenantScope) returns (Result);
+  rpc FederationCreateAttempt(FederationAttemptWrite) returns (Result);
+  rpc FederationGetAttempt(FederationAttemptKey) returns (FederationAttemptResult);
+  rpc FederationClaimAttempt(FederationClaimRequest) returns (FederationAttemptResult);
+  rpc FederationFinishAttempt(FederationAttemptKey) returns (Result);
+  rpc FederationPutIdentity(FederatedIdentityWrite) returns (Result);
+  rpc FederationDeleteIdentity(FederatedIdentityWrite) returns (Result);
+  rpc FederationGetTokens(FederatedIdentityRequest) returns (FederatedTokensResult);
+  rpc FederationPutTokens(FederatedTokensWrite) returns (Result);
+  rpc FederationDeleteTokens(FederatedIdentityRequest) returns (Result);
+  rpc FederationDeleteExpired(DeleteExpiredRequest) returns (CountResult);
+  rpc UsersFindByIdentity(UsersFindByIdentityRequest) returns (UserResult);
 
   rpc EmailProvidersGet(TenantScope) returns (EmailProviderResult);
   rpc EmailProvidersPut(EmailProviderWrite) returns (Result);
@@ -353,6 +368,7 @@ message Tenant {
   int64 idle_ephemeral_session_lifetime = 30; // internal seconds
   string session_cookie_mode = 31;
   string canonical_host = 32;
+  int64 identity_epoch = 33; // Plan 24; absent = 0, maintained only by Federation
 }
 message Branding { string logo_url = 1; string primary_color = 2; }
 
@@ -444,6 +460,34 @@ message CustomSigningKeySetWrite { string tx_id = 1; CustomSigningKeySet value =
 message HostedLoginConfig { string tenant_id = 1; int64 revision = 2; string config_json = 3; }
 message HostedLoginConfigResult { Error error = 1; HostedLoginConfig value = 2; }
 message HostedLoginConfigWrite { string tx_id = 1; HostedLoginConfig value = 2; int64 expected_revision = 3; }
+
+// Plan 24 federation. Sealed bytes are opaque ciphertext; no plaintext token
+// or credential field exists in any message.
+message FederationEndpoints {
+  string authorization_url = 1; string token_url = 2; string jwks_url = 3;
+  string userinfo_url = 4; string token_auth_method = 5;
+}
+message FederationAttempt {
+  string state_hash = 1; string tenant_id = 2; string transaction_id = 3; string connection_id = 4;
+  int64 revision = 5; int64 identity_epoch = 6; string cookie_hash = 7; string origin = 8;
+  string callback_url = 9; string issuer = 10; FederationEndpoints endpoints = 11;
+  optional bytes sealed_proof = 12; // absent = nil
+  google.protobuf.Timestamp expires_at = 13; string status = 14; bool superseded = 15;
+  google.protobuf.Timestamp created_at = 16;
+}
+message FederationAttemptWrite { string tx_id = 1; FederationAttempt value = 2; }
+message FederationAttemptKey { string tx_id = 1; string tenant_id = 2; string state_hash = 3; }
+message FederationClaimRequest {
+  string tx_id = 1; string tenant_id = 2; string state_hash = 3; string cookie_hash = 4;
+  string origin = 5; google.protobuf.Timestamp now = 6;
+}
+message FederationAttemptResult { Error error = 1; FederationAttempt value = 2; }
+message FederatedIdentityKey { string tenant_id = 1; string connection_id = 2; bytes subject = 3; }
+message FederatedIdentityRequest { string tx_id = 1; FederatedIdentityKey key = 2; }
+message FederatedIdentityWrite { string tx_id = 1; FederatedIdentityKey key = 2; string user_id = 3; }
+message FederatedTokensWrite { string tx_id = 1; FederatedIdentityKey key = 2; bytes sealed = 3; }
+message FederatedTokensResult { Error error = 1; bytes sealed = 2; }
+message UsersFindByIdentityRequest { string tx_id = 1; FederatedIdentityKey key = 2; }
 message HostedStateCASRequest { string tx_id = 1; string tenant_id = 2; string id = 3; int64 expected_revision = 4; string next_json = 5; google.protobuf.Timestamp now = 6; }
 
 // Email provider credentials are opaque ciphertext to storage plugins.
@@ -505,6 +549,8 @@ message Connection {
   int64 username_max = 19;
   string origin = 20;                 // "api" or empty (seed)
   optional bytes extra_json = 21;     // absent = nil map; any JSON object
+  int64 federation_revision = 22;     // Plan 24; absent = 0
+  optional bytes federation_secrets_sealed = 23; // Plan 24; absent = nil; sealed, never plaintext
 }
 
 message Identity {

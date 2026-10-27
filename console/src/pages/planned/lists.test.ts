@@ -26,16 +26,6 @@ describe('list-style planned previews', () => {
     wrapper.unmount()
   })
 
-  it('social lists provider tiles in order, all disabled', async () => {
-    const { wrapper, calls } = await mountAt(plannedPages.social!, '/t/acme/social', never)
-    expect(wrapper.get('h1').text()).toBe('Social')
-    expect(wrapper.findAll('li button').map((b) => b.text())).toEqual(['Generic OAuth 2 / OIDC', 'Google', 'Apple', 'Facebook', 'Microsoft'])
-    expect(wrapper.findAll('button').map((b) => b.text())).toContain('Create connection')
-    assertPreviewInert(wrapper)
-    expect(calls.length).toBe(0)
-    wrapper.unmount()
-  })
-
   it('logs has a disabled type select and date range', async () => {
     const { wrapper } = await mountAt(plannedPages.logs!, '/t/acme/logs', never)
     expect(wrapper.get('select').attributes('disabled')).toBeDefined()

@@ -39,6 +39,13 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 			return st.EmailNotifications().Sweep(ctx, before, 100)
 		}, now},
 		{st.Jobs().DeleteExpired, now},
+		{func(ctx context.Context, before time.Time) (int, error) {
+			n, err := st.Federation().DeleteExpired(ctx, before)
+			if errors.Is(err, store.ErrFederationUnavailable) {
+				return 0, nil // an old storage plugin: no attempts exist
+			}
+			return n, err
+		}, now},
 	}
 	total := 0
 	var errs []error

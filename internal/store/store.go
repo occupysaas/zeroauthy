@@ -61,6 +61,7 @@ type Store interface {
 	EmailTemplates() EmailTemplates
 	EmailNotifications() EmailNotifications
 	HostedLogins() HostedLogins
+	Federation() Federation
 	// WithTx runs fn against a transactional view of the store. If fn
 	// returns an error, none of its writes persist. Drivers serialize
 	// transactions; the memory driver also excludes outside reads and writes
@@ -275,6 +276,10 @@ type Users interface {
 	// or a linked identity's ProfileData email or username, so a linked
 	// identity finds its primary user.
 	FindByLogin(ctx context.Context, tenantID, connection, login string) (*User, error)
+	// FindByIdentity finds the owner of a federated identity through the
+	// identity index: connectionID is the immutable connection ID, subject the
+	// exact provider subject. ErrNotFound if unowned.
+	FindByIdentity(ctx context.Context, tenantID, connectionID, subject string) (*User, error)
 	// FindByEmail returns the users whose Email equals email, on any
 	// connection, ordered by UserID. Callers pass the email lowercase.
 	FindByEmail(ctx context.Context, tenantID, email string) ([]*User, error)

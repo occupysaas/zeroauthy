@@ -24,6 +24,7 @@ func (r tenants) Create(_ context.Context, t *store.Tenant) error {
 	if err != nil {
 		return err
 	}
+	next.IdentityEpoch = 0 // only Federation moves it
 	r.s.tenants[t.ID] = next
 	return nil
 }
@@ -79,6 +80,7 @@ func (r tenants) Update(_ context.Context, t *store.Tenant) error {
 	if p := r.s.protection[t.ID]; p != nil {
 		p.Policy(r.s.tenants[t.ID].ProtectionSettings, t.ProtectionSettings)
 	}
+	next.IdentityEpoch = r.s.tenants[t.ID].IdentityEpoch // only Federation moves it
 	r.s.tenants[t.ID] = next
 	return nil
 }
@@ -122,6 +124,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	purge(r.s.domainAttempts, id)
 	delete(r.s.tenants, id)
 	delete(r.s.protection, id)
+	r.s.dropTenantFederation(id)
 	s := r.s
 	purge(s.clients, id)
 	purge(s.resourceServers, id)

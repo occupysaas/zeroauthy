@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="{{.L.Lang}}" dir="{{.L.Dir}}">
+<head><meta charset="utf-8"><title>{{t .L "zeroauthy.form-post.title"}}</title></head>
+<body>
+<form method="get" action="{{.Action}}">
+{{range $k, $vs := .Params}}{{range $vs}}<input type="hidden" name="{{$k}}" value="{{.}}">
+{{end}}{{end}}<noscript><button type="submit">{{t .L "zeroauthy.form-post.buttonText"}}</button></noscript>
+</form>
+<script nonce="{{.Nonce}}">document.forms[0].submit();</script>
+</body>
+</html>

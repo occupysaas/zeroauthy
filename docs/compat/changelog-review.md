@@ -47,6 +47,8 @@ Okta products) need no row; the "Reviewed through" date covers them.
 | 2026-10-25 | 2026-10-22 (newest entry found) | Codex (Plan 22 implementation) | Fetched the full public changelog HTML (4.4 MB) and extracted dated entries, not search snippets. Since the previous review: Oct 22 CIMD dynamic registration and Application Profiles EA concern future OAuth/application work; the Oct 22 configurable brute-force unblock mode belongs to the Plan 19 follow-up. No newer branding/theme/template/prompt entry through Oct 25. No upstream tenant was queried. |
 | 2026-10-26 | 2026-10-22 (newest entry found) | Codex (Plan 23 planning) | Fetched and text-extracted the complete public changelog after browser size-limit failure. No entries newer than the previous review. Revisited Apr 8, 2026 multiple-custom-domain GA and Dec 15, 2025 weak TLS cipher retirement for the domain/certificate design. Current API adds a diagnostic operation to the roadmap inventory; the spec separates API TXT verification from older CNAME setup prose. No upstream tenant queried; implementation pending. |
 
+| 2026-10-26 | 2026-10-26 (newest entry found) | Codex (Plan 24 Task 1) | Separate full public-HTML retrieval succeeded (4,434,886 bytes), with dated text extraction after the design's oversized-tool retrieval failed. Oct 26 Identity Conversion Suite EA covers anonymous sessions and login experimentation, outside social federation; backlog below. No newer social wire-contract change found. See observations/social-connections.md for hash and source boundary. |
+
 ## Relevant entries
 
 | Date | Summary | Surface | Impact | Outcome |
@@ -64,6 +66,7 @@ Okta products) need no row; the "Reviewed through" date covers them.
 
 | Entry date | Feature, in our words | Target milestone / sub-project | Status |
 |---|---|---|---|
+| 2026-10-26 | Anonymous sessions and login experimentation grouped in Identity Conversion Suite EA | Future anonymous-session / hosted-login experimentation planning; outside Plan 24 | open |
 | 2026-10-22 | Configurable automatic/manual recovery-link unblock mode for brute-force protection | Plan 19 follow-up | open |
 | 2025-10-28 | Confirmation step for non-verifiable callback URIs; `prompt=none` limits | Milestone 10 (Plan 9) | done (Plan 9) |
 | 2025-10-10 | Private-key-JWT client assertions must use the issuer string as `aud` | When `private_key_jwt` client auth is added | open |

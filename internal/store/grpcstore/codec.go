@@ -185,6 +185,7 @@ func tenantToPB(t *store.Tenant) (*storev1.Tenant, error) {
 		PushedAuthorizationRequestsSupported:           t.PushedAuthorizationRequestsSupported,
 		DeviceFlowCharset:                              t.DeviceFlowCharset, DeviceFlowMask: t.DeviceFlowMask,
 		Reserved: t.Reserved, Seeded: t.Seeded, Origin: t.Origin,
+		IdentityEpoch: t.IdentityEpoch,
 	}
 
 	for _, item := range []struct {
@@ -238,6 +239,7 @@ func tenantFromPB(pb *storev1.Tenant) (*store.Tenant, error) {
 		PushedAuthorizationRequestsSupported:           pb.PushedAuthorizationRequestsSupported,
 		DeviceFlowCharset:                              pb.DeviceFlowCharset, DeviceFlowMask: pb.DeviceFlowMask,
 		Reserved: pb.Reserved, Seeded: pb.Seeded, Origin: pb.Origin,
+		IdentityEpoch: pb.IdentityEpoch,
 	}
 
 	for _, item := range []struct {
@@ -593,7 +595,10 @@ func connectionToPB(c *store.Connection) (*storev1.Connection, error) {
 		CustomScripts: stringMapToPB(c.CustomScripts), SetUserRootAttributes: c.SetUserRootAttributes,
 		IsDomainConnection:   c.IsDomainConnection,
 		BruteForceProtection: c.BruteForceProtection, UsernameMin: int64(c.UsernameMin), UsernameMax: int64(c.UsernameMax),
-		Origin: c.Origin,
+		Origin: c.Origin, FederationRevision: c.FederationRevision,
+	}
+	if len(c.FederationSecretsSealed) > 0 {
+		pb.FederationSecretsSealed = cloneBytes(c.FederationSecretsSealed)
 	}
 	if c.Extra != nil {
 		b, err := json.Marshal(c.Extra)
@@ -627,7 +632,10 @@ func connectionFromPB(pb *storev1.Connection) (*store.Connection, error) {
 		CustomScripts: stringMapFromPB(pb.CustomScripts), SetUserRootAttributes: pb.SetUserRootAttributes,
 		IsDomainConnection:   pb.IsDomainConnection,
 		BruteForceProtection: pb.BruteForceProtection, UsernameMin: int(pb.UsernameMin), UsernameMax: int(pb.UsernameMax),
-		Origin: pb.Origin,
+		Origin: pb.Origin, FederationRevision: pb.FederationRevision,
+	}
+	if len(pb.FederationSecretsSealed) > 0 {
+		c.FederationSecretsSealed = cloneBytes(pb.FederationSecretsSealed)
 	}
 	if pb.PasswordOptions == nil {
 		// A plugin older than Plan 15 knows no such field; protection
