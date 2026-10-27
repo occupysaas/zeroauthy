@@ -49,7 +49,9 @@ type StartInput struct {
 // ExchangeInput is what an adapter needs to redeem a code. ClientSecret is
 // the opened credential, held only for the duration of the exchange.
 type ExchangeInput struct {
-	Config       Config
+	Config Config
+	// Cache scopes cached keys to the connection configuration.
+	Cache        CacheKey
 	Endpoints    Endpoints
 	Issuer       string
 	CallbackURL  string
