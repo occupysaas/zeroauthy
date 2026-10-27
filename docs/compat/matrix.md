@@ -101,3 +101,9 @@ D-0051. Verified against local mock providers only: Chromium code+PKCE logins
 for nine personas (m25), node-auth0 7.4.0, auth0-cli 1.37.0 and the strict
 Deploy CLI 9.1.0 four-cell matrix with post-import logins. No live Microsoft,
 Google or Auth0 observation.
+
+Plan 26 contract frozen (2026-10-27), implementation in progress: tenant roles,
+direct permissions, effective direct-role union, RBAC enforcement and four token
+profiles. See [public contract review](observations/roles-permissions.md) and
+D-0052. No completed endpoint/runtime coverage is claimed by this inventory;
+group/organization-role and effective-role APIs remain deferred.

@@ -1,0 +1,556 @@
+{
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/api/v2/roles",
+      "required_scopes": [
+        "read:roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "roles[] or {start,limit,total,roles}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/get-roles",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/roles",
+      "required_scopes": [
+        "create:roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "{name,description?}",
+      "response_shape": "{id,name,description}",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/post-roles",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/roles/{id}",
+      "required_scopes": [
+        "read:roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "{id,name,description}",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/get-roles-by-id",
+      "evidence": "documented"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/roles/{id}",
+      "required_scopes": [
+        "update:roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "{name?,description?}",
+      "response_shape": "{id,name,description}",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/patch-roles-by-id",
+      "evidence": "documented"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/roles/{id}",
+      "required_scopes": [
+        "delete:roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/delete-roles-by-id",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/roles/{id}/permissions",
+      "required_scopes": [
+        "read:roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "permissions[] or {start,limit,total,permissions}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/get-role-permission",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/roles/{id}/permissions",
+      "required_scopes": [
+        "update:roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "{permissions:[{resource_server_identifier,permission_name}]}",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/post-role-permission-assignment",
+      "evidence": "documented"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/roles/{id}/permissions",
+      "required_scopes": [
+        "update:roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "{permissions:[{resource_server_identifier,permission_name}]}",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/delete-role-permission-assignment",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/roles/{id}/users",
+      "required_scopes": [
+        "read:users",
+        "read:roles",
+        "read:role_members"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "users[] or {start,limit,total,users} or {users,next?}",
+      "pagination": "offset or checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/get-role-user",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/roles/{id}/users",
+      "required_scopes": [
+        "update:roles",
+        "create:role_members"
+      ],
+      "scope_match": "all",
+      "request_shape": "{users:[user_id]}",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/roles/post-role-users",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/users/{id}/roles",
+      "required_scopes": [
+        "read:users",
+        "read:roles",
+        "read:role_members"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "roles[] or {start,limit,total,roles}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/users/get-user-roles",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/users/{id}/roles",
+      "required_scopes": [
+        "update:users",
+        "create:role_members"
+      ],
+      "scope_match": "all",
+      "request_shape": "{roles:[role_id]}",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/users/post-user-roles",
+      "evidence": "documented"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/users/{id}/roles",
+      "required_scopes": [
+        "update:users",
+        "delete:role_members"
+      ],
+      "scope_match": "all",
+      "request_shape": "{roles:[role_id]}",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/users/delete-user-roles",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/users/{id}/permissions",
+      "required_scopes": [
+        "read:users"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "permissions[] or {start,limit,total,permissions}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/users/get-permissions",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/users/{id}/permissions",
+      "required_scopes": [
+        "update:users"
+      ],
+      "scope_match": "all",
+      "request_shape": "{permissions:[{resource_server_identifier,permission_name}]}",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/users/post-permissions",
+      "evidence": "documented"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/users/{id}/permissions",
+      "required_scopes": [
+        "update:users"
+      ],
+      "scope_match": "all",
+      "request_shape": "{permissions:[{resource_server_identifier,permission_name}]}",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0052 role/batch/page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/users/delete-permissions",
+      "evidence": "documented"
+    }
+  ],
+  "metadata": {
+    "dialects": [
+      "access_token",
+      "access_token_authz",
+      "rfc9068_profile",
+      "rfc9068_profile_authz"
+    ],
+    "deferred": [
+      "groups",
+      "organization_roles",
+      "role_list_checkpoint_ea",
+      "effective_roles",
+      "effective_permissions",
+      "role_source_groups",
+      "actions"
+    ],
+    "rules": [
+      {
+        "name": "effective_permissions",
+        "value": "Union direct grants and permissions from all directly assigned roles; deduplicate by API identifier plus permission name.",
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/api/management/v2/users/get-permissions"
+      },
+      {
+        "name": "direct_removal",
+        "value": "Removing a direct permission never removes an inherited role permission.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "role_name",
+        "value": "1..128 Unicode code points; whitespace-only and controls rejected; preserve spelling.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "role_description",
+        "value": "0..255 Unicode code points; reject controls; omitted PATCH preserves, empty clears, null rejects.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "batch",
+        "value": "1..100 before deduplication; atomic validation; repeated valid add/remove idempotent.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "name_uniqueness",
+        "value": "Tenant-local exact case-sensitive uniqueness.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "pagination",
+        "value": "page>=0 default0; per_page1..100 default50; include_totals=false; array unless totals requested.",
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/api/management/v2/roles/get-roles"
+      },
+      {
+        "name": "stable_order",
+        "value": "Role/user IDs and permission API/name order stable; totals start,limit,total plus named array.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "role_user_checkpoint",
+        "value": "take1..100 default50; first page omits from; response {users,next?}; next omitted when exhausted.",
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/api/management/v2/roles/get-role-user"
+      },
+      {
+        "name": "cursor_binding",
+        "value": "Opaque checkpoint binds tenant and role and excludes the last user ID; mixed offset/checkpoint rejected.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "role_user_summary",
+        "value": "Only user_id,picture,name,email.",
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/api/management/v2/roles/get-role-user"
+      },
+      {
+        "name": "permission_sources",
+        "value": "sources:[{source_type:\"DIRECT\"},{source_type:\"ROLE\",source_id:role_id,source_name:role_name}]; direct omits source_id/source_name. Public source schema is any.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "cleanup",
+        "value": "Deleting API scope removes direct and role edges atomically; recreation restores no rights; API/user/role/tenant deletion cascades only tenant-local edges.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "rbac_off_authz",
+        "value": "Omit user permissions claim when enforce_policies=false, even for _authz dialects.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "refresh_ceiling",
+        "value": "Retain initially authorized API/client/consent scopes before RBAC filtering; refresh cannot add unrequested scopes.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "snapshot_timing",
+        "value": "Revocation affects the next consistent snapshot; already-started issuance and existing JWTs are not revoked.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "protocol_scopes",
+        "value": "openid,profile,email,offline_access are not assignable API permissions; preserve separately authorized protocol scopes.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "reserved_apis",
+        "value": "Never assign reserved Management API/operator permissions; system APIs keep current immutable RBAC settings.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "account_linking",
+        "value": "Keep primary assignments; do not transfer secondary privileges; cleanup on secondary deletion.",
+        "evidence": "local-decision",
+        "decision": "D-0052"
+      },
+      {
+        "name": "token_profiles",
+        "value": "JWT+azp for access_token variants; at+jwt+client_id and no gty for RFC variants; retain jti.",
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/secure/tokens/access-tokens/access-token-profiles"
+      },
+      {
+        "name": "rbac_scope",
+        "value": "Enabled RBAC intersects requested API permissions with current user assignments; _authz claim includes unrequested assigned permissions.",
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/get-started/apis/enable-role-based-access-control-for-apis"
+      }
+    ]
+  }
+}
