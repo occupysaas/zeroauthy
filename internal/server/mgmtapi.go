@@ -500,3 +500,83 @@ func (a mgmtAPI) VerifyCustomDomain(w http.ResponseWriter, r *http.Request, id s
 func (a mgmtAPI) TestCustomDomain(w http.ResponseWriter, r *http.Request, id string) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.TestCustomDomain(w, r, id) }, "update:custom_domains")
 }
+
+func (a mgmtAPI) GetRoles(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetRolesParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetRoles(w, r) }, "read:roles")
+}
+
+func (a mgmtAPI) PostRoles(w http.ResponseWriter, r *http.Request) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostRoles(w, r) }, "create:roles")
+}
+
+func (a mgmtAPI) GetRolesById(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetRolesById(w, r, id) }, "read:roles")
+}
+
+func (a mgmtAPI) PatchRolesById(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PatchRolesById(w, r, id) }, "update:roles")
+}
+
+func (a mgmtAPI) DeleteRolesById(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteRolesById(w, r, id) }, "delete:roles")
+}
+
+func (a mgmtAPI) GetRolePermissions(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetRolePermissionsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetRolePermissions(w, r, id) }, "read:roles")
+}
+
+func (a mgmtAPI) PostRolePermissions(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostRolePermissions(w, r, id) }, "update:roles")
+}
+
+func (a mgmtAPI) DeleteRolePermissions(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteRolePermissions(w, r, id) }, "update:roles")
+}
+
+func (a mgmtAPI) GetRoleUsers(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetRoleUsersParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetRoleUsers(w, r, id) }, "read:users", "read:roles", "read:role_members")
+}
+
+func (a mgmtAPI) PostRoleUsers(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostRoleUsers(w, r, id) }, "update:roles", "create:role_members")
+}
+
+func (a mgmtAPI) GetUserRoles(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetUserRolesParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetUserRoles(w, r, id) }, "read:users", "read:roles", "read:role_members")
+}
+
+func (a mgmtAPI) PostUserRoles(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostUserRoles(w, r, id) }, "update:users", "create:role_members")
+}
+
+func (a mgmtAPI) DeleteUserRoles(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteUserRoles(w, r, id) }, "update:users", "delete:role_members")
+}
+
+func (a mgmtAPI) GetUserPermissions(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetUserPermissionsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetUserPermissions(w, r, id) }, "read:users")
+}
+
+func (a mgmtAPI) PostUserPermissions(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PostUserPermissions(w, r, id) }, "update:users")
+}
+
+func (a mgmtAPI) DeleteUserPermissions(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteUserPermissions(w, r, id) }, "update:users")
+}
+
+// scopedAll requires every documented scope; membership APIs combine user and role privileges.
+func scopedAll(w http.ResponseWriter, r *http.Request, fn http.HandlerFunc, scopes ...string) {
+	for _, scope := range scopes {
+		caller, ok := mgmt.CallerFrom(r.Context())
+		if !ok {
+			mgmt.WriteError(w, 401, "invalid_token", "Missing authentication")
+			return
+		}
+		if !caller.Has(scope) {
+			mgmt.WriteError(w, 403, "insufficient_scope", "Insufficient scope")
+			return
+		}
+	}
+	fn(w, r)
+}

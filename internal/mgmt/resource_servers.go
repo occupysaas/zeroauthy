@@ -306,6 +306,9 @@ func removedScopes(before, after []store.Scope) []string {
 //     access (the console refreshes with it), skipped consent and both
 //     policies (machine clients must never get operator tokens).
 func checkSystemUpdate(tn *store.Tenant, rs *store.ResourceServer, spec *apirules.Spec, in resourceServerBody) error {
+	if spec.EnforcePolicies || spec.TokenDialect != "access_token" {
+		return badBody("RBAC settings cannot change for system APIs")
+	}
 	if in.name {
 		return badBody("name: a system API cannot be renamed")
 	}
@@ -351,8 +354,8 @@ func resourceServerView(rs *store.ResourceServer) mgmtapi.ResourceServer {
 		AllowOfflineAccess: rs.AllowOfflineAccess,
 		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
 		TokenLifetimeForWeb:                       cmp.Or(rs.TokenLifetimeForWeb, apirules.DefaultTokenLifetimeForWeb),
-		EnforcePolicies:                           false,
-		TokenDialect:                              mgmtapi.ResourceServerTokenDialect("access_token"),
+		EnforcePolicies:                           rs.EnforcePolicies,
+		TokenDialect:                              mgmtapi.ResourceServerTokenDialect(cmp.Or(rs.TokenDialect, "access_token")),
 	}
 	user, client := rs.SubjectTypeAuthorization.User, rs.SubjectTypeAuthorization.Client
 	if user == "" {
@@ -429,15 +432,9 @@ func readResourceServerBody(body map[string]json.RawMessage, s *apirules.Spec, c
 		case "subject_type_authorization":
 			err = readSubjectTypeAuthorization(raw, &s.SubjectTypeAuthorization)
 		case "enforce_policies":
-			var v bool
-			if err = decodeStrict(raw, &v); err == nil && v {
-				err = errors.New("zeroauthy has no role-based access control; only false is supported")
-			}
+			err = decodeStrict(raw, &s.EnforcePolicies)
 		case "token_dialect":
-			var v string
-			if err = decodeString(raw, &v); err == nil && v != "access_token" {
-				err = fmt.Errorf("%q is not supported (access_token only)", v)
-			}
+			err = decodeString(raw, &s.TokenDialect)
 		case "consent_policy", "proof_of_possession", "token_encryption":
 			if !isNull(raw) {
 				err = errors.New("is not supported; only null is accepted")

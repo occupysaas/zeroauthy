@@ -36,7 +36,9 @@ const (
 // Spec is an API's settings. Empty strings, zeros and nil pointers mean
 // "the default", which Normalize fills in or the token endpoint applies.
 type Spec struct {
-	Identifier string
+	Identifier      string
+	EnforcePolicies bool
+	TokenDialect    string
 	// Name is optional; an empty name is an API without one.
 	Name   string
 	Scopes []store.Scope
@@ -72,6 +74,9 @@ func Reserved(identifier, mgmtAPI string) error {
 // does not check Reserved: the system APIs have reserved identifiers, and
 // callers that create an API check it.
 func Normalize(s *Spec) []error {
+	if s.TokenDialect == "" {
+		s.TokenDialect = "access_token"
+	}
 	var errs []error
 	fail := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
 
@@ -83,6 +88,9 @@ func Normalize(s *Spec) []error {
 	}
 	if strings.ContainsAny(s.Name, "<>") {
 		fail("name must not contain < or >")
+	}
+	if !slices.Contains([]string{"access_token", "access_token_authz", "rfc9068_profile", "rfc9068_profile_authz"}, s.TokenDialect) {
+		fail("unsupported token_dialect")
 	}
 	seen := map[string]bool{}
 	for _, sc := range s.Scopes {
@@ -130,6 +138,7 @@ func Normalize(s *Spec) []error {
 // Apply copies a normalized s into rs. It leaves the identity (tenant, ID,
 // identifier, creation time, is_system and origin) alone.
 func Apply(rs *store.ResourceServer, s *Spec) {
+	rs.EnforcePolicies, rs.TokenDialect = s.EnforcePolicies, s.TokenDialect
 	rs.Name = s.Name
 	rs.Scopes = slices.Clone(s.Scopes)
 	rs.SigningAlg = SigningAlg
@@ -145,6 +154,7 @@ func FromResourceServer(rs *store.ResourceServer) Spec {
 	skip := rs.SkipConsentForVerifiableFirstPartyClients
 	return Spec{
 		Identifier: rs.Identifier, Name: rs.Name, Scopes: slices.Clone(rs.Scopes),
+		EnforcePolicies: rs.EnforcePolicies, TokenDialect: cmp.Or(rs.TokenDialect, "access_token"),
 		TokenLifetime: rs.TokenLifetime, TokenLifetimeForWeb: rs.TokenLifetimeForWeb,
 		AllowOfflineAccess:                        rs.AllowOfflineAccess,
 		SkipConsentForVerifiableFirstPartyClients: &skip,

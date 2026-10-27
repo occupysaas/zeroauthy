@@ -60,6 +60,7 @@ type Tenant struct {
 	DefaultDirectory    string           `yaml:"default_directory"`
 	AllowedLogoutURLs   []string         `yaml:"allowed_logout_urls"`
 	ResourceServers     []ResourceServer `yaml:"resource_servers"`
+	Roles               []Role           `yaml:"roles"`
 	Clients             []Client         `yaml:"clients"`
 	ClientGrants        []ClientGrant    `yaml:"client_grants"`
 	SessionLifetime     int              `yaml:"session_lifetime"`
@@ -89,7 +90,19 @@ type DeviceFlow struct {
 	Mask    string `yaml:"mask"`
 }
 
+type Role struct {
+	Name        string           `yaml:"name"`
+	Description string           `yaml:"description"`
+	Permissions []RolePermission `yaml:"permissions"`
+}
+type RolePermission struct {
+	ResourceServerIdentifier string `yaml:"resource_server_identifier"`
+	PermissionName           string `yaml:"permission_name"`
+}
+
 type ResourceServer struct {
+	EnforcePolicies    bool    `yaml:"enforce_policies"`
+	TokenDialect       string  `yaml:"token_dialect"`
 	Identifier         string  `yaml:"identifier"`
 	Name               string  `yaml:"name"`
 	Scopes             []Scope `yaml:"scopes"`
@@ -112,6 +125,7 @@ func (rs *ResourceServer) spec() apirules.Spec {
 	return apirules.Spec{
 		Identifier: rs.Identifier, Name: rs.Name, Scopes: scopes,
 		TokenLifetime: rs.TokenLifetime, AllowOfflineAccess: rs.AllowOfflineAccess,
+		EnforcePolicies: rs.EnforcePolicies, TokenDialect: rs.TokenDialect,
 		SkipConsentForVerifiableFirstPartyClients: rs.SkipConsentForVerifiableFirstPartyClients,
 		SubjectTypeAuthorization: store.SubjectTypeAuthorization{
 			User: rs.SubjectTypeAuthorization.User.Policy, Client: rs.SubjectTypeAuthorization.Client.Policy,

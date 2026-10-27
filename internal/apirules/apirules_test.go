@@ -12,11 +12,11 @@ import (
 // nothing leaves an API as it was.
 func TestFromResourceServerApplyRoundTrip(t *testing.T) {
 	for _, rs := range []*store.ResourceServer{
-		{Name: "Orders", SigningAlg: SigningAlg, Scopes: []store.Scope{{Value: "read:orders", Description: "Read"}, {Value: "write:orders"}},
+		{Name: "Orders", SigningAlg: SigningAlg, TokenDialect: "access_token", Scopes: []store.Scope{{Value: "read:orders", Description: "Read"}, {Value: "write:orders"}},
 			TokenLifetime: 3600, TokenLifetimeForWeb: 600, AllowOfflineAccess: true,
 			SkipConsentForVerifiableFirstPartyClients: true,
 			SubjectTypeAuthorization:                  store.SubjectTypeAuthorization{User: store.PolicyDenyAll, Client: store.PolicyRequireClientGrant}},
-		{SigningAlg: SigningAlg, SubjectTypeAuthorization: store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyDenyAll}},
+		{SigningAlg: SigningAlg, TokenDialect: "access_token", SubjectTypeAuthorization: store.SubjectTypeAuthorization{User: store.PolicyAllowAll, Client: store.PolicyDenyAll}},
 	} {
 		s := FromResourceServer(rs)
 		got := &store.ResourceServer{}

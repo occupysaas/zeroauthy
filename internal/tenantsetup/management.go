@@ -16,6 +16,14 @@ const ManagementAPIName = "Auth0 Management API"
 // ManagementAPIScopes are the Management API scopes, with Auth0's names,
 // for the resources zeroauthy stores. Later slices add more.
 var ManagementAPIScopes = []store.Scope{
+	{Value: "read:roles", Description: "read roles"},
+	{Value: "create:roles", Description: "create roles"},
+	{Value: "update:roles", Description: "update roles"},
+	{Value: "delete:roles", Description: "delete roles"},
+	{Value: "read:role_members", Description: "read role_members"},
+	{Value: "create:role_members", Description: "create role_members"},
+	{Value: "delete:role_members", Description: "delete role_members"},
+
 	{Value: "read:clients", Description: "Read applications"},
 	{Value: "create:clients", Description: "Create applications"},
 	{Value: "update:clients", Description: "Update applications"},
@@ -140,4 +148,45 @@ func IsManagementAPIScope(s string) bool {
 		}
 	}
 	return false
+}
+
+// UpgradeManagementAPIScopes adds newly supported scopes to an existing
+// Management API. Existing grants and resource-server settings are preserved.
+// Missing APIs stay lazy-created; reserved tenant APIs have their own policy.
+func UpgradeManagementAPIScopes(ctx context.Context, st store.Store, t *store.Tenant, baseDomain string) error {
+	if t == nil || t.Reserved {
+		return nil
+	}
+	identifier := tenant.ManagementAPIIdentifier(t, baseDomain)
+	if identifier == "" {
+		return nil
+	}
+	return st.WithTx(ctx, func(tx store.Store) error {
+		api, err := tx.ResourceServers().GetByIdentifier(ctx, t.ID, identifier)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if !api.IsSystem {
+			return nil
+		}
+		seen := make(map[string]bool, len(api.Scopes))
+		for _, scope := range api.Scopes {
+			seen[scope.Value] = true
+		}
+		changed := false
+		for _, scope := range ManagementAPIScopes {
+			if !seen[scope.Value] {
+				api.Scopes = append(api.Scopes, scope)
+				seen[scope.Value] = true
+				changed = true
+			}
+		}
+		if !changed {
+			return nil
+		}
+		return tx.ResourceServers().Update(ctx, api)
+	})
 }

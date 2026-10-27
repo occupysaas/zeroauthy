@@ -1293,6 +1293,24 @@ func (e JwtConfigurationAlg) Valid() bool {
 	}
 }
 
+// Defines values for RBACPermissionSourceSourceType.
+const (
+	DIRECT RBACPermissionSourceSourceType = "DIRECT"
+	ROLE   RBACPermissionSourceSourceType = "ROLE"
+)
+
+// Valid indicates whether the value is a known member of the RBACPermissionSourceSourceType enum.
+func (e RBACPermissionSourceSourceType) Valid() bool {
+	switch e {
+	case DIRECT:
+		return true
+	case ROLE:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RefreshTokenSettingsExpirationType.
 const (
 	Expiring    RefreshTokenSettingsExpirationType = "expiring"
@@ -1323,21 +1341,6 @@ func (e RefreshTokenSettingsRotationType) Valid() bool {
 	case NonRotating:
 		return true
 	case Rotating:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ResourceServerEnforcePolicies.
-const (
-	ResourceServerEnforcePoliciesFalse ResourceServerEnforcePolicies = false
-)
-
-// Valid indicates whether the value is a known member of the ResourceServerEnforcePolicies enum.
-func (e ResourceServerEnforcePolicies) Valid() bool {
-	switch e {
-	case ResourceServerEnforcePoliciesFalse:
 		return true
 	default:
 		return false
@@ -1400,13 +1403,22 @@ func (e ResourceServerSubjectTypeAuthorizationUserPolicy) Valid() bool {
 
 // Defines values for ResourceServerTokenDialect.
 const (
-	ResourceServerTokenDialectAccessToken ResourceServerTokenDialect = "access_token"
+	ResourceServerTokenDialectAccessToken         ResourceServerTokenDialect = "access_token"
+	ResourceServerTokenDialectAccessTokenAuthz    ResourceServerTokenDialect = "access_token_authz"
+	ResourceServerTokenDialectRfc9068Profile      ResourceServerTokenDialect = "rfc9068_profile"
+	ResourceServerTokenDialectRfc9068ProfileAuthz ResourceServerTokenDialect = "rfc9068_profile_authz"
 )
 
 // Valid indicates whether the value is a known member of the ResourceServerTokenDialect enum.
 func (e ResourceServerTokenDialect) Valid() bool {
 	switch e {
 	case ResourceServerTokenDialectAccessToken:
+		return true
+	case ResourceServerTokenDialectAccessTokenAuthz:
+		return true
+	case ResourceServerTokenDialectRfc9068Profile:
+		return true
+	case ResourceServerTokenDialectRfc9068ProfileAuthz:
 		return true
 	default:
 		return false
@@ -1430,13 +1442,22 @@ func (e ResourceServerCreateSigningAlg) Valid() bool {
 
 // Defines values for ResourceServerCreateTokenDialect.
 const (
-	ResourceServerCreateTokenDialectAccessToken ResourceServerCreateTokenDialect = "access_token"
+	ResourceServerCreateTokenDialectAccessToken         ResourceServerCreateTokenDialect = "access_token"
+	ResourceServerCreateTokenDialectAccessTokenAuthz    ResourceServerCreateTokenDialect = "access_token_authz"
+	ResourceServerCreateTokenDialectRfc9068Profile      ResourceServerCreateTokenDialect = "rfc9068_profile"
+	ResourceServerCreateTokenDialectRfc9068ProfileAuthz ResourceServerCreateTokenDialect = "rfc9068_profile_authz"
 )
 
 // Valid indicates whether the value is a known member of the ResourceServerCreateTokenDialect enum.
 func (e ResourceServerCreateTokenDialect) Valid() bool {
 	switch e {
 	case ResourceServerCreateTokenDialectAccessToken:
+		return true
+	case ResourceServerCreateTokenDialectAccessTokenAuthz:
+		return true
+	case ResourceServerCreateTokenDialectRfc9068Profile:
+		return true
+	case ResourceServerCreateTokenDialectRfc9068ProfileAuthz:
 		return true
 	default:
 		return false
@@ -1460,13 +1481,37 @@ func (e ResourceServerSettingsSigningAlg) Valid() bool {
 
 // Defines values for ResourceServerSettingsTokenDialect.
 const (
-	ResourceServerSettingsTokenDialectAccessToken ResourceServerSettingsTokenDialect = "access_token"
+	ResourceServerSettingsTokenDialectAccessToken         ResourceServerSettingsTokenDialect = "access_token"
+	ResourceServerSettingsTokenDialectAccessTokenAuthz    ResourceServerSettingsTokenDialect = "access_token_authz"
+	ResourceServerSettingsTokenDialectRfc9068Profile      ResourceServerSettingsTokenDialect = "rfc9068_profile"
+	ResourceServerSettingsTokenDialectRfc9068ProfileAuthz ResourceServerSettingsTokenDialect = "rfc9068_profile_authz"
 )
 
 // Valid indicates whether the value is a known member of the ResourceServerSettingsTokenDialect enum.
 func (e ResourceServerSettingsTokenDialect) Valid() bool {
 	switch e {
 	case ResourceServerSettingsTokenDialectAccessToken:
+		return true
+	case ResourceServerSettingsTokenDialectAccessTokenAuthz:
+		return true
+	case ResourceServerSettingsTokenDialectRfc9068Profile:
+		return true
+	case ResourceServerSettingsTokenDialectRfc9068ProfileAuthz:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RoleCreateType.
+const (
+	Tenant RoleCreateType = "tenant"
+)
+
+// Valid indicates whether the value is a known member of the RoleCreateType enum.
+func (e RoleCreateType) Valid() bool {
+	switch e {
+	case Tenant:
 		return true
 	default:
 		return false
@@ -3668,6 +3713,44 @@ type PasswordChangeTicketCreate struct {
 	UserId *string `json:"user_id,omitempty"`
 }
 
+// RBACPermission defines model for RBACPermission.
+type RBACPermission struct {
+	Description              string                  `json:"description"`
+	PermissionName           string                  `json:"permission_name"`
+	ResourceServerIdentifier string                  `json:"resource_server_identifier"`
+	ResourceServerName       string                  `json:"resource_server_name"`
+	Sources                  *[]RBACPermissionSource `json:"sources,omitempty"`
+}
+
+// RBACPermissionBatch defines model for RBACPermissionBatch.
+type RBACPermissionBatch struct {
+	Permissions []RBACPermissionKey `json:"permissions"`
+}
+
+// RBACPermissionKey defines model for RBACPermissionKey.
+type RBACPermissionKey struct {
+	PermissionName           string `json:"permission_name"`
+	ResourceServerIdentifier string `json:"resource_server_identifier"`
+}
+
+// RBACPermissionPage defines model for RBACPermissionPage.
+type RBACPermissionPage struct {
+	Limit       int              `json:"limit"`
+	Permissions []RBACPermission `json:"permissions"`
+	Start       int              `json:"start"`
+	Total       int              `json:"total"`
+}
+
+// RBACPermissionSource defines model for RBACPermissionSource.
+type RBACPermissionSource struct {
+	SourceId   *string                        `json:"source_id,omitempty"`
+	SourceName *string                        `json:"source_name,omitempty"`
+	SourceType RBACPermissionSourceSourceType `json:"source_type"`
+}
+
+// RBACPermissionSourceSourceType defines model for RBACPermissionSource.SourceType.
+type RBACPermissionSourceSourceType string
+
 // RefreshTokenSettings The refresh tokens the application receives.
 type RefreshTokenSettings struct {
 	ExpirationType *RefreshTokenSettingsExpirationType `json:"expiration_type,omitempty"`
@@ -3697,8 +3780,8 @@ type RefreshTokenSettingsRotationType string
 
 // ResourceServer An API.
 type ResourceServer struct {
-	AllowOfflineAccess bool                          `json:"allow_offline_access"`
-	EnforcePolicies    ResourceServerEnforcePolicies `json:"enforce_policies"`
+	AllowOfflineAccess bool `json:"allow_offline_access"`
+	EnforcePolicies    bool `json:"enforce_policies"`
 
 	// Id The API's ID: 24 hexadecimal characters for APIs created through the API.
 	Id         string `json:"id"`
@@ -3726,9 +3809,6 @@ type ResourceServer struct {
 	TokenLifetime       int                        `json:"token_lifetime"`
 	TokenLifetimeForWeb int                        `json:"token_lifetime_for_web"`
 }
-
-// ResourceServerEnforcePolicies defines model for ResourceServer.EnforcePolicies.
-type ResourceServerEnforcePolicies bool
 
 // ResourceServerSigningAlg defines model for ResourceServer.SigningAlg.
 type ResourceServerSigningAlg string
@@ -3760,7 +3840,7 @@ type ResourceServerCreate struct {
 	// ConsentPolicy Only null is accepted (transactional authorization is not supported).
 	ConsentPolicy interface{} `json:"consent_policy,omitempty"`
 
-	// EnforcePolicies zeroauthy has no role-based access control, so only `false` is accepted.
+	// EnforcePolicies Limit custom API user scopes to current role and direct permissions when true.
 	EnforcePolicies *bool `json:"enforce_policies,omitempty"`
 
 	// Identifier The API's identifier, the `audience` of its tokens. Case-sensitive, unique within the tenant.
@@ -3784,7 +3864,7 @@ type ResourceServerCreate struct {
 	// or `deny_all`. On update the two subject types merge.
 	SubjectTypeAuthorization *SubjectTypeAuthorization `json:"subject_type_authorization,omitempty"`
 
-	// TokenDialect zeroauthy issues one access token format, `access_token`.
+	// TokenDialect Access-token profile; defaults to access_token.
 	TokenDialect *ResourceServerCreateTokenDialect `json:"token_dialect,omitempty"`
 
 	// TokenEncryption Only null is accepted (token encryption is not supported).
@@ -3802,7 +3882,7 @@ type ResourceServerCreate struct {
 // ResourceServerCreateSigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
 type ResourceServerCreateSigningAlg string
 
-// ResourceServerCreateTokenDialect zeroauthy issues one access token format, `access_token`.
+// ResourceServerCreateTokenDialect Access-token profile; defaults to access_token.
 type ResourceServerCreateTokenDialect string
 
 // ResourceServerPage A page of APIs with `include_totals=true`.
@@ -3837,7 +3917,7 @@ type ResourceServerSettings struct {
 	// ConsentPolicy Only null is accepted (transactional authorization is not supported).
 	ConsentPolicy interface{} `json:"consent_policy,omitempty"`
 
-	// EnforcePolicies zeroauthy has no role-based access control, so only `false` is accepted.
+	// EnforcePolicies Limit custom API user scopes to current role and direct permissions when true.
 	EnforcePolicies *bool `json:"enforce_policies,omitempty"`
 
 	// Name The API's name. Optional; absent when not given.
@@ -3858,7 +3938,7 @@ type ResourceServerSettings struct {
 	// or `deny_all`. On update the two subject types merge.
 	SubjectTypeAuthorization *SubjectTypeAuthorization `json:"subject_type_authorization,omitempty"`
 
-	// TokenDialect zeroauthy issues one access token format, `access_token`.
+	// TokenDialect Access-token profile; defaults to access_token.
 	TokenDialect *ResourceServerSettingsTokenDialect `json:"token_dialect,omitempty"`
 
 	// TokenEncryption Only null is accepted (token encryption is not supported).
@@ -3876,13 +3956,71 @@ type ResourceServerSettings struct {
 // ResourceServerSettingsSigningAlg The signing algorithm; zeroauthy signs access tokens with RS256 only (`HS256` and `PS256` are refused, and so is `signing_secret`).
 type ResourceServerSettingsSigningAlg string
 
-// ResourceServerSettingsTokenDialect zeroauthy issues one access token format, `access_token`.
+// ResourceServerSettingsTokenDialect Access-token profile; defaults to access_token.
 type ResourceServerSettingsTokenDialect string
 
 // ResourceServerUpdate Fields to change; the others keep their values. Unknown fields are
 // refused (`invalid_body`), `identifier`, `id` and `is_system`
 // among them. An empty body changes nothing.
 type ResourceServerUpdate = ResourceServerSettings
+
+// Role defines model for Role.
+type Role struct {
+	Description string `json:"description"`
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+}
+
+// RoleCreate defines model for RoleCreate.
+type RoleCreate struct {
+	Description *string         `json:"description,omitempty"`
+	Name        string          `json:"name"`
+	Type        *RoleCreateType `json:"type,omitempty"`
+}
+
+// RoleCreateType defines model for RoleCreate.Type.
+type RoleCreateType string
+
+// RolePage defines model for RolePage.
+type RolePage struct {
+	Limit int    `json:"limit"`
+	Roles []Role `json:"roles"`
+	Start int    `json:"start"`
+	Total int    `json:"total"`
+}
+
+// RoleUpdate defines model for RoleUpdate.
+type RoleUpdate struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
+
+// RoleUser defines model for RoleUser.
+type RoleUser struct {
+	Email   *string `json:"email,omitempty"`
+	Name    *string `json:"name,omitempty"`
+	Picture *string `json:"picture,omitempty"`
+	UserId  string  `json:"user_id"`
+}
+
+// RoleUserBatch defines model for RoleUserBatch.
+type RoleUserBatch struct {
+	Users []string `json:"users"`
+}
+
+// RoleUserCheckpoint defines model for RoleUserCheckpoint.
+type RoleUserCheckpoint struct {
+	Next  *string    `json:"next,omitempty"`
+	Users []RoleUser `json:"users"`
+}
+
+// RoleUserPage defines model for RoleUserPage.
+type RoleUserPage struct {
+	Limit int        `json:"limit"`
+	Start int        `json:"start"`
+	Total int        `json:"total"`
+	Users []RoleUser `json:"users"`
+}
 
 // ScriptTry defines model for ScriptTry.
 type ScriptTry struct {
@@ -4743,6 +4881,11 @@ type UserRefreshTokenPage struct {
 	Tokens []UserRefreshToken `json:"tokens"`
 }
 
+// UserRoleBatch defines model for UserRoleBatch.
+type UserRoleBatch struct {
+	Roles []string `json:"roles"`
+}
+
 // UserSession defines model for UserSession.
 type UserSession struct {
 	AuthenticatedAt time.Time `json:"authenticated_at"`
@@ -5210,6 +5353,55 @@ type GetResourceServerParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// GetRolesParams defines parameters for GetRoles.
+type GetRolesParams struct {
+	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int    `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool   `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+	NameFilter    *string `form:"name_filter,omitempty" json:"name_filter,omitempty"`
+	Type          *string `form:"type,omitempty" json:"type,omitempty"`
+}
+
+// GetRoles200JSONResponseBody0 defines parameters for GetRoles.
+type GetRoles200JSONResponseBody0 = []Role
+
+// GetRoles200JSONResponseBody defines parameters for GetRoles.
+type GetRoles200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetRolePermissionsParams defines parameters for GetRolePermissions.
+type GetRolePermissionsParams struct {
+	Page          *int  `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int  `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// GetRolePermissions200JSONResponseBody0 defines parameters for GetRolePermissions.
+type GetRolePermissions200JSONResponseBody0 = []RBACPermission
+
+// GetRolePermissions200JSONResponseBody defines parameters for GetRolePermissions.
+type GetRolePermissions200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// GetRoleUsersParams defines parameters for GetRoleUsers.
+type GetRoleUsersParams struct {
+	Page          *int    `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int    `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool   `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+	From          *string `form:"from,omitempty" json:"from,omitempty"`
+	Take          *int    `form:"take,omitempty" json:"take,omitempty"`
+}
+
+// GetRoleUsers200JSONResponseBody0 defines parameters for GetRoleUsers.
+type GetRoleUsers200JSONResponseBody0 = []RoleUser
+
+// GetRoleUsers200JSONResponseBody defines parameters for GetRoleUsers.
+type GetRoleUsers200JSONResponseBody struct {
+	union json.RawMessage
+}
+
 // GetRulesParams defines parameters for GetRules.
 type GetRulesParams struct {
 	// Page Page index of the results, from 0.
@@ -5313,6 +5505,21 @@ type GetUserParams struct {
 	IncludeFields *IncludeFields `form:"include_fields,omitempty" json:"include_fields,omitempty"`
 }
 
+// GetUserPermissionsParams defines parameters for GetUserPermissions.
+type GetUserPermissionsParams struct {
+	Page          *int  `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int  `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// GetUserPermissions200JSONResponseBody0 defines parameters for GetUserPermissions.
+type GetUserPermissions200JSONResponseBody0 = []RBACPermission
+
+// GetUserPermissions200JSONResponseBody defines parameters for GetUserPermissions.
+type GetUserPermissions200JSONResponseBody struct {
+	union json.RawMessage
+}
+
 // GetUserRefreshTokensParams defines parameters for GetUserRefreshTokens.
 type GetUserRefreshTokensParams struct {
 	// Take Page size, 1 to 100 (50 by default).
@@ -5320,6 +5527,21 @@ type GetUserRefreshTokensParams struct {
 
 	// From The `next` of the previous page.
 	From *string `form:"from,omitempty" json:"from,omitempty"`
+}
+
+// GetUserRolesParams defines parameters for GetUserRoles.
+type GetUserRolesParams struct {
+	Page          *int  `form:"page,omitempty" json:"page,omitempty"`
+	PerPage       *int  `form:"per_page,omitempty" json:"per_page,omitempty"`
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// GetUserRoles200JSONResponseBody0 defines parameters for GetUserRoles.
+type GetUserRoles200JSONResponseBody0 = []Role
+
+// GetUserRoles200JSONResponseBody defines parameters for GetUserRoles.
+type GetUserRoles200JSONResponseBody struct {
+	union json.RawMessage
 }
 
 // GetUserSessionsParams defines parameters for GetUserSessions.
@@ -5451,6 +5673,21 @@ type CreateResourceServerJSONRequestBody = ResourceServerCreate
 // UpdateResourceServerJSONRequestBody defines body for UpdateResourceServer for application/json ContentType.
 type UpdateResourceServerJSONRequestBody = ResourceServerUpdate
 
+// PostRolesJSONRequestBody defines body for PostRoles for application/json ContentType.
+type PostRolesJSONRequestBody = RoleCreate
+
+// PatchRolesByIdJSONRequestBody defines body for PatchRolesById for application/json ContentType.
+type PatchRolesByIdJSONRequestBody = RoleUpdate
+
+// DeleteRolePermissionsJSONRequestBody defines body for DeleteRolePermissions for application/json ContentType.
+type DeleteRolePermissionsJSONRequestBody = RBACPermissionBatch
+
+// PostRolePermissionsJSONRequestBody defines body for PostRolePermissions for application/json ContentType.
+type PostRolePermissionsJSONRequestBody = RBACPermissionBatch
+
+// PostRoleUsersJSONRequestBody defines body for PostRoleUsers for application/json ContentType.
+type PostRoleUsersJSONRequestBody = RoleUserBatch
+
 // UpdateTenantSettingsJSONRequestBody defines body for UpdateTenantSettings for application/json ContentType.
 type UpdateTenantSettingsJSONRequestBody = TenantSettingsPatch
 
@@ -5468,6 +5705,18 @@ type UpdateUserJSONRequestBody = UserUpdate
 
 // LinkUserIdentityJSONRequestBody defines body for LinkUserIdentity for application/json ContentType.
 type LinkUserIdentityJSONRequestBody = UserIdentityLink
+
+// DeleteUserPermissionsJSONRequestBody defines body for DeleteUserPermissions for application/json ContentType.
+type DeleteUserPermissionsJSONRequestBody = RBACPermissionBatch
+
+// PostUserPermissionsJSONRequestBody defines body for PostUserPermissions for application/json ContentType.
+type PostUserPermissionsJSONRequestBody = RBACPermissionBatch
+
+// DeleteUserRolesJSONRequestBody defines body for DeleteUserRoles for application/json ContentType.
+type DeleteUserRolesJSONRequestBody = UserRoleBatch
+
+// PostUserRolesJSONRequestBody defines body for PostUserRoles for application/json ContentType.
+type PostUserRolesJSONRequestBody = UserRoleBatch
 
 // Getter for additional properties for Job. Returns the specified
 // element and whether it was found
@@ -6889,6 +7138,218 @@ func (t *GetResourceServers200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsGetRoles200JSONResponseBody0 returns the union data inside the GetRoles200JSONResponseBody as a GetRoles200JSONResponseBody0
+func (t GetRoles200JSONResponseBody) AsGetRoles200JSONResponseBody0() (GetRoles200JSONResponseBody0, error) {
+	var body GetRoles200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetRoles200JSONResponseBody0 overwrites any union data inside the GetRoles200JSONResponseBody as the provided GetRoles200JSONResponseBody0
+func (t *GetRoles200JSONResponseBody) FromGetRoles200JSONResponseBody0(v GetRoles200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetRoles200JSONResponseBody0 performs a merge with any union data inside the GetRoles200JSONResponseBody, using the provided GetRoles200JSONResponseBody0
+func (t *GetRoles200JSONResponseBody) MergeGetRoles200JSONResponseBody0(v GetRoles200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRolePage returns the union data inside the GetRoles200JSONResponseBody as a RolePage
+func (t GetRoles200JSONResponseBody) AsRolePage() (RolePage, error) {
+	var body RolePage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRolePage overwrites any union data inside the GetRoles200JSONResponseBody as the provided RolePage
+func (t *GetRoles200JSONResponseBody) FromRolePage(v RolePage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRolePage performs a merge with any union data inside the GetRoles200JSONResponseBody, using the provided RolePage
+func (t *GetRoles200JSONResponseBody) MergeRolePage(v RolePage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetRoles200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetRoles200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsGetRolePermissions200JSONResponseBody0 returns the union data inside the GetRolePermissions200JSONResponseBody as a GetRolePermissions200JSONResponseBody0
+func (t GetRolePermissions200JSONResponseBody) AsGetRolePermissions200JSONResponseBody0() (GetRolePermissions200JSONResponseBody0, error) {
+	var body GetRolePermissions200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetRolePermissions200JSONResponseBody0 overwrites any union data inside the GetRolePermissions200JSONResponseBody as the provided GetRolePermissions200JSONResponseBody0
+func (t *GetRolePermissions200JSONResponseBody) FromGetRolePermissions200JSONResponseBody0(v GetRolePermissions200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetRolePermissions200JSONResponseBody0 performs a merge with any union data inside the GetRolePermissions200JSONResponseBody, using the provided GetRolePermissions200JSONResponseBody0
+func (t *GetRolePermissions200JSONResponseBody) MergeGetRolePermissions200JSONResponseBody0(v GetRolePermissions200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRBACPermissionPage returns the union data inside the GetRolePermissions200JSONResponseBody as a RBACPermissionPage
+func (t GetRolePermissions200JSONResponseBody) AsRBACPermissionPage() (RBACPermissionPage, error) {
+	var body RBACPermissionPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRBACPermissionPage overwrites any union data inside the GetRolePermissions200JSONResponseBody as the provided RBACPermissionPage
+func (t *GetRolePermissions200JSONResponseBody) FromRBACPermissionPage(v RBACPermissionPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRBACPermissionPage performs a merge with any union data inside the GetRolePermissions200JSONResponseBody, using the provided RBACPermissionPage
+func (t *GetRolePermissions200JSONResponseBody) MergeRBACPermissionPage(v RBACPermissionPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetRolePermissions200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetRolePermissions200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsGetRoleUsers200JSONResponseBody0 returns the union data inside the GetRoleUsers200JSONResponseBody as a GetRoleUsers200JSONResponseBody0
+func (t GetRoleUsers200JSONResponseBody) AsGetRoleUsers200JSONResponseBody0() (GetRoleUsers200JSONResponseBody0, error) {
+	var body GetRoleUsers200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetRoleUsers200JSONResponseBody0 overwrites any union data inside the GetRoleUsers200JSONResponseBody as the provided GetRoleUsers200JSONResponseBody0
+func (t *GetRoleUsers200JSONResponseBody) FromGetRoleUsers200JSONResponseBody0(v GetRoleUsers200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetRoleUsers200JSONResponseBody0 performs a merge with any union data inside the GetRoleUsers200JSONResponseBody, using the provided GetRoleUsers200JSONResponseBody0
+func (t *GetRoleUsers200JSONResponseBody) MergeGetRoleUsers200JSONResponseBody0(v GetRoleUsers200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRoleUserPage returns the union data inside the GetRoleUsers200JSONResponseBody as a RoleUserPage
+func (t GetRoleUsers200JSONResponseBody) AsRoleUserPage() (RoleUserPage, error) {
+	var body RoleUserPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRoleUserPage overwrites any union data inside the GetRoleUsers200JSONResponseBody as the provided RoleUserPage
+func (t *GetRoleUsers200JSONResponseBody) FromRoleUserPage(v RoleUserPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRoleUserPage performs a merge with any union data inside the GetRoleUsers200JSONResponseBody, using the provided RoleUserPage
+func (t *GetRoleUsers200JSONResponseBody) MergeRoleUserPage(v RoleUserPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRoleUserCheckpoint returns the union data inside the GetRoleUsers200JSONResponseBody as a RoleUserCheckpoint
+func (t GetRoleUsers200JSONResponseBody) AsRoleUserCheckpoint() (RoleUserCheckpoint, error) {
+	var body RoleUserCheckpoint
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRoleUserCheckpoint overwrites any union data inside the GetRoleUsers200JSONResponseBody as the provided RoleUserCheckpoint
+func (t *GetRoleUsers200JSONResponseBody) FromRoleUserCheckpoint(v RoleUserCheckpoint) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRoleUserCheckpoint performs a merge with any union data inside the GetRoleUsers200JSONResponseBody, using the provided RoleUserCheckpoint
+func (t *GetRoleUsers200JSONResponseBody) MergeRoleUserCheckpoint(v RoleUserCheckpoint) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetRoleUsers200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetRoleUsers200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsGetUsers200JSONResponseBody0 returns the union data inside the GetUsers200JSONResponseBody as a GetUsers200JSONResponseBody0
 func (t GetUsers200JSONResponseBody) AsGetUsers200JSONResponseBody0() (GetUsers200JSONResponseBody0, error) {
 	var body GetUsers200JSONResponseBody0
@@ -6947,6 +7408,130 @@ func (t GetUsers200JSONResponseBody) MarshalJSON() ([]byte, error) {
 }
 
 func (t *GetUsers200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsGetUserPermissions200JSONResponseBody0 returns the union data inside the GetUserPermissions200JSONResponseBody as a GetUserPermissions200JSONResponseBody0
+func (t GetUserPermissions200JSONResponseBody) AsGetUserPermissions200JSONResponseBody0() (GetUserPermissions200JSONResponseBody0, error) {
+	var body GetUserPermissions200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetUserPermissions200JSONResponseBody0 overwrites any union data inside the GetUserPermissions200JSONResponseBody as the provided GetUserPermissions200JSONResponseBody0
+func (t *GetUserPermissions200JSONResponseBody) FromGetUserPermissions200JSONResponseBody0(v GetUserPermissions200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetUserPermissions200JSONResponseBody0 performs a merge with any union data inside the GetUserPermissions200JSONResponseBody, using the provided GetUserPermissions200JSONResponseBody0
+func (t *GetUserPermissions200JSONResponseBody) MergeGetUserPermissions200JSONResponseBody0(v GetUserPermissions200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRBACPermissionPage returns the union data inside the GetUserPermissions200JSONResponseBody as a RBACPermissionPage
+func (t GetUserPermissions200JSONResponseBody) AsRBACPermissionPage() (RBACPermissionPage, error) {
+	var body RBACPermissionPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRBACPermissionPage overwrites any union data inside the GetUserPermissions200JSONResponseBody as the provided RBACPermissionPage
+func (t *GetUserPermissions200JSONResponseBody) FromRBACPermissionPage(v RBACPermissionPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRBACPermissionPage performs a merge with any union data inside the GetUserPermissions200JSONResponseBody, using the provided RBACPermissionPage
+func (t *GetUserPermissions200JSONResponseBody) MergeRBACPermissionPage(v RBACPermissionPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetUserPermissions200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetUserPermissions200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsGetUserRoles200JSONResponseBody0 returns the union data inside the GetUserRoles200JSONResponseBody as a GetUserRoles200JSONResponseBody0
+func (t GetUserRoles200JSONResponseBody) AsGetUserRoles200JSONResponseBody0() (GetUserRoles200JSONResponseBody0, error) {
+	var body GetUserRoles200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromGetUserRoles200JSONResponseBody0 overwrites any union data inside the GetUserRoles200JSONResponseBody as the provided GetUserRoles200JSONResponseBody0
+func (t *GetUserRoles200JSONResponseBody) FromGetUserRoles200JSONResponseBody0(v GetUserRoles200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeGetUserRoles200JSONResponseBody0 performs a merge with any union data inside the GetUserRoles200JSONResponseBody, using the provided GetUserRoles200JSONResponseBody0
+func (t *GetUserRoles200JSONResponseBody) MergeGetUserRoles200JSONResponseBody0(v GetUserRoles200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRolePage returns the union data inside the GetUserRoles200JSONResponseBody as a RolePage
+func (t GetUserRoles200JSONResponseBody) AsRolePage() (RolePage, error) {
+	var body RolePage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRolePage overwrites any union data inside the GetUserRoles200JSONResponseBody as the provided RolePage
+func (t *GetUserRoles200JSONResponseBody) FromRolePage(v RolePage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRolePage performs a merge with any union data inside the GetUserRoles200JSONResponseBody, using the provided RolePage
+func (t *GetUserRoles200JSONResponseBody) MergeRolePage(v RolePage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t GetUserRoles200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *GetUserRoles200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -7247,6 +7832,36 @@ type ServerInterface interface {
 	// UpdateResourceServer Update an API
 	// (PATCH /api/v2/resource-servers/{id})
 	UpdateResourceServer(w http.ResponseWriter, r *http.Request, id string)
+	// GetRoles GetRoles in the current tenant
+	// (GET /api/v2/roles)
+	GetRoles(w http.ResponseWriter, r *http.Request, params GetRolesParams)
+	// PostRoles PostRoles in the current tenant
+	// (POST /api/v2/roles)
+	PostRoles(w http.ResponseWriter, r *http.Request)
+	// DeleteRolesById DeleteRolesById in the current tenant
+	// (DELETE /api/v2/roles/{id})
+	DeleteRolesById(w http.ResponseWriter, r *http.Request, id string)
+	// GetRolesById GetRolesById in the current tenant
+	// (GET /api/v2/roles/{id})
+	GetRolesById(w http.ResponseWriter, r *http.Request, id string)
+	// PatchRolesById PatchRolesById in the current tenant
+	// (PATCH /api/v2/roles/{id})
+	PatchRolesById(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteRolePermissions DeleteRolePermissions in the current tenant
+	// (DELETE /api/v2/roles/{id}/permissions)
+	DeleteRolePermissions(w http.ResponseWriter, r *http.Request, id string)
+	// GetRolePermissions GetRolePermissions in the current tenant
+	// (GET /api/v2/roles/{id}/permissions)
+	GetRolePermissions(w http.ResponseWriter, r *http.Request, id string, params GetRolePermissionsParams)
+	// PostRolePermissions PostRolePermissions in the current tenant
+	// (POST /api/v2/roles/{id}/permissions)
+	PostRolePermissions(w http.ResponseWriter, r *http.Request, id string)
+	// GetRoleUsers GetRoleUsers in the current tenant
+	// (GET /api/v2/roles/{id}/users)
+	GetRoleUsers(w http.ResponseWriter, r *http.Request, id string, params GetRoleUsersParams)
+	// PostRoleUsers PostRoleUsers in the current tenant
+	// (POST /api/v2/roles/{id}/users)
+	PostRoleUsers(w http.ResponseWriter, r *http.Request, id string)
 	// GetRules Return an empty compatibility list for retired Rules.
 	// (GET /api/v2/rules)
 	GetRules(w http.ResponseWriter, r *http.Request, params GetRulesParams)
@@ -7307,12 +7922,30 @@ type ServerInterface interface {
 	// UnlinkUserIdentity Unlink an identity from a user
 	// (DELETE /api/v2/users/{id}/identities/{provider}/{user_id})
 	UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id string, provider string, userId string)
+	// DeleteUserPermissions DeleteUserPermissions in the current tenant
+	// (DELETE /api/v2/users/{id}/permissions)
+	DeleteUserPermissions(w http.ResponseWriter, r *http.Request, id string)
+	// GetUserPermissions GetUserPermissions in the current tenant
+	// (GET /api/v2/users/{id}/permissions)
+	GetUserPermissions(w http.ResponseWriter, r *http.Request, id string, params GetUserPermissionsParams)
+	// PostUserPermissions PostUserPermissions in the current tenant
+	// (POST /api/v2/users/{id}/permissions)
+	PostUserPermissions(w http.ResponseWriter, r *http.Request, id string)
 	// DeleteUserRefreshTokens Delete a user's refresh tokens
 	// (DELETE /api/v2/users/{id}/refresh-tokens)
 	DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string)
 	// GetUserRefreshTokens List a user's refresh tokens
 	// (GET /api/v2/users/{id}/refresh-tokens)
 	GetUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string, params GetUserRefreshTokensParams)
+	// DeleteUserRoles DeleteUserRoles in the current tenant
+	// (DELETE /api/v2/users/{id}/roles)
+	DeleteUserRoles(w http.ResponseWriter, r *http.Request, id string)
+	// GetUserRoles GetUserRoles in the current tenant
+	// (GET /api/v2/users/{id}/roles)
+	GetUserRoles(w http.ResponseWriter, r *http.Request, id string, params GetUserRolesParams)
+	// PostUserRoles PostUserRoles in the current tenant
+	// (POST /api/v2/users/{id}/roles)
+	PostUserRoles(w http.ResponseWriter, r *http.Request, id string)
 	// DeleteUserSessions Delete a user's sessions
 	// (DELETE /api/v2/users/{id}/sessions)
 	DeleteUserSessions(w http.ResponseWriter, r *http.Request, id string)
@@ -7913,6 +8546,66 @@ func (_ Unimplemented) UpdateResourceServer(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetRoles GetRoles in the current tenant
+// (GET /api/v2/roles)
+func (_ Unimplemented) GetRoles(w http.ResponseWriter, r *http.Request, params GetRolesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostRoles PostRoles in the current tenant
+// (POST /api/v2/roles)
+func (_ Unimplemented) PostRoles(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteRolesById DeleteRolesById in the current tenant
+// (DELETE /api/v2/roles/{id})
+func (_ Unimplemented) DeleteRolesById(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetRolesById GetRolesById in the current tenant
+// (GET /api/v2/roles/{id})
+func (_ Unimplemented) GetRolesById(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PatchRolesById PatchRolesById in the current tenant
+// (PATCH /api/v2/roles/{id})
+func (_ Unimplemented) PatchRolesById(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteRolePermissions DeleteRolePermissions in the current tenant
+// (DELETE /api/v2/roles/{id}/permissions)
+func (_ Unimplemented) DeleteRolePermissions(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetRolePermissions GetRolePermissions in the current tenant
+// (GET /api/v2/roles/{id}/permissions)
+func (_ Unimplemented) GetRolePermissions(w http.ResponseWriter, r *http.Request, id string, params GetRolePermissionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostRolePermissions PostRolePermissions in the current tenant
+// (POST /api/v2/roles/{id}/permissions)
+func (_ Unimplemented) PostRolePermissions(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetRoleUsers GetRoleUsers in the current tenant
+// (GET /api/v2/roles/{id}/users)
+func (_ Unimplemented) GetRoleUsers(w http.ResponseWriter, r *http.Request, id string, params GetRoleUsersParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostRoleUsers PostRoleUsers in the current tenant
+// (POST /api/v2/roles/{id}/users)
+func (_ Unimplemented) PostRoleUsers(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetRules Return an empty compatibility list for retired Rules.
 // (GET /api/v2/rules)
 func (_ Unimplemented) GetRules(w http.ResponseWriter, r *http.Request, params GetRulesParams) {
@@ -8033,6 +8726,24 @@ func (_ Unimplemented) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteUserPermissions DeleteUserPermissions in the current tenant
+// (DELETE /api/v2/users/{id}/permissions)
+func (_ Unimplemented) DeleteUserPermissions(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUserPermissions GetUserPermissions in the current tenant
+// (GET /api/v2/users/{id}/permissions)
+func (_ Unimplemented) GetUserPermissions(w http.ResponseWriter, r *http.Request, id string, params GetUserPermissionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostUserPermissions PostUserPermissions in the current tenant
+// (POST /api/v2/users/{id}/permissions)
+func (_ Unimplemented) PostUserPermissions(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeleteUserRefreshTokens Delete a user's refresh tokens
 // (DELETE /api/v2/users/{id}/refresh-tokens)
 func (_ Unimplemented) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string) {
@@ -8042,6 +8753,24 @@ func (_ Unimplemented) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Re
 // GetUserRefreshTokens List a user's refresh tokens
 // (GET /api/v2/users/{id}/refresh-tokens)
 func (_ Unimplemented) GetUserRefreshTokens(w http.ResponseWriter, r *http.Request, id string, params GetUserRefreshTokensParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteUserRoles DeleteUserRoles in the current tenant
+// (DELETE /api/v2/users/{id}/roles)
+func (_ Unimplemented) DeleteUserRoles(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetUserRoles GetUserRoles in the current tenant
+// (GET /api/v2/users/{id}/roles)
+func (_ Unimplemented) GetUserRoles(w http.ResponseWriter, r *http.Request, id string, params GetUserRolesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PostUserRoles PostUserRoles in the current tenant
+// (POST /api/v2/users/{id}/roles)
+func (_ Unimplemented) PostUserRoles(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -10884,6 +11613,423 @@ func (siw *ServerInterfaceWrapper) UpdateResourceServer(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// GetRoles operation middleware
+func (siw *ServerInterfaceWrapper) GetRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRolesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "name_filter" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "name_filter", r.URL.Query(), &params.NameFilter, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "name_filter"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name_filter", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "type", r.URL.Query(), &params.Type, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRoles(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostRoles operation middleware
+func (siw *ServerInterfaceWrapper) PostRoles(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostRoles(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteRolesById operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRolesById(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRolesById(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRolesById operation middleware
+func (siw *ServerInterfaceWrapper) GetRolesById(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRolesById(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PatchRolesById operation middleware
+func (siw *ServerInterfaceWrapper) PatchRolesById(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchRolesById(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteRolePermissions operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRolePermissions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRolePermissions(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRolePermissions operation middleware
+func (siw *ServerInterfaceWrapper) GetRolePermissions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRolePermissionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRolePermissions(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostRolePermissions operation middleware
+func (siw *ServerInterfaceWrapper) PostRolePermissions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostRolePermissions(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRoleUsers operation middleware
+func (siw *ServerInterfaceWrapper) GetRoleUsers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRoleUsersParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRoleUsers(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostRoleUsers operation middleware
+func (siw *ServerInterfaceWrapper) PostRoleUsers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostRoleUsers(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetRules operation middleware
 func (siw *ServerInterfaceWrapper) GetRules(w http.ResponseWriter, r *http.Request) {
 
@@ -11670,6 +12816,126 @@ func (siw *ServerInterfaceWrapper) UnlinkUserIdentity(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteUserPermissions operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserPermissions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUserPermissions(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUserPermissions operation middleware
+func (siw *ServerInterfaceWrapper) GetUserPermissions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUserPermissionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserPermissions(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostUserPermissions operation middleware
+func (siw *ServerInterfaceWrapper) PostUserPermissions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUserPermissions(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteUserRefreshTokens operation middleware
 func (siw *ServerInterfaceWrapper) DeleteUserRefreshTokens(w http.ResponseWriter, r *http.Request) {
 
@@ -11742,6 +13008,126 @@ func (siw *ServerInterfaceWrapper) GetUserRefreshTokens(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetUserRefreshTokens(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteUserRoles operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUserRoles(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUserRoles operation middleware
+func (siw *ServerInterfaceWrapper) GetUserRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUserRolesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUserRoles(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostUserRoles operation middleware
+func (siw *ServerInterfaceWrapper) PostUserRoles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUserRoles(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -12310,6 +13696,54 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/v2/email-templates/{templateName}", wrapper.PutEmailTemplate)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/roles", wrapper.GetRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/roles", wrapper.PostRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/roles/{id}", wrapper.DeleteRolesById)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/roles/{id}", wrapper.GetRolesById)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/roles/{id}", wrapper.PatchRolesById)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/roles/{id}/permissions", wrapper.DeleteRolePermissions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/roles/{id}/permissions", wrapper.GetRolePermissions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/roles/{id}/permissions", wrapper.PostRolePermissions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/roles/{id}/users", wrapper.GetRoleUsers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/roles/{id}/users", wrapper.PostRoleUsers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}/roles", wrapper.DeleteUserRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/roles", wrapper.GetUserRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/users/{id}/roles", wrapper.PostUserRoles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/users/{id}/permissions", wrapper.DeleteUserPermissions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/users/{id}/permissions", wrapper.GetUserPermissions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/users/{id}/permissions", wrapper.PostUserPermissions)
 	})
 
 	return r

@@ -14,6 +14,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/devicecode"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/rbacrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -170,6 +171,30 @@ func (t *Tenant) validate() []error {
 			fail("resource server %q: %v", rs.Identifier, err)
 		}
 		rs.normalized = &spec
+	}
+
+	seenRoles := map[string]bool{}
+	for _, role := range t.Roles {
+		if seenRoles[role.Name] {
+			fail("duplicate role %q", role.Name)
+		}
+		seenRoles[role.Name] = true
+		for _, err := range rbacrules.NormalizeRole(&store.Role{Name: role.Name, Description: role.Description}) {
+			fail("role %q: %v", role.Name, err)
+		}
+		for _, key := range role.Permissions {
+			api := apis[key.ResourceServerIdentifier]
+			if api == nil {
+				fail("role %q: permission API %q is not defined", role.Name, key.ResourceServerIdentifier)
+				continue
+			}
+			if !slices.ContainsFunc(api.Scopes, func(s Scope) bool { return s.Value == key.PermissionName }) {
+				fail("role %q: permission %q is not defined", role.Name, key.PermissionName)
+			}
+			if key.PermissionName == "openid" || key.PermissionName == "profile" || key.PermissionName == "email" || key.PermissionName == "offline_access" {
+				fail("role %q: protocol scopes cannot be assigned", role.Name)
+			}
+		}
 	}
 
 	clients := map[string]bool{}
