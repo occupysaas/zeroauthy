@@ -28,7 +28,7 @@ async function sidebar(path: string): Promise<{ links: string[]; groups: string[
   return { links, groups }
 }
 
-const common = ['Home', 'Applications', 'APIs', 'Database', 'Social', 'Users', 'Roles', 'Organizations', 'Attack protection', 'Multi-factor', 'Actions', 'Universal Login', 'Email templates', 'Custom domains', 'Logs', 'Tenant settings']
+const common = ['Home', 'Applications', 'APIs', 'Database', 'Social', 'Enterprise', 'Users', 'Roles', 'Organizations', 'Attack protection', 'Multi-factor', 'Actions', 'Universal Login', 'Email templates', 'Custom domains', 'Logs', 'Tenant settings']
 const groups = ['Applications', 'Authentication', 'User management', 'Security', 'Actions', 'Branding', 'Monitoring', 'Settings']
 
 describe('Shell sidebar', () => {
@@ -46,6 +46,7 @@ describe('Shell sidebar', () => {
     const { wrapper } = await mountShell('/t/acme/')
     const link = (name: string) => wrapper.findAll(`${nav} a:not([target])`).find((a) => a.get('span').text() === name)!
     expect(link('Social').text()).not.toContain('Planned') // shipped in Plan 24
+    expect(link('Enterprise').text()).not.toContain('Planned')
     expect(link('Users').text()).not.toContain('Planned')
     expect(link('Roles').attributes('title')).toBe('later: /api/v2/roles')
     expect(link('Applications').text()).not.toContain('Planned')

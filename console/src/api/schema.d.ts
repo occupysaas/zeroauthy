@@ -3197,7 +3197,7 @@ export interface components {
             /** @description Letters and digits with single hyphens between them. */
             name: string;
             /** @enum {string} */
-            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc";
+            strategy: "auth0" | "google-oauth2" | "oauth2" | "oidc" | "windowslive" | "waad";
             /** @description Applications to enable on the connection; accepted on create only. */
             enabled_clients?: string[];
         };
@@ -3210,9 +3210,20 @@ export interface components {
          * @description A connection. `options.configuration` values are opaque blobs, never
          *     plaintext. `enabled_clients` is returned by create only. `fields`
          *     can leave out any property but `id` and `is_domain_connection`.
-         *     For `google-oauth2`, `oauth2` and `oidc` connections
+         *     For `google-oauth2`, `oauth2`, `oidc`, `windowslive` and `waad` connections
          *     `options.client_secret` is write-only: it is sealed when written and
-         *     never returned (Plan 24).
+         *     never returned.
+         *     Microsoft connections require GUID client IDs and request exactly
+         *     `openid profile email`. `windowslive` accepts absent or integer 2
+         *     `strategy_version` and uses personal accounts. `waad` accepts only
+         *     `identity_api: microsoft-identity-platform-v2.0`,
+         *     `waad_protocol: openid-connect`, `userid_attribute: oid` and absent or
+         *     false `use_wsfed`. Single-directory `waad` requires a GUID or ASCII DNS
+         *     `tenant_domain`; `useCommonEndpoint: true` instead selects organizations
+         *     and forbids `tenant_domain`. `domain` is display metadata only.
+         *     Client ID, tenant and authority mode are immutable. Graph enrichment,
+         *     groups, extra/offline scopes, endpoint overrides and email verification
+         *     overrides are unsupported and rejected.
          */
         Connection: {
             /** @description `con_` and 16 letters and digits for connections created through the API. */

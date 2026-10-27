@@ -125,10 +125,10 @@ Order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9. Each task has one inde
 
 **Interfaces:** Split helper concepts into `federatedStrategies` (all five), `socialStrategies` (google-oauth2/oauth2/windowslive), `enterpriseStrategies` (oidc/waad), with exported corresponding types. Preserve `isSocial` as the existing federated-route compatibility helper until its callers are migrated; use a newly explicit classification helper for UI grouping. Shared forms serialize spec §4 exactly. Enterprise list/create uses the shared detail/settings components with strategy-specific fields.
 
-- [ ] Add Vitest cases for personal/social and work-school/enterprise grouping, correct strategy payloads, tenant normalization, explicit any-organization warning, hidden tenant field in multitenant mode, read-only immutable fields, secret omitted on unchanged save, blank replacement rejection and all canonical/custom callback URLs. Assert Google remains offered once, generic OIDC stays reachable and Microsoft has no script editor.
-- [ ] Run `npm --prefix console test -- src/pages/connections/social src/pages/connections/enterprise src/router.test.ts`; expect new cases FAIL. The console test script already invokes vitest run.
-- [ ] Implement original labels, v2 guidance, fixed scope explanation, missing-email guidance and supported mode controls. Update grouping/routes deliberately; do not let changing the historical isSocial helper silently hide generic OIDC or enterprise details. Keep stored-only options out of active controls.
-- [ ] Repeat targeted tests, then `make console`; expect tests and production build pass. Commit `feat: configure Microsoft personal and work-school login in console`.
+- [x] Add Vitest cases for personal/social and work-school/enterprise grouping, correct strategy payloads, tenant normalization, explicit any-organization warning, hidden tenant field in multitenant mode, read-only immutable fields, secret omitted on unchanged save, blank replacement rejection and all canonical/custom callback URLs. Assert Google remains offered once, generic OIDC stays reachable and Microsoft has no script editor.
+- [x] Run `npm --prefix console test -- src/pages/connections/social src/pages/connections/enterprise src/router.test.ts`; expect new cases FAIL. The console test script already invokes vitest run.
+- [x] Implement original labels, v2 guidance, fixed scope explanation, missing-email guidance and supported mode controls. Update grouping/routes deliberately; do not let changing the historical isSocial helper silently hide generic OIDC or enterprise details. Keep stored-only options out of active controls.
+- [x] Repeat targeted tests, then `make console`; expect tests and production build pass. Commit `feat: configure Microsoft personal and work-school login in console`.
 
 ## Task 8: Browser, SDK, CLI and strict Deploy CLI acceptance
 

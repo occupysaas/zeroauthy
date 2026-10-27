@@ -75,3 +75,15 @@ describe('connections list', () => {
     wrapper.unmount()
   })
 })
+
+
+it('routes federated connections to their shared social or enterprise forms from the overall list', async () => {
+  const strategies = ['auth0', 'google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad']
+  const { wrapper } = await mountAt(List, '/t/acme/connections', backend(strategies.map(strategy => connection(strategy, { name: strategy, strategy, options: {} }))))
+  expect(wrapper.findAll('tbody a').map(a => a.attributes('href'))).toEqual([
+    '/admin/t/acme/connections/auth0', '/admin/t/acme/social/google-oauth2', '/admin/t/acme/social/oauth2', '/admin/t/acme/enterprise/oidc', '/admin/t/acme/social/windowslive', '/admin/t/acme/enterprise/waad',
+  ])
+  expect(wrapper.text()).toContain('Microsoft personal account')
+  expect(wrapper.text()).toContain('Microsoft work or school account')
+  wrapper.unmount()
+})

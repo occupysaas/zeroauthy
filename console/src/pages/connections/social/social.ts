@@ -1,12 +1,41 @@
 import type { Connection, SystemTenant } from '../../../api/client'
 
-// The federated strategies this console manages (Plan 24). OIDC is an
-// enterprise connection shown here with an explicit supported-subset label.
-export const socialStrategies = ['google-oauth2', 'oauth2', 'oidc'] as const
+// Classification and route support are distinct: historical social routes
+// must continue opening generic OIDC connections.
+export const federatedStrategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad'] as const
+export const socialStrategies = ['google-oauth2', 'oauth2', 'windowslive'] as const
+export const enterpriseStrategies = ['oidc', 'waad'] as const
+export type FederatedStrategy = (typeof federatedStrategies)[number]
 export type SocialStrategy = (typeof socialStrategies)[number]
+export type EnterpriseStrategy = (typeof enterpriseStrategies)[number]
 
-export function isSocial(c: Pick<Connection, 'strategy'>): boolean {
+export function isFederated(c: Pick<Connection, 'strategy'>): boolean {
+  return (federatedStrategies as readonly string[]).includes(c.strategy ?? '')
+}
+
+/** Compatibility alias for the historical federated route detector. */
+export const isSocial = isFederated
+
+export function isSocialConnection(c: Pick<Connection, 'strategy'>): boolean {
   return (socialStrategies as readonly string[]).includes(c.strategy ?? '')
+}
+
+export function isEnterpriseConnection(c: Pick<Connection, 'strategy'>): boolean {
+  return (enterpriseStrategies as readonly string[]).includes(c.strategy ?? '')
+}
+
+export function connectionRoute(c: Pick<Connection, 'strategy'>): string {
+  return isEnterpriseConnection(c) ? 'enterprise-connection' : isFederated(c) ? 'social-connection' : 'connection'
+}
+
+export const MICROSOFT_GUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+
+/** Mirrors the Microsoft single-directory authority contract, without trimming
+ * whitespace into a different accepted identifier. */
+export function microsoftTenant(value: string): string | undefined {
+  const tenant = value.toLowerCase()
+  if (!tenant || tenant.length > 253 || ['common', 'organizations', 'consumers', '9188040d-6c67-4c5b-b112-36a304b66dad'].includes(tenant)) return
+  if (MICROSOFT_GUID.test(tenant) || tenant.split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) return tenant
 }
 
 /** The connection name rule shared with the database connections page. */
