@@ -31,7 +31,7 @@ func TestOAuthExchange(t *testing.T) {
 	defer srv.Close()
 	pool := x509.NewCertPool()
 	pool.AddCert(srv.Certificate())
-	ps := NewProviders(FixturePolicy(pool), func() time.Time { return fixedTime })
+	ps := NewProviders(FixturePolicy(pool), func() time.Time { return fixedTime }).WithScripts(&fakeExecutor{out: `{"user_id":"mapped"}`})
 	cfg := Config{Strategy: StrategyOAuth2, ClientID: "client", AuthorizationURL: srv.URL + "/authorize?audience=api", TokenURL: srv.URL + "/token", Scopes: []string{"read", "profile"}}
 	raw, err := ps.For(cfg).AuthorizationURL(StartInput{Config: cfg, CallbackURL: "https://login.example/login/callback", State: "st", CodeChallenge: "ch"})
 	if err != nil {
@@ -43,7 +43,7 @@ func TestOAuthExchange(t *testing.T) {
 	}
 	in := ExchangeInput{Config: cfg, CallbackURL: "https://login.example/login/callback", Code: "c", CodeVerifier: "v", ClientSecret: "s", Now: fixedTime}
 	res, err := ps.For(cfg).Exchange(context.Background(), in)
-	if err != nil || res.Tokens.AccessToken != "at" || res.Profile.Subject != "" {
+	if err != nil || res.Tokens.AccessToken != "at" || res.Profile.Subject != "mapped" {
 		t.Fatalf("%+v %v", res, err)
 	}
 	f := forms[0]

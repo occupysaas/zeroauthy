@@ -346,9 +346,17 @@ func (p oauth2Provider) AuthorizationURL(in StartInput) (string, error) {
 }
 
 func (p oauth2Provider) Exchange(ctx context.Context, in ExchangeInput) (ProviderResult, error) {
+	if p.ps.scripts == nil {
+		// Fail before redeeming the code: nothing could map the profile.
+		return ProviderResult{}, ErrScriptUnavailable
+	}
 	tokens, err := p.ps.exchangeCode(ctx, in.Config.TokenURL, authPost, in)
 	if err != nil {
 		return ProviderResult{}, err
 	}
-	return ProviderResult{Tokens: tokens}, nil
+	profile, err := p.ps.scriptProfile(ctx, in, tokens)
+	if err != nil {
+		return ProviderResult{}, err
+	}
+	return ProviderResult{Profile: profile, Tokens: tokens}, nil
 }

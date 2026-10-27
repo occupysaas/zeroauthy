@@ -16,6 +16,7 @@ import (
 	"github.com/go-jose/go-jose/v4"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
+	"github.com/zeroauthy/zeroauthy/internal/federation/script"
 )
 
 // ErrProviderResponse reports a provider answer that cannot be trusted or
@@ -79,6 +80,7 @@ type Providers struct {
 	now       func() time.Time
 	discovery *ttlCache[Metadata]
 	keys      *keyCache
+	scripts   script.Executor
 }
 
 // NewProviders returns adapters whose network access follows policy. now
