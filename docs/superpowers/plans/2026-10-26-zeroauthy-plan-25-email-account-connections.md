@@ -52,11 +52,11 @@ Order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9. Each task has one inde
 
 **Interfaces:** Inventory rows name strategy, option, type, default, immutability, secret classification, runtime/inert/rejected disposition, identity format, source and evidence status. This extends rather than replaces `inventory.json`.
 
-- [ ] Write `TestEmailAccountsInventory` asserting all four audience rows, both new strategies, exact scopes, no Graph/profile script dependency, identity encodings and every deliberate local deviation in spec §§3–6. Assert all security-critical rejected options have explicit rows.
-- [ ] Run `go test ./internal/federation -run '^TestEmailAccountsInventory$' -count=1`; expect missing inventory/contract failure.
-- [ ] Review the spec's public sources, then pinned SDK/CLI/Deploy CLI behavior under clean-room rules. Confirm wire casing/types for `strategy_version`, `identity_api`, `waad_protocol`, `userid_attribute`, `tenant_domain` and `useCommonEndpoint`; separate SDK-only hints from confirmed behavior. Record Microsoft v2 issuer/JWK metadata and secret-post support. Record no legacy-ID parity claim or live observation without evidence.
-- [ ] Populate the inventory with exact local contracts from the spec, supported false inert flags and rejected legacy/Graph/trust options. Review changelog since the actual reviewed-through date; record any source that could not be retrieved without advancing coverage past it. Correct compatibility claims in both docs if needed; changes to audience scope or identity design require review before implementation.
-- [ ] Repeat the focused test; expect PASS. Commit `docs: freeze Microsoft and Google account connection contracts`.
+- [x] Write `TestEmailAccountsInventory` asserting all four audience rows, both new strategies, exact scopes, no Graph/profile script dependency, identity encodings and every deliberate local deviation in spec §§3–6. Assert all security-critical rejected options have explicit rows.
+- [x] Run `go test ./internal/federation -run '^TestEmailAccountsInventory$' -count=1`; expect missing inventory/contract failure.
+- [x] Review the spec's public sources, then pinned SDK/CLI/Deploy CLI behavior under clean-room rules. Confirm wire casing/types for `strategy_version`, `identity_api`, `waad_protocol`, `userid_attribute`, `tenant_domain` and `useCommonEndpoint`; separate SDK-only hints from confirmed behavior. Record Microsoft v2 issuer/JWK metadata and secret-post support. Record no legacy-ID parity claim or live observation without evidence.
+- [x] Populate the inventory with exact local contracts from the spec, supported false inert flags and rejected legacy/Graph/trust options. Review changelog since the actual reviewed-through date; record any source that could not be retrieved without advancing coverage past it. Correct compatibility claims in both docs if needed; changes to audience scope or identity design require review before implementation.
+- [x] Repeat the focused test; expect PASS. Commit `docs: freeze Microsoft and Google account connection contracts`.
 
 ## Task 2: Shared strategy rules and public management contracts
 

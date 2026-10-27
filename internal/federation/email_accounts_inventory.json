@@ -1924,8 +1924,7 @@
           "disposition": "inert",
           "source": "local:docs/superpowers/specs/2026-10-26-zeroauthy-email-account-connections-design.md#4-connection-configuration-and-management",
           "evidence": "local-contract",
-          "wire_option": "use",
-          "when": "ws-federation"
+          "wire_option": "use_wsfed"
         },
         "useCommonEndpoint": {
           "type": "boolean",

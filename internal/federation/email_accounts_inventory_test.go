@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -22,6 +23,8 @@ func TestEmailAccountsInventory(t *testing.T) {
 			Script   bool
 			Options  map[string]struct {
 				Type                                              string
+				WireOption                                        string          `json:"wire_option"`
+				When                                              json.RawMessage `json:"when"`
 				Default                                           json.RawMessage
 				Immutable                                         *bool
 				Secret, Disposition, Validation, Source, Evidence string
@@ -72,6 +75,33 @@ func TestEmailAccountsInventory(t *testing.T) {
 				t.Errorf("false-only flag %s.%s", strategy, flag)
 			}
 		}
+	}
+	// Only these explicitly named policy cases may differ from their wire key.
+	cases := map[string]struct{ wire, value string }{
+		"strategy_version_1":   {"strategy_version", "1"},
+		"userid_attribute_sub": {"userid_attribute", `"sub"`},
+		"use_wsfed_true":       {"use_wsfed", "true"},
+		"identity_api_v1":      {"identity_api", `"azure-active-directory-v1.0"`},
+		"waad_protocol_wsfed":  {"waad_protocol", `"ws-federation"`},
+		"scope_extra":          {"scope", `"extra scopes"`},
+	}
+	for _, flag := range []string{"basic_profile", "ext_groups", "ext_profile", "ext_nested_groups", "ext_group_memberships", "api_enable_users", "api_enable_groups", "api_enable_contacts"} {
+		cases[flag+"_false"] = struct{ wire, value string }{flag, "false"}
+	}
+	for _, strategy := range []string{"windowslive", "waad"} {
+		for name, row := range inv.Strategies[strategy].Options {
+			if c, ok := cases[name]; ok {
+				if row.WireOption != c.wire || string(row.When) != c.value {
+					t.Errorf("wire case %s.%s: key=%q when=%s", strategy, name, row.WireOption, row.When)
+				}
+			} else if row.WireOption != name || len(row.When) != 0 {
+				t.Errorf("wire option %s.%s must retain its name without a value-case suffix", strategy, name)
+			}
+		}
+	}
+	wsfed := inv.Strategies["waad"].Options["use_wsfed"]
+	if wsfed.Type != "boolean" || string(wsfed.Default) != "false" || wsfed.Disposition != "inert" || !strings.Contains(wsfed.Validation, "absent or false only") {
+		t.Error("waad.use_wsfed must accept absent/false as inert")
 	}
 	for mode, want := range map[string][3]string{
 		"personal":         {"<sub>", "<sub>", "windowslive|<sub>"},
