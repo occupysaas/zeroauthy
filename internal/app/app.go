@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	actionsbuild "github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
@@ -45,7 +46,8 @@ type App struct {
 	log        *slog.Logger
 	store      store.Store
 	runner     *customdb.NodeRunner
-	profiles   *script.Runner // nil when profile scripts cannot run
+	builds     *actionsbuild.Manager // Actions dependency builds
+	profiles   *script.Runner        // nil when profile scripts cannot run
 	jobs       *jobs.Runner
 	handler    http.Handler
 	breachFile *protection.FileChecker
@@ -302,6 +304,15 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		log.Warn("custom OAuth2 profile scripts unavailable", "reason", err)
 		profiles = nil
 	}
+	// Actions dependency builds; Node and npm are needed only once a build runs.
+	builds, err := actionsbuild.New(cfg.Actions, st, log)
+	if err != nil {
+		_ = runner.Close()
+		if profiles != nil {
+			_ = profiles.Close()
+		}
+		return nil, err
+	}
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
 	sec := cfg.Security
 	return &App{
@@ -313,6 +324,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		log:        log,
 		store:      st,
 		runner:     runner,
+		builds:     builds,
 		jobs:       jobRunner,
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
@@ -578,6 +590,14 @@ func (a *App) Serve(ctx context.Context) error {
 		}()
 	}
 	go a.sweepLoop(ctx, sweepInterval)
+	if a.builds != nil {
+		// Pre-extract deployed Action builds in the background.
+		go func() {
+			if err := a.builds.Prewarm(ctx); err != nil && ctx.Err() == nil {
+				a.log.Warn("actions: pre-extracting deployed builds failed", "err", err)
+			}
+		}()
+	}
 	if a.jobs != nil && a.jobs.Workers > 0 {
 		// Workers stop with Serve, which waits a little for the job they
 		// are on before the caller closes the store.
@@ -605,8 +625,12 @@ func (a *App) Serve(ctx context.Context) error {
 	}
 }
 
-// Close stops the custom database runner and closes the store.
+// Close stops Actions builds and the custom database runner and closes the
+// store.
 func (a *App) Close() error {
+	if a.builds != nil {
+		a.builds.Close()
+	}
 	var errRunner error
 	if a.runner != nil {
 		errRunner = a.runner.Close()

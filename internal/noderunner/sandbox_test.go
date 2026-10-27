@@ -106,6 +106,9 @@ func TestSandboxNPMFeasibility(t *testing.T) {
 		t.Run(rt.Version, func(t *testing.T) {
 			npmDir, err := filepath.EvalSymlinks(filepath.Join(filepath.Dir(node), "..", "lib", "node_modules", "npm"))
 			if err != nil {
+				if os.Getenv("ZA_REQUIRE_NODE") == "1" {
+					t.Fatalf("ZA_REQUIRE_NODE=1 but no bundled npm next to %s: %v", node, err)
+				}
 				t.Skipf("no bundled npm next to %s: %v", node, err)
 			}
 			build := t.TempDir()

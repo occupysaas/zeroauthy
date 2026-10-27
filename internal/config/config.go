@@ -24,6 +24,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 
+	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
@@ -36,6 +37,7 @@ type Config struct {
 	Log      Log      `koanf:"log"`
 	Email    Email    `koanf:"email"`
 	CustomDB CustomDB `koanf:"custom_db"`
+	Actions  Actions  `koanf:"actions"`
 	Jobs     Jobs     `koanf:"jobs"`
 	// Bootstrap creates the first console operator on an empty install.
 	Bootstrap Bootstrap `koanf:"bootstrap"`
@@ -176,6 +178,29 @@ type CustomDB struct {
 	IdleTimeout time.Duration `koanf:"idle_timeout"`  // idle runner lifetime; default 5m
 }
 
+// Actions configures the Actions runner and the npm dependency builds.
+type Actions struct {
+	Node string `koanf:"node"` // Node.js executable; default "node"
+	// NPMCLI is the absolute path of npm's bin/npm-cli.js; default the npm
+	// bundled with Node (<node prefix>/lib/node_modules/npm). Builds run it
+	// under Node's permission model, never as a separate npm executable.
+	NPMCLI string `koanf:"npm_cli"`
+	// Registry is the npm registry (or a mirror for air-gapped installs);
+	// default https://registry.npmjs.org/.
+	Registry string `koanf:"registry"`
+	// CacheDir is the absolute path holding extracted builds, one 0700
+	// directory per tenant; default <user cache dir>/zeroauthy/actions-cache.
+	CacheDir            string        `koanf:"cache_dir"`
+	MaxMemoryMB         int           `koanf:"max_memory_mb"`         // runner heap; default 256, at least 32
+	IdleTimeout         time.Duration `koanf:"idle_timeout"`          // idle runner lifetime; default 5m
+	BuildTimeout        time.Duration `koanf:"build_timeout"`         // one build's time limit; default 2m
+	MaxArtifactMB       int           `koanf:"max_artifact_mb"`       // installed and packed size cap; default 50, at most 50
+	MaxConcurrentBuilds int           `koanf:"max_concurrent_builds"` // builds at once on this server; default 2
+}
+
+// maxActionsArtifactMB is the store's artifact limit in MB (10^6 bytes; spec §5).
+var maxActionsArtifactMB = actionsrules.Inventory().Limits["artifact_bytes_max"] / 1_000_000
+
 // Jobs configures the workers that run Management API jobs.
 type Jobs struct {
 	// Workers is how many jobs this process runs at once; default 2. 0
@@ -225,7 +250,11 @@ func defaults() *Config {
 		},
 		Jobs:     Jobs{Workers: 2, Lease: time.Minute},
 		CustomDB: CustomDB{Node: "node", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute},
-		Email:    Email{Driver: "log", From: "zeroauthy@localhost", SMTP: SMTP{Port: 587}},
+		Actions: Actions{
+			Node: "node", Registry: "https://registry.npmjs.org/", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute,
+			BuildTimeout: 2 * time.Minute, MaxArtifactMB: maxActionsArtifactMB, MaxConcurrentBuilds: 2,
+		},
+		Email: Email{Driver: "log", From: "zeroauthy@localhost", SMTP: SMTP{Port: 587}},
 	}
 }
 
@@ -444,6 +473,7 @@ func (c *Config) validate() error {
 	if c.CustomDB.IdleTimeout <= 0 {
 		errs = append(errs, errors.New("custom_db.idle_timeout must be positive"))
 	}
+	errs = append(errs, c.Actions.validate()...)
 	if c.Jobs.Workers < 0 {
 		errs = append(errs, fmt.Errorf("jobs.workers %d must not be negative", c.Jobs.Workers))
 	}
@@ -502,4 +532,36 @@ func (s Security) MasterKeyBytes() ([]byte, error) {
 		return nil, fmt.Errorf("config: master key must be 32 bytes, got %d", len(key))
 	}
 	return key, nil
+}
+
+func (a Actions) validate() []error {
+	var errs []error
+	if a.Node == "" {
+		errs = append(errs, errors.New("actions.node must not be empty"))
+	}
+	if a.NPMCLI != "" && !filepath.IsAbs(a.NPMCLI) {
+		errs = append(errs, errors.New("actions.npm_cli must be an absolute path"))
+	}
+	if a.CacheDir != "" && !filepath.IsAbs(a.CacheDir) {
+		errs = append(errs, errors.New("actions.cache_dir must be an absolute path"))
+	}
+	if u, err := url.Parse(a.Registry); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		errs = append(errs, errors.New("actions.registry must be an http or https URL"))
+	}
+	if a.MaxMemoryMB < 32 {
+		errs = append(errs, fmt.Errorf("actions.max_memory_mb %d must be at least 32", a.MaxMemoryMB))
+	}
+	if a.IdleTimeout <= 0 {
+		errs = append(errs, errors.New("actions.idle_timeout must be positive"))
+	}
+	if a.BuildTimeout <= 0 {
+		errs = append(errs, errors.New("actions.build_timeout must be positive"))
+	}
+	if a.MaxArtifactMB < 1 || a.MaxArtifactMB > maxActionsArtifactMB {
+		errs = append(errs, fmt.Errorf("actions.max_artifact_mb %d must be between 1 and %d", a.MaxArtifactMB, maxActionsArtifactMB))
+	}
+	if a.MaxConcurrentBuilds < 1 {
+		errs = append(errs, fmt.Errorf("actions.max_concurrent_builds %d must be at least 1", a.MaxConcurrentBuilds))
+	}
+	return errs
 }
