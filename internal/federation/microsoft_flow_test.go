@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -135,5 +137,43 @@ func TestMicrosoftFlowDispatch(t *testing.T) {
 		if ButtonLabel(c) != "Display" {
 			t.Fatalf("display override %s", ButtonLabel(c))
 		}
+	}
+}
+
+func TestMicrosoftFlowIssuerCAS(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	defer st.Close()
+	spec := connrules.Spec{Name: "directory", Strategy: StrategyWAAD, Options: connrules.Options{Extra: map[string]any{"client_id": testMicrosoftTenant, "tenant_domain": testMicrosoftTenant}}}
+	c := &store.Connection{TenantID: "local", ID: "ms", FederationRevision: 1}
+	connrules.Apply(&spec, c)
+	c.FederationSecretsSealed = []byte("sealed")
+	if err := st.Connections().Create(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	issuer := testMicrosoftBase + "/" + testMicrosoftTenant + "/v2.0"
+	var wg sync.WaitGroup
+	var successes atomic.Int32
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			rev, err := PinIssuer(ctx, st, "local", "ms", 1, issuer)
+			if err == nil {
+				if rev != 2 {
+					t.Errorf("pinned revision %d", rev)
+				}
+				successes.Add(1)
+			} else if !errors.Is(err, store.ErrConflict) {
+				t.Errorf("CAS: %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+	if successes.Load() != 1 {
+		t.Fatalf("%d CAS winners", successes.Load())
+	}
+	if _, err := PinIssuer(ctx, st, "local", "ms", 2, testMicrosoftBase+"/"+testMicrosoftOtherTenant+"/v2.0"); !errors.Is(err, ErrImmutable) {
+		t.Fatalf("issuer rebound: %v", err)
 	}
 }

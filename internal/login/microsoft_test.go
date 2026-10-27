@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 
 	"net/url"
 	"strings"
@@ -33,6 +34,7 @@ func (p *fakeIDP) serveMicrosoft(w http.ResponseWriter, r *http.Request) {
 	authority := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")[0]
 	switch {
 	case strings.HasSuffix(r.URL.Path, "/.well-known/openid-configuration"):
+		p.discoveries.Add(1)
 		issuer := msTemplate
 		if authority != "organizations" && authority != "consumers" {
 			issuer = msBase + "/" + msTenant + "/v2.0"
@@ -174,7 +176,7 @@ func TestMicrosoftFlow(t *testing.T) {
 		b := s.browser("acme.example.test")
 		rec := b.do(t, "GET", "/authorize?"+url.Values{"client_id": {"spa"}, "redirect_uri": {"https://app.acme.test/cb"}, "response_type": {"code"}, "scope": {"openid"}, "code_challenge": {challenge}, "code_challenge_method": {"S256"}, "prompt": {"none"}, "connection": {"corp"}}.Encode(), nil)
 		u, _ := url.Parse(rec.Header().Get("Location"))
-		if u.Query().Get("error") != "login_required" || s.idp.exchanges.Load() != 0 {
+		if u.Query().Get("error") != "login_required" || s.idp.exchanges.Load() != 0 || s.idp.discoveries.Load() != 0 {
 			t.Fatalf("none %d %s", rec.Code, u)
 		}
 	})
@@ -198,7 +200,21 @@ func TestMicrosoftFlow(t *testing.T) {
 	})
 }
 
-func TestMicrosoftCallbackRace(t *testing.T) { testSocialCallbackRace(t, newMicrosoftEnv) }
+func TestMicrosoftCallbackRace(t *testing.T) {
+	testSocialCallbackRace(t, newMicrosoftEnv)
+	t.Run("custom domain removed", func(t *testing.T) { testSocialDomainRemovedDuringCallback(t, newMicrosoftEnv) })
+	t.Run("expired attempt before exchange", func(t *testing.T) {
+		s := newMicrosoftEnv(t)
+		b := s.browser("acme.example.test")
+		page := s.authorizeTo(t, b, "spa", "connection", "corp")
+		rec := b.do(t, "GET", strings.TrimPrefix(page, "https://acme.example.test"), nil)
+		cb := s.idp.authorize(t, providerURL(t, rec), "expired")
+		s.h.Federation.Now = func() time.Time { return fixedNow().Add(6 * time.Minute) }
+		if rec = b.do(t, "GET", cb, nil); rec.Code == 302 || s.idp.exchanges.Load() != 0 || b.cookies[session.CookieName] != nil {
+			t.Fatal("expired attempt exchanged")
+		}
+	})
+}
 
 func TestMicrosoftProtection(t *testing.T) {
 	ctx := context.Background()
@@ -232,6 +248,125 @@ func TestMicrosoftProtection(t *testing.T) {
 			cb := "/login/callback?" + url.Values{"state": {u.Query().Get("state")}, "error": {"access_denied"}}.Encode()
 			if rec = b.do(t, "GET", cb, nil); rec.Code != 401 || s.idp.exchanges.Load() != 0 {
 				t.Fatalf("denial %d", rec.Code)
+			}
+		})
+	}
+}
+
+func (s *socialEnv) providerSubject(sub string) string {
+	if s.idp.microsoft {
+		return msTenant + ":" + msOID
+	}
+	return sub
+}
+
+func TestMicrosoftFlowContinuation(t *testing.T) {
+	ctx := context.Background()
+	t.Run("consent after Microsoft code exchange", func(t *testing.T) {
+		s := newMicrosoftEnv(t)
+		c, _ := s.st.Connections().Get(ctx, s.tenant.ID, "con_corp")
+		c.IsDomainConnection = true
+		_ = s.st.Connections().Update(ctx, c)
+		b := s.browser("acme.example.test")
+		q := partnerQ("partner", "https://partner.example/cb")
+		q.Set("connection", "corp")
+		rec := b.do(t, "GET", "/authorize?"+q.Encode(), nil)
+		loc, _ := url.Parse(rec.Header().Get("Location"))
+		rec = b.do(t, "GET", loc.RequestURI(), nil)
+		rec = b.do(t, "GET", s.idp.authorize(t, providerURL(t, rec), "Consent"), nil)
+		loc = redirectTo(t, rec, "/u/consent")
+		page := b.do(t, "GET", loc.RequestURI(), nil)
+		rec = b.do(t, "POST", "/u/consent", url.Values{"state": {formValue(t, stateField, page)}, "csrf": {formValue(t, csrfField, page)}, "action": {"accept"}})
+		loc, _ = url.Parse(rec.Header().Get("Location"))
+		if rec.Code != 302 || loc.Host != "partner.example" || loc.Query().Get("code") == "" || s.idp.exchanges.Load() != 1 {
+			t.Fatalf("consent completion %d %s", rec.Code, loc)
+		}
+	})
+	for _, revoke := range []bool{false, true} {
+		t.Run(map[bool]string{false: "device resumption", true: "device grant removed during exchange"}[revoke], func(t *testing.T) {
+			s := newMicrosoftEnv(t)
+			c, _ := s.st.Connections().Get(ctx, s.tenant.ID, "con_corp")
+			c.EnabledClients = append(c.EnabledClients, "tv")
+			_ = s.st.Connections().Update(ctx, c)
+			dc := s.pendingCode(t, userCode)
+			b := s.browser("acme.example.test")
+			_, state, csrf := b.confirmPage(t, b.submitCode(t, userCode))
+			rec := b.do(t, "POST", "/device/confirmation", url.Values{"state": {state}, "csrf": {csrf}, "action": {"confirm"}})
+			loc, _ := url.Parse(rec.Header().Get("Location"))
+			page := b.do(t, "GET", loc.RequestURI(), nil)
+			body := page.Body.String()
+			rec = b.do(t, "POST", "/u/login/social", url.Values{"state": {formValue(t, stateField, page)}, "csrf": {formValue(t, csrfField, page)}, "connection": {"corp"}})
+			if !strings.Contains(body, "Microsoft work or school account") {
+				t.Fatal("device login missing enterprise button")
+			}
+			cb := s.idp.authorize(t, providerURL(t, rec), "Device")
+			if revoke {
+				s.idp.beforeToken = func() {
+					client, _ := s.st.Clients().Get(ctx, s.tenant.ID, "tv")
+					client.GrantTypes = nil
+					_ = s.st.Clients().Update(ctx, client)
+				}
+			}
+			rec = b.do(t, "GET", cb, nil)
+			if revoke {
+				if rec.Code == 302 || b.cookies[session.CookieName] != nil || s.storedCode(t, dc).Status != store.DeviceCodePending {
+					t.Fatal("revoked device grant committed")
+				}
+				if _, err := s.st.Users().FindByIdentity(ctx, s.tenant.ID, "con_corp", msTenant+":"+msOID); err == nil {
+					t.Fatal("revoked device grant wrote identity")
+				}
+			} else {
+				redirectTo(t, rec, "/device/success")
+				got := s.storedCode(t, dc)
+				if got.Status != store.DeviceCodeApproved || got.UserID != "waad|corp|"+msTenant+":"+msOID {
+					t.Fatalf("device %+v", got)
+				}
+			}
+		})
+	}
+}
+
+func TestMicrosoftProtectionIPAndRefusal(t *testing.T) {
+	ctx := context.Background()
+	for _, explicit := range []bool{false, true} {
+		t.Run(map[bool]string{false: "button IP budget", true: "explicit IP budget"}[explicit], func(t *testing.T) {
+			s := newMicrosoftEnv(t)
+			tn, _ := s.st.Tenants().Get(ctx, s.tenant.ID)
+			tn.ProtectionSettings.SuspiciousIP.Enabled = true
+			tn.ProtectionSettings.SuspiciousIP.Shields = []string{"block"}
+			tn.ProtectionSettings.SuspiciousIP.Stage.PreLogin.MaxAttempts = 2
+			tn.ProtectionSettings.SuspiciousIP.Stage.PreLogin.Rate = 3600000
+			tn.ProtectionSettingsInitialized = true
+			_ = s.st.Tenants().Update(ctx, tn)
+			b := s.browser("acme.example.test")
+			b.remoteAddr = "203.0.113.9:1234"
+			start := func() *httptest.ResponseRecorder {
+				extra := []string{}
+				if explicit {
+					extra = []string{"connection", "corp"}
+				}
+				page := b.do(t, "GET", strings.TrimPrefix(s.authorizeTo(t, b, "spa", extra...), "https://acme.example.test"), nil)
+				if explicit {
+					return page
+				}
+				body := page.Body.String()
+				return b.do(t, "POST", "/u/login/social", url.Values{"state": {regexpState.FindStringSubmatch(body)[1]}, "csrf": {csrfField.FindStringSubmatch(body)[1]}, "connection": {"corp"}})
+			}
+			u, _ := url.Parse(providerURL(t, start()))
+			rec := b.do(t, "GET", "/login/callback?"+url.Values{"state": {u.Query().Get("state")}, "error": {"access_denied"}}.Encode(), nil)
+			if rec.Code != 401 {
+				t.Fatalf("provider refusal %d", rec.Code)
+			}
+			_ = providerURL(t, start())
+			if rec = start(); rec.Code != 429 {
+				t.Fatalf("IP budget bypassed %d", rec.Code)
+			}
+			if n, err := s.st.Protection().RiskCount(ctx, s.tenant.ID, "203.0.113.9", fixedNow()); err != nil || n != 0 {
+				t.Fatalf("provider denial counted as password risk: %d %v", n, err)
+			}
+			blocks, err := s.st.Protection().Blocks(ctx, s.tenant.ID, store.ProtectionFilter{Kind: store.ProtectionBruteForce}, fixedNow())
+			if err != nil || len(blocks) != 0 || s.idp.exchanges.Load() != 0 {
+				t.Fatalf("password blocks %+v %v", blocks, err)
 			}
 		})
 	}

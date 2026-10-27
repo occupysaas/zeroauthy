@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -388,6 +389,15 @@ func (s *FlowService) eligible(ctx context.Context, st store.Store, a *store.Fed
 	}
 	if err != nil {
 		return nil, nil, nil, err
+	}
+	// Recheck the grant before any local identity, token or session write.
+	// Authorization continuation also checks it, but runs after session commit.
+	grant := "authorization_code"
+	if txn.Params[authz.ParamFlow] == authz.FlowDevice {
+		grant = "urn:ietf:params:oauth:grant-type:device_code"
+	}
+	if !slices.Contains(client.GrantTypes, grant) {
+		return nil, nil, nil, fmt.Errorf("%w: application grant disabled", ErrAttemptStale)
 	}
 	if cfg, err := ParseConfig(*connrules.FromConnection(conn)); err != nil || !cfg.AuthenticationActive {
 		return nil, nil, nil, ErrConnectionUnusable

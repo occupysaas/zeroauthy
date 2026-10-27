@@ -23,19 +23,19 @@ func RequireMicrosoftFederation(ctx context.Context, st store.Store) error {
 // identity without repairing or converting legacy ownership. Run before serving
 // traffic, with old writers drained for the rollout.
 func PreflightMicrosoftIdentities(ctx context.Context, st store.Store) error {
-	tenants, err := st.Tenants().List(ctx)
-	if err != nil {
-		return err
-	}
-	microsoft := func(provider string) bool { return provider == rules.WindowsLive || provider == rules.WAAD }
 	diagnostic := func(reason string) error {
 		return fmt.Errorf("Microsoft federation preflight: %s; operator correction required before startup", reason)
 	}
+	tenants, err := st.Tenants().List(ctx)
+	if err != nil {
+		return diagnostic("tenant enumeration unavailable")
+	}
+	microsoft := func(provider string) bool { return provider == rules.WindowsLive || provider == rules.WAAD }
 	for _, tenant := range tenants {
 		for offset := 0; ; offset += 100 {
 			conns, total, err := st.Connections().List(ctx, tenant.ID, store.ConnectionFilter{}, store.Page{Offset: offset, Limit: 100})
 			if err != nil {
-				return err
+				return diagnostic("store identity/connection read unavailable")
 			}
 			for _, c := range conns {
 				if microsoft(c.Strategy) {
@@ -51,7 +51,7 @@ func PreflightMicrosoftIdentities(ctx context.Context, st store.Store) error {
 		for offset := 0; ; offset += 100 {
 			users, total, err := st.Users().List(ctx, tenant.ID, nil, store.UserSort{Field: "user_id"}, store.Page{Offset: offset, Limit: 100})
 			if err != nil {
-				return err
+				return diagnostic("store identity/connection read unavailable")
 			}
 			for _, u := range users {
 				filtered := *u
@@ -72,7 +72,7 @@ func PreflightMicrosoftIdentities(ctx context.Context, st store.Store) error {
 					return diagnostic("unresolvable or malformed Microsoft identity")
 				}
 				if err != nil {
-					return err
+					return diagnostic("store identity/connection read unavailable")
 				}
 				for _, key := range keys {
 					owner, err := st.Users().FindByIdentity(ctx, key.TenantID, key.ConnectionID, key.Subject)
@@ -80,7 +80,7 @@ func PreflightMicrosoftIdentities(ctx context.Context, st store.Store) error {
 						return diagnostic("Microsoft identity index ownership is missing or inconsistent")
 					}
 					if err != nil {
-						return err
+						return diagnostic("store identity/connection read unavailable")
 					}
 				}
 			}

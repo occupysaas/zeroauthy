@@ -160,3 +160,22 @@ func TestMicrosoftIdentityCapabilityDenial(t *testing.T) {
 		t.Fatalf("unsupported login wrote %d users: %v", n, err)
 	}
 }
+
+type failingPreflightUsers struct{ store.Users }
+
+func (failingPreflightUsers) List(context.Context, string, *store.UserQuery, store.UserSort, store.Page) ([]*store.User, int, error) {
+	return nil, 0, errors.New("PRIVATE token profile secret")
+}
+
+type failingPreflightStore struct{ store.Store }
+
+func (s failingPreflightStore) Users() store.Users { return failingPreflightUsers{s.Store.Users()} }
+func TestMicrosoftFlowPreflightSanitizesStoreErrors(t *testing.T) {
+	st := memory.New()
+	defer st.Close()
+	_ = st.Tenants().Create(context.Background(), &store.Tenant{ID: "local", Name: "local"})
+	err := PreflightMicrosoftIdentities(context.Background(), failingPreflightStore{st})
+	if err == nil || strings.Contains(err.Error(), "PRIVATE") || strings.Contains(err.Error(), "secret") {
+		t.Fatalf("unsafe startup error: %v", err)
+	}
+}
