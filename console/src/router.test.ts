@@ -89,3 +89,14 @@ describe('planned routes', () => {
     expect(r.currentRoute.value.name).toBe('not-found')
   })
 })
+
+
+describe('enterprise routes', () => {
+  it('provides Enterprise list, creation and shared details while preserving OIDC social deep links', () => {
+    const r = router(fakes(true))
+    expect(r.resolve('/t/acme/enterprise').name).toBe('enterprise')
+    expect(r.resolve('/t/acme/enterprise/new').name).toBe('enterprise-new')
+    expect(r.resolve('/t/acme/enterprise/con_ms').name).toBe('enterprise-connection')
+    expect(r.resolve('/t/acme/social/con_oidc').name).toBe('social-connection')
+  })
+})

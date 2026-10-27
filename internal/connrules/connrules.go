@@ -327,8 +327,8 @@ func normalize(s *Spec, api bool) []error {
 		s.Strategy = store.StrategyDatabase
 	}
 	if s.Strategy != store.StrategyDatabase && !s.Federated() {
-		fail("strategy %q is not supported (only %q, %q, %q or %q)", s.Strategy,
-			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC)
+		fail("strategy %q is not supported (only %q, %q, %q, %q, %q or %q)", s.Strategy,
+			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD)
 	}
 	for _, r := range s.Realms {
 		if r == "" {
@@ -398,6 +398,11 @@ func normalizeFederated(s *Spec) []error {
 		fail("database options are not supported on strategy %q", s.Strategy)
 	}
 	for _, k := range slices.Sorted(maps.Keys(ExtraSchema)) {
+		// Microsoft personal uses the same wire key for its required v2 mode.
+		// Its value is checked by Microsoft rules below.
+		if s.Strategy == rules.WindowsLive && k == "strategy_version" {
+			continue
+		}
 		if _, ok := o.Extra[k]; ok {
 			fail("option %q is not supported on strategy %q", k, s.Strategy)
 		}

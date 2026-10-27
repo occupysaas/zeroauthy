@@ -84,3 +84,29 @@ describe('Application connections tab', () => {
     bad.wrapper.unmount()
   })
 })
+
+
+describe('Federated application enablement', () => {
+  it('offers every federated strategy with its correct detail route and enables Microsoft through the shared endpoint', async () => {
+    const strategies = ['google-oauth2', 'oauth2', 'oidc', 'windowslive', 'waad']
+    const { wrapper, calls } = await mountAt(Detail, path, c => {
+      const url = new URL(c.url).pathname
+      if (url === '/api/v2/clients/m1') return { status: 200, body: client('m1') }
+      if (url === '/api/v2/connections') return { status: 200, body: { connections: strategies.map(strategy => connection(strategy, { name: strategy, strategy, options: {} })), total: 5 } }
+      if (url.endsWith('/clients')) return c.method === 'PATCH' ? { status: 204 } : { status: 200, body: { clients: [] } }
+      return { status: 404 }
+    })
+    tabTo('Connections')
+    await flushPromises()
+    for (const strategy of strategies) {
+      const row = wrapper.find(`[data-testid="conn-${strategy}"]`)
+      const audience = ['oidc', 'waad'].includes(strategy) ? 'enterprise' : 'social'
+      expect(row.find('a').attributes('href')).toBe(`/admin/t/acme/${audience}/${strategy}`)
+      expect(row.find('input[role="switch"]').exists()).toBe(true)
+    }
+    await wrapper.find('[data-testid="conn-waad"] input').setValue(true)
+    await flushPromises()
+    expect(calls.find(c => c.method === 'PATCH')).toMatchObject({ url: 'https://acme.example.test/api/v2/connections/waad/clients', body: [{ client_id: 'm1', status: true }] })
+    wrapper.unmount()
+  })
+})

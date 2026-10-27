@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -59,6 +60,104 @@ func newAttempt(state, txID string, expires time.Time) *store.FederationAttempt 
 func testFederation(t *testing.T, newStore Factory) {
 	ctx := context.Background()
 	exp := ts(5 * time.Minute)
+
+	t.Run("MicrosoftIdentityIndex", func(t *testing.T) {
+		s := open(t, newStore)
+		fedFixture(t, s)
+		const oid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		const tid = "11111111-2222-3333-4444-555555555555"
+		for _, c := range []*store.Connection{
+			{TenantID: fedTenant, ID: "ms", Name: "personal", Strategy: "windowslive"},
+			{TenantID: fedTenant, ID: "work", Name: "work", Strategy: "waad", Extra: map[string]any{"useCommonEndpoint": true}},
+		} {
+			mustNoErr(t, s.Connections().Create(ctx, c))
+		}
+		for _, tc := range []struct{ provider, conn, name, sub, id string }{
+			{"windowslive", "ms", "personal", "Case|Sensitive", "Case|Sensitive"},
+			{"windowslive", "ms", "personal", "case|Sensitive", "case|Sensitive"},
+			{"waad", "work", "work", tid + ":" + oid, "work|" + tid + ":" + oid},
+			{"waad", "work", "work", "22222222-2222-3333-4444-555555555555:" + oid, "work|22222222-2222-3333-4444-555555555555:" + oid},
+		} {
+			owner := store.FederatedPublicID(tc.provider, tc.name, tc.sub)
+			u := fedUser(owner, "same@example.test", store.Identity{Connection: tc.name, Provider: tc.provider, UserID: tc.id})
+			mustNoErr(t, s.Users().Create(ctx, u))
+			u.Identities[0].UserID = "modified"
+			got, err := s.Users().FindByIdentity(ctx, fedTenant, tc.conn, tc.sub)
+			mustNoErr(t, err)
+			if got.UserID != owner || got.Identities[0].UserID != tc.id {
+				t.Fatalf("round trip %+v", got)
+			}
+			got.Identities[0].UserID = "modified"
+			got, err = s.Users().FindByIdentity(ctx, fedTenant, tc.conn, tc.sub)
+			mustNoErr(t, err)
+			if got.Identities[0].UserID != tc.id {
+				t.Fatal("identity alias")
+			}
+			mustErrIs(t, s.Users().Create(ctx, fedUser("thief|"+owner, "", store.Identity{Connection: tc.name, Provider: tc.provider, UserID: tc.id})), store.ErrConflict)
+			key := fedKey(tc.conn, tc.sub)
+			mustNoErr(t, s.Federation().PutTokens(ctx, key, []byte("sealed")))
+			// Failed transfer leaves ownership and tokens untouched.
+			rollback := errors.New("rollback")
+			err = s.WithTx(ctx, func(tx store.Store) error {
+				got.Identities = nil
+				if e := tx.Users().Update(ctx, got); e != nil {
+					return e
+				}
+				if e := tx.Users().Create(ctx, fedUser("moved|"+owner, "", store.Identity{Connection: tc.name, Provider: tc.provider, UserID: tc.id})); e != nil {
+					return e
+				}
+				return rollback
+			})
+			mustErrIs(t, err, rollback)
+			got, err = s.Users().FindByIdentity(ctx, fedTenant, tc.conn, tc.sub)
+			mustNoErr(t, err)
+			if got.UserID != owner {
+				t.Fatal("rollback ownership")
+			}
+			mustNoErr(t, s.WithTx(ctx, func(tx store.Store) error {
+				got.Identities = nil
+				if e := tx.Users().Update(ctx, got); e != nil {
+					return e
+				}
+				return tx.Users().Create(ctx, fedUser("moved|"+owner, "", store.Identity{Connection: tc.name, Provider: tc.provider, UserID: tc.id}))
+			}))
+			got, err = s.Users().FindByIdentity(ctx, fedTenant, tc.conn, tc.sub)
+			mustNoErr(t, err)
+			if got.UserID != "moved|"+owner {
+				t.Fatal("transfer owner")
+			}
+			tok, err := s.Federation().GetTokens(ctx, key)
+			mustNoErr(t, err)
+			if string(tok) != "sealed" {
+				t.Fatal("transfer lost tokens")
+			}
+			mustNoErr(t, s.Users().Delete(ctx, fedTenant, got.UserID))
+			_, err = s.Federation().GetTokens(ctx, key)
+			mustErrIs(t, err, store.ErrNotFound)
+		}
+		var wg sync.WaitGroup
+		outcomes := make(chan error, 6)
+		for range 6 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				outcomes <- s.Users().Create(ctx, fedUser("windowslive|race", "same@example.test", store.Identity{Connection: "personal", Provider: "windowslive", UserID: "race"}))
+			}()
+		}
+		wg.Wait()
+		close(outcomes)
+		winners := 0
+		for err := range outcomes {
+			if err == nil {
+				winners++
+			} else {
+				mustErrIs(t, err, store.ErrConflict)
+			}
+		}
+		if winners != 1 {
+			t.Fatalf("%d concurrent owners", winners)
+		}
+	})
 
 	t.Run("Attempts", func(t *testing.T) {
 		s := open(t, newStore)

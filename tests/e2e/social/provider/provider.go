@@ -24,8 +24,13 @@ import (
 
 // Client credentials every mock provider accepts.
 const (
-	ClientID     = "m24-upstream-client"
-	ClientSecret = "m24-upstream-secret-not-for-production"
+	ClientID          = "m24-upstream-client"
+	MicrosoftClientID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+	DirectoryTenant   = "11111111-1111-4111-8111-111111111111"
+	OtherTenant       = "22222222-2222-4222-8222-222222222222"
+	ConsumerTenant    = "9188040d-6c67-4c5b-b112-36a304b66dad"
+	MicrosoftIssuer   = "https://login.microsoftonline.com/"
+	ClientSecret      = "m24-upstream-secret-not-for-production"
 )
 
 type code struct {
@@ -76,7 +81,41 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	flavor, rest := parts[0], parts[1]
-	if flavor != "google" && flavor != "oidc" && flavor != "oauth2" {
+	microsoft := flavor == "consumers" || flavor == "organizations" || flavor == DirectoryTenant || flavor == "directory.e2e.test"
+	if microsoft || flavor == "common" {
+		switch {
+		case rest == "v2.0/.well-known/openid-configuration" && microsoft:
+			issuer := MicrosoftIssuer + "{tenantid}/v2.0"
+			if flavor != "consumers" && flavor != "organizations" {
+				issuer = MicrosoftIssuer + DirectoryTenant + "/v2.0"
+			}
+			writeJSON(w, map[string]any{"issuer": issuer, "authorization_endpoint": MicrosoftIssuer + flavor + "/oauth2/v2.0/authorize", "token_endpoint": MicrosoftIssuer + flavor + "/oauth2/v2.0/token", "jwks_uri": MicrosoftIssuer + "common/discovery/v2.0/keys", "token_endpoint_auth_methods_supported": []string{"client_secret_post"}, "code_challenge_methods_supported": []string{"S256"}, "id_token_signing_alg_values_supported": []string{"RS256"}})
+			return
+		case rest == "discovery/v2.0/keys":
+			keys := []map[string]any{}
+			for _, kid := range []string{"m24", "mismatch"} {
+				b, _ := json.Marshal(jose.JSONWebKey{Key: &p.key.PublicKey, KeyID: kid, Algorithm: "RS256", Use: "sig"})
+				var k map[string]any
+				_ = json.Unmarshal(b, &k)
+				k["issuer"] = MicrosoftIssuer + "{tenantid}/v2.0"
+				if kid == "mismatch" {
+					k["issuer"] = MicrosoftIssuer + ConsumerTenant + "/v2.0"
+				}
+				keys = append(keys, k)
+			}
+			writeJSON(w, map[string]any{"keys": keys})
+			return
+		case rest == "oauth2/v2.0/authorize":
+			rest = "authorize"
+		case rest == "oauth2/v2.0/token":
+			rest = "token"
+		default:
+			http.NotFound(w, r)
+			return
+		}
+	}
+
+	if !microsoft && flavor != "google" && flavor != "oidc" && flavor != "oauth2" {
 		http.NotFound(w, r)
 		return
 	}
@@ -109,7 +148,7 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (p *Provider) authorizePage(w http.ResponseWriter, r *http.Request, flavor string) {
 	q := r.URL.Query()
-	if q.Get("response_type") != "code" || q.Get("client_id") != ClientID || q.Get("code_challenge_method") != "S256" ||
+	if q.Get("response_type") != "code" || !validClient(flavor, q.Get("client_id")) || q.Get("code_challenge_method") != "S256" ||
 		q.Get("code_challenge") == "" || q.Get("state") == "" || q.Get("redirect_uri") == "" || (flavor != "oauth2" && q.Get("nonce") == "") {
 		http.Error(w, "invalid authorization request", http.StatusBadRequest)
 		return
@@ -119,7 +158,7 @@ func (p *Provider) authorizePage(w http.ResponseWriter, r *http.Request, flavor 
 		hidden[k] = q.Get(k)
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = form.Execute(w, map[string]any{"Flavor": flavor, "Action": p.Base + "/" + flavor + "/authorize", "Hidden": hidden})
+	_ = form.Execute(w, map[string]any{"Flavor": flavor, "Action": p.Base + "/" + flavor + authorizePath(flavor), "Hidden": hidden})
 }
 
 func (p *Provider) authorizeSubmit(w http.ResponseWriter, r *http.Request, flavor string) {
@@ -160,7 +199,7 @@ func (p *Provider) token(w http.ResponseWriter, r *http.Request, flavor string) 
 	// Exactly one client authentication method, the one each flavor uses.
 	wantBasic := flavor == "oidc"
 	authOK := basic != post && basic == wantBasic &&
-		((basic && user == ClientID && pass == ClientSecret) || (post && r.PostForm.Get("client_id") == ClientID && r.PostForm.Get("client_secret") == ClientSecret))
+		((basic && user == ClientID && pass == ClientSecret) || (post && validClient(flavor, r.PostForm.Get("client_id")) && r.PostForm.Get("client_secret") == ClientSecret))
 	sum := sha256.Sum256([]byte(r.PostForm.Get("code_verifier")))
 	if !ok || c.flavor != flavor || !authOK || r.PostForm.Get("grant_type") != "authorization_code" ||
 		base64.RawURLEncoding.EncodeToString(sum[:]) != c.challenge || r.PostForm.Get("redirect_uri") != c.redirect {
@@ -176,9 +215,51 @@ func (p *Provider) token(w http.ResponseWriter, r *http.Request, flavor string) 
 	out := map[string]any{"access_token": access, "token_type": "Bearer", "expires_in": 3600, "refresh_token": "refresh-" + c.sub}
 	if flavor != "oauth2" {
 		now := time.Now()
-		claims, _ := json.Marshal(map[string]any{"iss": p.Base + "/" + flavor, "aud": ClientID, "sub": c.sub, "nonce": c.nonce,
-			"iat": now.Unix(), "exp": now.Add(time.Hour).Unix(), "email": strings.ToLower(c.sub) + "@" + flavor + ".e2e.test", "email_verified": true, "name": "Mock " + c.sub})
-		signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: p.key}, (&jose.SignerOptions{}).WithHeader("kid", "m24"))
+		claimsMap := map[string]any{"iss": p.Base + "/" + flavor, "aud": ClientID, "sub": c.sub, "nonce": c.nonce,
+			"iat": now.Unix(), "exp": now.Add(time.Hour).Unix(), "email": strings.ToLower(c.sub) + "@" + flavor + ".e2e.test", "email_verified": true, "name": "Mock " + c.sub}
+		kid := "m24"
+		if flavor == "google" {
+			switch c.sub {
+			case "gmail":
+				claimsMap["email"] = "gmail@gmail.com"
+			case "workspace":
+				claimsMap["email"] = "workspace@enterprise.test"
+				claimsMap["hd"] = "enterprise.test"
+			case "nongmail":
+				claimsMap["email"] = "google@example.test"
+			}
+		}
+		if isMicrosoft(flavor) {
+			tid := DirectoryTenant
+			if flavor == "consumers" {
+				tid = ConsumerTenant
+			}
+			if c.sub == "tenant-mismatch" {
+				tid = OtherTenant
+			}
+			claimsMap["iss"] = MicrosoftIssuer + tid + "/v2.0"
+			claimsMap["tid"] = tid
+			claimsMap["ver"] = "2.0"
+			claimsMap["aud"] = MicrosoftClientID
+			claimsMap["oid"] = personaOID(c.sub)
+			claimsMap["sub"] = "Sub-" + c.sub
+			claimsMap["email"] = "shared@enterprise.test"
+			if c.sub == "outlook" {
+				claimsMap["email"] = "person@outlook.com"
+			}
+			if c.sub == "hotmail" {
+				claimsMap["email"] = "person@hotmail.com"
+			}
+			if c.sub == "noemail" {
+				delete(claimsMap, "email")
+				claimsMap["preferred_username"] = "untrusted@enterprise.test"
+			}
+			if c.sub == "key-mismatch" {
+				kid = "mismatch"
+			}
+		}
+		claims, _ := json.Marshal(claimsMap)
+		signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: p.key}, (&jose.SignerOptions{}).WithHeader("kid", kid))
 		if err != nil {
 			http.Error(w, "signing", 500)
 			return
@@ -203,4 +284,29 @@ func (p *Provider) ExchangeCounts() map[string]int {
 		out[k] = v
 	}
 	return out
+}
+
+func isMicrosoft(flavor string) bool {
+	return flavor != "google" && flavor != "oidc" && flavor != "oauth2"
+}
+func validClient(flavor, id string) bool {
+	if isMicrosoft(flavor) {
+		return id == MicrosoftClientID
+	}
+	return id == ClientID
+}
+func authorizePath(flavor string) string {
+	if isMicrosoft(flavor) {
+		return "/oauth2/v2.0/authorize"
+	}
+	return "/authorize"
+}
+func personaOID(persona string) string {
+	switch persona {
+	case "school":
+		return "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+	case "noemail":
+		return "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+	}
+	return "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 }

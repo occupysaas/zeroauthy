@@ -408,6 +408,9 @@ func typeItem(want string, got any, path string) store.JobErrorItem {
 
 // fields is a record that passed the checks, normalized.
 type fields struct {
+	identities                            []store.Identity
+	identityKeys                          []store.FederatedIdentityKey
+	hasIdentities                         bool
 	email, userID, username, phone        string
 	name, givenName, familyName, nickname string
 	picture                               string
@@ -571,6 +574,12 @@ func check(conn *store.Connection, obj map[string]any) (*fields, []store.JobErro
 			items = append(items, typeItem("array", v, "mfa_factors"))
 		}
 	}
+	if raw, ok := obj["identities"]; ok {
+		f.hasIdentities = true
+		var identityItems []store.JobErrorItem
+		f.identities, identityItems = secondaryImportIdentities(raw)
+		items = append(items, identityItems...)
+	}
 	return f, items
 }
 
@@ -606,6 +615,15 @@ func (p Importer) record(ctx context.Context, tx store.Store, conn *store.Connec
 		return fail(item("DUPLICATED_USER", msgDuplicateInFile, ""))
 	}
 
+	if f.hasIdentities {
+		items, err := validateImportIdentities(ctx, tx, conn.TenantID, f)
+		if err != nil {
+			return 0, nil, err
+		}
+		if len(items) > 0 {
+			return fail(items...)
+		}
+	}
 	existing, err := tx.Users().FindByLogin(ctx, conn.TenantID, conn.Name, f.email)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
@@ -654,6 +672,7 @@ func (p Importer) insert(ctx context.Context, tx store.Store, conn *store.Connec
 		Blocked: deref(f.blocked), UserMetadata: f.userMetadata, AppMetadata: f.appMetadata,
 		Identities: []store.Identity{ident}, CreatedAt: now, UpdatedAt: now,
 	}
+	u.Identities = append(u.Identities, f.identities...)
 	u.Name, u.Nickname = identity.DefaultNames(f.name, f.nickname, f.email, f.username)
 	if u.Picture == "" {
 		u.Picture = userrules.DefaultPicture(f.email)
@@ -684,6 +703,15 @@ func (p Importer) update(ctx context.Context, tx store.Store, conn *store.Connec
 	u, err := tx.Users().GetForUpdate(ctx, conn.TenantID, userID)
 	if err != nil {
 		return 0, nil, err
+	}
+	if f.hasIdentities {
+		matching, err := matchingImportIdentities(ctx, tx, u, f)
+		if err != nil {
+			return 0, nil, err
+		}
+		if !matching {
+			return outFailed, []store.JobErrorItem{item("CONFLICT", "Upsert cannot change secondary identity ownership; use explicit account linking", "identities")}, nil
+		}
 	}
 	id := u.OwnIdentityOn(conn.Name)
 	if id == nil {

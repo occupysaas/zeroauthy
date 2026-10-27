@@ -477,6 +477,11 @@ func (s *Server) CustomSigningKeysDelete(ctx context.Context, r *storev1.TenantS
 
 func (s *Server) ConnectionsCreate(ctx context.Context, r *storev1.ConnectionWrite) (*storev1.Result, error) {
 	return write(s, r.TxId, r.Value, connectionFromPB, func(st store.Store, c *store.Connection) error {
+		if c != nil && microsoftStrategy(c.Strategy) {
+			if err := requireMicrosoftBacking(ctx, st); err != nil {
+				return err
+			}
+		}
 		return st.Connections().Create(ctx, c)
 	}), nil
 }
@@ -503,6 +508,11 @@ func (s *Server) ConnectionsGetByName(ctx context.Context, r *storev1.ScopedKey)
 
 func (s *Server) ConnectionsUpdate(ctx context.Context, r *storev1.ConnectionWrite) (*storev1.Result, error) {
 	return write(s, r.TxId, r.Value, connectionFromPB, func(st store.Store, c *store.Connection) error {
+		if c != nil && microsoftStrategy(c.Strategy) {
+			if err := requireMicrosoftBacking(ctx, st); err != nil {
+				return err
+			}
+		}
 		return st.Connections().Update(ctx, c)
 	}), nil
 }
@@ -560,6 +570,11 @@ func (s *Server) PasswordHistoriesList(ctx context.Context, r *storev1.ScopedKey
 
 func (s *Server) UsersCreate(ctx context.Context, r *storev1.UserWrite) (*storev1.Result, error) {
 	return write(s, r.TxId, r.Value, userFromPB, func(st store.Store, u *store.User) error {
+		if microsoftUser(u) {
+			if err := requireMicrosoftBacking(ctx, st); err != nil {
+				return err
+			}
+		}
 		return st.Users().Create(ctx, u)
 	}), nil
 }
@@ -592,6 +607,11 @@ func (s *Server) UsersFindByLogin(ctx context.Context, r *storev1.UsersFindByLog
 
 func (s *Server) UsersUpdate(ctx context.Context, r *storev1.UserWrite) (*storev1.Result, error) {
 	return write(s, r.TxId, r.Value, userFromPB, func(st store.Store, u *store.User) error {
+		if microsoftUser(u) {
+			if err := requireMicrosoftBacking(ctx, st); err != nil {
+				return err
+			}
+		}
 		return st.Users().Update(ctx, u)
 	}), nil
 }

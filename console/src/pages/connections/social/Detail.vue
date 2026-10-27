@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ApiError, type Connection } from '../../../api/client'
@@ -10,12 +10,13 @@ import Button from '../../../ui/Button.vue'
 import ClientsTab from '../ClientsTab.vue'
 import DangerZone from '../DangerZone.vue'
 import Settings from './Settings.vue'
-import { isSocial } from './social'
+import { isFederated } from './social'
 
 const { t } = useI18n()
 const { api } = useServices()
 const tenant = useTenant()
 const route = useRoute()
+const audience = computed(() => String(route.name).startsWith('enterprise') ? 'enterprise' : 'social')
 const connection = ref<Connection | null>(null)
 const error = ref('')
 const notFound = ref(false)
@@ -35,7 +36,7 @@ async function load() {
   try {
     const c = await api.getConnection(tn, id)
     if (mine !== seq) return // a newer navigation answered first
-    if (!isSocial(c)) notFound.value = true
+    if (!isFederated(c)) notFound.value = true
     else connection.value = c
   } catch (e) {
     if (mine !== seq) return
@@ -48,7 +49,7 @@ watch([tenant, () => route.params.id], load, { immediate: true })
 
 <template>
   <div v-if="tenant">
-    <RouterLink :to="{ name: 'social', params: { tenant: tenant.name } }">← {{ t('social.back') }}</RouterLink>
+    <RouterLink :to="{ name: audience, params: { tenant: tenant.name } }">← {{ t(`${audience}.back`) }}</RouterLink>
     <Banner v-if="notFound" kind="error">{{ t('notFoundBody') }}</Banner>
     <Banner v-if="error" kind="error">
       {{ error }}

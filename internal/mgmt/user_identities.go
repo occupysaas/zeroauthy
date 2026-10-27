@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4/jwt"
 
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -238,6 +239,14 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 		if err != nil {
 			return err
 		}
+		if err := federation.RequireMicrosoftUser(ctx, tx, p); err != nil {
+			return err
+		}
+		if inProvider := strings.SplitN(secondary, "|", 2)[0]; inProvider == "windowslive" || inProvider == "waad" {
+			if err := federation.RequireMicrosoftFederation(ctx, tx); err != nil {
+				return err
+			}
+		}
 		if secondary == p.UserID {
 			return errLinkSelf
 		}
@@ -258,6 +267,9 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 			return errLinkInexistent
 		}
 		if err != nil {
+			return err
+		}
+		if err := federation.RequireMicrosoftUser(ctx, tx, sec); err != nil {
 			return err
 		}
 		own := sec.OwnIdentity()
@@ -338,6 +350,14 @@ func (h *Handlers) UnlinkUserIdentity(w http.ResponseWriter, r *http.Request, id
 		}
 		if err != nil {
 			return err
+		}
+		if err := federation.RequireMicrosoftUser(ctx, tx, p); err != nil {
+			return err
+		}
+		if inProvider := strings.SplitN(secondary, "|", 2)[0]; inProvider == "windowslive" || inProvider == "waad" {
+			if err := federation.RequireMicrosoftFederation(ctx, tx); err != nil {
+				return err
+			}
 		}
 		if secondary == p.UserID {
 			return errMainIdentity

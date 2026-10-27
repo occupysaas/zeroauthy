@@ -181,6 +181,7 @@ func TestOIDCValidation(t *testing.T) {
 		"wrong aud":        func(p *idp) { p.claims = func(c map[string]any) { c["aud"] = "other" } },
 		"multi aud no azp": func(p *idp) { p.claims = func(c map[string]any) { c["aud"] = []string{"client", "other"} } },
 		"wrong azp":        func(p *idp) { p.claims = func(c map[string]any) { c["azp"] = "other" } },
+		"malformed azp":    func(p *idp) { p.claims = func(c map[string]any) { c["azp"] = 42 } },
 		"wrong nonce":      func(p *idp) { p.claims = func(c map[string]any) { c["nonce"] = "replayed" } },
 		"missing nonce":    func(p *idp) { p.claims = func(c map[string]any) { delete(c, "nonce") } },
 		"expired":          func(p *idp) { p.claims = func(c map[string]any) { c["exp"] = fixedTime.Add(-61 * time.Second).Unix() } },
@@ -352,4 +353,16 @@ func b64(s string) string { return base64.RawURLEncoding.EncodeToString([]byte(s
 func atHash(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return base64.RawURLEncoding.EncodeToString(sum[:16])
+}
+
+func TestOIDCValidationRejectsHeaderCertificate(t *testing.T) {
+	p := newIDP(t)
+	p.header = func(h map[jose.HeaderKey]any) {
+		h["x5c"] = []string{base64.StdEncoding.EncodeToString(p.srv.Certificate().Raw)}
+	}
+	ps := p.providers()
+	in := p.exchangeInput(t, ps)
+	if _, err := ps.For(in.Config).Exchange(context.Background(), in); !errors.Is(err, ErrProviderResponse) {
+		t.Fatalf("token-supplied certificate accepted: %v", err)
+	}
 }

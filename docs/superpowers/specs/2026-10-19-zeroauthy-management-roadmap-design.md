@@ -32,9 +32,11 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 | Status | Count | Resources |
 |---|---|---|
 | **Done** | 20 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23) |
-| **Planned, short design** | 7 | social strategies II, roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
-| **Planned, full design** | 11 | social strategies I, Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
+| **Planned, short design** | 6 | roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
+| **Planned, full design** | 12 | social strategies I, Microsoft/Google email-account connections, Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
+
+The future Additional social providers plan is deferred without an assigned number and is not an extra counted resource group here.
 
 Read as the roadmap's resource groupings, about 48% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
 
@@ -72,7 +74,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 22 | Branding: themes, settings, Universal Login page templates, prompts and custom text | full (done) | 21 |
 | 23 | Custom domains with automatic certificates | full (done) | 19 |
 | 24 | Social connections I: generic OAuth 2 and OIDC, Google | full | 17 |
-| 25 | Social connections II: Apple, Facebook, Microsoft, GitHub, the rest of the common list | short | 24 |
+| 25 | Email-account sign-in: Microsoft personal and work/school; Google/Gmail/Workspace coverage | full | 24 |
 | 26 | Roles and permissions (RBAC) | short | 17 |
 | 27 | Actions I: runtime, post-login, credentials exchange, the Actions API | full | 26 |
 | 28 | Actions II: the remaining triggers, secrets, modules, npm dependencies | short | 27 |
@@ -83,7 +85,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full | 21, 27 |
 | 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full | 33 |
 | 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
-| 36 | Enterprise OIDC connections: `oidc`, `okta`, Microsoft Entra ID (`waad`), connection keys | short | 24 |
+| 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
 | 38 | AD/LDAP connector, Forms and Flows, remaining resources | full | 27, 37 |
 
@@ -192,9 +194,11 @@ guide defines fleet rollout/rollback and legacy noncanonical reauthentication.
 
 **E2E:** a mock OIDC provider in a container; auth0-cli `connections` with the new strategies; Google against the maintainer's dev credentials, manual and optional.
 
-### Plan 25 — Social connections II
+### Plan 25 — Microsoft and Google email-account sign-in
 
-Strategies `apple`, `facebook`, `windowslive` (Microsoft account), `github`, then `linkedin`, `twitter`, `amazon`, `discord`, `slack` and the rest of the most-used list from public usage data at build time. Each is an `oauth2` profile with its documented options, scopes and profile mapping. Apple adds its client-secret JWT and private-email relay handling. **Short.**
+**Implemented 2026-10-27:** see the [implementation record](../2026-10-26-plan-25-implementation-record.md) and [operator guide](../../email-account-connections.md). [Standalone spec](2026-10-26-zeroauthy-email-account-connections-design.md) and [implementation plan](../plans/2026-10-26-zeroauthy-plan-25-email-account-connections.md). Add `windowslive` for Microsoft personal accounts (including Outlook/Hotmail) and the `waad` Microsoft Entra work/school sign-in subset brought forward from Plan 36. Preserve and explicitly verify existing `google-oauth2` support for Gmail, other Google accounts and Google Workspace. This is account authentication, not mailbox access or outbound email delivery. **Full**, because organizational issuer/key validation and safe identity migration require more than provider profiles.
+
+**Deferred: Additional social providers (future plan, number unassigned).** Move `apple`, `facebook`, `github`, `linkedin`, `twitter`, `amazon`, `discord`, `slack` and the remaining social list here. Apple still requires client-secret JWT and private-email relay handling. Do not implement these in Plan 25 or renumber Plans 26–39.
 
 ### Plan 26 — Roles and permissions (RBAC)
 
@@ -274,7 +278,7 @@ Remaining triggers: `pre-user-registration`, `post-user-registration`, `post-cha
 
 ### Plan 36 — Enterprise OIDC connections
 
-Strategies `oidc`, `okta` and `waad` (Microsoft Entra ID), with front- and back-channel OIDC, home-realm discovery by `domain_aliases`, and `/api/v2/connections/{id}/keys` (`GET`, `POST .../rotate`) for connections that sign requests. Also `GET /api/v2/connections/{id}/status`, and `DELETE /api/v2/connections/{id}/users?email=`. **Short**, on Plan 24's federation core.
+Remaining `oidc` and `okta` enterprise features, front-channel OIDC, home-realm discovery by `domain_aliases`, and `/api/v2/connections/{id}/keys` (`GET`, `POST .../rotate`) for connections that sign requests. Also `GET /api/v2/connections/{id}/status`, and `DELETE /api/v2/connections/{id}/users?email=`. Basic `oidc` back-channel login was brought forward to Plan 24; the public-cloud v2 `waad` work/school sign-in subset was implemented in Plan 25. This plan retains Entra features beyond that subset and must not reimplement its login adapters. **Short**, on Plans 24–25's federation core.
 
 ### Plan 37 — SAML, WS-Federation, SCIM, self-service SSO (full design; sub-project 4)
 

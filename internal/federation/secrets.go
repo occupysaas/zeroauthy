@@ -139,7 +139,14 @@ func PinIssuer(ctx context.Context, st store.Store, tenantID, connectionID strin
 			return err
 		}
 		if c.Strategy != StrategyOIDC {
-			return fmt.Errorf("%w: not an oidc connection", ErrInvalidConfig)
+			cfg, err := ParseConfig(*connrules.FromConnection(c))
+			tid, concrete := microsoftIssuerTenant(issuer)
+			if err != nil || cfg.Strategy != StrategyWAAD || cfg.MicrosoftMultiTenant || !concrete || tid == microsoftConsumerTenant {
+				return fmt.Errorf("%w: connection cannot pin issuer", ErrInvalidConfig)
+			}
+			if err := RequireMicrosoftFederation(ctx, tx); err != nil {
+				return err
+			}
 		}
 		if c.FederationRevision != expectedRevision {
 			return store.ErrConflict

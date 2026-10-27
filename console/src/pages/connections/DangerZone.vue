@@ -8,6 +8,7 @@ import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import Modal from '../../ui/Modal.vue'
+import { isEnterpriseConnection, isFederated } from './social/social'
 
 const { t } = useI18n()
 
@@ -26,7 +27,7 @@ async function remove() {
   try {
     await api.deleteConnection(props.tenant, props.connection.id)
     open.value = false
-    await router.push({ name: 'connections', params: { tenant: props.tenant.name } })
+    await router.push({ name: isEnterpriseConnection(props.connection) ? 'enterprise' : isFederated(props.connection) ? 'social' : 'connections', params: { tenant: props.tenant.name } })
   } catch (e) {
     error.value = errorMessage(e)
   } finally {

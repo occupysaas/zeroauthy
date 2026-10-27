@@ -782,6 +782,10 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, err)
 		return
 	}
+	if err := federation.RequireMicrosoftUser(ctx, h.Store, u); err != nil {
+		h.failTx(w, r, "update user", err)
+		return
+	}
 	conn, _, err := h.userConnection(r, u, in.Connection)
 	if err != nil {
 		Fail(w, err)
@@ -847,6 +851,9 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 			return errUserNotFound
 		}
 		if err != nil {
+			return err
+		}
+		if err := federation.RequireMicrosoftUser(ctx, tx, cur); err != nil {
 			return err
 		}
 		if in.Blocked != nil && *in.Blocked {
@@ -951,6 +958,10 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		Fail(w, internalError(h, r, "delete user", err))
 		return
 	}
+	if err := federation.RequireMicrosoftUser(ctx, h.Store, u); err != nil {
+		h.failTx(w, r, "delete user", err)
+		return
+	}
 	// Refuse before a script deletes the user from a legacy store; the
 	// transaction below checks again under the user's lock.
 	if last, err := lastOperator(ctx, h.Store, tn, id); err != nil {
@@ -978,7 +989,11 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		}
 	}
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
-		if _, err := tx.Users().GetForUpdate(ctx, tn.ID, id); err != nil {
+		cur, err := tx.Users().GetForUpdate(ctx, tn.ID, id)
+		if err != nil {
+			return err
+		}
+		if err := federation.RequireMicrosoftUser(ctx, tx, cur); err != nil {
 			return err
 		}
 		if last, err := lastOperator(ctx, tx, tn, id); err != nil {

@@ -37,19 +37,25 @@ var regexpState = regexp.MustCompile(`name="state" value="([^"]+)"`)
 // fakeIDP is a local OpenID provider: the test plays the user at its
 // authorization endpoint by reading the redirect and minting a code.
 type fakeIDP struct {
-	t         *testing.T
-	srv       *httptest.Server
-	key       *rsa.PrivateKey
-	mu        sync.Mutex
-	codes     map[string]idpCode
-	exchanges atomic.Int32
+	t           *testing.T
+	srv         *httptest.Server
+	key         *rsa.PrivateKey
+	mu          sync.Mutex
+	codes       map[string]idpCode
+	exchanges   atomic.Int32
+	discoveries atomic.Int32
 	// beforeToken runs inside the token request, before it answers: the
 	// network wait of a callback.
-	beforeToken func()
+	beforeToken     func()
+	microsoft       bool
+	microsoftTenant string
+	badMetadata     bool
+	badToken        bool
 }
 
 type idpCode struct {
 	sub, nonce, challenge, redirect string
+	tenant                          string
 }
 
 func newFakeIDP(t *testing.T) *fakeIDP {
@@ -69,6 +75,10 @@ func (p *fakeIDP) base() string {
 }
 
 func (p *fakeIDP) serve(w http.ResponseWriter, r *http.Request) {
+	if p.microsoft {
+		p.serveMicrosoft(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	iss := p.base()
 	switch r.URL.Path {
@@ -107,16 +117,21 @@ func (p *fakeIDP) serve(w http.ResponseWriter, r *http.Request) {
 func (p *fakeIDP) authorize(t *testing.T, providerURL, sub string) string {
 	t.Helper()
 	u, err := url.Parse(providerURL)
-	if err != nil || !strings.HasPrefix(providerURL, p.base()+"/authorize") {
+	if err != nil || !strings.HasPrefix(providerURL, p.base()+"/authorize") && !(p.microsoft && strings.Contains(u.Path, "/oauth2/v2.0/authorize")) {
 		t.Fatalf("not a provider redirect: %q", providerURL)
 	}
 	q := u.Query()
-	if q.Get("code_challenge_method") != "S256" || q.Get("response_type") != "code" || q.Get("client_id") != "client" {
+	if q.Get("code_challenge_method") != "S256" || q.Get("response_type") != "code" || q.Get("client_id") != "client" && !(p.microsoft && q.Get("client_id") == msClient) {
 		t.Fatalf("authorize request %v", q)
 	}
 	code := base64.RawURLEncoding.EncodeToString([]byte(sub + q.Get("state")))[:20]
 	p.mu.Lock()
-	p.codes[code] = idpCode{sub: sub, nonce: q.Get("nonce"), challenge: q.Get("code_challenge"), redirect: q.Get("redirect_uri")}
+	p.codes[code] = idpCode{sub: sub, nonce: q.Get("nonce"), challenge: q.Get("code_challenge"), redirect: q.Get("redirect_uri"), tenant: p.microsoftTenant}
+	if p.microsoft && strings.HasPrefix(u.Path, "/consumers/") {
+		c := p.codes[code]
+		c.tenant = msConsumer
+		p.codes[code] = c
+	}
 	p.mu.Unlock()
 	cb, _ := url.Parse(q.Get("redirect_uri"))
 	if (cb.Host != "acme.example.test" && cb.Host != "login.acme.test") || cb.Path != "/login/callback" {
@@ -348,7 +363,9 @@ func TestSocialLoginFlow(t *testing.T) {
 	})
 }
 
-func TestSocialCallbackRace(t *testing.T) {
+func TestSocialCallbackRace(t *testing.T) { testSocialCallbackRace(t, newSocialEnv) }
+
+func testSocialCallbackRace(t *testing.T, newFixture func(*testing.T) *socialEnv) {
 	ctx := context.Background()
 	// start returns the browser and the callback path for sub.
 	start := func(t *testing.T, s *socialEnv, sub string) (*browser, string) {
@@ -359,7 +376,7 @@ func TestSocialCallbackRace(t *testing.T) {
 		return b, s.idp.authorize(t, rec.Header().Get("Location"), sub)
 	}
 	t.Run("replay", func(t *testing.T) {
-		s := newSocialEnv(t)
+		s := newFixture(t)
 		b, cb := start(t, s, "R")
 		saved := map[string]*http.Cookie{}
 		for k, v := range b.cookies {
@@ -375,7 +392,7 @@ func TestSocialCallbackRace(t *testing.T) {
 		}
 	})
 	t.Run("wrong browser and malformed", func(t *testing.T) {
-		s := newSocialEnv(t)
+		s := newFixture(t)
 		b, cb := start(t, s, "W")
 		other := s.browser("acme.example.test")
 		u, _ := url.Parse(cb)
@@ -387,6 +404,16 @@ func TestSocialCallbackRace(t *testing.T) {
 				return b.do(t, "GET", "/login/callback?code="+u.Query().Get("code"), nil)
 			},
 			"oversized": func() *httptest.ResponseRecorder { return b.do(t, "GET", cb+"&pad="+strings.Repeat("x", 17<<10), nil) },
+			"wrong origin same local tenant": func() *httptest.ResponseRecorder {
+				tn, _ := s.st.Tenants().Get(ctx, s.tenant.ID)
+				tn.Domains = append(tn.Domains, "login.acme.test")
+				_ = s.st.Tenants().Update(ctx, tn)
+				g := &browser{e: s.env, host: "login.acme.test", cookies: map[string]*http.Cookie{}}
+				for k, v := range b.cookies {
+					g.cookies[k] = v
+				}
+				return g.do(t, "GET", cb, nil)
+			},
 			"wrong host": func() *httptest.ResponseRecorder {
 				// A separate jar: real cookies are host-scoped.
 				g := &browser{e: s.env, host: "globex.example.test", cookies: map[string]*http.Cookie{}}
@@ -406,7 +433,7 @@ func TestSocialCallbackRace(t *testing.T) {
 		toApp(t, b.do(t, "GET", cb, nil), "app.acme.test")
 	})
 	t.Run("concurrent callbacks", func(t *testing.T) {
-		s := newSocialEnv(t)
+		s := newFixture(t)
 		b, cb := start(t, s, "C")
 		var wins atomic.Int32
 		var wg sync.WaitGroup
@@ -429,6 +456,47 @@ func TestSocialCallbackRace(t *testing.T) {
 		}
 	})
 	for name, during := range map[string]func(s *socialEnv){
+		"secret rotation": func(s *socialEnv) {
+			c, _ := s.st.Connections().Get(ctx, s.tenant.ID, "con_corp")
+			c.FederationSecretsSealed, _ = federation.SealCredentials(s.h.Federation.Wrapper, c.TenantID, c.ID, federation.Credentials{ClientSecret: "rotated"})
+			c.FederationRevision++
+			_ = s.st.Connections().Update(ctx, c)
+		},
+		"authentication disabled": func(s *socialEnv) {
+			c, _ := s.st.Connections().Get(ctx, s.tenant.ID, "con_corp")
+			spec := connrules.FromConnection(c)
+			spec.Authentication = map[string]any{"active": false}
+			connrules.Apply(spec, c)
+			_ = s.st.Connections().Update(ctx, c)
+		},
+		"client deleted": func(s *socialEnv) { _ = s.st.Clients().Delete(ctx, s.tenant.ID, "spa") },
+		"client grant removed": func(s *socialEnv) {
+			c, _ := s.st.Clients().Get(ctx, s.tenant.ID, "spa")
+			c.GrantTypes = nil
+			_ = s.st.Clients().Update(ctx, c)
+		},
+		"identity unlinked": func(s *socialEnv) {
+			u, _ := s.st.Users().Get(ctx, s.tenant.ID, s.identityID("D"))
+			u.Identities = nil
+			_ = s.st.Users().Update(ctx, u)
+		},
+		"identity transferred": func(s *socialEnv) {
+			err := s.st.WithTx(ctx, func(tx store.Store) error {
+				u, err := tx.Users().Get(ctx, s.tenant.ID, s.identityID("D"))
+				if err != nil {
+					return err
+				}
+				ids := u.Identities
+				u.Identities = nil
+				if err := tx.Users().Update(ctx, u); err != nil {
+					return err
+				}
+				return tx.Users().Create(ctx, &store.User{TenantID: s.tenant.ID, UserID: "auth0|transferred", Identities: ids})
+			})
+			if err != nil {
+				panic(err)
+			}
+		},
 		"config change": func(s *socialEnv) {
 			c, _ := s.st.Connections().Get(ctx, s.tenant.ID, "con_corp")
 			c.FederationRevision++
@@ -440,9 +508,9 @@ func TestSocialCallbackRace(t *testing.T) {
 			_ = s.st.Connections().Update(ctx, c)
 		},
 		"connection deleted": func(s *socialEnv) { _ = s.st.Connections().Delete(ctx, s.tenant.ID, "con_corp") },
-		"user deleted":       func(s *socialEnv) { _ = s.st.Users().Delete(ctx, s.tenant.ID, "oidc|corp|D") },
+		"user deleted":       func(s *socialEnv) { _ = s.st.Users().Delete(ctx, s.tenant.ID, s.identityID("D")) },
 		"user blocked": func(s *socialEnv) {
-			u, _ := s.st.Users().Get(ctx, s.tenant.ID, "oidc|corp|D")
+			u, _ := s.st.Users().Get(ctx, s.tenant.ID, s.identityID("D"))
 			u.Blocked = true
 			_ = s.st.Users().Update(ctx, u)
 		},
@@ -451,17 +519,35 @@ func TestSocialCallbackRace(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			s := newSocialEnv(t)
+			s := newFixture(t)
 			// An existing user for the deletion and blocking cases.
 			toApp(t, s.explicitLogin(t, s.browser("acme.example.test"), s.idp, "corp", "D"), "app.acme.test")
-			before, _ := s.st.Sessions().ListByUser(ctx, s.tenant.ID, "oidc|corp|D")
+			before, _ := s.st.Sessions().ListByUser(ctx, s.tenant.ID, s.identityID("D"))
 			b, cb := start(t, s, "D")
-			s.idp.beforeToken = func() { during(s) }
-			rec := b.do(t, "GET", cb, nil)
-			if rec.Code == 302 {
-				t.Fatalf("completed after %s", name)
+			var tokensAfterMutation []byte
+			var ownerAfterMutation *store.User
+			key := store.FederatedIdentityKey{TenantID: s.tenant.ID, ConnectionID: "con_corp", Subject: s.providerSubject("D")}
+			s.idp.beforeToken = func() {
+				during(s)
+				tokensAfterMutation, _ = s.st.Federation().GetTokens(ctx, key)
+				ownerAfterMutation, _ = s.st.Users().FindByIdentity(ctx, s.tenant.ID, "con_corp", key.Subject)
 			}
-			after, _ := s.st.Sessions().ListByUser(ctx, s.tenant.ID, "oidc|corp|D")
+			rec := b.do(t, "GET", cb, nil)
+			if rec.Code == 302 || b.cookies[session.CookieName] != nil {
+				t.Fatalf("completed or created session after %s", name)
+			}
+			tokensAfter, _ := s.st.Federation().GetTokens(ctx, key)
+			if !bytes.Equal(tokensAfterMutation, tokensAfter) {
+				t.Fatalf("tokens written after %s", name)
+			}
+			ownerAfter, _ := s.st.Users().FindByIdentity(ctx, s.tenant.ID, "con_corp", key.Subject)
+			if (ownerAfter == nil) != (ownerAfterMutation == nil) || ownerAfter != nil && (ownerAfter.UserID != ownerAfterMutation.UserID || ownerAfter.LoginsCount != ownerAfterMutation.LoginsCount) {
+				t.Fatalf("identity written after %s", name)
+			}
+			if rec := b.do(t, "GET", cb, nil); rec.Code == 302 || s.idp.exchanges.Load() != 2 {
+				t.Fatalf("stale callback retried after %s: %d exchanges", name, s.idp.exchanges.Load())
+			}
+			after, _ := s.st.Sessions().ListByUser(ctx, s.tenant.ID, s.identityID("D"))
 			for _, a := range after {
 				if !slices.ContainsFunc(before, func(x *store.LoginSession) bool { return x.ID == a.ID }) {
 					t.Fatalf("a session was created after %s", name)
@@ -548,13 +634,19 @@ func TestSocialIdentifierFirst(t *testing.T) {
 	state, csrf := regexpState.FindStringSubmatch(body)[1], csrfField.FindStringSubmatch(body)[1]
 	rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {csrf}, "connection": {"corp"}})
 	toApp(t, b.do(t, "GET", s.idp.authorize(t, providerURL(t, rec), "IF-1"), nil), "app.acme.test")
+	// connection= still bypasses the identifier page, as without identifier-first.
+	toApp(t, s.explicitLogin(t, s.browser("acme.example.test"), s.idp, "corp", "IF-2"), "app.acme.test")
 }
 
 // A custom domain removed during the provider round trip ends the login
 // before anything is committed.
 func TestSocialDomainRemovedDuringCallback(t *testing.T) {
+	testSocialDomainRemovedDuringCallback(t, newSocialEnv)
+}
+
+func testSocialDomainRemovedDuringCallback(t *testing.T, newFixture func(*testing.T) *socialEnv) {
 	ctx := context.Background()
-	s := newSocialEnv(t)
+	s := newFixture(t)
 	tn, _ := s.st.Tenants().Get(ctx, s.tenant.ID)
 	tn.Domains = []string{"acme.example.test", "login.acme.test"}
 	if err := s.st.Tenants().Update(ctx, tn); err != nil {
@@ -575,7 +667,13 @@ func TestSocialDomainRemovedDuringCallback(t *testing.T) {
 	if rec := b.do(t, "GET", cb, nil); rec.Code == 302 {
 		t.Fatal("completed after the domain was removed")
 	}
-	if _, err := s.st.Users().FindByIdentity(ctx, s.tenant.ID, "con_corp", "Moved"); err == nil {
+	if b.cookies[session.CookieName] != nil || s.idp.exchanges.Load() != 1 {
+		t.Fatal("domain removal wrote session or retried exchange")
+	}
+	if _, err := s.st.Federation().GetTokens(ctx, store.FederatedIdentityKey{TenantID: s.tenant.ID, ConnectionID: "con_corp", Subject: s.providerSubject("Moved")}); err == nil {
+		t.Fatal("domain removal persisted tokens")
+	}
+	if _, err := s.st.Users().FindByIdentity(ctx, s.tenant.ID, "con_corp", s.providerSubject("Moved")); err == nil {
 		t.Fatal("identity committed after the domain was removed")
 	}
 }

@@ -370,6 +370,11 @@ func applyConnection(ctx context.Context, st store.Store, tenantID string, in Co
 	} else if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return err
 	}
+	if in.normalized != nil {
+		if err := federation.RequireMicrosoftConnection(ctx, st, &store.Connection{Strategy: in.normalized.Strategy}); err != nil {
+			return err
+		}
+	}
 	return tenantsetup.UpsertConnection(ctx, st, tenantID, in.Name, now, func(c *store.Connection) error {
 		return setConnection(c, in, w)
 	})
@@ -435,6 +440,9 @@ func applyUser(ctx context.Context, st store.Store, tenantID string, in User, no
 			TenantID: tenantID, UserID: store.StrategyDatabase + "|" + id, CreatedAt: now,
 			Identities: []store.Identity{{Connection: in.Connection, Provider: store.StrategyDatabase, UserID: id}},
 		}
+	}
+	if err := federation.RequireMicrosoftUser(ctx, st, u); err != nil {
+		return err
 	}
 	u.Email, u.EmailVerified, u.Username = in.Email, in.EmailVerified, in.Username
 	u.Name, u.Nickname, u.Picture, u.Blocked = in.Name, in.Nickname, in.Picture, in.Blocked

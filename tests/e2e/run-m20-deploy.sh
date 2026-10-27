@@ -22,9 +22,13 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost,DNS:cli.e2e.test,DNS:target.cli.e2e.test,DNS:*.origin.e2e.test" \
+  -addext "subjectAltName=DNS:localhost,DNS:cli.e2e.test,DNS:target.cli.e2e.test,DNS:idp.e2e.test,DNS:*.origin.e2e.test" \
   -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
 CGO_ENABLED=0 go build -o "$work/zeroauthy" ./cmd/zeroauthy
+# The production app with only federation transport pointed at a local mock
+# provider (constructor option); OAuth profile scripts need Node 25+.
+node --version | grep -qE '^v(2[5-9]|[3-9][0-9])\.' || { echo "e2e-deploy needs Node 25+ for OAuth profile scripts" >&2; exit 1; }
+go build -o "$work/deploy-server" ./tests/e2e/deploy-cli/server
 start node tests/e2e/deploy-cli/connect-proxy.mjs >"$work/proxy.log" 2>&1
 go build -o "$work/dns-fixture" ./tests/e2e/deploy-cli/dns-fixture
 start "$work/dns-fixture" >"$work/dns.log" 2>&1
@@ -45,7 +49,7 @@ export NODE_EXTRA_CA_CERTS="$work/cert.pem"
 export E2E_M20_CONFIG="$PWD/tests/e2e/deploy-cli/config.json"
 export E2E_M20_BINARY="$work/zeroauthy"
 serve() {
-  start "$work/zeroauthy" serve --config tests/e2e/config.yaml >>"$E2E_M20_WORK/server.log" 2>&1
+  E2E_IDP_LISTEN="127.0.0.1:$((serve_port + 2))" start "$work/deploy-server" >>"$E2E_M20_WORK/server.log" 2>&1
   server_pid="$started"
   for _ in $(seq 1 60); do
     if curl -sf --cacert "$work/cert.pem" https://localhost:${serve_port}/healthz >/dev/null; then return; fi
@@ -91,5 +95,5 @@ for mode in "${modes[@]}"; do
     stop_server
   done
 done
-echo "Plan 20 deploy-cli: databases,connections,attackProtection unavailable (required APIs outside this milestone)"
+echo "Plan 20 deploy-cli: databases,attackProtection unavailable (required APIs outside this milestone)"
 echo "Plan 20 upstream lane: unavailable (no observer credentials supplied); no upstream call made"

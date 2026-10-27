@@ -21,6 +21,12 @@ tenants:
         app_type: non_interactive
         client_secret: e2e-cli-fixture-secret-not-for-production
         grant_types: [client_credentials]
+      - client_id: e2e-cli-browser
+        name: E2E deploy browser
+        app_type: spa
+        token_endpoint_auth_method: none
+        grant_types: [authorization_code]
+        callbacks: [https://callback.e2e.test/]
     client_grants:
       - client_id: e2e-cli-admin
         audience: "https://cli.e2e.test/api/v2/"
@@ -85,6 +91,7 @@ tenants:
         audience: "https://target.cli.e2e.test/api/v2/"
         scopes:
           - read:client_keys
+          - read:users
           - read:clients
           - create:clients
           - update:clients

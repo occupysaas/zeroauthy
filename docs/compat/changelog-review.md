@@ -115,3 +115,12 @@ while preserving the `template` alias. Local hosted wildcard, TXT-only proof,
 proxy admission and canonical-origin upgrade rules are recorded in the custom
 domain guide. This does not advance the reviewed-through date or imply a live
 upstream tenant observation. ACUL and WebAuthn RP enforcement remain deferred.
+
+## 2026-10-26 — Plan 25 Task 1
+
+The actual preceding reviewed-through date is 2026-10-26 (Plan 24's successful
+full-page retrieval above). There is no later date interval to cover today.
+A fresh web-tool request to the public changelog exceeded its response size
+limit; this failed retrieval provides no new coverage and does not advance the
+reviewed-through date. No new provider behavior is inferred. Source limitations
+are recorded in `observations/email-account-connections.md`.

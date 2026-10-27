@@ -6,13 +6,14 @@ import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
+import { connectionRoute } from './social/social'
 
 const { t, te } = useI18n()
 
 // strategyLabel names a connection strategy; one this console does not know shows as is.
 function strategyLabel(strategy: string | undefined): string {
   const s = strategy ?? ''
-  return te(`conns.strategies.${s}`) ? t(`conns.strategies.${s}`) : s
+  return te(`social.strategies.${s}`) ? t(`social.strategies.${s}`) : te(`conns.strategies.${s}`) ? t(`conns.strategies.${s}`) : s
 }
 
 const PER_PAGE = 20
@@ -91,7 +92,7 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
         <tbody>
           <tr v-for="c in connections" :key="c.id">
             <td>
-              <RouterLink :to="{ name: 'connection', params: { tenant: tenant.name, id: c.id } }">{{ c.name }}</RouterLink>
+              <RouterLink :to="{ name: connectionRoute(c), params: { tenant: tenant.name, id: c.id } }">{{ c.name }}</RouterLink>
             </td>
             <td>{{ strategyLabel(c.strategy) }}</td>
             <td :data-testid="'count-' + c.id">{{ counts[c.id] ?? '…' }}</td>

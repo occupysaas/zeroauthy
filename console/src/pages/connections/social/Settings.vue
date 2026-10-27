@@ -7,6 +7,7 @@ import Banner from '../../../ui/Banner.vue'
 import Button from '../../../ui/Button.vue'
 import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
+import MicrosoftOptions from './MicrosoftOptions.vue'
 import { callbackURLs, optionsOf, type Options } from './social'
 
 const { t } = useI18n()
@@ -51,6 +52,7 @@ watch(() => props.connection.id, () => reset(props.connection), { immediate: tru
 
 function validate(): boolean {
   for (const k of Object.keys(errors)) delete errors[k]
+  if (draft.newSecret && !draft.newSecret.trim()) errors.newSecret = t('social.required')
   if (strategy.value === 'oauth2' && !draft.scope.trim()) errors.scope = t('social.required')
   if (strategy.value === 'oidc' && !draft.scopes.split(/\s+/).includes('openid')) errors.scopes = t('social.openidRequired')
   return Object.keys(errors).length === 0
@@ -122,9 +124,11 @@ function fixed(key: string): string {
     <Field id="social-client-id" :label="t('social.clientId')" :hint="t('social.clientIdFixed')">
       <input id="social-client-id" :value="fixed('client_id')" type="text" readonly aria-describedby="social-client-id-hint" />
     </Field>
-    <Field id="social-secret" :label="t('social.clientSecretReplace')" :hint="t('social.clientSecretKeep')">
-      <input id="social-secret" v-model="draft.newSecret" type="password" autocomplete="new-password" spellcheck="false" aria-describedby="social-secret-hint" />
+    <Field id="social-secret" :label="t('social.clientSecretReplace')" :hint="t('social.clientSecretKeep')" :error="errors.newSecret">
+      <input id="social-secret" v-model="draft.newSecret" type="password" autocomplete="new-password" spellcheck="false" :aria-invalid="!!errors.newSecret" :aria-describedby="errors.newSecret ? 'social-secret-hint social-secret-error' : 'social-secret-hint'" />
     </Field>
+
+    <MicrosoftOptions v-if="strategy === 'windowslive' || strategy === 'waad'" :strategy="strategy" :mode="options.useCommonEndpoint === true ? 'organizations' : 'single'" :tenant-domain="fixed('tenant_domain')" readonly />
 
     <template v-if="strategy === 'google-oauth2'">
       <label class="check"><input v-model="draft.email" type="checkbox" /> <span>{{ t('social.googleEmail') }}</span></label>

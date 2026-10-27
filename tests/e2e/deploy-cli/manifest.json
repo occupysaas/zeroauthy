@@ -52,10 +52,10 @@
     },
     {
       "name": "connections",
-      "status": "tool-unsupported",
-      "owner": "roadmap: external identity providers",
-      "reason": "Pinned generic connections handler filters out strategy auth0; zeroauthy currently implements only database connections",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 25",
+      "reason": "All five federated strategies round trip with explicit provider-secret reinjection, materialized OAuth profile scripts and post-import provider logins",
+      "fixture": "fixtures/connections.json"
     },
     {
       "name": "clients",

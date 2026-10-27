@@ -3,9 +3,6 @@ package federation
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"crypto/subtle"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/go-jose/go-jose/v4"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 )
@@ -219,96 +214,33 @@ func issuerMatches(cfg Config, expected, got string) bool {
 // JWKS (never one named by the token), issuer, audience/azp, time with
 // skew, nonce, subject and at_hash.
 func (ps *Providers) validateIDToken(ctx context.Context, in ExchangeInput, e Endpoints, tokens TokenSet) (map[string]any, error) {
-	fail := func(what string) (map[string]any, error) {
-		return nil, fmt.Errorf("%w: ID token %s", ErrProviderResponse, what)
-	}
-	obj, err := jose.ParseSigned(tokens.IDToken, []jose.SignatureAlgorithm{jose.RS256})
-	if err != nil || len(obj.Signatures) != 1 {
-		return fail("is not a single RS256 JWS")
-	}
-	h := obj.Signatures[0].Header
-	if h.JSONWebKey != nil || h.ExtraHeaders["jku"] != nil || h.ExtraHeaders["x5u"] != nil || h.ExtraHeaders["x5c"] != nil {
-		return fail("names its own key")
+	obj, err := parseIDToken(tokens.IDToken)
+	if err != nil {
+		return nil, err
 	}
 	issuer := in.Issuer
 	if in.Config.Strategy == StrategyGoogle && issuer == "" {
 		issuer = rules.GoogleIssuer
 	}
-	key, err := ps.keys.key(ctx, in.Cache.with("jwks", issuer, e.JWKSURL), e.JWKSURL, h.KeyID)
+	key, err := ps.keys.key(ctx, in.Cache.with("jwks", issuer, e.JWKSURL), e.JWKSURL, obj.Signatures[0].Header.KeyID)
 	if err != nil {
 		return nil, err
 	}
 	payload, err := obj.Verify(key)
 	if err != nil {
-		return fail("signature is invalid")
+		return nil, idTokenError("signature is invalid")
 	}
-	dec := json.NewDecoder(bytes.NewReader(payload))
-	dec.UseNumber()
-	var c map[string]any
-	if err := dec.Decode(&c); err != nil {
-		return fail("claims are malformed")
+	c, err := decodeIDTokenClaims(payload)
+	if err != nil {
+		return nil, err
 	}
 	if iss, _ := c["iss"].(string); !issuerMatches(in.Config, issuer, iss) {
-		return fail("issuer mismatch")
+		return nil, idTokenError("issuer mismatch")
 	}
-	var aud []string
-	switch v := c["aud"].(type) {
-	case string:
-		aud = []string{v}
-	case []any:
-		for _, a := range v {
-			s, ok := a.(string)
-			if !ok {
-				return fail("audience is malformed")
-			}
-			aud = append(aud, s)
-		}
-	default:
-		return fail("audience missing")
-	}
-	hasClient := false
-	for _, a := range aud {
-		hasClient = hasClient || a == in.Config.ClientID
-	}
-	azp, hasAzp := c["azp"].(string)
-	if !hasClient || (len(aud) > 1 && !hasAzp) || (hasAzp && azp != in.Config.ClientID) {
-		return fail("audience mismatch")
-	}
-	now := in.Now
-	if now.IsZero() {
-		now = ps.now()
-	}
-	exp, okExp := numericDate(c["exp"])
-	iat, okIat := numericDate(c["iat"])
-	if !okExp || !okIat || !now.Before(exp.Add(clockSkew)) || iat.After(now.Add(clockSkew)) {
-		return fail("is expired or not yet valid")
-	}
-	if nonce, _ := c["nonce"].(string); in.Nonce == "" || subtle.ConstantTimeCompare([]byte(nonce), []byte(in.Nonce)) != 1 {
-		return fail("nonce mismatch")
-	}
-	if sub, _ := c["sub"].(string); ValidateSubject(sub) != nil {
-		return fail("subject is missing or invalid")
-	}
-	if v, present := c["at_hash"]; present {
-		s, _ := v.(string)
-		sum := sha256.Sum256([]byte(tokens.AccessToken))
-		if s == "" || subtle.ConstantTimeCompare([]byte(s), []byte(base64.RawURLEncoding.EncodeToString(sum[:16]))) != 1 {
-			return fail("at_hash mismatch")
-		}
+	if err := validateIDTokenClaims(in, tokens, c, ps.exchangeTime(in)); err != nil {
+		return nil, err
 	}
 	return c, nil
-}
-
-func numericDate(v any) (time.Time, bool) {
-	n, ok := v.(json.Number)
-	if !ok {
-		return time.Time{}, false
-	}
-	f, err := n.Float64()
-	if err != nil {
-		return time.Time{}, false
-	}
-	return time.Unix(int64(f), 0), true
 }
 
 // profileClaims are the standard claims mapped to root attributes.

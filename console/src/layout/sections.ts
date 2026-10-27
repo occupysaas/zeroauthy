@@ -22,6 +22,7 @@ export const sections: Section[] = [
   { key: 'apis', label: 'nav.apis', group: 'navGroup.applications', path: 'apis', status: 'live' },
   { key: 'connections', label: 'nav.connections', group: 'navGroup.authentication', path: 'connections', status: 'live' },
   { key: 'social', label: 'nav.social', group: 'navGroup.authentication', path: 'social', status: 'live' },
+  { key: 'enterprise', label: 'nav.enterprise', group: 'navGroup.authentication', path: 'enterprise', status: 'live' },
   {
     key: 'users',
     label: 'nav.users',

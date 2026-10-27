@@ -496,6 +496,11 @@ func (a clientCustomSigningKeys) Delete(ctx context.Context, tenantID string) er
 type clientConnections struct{ c *Client }
 
 func (a clientConnections) Create(ctx context.Context, v *store.Connection) error {
+	if v != nil && microsoftStrategy(v.Strategy) {
+		if err := a.c.MicrosoftFederationSupported(ctx); err != nil {
+			return err
+		}
+	}
 	return put("ConnectionsCreate", v, connectionToPB, func(pb *storev1.Connection) (result, error) {
 		return a.c.rpc.ConnectionsCreate(ctx, &storev1.ConnectionWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -512,6 +517,11 @@ func (a clientConnections) GetByName(ctx context.Context, tenantID, name string)
 }
 
 func (a clientConnections) Update(ctx context.Context, v *store.Connection) error {
+	if v != nil && microsoftStrategy(v.Strategy) {
+		if err := a.c.MicrosoftFederationSupported(ctx); err != nil {
+			return err
+		}
+	}
 	return put("ConnectionsUpdate", v, connectionToPB, func(pb *storev1.Connection) (result, error) {
 		return a.c.rpc.ConnectionsUpdate(ctx, &storev1.ConnectionWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -568,6 +578,11 @@ func (a clientPasswordHistories) List(ctx context.Context, tenantID, userID stri
 type clientUsers struct{ c *Client }
 
 func (a clientUsers) Create(ctx context.Context, v *store.User) error {
+	if microsoftUser(v) {
+		if err := a.c.MicrosoftFederationSupported(ctx); err != nil {
+			return err
+		}
+	}
 	return put("UsersCreate", v, userToPB, func(pb *storev1.User) (result, error) {
 		return a.c.rpc.UsersCreate(ctx, &storev1.UserWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -591,6 +606,11 @@ func (a clientUsers) FindByLogin(ctx context.Context, tenantID, connection, logi
 }
 
 func (a clientUsers) Update(ctx context.Context, v *store.User) error {
+	if microsoftUser(v) {
+		if err := a.c.MicrosoftFederationSupported(ctx); err != nil {
+			return err
+		}
+	}
 	return put("UsersUpdate", v, userToPB, func(pb *storev1.User) (result, error) {
 		return a.c.rpc.UsersUpdate(ctx, &storev1.UserWrite{TxId: a.c.txID, Value: pb})
 	})

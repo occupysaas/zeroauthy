@@ -103,3 +103,49 @@ func TestSeedSocialConnection(t *testing.T) {
 		}
 	}
 }
+
+func TestMicrosoftSeed(t *testing.T) {
+	for _, strategy := range []string{"windowslive", "waad"} {
+		t.Run(strategy, func(t *testing.T) {
+			ctx := context.Background()
+			st := memory.New()
+			w := testWrapper(t)
+			doc := strings.Replace(socialSeed, "strategy: oidc", "strategy: "+strategy, 1)
+			start := strings.Index(doc, "          type: back_channel")
+			doc = doc[:start] + "          client_id: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\n          client_secret: SECRET\n"
+			if strategy == "waad" {
+				doc += "          tenant_domain: Contoso.Example\n          domain: Display only\n"
+			}
+			apply := func(doc string) error {
+				f, err := Parse([]byte(doc))
+				if err != nil {
+					return err
+				}
+				return Apply(ctx, st, f, fixedNow, w)
+			}
+			if err := apply(doc); err != nil {
+				t.Fatal(err)
+			}
+			tn, _ := st.Tenants().GetByName(ctx, "acme")
+			c, _ := st.Connections().GetByName(ctx, tn.ID, "corp")
+			if c.FederationRevision != 1 || c.Extra["client_secret"] != nil {
+				t.Fatal("unsealed credentials")
+			}
+			if err := apply(strings.Replace(doc, "SECRET", "rotated", 1)); err != nil {
+				t.Fatal(err)
+			}
+			c, _ = st.Connections().GetByName(ctx, tn.ID, "corp")
+			if c.FederationRevision != 2 {
+				t.Fatal(c.FederationRevision)
+			}
+			if err := apply(strings.Replace(doc, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee", 1)); err == nil {
+				t.Fatal("binding changed")
+			}
+			for _, line := range []string{"          ext_groups: true\n", "          email_verified: true\n", "          offline_access: true\n"} {
+				if err := apply(doc + line); err == nil {
+					t.Fatal("unsupported option accepted")
+				}
+			}
+		})
+	}
+}

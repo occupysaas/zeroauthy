@@ -13,6 +13,8 @@ import ApplicationList from './pages/applications/List.vue'
 import ConnectionCreate from './pages/connections/Create.vue'
 import ConnectionDetail from './pages/connections/Detail.vue'
 import ConnectionList from './pages/connections/List.vue'
+import EnterpriseCreate from './pages/connections/enterprise/Create.vue'
+import EnterpriseList from './pages/connections/enterprise/List.vue'
 import SocialCreate from './pages/connections/social/Create.vue'
 import SocialDetail from './pages/connections/social/Detail.vue'
 import SocialList from './pages/connections/social/List.vue'
@@ -59,6 +61,9 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/social', name: 'social', component: SocialList },
   { path: '/t/:tenant/social/new', name: 'social-new', component: SocialCreate },
   { path: '/t/:tenant/social/:id', name: 'social-connection', component: SocialDetail },
+  { path: '/t/:tenant/enterprise', name: 'enterprise', component: EnterpriseList },
+  { path: '/t/:tenant/enterprise/new', name: 'enterprise-new', component: EnterpriseCreate },
+  { path: '/t/:tenant/enterprise/:id', name: 'enterprise-connection', component: SocialDetail },
   { path: '/t/:tenant/users', name: 'users', component: UserList },
   { path: '/t/:tenant/users/new', name: 'user-new', component: UserCreate },
   { path: '/t/:tenant/users/import-export', name: 'users-import-export', component: UserImportExport },

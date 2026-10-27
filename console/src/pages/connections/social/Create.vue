@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ApiError, type Client, type ConnectionCreate } from '../../../api/client'
 import { errorMessage, useServices, useTenant } from '../../../context'
@@ -8,17 +8,22 @@ import Banner from '../../../ui/Banner.vue'
 import Button from '../../../ui/Button.vue'
 import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
-import { callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, utf8Bytes, type Options, type SocialStrategy } from './social'
+import MicrosoftOptions from './MicrosoftOptions.vue'
+import { callbackURLs, defaultScript, httpsURL, MAX_SCRIPT_BYTES, NAME, socialStrategies, enterpriseStrategies, MICROSOFT_GUID, microsoftTenant, utf8Bytes, type Options, type FederatedStrategy } from './social'
 
 const { t } = useI18n()
 const { api } = useServices()
 const tenant = useTenant()
 const router = useRouter()
+const route = useRoute()
+const enterprise = computed(() => String(route.name).startsWith('enterprise'))
+const audience = computed(() => enterprise.value ? 'enterprise' : 'social')
+const strategies = computed(() => enterprise.value ? enterpriseStrategies : socialStrategies)
 
 // The draft lives only in memory: the client secret is never persisted in
 // the browser.
 const draft = reactive({
-  strategy: 'google-oauth2' as SocialStrategy,
+  strategy: (enterprise.value ? 'oidc' : 'google-oauth2') as FederatedStrategy,
   name: '',
   displayName: '',
   clientId: '',
@@ -31,6 +36,8 @@ const draft = reactive({
   script: defaultScript,
   discoveryURL: '',
   scopes: 'openid profile email',
+  microsoftMode: 'single',
+  tenantDomain: '',
 })
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
@@ -68,6 +75,10 @@ function validate(): boolean {
   else if (n.length > 128 || !NAME.test(n)) errors.name = t('social.nameInvalid')
   need('clientId', draft.clientId)
   need('clientSecret', draft.clientSecret)
+  if (draft.strategy === 'windowslive' || draft.strategy === 'waad') {
+    if (!MICROSOFT_GUID.test(draft.clientId.trim())) errors.clientId = t('social.microsoftClientId')
+    if (draft.strategy === 'waad' && draft.microsoftMode === 'single' && !microsoftTenant(draft.tenantDomain)) errors.tenantDomain = t('social.microsoftTenantInvalid')
+  }
   if (draft.strategy === 'oauth2') {
     for (const k of ['authorizationURL', 'tokenURL'] as const) {
       if (!httpsURL(draft[k].trim())) errors[k] = t('social.httpsRequired')
@@ -86,6 +97,14 @@ function validate(): boolean {
 function body(): ConnectionCreate {
   const options: Options = { client_id: draft.clientId.trim(), client_secret: draft.clientSecret }
   switch (draft.strategy) {
+    case 'windowslive':
+      options.client_id = draft.clientId.trim().toLowerCase()
+      options.strategy_version = 2
+      break
+    case 'waad':
+      Object.assign(options, { client_id: draft.clientId.trim().toLowerCase(), identity_api: 'microsoft-identity-platform-v2.0', waad_protocol: 'openid-connect', userid_attribute: 'oid', useCommonEndpoint: draft.microsoftMode === 'organizations' })
+      if (draft.microsoftMode === 'single') options.tenant_domain = microsoftTenant(draft.tenantDomain)
+      break
     case 'google-oauth2':
       options.email = draft.email
       options.profile = draft.profile
@@ -111,7 +130,7 @@ async function submit() {
   try {
     const c = await api.createConnection(tn, body())
     draft.clientSecret = ''
-    await router.push({ name: 'social-connection', params: { tenant: tn.name, id: c.id } })
+    await router.push({ name: enterprise.value ? 'enterprise-connection' : 'social-connection', params: { tenant: tn.name, id: c.id } })
   } catch (e) {
     if (e instanceof ApiError) {
       if (e.errorCode === 'connection_conflict') errors.name = e.message
@@ -132,19 +151,21 @@ function describedBy(id: string, key: string, hint = false): string {
 
 <template>
   <div v-if="tenant">
-    <RouterLink :to="{ name: 'social', params: { tenant: tenant.name } }">← {{ t('social.back') }}</RouterLink>
-    <h1>{{ t('social.createTitle') }}</h1>
+    <RouterLink :to="{ name: audience, params: { tenant: tenant.name } }">← {{ t(`${audience}.back`) }}</RouterLink>
+    <h1>{{ t(`${audience}.createTitle`) }}</h1>
     <form class="card stack" novalidate @submit.prevent="submit">
       <Banner v-if="general" kind="error">{{ general }}</Banner>
       <Banner v-if="uncertain" kind="warn">{{ t('social.uncertainCreate') }}</Banner>
       <fieldset class="stack m-0 border-0 p-0">
         <legend class="p-0 font-bold">{{ t('social.strategy') }}</legend>
-        <label v-for="s in socialStrategies" :key="s" class="check">
+        <label v-for="s in strategies" :key="s" class="check">
           <input v-model="draft.strategy" type="radio" name="strategy" :value="s" />
           <span>{{ t(`social.strategies.${s}`) }}</span>
         </label>
         <p v-if="draft.strategy === 'oidc'" class="muted" data-testid="oidc-subset">{{ t('social.oidcSubset') }}</p>
       </fieldset>
+      <RouterLink v-if="!enterprise" :to="{ name: 'enterprise-new', params: { tenant: tenant.name } }">{{ t('social.enterpriseLink') }}</RouterLink>
+      <MicrosoftOptions v-if="draft.strategy === 'windowslive' || draft.strategy === 'waad'" v-model:mode="draft.microsoftMode" v-model:tenant-domain="draft.tenantDomain" :strategy="draft.strategy" :error="errors.tenantDomain" />
       <Field id="social-name" :label="t('social.name')" :hint="t('social.nameHint')" :error="errors.name">
         <input id="social-name" v-model="draft.name" type="text" maxlength="128" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.name" :aria-describedby="describedBy('social-name', 'name', true)" />
       </Field>

@@ -177,13 +177,15 @@ and restoring a compatible backup, not dropping live identity data.
 Provider secrets are write-only: exports never contain `client_secret`, so a
 migration must reinject each provider secret explicitly. OAuth profile scripts
 must be materialized into the connection (`scripts.fetchUserProfile` string);
-the pinned Deploy CLI social handlers do not expand `.js` file paths. A strict
-Deploy CLI social fixture lane is not yet part of the E2E suite (see the Plan 24
-implementation record).
+the pinned Deploy CLI social handlers do not expand `.js` file paths. `make
+e2e-deploy` runs a strict lane over all federated strategies with explicit
+secret reinjection and post-import logins; see
+[Microsoft and Google account sign-in](email-account-connections.md#migration-with-the-deploy-cli).
 
 ## Not included
 
-Plan 25 providers, One Tap/native token exchange, automatic linking,
+Microsoft accounts (see [email-account-connections.md](email-account-connections.md)),
+the remaining social providers (deferred; no plan number assigned), One Tap/native token exchange, automatic linking,
 provider-initiated login, federated logout or revocation, organizations, MFA,
 Actions, Token Vault, development keys, arbitrary upstream parameter
 forwarding, front-channel OIDC and the remaining enterprise OIDC features (Plan

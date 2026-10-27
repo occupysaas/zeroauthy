@@ -15,8 +15,8 @@ import (
 // Transaction keys that are not request parameters: Request.Params and
 // RequestFromParams ignore them.
 const (
-	ParamFlow     = "za_flow"
-	FlowDevice    = "device"
+	ParamFlow     = store.TxnParamFlow
+	FlowDevice    = store.TxnFlowDevice
 	ParamDevice   = "za_device"    // device code hash
 	ParamUserCode = "za_user_code" // the formatted user code, for display
 	// ParamStage marks a transaction that is past login: the consent page,

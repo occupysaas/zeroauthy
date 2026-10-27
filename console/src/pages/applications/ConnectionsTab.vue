@@ -5,6 +5,7 @@ import { errorMessage, useServices } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
+import { connectionRoute } from '../connections/social/social'
 
 const { t } = useI18n()
 
@@ -66,7 +67,7 @@ async function toggle(c: Connection, status: boolean) {
     <ul v-else class="stack m-0 list-none p-0">
       <li v-for="c in connections" :key="c.id" class="card stack" :data-testid="'conn-' + c.id">
         <div class="row justify-between">
-          <RouterLink :to="{ name: 'connection', params: { tenant: tenant.name, id: c.id } }">{{ c.name }}</RouterLink>
+          <RouterLink :to="{ name: connectionRoute(c), params: { tenant: tenant.name, id: c.id } }">{{ c.name }}</RouterLink>
           <label class="flex items-center gap-1.5">
             <input
               type="checkbox"
