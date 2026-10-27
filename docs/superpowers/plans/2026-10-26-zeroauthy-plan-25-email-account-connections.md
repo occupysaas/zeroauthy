@@ -43,6 +43,9 @@
 
 Order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9. Each task has one independently reviewable deliverable. Commit only the task's named changes; preserve unrelated user changes. Tests named below are to be created or extended, not claims that they already exist. Expected outcomes are prospective. Focused test selection must be checked against actual test helpers before execution; do not assume package names imply in-memory operation.
 
+
+> Task 1 evidence update (2026-10-26): see [email-account source review](../../compat/observations/email-account-connections.md). Pinned SDK common-endpoint `sub` prose differs from the retained local organizations-only `tid:oid` contract. The userid option article did not yield article content; no confirmed Auth0 identity/default or legacy-ID parity is inferred. The previous changelog coverage already reaches 2026-10-26; a fresh oversized retrieval does not advance it.
+
 ## Task 1: Freeze the email-account compatibility contract
 
 **Files:** Create `internal/federation/email_accounts_inventory.json`, `internal/federation/email_accounts_inventory_test.go`, `docs/compat/observations/email-account-connections.md`; modify `docs/compat/{decisions,matrix,changelog-review}.md` and this spec/plan only for evidence-backed corrections.

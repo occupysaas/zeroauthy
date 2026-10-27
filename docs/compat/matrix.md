@@ -85,3 +85,16 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Shared automatic TLS | Implemented (zeroauthy extension) | Fenced encrypted ACME orders/account/certificates/shared HTTP-01 and TLS-ALPN-01; expiry refusal and renewal. Hosted apex/wildcard DigitalOcean DNS-01 is deployment-owned. Local Pebble/DNS/fake provider evidence; no real provider credentials used. |
 | Public origin binding | Implemented (Plan 23) | Issuer follows serving public origin, canonical Management audience stays stable; codes/PAR/device/session/refresh/tickets bind origin. Legacy empty origin means canonical; noncanonical reauthentication/reissue required. Queued notification links recheck certificate readiness before sending. |
 | Deploy CLI custom domains and templates | Implemented for pinned supported subset (Plan 23) | Strict four-mode domain/default/template-body migration; explicit identity preparation and declaration/proof/default staging. CLI cannot clear a custom default or import x-azure-clientip/empty header; those limits are asserted, not normalized. ACUL excluded. |
+
+## Plan 25 email-account inventory (2026-10-26)
+
+Contract frozen; runtime implementation and acceptance pending. Microsoft
+personal (`windowslive`) and work/school (`waad`) target public-cloud v2 only.
+Google Gmail/Workspace/non-Gmail accounts preserve the predecessor adapter.
+Local differences: fixed Microsoft openid/profile/email scopes, no Graph or
+profile scripts, false/absent Microsoft email verification, organizations-only
+multitenancy, tenant-bound `tid:oid` identifiers, immutable identity bindings,
+explicit rejected unsupported security options, and capability/data preflight.
+No legacy Live/Graph ID parity or live provider observation is established.
+See [email-account evidence](observations/email-account-connections.md) and
+D-0051. All runtime/SDK/CLI/Deploy/browser acceptance remains pending.

@@ -999,3 +999,18 @@ observed upstream behaviour.
   provider redirect when the runtime is unavailable.
 - **MySQL:** every user-ID column becomes `VARBINARY(1280)` (subjects
   `VARBINARY(1024)`) so 1024-byte subjects never truncate.
+
+## D-0051 — Plan 25 email-account contract (2026-10-26)
+
+Freeze Microsoft personal `windowslive` and enterprise `waad` as a documented
+local v2 sign-in subset; preserve Google. See
+[public evidence and limitations](observations/email-account-connections.md)
+and `internal/federation/email_accounts_inventory.json`. Fixed sign-in scopes,
+ID-token-only profiles, conservative Microsoft email verification and
+organizations-only multitenancy are deliberate choices. Multitenant `tid:oid`
+identities differ from the pinned SDK's common-endpoint `sub` hint. Public
+userid option confirmation is unavailable; neither SDK types nor our chosen
+IDs establish Auth0 defaults or legacy-ID migration parity. No live observation
+or provider login result is claimed. Unknown harmless metadata stays inert;
+unsupported security requirements fail validation. Capability and existing-data
+preflight must precede Microsoft activation; migration 0021 remains unchanged.
