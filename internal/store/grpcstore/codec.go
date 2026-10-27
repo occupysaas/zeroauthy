@@ -122,6 +122,8 @@ func errToPB(err error) *storev1.Error {
 	switch {
 	case err == nil:
 		return nil
+	case errors.Is(err, store.ErrRBACUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_RBAC_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrFederationUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_FEDERATION_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrCustomDomainRepositoryUnavailable):
@@ -148,6 +150,8 @@ func errFromPB(e *storev1.Error) error {
 		return nil
 	}
 	switch e.Kind {
+	case storev1.Error_KIND_RBAC_UNAVAILABLE:
+		return store.ErrRBACUnavailable
 	case storev1.Error_KIND_FEDERATION_UNAVAILABLE:
 		return store.ErrFederationUnavailable
 	case storev1.Error_KIND_CUSTOM_DOMAIN_UNAVAILABLE:
@@ -365,7 +369,7 @@ func resourceServerToPB(r *store.ResourceServer) (*storev1.ResourceServer, error
 		return nil, nil
 	}
 	pb := &storev1.ResourceServer{
-		TenantId: r.TenantID, Id: r.ID, Identifier: r.Identifier, Name: r.Name,
+		TenantId: r.TenantID, Id: r.ID, Identifier: r.Identifier, Name: r.Name, EnforcePolicies: r.EnforcePolicies, TokenDialect: r.TokenDialect,
 		SigningAlg: r.SigningAlg, TokenLifetime: int64(r.TokenLifetime),
 		AllowOfflineAccess: r.AllowOfflineAccess, CreatedAt: tsToPB(r.CreatedAt),
 		SkipConsentForVerifiableFirstPartyClients: proto.Bool(r.SkipConsentForVerifiableFirstPartyClients),
@@ -389,7 +393,7 @@ func resourceServerFromPB(pb *storev1.ResourceServer) (*store.ResourceServer, er
 		return nil, err
 	}
 	r := &store.ResourceServer{
-		TenantID: pb.TenantId, ID: pb.Id, Identifier: pb.Identifier, Name: pb.Name,
+		TenantID: pb.TenantId, ID: pb.Id, Identifier: pb.Identifier, Name: pb.Name, EnforcePolicies: pb.EnforcePolicies, TokenDialect: pb.TokenDialect,
 		SigningAlg: pb.SigningAlg, TokenLifetime: int(pb.TokenLifetime),
 		AllowOfflineAccess: pb.AllowOfflineAccess, CreatedAt: tsFromPB(pb.CreatedAt),
 		SkipConsentForVerifiableFirstPartyClients: pb.SkipConsentForVerifiableFirstPartyClients == nil || *pb.SkipConsentForVerifiableFirstPartyClients,

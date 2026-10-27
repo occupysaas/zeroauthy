@@ -294,6 +294,11 @@ func filterClients(all []*store.Client, f store.ClientFilter, p store.Page) ([]*
 type clientResourceServers struct{ c *Client }
 
 func (a clientResourceServers) Create(ctx context.Context, v *store.ResourceServer) error {
+	if v != nil && (v.EnforcePolicies || v.TokenDialect != "" && v.TokenDialect != "access_token") {
+		if err := a.c.CheckRBACSupport(ctx); err != nil {
+			return err
+		}
+	}
 	return put("ResourceServersCreate", v, resourceServerToPB, func(pb *storev1.ResourceServer) (result, error) {
 		return a.c.rpc.ResourceServersCreate(ctx, &storev1.ResourceServerWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -310,6 +315,11 @@ func (a clientResourceServers) GetByIdentifier(ctx context.Context, tenantID, id
 }
 
 func (a clientResourceServers) Update(ctx context.Context, v *store.ResourceServer) error {
+	if v != nil && (v.EnforcePolicies || v.TokenDialect != "" && v.TokenDialect != "access_token") {
+		if err := a.c.CheckRBACSupport(ctx); err != nil {
+			return err
+		}
+	}
 	return put("ResourceServersUpdate", v, resourceServerToPB, func(pb *storev1.ResourceServer) (result, error) {
 		return a.c.rpc.ResourceServersUpdate(ctx, &storev1.ResourceServerWrite{TxId: a.c.txID, Value: pb})
 	})
