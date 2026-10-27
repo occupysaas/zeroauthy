@@ -320,12 +320,15 @@ func (r users) FindByEmail(ctx context.Context, tenantID, email string) ([]*stor
 
 // userDependents are the tables whose rows name a user by (tenant_id,
 // user_id), in the order deleteUser clears them; users itself goes last.
-var userDependents = []string{"sessions", "refresh_tokens", "user_grants", "password_reset_tickets", "email_verification_tickets", "password_history",
+var userDependents = []string{"rbac_user_roles", "rbac_user_permissions", "sessions", "refresh_tokens", "user_grants", "password_reset_tickets", "email_verification_tickets", "password_history",
 	"auth_codes", "device_codes", "operators", "user_logins", "users"}
 
 // deleteUser removes the user and every row that names it. Connections.Delete
 // uses it for each of the connection's users.
 func deleteUser(ctx context.Context, tx *Store, tenantID, userID string) error {
+	if err := tx.lockRBAC(ctx, tenantID); err != nil && !errors.Is(err, store.ErrNotFound) {
+		return err
+	}
 	u, e := (users{tx}).Get(ctx, tenantID, userID)
 	if e != nil {
 		return e

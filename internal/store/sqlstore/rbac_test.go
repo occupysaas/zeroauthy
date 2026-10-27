@@ -1,0 +1,198 @@
+package sqlstore
+
+import (
+	"context"
+	"reflect"
+	"sync"
+	"testing"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
+)
+
+func TestRBACMigration(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := mk(t)
+			ctx := context.Background()
+			if s.LatestVersion() < 22 {
+				t.Fatal("RBAC migration missing")
+			}
+			if err := s.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}); err != nil {
+				t.Fatal(err)
+			}
+			api := &store.ResourceServer{TenantID: "t", ID: "api", Identifier: "https://api.test"}
+			if err := s.ResourceServers().Create(ctx, api); err != nil {
+				t.Fatal(err)
+			}
+			got, err := s.ResourceServers().Get(ctx, "t", "api")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.EnforcePolicies || got.TokenDialect != "" {
+				t.Fatalf("legacy defaults: %#v", got)
+			}
+			api.EnforcePolicies = true
+			api.TokenDialect = "rfc9068_profile_authz"
+			if err := s.ResourceServers().Update(ctx, api); err != nil {
+				t.Fatal(err)
+			}
+			got, err = s.ResourceServers().Get(ctx, "t", "api")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !got.EnforcePolicies || got.TokenDialect != "rfc9068_profile_authz" {
+				t.Fatal("RBAC settings lost")
+			}
+		})
+	}
+}
+
+func TestRBACSnapshotConcurrency(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := mk(t)
+			ctx := context.Background()
+			must := func(err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			must(s.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
+			api := &store.ResourceServer{TenantID: "t", ID: "api", Identifier: "https://api.test", EnforcePolicies: true, Scopes: []store.Scope{{Value: "read:x"}}}
+			must(s.ResourceServers().Create(ctx, api))
+			must(s.Users().Create(ctx, &store.User{TenantID: "t", UserID: "u"}))
+			key := store.PermissionKey{ResourceServerIdentifier: api.Identifier, PermissionName: "read:x"}
+			var wg sync.WaitGroup
+			errs := make(chan error, 2)
+			wg.Go(func() {
+				for range 20 {
+					err := s.WithTx(ctx, func(tx store.Store) error {
+						a, e := tx.ResourceServers().Get(ctx, "t", "api")
+						if e != nil {
+							return e
+						}
+						a.EnforcePolicies = false
+						if e = tx.ResourceServers().Update(ctx, a); e != nil {
+							return e
+						}
+						return tx.RBAC().ChangeUserPermissions(ctx, "t", "u", true, []store.PermissionKey{key})
+					})
+					if err != nil {
+						errs <- err
+						return
+					}
+					err = s.WithTx(ctx, func(tx store.Store) error {
+						a, e := tx.ResourceServers().Get(ctx, "t", "api")
+						if e != nil {
+							return e
+						}
+						a.EnforcePolicies = true
+						if e = tx.ResourceServers().Update(ctx, a); e != nil {
+							return e
+						}
+						return tx.RBAC().ChangeUserPermissions(ctx, "t", "u", false, []store.PermissionKey{key})
+					})
+					if err != nil {
+						errs <- err
+						return
+					}
+				}
+			})
+			wg.Go(func() {
+				for range 40 {
+					snap, e := s.RBAC().Snapshot(ctx, "t", "u", api.Identifier)
+					if e != nil {
+						errs <- e
+						return
+					}
+					if snap.API.EnforcePolicies && len(snap.Permissions) > 0 || !snap.API.EnforcePolicies && !reflect.DeepEqual(snap.Permissions, []string{"read:x"}) {
+						t.Errorf("mixed snapshot: %#v permissions %v", snap.API, snap.Permissions)
+						return
+					}
+				}
+			})
+			wg.Wait()
+			close(errs)
+			for e := range errs {
+				t.Fatal(e)
+			}
+		})
+	}
+}
+
+// TestRBACUpgradePreservesLegacy exercises the actual pre-22 schema: a fresh
+// migration alone cannot catch defaults that corrupt existing API or user rows.
+func TestRBACUpgradePreservesLegacy(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			s := mustOpenRaw(t, mk(t))
+			if err := s.migrateTo(ctx, 21); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.exec(ctx, `INSERT INTO resource_servers (tenant_id,id,identifier,name,scopes,signing_alg,token_lifetime,allow_offline_access,created_at,skip_consent_for_verifiable_first_party_clients,user_policy,client_policy,is_system,origin,token_lifetime_for_web) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, "old", "api", "https://old.test", "Old API", `[{"Value":"read:old","Description":"old"}]`, "RS256", 3600, false, int64(0), false, "allow_all", "require_client_grant", false, "", 1800); err != nil {
+				t.Fatal(err)
+			}
+			user := &store.User{TenantID: "old", UserID: "old-user", Email: "old@example.test"}
+			if err := s.Users().Create(ctx, user); err != nil {
+				t.Fatal(err)
+			}
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			api, err := s.ResourceServers().Get(ctx, "old", "api")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if api.EnforcePolicies || api.TokenDialect != "" || api.Name != "Old API" || api.TokenLifetime != 3600 || len(api.Scopes) != 1 || api.Scopes[0].Value != "read:old" {
+				t.Fatalf("legacy API changed: %#v", api)
+			}
+			got, err := s.Users().Get(ctx, "old", "old-user")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Email != user.Email {
+				t.Fatalf("legacy user changed: %#v", got)
+			}
+			roles, err := s.RBAC().ListRoles(ctx, "old", store.RBACPage{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(roles.Items) != 0 {
+				t.Fatal("migration invented role assignments")
+			}
+		})
+	}
+}
+
+func TestRBACCheckpoint(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			s := mk(t)
+			must := func(err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			must(s.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
+			must(s.RBAC().CreateRole(ctx, &store.Role{TenantID: "t", ID: "role", Name: "Member"}))
+			for _, id := range []string{"a", "b", "c"} {
+				must(s.Users().Create(ctx, &store.User{TenantID: "t", UserID: id}))
+				must(s.RBAC().AssignRoleUsers(ctx, "t", "role", []string{id}))
+			}
+			page, err := s.RBAC().RoleUsers(ctx, "t", "role", store.RBACPage{Take: 2})
+			must(err)
+			if len(page.Items) != 2 || page.Items[0].UserID != "a" || page.Items[1].UserID != "b" || page.Next == "" {
+				t.Fatalf("first page: %#v", page)
+			}
+			page, err = s.RBAC().RoleUsers(ctx, "t", "role", store.RBACPage{Take: 2, From: page.Next})
+			must(err)
+			if len(page.Items) != 1 || page.Items[0].UserID != "c" || page.Next != "" {
+				t.Fatalf("second page: %#v", page)
+			}
+		})
+	}
+}
