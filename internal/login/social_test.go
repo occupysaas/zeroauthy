@@ -119,7 +119,7 @@ func (p *fakeIDP) authorize(t *testing.T, providerURL, sub string) string {
 	p.codes[code] = idpCode{sub: sub, nonce: q.Get("nonce"), challenge: q.Get("code_challenge"), redirect: q.Get("redirect_uri")}
 	p.mu.Unlock()
 	cb, _ := url.Parse(q.Get("redirect_uri"))
-	if cb.Host != "acme.example.test" || cb.Path != "/login/callback" {
+	if (cb.Host != "acme.example.test" && cb.Host != "login.acme.test") || cb.Path != "/login/callback" {
 		t.Fatalf("callback %s", cb)
 	}
 	return cb.Path + "?" + url.Values{"code": {code}, "state": {q.Get("state")}}.Encode()
@@ -131,7 +131,6 @@ type loopbackResolver struct{}
 func (loopbackResolver) LookupNetIP(context.Context, string, string) ([]netip.Addr, error) {
 	return []netip.Addr{netip.MustParseAddr("127.0.0.1")}, nil
 }
-
 
 var (
 	handoffAction = regexp.MustCompile(`<form method="get" action="([^"]+)">`)
@@ -549,4 +548,34 @@ func TestSocialIdentifierFirst(t *testing.T) {
 	state, csrf := regexpState.FindStringSubmatch(body)[1], csrfField.FindStringSubmatch(body)[1]
 	rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {csrf}, "connection": {"corp"}})
 	toApp(t, b.do(t, "GET", s.idp.authorize(t, providerURL(t, rec), "IF-1"), nil), "app.acme.test")
+}
+
+// A custom domain removed during the provider round trip ends the login
+// before anything is committed.
+func TestSocialDomainRemovedDuringCallback(t *testing.T) {
+	ctx := context.Background()
+	s := newSocialEnv(t)
+	tn, _ := s.st.Tenants().Get(ctx, s.tenant.ID)
+	tn.Domains = []string{"acme.example.test", "login.acme.test"}
+	if err := s.st.Tenants().Update(ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	b := s.browser("login.acme.test")
+	page, _ := url.Parse(s.authorizeTo(t, b, "spa", "connection", "corp"))
+	rec := b.do(t, "GET", page.RequestURI(), nil)
+	cb := s.idp.authorize(t, providerURL(t, rec), "Moved")
+	if u, _ := url.Parse(providerURL(t, rec)); !strings.Contains(u.Query().Get("redirect_uri"), "login.acme.test") {
+		t.Fatalf("callback not on the transaction's origin: %s", u.Query().Get("redirect_uri"))
+	}
+	s.idp.beforeToken = func() {
+		cur, _ := s.st.Tenants().Get(ctx, s.tenant.ID)
+		cur.Domains = []string{"acme.example.test"}
+		_ = s.st.Tenants().Update(ctx, cur)
+	}
+	if rec := b.do(t, "GET", cb, nil); rec.Code == 302 {
+		t.Fatal("completed after the domain was removed")
+	}
+	if _, err := s.st.Users().FindByIdentity(ctx, s.tenant.ID, "con_corp", "Moved"); err == nil {
+		t.Fatal("identity committed after the domain was removed")
+	}
 }

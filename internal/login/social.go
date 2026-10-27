@@ -283,16 +283,18 @@ func (h *Handlers) SocialCallback(w http.ResponseWriter, r *http.Request) {
 			}
 			return svc.Finish(ctx, d.Receipt, "failure")
 		},
+		// The callback's host must still resolve to this tenant, as an active
+		// binding, right before the commit: a custom domain removed or
+		// expired during the provider round trip ends the login.
 		RecheckOrigin: func(ctx context.Context) error {
-			cur, ok := tenant.FromContext(ctx)
-			if !ok {
-				return errTxn
-			}
-			fresh, err := h.Store.Tenants().Get(ctx, cur.Tenant.ID)
+			fresh, err := h.Store.Tenants().GetByDomain(ctx, res.Host)
 			if err != nil {
 				return err
 			}
-			return (tenant.Resolved{Tenant: fresh, Host: cur.Host}).CheckOrigin(res.Origin())
+			if fresh.ID != res.Tenant.ID {
+				return errTxn
+			}
+			return nil
 		},
 		Commit: func(tx store.Store, user *store.User, txn *store.AuthTransaction, conn *store.Connection) error {
 			bound := session.Manager{Store: tx, Now: h.Sessions.Now, TrustProxyHeaders: h.Sessions.TrustProxyHeaders}
