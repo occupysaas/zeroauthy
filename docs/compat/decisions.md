@@ -1018,3 +1018,40 @@ preflight must precede Microsoft activation; migration 0021 remains unchanged.
 Implemented 2026-10-27 as frozen, with no contract change. Deploy CLI
 migration requires explicit per-connection provider-secret reinjection; see
 `docs/email-account-connections.md` and the Plan 25 implementation record.
+
+## D-0052 — Plan 26 tenant roles and permissions contract (2026-10-27)
+
+Freeze the [public review and limits](observations/roles-permissions.md) and
+`internal/rbacrules/inventory.json`. Membership operation scopes are all-of;
+creation/mutation success statuses follow each public operation rather than a
+uniform REST convention. Group/organization-role/effective-role APIs remain
+deferred. Runtime/profile behavior follows public RBAC/profile docs and RFC 9068.
+
+Explicit local decisions where public material leaves the contract open:
+
+- Role names: 1–128 Unicode code points, no controls or whitespace-only names;
+  exact tenant-local case-sensitive uniqueness. Descriptions: 0–255 code points,
+  no controls; omitted patch preserves, empty clears, null rejects.
+- Assignment batches: 1–100 items before deduplication; atomic validation,
+  idempotent valid additions/removals. Unknown references fail rather than
+  partially changing assignments. Invalid input 400, missing parent 404,
+  conflicting role name 409.
+- Permission source projection: DIRECT omits source ID/name; ROLE carries
+  source_id/source_name. Current public schema says any; this is no observation.
+- Stable ID ordering and tenant/role-bound exclusive checkpoint cursors;
+  offset/checkpoint mixtures are rejected. Cursor expiry is not promised.
+- Scope deletion atomically removes both direct and role edges; recreation
+  restores no rights. API/user/role/tenant deletion removes only owned edges.
+  Account linking keeps primary privileges and never unions secondary rights.
+- Reserved system APIs and protocol scopes cannot receive user assignments.
+  RBAC-off `_authz` omits user permissions. M2M authorization remains client-
+  grant-based, while its requested access-token profile still applies.
+- Refresh scope ceiling is the original client/consent-authorized set before
+  RBAC; later assignments may activate a requested scope but cannot introduce
+  an unrequested scope. Current assignments are read at each issuance snapshot.
+  Revocation affects the next snapshot; already-started issuance/issued JWTs
+  are not retroactively cancelled.
+- Old plugins fail capability admission before serving new code; operators
+  upgrade all writers before enabling RBAC. No downgrade to permissive tokens.
+
+These are implementation contracts, not proof of completion or live parity.

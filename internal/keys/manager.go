@@ -33,7 +33,7 @@ type Manager struct {
 	now   func() time.Time
 
 	mu      sync.Mutex // serializes Ensure and Rotate in this process
-	signers sync.Map   // "tenantID|kid" -> jose.Signer
+	signers sync.Map   // signerCacheKey -> jose.Signer
 }
 
 func NewManager(s store.SigningKeys, w Wrapper) *Manager {
@@ -111,7 +111,7 @@ func (m *Manager) RotateWithResult(ctx context.Context, tenantID string) (*store
 		return nil, err
 	}
 	if retired != "" {
-		m.signers.Delete(tenantID + "|" + retired)
+		m.evictSigners(tenantID, retired)
 	}
 	return result, nil
 }
@@ -121,19 +121,28 @@ func (m *Manager) Revoke(ctx context.Context, tenantID, kid string) (*store.Sign
 	if err != nil {
 		return nil, err
 	}
-	m.signers.Delete(tenantID + "|" + kid)
+	m.evictSigners(tenantID, kid)
 	return k, nil
 }
 
 // Sign serializes claims as a JWT signed with the tenant's current key.
 func (m *Manager) Sign(ctx context.Context, tenantID string, claims any) (string, error) {
+	return m.SignWithType(ctx, tenantID, claims, "JWT")
+}
+
+// SignWithType signs a JWT or RFC 9068 access token with the tenant's current
+// managed key. The allowlist prevents callers choosing unrelated token formats.
+func (m *Manager) SignWithType(ctx context.Context, tenantID string, claims any, tokenType string) (string, error) {
+	if tokenType != "JWT" && tokenType != "at+jwt" {
+		return "", errors.New("keys: unsupported token type")
+	}
 	ks, err := m.store.List(ctx, tenantID)
 	if err != nil {
 		return "", err
 	}
 	for _, k := range ks {
 		if k.Status == store.KeyCurrent {
-			signer, err := m.signer(k)
+			signer, err := m.signer(k, tokenType)
 			if err != nil {
 				return "", err
 			}
@@ -198,8 +207,15 @@ func (m *Manager) generateAt(tenantID string, status store.KeyStatus, at time.Ti
 	}, nil
 }
 
-func (m *Manager) signer(k *store.SigningKey) (jose.Signer, error) {
-	cacheKey := k.TenantID + "|" + k.KID
+type signerCacheKey struct{ tenant, kid, tokenType string }
+
+func (m *Manager) evictSigners(tenantID, kid string) {
+	m.signers.Delete(signerCacheKey{tenantID, kid, "JWT"})
+	m.signers.Delete(signerCacheKey{tenantID, kid, "at+jwt"})
+}
+
+func (m *Manager) signer(k *store.SigningKey, tokenType string) (jose.Signer, error) {
+	cacheKey := signerCacheKey{k.TenantID, k.KID, tokenType}
 	if s, ok := m.signers.Load(cacheKey); ok {
 		return s.(jose.Signer), nil
 	}
@@ -217,7 +233,7 @@ func (m *Manager) signer(k *store.SigningKey) (jose.Signer, error) {
 	}
 	s, err := jose.NewSigner(
 		jose.SigningKey{Algorithm: jose.RS256, Key: rsaKey},
-		(&jose.SignerOptions{}).WithType("JWT").WithHeader("kid", k.KID),
+		(&jose.SignerOptions{}).WithType(jose.ContentType(tokenType)).WithHeader("kid", k.KID),
 	)
 	if err != nil {
 		return nil, err

@@ -3486,6 +3486,656 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
 
+  /api/v2/roles:
+    get:
+      operationId: GetRoles
+      summary: GetRoles in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/get-roles
+      security:
+      - managementToken:
+        - read:roles
+      - operatorToken: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+      - name: include_totals
+        in: query
+        schema:
+          type: boolean
+      - name: name_filter
+        in: query
+        schema: &id001
+          type: string
+      - name: type
+        in: query
+        schema: *id001
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/Role'
+                - $ref: '#/components/schemas/RolePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    post:
+      operationId: PostRoles
+      summary: PostRoles in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/post-roles
+      security:
+      - managementToken:
+        - create:roles
+      - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleCreate'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+  /api/v2/roles/{id}:
+    get:
+      operationId: GetRolesById
+      summary: GetRolesById in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/get-roles-by-id
+      security:
+      - managementToken:
+        - read:roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    patch:
+      operationId: PatchRolesById
+      summary: PatchRolesById in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/patch-roles-by-id
+      security:
+      - managementToken:
+        - update:roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleUpdate'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    delete:
+      operationId: DeleteRolesById
+      summary: DeleteRolesById in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/delete-roles-by-id
+      security:
+      - managementToken:
+        - delete:roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+  /api/v2/roles/{id}/permissions:
+    get:
+      operationId: GetRolePermissions
+      summary: GetRolePermissions in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/get-role-permission
+      security:
+      - managementToken:
+        - read:roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: page
+        in: query
+        schema:
+          type: integer
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+      - name: include_totals
+        in: query
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/RBACPermission'
+                - $ref: '#/components/schemas/RBACPermissionPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    post:
+      operationId: PostRolePermissions
+      summary: PostRolePermissions in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/post-role-permission-assignment
+      security:
+      - managementToken:
+        - update:roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RBACPermissionBatch'
+      responses:
+        '201':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    delete:
+      operationId: DeleteRolePermissions
+      summary: DeleteRolePermissions in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/delete-role-permission-assignment
+      security:
+      - managementToken:
+        - update:roles
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RBACPermissionBatch'
+      responses:
+        '200':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+  /api/v2/roles/{id}/users:
+    get:
+      operationId: GetRoleUsers
+      summary: GetRoleUsers in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/get-role-user
+      security:
+      - managementToken:
+        - read:users
+        - read:roles
+        - read:role_members
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: page
+        in: query
+        schema:
+          type: integer
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+      - name: include_totals
+        in: query
+        schema:
+          type: boolean
+      - name: from
+        in: query
+        schema:
+          type: string
+      - name: take
+        in: query
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/RoleUser'
+                - $ref: '#/components/schemas/RoleUserPage'
+                - $ref: '#/components/schemas/RoleUserCheckpoint'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    post:
+      operationId: PostRoleUsers
+      summary: PostRoleUsers in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/roles/post-role-users
+      security:
+      - managementToken:
+        - update:roles
+        - create:role_members
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleUserBatch'
+      responses:
+        '200':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+  /api/v2/users/{id}/roles:
+    get:
+      operationId: GetUserRoles
+      summary: GetUserRoles in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/users/get-user-roles
+      security:
+      - managementToken:
+        - read:users
+        - read:roles
+        - read:role_members
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: page
+        in: query
+        schema:
+          type: integer
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+      - name: include_totals
+        in: query
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/Role'
+                - $ref: '#/components/schemas/RolePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    post:
+      operationId: PostUserRoles
+      summary: PostUserRoles in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/users/post-user-roles
+      security:
+      - managementToken:
+        - update:users
+        - create:role_members
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRoleBatch'
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    delete:
+      operationId: DeleteUserRoles
+      summary: DeleteUserRoles in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/users/delete-user-roles
+      security:
+      - managementToken:
+        - update:users
+        - delete:role_members
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRoleBatch'
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+  /api/v2/users/{id}/permissions:
+    get:
+      operationId: GetUserPermissions
+      summary: GetUserPermissions in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/users/get-permissions
+      security:
+      - managementToken:
+        - read:users
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: page
+        in: query
+        schema:
+          type: integer
+      - name: per_page
+        in: query
+        schema:
+          type: integer
+      - name: include_totals
+        in: query
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/RBACPermission'
+                - $ref: '#/components/schemas/RBACPermissionPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    post:
+      operationId: PostUserPermissions
+      summary: PostUserPermissions in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/users/post-permissions
+      security:
+      - managementToken:
+        - update:users
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RBACPermissionBatch'
+      responses:
+        '201':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
+    delete:
+      operationId: DeleteUserPermissions
+      summary: DeleteUserPermissions in the current tenant
+      tags:
+      - roles
+      x-source:
+      - https://auth0.com/docs/api/management/v2/users/delete-permissions
+      security:
+      - managementToken:
+        - update:users
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RBACPermissionBatch'
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Parent resource was not found
+        '409':
+          description: Role name already exists
 components:
   securitySchemes:
     managementToken:
@@ -3530,6 +4180,201 @@ components:
       description: Whether `fields` lists the fields to include (true) or to leave out (false).
       schema: {type: boolean, default: true}
   schemas:
+    Role:
+      type: object
+      additionalProperties: false
+      properties:
+        id: &id001
+          type: string
+        name: *id001
+        description: *id001
+      required:
+      - id
+      - name
+      - description
+    RoleCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description:
+          type: string
+          maxLength: 255
+        type:
+          type: string
+          enum:
+          - tenant
+      required:
+      - name
+    RoleUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description:
+          type: string
+          maxLength: 255
+    RBACPermissionKey:
+      type: object
+      additionalProperties: false
+      properties:
+        resource_server_identifier: *id001
+        permission_name: *id001
+      required:
+      - resource_server_identifier
+      - permission_name
+    RBACPermissionSource:
+      type: object
+      additionalProperties: false
+      properties:
+        source_type:
+          type: string
+          enum:
+          - DIRECT
+          - ROLE
+        source_id: *id001
+        source_name: *id001
+      required:
+      - source_type
+    RBACPermission:
+      type: object
+      additionalProperties: false
+      properties:
+        resource_server_identifier: *id001
+        permission_name: *id001
+        resource_server_name: *id001
+        description: *id001
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/RBACPermissionSource'
+      required:
+      - resource_server_identifier
+      - permission_name
+      - resource_server_name
+      - description
+    RoleUser:
+      type: object
+      additionalProperties: false
+      properties:
+        user_id: *id001
+        name: *id001
+        picture: *id001
+        email: *id001
+      required:
+      - user_id
+    RBACPermissionBatch:
+      type: object
+      additionalProperties: false
+      properties:
+        permissions:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/RBACPermissionKey'
+      required:
+      - permissions
+    UserRoleBatch:
+      type: object
+      additionalProperties: false
+      properties:
+        roles:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: string
+            minLength: 1
+      required:
+      - roles
+    RoleUserBatch:
+      type: object
+      additionalProperties: false
+      properties:
+        users:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: string
+            minLength: 1
+      required:
+      - users
+    RolePage:
+      type: object
+      additionalProperties: false
+      properties:
+        start:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+      required:
+      - start
+      - limit
+      - total
+      - roles
+    RBACPermissionPage:
+      type: object
+      additionalProperties: false
+      properties:
+        start:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RBACPermission'
+      required:
+      - start
+      - limit
+      - total
+      - permissions
+    RoleUserPage:
+      type: object
+      additionalProperties: false
+      properties:
+        start:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleUser'
+      required:
+      - start
+      - limit
+      - total
+      - users
+    RoleUserCheckpoint:
+      type: object
+      additionalProperties: false
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleUser'
+        next: *id001
+      required:
+      - users
     EmailProvider:
       type: object
       required: [name, enabled]
@@ -5720,11 +6565,11 @@ components:
         subject_type_authorization: {$ref: "#/components/schemas/SubjectTypeAuthorization"}
         enforce_policies:
           type: boolean
-          description: zeroauthy has no role-based access control, so only `false` is accepted.
+          description: Limit custom API user scopes to current role and direct permissions when true.
         token_dialect:
           type: string
-          enum: [access_token]
-          description: zeroauthy issues one access token format, `access_token`.
+          enum: [access_token, access_token_authz, rfc9068_profile, rfc9068_profile_authz]
+          description: Access-token profile; defaults to access_token.
         consent_policy: {description: "Only null is accepted (transactional authorization is not supported)."}
         proof_of_possession: {description: "Only null is accepted (mTLS and DPoP are not supported)."}
         authorization_details: {description: "Only null or an empty list is accepted (rich authorization requests are not supported)."}
@@ -5788,8 +6633,8 @@ components:
               required: [policy]
               properties:
                 policy: {type: string, enum: [require_client_grant, deny_all]}
-        enforce_policies: {type: boolean, enum: [false]}
-        token_dialect: {type: string, enum: [access_token]}
+        enforce_policies: {type: boolean}
+        token_dialect: {type: string, enum: [access_token, access_token_authz, rfc9068_profile, rfc9068_profile_authz]}
     ResourceServerPage:
       description: A page of APIs with `include_totals=true`.
       allOf:

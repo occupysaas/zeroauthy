@@ -7,7 +7,6 @@ const never = () => ({ status: 500, body: {} })
 
 // key, title, column headers, empty text, header buttons
 const tables: [string, string, string[], string, string[]][] = [
-  ['roles', 'Roles', ['Name', 'Description'], 'Roles will appear here.', ['Create role']],
   ['organizations', 'Organizations', ['Name', 'Display name'], 'Organizations will appear here.', ['Create organization']],
   ['logs', 'Logs', ['Event', 'Description', 'Date', 'Connection', 'Application'], 'Log events will appear here.', ['Log streams']],
 ]

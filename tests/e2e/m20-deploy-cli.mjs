@@ -148,13 +148,13 @@ async function injectFederation(destination, credentials = federationCredentials
 // One provider login per migrated connection on the target: the hosted
 // /authorize redirect, the mock provider's consent form, the federation
 // callback and the downstream authorization-code + PKCE exchange.
-async function federatedLogin(clientId, connection, subject) {
+async function federatedLogin(clientId, connection, subject, rbac=false) {
   const ports={'target.cli.e2e.test':8444,'idp.e2e.test':8446};const jar={};
   const send=(method,url,body)=>new Promise((resolve,reject)=>{const req=https.request({hostname:'127.0.0.1',port:ports[url.hostname],servername:url.hostname,path:url.pathname+url.search,method,headers:{host:url.hostname,...(jar[url.hostname]?{cookie:Object.entries(jar[url.hostname]).map(([k,v])=>`${k}=${v}`).join('; ')}:{}),...(body?{'content-type':'application/x-www-form-urlencoded'}:{})}},res=>{
     for(const c of res.headers['set-cookie']??[]){const [pair]=c.split(';');const i=pair.indexOf('=');(jar[url.hostname]??={})[pair.slice(0,i)]=pair.slice(i+1);}
     res.resume();res.on('end',()=>resolve(res));});req.on('error',reject);if(body)req.write(body);req.end();});
   const verifier=randomBytes(32).toString('base64url'),state=randomBytes(16).toString('hex'),nonce=randomBytes(16).toString('hex'),redirect='https://callback.e2e.test/';
-  let url=new URL(`https://${targetConfig.AUTH0_DOMAIN}/authorize?${new URLSearchParams({client_id:clientId,redirect_uri:redirect,response_type:'code',scope:'openid profile email',state,nonce,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',connection})}`);
+  let url=new URL(`https://${targetConfig.AUTH0_DOMAIN}/authorize?${new URLSearchParams({client_id:clientId,redirect_uri:redirect,response_type:'code',scope:rbac?'openid profile email read:fixture write:fixture':'openid profile email',...(rbac?{audience:'https://fixture.cli.e2e.test'}:{}),state,nonce,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',connection})}`);
   let method='GET',body,code;
   for(let hop=0;hop<12&&!code;hop++) {
     const res=await send(method,url,body);method='GET';body=undefined;
@@ -164,10 +164,10 @@ async function federatedLogin(clientId, connection, subject) {
   }
   assert.ok(code,`${connection}: no downstream authorization code`);
   const token=await request(targetConfig,'POST','/oauth/token',{grant_type:'authorization_code',client_id:clientId,code,code_verifier:verifier,redirect_uri:redirect});
-  assert.ok(token.access_token);assert.equal(token.scope,'openid profile email');
+  assert.ok(token.access_token);if(!rbac)assert.equal(token.scope,'openid profile email');
   const claims=JSON.parse(Buffer.from(token.id_token.split('.')[1],'base64url'));
   assert.equal(claims.nonce,nonce);assert.equal(claims.aud,clientId);assert.equal(claims.iss,`https://${targetConfig.AUTH0_DOMAIN}/`);
-  return claims.sub;
+  return rbac?{sub:claims.sub,token}:claims.sub;
 }
 
 const sourcePath = format === 'yaml' ? path.join(work, 'source-export/tenant.yaml') : path.join(work, 'source-export');
@@ -208,6 +208,10 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
     const created = await api(sourceConfig, 'POST', 'connections', { ...c, enabled_clients: ['e2e-cli-browser'], options: { ...c.options, client_secret: upstreamSecret } });
     assert.equal(JSON.stringify(created).includes(upstreamSecret), false, 'connection create returned its provider credential');
   }
+  const rbacAPI=(await api(sourceConfig,'GET','resource-servers')).find(r=>r.identifier==='https://fixture.cli.e2e.test');
+  await api(sourceConfig,'PATCH',`resource-servers/${rbacAPI.id}`,{enforce_policies:true,token_dialect:'rfc9068_profile_authz',skip_consent_for_verifiable_first_party_clients:true});
+  const roleDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/roles.json'),'utf8'));
+  for(const {permissions,...declaration} of roleDeclarations){const role=await api(sourceConfig,'POST','roles',declaration);await api(sourceConfig,'POST',`roles/${role.id}/permissions`,{permissions});}
   const sourcePublicExport = await exportTo('source', 'source-export');
   await assertNoEmailSecrets(sourcePublicExport);
   assert.equal((await api(sourceConfig,'GET','branding/templates/universal-login')).body,templateBody);
@@ -275,6 +279,18 @@ for(const [connection,[subject,want]] of Object.entries(expectedUsers)) {
   const user=await api(targetConfig,'GET',`users/${encodeURIComponent(sub)}`);
   assert.equal(user.identities.length,1);assert.equal(user.identities[0].connection,connection);assert.equal(user.identities[0].access_token,undefined);
 }
+// Assign an actual migrated tenant role after creating a real federated user.
+const migratedRole=(await api(targetConfig,'GET','roles')).find(r=>r.name==='Deploy Reader');
+assert.ok(migratedRole,'role definition was lost during deployment');
+const migratedPermissions=await api(targetConfig,'GET',`roles/${migratedRole.id}/permissions`);
+assert.deepEqual(migratedPermissions.map(p=>[p.resource_server_identifier,p.permission_name]),[['https://fixture.cli.e2e.test','read:fixture']]);
+const rbacSubject='google-oauth2|deploy-google';
+await api(targetConfig,'POST',`users/${encodeURIComponent(rbacSubject)}/roles`,{roles:[migratedRole.id]});
+const rbacLogin=await federatedLogin(browser.client_id,'google-oauth2','deploy-google',true);
+const rbacClaims=JSON.parse(Buffer.from(rbacLogin.token.access_token.split('.')[1],'base64url'));
+assert.equal(rbacLogin.sub,rbacSubject);assert.ok(rbacLogin.token.scope.split(' ').includes('read:fixture'));assert.ok(!rbacLogin.token.scope.split(' ').includes('write:fixture'));
+assert.deepEqual(rbacClaims.permissions,['read:fixture']);assert.equal(rbacClaims.client_id,browser.client_id);assert.equal(JSON.parse(Buffer.from(rbacLogin.token.access_token.split('.')[0],'base64url')).typ,'at+jwt');
+console.log('Plan 26 deploy: tenant role/API fields and post-import federated RBAC code exchange passed');
 console.log(`Plan 25 deploy: ${federation.length} federated connections (5 strategies) imported with explicit secret reinjection; missing/uninjected imports rejected; first and repeat provider logins passed`);
 assert.equal(imported.client_id === original.client_id, mode === 'preserved');
 assert.ok((imported.client_secret === original.client_secret) === (mode === 'preserved'), 'credential preservation mode mismatch');

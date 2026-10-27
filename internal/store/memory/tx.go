@@ -66,6 +66,7 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
+		roles: cloneMap(s.roles, cloneRole), rolePermissions: maps.Clone(s.rolePermissions), userPermissions: maps.Clone(s.userPermissions), roleMembers: maps.Clone(s.roleMembers),
 		customDomains:          cloneMap(s.customDomains, (*store.CustomDomain).Clone),
 		hostBindings:           cloneMap(s.hostBindings, func(h *store.HostBinding) *store.HostBinding { c := *h; return &c }),
 		domainDefaults:         maps.Clone(s.domainDefaults),
@@ -112,6 +113,7 @@ func (s *Store) snapshot() *state {
 func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.roles, s.rolePermissions, s.userPermissions, s.roleMembers = snap.roles, snap.rolePermissions, snap.userPermissions, snap.roleMembers
 	s.customDomains, s.hostBindings, s.domainDefaults = snap.customDomains, snap.hostBindings, snap.domainDefaults
 	s.domainAttempts, s.tenantAttempts = snap.domainAttempts, snap.tenantAttempts
 	s.tlsAssets, s.tlsLeases = snap.tlsAssets, snap.tlsLeases

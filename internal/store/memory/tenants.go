@@ -122,6 +122,26 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	delete(r.s.domainDefaults, id)
 	delete(r.s.tenantAttempts, id)
 	purge(r.s.domainAttempts, id)
+	for k := range r.s.roles {
+		if k.tenant == id {
+			delete(r.s.roles, k)
+		}
+	}
+	for k := range r.s.rolePermissions {
+		if k.tenant == id {
+			delete(r.s.rolePermissions, k)
+		}
+	}
+	for k := range r.s.userPermissions {
+		if k.tenant == id {
+			delete(r.s.userPermissions, k)
+		}
+	}
+	for k := range r.s.roleMembers {
+		if k.tenant == id {
+			delete(r.s.roleMembers, k)
+		}
+	}
 	delete(r.s.tenants, id)
 	delete(r.s.protection, id)
 	r.s.dropTenantFederation(id)

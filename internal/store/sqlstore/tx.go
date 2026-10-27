@@ -13,5 +13,8 @@ import (
 // handled error leaves the enclosing transaction usable. WithTx never
 // retries, because fn may have side effects.
 func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
-	return s.atomic(ctx, nil, func(t *Store) error { return fn(t) })
+	// RBAC repositories acquire tenant locks after callers may already have read.
+	// READ COMMITTED prevents a MySQL outer transaction from retaining an older
+	// repeatable-read view after that lock, which could resurrect removed rights.
+	return s.atomic(ctx, s.sweep(), func(t *Store) error { return fn(t) })
 }

@@ -1,0 +1,1 @@
+[{"name":"Deploy Reader","description":"Tenant RBAC migration fixture","permissions":[{"permission_name":"read:fixture","resource_server_identifier":"https://fixture.cli.e2e.test"}]}]

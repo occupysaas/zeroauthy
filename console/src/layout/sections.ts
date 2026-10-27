@@ -30,7 +30,7 @@ export const sections: Section[] = [
     path: 'users',
     status: 'live',
   },
-  { key: 'roles', label: 'nav.roles', group: 'navGroup.userManagement', path: 'roles', status: { planned: 'later', api: ['/api/v2/roles'] } },
+  { key: 'roles', label: 'nav.roles', group: 'navGroup.userManagement', path: 'roles', status: 'live' },
   { key: 'organizations', label: 'nav.organizations', group: 'navGroup.userManagement', path: 'organizations', status: { planned: 'later', api: ['/api/v2/organizations'] } },
   { key: 'attack-protection', label: 'nav.attackProtection', group: 'navGroup.security', path: 'attack-protection', status: 'live' },
   { key: 'mfa', label: 'nav.mfa', group: 'navGroup.security', path: 'mfa', status: { planned: 'later', api: ['/api/v2/guardian/*'] } },

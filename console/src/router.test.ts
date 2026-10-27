@@ -81,11 +81,11 @@ describe('planned routes', () => {
     expect(r.currentRoute.value.name).toBe('users')
   })
 
-  it('treats a path below a planned section as not found', async () => {
+  it('treats a path below a deferred section as not found', async () => {
     const f = fakes(true)
     f.tenants.loaded = true
     const r = router(f)
-    await r.push('/t/acme/roles/x')
+    await r.push('/t/acme/organizations/x')
     expect(r.currentRoute.value.name).toBe('not-found')
   })
 })
@@ -98,5 +98,15 @@ describe('enterprise routes', () => {
     expect(r.resolve('/t/acme/enterprise/new').name).toBe('enterprise-new')
     expect(r.resolve('/t/acme/enterprise/con_ms').name).toBe('enterprise-connection')
     expect(r.resolve('/t/acme/social/con_oidc').name).toBe('social-connection')
+  })
+})
+
+
+describe('role routes', () => {
+  it('provides role list, creation and detail routes', () => {
+    const r = router(fakes(true))
+    expect(r.resolve('/t/acme/roles').name).toBe('roles')
+    expect(r.resolve('/t/acme/roles/new').name).toBe('role-new')
+    expect(r.resolve('/t/acme/roles/rol_1').name).toBe('role')
   })
 })

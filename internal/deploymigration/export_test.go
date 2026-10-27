@@ -287,3 +287,24 @@ func TestDirectoryCustomDomainCollectionFile(t *testing.T) {
 		t.Fatalf("pinned CLI collection incorrectly nested: %s %v", export.Resources["customDomains"], err)
 	}
 }
+
+func TestLoadDirectoryRoles(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "roles"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "roles", "Reader.json"), []byte(`{"name":"Reader","description":"Read","permissions":[{"permission_name":"read:x","resource_server_identifier":"https://api.test"}]}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	out, err := LoadExport(root, "directory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var roles []map[string]any
+	if err := json.Unmarshal(out.Resources["roles"], &roles); err != nil || len(roles) != 1 || roles[0]["name"] != "Reader" {
+		t.Fatalf("directory roles lost: %s %v", out.Resources["roles"], err)
+	}
+	if len(out.Files) != 0 {
+		t.Fatalf("role treated as opaque file: %#v", out.Files)
+	}
+}

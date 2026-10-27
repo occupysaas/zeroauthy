@@ -22,6 +22,9 @@ import Callback from './pages/Callback.vue'
 import Home from './pages/Home.vue'
 import NotFound from './pages/NotFound.vue'
 import OperatorList from './pages/operators/List.vue'
+import RoleList from './pages/roles/List.vue'
+import RoleCreate from './pages/roles/Create.vue'
+import RoleDetail from './pages/roles/Detail.vue'
 import UserCreate from './pages/users/Create.vue'
 import UserDetail from './pages/users/Detail.vue'
 import UserList from './pages/users/List.vue'
@@ -64,6 +67,9 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/enterprise', name: 'enterprise', component: EnterpriseList },
   { path: '/t/:tenant/enterprise/new', name: 'enterprise-new', component: EnterpriseCreate },
   { path: '/t/:tenant/enterprise/:id', name: 'enterprise-connection', component: SocialDetail },
+  { path: '/t/:tenant/roles', name: 'roles', component: RoleList },
+  { path: '/t/:tenant/roles/new', name: 'role-new', component: RoleCreate },
+  { path: '/t/:tenant/roles/:id', name: 'role', component: RoleDetail },
   { path: '/t/:tenant/users', name: 'users', component: UserList },
   { path: '/t/:tenant/users/new', name: 'user-new', component: UserCreate },
   { path: '/t/:tenant/users/import-export', name: 'users-import-export', component: UserImportExport },

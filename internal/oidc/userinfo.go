@@ -4,6 +4,9 @@ import (
 	"errors"
 	"mime"
 	"net/http"
+	"slices"
+
+	"github.com/go-jose/go-jose/v4"
 	"strings"
 
 	"github.com/go-jose/go-jose/v4/jwt"
@@ -38,9 +41,22 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusUnauthorized, "invalid_request", "an access token is required")
 		return
 	}
+	// Type is a protected JOSE header: inspect it, then authenticate the entire
+	// token below before using claims. Reject unrelated JWT formats explicitly.
+	parsed, parseErr := jwt.ParseSigned(raw, []jose.SignatureAlgorithm{jose.RS256})
+	if parseErr != nil || len(parsed.Headers) != 1 {
+		invalidToken(w)
+		return
+	}
+	tokenType, _ := parsed.Headers[0].ExtraHeaders[jose.HeaderType].(string)
+	if tokenType != "JWT" && tokenType != "at+jwt" {
+		invalidToken(w)
+		return
+	}
 	var std jwt.Claims
 	var extra struct {
-		Scope string `json:"scope"`
+		Scope    string `json:"scope"`
+		ClientID string `json:"client_id"`
 	}
 	if err := h.Keys.Verify(ctx, res.Tenant.ID, raw, &std, &extra); err != nil {
 		if errors.Is(err, keys.ErrInvalidToken) {
@@ -52,7 +68,8 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 	}
 	// ValidateWithLeeway skips exp when it is absent, so require exp and
 	// sub explicitly. Every error it returns is a claim-validation failure.
-	if std.Expiry == nil || std.Subject == "" {
+	if std.Expiry == nil || std.Subject == "" || !slices.Contains(strings.Fields(extra.Scope), "openid") ||
+		(tokenType == "at+jwt" && (extra.ClientID == "" || std.IssuedAt == nil || std.ID == "")) {
 		invalidToken(w)
 		return
 	}

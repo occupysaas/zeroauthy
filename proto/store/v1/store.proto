@@ -58,6 +58,22 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 // transaction BeginTx returned. Domain errors are reported in the response's
 // `error` field; gRPC status codes mean transport or plugin failure.
 service StoreService {
+  rpc RBACCapabilities(PingRequest) returns (RBACCapabilitiesResult);
+  rpc RBACCreateRole(RBACRequest) returns (RBACResponse);
+  rpc RBACGetRole(RBACRequest) returns (RBACResponse);
+  rpc RBACUpdateRole(RBACRequest) returns (RBACResponse);
+  rpc RBACDeleteRole(RBACRequest) returns (RBACResponse);
+  rpc RBACListRoles(RBACRequest) returns (RBACResponse);
+  rpc RBACRolePermissions(RBACRequest) returns (RBACResponse);
+  rpc RBACChangeRolePermissions(RBACRequest) returns (RBACResponse);
+  rpc RBACRoleUsers(RBACRequest) returns (RBACResponse);
+  rpc RBACAssignRoleUsers(RBACRequest) returns (RBACResponse);
+  rpc RBACUserRoles(RBACRequest) returns (RBACResponse);
+  rpc RBACChangeUserRoles(RBACRequest) returns (RBACResponse);
+  rpc RBACUserPermissions(RBACRequest) returns (RBACResponse);
+  rpc RBACChangeUserPermissions(RBACRequest) returns (RBACResponse);
+  rpc RBACSnapshot(RBACRequest) returns (RBACResponse);
+
   rpc Ping(PingRequest) returns (Result);
   // Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
   rpc MicrosoftFederationSupported(MicrosoftFederationCapabilitiesRequest) returns (Result);
@@ -292,6 +308,7 @@ message Error {
     KIND_INVALID = 4; // store.ErrInvalid
     KIND_CUSTOM_DOMAIN_UNAVAILABLE = 5; // store.ErrCustomDomainRepositoryUnavailable
     KIND_TLS_ASSET_UNAVAILABLE = 6; // store.ErrTLSAssetRepositoryUnavailable
+    KIND_RBAC_UNAVAILABLE = 8; // store.ErrRBACUnavailable
     KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
   }
   Kind kind = 1;
@@ -421,6 +438,8 @@ message ResourceServer {
   string client_policy = 12;
   bool is_system = 13;
   string origin = 14;                                // "api" or empty (seed)
+  bool enforce_policies = 16;
+  string token_dialect = 17;
   int64 token_lifetime_for_web = 15;                 // 0 = the default
 }
 message ResourceServerRenameSystemRequest {
@@ -953,3 +972,14 @@ message TLSAssetResult {
 }
 
 message MicrosoftFederationCapabilitiesRequest { string tx_id = 1; }
+
+// Plan 26 typed authorization contract. All calls preserve transaction binding.
+message RBACRole { string tenant_id=1; string id=2; string name=3; string description=4; }
+message RBACPermissionKey { string resource_server_identifier=1; string permission_name=2; }
+message RBACSource { string type=1; string id=2; string name=3; }
+message RBACPermissionGrant { RBACPermissionKey key=1; string resource_server_name=2; string description=3; repeated RBACSource sources=4; }
+message RBACPage { int64 page=1; int64 per_page=2; string name_filter=3; string from=4; int64 take=5; }
+message RBACRequest { string tx_id=1; string tenant_id=2; string id=3; RBACRole role=4; bool add=5; repeated RBACPermissionKey keys=6; repeated string ids=7; RBACPage page=8; string audience=9; }
+message RBACSnapshot { ResourceServer api=1; repeated string permissions=2; }
+message RBACResponse { Error error=1; RBACRole role=2; repeated RBACRole roles=3; repeated RBACPermissionGrant grants=4; repeated User users=5; int64 total=6; string next=7; RBACSnapshot snapshot=8; }
+message RBACCapabilitiesResult { Error error=1; uint32 version=2; }

@@ -34,6 +34,7 @@ var (
 
 // Store aggregates the repositories of one storage backend.
 type Store interface {
+	RBAC() RBAC
 	CustomDomains() CustomDomains
 	TLSAssets() TLSAssets
 	Protection() Protection

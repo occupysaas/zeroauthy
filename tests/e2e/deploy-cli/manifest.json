@@ -157,10 +157,10 @@
     },
     {
       "name": "roles",
-      "status": "excluded",
-      "owner": "roadmap: roles and permissions milestone",
-      "reason": "Roles are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 26",
+      "reason": "Tenant roles and API permission edges migrate by logical role name and API identifier",
+      "fixture": "fixtures/roles.json"
     },
     {
       "name": "branding",

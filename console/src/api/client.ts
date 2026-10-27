@@ -1,4 +1,6 @@
 import type { components } from './schema'
+import type { Role, RolePage, PermissionKey, PermissionPage, RoleUserPage, OffsetPage } from './rbac'
+export type { Role, RolePage, PermissionKey, Permission, PermissionSource, PermissionPage, RoleUser, RoleUserPage } from './rbac'
 
 // A thin, typed wrapper over fetch for the Management API (on each
 // tenant's own host) and the system API (on the system host).
@@ -234,6 +236,40 @@ export class Api {
   }
   updateCaptcha(t: SystemTenant, body: CaptchaUpdate): Promise<Captcha> {
     return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/captcha', { body })
+  }
+
+  listRoles(t: SystemTenant, q: OffsetPage & { name_filter?: string }): Promise<RolePage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/roles', { query: { ...q, include_totals: true } })
+  }
+  getRole(t: SystemTenant, id: string): Promise<Role> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/roles/' + encodeURIComponent(id))
+  }
+  createRole(t: SystemTenant, body: { name: string; description: string }): Promise<Role> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/roles', { body })
+  }
+  updateRole(t: SystemTenant, id: string, body: { name?: string; description?: string }): Promise<Role> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/roles/' + encodeURIComponent(id), { body })
+  }
+  deleteRole(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/roles/' + encodeURIComponent(id))
+  }
+  listRoleUsers(t: SystemTenant, id: string, q: OffsetPage): Promise<RoleUserPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/roles/' + encodeURIComponent(id) + '/users', { query: { ...q, include_totals: true } })
+  }
+  assignRoleUsers(t: SystemTenant, id: string, users: string[]): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/roles/' + encodeURIComponent(id) + '/users', { body: { users } })
+  }
+  listUserRoles(t: SystemTenant, id: string, q: OffsetPage): Promise<RolePage> {
+    return this.request(Api.tenantOrigin(t), 'GET', userPath(id) + '/roles', { query: { ...q, include_totals: true } })
+  }
+  changeUserRoles(t: SystemTenant, id: string, method: 'POST' | 'DELETE', roles: string[]): Promise<void> {
+    return this.request(Api.tenantOrigin(t), method, userPath(id) + '/roles', { body: { roles } })
+  }
+  listPermissions(t: SystemTenant, kind: 'roles' | 'users', id: string, q: OffsetPage): Promise<PermissionPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/' + kind + '/' + encodeURIComponent(id) + '/permissions', { query: { ...q, include_totals: true } })
+  }
+  changePermissions(t: SystemTenant, kind: 'roles' | 'users', id: string, method: 'POST' | 'DELETE', permissions: PermissionKey[]): Promise<void> {
+    return this.request(Api.tenantOrigin(t), method, '/api/v2/' + kind + '/' + encodeURIComponent(id) + '/permissions', { body: { permissions } })
   }
 
   listClients(t: SystemTenant, q: { page: number; per_page: number; app_type?: string }): Promise<ClientPage> {

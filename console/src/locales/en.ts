@@ -1,6 +1,21 @@
 // The English catalog: every string the console shows. Other languages
 // follow this shape (MessageSchema); vue-i18n checks keys against it.
 const en = {
+  rbac: {
+    title: 'Roles', back: 'Back to roles', create: 'Create role', name: 'Role name', description: 'Description',
+    filter: 'Filter roles', empty: 'No roles yet', settings: 'Settings', permissions: 'Permissions', users: 'Users',
+    delete: 'Delete role', deleteTitle: 'Delete this role?', deleteHint: 'This removes the role from {count} users. Their other permission sources remain in place.',
+    expiry: 'Assignment changes affect newly issued tokens. Existing access tokens remain valid until they expire.',
+    roleRequired: 'Enter a role name.', rolesTab: 'Roles', assignRole: 'Assign role', removeRole: 'Remove role', noRoles: 'No roles assigned',
+    chooseRole: 'Choose a role', roleSearch: 'Find roles to assign', chooseAPI: 'Choose an API', api: 'API', choosePermission: 'Choose a permission',
+    permission: 'Permission', addPermission: 'Add permission', removePermission: 'Remove permission', noPermissions: 'No permissions assigned',
+    direct: 'Direct assignment', inherited: 'Inherited from role', sources: 'Sources', removeDirect: 'Remove direct assignment',
+    inheritedHint: 'To remove an inherited permission, update its role.',
+    assignUser: 'Assign user', userID: 'User ID', noUsers: 'No users assigned', removeUser: 'Remove user',
+    enable: 'Enable RBAC', profile: 'Access token profile', auth0: 'Auth0 profile', rfc: 'RFC 9068 profile',
+    include: 'Add permissions in access token', reload: 'Reload saved state', uncertain: 'The write could not be confirmed. Reload saved state before retrying.',
+    previous: 'Previous', next: 'Next', range: '{from}–{to} of {total}',
+  },
   branding: {
     "themeLabels": {
   "borders_button_border_radius": "Button border radius",

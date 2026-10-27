@@ -146,6 +146,11 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	for _, opt := range opts {
 		opt(&o)
 	}
+	if capable, ok := st.(store.RBACSupporter); ok {
+		if err := capable.CheckRBACSupport(ctx); err != nil {
+			return nil, fmt.Errorf("app: RBAC storage capability required: %w", err)
+		}
+	}
 	if err := federation.PreflightMicrosoftIdentities(ctx, st); err != nil {
 		return nil, err
 	}
@@ -208,6 +213,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	for _, tn := range tenants {
 		if err := tenantsetup.UpgradeManagementAPIName(ctx, st, tn, cfg.Server.BaseDomain); err != nil {
 			return nil, fmt.Errorf("app: upgrade Management API for tenant %q: %w", tn.Name, err)
+		}
+		if err := tenantsetup.UpgradeManagementAPIScopes(ctx, st, tn, cfg.Server.BaseDomain); err != nil {
+			return nil, fmt.Errorf("app: upgrade Management API scopes for tenant %q: %w", tn.Name, err)
 		}
 		if err := km.Ensure(ctx, tn.ID); err != nil {
 			return nil, fmt.Errorf("app: signing keys for tenant %q: %w", tn.Name, err)

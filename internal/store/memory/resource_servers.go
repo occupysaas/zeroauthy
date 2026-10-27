@@ -53,6 +53,7 @@ func (r resourceServers) Update(_ context.Context, rs *store.ResourceServer) err
 	if r.identifierTaken(rs) {
 		return store.ErrConflict
 	}
+	r.s.cleanupRBACAPI(rs.TenantID, r.s.resourceServers[k].Identifier, rs.Scopes)
 	r.s.resourceServers[k] = cloneResourceServer(rs)
 	return nil
 }
@@ -65,6 +66,7 @@ func (r resourceServers) Delete(_ context.Context, tenantID, id string) error {
 	if !ok {
 		return store.ErrNotFound
 	}
+	r.s.cleanupRBACAPI(tenantID, rs.Identifier, nil)
 	delete(r.s.resourceServers, k)
 	// A tenant whose default audience was this API has none now (D-0041).
 	if t, ok := r.s.tenants[tenantID]; ok && t.DefaultAudience == rs.Identifier {

@@ -124,3 +124,12 @@ A fresh web-tool request to the public changelog exceeded its response size
 limit; this failed retrieval provides no new coverage and does not advance the
 reviewed-through date. No new provider behavior is inferred. Source limitations
 are recorded in `observations/email-account-connections.md`.
+
+## 2026-10-27 — Plan 26 Task 1
+
+Prior reviewed-through coverage remains 2026-10-26. A fresh public changelog
+request exceeded the web tool response-size limit; no later coverage is claimed.
+Current public roles/user documentation was reviewed independently: group and
+EA organization-role/effective-role surfaces are inventoried as deferred, while
+Plan 26 freezes direct tenant roles and permissions. See
+[roles and permissions review](observations/roles-permissions.md) and D-0052.

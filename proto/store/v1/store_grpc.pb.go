@@ -19,6 +19,21 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	StoreService_RBACCapabilities_FullMethodName                       = "/zeroauthy.store.v1.StoreService/RBACCapabilities"
+	StoreService_RBACCreateRole_FullMethodName                         = "/zeroauthy.store.v1.StoreService/RBACCreateRole"
+	StoreService_RBACGetRole_FullMethodName                            = "/zeroauthy.store.v1.StoreService/RBACGetRole"
+	StoreService_RBACUpdateRole_FullMethodName                         = "/zeroauthy.store.v1.StoreService/RBACUpdateRole"
+	StoreService_RBACDeleteRole_FullMethodName                         = "/zeroauthy.store.v1.StoreService/RBACDeleteRole"
+	StoreService_RBACListRoles_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RBACListRoles"
+	StoreService_RBACRolePermissions_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RBACRolePermissions"
+	StoreService_RBACChangeRolePermissions_FullMethodName              = "/zeroauthy.store.v1.StoreService/RBACChangeRolePermissions"
+	StoreService_RBACRoleUsers_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RBACRoleUsers"
+	StoreService_RBACAssignRoleUsers_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RBACAssignRoleUsers"
+	StoreService_RBACUserRoles_FullMethodName                          = "/zeroauthy.store.v1.StoreService/RBACUserRoles"
+	StoreService_RBACChangeUserRoles_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RBACChangeUserRoles"
+	StoreService_RBACUserPermissions_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RBACUserPermissions"
+	StoreService_RBACChangeUserPermissions_FullMethodName              = "/zeroauthy.store.v1.StoreService/RBACChangeUserPermissions"
+	StoreService_RBACSnapshot_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RBACSnapshot"
 	StoreService_Ping_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/Ping"
 	StoreService_MicrosoftFederationSupported_FullMethodName           = "/zeroauthy.store.v1.StoreService/MicrosoftFederationSupported"
 	StoreService_CustomDomainsSupported_FullMethodName                 = "/zeroauthy.store.v1.StoreService/CustomDomainsSupported"
@@ -266,6 +281,21 @@ const (
 // transaction BeginTx returned. Domain errors are reported in the response's
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceClient interface {
+	RBACCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*RBACCapabilitiesResult, error)
+	RBACCreateRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACGetRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACUpdateRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACDeleteRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACListRoles(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACRolePermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACChangeRolePermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACRoleUsers(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACAssignRoleUsers(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACUserRoles(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACChangeUserRoles(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACChangeUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	RBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error)
 	// Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
 	MicrosoftFederationSupported(ctx context.Context, in *MicrosoftFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
@@ -475,6 +505,156 @@ type storeServiceClient struct {
 
 func NewStoreServiceClient(cc grpc.ClientConnInterface) StoreServiceClient {
 	return &storeServiceClient{cc}
+}
+
+func (c *storeServiceClient) RBACCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*RBACCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_RBACCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACCreateRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACCreateRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACGetRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACGetRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACUpdateRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACUpdateRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACDeleteRole(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACDeleteRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACListRoles(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACListRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACRolePermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACRolePermissions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACChangeRolePermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACChangeRolePermissions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACRoleUsers(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACRoleUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACAssignRoleUsers(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACAssignRoleUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACUserRoles(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACUserRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACChangeUserRoles(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACChangeUserRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACUserPermissions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACChangeUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACChangeUserPermissions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) RBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RBACResponse)
+	err := c.cc.Invoke(ctx, StoreService_RBACSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *storeServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error) {
@@ -2396,6 +2576,21 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 // transaction BeginTx returned. Domain errors are reported in the response's
 // `error` field; gRPC status codes mean transport or plugin failure.
 type StoreServiceServer interface {
+	RBACCapabilities(context.Context, *PingRequest) (*RBACCapabilitiesResult, error)
+	RBACCreateRole(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACGetRole(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACUpdateRole(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACDeleteRole(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACListRoles(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACRolePermissions(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACChangeRolePermissions(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACRoleUsers(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACAssignRoleUsers(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACUserRoles(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACChangeUserRoles(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACChangeUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
+	RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error)
 	Ping(context.Context, *PingRequest) (*Result, error)
 	// Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
 	MicrosoftFederationSupported(context.Context, *MicrosoftFederationCapabilitiesRequest) (*Result, error)
@@ -2607,6 +2802,51 @@ type StoreServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedStoreServiceServer struct{}
 
+func (UnimplementedStoreServiceServer) RBACCapabilities(context.Context, *PingRequest) (*RBACCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACCreateRole(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACCreateRole not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACGetRole(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACGetRole not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACUpdateRole(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACUpdateRole not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACDeleteRole(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACDeleteRole not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACListRoles(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACListRoles not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACRolePermissions(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACRolePermissions not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACChangeRolePermissions(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACChangeRolePermissions not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACRoleUsers(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACRoleUsers not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACAssignRoleUsers(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACAssignRoleUsers not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACUserRoles(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACUserRoles not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACChangeUserRoles(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACChangeUserRoles not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACUserPermissions not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACChangeUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACChangeUserPermissions not implemented")
+}
+func (UnimplementedStoreServiceServer) RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RBACSnapshot not implemented")
+}
 func (UnimplementedStoreServiceServer) Ping(context.Context, *PingRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
 }
@@ -3181,6 +3421,276 @@ func RegisterStoreServiceServer(s grpc.ServiceRegistrar, srv StoreServiceServer)
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&StoreService_ServiceDesc, srv)
+}
+
+func _StoreService_RBACCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACCreateRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACCreateRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACCreateRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACCreateRole(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACGetRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACGetRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACGetRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACGetRole(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACUpdateRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACUpdateRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACUpdateRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACUpdateRole(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACDeleteRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACDeleteRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACDeleteRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACDeleteRole(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACListRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACListRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACListRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACListRoles(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACRolePermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACRolePermissions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACRolePermissions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACRolePermissions(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACChangeRolePermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACChangeRolePermissions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACChangeRolePermissions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACChangeRolePermissions(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACRoleUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACRoleUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACRoleUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACRoleUsers(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACAssignRoleUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACAssignRoleUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACAssignRoleUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACAssignRoleUsers(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACUserRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACUserRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACUserRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACUserRoles(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACChangeUserRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACChangeUserRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACChangeUserRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACChangeUserRoles(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACUserPermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACUserPermissions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACUserPermissions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACUserPermissions(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACChangeUserPermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACChangeUserPermissions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACChangeUserPermissions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACChangeUserPermissions(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_RBACSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RBACRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).RBACSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_RBACSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).RBACSnapshot(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _StoreService_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -6513,6 +7023,66 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "zeroauthy.store.v1.StoreService",
 	HandlerType: (*StoreServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RBACCapabilities",
+			Handler:    _StoreService_RBACCapabilities_Handler,
+		},
+		{
+			MethodName: "RBACCreateRole",
+			Handler:    _StoreService_RBACCreateRole_Handler,
+		},
+		{
+			MethodName: "RBACGetRole",
+			Handler:    _StoreService_RBACGetRole_Handler,
+		},
+		{
+			MethodName: "RBACUpdateRole",
+			Handler:    _StoreService_RBACUpdateRole_Handler,
+		},
+		{
+			MethodName: "RBACDeleteRole",
+			Handler:    _StoreService_RBACDeleteRole_Handler,
+		},
+		{
+			MethodName: "RBACListRoles",
+			Handler:    _StoreService_RBACListRoles_Handler,
+		},
+		{
+			MethodName: "RBACRolePermissions",
+			Handler:    _StoreService_RBACRolePermissions_Handler,
+		},
+		{
+			MethodName: "RBACChangeRolePermissions",
+			Handler:    _StoreService_RBACChangeRolePermissions_Handler,
+		},
+		{
+			MethodName: "RBACRoleUsers",
+			Handler:    _StoreService_RBACRoleUsers_Handler,
+		},
+		{
+			MethodName: "RBACAssignRoleUsers",
+			Handler:    _StoreService_RBACAssignRoleUsers_Handler,
+		},
+		{
+			MethodName: "RBACUserRoles",
+			Handler:    _StoreService_RBACUserRoles_Handler,
+		},
+		{
+			MethodName: "RBACChangeUserRoles",
+			Handler:    _StoreService_RBACChangeUserRoles_Handler,
+		},
+		{
+			MethodName: "RBACUserPermissions",
+			Handler:    _StoreService_RBACUserPermissions_Handler,
+		},
+		{
+			MethodName: "RBACChangeUserPermissions",
+			Handler:    _StoreService_RBACChangeUserPermissions_Handler,
+		},
+		{
+			MethodName: "RBACSnapshot",
+			Handler:    _StoreService_RBACSnapshot_Handler,
+		},
 		{
 			MethodName: "Ping",
 			Handler:    _StoreService_Ping_Handler,

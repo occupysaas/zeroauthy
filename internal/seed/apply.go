@@ -172,6 +172,11 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			return fmt.Errorf("resource server %q: %w", rs.Identifier, err)
 		}
 	}
+	for _, role := range in.Roles {
+		if err := applyRole(ctx, st, tn.ID, role, createOnly); err != nil {
+			return fmt.Errorf("role %q: %w", role.Name, err)
+		}
+	}
 	for _, c := range in.Clients {
 		if err := applyClient(ctx, st, tn.ID, c, now, w, createOnly); err != nil {
 			return fmt.Errorf("client %q: %w", c.ClientID, err)

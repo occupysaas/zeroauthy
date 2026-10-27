@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
@@ -135,6 +136,27 @@ type userTokens struct {
 // token (D-0008).
 func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *store.Client, ut userTokens) (*authapi.TokenResponse, *Error) {
 	tenantID := res.Tenant.ID
+	requestedScopes := len(ut.scopes) > 0
+	auth, authErr := h.authorizeUserToken(ctx, tenantID, ut.user.UserID, ut.rs, ut.scopes)
+	if authErr != nil {
+		return nil, authErr
+	}
+	ut.rs, ut.scopes = auth.API, auth.Scopes
+	if ut.rs != nil && !ut.rs.IsSystem {
+		decision, e := h.decide(ctx, tenantID, access.Refresh, c, ut.rs, ut.scopes)
+		if e != nil {
+			return nil, e
+		}
+		ut.scopes = decision.Scopes
+		ut.lifetime = DefaultAccessTokenLifetime
+		if ut.rs.TokenLifetime > 0 {
+			ut.lifetime = time.Duration(ut.rs.TokenLifetime) * time.Second
+		}
+	}
+	dialect := ""
+	if ut.rs != nil {
+		dialect = ut.rs.TokenDialect
+	}
 	userinfo := res.Issuer() + "userinfo"
 	openid := slices.Contains(ut.scopes, "openid")
 	var audiences []string
@@ -153,14 +175,14 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
 		ClientID: c.ClientID, Scopes: ut.scopes, Lifetime: ut.lifetime, GrantType: ut.grantType,
-		Operator: operator,
+		Operator: operator, TokenDialect: dialect, Permissions: auth.Permissions, IncludePermissions: auth.IncludePermissions,
 	})
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
 	resp := &authapi.TokenResponse{AccessToken: accessToken, TokenType: "Bearer", ExpiresIn: int(ut.lifetime / time.Second)}
-	if len(ut.scopes) > 0 {
+	if len(ut.scopes) > 0 || requestedScopes {
 		s := strings.Join(ut.scopes, " ")
 		resp.Scope = &s
 	}
@@ -204,4 +226,9 @@ func (h *Handlers) operatorClaim(ctx context.Context, res tenant.Resolved, c *st
 		return nil, serverError()
 	}
 	return slices.Clone(op.Tenants), nil
+}
+
+// responseHasScope checks the final issuance snapshot before creating refresh state.
+func responseHasScope(resp *authapi.TokenResponse, scope string) bool {
+	return resp.Scope != nil && slices.Contains(strings.Fields(*resp.Scope), scope)
 }

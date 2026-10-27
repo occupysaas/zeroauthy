@@ -31,6 +31,17 @@ tenants:
       - client_id: e2e-cli-admin
         audience: "https://cli.e2e.test/api/v2/"
         scopes:
+          - read:roles
+          - create:roles
+          - update:roles
+          - delete:roles
+          - read:role_members
+          - create:role_members
+          - delete:role_members
+          - read:users
+          - create:users
+          - update:users
+          - delete:users
           - read:clients
           - create:clients
           - update:clients
@@ -92,6 +103,17 @@ tenants:
         scopes:
           - read:client_keys
           - read:users
+          - read:roles
+          - create:roles
+          - update:roles
+          - delete:roles
+          - read:role_members
+          - create:role_members
+          - delete:role_members
+          - read:users
+          - create:users
+          - update:users
+          - delete:users
           - read:clients
           - create:clients
           - update:clients

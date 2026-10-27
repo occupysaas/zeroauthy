@@ -13,14 +13,14 @@ type resourceServers struct{ s *Store }
 func (s *Store) ResourceServers() store.ResourceServers { return resourceServers{s} }
 
 const resourceServerCols = `tenant_id, id, identifier, name, scopes, signing_alg, token_lifetime, allow_offline_access, created_at,
- skip_consent_for_verifiable_first_party_clients, user_policy, client_policy, is_system, origin, token_lifetime_for_web`
+ skip_consent_for_verifiable_first_party_clients, user_policy, client_policy, is_system, origin, token_lifetime_for_web, enforce_policies, token_dialect`
 
 func (r resourceServers) Create(ctx context.Context, rs *store.ResourceServer) error {
 	args, err := resourceServerArgs(rs)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO resource_servers (`+resourceServerCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO resource_servers (`+resourceServerCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -33,26 +33,40 @@ func (r resourceServers) GetByIdentifier(ctx context.Context, tenantID, identifi
 }
 
 func (r resourceServers) Update(ctx context.Context, rs *store.ResourceServer) error {
-	args, err := resourceServerArgs(rs)
-	if err != nil {
-		return err
-	}
-	res, err := r.s.write(ctx, nil, `UPDATE resource_servers SET identifier=?, name=?, scopes=?, signing_alg=?, token_lifetime=?,
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		if err := tx.lockRBAC(ctx, rs.TenantID); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		args, err := resourceServerArgs(rs)
+		if err != nil {
+			return err
+		}
+		res, err := tx.exec(ctx, `UPDATE resource_servers SET identifier=?, name=?, scopes=?, signing_alg=?, token_lifetime=?,
  allow_offline_access=?, created_at=?, skip_consent_for_verifiable_first_party_clients=?, user_policy=?,
- client_policy=?, is_system=?, origin=?, token_lifetime_for_web=? WHERE tenant_id=? AND id=?`, append(args[2:], rs.TenantID, rs.ID)...)
-	if err != nil {
-		return r.s.conflict(err)
-	}
-	return expectRow(res)
+ client_policy=?, is_system=?, origin=?, token_lifetime_for_web=?, enforce_policies=?, token_dialect=? WHERE tenant_id=? AND id=?`, append(args[2:], rs.TenantID, rs.ID)...)
+		if err != nil {
+			return tx.conflict(err)
+		}
+		if err = expectRow(res); err != nil {
+			return err
+		}
+		return tx.pruneRBACPermissions(ctx, rs.TenantID, rs.ID, rs.Scopes)
+	})
 }
 
 func (r resourceServers) Delete(ctx context.Context, tenantID, id string) error {
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		if err := tx.lockRBAC(ctx, tenantID); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
 		rs, err := resourceServers{tx}.Get(ctx, tenantID, id)
 		if err != nil {
 			return err
 		}
 		if _, err := tx.exec(ctx, `DELETE FROM resource_servers WHERE tenant_id = ? AND id = ?`, tenantID, id); err != nil {
+			return err
+		}
+		if err := tx.pruneRBACPermissions(ctx, tenantID, id, nil); err != nil {
 			return err
 		}
 		// A tenant whose default audience was this API has none now (D-0041).
@@ -107,6 +121,16 @@ func (r resourceServers) RenameSystem(ctx context.Context, tenantID, identifier,
 }
 
 func (r resourceServers) one(ctx context.Context, q string, args ...any) (*store.ResourceServer, error) {
+	// PATCH reads a complete record before merging omitted settings. Lock the
+	// same tenant boundary used by RBAC writers before observing those fields.
+	if r.s.tx != nil && len(args) > 0 {
+		if tenant, ok := args[0].(string); ok {
+			if err := r.s.lockRBAC(ctx, tenant); err != nil && !errors.Is(err, store.ErrNotFound) {
+				return nil, err
+			}
+		}
+	}
+
 	rs, err := scanResourceServer(r.s.queryRow(ctx, q, args...))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
@@ -120,7 +144,7 @@ func scanResourceServer(row scanner) (*store.ResourceServer, error) {
 	var created int64
 	err := row.Scan(&rs.TenantID, &rs.ID, &rs.Identifier, &rs.Name, &scopes, &rs.SigningAlg,
 		&rs.TokenLifetime, &rs.AllowOfflineAccess, &created, &rs.SkipConsentForVerifiableFirstPartyClients,
-		&rs.SubjectTypeAuthorization.User, &rs.SubjectTypeAuthorization.Client, &rs.IsSystem, &rs.Origin, &rs.TokenLifetimeForWeb)
+		&rs.SubjectTypeAuthorization.User, &rs.SubjectTypeAuthorization.Client, &rs.IsSystem, &rs.Origin, &rs.TokenLifetimeForWeb, &rs.EnforcePolicies, &rs.TokenDialect)
 	if err != nil {
 		return nil, err
 	}
@@ -138,5 +162,5 @@ func resourceServerArgs(rs *store.ResourceServer) ([]any, error) {
 	}
 	return []any{rs.TenantID, rs.ID, rs.Identifier, rs.Name, scopes, rs.SigningAlg, rs.TokenLifetime,
 		rs.AllowOfflineAccess, micros(rs.CreatedAt), rs.SkipConsentForVerifiableFirstPartyClients,
-		rs.SubjectTypeAuthorization.User, rs.SubjectTypeAuthorization.Client, rs.IsSystem, rs.Origin, rs.TokenLifetimeForWeb}, nil
+		rs.SubjectTypeAuthorization.User, rs.SubjectTypeAuthorization.Client, rs.IsSystem, rs.Origin, rs.TokenLifetimeForWeb, rs.EnforcePolicies, rs.TokenDialect}, nil
 }

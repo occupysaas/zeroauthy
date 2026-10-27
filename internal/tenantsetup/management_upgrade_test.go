@@ -66,3 +66,64 @@ func TestManagementAPINameUpgrade(t *testing.T) {
 		t.Fatalf("reserved tenant: %v", err)
 	}
 }
+
+func TestRBACManagementUpgrade(t *testing.T) {
+	ctx := context.Background()
+	st := memory.New()
+	defer st.Close()
+	tn := &store.Tenant{ID: "old", Name: "old", Domains: []string{"old.test"}}
+	if err := st.Tenants().Create(ctx, tn); err != nil {
+		t.Fatal(err)
+	}
+	api, err := ManagementAPI(ctx, st, tn, "example.test", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	api.Scopes = []store.Scope{{Value: "read:users", Description: "retained"}}
+	api.TokenLifetime = 321
+	if err := st.ResourceServers().Update(ctx, api); err != nil {
+		t.Fatal(err)
+	}
+	grant := &store.ClientGrant{TenantID: tn.ID, ID: "restricted", ClientID: "client", Audience: api.Identifier, SubjectType: store.SubjectTypeClient, Scopes: []string{"read:users"}}
+	if err := st.ClientGrants().Create(ctx, grant); err != nil {
+		t.Fatal(err)
+	}
+	if err := UpgradeManagementAPIScopes(ctx, st, tn, "example.test"); err != nil {
+		t.Fatal(err)
+	}
+	if err := UpgradeManagementAPIScopes(ctx, st, tn, "example.test"); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.ResourceServers().Get(ctx, tn.ID, api.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.TokenLifetime != 321 || got.Scopes[0].Description != "retained" || len(got.Scopes) != len(ManagementAPIScopes) {
+		t.Fatalf("upgrade changed settings or duplicated scopes: %+v", got)
+	}
+	for _, required := range []string{"read:roles", "create:roles", "update:roles", "delete:roles", "read:role_members", "create:role_members", "delete:role_members"} {
+		found := false
+		for _, s := range got.Scopes {
+			if s.Value == required {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("missing %s", required)
+		}
+	}
+	actual, err := st.ClientGrants().Find(ctx, tn.ID, grant.ClientID, grant.Audience, store.SubjectTypeClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(actual.Scopes) != 1 || actual.Scopes[0] != "read:users" {
+		t.Fatalf("grant expanded: %+v", actual)
+	}
+	missing := &store.Tenant{ID: "missing", Name: "missing", Domains: []string{"missing.test"}}
+	if err := UpgradeManagementAPIScopes(ctx, st, missing, "example.test"); err != nil {
+		t.Fatal(err)
+	}
+	if err := UpgradeManagementAPIScopes(ctx, st, &store.Tenant{Reserved: true}, "example.test"); err != nil {
+		t.Fatal(err)
+	}
+}
