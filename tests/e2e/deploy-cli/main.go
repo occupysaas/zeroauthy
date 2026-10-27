@@ -39,6 +39,8 @@ func commandOutput(args []string) ([]byte, error) {
 	sourceDomain := fs.String("source-domain", "", "")
 	targetDomain := fs.String("target-domain", "", "")
 	input := fs.String("input", "", "API inventory JSON")
+	credentials := fs.String("credentials", "", "private provider-secret map")
+	output := fs.String("output", "", "private prepared connection JSON")
 	if err := fs.Parse(args[1:]); err != nil {
 		return nil, err
 	}
@@ -46,6 +48,30 @@ func commandOutput(args []string) ([]byte, error) {
 		return nil, errors.New("unexpected positional arguments")
 	}
 	switch args[0] {
+	case "prepare-federation":
+		if *source == "" || *credentials == "" || *output == "" {
+			return nil, errors.New("prepare-federation requires source, credentials and output")
+		}
+		e, err := load(*source, *format)
+		if err != nil {
+			return nil, err
+		}
+		b, err := os.ReadFile(*credentials)
+		if err != nil {
+			return nil, errors.New("provider-secret injection file is unavailable")
+		}
+		var secrets map[string]string
+		if json.Unmarshal(b, &secrets) != nil {
+			return nil, errors.New("provider-secret injection file is invalid")
+		}
+		prepared, err := deploymigration.FederationImport(e, secrets)
+		if err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(*output, prepared, 0600); err != nil {
+			return nil, errors.New("private federation staging is unavailable")
+		}
+		return []byte(`{"prepared":true}`), nil
 	case "compare":
 		if *source == "" || *target == "" || (*format != "yaml" && *format != "directory") {
 			return nil, errors.New("compare requires source, target and supported format")

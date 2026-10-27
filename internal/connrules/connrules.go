@@ -398,6 +398,11 @@ func normalizeFederated(s *Spec) []error {
 		fail("database options are not supported on strategy %q", s.Strategy)
 	}
 	for _, k := range slices.Sorted(maps.Keys(ExtraSchema)) {
+		// Microsoft personal uses the same wire key for its required v2 mode.
+		// Its value is checked by Microsoft rules below.
+		if s.Strategy == rules.WindowsLive && k == "strategy_version" {
+			continue
+		}
 		if _, ok := o.Extra[k]; ok {
 			fail("option %q is not supported on strategy %q", k, s.Strategy)
 		}

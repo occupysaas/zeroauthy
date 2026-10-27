@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFile, writeFile, mkdir, readdir, cp } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, cp, rm } from 'node:fs/promises';
+import { createHash, randomBytes } from 'node:crypto';
 import https from 'node:https';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +16,13 @@ assert.ok(['yaml', 'directory'].includes(format));
 assert.ok(['generated', 'preserved'].includes(mode));
 const secrets = ['e2e-cli-admin-secret-not-for-production', 'e2e-cli-target-admin-secret-not-for-production', 'e2e-cli-fixture-secret-not-for-production'];
 const emailSecret = 'm21-deploy-private-provider-secret';
+// Upstream provider credential the local mock accepts. It is written to the
+// source by API and reinjected into staged imports from a private map only.
+const upstreamSecret = 'm24-upstream-secret-not-for-production';
+secrets.push(upstreamSecret);
+const federation = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures/connections.json'), 'utf8'));
+const federationCredentials = path.join(work, 'federation-credentials.json');
+await writeFile(federationCredentials, JSON.stringify(Object.fromEntries(federation.map(c => [c.name, upstreamSecret]))), { mode: 0o600 });
 const sourceConfig = { ...JSON.parse(await readFile(process.env.E2E_M20_CONFIG, 'utf8')), AUTH0_CLIENT_SECRET: secrets[0], AUTH0_EXPORT_IDENTIFIERS: false };
 const targetConfig = { ...sourceConfig, AUTH0_DOMAIN: 'target.cli.e2e.test', AUTH0_CLIENT_ID: 'e2e-cli-target-admin', AUTH0_CLIENT_SECRET: secrets[1] };
 const bin = path.join(e2e, 'node_modules/.bin/a0deploy');
@@ -42,7 +50,8 @@ function deploy(command, config, input, expectedFailure) {
   // restricted scratch storage and emit only operation/status to the console.
   if (expectedFailure) {
     assert.notEqual(result.status, 0, expectedFailure);
-    assert.match(`${result.stdout}${result.stderr}`, expectedFailure === 'unverified default import must fail' ? /custom_domain_not_ready|custom domain is not ready/i : /custom_client_ip_header|enum/i);
+    const pattern = { 'unverified default import must fail': /custom_domain_not_ready|custom domain is not ready/i, 'uninjected federation import must fail': /client_secret/i }[expectedFailure] ?? /custom_client_ip_header|enum/i;
+    assert.match(`${result.stdout}${result.stderr}`, pattern);
     return;
   }
   if (result.status !== 0) {
@@ -68,6 +77,7 @@ async function assertNoEmailSecrets(exportPath) {
   const joined = files.join('\n');
   for (const secret of proxySecrets) assert.equal(joined.includes(secret), false, 'deploy export contains a proxy secret');
   assert.equal(joined.includes(emailSecret), false, 'public deploy export contains provider credential');
+  assert.equal(joined.includes(upstreamSecret), false, 'public deploy export contains a federation provider credential');
   assert.equal(joined.includes('********'), false, 'public deploy export contains a credential mask');
 }
 function request(config, method, route, body, token) {
@@ -109,7 +119,7 @@ async function prove(config, domain) {
   proxySecrets.push(verified.cname_api_key);
   assert.equal((await api(config,'GET',`custom-domains/${domain.custom_domain_id}`)).cname_api_key,undefined);
 }
-async function prepareImport(input, name, mutate = () => {}) {
+async function prepareImport(input, name, mutate = () => {}, { inject = true } = {}) {
   const folder=path.join(work,name);await mkdir(folder,{recursive:true});
   let destination;
   if(format==='yaml') {destination=path.join(folder,'tenant.yaml');await cp(path.dirname(input),folder,{recursive:true});}
@@ -121,7 +131,43 @@ async function prepareImport(input, name, mutate = () => {}) {
   for(const d of domains) for(const key of ['custom_domain_id','verification','status','origin_domain_name','certificate','primary']) delete d[key];
   mutate(domains);
   await writeFile(file,format==='yaml'?dumpYaml(data):JSON.stringify(data),{mode:0o600});
+  if(inject) await injectFederation(destination);
   return destination;
+}
+// Exports never carry provider credentials. The staged import receives them
+// from the private credential map; a missing entry or script fails here.
+async function injectFederation(destination, credentials = federationCredentials) {
+  const prepared=path.join(work,'federation-prepared.json');
+  const result=comparator(['prepare-federation','--source',destination,'--format',format,'--credentials',credentials,'--output',prepared]);
+  if(result.status!==0) return false;
+  const rows=JSON.parse(await readFile(prepared,'utf8'));await rm(prepared);
+  if(format==='yaml') {const data=parseYaml(await readFile(destination,'utf8'));data.connections=rows;await writeFile(destination,dumpYaml(data),{mode:0o600});}
+  else {const dir=path.join(destination,'connections');await rm(dir,{recursive:true,force:true});await mkdir(dir,{mode:0o700});for(const row of rows) await writeFile(path.join(dir,`${row.name}.json`),JSON.stringify(row),{mode:0o600});}
+  return true;
+}
+// One provider login per migrated connection on the target: the hosted
+// /authorize redirect, the mock provider's consent form, the federation
+// callback and the downstream authorization-code + PKCE exchange.
+async function federatedLogin(clientId, connection, subject) {
+  const ports={'target.cli.e2e.test':8444,'idp.e2e.test':8446};const jar={};
+  const send=(method,url,body)=>new Promise((resolve,reject)=>{const req=https.request({hostname:'127.0.0.1',port:ports[url.hostname],servername:url.hostname,path:url.pathname+url.search,method,headers:{host:url.hostname,...(jar[url.hostname]?{cookie:Object.entries(jar[url.hostname]).map(([k,v])=>`${k}=${v}`).join('; ')}:{}),...(body?{'content-type':'application/x-www-form-urlencoded'}:{})}},res=>{
+    for(const c of res.headers['set-cookie']??[]){const [pair]=c.split(';');const i=pair.indexOf('=');(jar[url.hostname]??={})[pair.slice(0,i)]=pair.slice(i+1);}
+    res.resume();res.on('end',()=>resolve(res));});req.on('error',reject);if(body)req.write(body);req.end();});
+  const verifier=randomBytes(32).toString('base64url'),state=randomBytes(16).toString('hex'),nonce=randomBytes(16).toString('hex'),redirect='https://callback.e2e.test/';
+  let url=new URL(`https://${targetConfig.AUTH0_DOMAIN}/authorize?${new URLSearchParams({client_id:clientId,redirect_uri:redirect,response_type:'code',scope:'openid profile email',state,nonce,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',connection})}`);
+  let method='GET',body,code;
+  for(let hop=0;hop<12&&!code;hop++) {
+    const res=await send(method,url,body);method='GET';body=undefined;
+    if(res.statusCode>=300&&res.statusCode<400) {url=new URL(res.headers.location,url);if(url.href.startsWith(redirect)){assert.equal(url.searchParams.get('state'),state);code=url.searchParams.get('code');}continue;}
+    assert.ok(res.statusCode===200&&url.hostname==='idp.e2e.test',`${connection}: unexpected ${res.statusCode} at ${url.hostname}${url.pathname}`);
+    method='POST';body=new URLSearchParams({...Object.fromEntries(url.searchParams),subject,decision:'allow'}).toString();url=new URL(url.pathname,url);
+  }
+  assert.ok(code,`${connection}: no downstream authorization code`);
+  const token=await request(targetConfig,'POST','/oauth/token',{grant_type:'authorization_code',client_id:clientId,code,code_verifier:verifier,redirect_uri:redirect});
+  assert.ok(token.access_token);assert.equal(token.scope,'openid profile email');
+  const claims=JSON.parse(Buffer.from(token.id_token.split('.')[1],'base64url'));
+  assert.equal(claims.nonce,nonce);assert.equal(claims.aud,clientId);assert.equal(claims.iss,`https://${targetConfig.AUTH0_DOMAIN}/`);
+  return claims.sub;
 }
 
 const sourcePath = format === 'yaml' ? path.join(work, 'source-export/tenant.yaml') : path.join(work, 'source-export');
@@ -158,6 +204,10 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   const collision = await api(sourceConfig, 'POST', 'resource-servers', { name: 'Auth0 Management API', identifier: 'https://collision.cli.e2e.test' });
   await inventory(sourceConfig, true);
   await api(sourceConfig, 'DELETE', `resource-servers/${collision.id}`);
+  for (const c of federation) {
+    const created = await api(sourceConfig, 'POST', 'connections', { ...c, enabled_clients: ['e2e-cli-browser'], options: { ...c.options, client_secret: upstreamSecret } });
+    assert.equal(JSON.stringify(created).includes(upstreamSecret), false, 'connection create returned its provider credential');
+  }
   const sourcePublicExport = await exportTo('source', 'source-export');
   await assertNoEmailSecrets(sourcePublicExport);
   assert.equal((await api(sourceConfig,'GET','branding/templates/universal-login')).body,templateBody);
@@ -191,6 +241,11 @@ const toolBefore = await api(targetConfig, 'GET', `clients/${targetConfig.AUTH0_
 // The subsequent CLI import omits credentials and its PATCH must preserve it.
   await api(targetConfig, 'POST', 'emails/provider', { name: 'sendgrid', enabled: false, default_from_address: 'target-before-import@example.test', credentials: { api_key: emailSecret } });
 assertPrivateEmailCredential();
+const missing=path.join(work,'federation-missing.json');
+await writeFile(missing,JSON.stringify({[federation[0].name]:upstreamSecret}),{mode:0o600});
+assert.equal(await injectFederation(await prepareImport(sourcePath,'federation-missing',d=>{for(const x of d)x.is_default=false;},{inject:false}),missing),false,'missing provider-secret injection was accepted');
+deploy('import','target',await prepareImport(sourcePath,'federation-uninjected',d=>{for(const x of d)x.is_default=false;},{inject:false}),'uninjected federation import must fail');
+assert.equal((await api(targetConfig,'GET','connections?strategy=windowslive')).length,0,'uninjected import created a connection without credentials');
 const finalImport=await prepareImport(sourcePath,'final-import');
 deploy('import','target',finalImport,'unverified default import must fail');
 assert.equal((await api(targetConfig,'GET','custom-domains/default')).domain,'target.cli.e2e.test');
@@ -207,6 +262,20 @@ assertPrivateEmailCredential();
 let targetPath = await exportTo('target', 'target-first');
 assert.equal(checkedCompare(sourcePath, targetPath).equivalent, true, 'first round trip differs');
 const imported = (await exportClients(targetConfig))[0];
+// Every migrated connection must log in through its provider on the target,
+// with canonical identities keyed by the imported connection names.
+const browser=(await api(targetConfig,'GET','clients')).find(c=>c.name==='E2E deploy browser');
+assert.ok(browser,'browser application was not migrated');
+const expectedUsers={'google-oauth2':['deploy-google','google-oauth2|deploy-google'],'deploy-oauth':['deploy-oauth-user','oauth2|deploy-oauth|deploy-oauth-user'],'deploy-oidc':['deploy-oidc-user',null],'microsoft-personal':['outlook','windowslive|Sub-outlook'],'microsoft-directory':['work','waad|microsoft-directory|aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],'microsoft-organizations':['work','waad|microsoft-organizations|11111111-1111-4111-8111-111111111111:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']};
+assert.deepEqual(Object.keys(expectedUsers).sort(),federation.map(c=>c.name).sort());
+for(const [connection,[subject,want]] of Object.entries(expectedUsers)) {
+  const sub=await federatedLogin(browser.client_id,connection,subject);
+  if(want) assert.equal(sub,want,`${connection} identity format changed through migration`);
+  assert.equal(await federatedLogin(browser.client_id,connection,subject),sub,`${connection} repeat login changed ownership`);
+  const user=await api(targetConfig,'GET',`users/${encodeURIComponent(sub)}`);
+  assert.equal(user.identities.length,1);assert.equal(user.identities[0].connection,connection);assert.equal(user.identities[0].access_token,undefined);
+}
+console.log(`Plan 25 deploy: ${federation.length} federated connections (5 strategies) imported with explicit secret reinjection; missing/uninjected imports rejected; first and repeat provider logins passed`);
 assert.equal(imported.client_id === original.client_id, mode === 'preserved');
 assert.ok((imported.client_secret === original.client_secret) === (mode === 'preserved'), 'credential preservation mode mismatch');
 assert.ok(imported.client_secret);

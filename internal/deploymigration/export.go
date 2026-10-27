@@ -236,6 +236,11 @@ func checkExportReferences(value any, root string, files map[string][]byte) erro
 				}
 			}
 		case string:
+			// The pinned CLI exports this as inline JavaScript. Only an
+			// explicit .js/file:// value is a materialized script reference.
+			if key == "fetchUserProfile" && !isOAuthScriptReference(x) {
+				return nil
+			}
 			p, isRef := x, false
 			if strings.HasPrefix(strings.ToLower(x), "file://") {
 				p, isRef = x[len("file://"):], true

@@ -58,7 +58,22 @@ type App struct {
 	domains *customdomain.Service
 }
 
-func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error) {
+// Option adjusts construction from Go code only. No option is reachable from
+// configuration, the environment, seed files or any API.
+type Option func(*options)
+
+type options struct {
+	federation func() *federation.Providers
+}
+
+// WithFederationProviders replaces the production federation transport. It
+// exists for local fixture harnesses that pin provider endpoints and trust
+// roots; profile scripts are still attached by the app.
+func WithFederationProviders(f func() *federation.Providers) Option {
+	return func(o *options) { o.federation = f }
+}
+
+func New(ctx context.Context, cfg *config.Config, log *slog.Logger, opts ...Option) (*App, error) {
 	// The master key is checked before the store is opened, so a missing key
 	// never leaves a created or migrated database behind.
 	masterKey, err := MasterKey(cfg, log)
@@ -73,7 +88,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		_ = st.Close()
 		return nil, err
 	}
-	a, err := build(ctx, cfg, log, st, masterKey)
+	a, err := build(ctx, cfg, log, st, masterKey, opts...)
 	if err != nil {
 		_ = st.Close()
 		return nil, err
@@ -126,7 +141,11 @@ func MasterKey(cfg *config.Config, log *slog.Logger) ([]byte, error) {
 	return masterKey, nil
 }
 
-func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.Store, masterKey []byte) (*App, error) {
+func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.Store, masterKey []byte, opts ...Option) (*App, error) {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
 	if err := federation.PreflightMicrosoftIdentities(ctx, st); err != nil {
 		return nil, err
 	}
@@ -257,6 +276,9 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	// profile script runner when Node can prove network denial. Without it
 	// custom OAuth2 login alone is unavailable.
 	providers := federation.NewProviders(federation.NetworkPolicy{}, nil)
+	if o.federation != nil {
+		providers = o.federation()
+	}
 	profiles, err := script.NewRunner(script.Config{Node: cfg.CustomDB.Node}, script.NewBroker(providers.HTTPClient()))
 	if err == nil {
 		if perr := profiles.Probe(); perr != nil {
