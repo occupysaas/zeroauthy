@@ -34,6 +34,28 @@ const (
 	StoreService_RBACUserPermissions_FullMethodName                    = "/zeroauthy.store.v1.StoreService/RBACUserPermissions"
 	StoreService_RBACChangeUserPermissions_FullMethodName              = "/zeroauthy.store.v1.StoreService/RBACChangeUserPermissions"
 	StoreService_RBACSnapshot_FullMethodName                           = "/zeroauthy.store.v1.StoreService/RBACSnapshot"
+	StoreService_ActionsCapabilities_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsCapabilities"
+	StoreService_ActionsCreateAction_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsCreateAction"
+	StoreService_ActionsGetAction_FullMethodName                       = "/zeroauthy.store.v1.StoreService/ActionsGetAction"
+	StoreService_ActionsGetActionByName_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ActionsGetActionByName"
+	StoreService_ActionsUpdateAction_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsUpdateAction"
+	StoreService_ActionsDeleteAction_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsDeleteAction"
+	StoreService_ActionsListActions_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsListActions"
+	StoreService_ActionsDeploy_FullMethodName                          = "/zeroauthy.store.v1.StoreService/ActionsDeploy"
+	StoreService_ActionsGetVersion_FullMethodName                      = "/zeroauthy.store.v1.StoreService/ActionsGetVersion"
+	StoreService_ActionsListVersions_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsListVersions"
+	StoreService_ActionsPutBuild_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsPutBuild"
+	StoreService_ActionsGetBuild_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsGetBuild"
+	StoreService_ActionsPutArtifact_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsPutArtifact"
+	StoreService_ActionsGetArtifact_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsGetArtifact"
+	StoreService_ActionsBindings_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsBindings"
+	StoreService_ActionsReplaceBindings_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ActionsReplaceBindings"
+	StoreService_ActionsCreateExecution_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ActionsCreateExecution"
+	StoreService_ActionsGetExecution_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsGetExecution"
+	StoreService_ActionsPurgeExecutions_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ActionsPurgeExecutions"
+	StoreService_ActionsCreateContinue_FullMethodName                  = "/zeroauthy.store.v1.StoreService/ActionsCreateContinue"
+	StoreService_ActionsConsumeContinue_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ActionsConsumeContinue"
+	StoreService_ActionsPurgeContinue_FullMethodName                   = "/zeroauthy.store.v1.StoreService/ActionsPurgeContinue"
 	StoreService_Ping_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/Ping"
 	StoreService_MicrosoftFederationSupported_FullMethodName           = "/zeroauthy.store.v1.StoreService/MicrosoftFederationSupported"
 	StoreService_CustomDomainsSupported_FullMethodName                 = "/zeroauthy.store.v1.StoreService/CustomDomainsSupported"
@@ -296,6 +318,34 @@ type StoreServiceClient interface {
 	RBACUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACChangeUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	// Plan 27 Actions repository. A plugin lacking ActionsCapabilities fails
+	// closed; artifacts stream in chunks because they may exceed gRPC's
+	// default message size.
+	ActionsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*ActionsCapabilitiesResult, error)
+	ActionsCreateAction(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsGetAction(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsGetActionByName(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsUpdateAction(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsDeleteAction(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsListActions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsDeploy(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsGetVersion(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsListVersions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsPutBuild(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsGetBuild(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	// The first message carries the header (tx_id, tenant_id, build_id,
+	// total_size, sha256); every message may carry data.
+	ActionsPutArtifact(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ActionsArtifactChunk, Result], error)
+	// The first message carries total_size and sha256 for integrity checks.
+	ActionsGetArtifact(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ActionsArtifactChunk], error)
+	ActionsBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsReplaceBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsCreateExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsGetExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsPurgeExecutions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsCreateContinue(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsConsumeContinue(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsPurgeContinue(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error)
 	// Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
 	MicrosoftFederationSupported(ctx context.Context, in *MicrosoftFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
@@ -651,6 +701,238 @@ func (c *storeServiceClient) RBACSnapshot(ctx context.Context, in *RBACRequest, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RBACResponse)
 	err := c.cc.Invoke(ctx, StoreService_RBACSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*ActionsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_ActionsCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsCreateAction(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsCreateAction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsGetAction(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsGetAction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsGetActionByName(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsGetActionByName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsUpdateAction(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsUpdateAction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsDeleteAction(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsDeleteAction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsListActions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsListActions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsDeploy(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsDeploy_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsGetVersion(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsGetVersion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsListVersions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsListVersions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsPutBuild(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsPutBuild_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsGetBuild(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsGetBuild_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsPutArtifact(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ActionsArtifactChunk, Result], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &StoreService_ServiceDesc.Streams[0], StoreService_ActionsPutArtifact_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ActionsArtifactChunk, Result]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StoreService_ActionsPutArtifactClient = grpc.ClientStreamingClient[ActionsArtifactChunk, Result]
+
+func (c *storeServiceClient) ActionsGetArtifact(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ActionsArtifactChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &StoreService_ServiceDesc.Streams[1], StoreService_ActionsGetArtifact_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ActionsRequest, ActionsArtifactChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StoreService_ActionsGetArtifactClient = grpc.ServerStreamingClient[ActionsArtifactChunk]
+
+func (c *storeServiceClient) ActionsBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsBindings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsReplaceBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsReplaceBindings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsCreateExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsCreateExecution_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsGetExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsGetExecution_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsPurgeExecutions(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsPurgeExecutions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsCreateContinue(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsCreateContinue_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsConsumeContinue(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsConsumeContinue_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsPurgeContinue(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsPurgeContinue_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2489,7 +2771,7 @@ func (c *storeServiceClient) JobsAppendFile(ctx context.Context, in *JobsAppendF
 
 func (c *storeServiceClient) JobsReadFile(ctx context.Context, in *ScopedKey, opts ...grpc.CallOption) (grpc.ServerStreamingClient[JobFileChunk], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &StoreService_ServiceDesc.Streams[0], StoreService_JobsReadFile_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &StoreService_ServiceDesc.Streams[2], StoreService_JobsReadFile_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2591,6 +2873,34 @@ type StoreServiceServer interface {
 	RBACUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACChangeUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error)
+	// Plan 27 Actions repository. A plugin lacking ActionsCapabilities fails
+	// closed; artifacts stream in chunks because they may exceed gRPC's
+	// default message size.
+	ActionsCapabilities(context.Context, *PingRequest) (*ActionsCapabilitiesResult, error)
+	ActionsCreateAction(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsGetAction(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsGetActionByName(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsUpdateAction(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsDeleteAction(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsListActions(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsDeploy(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsGetVersion(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsListVersions(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsPutBuild(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsGetBuild(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	// The first message carries the header (tx_id, tenant_id, build_id,
+	// total_size, sha256); every message may carry data.
+	ActionsPutArtifact(grpc.ClientStreamingServer[ActionsArtifactChunk, Result]) error
+	// The first message carries total_size and sha256 for integrity checks.
+	ActionsGetArtifact(*ActionsRequest, grpc.ServerStreamingServer[ActionsArtifactChunk]) error
+	ActionsBindings(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsReplaceBindings(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsCreateExecution(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsGetExecution(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsPurgeExecutions(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsCreateContinue(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsConsumeContinue(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsPurgeContinue(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	Ping(context.Context, *PingRequest) (*Result, error)
 	// Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
 	MicrosoftFederationSupported(context.Context, *MicrosoftFederationCapabilitiesRequest) (*Result, error)
@@ -2846,6 +3156,72 @@ func (UnimplementedStoreServiceServer) RBACChangeUserPermissions(context.Context
 }
 func (UnimplementedStoreServiceServer) RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RBACSnapshot not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsCapabilities(context.Context, *PingRequest) (*ActionsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsCreateAction(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsCreateAction not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsGetAction(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsGetAction not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsGetActionByName(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsGetActionByName not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsUpdateAction(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsUpdateAction not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsDeleteAction(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsDeleteAction not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsListActions(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsListActions not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsDeploy(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsDeploy not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsGetVersion(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsGetVersion not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsListVersions(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsListVersions not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsPutBuild(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsPutBuild not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsGetBuild(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsGetBuild not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsPutArtifact(grpc.ClientStreamingServer[ActionsArtifactChunk, Result]) error {
+	return status.Error(codes.Unimplemented, "method ActionsPutArtifact not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsGetArtifact(*ActionsRequest, grpc.ServerStreamingServer[ActionsArtifactChunk]) error {
+	return status.Error(codes.Unimplemented, "method ActionsGetArtifact not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsBindings(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsBindings not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsReplaceBindings(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsReplaceBindings not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsCreateExecution(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsCreateExecution not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsGetExecution(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsGetExecution not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsPurgeExecutions(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsPurgeExecutions not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsCreateContinue(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsCreateContinue not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsConsumeContinue(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsConsumeContinue not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsPurgeContinue(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsPurgeContinue not implemented")
 }
 func (UnimplementedStoreServiceServer) Ping(context.Context, *PingRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
@@ -3689,6 +4065,384 @@ func _StoreService_RBACSnapshot_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).RBACSnapshot(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsCreateAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsCreateAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsCreateAction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsCreateAction(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsGetAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsGetAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsGetAction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsGetAction(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsGetActionByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsGetActionByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsGetActionByName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsGetActionByName(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsUpdateAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsUpdateAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsUpdateAction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsUpdateAction(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsDeleteAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsDeleteAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsDeleteAction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsDeleteAction(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsListActions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsListActions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsListActions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsListActions(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsDeploy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsDeploy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsDeploy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsDeploy(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsGetVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsGetVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsGetVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsGetVersion(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsListVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsListVersions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsListVersions(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsPutBuild_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsPutBuild(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsPutBuild_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsPutBuild(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsGetBuild_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsGetBuild(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsGetBuild_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsGetBuild(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsPutArtifact_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(StoreServiceServer).ActionsPutArtifact(&grpc.GenericServerStream[ActionsArtifactChunk, Result]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StoreService_ActionsPutArtifactServer = grpc.ClientStreamingServer[ActionsArtifactChunk, Result]
+
+func _StoreService_ActionsGetArtifact_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ActionsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StoreServiceServer).ActionsGetArtifact(m, &grpc.GenericServerStream[ActionsRequest, ActionsArtifactChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StoreService_ActionsGetArtifactServer = grpc.ServerStreamingServer[ActionsArtifactChunk]
+
+func _StoreService_ActionsBindings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsBindings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsBindings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsBindings(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsReplaceBindings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsReplaceBindings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsReplaceBindings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsReplaceBindings(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsCreateExecution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsCreateExecution(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsCreateExecution_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsCreateExecution(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsGetExecution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsGetExecution(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsGetExecution_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsGetExecution(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsPurgeExecutions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsPurgeExecutions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsPurgeExecutions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsPurgeExecutions(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsCreateContinue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsCreateContinue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsCreateContinue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsCreateContinue(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsConsumeContinue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsConsumeContinue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsConsumeContinue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsConsumeContinue(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsPurgeContinue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsPurgeContinue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsPurgeContinue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsPurgeContinue(ctx, req.(*ActionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -7084,6 +7838,86 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StoreService_RBACSnapshot_Handler,
 		},
 		{
+			MethodName: "ActionsCapabilities",
+			Handler:    _StoreService_ActionsCapabilities_Handler,
+		},
+		{
+			MethodName: "ActionsCreateAction",
+			Handler:    _StoreService_ActionsCreateAction_Handler,
+		},
+		{
+			MethodName: "ActionsGetAction",
+			Handler:    _StoreService_ActionsGetAction_Handler,
+		},
+		{
+			MethodName: "ActionsGetActionByName",
+			Handler:    _StoreService_ActionsGetActionByName_Handler,
+		},
+		{
+			MethodName: "ActionsUpdateAction",
+			Handler:    _StoreService_ActionsUpdateAction_Handler,
+		},
+		{
+			MethodName: "ActionsDeleteAction",
+			Handler:    _StoreService_ActionsDeleteAction_Handler,
+		},
+		{
+			MethodName: "ActionsListActions",
+			Handler:    _StoreService_ActionsListActions_Handler,
+		},
+		{
+			MethodName: "ActionsDeploy",
+			Handler:    _StoreService_ActionsDeploy_Handler,
+		},
+		{
+			MethodName: "ActionsGetVersion",
+			Handler:    _StoreService_ActionsGetVersion_Handler,
+		},
+		{
+			MethodName: "ActionsListVersions",
+			Handler:    _StoreService_ActionsListVersions_Handler,
+		},
+		{
+			MethodName: "ActionsPutBuild",
+			Handler:    _StoreService_ActionsPutBuild_Handler,
+		},
+		{
+			MethodName: "ActionsGetBuild",
+			Handler:    _StoreService_ActionsGetBuild_Handler,
+		},
+		{
+			MethodName: "ActionsBindings",
+			Handler:    _StoreService_ActionsBindings_Handler,
+		},
+		{
+			MethodName: "ActionsReplaceBindings",
+			Handler:    _StoreService_ActionsReplaceBindings_Handler,
+		},
+		{
+			MethodName: "ActionsCreateExecution",
+			Handler:    _StoreService_ActionsCreateExecution_Handler,
+		},
+		{
+			MethodName: "ActionsGetExecution",
+			Handler:    _StoreService_ActionsGetExecution_Handler,
+		},
+		{
+			MethodName: "ActionsPurgeExecutions",
+			Handler:    _StoreService_ActionsPurgeExecutions_Handler,
+		},
+		{
+			MethodName: "ActionsCreateContinue",
+			Handler:    _StoreService_ActionsCreateContinue_Handler,
+		},
+		{
+			MethodName: "ActionsConsumeContinue",
+			Handler:    _StoreService_ActionsConsumeContinue_Handler,
+		},
+		{
+			MethodName: "ActionsPurgeContinue",
+			Handler:    _StoreService_ActionsPurgeContinue_Handler,
+		},
+		{
 			MethodName: "Ping",
 			Handler:    _StoreService_Ping_Handler,
 		},
@@ -7821,6 +8655,16 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ActionsPutArtifact",
+			Handler:       _StoreService_ActionsPutArtifact_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "ActionsGetArtifact",
+			Handler:       _StoreService_ActionsGetArtifact_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "JobsReadFile",
 			Handler:       _StoreService_JobsReadFile_Handler,

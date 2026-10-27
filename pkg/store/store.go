@@ -25,6 +25,7 @@ type (
 	PageRequest                 = store.PageRequest
 	Paged[T any]                = store.Paged[T]
 	RBACSupporter               = store.RBACSupporter
+	ActionsSupporter            = store.ActionsSupporter
 	UnimplementedRBAC           = store.UnimplementedRBAC
 	Role                        = store.Role
 	PermissionKey               = store.PermissionKey

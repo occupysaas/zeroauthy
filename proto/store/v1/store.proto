@@ -74,6 +74,35 @@ service StoreService {
   rpc RBACChangeUserPermissions(RBACRequest) returns (RBACResponse);
   rpc RBACSnapshot(RBACRequest) returns (RBACResponse);
 
+  // Plan 27 Actions repository. A plugin lacking ActionsCapabilities fails
+  // closed; artifacts stream in chunks because they may exceed gRPC's
+  // default message size.
+  rpc ActionsCapabilities(PingRequest) returns (ActionsCapabilitiesResult);
+  rpc ActionsCreateAction(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsGetAction(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsGetActionByName(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsUpdateAction(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsDeleteAction(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsListActions(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsDeploy(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsGetVersion(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsListVersions(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsPutBuild(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsGetBuild(ActionsRequest) returns (ActionsResponse);
+  // The first message carries the header (tx_id, tenant_id, build_id,
+  // total_size, sha256); every message may carry data.
+  rpc ActionsPutArtifact(stream ActionsArtifactChunk) returns (Result);
+  // The first message carries total_size and sha256 for integrity checks.
+  rpc ActionsGetArtifact(ActionsRequest) returns (stream ActionsArtifactChunk);
+  rpc ActionsBindings(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsReplaceBindings(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsCreateExecution(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsGetExecution(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsPurgeExecutions(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsCreateContinue(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsConsumeContinue(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsPurgeContinue(ActionsRequest) returns (ActionsResponse);
+
   rpc Ping(PingRequest) returns (Result);
   // Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
   rpc MicrosoftFederationSupported(MicrosoftFederationCapabilitiesRequest) returns (Result);
@@ -309,6 +338,8 @@ message Error {
     KIND_CUSTOM_DOMAIN_UNAVAILABLE = 5; // store.ErrCustomDomainRepositoryUnavailable
     KIND_TLS_ASSET_UNAVAILABLE = 6; // store.ErrTLSAssetRepositoryUnavailable
     KIND_RBAC_UNAVAILABLE = 8; // store.ErrRBACUnavailable
+    KIND_ACTIONS_UNAVAILABLE = 9; // store.ErrActionsUnavailable
+    KIND_BUILD_NOT_READY = 10; // store.ErrBuildNotReady
     KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
   }
   Kind kind = 1;
@@ -983,3 +1014,58 @@ message RBACRequest { string tx_id=1; string tenant_id=2; string id=3; RBACRole 
 message RBACSnapshot { ResourceServer api=1; repeated string permissions=2; }
 message RBACResponse { Error error=1; RBACRole role=2; repeated RBACRole roles=3; repeated RBACPermissionGrant grants=4; repeated User users=5; int64 total=6; string next=7; RBACSnapshot snapshot=8; }
 message RBACCapabilitiesResult { Error error=1; uint32 version=2; }
+
+// ---- Actions (Plan 27) ----
+
+message ActionDependency { string name=1; string version=2; }
+message ActionSecretMsg { string name=1; bytes sealed=2; google.protobuf.Timestamp updated_at=3; }
+message ActionMsg {
+  string tenant_id=1; string id=2; string name=3; string trigger=4; string runtime=5; string code=6;
+  repeated ActionDependency dependencies=7; repeated ActionSecretMsg secrets=8;
+  string draft_build_id=9; string deployed_version_id=10;
+  google.protobuf.Timestamp created_at=11; google.protobuf.Timestamp updated_at=12;
+}
+message ActionVersionMsg {
+  string tenant_id=1; string action_id=2; string id=3; int64 number=4; string code=5; string runtime=6; string build_id=7;
+  repeated ActionDependency dependencies=8; repeated ActionSecretMsg secrets=9; google.protobuf.Timestamp created_at=10;
+}
+message ActionBuildMsg {
+  string tenant_id=1; string id=2; string status=3;
+  repeated ActionDependency requested=4; repeated ActionDependency resolved=5; repeated string errors=6;
+  string artifact_sha256=7; google.protobuf.Timestamp built_at=8;
+}
+message ActionBindingMsg {
+  string tenant_id=1; string trigger=2; string id=3; string action_id=4; string display_name=5;
+  google.protobuf.Timestamp created_at=6; google.protobuf.Timestamp updated_at=7;
+}
+message ActionBoundMsg { ActionBindingMsg binding=1; ActionMsg action=2; ActionVersionMsg version=3; }
+message ActionExecutionResultMsg {
+  string action_name=1; string error_id=2; string error_msg=3;
+  google.protobuf.Timestamp started_at=4; google.protobuf.Timestamp ended_at=5;
+}
+message ActionExecutionMsg {
+  string tenant_id=1; string id=2; string trigger=3; string status=4;
+  repeated ActionExecutionResultMsg results=5; google.protobuf.Timestamp created_at=6; google.protobuf.Timestamp updated_at=7;
+}
+message ActionContinueMsg {
+  string tenant_id=1; string state_hash=2; string session_id=3; bytes sealed=4;
+  google.protobuf.Timestamp expires_at=5; google.protobuf.Timestamp created_at=6;
+}
+message ActionsRequest {
+  string tx_id=1; string tenant_id=2; string id=3; string name=4; string trigger=5;
+  string action_id=6; string version_id=7; string build_id=8; string state_hash=9; bool force=10;
+  int64 page=11; int64 per_page=12;
+  google.protobuf.Timestamp time=13; // before/now cutoff
+  ActionMsg action=14; ActionBuildMsg build=15; ActionExecutionMsg execution=16; ActionContinueMsg continue_state=17;
+  repeated ActionBindingMsg bindings=18;
+}
+message ActionsResponse {
+  Error error=1; ActionMsg action=2; repeated ActionMsg actions=3; int64 total=4;
+  ActionVersionMsg version=5; repeated ActionVersionMsg versions=6; ActionBuildMsg build=7;
+  repeated ActionBoundMsg bound=8; ActionExecutionMsg execution=9; ActionContinueMsg continue_state=10; int64 count=11;
+}
+message ActionsArtifactChunk {
+  Error error=1; string tx_id=2; string tenant_id=3; string build_id=4;
+  bytes data=5; int64 total_size=6; bytes sha256=7;
+}
+message ActionsCapabilitiesResult { Error error=1; uint32 version=2; }

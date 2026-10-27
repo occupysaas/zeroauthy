@@ -122,6 +122,10 @@ func errToPB(err error) *storev1.Error {
 	switch {
 	case err == nil:
 		return nil
+	case errors.Is(err, store.ErrActionsUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_ACTIONS_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrBuildNotReady):
+		return &storev1.Error{Kind: storev1.Error_KIND_BUILD_NOT_READY, Message: err.Error()}
 	case errors.Is(err, store.ErrRBACUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_RBAC_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrFederationUnavailable):
@@ -150,6 +154,10 @@ func errFromPB(e *storev1.Error) error {
 		return nil
 	}
 	switch e.Kind {
+	case storev1.Error_KIND_ACTIONS_UNAVAILABLE:
+		return store.ErrActionsUnavailable
+	case storev1.Error_KIND_BUILD_NOT_READY:
+		return store.ErrBuildNotReady
 	case storev1.Error_KIND_RBAC_UNAVAILABLE:
 		return store.ErrRBACUnavailable
 	case storev1.Error_KIND_FEDERATION_UNAVAILABLE:

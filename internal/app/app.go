@@ -151,6 +151,11 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			return nil, fmt.Errorf("app: RBAC storage capability required: %w", err)
 		}
 	}
+	if capable, ok := st.(store.ActionsSupporter); ok {
+		if err := capable.CheckActionsSupport(ctx); err != nil {
+			return nil, fmt.Errorf("app: Actions storage capability required: %w", err)
+		}
+	}
 	if err := federation.PreflightMicrosoftIdentities(ctx, st); err != nil {
 		return nil, err
 	}

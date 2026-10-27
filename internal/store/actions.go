@@ -13,6 +13,11 @@ var (
 	ErrBuildNotReady = errors.New("store: action draft build is not ready")
 )
 
+// ActionsSupporter is implemented by remote stores that negotiate Actions
+// support; a store that cannot serve Actions must fail startup, never read as
+// an empty registry.
+type ActionsSupporter interface{ CheckActionsSupport(context.Context) error }
+
 // BuildStatus is the lifecycle state of a dependency build.
 type BuildStatus string
 
