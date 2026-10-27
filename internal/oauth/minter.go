@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,6 +32,10 @@ type AccessTokenParams struct {
 	Audience []string
 	ClientID string
 	Scopes   []string
+	// TokenDialect defaults to the legacy access_token profile.
+	TokenDialect       string
+	Permissions        []string
+	IncludePermissions bool
 	// GrantType is the gty claim, e.g. "client-credentials". Empty omits it.
 	GrantType string
 	// Lifetime defaults to DefaultAccessTokenLifetime when zero.
@@ -41,16 +46,18 @@ type AccessTokenParams struct {
 }
 
 type accessTokenClaims struct {
-	Issuer          string   `json:"iss"`
-	Subject         string   `json:"sub"`
-	Audience        audience `json:"aud"`
-	IssuedAt        int64    `json:"iat"`
-	Expiry          int64    `json:"exp"`
-	Scope           string   `json:"scope,omitempty"`
-	AuthorizedParty string   `json:"azp"`
-	GrantType       string   `json:"gty,omitempty"`
-	ID              string   `json:"jti"`
-	Operator        []string `json:"https://zeroauthy.dev/operator,omitempty"`
+	Issuer          string    `json:"iss"`
+	Subject         string    `json:"sub"`
+	Audience        audience  `json:"aud"`
+	IssuedAt        int64     `json:"iat"`
+	Expiry          int64     `json:"exp"`
+	Scope           string    `json:"scope,omitempty"`
+	AuthorizedParty string    `json:"azp,omitempty"`
+	ClientID        string    `json:"client_id,omitempty"`
+	Permissions     *[]string `json:"permissions,omitempty"`
+	GrantType       string    `json:"gty,omitempty"`
+	ID              string    `json:"jti"`
+	Operator        []string  `json:"https://zeroauthy.dev/operator,omitempty"`
 }
 
 // audience encodes as a string when it has one element and as an array
@@ -73,8 +80,27 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 	if lifetime <= 0 {
 		lifetime = DefaultAccessTokenLifetime
 	}
+	dialect := p.TokenDialect
+	if dialect == "" {
+		dialect = "access_token"
+	}
+	var rfc, authz bool
+	switch dialect {
+	case "access_token":
+	case "access_token_authz":
+		authz = true
+	case "rfc9068_profile":
+		rfc = true
+	case "rfc9068_profile_authz":
+		rfc, authz = true, true
+	default:
+		return "", errors.New("oauth: unsupported access token dialect")
+	}
+	if rfc && (p.Issuer == "" || p.Subject == "" || p.ClientID == "" || slices.Contains(p.Audience, "")) {
+		return "", errors.New("oauth: RFC access tokens require issuer, subject, client ID and nonempty audiences")
+	}
 	iat := m.now().Unix()
-	return m.Keys.Sign(ctx, p.TenantID, accessTokenClaims{
+	c := accessTokenClaims{
 		Issuer:          p.Issuer,
 		Subject:         p.Subject,
 		Audience:        audience(p.Audience),
@@ -85,7 +111,19 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 		GrantType:       p.GrantType,
 		ID:              secrets.RandomString(24),
 		Operator:        p.Operator,
-	})
+	}
+	if authz && p.IncludePermissions {
+		permissions := append([]string{}, p.Permissions...)
+		slices.Sort(permissions)
+		permissions = slices.Compact(permissions)
+		c.Permissions = &permissions
+	}
+	tokenType := "JWT"
+	if rfc {
+		tokenType = "at+jwt"
+		c.ClientID, c.AuthorizedParty, c.GrantType = p.ClientID, "", ""
+	}
+	return m.Keys.SignWithType(ctx, p.TenantID, c, tokenType)
 }
 
 // DefaultIDTokenLifetime applies when the client sets none.
