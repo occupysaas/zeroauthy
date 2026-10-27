@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -160,19 +161,144 @@ func TestActionsConformanceOverPlugin(t *testing.T) {
 	storetest.RunSuites(t, func(t *testing.T) store.Store { return inProcess(t) }, "Actions")
 }
 
-// corruptArtifact serves a artifact whose bytes disagree with its header.
-type corruptArtifact struct{ *Server }
-
-func (corruptArtifact) ActionsGetArtifact(_ *storev1.ActionsRequest, st grpc.ServerStreamingServer[storev1.ActionsArtifactChunk]) error {
-	sum := sha256.Sum256([]byte("expected"))
-	return st.Send(&storev1.ActionsArtifactChunk{TotalSize: 8, Sha256: sum[:], Data: []byte("tampered")})
+// badArtifact serves artifact streams that disagree with their header.
+type badArtifact struct {
+	*Server
+	msgs []*storev1.ActionsArtifactChunk
 }
 
-func TestActionsArtifactIntegrity(t *testing.T) {
-	c := serveWith(t, corruptArtifact{NewServer(memory.New())})
+func (b badArtifact) ActionsGetArtifact(_ *storev1.ActionsRequest, st grpc.ServerStreamingServer[storev1.ActionsArtifactChunk]) error {
+	for _, m := range b.msgs {
+		if err := st.Send(m); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func TestActionsGetArtifactIntegrity(t *testing.T) {
+	sum := func(s string) []byte { x := sha256.Sum256([]byte(s)); return x[:] }
+	cases := []struct {
+		name string
+		msgs []*storev1.ActionsArtifactChunk
+		want string
+	}{
+		{"wrong sha", []*storev1.ActionsArtifactChunk{{TotalSize: 8, Sha256: sum("expected"), Data: []byte("tampered")}}, "SHA-256 verification"},
+		{"truncated", []*storev1.ActionsArtifactChunk{{TotalSize: 8, Sha256: sum("12345678"), Data: []byte("1234")}}, "SHA-256 verification"},
+		{"empty stream", nil, "SHA-256 verification"},
+		{"oversize mid-stream", []*storev1.ActionsArtifactChunk{{TotalSize: 6, Sha256: sum("123456"), Data: []byte("1234")}, {Data: []byte("5678")}}, "exceeds declared size"},
+		{"bad header sha", []*storev1.ActionsArtifactChunk{{TotalSize: 1, Sha256: []byte("short"), Data: []byte("x")}}, "malformed artifact header"},
+		{"size over limit", []*storev1.ActionsArtifactChunk{{TotalSize: maxArtifact() + 1, Sha256: sum("x")}}, "malformed artifact header"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := serveWith(t, badArtifact{Server: NewServer(memory.New()), msgs: tc.msgs})
+			defer c.Close()
+			got, err := c.Actions().GetArtifact(context.Background(), "t", "b")
+			if err == nil || !strings.Contains(err.Error(), tc.want) || got != nil {
+				t.Fatalf("got %d bytes, err %v; want error containing %q", len(got), err, tc.want)
+			}
+		})
+	}
+}
+
+// The server handler guards stored data: every rejected upload must leave
+// the previous artifact untouched.
+func TestActionsPutArtifactIntegrity(t *testing.T) {
+	ctx := context.Background()
+	c := inProcess(t)
 	defer c.Close()
-	if _, err := c.Actions().GetArtifact(context.Background(), "t", "b"); err == nil {
-		t.Fatal("corrupt artifact accepted")
+	if err := c.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}); err != nil {
+		t.Fatal(err)
+	}
+	a := c.Actions()
+	if err := a.PutBuild(ctx, &store.Build{TenantID: "t", ID: "b1", Status: store.BuildBuilt}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.PutArtifact(ctx, "t", "b1", []byte("original")); err != nil {
+		t.Fatal(err)
+	}
+	sum := func(s string) []byte { x := sha256.Sum256([]byte(s)); return x[:] }
+	hdr := func(size int64, sha []byte, data string) *storev1.ActionsArtifactChunk {
+		return &storev1.ActionsArtifactChunk{TenantId: "t", BuildId: "b1", TotalSize: size, Sha256: sha, Data: []byte(data)}
+	}
+	cases := []struct {
+		name string
+		msgs []*storev1.ActionsArtifactChunk
+	}{
+		{"wrong sha", []*storev1.ActionsArtifactChunk{hdr(8, sum("expected"), "tampered")}},
+		{"wrong size (truncated)", []*storev1.ActionsArtifactChunk{hdr(8, sum("1234"), "1234")}},
+		{"oversize mid-stream", []*storev1.ActionsArtifactChunk{hdr(6, sum("12345678"), "1234"), {Data: []byte("5678")}}},
+		{"declared over limit", []*storev1.ActionsArtifactChunk{hdr(maxArtifact()+1, sum("x"), "x")}},
+		{"negative size", []*storev1.ActionsArtifactChunk{hdr(-1, sum("x"), "x")}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			st, err := c.rpc.ActionsPutArtifact(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, m := range tc.msgs {
+				if err := st.Send(m); err != nil {
+					break // the server may answer before reading everything
+				}
+			}
+			res, err := st.CloseAndRecv()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if e := errFromPB(res.GetError()); !errors.Is(e, store.ErrInvalid) {
+				t.Fatalf("outcome %v; want store.ErrInvalid", e)
+			}
+			got, err := a.GetArtifact(ctx, "t", "b1")
+			if err != nil || string(got) != "original" {
+				t.Fatalf("stored artifact changed: %q %v", got, err)
+			}
+		})
+	}
+	// The client refuses to send an artifact above the limit.
+	if err := a.PutArtifact(ctx, "t", "b1", make([]byte, maxArtifact()+1)); !errors.Is(err, store.ErrInvalid) {
+		t.Fatalf("client oversize: %v", err)
+	}
+}
+
+// A plugin transaction scopes Actions writes: rollback discards them.
+func TestActionsPluginTransactionRollback(t *testing.T) {
+	ctx := context.Background()
+	c := inProcessSQLite(t)
+	defer c.Close()
+	if err := c.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC().Truncate(time.Second)
+	boom := errors.New("rollback")
+	err := c.WithTx(ctx, func(tx store.Store) error {
+		a := tx.Actions()
+		if err := a.PutBuild(ctx, &store.Build{TenantID: "t", ID: "b1", Status: store.BuildBuilt, BuiltAt: now}); err != nil {
+			return err
+		}
+		if err := a.PutArtifact(ctx, "t", "b1", []byte("tar")); err != nil {
+			return err
+		}
+		if err := a.CreateAction(ctx, &store.Action{TenantID: "t", ID: "a1", Name: "A", Trigger: "post-login", Runtime: "node22", DraftBuildID: "b1", CreatedAt: now, UpdatedAt: now}); err != nil {
+			return err
+		}
+		if _, err := a.Deploy(ctx, "t", "a1", ""); err != nil {
+			return err
+		}
+		if _, err := a.GetAction(ctx, "t", "a1"); err != nil {
+			return err
+		}
+		return boom
+	})
+	if !errors.Is(err, boom) {
+		t.Fatalf("WithTx: %v", err)
+	}
+	if _, err := c.Actions().GetBuild(ctx, "t", "b1"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("build survived rollback: %v", err)
+	}
+	if _, err := c.Actions().GetAction(ctx, "t", "a1"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("action survived rollback: %v", err)
 	}
 }
 

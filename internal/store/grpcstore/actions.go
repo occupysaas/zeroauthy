@@ -9,6 +9,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	storev1 "github.com/zeroauthy/zeroauthy/proto/store/v1"
 	"google.golang.org/grpc"
@@ -17,6 +18,9 @@ import (
 // artifactChunk is the payload size of one streamed artifact message, well
 // under gRPC's 4 MB default message limit.
 const artifactChunk = 256 << 10
+
+// maxArtifact is the store's artifact limit, shared with the repositories.
+func maxArtifact() int64 { return int64(actionsrules.Inventory().Limits["artifact_bytes_max"]) }
 
 type clientActions struct{ c *Client }
 
@@ -314,6 +318,9 @@ func (r clientActions) ListActions(ctx context.Context, tid string, f store.Acti
 	}
 	out.Total = int(v.Total)
 	for _, x := range v.Actions {
+		if x == nil {
+			return out, fmt.Errorf("%w: plugin returned a nil Action", store.ErrInvalid)
+		}
 		out.Items = append(out.Items, *actionFromPB(x))
 	}
 	return out, nil
@@ -373,6 +380,9 @@ func (r clientActions) ListVersions(ctx context.Context, tid, actionID string, p
 	}
 	out.Total = int(v.Total)
 	for _, x := range v.Versions {
+		if x == nil {
+			return out, fmt.Errorf("%w: plugin returned a nil version", store.ErrInvalid)
+		}
 		out.Items = append(out.Items, *versionFromPB(x))
 	}
 	return out, nil
@@ -420,6 +430,9 @@ func (srv *Server) ActionsGetBuild(ctx context.Context, q *storev1.ActionsReques
 // PutArtifact streams the tarball in chunks. The header message carries the
 // size and SHA-256 the server verifies before storing.
 func (r clientActions) PutArtifact(ctx context.Context, tid, buildID string, tar []byte) error {
+	if int64(len(tar)) > maxArtifact() {
+		return fmt.Errorf("%w: artifact exceeds %d bytes", store.ErrInvalid, maxArtifact())
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	stream, err := r.c.rpc.ActionsPutArtifact(ctx)
@@ -456,8 +469,8 @@ func (srv *Server) ActionsPutArtifact(stream grpc.ClientStreamingServer[storev1.
 		return err
 	}
 	var buf bytes.Buffer
-	// Reject an absurd declared size before buffering anything.
-	if h.TotalSize < 0 || h.TotalSize > 1<<30 {
+	// Reject an out-of-range declared size before buffering anything.
+	if h.TotalSize < 0 || h.TotalSize > maxArtifact() {
 		return stream.SendAndClose(&storev1.Result{Error: errToPB(fmt.Errorf("%w: artifact size %d", store.ErrInvalid, h.TotalSize))})
 	}
 	buf.Grow(int(h.TotalSize))
@@ -505,11 +518,13 @@ func (r clientActions) GetArtifact(ctx context.Context, tid, buildID string) ([]
 		if err != nil {
 			return nil, actionsErr("GetArtifact", err)
 		}
+		// A store failure arrives in-band: the server cannot change the
+		// status of a stream it has already begun.
 		if e := errFromPB(m.GetError()); e != nil {
 			return nil, e
 		}
 		if size < 0 {
-			if m.TotalSize < 0 || m.TotalSize > 1<<30 || len(m.Sha256) != sha256.Size {
+			if m.TotalSize < 0 || m.TotalSize > maxArtifact() || len(m.Sha256) != sha256.Size {
 				return nil, errors.New("storage plugin Actions: GetArtifact: malformed artifact header")
 			}
 			size, wantSum = m.TotalSize, m.Sha256
