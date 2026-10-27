@@ -23,6 +23,22 @@ func TestActionsInventory(t *testing.T) {
 		"PATCH /api/v2/actions/triggers/{triggerId}/bindings":           200,
 		"GET /api/v2/actions/executions/{id}":                           200,
 	}
+	wantScope := map[string]string{
+		"GET /api/v2/actions/actions":                                   "read:actions",
+		"POST /api/v2/actions/actions":                                  "create:actions",
+		"GET /api/v2/actions/actions/{id}":                              "read:actions",
+		"PATCH /api/v2/actions/actions/{id}":                            "update:actions",
+		"DELETE /api/v2/actions/actions/{id}":                           "delete:actions",
+		"POST /api/v2/actions/actions/{id}/deploy":                      "create:actions",
+		"GET /api/v2/actions/actions/{id}/versions":                     "read:actions",
+		"GET /api/v2/actions/actions/{id}/versions/{versionId}":         "read:actions",
+		"POST /api/v2/actions/actions/{id}/versions/{versionId}/deploy": "create:actions",
+		"POST /api/v2/actions/actions/{id}/test":                        "create:actions",
+		"GET /api/v2/actions/triggers":                                  "read:actions",
+		"GET /api/v2/actions/triggers/{triggerId}/bindings":             "read:actions",
+		"PATCH /api/v2/actions/triggers/{triggerId}/bindings":           "update:actions",
+		"GET /api/v2/actions/executions/{id}":                           "read:actions",
+	}
 	if len(inv.Operations) != 14 {
 		t.Fatalf("operations=%d, want 14", len(inv.Operations))
 	}
@@ -36,7 +52,7 @@ func TestActionsInventory(t *testing.T) {
 		if op.SuccessStatus != status {
 			t.Errorf("%s status=%d want %d", key, op.SuccessStatus, status)
 		}
-		if len(op.RequiredScopes) != 1 || !strings.HasSuffix(op.RequiredScopes[0], ":actions") {
+		if len(op.RequiredScopes) != 1 || op.RequiredScopes[0] != wantScope[key] {
 			t.Errorf("%s scopes=%v", key, op.RequiredScopes)
 		}
 		if op.SourceURL == "" || op.ResponseShape == "" || len(op.ErrorStatuses) == 0 {
@@ -100,6 +116,9 @@ func TestActionsInventory(t *testing.T) {
 			if got[name] == "" {
 				t.Errorf("%s: api.%s not classified", tr.ID, name)
 			}
+			if w := wantSupport(tr.ID, name); got[name] != w {
+				t.Errorf("%s: api.%s=%q want %q", tr.ID, name, got[name], w)
+			}
 		}
 	}
 
@@ -110,6 +129,7 @@ func TestActionsInventory(t *testing.T) {
 		"cache_default_ttl_seconds", "cache_max_ttl_seconds", "continue_state_seconds",
 		"redirects_per_login_max", "execution_retention_days", "custom_claims_bytes_max",
 		"transaction_metadata_key_max", "transaction_metadata_value_bytes_max", "transaction_metadata_total_bytes_max",
+		"console_log_chars_per_action",
 	} {
 		if inv.Limits[name] <= 0 {
 			t.Errorf("limit %s missing", name)
@@ -119,4 +139,17 @@ func TestActionsInventory(t *testing.T) {
 			t.Errorf("limit %s has no source or decision: %q", name, src)
 		}
 	}
+}
+
+func wantSupport(trigger, name string) string {
+	switch name {
+	case "groups.getUserGroups", "groups.hasGroupMembership", "rules.wasExecuted":
+		return "empty"
+	}
+	for _, ns := range []string{"session.", "refreshToken.", "authentication.", "multifactor.", "prompt.", "samlResponse."} {
+		if strings.HasPrefix(name, ns) {
+			return "unsupported"
+		}
+	}
+	return "supported"
 }

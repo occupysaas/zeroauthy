@@ -136,8 +136,16 @@ Plan 26 freezes direct tenant roles and permissions. See
 
 ## 2026-10-27 — Plan 27 Task 1
 
-Prior reviewed-through coverage is unchanged; the public changelog was not
-re-fetched, so no later coverage is claimed. Current public Actions
-documentation and the Actions Management API reference were reviewed
-independently; see [Actions review](observations/actions.md) and D-0053.
-Live tenant observation remains unavailable.
+Fetched https://auth0.com/changelog. The retrieval tool read only the first
+100,000 of about 267,000 characters, which covered entries from 2026-10-26
+back to roughly May 2026. The newest entry is 2026-10-26, so no entries exist
+after the prior coverage date; reviewed-through stays 2026-10-26. Actions
+items found since May (in our words): credentials-exchange scope interfaces
+early access (May 27); refresh-token metadata set from post-login GA (June 22);
+Actions reference catalog (July 29); Modules GA with a testing package (Sept
+18); custom user ID assignment in pre-user-registration early access (Sept 17);
+access-token scope customization GA and extended to post-login (Oct 9).
+Nothing in the visible text contradicts the Task 1 contracts; the Oct 9 entry
+agrees with the handling-scopes page. Modules and other triggers are Plan 28.
+The unread tail was not reviewed. See [Actions review](observations/actions.md)
+and D-0053. Live tenant observation remains unavailable.

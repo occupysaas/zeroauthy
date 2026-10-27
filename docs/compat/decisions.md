@@ -1102,7 +1102,26 @@ Local choices where public material is silent or open:
   Enterprise members are omitted; `groups.*` return empty; `rules.wasExecuted`
   is false; session, refresh_token, authentication, multifactor, prompt and
   samlResponse members throw "not supported by zeroauthy" and fail closed.
-- Execution IDs are surfaced as described in the spec; failures are never
-  silent. Record retention 10 days.
+- Execution IDs appear in the operator log line for every failed or denied
+  flow (tenant, trigger, Action name, secrets masked), in test-endpoint
+  responses, and as a "reference" on the hosted error page; they are never put
+  in OAuth `error_description`. Record retention 10 days (documented).
+- Lists (actions, versions, bindings): `page` from 0, `per_page` default 20
+  (documented) and local maximum 100; larger is 400.
+- Secret names match `[A-Za-z0-9_]{1,128}`. Dependency `version` is an exact
+  semver or empty/`latest` (resolved at build); ranges, git/file/URL/tarball
+  specs and `registry_url` are refused with 400.
+- At most 20 bindings per trigger, 400 above that. DELETE of an Action still
+  bound to a trigger without `force=true` is 400 (local; the public page states
+  only that it must be unbound).
+- Byte units: Auth0's "kB" limits are taken as decimal (code and custom claims
+  100,000 bytes; cache values 4,096 and total 8,192 as binary-exact values the
+  public page writes as 4 kB/8 kB; secret value 4096 characters); the artifact
+  limit is 50,000,000 bytes. The inventory stores these exact integers.
+- Unsupported `api` members throw at call time and fail the flow; none is
+  silently omitted. "Metadata commits at flow end" means user and app
+  metadata; transaction metadata lives only for the transaction.
+- Consent order source:
+  https://auth0.com/docs/customize/actions/handling-scopes-in-actions.
 
 These are implementation contracts, not proof of completion or live parity.

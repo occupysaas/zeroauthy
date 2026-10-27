@@ -216,7 +216,7 @@ flow writes an execution record (`id`, `trigger_id`, `status`, per-Action
 shown, and before any token or code is issued (correction, Task 1: Auth0
 documents that the consent prompt lists the scopes remaining after Actions'
 target-scope edits and policy filtering; only `accessToken.addScope` results
-are not shown). Declining consent after the flow ran issues nothing; metadata
+are not shown; source: https://auth0.com/docs/customize/actions/handling-scopes-in-actions). Declining consent after the flow ran issues nothing; metadata
 commit follows the end-of-flow rule below (D-0053). Target-scope additions are
 filtered by API definition, client policy and RBAC and are shown on consent. It runs for authorization code (hosted and federated login), implicit/hybrid
 where supported, device-code approval, password and password-realm grants,

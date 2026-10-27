@@ -7,6 +7,8 @@ readable form: `internal/actionsrules/inventory.json`.
 
 ## Management operations (14)
 
+Sources (Management API reference, each fetched 2026-10-27): [get-actions](https://auth0.com/docs/api/management/v2/actions/get-actions), [post-action](https://auth0.com/docs/api/management/v2/actions/post-action), [get-action](https://auth0.com/docs/api/management/v2/actions/get-action), [patch-action](https://auth0.com/docs/api/management/v2/actions/patch-action), [delete-action](https://auth0.com/docs/api/management/v2/actions/delete-action), [post-deploy-action](https://auth0.com/docs/api/management/v2/actions/post-deploy-action), [get-action-versions](https://auth0.com/docs/api/management/v2/actions/get-action-versions), [get-action-version](https://auth0.com/docs/api/management/v2/actions/get-action-version), [post-deploy-draft-version](https://auth0.com/docs/api/management/v2/actions/post-deploy-draft-version), [post-test-action](https://auth0.com/docs/api/management/v2/actions/post-test-action), [get-triggers](https://auth0.com/docs/api/management/v2/actions/get-triggers), [get-bindings](https://auth0.com/docs/api/management/v2/actions/get-bindings), [patch-bindings](https://auth0.com/docs/api/management/v2/actions/patch-bindings), [get-execution](https://auth0.com/docs/api/management/v2/actions/get-execution). The 202 (deploy, version deploy), 204 (delete) and 200 (test) statuses were re-checked against these pages.
+
 | Operation | Scope | Success |
 |---|---|---|
 | GET actions (filters triggerId, actionName, deployed, installed; page from 0, per_page default 20) | read:actions | 200 `{actions,total,page,per_page}` |
@@ -32,6 +34,8 @@ does not affect flows until deployed, and that deploy of a bound action starts
 running at once. 400/401/403/429 appear on all; 404 where a resource id exists.
 
 ## Runtime facts frozen from public documentation
+
+Sources: [limitations](https://auth0.com/docs/customize/actions/limitations), [post-login api](https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object), [post-login event](https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-event-object), [credentials-exchange api](https://auth0.com/docs/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-api-object), [credentials-exchange event](https://auth0.com/docs/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-event-object), [redirect]( https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/redirect-with-actions), [handling scopes](https://auth0.com/docs/customize/actions/handling-scopes-in-actions), [dependencies](https://auth0.com/docs/customize/actions/manage-dependencies), [custom claims](https://auth0.com/docs/secure/tokens/json-web-tokens/create-custom-claims). Bullets below follow those pages in that order of topic: limits and api (limitations, api pages), scopes (handling scopes), claims (custom claims), redirect (redirect page), dependencies (dependencies page).
 
 - Limits (limitations page): code 100 kB; secret name 128, value 4096; cache 20
   entries per trigger, key 64 B, value 4 kB, 8 kB combined, items up to 24 h
@@ -63,7 +67,7 @@ running at once. 400/401/403/429 appear on all; 404 where a resource id exists.
   redirect_uri, state, locale, requested_scopes, target_scopes, metadata,
   and more), user, plus organization/prompt/authentication/agent members that
   zeroauthy omits.
-- Scopes: target-scope edits are visible to later Actions and are evaluated
+- Scopes ([handling scopes](https://auth0.com/docs/customize/actions/handling-scopes-in-actions): "When consent is required, all scopes remaining after authorization filtering are included in the consent prompt ... including scopes added by Actions"; addScope results are not displayed on the consent screen): target-scope edits are visible to later Actions and are evaluated
   against client access policy and RBAC after all Actions; unauthorized
   additions are silently dropped. **Consent shows the scopes remaining after
   that filtering including Action-added target scopes**, but not `addScope`
@@ -114,5 +118,4 @@ running at once. 400/401/403/429 appear on all; 404 where a resource id exists.
 
 ## Changelog
 
-The public changelog was not re-fetched for this task (see
-`changelog-review.md`); no later coverage is claimed.
+See `changelog-review.md` (https://auth0.com/changelog, reviewed 2026-10-27).
