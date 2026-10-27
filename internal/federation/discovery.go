@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -75,13 +76,14 @@ func GoogleEndpoints() Endpoints {
 // Providers builds strategy adapters over one bounded HTTP client and
 // process-wide discovery and key caches.
 type Providers struct {
-	client    *http.Client
-	policy    NetworkPolicy
-	now       func() time.Time
-	discovery *ttlCache[Metadata]
-	keys      *keyCache
-	scripts   script.Executor
-	googleFix *GoogleOverride
+	client       *http.Client
+	policy       NetworkPolicy
+	now          func() time.Time
+	discovery    *ttlCache[Metadata]
+	keys         *keyCache
+	scripts      script.Executor
+	googleFix    *GoogleOverride
+	microsoftFix *MicrosoftOverride
 }
 
 // GoogleOverride replaces Google's fixed endpoints and issuer for a local
@@ -163,7 +165,8 @@ func (ps *Providers) validateMetadata(raw map[string]any, expectedIssuer string)
 	str := func(k string) string { s, _ := raw[k].(string); return s }
 	m := Metadata{Issuer: str("issuer"), AuthorizationEndpoint: str("authorization_endpoint"),
 		TokenEndpoint: str("token_endpoint"), JWKSURI: str("jwks_uri"), UserInfoEndpoint: str("userinfo_endpoint")}
-	if m.Issuer == "" || ps.policy.CheckEndpoint(m.Issuer) != nil {
+	issuerURL, issuerErr := url.Parse(m.Issuer)
+	if m.Issuer == "" || issuerErr != nil || strings.ContainsAny(issuerURL.Path, "{}") || ps.policy.CheckEndpoint(m.Issuer) != nil {
 		return bad("issuer is missing or not https")
 	}
 	if expectedIssuer != "" && m.Issuer != expectedIssuer {
@@ -310,9 +313,30 @@ func (c *ttlCache[V]) len() int {
 	return len(c.items)
 }
 
+// cachedSigningKey preserves the raw issuer extension without changing generic
+// OIDC's key policy. go-jose intentionally drops unknown JWK fields.
+type cachedSigningKey struct {
+	Key    jose.JSONWebKey
+	issuer json.RawMessage
+}
+
+func (k *cachedSigningKey) UnmarshalJSON(data []byte) error {
+	if err := json.Unmarshal(data, &k.Key); err != nil {
+		return err
+	}
+	var extension struct {
+		Issuer json.RawMessage `json:"issuer"`
+	}
+	if err := json.Unmarshal(data, &extension); err != nil {
+		return err
+	}
+	k.issuer = extension.Issuer
+	return nil
+}
+
 // keySet is one fetched JWKS with the generation that fetched it.
 type keySet struct {
-	keys []jose.JSONWebKey
+	keys []cachedSigningKey
 	gen  uint64
 }
 
@@ -335,10 +359,20 @@ type keyCache struct {
 
 // key returns the signing key for kid ("" when the token names none).
 func (kc *keyCache) key(ctx context.Context, ck, jwksURL, kid string) (*jose.JSONWebKey, error) {
+	selected, err := kc.selectKey(ctx, ck, jwksURL, func(set *keySet) (*cachedSigningKey, error) { return pickKey(set.keys, kid, nil) })
+	if err != nil {
+		return nil, err
+	}
+	return &selected.Key, nil
+}
+
+// selectKey shares one bounded cache and refresh/coalescing algorithm between
+// strategies. Selection always runs again for each token, including cache hits.
+func (kc *keyCache) selectKey(ctx context.Context, ck, jwksURL string, pick func(*keySet) (*cachedSigningKey, error)) (*cachedSigningKey, error) {
 	set, ok := kc.sets.get(ck)
 	var seen uint64
 	if ok {
-		if k, err := pickKey(set.keys, kid); err == nil {
+		if k, err := pick(set); err == nil {
 			return k, nil
 		} else if !errors.Is(err, errUnknownKID) {
 			return nil, err
@@ -349,7 +383,7 @@ func (kc *keyCache) key(ctx context.Context, ck, jwksURL, kid string) (*jose.JSO
 	if err != nil {
 		return nil, err
 	}
-	return pickKey(set.keys, kid)
+	return pick(set)
 }
 
 func (kc *keyCache) refresh(ctx context.Context, ck, jwksURL string, seen uint64) (*keySet, error) {
@@ -371,7 +405,9 @@ func (kc *keyCache) refresh(ctx context.Context, ck, jwksURL string, seen uint64
 	kc.inflight[ck] = f
 	kc.mu.Unlock()
 
-	var jwks jose.JSONWebKeySet
+	var jwks struct {
+		Keys []cachedSigningKey `json:"keys"`
+	}
 	err := kc.ps.getJSON(ctx, jwksURL, "", &jwks)
 	if err == nil && (len(jwks.Keys) == 0 || len(jwks.Keys) > maxJWKSKeys) {
 		err = fmt.Errorf("%w: JWKS has no keys or more than %d", ErrProviderResponse, maxJWKSKeys)
@@ -393,25 +429,35 @@ var errUnknownKID = fmt.Errorf("%w: no signing key for the token", ErrProviderRe
 
 // pickKey selects the RS256 signing key for kid. Without a kid exactly one
 // candidate must exist.
-func pickKey(keys []jose.JSONWebKey, kid string) (*jose.JSONWebKey, error) {
-	var found []*jose.JSONWebKey
+func pickKey(keys []cachedSigningKey, kid string, eligible func(*cachedSigningKey) bool) (*cachedSigningKey, error) {
+	var found *cachedSigningKey
+	matched := false
 	for i := range keys {
-		k := &keys[i]
+		entry := &keys[i]
+		k := &entry.Key
 		if !k.Valid() || !k.IsPublic() || (k.Use != "" && k.Use != "sig") || (k.Algorithm != "" && k.Algorithm != string(jose.RS256)) {
 			continue
 		}
 		if _, isRSA := k.Key.(*rsa.PublicKey); !isRSA {
 			continue
 		}
-		if kid == "" || k.KeyID == kid {
-			found = append(found, k)
+		if kid != "" && k.KeyID != kid {
+			continue
 		}
+		matched = true
+		if eligible != nil && !eligible(entry) {
+			continue
+		}
+		if found != nil {
+			return nil, fmt.Errorf("%w: ambiguous signing key", ErrProviderResponse)
+		}
+		found = entry
 	}
-	switch {
-	case len(found) == 0:
-		return nil, errUnknownKID
-	case len(found) > 1:
-		return nil, fmt.Errorf("%w: ambiguous signing key", ErrProviderResponse)
+	if found != nil {
+		return found, nil
 	}
-	return found[0], nil
+	if matched {
+		return nil, fmt.Errorf("%w: signing key issuer mismatch", ErrProviderResponse)
+	}
+	return nil, errUnknownKID
 }
