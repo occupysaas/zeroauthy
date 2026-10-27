@@ -260,3 +260,21 @@ func TestRBACCurrentOfflineAccessSetting(t *testing.T) {
 		t.Fatal("refresh token issued after current API disabled offline access")
 	}
 }
+
+func TestRBACEmptyScopeResponse(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	tid := f.tenantID(t, "acme")
+	api, _ := f.st.ResourceServers().GetByIdentifier(ctx, tid, acmeAPI)
+	api.EnforcePolicies = true
+	if err := f.st.ResourceServers().Update(ctx, api); err != nil {
+		t.Fatal(err)
+	}
+	rec, body := f.call(t, false, tokenCall{host: "acme.example.test", form: pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", "read:things")})
+	if rec.Code != 200 {
+		t.Fatalf("status=%d error=%v", rec.Code, body["error"])
+	}
+	if scope, present := body["scope"]; !present || scope != "" {
+		t.Fatalf("empty granted scope must be explicit, got %v present=%v", scope, present)
+	}
+}

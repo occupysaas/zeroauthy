@@ -136,6 +136,7 @@ type userTokens struct {
 // token (D-0008).
 func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *store.Client, ut userTokens) (*authapi.TokenResponse, *Error) {
 	tenantID := res.Tenant.ID
+	requestedScopes := len(ut.scopes) > 0
 	auth, authErr := h.authorizeUserToken(ctx, tenantID, ut.user.UserID, ut.rs, ut.scopes)
 	if authErr != nil {
 		return nil, authErr
@@ -181,7 +182,7 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		return nil, serverError()
 	}
 	resp := &authapi.TokenResponse{AccessToken: accessToken, TokenType: "Bearer", ExpiresIn: int(ut.lifetime / time.Second)}
-	if len(ut.scopes) > 0 {
+	if len(ut.scopes) > 0 || requestedScopes {
 		s := strings.Join(ut.scopes, " ")
 		resp.Scope = &s
 	}

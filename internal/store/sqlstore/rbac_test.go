@@ -2,9 +2,11 @@ package sqlstore
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -192,6 +194,177 @@ func TestRBACCheckpoint(t *testing.T) {
 			must(err)
 			if len(page.Items) != 1 || page.Items[0].UserID != "c" || page.Next != "" {
 				t.Fatalf("second page: %#v", page)
+			}
+		})
+	}
+}
+
+// A public transaction may have read before taking the authorization lock.
+// MySQL's default repeatable snapshot must not let it recreate revoked edges.
+func TestRBACNestedTransactionCurrentReads(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		if name != "mysql" {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			s := mk(t)
+			must := func(err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			must(s.Tenants().Create(ctx, &store.Tenant{ID: "nested", Name: "nested"}))
+			must(s.Users().Create(ctx, &store.User{TenantID: "nested", UserID: "u"}))
+			api := &store.ResourceServer{TenantID: "nested", ID: "api", Identifier: "https://nested.test", Scopes: []store.Scope{{Value: "read:x"}}}
+			must(s.ResourceServers().Create(ctx, api))
+			must(s.WithTx(ctx, func(tx store.Store) error {
+				// Establish an earlier read view before the independent mutation.
+				if _, err := tx.Users().Get(ctx, "nested", "u"); err != nil {
+					return err
+				}
+				api.Scopes = nil
+				api.EnforcePolicies = true
+				if err := s.ResourceServers().Update(ctx, api); err != nil {
+					return err
+				}
+				snap, err := tx.RBAC().Snapshot(ctx, "nested", "u", api.Identifier)
+				if err != nil {
+					return err
+				}
+				if !snap.API.EnforcePolicies || len(snap.API.Scopes) != 0 {
+					t.Error("authorization snapshot retained pre-lock API settings")
+				}
+				err = tx.RBAC().ChangeUserPermissions(ctx, "nested", "u", true, []store.PermissionKey{{ResourceServerIdentifier: api.Identifier, PermissionName: "read:x"}})
+				if !errors.Is(err, store.ErrInvalid) {
+					t.Errorf("removed permission assigned from stale transaction snapshot: %v", err)
+				}
+				return nil
+			}))
+		})
+	}
+}
+
+// Transactional reads used by PATCH must lock before merging omitted fields.
+// Otherwise a concurrent name-only update can turn RBAC back off.
+func TestRBACResourceServerTransactionReadLocks(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		if name == "sqlite" {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			s := mk(t)
+			must := func(err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			must(s.Tenants().Create(ctx, &store.Tenant{ID: "merge", Name: "merge"}))
+			must(s.ResourceServers().Create(ctx, &store.ResourceServer{TenantID: "merge", ID: "api", Identifier: "https://merge.test"}))
+			firstRead, release, secondAttempt, secondRead := make(chan struct{}), make(chan struct{}), make(chan struct{}), make(chan struct{})
+			errs := make(chan error, 2)
+			go func() {
+				errs <- s.WithTx(ctx, func(tx store.Store) error {
+					api, err := tx.ResourceServers().Get(ctx, "merge", "api")
+					if err != nil {
+						return err
+					}
+					close(firstRead)
+					<-release
+					api.EnforcePolicies = true
+					return tx.ResourceServers().Update(ctx, api)
+				})
+			}()
+			<-firstRead
+			go func() {
+				errs <- s.WithTx(ctx, func(tx store.Store) error {
+					close(secondAttempt)
+					api, err := tx.ResourceServers().Get(ctx, "merge", "api")
+					if err != nil {
+						return err
+					}
+					close(secondRead)
+					api.Name = "renamed"
+					return tx.ResourceServers().Update(ctx, api)
+				})
+			}()
+			<-secondAttempt
+			select {
+			case <-secondRead:
+				t.Error("concurrent PATCH read stale RBAC settings before first commit")
+			case <-time.After(100 * time.Millisecond):
+			}
+			close(release)
+			must(<-errs)
+			must(<-errs)
+			api, err := s.ResourceServers().Get(ctx, "merge", "api")
+			must(err)
+			if !api.EnforcePolicies || api.Name != "renamed" {
+				t.Fatalf("merged patch lost state: %+v", api)
+			}
+		})
+	}
+}
+
+func TestRBACRoleTransactionReadLocks(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		if name == "sqlite" {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			s := mk(t)
+			must := func(err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			must(s.Tenants().Create(ctx, &store.Tenant{ID: "role-merge", Name: "role-merge"}))
+			must(s.RBAC().CreateRole(ctx, &store.Role{TenantID: "role-merge", ID: "role", Name: "Original"}))
+			firstRead, release, secondAttempt, secondRead := make(chan struct{}), make(chan struct{}), make(chan struct{}), make(chan struct{})
+			errs := make(chan error, 2)
+			go func() {
+				errs <- s.WithTx(ctx, func(tx store.Store) error {
+					role, err := tx.RBAC().GetRole(ctx, "role-merge", "role")
+					if err != nil {
+						return err
+					}
+					close(firstRead)
+					<-release
+					role.Description = "changed"
+					return tx.RBAC().UpdateRole(ctx, role)
+				})
+			}()
+			<-firstRead
+			go func() {
+				errs <- s.WithTx(ctx, func(tx store.Store) error {
+					close(secondAttempt)
+					role, err := tx.RBAC().GetRole(ctx, "role-merge", "role")
+					if err != nil {
+						return err
+					}
+					close(secondRead)
+					role.Name = "Renamed"
+					return tx.RBAC().UpdateRole(ctx, role)
+				})
+			}()
+			<-secondAttempt
+			select {
+			case <-secondRead:
+				t.Error("concurrent role PATCH read old fields before first commit")
+			case <-time.After(100 * time.Millisecond):
+			}
+			close(release)
+			must(<-errs)
+			must(<-errs)
+			role, err := s.RBAC().GetRole(ctx, "role-merge", "role")
+			must(err)
+			if role.Name != "Renamed" || role.Description != "changed" {
+				t.Fatalf("merged role patch lost state: %+v", role)
 			}
 		})
 	}

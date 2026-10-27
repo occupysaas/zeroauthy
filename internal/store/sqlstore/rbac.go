@@ -46,6 +46,11 @@ func (r rbac) CreateRole(ctx context.Context, role *store.Role) error {
 	})
 }
 func (r rbac) GetRole(ctx context.Context, tenant, id string) (*store.Role, error) {
+	if r.s.tx != nil {
+		if err := r.s.lockRBAC(ctx, tenant); err != nil {
+			return nil, err
+		}
+	}
 	var out store.Role
 	err := r.s.queryRow(ctx, `SELECT tenant_id,id,name,description FROM rbac_roles WHERE tenant_id=? AND id=?`, tenant, id).Scan(&out.TenantID, &out.ID, &out.Name, &out.Description)
 	if errors.Is(err, sql.ErrNoRows) {

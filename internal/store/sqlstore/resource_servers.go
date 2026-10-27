@@ -121,6 +121,16 @@ func (r resourceServers) RenameSystem(ctx context.Context, tenantID, identifier,
 }
 
 func (r resourceServers) one(ctx context.Context, q string, args ...any) (*store.ResourceServer, error) {
+	// PATCH reads a complete record before merging omitted settings. Lock the
+	// same tenant boundary used by RBAC writers before observing those fields.
+	if r.s.tx != nil && len(args) > 0 {
+		if tenant, ok := args[0].(string); ok {
+			if err := r.s.lockRBAC(ctx, tenant); err != nil && !errors.Is(err, store.ErrNotFound) {
+				return nil, err
+			}
+		}
+	}
+
 	rs, err := scanResourceServer(r.s.queryRow(ctx, q, args...))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound

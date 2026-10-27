@@ -54,6 +54,18 @@ func testRBAC(t *testing.T, factory Factory) {
 	if len(p.Items) != 1 || len(p.Items[0].Sources) != 2 {
 		t.Fatalf("sources %#v", p)
 	}
+	// Another role remains an independent source when the first is removed.
+	must(r.ChangeRolePermissions(ctx, "rbac-a", "rol_b", true, []store.PermissionKey{key}))
+	must(r.ChangeUserRoles(ctx, "rbac-a", "u1", true, []string{"rol_b"}))
+	must(r.ChangeUserRoles(ctx, "rbac-a", "u1", false, []string{"rol_a"}))
+	must(r.ChangeUserPermissions(ctx, "rbac-a", "u1", false, []store.PermissionKey{key}))
+	retained, err := r.Snapshot(ctx, "rbac-a", "u1", key.ResourceServerIdentifier)
+	must(err)
+	if len(retained.Permissions) != 1 {
+		t.Fatal("removing one source removed another role's right")
+	}
+	must(r.ChangeUserRoles(ctx, "rbac-a", "u1", true, []string{"rol_a"}))
+	must(r.ChangeUserRoles(ctx, "rbac-a", "u1", false, []string{"rol_b"}))
 	must(r.ChangeUserPermissions(ctx, "rbac-a", "u1", false, []store.PermissionKey{key}))
 	snap, err := r.Snapshot(ctx, "rbac-a", "u1", key.ResourceServerIdentifier)
 	must(err)
@@ -90,6 +102,12 @@ func testRBAC(t *testing.T, factory Factory) {
 	must(err)
 	if len(page.Items) != 1 || page.Total != 2 {
 		t.Fatalf("page %#v", page)
+	}
+	systemAPI := newResourceServer("rbac-a", "system-api", "https://system.test")
+	must(s.ResourceServers().Create(ctx, systemAPI))
+	forbidden := store.PermissionKey{ResourceServerIdentifier: systemAPI.Identifier, PermissionName: "read:things"}
+	if err := r.ChangeRolePermissions(ctx, "rbac-a", "rol_a", true, []store.PermissionKey{forbidden}); !errors.Is(err, store.ErrInvalid) {
+		t.Fatalf("system permission: %v", err)
 	}
 	api, err := s.ResourceServers().Get(ctx, "rbac-a", "api")
 	must(err)
