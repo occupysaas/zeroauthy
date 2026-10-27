@@ -1,0 +1,12 @@
+{{define "social-buttons"}}{{if .Data.Social}}
+<p class="separator" aria-hidden="true">{{t .Tenant.L "zeroauthy.login.social-separator"}}</p>
+{{range .Data.Social}}<button type="submit" formaction="/u/login/social" formnovalidate name="connection" value="{{.Connection}}" class="secondary">{{t $.Tenant.L "zeroauthy.login.social-button" "connectionName" .Label}}</button>
+{{end}}{{end}}{{end}}
+{{define "social"}}{{if .Data.Social}}
+<form method="post" action="/u/login/social" class="social" novalidate>
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+{{template "captcha" .}}
+{{range .Data.Social}}<button type="submit" name="connection" value="{{.Connection}}" class="secondary">{{t $.Tenant.L "zeroauthy.login.social-button" "connectionName" .Label}}</button>
+{{end}}</form>
+{{end}}{{end}}

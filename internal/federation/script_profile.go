@@ -54,3 +54,17 @@ func (ps *Providers) scriptProfile(ctx context.Context, in ExchangeInput, tokens
 	}
 	return NormalizeProfile(raw)
 }
+
+// scriptsReady reports whether OAuth2 profile scripts can run: an executor is
+// set and, when it can say, its capability probe passed.
+func (ps *Providers) scriptsReady() error {
+	if ps.scripts == nil {
+		return ErrScriptUnavailable
+	}
+	if p, ok := ps.scripts.(interface{ Probe() error }); ok {
+		if err := p.Probe(); err != nil {
+			return fmt.Errorf("%w: %w", ErrScriptUnavailable, err)
+		}
+	}
+	return nil
+}

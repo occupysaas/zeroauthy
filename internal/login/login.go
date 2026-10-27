@@ -15,6 +15,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/hostedlogin"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
@@ -38,6 +39,8 @@ type Handlers struct {
 	Authz      *authz.Handlers
 	Database   *identity.Database
 	Resets     *dbconn.Handlers // nil disables the hosted password reset pages
+	// Federation runs social and OIDC login (Plan 24); nil offers none.
+	Federation *federation.FlowService
 	// Verification sends the verification email after a signup; nil sends
 	// none.
 	Verification *VerificationMailer
@@ -202,7 +205,26 @@ func (h *Handlers) forgotURL(f *flow) string {
 }
 
 func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
-	f, err := h.load(r, r.URL.Query().Get("state"))
+	f, err := h.loadTxn(r, r.URL.Query().Get("state"))
+	if err != nil {
+		h.fail(w, r, err, f)
+		return
+	}
+	// An explicitly selected federated connection goes straight to the
+	// provider, unless a challenge is due: then the page is shown first.
+	if conn := h.explicitSocial(r, f); conn != nil && f.txn.HostedState.Step == "" {
+		if c, err := h.prepareCaptcha(r, f.res, &f.view, "login", f.txn.ID); err == nil && c == nil {
+			h.startSocial(w, r, f, conn)
+			return
+		}
+	}
+	f.conn, err = h.connection(r.Context(), f.res.Tenant.ID, f.txn)
+	if errors.Is(err, errNoConnection) {
+		if buttons := h.socialButtons(r, f); len(buttons) > 0 {
+			h.renderSocialOnly(w, r, http.StatusOK, f, buttons, "")
+			return
+		}
+	}
 	if err != nil {
 		h.fail(w, r, err, f)
 		return

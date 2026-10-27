@@ -81,6 +81,30 @@ type Providers struct {
 	discovery *ttlCache[Metadata]
 	keys      *keyCache
 	scripts   script.Executor
+	googleFix *GoogleOverride
+}
+
+// GoogleOverride replaces Google's fixed endpoints and issuer for a local
+// provider harness. It is set only at construction (WithGoogleFixture); no
+// configuration or API reaches it.
+type GoogleOverride struct {
+	Endpoints Endpoints
+	Issuer    string
+}
+
+// WithGoogleFixture points google-oauth2 at a local harness; tests and the
+// E2E harness only.
+func (ps *Providers) WithGoogleFixture(o GoogleOverride) *Providers {
+	ps.googleFix = &o
+	return ps
+}
+
+// google returns the Google endpoints and issuer in use.
+func (ps *Providers) google() (Endpoints, string) {
+	if ps.googleFix != nil {
+		return ps.googleFix.Endpoints, ps.googleFix.Issuer
+	}
+	return GoogleEndpoints(), rules.GoogleIssuer
 }
 
 // NewProviders returns adapters whose network access follows policy. now
@@ -99,6 +123,9 @@ func NewProviders(policy NetworkPolicy, now func() time.Time) *Providers {
 	ps.keys = &keyCache{ps: ps, sets: newTTLCache[*keySet](maxCacheEntries, maxCacheTTL, now), inflight: map[string]*keyFetch{}}
 	return ps
 }
+
+// HTTPClient is the bounded client adapters use; the script broker shares it.
+func (ps *Providers) HTTPClient() *http.Client { return ps.client }
 
 // For returns the adapter of cfg's strategy.
 func (ps *Providers) For(cfg Config) Provider {

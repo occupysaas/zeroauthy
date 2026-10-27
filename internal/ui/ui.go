@@ -32,7 +32,7 @@ var funcs = template.FuncMap{
 }
 
 func parsePage(names ...string) *template.Template {
-	names = append(names, "templates/captcha.html")
+	names = append(names, "templates/captcha.html", "templates/social.html")
 	return template.Must(template.New("").Funcs(funcs).ParseFS(files, names...))
 }
 
@@ -125,11 +125,22 @@ func RequestTenant(r *http.Request, t *store.Tenant, l *i18n.Localizer) Tenant {
 
 type LoginData struct {
 	State, CSRF, Login string
-	SignupURL          string // empty hides the signup link
-	ForgotURL          string // empty hides the forgot-password link
-	Error              string
-	RedirectURI        string // the client's callback; its origin is allowed as form-action
-	HostedRevision     *int64
+	// Social are the federated connections offered as buttons; NoPassword
+	// hides the username/password form (an application with no database
+	// connection).
+	Social         []SocialButton
+	NoPassword     bool
+	SignupURL      string // empty hides the signup link
+	ForgotURL      string // empty hides the forgot-password link
+	Error          string
+	RedirectURI    string // the client's callback; its origin is allowed as form-action
+	HostedRevision *int64
+}
+
+// SocialButton is one federated connection choice: Label is the display
+// name (or the connection name), shown as original text, never a remote icon.
+type SocialButton struct {
+	Connection, Label string
 }
 
 type LoginStageData struct {

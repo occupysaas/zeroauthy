@@ -21,6 +21,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
+	"github.com/zeroauthy/zeroauthy/internal/federation/script"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
@@ -43,6 +45,7 @@ type App struct {
 	log        *slog.Logger
 	store      store.Store
 	runner     *customdb.NodeRunner
+	profiles   *script.Runner // nil when profile scripts cannot run
 	jobs       *jobs.Runner
 	handler    http.Handler
 	breachFile *protection.FileChecker
@@ -247,8 +250,24 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		_ = runner.Close()
 		return nil, fmt.Errorf("app: invalid breached password mode")
 	}
+	// Social login: a bounded production network policy, and the restricted
+	// profile script runner when Node can prove network denial. Without it
+	// custom OAuth2 login alone is unavailable.
+	providers := federation.NewProviders(federation.NetworkPolicy{}, nil)
+	profiles, err := script.NewRunner(script.Config{Node: cfg.CustomDB.Node}, script.NewBroker(providers.HTTPClient()))
+	if err == nil {
+		if perr := profiles.Probe(); perr != nil {
+			log.Warn("custom OAuth2 profile scripts unavailable", "reason", perr)
+		}
+		providers.WithScripts(profiles)
+	} else {
+		log.Warn("custom OAuth2 profile scripts unavailable", "reason", err)
+		profiles = nil
+	}
+	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
 	sec := cfg.Security
 	return &App{
+		profiles:   profiles,
 		tls:        tlsManager,
 		acme:       acmeWorker,
 		domains:    domains,
@@ -270,6 +289,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			ExportKey:    exportKey,
 			Wrapper:      wrapper,
 			Scripts:      &customdb.Client{Exec: runner, Wrapper: wrapper},
+			Federation:   flows,
 
 			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
@@ -552,6 +572,9 @@ func (a *App) Close() error {
 	var errRunner error
 	if a.runner != nil {
 		errRunner = a.runner.Close()
+	}
+	if a.profiles != nil {
+		_ = a.profiles.Close()
 	}
 	var errBreach error
 	if a.breachFile != nil {

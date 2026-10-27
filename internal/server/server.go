@@ -19,6 +19,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -82,6 +83,9 @@ type Deps struct {
 	DeviceTxnThrottle    *identity.Throttle
 	DeviceIPThrottle     *identity.Throttle
 	DeviceTenantThrottle *identity.Throttle
+
+	// Federation runs social and OIDC login (Plan 24); nil offers none.
+	Federation *federation.FlowService
 }
 
 // authAPI adapts the handler groups to the generated ServerInterface.
@@ -179,6 +183,7 @@ func New(d Deps) http.Handler {
 		Store: d.Store, Sessions: d.Sessions, Authz: az,
 		Database:          db,
 		Resets:            dbconnHandlers,
+		Federation:        d.Federation,
 		Verification:      verification,
 		Protection:        sharedProtection,
 		DeviceTxnThrottle: d.DeviceTxnThrottle, DeviceIPThrottle: d.DeviceIPThrottle, DeviceTenantThrottle: d.DeviceTenantThrottle,
@@ -217,6 +222,8 @@ func New(d Deps) http.Handler {
 		tr.Get("/u/login/password", lg.LoginPasswordGet)
 		tr.Post("/u/login/password", lg.LoginPasswordPost)
 		tr.Post("/u/login/identifier", lg.LoginIdentifierResetPost)
+		tr.Post("/u/login/social", lg.SocialStart)
+		tr.Get("/login/callback", lg.SocialCallback)
 		tr.Get("/u/consent", lg.ConsentPage)
 		tr.Post("/u/consent", lg.ConsentSubmit)
 		tr.Get("/u/signup", lg.SignupPage)
