@@ -428,7 +428,7 @@ func (o optional) Scan(v any) error {
 // bound reads a trigger's bindings, their Actions and deployed versions in one
 // statement, so the result is a single consistent snapshot. A binding whose
 // Action or deployed version is missing fails the read instead of being
-// skipped. Inside a transaction the caller has taken the tenant lock first.
+// skipped.
 func (r actionsRepo) bound(ctx context.Context, tenant, trigger string) ([]store.BoundVersion, error) {
 	rows, err := r.s.query(ctx, `SELECT b.id,b.action_id,b.display_name,b.created_at,b.updated_at,`+prefixed("a.", actionCols)+`,`+prefixed("v.", versionCols)+
 		` FROM action_bindings b LEFT JOIN actions a ON a.tenant_id=b.tenant_id AND a.id=b.action_id`+
@@ -475,12 +475,10 @@ func (r actionsRepo) bound(ctx context.Context, tenant, trigger string) ([]store
 	return out, rows.Err()
 }
 
+// Bindings is one statement, so it is a consistent snapshot without the
+// tenant lock: logins read it on every flow and must not queue behind (or
+// block) the tenant's Actions writers.
 func (r actionsRepo) Bindings(ctx context.Context, tenant, trigger string) ([]store.BoundVersion, error) {
-	if r.s.tx != nil {
-		if err := r.s.lockActions(ctx, tenant); err != nil {
-			return nil, err
-		}
-	}
 	return r.bound(ctx, tenant, trigger)
 }
 
@@ -534,11 +532,11 @@ func (r actionsRepo) CreateExecution(ctx context.Context, e *store.Execution) er
 		return err
 	}
 	created, updated := stampTime(e.CreatedAt), stampTime(e.UpdatedAt)
-	return r.atomic(ctx, e.TenantID, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO action_executions (`+execCols+`) VALUES (?,?,?,?,?,?,?)`,
-			e.TenantID, e.ID, e.Trigger, e.Status, results, micros(created), micros(updated))
-		return tx.conflict(err)
-	})
+	// One INSERT per flow on the login path: no tenant lock; the primary key
+	// refuses duplicates and the tenant foreign key a missing tenant.
+	_, err = r.s.write(ctx, nil, `INSERT INTO action_executions (`+execCols+`) VALUES (?,?,?,?,?,?,?)`,
+		e.TenantID, e.ID, e.Trigger, e.Status, results, micros(created), micros(updated))
+	return r.s.insertErr(err)
 }
 
 func (r actionsRepo) GetExecution(ctx context.Context, tenant, id string) (*store.Execution, error) {
@@ -582,11 +580,19 @@ func (r actionsRepo) CreateContinue(ctx context.Context, c *store.ContinueState)
 		return store.ErrInvalid
 	}
 	created := stampTime(c.CreatedAt)
-	return r.atomic(ctx, c.TenantID, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO action_continues (tenant_id,state_hash,session_id,sealed,expires_at,created_at) VALUES (?,?,?,?,?,?)`,
-			c.TenantID, c.StateHash, c.SessionID, nonNil(c.Sealed), micros(c.ExpiresAt), micros(created))
-		return tx.conflict(err)
-	})
+	// Like CreateExecution: no tenant lock on the login path.
+	_, err := r.s.write(ctx, nil, `INSERT INTO action_continues (tenant_id,state_hash,session_id,sealed,expires_at,created_at) VALUES (?,?,?,?,?,?)`,
+		c.TenantID, c.StateHash, c.SessionID, nonNil(c.Sealed), micros(c.ExpiresAt), micros(created))
+	return r.s.insertErr(err)
+}
+
+// insertErr maps a duplicate key to ErrConflict and a missing tenant (the
+// tenant foreign key) to ErrNotFound.
+func (s *Store) insertErr(err error) error {
+	if err != nil && s.d.isForeignKeyViolation(err) {
+		return store.ErrNotFound
+	}
+	return s.conflict(err)
 }
 
 // ConsumeContinue locks the row, deletes it and only then decides whether it

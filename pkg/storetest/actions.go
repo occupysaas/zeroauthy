@@ -433,6 +433,12 @@ func testActions(t *testing.T, factory Factory) {
 		if err := a.CreateExecution(ctx, &store.Execution{TenantID: "act-b", ID: "ex_new"}); !errors.Is(err, store.ErrConflict) {
 			t.Fatal(err)
 		}
+		if err := a.CreateExecution(ctx, &store.Execution{TenantID: "act-missing", ID: "ex_x", Trigger: "post-login", Status: "final"}); !errors.Is(err, store.ErrNotFound) {
+			t.Fatalf("execution for a missing tenant: %v", err)
+		}
+		if err := a.CreateContinue(ctx, &store.ContinueState{TenantID: "act-missing", StateHash: "h", SessionID: "s", Sealed: []byte("x"), ExpiresAt: now.Add(time.Hour)}); !errors.Is(err, store.ErrNotFound) {
+			t.Fatalf("continue state for a missing tenant: %v", err)
+		}
 		e, err := a.GetExecution(ctx, "act-a", "ex_old")
 		must(err)
 		e.Results[0].ActionName = "mutated"

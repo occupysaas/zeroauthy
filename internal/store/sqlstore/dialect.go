@@ -64,6 +64,24 @@ func (d dialect) isUniqueViolation(err error) bool {
 	return false
 }
 
+// isForeignKeyViolation reports whether err is a foreign-key violation on
+// insert: PostgreSQL 23503, MySQL 1452 and SQLite's FOREIGNKEY constraint.
+func (d dialect) isForeignKeyViolation(err error) bool {
+	var pg *pgconn.PgError
+	if errors.As(err, &pg) {
+		return pg.Code == "23503"
+	}
+	var my *mysql.MySQLError
+	if errors.As(err, &my) {
+		return my.Number == 1452
+	}
+	var sq *sqlite.Error
+	if errors.As(err, &sq) {
+		return sq.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY
+	}
+	return false
+}
+
 // isDeadlock reports whether err is a deadlock or serialization failure the
 // database resolved by aborting the transaction: MySQL 1213, PostgreSQL
 // 40P01 and 40001, and SQLite BUSY/LOCKED (including extended codes).
