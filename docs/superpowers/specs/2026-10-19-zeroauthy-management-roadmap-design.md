@@ -196,7 +196,7 @@ guide defines fleet rollout/rollback and legacy noncanonical reauthentication.
 
 ### Plan 25 — Microsoft and Google email-account sign-in
 
-**Draft for review (2026-10-26):** [standalone spec](2026-10-26-zeroauthy-email-account-connections-design.md) and [implementation plan](../plans/2026-10-26-zeroauthy-plan-25-email-account-connections.md). Add `windowslive` for Microsoft personal accounts (including Outlook/Hotmail) and the `waad` Microsoft Entra work/school sign-in subset brought forward from Plan 36. Preserve and explicitly verify existing `google-oauth2` support for Gmail, other Google accounts and Google Workspace. This is account authentication, not mailbox access or outbound email delivery. **Full**, because organizational issuer/key validation and safe identity migration require more than provider profiles.
+**Implemented 2026-10-27:** see the [implementation record](../2026-10-26-plan-25-implementation-record.md) and [operator guide](../../email-account-connections.md). [Standalone spec](2026-10-26-zeroauthy-email-account-connections-design.md) and [implementation plan](../plans/2026-10-26-zeroauthy-plan-25-email-account-connections.md). Add `windowslive` for Microsoft personal accounts (including Outlook/Hotmail) and the `waad` Microsoft Entra work/school sign-in subset brought forward from Plan 36. Preserve and explicitly verify existing `google-oauth2` support for Gmail, other Google accounts and Google Workspace. This is account authentication, not mailbox access or outbound email delivery. **Full**, because organizational issuer/key validation and safe identity migration require more than provider profiles.
 
 **Deferred: Additional social providers (future plan, number unassigned).** Move `apple`, `facebook`, `github`, `linkedin`, `twitter`, `amazon`, `discord`, `slack` and the remaining social list here. Apple still requires client-secret JWT and private-email relay handling. Do not implement these in Plan 25 or renumber Plans 26–39.
 
@@ -278,7 +278,7 @@ Remaining triggers: `pre-user-registration`, `post-user-registration`, `post-cha
 
 ### Plan 36 — Enterprise OIDC connections
 
-Remaining `oidc` and `okta` enterprise features, front-channel OIDC, home-realm discovery by `domain_aliases`, and `/api/v2/connections/{id}/keys` (`GET`, `POST .../rotate`) for connections that sign requests. Also `GET /api/v2/connections/{id}/status`, and `DELETE /api/v2/connections/{id}/users?email=`. Basic `oidc` back-channel login was brought forward to Plan 24; the public-cloud v2 `waad` work/school sign-in subset is now proposed in Plan 25. This plan retains Entra features beyond that subset and must not reimplement its login adapters. **Short**, on Plans 24–25's federation core.
+Remaining `oidc` and `okta` enterprise features, front-channel OIDC, home-realm discovery by `domain_aliases`, and `/api/v2/connections/{id}/keys` (`GET`, `POST .../rotate`) for connections that sign requests. Also `GET /api/v2/connections/{id}/status`, and `DELETE /api/v2/connections/{id}/users?email=`. Basic `oidc` back-channel login was brought forward to Plan 24; the public-cloud v2 `waad` work/school sign-in subset was implemented in Plan 25. This plan retains Entra features beyond that subset and must not reimplement its login adapters. **Short**, on Plans 24–25's federation core.
 
 ### Plan 37 — SAML, WS-Federation, SCIM, self-service SSO (full design; sub-project 4)
 

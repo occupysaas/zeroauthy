@@ -1014,3 +1014,7 @@ IDs establish Auth0 defaults or legacy-ID migration parity. No live observation
 or provider login result is claimed. Unknown harmless metadata stays inert;
 unsupported security requirements fail validation. Capability and existing-data
 preflight must precede Microsoft activation; migration 0021 remains unchanged.
+
+Implemented 2026-10-27 as frozen, with no contract change. Deploy CLI
+migration requires explicit per-connection provider-secret reinjection; see
+`docs/email-account-connections.md` and the Plan 25 implementation record.

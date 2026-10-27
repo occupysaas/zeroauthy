@@ -36,7 +36,7 @@ Status of Auth0-compatible surfaces in zeroauthy.
 | Device screens: `/activate`, `/device/confirmation`, `/device/success`, `/device/denied` | Implemented | Entry, confirmation (always shown), success and denied pages with the four `device-code-*` custom text prompts; login and consent reuse `/u/login` and `/u/consent` (D-0032). Activation limits are zeroauthy's own numbers (D-0034) |
 | Discovery: `device_authorization_endpoint` | Implemented | Advertised with the device grant in `grant_types_supported` (D-0033) |
 | Implicit/hybrid flows | Planned | Not part of Plan 5 |
-| Social connections (`google-oauth2`, `oauth2`) and basic OIDC (`oidc`, back channel) | Implemented (Plan 24) | Guide: `docs/social-connections.md`; decisions in the Plan 24 contract and D-0049. Login buttons, explicit `connection=`, S256 PKCE, RS256 ID tokens, restricted profile scripts (Node 25+), identity index, explicit linking, scoped upstream tokens (`read:user_idp_tokens`, individual GET only). Verified with node-auth0 7.4.0, auth0-cli 1.37.0 (`api` verbs) and Chromium against local mock providers (m24); no live provider or Auth0 tenant observed. Not included: Plan 25 providers, enterprise OIDC extras (Plan 36), Token Vault, federated logout, automatic linking, development keys |
+| Social connections (`google-oauth2`, `oauth2`) and basic OIDC (`oidc`, back channel) | Implemented (Plan 24) | Guide: `docs/social-connections.md`; decisions in the Plan 24 contract and D-0049. Login buttons, explicit `connection=`, S256 PKCE, RS256 ID tokens, restricted profile scripts (Node 25+), identity index, explicit linking, scoped upstream tokens (`read:user_idp_tokens`, individual GET only). Verified with node-auth0 7.4.0, auth0-cli 1.37.0 (`api` verbs) and Chromium against local mock providers (m24); no live provider or Auth0 tenant observed. Not included: remaining social providers, enterprise OIDC extras (Plan 36), Token Vault, federated logout, automatic linking, development keys |
 | Passwordless, MFA, Actions | Planned (sub-project 2) | |
 | Management API v2: authentication (machine-to-machine tokens for the canonical `https://<tenant>/api/v2/` audience, operator tokens), errors, pagination, `fields` | Implemented | Guide: `docs/management-api.md`. Decisions D-0038 to D-0040 |
 | Management API v2: `/api/v2/clients` (list, create, get, update, delete, `rotate-secret`) | Implemented | Verified with auth0-cli 1.37.0 (m13-mgmt-cli: `apps create/list/show/update/delete`, `api get clients`) and a contract test against `api/management.yaml`. Secrets encrypted and revealed with `read:client_keys` (D-0038); defaults and differences in D-0039 |
@@ -88,7 +88,7 @@ Status of Auth0-compatible surfaces in zeroauthy.
 
 ## Plan 25 email-account inventory (2026-10-26)
 
-Contract frozen; runtime implementation and acceptance pending. Microsoft
+Implemented (Plan 25); guide: `docs/email-account-connections.md`. Microsoft
 personal (`windowslive`) and work/school (`waad`) target public-cloud v2 only.
 Google Gmail/Workspace/non-Gmail accounts preserve the predecessor adapter.
 Local differences: fixed Microsoft openid/profile/email scopes, no Graph or
@@ -97,4 +97,7 @@ multitenancy, tenant-bound `tid:oid` identifiers, immutable identity bindings,
 explicit rejected unsupported security options, and capability/data preflight.
 No legacy Live/Graph ID parity or live provider observation is established.
 See [email-account evidence](observations/email-account-connections.md) and
-D-0051. All runtime/SDK/CLI/Deploy/browser acceptance remains pending.
+D-0051. Verified against local mock providers only: Chromium code+PKCE logins
+for nine personas (m25), node-auth0 7.4.0, auth0-cli 1.37.0 and the strict
+Deploy CLI 9.1.0 four-cell matrix with post-import logins. No live Microsoft,
+Google or Auth0 observation.
