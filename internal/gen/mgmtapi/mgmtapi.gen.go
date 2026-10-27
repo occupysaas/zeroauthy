@@ -869,13 +869,22 @@ func (e ClientUpdateThirdPartySecurityMode) Valid() bool {
 
 // Defines values for ConnectionCreateStrategy.
 const (
-	Auth0 ConnectionCreateStrategy = "auth0"
+	Auth0        ConnectionCreateStrategy = "auth0"
+	GoogleOauth2 ConnectionCreateStrategy = "google-oauth2"
+	Oauth2       ConnectionCreateStrategy = "oauth2"
+	Oidc         ConnectionCreateStrategy = "oidc"
 )
 
 // Valid indicates whether the value is a known member of the ConnectionCreateStrategy enum.
 func (e ConnectionCreateStrategy) Valid() bool {
 	switch e {
 	case Auth0:
+		return true
+	case GoogleOauth2:
+		return true
+	case Oauth2:
+		return true
+	case Oidc:
 		return true
 	default:
 		return false
@@ -3119,6 +3128,9 @@ type ClientUpdateThirdPartySecurityMode string
 // Connection A connection. `options.configuration` values are opaque blobs, never
 // plaintext. `enabled_clients` is returned by create only. `fields`
 // can leave out any property but `id` and `is_domain_connection`.
+// For `google-oauth2`, `oauth2` and `oidc` connections
+// `options.client_secret` is write-only: it is sealed when written and
+// never returned (Plan 24).
 type Connection struct {
 	Authentication    *map[string]interface{} `json:"authentication,omitempty"`
 	ConnectedAccounts *map[string]interface{} `json:"connected_accounts,omitempty"`

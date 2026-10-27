@@ -273,6 +273,13 @@ type Connection struct {
 
 	IsDomainConnection bool `yaml:"is_domain_connection"`
 
+	// Options are the options of a federated strategy (google-oauth2,
+	// oauth2, oidc) in Auth0's names. options.client_secret is plaintext in
+	// the seed file and sealed when applied; it is required.
+	Options      map[string]any `yaml:"options"`
+	DisplayName  string         `yaml:"display_name"`
+	ShowAsButton *bool          `yaml:"show_as_button"`
+
 	// normalized is the connection after connrules.Normalize, set by
 	// validate.
 	normalized *connrules.Spec
@@ -291,6 +298,10 @@ func (c *Connection) spec() connrules.Spec {
 			CustomScripts:         maps.Clone(c.CustomScripts),
 			SetUserRootAttributes: c.SetUserRootAttributes,
 		},
+	}
+	if c.Options != nil {
+		s.Options.Extra = cloneYAMLMap(c.Options)
+		s.DisplayName, s.ShowAsButton = c.DisplayName, c.ShowAsButton
 	}
 	if c.Configuration != nil {
 		s.Options.Configuration = make(map[string]*string, len(c.Configuration))
@@ -320,6 +331,14 @@ func (c *Connection) spec() connrules.Spec {
 			cp.ProfileData = &v
 		}
 		s.Options.PasswordOptions = &cp
+		return s
+	}
+	if s.Federated() {
+		// No password model: a password_policy or password_options on a
+		// federated connection is refused by validation.
+		if c.PasswordPolicy != (PasswordPolicy{}) {
+			s.Options.PasswordOptions = &connrules.PasswordOptions{}
+		}
 		return s
 	}
 	// The seed's own password policy owns the complexity half only.
@@ -353,4 +372,29 @@ type User struct {
 	FamilyName    string `yaml:"family_name"`
 	Picture       string `yaml:"picture"`
 	Blocked       bool   `yaml:"blocked"`
+}
+
+// cloneYAMLMap deep-copies a decoded YAML mapping into JSON-shaped values.
+func cloneYAMLMap(m map[string]any) map[string]any {
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = cloneYAMLValue(v)
+	}
+	return out
+}
+
+func cloneYAMLValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		return cloneYAMLMap(x)
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = cloneYAMLValue(e)
+		}
+		return out
+	case int:
+		return float64(x)
+	}
+	return v
 }

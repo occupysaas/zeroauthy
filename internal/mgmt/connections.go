@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
+	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -247,7 +248,30 @@ func (h *Handlers) connectionView(c *store.Connection, withClients bool) (map[st
 	if !withClients {
 		delete(m, "enabled_clients")
 	}
+	if spec.Federated() {
+		// Database options mean nothing here, and provider secrets are
+		// write-only: never returned, not even as placeholders.
+		if opts, ok := m["options"].(map[string]any); ok {
+			for _, k := range federatedHiddenOptions {
+				delete(opts, k)
+			}
+		}
+	}
 	return m, nil
+}
+
+// federatedHiddenOptions are left out of a federated connection's options.
+var federatedHiddenOptions = []string{"client_secret", "disable_signup", "requires_username",
+	"enabledDatabaseCustomization", "import_mode", "password_options", "brute_force_protection", "validation"}
+
+// applyFederated finishes a federated write (sealing, immutable bindings,
+// revision) and maps its validation failures to 400s.
+func (h *Handlers) applyFederated(prev *store.Connection, spec *connrules.Spec, next *store.Connection) error {
+	err := federation.ApplyConnection(h.Wrapper, prev, spec, next)
+	if errors.Is(err, federation.ErrImmutable) || errors.Is(err, federation.ErrInvalidConfig) {
+		return badBody("%v", err)
+	}
+	return err
 }
 
 // readConnectionBody reads a create or update body into a Spec. The keys it
@@ -368,11 +392,6 @@ func setPlainConfiguration(s *connrules.Spec, plain map[string]string) {
 }
 
 func normalizeConnection(s *connrules.Spec) error {
-	if s.Federated() {
-		// Plan 24 Task 4 seals provider credentials before writes; until
-		// then federated strategies stay unavailable through the API.
-		return badBody("strategy %q is not supported", s.Strategy)
-	}
 	errs := connrules.NormalizeAPI(s)
 	if len(errs) == 0 {
 		return nil
@@ -426,6 +445,10 @@ func (h *Handlers) CreateConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	connrules.Apply(spec, c)
+	if err := h.applyFederated(nil, spec, c); err != nil {
+		Fail(w, err)
+		return
+	}
 	if c.ConfigurationSealed, err = h.sealConfiguration(c, plain); err != nil {
 		Fail(w, internalError(h, r, "seal connection configuration", err))
 		return
@@ -534,6 +557,9 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 		}
 		next := *c
 		connrules.Apply(spec, &next)
+		if err := h.applyFederated(c, spec, &next); err != nil {
+			return err
+		}
 		if set["options"] {
 			if next.ConfigurationSealed, err = h.sealConfiguration(&next, plain); err != nil {
 				return err
@@ -685,6 +711,7 @@ func (h *Handlers) UpdateConnectionClients(w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			return err
 		}
+		before := slices.Clone(c.EnabledClients)
 		for _, e := range entries {
 			if err := checkClientsExist(r, tx, tn.ID, []string{e.clientID}); err != nil {
 				return err
@@ -697,6 +724,7 @@ func (h *Handlers) UpdateConnectionClients(w http.ResponseWriter, r *http.Reques
 				c.EnabledClients = slices.DeleteFunc(c.EnabledClients, func(s string) bool { return s == e.clientID })
 			}
 		}
+		federation.BumpForEnablement(before, c)
 		return tx.Connections().Update(r.Context(), c)
 	})
 	if err != nil {

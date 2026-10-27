@@ -5909,7 +5909,7 @@ components:
           required: [name, strategy]
           properties:
             name: {type: string, minLength: 1, maxLength: 128, description: "Letters and digits with single hyphens between them."}
-            strategy: {type: string, enum: [auth0]}
+            strategy: {type: string, enum: [auth0, google-oauth2, oauth2, oidc]}
             enabled_clients:
               type: array
               items: {type: string}
@@ -5926,6 +5926,9 @@ components:
         A connection. `options.configuration` values are opaque blobs, never
         plaintext. `enabled_clients` is returned by create only. `fields`
         can leave out any property but `id` and `is_domain_connection`.
+        For `google-oauth2`, `oauth2` and `oidc` connections
+        `options.client_secret` is write-only: it is sealed when written and
+        never returned (Plan 24).
       required: [id, is_domain_connection]
       properties:
         id: {type: string, description: "`con_` and 16 letters and digits for connections created through the API."}

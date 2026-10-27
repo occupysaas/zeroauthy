@@ -647,6 +647,28 @@ func FromConnection(c *store.Connection) *Spec {
 	return s
 }
 
+// KeepFederationIssuer carries prev's pinned issuer into next when the
+// writer's Spec did not name one (the seed never does), so a re-apply never
+// unpins it.
+func KeepFederationIssuer(prev, next *store.Connection) {
+	top, _ := prev.Extra[topKey].(map[string]any)
+	issuer, _ := top["federation_issuer"].(string)
+	if issuer == "" {
+		return
+	}
+	if next.Extra == nil {
+		next.Extra = map[string]any{}
+	}
+	nt, _ := next.Extra[topKey].(map[string]any)
+	if nt == nil {
+		nt = map[string]any{}
+		next.Extra[topKey] = nt
+	}
+	if _, ok := nt["federation_issuer"]; !ok {
+		nt["federation_issuer"] = issuer
+	}
+}
+
 func stringList(v any) []string {
 	switch l := v.(type) {
 	case []string:
