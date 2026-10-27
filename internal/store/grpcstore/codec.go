@@ -122,6 +122,8 @@ func errToPB(err error) *storev1.Error {
 	switch {
 	case err == nil:
 		return nil
+	case errors.Is(err, store.ErrFederationUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_FEDERATION_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrCustomDomainRepositoryUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_CUSTOM_DOMAIN_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrTLSAssetRepositoryUnavailable):
@@ -146,6 +148,8 @@ func errFromPB(e *storev1.Error) error {
 		return nil
 	}
 	switch e.Kind {
+	case storev1.Error_KIND_FEDERATION_UNAVAILABLE:
+		return store.ErrFederationUnavailable
 	case storev1.Error_KIND_CUSTOM_DOMAIN_UNAVAILABLE:
 		return store.ErrCustomDomainRepositoryUnavailable
 	case storev1.Error_KIND_TLS_ASSET_UNAVAILABLE:

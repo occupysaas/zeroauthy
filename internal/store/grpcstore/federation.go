@@ -2,6 +2,7 @@ package grpcstore
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -87,6 +88,11 @@ func (r clientFederation) BumpIdentityEpoch(ctx context.Context, tenantID string
 }
 
 func (r clientFederation) CreateAttempt(ctx context.Context, a *store.FederationAttempt) error {
+	if a != nil {
+		if err := requireMicrosoftKey(ctx, r.c, store.FederatedIdentityKey{TenantID: a.TenantID, ConnectionID: a.ConnectionID}); err != nil {
+			return err
+		}
+	}
 	pb, err := attemptToPB(a)
 	if err != nil {
 		return err
@@ -112,11 +118,17 @@ func (r clientFederation) FinishAttempt(ctx context.Context, tenantID, stateHash
 }
 
 func (r clientFederation) PutIdentity(ctx context.Context, k store.FederatedIdentityKey, userID string) error {
+	if err := requireMicrosoftKey(ctx, r.c, k); err != nil {
+		return err
+	}
 	res, err := r.c.rpc.FederationPutIdentity(ctx, &storev1.FederatedIdentityWrite{TxId: r.c.txID, Key: fedKeyToPB(k), UserId: userID})
 	return do("FederationPutIdentity", res, fedErr(err))
 }
 
 func (r clientFederation) DeleteIdentity(ctx context.Context, k store.FederatedIdentityKey, expectedUserID string) error {
+	if err := requireMicrosoftKey(ctx, r.c, k); err != nil {
+		return err
+	}
 	res, err := r.c.rpc.FederationDeleteIdentity(ctx, &storev1.FederatedIdentityWrite{TxId: r.c.txID, Key: fedKeyToPB(k), UserId: expectedUserID})
 	return do("FederationDeleteIdentity", res, fedErr(err))
 }
@@ -130,11 +142,17 @@ func (r clientFederation) GetTokens(ctx context.Context, k store.FederatedIdenti
 }
 
 func (r clientFederation) PutTokens(ctx context.Context, k store.FederatedIdentityKey, sealed []byte) error {
+	if err := requireMicrosoftKey(ctx, r.c, k); err != nil {
+		return err
+	}
 	res, err := r.c.rpc.FederationPutTokens(ctx, &storev1.FederatedTokensWrite{TxId: r.c.txID, Key: fedKeyToPB(k), Sealed: cloneBytes(sealed)})
 	return do("FederationPutTokens", res, fedErr(err))
 }
 
 func (r clientFederation) DeleteTokens(ctx context.Context, k store.FederatedIdentityKey) error {
+	if err := requireMicrosoftKey(ctx, r.c, k); err != nil {
+		return err
+	}
 	res, err := r.c.rpc.FederationDeleteTokens(ctx, &storev1.FederatedIdentityRequest{TxId: r.c.txID, Key: fedKeyToPB(k)})
 	return do("FederationDeleteTokens", res, fedErr(err))
 }
@@ -167,6 +185,9 @@ func (s *Server) FederationBumpIdentityEpoch(ctx context.Context, r *storev1.Ten
 
 func (s *Server) FederationCreateAttempt(ctx context.Context, r *storev1.FederationAttemptWrite) (*storev1.Result, error) {
 	return write(s, r.TxId, r.Value, attemptFromPB, func(st store.Store, a *store.FederationAttempt) error {
+		if err := requireMicrosoftKey(ctx, st, store.FederatedIdentityKey{TenantID: a.TenantID, ConnectionID: a.ConnectionID}); err != nil {
+			return err
+		}
 		return st.Federation().CreateAttempt(ctx, a)
 	}), nil
 }
@@ -194,12 +215,18 @@ func (s *Server) FederationFinishAttempt(ctx context.Context, r *storev1.Federat
 
 func (s *Server) FederationPutIdentity(ctx context.Context, r *storev1.FederatedIdentityWrite) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
+		if err := requireMicrosoftKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
+			return err
+		}
 		return st.Federation().PutIdentity(ctx, fedKeyFromPB(r.Key), r.UserId)
 	}), nil
 }
 
 func (s *Server) FederationDeleteIdentity(ctx context.Context, r *storev1.FederatedIdentityWrite) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
+		if err := requireMicrosoftKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
+			return err
+		}
 		return st.Federation().DeleteIdentity(ctx, fedKeyFromPB(r.Key), r.UserId)
 	}), nil
 }
@@ -215,12 +242,20 @@ func (s *Server) FederationGetTokens(ctx context.Context, r *storev1.FederatedId
 
 func (s *Server) FederationPutTokens(ctx context.Context, r *storev1.FederatedTokensWrite) (*storev1.Result, error) {
 	return exec(s, r.TxId, func(st store.Store) error {
+		if err := requireMicrosoftKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
+			return err
+		}
 		return st.Federation().PutTokens(ctx, fedKeyFromPB(r.Key), r.Sealed)
 	}), nil
 }
 
 func (s *Server) FederationDeleteTokens(ctx context.Context, r *storev1.FederatedIdentityRequest) (*storev1.Result, error) {
-	return exec(s, r.TxId, func(st store.Store) error { return st.Federation().DeleteTokens(ctx, fedKeyFromPB(r.Key)) }), nil
+	return exec(s, r.TxId, func(st store.Store) error {
+		if err := requireMicrosoftKey(ctx, st, fedKeyFromPB(r.Key)); err != nil {
+			return err
+		}
+		return st.Federation().DeleteTokens(ctx, fedKeyFromPB(r.Key))
+	}), nil
 }
 
 func (s *Server) FederationDeleteExpired(ctx context.Context, r *storev1.DeleteExpiredRequest) (*storev1.CountResult, error) {
@@ -241,4 +276,46 @@ func (s *Server) UsersFindByIdentity(ctx context.Context, r *storev1.UsersFindBy
 		return st.Users().FindByIdentity(ctx, k.TenantID, k.ConnectionID, k.Subject)
 	}, userToPB)
 	return &storev1.UserResult{Error: e, Value: v}, err
+}
+
+// MicrosoftFederationSupported verifies the plugin and its selected backing
+// transaction view implement canonical Microsoft identity ownership.
+func (c *Client) MicrosoftFederationSupported(ctx context.Context) error {
+	r, err := c.rpc.MicrosoftFederationSupported(ctx, &storev1.MicrosoftFederationCapabilitiesRequest{TxId: c.txID})
+	return do("MicrosoftFederationSupported", r, fedErr(err))
+}
+func requireMicrosoftBacking(ctx context.Context, st store.Store) error {
+	capability, ok := st.(store.MicrosoftFederationSupporter)
+	if !ok {
+		return store.ErrFederationUnavailable
+	}
+	return capability.MicrosoftFederationSupported(ctx)
+}
+func (s *Server) MicrosoftFederationSupported(ctx context.Context, r *storev1.MicrosoftFederationCapabilitiesRequest) (*storev1.Result, error) {
+	return exec(s, r.TxId, func(st store.Store) error { return requireMicrosoftBacking(ctx, st) }), nil
+}
+func microsoftStrategy(strategy string) bool { return strategy == "windowslive" || strategy == "waad" }
+func microsoftUser(u *store.User) bool {
+	if u != nil {
+		for _, id := range u.Identities {
+			if microsoftStrategy(id.Provider) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func requireMicrosoftKey(ctx context.Context, st store.Store, key store.FederatedIdentityKey) error {
+	c, err := st.Connections().Get(ctx, key.TenantID, key.ConnectionID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	} // retain predecessor repository semantics for orphan keys
+	if err != nil {
+		return err
+	}
+	if microsoftStrategy(c.Strategy) {
+		return requireMicrosoftBacking(ctx, st)
+	}
+	return nil
 }

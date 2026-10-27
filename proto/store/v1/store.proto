@@ -60,6 +60,7 @@ option go_package = "github.com/zeroauthy/zeroauthy/proto/store/v1;storev1";
 service StoreService {
   rpc Ping(PingRequest) returns (Result);
   // Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
+  rpc MicrosoftFederationSupported(MicrosoftFederationCapabilitiesRequest) returns (Result);
   rpc CustomDomainsSupported(CustomDomainCapabilitiesRequest) returns (Result);
   rpc CustomDomainsGet(CustomDomainRequest) returns (CustomDomainResult);
   rpc CustomDomainsList(CustomDomainRequest) returns (CustomDomainResult);
@@ -291,6 +292,7 @@ message Error {
     KIND_INVALID = 4; // store.ErrInvalid
     KIND_CUSTOM_DOMAIN_UNAVAILABLE = 5; // store.ErrCustomDomainRepositoryUnavailable
     KIND_TLS_ASSET_UNAVAILABLE = 6; // store.ErrTLSAssetRepositoryUnavailable
+    KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
   }
   Kind kind = 1;
   string message = 2; // human-readable; for KIND_UNSPECIFIED the whole error
@@ -949,3 +951,5 @@ message TLSAssetRequest {
 message TLSAssetResult {
   Error error = 1; TLSAsset value = 2; repeated TLSAsset values = 3; TLSLease lease = 4;
 }
+
+message MicrosoftFederationCapabilitiesRequest { string tx_id = 1; }

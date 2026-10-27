@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	StoreService_Ping_FullMethodName                                   = "/zeroauthy.store.v1.StoreService/Ping"
+	StoreService_MicrosoftFederationSupported_FullMethodName           = "/zeroauthy.store.v1.StoreService/MicrosoftFederationSupported"
 	StoreService_CustomDomainsSupported_FullMethodName                 = "/zeroauthy.store.v1.StoreService/CustomDomainsSupported"
 	StoreService_CustomDomainsGet_FullMethodName                       = "/zeroauthy.store.v1.StoreService/CustomDomainsGet"
 	StoreService_CustomDomainsList_FullMethodName                      = "/zeroauthy.store.v1.StoreService/CustomDomainsList"
@@ -267,6 +268,7 @@ const (
 type StoreServiceClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*Result, error)
 	// Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
+	MicrosoftFederationSupported(ctx context.Context, in *MicrosoftFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
 	CustomDomainsSupported(ctx context.Context, in *CustomDomainCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error)
 	CustomDomainsGet(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
 	CustomDomainsList(ctx context.Context, in *CustomDomainRequest, opts ...grpc.CallOption) (*CustomDomainResult, error)
@@ -479,6 +481,16 @@ func (c *storeServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Result)
 	err := c.cc.Invoke(ctx, StoreService_Ping_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) MicrosoftFederationSupported(ctx context.Context, in *MicrosoftFederationCapabilitiesRequest, opts ...grpc.CallOption) (*Result, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Result)
+	err := c.cc.Invoke(ctx, StoreService_MicrosoftFederationSupported_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2386,6 +2398,7 @@ func (c *storeServiceClient) JobsDeleteExpired(ctx context.Context, in *DeleteEx
 type StoreServiceServer interface {
 	Ping(context.Context, *PingRequest) (*Result, error)
 	// Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
+	MicrosoftFederationSupported(context.Context, *MicrosoftFederationCapabilitiesRequest) (*Result, error)
 	CustomDomainsSupported(context.Context, *CustomDomainCapabilitiesRequest) (*Result, error)
 	CustomDomainsGet(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
 	CustomDomainsList(context.Context, *CustomDomainRequest) (*CustomDomainResult, error)
@@ -2596,6 +2609,9 @@ type UnimplementedStoreServiceServer struct{}
 
 func (UnimplementedStoreServiceServer) Ping(context.Context, *PingRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedStoreServiceServer) MicrosoftFederationSupported(context.Context, *MicrosoftFederationCapabilitiesRequest) (*Result, error) {
+	return nil, status.Error(codes.Unimplemented, "method MicrosoftFederationSupported not implemented")
 }
 func (UnimplementedStoreServiceServer) CustomDomainsSupported(context.Context, *CustomDomainCapabilitiesRequest) (*Result, error) {
 	return nil, status.Error(codes.Unimplemented, "method CustomDomainsSupported not implemented")
@@ -3181,6 +3197,24 @@ func _StoreService_Ping_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).Ping(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_MicrosoftFederationSupported_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MicrosoftFederationCapabilitiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).MicrosoftFederationSupported(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_MicrosoftFederationSupported_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).MicrosoftFederationSupported(ctx, req.(*MicrosoftFederationCapabilitiesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -6482,6 +6516,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _StoreService_Ping_Handler,
+		},
+		{
+			MethodName: "MicrosoftFederationSupported",
+			Handler:    _StoreService_MicrosoftFederationSupported_Handler,
 		},
 		{
 			MethodName: "CustomDomainsSupported",

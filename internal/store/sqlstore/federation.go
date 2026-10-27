@@ -355,7 +355,12 @@ func backfillFederatedIdentities(ctx context.Context, tx *Store) error {
 	}
 	var problems []string
 	for _, u := range found {
-		keys, err := store.ResolveFederatedKeys(u, func(name string) (*store.Connection, error) {
+		// Migration 0021 owns only Plan 24 strategies, even on mixed legacy rows.
+		legacy := *u
+		legacy.Identities = slices.DeleteFunc(slices.Clone(u.Identities), func(id store.Identity) bool {
+			return id.Provider != "google-oauth2" && id.Provider != "oauth2" && id.Provider != "oidc"
+		})
+		keys, err := store.ResolveFederatedKeys(&legacy, func(name string) (*store.Connection, error) {
 			return (connections{tx}).GetByName(ctx, u.TenantID, name)
 		})
 		if errors.Is(err, store.ErrInvalid) {
@@ -400,3 +405,6 @@ func nullBytes(b []byte) any {
 	}
 	return b
 }
+
+// MicrosoftFederationSupported reports support for canonical Microsoft identities.
+func (s *Store) MicrosoftFederationSupported(context.Context) error { return nil }

@@ -169,3 +169,81 @@ func TestFederationIndependentHandles(t *testing.T) {
 		})
 	}
 }
+
+func TestMicrosoftIdentityMigration0021LeavesMixedLegacyRowsUntouched(t *testing.T) {
+	ctx := context.Background()
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			s := openAtVersion(t, mk(t), 20)
+			legacyFixture(t, s)
+			// Unknown, legacy Microsoft encoding beside a valid Plan 24 identity
+			// must be handled by application preflight after migration, never backfilled.
+			insertLegacyUser(t, s, &store.User{TenantID: "t", UserID: "auth0|mixed", Identities: []store.Identity{
+				{Connection: "Database", Provider: "auth0", UserID: "mixed"},
+				{Connection: "google", Provider: "google-oauth2", UserID: "mixed-google", ProfileData: map[string]any{}},
+				{Connection: "unknown-ms", Provider: "windowslive", UserID: "legacy-ms", ProfileData: map[string]any{}},
+			}})
+			if err := s.Migrate(ctx); err != nil {
+				t.Fatal(err)
+			}
+			u, err := s.Users().FindByIdentity(ctx, "t", "con_g", "mixed-google")
+			if err != nil || u.UserID != "auth0|mixed" || len(u.Identities) != 3 {
+				t.Fatalf("mixed user %+v %v", u, err)
+			}
+			var n int
+			if err := s.queryRow(ctx, `SELECT COUNT(*) FROM federated_identities WHERE tenant_id=? AND subject=?`, "t", []byte("legacy-ms")).Scan(&n); err != nil || n != 0 {
+				t.Fatalf("Microsoft backfilled %d %v", n, err)
+			}
+		})
+	}
+}
+
+func TestMicrosoftIdentityIndependentHandles(t *testing.T) {
+	ctx := context.Background()
+	const oid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	const tid = "11111111-2222-3333-4444-555555555555"
+	for name, mk := range dsnsUnderTest(t) {
+		for _, tc := range []struct {
+			name, provider, sub, id string
+			extra                   map[string]any
+		}{
+			{"personal", "windowslive", "CaseSensitive", "CaseSensitive", nil},
+			{"single", "waad", oid, "provider|" + oid, map[string]any{"tenant_domain": tid}},
+			{"multi", "waad", tid + ":" + oid, "provider|" + tid + ":" + oid, map[string]any{"useCommonEndpoint": true}},
+		} {
+			t.Run(name+"/"+tc.name, func(t *testing.T) {
+				dsn := mk(t)
+				a := mustOpen(t, dsn)
+				b := mustOpen(t, dsn)
+				if err := a.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}); err != nil {
+					t.Fatal(err)
+				}
+				if err := a.Connections().Create(ctx, &store.Connection{TenantID: "t", ID: "ms", Name: "provider", Strategy: tc.provider, Extra: tc.extra}); err != nil {
+					t.Fatal(err)
+				}
+				handles := []*Store{a, b}
+				outcomes := make(chan error, 6)
+				for i := range 6 {
+					go func() {
+						outcomes <- handles[i%2].Users().Create(ctx, &store.User{TenantID: "t", UserID: store.FederatedPublicID(tc.provider, "provider", tc.sub), Email: "same@x.test", Identities: []store.Identity{{Connection: "provider", Provider: tc.provider, UserID: tc.id}}})
+					}()
+				}
+				won := 0
+				for range 6 {
+					if err := <-outcomes; err == nil {
+						won++
+					} else if !errors.Is(err, store.ErrConflict) {
+						t.Fatal(err)
+					}
+				}
+				if won != 1 {
+					t.Fatalf("%d provisioned", won)
+				}
+				u, err := b.Users().FindByIdentity(ctx, "t", "ms", tc.sub)
+				if err != nil || u.UserID != store.FederatedPublicID(tc.provider, "provider", tc.sub) {
+					t.Fatalf("owner %+v %v", u, err)
+				}
+			})
+		}
+	}
+}

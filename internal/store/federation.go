@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -16,6 +17,14 @@ import (
 // not implement the federation repository. Social login stays unavailable
 // rather than falling back to non-atomic behavior.
 var ErrFederationUnavailable = errors.New("store: federation repository unavailable")
+
+// MicrosoftFederationSupporter is an optional read-only capability probe. A
+// driver must implement the Microsoft identity encoding and atomic index lifecycle.
+type MicrosoftFederationSupporter interface {
+	MicrosoftFederationSupported(context.Context) error
+}
+
+var canonicalMicrosoftGUID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 // Federation attempt states.
 const (
@@ -167,8 +176,8 @@ func (UnimplementedFederation) DeleteExpired(context.Context, time.Time) (int, e
 func IsFederatedProvider(provider string) bool { return rules.IsFederated(provider) }
 
 // FederatedSubject returns the upstream subject of a federated identity and
-// true, or ("", false, nil) for any other identity. Google identities carry
-// the raw subject in UserID; OAuth2 and OIDC identities carry
+// true, or ("", false, nil) for any other identity. Google and personal
+// Microsoft identities carry the raw subject in UserID; OAuth2, OIDC and Entra carry
 // "<connection-name>|<subject>", and only that fixed prefix is stripped, so
 // the subject may itself contain "|". A malformed identity is ErrInvalid.
 func (id *Identity) FederatedSubject() (string, bool, error) {
@@ -176,7 +185,7 @@ func (id *Identity) FederatedSubject() (string, bool, error) {
 		return "", false, nil
 	}
 	sub := id.UserID
-	if id.Provider != rules.Google {
+	if id.Provider != rules.Google && id.Provider != rules.WindowsLive {
 		rest, ok := strings.CutPrefix(id.UserID, id.Connection+"|")
 		if !ok || id.Connection == "" {
 			return "", true, fmt.Errorf("%w: %s identity user_id must start with %q", ErrInvalid, id.Provider, id.Connection+"|")
@@ -191,9 +200,9 @@ func (id *Identity) FederatedSubject() (string, bool, error) {
 
 // FederatedPublicID returns the local public user ID of a federated identity:
 // "google-oauth2|<sub>", "oauth2|<connection>|<sub>" or
-// "oidc|<connection>|<sub>".
+// "oidc|<connection>|<sub>", "windowslive|<sub>" or "waad|<connection>|<subject>".
 func FederatedPublicID(provider, connection, subject string) string {
-	if provider == rules.Google {
+	if provider == rules.Google || provider == rules.WindowsLive {
 		return provider + "|" + subject
 	}
 	return provider + "|" + connection + "|" + subject
@@ -224,6 +233,23 @@ func ResolveFederatedKeys(u *User, byName func(name string) (*Connection, error)
 		}
 		if c.Strategy != id.Provider {
 			return nil, fmt.Errorf("%w: identity provider %q does not match connection %q", ErrInvalid, id.Provider, id.Connection)
+		}
+		if c.Strategy == rules.WAAD {
+			_, multi, err := rules.MicrosoftAuthority(c.Strategy, c.Extra)
+			if err != nil {
+				return nil, fmt.Errorf("%w: invalid Microsoft identity connection policy", ErrInvalid)
+			}
+			oid := sub
+			if multi {
+				tid, rest, ok := strings.Cut(sub, ":")
+				if !ok || !canonicalMicrosoftGUID.MatchString(tid) || tid == "9188040d-6c67-4c5b-b112-36a304b66dad" {
+					return nil, fmt.Errorf("%w: invalid Microsoft identity tenant", ErrInvalid)
+				}
+				oid = rest
+			}
+			if !canonicalMicrosoftGUID.MatchString(oid) {
+				return nil, fmt.Errorf("%w: invalid Microsoft identity object", ErrInvalid)
+			}
 		}
 		out = append(out, FederatedIdentityKey{TenantID: u.TenantID, ConnectionID: c.ID, Subject: sub})
 	}

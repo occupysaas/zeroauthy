@@ -43,6 +43,11 @@ func (s *Service) now() time.Time {
 // session. A concurrent first login returns store.ErrConflict; the caller may
 // retry its transaction once.
 func (s *Service) ResolveIdentity(ctx context.Context, tx store.Store, conn *store.Connection, res ProviderResult) (*store.User, error) {
+	if conn.Strategy == rules.WindowsLive || conn.Strategy == rules.WAAD {
+		if err := RequireMicrosoftFederation(ctx, tx); err != nil {
+			return nil, err
+		}
+	}
 	p := res.Profile
 	if err := ValidateSubject(p.Subject); err != nil {
 		return nil, err
@@ -70,10 +75,10 @@ func (s *Service) ResolveIdentity(ctx context.Context, tx store.Store, conn *sto
 	return tx.Users().Get(ctx, conn.TenantID, u.UserID)
 }
 
-// identityUserID is the identity's user_id: Google's raw subject, or
-// "<connection>|<subject>" for OAuth2 and OIDC.
+// identityUserID is the identity's user_id: Google and Microsoft personal
+// use the raw subject; OAuth2, OIDC and Entra use "<connection>|<subject>".
 func identityUserID(conn *store.Connection, sub string) string {
-	if conn.Strategy == rules.Google {
+	if conn.Strategy == rules.Google || conn.Strategy == rules.WindowsLive {
 		return sub
 	}
 	return conn.Name + "|" + sub
