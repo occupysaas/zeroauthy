@@ -1055,3 +1055,54 @@ Explicit local decisions where public material leaves the contract open:
   upgrade all writers before enabling RBAC. No downgrade to permissive tokens.
 
 These are implementation contracts, not proof of completion or live parity.
+
+## D-0053 — Plan 27 Actions contract (2026-10-27)
+
+Freeze the [public review](observations/actions.md) and
+`internal/actionsrules/inventory.json` (14 operations, `post-login` and
+`credentials-exchange`). Success statuses follow the public reference (create
+201, delete 204, deploy and version deploy 202, test 200). No live tenant was
+observed; unavailable items are listed in the review and never invented.
+
+Local choices where public material is silent or open:
+
+- Names 1–128 code points, unique per tenant, case-sensitive; runtime `node22`
+  only; <= 64 secrets; <= 50 dependencies; <= 20 bindings per trigger;
+  continue state 15 minutes, single-use; <= 5 redirects per login; artifact
+  <= 50 MB. Code, secret and cache limits are Auth0's published values.
+- `modules` and `registry_url` and binding `secrets` are refused with 400;
+  only the two triggers are advertised and creating an Action for any other
+  trigger is 400 until Plan 28. Build status emits pending, building, built,
+  failed only. Unknown properties 400. Binding an undeployed Action 400.
+- Secrets are snapshotted into a version at deploy; a secret change takes
+  effect at the next deploy (public docs silent).
+- Errors: `actions.ErrDraftNotBuilt` maps to 400 and a missing Action or
+  version to 404 at the test endpoint. Test runs record rather than apply
+  metadata, redirects and denials, uses a throwaway cache and writes no
+  execution record.
+- Delivery: `access.deny(reason)` on authorize redirects with
+  `error=access_denied`; at the token endpoint it is 403 `access_denied`;
+  uncaught error or timeout redirects `server_error` with a generic
+  description and shows a hosted error page with the execution reference
+  when the client shows error pages; the reference never appears in OAuth
+  `error_description`. Credentials-exchange deny codes are `invalid_scope`,
+  `invalid_request`, `server_error` (documented); other codes fail closed.
+  Their HTTP statuses are 400, 400 and 500 respectively (local).
+- Metadata commits once at flow end on success, deny or validation.error and
+  is discarded on error, timeout or unsupported call; across a redirect it is
+  held in continue state. Post-login runs before the consent screen (public
+  scope docs show consent lists Action-edited target scopes); effects of a flow
+  whose consent is later declined are not rolled back beyond the metadata
+  rule above. `event` reflects earlier Actions for `transaction.target_scopes`
+  and `transaction.metadata` (documented) and `user.app_metadata`/`user_metadata`
+  after a commit-free in-memory overlay (local).
+- `/userinfo` echoes namespaced ID-token custom claims (local default).
+  Non-namespaced access-token claims are dropped for the tenant's Management
+  API audience. `request.geoip`, `asn`, organization, MFA, prompt, agent and
+  Enterprise members are omitted; `groups.*` return empty; `rules.wasExecuted`
+  is false; session, refresh_token, authentication, multifactor, prompt and
+  samlResponse members throw "not supported by zeroauthy" and fail closed.
+- Execution IDs are surfaced as described in the spec; failures are never
+  silent. Record retention 10 days.
+
+These are implementation contracts, not proof of completion or live parity.

@@ -1,0 +1,693 @@
+{
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/actions",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "query triggerId,actionName,deployed,installed,page,per_page",
+      "response_shape": "{actions[],total,page,per_page}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        429
+      ],
+      "limits": [
+        "D-0053 page limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-actions",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/actions/actions",
+      "required_scopes": [
+        "create:actions"
+      ],
+      "request_shape": "{name,supported_triggers[1],code?,dependencies?,runtime?,secrets?,deploy?}; modules/registry_url refused (D-0053)",
+      "response_shape": "action object",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        429
+      ],
+      "limits": [
+        "D-0053 name/code/secret/dependency limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/post-action",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/actions/{id}",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "none",
+      "response_shape": "action object",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-action",
+      "evidence": "documented"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/actions/actions/{id}",
+      "required_scopes": [
+        "update:actions"
+      ],
+      "request_shape": "{name?,supported_triggers?,code?,dependencies?,runtime?,secrets?}",
+      "response_shape": "action object",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0053 name/code/secret/dependency limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/patch-action",
+      "evidence": "documented"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/actions/actions/{id}",
+      "required_scopes": [
+        "delete:actions"
+      ],
+      "request_shape": "query force?",
+      "response_shape": "empty",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/delete-action",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/actions/actions/{id}/deploy",
+      "required_scopes": [
+        "create:actions"
+      ],
+      "request_shape": "none",
+      "response_shape": "version object",
+      "success_status": 202,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/post-deploy-action",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/actions/{id}/versions",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "query page,per_page",
+      "response_shape": "{versions[],total,page,per_page}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-action-versions",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/actions/{id}/versions/{versionId}",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "none",
+      "response_shape": "version object",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-action-version",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/actions/actions/{id}/versions/{versionId}/deploy",
+      "required_scopes": [
+        "create:actions"
+      ],
+      "request_shape": "{update_draft?}",
+      "response_shape": "version object",
+      "success_status": 202,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/post-deploy-draft-version",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/actions/actions/{id}/test",
+      "required_scopes": [
+        "create:actions"
+      ],
+      "request_shape": "{payload}",
+      "response_shape": "{payload}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0053 test endpoint semantics"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/post-test-action",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/triggers",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "none",
+      "response_shape": "{triggers[]}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-triggers",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/triggers/{triggerId}/bindings",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "query page,per_page",
+      "response_shape": "{bindings[],total,page,per_page}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-bindings",
+      "evidence": "documented"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/actions/triggers/{triggerId}/bindings",
+      "required_scopes": [
+        "update:actions"
+      ],
+      "request_shape": "{bindings[{ref{type,value},display_name?,secrets?}]}; binding secrets refused (D-0053)",
+      "response_shape": "{bindings[]}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0053 binding limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/patch-bindings",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/executions/{id}",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "none",
+      "response_shape": "{id,trigger_id,status,results[],created_at,updated_at}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "10-day retention"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-execution",
+      "evidence": "documented"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "post-login",
+      "event": [
+        "authorization.roles",
+        "client",
+        "connection",
+        "request",
+        "resource_server",
+        "secrets",
+        "stats.logins_count",
+        "tenant",
+        "transaction",
+        "user",
+        "session",
+        "refresh_token"
+      ],
+      "api": [
+        {
+          "name": "access.deny",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "accessToken.setCustomClaim",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "accessToken.addScope",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "accessToken.removeScope",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "idToken.setCustomClaim",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.setMetadata",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.addTargetScope",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.removeTargetScope",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.setTargetScopes",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.clearTargetScopes",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "user.setAppMetadata",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "user.setUserMetadata",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "roles.getUserEffectiveRoles",
+          "support": "supported",
+          "evidence": "documented",
+          "note": "direct roles only; no groups"
+        },
+        {
+          "name": "roles.getUserEffectiveRolesByIds",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "roles.getUserEffectiveRolesByNames",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "groups.getUserGroups",
+          "support": "empty",
+          "evidence": "local",
+          "note": "zeroauthy has no groups"
+        },
+        {
+          "name": "groups.hasGroupMembership",
+          "support": "empty",
+          "evidence": "local",
+          "note": "always false"
+        },
+        {
+          "name": "redirect.sendUserTo",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "redirect.encodeToken",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "redirect.validateToken",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "redirect.canRedirect",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "validation.error",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "rules.wasExecuted",
+          "support": "empty",
+          "evidence": "local",
+          "note": "always false; no Rules"
+        },
+        {
+          "name": "session.revoke",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "session.setExpiresAt",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "session.setIdleExpiresAt",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "session.setCookieMode",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "session.setMetadata",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "session.deleteMetadata",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "session.evictMetadata",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "refreshToken.revoke",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "refreshToken.setExpiresAt",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "refreshToken.setIdleExpiresAt",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "refreshToken.setMetadata",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "refreshToken.deleteMetadata",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "refreshToken.evictMetadata",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "authentication.challengeWith",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "authentication.challengeWithAny",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "authentication.enrollWith",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "authentication.enrollWithAny",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "authentication.recordMethod",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "authentication.setPrimaryUser",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "multifactor.enable",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "prompt.render",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        },
+        {
+          "name": "samlResponse.setAttribute",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object"
+    },
+    {
+      "id": "credentials-exchange",
+      "event": [
+        "accessToken",
+        "client",
+        "request",
+        "resource_server",
+        "secrets",
+        "tenant",
+        "transaction"
+      ],
+      "api": [
+        {
+          "name": "access.deny",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "accessToken.setCustomClaim",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.addTargetScope",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.removeTargetScope",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.setTargetScopes",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "transaction.clearTargetScopes",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-api-object"
+    }
+  ],
+  "limits": {
+    "code_bytes": 100000,
+    "name_min": 1,
+    "name_max": 128,
+    "secrets_max": 64,
+    "secret_name_max": 128,
+    "secret_value_max": 4096,
+    "dependencies_max": 50,
+    "bindings_per_trigger_max": 20,
+    "flow_budget_seconds": 20,
+    "artifact_bytes_max": 50000000,
+    "cache_entries_max": 20,
+    "cache_key_bytes_max": 64,
+    "cache_value_bytes_max": 4096,
+    "cache_total_bytes_max": 8192,
+    "cache_default_ttl_seconds": 900,
+    "cache_max_ttl_seconds": 86400,
+    "continue_state_seconds": 900,
+    "redirects_per_login_max": 5,
+    "execution_retention_days": 10,
+    "custom_claims_bytes_max": 100000,
+    "transaction_metadata_key_max": 64,
+    "transaction_metadata_value_bytes_max": 8192,
+    "transaction_metadata_total_bytes_max": 16384,
+    "console_log_chars_per_action": 256
+  },
+  "limit_sources": {
+    "code_bytes": "https://auth0.com/docs/customize/actions/limitations",
+    "name_min": "D-0053",
+    "name_max": "D-0053",
+    "secrets_max": "D-0053",
+    "secret_name_max": "https://auth0.com/docs/customize/actions/limitations",
+    "secret_value_max": "https://auth0.com/docs/customize/actions/limitations",
+    "dependencies_max": "D-0053",
+    "bindings_per_trigger_max": "D-0053",
+    "flow_budget_seconds": "https://auth0.com/docs/customize/actions/limitations",
+    "artifact_bytes_max": "D-0053",
+    "cache_entries_max": "https://auth0.com/docs/customize/actions/limitations",
+    "cache_key_bytes_max": "https://auth0.com/docs/customize/actions/limitations",
+    "cache_value_bytes_max": "https://auth0.com/docs/customize/actions/limitations",
+    "cache_total_bytes_max": "https://auth0.com/docs/customize/actions/limitations",
+    "cache_default_ttl_seconds": "https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object",
+    "cache_max_ttl_seconds": "https://auth0.com/docs/customize/actions/limitations",
+    "continue_state_seconds": "D-0053",
+    "redirects_per_login_max": "D-0053",
+    "execution_retention_days": "https://auth0.com/docs/customize/actions/limitations",
+    "custom_claims_bytes_max": "https://auth0.com/docs/secure/tokens/json-web-tokens/create-custom-claims",
+    "transaction_metadata_key_max": "https://auth0.com/docs/customize/actions/limitations",
+    "transaction_metadata_value_bytes_max": "https://auth0.com/docs/customize/actions/limitations",
+    "transaction_metadata_total_bytes_max": "https://auth0.com/docs/customize/actions/limitations",
+    "console_log_chars_per_action": "https://auth0.com/docs/customize/actions/limitations"
+  }
+}

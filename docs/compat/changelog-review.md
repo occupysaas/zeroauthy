@@ -133,3 +133,11 @@ Current public roles/user documentation was reviewed independently: group and
 EA organization-role/effective-role surfaces are inventoried as deferred, while
 Plan 26 freezes direct tenant roles and permissions. See
 [roles and permissions review](observations/roles-permissions.md) and D-0052.
+
+## 2026-10-27 — Plan 27 Task 1
+
+Prior reviewed-through coverage is unchanged; the public changelog was not
+re-fetched, so no later coverage is claimed. Current public Actions
+documentation and the Actions Management API reference were reviewed
+independently; see [Actions review](observations/actions.md) and D-0053.
+Live tenant observation remains unavailable.

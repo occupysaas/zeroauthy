@@ -97,11 +97,11 @@ Global constraints:
 |---|---|---|
 | `GET /api/v2/actions/actions` | `read:actions` | filters `triggerId`, `actionName`, `deployed`, `installed`; `page`/`per_page`; envelope `{actions,total,page,per_page}` |
 | `POST /api/v2/actions/actions` | `create:actions` | 201; `deploy: true` deploys after create |
-| `GET/PATCH/DELETE /api/v2/actions/actions/{id}` | read/update/delete | DELETE of a bound Action needs `?force=true`, which also removes its bindings |
-| `POST /api/v2/actions/actions/{id}/deploy` | `create:actions` | creates the next immutable version from the draft |
+| `GET/PATCH/DELETE /api/v2/actions/actions/{id}` | read/update/delete | DELETE of a bound Action needs `?force=true`, which also removes its bindings; success is `204` |
+| `POST /api/v2/actions/actions/{id}/deploy` | `create:actions` | `202`; creates the next immutable version from the draft |
 | `GET /api/v2/actions/actions/{id}/versions[/{versionId}]` | `read:actions` | paged list, single version |
-| `POST /api/v2/actions/actions/{id}/versions/{versionId}/deploy` | `create:actions` | roll back: redeploys an old version as a new version number |
-| `POST /api/v2/actions/actions/{id}/test` | `create:actions` | runs the **built draft** against a supplied `payload`; `400` if the draft build is not `built` |
+| `POST /api/v2/actions/actions/{id}/versions/{versionId}/deploy` | `create:actions` | `202`; body `update_draft?` (default false); roll back: redeploys an old version as a new version number |
+| `POST /api/v2/actions/actions/{id}/test` | `create:actions` | `200 {payload}`; request `{payload}` required; runs the **built draft** against it; `400` if the draft build is not `built` (local, D-0053) |
 | `GET /api/v2/actions/triggers` | `read:actions` | supported triggers only (§10) |
 | `GET/PATCH /api/v2/actions/triggers/{triggerId}/bindings` | read/update | PATCH replaces the ordered list |
 | `GET /api/v2/actions/executions/{id}` | `read:actions` | 10-day retention |
@@ -109,7 +109,7 @@ Global constraints:
 Exact shapes follow the public schema: Action fields `id`, `name`,
 `supported_triggers` (exactly one trigger), `code`, `dependencies`
 (`name`, `version`), `runtime`, `secrets` (responses: `name`, `updated_at`;
-values write-only), `deployed_version`, `all_changes_deployed`, `status`,
+values write-only), `deployed_version`, `all_changes_deployed`, `status` (wire enum `pending`, `building`, `packaged`, `built`, `retrying`, `failed`; zeroauthy emits `pending`, `building`, `built`, `failed`),
 `built_at`, timestamps. Unknown properties are `400`. The Actions scopes join
 tenant bootstrap/upgrade without expanding existing restricted client grants
 (same rule as Plan 26).
@@ -212,11 +212,13 @@ in OAuth `error_description`. Every
 flow writes an execution record (`id`, `trigger_id`, `status`, per-Action
 `action_name`, `started_at`, `ended_at`, `error`), purged after 10 days.
 
-**Post-login** runs after authentication **and after the consent screen**
-(Auth0's login pipeline order; Task 1 confirms), and before any token or code is
-issued. Declining consent means the flow never runs. A consented scope set is
-the input to `transaction` edits; target-scope additions are filtered by API
-definition, client policy and RBAC but are not shown on a consent screen. It runs for authorization code (hosted and federated login), implicit/hybrid
+**Post-login** runs after authentication and **before** the consent screen is
+shown, and before any token or code is issued (correction, Task 1: Auth0
+documents that the consent prompt lists the scopes remaining after Actions'
+target-scope edits and policy filtering; only `accessToken.addScope` results
+are not shown). Declining consent after the flow ran issues nothing; metadata
+commit follows the end-of-flow rule below (D-0053). Target-scope additions are
+filtered by API definition, client policy and RBAC and are shown on consent. It runs for authorization code (hosted and federated login), implicit/hybrid
 where supported, device-code approval, password and password-realm grants,
 and refresh-token exchange (where `api.redirect.canRedirect()` is false).
 `event` covers `user`, `client`, `connection`, `request` (`ip`, `hostname`,
@@ -235,12 +237,12 @@ Supported post-login `api`:
 | `accessToken.setCustomClaim`, `idToken.setCustomClaim` | §7 claim rules |
 | `accessToken.addScope/removeScope` | edit the final access-token scope **after** RBAC/consent, bypassing those checks, exactly as Auth0 documents |
 | `transaction.add/remove/set/clearTargetScope(s)` | edit the target set **before** RBAC/client policy; unauthorized scopes are dropped |
-| `transaction.setMetadata` | shared with later Actions in the same transaction, survives redirect |
+| `transaction.setMetadata` | shared with later Actions in the same transaction, survives redirect; key ≤ 64 chars, value string/number/boolean ≤ 8 KB, total ≤ 16 KB, not persisted afterwards |
 | `user.setAppMetadata/setUserMetadata` | batched, merged once at flow end through existing user-metadata validation |
 | `roles.getUserEffectiveRoles`, `…ByIds`, `…ByNames` | read-only; effective = direct roles (no groups); checkpoint paging `take ≤ 100`, ids ≤ 100, names ≤ 50; served from the Plan 26 snapshot taken when the flow starts |
 | `groups.getUserGroups`, `groups.hasGroupMembership` | empty results (zeroauthy has no groups) |
 | `redirect.sendUserTo/encodeToken/validateToken/canRedirect` | §8 |
-| `cache.get/set/delete` | per tenant and trigger, in memory, 20 entries, key ≤ 64 B, value ≤ 4 kB, ≤ 8 kB total, default TTL 15 min, max 24 h; not shared across server nodes and may be evicted (Auth0 also promises no consistency) |
+| `cache.get/set/delete` | per tenant and trigger, in memory, 20 entries, key ≤ 64 B, value ≤ 4 kB, ≤ 8 kB total, default TTL 15 min (earlier of `ttl`/`expires_at`), max 24 h; not shared across server nodes and may be evicted (Auth0 also promises no consistency) |
 | `validation.error(code, message)` | denies with that error code and message |
 | `rules.wasExecuted` | always `false` (zeroauthy has no Rules) |
 
@@ -269,10 +271,9 @@ already taken). E2E proves it.
 
 ## 7. Token effects
 
-Order for a user token: requested scopes → consent (already given) →
-`transaction` target-scope edits → existing API-definition/client-policy/RBAC
-filtering (Plan 26) → `accessToken.addScope/
-removeScope` → mint. Refresh-family ceilings stay Plan 26's pre-RBAC
+Order for a user token: requested scopes → `transaction` target-scope edits →
+existing API-definition/client-policy/RBAC filtering (Plan 26) → consent over
+the remaining scopes → `accessToken.addScope/removeScope` → mint. Refresh-family ceilings stay Plan 26's pre-RBAC
 authorized set and never include Action-added scopes; post-login re-runs on
 refresh and must re-add them. Token response `scope` equals the minted JWT
 `scope`. `permissions` (for `_authz`) is not editable by Actions.
