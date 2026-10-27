@@ -300,6 +300,8 @@ func resourceName(path string) string {
 		candidate = base
 	}
 	switch strings.ToLower(candidate) {
+	case "roles", "role":
+		return "roles"
 	case "clients", "client":
 		return "clients"
 	case "resourceservers", "resource-servers", "resource_servers":
