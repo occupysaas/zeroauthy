@@ -16,6 +16,7 @@ type Factory func(t *testing.T) store.Store
 // use RunSuites to bring suites up one at a time.
 var Suites = map[string]func(t *testing.T, newStore Factory){
 	"RBAC":                        testRBAC,
+	"Actions":                     testActions,
 	"Tenants":                     testTenants,
 	"CustomDomainAttemptLimits":   testCustomDomainAttemptLimits,
 	"CustomDomainClaims":          testCustomDomainClaims,
@@ -57,6 +58,9 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"EmptyLists":                  testEmptyLists,
 	"Federation":                  testFederation,
 }
+
+// "Actions" is registered in Suites but not yet in suiteOrder: SQL and gRPC
+// drivers add it when they implement the repository (Plan 27 Tasks 4-5).
 
 // suiteOrder is the order Run executes the suites in.
 var suiteOrder = []string{

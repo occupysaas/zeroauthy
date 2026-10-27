@@ -1,0 +1,245 @@
+package store
+
+import (
+	"context"
+	"errors"
+	"time"
+)
+
+var (
+	// ErrActionsUnavailable is returned by stores without an Actions repository.
+	ErrActionsUnavailable = errors.New("store: Actions capability unavailable")
+	// ErrBuildNotReady is returned by Deploy when the draft has no built artifact.
+	ErrBuildNotReady = errors.New("store: action draft build is not ready")
+)
+
+// BuildStatus is the lifecycle state of a dependency build.
+type BuildStatus string
+
+const (
+	BuildPending  BuildStatus = "pending"
+	BuildBuilding BuildStatus = "building"
+	BuildBuilt    BuildStatus = "built"
+	BuildFailed   BuildStatus = "failed"
+)
+
+// Valid reports whether s is a known build status.
+func (s BuildStatus) Valid() bool {
+	switch s {
+	case BuildPending, BuildBuilding, BuildBuilt, BuildFailed:
+		return true
+	}
+	return false
+}
+
+// Dependency is one npm package. Version is exact semver, or empty for latest.
+type Dependency struct{ Name, Version string }
+
+// ActionSecret is a named secret whose value is sealed at rest.
+type ActionSecret struct {
+	Name      string
+	Sealed    []byte
+	UpdatedAt time.Time
+}
+
+// Action is a tenant's Action and its mutable draft.
+type Action struct {
+	TenantID, ID, Name, Trigger, Runtime, Code string
+	Dependencies                               []Dependency
+	Secrets                                    []ActionSecret
+	DraftBuildID                               string
+	DeployedVersionID                          string
+	CreatedAt, UpdatedAt                       time.Time
+}
+
+// ActionVersion is an immutable deployed snapshot of an Action.
+type ActionVersion struct {
+	TenantID, ActionID, ID string
+	Number                 int
+	Code, Runtime, BuildID string
+	Dependencies           []Dependency // resolved
+	Secrets                []ActionSecret
+	CreatedAt              time.Time
+}
+
+// Build records one content-addressed dependency build. ID is the sha256 of
+// the runtime and the sorted resolved dependencies.
+type Build struct {
+	TenantID, ID   string
+	Status         BuildStatus
+	Requested      []Dependency
+	Resolved       []Dependency
+	Errors         []string
+	ArtifactSHA256 string
+	BuiltAt        time.Time
+}
+
+// Binding attaches an Action to a trigger at a position.
+type Binding struct {
+	TenantID, Trigger, ID, ActionID, DisplayName string
+	CreatedAt, UpdatedAt                         time.Time
+}
+
+// BoundVersion is a binding with its Action and the version it runs.
+type BoundVersion struct {
+	Binding
+	Action  Action
+	Version ActionVersion
+}
+
+// Execution is the record of one trigger execution.
+type Execution struct {
+	TenantID, ID, Trigger, Status string
+	Results                       []ExecutionResult
+	CreatedAt, UpdatedAt          time.Time
+}
+
+// ExecutionResult is one Action's outcome within an execution.
+type ExecutionResult struct {
+	ActionName, ErrorID, ErrorMsg string
+	StartedAt, EndedAt            time.Time
+}
+
+// ContinueState is the single-use state behind a post-login redirect.
+type ContinueState struct {
+	TenantID, StateHash, SessionID string
+	Sealed                         []byte
+	ExpiresAt, CreatedAt           time.Time
+}
+
+// PageRequest selects a zero-based page. PerPage 0 means DefaultPerPage and
+// values above MaxPerPage are clamped.
+type PageRequest struct{ Page, PerPage int }
+
+const (
+	DefaultPerPage = 20
+	MaxPerPage     = 100
+)
+
+// Normalize applies the default and maximum page size.
+func (p PageRequest) Normalize() PageRequest {
+	if p.PerPage <= 0 {
+		p.PerPage = DefaultPerPage
+	}
+	if p.PerPage > MaxPerPage {
+		p.PerPage = MaxPerPage
+	}
+	if p.Page < 0 {
+		p.Page = 0
+	}
+	return p
+}
+
+// Paged is one page of results and the total match count.
+type Paged[T any] struct {
+	Items []T
+	Total int
+}
+
+// ActionFilter narrows ListActions. An empty Trigger matches every trigger.
+type ActionFilter struct {
+	Trigger string
+	PageRequest
+}
+
+// Actions persists Actions, versions, builds, bindings, executions and
+// continue states. Every method is tenant scoped.
+type Actions interface {
+	CreateAction(ctx context.Context, a *Action) error
+	GetAction(ctx context.Context, tenantID, id string) (*Action, error)
+	GetActionByName(ctx context.Context, tenantID, name string) (*Action, error)
+	// UpdateAction replaces the draft fields; trigger, creation time and the
+	// deployed version are kept.
+	UpdateAction(ctx context.Context, a *Action) error
+	// DeleteAction returns ErrConflict when the Action is bound and force is
+	// false; force also removes its bindings.
+	DeleteAction(ctx context.Context, tenantID, id string, force bool) error
+	ListActions(ctx context.Context, tenantID string, f ActionFilter) (Paged[Action], error)
+	// Deploy allocates the next version number atomically. An empty
+	// fromVersionID deploys the draft and needs a built DraftBuildID
+	// (ErrBuildNotReady otherwise); otherwise it re-deploys that version as n+1.
+	Deploy(ctx context.Context, tenantID, actionID, fromVersionID string) (*ActionVersion, error)
+	GetVersion(ctx context.Context, tenantID, actionID, versionID string) (*ActionVersion, error)
+	ListVersions(ctx context.Context, tenantID, actionID string, p PageRequest) (Paged[ActionVersion], error)
+	PutBuild(ctx context.Context, b *Build) error
+	GetBuild(ctx context.Context, tenantID, id string) (*Build, error)
+	PutArtifact(ctx context.Context, tenantID, buildID string, tar []byte) error
+	GetArtifact(ctx context.Context, tenantID, buildID string) ([]byte, error)
+	// Bindings reads one consistent ordered snapshot.
+	Bindings(ctx context.Context, tenantID, trigger string) ([]BoundVersion, error)
+	// ReplaceBindings atomically replaces a trigger's bindings. Every Action
+	// must exist, match the trigger and be deployed (ErrInvalid otherwise).
+	ReplaceBindings(ctx context.Context, tenantID, trigger string, b []Binding) ([]BoundVersion, error)
+	CreateExecution(ctx context.Context, e *Execution) error
+	GetExecution(ctx context.Context, tenantID, id string) (*Execution, error)
+	PurgeExecutions(ctx context.Context, before time.Time) (int, error)
+	CreateContinue(ctx context.Context, c *ContinueState) error
+	// ConsumeContinue is single use; an expired or absent state is ErrNotFound.
+	ConsumeContinue(ctx context.Context, tenantID, stateHash string, now time.Time) (*ContinueState, error)
+	PurgeContinue(ctx context.Context, before time.Time) (int, error)
+}
+
+// UnimplementedActions fails closed for stores awaiting an Actions implementation.
+type UnimplementedActions struct{}
+
+func (UnimplementedActions) CreateAction(context.Context, *Action) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) GetAction(context.Context, string, string) (*Action, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) GetActionByName(context.Context, string, string) (*Action, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) UpdateAction(context.Context, *Action) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) DeleteAction(context.Context, string, string, bool) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) ListActions(context.Context, string, ActionFilter) (Paged[Action], error) {
+	return Paged[Action]{}, ErrActionsUnavailable
+}
+func (UnimplementedActions) Deploy(context.Context, string, string, string) (*ActionVersion, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) GetVersion(context.Context, string, string, string) (*ActionVersion, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) ListVersions(context.Context, string, string, PageRequest) (Paged[ActionVersion], error) {
+	return Paged[ActionVersion]{}, ErrActionsUnavailable
+}
+func (UnimplementedActions) PutBuild(context.Context, *Build) error { return ErrActionsUnavailable }
+func (UnimplementedActions) GetBuild(context.Context, string, string) (*Build, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) PutArtifact(context.Context, string, string, []byte) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) GetArtifact(context.Context, string, string) ([]byte, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) Bindings(context.Context, string, string) ([]BoundVersion, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) ReplaceBindings(context.Context, string, string, []Binding) ([]BoundVersion, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) CreateExecution(context.Context, *Execution) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) GetExecution(context.Context, string, string) (*Execution, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) PurgeExecutions(context.Context, time.Time) (int, error) {
+	return 0, ErrActionsUnavailable
+}
+func (UnimplementedActions) CreateContinue(context.Context, *ContinueState) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) ConsumeContinue(context.Context, string, string, time.Time) (*ContinueState, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) PurgeContinue(context.Context, time.Time) (int, error) {
+	return 0, ErrActionsUnavailable
+}

@@ -8,6 +8,22 @@ import "github.com/zeroauthy/zeroauthy/internal/store"
 
 type (
 	RBAC                        = store.RBAC
+	Actions                     = store.Actions
+	UnimplementedActions        = store.UnimplementedActions
+	Action                      = store.Action
+	ActionVersion               = store.ActionVersion
+	ActionSecret                = store.ActionSecret
+	ActionFilter                = store.ActionFilter
+	Dependency                  = store.Dependency
+	Build                       = store.Build
+	BuildStatus                 = store.BuildStatus
+	Binding                     = store.Binding
+	BoundVersion                = store.BoundVersion
+	Execution                   = store.Execution
+	ExecutionResult             = store.ExecutionResult
+	ContinueState               = store.ContinueState
+	PageRequest                 = store.PageRequest
+	Paged[T any]                = store.Paged[T]
 	RBACSupporter               = store.RBACSupporter
 	UnimplementedRBAC           = store.UnimplementedRBAC
 	Role                        = store.Role
@@ -271,3 +287,5 @@ const (
 )
 
 var ErrRBACUnavailable = store.ErrRBACUnavailable
+var ErrActionsUnavailable = store.ErrActionsUnavailable
+var ErrBuildNotReady = store.ErrBuildNotReady

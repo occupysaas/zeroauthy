@@ -66,6 +66,8 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
+		actions: cloneMap(s.actions, cloneAction), actionVersions: cloneMap(s.actionVersions, cloneActionVersion), builds: cloneMap(s.builds, cloneBuild),
+		artifacts: cloneArtifacts(s.artifacts), bindings: cloneBindingLists(s.bindings), executions: cloneMap(s.executions, cloneExecution), continues: cloneMap(s.continues, cloneContinue),
 		roles: cloneMap(s.roles, cloneRole), rolePermissions: maps.Clone(s.rolePermissions), userPermissions: maps.Clone(s.userPermissions), roleMembers: maps.Clone(s.roleMembers),
 		customDomains:          cloneMap(s.customDomains, (*store.CustomDomain).Clone),
 		hostBindings:           cloneMap(s.hostBindings, func(h *store.HostBinding) *store.HostBinding { c := *h; return &c }),
@@ -113,6 +115,8 @@ func (s *Store) snapshot() *state {
 func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.actions, s.actionVersions, s.builds, s.artifacts = snap.actions, snap.actionVersions, snap.builds, snap.artifacts
+	s.bindings, s.executions, s.continues = snap.bindings, snap.executions, snap.continues
 	s.roles, s.rolePermissions, s.userPermissions, s.roleMembers = snap.roles, snap.rolePermissions, snap.userPermissions, snap.roleMembers
 	s.customDomains, s.hostBindings, s.domainDefaults = snap.customDomains, snap.hostBindings, snap.domainDefaults
 	s.domainAttempts, s.tenantAttempts = snap.domainAttempts, snap.tenantAttempts
