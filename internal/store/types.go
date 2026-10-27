@@ -275,15 +275,23 @@ type ClientGrant struct {
 	Origin string
 }
 
+// ExplicitGrantScopes are scopes a grant holds only when it names them:
+// AllowAllScopes never implies them, so registering one grants it to no
+// existing client (Plan 24: upstream identity tokens).
+var ExplicitGrantScopes = []string{"read:user_idp_tokens"}
+
 // EffectiveScopes returns the scopes the grant allows for an API that
-// defines defined: every defined scope for AllowAllScopes, else Scopes.
+// defines defined: every defined scope but ExplicitGrantScopes for
+// AllowAllScopes, else Scopes.
 func (g *ClientGrant) EffectiveScopes(defined []Scope) []string {
 	if !g.AllowAllScopes {
 		return g.Scopes
 	}
-	out := make([]string, len(defined))
-	for i, s := range defined {
-		out[i] = s.Value
+	out := make([]string, 0, len(defined))
+	for _, s := range defined {
+		if !slices.Contains(ExplicitGrantScopes, s.Value) {
+			out = append(out, s.Value)
+		}
 	}
 	return out
 }

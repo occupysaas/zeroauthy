@@ -1831,7 +1831,11 @@ paths:
       summary: Get a user
       description: |
         Requires `read:users`. A well-formed unknown ID is
-        `404 inexistent_user`.
+        `404 inexistent_user`. A client also granted `read:user_idp_tokens`
+        (explicitly: `allow_all_scopes` never implies it) receives
+        `identities[].access_token` and `identities[].refresh_token` of
+        federated identities, with `Cache-Control: no-store`; lists,
+        search, link responses, exports and operators never do (Plan 24).
       x-source:
         - https://auth0.com/docs/api/management/v2/users/get-users-by-id
       parameters:
