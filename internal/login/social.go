@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
@@ -172,6 +173,17 @@ func (h *Handlers) startSocial(w http.ResponseWriter, r *http.Request, f *flow, 
 	http.SetCookie(w, &http.Cookie{Name: begun.CookieName, Value: begun.CookieValue, Path: federation.CallbackPath, Expires: begun.ExpiresAt,
 		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 	w.Header().Set("Cache-Control", "no-store")
+	if r.Method == http.MethodPost {
+		u, err := url.Parse(begun.URL)
+		if err != nil {
+			h.fail(w, r, err, f)
+			return
+		}
+		q := u.Query()
+		u.RawQuery = ""
+		ui.RenderFormGet(w, f.view.L, u.String(), q)
+		return
+	}
 	http.Redirect(w, r, begun.URL, http.StatusSeeOther)
 }
 

@@ -57,6 +57,7 @@ var (
 		"device_result":      parsePage("templates/layout.html", "templates/device_result.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
+	formGet    = parsePage("templates/form_get.html")
 	webMessage = parsePage("templates/web_message.html")
 )
 
@@ -319,6 +320,19 @@ func RenderFormPost(w http.ResponseWriter, l *i18n.Localizer, action string, par
 	nonce := newNonce()
 	setHeaders(w, nonce, "'none'", origin(action))
 	write(w, http.StatusOK, formPost, "form_post.html", map[string]any{"Action": action, "Params": params, "Nonce": nonce, "L": l})
+}
+
+// RenderFormGet hands a browser on to action with params by an
+// auto-submitted GET form. A social choice is a form POST, and browsers apply
+// the login page's form-action policy to its redirects; this page ends that
+// navigation and allows only action's origin (Plan 24).
+func RenderFormGet(w http.ResponseWriter, l *i18n.Localizer, action string, params url.Values) {
+	if l == nil {
+		l = i18n.Default()
+	}
+	nonce := newNonce()
+	setHeaders(w, nonce, "'none'", origin(action))
+	write(w, http.StatusOK, formGet, "form_get.html", map[string]any{"Action": action, "Params": params, "Nonce": nonce, "L": l})
 }
 
 // RenderWebMessage writes the Web Message Response Mode page, which posts

@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"html"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -129,6 +130,38 @@ type loopbackResolver struct{}
 
 func (loopbackResolver) LookupNetIP(context.Context, string, string) ([]netip.Addr, error) {
 	return []netip.Addr{netip.MustParseAddr("127.0.0.1")}, nil
+}
+
+
+var (
+	handoffAction = regexp.MustCompile(`<form method="get" action="([^"]+)">`)
+	handoffInput  = regexp.MustCompile(`<input type="hidden" name="([^"]+)" value="([^"]*)">`)
+)
+
+// providerURL is where a social start sends the browser: a 303 for an
+// explicit selection, an auto-submitted GET page (whose form-action admits
+// only the provider) for a posted choice.
+func providerURL(t *testing.T, rec *httptest.ResponseRecorder) string {
+	t.Helper()
+	if rec.Code == 303 {
+		return rec.Header().Get("Location")
+	}
+	body := rec.Body.String()
+	m := handoffAction.FindStringSubmatch(body)
+	if rec.Code != 200 || m == nil {
+		t.Fatalf("social start = %d %s", rec.Code, body)
+	}
+	action := html.UnescapeString(m[1])
+	u, _ := url.Parse(action)
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action "+u.Scheme+"://"+u.Host) {
+		t.Fatalf("hand-off CSP %q", csp)
+	}
+	q := url.Values{}
+	for _, in := range handoffInput.FindAllStringSubmatch(body, -1) {
+		q.Add(html.UnescapeString(in[1]), html.UnescapeString(in[2]))
+	}
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 type socialEnv struct {
@@ -255,15 +288,12 @@ func TestSocialLoginFlow(t *testing.T) {
 		state := regexpState.FindStringSubmatch(body)[1]
 		csrf := csrfField.FindStringSubmatch(body)[1]
 		rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {csrf}, "connection": {"google-oauth2"}})
-		if rec.Code != 303 {
-			t.Fatalf("social start = %d %s", rec.Code, rec.Body)
-		}
-		toApp(t, b.do(t, "GET", s.google.authorize(t, rec.Header().Get("Location"), "G-1"), nil), "app.acme.test")
+		toApp(t, b.do(t, "GET", s.google.authorize(t, providerURL(t, rec), "G-1"), nil), "app.acme.test")
 		if u, err := s.st.Users().FindByIdentity(ctx, s.tenant.ID, "con_google", "G-1"); err != nil || u.UserID != "google-oauth2|G-1" {
 			t.Fatalf("%v %v", u, err)
 		}
 		// A forged CSRF token starts nothing.
-		if rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {"forged"}, "connection": {"google-oauth2"}}); rec.Code == 303 {
+		if rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {"forged"}, "connection": {"google-oauth2"}}); rec.Code == 303 || rec.Code == 200 {
 			t.Fatal("social start without CSRF")
 		}
 	})
@@ -281,7 +311,7 @@ func TestSocialLoginFlow(t *testing.T) {
 		}
 		state := regexpState.FindStringSubmatch(body)[1]
 		rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {csrfField.FindStringSubmatch(body)[1]}, "connection": {"corp"}})
-		toApp(t, b.do(t, "GET", s.idp.authorize(t, rec.Header().Get("Location"), "Only-1"), nil), "only.acme.test")
+		toApp(t, b.do(t, "GET", s.idp.authorize(t, providerURL(t, rec), "Only-1"), nil), "only.acme.test")
 	})
 	t.Run("no enabled provider", func(t *testing.T) {
 		s := newSocialEnv(t)
@@ -498,11 +528,11 @@ func TestSocialCaptchaOnExplicitSelection(t *testing.T) {
 		t.Fatalf("explicit selection bypassed the challenge: %d %s", page.Code, body)
 	}
 	state, csrf := regexpState.FindStringSubmatch(body)[1], csrfField.FindStringSubmatch(body)[1]
-	if rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {csrf}, "connection": {"corp"}}); rec.Code == 303 {
+	if rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {csrf}, "connection": {"corp"}}); handoffAction.MatchString(rec.Body.String()) {
 		t.Fatal("social start without the challenge")
 	}
 	rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {csrf}, "connection": {"corp"}, "h-captcha-response": {"good"}})
-	if rec.Code != 303 {
+	if !strings.HasPrefix(providerURL(t, rec), s.idp.base()+"/authorize") {
 		t.Fatalf("solved challenge: %d %s", rec.Code, rec.Body)
 	}
 }
@@ -518,5 +548,5 @@ func TestSocialIdentifierFirst(t *testing.T) {
 	}
 	state, csrf := regexpState.FindStringSubmatch(body)[1], csrfField.FindStringSubmatch(body)[1]
 	rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {csrf}, "connection": {"corp"}})
-	toApp(t, b.do(t, "GET", s.idp.authorize(t, rec.Header().Get("Location"), "IF-1"), nil), "app.acme.test")
+	toApp(t, b.do(t, "GET", s.idp.authorize(t, providerURL(t, rec), "IF-1"), nil), "app.acme.test")
 }
