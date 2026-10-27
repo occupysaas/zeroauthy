@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
@@ -215,19 +216,9 @@ func (r actionsRepo) ListActions(_ context.Context, tid string, f store.ActionFi
 		if c := a.CreatedAt.Compare(b.CreatedAt); c != 0 {
 			return c
 		}
-		return cmpString(a.ID, b.ID)
+		return strings.Compare(a.ID, b.ID)
 	})
 	return page(all, f.PageRequest), nil
-}
-
-func cmpString(a, b string) int {
-	switch {
-	case a < b:
-		return -1
-	case a > b:
-		return 1
-	}
-	return 0
 }
 
 func (r actionsRepo) Deploy(_ context.Context, tid, actionID, from string) (*store.ActionVersion, error) {
@@ -247,7 +238,8 @@ func (r actionsRepo) Deploy(_ context.Context, tid, actionID, from string) (*sto
 		v.Dependencies, v.Secrets = cloneDeps(src.Dependencies), cloneSecrets(src.Secrets)
 	} else {
 		b := r.s.builds[key{tid, a.DraftBuildID}]
-		if a.DraftBuildID == "" || b == nil || b.Status != store.BuildBuilt {
+		_, haveArtifact := r.s.artifacts[key{tid, a.DraftBuildID}]
+		if a.DraftBuildID == "" || b == nil || b.Status != store.BuildBuilt || !haveArtifact {
 			return nil, store.ErrBuildNotReady
 		}
 		v.Code, v.Runtime, v.BuildID = a.Code, a.Runtime, b.ID

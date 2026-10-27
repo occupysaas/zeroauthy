@@ -156,8 +156,8 @@ type Actions interface {
 	DeleteAction(ctx context.Context, tenantID, id string, force bool) error
 	ListActions(ctx context.Context, tenantID string, f ActionFilter) (Paged[Action], error)
 	// Deploy allocates the next version number atomically. An empty
-	// fromVersionID deploys the draft and needs a built DraftBuildID
-	// (ErrBuildNotReady otherwise); otherwise it re-deploys that version as n+1.
+	// fromVersionID deploys the draft and needs a built DraftBuildID whose
+	// artifact is stored (ErrBuildNotReady otherwise); otherwise it re-deploys that version as n+1.
 	Deploy(ctx context.Context, tenantID, actionID, fromVersionID string) (*ActionVersion, error)
 	GetVersion(ctx context.Context, tenantID, actionID, versionID string) (*ActionVersion, error)
 	ListVersions(ctx context.Context, tenantID, actionID string, p PageRequest) (Paged[ActionVersion], error)
@@ -172,10 +172,12 @@ type Actions interface {
 	ReplaceBindings(ctx context.Context, tenantID, trigger string, b []Binding) ([]BoundVersion, error)
 	CreateExecution(ctx context.Context, e *Execution) error
 	GetExecution(ctx context.Context, tenantID, id string) (*Execution, error)
+	// PurgeExecutions deletes executions with CreatedAt before the cutoff.
 	PurgeExecutions(ctx context.Context, before time.Time) (int, error)
 	CreateContinue(ctx context.Context, c *ContinueState) error
 	// ConsumeContinue is single use; an expired or absent state is ErrNotFound.
 	ConsumeContinue(ctx context.Context, tenantID, stateHash string, now time.Time) (*ContinueState, error)
+	// PurgeContinue deletes states with ExpiresAt before the cutoff.
 	PurgeContinue(ctx context.Context, before time.Time) (int, error)
 }
 

@@ -25,7 +25,7 @@ func testActions(t *testing.T, factory Factory) {
 			t.Fatal(err)
 		}
 	}
-	for _, tid := range []string{"act-a", "act-b"} {
+	for _, tid := range []string{"act-a", "act-b", "act-list", "act-bind"} {
 		must(s.Tenants().Create(ctx, &store.Tenant{ID: tid, Name: tid}))
 	}
 	a := s.Actions()
@@ -43,6 +43,7 @@ func testActions(t *testing.T, factory Factory) {
 		t.Helper()
 		must(a.PutBuild(ctx, &store.Build{TenantID: tid, ID: id, Status: store.BuildBuilt,
 			Requested: []store.Dependency{{Name: "lodash"}}, Resolved: []store.Dependency{{Name: "lodash", Version: "4.17.21"}}, BuiltAt: now}))
+		must(a.PutArtifact(ctx, tid, id, []byte("artifact-"+id)))
 	}
 	mk := func(tid, id, name, build string) *store.Action {
 		t.Helper()
@@ -121,30 +122,30 @@ func testActions(t *testing.T, factory Factory) {
 
 	t.Run("list", func(t *testing.T) {
 		for i := 0; i < 25; i++ {
-			x := draft("act-b", fmt.Sprintf("l%02d", i), fmt.Sprintf("list %02d", i))
+			x := draft("act-list", fmt.Sprintf("l%02d", i), fmt.Sprintf("list %02d", i))
 			x.CreatedAt = now.Add(time.Duration(i) * time.Second)
 			must(a.CreateAction(ctx, x))
 		}
-		p, err := a.ListActions(ctx, "act-b", store.ActionFilter{})
+		p, err := a.ListActions(ctx, "act-list", store.ActionFilter{})
 		must(err)
-		if p.Total != 26 || len(p.Items) != 20 {
+		if p.Total != 25 || len(p.Items) != 20 {
 			t.Fatalf("default page: total=%d len=%d", p.Total, len(p.Items))
 		}
-		p, err = a.ListActions(ctx, "act-b", store.ActionFilter{PageRequest: store.PageRequest{Page: 1, PerPage: 20}})
+		p, err = a.ListActions(ctx, "act-list", store.ActionFilter{PageRequest: store.PageRequest{Page: 1, PerPage: 20}})
 		must(err)
-		if len(p.Items) != 6 {
+		if len(p.Items) != 5 {
 			t.Fatalf("second page: %d", len(p.Items))
 		}
-		p, _ = a.ListActions(ctx, "act-b", store.ActionFilter{PageRequest: store.PageRequest{PerPage: 1000}})
-		if len(p.Items) != 26 {
+		p, _ = a.ListActions(ctx, "act-list", store.ActionFilter{PageRequest: store.PageRequest{PerPage: 1000}})
+		if len(p.Items) != 25 {
 			t.Fatalf("clamped page: %d", len(p.Items))
 		}
-		p, _ = a.ListActions(ctx, "act-b", store.ActionFilter{Trigger: "credentials-exchange"})
+		p, _ = a.ListActions(ctx, "act-list", store.ActionFilter{Trigger: "credentials-exchange"})
 		if p.Total != 0 || len(p.Items) != 0 {
 			t.Fatal("trigger filter")
 		}
-		p, _ = a.ListActions(ctx, "act-b", store.ActionFilter{PageRequest: store.PageRequest{Page: 50}})
-		if p.Total != 26 || len(p.Items) != 0 {
+		p, _ = a.ListActions(ctx, "act-list", store.ActionFilter{PageRequest: store.PageRequest{Page: 50}})
+		if p.Total != 25 || len(p.Items) != 0 {
 			t.Fatal("page past end")
 		}
 	})
@@ -160,6 +161,12 @@ func testActions(t *testing.T, factory Factory) {
 		must(a.UpdateAction(ctx, d))
 		if _, err := a.Deploy(ctx, "act-a", "dep", ""); !errors.Is(err, store.ErrBuildNotReady) {
 			t.Fatalf("pending build: %v", err)
+		}
+		must(a.PutBuild(ctx, &store.Build{TenantID: "act-a", ID: "noart", Status: store.BuildBuilt}))
+		d.DraftBuildID = "noart"
+		must(a.UpdateAction(ctx, d))
+		if _, err := a.Deploy(ctx, "act-a", "dep", ""); !errors.Is(err, store.ErrBuildNotReady) {
+			t.Fatalf("built build without artifact: %v", err)
 		}
 		built("act-a", "b1")
 		d.DraftBuildID = "b1"
@@ -284,7 +291,7 @@ func testActions(t *testing.T, factory Factory) {
 		if _, err := a.GetArtifact(ctx, "act-b", "bx"); !errors.Is(err, store.ErrNotFound) {
 			t.Fatal("cross tenant artifact")
 		}
-		if _, err := a.GetArtifact(ctx, "act-a", "b1"); !errors.Is(err, store.ErrNotFound) {
+		if _, err := a.GetArtifact(ctx, "act-a", "noart"); !errors.Is(err, store.ErrNotFound) {
 			t.Fatal("missing artifact")
 		}
 		if err := a.PutArtifact(ctx, "act-a", "bx", make([]byte, 50_000_001)); !errors.Is(err, store.ErrInvalid) {
@@ -293,26 +300,26 @@ func testActions(t *testing.T, factory Factory) {
 	})
 
 	t.Run("bindings", func(t *testing.T) {
-		built("act-b", "bb")
+		built("act-bind", "bb")
 		for _, id := range []string{"b1", "b2", "b3"} {
-			mk("act-b", "bind_"+id, "bind "+id, "bb")
-			_, err := a.Deploy(ctx, "act-b", "bind_"+id, "")
+			mk("act-bind", "bind_"+id, "bind "+id, "bb")
+			_, err := a.Deploy(ctx, "act-bind", "bind_"+id, "")
 			must(err)
 		}
-		mk("act-b", "undeployed", "Undeployed", "bb")
+		mk("act-bind", "undeployed", "Undeployed", "bb")
 		bs := func(ids ...string) []store.Binding {
 			var out []store.Binding
 			for i, id := range ids {
-				out = append(out, store.Binding{TenantID: "act-b", Trigger: "post-login", ID: fmt.Sprintf("bnd_%s_%d", id, i), ActionID: id, DisplayName: id})
+				out = append(out, store.Binding{TenantID: "act-bind", Trigger: "post-login", ID: fmt.Sprintf("bnd_%s_%d", id, i), ActionID: id, DisplayName: id})
 			}
 			return out
 		}
-		got, err := a.Bindings(ctx, "act-b", "post-login")
+		got, err := a.Bindings(ctx, "act-bind", "post-login")
 		must(err)
 		if len(got) != 0 {
 			t.Fatal("expected no bindings")
 		}
-		out, err := a.ReplaceBindings(ctx, "act-b", "post-login", bs("bind_b3", "bind_b1", "bind_b2"))
+		out, err := a.ReplaceBindings(ctx, "act-bind", "post-login", bs("bind_b3", "bind_b1", "bind_b2"))
 		must(err)
 		order := func(v []store.BoundVersion) string {
 			s := ""
@@ -324,20 +331,20 @@ func testActions(t *testing.T, factory Factory) {
 		if order(out) != "bind_b3,bind_b1,bind_b2," {
 			t.Fatalf("order: %s", order(out))
 		}
-		got, _ = a.Bindings(ctx, "act-b", "post-login")
+		got, _ = a.Bindings(ctx, "act-bind", "post-login")
 		if order(got) != order(out) || got[0].Version.Number != 1 || got[0].Action.ID != "bind_b3" || got[0].Version.ID != got[0].Action.DeployedVersionID {
 			t.Fatalf("snapshot: %+v", got[0])
 		}
-		if got[0].Trigger != "post-login" || got[0].TenantID != "act-b" {
+		if got[0].Trigger != "post-login" || got[0].TenantID != "act-bind" {
 			t.Fatal("binding identity")
 		}
-		before, _ := a.Bindings(ctx, "act-b", "post-login")
+		before, _ := a.Bindings(ctx, "act-bind", "post-login")
 		for _, bad := range [][]store.Binding{bs("undeployed"), bs("ghost"), bs("bind_b1", "undeployed"), bs(""), append(bs("bind_b1"), store.Binding{ActionID: "bind_b2", Trigger: "credentials-exchange"})} {
-			if _, err := a.ReplaceBindings(ctx, "act-b", "post-login", bad); !errors.Is(err, store.ErrInvalid) {
+			if _, err := a.ReplaceBindings(ctx, "act-bind", "post-login", bad); !errors.Is(err, store.ErrInvalid) {
 				t.Fatalf("bad bindings %v: %v", bad, err)
 			}
 		}
-		if _, err := a.ReplaceBindings(ctx, "act-b", "post-login", func() []store.Binding {
+		if _, err := a.ReplaceBindings(ctx, "act-bind", "post-login", func() []store.Binding {
 			x := make([]store.Binding, 21)
 			for i := range x {
 				x[i] = store.Binding{ActionID: "bind_b1", ID: fmt.Sprint(i)}
@@ -346,11 +353,11 @@ func testActions(t *testing.T, factory Factory) {
 		}()); !errors.Is(err, store.ErrInvalid) {
 			t.Fatalf("21 bindings: %v", err)
 		}
-		after, _ := a.Bindings(ctx, "act-b", "post-login")
+		after, _ := a.Bindings(ctx, "act-bind", "post-login")
 		if order(after) != order(before) {
 			t.Fatal("refused replace changed bindings")
 		}
-		if _, err := a.ReplaceBindings(ctx, "act-b", "credentials-exchange", bs("bind_b1")); !errors.Is(err, store.ErrInvalid) {
+		if _, err := a.ReplaceBindings(ctx, "act-bind", "credentials-exchange", bs("bind_b1")); !errors.Is(err, store.ErrInvalid) {
 			t.Fatalf("trigger mismatch: %v", err)
 		}
 		// Replacement is atomic for concurrent readers: they see one list or the other.
@@ -365,7 +372,7 @@ func testActions(t *testing.T, factory Factory) {
 				if i%2 == 1 {
 					l = listB
 				}
-				if _, err := a.ReplaceBindings(ctx, "act-b", "post-login", l); err != nil {
+				if _, err := a.ReplaceBindings(ctx, "act-bind", "post-login", l); err != nil {
 					t.Error(err)
 					break
 				}
@@ -373,7 +380,7 @@ func testActions(t *testing.T, factory Factory) {
 			stop.Store(true)
 		}()
 		for !stop.Load() {
-			snap, err := a.Bindings(ctx, "act-b", "post-login")
+			snap, err := a.Bindings(ctx, "act-bind", "post-login")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -382,16 +389,16 @@ func testActions(t *testing.T, factory Factory) {
 			}
 		}
 		wg.Wait()
-		must(a.DeleteAction(ctx, "act-b", "undeployed", false))
-		must(a.DeleteAction(ctx, "act-b", "bind_b3", true))
-		left, _ := a.Bindings(ctx, "act-b", "post-login")
-		if len(left) != 0 {
-			t.Fatalf("forced delete left bindings: %s", order(left))
+		must(a.DeleteAction(ctx, "act-bind", "undeployed", false))
+		must(a.DeleteAction(ctx, "act-bind", "bind_b3", true))
+		left, err := a.Bindings(ctx, "act-bind", "post-login")
+		if err != nil || len(left) != 0 {
+			t.Fatalf("forced delete left bindings: %v %s", err, order(left))
 		}
-		if err := a.DeleteAction(ctx, "act-b", "bind_b3", false); !errors.Is(err, store.ErrNotFound) {
+		if err := a.DeleteAction(ctx, "act-bind", "bind_b3", false); !errors.Is(err, store.ErrNotFound) {
 			t.Fatal(err)
 		}
-		if _, err := a.GetVersion(ctx, "act-b", "bind_b3", "x"); !errors.Is(err, store.ErrNotFound) {
+		if _, err := a.GetVersion(ctx, "act-bind", "bind_b3", "x"); !errors.Is(err, store.ErrNotFound) {
 			t.Fatal("versions survive delete")
 		}
 	})
@@ -413,8 +420,8 @@ func testActions(t *testing.T, factory Factory) {
 		if _, err := a.GetAction(ctx, "act-a", "del"); !errors.Is(err, store.ErrNotFound) {
 			t.Fatal(err)
 		}
-		if got, _ := a.Bindings(ctx, "act-a", "post-login"); len(got) != 0 {
-			t.Fatal("bindings survive")
+		if got, err := a.Bindings(ctx, "act-a", "post-login"); err != nil || len(got) != 0 {
+			t.Fatalf("bindings survive: %v %v", err, got)
 		}
 	})
 
@@ -500,6 +507,37 @@ func testActions(t *testing.T, factory Factory) {
 		}
 	})
 
+	t.Run("deploy and bindings roll back", func(t *testing.T) {
+		built("act-a", "rb")
+		mk("act-a", "rbk", "Rollback me", "rb")
+		boom := errors.New("boom")
+		err := s.WithTx(ctx, func(tx store.Store) error {
+			if _, err := tx.Actions().Deploy(ctx, "act-a", "rbk", ""); err != nil {
+				return err
+			}
+			if _, err := tx.Actions().ReplaceBindings(ctx, "act-a", "post-login", []store.Binding{{ActionID: "rbk", ID: "rbk_b"}}); err != nil {
+				return err
+			}
+			return boom
+		})
+		if !errors.Is(err, boom) {
+			t.Fatal(err)
+		}
+		got, err := a.GetAction(ctx, "act-a", "rbk")
+		must(err)
+		if got.DeployedVersionID != "" {
+			t.Fatalf("deploy not rolled back: %q", got.DeployedVersionID)
+		}
+		if vs, _ := a.ListVersions(ctx, "act-a", "rbk", store.PageRequest{}); vs.Total != 0 {
+			t.Fatal("version survived rollback")
+		}
+		for _, b := range mustBound(t, a, "act-a") {
+			if b.ActionID == "rbk" {
+				t.Fatal("binding survived rollback")
+			}
+		}
+	})
+
 	t.Run("transaction rollback", func(t *testing.T) {
 		boom := errors.New("boom")
 		err := s.WithTx(ctx, func(tx store.Store) error {
@@ -528,9 +566,9 @@ func testActions(t *testing.T, factory Factory) {
 		built("act-gone", "gb")
 		mk("act-gone", "g1", "Same Name", "gb")
 		mk("act-b", "g1x", "Same Name Gone", "")
-		_, err := a.Deploy(ctx, "act-gone", "g1", "")
+		gv, err := a.Deploy(ctx, "act-gone", "g1", "")
 		must(err)
-		must(a.PutArtifact(ctx, "act-gone", "gb", []byte("t")))
+		deployedID := gv.ID
 		_, err = a.ReplaceBindings(ctx, "act-gone", "post-login", []store.Binding{{ActionID: "g1", ID: "bnd"}})
 		must(err)
 		must(a.CreateExecution(ctx, &store.Execution{TenantID: "act-gone", ID: "ge", CreatedAt: now, UpdatedAt: now}))
@@ -547,8 +585,14 @@ func testActions(t *testing.T, factory Factory) {
 				t.Errorf("%s survived tenant delete: %v", name, err)
 			}
 		}
-		if bs, _ := a.Bindings(ctx, "act-gone", "post-login"); len(bs) != 0 {
-			t.Error("bindings survived tenant delete")
+		if bs, err := a.Bindings(ctx, "act-gone", "post-login"); err != nil || len(bs) != 0 {
+			t.Errorf("bindings survived tenant delete: %v %v", err, bs)
+		}
+		if vs, err := a.ListVersions(ctx, "act-gone", "g1", store.PageRequest{}); err != nil || vs.Total != 0 {
+			t.Errorf("versions survived tenant delete: %v %+v", err, vs)
+		}
+		if _, err := a.GetVersion(ctx, "act-gone", "g1", deployedID); !errors.Is(err, store.ErrNotFound) {
+			t.Errorf("version survived tenant delete: %v", err)
 		}
 		if _, err := a.GetAction(ctx, "act-b", "g1x"); err != nil {
 			t.Fatalf("other tenant affected: %v", err)
@@ -557,4 +601,13 @@ func testActions(t *testing.T, factory Factory) {
 		must(s.Tenants().Create(ctx, &store.Tenant{ID: "act-gone", Name: "act-gone"}))
 		must(a.CreateAction(ctx, draft("act-gone", "g1", "Same Name")))
 	})
+}
+
+func mustBound(t *testing.T, a store.Actions, tid string) []store.BoundVersion {
+	t.Helper()
+	b, err := a.Bindings(context.Background(), tid, "post-login")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }
