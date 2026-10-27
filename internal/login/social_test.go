@@ -45,11 +45,16 @@ type fakeIDP struct {
 	exchanges atomic.Int32
 	// beforeToken runs inside the token request, before it answers: the
 	// network wait of a callback.
-	beforeToken func()
+	beforeToken     func()
+	microsoft       bool
+	microsoftTenant string
+	badMetadata     bool
+	badToken        bool
 }
 
 type idpCode struct {
 	sub, nonce, challenge, redirect string
+	tenant                          string
 }
 
 func newFakeIDP(t *testing.T) *fakeIDP {
@@ -69,6 +74,10 @@ func (p *fakeIDP) base() string {
 }
 
 func (p *fakeIDP) serve(w http.ResponseWriter, r *http.Request) {
+	if p.microsoft {
+		p.serveMicrosoft(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	iss := p.base()
 	switch r.URL.Path {
@@ -107,16 +116,21 @@ func (p *fakeIDP) serve(w http.ResponseWriter, r *http.Request) {
 func (p *fakeIDP) authorize(t *testing.T, providerURL, sub string) string {
 	t.Helper()
 	u, err := url.Parse(providerURL)
-	if err != nil || !strings.HasPrefix(providerURL, p.base()+"/authorize") {
+	if err != nil || !strings.HasPrefix(providerURL, p.base()+"/authorize") && !(p.microsoft && strings.Contains(u.Path, "/oauth2/v2.0/authorize")) {
 		t.Fatalf("not a provider redirect: %q", providerURL)
 	}
 	q := u.Query()
-	if q.Get("code_challenge_method") != "S256" || q.Get("response_type") != "code" || q.Get("client_id") != "client" {
+	if q.Get("code_challenge_method") != "S256" || q.Get("response_type") != "code" || q.Get("client_id") != "client" && !(p.microsoft && q.Get("client_id") == msClient) {
 		t.Fatalf("authorize request %v", q)
 	}
 	code := base64.RawURLEncoding.EncodeToString([]byte(sub + q.Get("state")))[:20]
 	p.mu.Lock()
-	p.codes[code] = idpCode{sub: sub, nonce: q.Get("nonce"), challenge: q.Get("code_challenge"), redirect: q.Get("redirect_uri")}
+	p.codes[code] = idpCode{sub: sub, nonce: q.Get("nonce"), challenge: q.Get("code_challenge"), redirect: q.Get("redirect_uri"), tenant: p.microsoftTenant}
+	if p.microsoft && strings.HasPrefix(u.Path, "/consumers/") {
+		c := p.codes[code]
+		c.tenant = msConsumer
+		p.codes[code] = c
+	}
 	p.mu.Unlock()
 	cb, _ := url.Parse(q.Get("redirect_uri"))
 	if (cb.Host != "acme.example.test" && cb.Host != "login.acme.test") || cb.Path != "/login/callback" {
@@ -348,7 +362,9 @@ func TestSocialLoginFlow(t *testing.T) {
 	})
 }
 
-func TestSocialCallbackRace(t *testing.T) {
+func TestSocialCallbackRace(t *testing.T) { testSocialCallbackRace(t, newSocialEnv) }
+
+func testSocialCallbackRace(t *testing.T, newFixture func(*testing.T) *socialEnv) {
 	ctx := context.Background()
 	// start returns the browser and the callback path for sub.
 	start := func(t *testing.T, s *socialEnv, sub string) (*browser, string) {
@@ -359,7 +375,7 @@ func TestSocialCallbackRace(t *testing.T) {
 		return b, s.idp.authorize(t, rec.Header().Get("Location"), sub)
 	}
 	t.Run("replay", func(t *testing.T) {
-		s := newSocialEnv(t)
+		s := newFixture(t)
 		b, cb := start(t, s, "R")
 		saved := map[string]*http.Cookie{}
 		for k, v := range b.cookies {
@@ -375,7 +391,7 @@ func TestSocialCallbackRace(t *testing.T) {
 		}
 	})
 	t.Run("wrong browser and malformed", func(t *testing.T) {
-		s := newSocialEnv(t)
+		s := newFixture(t)
 		b, cb := start(t, s, "W")
 		other := s.browser("acme.example.test")
 		u, _ := url.Parse(cb)
@@ -406,7 +422,7 @@ func TestSocialCallbackRace(t *testing.T) {
 		toApp(t, b.do(t, "GET", cb, nil), "app.acme.test")
 	})
 	t.Run("concurrent callbacks", func(t *testing.T) {
-		s := newSocialEnv(t)
+		s := newFixture(t)
 		b, cb := start(t, s, "C")
 		var wins atomic.Int32
 		var wg sync.WaitGroup
@@ -440,9 +456,9 @@ func TestSocialCallbackRace(t *testing.T) {
 			_ = s.st.Connections().Update(ctx, c)
 		},
 		"connection deleted": func(s *socialEnv) { _ = s.st.Connections().Delete(ctx, s.tenant.ID, "con_corp") },
-		"user deleted":       func(s *socialEnv) { _ = s.st.Users().Delete(ctx, s.tenant.ID, "oidc|corp|D") },
+		"user deleted":       func(s *socialEnv) { _ = s.st.Users().Delete(ctx, s.tenant.ID, s.identityID("D")) },
 		"user blocked": func(s *socialEnv) {
-			u, _ := s.st.Users().Get(ctx, s.tenant.ID, "oidc|corp|D")
+			u, _ := s.st.Users().Get(ctx, s.tenant.ID, s.identityID("D"))
 			u.Blocked = true
 			_ = s.st.Users().Update(ctx, u)
 		},
@@ -451,17 +467,17 @@ func TestSocialCallbackRace(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			s := newSocialEnv(t)
+			s := newFixture(t)
 			// An existing user for the deletion and blocking cases.
 			toApp(t, s.explicitLogin(t, s.browser("acme.example.test"), s.idp, "corp", "D"), "app.acme.test")
-			before, _ := s.st.Sessions().ListByUser(ctx, s.tenant.ID, "oidc|corp|D")
+			before, _ := s.st.Sessions().ListByUser(ctx, s.tenant.ID, s.identityID("D"))
 			b, cb := start(t, s, "D")
 			s.idp.beforeToken = func() { during(s) }
 			rec := b.do(t, "GET", cb, nil)
 			if rec.Code == 302 {
 				t.Fatalf("completed after %s", name)
 			}
-			after, _ := s.st.Sessions().ListByUser(ctx, s.tenant.ID, "oidc|corp|D")
+			after, _ := s.st.Sessions().ListByUser(ctx, s.tenant.ID, s.identityID("D"))
 			for _, a := range after {
 				if !slices.ContainsFunc(before, func(x *store.LoginSession) bool { return x.ID == a.ID }) {
 					t.Fatalf("a session was created after %s", name)

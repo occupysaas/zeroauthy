@@ -445,6 +445,10 @@ func (h *Handlers) CreateConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	connrules.Apply(spec, c)
+	if err := federation.RequireMicrosoftConnection(r.Context(), h.Store, c); err != nil {
+		h.failTx(w, r, "create connection", err)
+		return
+	}
 	if err := h.applyFederated(nil, spec, c); err != nil {
 		Fail(w, err)
 		return
@@ -516,6 +520,9 @@ func (h *Handlers) UpdateConnection(w http.ResponseWriter, r *http.Request, id s
 			return errConnectionNotFound
 		}
 		if err != nil {
+			return err
+		}
+		if err := federation.RequireMicrosoftConnection(r.Context(), tx, c); err != nil {
 			return err
 		}
 		spec := connrules.FromConnection(c)
@@ -709,6 +716,9 @@ func (h *Handlers) UpdateConnectionClients(w http.ResponseWriter, r *http.Reques
 			return errConnectionNotFound
 		}
 		if err != nil {
+			return err
+		}
+		if err := federation.RequireMicrosoftConnection(r.Context(), tx, c); err != nil {
 			return err
 		}
 		before := slices.Clone(c.EnabledClients)

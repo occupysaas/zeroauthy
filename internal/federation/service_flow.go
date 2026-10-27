@@ -17,6 +17,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
@@ -107,6 +108,9 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	if conn == nil || !access.ConnectionUsable(in.Client, conn) {
 		return nil, ErrConnectionUnusable
 	}
+	if err := RequireMicrosoftConnection(ctx, s.Store, conn); err != nil {
+		return nil, err
+	}
 	spec := connrules.FromConnection(conn)
 	cfg, err := ParseConfig(*spec)
 	if err != nil || !cfg.AuthenticationActive || len(conn.FederationSecretsSealed) == 0 {
@@ -125,12 +129,18 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 		endpoints, issuer = s.Providers.google()
 	case StrategyOAuth2:
 		endpoints = Endpoints{AuthorizationURL: cfg.AuthorizationURL, TokenURL: cfg.TokenURL, TokenAuthMethod: authPost}
-	case StrategyOIDC:
-		meta, err := s.Providers.Discover(ctx, key, cfg.DiscoveryURL, cfg.Issuer)
+	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC:
+		var meta Metadata
+		var err error
+		if cfg.Strategy == StrategyOIDC {
+			meta, err = s.Providers.Discover(ctx, key, cfg.DiscoveryURL, cfg.Issuer)
+		} else {
+			meta, err = s.Providers.DiscoverMicrosoft(ctx, key, cfg)
+		}
 		if err != nil {
 			return nil, err
 		}
-		if cfg.Issuer == "" {
+		if cfg.Issuer == "" && (cfg.Strategy == StrategyOIDC || cfg.Strategy == StrategyWAAD && !cfg.MicrosoftMultiTenant) {
 			rev, err := PinIssuer(ctx, s.Store, conn.TenantID, conn.ID, conn.FederationRevision, meta.Issuer)
 			if err != nil {
 				return nil, fmt.Errorf("%w: %w", ErrAttemptStale, err)
@@ -138,6 +148,8 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 			cfg.Revision, cfg.Issuer, key.Revision = rev, meta.Issuer, rev
 		}
 		issuer, endpoints = meta.Issuer, meta.Endpoints()
+	default:
+		return nil, ErrConnectionUnusable
 	}
 	now := s.now()
 	state, nonce, verifier, cookie := randomToken(), randomToken(), randomToken(), randomToken()
@@ -357,6 +369,9 @@ func (s *FlowService) eligible(ctx context.Context, st store.Store, a *store.Fed
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	if err := RequireMicrosoftConnection(ctx, st, conn); err != nil {
+		return nil, nil, nil, err
+	}
 	if conn.FederationRevision != a.Revision {
 		return nil, nil, nil, fmt.Errorf("%w: connection changed", ErrAttemptStale)
 	}
@@ -408,10 +423,18 @@ func ButtonLabel(c *store.Connection) string {
 	if d := connrules.FromConnection(c).DisplayName; d != "" {
 		return d
 	}
+	switch c.Strategy {
+	case StrategyWindowsLive:
+		return "Microsoft personal account"
+	case StrategyWAAD:
+		return "Microsoft work or school account"
+	case StrategyGoogle:
+		return "Google"
+	}
 	return c.Name
 }
 
 // IsFederated reports whether strategy is federated.
 func IsFederated(strategy string) bool {
-	return strategy == StrategyGoogle || strategy == StrategyOAuth2 || strategy == StrategyOIDC
+	return rules.IsFederated(strategy)
 }

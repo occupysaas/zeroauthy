@@ -127,6 +127,9 @@ func MasterKey(cfg *config.Config, log *slog.Logger) ([]byte, error) {
 }
 
 func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.Store, masterKey []byte) (*App, error) {
+	if err := federation.PreflightMicrosoftIdentities(ctx, st); err != nil {
+		return nil, err
+	}
 	wrapper, err := keys.NewLocalWrapper(masterKey)
 	if err != nil {
 		return nil, err

@@ -40,7 +40,7 @@ func PreflightMicrosoftIdentities(ctx context.Context, st store.Store) error {
 			for _, c := range conns {
 				if microsoft(c.Strategy) {
 					if err := RequireMicrosoftFederation(ctx, st); err != nil {
-						return fmt.Errorf("%s: %w", diagnostic("store capability unavailable"), err)
+						return fmt.Errorf("%s: %w", diagnostic("store capability unavailable"), store.ErrFederationUnavailable)
 					}
 				}
 			}
@@ -65,7 +65,7 @@ func PreflightMicrosoftIdentities(ctx context.Context, st store.Store) error {
 					continue
 				}
 				if err := RequireMicrosoftFederation(ctx, st); err != nil {
-					return fmt.Errorf("%s: %w", diagnostic("store capability unavailable"), err)
+					return fmt.Errorf("%s: %w", diagnostic("store capability unavailable"), store.ErrFederationUnavailable)
 				}
 				keys, err := store.ResolveFederatedKeys(&filtered, func(name string) (*store.Connection, error) { return st.Connections().GetByName(ctx, tenant.ID, name) })
 				if errors.Is(err, store.ErrInvalid) {
@@ -86,6 +86,27 @@ func PreflightMicrosoftIdentities(ctx context.Context, st store.Store) error {
 			}
 			if len(users) == 0 || offset+len(users) >= total {
 				break
+			}
+		}
+	}
+	return nil
+}
+
+// RequireMicrosoftConnection gates only Microsoft's strategies; predecessor
+// connections continue working with stores that predate this capability.
+func RequireMicrosoftConnection(ctx context.Context, st store.Store, c *store.Connection) error {
+	if c != nil && (c.Strategy == rules.WindowsLive || c.Strategy == rules.WAAD) {
+		return RequireMicrosoftFederation(ctx, st)
+	}
+	return nil
+}
+
+// RequireMicrosoftUser checks every identity, including linked Microsoft accounts.
+func RequireMicrosoftUser(ctx context.Context, st store.Store, u *store.User) error {
+	if u != nil {
+		for _, id := range u.Identities {
+			if id.Provider == rules.WindowsLive || id.Provider == rules.WAAD {
+				return RequireMicrosoftFederation(ctx, st)
 			}
 		}
 	}

@@ -136,8 +136,10 @@ func (ps *Providers) For(cfg Config) Provider {
 		return oauth2Provider{ps}
 	case StrategyWindowsLive, StrategyWAAD:
 		return microsoftProvider{ps}
-	default:
+	case StrategyOIDC, StrategyGoogle:
 		return oidcProvider{ps}
+	default:
+		return unsupportedProvider{}
 	}
 }
 
@@ -462,4 +464,12 @@ func pickKey(keys []cachedSigningKey, kid string, eligible func(*cachedSigningKe
 		return nil, fmt.Errorf("%w: signing key issuer mismatch", ErrProviderResponse)
 	}
 	return nil, errUnknownKID
+}
+
+// unsupportedProvider rejects unknown strategies before any provider I/O.
+type unsupportedProvider struct{}
+
+func (unsupportedProvider) AuthorizationURL(StartInput) (string, error) { return "", ErrInvalidConfig }
+func (unsupportedProvider) Exchange(context.Context, ExchangeInput) (ProviderResult, error) {
+	return ProviderResult{}, ErrInvalidConfig
 }
