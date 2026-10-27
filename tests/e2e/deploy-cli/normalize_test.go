@@ -293,3 +293,42 @@ func TestCompareCustomDomainTargetLocalState(t *testing.T) {
 		}
 	}
 }
+
+func TestRBACMigrationEquivalence(t *testing.T) {
+	manifest := Manifest{ToolVersion: "9.1.0", Resources: []ManifestResource{{Name: "roles", Status: "included"}, {Name: "resourceServers", Status: "included"}}}
+	source := deploymigration.Export{Resources: map[string]json.RawMessage{
+		"roles":           json.RawMessage(`[{"id":"rol-source","name":"Reader","description":"Read things","permissions":[{"permission_name":"read:x","resource_server_identifier":"https://api.test"},{"permission_name":"write:x","resource_server_identifier":"https://api.test"}]}]`),
+		"resourceServers": json.RawMessage(`[{"id":"api-source","name":"API","identifier":"https://api.test","enforce_policies":true,"token_dialect":"rfc9068_profile_authz"}]`),
+	}}
+	target := deploymigration.Export{Resources: map[string]json.RawMessage{
+		"roles":           json.RawMessage(`[{"id":"rol-target","name":"Reader","description":"Read things","permissions":[{"permission_name":"write:x","resource_server_identifier":"https://api.test"},{"permission_name":"read:x","resource_server_identifier":"https://api.test"}]}]`),
+		"resourceServers": json.RawMessage(`[{"id":"api-target","name":"API","identifier":"https://api.test","enforce_policies":true,"token_dialect":"rfc9068_profile_authz"}]`),
+	}}
+	if r := Compare(source, target, manifest, Domains{}); !r.Equivalent {
+		t.Fatalf("logical role migration differs: %+v", r.Differences)
+	}
+	for name, raw := range map[string]string{
+		"dropped-role":       `[]`,
+		"dropped-permission": `[{"id":"rol-target","name":"Reader","description":"Read things","permissions":[{"permission_name":"read:x","resource_server_identifier":"https://api.test"}]}]`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			changed := target
+			changed.Resources = map[string]json.RawMessage{"roles": json.RawMessage(raw), "resourceServers": target.Resources["resourceServers"]}
+			if Compare(source, changed, manifest, Domains{}).Equivalent {
+				t.Fatal("lost RBAC assignment compared equal")
+			}
+		})
+	}
+	for name, raw := range map[string]string{
+		"lost-enforcement": `[{"id":"api-target","name":"API","identifier":"https://api.test","enforce_policies":false,"token_dialect":"rfc9068_profile_authz"}]`,
+		"lost-dialect":     `[{"id":"api-target","name":"API","identifier":"https://api.test","enforce_policies":true,"token_dialect":"access_token"}]`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			changed := target
+			changed.Resources = map[string]json.RawMessage{"roles": target.Resources["roles"], "resourceServers": json.RawMessage(raw)}
+			if Compare(source, changed, manifest, Domains{}).Equivalent {
+				t.Fatal("lost RBAC API field compared equal")
+			}
+		})
+	}
+}
