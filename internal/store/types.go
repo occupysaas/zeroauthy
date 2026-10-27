@@ -775,6 +775,12 @@ type LoginSession struct {
 	LastUserAgent    string
 }
 
+// Internal AuthTransaction.Params keys shared by authorization and federation.
+const (
+	TxnParamFlow  = "za_flow"
+	TxnFlowDevice = "device"
+)
+
 // AuthTransaction holds an /authorize request while the user logs in.
 type AuthTransaction struct {
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.

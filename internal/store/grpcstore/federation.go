@@ -87,9 +87,16 @@ func (r clientFederation) BumpIdentityEpoch(ctx context.Context, tenantID string
 	return do("FederationBumpIdentityEpoch", res, fedErr(err))
 }
 
+// requireMicrosoft is the client-side guard for servers older than the
+// Microsoft capability check. A plugin that cannot even read connections
+// cannot provide federation, so Unimplemented maps to unavailable.
+func (r clientFederation) requireMicrosoft(ctx context.Context, k store.FederatedIdentityKey) error {
+	return fedErr(requireMicrosoftKey(ctx, r.c, k))
+}
+
 func (r clientFederation) CreateAttempt(ctx context.Context, a *store.FederationAttempt) error {
 	if a != nil {
-		if err := requireMicrosoftKey(ctx, r.c, store.FederatedIdentityKey{TenantID: a.TenantID, ConnectionID: a.ConnectionID}); err != nil {
+		if err := r.requireMicrosoft(ctx, store.FederatedIdentityKey{TenantID: a.TenantID, ConnectionID: a.ConnectionID}); err != nil {
 			return err
 		}
 	}
@@ -118,7 +125,7 @@ func (r clientFederation) FinishAttempt(ctx context.Context, tenantID, stateHash
 }
 
 func (r clientFederation) PutIdentity(ctx context.Context, k store.FederatedIdentityKey, userID string) error {
-	if err := requireMicrosoftKey(ctx, r.c, k); err != nil {
+	if err := r.requireMicrosoft(ctx, k); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.FederationPutIdentity(ctx, &storev1.FederatedIdentityWrite{TxId: r.c.txID, Key: fedKeyToPB(k), UserId: userID})
@@ -126,7 +133,7 @@ func (r clientFederation) PutIdentity(ctx context.Context, k store.FederatedIden
 }
 
 func (r clientFederation) DeleteIdentity(ctx context.Context, k store.FederatedIdentityKey, expectedUserID string) error {
-	if err := requireMicrosoftKey(ctx, r.c, k); err != nil {
+	if err := r.requireMicrosoft(ctx, k); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.FederationDeleteIdentity(ctx, &storev1.FederatedIdentityWrite{TxId: r.c.txID, Key: fedKeyToPB(k), UserId: expectedUserID})
@@ -142,7 +149,7 @@ func (r clientFederation) GetTokens(ctx context.Context, k store.FederatedIdenti
 }
 
 func (r clientFederation) PutTokens(ctx context.Context, k store.FederatedIdentityKey, sealed []byte) error {
-	if err := requireMicrosoftKey(ctx, r.c, k); err != nil {
+	if err := r.requireMicrosoft(ctx, k); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.FederationPutTokens(ctx, &storev1.FederatedTokensWrite{TxId: r.c.txID, Key: fedKeyToPB(k), Sealed: cloneBytes(sealed)})
@@ -150,7 +157,7 @@ func (r clientFederation) PutTokens(ctx context.Context, k store.FederatedIdenti
 }
 
 func (r clientFederation) DeleteTokens(ctx context.Context, k store.FederatedIdentityKey) error {
-	if err := requireMicrosoftKey(ctx, r.c, k); err != nil {
+	if err := r.requireMicrosoft(ctx, k); err != nil {
 		return err
 	}
 	res, err := r.c.rpc.FederationDeleteTokens(ctx, &storev1.FederatedIdentityRequest{TxId: r.c.txID, Key: fedKeyToPB(k)})
