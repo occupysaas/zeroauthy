@@ -7,6 +7,16 @@ package store
 import "github.com/zeroauthy/zeroauthy/internal/store"
 
 type (
+	RBAC                        = store.RBAC
+	RBACSupporter               = store.RBACSupporter
+	UnimplementedRBAC           = store.UnimplementedRBAC
+	Role                        = store.Role
+	PermissionKey               = store.PermissionKey
+	PermissionGrant             = store.PermissionGrant
+	PermissionSource            = store.PermissionSource
+	RBACPage                    = store.RBACPage
+	RBACResult[T any]           = store.RBACResult[T]
+	AuthorizationSnapshot       = store.AuthorizationSnapshot
 	CustomDomains               = store.CustomDomains
 	CustomDomain                = store.CustomDomain
 	HostBinding                 = store.HostBinding
@@ -259,3 +269,5 @@ const (
 	ProtectionSuspiciousIPRegistration = store.ProtectionSuspiciousIPRegistration
 	ProtectionResetMail                = store.ProtectionResetMail
 )
+
+var ErrRBACUnavailable = store.ErrRBACUnavailable
