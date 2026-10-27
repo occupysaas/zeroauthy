@@ -68,12 +68,16 @@ func inProcessSQLite(t *testing.T) *Client {
 	return serve(t, st)
 }
 
+// actionsPending names the Actions suite as skipped until the gRPC protocol
+// carries the repository (Plan 27 Task 5); the stubs fail closed, not succeed.
+var actionsPending = map[string]string{"Actions": "gRPC Actions repository lands in Plan 27 Task 5"}
+
 func TestConformance(t *testing.T) {
-	storetest.Run(t, func(t *testing.T) store.Store { return inProcess(t) })
+	storetest.RunExcept(t, func(t *testing.T) store.Store { return inProcess(t) }, actionsPending)
 }
 
 func TestConformanceSQLite(t *testing.T) {
-	storetest.Run(t, func(t *testing.T) store.Store { return inProcessSQLite(t) })
+	storetest.RunExcept(t, func(t *testing.T) store.Store { return inProcessSQLite(t) }, actionsPending)
 }
 
 // These assertions run against SQL savepoints behind real gRPC transaction

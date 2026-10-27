@@ -59,9 +59,6 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 	"Federation":                  testFederation,
 }
 
-// "Actions" is registered in Suites but not yet in suiteOrder: SQL and gRPC
-// drivers add it when they implement the repository (Plan 27 Tasks 4-5).
-
 // suiteOrder is the order Run executes the suites in.
 var suiteOrder = []string{
 	"CustomDomainAttemptLimits", "CustomDomainClaims", "CustomDomainCap", "CustomDomainCAS", "CustomDomainDefaultRollback", "CustomDomainCascade", "TLSAssetCopies", "TLSLeaseFence", "OriginRoundTrip",
@@ -70,13 +67,27 @@ var suiteOrder = []string{
 	"PushedAuthRequests",
 	"RefreshTokens", "PasswordResetTickets", "EmailVerificationTickets", "Tx",
 	"DeviceCodes", "Operators", "Jobs", "TenantsDelete", "EmptyLists",
-	"Email", "HostedLogin", "HostedTransition", "Federation",
+	"Email", "HostedLogin", "HostedTransition", "Federation", "Actions",
 }
 
 // Run executes the conformance tests every driver passes against stores made
 // by newStore.
 func Run(t *testing.T, newStore Factory) {
 	RunSuites(t, newStore, suiteOrder...)
+}
+
+// RunExcept is Run with named suites skipped. Each skip reports its reason, so
+// a driver that has not implemented a repository yet shows the gap instead of
+// passing it.
+func RunExcept(t *testing.T, newStore Factory, skip map[string]string) {
+	t.Helper()
+	for _, name := range suiteOrder {
+		if reason, ok := skip[name]; ok {
+			t.Run(name, func(t *testing.T) { t.Skip(reason) })
+			continue
+		}
+		RunSuites(t, newStore, name)
+	}
 }
 
 // RunSuites executes only the named suites. An unknown name fails the test.
