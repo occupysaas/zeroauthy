@@ -20,9 +20,11 @@ import (
 
 // The federated strategies.
 const (
-	Google = "google-oauth2"
-	OAuth2 = "oauth2"
-	OIDC   = "oidc"
+	WindowsLive = "windowslive"
+	WAAD        = "waad"
+	Google      = "google-oauth2"
+	OAuth2      = "oauth2"
+	OIDC        = "oidc"
 )
 
 // Profile synchronization policies (options.set_user_root_attributes).
@@ -56,12 +58,14 @@ const (
 
 // IsFederated reports whether strategy is one of the federated strategies.
 func IsFederated(strategy string) bool {
-	return strategy == Google || strategy == OAuth2 || strategy == OIDC
+	return strategy == WindowsLive || strategy == WAAD || strategy == Google || strategy == OAuth2 || strategy == OIDC
 }
 
 // IsSocial reports whether identities of strategy are social (isSocial).
 // OIDC is an enterprise strategy.
-func IsSocial(strategy string) bool { return strategy == Google || strategy == OAuth2 }
+func IsSocial(strategy string) bool {
+	return strategy == WindowsLive || strategy == Google || strategy == OAuth2
+}
 
 // RejectedKeys are the upstream parameter names that no inert map may target
 // or alias (inventory upstream_parameter_policy.rejected_keys). Matching is
@@ -129,6 +133,8 @@ type Input struct {
 // Settings are the validated runtime settings. They never contain the
 // plaintext client secret.
 type Settings struct {
+	MicrosoftAuthority   string
+	MicrosoftMultiTenant bool
 	Strategy             string
 	ClientID             string
 	HasPlainSecret       bool
@@ -215,7 +221,7 @@ func Parse(in Input) (Settings, []error) {
 	}
 
 	for _, k := range slices.Sorted(maps.Keys(rejectedOptions)) {
-		if _, ok := o[k]; ok {
+		if _, ok := o[k]; ok && !(in.Strategy == WAAD && (k == "domain" || k == "tenant_domain")) {
 			fail("options.%s: %s", k, rejectedOptions[k])
 		}
 	}
@@ -246,6 +252,8 @@ func Parse(in Input) (Settings, []error) {
 	}
 
 	switch in.Strategy {
+	case WindowsLive, WAAD:
+		errs = append(errs, parseMicrosoft(o, &out)...)
 	case Google:
 		errs = append(errs, parseGoogle(o, &out)...)
 	case OAuth2:

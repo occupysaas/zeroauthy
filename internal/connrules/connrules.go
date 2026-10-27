@@ -327,8 +327,8 @@ func normalize(s *Spec, api bool) []error {
 		s.Strategy = store.StrategyDatabase
 	}
 	if s.Strategy != store.StrategyDatabase && !s.Federated() {
-		fail("strategy %q is not supported (only %q, %q, %q or %q)", s.Strategy,
-			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC)
+		fail("strategy %q is not supported (only %q, %q, %q, %q, %q or %q)", s.Strategy,
+			store.StrategyDatabase, rules.Google, rules.OAuth2, rules.OIDC, rules.WindowsLive, rules.WAAD)
 	}
 	for _, r := range s.Realms {
 		if r == "" {

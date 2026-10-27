@@ -16,8 +16,10 @@ var ErrImmutable = errors.New("federation: immutable connection setting changed"
 // Config is a federated connection's validated runtime configuration. It
 // holds a reference to the sealed credentials, never the plaintext secret.
 type Config struct {
-	Strategy string
-	ClientID string
+	MicrosoftAuthority   string
+	MicrosoftMultiTenant bool
+	Strategy             string
+	ClientID             string
 	// SecretReference is the sealed credential record (a copy); empty when
 	// the secret is only being supplied in plaintext by the current write.
 	SecretReference  []byte
@@ -48,6 +50,8 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 		return Config{}, errors.Join(errs...)
 	}
 	c := Config{
+		MicrosoftAuthority:   settings.MicrosoftAuthority,
+		MicrosoftMultiTenant: settings.MicrosoftMultiTenant,
 		Strategy:             settings.Strategy,
 		ClientID:             settings.ClientID,
 		SecretReference:      slices.Clone(spec.FederationSecretsSealed),
@@ -64,7 +68,7 @@ func ParseConfig(spec connrules.Spec) (Config, error) {
 	switch c.Strategy {
 	case StrategyGoogle:
 		c.Issuer = rules.GoogleIssuer
-	case StrategyOIDC:
+	case StrategyWindowsLive, StrategyWAAD, StrategyOIDC:
 		c.Issuer = spec.FederationIssuer
 	}
 	return c, nil
@@ -91,6 +95,9 @@ func ValidateConfigUpdate(prev, next Config) error {
 			return fmt.Errorf("%w: %s; create a new connection instead", ErrImmutable, b.name)
 		}
 	}
+	if prev.MicrosoftAuthority != next.MicrosoftAuthority || prev.MicrosoftMultiTenant != next.MicrosoftMultiTenant {
+		return fmt.Errorf("%w: Microsoft authority; create a new connection instead", ErrImmutable)
+	}
 	if prev.Issuer != "" && next.Issuer != prev.Issuer {
 		return fmt.Errorf("%w: issuer; create a new connection instead", ErrImmutable)
 	}
@@ -101,7 +108,7 @@ func ValidateConfigUpdate(prev, next Config) error {
 // affects authentication, so the connection's FederationRevision must
 // increase and pending attempts become stale.
 func EffectiveChange(prev, next Config) bool {
-	return prev.Strategy != next.Strategy || prev.ClientID != next.ClientID ||
+	return prev.MicrosoftAuthority != next.MicrosoftAuthority || prev.MicrosoftMultiTenant != next.MicrosoftMultiTenant || prev.Strategy != next.Strategy || prev.ClientID != next.ClientID ||
 		!slices.Equal(prev.SecretReference, next.SecretReference) ||
 		prev.AuthorizationURL != next.AuthorizationURL || prev.TokenURL != next.TokenURL ||
 		prev.DiscoveryURL != next.DiscoveryURL || !slices.Equal(prev.Scopes, next.Scopes) ||

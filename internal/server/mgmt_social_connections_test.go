@@ -42,8 +42,21 @@ func noSecret(t *testing.T, what, body string) {
 	}
 }
 
-func TestSocialConnectionsContract(t *testing.T) {
-	for strategy, body := range socialBodies() {
+func TestSocialConnectionsContract(t *testing.T) { socialConnectionsContract(t, socialBodies()) }
+func TestMicrosoftConnectionsContract(t *testing.T) {
+	bodies := map[string]map[string]any{}
+	for _, strategy := range []string{"windowslive", "waad"} {
+		options := map[string]any{"client_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "client_secret": socialSecret}
+		if strategy == "waad" {
+			options["tenant_domain"] = "Contoso.Example"
+			options["domain"] = "Display only"
+		}
+		bodies[strategy] = map[string]any{"name": strategy, "strategy": strategy, "options": options}
+	}
+	socialConnectionsContract(t, bodies)
+}
+func socialConnectionsContract(t *testing.T, bodies map[string]map[string]any) {
+	for strategy, body := range bodies {
 		t.Run(strategy, func(t *testing.T) {
 			e := newConnEnv(t)
 			app := e.createClient("social-app")
@@ -98,6 +111,8 @@ func TestSocialConnectionsContract(t *testing.T) {
 				opts["scopes"] = "openid profile email"
 			} else if strategy == "oauth2" {
 				opts["scope"] = "read"
+			} else if strategy == "windowslive" || strategy == "waad" {
+				opts["set_user_root_attributes"] = "on_first_login"
 			} else {
 				opts["email"] = false
 			}
@@ -121,6 +136,15 @@ func TestSocialConnectionsContract(t *testing.T) {
 				return m
 			}
 			// Rejected changes leave the revision intact.
+			if strategy == "windowslive" || strategy == "waad" {
+				for _, key := range []string{"ext_groups", "trust_email_verified", "domain_aliases", "offline_access"} {
+					o := fresh()
+					o[key] = true
+					if rec, _ := e.do("PATCH", connBase+"/"+id, map[string]any{"options": o}); rec.Code != 400 {
+						t.Fatalf("accepted %s: %d", key, rec.Code)
+					}
+				}
+			}
 			for name, change := range map[string]map[string]any{
 				"empty secret": {"client_secret": ""},
 				"null secret":  {"client_secret": nil},
@@ -196,6 +220,12 @@ func TestSocialConnectionsContract(t *testing.T) {
 			}
 			if got := e.stored(id).FederationRevision; got != 5 {
 				t.Fatalf("display-only change moved the revision to %d", got)
+			}
+			if rec, _ := e.do("DELETE", connBase+"/"+id, nil); rec.Code != 202 {
+				t.Fatalf("delete = %d %s", rec.Code, rec.Body)
+			}
+			if rec, _ := e.do("GET", connBase+"/"+id, nil); rec.Code != 404 {
+				t.Fatalf("deleted connection read = %d", rec.Code)
 			}
 		})
 	}

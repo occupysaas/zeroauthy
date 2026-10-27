@@ -274,7 +274,7 @@ type Connection struct {
 	IsDomainConnection bool `yaml:"is_domain_connection"`
 
 	// Options are the options of a federated strategy (google-oauth2,
-	// oauth2, oidc) in Auth0's names. options.client_secret is plaintext in
+	// oauth2, oidc, windowslive, waad) in Auth0's names. options.client_secret is plaintext in
 	// the seed file and sealed when applied; it is required.
 	Options      map[string]any `yaml:"options"`
 	DisplayName  string         `yaml:"display_name"`

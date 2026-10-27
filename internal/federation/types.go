@@ -14,9 +14,11 @@ import (
 
 // Strategy names, re-exported from rules.
 const (
-	StrategyGoogle = rules.Google
-	StrategyOAuth2 = rules.OAuth2
-	StrategyOIDC   = rules.OIDC
+	StrategyWindowsLive = rules.WindowsLive
+	StrategyWAAD        = rules.WAAD
+	StrategyGoogle      = rules.Google
+	StrategyOAuth2      = rules.OAuth2
+	StrategyOIDC        = rules.OIDC
 )
 
 // Store model aliases used throughout the package.

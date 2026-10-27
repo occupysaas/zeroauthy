@@ -268,7 +268,7 @@ func (t *Tenant) validate() []error {
 		}
 		spec := c.spec()
 		if c.Options != nil && !spec.Federated() {
-			fail("connection %q: options is only for the google-oauth2, oauth2 and oidc strategies", c.Name)
+			fail("connection %q: options is only for the google-oauth2, oauth2, oidc, windowslive and waad strategies", c.Name)
 		}
 		if spec.Federated() {
 			if _, named := c.Options["client_secret"]; !named {
