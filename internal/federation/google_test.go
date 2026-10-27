@@ -59,3 +59,34 @@ func TestGoogleAdapter(t *testing.T) {
 		t.Fatal("Google token request not client_secret_post")
 	}
 }
+
+func TestGoogleEmailAccountProfiles(t *testing.T) {
+	for _, tc := range []struct {
+		name, email, hd string
+		verified        bool
+	}{
+		{"Gmail", "person@gmail.com", "", true},
+		{"Workspace", "person@school.example", "school.example", true},
+		{"non Gmail", "person@example.net", "", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := newIDP(t)
+			p.claims = func(c map[string]any) {
+				c["sub"] = "Google-CaseSensitive-Sub"
+				c["email"] = tc.email
+				c["email_verified"] = tc.verified
+				if tc.hd != "" {
+					c["hd"] = tc.hd
+				}
+			}
+			ps := p.providers()
+			in := p.exchangeInput(t, ps)
+			in.Config.Strategy = StrategyGoogle
+			in.Endpoints.TokenAuthMethod = authPost
+			res, err := ps.For(in.Config).Exchange(context.Background(), in)
+			if err != nil || res.Profile.Subject != "Google-CaseSensitive-Sub" || res.Profile.Email == nil || *res.Profile.Email != tc.email || res.Profile.EmailVerified == nil || *res.Profile.EmailVerified != tc.verified {
+				t.Fatalf("profile %+v error %v", res.Profile, err)
+			}
+		})
+	}
+}

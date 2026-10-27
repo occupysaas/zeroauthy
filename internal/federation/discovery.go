@@ -134,6 +134,8 @@ func (ps *Providers) For(cfg Config) Provider {
 	switch cfg.Strategy {
 	case StrategyOAuth2:
 		return oauth2Provider{ps}
+	case StrategyWindowsLive, StrategyWAAD:
+		return microsoftProvider{ps}
 	default:
 		return oidcProvider{ps}
 	}
