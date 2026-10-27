@@ -4,7 +4,6 @@ import Actions from './Actions.vue'
 import MultiFactor from './MultiFactor.vue'
 import Logs from './Logs.vue'
 import Organizations from './Organizations.vue'
-import Roles from './Roles.vue'
 import PlannedPage from './PlannedPage.vue'
 
 /** A planned page with no preview of its own: just the frame for the section. */
@@ -16,7 +15,6 @@ function bare(key: string): Component {
 const dedicated: Record<string, Component> = {
   actions: Actions,
   mfa: MultiFactor,
-  roles: Roles,
   organizations: Organizations,
   logs: Logs,
 }

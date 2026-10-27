@@ -48,7 +48,7 @@ describe('Shell sidebar', () => {
     expect(link('Social').text()).not.toContain('Planned') // shipped in Plan 24
     expect(link('Enterprise').text()).not.toContain('Planned')
     expect(link('Users').text()).not.toContain('Planned')
-    expect(link('Roles').attributes('title')).toBe('later: /api/v2/roles')
+    expect(link('Roles').text()).not.toContain('Planned')
     expect(link('Applications').text()).not.toContain('Planned')
     wrapper.unmount()
   })

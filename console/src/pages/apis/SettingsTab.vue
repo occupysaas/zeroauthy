@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { ApiError, type ResourceServer, type ResourceServerUpdate, type SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
 import { useI18n } from 'vue-i18n'
@@ -19,13 +19,26 @@ const MAX_LIFETIME = 2592000
 const userPolicies = ['allow_all', 'require_client_grant', 'deny_all']
 const clientPolicies = ['require_client_grant', 'deny_all']
 
-const form = reactive({ name: '', lifetime: '', lifetimeWeb: '', offline: false, skipConsent: false, user: 'allow_all', client: 'require_client_grant' })
+const form = reactive({ name: '', lifetime: '', lifetimeWeb: '', offline: false, skipConsent: false, user: 'allow_all', client: 'require_client_grant', rbac: false, profile: 'access_token', permissions: false })
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
 const busy = ref(false)
+let epoch = 0
+let context = ''
+const baseProfile = computed({ get: () => form.profile, set: (value: string) => { form.profile = value } })
+onBeforeUnmount(() => { ++epoch })
 
 function reset(s: ResourceServer) {
+  ++epoch
+  busy.value = false
+  const nextContext = props.tenant.host + '/' + s.id
+  if (context !== nextContext) status.value = ''
+  context = nextContext
+  general.value = ''
+  form.rbac = s.enforce_policies
+  form.profile = String(s.token_dialect).startsWith('rfc9068_') ? 'rfc9068_profile' : 'access_token'
+  form.permissions = String(s.token_dialect).endsWith('_authz')
   form.name = s.name ?? ''
   form.lifetime = String(s.token_lifetime)
   form.lifetimeWeb = String(s.token_lifetime_for_web)
@@ -34,7 +47,7 @@ function reset(s: ResourceServer) {
   form.user = s.subject_type_authorization.user.policy
   form.client = s.subject_type_authorization.client.policy
 }
-watch(() => props.server, reset, { immediate: true })
+watch(() => [props.tenant.host, props.server] as const, () => reset(props.server), { immediate: true })
 
 function seconds(text: string): number | null {
   return /^\d+$/.test(text.trim()) && Number(text) >= 1 && Number(text) <= MAX_LIFETIME ? Number(text) : null
@@ -58,20 +71,25 @@ async function save() {
   status.value = ''
   const ok = validate()
   if (!ok) return
+  const mine = epoch
   busy.value = true
   // A system API takes only its token lifetimes; the server refuses the rest.
   const body: ResourceServerUpdate = { token_lifetime: ok.lifetime, token_lifetime_for_web: ok.web }
   if (!props.server.is_system) {
     if (form.name.trim()) body.name = form.name.trim()
+    body.enforce_policies = form.rbac
+    body.token_dialect = (form.profile + (form.permissions ? '_authz' : '')) as ResourceServerUpdate['token_dialect']
     body.allow_offline_access = form.offline
     body.skip_consent_for_verifiable_first_party_clients = form.skipConsent
     body.subject_type_authorization = { user: { policy: form.user as 'allow_all' }, client: { policy: form.client as 'deny_all' } }
   }
   try {
     const s = await api.updateResourceServer(props.tenant, props.server.id, body)
+    if (mine !== epoch) return
     status.value = t('saved')
     emit('saved', s)
   } catch (e) {
+    if (mine !== epoch) return
     if (e instanceof ApiError && e.errorCode === 'invalid_body') {
       const split = fieldErrors(e.message, fieldKeys)
       Object.assign(errors, split.byField)
@@ -80,7 +98,7 @@ async function save() {
       general.value = errorMessage(e)
     }
   } finally {
-    busy.value = false
+    if (mine === epoch) busy.value = false
   }
 }
 
@@ -149,6 +167,13 @@ function describedBy(id: string, key: string): string {
           <option v-for="p in clientPolicies" :key="p" :value="p">{{ t(`apis.policies.${p}`) }}</option>
         </select>
       </Field>
+      <fieldset class="stack">
+        <legend>{{ t('rbac.title') }}</legend>
+        <label class="check"><input id="api-rbac" v-model="form.rbac" type="checkbox" :disabled="server.is_system"/><span>{{t('rbac.enable')}}</span></label>
+        <Field id="api-profile" :label="t('rbac.profile')"><select id="api-profile" v-model="baseProfile" :disabled="server.is_system"><option value="access_token">{{t('rbac.auth0')}}</option><option value="rfc9068_profile">{{t('rbac.rfc')}}</option></select></Field>
+        <label class="check"><input id="api-permissions-claim" v-model="form.permissions" type="checkbox" :disabled="server.is_system || !form.rbac"/><span>{{t('rbac.include')}}</span></label>
+        <p class="muted">{{t('rbac.expiry')}}</p>
+      </fieldset>
       <div class="row">
         <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('saving') : t('save') }}</Button>
         <span class="muted" role="status">{{ status }}</span>

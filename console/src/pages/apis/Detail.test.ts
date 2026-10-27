@@ -129,6 +129,8 @@ describe('API detail', () => {
         token_lifetime: 3600,
         token_lifetime_for_web: 1800,
         allow_offline_access: true,
+        enforce_policies: false,
+        token_dialect: 'access_token',
         skip_consent_for_verifiable_first_party_clients: true,
         subject_type_authorization: { user: { policy: 'deny_all' }, client: { policy: 'deny_all' } },
       })
