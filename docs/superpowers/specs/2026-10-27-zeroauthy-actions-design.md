@@ -54,6 +54,16 @@ hostile-code containment within a tenant:
 - Action code inherits D-0022's process controls (empty environment,
   `--permission`, blocked process-signalling methods). Outbound network stays
   open, as on Auth0, and remains an operator egress concern.
+- **No access to zeroauthy's environment** (maintainer requirement,
+  2026-10-27). Neither Action code nor the npm dependency build may read the
+  server's environment variables (master key, database DSN, provider
+  secrets) or its files. Both run as sandboxed Node processes: empty
+  environment, `--permission` with file reads limited to their own
+  directories, no child processes, workers, addons or WASI, so
+  `process.env`, `/proc/self/environ`, `/proc/<ppid>/environ` and
+  `/proc/1/environ` are all empty or denied. A canary-secret test proves this
+  for both paths. Running zeroauthy itself in a container or under a dedicated
+  uid stays the documented extra hardening (D-0022 addendum).
 
 ## 3. Evidence and constraints
 
@@ -139,7 +149,12 @@ packages are allowed. The build runs `npm install` (operator-configured npm
 binary and registry; default public registry, with a mirror/offline-registry
 setting for air-gapped installs) in a private temp dir with an empty
 environment, a private HOME/cache, `--ignore-scripts`, no lockfile from the
-author, a time limit and an installed-size cap. Native addons cannot load
+author, a time limit and an installed-size cap. npm's own CLI runs as
+`node --permission` with file reads limited to the npm installation and the
+build dir, writes limited to the build dir, and no child processes; a build
+that npm cannot complete under these limits fails. Git, file, URL and
+tarball dependency specs are refused (only registry packages), so npm never
+needs to spawn helpers. Native addons cannot load
 under `--permission`; Auth0 also refuses them (build or first execution fails
 with a clear error). Build output lives in a content-addressed, per-tenant
 cache directory keyed by the resolved dependency set; identical sets within
