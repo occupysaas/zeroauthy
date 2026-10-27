@@ -1,6 +1,6 @@
 //go:build !linux
 
-package customdb
+package noderunner
 
 import "os/exec"
 
