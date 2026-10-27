@@ -55,6 +55,22 @@ type recordingActions struct {
 	store.Actions
 	mu       sync.Mutex
 	statuses map[string][]store.BuildStatus
+	gets     int
+	// staleGet, when set, delays the result of the nth GetBuild (counting
+	// from 1) after it was read, so the caller acts on a stale record.
+	staleGet func(n int) time.Duration
+}
+
+func (r *recordingActions) GetBuild(ctx context.Context, tenantID, id string) (*store.Build, error) {
+	b, err := r.Actions.GetBuild(ctx, tenantID, id)
+	r.mu.Lock()
+	r.gets++
+	n, stale := r.gets, r.staleGet
+	r.mu.Unlock()
+	if stale != nil {
+		time.Sleep(stale(n))
+	}
+	return b, err
 }
 
 func (r *recordingActions) PutBuild(ctx context.Context, b *store.Build) error {
@@ -651,5 +667,157 @@ func TestPrewarm(t *testing.T) {
 			t.Fatal("PrewarmBuild did not extract")
 		}
 		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func TestResolveBoundedAndTimesOut(t *testing.T) {
+	node := requireNode(t)
+	reg := fixtureRegistry(t, filepath.Join(t.TempDir(), "marker"))
+	cfg := testConfig(t, node, reg)
+	cfg.MaxConcurrentBuilds = 2
+	st := newStore(t, "ta")
+	m := newManager(t, cfg, st)
+
+	// Six concurrent saves needing resolution run at most two resolvers.
+	const n = 6
+	ids := make([]string, n)
+	errs := make([]error, n)
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ids[i], errs[i] = m.Queue(context.Background(), "ta", []store.Dependency{{Name: "za-slowmeta", Version: "latest"}}, actionsrules.Runtime)
+		}()
+	}
+	wg.Wait()
+	for i := range n {
+		if errs[i] != nil || ids[i] != ids[0] {
+			t.Fatalf("Queue %d = %s, %v", i, ids[i], errs[i])
+		}
+	}
+	if peak := reg.slowPeak.Load(); peak < 1 || peak > int64(cfg.MaxConcurrentBuilds) {
+		t.Errorf("peak concurrent resolvers = %d, want 1..%d", peak, cfg.MaxConcurrentBuilds)
+	}
+	if b := waitBuild(t, st, "ta", ids[0]); b.Status != store.BuildBuilt {
+		t.Errorf("status = %s, errors = %v", b.Status, b.Errors)
+	}
+
+	saved := resolveTimeout
+	resolveTimeout = time.Second
+	t.Cleanup(func() { resolveTimeout = saved })
+	hang := []store.Dependency{{Name: "za-hangmeta", Version: ""}}
+	start := time.Now()
+	if _, err := m.Queue(context.Background(), "ta", hang, actionsrules.Runtime); !errors.Is(err, ErrResolveTimeout) {
+		t.Errorf("hung registry: err = %v, want ErrResolveTimeout", err)
+	}
+	if d := time.Since(start); d > 10*time.Second {
+		t.Errorf("resolve timeout took %s", d)
+	}
+
+	// A caller that gives up gets its own context error, not a timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	if _, err := m.Queue(ctx, "ta", hang, actionsrules.Runtime); !errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrResolveTimeout) {
+		t.Errorf("cancelled caller: err = %v, want context.DeadlineExceeded", err)
+	}
+	cancelled, cancel2 := context.WithCancel(context.Background())
+	cancel2()
+	if _, err := m.Queue(cancelled, "ta", hang, actionsrules.Runtime); !errors.Is(err, context.Canceled) {
+		t.Errorf("cancelled caller: err = %v, want context.Canceled", err)
+	}
+}
+
+// TestInterruptedBuildsResume simulates a server stopped mid-build: a fresh
+// Manager over the same store rebuilds a record left building, through
+// Queue of the same set and through Recover.
+func TestInterruptedBuildsResume(t *testing.T) {
+	node := requireNode(t)
+	reg := fixtureRegistry(t, filepath.Join(t.TempDir(), "marker"))
+	ctx := context.Background()
+	deps := []store.Dependency{{Name: "za-pad", Version: "1.0.0"}}
+	id := ID(actionsrules.Runtime, deps)
+	for _, via := range []string{"queue", "recover"} {
+		t.Run(via, func(t *testing.T) {
+			st := newStore(t, "ta")
+			if err := st.Actions().PutBuild(ctx, &store.Build{TenantID: "ta", ID: id, Status: store.BuildBuilding, Requested: deps, Resolved: deps}); err != nil {
+				t.Fatal(err)
+			}
+			m := newManager(t, testConfig(t, node, reg), st)
+			if via == "queue" {
+				if got := queue(t, m, "ta", deps...); got != id {
+					t.Fatalf("Queue = %s, want %s", got, id)
+				}
+			} else if err := m.Recover(ctx, "ta", id); err != nil {
+				t.Fatal(err)
+			}
+			if b := waitBuild(t, st, "ta", id); b.Status != store.BuildBuilt {
+				t.Fatalf("status = %s, errors = %v", b.Status, b.Errors)
+			}
+			if _, err := m.Ensure(ctx, "ta", id); err != nil {
+				t.Fatal(err)
+			}
+			// Recover leaves built builds alone.
+			n := len(st.rec.history(id))
+			if err := m.Recover(ctx, "ta", id); err != nil || len(st.rec.history(id)) != n {
+				t.Errorf("Recover(built) = %v, history %v", err, st.rec.history(id))
+			}
+		})
+	}
+}
+
+// TestQueueNeverDowngradesBuilt queues an empty set twice concurrently, with
+// the first Queue's (stale) store read held back until the second Queue's
+// build has finished:
+// once built, the record is never written pending again.
+func TestQueueNeverDowngradesBuilt(t *testing.T) {
+	st := newStore(t, "ta")
+	st.rec.staleGet = func(n int) time.Duration {
+		if n == 1 {
+			return 200 * time.Millisecond
+		}
+		return 0
+	}
+	cfg := config.Actions{Node: "node", Registry: "http://127.0.0.1:1/", CacheDir: t.TempDir(), BuildTimeout: time.Minute, MaxArtifactMB: 1, MaxConcurrentBuilds: 2}
+	m := newManager(t, cfg, st)
+	id := ID(actionsrules.Runtime, nil)
+	var wg sync.WaitGroup
+	for i := range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			time.Sleep(time.Duration(i) * 20 * time.Millisecond)
+			if _, err := m.Queue(context.Background(), "ta", nil, actionsrules.Runtime); err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	wg.Wait()
+	waitBuild(t, st, "ta", id)
+	h := st.rec.history(id)
+	if i := slices.Index(h, store.BuildBuilt); i < 0 || slices.Contains(h[i:], store.BuildPending) {
+		t.Errorf("status history %v: a built record was downgraded", h)
+	}
+}
+
+// TestMissingDefaultCacheDir: a server that cannot name a default cache dir
+// still starts; the Manager fails only when it needs the directory.
+func TestMissingDefaultCacheDir(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("os.UserCacheDir's environment differs off Linux")
+	}
+	t.Setenv("XDG_CACHE_HOME", "")
+	t.Setenv("HOME", "")
+	st := newStore(t, "ta")
+	m := newManager(t, config.Actions{}, st)
+	ctx := context.Background()
+	if err := m.Prewarm(ctx); err != nil {
+		t.Errorf("Prewarm with nothing deployed: %v", err)
+	}
+	if _, err := m.Queue(ctx, "ta", nil, actionsrules.Runtime); err == nil || !strings.Contains(err.Error(), "actions.cache_dir") {
+		t.Errorf("Queue err = %v, want a cache_dir error", err)
+	}
+	if _, err := m.Ensure(ctx, "ta", strings.Repeat("a", 64)); err == nil || !strings.Contains(err.Error(), "actions.cache_dir") {
+		t.Errorf("Ensure err = %v, want a cache_dir error", err)
 	}
 }

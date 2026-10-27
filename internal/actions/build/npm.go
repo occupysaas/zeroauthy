@@ -100,6 +100,9 @@ func (h *headBuffer) Write(p []byte) (int, error) {
 // workDir makes a private 0700 directory for one build or resolution under
 // <CacheDir>/.builds, which no tenant's runner can read.
 func (m *Manager) workDir(prefix string) (string, error) {
+	if m.dirErr != nil {
+		return "", m.dirErr
+	}
 	base := filepath.Join(m.cacheDir, buildsDir)
 	if err := mkdirPrivate(m.cacheDir); err != nil {
 		return "", err
@@ -144,12 +147,21 @@ func (m *Manager) runResolver(ctx context.Context, names []string) (map[string]s
 	if err := os.WriteFile(script, []byte(resolverJS), 0o600); err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, m.cfg.BuildTimeout)
+	select {
+	case m.resSem <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	defer func() { <-m.resSem }()
+	rctx, cancel := context.WithTimeoutCause(ctx, resolveTimeout, ErrResolveTimeout)
 	defer cancel()
 	out := &headBuffer{max: maxOutput}
-	stderr, err := m.sandboxed(ctx, dir, nil, out, append([]string{script, m.registry}, names...)...)
+	stderr, err := m.sandboxed(rctx, dir, nil, out, append([]string{script, m.registry}, names...)...)
 	if ctx.Err() != nil {
-		return nil, fmt.Errorf("resolving dependency versions timed out after %s", m.cfg.BuildTimeout)
+		return nil, ctx.Err()
+	}
+	if errors.Is(context.Cause(rctx), ErrResolveTimeout) {
+		return nil, fmt.Errorf("%w after %s", ErrResolveTimeout, resolveTimeout)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("resolving dependency versions failed: %s", firstNonEmpty(stderr, err.Error()))

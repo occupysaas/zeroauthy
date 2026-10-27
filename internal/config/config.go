@@ -189,7 +189,10 @@ type Actions struct {
 	// default https://registry.npmjs.org/.
 	Registry string `koanf:"registry"`
 	// CacheDir is the absolute path holding extracted builds, one 0700
-	// directory per tenant; default <user cache dir>/zeroauthy/actions-cache.
+	// directory per tenant. Default: <user cache dir>/zeroauthy/actions-cache,
+	// i.e. $XDG_CACHE_HOME or $HOME/.cache on Linux. When neither is known
+	// the server still starts, logs a warning, and Actions builds fail until
+	// cache_dir is set.
 	CacheDir            string        `koanf:"cache_dir"`
 	MaxMemoryMB         int           `koanf:"max_memory_mb"`         // runner heap; default 256, at least 32
 	IdleTimeout         time.Duration `koanf:"idle_timeout"`          // idle runner lifetime; default 5m

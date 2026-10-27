@@ -39,7 +39,16 @@ var (
 	ErrNotBuilt = errors.New("build: dependencies are not built")
 	// ErrCorruptArtifact reports a missing, altered or unsafe artifact.
 	ErrCorruptArtifact = errors.New("build: dependency artifact is missing or corrupt")
+	// ErrResolveTimeout reports that resolving empty/"latest" versions took
+	// longer than ResolveTimeout.
+	ErrResolveTimeout = errors.New("build: resolving dependency versions timed out")
 )
+
+// ResolveTimeout bounds the synchronous resolution in Queue.
+const ResolveTimeout = 15 * time.Second
+
+// resolveTimeout is ResolveTimeout; tests shorten it.
+var resolveTimeout = ResolveTimeout
 
 // buildsDir under the cache dir holds private work directories. Tenant IDs
 // cannot start with a dot, so it never collides with a tenant's directory.
@@ -57,8 +66,10 @@ type Manager struct {
 	log      *slog.Logger
 	cacheDir string
 	registry string
-	maxBytes int64 // installed and packed size cap
-	sem      chan struct{}
+	maxBytes int64         // installed and packed size cap
+	sem      chan struct{} // running builds
+	resSem   chan struct{} // running resolver processes
+	dirErr   error         // no usable default cache dir; reported on first use
 
 	ctx    context.Context // the Manager's lifetime; builds outlive requests
 	cancel context.CancelFunc
@@ -108,34 +119,41 @@ func New(cfg config.Actions, st store.Store, log *slog.Logger) (*Manager, error)
 	if cfg.MaxArtifactMB <= 0 {
 		cfg.MaxArtifactMB = int(limit / 1_000_000)
 	}
-	dir := cfg.CacheDir
-	if dir == "" {
-		base, err := os.UserCacheDir()
-		if err != nil {
-			return nil, fmt.Errorf("build: set actions.cache_dir: %w", err)
-		}
-		dir = filepath.Join(base, "zeroauthy", "actions-cache")
-	}
-	if !filepath.IsAbs(dir) {
-		return nil, errors.New("build: actions.cache_dir must be an absolute path")
-	}
-	dir = filepath.Clean(dir) // created 0700 on first use
 	if log == nil {
 		log = slog.Default()
+	}
+	dir := cfg.CacheDir
+	var dirErr error
+	if dir == "" {
+		// Servers that never use Actions must still start: the error is
+		// returned when the Manager first needs the directory.
+		if base, err := os.UserCacheDir(); err != nil {
+			dirErr = fmt.Errorf("build: no default Actions cache dir (set actions.cache_dir): %w", err)
+			log.Warn("actions: builds unavailable until actions.cache_dir is set", "err", err)
+		} else {
+			dir = filepath.Join(base, "zeroauthy", "actions-cache")
+		}
+	}
+	if dirErr == nil && !filepath.IsAbs(dir) {
+		return nil, errors.New("build: actions.cache_dir must be an absolute path")
+	}
+	if dirErr == nil {
+		dir = filepath.Clean(dir) // created 0700 on first use
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Manager{
 		cfg: cfg, st: st, log: log, cacheDir: dir,
 		registry: strings.TrimSuffix(cfg.Registry, "/") + "/",
-		maxBytes: maxBytes, sem: make(chan struct{}, cfg.MaxConcurrentBuilds),
+		maxBytes: maxBytes, dirErr: dirErr,
+		sem: make(chan struct{}, cfg.MaxConcurrentBuilds), resSem: make(chan struct{}, cfg.MaxConcurrentBuilds),
 		ctx: ctx, cancel: cancel,
 		inflight: map[string]bool{}, locks: map[string]*keyLock{},
 	}, nil
 }
 
 // Close stops queued and running builds and waits for them. A build stopped
-// this way stays pending or building in the store and is re-queued by the
-// next Queue of its set.
+// this way stays pending or building in the store and is rebuilt by the
+// next Queue of its set or by Recover.
 func (m *Manager) Close() {
 	m.mu.Lock()
 	m.cancel()
@@ -171,6 +189,9 @@ func (m *Manager) TenantRoot(tenantID string) (string, error) {
 	if !tenantIDRE.MatchString(tenantID) {
 		return "", fmt.Errorf("%w: tenant ID %q", ErrInvalid, tenantID)
 	}
+	if m.dirErr != nil {
+		return "", m.dirErr
+	}
 	if err := mkdirPrivate(m.cacheDir); err != nil {
 		return "", err
 	}
@@ -178,10 +199,14 @@ func (m *Manager) TenantRoot(tenantID string) (string, error) {
 	return dir, mkdirPrivate(dir)
 }
 
-// Queue validates and resolves deps and queues their build, returning its
-// content-addressed ID at once; the build record goes pending → building →
-// built or failed. A set already built for the tenant is not rebuilt. A
-// resolution failure is recorded as a failed build of the requested set.
+// Queue validates deps, resolves empty/"latest" versions synchronously
+// (sandboxed, at most MaxConcurrentBuilds resolutions at once, bounded by
+// ResolveTimeout) and queues the build of the resolved set, returning its
+// content-addressed ID before the build runs; the record goes pending →
+// building → built or failed. A set already built for the tenant is not
+// rebuilt. A resolution timeout returns ErrResolveTimeout and a cancelled
+// ctx its error; any other resolution failure is recorded as a failed build
+// of the requested set.
 func (m *Manager) Queue(ctx context.Context, tenantID string, deps []store.Dependency, runtime string) (string, error) {
 	if !tenantIDRE.MatchString(tenantID) {
 		return "", fmt.Errorf("%w: tenant ID %q", ErrInvalid, tenantID)
@@ -192,9 +217,18 @@ func (m *Manager) Queue(ctx context.Context, tenantID string, deps []store.Depen
 	if errs := actionsrules.ValidateDependencies(deps); len(errs) > 0 {
 		return "", fmt.Errorf("%w: %w", ErrInvalid, errors.Join(errs...))
 	}
+	if m.dirErr != nil {
+		return "", m.dirErr
+	}
 	requested := slices.Clone(deps)
 	b := &store.Build{TenantID: tenantID, Status: store.BuildPending, Requested: requested}
 	resolved, rerr := m.resolve(ctx, requested)
+	if ctx.Err() != nil {
+		return "", ctx.Err()
+	}
+	if errors.Is(rerr, ErrResolveTimeout) {
+		return "", rerr
+	}
 	if rerr != nil {
 		b.ID = unresolvedID(runtime, requested)
 		b.Status, b.Errors = store.BuildFailed, []string{rerr.Error()}
@@ -204,36 +238,71 @@ func (m *Manager) Queue(ctx context.Context, tenantID string, deps []store.Depen
 		return b.ID, nil
 	}
 	b.ID, b.Resolved = ID(runtime, resolved), resolved
-	key := tenantID + "/" + b.ID
-
-	m.mu.Lock()
-	busy := m.inflight[key]
-	m.mu.Unlock()
-	if busy {
-		return b.ID, nil
+	if err := m.start(ctx, b); err != nil {
+		return "", err
 	}
-	old, err := m.st.Actions().GetBuild(ctx, tenantID, b.ID)
+	return b.ID, nil
+}
+
+// Recover restarts a known build left pending or building by a stopped
+// server (one not in flight on this node), from its recorded resolved set.
+// Built, failed and in-flight builds are left alone.
+func (m *Manager) Recover(ctx context.Context, tenantID, buildID string) error {
+	if !tenantIDRE.MatchString(tenantID) || !buildIDRE.MatchString(buildID) {
+		return fmt.Errorf("%w: tenant %q build %q", ErrInvalid, tenantID, buildID)
+	}
+	if m.dirErr != nil {
+		return m.dirErr
+	}
+	b, err := m.st.Actions().GetBuild(ctx, tenantID, buildID)
+	if err != nil {
+		return err
+	}
+	if b.Status != store.BuildPending && b.Status != store.BuildBuilding {
+		return nil
+	}
+	return m.start(ctx, &store.Build{TenantID: tenantID, ID: buildID, Status: store.BuildPending, Requested: b.Requested, Resolved: b.Resolved})
+}
+
+// start records b pending and runs it, unless this node is already building
+// it or the store has it built. A record that is pending or building but not
+// in flight here was left by a stopped server (or is being built by another
+// node) and is rebuilt: builds are content-addressed and packing is
+// deterministic, so duplicate builds across nodes store identical artifacts.
+// The per-key lock and the re-read make the check and the write atomic on
+// this node, so a built record is never downgraded to pending.
+func (m *Manager) start(ctx context.Context, b *store.Build) error {
+	key := b.TenantID + "/" + b.ID
+	unlock := m.lock("queue:" + key)
+	defer unlock()
+	m.mu.Lock()
+	busy, closed := m.inflight[key], m.ctx.Err() != nil
+	m.mu.Unlock()
+	switch {
+	case busy:
+		return nil
+	case closed:
+		return errors.New("build: manager is closed")
+	}
+	old, err := m.st.Actions().GetBuild(ctx, b.TenantID, b.ID)
 	switch {
 	case err == nil && old.Status == store.BuildBuilt:
-		return b.ID, nil
+		return nil
 	case err != nil && !errors.Is(err, store.ErrNotFound):
-		return "", err
+		return err
+	}
+	if err := m.st.Actions().PutBuild(ctx, b); err != nil {
+		return err
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.inflight[key] {
-		return b.ID, nil
-	}
 	if m.ctx.Err() != nil {
-		return "", errors.New("build: manager is closed")
-	}
-	if err := m.st.Actions().PutBuild(ctx, b); err != nil {
-		return "", err
+		return nil // closing: the pending record is recovered later
 	}
 	m.inflight[key] = true
 	m.wg.Add(1)
 	go m.run(key, b)
-	return b.ID, nil
+	return nil
 }
 
 // resolve returns deps with empty/"latest" versions replaced by the
@@ -371,6 +440,9 @@ func stripBuild(v string) string {
 func (m *Manager) Ensure(ctx context.Context, tenantID, buildID string) (string, error) {
 	if !tenantIDRE.MatchString(tenantID) || !buildIDRE.MatchString(buildID) {
 		return "", fmt.Errorf("%w: tenant %q build %q", ErrInvalid, tenantID, buildID)
+	}
+	if m.dirErr != nil {
+		return "", m.dirErr
 	}
 	root := filepath.Join(m.cacheDir, tenantID, buildID)
 	if isDir(root) {

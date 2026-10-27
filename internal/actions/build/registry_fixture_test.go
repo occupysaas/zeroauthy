@@ -31,6 +31,8 @@ type fixturePackage struct {
 type registry struct {
 	*httptest.Server
 	hits atomic.Int64 // requests served
+	// Packument requests for za-slowmeta in progress, and their peak.
+	slowActive, slowPeak atomic.Int64
 }
 
 // fixtureRegistry serves:
@@ -42,6 +44,8 @@ type registry struct {
 //     marker if they ever ran
 //   - za-big 1.0.0, with a 2 MB incompressible file
 //   - za-slow 1.0.0, whose tarball never arrives
+//   - za-slowmeta 1.0.0, whose packument takes 300 ms (concurrency tracked)
+//   - za-hangmeta 1.0.0, whose packument never arrives
 func fixtureRegistry(t *testing.T, marker string) *registry {
 	t.Helper()
 	big := make([]byte, 2<<20)
@@ -57,6 +61,8 @@ func fixtureRegistry(t *testing.T, marker string) *registry {
 			scripts: map[string]string{"preinstall": write, "install": write, "postinstall": write}},
 		{name: "za-big", version: "1.0.0", files: map[string]string{"index.js": `module.exports = 1;`, "blob.bin": string(big)}},
 		{name: "za-slow", version: "1.0.0", files: map[string]string{"index.js": `module.exports = 1;`}},
+		{name: "za-slowmeta", version: "1.0.0", files: map[string]string{"index.js": `module.exports = 1;`}},
+		{name: "za-hangmeta", version: "1.0.0", files: map[string]string{"index.js": `module.exports = 1;`}},
 	}
 	latest := map[string]string{"za-pad": "1.1.0", "za-left": "2.0.0"}
 
@@ -99,7 +105,7 @@ func fixtureRegistry(t *testing.T, marker string) *registry {
 		r.hits.Add(1)
 		path := req.URL.Path // %2f in a scoped name is decoded to /
 		if strings.HasSuffix(path, ".tgz") {
-			if strings.Contains(path, "za-slow") {
+			if strings.HasPrefix(path, "/za-slow/") {
 				select {
 				case <-req.Context().Done():
 				case <-time.After(30 * time.Second):
@@ -113,6 +119,23 @@ func fixtureRegistry(t *testing.T, marker string) *registry {
 			}
 			w.Header().Set("Content-Type", "application/octet-stream")
 			_, _ = w.Write(b)
+			return
+		}
+		switch path {
+		case "/za-slowmeta":
+			if strings.HasPrefix(req.UserAgent(), "npm/") {
+				break // the build's own npm, not a resolver
+			}
+			n := r.slowActive.Add(1)
+			for peak := r.slowPeak.Load(); n > peak && !r.slowPeak.CompareAndSwap(peak, n); peak = r.slowPeak.Load() {
+			}
+			time.Sleep(300 * time.Millisecond)
+			r.slowActive.Add(-1)
+		case "/za-hangmeta":
+			select {
+			case <-req.Context().Done():
+			case <-time.After(30 * time.Second):
+			}
 			return
 		}
 		doc, ok := packuments[strings.TrimPrefix(path, "/")]
