@@ -147,3 +147,19 @@ Read-only IDs and proof state are destination-local. The dedicated lane checks
 missing and changed values, repeat stability, explicit default preparation and
 all four YAML/directory × generated/preserved credential modes. See
 [custom domains](custom-domains.md) for ownership, origin and rollout rules.
+
+## Roles and permissions (Plan 26)
+
+The local migration lane includes tenant role definitions and their API
+permissions, plus resource-server `enforce_policies` and `token_dialect`.
+Import APIs before role permissions. The comparator resolves roles by logical
+name and permission keys by API identifier and permission name; generated role
+IDs are not stable migration identities. Directory exports read the `roles`
+folder as well as YAML's `roles` collection. Missing roles, permission edges or
+RBAC settings cause comparison failure.
+
+User-role and direct user-permission assignments are separate Management API
+operations; the Deploy CLI resource inventory does not imply those assignments
+were migrated. The local lane assigns a fixture user after import and verifies
+actual federated login/token enforcement. See [roles and permissions](rbac.md)
+for scope ceilings, token profiles and storage-plugin upgrade requirements.

@@ -5,9 +5,9 @@
 - **Scope:** every Auth0 Management API v2 resource not covered by slices 1–4 (applications, APIs, client grants, database connections, users and jobs), broken into plans with an order, dependencies and a short design each.
 - **Inputs:** the management design (`2026-10-18-zeroauthy-management-design.md`), the users design (`2026-10-19-zeroauthy-users-design.md`), the compatibility matrix, the follow-ups file, and the maintainer's 2026-10-19 rulings.
 
-## 0. Where we are (2026-10-25)
+## 0. Where we are (2026-10-27)
 
-**Plans done:** 20. **Implemented, verifying:** 0. **Left in this roadmap:** 18 (Plans 21–38); the five "full" plans will likely split, so expect roughly 24–29 more plans.
+**Plans done:** 26. **Implemented, verifying:** 0. **Left in this roadmap:** 12 (Plans 27–38), subject to splitting larger designs.
 
 ### Done
 
@@ -24,6 +24,9 @@
 | 17–18 | Users, search, identities, sessions, refresh tokens, grants, tickets; import/export and verification-email jobs |
 | 19 | Tenant settings, attack protection, user blocks and shared password-flow enforcement |
 | 20 | Managed signing keys, stored-only custom JWKS, console controls and local Deploy CLI migration for supported families |
+| 21–23 | Email providers/templates, branding and Universal Login, custom domains and automatic certificates |
+| 24–25 | Generic OAuth/OIDC, Google and Microsoft personal/work/school account connections |
+| 26 | Tenant roles/direct permissions, runtime RBAC, four token profiles, console and Deploy CLI role migration |
 
 ### Management API coverage by resource
 
@@ -31,14 +34,14 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done** | 20 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23) |
-| **Planned, short design** | 6 | roles, Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
-| **Planned, full design** | 12 | social strategies I, Microsoft/Google email-account connections, Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
+| **Done** | 23 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26) |
+| **Planned, short design** | 5 | Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
+| **Planned, full design** | 10 | Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
 The future Additional social providers plan is deferred without an assigned number and is not an extra counted resource group here.
 
-Read as the roadmap's resource groupings, about 48% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
+Read as the roadmap's resource groupings, about 55% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
 
 ## 1. Goal and ground rules
 
@@ -73,9 +76,9 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 21 | Email provider and email templates | short (done) | 19 |
 | 22 | Branding: themes, settings, Universal Login page templates, prompts and custom text | full (done) | 21 |
 | 23 | Custom domains with automatic certificates | full (done) | 19 |
-| 24 | Social connections I: generic OAuth 2 and OIDC, Google | full | 17 |
-| 25 | Email-account sign-in: Microsoft personal and work/school; Google/Gmail/Workspace coverage | full | 24 |
-| 26 | Roles and permissions (RBAC) | short | 17 |
+| 24 | Social connections I: generic OAuth 2 and OIDC, Google | full (done) | 17 |
+| 25 | Email-account sign-in: Microsoft personal and work/school; Google/Gmail/Workspace coverage | full (done) | 24 |
+| 26 | Roles and permissions (RBAC) | short (done) | 17 |
 | 27 | Actions I: runtime, post-login, credentials exchange, the Actions API | full | 26 |
 | 28 | Actions II: the remaining triggers, secrets, modules, npm dependencies | short | 27 |
 | 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full | 26 |
@@ -201,6 +204,8 @@ guide defines fleet rollout/rollback and legacy noncanonical reauthentication.
 **Deferred: Additional social providers (future plan, number unassigned).** Move `apple`, `facebook`, `github`, `linkedin`, `twitter`, `amazon`, `discord`, `slack` and the remaining social list here. Apple still requires client-secret JWT and private-email relay handling. Do not implement these in Plan 25 or renumber Plans 26–39.
 
 ### Plan 26 — Roles and permissions (RBAC)
+
+**Implemented and locally verified (2026-10-27):** [standalone spec](2026-10-27-zeroauthy-roles-permissions-design.md), [implementation plan](../plans/2026-10-27-zeroauthy-plan-26-roles-permissions.md), [implementation record](../2026-10-27-plan-26-implementation-record.md), and [operator guide](../../rbac.md). Tenant roles, direct permissions, runtime RBAC, four token dialects and live console controls are implemented. Groups and organization roles remain deferred. All local SQL/race/console/SDK/CLI/browser/Deploy CLI checks pass; local OpenID conformance has zero failed modules with warning/review/skip counts recorded. Live observations remain unavailable.
 
 **Endpoints:** `/api/v2/roles` (CRUD), `/roles/{id}/permissions`, `/roles/{id}/users`, `/users/{id}/roles`, `/users/{id}/permissions`; resource server `enforce_policies` and `token_dialect` values `access_token_authz`, `rfc9068_profile`, `rfc9068_profile_authz` become enforced (D-0041 lists them inert).
 

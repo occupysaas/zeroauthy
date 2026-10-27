@@ -1,6 +1,6 @@
 # zeroauthy — Plan 26: Roles and permissions (RBAC)
 
-- **Status:** Draft for maintainer review; implementation is not started.
+- **Status:** Implemented, reviewed and locally verified; [actual results](../2026-10-27-plan-26-implementation-record.md).
 - **Date:** 2026-10-27
 - **Roadmap:** [Plan 26](2026-10-19-zeroauthy-management-roadmap-design.md#plan-26--roles-and-permissions-rbac).
 - **Predecessor:** [Plan 25 acceptance record](../2026-10-26-plan-25-implementation-record.md).
@@ -14,8 +14,9 @@ roles or individual permissions to users, and enable RBAC for that API. New
 user access tokens then reflect current assignments. Existing clients keep
 their present behavior until RBAC or a different token dialect is selected.
 
-The roadmap already selects this scope. The detailed defaults below are design
-choices proposed by this draft, not additional maintainer rulings. Success
+The roadmap already selects this scope. The detailed defaults below are the
+implementation design choices approved with this plan, rather than additional
+maintainer rulings. Success
 means management, memory/SQL/plugin storage, token grants, console and migration
 tools agree. Endpoints that store assignments without enforcing them do not
 complete this plan.
@@ -273,5 +274,6 @@ JWTs, including RFC type/client fields, rather than only mocked minter calls.
 
 Record commands, actual outcomes, skips and unavailable services in a Plan 26
 implementation record. Update compatibility matrix/decisions, API sources,
-operator guide and roadmap only to the degree demonstrated. This document and
-its plan are review artifacts, not an implementation or verification claim.
+operator guide and roadmap only to the degree demonstrated. The implementation
+record distinguishes completed work, actual verification results and
+unavailable live evidence.
