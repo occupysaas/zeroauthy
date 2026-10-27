@@ -17,14 +17,14 @@ func (s *Store) Connections() store.Connections { return connections{s} }
 const connectionCols = `tenant_id, id, name, strategy, enabled_clients, disable_signup, requires_username,
  password_options, created_at,
  enabled_database_customization, import_mode, custom_scripts, configuration_sealed, set_user_root_attributes, is_domain_connection,
- brute_force_protection, username_min, username_max, origin, extra`
+ brute_force_protection, username_min, username_max, origin, extra, federation_revision, federation_secrets_sealed`
 
 func (r connections) Create(ctx context.Context, c *store.Connection) error {
 	args, err := connectionArgs(c)
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO connections (`+connectionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO connections (`+connectionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -52,7 +52,7 @@ func (r connections) Update(ctx context.Context, c *store.Connection) error {
 	res, err := r.s.write(ctx, nil, `UPDATE connections SET name=?, strategy=?, enabled_clients=?, disable_signup=?, requires_username=?,
  password_options=?, created_at=?,
  enabled_database_customization=?, import_mode=?, custom_scripts=?, configuration_sealed=?, set_user_root_attributes=?, is_domain_connection=?,
- brute_force_protection=?, username_min=?, username_max=?, origin=?, extra=?
+ brute_force_protection=?, username_min=?, username_max=?, origin=?, extra=?, federation_revision=?, federation_secrets_sealed=?
  WHERE tenant_id=? AND id=?`, append(slices.Clone(args[2:]), c.TenantID, c.ID)...)
 	if err != nil {
 		return r.s.conflict(err)
@@ -150,10 +150,18 @@ func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 				if err := putLogins(ctx, tx, u, true); err != nil {
 					return err
 				}
+				if err := syncIdentities(ctx, tx, u, true); err != nil {
+					return err
+				}
 			}
 		}
 		if _, err := tx.exec(ctx, `UPDATE tenants SET default_directory = '' WHERE id = ? AND default_directory = ?`, tenantID, name); err != nil {
 			return err
+		}
+		for _, table := range []string{"federated_identities", "federated_tokens"} {
+			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND connection_id = ?`, tenantID, id); err != nil {
+				return err
+			}
 		}
 		_, err = tx.exec(ctx, `DELETE FROM connections WHERE tenant_id = ? AND id = ?`, tenantID, id)
 		return err
@@ -187,12 +195,12 @@ func scanConnection(row scanner) (*store.Connection, error) {
 	var enabled string
 	var created int64
 	var scripts string
-	var sealed []byte
+	var sealed, fedSealed []byte
 	var options, extra string
 	if err := row.Scan(&c.TenantID, &c.ID, &c.Name, &c.Strategy, &enabled, &c.DisableSignup, &c.RequiresUsername,
 		&options, &created,
 		&c.EnabledDatabaseCustomization, &c.ImportMode, &scripts, &sealed, &c.SetUserRootAttributes, &c.IsDomainConnection,
-		&c.BruteForceProtection, &c.UsernameMin, &c.UsernameMax, &c.Origin, &extra); err != nil {
+		&c.BruteForceProtection, &c.UsernameMin, &c.UsernameMax, &c.Origin, &extra, &c.FederationRevision, &fedSealed); err != nil {
 		return nil, err
 	}
 	var po passwordOptionsJSON
@@ -208,6 +216,9 @@ func scanConnection(row scanner) (*store.Connection, error) {
 	}
 	if len(sealed) > 0 {
 		c.ConfigurationSealed = sealed
+	}
+	if len(fedSealed) > 0 {
+		c.FederationSecretsSealed = fedSealed
 	}
 	if err := fromJSON(enabled, &c.EnabledClients); err != nil {
 		return nil, err
@@ -237,10 +248,14 @@ func connectionArgs(c *store.Connection) ([]any, error) {
 	if len(c.ConfigurationSealed) > 0 {
 		sealed = c.ConfigurationSealed
 	}
+	var fedSealed any // SQL NULL when there are no federation credentials
+	if len(c.FederationSecretsSealed) > 0 {
+		fedSealed = c.FederationSecretsSealed
+	}
 	return []any{c.TenantID, c.ID, c.Name, c.Strategy, enabled, c.DisableSignup, c.RequiresUsername,
 		options, micros(c.CreatedAt),
 		c.EnabledDatabaseCustomization, c.ImportMode, scripts, sealed, c.SetUserRootAttributes, c.IsDomainConnection,
-		c.BruteForceProtection, c.UsernameMin, c.UsernameMax, c.Origin, extra}, nil
+		c.BruteForceProtection, c.UsernameMin, c.UsernameMax, c.Origin, extra, c.FederationRevision, fedSealed}, nil
 }
 
 // passwordOptionsJSON is the stored form of store.PasswordOptions (the

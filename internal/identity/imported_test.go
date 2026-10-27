@@ -209,6 +209,10 @@ func linkedImported(t *testing.T, db *Database, conn *store.Connection, own bool
 	}
 	u.Identities = append(u.Identities, store.Identity{Connection: conn.Name, Provider: store.StrategyDatabase, UserID: "linked1",
 		ImportedHash: imported, ProfileData: map[string]any{"email": "lin@example.com"}})
+	// The Google identity resolves to a real connection (Plan 24 index).
+	if err := db.Store.Connections().Create(context.Background(), &store.Connection{TenantID: conn.TenantID, ID: "con_google", Name: "google-oauth2", Strategy: "google-oauth2"}); err != nil {
+		t.Fatal(err)
+	}
 	if err := db.Store.Users().Create(context.Background(), u); err != nil {
 		t.Fatal(err)
 	}

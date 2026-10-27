@@ -233,6 +233,9 @@ func TestEmailChangeDropsVerificationTickets(t *testing.T) {
 // the user in), so a password-change ticket never targets one.
 func TestPasswordChangeTicketSkipsLinkedIdentity(t *testing.T) {
 	e := newUsersEnv(t)
+	if err := e.st.Connections().Create(context.Background(), &store.Connection{TenantID: e.tn.ID, ID: "con_google", Name: "google-oauth2", Strategy: "google-oauth2"}); err != nil {
+		t.Fatal(err)
+	}
 	u := &store.User{TenantID: e.tn.ID, UserID: "google-oauth2|g1", Email: "linked@x.test", CreatedAt: now, UpdatedAt: now,
 		Identities: []store.Identity{
 			{Connection: "google-oauth2", Provider: "google-oauth2", UserID: "g1"},

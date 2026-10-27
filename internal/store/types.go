@@ -657,6 +657,11 @@ func (u *User) LoginKeys() []LoginKey {
 	var out []LoginKey
 	for i := range u.Identities {
 		id := &u.Identities[i]
+		if IsFederatedProvider(id.Provider) {
+			// Federated identities are unique by the identity index, never
+			// by email or username (Plan 24).
+			continue
+		}
 		email, username := u.IdentityLogin(id)
 		for _, k := range [...]LoginKey{{id.Connection, "email", email}, {id.Connection, "username", username}} {
 			if k.Value != "" {

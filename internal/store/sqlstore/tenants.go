@@ -22,6 +22,10 @@ const tenantCols = `id, name, friendly_name, default_audience, allowed_logout_ur
  skip_non_verifiable_callback_uri_confirmation_prompt, use_scope_descriptions_for_consent, pushed_authorization_requests_supported,
  device_flow_charset, device_flow_mask, reserved, seeded, origin, support_email, support_url, picture_url, ephemeral_session_lifetime, idle_ephemeral_session_lifetime, session_cookie_mode, protection_initialized, settings_extra, settings_presence, protection_settings, canonical_host`
 
+// tenantReadCols adds the columns Tenants never writes: identity_epoch is
+// maintained only through Federation.
+const tenantReadCols = tenantCols + `, identity_epoch`
+
 // prefixed prefixes each comma-separated column name in cols with p.
 func prefixed(p, cols string) string {
 	parts := strings.Split(cols, ",")
@@ -161,6 +165,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 // tenantTables are the tables whose rows belong to one tenant, by
 // tenant_id. Delete empties them before it deletes the tenant row.
 var tenantTables = []string{
+	"federation_attempts", "federated_tokens", "federated_identities",
 	"protection_reservations", "protection_receipts", "protection_buckets", "protection_risk_events", "job_files", "job_errors", "jobs", "operators", "email_notifications", "email_templates", "email_providers", "email_provider_revisions", "password_reset_tickets", "email_verification_tickets", "refresh_tokens", "device_codes", "pushed_auth_requests",
 	"auth_codes", "auth_transactions", "sessions", "user_grants", "user_logins", "password_history", "users",
 	"connections", "custom_signing_keys", "signing_keys", "client_grants", "resource_servers", "clients", "tenant_domains",
@@ -198,11 +203,11 @@ func (r tenants) Delete(ctx context.Context, id string) error {
 }
 
 func (r tenants) Get(ctx context.Context, id string) (*store.Tenant, error) {
-	return r.one(ctx, `SELECT `+tenantCols+` FROM tenants WHERE id = ?`, id)
+	return r.one(ctx, `SELECT `+tenantReadCols+` FROM tenants WHERE id = ?`, id)
 }
 
 func (r tenants) GetByName(ctx context.Context, name string) (*store.Tenant, error) {
-	return r.one(ctx, `SELECT `+tenantCols+` FROM tenants WHERE name = ?`, name)
+	return r.one(ctx, `SELECT `+tenantReadCols+` FROM tenants WHERE name = ?`, name)
 }
 
 func (r tenants) GetByDomain(ctx context.Context, domain string) (*store.Tenant, error) {
@@ -210,11 +215,11 @@ func (r tenants) GetByDomain(ctx context.Context, domain string) (*store.Tenant,
 	if err != nil {
 		return nil, store.ErrNotFound
 	}
-	return r.one(ctx, `SELECT `+prefixed("t.", tenantCols)+` FROM tenants t JOIN host_bindings d ON d.tenant_id = t.id WHERE d.host = ? AND d.active=true AND d.kind<>`+"'origin'", name)
+	return r.one(ctx, `SELECT `+prefixed("t.", tenantReadCols)+` FROM tenants t JOIN host_bindings d ON d.tenant_id = t.id WHERE d.host = ? AND d.active=true AND d.kind<>`+"'origin'", name)
 }
 
 func (r tenants) List(ctx context.Context) ([]*store.Tenant, error) {
-	q := `SELECT ` + tenantCols + ` FROM tenants ORDER BY name`
+	q := `SELECT ` + tenantReadCols + ` FROM tenants ORDER BY name`
 	if r.s.tx != nil {
 		q += r.s.d.forUpdate
 	}
@@ -286,7 +291,7 @@ func scanTenant(row scanner) (*store.Tenant, error) {
 		&t.SessionLifetime, &t.IdleSessionLifetime, &t.Branding.LogoURL, &t.Branding.PrimaryColor,
 		&t.DefaultDirectory, &created, &t.SkipNonVerifiableCallbackURIConfirmationPrompt,
 		&t.UseScopeDescriptionsForConsent, &t.PushedAuthorizationRequestsSupported,
-		&t.DeviceFlowCharset, &t.DeviceFlowMask, &t.Reserved, &t.Seeded, &t.Origin, &t.SupportEmail, &t.SupportURL, &t.PictureURL, &t.EphemeralSessionLifetime, &t.IdleEphemeralSessionLifetime, &t.SessionCookieMode, &t.ProtectionSettingsInitialized, &extra, &presence, &policy, &t.CanonicalHost); err != nil {
+		&t.DeviceFlowCharset, &t.DeviceFlowMask, &t.Reserved, &t.Seeded, &t.Origin, &t.SupportEmail, &t.SupportURL, &t.PictureURL, &t.EphemeralSessionLifetime, &t.IdleEphemeralSessionLifetime, &t.SessionCookieMode, &t.ProtectionSettingsInitialized, &extra, &presence, &policy, &t.CanonicalHost, &t.IdentityEpoch); err != nil {
 		return nil, err
 	}
 	for _, j := range []struct {

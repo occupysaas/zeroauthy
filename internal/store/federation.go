@@ -3,8 +3,13 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
+	"strings"
 	"time"
+	"unicode/utf8"
+
+	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 )
 
 // ErrFederationUnavailable is returned by a driver or plugin server that does
@@ -60,7 +65,10 @@ type FederationAttempt struct {
 	SealedProof   []byte
 	ExpiresAt     time.Time
 	Status        string
-	CreatedAt     time.Time
+	// Superseded is set when a later attempt started for the same
+	// transaction; a superseded attempt can be neither claimed nor finished.
+	Superseded bool
+	CreatedAt  time.Time
 }
 
 // Clone deep-copies a.
@@ -152,4 +160,84 @@ func (UnimplementedFederation) DeleteTokens(context.Context, FederatedIdentityKe
 }
 func (UnimplementedFederation) DeleteExpired(context.Context, time.Time) (int, error) {
 	return 0, ErrFederationUnavailable
+}
+
+// IsFederatedProvider reports whether an identity's Provider is a federated
+// strategy whose identities the identity index owns.
+func IsFederatedProvider(provider string) bool { return rules.IsFederated(provider) }
+
+// FederatedSubject returns the upstream subject of a federated identity and
+// true, or ("", false, nil) for any other identity. Google identities carry
+// the raw subject in UserID; OAuth2 and OIDC identities carry
+// "<connection-name>|<subject>", and only that fixed prefix is stripped, so
+// the subject may itself contain "|". A malformed identity is ErrInvalid.
+func (id *Identity) FederatedSubject() (string, bool, error) {
+	if !IsFederatedProvider(id.Provider) {
+		return "", false, nil
+	}
+	sub := id.UserID
+	if id.Provider != rules.Google {
+		rest, ok := strings.CutPrefix(id.UserID, id.Connection+"|")
+		if !ok || id.Connection == "" {
+			return "", true, fmt.Errorf("%w: %s identity user_id must start with %q", ErrInvalid, id.Provider, id.Connection+"|")
+		}
+		sub = rest
+	}
+	if sub == "" || len(sub) > rules.MaxSubjectBytes || !utf8.ValidString(sub) || strings.ContainsRune(sub, 0) {
+		return "", true, fmt.Errorf("%w: %s identity subject must be 1-%d bytes of UTF-8 without NUL", ErrInvalid, id.Provider, rules.MaxSubjectBytes)
+	}
+	return sub, true, nil
+}
+
+// FederatedPublicID returns the local public user ID of a federated identity:
+// "google-oauth2|<sub>", "oauth2|<connection>|<sub>" or
+// "oidc|<connection>|<sub>".
+func FederatedPublicID(provider, connection, subject string) string {
+	if provider == rules.Google {
+		return provider + "|" + subject
+	}
+	return provider + "|" + connection + "|" + subject
+}
+
+// ResolveFederatedKeys returns the index keys of u's federated identities,
+// sorted and without duplicates. byName looks a connection up by name in the
+// caller's transaction; an unknown connection or one whose strategy differs
+// from the identity's provider is ErrInvalid, so an unresolved import cannot
+// authenticate by accident.
+func ResolveFederatedKeys(u *User, byName func(name string) (*Connection, error)) ([]FederatedIdentityKey, error) {
+	var out []FederatedIdentityKey
+	for i := range u.Identities {
+		id := &u.Identities[i]
+		sub, ok, err := id.FederatedSubject()
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			continue
+		}
+		c, err := byName(id.Connection)
+		if errors.Is(err, ErrNotFound) {
+			return nil, fmt.Errorf("%w: identity connection %q does not exist", ErrInvalid, id.Connection)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if c.Strategy != id.Provider {
+			return nil, fmt.Errorf("%w: identity provider %q does not match connection %q", ErrInvalid, id.Provider, id.Connection)
+		}
+		out = append(out, FederatedIdentityKey{TenantID: u.TenantID, ConnectionID: c.ID, Subject: sub})
+	}
+	slices.SortFunc(out, CompareIdentityKeys)
+	return slices.Compact(out), nil
+}
+
+// CompareIdentityKeys orders keys bytewise by tenant, connection, subject.
+func CompareIdentityKeys(a, b FederatedIdentityKey) int {
+	if c := strings.Compare(a.TenantID, b.TenantID); c != 0 {
+		return c
+	}
+	if c := strings.Compare(a.ConnectionID, b.ConnectionID); c != 0 {
+		return c
+	}
+	return strings.Compare(a.Subject, b.Subject)
 }

@@ -211,7 +211,7 @@ func (s *Store) migrateTo(ctx context.Context, version int64) error {
 // applyMigration runs one migration in a transaction. MySQL commits DDL
 // implicitly, so there the version check is what keeps a re-run safe.
 func (s *Store) applyMigration(ctx context.Context, m migration) error {
-	if s.d.name == "mysql" && m.version == 20 {
+	if s.d.name == "mysql" && (m.version == 20 || m.version == 21) {
 		return s.applyCustomDomainsMySQL(ctx, m)
 	}
 	return s.atomic(ctx, nil, func(t *Store) error {
@@ -227,17 +227,26 @@ func (s *Store) applyMigration(ctx context.Context, m migration) error {
 				return err
 			}
 		}
-		if m.version == 20 {
-			if err := t.migrateLegacyHostClaims(ctx); err != nil {
-				return err
-			}
+		if err := t.backfill(ctx, m.version); err != nil {
+			return err
 		}
 		_, err := t.exec(ctx, "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)", m.version, micros(time.Now()))
 		return err
 	})
 }
 
-// MySQL commits DDL implicitly. Make migration 0020's additive DDL resumable,
+// backfill runs the data step of a migration inside its transaction.
+func (s *Store) backfill(ctx context.Context, version int64) error {
+	switch version {
+	case 20:
+		return s.migrateLegacyHostClaims(ctx)
+	case 21:
+		return backfillFederatedIdentities(ctx, s)
+	}
+	return nil
+}
+
+// MySQL commits DDL implicitly. Make migrations 0020 and 0021 resumable,
 // then start a new transaction for all backfilled claims and the version marker.
 // A process death during DDL leaves version 19; retry skips existing objects.
 // Failure during backfill rolls back every claim, never recording version 20.
@@ -253,11 +262,22 @@ func (s *Store) applyCustomDomainsMySQL(ctx context.Context, m migration) error 
 		parts := strings.Fields(stmt)
 		var q string
 		var args []any
-		switch parts[0] {
-		case "ALTER":
+		switch {
+		case parts[0] == "ALTER" && parts[3] == "MODIFY":
+			// Widening is idempotent: run it again on resume.
+		case parts[0] == "ALTER" && parts[3] == "DROP" && parts[4] == "INDEX":
+			q = `SELECT 1 - LEAST(COUNT(*), 1) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name=? AND index_name=?`
+			args = []any{parts[2], strings.TrimSuffix(parts[5], ";")}
+		case parts[0] == "ALTER" && parts[3] == "DROP" && parts[4] == "COLUMN":
+			q = `SELECT 1 - LEAST(COUNT(*), 1) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name=?`
+			args = []any{parts[2], strings.TrimSuffix(parts[5], ";")}
+		case parts[0] == "ALTER":
 			q = `SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name=?`
 			args = []any{parts[2], parts[5]}
-		case "CREATE":
+		case parts[0] == "CREATE" && parts[1] == "UNIQUE":
+			q = `SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name=? AND index_name=?`
+			args = []any{parts[5], parts[3]}
+		case parts[0] == "CREATE":
 			if parts[1] == "TABLE" {
 				q = `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?`
 				args = []any{parts[2]}
@@ -269,8 +289,10 @@ func (s *Store) applyCustomDomainsMySQL(ctx context.Context, m migration) error 
 			return fmt.Errorf("unsupported resumable custom-domain DDL: %s", stmt)
 		}
 		var exists int
-		if err := s.queryRow(ctx, q, args...).Scan(&exists); err != nil {
-			return err
+		if q != "" {
+			if err := s.queryRow(ctx, q, args...).Scan(&exists); err != nil {
+				return err
+			}
 		}
 		if exists == 0 {
 			if _, err := s.exec(ctx, stmt); err != nil {
@@ -279,7 +301,7 @@ func (s *Store) applyCustomDomainsMySQL(ctx context.Context, m migration) error 
 		}
 	}
 	return s.atomic(ctx, nil, func(tx *Store) error {
-		if err := tx.migrateLegacyHostClaims(ctx); err != nil {
+		if err := tx.backfill(ctx, m.version); err != nil {
 			return err
 		}
 		_, err := tx.exec(ctx, `INSERT INTO schema_migrations (version,applied_at) VALUES (?,?)`, m.version, micros(time.Now()))
