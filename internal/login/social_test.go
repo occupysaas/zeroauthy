@@ -634,6 +634,8 @@ func TestSocialIdentifierFirst(t *testing.T) {
 	state, csrf := regexpState.FindStringSubmatch(body)[1], csrfField.FindStringSubmatch(body)[1]
 	rec := b.do(t, "POST", "/u/login/social", url.Values{"state": {state}, "csrf": {csrf}, "connection": {"corp"}})
 	toApp(t, b.do(t, "GET", s.idp.authorize(t, providerURL(t, rec), "IF-1"), nil), "app.acme.test")
+	// connection= still bypasses the identifier page, as without identifier-first.
+	toApp(t, s.explicitLogin(t, s.browser("acme.example.test"), s.idp, "corp", "IF-2"), "app.acme.test")
 }
 
 // A custom domain removed during the provider round trip ends the login

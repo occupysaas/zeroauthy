@@ -212,10 +212,14 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 	// An explicitly selected federated connection goes straight to the
 	// provider, unless a challenge is due: then the page is shown first.
-	if conn := h.explicitSocial(r, f); conn != nil && f.txn.HostedState.Step == "" {
-		if c, err := h.prepareCaptcha(r, f.res, &f.view, "login", f.txn.ID); err == nil && c == nil {
-			h.startSocial(w, r, f, conn)
-			return
+	// Identifier-first transactions start at the identifier step; nothing has
+	// been submitted there yet, so they bypass the page the same way.
+	if step := f.txn.HostedState.Step; step == "" || step == "identifier" {
+		if conn := h.explicitSocial(r, f); conn != nil {
+			if c, err := h.prepareCaptcha(r, f.res, &f.view, "login", f.txn.ID); err == nil && c == nil {
+				h.startSocial(w, r, f, conn)
+				return
+			}
 		}
 	}
 	f.conn, err = h.connection(r.Context(), f.res.Tenant.ID, f.txn)
