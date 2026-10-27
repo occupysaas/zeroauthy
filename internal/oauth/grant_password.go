@@ -195,7 +195,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	}
 	var rt *store.RefreshToken
 	var raw string
-	if slices.Contains(scopes, "offline_access") {
+	if responseHasScope(resp, "offline_access") {
 		absolute, _ := refreshLifetimes(c.RefreshToken)
 		var expiresAt time.Time
 		if absolute > 0 {

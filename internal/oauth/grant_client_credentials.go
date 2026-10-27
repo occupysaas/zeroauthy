@@ -70,14 +70,15 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		lifetime = DefaultAccessTokenLifetime
 	}
 	token, err := h.Minter.AccessToken(ctx, AccessTokenParams{
-		TenantID:  tenantID,
-		Issuer:    res.Issuer(),
-		Subject:   c.ClientID + "@clients",
-		Audience:  []string{rs.Identifier},
-		ClientID:  c.ClientID,
-		Scopes:    scopes,
-		GrantType: "client-credentials",
-		Lifetime:  lifetime,
+		TenantID:     tenantID,
+		Issuer:       res.Issuer(),
+		Subject:      c.ClientID + "@clients",
+		Audience:     []string{rs.Identifier},
+		ClientID:     c.ClientID,
+		Scopes:       scopes,
+		GrantType:    "client-credentials",
+		Lifetime:     lifetime,
+		TokenDialect: rs.TokenDialect,
 	})
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)

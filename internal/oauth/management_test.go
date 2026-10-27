@@ -132,6 +132,12 @@ func TestOperatorClaimOnlyFromSystemTenant(t *testing.T) {
 	tn, _ := f.st.Tenants().GetByName(ctx, "acme")
 	rs := &store.ResourceServer{TenantID: tn.ID, ID: "rs_fake", Identifier: tenant.OperatorAudience, Name: "Fake"}
 	user := &store.User{TenantID: tn.ID, UserID: "auth0|x"}
+	if err := f.st.Users().Create(ctx, user); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.st.ResourceServers().Create(ctx, rs); err != nil {
+		t.Fatal(err)
+	}
 	c, _ := f.st.Clients().Get(ctx, tn.ID, "code-spa")
 	resp, oerr := f.h.mintUserTokens(ctx, tenant.Resolved{Tenant: tn, Host: "acme.example.test"}, c, userTokens{user: user, rs: rs, lifetime: 3600e9})
 	if oerr != nil {

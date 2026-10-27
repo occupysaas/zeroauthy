@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/url"
-	"slices"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
@@ -80,7 +79,7 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 	}
 	var rt *store.RefreshToken
 	var raw string
-	if slices.Contains(scopes, "offline_access") {
+	if responseHasScope(resp, "offline_access") {
 		absolute, _ := refreshLifetimes(c.RefreshToken)
 		var expiresAt time.Time
 		if absolute > 0 {
