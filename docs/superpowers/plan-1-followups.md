@@ -380,3 +380,19 @@ WebAuthn RP enforcement, ACUL, additional DNS providers and challenge delegation
 open. Full-page hosted/email context includes public domain metadata; prompt
 partials do not yet receive it. Hosted wildcard retry backoff is per worker and
 can restart early; a durable deployment-resource retry schedule remains a follow-up.
+
+## Plan 24 disposition
+
+Google, custom OAuth 2 and basic back-channel OIDC login, identity index,
+explicit linking and scoped upstream tokens shipped; see the
+[operator guide](../social-connections.md). Open follow-ups:
+
+- A strict Deploy CLI social fixture lane (YAML/directory × generated/preserved
+  credentials with materialized profile scripts and explicit provider-secret
+  reinjection) was not built; migrations must reinject secrets by hand.
+- Orphaned sealed token records (an identity removed by update without a new
+  owner) remain until connection deletion; add a sweep.
+- Social flows reuse the login bot-detection kind; a social-specific policy may
+  be wanted.
+- Certificate eligibility at commit relies on host-binding activeness only.
+- Plan 25 providers and Plan 36 enterprise OIDC build on `internal/federation`.
