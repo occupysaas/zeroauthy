@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -92,14 +93,39 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if oerr != nil {
 		return nil, oerr
 	}
+	// The post-login flow runs again (spec §7), after the reuse checks
+	// above, so a replayed token runs no Action. Its claims and its
+	// target-scope and addScope additions are never stored with the
+	// family (whose ceiling never grows): the flow must add them again.
+	// Target edits are filtered by API definition, policy and RBAC.
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
+		requested: d.Scopes, target: d.Scopes})
+	if oerr != nil {
+		return nil, oerr
+	}
+	before := d.Scopes
+	if eff != nil && eff.Target != nil {
+		target, oerr := h.consentedAdditions(ctx, tenantID, c, user.UserID, rs, before, eff.Target.Scopes)
+		if oerr != nil {
+			return nil, oerr
+		}
+		if d, oerr = h.decide(ctx, tenantID, access.Refresh, c, rs, userScopes(target, rs, true)); oerr != nil {
+			return nil, oerr
+		}
+	}
 	scopes = d.Scopes
-	resp, oerr := h.mintUserTokens(ctx, res, c, userTokens{
+	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		user: user, rs: rs, lifetime: lifetime, scopes: scopes,
-		sessionID: rt.SessionID, authTime: rt.AuthTime,
+		sessionID: rt.SessionID, authTime: rt.AuthTime, effects: eff,
 	})
 	if oerr != nil {
 		return nil, oerr
 	}
+	// When the flow removed offline_access (a target or accessToken
+	// removal), the exchange ends without a new refresh token, as at the
+	// other grants: the token is neither rotated nor extended. A request
+	// that narrowed offline_access away itself keeps the old behaviour.
+	keep := offline || !slices.Contains(before, "offline_access")
 
 	// The minted tokens are only sent once the refresh token is consumed,
 	// in a transaction that checks the user is still at the Version loaded
@@ -109,6 +135,9 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	var writeErr error
 	var nextRaw string
 	err = h.mintTx(ctx, tenantID, rt.UserID, &version, func(tx store.Store) error {
+		if !keep {
+			return nil
+		}
 		if rt.Rotating {
 			next, raw := h.newRefreshToken(c, tenantID, refreshGrant{
 				origin:   res.Origin(),
@@ -151,7 +180,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		h.log().ErrorContext(ctx, "extend refresh token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
-	if rt.Rotating {
+	if rt.Rotating && keep {
 		resp.RefreshToken = &nextRaw
 	}
 	return resp, nil

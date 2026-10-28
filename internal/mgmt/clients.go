@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/clientrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/email"
@@ -43,6 +44,8 @@ const (
 
 // Handlers serves the Management API and the system API.
 type Handlers struct {
+	// Actions runs draft tests and queues and recovers dependency builds.
+	Actions    *actions.Engine
 	Protection *protection.Service
 	// Domains serves the custom-domain operations; nil answers 503.
 	Domains *customdomain.Service

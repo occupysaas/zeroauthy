@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Plan27 redirect fixture</title></head><body>
+<form method="post" action="https://sdk.e2e.test/continue?a=1"><input type="hidden" name="state"><input type="hidden" name="session_token"><button disabled>Continue</button></form>
+<script>
+(async()=>{
+ const q=new URLSearchParams(location.search),[header,body,sig]=q.get('session_token').split('.');
+ const unbase=s=>Uint8Array.from(atob(s.replaceAll('-','+').replaceAll('_','/')),c=>c.charCodeAt(0));
+ const base=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode('m27-redirect-token-secret'),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+ if(!await crypto.subtle.verify('HMAC',key,unbase(sig),new TextEncoder().encode(header+'.'+body)))throw Error('invalid encodeToken signature');
+ const claims=JSON.parse(new TextDecoder().decode(unbase(body)));if(!claims.fixture)throw Error('missing fixture claim');claims.state=q.get('state');
+ const data=header+'.'+base(new TextEncoder().encode(JSON.stringify(claims))),token=data+'.'+base(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(data)));
+ document.querySelector('[name=state]').value=q.get('state');document.querySelector('[name=session_token]').value=token;document.querySelector('button').disabled=false;
+})().catch(e=>document.body.append(String(e)));
+</script></body></html>

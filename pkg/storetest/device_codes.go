@@ -76,6 +76,7 @@ func testDeviceCodes(t *testing.T, newStore Factory) {
 		mustEqual(t, got.Status, store.DeviceCodeApproved)
 		mustEqual(t, got.UserID, "u1")
 		mustEqual(t, got.GrantedScopes, []string{"openid"})
+		mustEqual(t, got.ActionEffects == nil, true)
 
 		again, err := s.DeviceCodes().Decide(ctx, "ten_a", "d1", store.DeviceDecision{Status: store.DeviceCodeDenied})
 		mustErrIs(t, err, store.ErrAlreadyUsed)
@@ -86,6 +87,21 @@ func testDeviceCodes(t *testing.T, newStore Factory) {
 
 		_, err = s.DeviceCodes().Decide(ctx, "ten_a", "nope", store.DeviceDecision{Status: store.DeviceCodeDenied})
 		mustErrIs(t, err, store.ErrNotFound)
+	})
+
+	t.Run("DecideActionEffects", func(t *testing.T) {
+		s := open(t, newStore)
+		mustNoErr(t, s.DeviceCodes().Create(ctx, newDeviceCode("ten_a", "d1", "u1")))
+		got, err := s.DeviceCodes().Decide(ctx, "ten_a", "d1", store.DeviceDecision{Status: store.DeviceCodeApproved,
+			UserID: "u1", GrantedScopes: []string{"openid"}, ActionEffects: sealedEffects()})
+		mustNoErr(t, err)
+		mustEqual(t, got.ActionEffects, sealedEffects())
+		p, err := s.DeviceCodes().Poll(ctx, "ten_a", "d1", ts(time.Minute))
+		mustNoErr(t, err)
+		mustEqual(t, p.Code.ActionEffects, sealedEffects())
+		stored, err := s.DeviceCodes().Get(ctx, "ten_a", "d1")
+		mustNoErr(t, err)
+		mustEqual(t, stored.ActionEffects, sealedEffects())
 	})
 
 	t.Run("ConcurrentDecide", func(t *testing.T) {

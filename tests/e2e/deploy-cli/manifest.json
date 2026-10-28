@@ -45,9 +45,9 @@
     },
     {
       "name": "databases",
-      "status": "tool-unsupported",
-      "owner": "roadmap: Actions support",
-      "reason": "Pinned 9.1.0 unconditionally queries the unimplemented Actions API before exporting or importing database connections; synthetic parser fixtures remain covered",
+      "status": "excluded",
+      "owner": "roadmap: database migration acceptance",
+      "reason": "Database connection migration is not demonstrated by this Actions/triggers four-cell matrix; synthetic parser fixtures remain covered",
       "fixture": null
     },
     {
@@ -192,10 +192,10 @@
     },
     {
       "name": "actions",
-      "status": "excluded",
-      "owner": "roadmap: Actions milestone",
-      "reason": "Actions are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 27",
+      "reason": "Actions code and ordered trigger bindings migrate by Action name with private secret keyword replacement and post-import login",
+      "fixture": "fixtures/actions.json"
     },
     {
       "name": "actionModules",
@@ -206,10 +206,10 @@
     },
     {
       "name": "triggers",
-      "status": "excluded",
-      "owner": "roadmap: Actions milestone",
-      "reason": "Action triggers are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 27",
+      "reason": "Actions code and ordered trigger bindings migrate by Action name with private secret keyword replacement and post-import login",
+      "fixture": "fixtures/triggers.json"
     },
     {
       "name": "organizations",

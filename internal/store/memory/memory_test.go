@@ -12,3 +12,7 @@ func TestConformance(t *testing.T) {
 	newStore := func(*testing.T) store.Store { return memory.New() }
 	storetest.Run(t, newStore)
 }
+
+func TestActions(t *testing.T) {
+	storetest.RunSuites(t, func(*testing.T) store.Store { return memory.New() }, "Actions")
+}

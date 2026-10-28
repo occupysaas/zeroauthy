@@ -4,11 +4,14 @@ package oauth
 import (
 	"context"
 	"errors"
+	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -60,7 +63,12 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 	if grant == nil {
 		return nil, accessDenied("client is not authorized for this audience")
 	}
-	scopes, oerr := resolveScopes(form.Get("scope"), grant.EffectiveScopes(rs.Scopes), rs.Scopes)
+	allowed := grant.EffectiveScopes(rs.Scopes)
+	scopes, oerr := resolveScopes(form.Get("scope"), allowed, rs.Scopes)
+	if oerr != nil {
+		return nil, oerr
+	}
+	scopes, claims, oerr := h.credentialsExchange(ctx, res, c, rs, strings.Fields(form.Get("scope")), scopes, allowed)
 	if oerr != nil {
 		return nil, oerr
 	}
@@ -79,6 +87,7 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		GrantType:    "client-credentials",
 		Lifetime:     lifetime,
 		TokenDialect: rs.TokenDialect,
+		CustomClaims: claims,
 	})
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
@@ -94,4 +103,49 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 		resp.Scope = &s
 	}
 	return resp, nil
+}
+
+// credentialsExchange runs the tenant's credentials-exchange flow after
+// client authentication and the client-grant check, before minting. It
+// returns the scopes after the flow's target-scope edits, intersected with
+// the client grant (allowed) and the API's defined scopes, and the filtered custom claims. A denial is
+// the OAuth error its code names (invalid_scope and invalid_request 400,
+// server_error 500, D-0053); a failed flow is server_error.
+func (h *Handlers) credentialsExchange(ctx context.Context, res tenant.Resolved, c *store.Client, rs *store.ResourceServer, requested, scopes, allowed []string) ([]string, map[string]any, *Error) {
+	if h.Actions == nil {
+		return scopes, nil, nil
+	}
+	result, err := h.Actions.CredentialsExchange(ctx, actions.CredentialsInput{
+		Tenant: res, Client: c, ResourceServer: rs, Request: requestInfoFrom(ctx),
+		RequestedScopes: requested, TargetScopes: scopes,
+	})
+	if err != nil {
+		var fe *actions.ErrFlow
+		if !errors.As(err, &fe) {
+			h.log().ErrorContext(ctx, "run credentials-exchange Actions", "tenant", res.Tenant.ID, "err", err)
+		}
+		return nil, nil, serverError()
+	}
+	if d := result.Denied; d != nil {
+		status := http.StatusBadRequest
+		if d.Code == "server_error" {
+			status = http.StatusInternalServerError
+		}
+		return nil, nil, &Error{Status: status, Code: d.Code, Description: d.Reason}
+	}
+	// A grant's scopes outlive deleted API scopes; only defined ones count.
+	defined := []string{}
+	for _, v := range allowed {
+		if slices.ContainsFunc(rs.Scopes, func(d store.Scope) bool { return d.Value == v }) {
+			defined = append(defined, v)
+		}
+	}
+	scopes = targetScopes(&result.Effects, scopes, defined)
+	// Non-namespaced claims never reach the Management API.
+	claims, err := actions.FilterClaims(actions.ClaimAccessToken, nil, result.Effects.AccessClaims, rs.IsSystem)
+	if err != nil {
+		h.log().ErrorContext(ctx, "apply Action custom claims", "tenant", res.Tenant.ID, "err", err)
+		return nil, nil, serverError()
+	}
+	return scopes, claims, nil
 }

@@ -63,6 +63,8 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 		return nil, unauthorizedClient(fmt.Sprintf("grant type %q is not allowed for this client", grantType))
 	}
 	// Grants that throttle by end user see the IP through the context.
-	ctx := withClientIP(r.Context(), h.endUserIP(r, client))
+	ip := h.endUserIP(r, client)
+	ctx := withClientIP(r.Context(), ip)
+	ctx = withRequestInfo(ctx, r, ip, form)
 	return grant(h, ctx, res, client, form)
 }

@@ -36,6 +36,150 @@ func (e AccessPolicyPolicy) Valid() bool {
 	}
 }
 
+// Defines values for ActionRuntime.
+const (
+	ActionRuntimeNode22 ActionRuntime = "node22"
+)
+
+// Valid indicates whether the value is a known member of the ActionRuntime enum.
+func (e ActionRuntime) Valid() bool {
+	switch e {
+	case ActionRuntimeNode22:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActionStatus.
+const (
+	ActionStatusBuilding ActionStatus = "building"
+	ActionStatusBuilt    ActionStatus = "built"
+	ActionStatusFailed   ActionStatus = "failed"
+	ActionStatusPackaged ActionStatus = "packaged"
+	ActionStatusPending  ActionStatus = "pending"
+	ActionStatusRetrying ActionStatus = "retrying"
+)
+
+// Valid indicates whether the value is a known member of the ActionStatus enum.
+func (e ActionStatus) Valid() bool {
+	switch e {
+	case ActionStatusBuilding:
+		return true
+	case ActionStatusBuilt:
+		return true
+	case ActionStatusFailed:
+		return true
+	case ActionStatusPackaged:
+		return true
+	case ActionStatusPending:
+		return true
+	case ActionStatusRetrying:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActionBindingInputRefType.
+const (
+	ActionId   ActionBindingInputRefType = "action_id"
+	ActionName ActionBindingInputRefType = "action_name"
+	BindingId  ActionBindingInputRefType = "binding_id"
+)
+
+// Valid indicates whether the value is a known member of the ActionBindingInputRefType enum.
+func (e ActionBindingInputRefType) Valid() bool {
+	switch e {
+	case ActionId:
+		return true
+	case ActionName:
+		return true
+	case BindingId:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActionCreateRuntime.
+const (
+	ActionCreateRuntimeNode22 ActionCreateRuntime = "node22"
+)
+
+// Valid indicates whether the value is a known member of the ActionCreateRuntime enum.
+func (e ActionCreateRuntime) Valid() bool {
+	switch e {
+	case ActionCreateRuntimeNode22:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActionTriggerId.
+const (
+	ActionTriggerIdCredentialsExchange ActionTriggerId = "credentials-exchange"
+	ActionTriggerIdPostLogin           ActionTriggerId = "post-login"
+)
+
+// Valid indicates whether the value is a known member of the ActionTriggerId enum.
+func (e ActionTriggerId) Valid() bool {
+	switch e {
+	case ActionTriggerIdCredentialsExchange:
+		return true
+	case ActionTriggerIdPostLogin:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActionUpdateRuntime.
+const (
+	ActionUpdateRuntimeNode22 ActionUpdateRuntime = "node22"
+)
+
+// Valid indicates whether the value is a known member of the ActionUpdateRuntime enum.
+func (e ActionUpdateRuntime) Valid() bool {
+	switch e {
+	case ActionUpdateRuntimeNode22:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActionVersionStatus.
+const (
+	ActionVersionStatusBuilding ActionVersionStatus = "building"
+	ActionVersionStatusBuilt    ActionVersionStatus = "built"
+	ActionVersionStatusFailed   ActionVersionStatus = "failed"
+	ActionVersionStatusPackaged ActionVersionStatus = "packaged"
+	ActionVersionStatusPending  ActionVersionStatus = "pending"
+	ActionVersionStatusRetrying ActionVersionStatus = "retrying"
+)
+
+// Valid indicates whether the value is a known member of the ActionVersionStatus enum.
+func (e ActionVersionStatus) Valid() bool {
+	switch e {
+	case ActionVersionStatusBuilding:
+		return true
+	case ActionVersionStatusBuilt:
+		return true
+	case ActionVersionStatusFailed:
+		return true
+	case ActionVersionStatusPackaged:
+		return true
+	case ActionVersionStatusPending:
+		return true
+	case ActionVersionStatusRetrying:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AppType.
 const (
 	Native         AppType = "native"
@@ -2408,25 +2552,25 @@ func (e UsersExportJobCreateFormat) Valid() bool {
 
 // Defines values for GetHooksParamsTriggerId.
 const (
-	CredentialsExchange  GetHooksParamsTriggerId = "credentials-exchange"
-	PostChangePassword   GetHooksParamsTriggerId = "post-change-password"
-	PostUserRegistration GetHooksParamsTriggerId = "post-user-registration"
-	PreUserRegistration  GetHooksParamsTriggerId = "pre-user-registration"
-	SendPhoneMessage     GetHooksParamsTriggerId = "send-phone-message"
+	GetHooksParamsTriggerIdCredentialsExchange  GetHooksParamsTriggerId = "credentials-exchange"
+	GetHooksParamsTriggerIdPostChangePassword   GetHooksParamsTriggerId = "post-change-password"
+	GetHooksParamsTriggerIdPostUserRegistration GetHooksParamsTriggerId = "post-user-registration"
+	GetHooksParamsTriggerIdPreUserRegistration  GetHooksParamsTriggerId = "pre-user-registration"
+	GetHooksParamsTriggerIdSendPhoneMessage     GetHooksParamsTriggerId = "send-phone-message"
 )
 
 // Valid indicates whether the value is a known member of the GetHooksParamsTriggerId enum.
 func (e GetHooksParamsTriggerId) Valid() bool {
 	switch e {
-	case CredentialsExchange:
+	case GetHooksParamsTriggerIdCredentialsExchange:
 		return true
-	case PostChangePassword:
+	case GetHooksParamsTriggerIdPostChangePassword:
 		return true
-	case PostUserRegistration:
+	case GetHooksParamsTriggerIdPostUserRegistration:
 		return true
-	case PreUserRegistration:
+	case GetHooksParamsTriggerIdPreUserRegistration:
 		return true
-	case SendPhoneMessage:
+	case GetHooksParamsTriggerIdSendPhoneMessage:
 		return true
 	default:
 		return false
@@ -2440,6 +2584,211 @@ type AccessPolicy struct {
 
 // AccessPolicyPolicy defines model for AccessPolicy.Policy.
 type AccessPolicyPolicy string
+
+// Action defines model for Action.
+type Action struct {
+	AllChangesDeployed bool       `json:"all_changes_deployed"`
+	BuiltAt            *time.Time `json:"built_at,omitempty"`
+
+	// Code At most 100000 UTF-8 bytes.
+	Code              string             `json:"code"`
+	CreatedAt         time.Time          `json:"created_at"`
+	Dependencies      []ActionDependency `json:"dependencies"`
+	DeployedVersion   *ActionVersion     `json:"deployed_version,omitempty"`
+	Errors            *[]string          `json:"errors,omitempty"`
+	Id                string             `json:"id"`
+	Name              string             `json:"name"`
+	Runtime           ActionRuntime      `json:"runtime"`
+	Secrets           []ActionSecret     `json:"secrets"`
+	Status            ActionStatus       `json:"status"`
+	SupportedTriggers []ActionTrigger    `json:"supported_triggers"`
+	UpdatedAt         time.Time          `json:"updated_at"`
+}
+
+// ActionRuntime defines model for Action.Runtime.
+type ActionRuntime string
+
+// ActionStatus defines model for Action.Status.
+type ActionStatus string
+
+// ActionBinding defines model for ActionBinding.
+type ActionBinding struct {
+	Action struct {
+		Id   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"action"`
+	CreatedAt   time.Time `json:"created_at"`
+	DisplayName string    `json:"display_name"`
+	Id          string    `json:"id"`
+	TriggerId   string    `json:"trigger_id"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// ActionBindingInput defines model for ActionBindingInput.
+type ActionBindingInput struct {
+	DisplayName *string `json:"display_name,omitempty"`
+	Ref         struct {
+		Type  ActionBindingInputRefType `json:"type"`
+		Value string                    `json:"value"`
+	} `json:"ref"`
+}
+
+// ActionBindingInputRefType defines model for ActionBindingInput.Ref.Type.
+type ActionBindingInputRefType string
+
+// ActionBindings defines model for ActionBindings.
+type ActionBindings struct {
+	Bindings []ActionBinding `json:"bindings"`
+}
+
+// ActionBindingsPage defines model for ActionBindingsPage.
+type ActionBindingsPage struct {
+	Bindings []ActionBinding `json:"bindings"`
+	Page     int             `json:"page"`
+	PerPage  int             `json:"per_page"`
+	Total    int             `json:"total"`
+}
+
+// ActionBindingsUpdate defines model for ActionBindingsUpdate.
+type ActionBindingsUpdate struct {
+	Bindings []ActionBindingInput `json:"bindings"`
+}
+
+// ActionCreate defines model for ActionCreate.
+type ActionCreate struct {
+	// Code At most 100000 UTF-8 bytes.
+	Code              *string              `json:"code,omitempty"`
+	Dependencies      *[]ActionDependency  `json:"dependencies,omitempty"`
+	Deploy            *bool                `json:"deploy,omitempty"`
+	Name              string               `json:"name"`
+	Runtime           *ActionCreateRuntime `json:"runtime,omitempty"`
+	Secrets           *[]ActionSecretInput `json:"secrets,omitempty"`
+	SupportedTriggers []ActionTrigger      `json:"supported_triggers"`
+}
+
+// ActionCreateRuntime defines model for ActionCreate.Runtime.
+type ActionCreateRuntime string
+
+// ActionDependency defines model for ActionDependency.
+type ActionDependency struct {
+	Name    string  `json:"name"`
+	Version *string `json:"version,omitempty"`
+}
+
+// ActionDeployVersion defines model for ActionDeployVersion.
+type ActionDeployVersion struct {
+	UpdateDraft *bool `json:"update_draft,omitempty"`
+}
+
+// ActionExecution defines model for ActionExecution.
+type ActionExecution struct {
+	CreatedAt time.Time `json:"created_at"`
+	Id        string    `json:"id"`
+	Results   []struct {
+		ActionName *string    `json:"action_name,omitempty"`
+		EndedAt    *time.Time `json:"ended_at,omitempty"`
+		Error      *struct {
+			Id      *string `json:"id,omitempty"`
+			Message *string `json:"message,omitempty"`
+		} `json:"error,omitempty"`
+		StartedAt *time.Time `json:"started_at,omitempty"`
+	} `json:"results"`
+	Status    string    `json:"status"`
+	TriggerId string    `json:"trigger_id"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ActionSecret defines model for ActionSecret.
+type ActionSecret struct {
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ActionSecretInput defines model for ActionSecretInput.
+type ActionSecretInput struct {
+	Name  string  `json:"name"`
+	Value *string `json:"value,omitempty"`
+}
+
+// ActionTestRequest defines model for ActionTestRequest.
+type ActionTestRequest struct {
+	Payload map[string]interface{} `json:"payload"`
+}
+
+// ActionTestResponse defines model for ActionTestResponse.
+type ActionTestResponse struct {
+	Payload struct {
+		Commands   *[]map[string]interface{} `json:"commands,omitempty"`
+		DurationMs *int                      `json:"duration_ms,omitempty"`
+		Error      *struct {
+			Id      string `json:"id"`
+			Message string `json:"message"`
+		} `json:"error,omitempty"`
+		ExecutionId *string   `json:"execution_id,omitempty"`
+		Logs        *[]string `json:"logs,omitempty"`
+	} `json:"payload"`
+}
+
+// ActionTrigger defines model for ActionTrigger.
+type ActionTrigger struct {
+	Id      ActionTriggerId `json:"id"`
+	Version *string         `json:"version,omitempty"`
+}
+
+// ActionTriggerId defines model for ActionTrigger.Id.
+type ActionTriggerId string
+
+// ActionTriggers defines model for ActionTriggers.
+type ActionTriggers struct {
+	Triggers []ActionTrigger `json:"triggers"`
+}
+
+// ActionUpdate defines model for ActionUpdate.
+type ActionUpdate struct {
+	// Code At most 100000 UTF-8 bytes.
+	Code              *string              `json:"code,omitempty"`
+	Dependencies      *[]ActionDependency  `json:"dependencies,omitempty"`
+	Name              *string              `json:"name,omitempty"`
+	Runtime           *ActionUpdateRuntime `json:"runtime,omitempty"`
+	Secrets           *[]ActionSecretInput `json:"secrets,omitempty"`
+	SupportedTriggers *[]ActionTrigger     `json:"supported_triggers,omitempty"`
+}
+
+// ActionUpdateRuntime defines model for ActionUpdate.Runtime.
+type ActionUpdateRuntime string
+
+// ActionVersion defines model for ActionVersion.
+type ActionVersion struct {
+	ActionId     string               `json:"action_id"`
+	BuiltAt      *time.Time           `json:"built_at,omitempty"`
+	Code         string               `json:"code"`
+	CreatedAt    time.Time            `json:"created_at"`
+	Dependencies []ActionDependency   `json:"dependencies"`
+	Id           string               `json:"id"`
+	Number       int                  `json:"number"`
+	Runtime      string               `json:"runtime"`
+	Secrets      []ActionSecret       `json:"secrets"`
+	Status       *ActionVersionStatus `json:"status,omitempty"`
+}
+
+// ActionVersionStatus defines model for ActionVersion.Status.
+type ActionVersionStatus string
+
+// ActionVersionsPage defines model for ActionVersionsPage.
+type ActionVersionsPage struct {
+	Page     int             `json:"page"`
+	PerPage  int             `json:"per_page"`
+	Total    int             `json:"total"`
+	Versions []ActionVersion `json:"versions"`
+}
+
+// ActionsPage defines model for ActionsPage.
+type ActionsPage struct {
+	Actions []Action `json:"actions"`
+	Page    int      `json:"page"`
+	PerPage int      `json:"per_page"`
+	Total   int      `json:"total"`
+}
 
 // AppType `native` (mobile and desktop), `spa` (single-page), `regular_web`
 // (server-side web) or `non_interactive` (machine to machine).
@@ -5080,6 +5429,42 @@ type GetTenantJobs200JSONResponseBody struct {
 	union json.RawMessage
 }
 
+// GetActionsParams defines parameters for GetActions.
+type GetActionsParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage    *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+	TriggerId  *string  `form:"triggerId,omitempty" json:"triggerId,omitempty"`
+	ActionName *string  `form:"actionName,omitempty" json:"actionName,omitempty"`
+	Deployed   *bool    `form:"deployed,omitempty" json:"deployed,omitempty"`
+	Installed  *bool    `form:"installed,omitempty" json:"installed,omitempty"`
+}
+
+// DeleteActionParams defines parameters for DeleteAction.
+type DeleteActionParams struct {
+	Force *bool `form:"force,omitempty" json:"force,omitempty"`
+}
+
+// GetActionVersionsParams defines parameters for GetActionVersions.
+type GetActionVersionsParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+}
+
+// GetActionBindingsParams defines parameters for GetActionBindings.
+type GetActionBindingsParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+}
+
 // UpdateBrandingJSONBody defines parameters for UpdateBranding.
 type UpdateBrandingJSONBody map[string]interface{}
 
@@ -5573,6 +5958,21 @@ type PreviewTenantEmailJSONRequestBody = EmailPreviewRequest
 
 // TestTenantEmailJSONRequestBody defines body for TestTenantEmail for application/json ContentType.
 type TestTenantEmailJSONRequestBody = EmailTestRequest
+
+// CreateActionJSONRequestBody defines body for CreateAction for application/json ContentType.
+type CreateActionJSONRequestBody = ActionCreate
+
+// UpdateActionJSONRequestBody defines body for UpdateAction for application/json ContentType.
+type UpdateActionJSONRequestBody = ActionUpdate
+
+// TestActionJSONRequestBody defines body for TestAction for application/json ContentType.
+type TestActionJSONRequestBody = ActionTestRequest
+
+// DeployActionVersionJSONRequestBody defines body for DeployActionVersion for application/json ContentType.
+type DeployActionVersionJSONRequestBody = ActionDeployVersion
+
+// UpdateActionBindingsJSONRequestBody defines body for UpdateActionBindings for application/json ContentType.
+type UpdateActionBindingsJSONRequestBody = ActionBindingsUpdate
 
 // UpdateBotDetectionJSONRequestBody defines body for UpdateBotDetection for application/json ContentType.
 type UpdateBotDetectionJSONRequestBody = BotDetectionUpdate
@@ -7574,6 +7974,48 @@ type ServerInterface interface {
 	// GetTenantJobs List a tenant's jobs
 	// (GET /api/system/tenants/{tenant}/jobs)
 	GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams)
+	// GetActions GetActions addressed to the current tenant
+	// (GET /api/v2/actions/actions)
+	GetActions(w http.ResponseWriter, r *http.Request, params GetActionsParams)
+	// CreateAction CreateAction addressed to the current tenant
+	// (POST /api/v2/actions/actions)
+	CreateAction(w http.ResponseWriter, r *http.Request)
+	// DeleteAction DeleteAction addressed to the current tenant
+	// (DELETE /api/v2/actions/actions/{id})
+	DeleteAction(w http.ResponseWriter, r *http.Request, id string, params DeleteActionParams)
+	// GetAction GetAction addressed to the current tenant
+	// (GET /api/v2/actions/actions/{id})
+	GetAction(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateAction UpdateAction addressed to the current tenant
+	// (PATCH /api/v2/actions/actions/{id})
+	UpdateAction(w http.ResponseWriter, r *http.Request, id string)
+	// DeployAction DeployAction addressed to the current tenant
+	// (POST /api/v2/actions/actions/{id}/deploy)
+	DeployAction(w http.ResponseWriter, r *http.Request, id string)
+	// TestAction TestAction addressed to the current tenant
+	// (POST /api/v2/actions/actions/{id}/test)
+	TestAction(w http.ResponseWriter, r *http.Request, id string)
+	// GetActionVersions GetActionVersions addressed to the current tenant
+	// (GET /api/v2/actions/actions/{id}/versions)
+	GetActionVersions(w http.ResponseWriter, r *http.Request, id string, params GetActionVersionsParams)
+	// GetActionVersion GetActionVersion addressed to the current tenant
+	// (GET /api/v2/actions/actions/{id}/versions/{versionId})
+	GetActionVersion(w http.ResponseWriter, r *http.Request, id string, versionId string)
+	// DeployActionVersion DeployActionVersion addressed to the current tenant
+	// (POST /api/v2/actions/actions/{id}/versions/{versionId}/deploy)
+	DeployActionVersion(w http.ResponseWriter, r *http.Request, id string, versionId string)
+	// GetActionExecution GetActionExecution addressed to the current tenant
+	// (GET /api/v2/actions/executions/{id})
+	GetActionExecution(w http.ResponseWriter, r *http.Request, id string)
+	// GetActionTriggers GetActionTriggers addressed to the current tenant
+	// (GET /api/v2/actions/triggers)
+	GetActionTriggers(w http.ResponseWriter, r *http.Request)
+	// GetActionBindings GetActionBindings addressed to the current tenant
+	// (GET /api/v2/actions/triggers/{triggerId}/bindings)
+	GetActionBindings(w http.ResponseWriter, r *http.Request, triggerId string, params GetActionBindingsParams)
+	// UpdateActionBindings UpdateActionBindings addressed to the current tenant
+	// (PATCH /api/v2/actions/triggers/{triggerId}/bindings)
+	UpdateActionBindings(w http.ResponseWriter, r *http.Request, triggerId string)
 	// DeleteIPBlock Delete automatic blocks
 	// (DELETE /api/v2/anomaly/blocks/ips/{ip})
 	DeleteIPBlock(w http.ResponseWriter, r *http.Request, ip string)
@@ -8027,6 +8469,90 @@ func (_ Unimplemented) TestTenantEmail(w http.ResponseWriter, r *http.Request, t
 // GetTenantJobs List a tenant's jobs
 // (GET /api/system/tenants/{tenant}/jobs)
 func (_ Unimplemented) GetTenantJobs(w http.ResponseWriter, r *http.Request, tenant string, params GetTenantJobsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActions GetActions addressed to the current tenant
+// (GET /api/v2/actions/actions)
+func (_ Unimplemented) GetActions(w http.ResponseWriter, r *http.Request, params GetActionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateAction CreateAction addressed to the current tenant
+// (POST /api/v2/actions/actions)
+func (_ Unimplemented) CreateAction(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteAction DeleteAction addressed to the current tenant
+// (DELETE /api/v2/actions/actions/{id})
+func (_ Unimplemented) DeleteAction(w http.ResponseWriter, r *http.Request, id string, params DeleteActionParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetAction GetAction addressed to the current tenant
+// (GET /api/v2/actions/actions/{id})
+func (_ Unimplemented) GetAction(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateAction UpdateAction addressed to the current tenant
+// (PATCH /api/v2/actions/actions/{id})
+func (_ Unimplemented) UpdateAction(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeployAction DeployAction addressed to the current tenant
+// (POST /api/v2/actions/actions/{id}/deploy)
+func (_ Unimplemented) DeployAction(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// TestAction TestAction addressed to the current tenant
+// (POST /api/v2/actions/actions/{id}/test)
+func (_ Unimplemented) TestAction(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionVersions GetActionVersions addressed to the current tenant
+// (GET /api/v2/actions/actions/{id}/versions)
+func (_ Unimplemented) GetActionVersions(w http.ResponseWriter, r *http.Request, id string, params GetActionVersionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionVersion GetActionVersion addressed to the current tenant
+// (GET /api/v2/actions/actions/{id}/versions/{versionId})
+func (_ Unimplemented) GetActionVersion(w http.ResponseWriter, r *http.Request, id string, versionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeployActionVersion DeployActionVersion addressed to the current tenant
+// (POST /api/v2/actions/actions/{id}/versions/{versionId}/deploy)
+func (_ Unimplemented) DeployActionVersion(w http.ResponseWriter, r *http.Request, id string, versionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionExecution GetActionExecution addressed to the current tenant
+// (GET /api/v2/actions/executions/{id})
+func (_ Unimplemented) GetActionExecution(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionTriggers GetActionTriggers addressed to the current tenant
+// (GET /api/v2/actions/triggers)
+func (_ Unimplemented) GetActionTriggers(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionBindings GetActionBindings addressed to the current tenant
+// (GET /api/v2/actions/triggers/{triggerId}/bindings)
+func (_ Unimplemented) GetActionBindings(w http.ResponseWriter, r *http.Request, triggerId string, params GetActionBindingsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateActionBindings UpdateActionBindings addressed to the current tenant
+// (PATCH /api/v2/actions/triggers/{triggerId}/bindings)
+func (_ Unimplemented) UpdateActionBindings(w http.ResponseWriter, r *http.Request, triggerId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -9126,6 +9652,510 @@ func (siw *ServerInterfaceWrapper) GetTenantJobs(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTenantJobs(w, r, tenant, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActions operation middleware
+func (siw *ServerInterfaceWrapper) GetActions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetActionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "triggerId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "triggerId", r.URL.Query(), &params.TriggerId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "triggerId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "triggerId", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "actionName" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "actionName", r.URL.Query(), &params.ActionName, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "actionName"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "actionName", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "deployed" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "deployed", r.URL.Query(), &params.Deployed, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "deployed"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "deployed", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "installed" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "installed", r.URL.Query(), &params.Installed, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "installed"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "installed", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActions(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAction operation middleware
+func (siw *ServerInterfaceWrapper) CreateAction(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAction(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAction operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteActionParams
+
+	// ------------- Optional query parameter "force" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "force", r.URL.Query(), &params.Force, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "force"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "force", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAction(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAction operation middleware
+func (siw *ServerInterfaceWrapper) GetAction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAction(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateAction operation middleware
+func (siw *ServerInterfaceWrapper) UpdateAction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateAction(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeployAction operation middleware
+func (siw *ServerInterfaceWrapper) DeployAction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeployAction(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TestAction operation middleware
+func (siw *ServerInterfaceWrapper) TestAction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TestAction(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionVersions operation middleware
+func (siw *ServerInterfaceWrapper) GetActionVersions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetActionVersionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionVersions(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionVersion operation middleware
+func (siw *ServerInterfaceWrapper) GetActionVersion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "versionId" -------------
+	var versionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "versionId", chi.URLParam(r, "versionId"), &versionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "versionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionVersion(w, r, id, versionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeployActionVersion operation middleware
+func (siw *ServerInterfaceWrapper) DeployActionVersion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "versionId" -------------
+	var versionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "versionId", chi.URLParam(r, "versionId"), &versionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "versionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeployActionVersion(w, r, id, versionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionExecution operation middleware
+func (siw *ServerInterfaceWrapper) GetActionExecution(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionExecution(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionTriggers operation middleware
+func (siw *ServerInterfaceWrapper) GetActionTriggers(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionTriggers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionBindings operation middleware
+func (siw *ServerInterfaceWrapper) GetActionBindings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "triggerId" -------------
+	var triggerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "triggerId", chi.URLParam(r, "triggerId"), &triggerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "triggerId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetActionBindingsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionBindings(w, r, triggerId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateActionBindings operation middleware
+func (siw *ServerInterfaceWrapper) UpdateActionBindings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "triggerId" -------------
+	var triggerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "triggerId", chi.URLParam(r, "triggerId"), &triggerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "triggerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateActionBindings(w, r, triggerId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -13331,6 +14361,48 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/actions", wrapper.GetActions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/actions/actions", wrapper.CreateAction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/actions/actions/{id}", wrapper.DeleteAction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/actions/{id}", wrapper.GetAction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/actions/actions/{id}", wrapper.UpdateAction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/actions/actions/{id}/deploy", wrapper.DeployAction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/actions/{id}/versions", wrapper.GetActionVersions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/actions/{id}/versions/{versionId}", wrapper.GetActionVersion)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/actions/actions/{id}/versions/{versionId}/deploy", wrapper.DeployActionVersion)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/actions/actions/{id}/test", wrapper.TestAction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/triggers", wrapper.GetActionTriggers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/triggers/{triggerId}/bindings", wrapper.GetActionBindings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/actions/triggers/{triggerId}/bindings", wrapper.UpdateActionBindings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/executions/{id}", wrapper.GetActionExecution)
+	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/branding", wrapper.GetBranding)
 	})

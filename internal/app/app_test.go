@@ -384,3 +384,22 @@ func TestBootstrapAdminEmailOnce(t *testing.T) {
 		}
 	}
 }
+
+func TestNewWiresActionsBuilds(t *testing.T) {
+	cache := filepath.Join(t.TempDir(), "actions-cache")
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}, Actions: config.Actions{CacheDir: cache}}
+	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	if a.builds == nil {
+		t.Fatal("no Actions build manager")
+	}
+	if err := a.builds.Prewarm(context.Background()); err != nil {
+		t.Fatalf("Prewarm with nothing deployed: %v", err)
+	}
+	if root, err := a.builds.TenantRoot("t1"); err != nil || root != filepath.Join(cache, "t1") {
+		t.Fatalf("TenantRoot = %s, %v; want under %s", root, err, cache)
+	}
+}

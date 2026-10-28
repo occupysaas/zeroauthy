@@ -203,6 +203,7 @@
       "no-connection": "No login method is enabled for this application.",
       "signup-disabled": "Sign-up is not available for this application.",
       "server-error": "Something went wrong on our side. Please try again.",
+      "reference": "Reference: ${reference}",
       "invalid-request": "The application sent a request that could not be completed.",
       "access-denied": "The application was not given access to your account.",
       "logout-unknown-client": "The application that asked to log you out is not registered. You are still logged in.",

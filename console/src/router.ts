@@ -2,6 +2,12 @@ import { createRouter, createWebHistory, type RouteRecordRaw, type Router, type 
 import type { Api } from './api/client'
 import type { Auth } from './auth/auth'
 import type { Services } from './context'
+import ActionsExecution from './pages/actions/Execution.vue'
+import ActionsTriggers from './pages/actions/Triggers.vue'
+import ActionsTestPanel from './pages/actions/TestPanel.vue'
+import ActionsVersions from './pages/actions/Versions.vue'
+import ActionsEditor from './pages/actions/Editor.vue'
+import ActionsLibrary from './pages/actions/Library.vue'
 import ApiCreate from './pages/apis/Create.vue'
 import CustomDomains from './pages/custom-domains/CustomDomains.vue'
 import CustomDomainDetail from './pages/custom-domains/DomainDetail.vue'
@@ -81,6 +87,12 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/branding', name: 'branding', component: Branding },
   { path: '/t/:tenant/custom-domains', name: 'custom-domains', component: CustomDomains },
   { path: '/t/:tenant/custom-domains/:id', name: 'custom-domain', component: CustomDomainDetail },
+  { path: '/t/:tenant/actions', name: 'actions', component: ActionsLibrary },
+  { path: '/t/:tenant/actions/triggers/:trigger?', name: 'action-triggers', component: ActionsTriggers },
+  { path: '/t/:tenant/actions/executions', name: 'action-execution', component: ActionsExecution },
+  { path: '/t/:tenant/actions/:id', name: 'action-editor', component: ActionsEditor },
+  { path: '/t/:tenant/actions/:id/versions', name: 'action-versions', component: ActionsVersions },
+  { path: '/t/:tenant/actions/:id/test', name: 'action-test', component: ActionsTestPanel },
   ...sections.filter(isPlanned).map((s) => ({
     path: '/t/:tenant/' + s.path,
     name: s.key,

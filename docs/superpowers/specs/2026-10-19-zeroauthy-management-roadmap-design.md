@@ -5,9 +5,9 @@
 - **Scope:** every Auth0 Management API v2 resource not covered by slices 1–4 (applications, APIs, client grants, database connections, users and jobs), broken into plans with an order, dependencies and a short design each.
 - **Inputs:** the management design (`2026-10-18-zeroauthy-management-design.md`), the users design (`2026-10-19-zeroauthy-users-design.md`), the compatibility matrix, the follow-ups file, and the maintainer's 2026-10-19 rulings.
 
-## 0. Where we are (2026-10-27)
+## 0. Where we are (2026-10-28)
 
-**Plans done:** 26. **Implemented, verifying:** 0. **Left in this roadmap:** 12 (Plans 27–38), subject to splitting larger designs.
+**Plans done:** 27. **Left to implement in this roadmap:** 11 (Plans 28–38), subject to splitting larger designs.
 
 ### Done
 
@@ -27,6 +27,7 @@
 | 21–23 | Email providers/templates, branding and Universal Login, custom domains and automatic certificates |
 | 24–25 | Generic OAuth/OIDC, Google and Microsoft personal/work/school account connections |
 | 26 | Tenant roles/direct permissions, runtime RBAC, four token profiles, console and Deploy CLI role migration |
+| 27 | Actions I: post-login/credentials-exchange, npm builds, redirect/continue, Management API, console, seed and Deploy CLI; /userinfo custom claims deferred |
 
 ### Management API coverage by resource
 
@@ -34,14 +35,14 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done** | 23 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26) |
+| **Done / implemented locally** | 24 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I (Plan 27) |
 | **Planned, short design** | 5 | Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
-| **Planned, full design** | 10 | Actions, organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
+| **Planned, full design** | 9 | organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
 The future Additional social providers plan is deferred without an assigned number and is not an extra counted resource group here.
 
-Read as the roadmap's resource groupings, about 55% is done. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
+Read as the roadmap's resource groupings, about 57% is implemented. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
 
 ## 1. Goal and ground rules
 
@@ -79,8 +80,8 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 24 | Social connections I: generic OAuth 2 and OIDC, Google | full (done) | 17 |
 | 25 | Email-account sign-in: Microsoft personal and work/school; Google/Gmail/Workspace coverage | full (done) | 24 |
 | 26 | Roles and permissions (RBAC) | short (done) | 17 |
-| 27 | Actions I: runtime, post-login, credentials exchange, the Actions API | full | 26 |
-| 28 | Actions II: the remaining triggers, secrets, modules, npm dependencies | short | 27 |
+| 27 | Actions I: runtime, post-login, credentials exchange, npm dependencies, the Actions API | full (done) | 26 |
+| 28 | Actions II: the remaining triggers and modules | short | 27 |
 | 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full | 26 |
 | 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |
 | 31 | Logs, log streams, stats | full | 19 |
@@ -217,21 +218,28 @@ guide defines fleet rollout/rollback and legacy noncanonical reauthentication.
 
 ### Plan 27 — Actions I (full design)
 
-The most-used extension point on Auth0 (custom claims alone justify it).
+**Implemented and locally verified (2026-10-28); final independent review
+pending:** [spec](2026-10-27-zeroauthy-actions-design.md),
+[plan](../plans/2026-10-27-zeroauthy-plan-27-actions.md),
+[implementation record](../2026-10-27-plan-27-implementation-record.md) and
+[operator guide](../../actions.md). Fourteen Management operations, immutable
+versions, encrypted secret snapshots, ordered bindings, post-login and
+credentials-exchange run through the shared permission-sandboxed Node runner.
+Npm dependency builds, store-backed replica artifacts, redirect/continue,
+console, durable create-only seed ownership and Actions-capable plugins are
+implemented. Remaining triggers/Modules and /userinfo custom-claim echo remain
+deferred; unsupported security APIs fail closed.
 
-**Endpoints:** `/api/v2/actions/actions` (CRUD), `/actions/{id}/versions` (list, get, `deploy` a version), `POST /actions/{id}/deploy`, `POST /actions/{id}/test`, `/actions/triggers`, `/actions/triggers/{triggerId}/bindings` (`GET/PATCH`), `/actions/executions/{id}`.
-
-**Runtime:** the Plan 8 Node runner, generalized: per-tenant processes, empty environment, `--permission`, time and memory limits, Auth0's `event` and `api` objects for **post-login** (`api.accessToken.setCustomClaim`, `api.idToken.setCustomClaim`, `api.access.deny`, `api.user.setUserMetadata`/`setAppMetadata`, `api.redirect.sendUserTo` with `continue`, `api.multifactor` once Plan 33 exists) and **credentials-exchange** (`api.accessToken.setCustomClaim`, `api.access.deny`); secrets per Action, encrypted with the master key; execution records for `/executions`.
-
-**Full design questions:** npm dependencies (Plan 28) versus a fixed allow-list; the redirect-and-continue state; how errors and timeouts surface at login; cold-start budget.
-
-**Console:** Actions list, editor (the Plan 15 code editor), secrets, test runner, trigger flows with drag-free ordered bindings.
-
-**E2E:** auth0-cli `actions` commands; a post-login Action adding a namespaced claim, read by auth0-spa-js; a deny Action shown on the error page.
+**Verification:** complete SQL/race/console, SDK/CLI/browser and all four local
+Deploy CLI cells finished successfully; local OpenID conformance has zero
+failed modules, with warning/review/skip counts retained in the record. The
+first full Go run's local diagnostic timeout and successful retry are recorded.
+Live upstream observation remains unavailable. This is local implementation
+evidence, not formal certification or a claim that all Actions APIs exist.
 
 ### Plan 28 — Actions II
 
-Remaining triggers: `pre-user-registration`, `post-user-registration`, `post-change-password`, `send-phone-message` (used by Plan 34), `password-reset-post-challenge`, `custom-email-provider` and `custom-phone-provider` (Plans 21 and 34), `custom-token-exchange` (Plan 35), `event-stream`? if Auth0 has it at build time. Modules (`/actions/modules` and versions), npm dependencies resolved at deploy time into a per-version cache with an offline mirror option. **Short**, on Plan 27's design.
+Remaining triggers: `pre-user-registration`, `post-user-registration`, `post-change-password`, `send-phone-message` (used by Plan 34), `password-reset-post-challenge`, `custom-email-provider` and `custom-phone-provider` (Plans 21 and 34), `custom-token-exchange` (Plan 35), `event-stream`? if Auth0 has it at build time. Modules (`/actions/modules` and versions). Npm dependencies, Action secrets, immutable build artifacts and offline registry configuration were delivered in Plan 27 and are removed from this plan. **Short**, on Plan 27's design.
 
 ### Plan 29 — Organizations I (full design)
 

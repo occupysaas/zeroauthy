@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -115,14 +116,23 @@ func (h *Handlers) flowError(w http.ResponseWriter, r *http.Request, res tenant.
 
 // approve completes fr for sess with scopes: an authorization code for
 // /authorize, an approved device code for the device flow.
-func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, scopes []string) {
+// eff are the post-login flow's effects, sealed onto the code or approval
+// for the token endpoint.
+func (h *Handlers) approve(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, scopes []string, eff *actions.Effects) {
 	if !fr.device() {
-		h.issueCode(w, r, res, client, fr.Request, sess, scopes)
+		h.issueCode(w, r, res, client, fr.Request, sess, scopes, eff)
+		return
+	}
+	sealed, err := h.sealFor(res.Tenant.ID, actions.SealDevice, fr.DeviceCodeHash, eff)
+	if err != nil {
+		h.log().ErrorContext(r.Context(), "seal Action effects", "tenant", res.Tenant.ID, "err", err)
+		h.flowError(w, r, res, fr, errServer())
 		return
 	}
 	// Device tokens are not bound to the session, so it does not record
 	// the client.
-	h.decideDevice(w, r, res, fr, store.DeviceDecision{Status: store.DeviceCodeApproved, UserID: sess.UserID, GrantedScopes: scopes}, "/device/success")
+	h.decideDevice(w, r, res, fr, store.DeviceDecision{Status: store.DeviceCodeApproved, UserID: sess.UserID, GrantedScopes: scopes,
+		ActionEffects: sealed}, "/device/success")
 }
 
 // refuse ends fr with e: an authorization error for /authorize, a denied

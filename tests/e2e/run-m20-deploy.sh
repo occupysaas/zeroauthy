@@ -42,6 +42,8 @@ export ZEROAUTHY_SERVER__TRUSTED_PROXY_CIDRS=127.0.0.0/8
 export ZEROAUTHY_SERVER__TLS_CERT_FILE="$work/cert.pem"
 export ZEROAUTHY_SERVER__TLS_KEY_FILE="$work/key.pem"
 export ZEROAUTHY_STORAGE__AUTO_MIGRATE=true
+export ZEROAUTHY_ACTIONS__REGISTRY=http://127.0.0.1:1/
+export ZEROAUTHY_ACTIONS__CACHE_DIR="$work/actions-cache"
 export ZEROAUTHY_SECURITY__MASTER_KEY="$(openssl rand -base64 32)"
 export ZEROAUTHY_EMAIL__DIR="$work/mail"
 export ZEROAUTHY_SEED_MODE=create_only
@@ -95,5 +97,5 @@ for mode in "${modes[@]}"; do
     stop_server
   done
 done
-echo "Plan 20 deploy-cli: databases,attackProtection unavailable (required APIs outside this milestone)"
+echo "Deploy CLI: databases excluded (not demonstrated in this matrix); attackProtection tool-unavailable (phone-provider-protection API)"
 echo "Plan 20 upstream lane: unavailable (no observer credentials supplied); no upstream call made"

@@ -155,7 +155,7 @@ func LoadExport(path, format string) (Export, error) {
 					return nil
 				}
 			}
-			if name == "tenant" || name == "attackProtection" || name == "branding" {
+			if name == "tenant" || name == "attackProtection" || name == "branding" || name == "triggers" {
 				raw, err := json.Marshal(value)
 				if err != nil {
 					return err
@@ -245,6 +245,9 @@ func checkExportReferences(value any, root string, files map[string][]byte) erro
 			if strings.HasPrefix(strings.ToLower(x), "file://") {
 				p, isRef = x[len("file://"):], true
 			}
+			if key == "code" && (strings.HasPrefix(x, "./") || strings.HasSuffix(x, ".js")) {
+				isRef = true
+			}
 			if !isRef && (strings.Contains(strings.ToLower(key), "file") || strings.EqualFold(key, "path")) {
 				isRef = true
 			}
@@ -300,6 +303,10 @@ func resourceName(path string) string {
 		candidate = base
 	}
 	switch strings.ToLower(candidate) {
+	case "actions":
+		return "actions"
+	case "triggers":
+		return "triggers"
 	case "roles", "role":
 		return "roles"
 	case "clients", "client":

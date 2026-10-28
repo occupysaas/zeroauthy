@@ -64,6 +64,10 @@ type Runner struct {
 	Poll time.Duration
 	Log  *slog.Logger
 	Now  func() time.Time
+	// Sweeps are housekeeping tasks (expired-record purges) run at start
+	// and every Every while the workers run. Every replica with workers runs
+	// them; each must be safe to run concurrently with itself.
+	Sweeps []Sweep
 
 	once   sync.Once
 	wakeUp chan struct{}
@@ -107,10 +111,45 @@ func (r *Runner) Notify() {
 	}
 }
 
-// Run starts the workers and returns when ctx is cancelled and they have
-// stopped.
+// Sweep is a periodic housekeeping task. Its errors are logged.
+type Sweep struct {
+	Name  string
+	Every time.Duration
+	Run   func(ctx context.Context, st store.Store, now time.Time) error
+}
+
+func (r *Runner) sweep(ctx context.Context, s Sweep) {
+	every := s.Every
+	if every <= 0 {
+		every = time.Hour
+	}
+	t := time.NewTicker(every)
+	defer t.Stop()
+	for {
+		if err := s.Run(ctx, r.Store, r.now()); err != nil && ctx.Err() == nil {
+			r.log().Warn("jobs: sweep failed", "sweep", s.Name, "err", err)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
+}
+
+// Run starts the workers and the sweeps, and returns when ctx is cancelled
+// and they have stopped. Without workers it runs nothing.
 func (r *Runner) Run(ctx context.Context) {
 	var wg sync.WaitGroup
+	if r.Workers > 0 {
+		for _, s := range r.Sweeps {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				r.sweep(ctx, s)
+			}()
+		}
+	}
 	for range r.Workers {
 		wg.Add(1)
 		go func() {

@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/zeroauthy/zeroauthy/api"
 	"github.com/zeroauthy/zeroauthy/console"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/customdomain"
@@ -86,6 +87,10 @@ type Deps struct {
 
 	// Federation runs social and OIDC login (Plan 24); nil offers none.
 	Federation *federation.FlowService
+
+	// Actions runs post-login and credentials-exchange flows (Plan 27);
+	// nil runs none. Its effects are sealed with Wrapper.
+	Actions *actions.Engine
 }
 
 // authAPI adapts the handler groups to the generated ServerInterface.
@@ -158,7 +163,8 @@ func New(d Deps) http.Handler {
 	})
 	r.Get("/docs", serveDocs)
 
-	az := &authz.Handlers{Store: d.Store, Sessions: d.Sessions, Log: d.Log}
+	az := &authz.Handlers{Store: d.Store, Sessions: d.Sessions, Log: d.Log,
+		Actions: d.Actions, Wrapper: d.Wrapper, TrustProxyHeaders: d.TrustProxyHeaders}
 	db := &identity.Database{Store: d.Store, Scripts: d.Scripts, Log: d.Log}
 	// One mailer sends every verification email: after a signup (API and
 	// hosted page) and for the Management API's verify_email.
@@ -201,6 +207,7 @@ func New(d Deps) http.Handler {
 				Database:          db,
 				Protection:        sharedProtection,
 				TrustProxyHeaders: d.TrustProxyHeaders,
+				Actions:           d.Actions,
 			},
 			authz:  az,
 			dbconn: dbconnHandlers,
@@ -217,6 +224,8 @@ func New(d Deps) http.Handler {
 		tr.Options("/userinfo", preflight)
 		tr.Options("/dbconnections/signup", preflight)
 		tr.Options("/dbconnections/change_password", preflight)
+		tr.Get("/continue", az.Continue)
+		tr.Post("/continue", az.Continue)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)
 		tr.Get("/u/login/password", lg.LoginPasswordGet)
@@ -257,7 +266,8 @@ func New(d Deps) http.Handler {
 	mr := chi.NewRouter()
 	mr.Use(d.Resolver.Middleware, systemOnly, mgmtCORS(systemOrigin), auth, operatorOnly)
 	mh := &mgmt.Handlers{
-		Store: d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
+		Actions: d.Actions,
+		Store:   d.Store, Wrapper: d.Wrapper, BaseDomain: d.BaseDomain, SystemHost: d.SystemHost, Log: d.Log,
 		Scripts: d.Scripts, Keys: d.Keys, Verification: verification, Notify: d.JobNotify, EmailService: d.EmailService,
 		TrustProxyHeaders:      d.TrustProxyHeaders,
 		BreachCheckerAvailable: sharedProtection.BreachChecker != nil,

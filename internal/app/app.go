@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
+	actionsbuild "github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
@@ -28,6 +30,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
+	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -45,7 +48,9 @@ type App struct {
 	log        *slog.Logger
 	store      store.Store
 	runner     *customdb.NodeRunner
-	profiles   *script.Runner // nil when profile scripts cannot run
+	builds     *actionsbuild.Manager // Actions dependency builds
+	actions    *noderunner.Pool      // Actions flow processes
+	profiles   *script.Runner        // nil when profile scripts cannot run
 	jobs       *jobs.Runner
 	handler    http.Handler
 	breachFile *protection.FileChecker
@@ -151,6 +156,11 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			return nil, fmt.Errorf("app: RBAC storage capability required: %w", err)
 		}
 	}
+	if capable, ok := st.(store.ActionsSupporter); ok {
+		if err := capable.CheckActionsSupport(ctx); err != nil {
+			return nil, fmt.Errorf("app: Actions storage capability required: %w", err)
+		}
+	}
 	if err := federation.PreflightMicrosoftIdentities(ctx, st); err != nil {
 		return nil, err
 	}
@@ -167,6 +177,18 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err := tenantsetup.ReconcileDomains(ctx, st, cfg.Server.BaseDomain, systemHost, cfg.Server.OriginDomain()); err != nil {
 		return nil, fmt.Errorf("app: domain reconciliation: %w", err)
 	}
+	// Seed Actions build outside the ordinary seed transaction. Keep this
+	// manager for the runtime so configuration and artifacts are identical.
+	builds, err := actionsbuild.New(cfg.Actions, st, log)
+	if err != nil {
+		return nil, err
+	}
+	buildsOwned := false
+	defer func() {
+		if !buildsOwned {
+			builds.Close()
+		}
+	}()
 	if cfg.Seed != "" {
 		f, err := seed.Load(cfg.Seed)
 		if err != nil {
@@ -179,7 +201,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := f.CheckManagementAPI(cfg.Server.BaseDomain); err != nil {
 			return nil, err
 		}
-		if err := seed.Apply(ctx, st, f, time.Now, wrapper); err != nil {
+		if err := seed.ApplyWithActions(ctx, st, f, time.Now, wrapper, &actions.Engine{Store: st, Builds: builds, Secrets: wrapper, Log: log}); err != nil {
 			return nil, err
 		}
 		log.Info("applied seed", "file", cfg.Seed, "mode", cfg.SeedMode, "tenants", len(f.Tenants))
@@ -261,6 +283,15 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			store.JobUsersImport: jobs.Importer{Mailer: mailer, Email: tenantEmail, Log: log},
 			store.JobUsersExport: jobs.Exporter{View: mgmt.UserJSON, Log: log},
 		},
+		Sweeps: []jobs.Sweep{{Name: "actions executions", Every: time.Hour,
+			Run: func(ctx context.Context, st store.Store, now time.Time) error {
+				_, err := actions.PurgeExecutions(ctx, st, now)
+				return err
+			}}, {Name: "actions continuations", Every: time.Minute,
+			Run: func(ctx context.Context, st store.Store, now time.Time) error {
+				_, err := actions.PurgeContinue(ctx, st, now)
+				return err
+			}}},
 	}
 
 	var checker protection.BreachChecker
@@ -297,8 +328,20 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		log.Warn("custom OAuth2 profile scripts unavailable", "reason", err)
 		profiles = nil
 	}
+	// Actions flows run in their own Node processes, started on first use.
+	actionsRunner, err := actions.NewRunner(cfg.Actions, builds, log)
+	if err != nil {
+		builds.Close()
+		_ = runner.Close()
+		if profiles != nil {
+			_ = profiles.Close()
+		}
+		return nil, err
+	}
+	engine := &actions.Engine{Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
 	sec := cfg.Security
+	buildsOwned = true
 	return &App{
 		profiles:   profiles,
 		tls:        tlsManager,
@@ -308,6 +351,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		log:        log,
 		store:      st,
 		runner:     runner,
+		builds:     builds,
+		actions:    actionsRunner,
 		jobs:       jobRunner,
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
@@ -323,6 +368,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Wrapper:      wrapper,
 			Scripts:      &customdb.Client{Exec: runner, Wrapper: wrapper},
 			Federation:   flows,
+			Actions:      engine,
 
 			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
@@ -573,6 +619,14 @@ func (a *App) Serve(ctx context.Context) error {
 		}()
 	}
 	go a.sweepLoop(ctx, sweepInterval)
+	if a.builds != nil {
+		// Pre-extract deployed Action builds in the background.
+		go func() {
+			if err := a.builds.Prewarm(ctx); err != nil && ctx.Err() == nil {
+				a.log.Warn("actions: pre-extracting deployed builds failed", "err", err)
+			}
+		}()
+	}
 	if a.jobs != nil && a.jobs.Workers > 0 {
 		// Workers stop with Serve, which waits a little for the job they
 		// are on before the caller closes the store.
@@ -600,11 +654,18 @@ func (a *App) Serve(ctx context.Context) error {
 	}
 }
 
-// Close stops the custom database runner and closes the store.
+// Close stops Actions builds and runners and the custom database runner and closes the
+// store.
 func (a *App) Close() error {
+	if a.builds != nil {
+		a.builds.Close()
+	}
 	var errRunner error
+	if a.actions != nil {
+		errRunner = a.actions.Close()
+	}
 	if a.runner != nil {
-		errRunner = a.runner.Close()
+		errRunner = errors.Join(errRunner, a.runner.Close())
 	}
 	if a.profiles != nil {
 		_ = a.profiles.Close()

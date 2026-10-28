@@ -39,6 +39,8 @@ servers:
         default: tenant.example.com
         description: Any domain of the tenant.
 tags:
+  - name: actions
+    description: Actions, immutable versions, trigger bindings and executions.
   - name: branding
     description: Tenant branding, themes and Universal Login page template.
   - name: prompts
@@ -77,6 +79,884 @@ security:
   - managementToken: []
   - operatorToken: []
 paths:
+  /api/v2/actions/actions:
+    get:
+      operationId: GetActions
+      summary: GetActions addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/get-actions
+      security:
+      - managementToken:
+        - read:actions
+      - operatorToken: []
+      parameters:
+      - $ref: '#/components/parameters/page'
+      - $ref: '#/components/parameters/per_page'
+      - name: triggerId
+        in: query
+        schema:
+          type: string
+      - name: actionName
+        in: query
+        schema:
+          type: string
+      - name: deployed
+        in: query
+        schema:
+          type: boolean
+      - name: installed
+        in: query
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionsPage'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    post:
+      operationId: CreateAction
+      summary: CreateAction addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/post-action
+      security:
+      - managementToken:
+        - create:actions
+      - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionCreate'
+      responses:
+        '201':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/actions/actions/{id}:
+    get:
+      operationId: GetAction
+      summary: GetAction addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/get-action
+      security:
+      - managementToken:
+        - read:actions
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    patch:
+      operationId: UpdateAction
+      summary: UpdateAction addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/patch-action
+      security:
+      - managementToken:
+        - update:actions
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionUpdate'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    delete:
+      operationId: DeleteAction
+      summary: DeleteAction addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/delete-action
+      security:
+      - managementToken:
+        - delete:actions
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: force
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/actions/actions/{id}/deploy:
+    post:
+      operationId: DeployAction
+      summary: DeployAction addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/post-deploy-action
+      security:
+      - managementToken:
+        - create:actions
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '202':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionVersion'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/actions/actions/{id}/versions:
+    get:
+      operationId: GetActionVersions
+      summary: GetActionVersions addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/get-action-versions
+      security:
+      - managementToken:
+        - read:actions
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - $ref: '#/components/parameters/page'
+      - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionVersionsPage'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/actions/actions/{id}/versions/{versionId}:
+    get:
+      operationId: GetActionVersion
+      summary: GetActionVersion addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/get-action-version
+      security:
+      - managementToken:
+        - read:actions
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: versionId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionVersion'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/actions/actions/{id}/versions/{versionId}/deploy:
+    post:
+      operationId: DeployActionVersion
+      summary: DeployActionVersion addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/post-deploy-draft-version
+      security:
+      - managementToken:
+        - create:actions
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: versionId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionDeployVersion'
+      responses:
+        '202':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionVersion'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/actions/actions/{id}/test:
+    post:
+      operationId: TestAction
+      summary: TestAction addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/post-test-action
+      security:
+      - managementToken:
+        - create:actions
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionTestRequest'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionTestResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/actions/triggers:
+    get:
+      operationId: GetActionTriggers
+      summary: GetActionTriggers addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/get-triggers
+      security:
+      - managementToken:
+        - read:actions
+      - operatorToken: []
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionTriggers'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/actions/triggers/{triggerId}/bindings:
+    get:
+      operationId: GetActionBindings
+      summary: GetActionBindings addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/get-bindings
+      security:
+      - managementToken:
+        - read:actions
+      - operatorToken: []
+      parameters:
+      - name: triggerId
+        in: path
+        required: true
+        schema:
+          type: string
+      - $ref: '#/components/parameters/page'
+      - $ref: '#/components/parameters/per_page'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionBindingsPage'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+    patch:
+      operationId: UpdateActionBindings
+      summary: UpdateActionBindings addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/patch-bindings
+      security:
+      - managementToken:
+        - update:actions
+      - operatorToken: []
+      parameters:
+      - name: triggerId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionBindingsUpdate'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionBindings'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+  /api/v2/actions/executions/{id}:
+    get:
+      operationId: GetActionExecution
+      summary: GetActionExecution addressed to the current tenant
+      tags:
+      - actions
+      x-source:
+      - https://auth0.com/docs/api/management/v2/actions/get-execution
+      security:
+      - managementToken:
+        - read:actions
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionExecution'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
+        '503':
+          description: Actions build service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagementError'
   /api/v2/branding:
     get:
       operationId: GetBranding
@@ -4180,6 +5060,475 @@ components:
       description: Whether `fields` lists the fields to include (true) or to leave out (false).
       schema: {type: boolean, default: true}
   schemas:
+    ActionTrigger:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          enum:
+          - post-login
+          - credentials-exchange
+        version:
+          type: string
+      required:
+      - id
+    ActionDependency:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+      required:
+      - name
+    ActionSecret:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - name
+      - updated_at
+    ActionSecretInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+          maxLength: 4096
+          writeOnly: true
+      required:
+      - name
+    ActionCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        supported_triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionTrigger'
+          minItems: 1
+          maxItems: 1
+        code:
+          type: string
+          description: At most 100000 UTF-8 bytes.
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionDependency'
+          maxItems: 50
+        runtime:
+          type: string
+          enum:
+          - node22
+          default: node22
+        secrets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionSecretInput'
+          maxItems: 64
+        deploy:
+          type: boolean
+      required:
+      - name
+      - supported_triggers
+    ActionUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        supported_triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionTrigger'
+          minItems: 1
+          maxItems: 1
+        code:
+          type: string
+          description: At most 100000 UTF-8 bytes.
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionDependency'
+          maxItems: 50
+        runtime:
+          type: string
+          enum:
+          - node22
+          default: node22
+        secrets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionSecretInput'
+          maxItems: 64
+    Action:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        supported_triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionTrigger'
+          minItems: 1
+          maxItems: 1
+        code:
+          type: string
+          description: At most 100000 UTF-8 bytes.
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionDependency'
+          maxItems: 50
+        runtime:
+          type: string
+          enum:
+          - node22
+          default: node22
+        secrets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionSecret'
+        id:
+          type: string
+        deployed_version:
+          $ref: '#/components/schemas/ActionVersion'
+        all_changes_deployed:
+          type: boolean
+        status:
+          type: string
+          enum:
+          - pending
+          - building
+          - packaged
+          - built
+          - retrying
+          - failed
+        errors:
+          type: array
+          items:
+            type: string
+        built_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - supported_triggers
+      - code
+      - dependencies
+      - runtime
+      - secrets
+      - all_changes_deployed
+      - status
+      - created_at
+      - updated_at
+    ActionVersion:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        action_id:
+          type: string
+        number:
+          type: integer
+        code:
+          type: string
+        runtime:
+          type: string
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionDependency'
+        secrets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionSecret'
+        created_at:
+          type: string
+          format: date-time
+        built_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - pending
+          - building
+          - packaged
+          - built
+          - retrying
+          - failed
+      required:
+      - id
+      - action_id
+      - number
+      - code
+      - runtime
+      - dependencies
+      - secrets
+      - created_at
+    ActionBinding:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        display_name:
+          type: string
+        action:
+          type: object
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+          required:
+          - id
+          - name
+        trigger_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - display_name
+      - action
+      - trigger_id
+      - created_at
+      - updated_at
+    ActionBindingInput:
+      type: object
+      additionalProperties: false
+      properties:
+        ref:
+          type: object
+          additionalProperties: false
+          properties:
+            type:
+              type: string
+              enum:
+              - action_id
+              - action_name
+              - binding_id
+            value:
+              type: string
+          required:
+          - type
+          - value
+        display_name:
+          type: string
+      required:
+      - ref
+    ActionsPage:
+      type: object
+      additionalProperties: false
+      properties:
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Action'
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+      required:
+      - actions
+      - total
+      - page
+      - per_page
+    ActionVersionsPage:
+      type: object
+      additionalProperties: false
+      properties:
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionVersion'
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+      required:
+      - versions
+      - total
+      - page
+      - per_page
+    ActionBindingsPage:
+      type: object
+      additionalProperties: false
+      properties:
+        bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionBinding'
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+      required:
+      - bindings
+      - total
+      - page
+      - per_page
+    ActionBindings:
+      type: object
+      additionalProperties: false
+      properties:
+        bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionBinding'
+      required:
+      - bindings
+    ActionBindingsUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionBindingInput'
+          maxItems: 20
+      required:
+      - bindings
+    ActionTriggers:
+      type: object
+      additionalProperties: false
+      properties:
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionTrigger'
+      required:
+      - triggers
+    ActionTestRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        payload:
+          type: object
+          additionalProperties: true
+      required:
+      - payload
+    ActionTestResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        payload:
+          type: object
+          additionalProperties: false
+          properties:
+            commands:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            logs:
+              type: array
+              items:
+                type: string
+            error:
+              type: object
+              additionalProperties: false
+              properties:
+                id: {type: string}
+                message: {type: string}
+              required: [id, message]
+            execution_id:
+              type: string
+            duration_ms:
+              type: integer
+      required:
+      - payload
+    ActionDeployVersion:
+      type: object
+      additionalProperties: false
+      properties:
+        update_draft:
+          type: boolean
+          default: false
+    ActionExecution:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        trigger_id:
+          type: string
+        status:
+          type: string
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              action_name:
+                type: string
+              error:
+                type: object
+                additionalProperties: false
+                properties:
+                  id:
+                    type: string
+                  message:
+                    type: string
+              started_at:
+                type: string
+                format: date-time
+              ended_at:
+                type: string
+                format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - trigger_id
+      - status
+      - results
+      - created_at
+      - updated_at
     Role:
       type: object
       additionalProperties: false

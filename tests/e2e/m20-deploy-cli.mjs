@@ -15,6 +15,8 @@ const mode = process.env.E2E_M20_MODE;
 assert.ok(['yaml', 'directory'].includes(format));
 assert.ok(['generated', 'preserved'].includes(mode));
 const secrets = ['e2e-cli-admin-secret-not-for-production', 'e2e-cli-target-admin-secret-not-for-production', 'e2e-cli-fixture-secret-not-for-production'];
+const actionSecret = 'm27-private-deploy-action-value';
+secrets.push(actionSecret);
 const emailSecret = 'm21-deploy-private-provider-secret';
 // Upstream provider credential the local mock accepts. It is written to the
 // source by API and reinjected into staged imports from a private map only.
@@ -24,7 +26,7 @@ const federation = JSON.parse(await readFile(path.join(e2e, 'deploy-cli/fixtures
 const federationCredentials = path.join(work, 'federation-credentials.json');
 await writeFile(federationCredentials, JSON.stringify(Object.fromEntries(federation.map(c => [c.name, upstreamSecret]))), { mode: 0o600 });
 const sourceConfig = { ...JSON.parse(await readFile(process.env.E2E_M20_CONFIG, 'utf8')), AUTH0_CLIENT_SECRET: secrets[0], AUTH0_EXPORT_IDENTIFIERS: false };
-const targetConfig = { ...sourceConfig, AUTH0_DOMAIN: 'target.cli.e2e.test', AUTH0_CLIENT_ID: 'e2e-cli-target-admin', AUTH0_CLIENT_SECRET: secrets[1] };
+const targetConfig = { ...sourceConfig, AUTH0_KEYWORD_REPLACE_MAPPINGS:{ACTION_SECRET:actionSecret}, AUTH0_DOMAIN: 'target.cli.e2e.test', AUTH0_CLIENT_ID: 'e2e-cli-target-admin', AUTH0_CLIENT_SECRET: secrets[1] };
 const bin = path.join(e2e, 'node_modules/.bin/a0deploy');
 const comparator = args => spawnSync('go', ['run', './tests/e2e/deploy-cli', ...args], { cwd: root, encoding: 'utf8' });
 function checkedCompare(source, target) {
@@ -71,11 +73,11 @@ async function exportTo(config, name) {
   return exportPath;
 }
 async function assertNoEmailSecrets(exportPath) {
-  const files = format === 'yaml'
-    ? [await readFile(exportPath, 'utf8')]
-    : await Promise.all((await readdir(exportPath, { recursive: true })).map(name => readFile(path.join(exportPath, name), 'utf8').catch(() => '')));
+  const folder=format==='yaml'?path.dirname(exportPath):exportPath;
+  const files=await Promise.all((await readdir(folder,{recursive:true})).map(name=>readFile(path.join(folder,name),'utf8').catch(()=>'')));
   const joined = files.join('\n');
   for (const secret of proxySecrets) assert.equal(joined.includes(secret), false, 'deploy export contains a proxy secret');
+  assert.equal(joined.includes(actionSecret),false,'public deploy export contains Action secret');
   assert.equal(joined.includes(emailSecret), false, 'public deploy export contains provider credential');
   assert.equal(joined.includes(upstreamSecret), false, 'public deploy export contains a federation provider credential');
   assert.equal(joined.includes('********'), false, 'public deploy export contains a credential mask');
@@ -131,8 +133,23 @@ async function prepareImport(input, name, mutate = () => {}, { inject = true } =
   for(const d of domains) for(const key of ['custom_domain_id','verification','status','origin_domain_name','certificate','primary']) delete d[key];
   mutate(domains);
   await writeFile(file,format==='yaml'?dumpYaml(data):JSON.stringify(data),{mode:0o600});
+  await injectActionKeywords(destination);
   if(inject) await injectFederation(destination);
   return destination;
+}
+// The checked export contains secret names only. The actual pinned Deploy CLI
+// resolves keyword values from its private target config during import.
+async function injectActionKeywords(destination){
+ if(format==='yaml'){const data=parseYaml(await readFile(destination,'utf8'));for(const a of data.actions??[])a.secrets=a.secrets.map(s=>({...s,value:'##ACTION_SECRET##'}));await writeFile(destination,dumpYaml(data),{mode:0o600});}
+ else{const dir=path.join(destination,'actions');for(const file of await readdir(dir)){if(!file.endsWith('.json'))continue;const p=path.join(dir,file),a=JSON.parse(await readFile(p,'utf8'));a.secrets=a.secrets.map(s=>({...s,value:'##ACTION_SECRET##'}));await writeFile(p,JSON.stringify(a),{mode:0o600});}}
+}
+async function actionNegatives(input){
+ for(const kind of ['action','binding','code']){
+  const folder=path.join(work,`missing-${kind}`);await cp(format==='yaml'?path.dirname(input):input,folder,{recursive:true});const exportPath=format==='yaml'?path.join(folder,'tenant.yaml'):folder;
+  if(format==='yaml'){const data=parseYaml(await readFile(exportPath,'utf8'));if(kind==='action')data.actions=[];if(kind==='binding')data.triggers['post-login']=[];if(kind==='code')await rm(path.join(folder,data.actions[0].code));await writeFile(exportPath,dumpYaml(data));}
+  else{if(kind==='binding'){const file=path.join(folder,'triggers/triggers.json'),data=JSON.parse(await readFile(file,'utf8'));data['post-login']=[];await writeFile(file,JSON.stringify(data));}else{const dir=path.join(folder,'actions'),file=(await readdir(dir)).find(f=>f.endsWith('.json'));const data=JSON.parse(await readFile(path.join(dir,file),'utf8'));await rm(kind==='action'?path.join(dir,file):path.join(folder,data.code));}}
+  const result=comparator(['compare','--source',input,'--target',exportPath,'--format',format,'--manifest',path.join(work,'manifest.json')]);assert.notEqual(result.status,0,`missing Action ${kind} escaped comparator`);
+ }
 }
 // Exports never carry provider credentials. The staged import receives them
 // from the private credential map; a missing entry or script fails here.
@@ -166,6 +183,7 @@ async function federatedLogin(clientId, connection, subject, rbac=false) {
   const token=await request(targetConfig,'POST','/oauth/token',{grant_type:'authorization_code',client_id:clientId,code,code_verifier:verifier,redirect_uri:redirect});
   assert.ok(token.access_token);if(!rbac)assert.equal(token.scope,'openid profile email');
   const claims=JSON.parse(Buffer.from(token.id_token.split('.')[1],'base64url'));
+  assert.equal(claims['https://actions.test/deployed'],actionSecret,'post-import Action claim/keyword secret was lost');
   assert.equal(claims.nonce,nonce);assert.equal(claims.aud,clientId);assert.equal(claims.iss,`https://${targetConfig.AUTH0_DOMAIN}/`);
   return rbac?{sub:claims.sub,token}:claims.sub;
 }
@@ -212,8 +230,12 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   await api(sourceConfig,'PATCH',`resource-servers/${rbacAPI.id}`,{enforce_policies:true,token_dialect:'rfc9068_profile_authz',skip_consent_for_verifiable_first_party_clients:true});
   const roleDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/roles.json'),'utf8'));
   for(const {permissions,...declaration} of roleDeclarations){const role=await api(sourceConfig,'POST','roles',declaration);await api(sourceConfig,'POST',`roles/${role.id}/permissions`,{permissions});}
+  const actionDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/actions.json'),'utf8'));
+  for(const declaration of actionDeclarations){const a=await api(sourceConfig,'POST','actions/actions',{...declaration,secrets:[{name:'DEPLOY_VALUE',value:actionSecret}]});let built=false;for(let n=0;n<300;n++){const draft=await api(sourceConfig,'GET',`actions/actions/${a.id}`);if(draft.status==='built'){built=true;break;}assert.notEqual(draft.status,'failed');await new Promise(r=>setTimeout(r,100));}assert.ok(built,'source Action build timeout');await api(sourceConfig,'POST',`actions/actions/${a.id}/deploy`);}
+  await api(sourceConfig,'PATCH','actions/triggers/post-login/bindings',{bindings:actionDeclarations.map(a=>({ref:{type:'action_name',value:a.name},display_name:a.name}))});
   const sourcePublicExport = await exportTo('source', 'source-export');
   await assertNoEmailSecrets(sourcePublicExport);
+  await actionNegatives(sourcePublicExport);
   assert.equal((await api(sourceConfig,'GET','branding/templates/universal-login')).body,templateBody);
   const exportConfig = format === 'yaml' ? parseYaml(await readFile(sourcePublicExport,'utf8')).branding : JSON.parse(await readFile(path.join(sourcePublicExport,'branding/templates/universal_login.json'),'utf8'));
   if(format==='yaml') assert.ok(exportConfig.templates?.length,'nonempty Universal Login template must export');
@@ -290,6 +312,7 @@ const rbacLogin=await federatedLogin(browser.client_id,'google-oauth2','deploy-g
 const rbacClaims=JSON.parse(Buffer.from(rbacLogin.token.access_token.split('.')[1],'base64url'));
 assert.equal(rbacLogin.sub,rbacSubject);assert.ok(rbacLogin.token.scope.split(' ').includes('read:fixture'));assert.ok(!rbacLogin.token.scope.split(' ').includes('write:fixture'));
 assert.deepEqual(rbacClaims.permissions,['read:fixture']);assert.equal(rbacClaims.client_id,browser.client_id);assert.equal(JSON.parse(Buffer.from(rbacLogin.token.access_token.split('.')[0],'base64url')).typ,'at+jwt');
+console.log('Plan 27 deploy: Actions/code/ordered trigger bindings, private keyword replacement and all post-import login claims passed');
 console.log('Plan 26 deploy: tenant role/API fields and post-import federated RBAC code exchange passed');
 console.log(`Plan 25 deploy: ${federation.length} federated connections (5 strategies) imported with explicit secret reinjection; missing/uninjected imports rejected; first and repeat provider logins passed`);
 assert.equal(imported.client_id === original.client_id, mode === 'preserved');

@@ -866,7 +866,8 @@ func (s *Server) DeviceCodesGetByUserCode(ctx context.Context, r *storev1.Scoped
 
 // DeviceCodesDecide returns the record together with ErrAlreadyUsed.
 func (s *Server) DeviceCodesDecide(ctx context.Context, r *storev1.DeviceDecisionRequest) (*storev1.DeviceCodeResult, error) {
-	dec := store.DeviceDecision{Status: store.DeviceCodeStatus(r.Status), UserID: r.UserId, GrantedScopes: stringsFromPB(r.GrantedScopes)}
+	dec := store.DeviceDecision{Status: store.DeviceCodeStatus(r.Status), UserID: r.UserId, GrantedScopes: stringsFromPB(r.GrantedScopes),
+		ActionEffects: bytesFromPB(r.ActionEffects)}
 	v, e, err := one(s, r.TxId, func(st store.Store) (*store.DeviceCode, error) {
 		return st.DeviceCodes().Decide(ctx, r.TenantId, r.DeviceCodeHash, dec)
 	}, deviceCodeToPB)

@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"slices"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -69,17 +71,23 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 	if oerr != nil {
 		return nil, deviceError(oerr)
 	}
+	// The post-login flow ran at approval; its effects travel sealed.
+	eff, oerr := h.openEffects(ctx, tenantID, actions.SealDevice, hash, dc.ActionEffects)
+	if oerr != nil {
+		return nil, oerr
+	}
 	scopes := userScopes(dc.GrantedScopes, rs, offlineAllowed(c, rs))
 	// Device tokens belong to no browser session: no sid, no auth_time.
-	resp, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		user: user, rs: rs, lifetime: lifetime, scopes: scopes, omitAtHash: true,
+	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
+		user: user, rs: rs, lifetime: lifetime, scopes: scopes, omitAtHash: true, effects: eff,
 	})
 	if oerr != nil {
 		return nil, oerr
 	}
 	var rt *store.RefreshToken
 	var raw string
-	if responseHasScope(resp, "offline_access") {
+	ceiling := refreshCeiling(eff, scopes, rs, offlineAllowed(c, rs))
+	if offline && slices.Contains(ceiling, "offline_access") {
 		absolute, _ := refreshLifetimes(c.RefreshToken)
 		var expiresAt time.Time
 		if absolute > 0 {
@@ -87,7 +95,7 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 		}
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
 			origin:   res.Origin(),
-			familyID: familyForDevice(hash), userID: user.UserID, audience: dc.Audience, scopes: scopes, expiresAt: expiresAt,
+			familyID: familyForDevice(hash), userID: user.UserID, audience: dc.Audience, scopes: ceiling, expiresAt: expiresAt,
 		})
 	}
 	// The user approved at /activate, possibly long ago, so there is no

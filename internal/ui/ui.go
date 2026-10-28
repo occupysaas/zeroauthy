@@ -179,10 +179,16 @@ func RenderSignup(w http.ResponseWriter, status int, t Tenant, d SignupData) {
 	render(w, status, "signup", t, d, formActionFor(d.RedirectURI))
 }
 
-type errorData struct{ Message, Detail string }
+type errorData struct{ Message, Detail, Reference string }
 
 func RenderError(w http.ResponseWriter, status int, t Tenant, message string) {
 	RenderErrorDetail(w, status, t, message, "")
+}
+
+// RenderErrorReference shows message with reference, an ID the user can
+// report (such as an Actions execution ID); an empty reference shows none.
+func RenderErrorReference(w http.ResponseWriter, status int, t Tenant, message, reference string) {
+	render(w, status, "error", t, errorData{Message: message, Reference: reference}, "'self'")
 }
 
 // RenderErrorDetail shows a localized message and an optional technical

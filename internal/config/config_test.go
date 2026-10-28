@@ -414,3 +414,44 @@ func drop(env []string, part string) []string {
 	}
 	return out
 }
+
+func TestActionsSettings(t *testing.T) {
+	base := "ZEROAUTHY_STORAGE__DSN=memory://"
+	cfg, err := Load("", []string{base, sysHost})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := cfg.Actions
+	if a.Node != "node" || a.NPMCLI != "" || a.Registry != "https://registry.npmjs.org/" || a.CacheDir != "" ||
+		a.MaxMemoryMB != 256 || a.IdleTimeout != 5*time.Minute || a.BuildTimeout != 2*time.Minute ||
+		a.MaxArtifactMB != 50 || a.MaxConcurrentBuilds != 2 {
+		t.Errorf("defaults = %+v", a)
+	}
+	cfg, err = Load("", []string{base, sysHost, "ZEROAUTHY_ACTIONS__CACHE_DIR=/var/cache/za", "ZEROAUTHY_ACTIONS__NPM_CLI=/opt/npm/bin/npm-cli.js",
+		"ZEROAUTHY_ACTIONS__REGISTRY=http://mirror.internal:4873/", "ZEROAUTHY_ACTIONS__BUILD_TIMEOUT=30s", "ZEROAUTHY_ACTIONS__MAX_CONCURRENT_BUILDS=4"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a := cfg.Actions; a.CacheDir != "/var/cache/za" || a.NPMCLI != "/opt/npm/bin/npm-cli.js" || a.Registry != "http://mirror.internal:4873/" ||
+		a.BuildTimeout != 30*time.Second || a.MaxConcurrentBuilds != 4 {
+		t.Errorf("env not applied: %+v", a)
+	}
+	for bad, want := range map[string]string{
+		"CACHE_DIR=cache":             "actions.cache_dir must be an absolute path",
+		"NPM_CLI=npm-cli.js":          "actions.npm_cli must be an absolute path",
+		"REGISTRY=ftp://x/":           "actions.registry must be an http or https URL",
+		"REGISTRY=registry.npmjs.org": "actions.registry must be an http or https URL",
+		"NODE=":                       "actions.node must not be empty",
+		"MAX_MEMORY_MB=31":            "actions.max_memory_mb",
+		"IDLE_TIMEOUT=0s":             "actions.idle_timeout must be positive",
+		"BUILD_TIMEOUT=-1s":           "actions.build_timeout must be positive",
+		"MAX_ARTIFACT_MB=0":           "actions.max_artifact_mb",
+		"MAX_ARTIFACT_MB=51":          "actions.max_artifact_mb",
+		"MAX_CONCURRENT_BUILDS=0":     "actions.max_concurrent_builds",
+	} {
+		_, err := Load("", []string{base, sysHost, "ZEROAUTHY_ACTIONS__" + bad})
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: err = %v, want %q", bad, err, want)
+		}
+	}
+}

@@ -137,6 +137,18 @@ mode the console shows no "defined by the seed" banner. `zeroauthy seed`
 follows the same setting.
 Unknown configuration keys are rejected at startup.
 
+**Actions.** Configure the `actions` section or `ZEROAUTHY_ACTIONS__*`.
+Defaults: `node: node`, bundled `npm_cli`,
+`registry: https://registry.npmjs.org/`,
+`cache_dir: <user cache dir>/zeroauthy/actions-cache`, `max_memory_mb: 256`,
+`idle_timeout: 5m`, `build_timeout: 2m`, `max_artifact_mb: 50` (range 1–50),
+and `max_concurrent_builds: 2`. Explicit npm/cache paths must be absolute;
+`npm_cli` points to `bin/npm-cli.js`. Node ≥22.13 runs Actions; npm and the
+registry are needed only on build nodes. Set `cache_dir` explicitly for
+services and `registry` to an HTTP(S) offline mirror when needed. See the
+[Actions operator guide](docs/actions.md) for dependency restrictions, replica
+artifacts, seed ownership, sandbox limits and hardening.
+
 **Master key.** Signing keys and client secrets are stored envelope-encrypted under a 32-byte
 master key. Generate one with `openssl rand -base64 32` and set it as
 `ZEROAUTHY_SECURITY__MASTER_KEY` (or point `security.master_key_file` at a

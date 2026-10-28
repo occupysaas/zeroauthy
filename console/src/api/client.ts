@@ -75,6 +75,25 @@ export type CustomDomainCreate = components['schemas']['CustomDomainCreate']
 export type CustomDomainUpdate = components['schemas']['CustomDomainUpdate']
 export type CustomDomainTest = components['schemas']['CustomDomainTest']
 
+export type Action = components['schemas']['Action']
+export type ActionCreate = components['schemas']['ActionCreate']
+export type ActionUpdate = components['schemas']['ActionUpdate']
+export type ActionVersion = components['schemas']['ActionVersion']
+export type ActionTrigger = components['schemas']['ActionTrigger']
+export type ActionDependency = components['schemas']['ActionDependency']
+export type ActionSecretInput = components['schemas']['ActionSecretInput']
+export type ActionBinding = components['schemas']['ActionBinding']
+export type ActionBindingInput = components['schemas']['ActionBindingInput']
+export type ActionsPage = components['schemas']['ActionsPage']
+export type ActionVersionsPage = components['schemas']['ActionVersionsPage']
+export type ActionBindingsPage = components['schemas']['ActionBindingsPage']
+export type ActionBindings = components['schemas']['ActionBindings']
+export type ActionBindingsUpdate = components['schemas']['ActionBindingsUpdate']
+export type ActionTriggers = components['schemas']['ActionTriggers']
+export type ActionTestRequest = components['schemas']['ActionTestRequest']
+export type ActionTestResponse = components['schemas']['ActionTestResponse']
+export type ActionExecution = components['schemas']['ActionExecution']
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -545,6 +564,70 @@ export class Api {
     return out
   }
 
+  listActions(t: SystemTenant, q: { page: number; per_page: number; triggerId?: string; actionName?: string; deployed?: boolean }): Promise<ActionsPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/actions', { query: q })
+  }
+
+  createAction(t: SystemTenant, body: ActionCreate): Promise<Action> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/actions/actions', { body })
+  }
+
+  getAction(t: SystemTenant, id: string): Promise<Action> {
+    return this.request(Api.tenantOrigin(t), 'GET', actionPath(id))
+  }
+
+  updateAction(t: SystemTenant, id: string, body: ActionUpdate): Promise<Action> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', actionPath(id), { body })
+  }
+
+  deleteAction(t: SystemTenant, id: string, force = false): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', actionPath(id), { query: { force } })
+  }
+
+  deployAction(t: SystemTenant, id: string): Promise<ActionVersion> {
+    return this.request(Api.tenantOrigin(t), 'POST', actionPath(id) + '/deploy')
+  }
+
+  listActionVersions(t: SystemTenant, id: string, q: { page: number; per_page: number }): Promise<ActionVersionsPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', actionPath(id) + '/versions', { query: q })
+  }
+
+  getActionVersion(t: SystemTenant, id: string, versionId: string): Promise<ActionVersion> {
+    return this.request(Api.tenantOrigin(t), 'GET', actionPath(id) + '/versions/' + encodeURIComponent(versionId))
+  }
+
+  deployActionVersion(t: SystemTenant, id: string, versionId: string): Promise<ActionVersion> {
+    return this.request(Api.tenantOrigin(t), 'POST', actionPath(id) + '/versions/' + encodeURIComponent(versionId) + '/deploy', { body: { update_draft: false } })
+  }
+
+  testAction(t: SystemTenant, id: string, body: ActionTestRequest): Promise<ActionTestResponse> {
+    return this.request(Api.tenantOrigin(t), 'POST', actionPath(id) + '/test', { body })
+  }
+
+  listActionTriggers(t: SystemTenant): Promise<ActionTriggers> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/triggers')
+  }
+
+  listActionBindings(t: SystemTenant, trigger: string, q: { page: number; per_page: number }): Promise<ActionBindingsPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', triggerPath(trigger), { query: q })
+  }
+
+  updateActionBindings(t: SystemTenant, trigger: string, bindings: ActionBindingInput[]): Promise<ActionBindings> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', triggerPath(trigger), { body: { bindings } })
+  }
+
+  getActionExecution(t: SystemTenant, id: string): Promise<ActionExecution> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/executions/' + encodeURIComponent(id))
+  }
+
+  async allActions(t: SystemTenant, triggerId?: string): Promise<Action[]> {
+    return collect(page => this.listActions(t, { page, per_page: ALL_PER_PAGE, triggerId }).then(r => ({ items: r.actions, total: r.total })))
+  }
+
+  async allActionBindings(t: SystemTenant, trigger: string): Promise<ActionBinding[]> {
+    return collect(page => this.listActionBindings(t, trigger, { page, per_page: ALL_PER_PAGE }).then(r => ({ items: r.bindings, total: r.total })))
+  }
+
   listTenants(): Promise<SystemTenant[]> {
     return this.request(this.systemOrigin, 'GET', '/api/system/tenants')
   }
@@ -580,3 +663,6 @@ async function collect<T>(fetchPage: (page: number) => Promise<{ items: T[]; tot
     if (r.items.length === 0 || out.length >= r.total) return out
   }
 }
+
+function actionPath(id: string): string { return '/api/v2/actions/actions/' + encodeURIComponent(id) }
+function triggerPath(id: string): string { return '/api/v2/actions/triggers/' + encodeURIComponent(id) + '/bindings' }

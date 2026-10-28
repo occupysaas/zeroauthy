@@ -1055,3 +1055,122 @@ Explicit local decisions where public material leaves the contract open:
   upgrade all writers before enabling RBAC. No downgrade to permissive tokens.
 
 These are implementation contracts, not proof of completion or live parity.
+
+## D-0053 — Plan 27 Actions contract (2026-10-27)
+
+Freeze the [public review](observations/actions.md) and
+`internal/actionsrules/inventory.json` (14 operations, `post-login` and
+`credentials-exchange`). Success statuses follow the public reference (create
+201, delete 204, deploy and version deploy 202, test 200). No live tenant was
+observed; unavailable items are listed in the review and never invented.
+
+Local choices where public material is silent or open:
+
+- Names 1–128 code points, unique per tenant, case-sensitive; runtime `node22`
+  only; <= 64 secrets; <= 50 dependencies; <= 20 bindings per trigger;
+  continue state 15 minutes, single-use; <= 5 redirects per login; artifact
+  <= 50 MB. Code, secret and cache limits are Auth0's published values.
+- `modules` and `registry_url` and binding `secrets` are refused with 400;
+  only the two triggers are advertised and creating an Action for any other
+  trigger is 400 until Plan 28. Build status emits pending, building, built,
+  failed only. Unknown properties 400. Binding an undeployed Action 400.
+- Secrets are snapshotted into a version at deploy; a secret change takes
+  effect at the next deploy (public docs silent).
+- Errors: `actions.ErrDraftNotBuilt` maps to 400 and a missing Action or
+  version to 404 at the test endpoint. Test runs record rather than apply
+  metadata, redirects and denials, uses a throwaway cache and writes no
+  execution record.
+- Delivery: `access.deny(reason)` on authorize redirects with
+  `error=access_denied`; at the token endpoint it is 403 `access_denied`;
+  uncaught error or timeout redirects `server_error` with a generic
+  description and shows a hosted error page with the execution reference
+  when the client shows error pages; the reference never appears in OAuth
+  `error_description`. Credentials-exchange deny codes are `invalid_scope`,
+  `invalid_request`, `server_error` (documented); other codes fail closed.
+  Their HTTP statuses are 400, 400 and 500 respectively (local).
+- Metadata commits once at flow end on success, deny or validation.error and
+  is discarded on error, timeout or unsupported call; across a redirect it is
+  held in continue state. Post-login runs before the consent screen (public
+  scope docs show consent lists Action-edited target scopes); effects of a flow
+  whose consent is later declined are not rolled back beyond the metadata
+  rule above. `event` reflects earlier Actions for `transaction.target_scopes`
+  and `transaction.metadata` (documented) and `user.app_metadata`/`user_metadata`
+  after a commit-free in-memory overlay (local).
+- `/userinfo` does not return Action ID-token custom claims in Plan 27; this
+  supersedes the original local default and remains deferred (Ruling 10).
+  Non-namespaced access-token claims are dropped for the tenant's Management
+  API audience. `request.geoip`, `asn`, organization, MFA, prompt, agent and
+  Enterprise members are omitted; `groups.*` return empty; `rules.wasExecuted`
+  is false; session, refresh_token, authentication, multifactor, prompt and
+  samlResponse members throw "not supported by zeroauthy" and fail closed.
+- Execution IDs appear in the operator log line for every failed or denied
+  flow (tenant, trigger, Action name, secrets masked), in test-endpoint
+  responses, and as a "reference" on the hosted error page; they are never put
+  in OAuth `error_description`. Record retention 10 days (documented).
+- Lists (actions, versions, bindings): `page` from 0, `per_page` default 20
+  (documented) and local maximum 100; larger is 400.
+- Secret names match `[A-Za-z0-9_]{1,128}`. Dependency `version` is an exact
+  semver or empty/`latest` (resolved at build); ranges, git/file/URL/tarball
+  specs and `registry_url` are refused with 400.
+- At most 20 bindings per trigger, 400 above that. DELETE of an Action still
+  bound to a trigger without `force=true` is 400 (local; the public page states
+  only that it must be unbound).
+- Byte units: Auth0's "kB" limits are taken as decimal (code and custom claims
+  100,000 bytes; cache values 4,096 and total 8,192 as binary-exact values the
+  public page writes as 4 kB/8 kB; secret value 4096 bytes); the artifact
+  limit is 50,000,000 bytes. The inventory stores these exact integers.
+- `event.transaction.id` is a random 24-character ID generated per post-login
+  flow and kept across redirects (local format; credentials-exchange has
+  none). Action code cannot connect to unix-domain socket paths (local
+  hardening; Node's permission model does not cover them); TCP is open.
+- Unsupported `api` members throw at call time and fail the flow; none is
+  silently omitted. "Metadata commits at flow end" means user and app
+  metadata; transaction metadata lives only for the transaction.
+- Consent order source:
+  https://auth0.com/docs/customize/actions/handling-scopes-in-actions.
+
+- Token-endpoint post-login `validation.error` is 403 with its supplied code.
+  Codes are 1–128 bytes in the RFC 6749 error charset; reasons/messages replace
+  disallowed bytes with `?` and truncate at 512 bytes. Device approval cannot
+  redirect. Password/realm protocols are `oauth2-password` /
+  `oauth2-resource-owner`; `device_code` joins stripped request credentials.
+- User scope order is request → target edits → API/application policy/RBAC →
+  consent → final access-token edits. `addScope` bypasses the former checks;
+  add/removeScope do not change ID-token issuance, and adding offline_access
+  cannot create a refresh token. Refresh ceilings are issued/consented scopes
+  intersected with pre-Action authorized scopes; Action additions never enter
+  them. Refresh reruns Actions; consent-requiring clients' target additions
+  also need stored audience grants. Target edits can restore family scopes
+  omitted by a downscoped refresh request. Removing final offline_access
+  suppresses rotation, while target-only removal can still rotate a family.
+- Bound post-login flows on RBAC-enabled APIs snapshot assignments before
+  execution. They survive consent/code/device/continue; role assignment via
+  Management API affects the next issuance. Current API definitions/settings
+  and application policy still apply at mint; captured permissions intersect
+  current declared non-protocol API permissions. Without a captured flow,
+  ordinary issuance-time RBAC reads apply. RBAC-disabled APIs omit permissions.
+- Redirect/resume phases each have their own execution record; an execution
+  ID does not span the browser gap. Test IDs are ephemeral with no lookup row.
+  Execution purge runs hourly and expired continue-state purge every minute.
+- Synchronous latest resolution is limited to 15 seconds per resolver process,
+  with a separate bounded semaphore; slot wait follows caller context.
+  Interrupted pending/building drafts recover on Queue/GET/deploy/test,
+  rather than a startup scan. Artifacts are store-backed and hash-verified on
+  extraction; existing extracted roots are trusted. npm runs with private HOME,
+  empty user/global configs and ignored scripts; its built-in npmrc remains
+  readable. Registry authentication via operator .npmrc is unsupported.
+- Action seed application uses ApplyWithActions: ordinary seed transaction,
+  then external builds, then atomic ready Action create/deploy. Existing names
+  and initialized trigger sets are create-only in both modes. Durable atomic
+  tenant/trigger initialization preserves management [] across restarts and
+  remains retryable after rollback. This supersedes the empty-trigger heuristic.
+  Actions plugin capability is 2; older plugins refuse startup.
+- Runtime console capture currently keeps 100 messages of up to 2048
+  characters each (plus level prefix). Inventory's 256-character per-Action
+  declaration is not enforced; this is a deferred minor contract drift.
+
+Local implementation and verification are recorded in the
+[Plan 27 record](../superpowers/2026-10-27-plan-27-implementation-record.md).
+The final whole-branch review and its fixes are in the implementation record; no live upstream parity is claimed.
+
+These are implementation contracts, not proof of completion or live parity.

@@ -122,6 +122,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 	delete(r.s.domainDefaults, id)
 	delete(r.s.tenantAttempts, id)
 	purge(r.s.domainAttempts, id)
+	r.s.deleteActionsTenant(id)
 	for k := range r.s.roles {
 		if k.tenant == id {
 			delete(r.s.roles, k)

@@ -164,7 +164,7 @@ func (r tenants) Update(ctx context.Context, t *store.Tenant) error {
 
 // tenantTables are the tables whose rows belong to one tenant, by
 // tenant_id. Delete empties them before it deletes the tenant row.
-var tenantTables = []string{"rbac_user_roles", "rbac_user_permissions", "rbac_role_permissions", "rbac_roles",
+var tenantTables = []string{"action_continues", "action_executions", "action_bindings", "action_versions", "action_artifacts", "action_builds", "actions", "rbac_user_roles", "rbac_user_permissions", "rbac_role_permissions", "rbac_roles",
 	"federation_attempts", "federated_tokens", "federated_identities",
 	"protection_reservations", "protection_receipts", "protection_buckets", "protection_risk_events", "job_files", "job_errors", "jobs", "operators", "email_notifications", "email_templates", "email_providers", "email_provider_revisions", "password_reset_tickets", "email_verification_tickets", "refresh_tokens", "device_codes", "pushed_auth_requests",
 	"auth_codes", "auth_transactions", "sessions", "user_grants", "user_logins", "password_history", "users",

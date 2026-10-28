@@ -202,7 +202,7 @@ func TestGoKeysExist(t *testing.T) {
 		KeyTooManyAttempts, KeyPasswordTooLong, KeyPasswordTooShort, KeyPasswordClasses,
 		KeyPasswordTypes, KeyPasswordIdentical, KeyPasswordSequential, KeyPasswordInHistory, KeyPasswordDictionary,
 		KeyPasswordPersonalInfo, KeyUsernameTooShort, KeyUsernameTooLong,
-		KeyErrSessionExpired, KeyErrNoConnection, KeyErrSignupDisabled, KeyErrServer,
+		KeyErrSessionExpired, KeyErrNoConnection, KeyErrSignupDisabled, KeyErrServer, KeyErrReference,
 		KeyErrInvalidRequest, KeyErrLogoutUnknownClient, KeyErrLogoutURL, KeyErrLogoutInvalid,
 		KeyResetPasswordMismatch, KeyResetErrExpiredTitle, KeyResetErrExpired, KeyResetErrUsedTitle,
 		KeyResetErrUsed, KeyResetErrGenericTitle, KeyResetErrGeneric, KeyResetNotChanged,
