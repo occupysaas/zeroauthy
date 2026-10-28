@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/config"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
@@ -63,16 +64,18 @@ func actionsPool(t *testing.T, root string) *noderunner.Pool {
 
 // actionRequest is the runner.mjs request.
 type actionRequest struct {
-	VersionKey string            `json:"version_key"`
-	Code       string            `json:"code"`
-	DepsRoot   string            `json:"deps_root"`
-	Handler    string            `json:"handler"`
-	Event      map[string]any    `json:"event"`
-	Secrets    map[string]string `json:"secrets"`
-	Cache      map[string]any    `json:"cache"`
-	Roles      []any             `json:"roles"`
-	State      map[string]any    `json:"state"`
-	Hostname   string            `json:"hostname"`
+	API            []string          `json:"api"`
+	UnsupportedAPI []string          `json:"unsupported_api"`
+	VersionKey     string            `json:"version_key"`
+	Code           string            `json:"code"`
+	DepsRoot       string            `json:"deps_root"`
+	Handler        string            `json:"handler"`
+	Event          map[string]any    `json:"event"`
+	Secrets        map[string]string `json:"secrets"`
+	Cache          map[string]any    `json:"cache"`
+	Roles          []any             `json:"roles"`
+	State          map[string]any    `json:"state"`
+	Hostname       string            `json:"hostname"`
 }
 
 type command struct {
@@ -104,6 +107,22 @@ func callActionErr(p *noderunner.Pool, tenant string, req actionRequest) (action
 	}
 	if req.Event == nil {
 		req.Event = map[string]any{}
+	}
+	// Raw runner probes must supply the same explicit capability contract as
+	// the engine; an omitted list intentionally exposes no Action APIs.
+	if req.API == nil {
+		for _, trigger := range actionsrules.Inventory().Triggers {
+			if trigger.Handler != req.Handler && trigger.ContinueHandler != req.Handler {
+				continue
+			}
+			for _, member := range trigger.API {
+				req.API = append(req.API, member.Name)
+				if member.Support == "unsupported" {
+					req.UnsupportedAPI = append(req.UnsupportedAPI, member.Name)
+				}
+			}
+			break
+		}
 	}
 	raw, err := p.Call(context.Background(), tenant, req)
 	if err != nil {
