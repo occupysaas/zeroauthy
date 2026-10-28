@@ -68,10 +68,11 @@ type Redirect struct {
 
 // Result is the outcome of a flow that did not fail.
 type Result struct {
-	Effects     Effects
-	Denied      *Denial
-	Redirect    *Redirect
-	ExecutionID string
+	Effects      Effects
+	Denied       *Denial
+	Redirect     *Redirect
+	ExecutionID  string
+	Continuation map[string]string
 }
 
 // ErrFlow is a failed flow: no code or token may be issued. ExecutionID
@@ -80,6 +81,8 @@ type Result struct {
 type ErrFlow struct {
 	ExecutionID string
 	Cause       error
+	// Continuation is trusted caller context from a resumed, opened state.
+	Continuation map[string]string
 }
 
 func (e *ErrFlow) Error() string {
@@ -166,6 +169,10 @@ type flow struct {
 	event                                func() map[string]any
 	cache                                *actionCache
 	deadline                             time.Time
+	input                                *PostLoginInput
+	redirectCount, position              int
+	state                                string
+	remaining                            time.Duration
 }
 
 // stepOut is what one Action produced, masked.
@@ -209,7 +216,7 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 	}
 	f := &flow{tenantID: tenantID, trigger: TriggerPostLogin, handler: handlerFor(TriggerPostLogin), hostname: in.Tenant.Host,
 		units: pinned(bound), roles: roles, acc: newAccum(TriggerPostLogin, in.TargetScopes, nil, in.CanRedirect),
-		cache: e.caches.get(tenantID, TriggerPostLogin)}
+		cache: e.caches.get(tenantID, TriggerPostLogin), input: &in}
 	f.event = func() map[string]any { return postLoginEvent(&in, names, f.acc) }
 	return e.run(ctx, f, in.User)
 }
@@ -277,8 +284,6 @@ func errorID(err error) string {
 		return "invalid_api_call"
 	case errors.Is(err, ErrRedirectNotAllowed):
 		return "redirect_not_allowed"
-	case errors.Is(err, ErrRedirectNotSupported):
-		return "redirect_not_supported"
 	case errors.Is(err, ErrTimeout):
 		return "timeout"
 	case errors.Is(err, ErrClaimsTooLarge):
@@ -295,13 +300,17 @@ func errorID(err error) string {
 // execution record. Any failure fails the whole flow closed.
 func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, error) {
 	execID := newExecutionID()
-	f.deadline = time.Now().Add(e.budget())
+	budget := f.remaining
+	if budget == 0 {
+		budget = e.budget()
+	}
+	f.deadline = time.Now().Add(budget)
 	fctx, cancel := context.WithDeadline(ctx, f.deadline)
 	defer cancel()
 	ex := &store.Execution{TenantID: f.tenantID, ID: execID, Trigger: f.trigger, Status: "final", CreatedAt: e.now()}
 	var failure error
 	failed := ""
-	for _, u := range f.units {
+	for i, u := range f.units {
 		started := e.now()
 		_, err := e.step(fctx, f, u, f.event())
 		r := store.ExecutionResult{ActionName: u.name, StartedAt: started, EndedAt: e.now()}
@@ -310,6 +319,29 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 			failure, failed = err, u.name
 		}
 		ex.Results = append(ex.Results, r)
+		if failure == nil && f.acc.denied == nil && f.acc.redirect != nil {
+			f.remaining = time.Until(f.deadline)
+			var redirect *Redirect
+			err := e.Store.WithTx(fctx, func(tx store.Store) error {
+				var err error
+				redirect, err = e.suspend(fctx, tx, f, i)
+				if err != nil {
+					return err
+				}
+				ex.Status, ex.UpdatedAt = "suspended", e.now()
+				return tx.Actions().CreateExecution(fctx, ex)
+			})
+			if err == nil {
+				return &Result{Redirect: redirect, ExecutionID: execID, Continuation: continuationOf(f)}, nil
+			}
+			ex.Status = "final"
+			failure, failed = err, u.name
+			ex.Results[len(ex.Results)-1].ErrorID = errorID(err)
+			ex.Results[len(ex.Results)-1].ErrorMsg = err.Error()
+		}
+		// Only the redirecting Action resumes onContinuePostLogin; the tail
+		// always starts with onExecutePostLogin.
+		f.handler = handlerFor(f.trigger)
 		if failure != nil || f.acc.denied != nil {
 			break
 		}
@@ -349,13 +381,13 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 	if failure != nil {
 		e.log().Warn("actions flow failed", "tenant", f.tenantID, "trigger", f.trigger, "action", failed,
 			"execution_id", execID, "error", failure.Error())
-		return nil, &ErrFlow{ExecutionID: execID, Cause: failure}
+		return nil, &ErrFlow{ExecutionID: execID, Cause: failure, Continuation: continuationOf(f)}
 	}
 	if d := f.acc.denied; d != nil {
 		e.log().Info("actions flow denied", "tenant", f.tenantID, "trigger", f.trigger,
 			"action", ex.Results[len(ex.Results)-1].ActionName, "execution_id", execID, "code", d.Code)
 	}
-	return &Result{Effects: f.acc.eff, Denied: f.acc.denied, ExecutionID: execID}, nil
+	return &Result{Effects: f.acc.eff, Denied: f.acc.denied, ExecutionID: execID, Continuation: continuationOf(f)}, nil
 }
 
 func hasMetadata(user *store.User, eff *Effects) bool {
@@ -408,7 +440,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	red := customdb.NewRedactor(vals)
 	req := wireRequest{VersionKey: u.versionKey, Code: u.code, DepsRoot: root, Handler: f.handler, Event: event,
 		Secrets: vals, Cache: f.cache.snapshot(e.now()), Roles: f.roles,
-		State: map[string]any{"canRedirect": f.acc.canRedirect}, Hostname: f.hostname}
+		State: map[string]any{"canRedirect": f.acc.canRedirect, "state": f.state}, Hostname: f.hostname}
 	if req.Roles == nil {
 		req.Roles = []roleJSON{}
 	}

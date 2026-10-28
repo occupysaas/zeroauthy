@@ -445,7 +445,7 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 			return
 		}
 		var ok bool
-		if eff, ok = h.postLogin(w, r, res, client, fr, sess, in); !ok {
+		if eff, ok = h.postLogin(w, r, res, client, fr, sess, in, in.ScreenShown); !ok {
 			return
 		}
 	}

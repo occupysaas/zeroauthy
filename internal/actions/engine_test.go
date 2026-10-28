@@ -365,7 +365,7 @@ func TestEngineFailClosed(t *testing.T) {
 		"bad deny":         `api.access.deny({ reason: "x" });`,
 		"no redirect":      `api.redirect.sendUserTo("https://example.test/");`,
 		"unknown method":   `api.user.setPassword("x");`,
-		"encodeToken":      `try { api.redirect.encodeToken({}); } catch (e) {}`,
+		"encodeToken":      `api.redirect.encodeToken({});`,
 		"bad app metadata": `api.user.setAppMetadata("$bad", 1);`,
 		"huge claims":      `api.idToken.setCustomClaim("https://x.test/big", "x".repeat(100001));`,
 		"validation code":  `api.validation.error("bad code\n", "m");`,
@@ -394,7 +394,7 @@ func TestEngineFailClosed(t *testing.T) {
 				t.Fatalf("execution = %+v", e)
 			}
 			wantID := map[string]string{"throw": "runtime_error", "timeout": "timeout", "session.revoke": "unsupported_api",
-				"multifactor": "unsupported_api", "bad scope": "invalid_api_call", "no redirect": "redirect_not_supported",
+				"multifactor": "unsupported_api", "bad scope": "invalid_api_call", "no redirect": "redirect_not_allowed",
 				"validation code": "invalid_api_call",
 				"huge claims":     "claims_too_large", "unknown method": "runtime_error"}[name]
 			if wantID != "" && e.Results[0].ErrorID != wantID {
@@ -696,10 +696,10 @@ func TestEngineTestDryRun(t *testing.T) {
 	if err != nil || !strings.Contains(string(out), `"https://x.test/roles",[]`) {
 		t.Fatalf("unknown user: %s %v", out, err)
 	}
-	// A redirect is reported as not supported yet.
+	// A draft redirect is recorded without suspending or writing state.
 	redir := h.action("t1", trigLogin, "redirdraft", `exports.onExecutePostLogin = async (event, api) => { api.redirect.sendUserTo("https://example.test/step"); };`, nil, true)
 	out, err = h.eng.Test(ctx, "t1", redir.ID, json.RawMessage(`{}`))
-	if err != nil || !strings.Contains(string(out), `"id":"redirect_not_supported"`) {
+	if err != nil || !strings.Contains(string(out), `"op":"redirect.sendUserTo"`) || strings.Contains(string(out), `"error"`) {
 		t.Fatalf("redirect draft: %s %v", out, err)
 	}
 	// A failing draft reports its error in the payload.
@@ -820,10 +820,9 @@ func TestPurgeExecutions(t *testing.T) {
 	}
 }
 
-// TestEngineRedirectFailsClosed: until redirect/continue exists, sendUserTo
-// fails the flow even where the flow could redirect; later Actions never run
-// and no metadata commits.
-func TestEngineRedirectFailsClosed(t *testing.T) {
+// TestEngineRedirectRequiresSession: an interactive engine call without a
+// browser session fails closed and cannot commit metadata.
+func TestEngineRedirectRequiresSession(t *testing.T) {
 	h := newHarness(t)
 	a1 := h.action("t1", trigLogin, "redir", `exports.onExecutePostLogin = async (event, api) => {
 	  api.user.setAppMetadata("before_redirect", true);
@@ -835,11 +834,11 @@ func TestEngineRedirectFailsClosed(t *testing.T) {
 	in.CanRedirect = true
 	r, err := h.eng.PostLogin(context.Background(), in)
 	var fe *actions.ErrFlow
-	if !errors.As(err, &fe) || r != nil || !errors.Is(err, actions.ErrRedirectNotSupported) {
+	if !errors.As(err, &fe) || r != nil {
 		t.Fatalf("PostLogin = %+v, %v", r, err)
 	}
 	e := h.execution("t1", fe.ExecutionID)
-	if len(e.Results) != 1 || e.Results[0].ErrorID != "redirect_not_supported" {
+	if len(e.Results) != 1 || e.Results[0].ErrorID != "internal_error" {
 		t.Fatalf("execution = %+v", e)
 	}
 	if u := h.user("t1"); u.AppMetadata["before_redirect"] != nil || u.AppMetadata["after_redirect"] != nil {

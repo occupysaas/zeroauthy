@@ -170,12 +170,12 @@ func TestActionsDenyAndErrorSurfaces(t *testing.T) {
 		}
 	})
 
-	t.Run("sendUserTo fails closed", func(t *testing.T) {
+	t.Run("sendUserTo suspends without a code", func(t *testing.T) {
 		e := newActionsEnv(t)
 		e.postLogin(t, "redirect", `api.redirect.sendUserTo("https://example.test/");`)
-		q := location(t, e.get(t, goodQuery(), e.login(t, fixedNow()))).Query()
-		if q.Get("error") != "server_error" || e.codes != 0 {
-			t.Fatalf("query = %v", q)
+		loc := location(t, e.get(t, goodQuery(), e.login(t, fixedNow())))
+		if loc.Host != "example.test" || loc.Query().Get("state") == "" || e.codes != 0 || e.runs(t) != 0 {
+			t.Fatalf("redirect = %s", loc)
 		}
 	})
 

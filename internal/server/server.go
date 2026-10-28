@@ -224,6 +224,8 @@ func New(d Deps) http.Handler {
 		tr.Options("/userinfo", preflight)
 		tr.Options("/dbconnections/signup", preflight)
 		tr.Options("/dbconnections/change_password", preflight)
+		tr.Get("/continue", az.Continue)
+		tr.Post("/continue", az.Continue)
 		tr.Get("/u/login", lg.LoginPage)
 		tr.Post("/u/login", lg.LoginSubmit)
 		tr.Get("/u/login/password", lg.LoginPasswordGet)

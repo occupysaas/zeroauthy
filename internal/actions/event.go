@@ -25,7 +25,9 @@ const (
 // geoip and asn are omitted (D-0053).
 type RequestInfo struct {
 	IP, Hostname, Method, UserAgent, Language string
-	Query, Body                               map[string]any
+	// Origin is the resolved public origin, set by the HTTP handler.
+	Origin      string
+	Query, Body map[string]any
 }
 
 // TransactionInfo carries the authorization transaction fields of
@@ -53,7 +55,9 @@ type PostLoginInput struct {
 	// Prepare, when set, completes the input (for example loads the user
 	// or connection) once the engine knows Actions are bound, so a tenant
 	// without post-login Actions pays only the bindings read.
-	Prepare func(ctx context.Context, in *PostLoginInput) error
+	Prepare func(ctx context.Context, in *PostLoginInput) error `json:"-"`
+	// Continuation carries caller-owned flow parameters, sealed during suspension.
+	Continuation map[string]string
 }
 
 // CredentialsInput is everything a credentials-exchange flow sees.

@@ -15,7 +15,7 @@
 import vm from 'node:vm';
 import readline from 'node:readline';
 import { createRequire, builtinModules } from 'node:module';
-import { createHash } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -242,8 +242,33 @@ function buildApi(req, commands, event, parse) {
   api.redirect = {
     canRedirect: () => state.canRedirect === true,
     sendUserTo: (...args) => record('redirect.sendUserTo', args),
-    encodeToken: () => { commands.push({ op: 'unsupported', args: ['redirect.encodeToken'] }); throw new Error('api.redirect.encodeToken is not supported by zeroauthy'); },
-    validateToken: () => { commands.push({ op: 'unsupported', args: ['redirect.validateToken'] }); throw new Error('api.redirect.validateToken is not supported by zeroauthy'); },
+    encodeToken(options) {
+      const { payload = {}, secret, expiresInSeconds = 900 } = options ?? {};
+      if (typeof secret !== 'string' || !secret || !payload || typeof payload !== 'object' || Array.isArray(payload) || !Number.isFinite(expiresInSeconds) || expiresInSeconds <= 0) throw new TypeError('api.redirect.encodeToken: invalid options');
+      const now = Math.floor(Date.now() / 1000);
+      const claims = { ...json('redirect.encodeToken', payload), sub: event.user?.user_id, iss: req.hostname, iat: now, exp: now + expiresInSeconds, ip: event.request?.ip };
+      const part = (v) => Buffer.from(JSON.stringify(v)).toString('base64url');
+      const data = part({ alg: 'HS256', typ: 'JWT' }) + '.' + part(claims);
+      return data + '.' + createHmac('sha256', secret).update(data).digest('base64url');
+    },
+    validateToken(options) {
+      const { secret, tokenParameterName = 'session_token' } = options ?? {};
+      if (typeof secret !== 'string' || !secret || typeof tokenParameterName !== 'string' || !tokenParameterName) throw new TypeError('api.redirect.validateToken: invalid options');
+      const token = event.request?.query?.[tokenParameterName] ?? event.request?.body?.[tokenParameterName];
+      try {
+        if (typeof token !== 'string' || token.length > 128 * 1024) throw new Error();
+        const parts = token.split('.');
+        if (parts.length !== 3 || parts.some((p) => !/^[A-Za-z0-9_-]+$/.test(p))) throw new Error();
+        const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'));
+        if (header.alg !== 'HS256') throw new Error();
+        const signature = Buffer.from(parts[2], 'base64url');
+        const expected = createHmac('sha256', secret).update(parts[0] + '.' + parts[1]).digest();
+        if (signature.length !== expected.length || !timingSafeEqual(signature, expected)) throw new Error();
+        const claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+        if (!claims || typeof claims.exp !== 'number' || !Number.isFinite(claims.exp) || claims.exp <= Date.now() / 1000 || typeof state.state !== 'string' || !state.state || claims.state !== state.state) throw new Error();
+        return cloneInto(parse, claims);
+      } catch { throw new Error('api.redirect.validateToken: invalid token'); }
+    },
   };
 
   // Roles come from the snapshot taken when the flow started.

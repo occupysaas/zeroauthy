@@ -117,7 +117,7 @@ func TestCommandsRejectUnknown(t *testing.T) {
 		{TriggerPostLogin, "cache.set", `["k", "v", {"other": 5}]`, false},
 		{TriggerPostLogin, "cache.set", `["` + strings.Repeat("k", 65) + `", "v", {}]`, false},
 		{TriggerPostLogin, "redirect.sendUserTo", `["javascript:alert(1)"]`, false},
-		{TriggerPostLogin, "redirect.sendUserTo", `["https://example.test/"]`, false},
+		{TriggerPostLogin, "redirect.sendUserTo", `["https://example.test/"]`, true},
 		{TriggerPostLogin, "access.deny", `["fine reason"]`, true},
 		{TriggerPostLogin, "access.deny", `["` + strings.Repeat("r", 513) + `"]`, true}, // truncated
 		{TriggerPostLogin, "validation.error", `["code", "message"]`, true},

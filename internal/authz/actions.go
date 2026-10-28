@@ -25,7 +25,7 @@ const effectsKey = "za_action_effects"
 // before consent (D-0053). in carries the API the request names. It returns
 // the flow's effects; on a denial or failure the response has been written
 // and ok is false. Without an engine no Action runs and the effects are nil.
-func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, in access.Input) (*actions.Effects, bool) {
+func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, in access.Input, screenShown bool) (*actions.Effects, bool) {
 	if h.Actions == nil {
 		return nil, true
 	}
@@ -44,8 +44,12 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 	if l := strings.Fields(fr.UILocales); len(l) > 0 {
 		locale = l[0]
 	}
+	continuation := fr.params()
+	if screenShown {
+		continuation["za_screen_shown"] = "true"
+	}
 	result, err := h.Actions.PostLogin(ctx, actions.PostLoginInput{
-		Tenant: res, Client: client, Session: sess,
+		Tenant: res, Client: client, Session: sess, Continuation: continuation,
 		// Loaded only when Actions are bound: a tenant without post-login
 		// Actions pays only the bindings read.
 		Prepare: func(ctx context.Context, in *actions.PostLoginInput) error {
@@ -62,7 +66,7 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		},
 		// The login form's body (with the password) is never passed on.
 		Request: actions.RequestInfo{
-			IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: r.Host, Method: r.Method,
+			IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: r.Host, Origin: res.Origin(), Method: r.Method,
 			UserAgent: r.UserAgent(), Language: firstLanguage(r.Header.Get("Accept-Language")),
 			Query: query, Body: map[string]any{},
 		},
@@ -71,20 +75,31 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		RequestedScopes: fr.Scopes(),
 		TargetScopes:    fr.Scopes(),
 		ResourceServer:  in.API,
-		// Redirects arrive with Task 9; a device approval does not redirect.
+		// A device approval cannot redirect.
 		CanRedirect: !fr.device() && !slices.Contains(fr.Prompts(), "none"),
 	})
+	return h.postLoginResult(w, r, res, client, fr, result, err)
+}
+
+func (h *Handlers) postLoginResult(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, result *actions.Result, err error) (*actions.Effects, bool) {
 	var fe *actions.ErrFlow
 	switch {
+	case errors.Is(err, actions.ErrRedirectNotAllowed) && slices.Contains(fr.Prompts(), "none"):
+		h.refuse(w, r, res, client, fr, &Error{Code: "interaction_required", Description: "the Action requires interaction"})
+		return nil, false
 	case errors.As(err, &fe):
 		h.actionsFailed(w, r, res, client, fr, fe.ExecutionID)
 		return nil, false
 	case err != nil:
-		h.log().ErrorContext(ctx, "run post-login Actions", "tenant", res.Tenant.ID, "err", err)
+		h.log().ErrorContext(r.Context(), "run post-login Actions", "tenant", res.Tenant.ID, "err", err)
 		h.actionsFailed(w, r, res, client, fr, "")
 		return nil, false
 	case result.Denied != nil:
 		h.refuse(w, r, res, client, fr, &Error{Code: result.Denied.Code, Description: result.Denied.Reason})
+		return nil, false
+	}
+	if result.Redirect != nil {
+		redirect(w, r, result.Redirect.URL)
 		return nil, false
 	}
 	return &result.Effects, true

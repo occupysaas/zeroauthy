@@ -30,10 +30,6 @@ var (
 	// ErrRedirectNotAllowed reports api.redirect.sendUserTo where
 	// canRedirect() is false.
 	ErrRedirectNotAllowed = errors.New("actions: redirect not allowed in this flow")
-	// ErrRedirectNotSupported reports api.redirect.sendUserTo until
-	// redirect/continue exists (Task 9): the flow fails closed rather than
-	// skip the remaining Actions.
-	ErrRedirectNotSupported = errors.New("actions: api.redirect.sendUserTo is not supported yet")
 )
 
 // Local bounds on deny and validation.error values, which reach OAuth
@@ -495,10 +491,9 @@ func (a *accum) sendUserTo(c command) error {
 			}
 		}
 	}
-	// Until Task 9 adds continue state (and the canRedirect check with
-	// ErrRedirectNotAllowed), a redirect would skip the remaining Actions:
-	// the validated redirect r is not kept and the flow fails closed,
-	// whether or not it could redirect.
-	_ = r
-	return ErrRedirectNotSupported
+	if !a.canRedirect {
+		return ErrRedirectNotAllowed
+	}
+	a.redirect = r
+	return nil
 }
