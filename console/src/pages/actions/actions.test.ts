@@ -229,3 +229,21 @@ it('initializes the test event from the saved Action trigger', async () => {
  expect((w.get('#event-template').element as HTMLSelectElement).value).toBe('custom-email-provider')
  expect(JSON.parse((w.get('#action-event').element as HTMLTextAreaElement).value)).toHaveProperty('notification.message_type', 'verify_email')
 })
+
+it('keeps a loaded execution without an error banner when the optional attempt lookup fails', async () => {
+ const { wrapper: w } = await setup('action-execution', '/t/acme/actions/execution?execution=ex1', c => c.url.endsWith('/attempt') ? { status: 503, body: { message: 'Attempt lookup unavailable' } } : ok({ id: 'ex1', trigger_id: 'custom-email-provider', status: 'final', results: [{ action_name: 'Mailer' }], created_at: '' }))
+ await flushPromises()
+ expect(w.text()).toContain('Mailer'); expect(w.text()).not.toContain('Attempt lookup unavailable'); expect(w.find('[role=alert]').exists()).toBe(false)
+})
+
+it('allows only one Action bound to custom-email-provider', async () => {
+ const bound = { ...binding('a'), trigger_id: 'custom-email-provider' }
+ const { wrapper: w, calls } = await setup('action-triggers', '/t/acme/actions/triggers/custom-email-provider', c => c.url.endsWith('/triggers') ? ok({ triggers: [{ id: 'custom-email-provider' }] }) : c.url.includes('/bindings') ? ok({ bindings: [bound], total: 1, page: 0, per_page: 100 }) : listing([action('a', { deployed_version: version() }), action('b', { deployed_version: version() })]))
+ await flushPromises()
+ await w.get('#binding-action').setValue('b')
+ expect(w.findAll('button').find(b => b.text() === 'Add binding')!.attributes('disabled')).toBeDefined()
+ await click(w, 'Add binding'); expect(w.findAll('[data-testid=binding-row]')).toHaveLength(1)
+ expect(w.text()).toContain('Only one Action can be bound to this trigger')
+ await click(w, 'Save bindings'); await flushPromises()
+ expect(calls.find(c => c.method === 'PATCH')!.body).toMatchObject({ bindings: [{ ref: { value: 'a' } }] })
+})
