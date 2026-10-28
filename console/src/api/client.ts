@@ -75,6 +75,14 @@ export type CustomDomainCreate = components['schemas']['CustomDomainCreate']
 export type CustomDomainUpdate = components['schemas']['CustomDomainUpdate']
 export type CustomDomainTest = components['schemas']['CustomDomainTest']
 
+export type ActionModule = components['schemas']['ActionModule']
+export type ActionModuleVersion = components['schemas']['ActionModuleVersion']
+export type ActionModuleRef = components['schemas']['ActionModuleRef']
+export type ActionModuleCreate = components['schemas']['ActionModuleCreate']
+export type ActionModuleUpdate = components['schemas']['ActionModuleUpdate']
+export type ActionModulesPage = components['schemas']['ActionModulesPage']
+export type ActionModuleVersionsPage = components['schemas']['ActionModuleVersionsPage']
+export type ActionModuleActionsPage = components['schemas']['ActionModuleActionsPage']
 export type Action = components['schemas']['Action']
 export type ActionCreate = components['schemas']['ActionCreate']
 export type ActionUpdate = components['schemas']['ActionUpdate']
@@ -492,7 +500,7 @@ export class Api {
     return this.request(this.systemOrigin, 'POST', `/api/system/tenants/${encodeURIComponent(t.name)}/emails/preview`, { body })
   }
 
-  testTenantEmail(t: Pick<SystemTenant, 'name'>, body: { template: EmailTemplateName }): Promise<void> {
+  testTenantEmail(t: Pick<SystemTenant, 'name'>, body: { template: EmailTemplateName }): Promise<void | { status: string; reason?: string; execution_id?: string }> {
     return this.request(this.systemOrigin, 'POST', `/api/system/tenants/${encodeURIComponent(t.name)}/emails/test`, { body })
   }
 
@@ -564,6 +572,46 @@ export class Api {
     return out
   }
 
+  listActionModules(t: SystemTenant, q: { page: number; per_page: number }): Promise<ActionModulesPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules', { query: q })
+  }
+
+  createActionModule(t: SystemTenant, body: ActionModuleCreate): Promise<ActionModule> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/actions/modules', { body })
+  }
+
+  getActionModule(t: SystemTenant, id: string): Promise<ActionModule> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id))
+  }
+
+  updateActionModule(t: SystemTenant, id: string, body: ActionModuleUpdate): Promise<ActionModule> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/actions/modules/' + encodeURIComponent(id), { body })
+  }
+
+  deleteActionModule(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/actions/modules/' + encodeURIComponent(id))
+  }
+
+  listActionModuleVersions(t: SystemTenant, id: string, q: { page: number; per_page: number }): Promise<ActionModuleVersionsPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/versions', { query: q })
+  }
+
+  getActionModuleVersion(t: SystemTenant, id: string, versionId: string): Promise<ActionModuleVersion> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/versions/' + encodeURIComponent(versionId))
+  }
+
+  publishActionModule(t: SystemTenant, id: string): Promise<ActionModuleVersion> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/versions')
+  }
+
+  rollbackActionModule(t: SystemTenant, id: string, body: { module_version_id: string }): Promise<ActionModule> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/rollback', { body })
+  }
+
+  listActionModuleActions(t: SystemTenant, id: string, q: { page: number; per_page: number }): Promise<ActionModuleActionsPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/modules/' + encodeURIComponent(id) + '/actions', { query: q })
+  }
+
   listActions(t: SystemTenant, q: { page: number; per_page: number; triggerId?: string; actionName?: string; deployed?: boolean }): Promise<ActionsPage> {
     return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/actions/actions', { query: q })
   }
@@ -614,6 +662,10 @@ export class Api {
 
   updateActionBindings(t: SystemTenant, trigger: string, bindings: ActionBindingInput[]): Promise<ActionBindings> {
     return this.request(Api.tenantOrigin(t), 'PATCH', triggerPath(trigger), { body: { bindings } })
+  }
+
+  getActionExecutionAttempt(t: SystemTenant, id: string): Promise<void | { job_id: string; attempt: number }> {
+    return this.request(this.systemOrigin, 'GET', `/api/system/tenants/${encodeURIComponent(t.name)}/actions/executions/${encodeURIComponent(id)}/attempt`)
   }
 
   getActionExecution(t: SystemTenant, id: string): Promise<ActionExecution> {

@@ -10,6 +10,7 @@ import Field from '../../ui/Field.vue'
 import Modal from '../../ui/Modal.vue'
 import Pager from '../roles/Pager.vue'
 import ActionNav from './ActionNav.vue'
+import { triggerCode } from './templates'
 import { buildStatusKey, useActionContext } from './context'
 const { t } = useI18n(), router = useRouter(), ctx = useActionContext(), { api, tenant, key, capture, current } = ctx
 const items = ref<Action[]>([]), triggers = ref<ActionTrigger[]>([]), total = ref(0), page = ref(0)
@@ -37,7 +38,7 @@ async function create() {
   if (!c || busy.value || !name.value || !triggers.value.some(v => v.id === trigger.value)) return
   busy.value = true; error.value = ''
   try {
-    const created = await api.createAction(c.tenant, { runtime: 'node22', name: name.value, supported_triggers: [{ id: trigger.value as ActionTrigger['id'] }] })
+    const created = await api.createAction(c.tenant, { runtime: 'node22', name: name.value, code: triggerCode(trigger.value), supported_triggers: [{ id: trigger.value as ActionTrigger['id'] }] })
     if (current(c)) { creating.value = false; await router.push({ name: 'action-editor', params: { tenant: c.tenant.name, id: created.id } }) }
   } catch (e) { if (current(c)) error.value = errorMessage(e) }
   finally { if (current(c)) busy.value = false }

@@ -8186,6 +8186,9 @@ type ServerInterface interface {
 	// UpdateTenant Update a tenant
 	// (PATCH /api/system/tenants/{name})
 	UpdateTenant(w http.ResponseWriter, r *http.Request, name string)
+	// GetTenantActionExecutionAttempt Read local asynchronous Action attempt metadata
+	// (GET /api/system/tenants/{tenant}/actions/executions/{id}/attempt)
+	GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request, tenant string, id string)
 	// PreviewTenantBranding Preview tenant Universal Login branding.
 	// (POST /api/system/tenants/{tenant}/branding/preview)
 	PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string)
@@ -8696,6 +8699,12 @@ func (_ Unimplemented) DeleteTenant(w http.ResponseWriter, r *http.Request, name
 // UpdateTenant Update a tenant
 // (PATCH /api/system/tenants/{name})
 func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetTenantActionExecutionAttempt Read local asynchronous Action attempt metadata
+// (GET /api/system/tenants/{tenant}/actions/executions/{id}/attempt)
+func (_ Unimplemented) GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request, tenant string, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -9779,6 +9788,41 @@ func (siw *ServerInterfaceWrapper) UpdateTenant(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateTenant(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTenantActionExecutionAttempt operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantActionExecutionAttempt(w, r, tenant, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -15381,6 +15425,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/system/operators/{id}", wrapper.DeleteOperator)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/actions/executions/{id}/attempt", wrapper.GetTenantActionExecutionAttempt)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/jobs", wrapper.GetTenantJobs)

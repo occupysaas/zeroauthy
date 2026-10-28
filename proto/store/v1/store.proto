@@ -1073,6 +1073,7 @@ message ActionBindingMsg {
 }
 message ActionBoundMsg { ActionBindingMsg binding=1; ActionMsg action=2; ActionVersionMsg version=3; }
 message ActionExecutionResultMsg {
+  string job_id=6; int32 job_attempt=7;
   string action_name=1; string error_id=2; string error_msg=3;
   google.protobuf.Timestamp started_at=4; google.protobuf.Timestamp ended_at=5;
 }

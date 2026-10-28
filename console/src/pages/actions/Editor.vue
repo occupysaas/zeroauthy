@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { Action, ActionDependency, ActionSecretInput } from '../../api/client'
+import type { ActionModule, ActionModuleRef, ActionModuleVersion, Action, ActionDependency, ActionSecretInput } from '../../api/client'
 import { errorMessage } from '../../context'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
@@ -11,15 +11,18 @@ import ActionNav from './ActionNav.vue'
 import { buildStatusKey, exactVersion, packageName, pendingBuild, useActionContext } from './context'
 const { t } = useI18n(), { api, tenant, key, capture, current } = useActionContext()
 const action = ref<Action>(), name = ref(''), code = ref(''), dependencies = ref<ActionDependency[]>([]), secrets = ref<ActionSecretInput[]>([])
+const modules = ref<ActionModuleRef[]>([]), availableModules = ref<ActionModule[]>([]), moduleVersions = ref<Record<string, ActionModuleVersion[]>>({}), moduleChoice = ref(''), versionChoice = ref('')
+let moduleReads = 0
 const loading = ref(false), busy = ref(false), error = ref(''), notice = ref(''), reloadRequired = ref(false), baseline = ref('')
 let poll: ReturnType<typeof setTimeout> | undefined, readSeq = 0
-const draft = () => JSON.stringify({ name: name.value, code: code.value, dependencies: dependencies.value, secrets: secrets.value })
+const draft = () => JSON.stringify({ name: name.value, code: code.value, dependencies: dependencies.value, secrets: secrets.value, modules: modules.value })
 const dirty = computed(() => draft() !== baseline.value)
 function stopPolling() { clearTimeout(poll); poll = undefined }
 function apply(a: Action) {
   action.value = a; name.value = a.name; code.value = a.code
   dependencies.value = a.dependencies.map(d => ({ ...d }))
   secrets.value = a.secrets.map(s => ({ name: s.name }))
+  modules.value = (a.modules ?? []).map(m => ({ ...m }))
   baseline.value = draft()
 }
 function schedule(c: ReturnType<typeof capture>) {
@@ -42,11 +45,28 @@ async function read(preserve = false) {
   finally { if (current(c) && seq === readSeq) loading.value = false }
 }
 watch(key, () => {
-  stopPolling(); ++readSeq; action.value = undefined; name.value = ''; code.value = ''; dependencies.value = []; secrets.value = []; baseline.value = ''; busy.value = false; loading.value = false; reloadRequired.value = false; error.value = ''; notice.value = ''
-  void read()
+  stopPolling(); ++readSeq; ++moduleReads; modules.value = []; availableModules.value = []; moduleVersions.value = {}; moduleChoice.value = ''; versionChoice.value = ''; action.value = undefined; name.value = ''; code.value = ''; dependencies.value = []; secrets.value = []; baseline.value = ''; busy.value = false; loading.value = false; reloadRequired.value = false; error.value = ''; notice.value = ''
+  void read(); void loadModules()
 }, { immediate: true })
 onBeforeUnmount(stopPolling)
+async function loadModules() {
+ const c = capture(); if(!c) return
+ try { const all: ActionModule[] = []; for(let page = 0; ; page++) { const r = await api.listActionModules(c.tenant, { page, per_page: 100 }); if(!current(c)) return; all.push(...r.modules); if(all.length >= r.total || !r.modules.length) break }; availableModules.value = all }
+ catch(e) { if(current(c)) error.value = errorMessage(e) }
+}
+watch(moduleChoice, async id => {
+ const c = capture(), seq = ++moduleReads; versionChoice.value = ''; if(!c || !id) return
+ try { const versions: ActionModuleVersion[] = []; for(let page = 0; ; page++) { const r = await api.listActionModuleVersions(c.tenant, id, { page, per_page: 100 }); if(!current(c) || seq !== moduleReads) return; versions.push(...r.versions); if(versions.length >= r.total || !r.versions.length) break }; moduleVersions.value[id] = versions }
+ catch(e) { if(current(c) && seq === moduleReads) error.value = errorMessage(e) }
+})
+function addModule() {
+ const m = availableModules.value.find(m => m.id === moduleChoice.value), v = moduleVersions.value[moduleChoice.value]?.find(v => v.id === versionChoice.value)
+ if(!m || !v || modules.value.length >= 10 || modules.value.some(r => r.module_id === m.id)) return
+ modules.value.push({ module_id: m.id, module_name: m.name, module_version_id: v.id, module_version_number: v.version_number })
+}
 function validate(): boolean {
+  if(modules.value.length > 10 || new Set(modules.value.map(m => m.module_id)).size !== modules.value.length || modules.value.some(m => !m.module_id || !m.module_version_id)) { error.value = t('actions.invalidModules'); return false }
+
   if (!name.value || [...name.value].length > 128 || new TextEncoder().encode(code.value).length > 100000) { error.value = t('actions.invalidDraft'); return false }
   const seen = new Set<string>()
   for (const d of dependencies.value) {
@@ -65,7 +85,7 @@ async function save() {
   if (!c || !action.value || busy.value || reloadRequired.value || !validate()) return
   stopPolling(); ++readSeq; busy.value = true; notice.value = ''; error.value = ''
   try {
-    const a = await api.updateAction(c.tenant, c.id, { runtime: 'node22', name: name.value, code: code.value, dependencies: dependencies.value.map(d => ({ ...d })), secrets: secrets.value.map(s => ({ ...s })) })
+    const a = await api.updateAction(c.tenant, c.id, { runtime: 'node22', name: name.value, code: code.value, dependencies: dependencies.value.map(d => ({ ...d })), modules: modules.value.map(m => ({ ...m })), secrets: secrets.value.map(s => ({ ...s })) })
     if (!current(c)) return
     apply(a); notice.value = t('actions.saved'); schedule(c)
   } catch (e) {
@@ -107,6 +127,12 @@ async function deploy() {
         <fieldset :disabled="busy" class="stack border-0 p-0">
           <Field id="action-name" :label="t('actions.name')"><input id="action-name" v-model="name" required maxlength="128" /></Field>
           <ScriptEditor :max-bytes="100000" id="action-code" v-model="code" :label="t('actions.code')" :readonly="busy" :hint="t('actions.codeHint')" />
+          <section class="card stack" :aria-label="t('actions.modules')"><h2>{{ t('actions.modules') }}</h2><p id="module-picker-hint">{{ t('actions.modulePickerHint') }}</p>
+            <ul><li v-for="(m, i) in modules" :key="m.module_id">{{ m.module_name }} · {{ t('actions.versionNumber', { number: m.module_version_number }) }} <Button @click="modules.splice(i, 1)">{{ t('actions.removeModule') }}</Button></li></ul>
+            <Field id="module-choice" :label="t('actions.moduleName')"><select id="module-choice" v-model="moduleChoice" aria-describedby="module-picker-hint"><option value="">—</option><option v-for="m in availableModules" :key="m.id" :value="m.id" :disabled="modules.some(r => r.module_id === m.id)">{{ m.name }}</option></select></Field>
+            <Field id="module-version-choice" :label="t('actions.moduleVersion')"><select id="module-version-choice" v-model="versionChoice"><option value="">—</option><option v-for="v in moduleVersions[moduleChoice] ?? []" :key="v.id" :value="v.id">{{ v.version_number }}</option></select></Field>
+            <Button :disabled="modules.length >= 10 || !versionChoice" @click="addModule">{{ t('actions.addModule') }}</Button>
+          </section>
           <section class="card stack" :aria-label="t('actions.dependencies')">
             <h2>{{ t('actions.dependencies') }}</h2><p id="dependency-hint" class="muted">{{ t('actions.dependencyHint') }}</p>
             <div v-for="(d, i) in dependencies" :key="i" class="row flex-wrap">

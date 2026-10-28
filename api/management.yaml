@@ -4466,6 +4466,37 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
+  /api/system/tenants/{tenant}/actions/executions/{id}/attempt:
+    parameters:
+      - {name: tenant, in: path, required: true, schema: {type: string}}
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      operationId: getTenantActionExecutionAttempt
+      tags: [system]
+      summary: Read local asynchronous Action attempt metadata
+      description: |
+        A zeroauthy-only operator extension, separate from Auth0's execution
+        representation. Requires the target tenant grant. Reports the persisted
+        job ID and one-based attempt of this execution, not current job state.
+        Ordinary synchronous and test executions return 204.
+      x-source:
+        - docs/actions.md
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Persisted asynchronous attempt identity.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [job_id, attempt]
+                properties:
+                  job_id: {type: string}
+                  attempt: {type: integer, minimum: 1}
+        "204": {description: The execution has no job attempt.}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /api/system/tenants/{tenant}/jobs:
     parameters:
       - name: tenant

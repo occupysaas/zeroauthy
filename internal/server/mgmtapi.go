@@ -676,3 +676,7 @@ func (a mgmtAPI) PublishActionModule(w http.ResponseWriter, r *http.Request, id 
 func (a mgmtAPI) GetActionModuleVersion(w http.ResponseWriter, r *http.Request, id string, versionId string) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionModuleVersion(w, r, id, versionId) }, "read:actions")
 }
+
+func (a mgmtAPI) GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request, tenant string, id string) {
+	a.h.GetTenantActionExecutionAttempt(w, r, tenant, id)
+}

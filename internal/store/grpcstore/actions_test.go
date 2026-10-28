@@ -114,7 +114,7 @@ func TestActionsPluginRoundTrip(t *testing.T) {
 	}
 
 	ex := &store.Execution{TenantID: "t", ID: "ex_1", Trigger: "post-login", Status: "failed", CreatedAt: now, UpdatedAt: now,
-		Results: []store.ExecutionResult{{ActionName: "Every Field", ErrorID: "e1", ErrorMsg: "boom", StartedAt: now, EndedAt: now.Add(time.Second)}}}
+		Results: []store.ExecutionResult{{JobID: "ajob_every_field", JobAttempt: 4, ActionName: "Every Field", ErrorID: "e1", ErrorMsg: "boom", StartedAt: now, EndedAt: now.Add(time.Second)}}}
 	if err := a.CreateExecution(ctx, ex); err != nil {
 		t.Fatal(err)
 	}

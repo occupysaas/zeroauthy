@@ -185,3 +185,47 @@ it('cannot clear bindings when their initial read failed, and recovers after ret
   await click(w, 'Save bindings'); await flushPromises()
   expect(calls.find(c => c.method === 'PATCH')!.body).toMatchObject({ bindings: [{ ref: { value: 'a' } }] })
 })
+
+it('pins published modules by name and version, limits selection to ten and submits references', async () => {
+ const refs = Array.from({ length: 9 }, (_, i) => ({ module_id: 'm'+i, module_name: 'Shared '+i, module_version_id: 'v'+i, module_version_number: 1 }))
+ const { wrapper: w, calls } = await setup('action-editor', '/t/acme/actions/a', c => c.url.includes('/modules/m9/versions') ? ok({ versions: [{ id: 'v9', version_number: 2 }], total: 1 }) : c.url.includes('/modules') ? ok({ modules: [{ id: 'm9', name: 'Shared 9' }], total: 1 }) : ok(action('a', { modules: refs })))
+ await w.get('#module-choice').setValue('m9'); await flushPromises(); await w.get('#module-version-choice').setValue('v9'); await click(w, 'Add module'); await flushPromises()
+ expect(w.text()).toContain('Shared 9'); expect(w.findAll('button').find(b => b.text() === 'Add module')!.attributes('disabled')).toBeDefined()
+ await click(w, 'Save draft'); await flushPromises(); expect((calls.find(c => c.method === 'PATCH')!.body as { modules: unknown[] }).modules).toHaveLength(10)
+})
+it('shows seven trigger choices from the catalogue', async () => {
+ const ids = ['post-login', 'credentials-exchange', 'pre-user-registration', 'post-user-registration', 'post-change-password', 'password-reset-post-challenge', 'custom-email-provider']
+ const { wrapper: w } = await setup('action-triggers', '/t/acme/actions/triggers', () => ok({ triggers: ids.map(id => ({ id })) }))
+ ids.forEach(id => expect(w.text()).toContain(id))
+})
+it('offers each trigger sample payload and preserves manual event edits until explicitly loading a template', async () => {
+ const { wrapper: w } = await setup('action-test', '/t/acme/actions/a/test', () => ok(action()))
+ expect(w.findAll('#event-template option')).toHaveLength(7)
+ await w.get('#event-template').setValue('custom-email-provider'); await click(w, 'Load sample event'); await flushPromises()
+ expect(JSON.parse((w.get('#action-event').element as HTMLTextAreaElement).value)).toHaveProperty('notification.to')
+ await w.get('#action-event').setValue('{"my":"draft"}'); await w.get('#event-template').setValue('pre-user-registration')
+ expect((w.get('#action-event').element as HTMLTextAreaElement).value).toContain('draft')
+})
+it('shows actual persisted job attempts via the local operator endpoint', async () => {
+ const { wrapper: w } = await setup('action-execution', '/t/acme/actions/execution?execution=ex1', c => c.url.endsWith('/attempt') ? ok({ job_id: 'ajob_1', attempt: 3 }) : ok({ id: 'ex1', trigger_id: 'custom-email-provider', status: 'final', results: [], created_at: '' }))
+ expect(w.text()).toContain('Job ajob_1 · attempt 3')
+})
+
+it('creates correct entrypoint templates for every trigger', async () => {
+ const handlers = ['onExecutePostLogin', 'onExecuteCredentialsExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onExecuteCustomEmailProvider']
+ const { triggerCode, eventTemplates } = await import('./templates')
+ Object.keys(eventTemplates).forEach((id, i) => { expect(triggerCode(id)).toContain(`exports.${handlers[i]} = async (event, api)`); expect(eventTemplates[id]).toHaveProperty('tenant') })
+})
+
+it('ignores a late attempt reply after execution navigation', async () => {
+ let resolve!: (r: Reply) => void
+ const { wrapper: w, router } = await setup('action-execution', '/t/acme/actions/execution?execution=old', c => c.url.endsWith('/old/attempt') ? new Promise<Reply>(r => { resolve = r }) : c.url.endsWith('/attempt') ? {status:204} : ok({id:c.url.includes('old') ? 'old' : 'new',trigger_id:'post-login',status:'final',results:[]}))
+ await router.push('/t/acme/actions/execution?execution=new'); await flushPromises(); resolve(ok({job_id:'stale',attempt:9})); await flushPromises()
+ expect(w.text()).toContain('new'); expect(w.text()).not.toContain('stale')
+})
+
+it('initializes the test event from the saved Action trigger', async () => {
+ const { wrapper: w } = await setup('action-test', '/t/acme/actions/a/test', () => ok(action('a', { supported_triggers: [{ id: 'custom-email-provider' }] })))
+ expect((w.get('#event-template').element as HTMLSelectElement).value).toBe('custom-email-provider')
+ expect(JSON.parse((w.get('#action-event').element as HTMLTextAreaElement).value)).toHaveProperty('notification.message_type', 'verify_email')
+})

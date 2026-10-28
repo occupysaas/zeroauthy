@@ -1823,6 +1823,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/tenants/{tenant}/actions/executions/{id}/attempt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read local asynchronous Action attempt metadata
+         * @description A zeroauthy-only operator extension, separate from Auth0's execution
+         *     representation. Requires the target tenant grant. Reports the persisted
+         *     job ID and one-based attempt of this execution, not current job state.
+         *     Ordinary synchronous and test executions return 204.
+         */
+        get: operations["getTenantActionExecutionAttempt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/tenants/{tenant}/jobs": {
         parameters: {
             query?: never;
@@ -9239,6 +9265,42 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    getTenantActionExecutionAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted asynchronous attempt identity. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        job_id: string;
+                        attempt: number;
+                    };
+                };
+            };
+            /** @description The execution has no job attempt. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     getTenantJobs: {

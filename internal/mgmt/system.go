@@ -470,3 +470,28 @@ func (h *Handlers) GetTenantJobs(w http.ResponseWriter, r *http.Request, tenantN
 	}
 	WritePage(w, "jobs", out, page, perPage, total, totals)
 }
+
+// GetTenantActionExecutionAttempt is local operator metadata, never an Auth0 field.
+func (h *Handlers) GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request, tenantName, id string) {
+	tn, err := h.Store.Tenants().GetByName(r.Context(), tenantName)
+	if errors.Is(err, store.ErrNotFound) {
+		Fail(w, errTenantNotFound)
+		return
+	}
+	if err != nil {
+		Fail(w, internalError(h, r, "read Action attempt tenant", err))
+		return
+	}
+	ex, err := h.Store.Actions().GetExecution(r.Context(), tn.ID, id)
+	if err != nil {
+		h.actionError(w, r, err)
+		return
+	}
+	for _, result := range ex.Results {
+		if result.JobID != "" && result.JobAttempt > 0 {
+			writeJSON(w, http.StatusOK, map[string]any{"job_id": result.JobID, "attempt": result.JobAttempt})
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

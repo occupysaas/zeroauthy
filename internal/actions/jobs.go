@@ -97,7 +97,7 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 	if err != nil || !asyncTrigger(j.Trigger) || json.Unmarshal(plain, &p) != nil || len(p.Units) == 0 || p.Input == nil {
 		runErr = errors.New("actions: invalid job envelope")
 	} else {
-		f := &flow{tenantID: j.TenantID, trigger: j.Trigger, handler: handlerFor(j.Trigger), acc: newAccum(j.Trigger, nil, nil, false), cache: e.caches.get(j.TenantID, j.Trigger)}
+		f := &flow{jobID: j.ID, jobAttempt: j.Attempts, tenantID: j.TenantID, trigger: j.Trigger, handler: handlerFor(j.Trigger), acc: newAccum(j.Trigger, nil, nil, false), cache: e.caches.get(j.TenantID, j.Trigger)}
 		for _, u := range p.Units {
 			if u.ActionID == "" || u.VersionKey == "" || u.BuildID == "" || len(u.Modules) != len(u.ModuleVersions) {
 				runErr = errors.New("actions: invalid job snapshot")
@@ -124,7 +124,7 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 		} else {
 			executionID = newExecutionID()
 			now := e.now()
-			ex := &store.Execution{TenantID: j.TenantID, ID: executionID, Trigger: j.Trigger, Status: "final", CreatedAt: now, UpdatedAt: now, Results: []store.ExecutionResult{{StartedAt: now, EndedAt: now, ErrorID: "internal_error", ErrorMsg: runErr.Error()}}}
+			ex := &store.Execution{TenantID: j.TenantID, ID: executionID, Trigger: j.Trigger, Status: "final", CreatedAt: now, UpdatedAt: now, Results: []store.ExecutionResult{{JobID: j.ID, JobAttempt: j.Attempts, StartedAt: now, EndedAt: now, ErrorID: "internal_error", ErrorMsg: runErr.Error()}}}
 			if err := e.Store.Actions().CreateExecution(ctx, ex); err != nil {
 				e.log().Warn("actions: recording a failed job execution", "tenant", j.TenantID, "execution_id", executionID, "error", err)
 			}

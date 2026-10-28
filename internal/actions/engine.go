@@ -138,6 +138,8 @@ type unit struct {
 
 // flow is one trigger execution in progress.
 type flow struct {
+	jobID                                string
+	jobAttempt                           int
 	tenantID, trigger, handler, hostname string
 	units                                []unit
 	roles                                []roleJSON
@@ -298,7 +300,7 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 	for i, u := range f.units {
 		started := e.now()
 		_, err := e.step(fctx, f, u, f.event())
-		r := store.ExecutionResult{ActionName: u.name, StartedAt: started, EndedAt: e.now()}
+		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
 		if err != nil {
 			r.ErrorID, r.ErrorMsg = errorID(err), err.Error()
 			failure, failed = err, u.name

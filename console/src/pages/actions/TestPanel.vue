@@ -7,10 +7,20 @@ import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import ActionNav from './ActionNav.vue'
+import { eventTemplates } from './templates'
 import { useActionContext } from './context'
 const { t } = useI18n(), { api, tenant, key, capture, current } = useActionContext()
+const template = ref('post-login')
+function loadTemplate() { event.value = JSON.stringify(eventTemplates[template.value], null, 2) }
 const event = ref('{}'), result = ref<ActionTestResponse['payload']>(), error = ref(''), busy = ref(false)
-watch(key, () => { event.value = '{}'; result.value = undefined; error.value = ''; busy.value = false }, { immediate: true })
+async function initialize() {
+ const c = capture(); if(!c) return
+ try {
+  const action = await api.getAction(c.tenant, c.id), id = action.supported_triggers?.[0]?.id
+  if(current(c) && id && eventTemplates[id] && event.value === '{}') { template.value = id; loadTemplate() }
+ } catch(e) { if(current(c)) error.value = errorMessage(e) }
+}
+watch(key, () => { event.value = '{}'; template.value = 'post-login'; result.value = undefined; error.value = ''; busy.value = false; void initialize() }, { immediate: true })
 async function run() {
   const c = capture()
   if (!c || busy.value) return
@@ -31,6 +41,7 @@ async function run() {
   <div v-if="tenant" class="stack">
     <ActionNav /><h1>{{ t('actions.test') }}</h1><p class="muted">{{ t('actions.testHint') }}</p>
     <Banner v-if="error" kind="error">{{ error }}</Banner>
+    <Field id="event-template" :label="t('actions.template')"><select id="event-template" v-model="template" :disabled="busy"><option v-for="(_, id) in eventTemplates" :key="id" :value="id">{{ id }}</option></select></Field><Button :disabled="busy" @click="loadTemplate">{{ t('actions.loadTemplate') }}</Button>
     <form class="stack" @submit.prevent="run"><Field id="action-event" :label="t('actions.event')"><textarea id="action-event" v-model="event" rows="12" spellcheck="false" :disabled="busy" class="font-mono" /></Field><Button type="submit" variant="primary" :disabled="busy">{{ t('actions.runTest') }}</Button></form>
     <p v-if="busy" role="status">{{ t('loading') }}</p>
     <section v-if="result" class="stack" aria-live="polite">

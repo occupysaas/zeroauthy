@@ -104,8 +104,8 @@ async function sendTest() {
   status.value = ''
   error.value = ''
   try {
-    await api.testTenantEmail(current, { template: name })
-    if (sequence === requestNumber && tenant.value?.name === current.name && selected.value === name) status.value = t('emails.testAccepted')
+    const outcome = await api.testTenantEmail(current, { template: name })
+    if (sequence === requestNumber && tenant.value?.name === current.name && selected.value === name) status.value = outcome ? t('emails.customTestResult', { status: outcome.status, reason: outcome.reason ?? '—', execution: outcome.execution_id ?? '—' }) : t('emails.testAccepted')
   } catch {
     await refreshSavedState(current, name, sequence)
     if (sequence === requestNumber && tenant.value?.name === current.name && selected.value === name) status.value = t('emails.testUncertain')

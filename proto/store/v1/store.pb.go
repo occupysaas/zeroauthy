@@ -15372,6 +15372,8 @@ func (x *ActionBoundMsg) GetVersion() *ActionVersionMsg {
 
 type ActionExecutionResultMsg struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,6,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	JobAttempt    int32                  `protobuf:"varint,7,opt,name=job_attempt,json=jobAttempt,proto3" json:"job_attempt,omitempty"`
 	ActionName    string                 `protobuf:"bytes,1,opt,name=action_name,json=actionName,proto3" json:"action_name,omitempty"`
 	ErrorId       string                 `protobuf:"bytes,2,opt,name=error_id,json=errorId,proto3" json:"error_id,omitempty"`
 	ErrorMsg      string                 `protobuf:"bytes,3,opt,name=error_msg,json=errorMsg,proto3" json:"error_msg,omitempty"`
@@ -15409,6 +15411,20 @@ func (x *ActionExecutionResultMsg) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ActionExecutionResultMsg.ProtoReflect.Descriptor instead.
 func (*ActionExecutionResultMsg) Descriptor() ([]byte, []int) {
 	return file_store_proto_rawDescGZIP(), []int{202}
+}
+
+func (x *ActionExecutionResultMsg) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *ActionExecutionResultMsg) GetJobAttempt() int32 {
+	if x != nil {
+		return x.JobAttempt
+	}
+	return 0
 }
 
 func (x *ActionExecutionResultMsg) GetActionName() string {
@@ -18100,8 +18116,11 @@ const file_store_proto_rawDesc = "" +
 	"\x0eActionBoundMsg\x12>\n" +
 	"\abinding\x18\x01 \x01(\v2$.zeroauthy.store.v1.ActionBindingMsgR\abinding\x125\n" +
 	"\x06action\x18\x02 \x01(\v2\x1d.zeroauthy.store.v1.ActionMsgR\x06action\x12>\n" +
-	"\aversion\x18\x03 \x01(\v2$.zeroauthy.store.v1.ActionVersionMsgR\aversion\"\xe5\x01\n" +
-	"\x18ActionExecutionResultMsg\x12\x1f\n" +
+	"\aversion\x18\x03 \x01(\v2$.zeroauthy.store.v1.ActionVersionMsgR\aversion\"\x9d\x02\n" +
+	"\x18ActionExecutionResultMsg\x12\x15\n" +
+	"\x06job_id\x18\x06 \x01(\tR\x05jobId\x12\x1f\n" +
+	"\vjob_attempt\x18\a \x01(\x05R\n" +
+	"jobAttempt\x12\x1f\n" +
 	"\vaction_name\x18\x01 \x01(\tR\n" +
 	"actionName\x12\x19\n" +
 	"\berror_id\x18\x02 \x01(\tR\aerrorId\x12\x1b\n" +

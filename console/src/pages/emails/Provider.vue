@@ -147,7 +147,8 @@ async function remove() {
           <option v-for="item in names" :key="item" :value="item">{{ t(`emails.providerNames.${item}`) }}</option>
         </select>
       </Field>
-      <label class="flex items-center gap-2"><input v-model="enabled" type="checkbox" :disabled="saving || deleting || name === 'custom'" />{{ t('emails.enabled') }}</label>
+      <label class="flex items-center gap-2"><input v-model="enabled" type="checkbox" :disabled="saving || deleting" />{{ t('emails.enabled') }}</label>
+      <p v-if="name === 'custom'" class="muted">{{ t('emails.customBindingHint') }}</p>
       <Field id="email-default-from" :label="t('emails.defaultFrom')"><input id="email-default-from" v-model="defaultFrom" type="email" :disabled="saving || deleting" /></Field>
       <p class="m-0 text-sm text-muted">{{ t('emails.credentialsHint') }}</p>
       <Field v-for="field in inputFields" :key="field" :id="'credential-' + field" :label="t(`emails.credentialNames.${field}`)">

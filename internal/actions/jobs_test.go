@@ -131,6 +131,10 @@ func TestJobsEmailRetry(t *testing.T) {
 				if n.Status != want || len(n.ExecutionIDs) != i+1 {
 					t.Fatalf("attempt %d: %+v want %s", i+1, n, want)
 				}
+				ex, err := h.st.Actions().GetExecution(context.Background(), "t1", n.ExecutionIDs[len(n.ExecutionIDs)-1])
+				if err != nil || len(ex.Results) == 0 || ex.Results[0].JobID != j.ID || ex.Results[0].JobAttempt != i+1 {
+					t.Fatalf("attempt metadata: %+v %v", ex, err)
+				}
 				if want != "pending" {
 					if js, _ := h.st.Actions().ClaimJobs(context.Background(), h.clock().Add(24*time.Hour), time.Minute, 1); len(js) != 0 {
 						t.Fatal("terminal job reclaimed")
@@ -321,6 +325,10 @@ func TestJobsEnvelopeIntegrity(t *testing.T) {
 			n := h.eng.RunJob(context.Background(), &j)
 			if n == nil || n.Status != "failed" || len(n.ExecutionIDs) != 1 {
 				t.Fatalf("invalid envelope: %+v", n)
+			}
+			ex, err := h.st.Actions().GetExecution(context.Background(), j.TenantID, n.ExecutionIDs[0])
+			if err != nil || len(ex.Results) != 1 || ex.Results[0].JobID != j.ID || ex.Results[0].JobAttempt != j.Attempts {
+				t.Fatalf("invalid envelope attempt: %+v %v", ex, err)
 			}
 		})
 	}

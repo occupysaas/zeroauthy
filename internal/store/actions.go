@@ -103,6 +103,9 @@ type Execution struct {
 
 // ExecutionResult is one Action's outcome within an execution.
 type ExecutionResult struct {
+	// JobID and JobAttempt identify this immutable asynchronous attempt.
+	JobID                         string
+	JobAttempt                    int
 	ActionName, ErrorID, ErrorMsg string
 	StartedAt, EndedAt            time.Time
 }
