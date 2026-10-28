@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"context"
 	"errors"
 	"mime"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
@@ -67,33 +69,34 @@ func (h *Handlers) Continue(w http.ResponseWriter, r *http.Request) {
 	for k, v := range body {
 		info.Body[k] = v[0]
 	}
-	result, err := h.Actions.ContinuePostLogin(r.Context(), res.Tenant.ID, state, sess, info)
-	if errors.Is(err, actions.ErrInvalidContinue) {
-		invalid()
-		return
-	}
-	continuation := map[string]string(nil)
-	if result != nil {
-		continuation = result.Continuation
-	}
-	if err != nil {
-		var fe *actions.ErrFlow
-		if errors.As(err, &fe) {
-			continuation = fe.Continuation
+	var fr flowReq
+	var client *store.Client
+	rejected := errors.New("authz: continuation rejected")
+	result, err := h.Actions.ContinuePostLoginValidated(r.Context(), res.Tenant.ID, state, sess, info, func(ctx context.Context, params map[string]string) error {
+		// Only the opened envelope supplies these response and client details.
+		fr = flowFromParams(params)
+		var verr *Error
+		var redirectable bool
+		client, verr, redirectable = h.validateFlow(ctx, res, &fr)
+		if verr != nil {
+			if !redirectable {
+				h.flowError(w, r, res, fr, verr)
+			} else {
+				h.refuse(w, r, res, client, fr, verr)
+			}
+			return rejected
 		}
-	}
-	if continuation == nil {
-		h.flowError(w, r, res, flowReq{}, errServer())
+		disabled, connErr := h.connectionDisabled(ctx, res, client, sess)
+		if connErr != nil || disabled {
+			invalid()
+			return rejected
+		}
+		return nil
+	})
+	if errors.Is(err, rejected) {
 		return
 	}
-	fr := flowFromParams(continuation)
-	client, verr, _ := h.validateFlow(r.Context(), res, &fr)
-	if verr != nil {
-		h.flowError(w, r, res, fr, verr)
-		return
-	}
-	disabled, connErr := h.connectionDisabled(r.Context(), res, client, sess)
-	if connErr != nil || disabled {
+	if errors.Is(err, actions.ErrInvalidContinue) {
 		invalid()
 		return
 	}

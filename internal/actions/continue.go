@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"time"
 
@@ -87,6 +88,14 @@ func (e *Engine) suspend(ctx context.Context, st store.Store, f *flow, index int
 // ContinuePostLogin consumes a single-use, session-, tenant- and origin-bound
 // continuation, resumes the redirecting Action, then executes its pinned tail.
 func (e *Engine) ContinuePostLogin(ctx context.Context, tenantID, state string, sess *store.LoginSession, req RequestInfo) (*Result, error) {
+	return e.ContinuePostLoginValidated(ctx, tenantID, state, sess, req, nil)
+}
+
+// ContinuePostLoginValidated runs validate after consuming and opening a valid
+// envelope, before any Action runs or metadata commits. validate receives the
+// trusted original caller flow parameters; returning an error aborts the flow
+// and discards its held effects. The consumed state cannot be retried.
+func (e *Engine) ContinuePostLoginValidated(ctx context.Context, tenantID, state string, sess *store.LoginSession, req RequestInfo, validate func(context.Context, map[string]string) error) (*Result, error) {
 	if state == "" || len(state) > 512 || sess == nil || sess.ID == "" || sess.TenantID != tenantID {
 		return nil, ErrInvalidContinue
 	}
@@ -105,6 +114,11 @@ func (e *Engine) ContinuePostLogin(ctx context.Context, tenantID, state string, 
 	var p continuePayload
 	if json.Unmarshal(plain, &p) != nil || len(p.Units) == 0 || p.Input.Session == nil || p.Input.Session.ID != sess.ID || p.Input.User == nil || p.Input.User.UserID != sess.UserID || p.Input.Tenant.Tenant == nil || p.Input.Tenant.Tenant.ID != tenantID || p.Input.Tenant.Origin() != origin || p.RedirectCount < 1 || p.RedirectCount > maxRedirects || p.Remaining <= 0 {
 		return nil, ErrInvalidContinue
+	}
+	if validate != nil {
+		if err := validate(ctx, maps.Clone(p.Input.Continuation)); err != nil {
+			return nil, err
+		}
 	}
 	// Keep the original flow/event snapshot, with the current request and session.
 	p.Input.Request, p.Input.Session = req, sess

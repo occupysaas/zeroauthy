@@ -381,3 +381,60 @@ func TestActionsRedirectMultipleActions(t *testing.T) {
 		t.Fatalf("pinned tail across redirects: %+v %v", r, err)
 	}
 }
+
+func TestActionsContinueValidator(t *testing.T) {
+	for _, tc := range []string{"allow", "reject", "invalid-envelope"} {
+		t.Run(tc, func(t *testing.T) {
+			h := newHarness(t)
+			ctx := context.Background()
+			a := h.action("t1", trigLogin, "validation", `exports.onExecutePostLogin=(e,a)=>{a.user.setAppMetadata('held',true);a.redirect.sendUserTo('https://step.test/')};exports.onContinuePostLogin=(e,a)=>a.idToken.setCustomClaim('resumed',true);`, nil, false)
+			h.bind("t1", trigLogin, a)
+			in := redirectInput(h)
+			in.Continuation = map[string]string{"original": "trusted"}
+			r, err := h.eng.PostLogin(ctx, in)
+			state := redirectState(t, r, err)
+			req := actions.RequestInfo{Hostname: "t1.example.test"}
+			if tc == "invalid-envelope" {
+				req.Hostname = "other.test"
+			}
+			rejected := errors.New("policy rejected")
+			called := false
+			r, err = h.eng.ContinuePostLoginValidated(ctx, "t1", state, in.Session, req, func(ctx context.Context, params map[string]string) error {
+				called = true
+				if params["original"] != "trusted" {
+					t.Fatalf("validator input=%v", params)
+				}
+				if h.user("t1").AppMetadata["held"] != nil {
+					t.Fatal("metadata committed before validation")
+				}
+				params["original"] = "modified"
+				if tc == "reject" {
+					return rejected
+				}
+				return nil
+			})
+			switch tc {
+			case "allow":
+				if !called || err != nil || r.Effects.IDClaims["resumed"] != true || r.Continuation["original"] != "trusted" || h.user("t1").AppMetadata["held"] != true {
+					t.Fatalf("validated continuation=%+v err=%v called=%v", r, err, called)
+				}
+			case "reject":
+				if !called || !errors.Is(err, rejected) || r != nil || h.user("t1").AppMetadata["held"] != nil {
+					t.Fatalf("rejected continuation=%+v err=%v called=%v", r, err, called)
+				}
+			case "invalid-envelope":
+				if called || !errors.Is(err, actions.ErrInvalidContinue) || r != nil {
+					t.Fatalf("untrusted input reached validator: %+v %v called=%v", r, err, called)
+				}
+			}
+			if tc != "allow" {
+				if n, err := h.st.Actions().PurgeExecutions(ctx, time.Now().Add(time.Hour)); err != nil || n != 1 {
+					t.Fatalf("rejection ran an Action: executions=%d %v", n, err)
+				}
+			}
+			if _, err := h.eng.ContinuePostLogin(ctx, "t1", state, in.Session, actions.RequestInfo{Hostname: "t1.example.test"}); !errors.Is(err, actions.ErrInvalidContinue) {
+				t.Fatalf("rejected state remained usable: %v", err)
+			}
+		})
+	}
+}

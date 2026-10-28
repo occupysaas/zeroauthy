@@ -12,6 +12,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
 
@@ -230,5 +231,161 @@ func TestActionsContinueBeforeConsent(t *testing.T) {
 	eff, err := actions.OpenEffects(e.w, e.tenant.ID, actions.SealCode, ac.ActionEffects, ac.CodeHash)
 	if err != nil || eff.IDClaims["before"] != float64(1) || eff.IDClaims["after"] != float64(2) {
 		t.Fatalf("consent lost effects: %+v %v", eff, err)
+	}
+}
+
+// Revalidating only after the engine returns would run the resumed Action and
+// commit the pending metadata for a request that can no longer authorize.
+func TestActionsContinueRevalidatesBeforeExecution(t *testing.T) {
+	for _, change := range []string{"deleted-client", "removed-callback", "removed-grant", "disabled-connection", "deleted-connection"} {
+		t.Run(change, func(t *testing.T) {
+			e := newActionsEnv(t)
+			ctx := context.Background()
+			connection := "Username-Password-Authentication"
+			if change == "deleted-connection" {
+				// Alice's identity remains on the primary DB, so deleting this login
+				// connection leaves an active session and exercises continuation validation.
+				connection = "Other-DB"
+				c, err := e.st.Connections().GetByName(ctx, e.tenant.ID, connection)
+				if err != nil {
+					t.Fatal(err)
+				}
+				c.EnabledClients = append(c.EnabledClients, "spa")
+				if err = e.st.Connections().Update(ctx, c); err != nil {
+					t.Fatal(err)
+				}
+			}
+			e.actions.PostLogin(t, e.tenant.ID, "redirect", `exports.onExecutePostLogin=(e,a)=>{a.user.setAppMetadata('held',true);a.redirect.sendUserTo('https://step.test/')};exports.onContinuePostLogin=(e,a)=>a.user.setAppMetadata('resumed',true);`)
+			cookie := e.loginOn(t, connection, fixedNow())
+			state := location(t, e.get(t, goodQuery(), cookie)).Query().Get("state")
+			switch change {
+			case "deleted-client":
+				if err := e.st.Clients().Delete(ctx, e.tenant.ID, "spa"); err != nil {
+					t.Fatal(err)
+				}
+			case "removed-callback", "removed-grant":
+				c, err := e.st.Clients().Get(ctx, e.tenant.ID, "spa")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if change == "removed-callback" {
+					c.Callbacks = []string{"https://other.acme.test/cb"}
+				} else {
+					c.GrantTypes = nil
+				}
+				if err = e.st.Clients().Update(ctx, c); err != nil {
+					t.Fatal(err)
+				}
+			case "disabled-connection", "deleted-connection":
+				c, err := e.st.Connections().GetByName(ctx, e.tenant.ID, connection)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if change == "deleted-connection" {
+					err = e.st.Connections().Delete(ctx, e.tenant.ID, c.ID)
+				} else {
+					c.EnabledClients = nil
+					err = e.st.Connections().Update(ctx, c)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			req := httptest.NewRequest("GET", "https://acme.example.test/continue?state="+url.QueryEscape(state), nil)
+			req.AddCookie(cookie)
+			req = req.WithContext(tenant.WithResolved(req.Context(), e.res()))
+			rec := httptest.NewRecorder()
+			e.h.Continue(rec, req)
+			if e.codes != 0 {
+				t.Fatalf("changed configuration issued %d codes", e.codes)
+			}
+			if change != "removed-grant" && (rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "") {
+				t.Errorf("untrusted or disabled flow redirected: status=%d Location=%q", rec.Code, rec.Header().Get("Location"))
+			}
+			u, err := e.st.Users().FindByLogin(ctx, e.tenant.ID, "Username-Password-Authentication", "alice@acme.test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if u.AppMetadata["held"] != nil || u.AppMetadata["resumed"] != nil {
+				t.Errorf("invalid continuation committed held/resumed metadata: %v", u.AppMetadata)
+			}
+			// The only stored execution must be the original suspended phase.
+			n, err := e.st.Actions().PurgeExecutions(ctx, time.Now().Add(time.Hour))
+			if err != nil || n != 1 {
+				t.Errorf("executions=%d %v; resumed phase must never run", n, err)
+			}
+			// Configuration rejection still consumes its state, so restoring config
+			// later cannot revive the discarded flow.
+			rec = httptest.NewRecorder()
+			e.h.Continue(rec, req)
+			var body map[string]any
+			if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil || rec.Code != http.StatusBadRequest || body["error"] != "invalid_request" {
+				t.Errorf("rejected continuation replay: %d %s (%v)", rec.Code, rec.Body, err)
+			}
+		})
+	}
+}
+
+func TestActionsContinueValidationErrorDelivery(t *testing.T) {
+	for _, mode := range []string{"query", "fragment", "form_post", "web_message", "protected"} {
+		t.Run(mode, func(t *testing.T) {
+			e := newActionsEnv(t)
+			ctx := context.Background()
+			e.actions.PostLogin(t, e.tenant.ID, "redirect", `exports.onExecutePostLogin=(e,a)=>a.redirect.sendUserTo('https://step.test/');exports.onContinuePostLogin=()=>{};`)
+			q := goodQuery()
+			if mode != "protected" {
+				q.Set("response_mode", mode)
+			}
+			cookie := e.login(t, fixedNow())
+			state := location(t, e.get(t, q, cookie)).Query().Get("state")
+			c, err := e.st.Clients().Get(ctx, e.tenant.ID, "spa")
+			if err != nil {
+				t.Fatal(err)
+			}
+			c.GrantTypes = nil
+			if mode == "protected" {
+				c.RedirectionPolicy = store.RedirectionPolicyOpenRedirectProtection
+			}
+			if err = e.st.Clients().Update(ctx, c); err != nil {
+				t.Fatal(err)
+			}
+			// Continue parameters cannot replace the sealed original response details.
+			req := httptest.NewRequest("GET", "https://acme.example.test/continue?state="+url.QueryEscape(state)+"&redirect_uri=https%3A%2F%2Fevil.test%2Fcb&response_mode=fragment&client_id=m2m", nil)
+			req.AddCookie(cookie)
+			rec := httptest.NewRecorder()
+			e.h.Continue(rec, req.WithContext(tenant.WithResolved(req.Context(), e.res())))
+			switch mode {
+			case "query", "fragment":
+				loc := location(t, rec)
+				if loc.Host != "app.acme.test" || loc.Path != "/callback" {
+					t.Fatalf("wrong callback: %s", loc)
+				}
+				params := loc.Query()
+				if mode == "fragment" {
+					params, err = url.ParseQuery(loc.Fragment)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				if params.Get("error") != "unauthorized_client" || params.Get("state") != "st" || params.Get("code") != "" {
+					t.Fatalf("validation response=%s", loc)
+				}
+			case "form_post":
+				if rec.Code != http.StatusOK || rec.Header().Get("Location") != "" || !strings.Contains(rec.Body.String(), `action="https://app.acme.test/callback"`) || !strings.Contains(rec.Body.String(), `name="error" value="unauthorized_client"`) || !strings.Contains(rec.Body.String(), `name="state" value="st"`) {
+					t.Fatalf("form_post=%d %s", rec.Code, rec.Body)
+				}
+			case "web_message":
+				if rec.Code != http.StatusOK || rec.Header().Get("Location") != "" || !strings.Contains(rec.Body.String(), "unauthorized_client") || !strings.Contains(rec.Body.String(), `"state":"st"`) || !strings.Contains(rec.Body.String(), "https://app.acme.test") {
+					t.Fatalf("web_message=%d %s", rec.Code, rec.Body)
+				}
+			case "protected":
+				if rec.Code != http.StatusBadRequest || rec.Header().Get("Location") != "" || !strings.Contains(rec.Body.String(), "authorization code grant") {
+					t.Fatalf("protected error=%d Location=%q %s", rec.Code, rec.Header().Get("Location"), rec.Body)
+				}
+			}
+			if e.codes != 0 {
+				t.Fatalf("validation rejection issued %d codes", e.codes)
+			}
+		})
 	}
 }
