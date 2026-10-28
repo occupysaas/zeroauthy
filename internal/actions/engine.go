@@ -267,6 +267,8 @@ func errorID(err error) string {
 		return "invalid_api_call"
 	case errors.Is(err, ErrRedirectNotAllowed):
 		return "redirect_not_allowed"
+	case errors.Is(err, ErrRedirectNotSupported):
+		return "redirect_not_supported"
 	case errors.Is(err, ErrTimeout):
 		return "timeout"
 	case errors.Is(err, ErrClaimsTooLarge):
@@ -282,7 +284,7 @@ func errorID(err error) string {
 // run executes f's Actions in order, then commits metadata and writes the
 // execution record. Any failure fails the whole flow closed.
 func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, error) {
-	execID := "exe_" + secrets.RandomString(24)
+	execID := newExecutionID()
 	f.deadline = time.Now().Add(e.budget())
 	fctx, cancel := context.WithDeadline(ctx, f.deadline)
 	defer cancel()
@@ -298,26 +300,41 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 			failure, failed = err, u.name
 		}
 		ex.Results = append(ex.Results, r)
-		if failure != nil || f.acc.denied != nil || f.acc.redirect != nil {
+		if failure != nil || f.acc.denied != nil {
 			break
 		}
 	}
-	// Metadata commits at flow end on success, deny or validation.error;
-	// it is held across a redirect and discarded on failure (spec §6).
-	if failure == nil && f.acc.redirect == nil {
-		if err := e.commitMetadata(ctx, f.tenantID, user, &f.acc.eff); err != nil {
-			failure = fmt.Errorf("actions: committing metadata: %w", err)
-		}
-	}
-	if f.acc.redirect != nil && failure == nil {
-		ex.Status = "suspended"
-	}
 	ex.UpdatedAt = e.now()
-	// The record is written even when the flow's own deadline passed.
+	// Metadata commits at flow end on success, deny or validation.error and
+	// is discarded on failure (spec §6), atomically with the execution
+	// record. The record is written even when the flow's deadline passed.
 	wctx, wcancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer wcancel()
-	if err := e.Store.Actions().CreateExecution(wctx, ex); err != nil && failure == nil {
-		failure = fmt.Errorf("actions: recording the execution: %w", err)
+	var commitErr, recordErr error
+	if failure == nil && hasMetadata(user, &f.acc.eff) {
+		recordErr = e.Store.WithTx(wctx, func(tx store.Store) error {
+			if commitErr = e.commitMetadata(wctx, tx, f.tenantID, user, &f.acc.eff); commitErr != nil {
+				return commitErr
+			}
+			return tx.Actions().CreateExecution(wctx, ex)
+		})
+	} else {
+		recordErr = e.Store.Actions().CreateExecution(wctx, ex)
+	}
+	switch {
+	case commitErr != nil:
+		// The transaction rolled back: record the flow as failed instead.
+		failure = fmt.Errorf("actions: committing metadata: %w", commitErr)
+		last := &ex.Results[len(ex.Results)-1]
+		last.ErrorID, last.ErrorMsg = "internal_error", "the flow's metadata could not be committed"
+		failed = last.ActionName
+		if err := e.Store.Actions().CreateExecution(wctx, ex); err != nil {
+			e.log().Warn("actions: recording a failed execution", "tenant", f.tenantID, "execution_id", execID, "error", err)
+		}
+	case recordErr != nil && failure == nil:
+		failure = fmt.Errorf("actions: recording the execution: %w", recordErr)
+	case recordErr != nil:
+		e.log().Warn("actions: recording a failed execution", "tenant", f.tenantID, "execution_id", execID, "error", recordErr)
 	}
 	if failure != nil {
 		e.log().Warn("actions flow failed", "tenant", f.tenantID, "trigger", f.trigger, "action", failed,
@@ -328,15 +345,16 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		e.log().Info("actions flow denied", "tenant", f.tenantID, "trigger", f.trigger,
 			"action", ex.Results[len(ex.Results)-1].ActionName, "execution_id", execID, "code", d.Code)
 	}
-	return &Result{Effects: f.acc.eff, Denied: f.acc.denied, Redirect: f.acc.redirect, ExecutionID: execID}, nil
+	return &Result{Effects: f.acc.eff, Denied: f.acc.denied, ExecutionID: execID}, nil
+}
+
+func hasMetadata(user *store.User, eff *Effects) bool {
+	return user != nil && (len(eff.AppMetadata) > 0 || len(eff.UserMetadata) > 0)
 }
 
 // commitMetadata merges the flow's metadata into the user through the
-// PATCH /api/v2/users/{id} rules.
-func (e *Engine) commitMetadata(ctx context.Context, tenantID string, user *store.User, eff *Effects) error {
-	if user == nil || len(eff.AppMetadata) == 0 && len(eff.UserMetadata) == 0 {
-		return nil
-	}
+// PATCH /api/v2/users/{id} rules, inside the caller's transaction tx.
+func (e *Engine) commitMetadata(ctx context.Context, tx store.Store, tenantID string, user *store.User, eff *Effects) error {
 	patch := metadataPatch(eff)
 	for _, m := range []struct {
 		name string
@@ -346,15 +364,13 @@ func (e *Engine) commitMetadata(ctx context.Context, tenantID string, user *stor
 			return err
 		}
 	}
-	return e.Store.WithTx(ctx, func(tx store.Store) error {
-		cur, err := tx.Users().GetForUpdate(ctx, tenantID, user.UserID)
-		if err != nil {
-			return err
-		}
-		userrules.ApplyPatch(cur, patch)
-		cur.UpdatedAt = e.now()
-		return tx.Users().Update(ctx, cur)
-	})
+	cur, err := tx.Users().GetForUpdate(ctx, tenantID, user.UserID)
+	if err != nil {
+		return err
+	}
+	userrules.ApplyPatch(cur, patch)
+	cur.UpdatedAt = e.now()
+	return tx.Users().Update(ctx, cur)
 }
 
 // step runs one Action and applies its commands to f.acc. Its errors are
@@ -387,7 +403,8 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		req.Roles = []roleJSON{}
 	}
 	raw, err := e.Runner.CallWith(ctx, f.tenantID, req, noderunner.CallOptions{
-		Budget: time.Until(f.deadline),
+		// At least 1 ms: a zero Budget would mean the Pool's 20 s default.
+		Budget: max(time.Until(f.deadline), time.Millisecond),
 		Prepare: func(state any) {
 			if ps, ok := state.(*procState); ok {
 				ps.add(red)
@@ -409,7 +426,8 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	// An unsupported call fails the flow even when the Action caught it.
 	for _, c := range resp.Commands {
 		if c.Op == "unsupported" {
-			return out, f.acc.apply(c)
+			err := f.acc.apply(c)
+			return out, &maskedError{msg: red.RedactLine(err.Error()), err: err}
 		}
 	}
 	if resp.Error != nil {
@@ -460,6 +478,8 @@ type testOutput struct {
 	Logs       []string      `json:"logs"`
 	Error      *testError    `json:"error,omitempty"`
 	DurationMS int64         `json:"duration_ms"`
+	// ExecutionID references this run only; no record is written.
+	ExecutionID string `json:"execution_id"`
 }
 
 // Test runs an Action's built draft once against payload (its event) as a
@@ -537,7 +557,7 @@ func (e *Engine) Test(ctx context.Context, tenantID, actionID string, payload js
 	if err != nil && st == nil && !errors.Is(err, ErrTimeout) && !errors.Is(err, build.ErrCorruptArtifact) {
 		return nil, err
 	}
-	out := testOutput{Commands: []testCommand{}, Logs: []string{}, DurationMS: time.Since(start).Milliseconds()}
+	out := testOutput{Commands: []testCommand{}, Logs: []string{}, DurationMS: time.Since(start).Milliseconds(), ExecutionID: newExecutionID()}
 	var red *customdb.Redactor
 	if st != nil {
 		red = st.red
@@ -562,3 +582,5 @@ func PurgeExecutions(ctx context.Context, st store.Store, now time.Time) (int, e
 	days := actionsrules.Inventory().Limits["execution_retention_days"]
 	return st.Actions().PurgeExecutions(ctx, now.Add(-time.Duration(days)*24*time.Hour))
 }
+
+func newExecutionID() string { return "exe_" + secrets.RandomString(24) }

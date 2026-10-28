@@ -368,6 +368,10 @@ func TestEngineFailClosed(t *testing.T) {
 		"encodeToken":      `try { api.redirect.encodeToken({}); } catch (e) {}`,
 		"bad app metadata": `api.user.setAppMetadata("$bad", 1);`,
 		"huge claims":      `api.idToken.setCustomClaim("https://x.test/big", "x".repeat(100001));`,
+		"deny quote":       `api.access.deny('say "no"');`,
+		"deny long":        `api.access.deny("x".repeat(513));`,
+		"deny unicode":     `api.access.deny("nein \u00fc");`,
+		"validation code":  `api.validation.error("bad code\n", "m");`,
 	}
 	i := 0
 	for name, body := range cases {
@@ -393,7 +397,8 @@ func TestEngineFailClosed(t *testing.T) {
 				t.Fatalf("execution = %+v", e)
 			}
 			wantID := map[string]string{"throw": "runtime_error", "timeout": "timeout", "session.revoke": "unsupported_api",
-				"multifactor": "unsupported_api", "bad scope": "invalid_api_call", "no redirect": "redirect_not_allowed",
+				"multifactor": "unsupported_api", "bad scope": "invalid_api_call", "no redirect": "redirect_not_supported",
+				"deny quote": "invalid_api_call", "deny long": "invalid_api_call", "deny unicode": "invalid_api_call", "validation code": "invalid_api_call",
 				"huge claims": "claims_too_large", "unknown method": "runtime_error"}[name]
 			if wantID != "" && e.Results[0].ErrorID != wantID {
 				t.Fatalf("error id = %q (%s), want %q", e.Results[0].ErrorID, e.Results[0].ErrorMsg, wantID)
@@ -651,7 +656,6 @@ func TestEngineTestDryRun(t *testing.T) {
 	  console.log("fetched", res.ok, event.user.email);
 	  api.user.setAppMetadata("tested", true);
 	  api.accessToken.setCustomClaim("https://x.test/roles", event.authorization.roles);
-	  api.redirect.sendUserTo("https://example.test/step");
 	  api.access.deny("dry");
 	};`, nil, true)
 	out, err := h.eng.Test(ctx, "t1", a.ID, json.RawMessage(`{"user":{"user_id":"auth0|u1","email":"x@example.test"}}`))
@@ -663,8 +667,9 @@ func TestEngineTestDryRun(t *testing.T) {
 			Op   string            `json:"op"`
 			Args []json.RawMessage `json:"args"`
 		} `json:"commands"`
-		Logs  []string `json:"logs"`
-		Error any      `json:"error"`
+		Logs        []string `json:"logs"`
+		Error       any      `json:"error"`
+		ExecutionID string   `json:"execution_id"`
 	}
 	if err := json.Unmarshal(out, &res); err != nil {
 		t.Fatalf("%v: %s", err, out)
@@ -673,7 +678,7 @@ func TestEngineTestDryRun(t *testing.T) {
 	for _, c := range res.Commands {
 		ops = append(ops, c.Op)
 	}
-	if strings.Join(ops, ",") != "user.setAppMetadata,accessToken.setCustomClaim,redirect.sendUserTo,access.deny" || res.Error != nil {
+	if strings.Join(ops, ",") != "user.setAppMetadata,accessToken.setCustomClaim,access.deny" || res.Error != nil || !strings.HasPrefix(res.ExecutionID, "exe_") {
 		t.Fatalf("test output = %s", out)
 	}
 	if string(res.Commands[1].Args[1]) != `["admin"]` || len(res.Logs) != 1 || res.Logs[0] != "fetched true x@example.test" {
@@ -693,6 +698,12 @@ func TestEngineTestDryRun(t *testing.T) {
 	out, err = h.eng.Test(ctx, "t1", a.ID, json.RawMessage(`{"user":{"user_id":"auth0|nobody"}}`))
 	if err != nil || !strings.Contains(string(out), `"https://x.test/roles",[]`) {
 		t.Fatalf("unknown user: %s %v", out, err)
+	}
+	// A redirect is reported as not supported yet.
+	redir := h.action("t1", trigLogin, "redirdraft", `exports.onExecutePostLogin = async (event, api) => { api.redirect.sendUserTo("https://example.test/step"); };`, nil, true)
+	out, err = h.eng.Test(ctx, "t1", redir.ID, json.RawMessage(`{}`))
+	if err != nil || !strings.Contains(string(out), `"id":"redirect_not_supported"`) {
+		t.Fatalf("redirect draft: %s %v", out, err)
 	}
 	// A failing draft reports its error in the payload.
 	bad := h.action("t1", trigLogin, "baddraft", `exports.onExecutePostLogin = async () => { throw new Error("nope"); };`, nil, true)
@@ -809,5 +820,104 @@ func TestPurgeExecutions(t *testing.T) {
 	}
 	if _, err := st.Actions().GetExecution(ctx, "t1", "recent"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestEngineRedirectFailsClosed: until redirect/continue exists, sendUserTo
+// fails the flow even where the flow could redirect; later Actions never run
+// and no metadata commits.
+func TestEngineRedirectFailsClosed(t *testing.T) {
+	h := newHarness(t)
+	a1 := h.action("t1", trigLogin, "redir", `exports.onExecutePostLogin = async (event, api) => {
+	  api.user.setAppMetadata("before_redirect", true);
+	  api.redirect.sendUserTo("https://example.test/step", { query: { a: "1" } });
+	};`, nil, false)
+	a2 := h.action("t1", trigLogin, "afterredir", `exports.onExecutePostLogin = async (event, api) => { api.user.setAppMetadata("after_redirect", true); };`, nil, false)
+	h.bind("t1", trigLogin, a1, a2)
+	in := h.loginInput("t1")
+	in.CanRedirect = true
+	r, err := h.eng.PostLogin(context.Background(), in)
+	var fe *actions.ErrFlow
+	if !errors.As(err, &fe) || r != nil || !errors.Is(err, actions.ErrRedirectNotSupported) {
+		t.Fatalf("PostLogin = %+v, %v", r, err)
+	}
+	e := h.execution("t1", fe.ExecutionID)
+	if len(e.Results) != 1 || e.Results[0].ErrorID != "redirect_not_supported" {
+		t.Fatalf("execution = %+v", e)
+	}
+	if u := h.user("t1"); u.AppMetadata["before_redirect"] != nil || u.AppMetadata["after_redirect"] != nil {
+		t.Fatalf("metadata committed: %+v", u.AppMetadata)
+	}
+}
+
+// failingStore fails user updates or execution writes, inside and outside
+// transactions.
+type failingStore struct {
+	store.Store
+	failUpdate, failExec bool
+}
+
+func (s failingStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(failingStore{tx, s.failUpdate, s.failExec}) })
+}
+func (s failingStore) Users() store.Users     { return failingUsers{s.Store.Users(), s.failUpdate} }
+func (s failingStore) Actions() store.Actions { return failingActions{s.Store.Actions(), s.failExec} }
+
+type failingUsers struct {
+	store.Users
+	fail bool
+}
+
+func (u failingUsers) Update(ctx context.Context, user *store.User) error {
+	if u.fail {
+		return errors.New("update refused")
+	}
+	return u.Users.Update(ctx, user)
+}
+
+type failingActions struct {
+	store.Actions
+	fail bool
+}
+
+func (a failingActions) CreateExecution(ctx context.Context, e *store.Execution) error {
+	if a.fail {
+		return errors.New("execution refused")
+	}
+	return a.Actions.CreateExecution(ctx, e)
+}
+
+// TestEngineCommitAtomic: metadata and the execution record commit together.
+func TestEngineCommitAtomic(t *testing.T) {
+	h := newHarness(t)
+	a := h.action("t1", trigLogin, "meta", `exports.onExecutePostLogin = async (event, api) => { api.user.setAppMetadata("atomic", true); };`, nil, false)
+	h.bind("t1", trigLogin, a)
+	var fe *actions.ErrFlow
+
+	// The metadata write fails: no metadata, a failed execution record.
+	h.eng.Store = failingStore{Store: h.st, failUpdate: true}
+	if _, err := h.postLogin("t1"); !errors.As(err, &fe) {
+		t.Fatalf("update failure: %v", err)
+	}
+	if e := h.execution("t1", fe.ExecutionID); len(e.Results) != 1 || e.Results[0].ErrorID != "internal_error" {
+		t.Fatalf("execution = %+v", e)
+	}
+	if h.user("t1").AppMetadata["atomic"] != nil {
+		t.Fatal("metadata committed")
+	}
+
+	// The record write fails: the metadata rolls back.
+	h.eng.Store = failingStore{Store: h.st, failExec: true}
+	if _, err := h.postLogin("t1"); !errors.As(err, &fe) {
+		t.Fatalf("record failure: %v", err)
+	}
+	if h.user("t1").AppMetadata["atomic"] != nil {
+		t.Fatal("metadata committed without its execution record")
+	}
+
+	h.eng.Store = h.st
+	r := h.mustPostLogin("t1")
+	if h.user("t1").AppMetadata["atomic"] != true || h.execution("t1", r.ExecutionID) == nil {
+		t.Fatal("healthy store did not commit")
 	}
 }

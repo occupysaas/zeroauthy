@@ -214,11 +214,16 @@ func (p *Pool) CallWith(ctx context.Context, tenantID string, req any, opts Call
 	}
 	// The Pool owns "id": a request carrying its own would never match its
 	// answer and would wait out the whole budget.
-	var members map[string]json.RawMessage
-	if err := json.Unmarshal(body, &members); err != nil {
+	// Decoding into a one-field struct keeps no other member. It also
+	// matches "ID" or "Id" (encoding/json folds case), which no request
+	// uses; refusing those too is harmless.
+	var reserved struct {
+		ID json.RawMessage `json:"id"`
+	}
+	if err := json.Unmarshal(body, &reserved); err != nil {
 		return nil, errors.New("noderunner: request is not a JSON object")
 	}
-	if _, ok := members["id"]; ok {
+	if reserved.ID != nil {
 		return nil, errors.New(`noderunner: the request member "id" is reserved`)
 	}
 	if err := p.Probe(); err != nil {

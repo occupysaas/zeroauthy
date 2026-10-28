@@ -30,7 +30,44 @@ var (
 	// ErrRedirectNotAllowed reports api.redirect.sendUserTo where
 	// canRedirect() is false.
 	ErrRedirectNotAllowed = errors.New("actions: redirect not allowed in this flow")
+	// ErrRedirectNotSupported reports api.redirect.sendUserTo until
+	// redirect/continue exists (Task 9): the flow fails closed rather than
+	// skip the remaining Actions.
+	ErrRedirectNotSupported = errors.New("actions: api.redirect.sendUserTo is not supported yet")
 )
+
+// Local bounds on deny and validation.error values, which reach OAuth
+// error/error_description (RFC 6749 §5.2 charset: %x20-21 / %x23-5B /
+// %x5D-7E). Outside them the flow fails closed (D-0053-style local choice).
+const (
+	maxErrorCodeBytes   = 128
+	maxErrorReasonBytes = 512
+)
+
+// oauthErrorText reports whether s uses only the RFC 6749 error charset.
+func oauthErrorText(s string) bool {
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c < 0x20 || c > 0x7e || c == '"' || c == '\\' {
+			return false
+		}
+	}
+	return true
+}
+
+func checkCode(op, code string) error {
+	if code == "" || len(code) > maxErrorCodeBytes || !oauthErrorText(code) {
+		return invalid(op, "error code must be 1-%d printable ASCII characters without '\"' or '\\'", maxErrorCodeBytes)
+	}
+	return nil
+}
+
+func checkReason(op, reason string) error {
+	if len(reason) > maxErrorReasonBytes || !oauthErrorText(reason) {
+		return invalid(op, "reason must be at most %d printable ASCII characters without '\"' or '\\'", maxErrorReasonBytes)
+	}
+	return nil
+}
 
 // credentialsDenyCodes are the documented credentials-exchange deny codes.
 var credentialsDenyCodes = []string{"invalid_scope", "invalid_request", "server_error"}
@@ -156,8 +193,11 @@ func (a *accum) apply(c command) error {
 		if err != nil {
 			return err
 		}
-		if code == "" {
-			return invalid(c.Op, "error code is required")
+		if err := checkCode(c.Op, code); err != nil {
+			return err
+		}
+		if err := checkReason(c.Op, msg); err != nil {
+			return err
 		}
 		a.setDenial(&Denial{Code: code, Reason: msg})
 	case "accessToken.setCustomClaim", "idToken.setCustomClaim":
@@ -283,6 +323,9 @@ func (a *accum) deny(c command) error {
 		if err != nil {
 			return err
 		}
+		if err := checkReason(c.Op, reason); err != nil {
+			return err
+		}
 		a.setDenial(&Denial{Code: code, Reason: reason})
 		return nil
 	}
@@ -291,6 +334,9 @@ func (a *accum) deny(c command) error {
 	}
 	reason, err := optString(c, 0, "reason")
 	if err != nil {
+		return err
+	}
+	if err := checkReason(c.Op, reason); err != nil {
 		return err
 	}
 	a.setDenial(&Denial{Code: "access_denied", Reason: reason})
@@ -452,11 +498,10 @@ func (a *accum) sendUserTo(c command) error {
 			}
 		}
 	}
-	if !a.canRedirect {
-		return ErrRedirectNotAllowed
-	}
-	if a.redirect == nil {
-		a.redirect = r
-	}
-	return nil
+	// Until Task 9 adds continue state (and the canRedirect check with
+	// ErrRedirectNotAllowed), a redirect would skip the remaining Actions:
+	// the validated redirect r is not kept and the flow fails closed,
+	// whether or not it could redirect.
+	_ = r
+	return ErrRedirectNotSupported
 }

@@ -111,6 +111,13 @@ func TestCommandsRejectUnknown(t *testing.T) {
 		{TriggerPostLogin, "cache.set", `["k", "v", {"other": 5}]`, false},
 		{TriggerPostLogin, "cache.set", `["` + strings.Repeat("k", 65) + `", "v", {}]`, false},
 		{TriggerPostLogin, "redirect.sendUserTo", `["javascript:alert(1)"]`, false},
+		{TriggerPostLogin, "redirect.sendUserTo", `["https://example.test/"]`, false},
+		{TriggerPostLogin, "access.deny", `["fine reason"]`, true},
+		{TriggerPostLogin, "access.deny", `["` + strings.Repeat("r", 513) + `"]`, false},
+		{TriggerPostLogin, "validation.error", `["code", "message"]`, true},
+		{TriggerPostLogin, "validation.error", `["` + strings.Repeat("c", 129) + `", "m"]`, false},
+		{TriggerPostLogin, "validation.error", `["a\\b", "m"]`, false},
+		{TriggerCredentialsExchange, "access.deny", `["invalid_scope", "bad\u0001"]`, false},
 	} {
 		f := newAccum(c.trigger, nil, nil, true)
 		err := f.apply(command{Op: c.op, Args: raw(c.args)})
