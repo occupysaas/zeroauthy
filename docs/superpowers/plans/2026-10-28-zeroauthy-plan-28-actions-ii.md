@@ -149,11 +149,24 @@ Order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 �
 - `(*Engine).ContinueResetChallenge(ctx, tenantID, state, ticketHash, pageCookie string, req RequestInfo) (*Result, error)`; continuation sealed over tenant, state hash, ticket hash, page cookie hash and origin; `/continue` dispatches to it when the state was issued by a reset flow.
 - Post-change-password enqueue helper `actions.PasswordChanged(ctx, tx, eng, tenant, user, conn, req) error` sets nothing itself; callers set `User.LastPasswordReset` in the same tx.
 
-- [ ] Write `TestResetPostChallenge`: GET with bindings runs the Action once and records the pass (second GET from another browser skips); deny shows `reason`, ticket unspent, reopening runs again; redirect → `/continue` → form shown and pass recorded; replayed/other-cookie/other-ticket continue state → `invalid_request`; `setResultUrl` overrides the ticket result URL after submit; `challengeWith` fails closed with reference; POST without a recorded pass while bindings exist → refused, ticket unspent (also when bindings are added after GET); no bindings → unchanged behavior.
-- [ ] Write `TestPostChangePassword`: reset submit and Management API `PATCH /users/{id}` with `password` set `last_password_reset` and enqueue one job in the same tx; a failing Action does not affect the response; bulk import and custom-DB "no change" enqueue nothing.
-- [ ] Run `go test ./internal/login ./internal/mgmt ./internal/actions -run 'Test(ResetPostChallenge|PostChangePassword)' -count=1`; expect FAIL.
-- [ ] Implement.
-- [ ] Rerun with `-race` plus the full packages; expect PASS. Commit `feat: run password Action triggers`.
+- [x] Write `TestResetPostChallenge`: GET with bindings runs the Action once and records the pass (second GET from another browser skips); deny shows `reason`, ticket unspent, reopening runs again; redirect → `/continue` → form shown and pass recorded; replayed/other-cookie/other-ticket continue state → `invalid_request`; `setResultUrl` overrides the ticket result URL after submit; `challengeWith` fails closed with reference; POST without a recorded pass while bindings exist → refused, ticket unspent (also when bindings are added after GET); no bindings → unchanged behavior.
+- [x] Write `TestPostChangePassword`: reset submit and Management API `PATCH /users/{id}` with `password` set `last_password_reset` and enqueue one job in the same tx; a failing Action does not affect the response; bulk import and custom-DB "no change" enqueue nothing.
+- [x] Run `go test ./internal/login ./internal/mgmt ./internal/actions -run 'Test(ResetPostChallenge|PostChangePassword)' -count=1`; expect FAIL.
+- [x] Implement.
+- [x] Rerun with `-race` plus the full packages; expect PASS. Commit `feat: run password Action triggers`.
+
+Task 9 resumption record (2026-10-28): implementation `bbe5701` was already
+committed before the previous stop. Independent review found no Critical or
+Important issues. Added hosted enqueue-failure regressions: a non-cap storage
+error rolls back the password and `last_password_reset` while retaining the
+already-consumed ticket; queue-cap overflow allows the reset and logs the drop.
+Verification uses Go 1.26.7 with Node required: focused password/reset cases,
+full affected login/management/actions/authz/jobs race suites, and `go build
+./...`. Management rollback/cap negative tests and a wrong-origin reset
+continuation negative test remain minor coverage follow-ups. The pre-existing
+server module-route test gap remains assigned to Task 11; no whole-repository
+regression success is claimed here. The original implementation's RED run was
+not retained in its handover report; resumption verified the committed behavior.
 
 ## Task 10: Custom email provider
 

@@ -3,6 +3,7 @@ package login
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -357,4 +358,70 @@ func TestPostChangePassword(t *testing.T) {
 			t.Fatalf("jobs = %+v %v", jobs, err)
 		}
 	})
+}
+
+// Inject only the enqueue failure; the real memory transaction must still
+// commit or roll back the password and profile writes as a unit.
+type resetJobFailureStore struct {
+	store.Store
+	err error
+}
+
+func (s resetJobFailureStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(resetJobFailureStore{tx, s.err}) })
+}
+func (s resetJobFailureStore) Actions() store.Actions {
+	return resetJobFailureActions{s.Store.Actions(), s.err}
+}
+
+type resetJobFailureActions struct {
+	store.Actions
+	err error
+}
+
+func (s resetJobFailureActions) EnqueueJob(context.Context, *store.ActionJob) error { return s.err }
+
+// Moving enqueue outside the password transaction would leave the new password
+// and timestamp committed when queue storage fails. Treating cap overflow as
+// a general storage failure would instead reject a valid password change.
+func TestPostChangePasswordQueueFailure(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		err     error
+		status  int
+		changed bool
+	}{
+		{"storage failure rolls back", errors.New("queue storage failed"), 500, false},
+		{"queue full preserves reset", store.ErrPrecondition, 200, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			re := newResetActionsEnv(t)
+			re.a.Bind(t, re.tn.ID, actions.TriggerPostChangePassword, re.a.Deploy(t, re.tn.ID, actions.TriggerPostChangePassword, "pcp", `exports.onExecutePostChangePassword=()=>{};`))
+			ticket := re.issueTicket(t, "alice@acme.test", time.Hour)
+			re.h.Store = resetJobFailureStore{re.st, tc.err}
+			rec := completeReset(t, re.browser("acme.example.test"), ticket, "new password 123")
+			if rec.Code != tc.status {
+				t.Fatalf("reset = %d %s", rec.Code, rec.Body)
+			}
+			if re.passwordIs(t, "new password 123") != tc.changed {
+				t.Fatal("unexpected password change")
+			}
+			u := re.user(t, "alice@acme.test")
+			if (u.LastPasswordReset != nil) != tc.changed {
+				t.Fatalf("last_password_reset = %v", u.LastPasswordReset)
+			}
+			if !tc.changed && !re.passwordIs(t, "alice password 1") {
+				t.Fatal("original password not preserved")
+			}
+			if !tc.changed && re.ticket(t, ticket).UsedAt == nil {
+				t.Fatal("failed reset restored an already consumed ticket")
+			}
+			if tc.changed && !strings.Contains(re.a.Logs.String(), "post-change-password Action job dropped") {
+				t.Fatal("full queue drop was not logged")
+			}
+			if jobs := re.jobs(t); len(jobs) != 0 {
+				t.Fatalf("unexpected jobs %+v", jobs)
+			}
+		})
+	}
 }
