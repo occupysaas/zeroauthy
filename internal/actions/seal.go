@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 )
@@ -87,4 +88,18 @@ func OpenEffects(w keys.Wrapper, tenantID, purpose string, sealed []byte, bind .
 		e.Ceiling = *s.Ceiling
 	}
 	return e, nil
+}
+
+// CeilingOf is a refresh family's ceiling (spec §7): the issued scopes,
+// which already reflect the Actions' target-scope edits, consent and
+// policy, minus the Actions' target additions (scopes not in before, the
+// set authorized before the flow ran). Removed scopes stay out.
+func CeilingOf(issued, before []string) []string {
+	out := []string{}
+	for _, s := range issued {
+		if slices.Contains(before, s) {
+			out = append(out, s)
+		}
+	}
+	return out
 }

@@ -198,9 +198,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	if oerr != nil {
 		return nil, oerr
 	}
-	// The refresh family's ceiling is the authorized set before the
-	// Actions' target-scope edits (spec §7).
-	ceiling := d.Scopes
+	before := d.Scopes
 	if eff != nil && eff.Target != nil {
 		// Target-scope edits come before API-definition and policy filtering.
 		if d, oerr = h.decide(ctx, tenantID, access.Password, c, rs, userScopes(eff.Target.Scopes, rs, offlineAllowed(c, rs))); oerr != nil {
@@ -208,6 +206,9 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		}
 	}
 	scopes := d.Scopes
+	// The refresh family's ceiling is the issued set without the Actions'
+	// target additions (spec §7).
+	ceiling := actions.CeilingOf(scopes, before)
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		user: user, rs: rs, lifetime: lifetime, scopes: scopes, authTime: now, grantType: "password", effects: eff,
 	})

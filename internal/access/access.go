@@ -180,6 +180,15 @@ func issuedScopes(in Input) []string {
 	return out
 }
 
+// ConsentApplies reports whether c's user requests for api (nil: none) go
+// through the consent screen at all, whatever the user already granted:
+// third-party clients, and first-party clients of an API that does not
+// skip consent. It is the flow-independent part of needsConsent; a device
+// request, which has no redirect URI, decides the same way.
+func ConsentApplies(c *store.Client, api *store.ResourceServer) bool {
+	return needsConsent(Input{Flow: Device, Client: c, API: api, Prompts: []string{"consent"}}, nil)
+}
+
 func needsConsent(in Input, scopes []string) bool {
 	if in.Client.IsFirstParty {
 		if in.API == nil {

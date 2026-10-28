@@ -521,3 +521,183 @@ func TestActionsBodyStripsEveryGrant(t *testing.T) {
 		}
 	}
 }
+
+// thirdParty prepares the permissive third-party client "partner" for
+// /authorize: a callback, a domain connection, and delete:things on the API.
+func (f *actionsFixture) thirdParty(t *testing.T) {
+	t.Helper()
+	ctx := context.Background()
+	c, err := f.st.Clients().Get(ctx, f.tid, "partner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Callbacks = []string{"https://partner.acme.test/cb"}
+	if err := f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	conn, err := f.st.Connections().GetByName(ctx, f.tid, "Username-Password-Authentication")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.IsDomainConnection = true
+	if err := f.st.Connections().Update(ctx, conn); err != nil {
+		t.Fatal(err)
+	}
+	api, err := f.st.ResourceServers().GetByIdentifier(ctx, f.tid, acmeAPI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	api.Scopes = append(api.Scopes, store.Scope{Value: "delete:things"})
+	if err := f.st.ResourceServers().Update(ctx, api); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (f *actionsFixture) userGrant(t *testing.T, clientID string, scopes ...string) {
+	t.Helper()
+	if _, err := f.st.UserGrants().Upsert(context.Background(), &store.UserGrant{TenantID: f.tid, ID: "ugr_" + secrets.RandomString(8),
+		ClientID: clientID, UserID: f.aliceID(t), Audience: acmeAPI, Scopes: scopes, CreatedAt: fixedNow(), UpdatedAt: fixedNow()}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// partnerAuthorize runs /authorize for partner and, when the consent page
+// is shown, accepts it; it returns the code.
+func (f *actionsFixture) partnerAuthorize(t *testing.T, scope string, extra ...string) string {
+	t.Helper()
+	q := url.Values{"client_id": {"partner"}, "redirect_uri": {"https://partner.acme.test/cb"}, "response_type": {"code"},
+		"scope": {scope}, "audience": {acmeAPI}, "state": {"st"}}
+	for i := 0; i+1 < len(extra); i += 2 {
+		q.Set(extra[i], extra[i+1])
+	}
+	ck := f.sessionCookie(t)
+	r := httptest.NewRequest("GET", "https://acme.example.test/authorize?"+q.Encode(), nil)
+	r.AddCookie(ck)
+	rec := httptest.NewRecorder()
+	tenant.NewResolver(f.st.Tenants(), "", false).Middleware(http.HandlerFunc(f.az.Authorize)).ServeHTTP(rec, r)
+	loc, _ := url.Parse(rec.Header().Get("Location"))
+	if rec.Code != http.StatusFound || loc == nil {
+		t.Fatalf("authorize: %d %s", rec.Code, rec.Body)
+	}
+	if loc.Path == "/u/consent" {
+		ctx := context.Background()
+		txn, err := f.st.AuthTransactions().Get(ctx, f.tid, loc.Query().Get("state"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		tn, _ := f.st.Tenants().Get(ctx, f.tid)
+		res := tenant.Resolved{Tenant: tn, Host: "acme.example.test"}
+		cr := httptest.NewRequest("POST", "https://acme.example.test/u/consent", nil)
+		cr.AddCookie(ck)
+		sess, err := f.az.ActiveSession(ctx, cr, res)
+		if err != nil || sess == nil {
+			t.Fatalf("session: %v", err)
+		}
+		view, err := f.az.ConsentView(ctx, res, txn, sess)
+		if err != nil || slices.Contains(view.Scopes, "write:things") || !slices.Contains(view.Scopes, "delete:things") {
+			t.Fatalf("consent view %+v, %v", view, err)
+		}
+		rec = httptest.NewRecorder()
+		f.az.Consent(rec, cr, res, txn, sess, true)
+		if loc, _ = url.Parse(rec.Header().Get("Location")); rec.Code != http.StatusFound || loc == nil {
+			t.Fatalf("consent: %d %s", rec.Code, rec.Body)
+		}
+	}
+	code := loc.Query().Get("code")
+	if code == "" {
+		t.Fatalf("no code: %s", loc)
+	}
+	return code
+}
+
+// TestActionsCeilingExcludesEdits: the refresh ceiling is the issued set
+// minus the Actions' target additions, so scopes the Actions removed (never
+// consented) stay out too, and prompt=none still gets its refresh token.
+func TestActionsCeilingExcludesEdits(t *testing.T) {
+	const scope = "openid offline_access read:things write:things"
+	action := `exports.onExecutePostLogin = async (event, api) => {
+	  if (event.transaction.protocol !== "oauth2-refresh-token") {
+	    api.transaction.removeTargetScope("write:things");
+	    api.transaction.addTargetScope("delete:things");
+	  }
+	};`
+	for _, promptNone := range []bool{false, true} {
+		t.Run(fmt.Sprintf("prompt_none=%v", promptNone), func(t *testing.T) {
+			f := newActionsFixture(t)
+			f.thirdParty(t)
+			f.actions.PostLogin(t, f.tid, "edit", action)
+			var extra []string
+			if promptNone {
+				// Consented earlier to everything the edited request asks.
+				f.userGrant(t, "partner", "openid", "offline_access", "read:things", "delete:things")
+				extra = []string{"prompt", "none"}
+			}
+			code := f.partnerAuthorize(t, scope, extra...)
+			status, body := f.token(t, url.Values{"grant_type": {"authorization_code"}, "client_id": {"partner"},
+				"client_secret": {"partner-secret"}, "code": {code}, "redirect_uri": {"https://partner.acme.test/cb"}})
+			if status != 200 || body["scope"] != "openid offline_access read:things delete:things" {
+				t.Fatalf("code exchange: %d %v", status, body)
+			}
+			raw, _ := body["refresh_token"].(string)
+			if raw == "" {
+				t.Fatal("no refresh token")
+			}
+			if rt := f.storedRT(t, raw); !slices.Equal(rt.Scopes, []string{"openid", "offline_access", "read:things"}) {
+				t.Fatalf("refresh ceiling %v", rt.Scopes)
+			}
+			status, body = f.token(t, refreshForm("partner", raw, "client_secret", "partner-secret"))
+			if status != 200 || body["scope"] != "openid offline_access read:things" {
+				t.Fatalf("refresh: %d %v", status, body)
+			}
+		})
+	}
+}
+
+// TestActionsRefreshConsentedAdditions: refresh has no consent step, so for
+// a client that goes through consent the re-run flow's target additions are
+// kept only when the user's grant holds them. First-party clients that
+// skip consent are not limited (TestActionsRefreshReadds).
+func TestActionsRefreshConsentedAdditions(t *testing.T) {
+	for _, granted := range []bool{false, true} {
+		t.Run(fmt.Sprintf("granted=%v", granted), func(t *testing.T) {
+			f := newActionsFixture(t)
+			f.thirdParty(t)
+			scopes := []string{"openid", "offline_access", "read:things"}
+			if granted {
+				scopes = append(scopes, "delete:things")
+			}
+			f.userGrant(t, "partner", scopes...)
+			f.actions.PostLogin(t, f.tid, "add", `exports.onExecutePostLogin = async (event, api) => {
+			  api.transaction.addTargetScope("delete:things");
+			};`)
+			raw, _ := f.issueRefresh(t, "partner", []string{"openid", "offline_access", "read:things"}, acmeAPI)
+			status, body := f.token(t, refreshForm("partner", raw, "client_secret", "partner-secret"))
+			want := "openid offline_access read:things"
+			if granted {
+				want += " delete:things"
+			}
+			if status != 200 || body["scope"] != want {
+				t.Fatalf("refresh: %d %v, want %q", status, body, want)
+			}
+		})
+	}
+}
+
+// TestActionsRefreshTargetOfflineRemoved: removing offline_access as a
+// target scope on refresh also ends the exchange without a refresh token.
+func TestActionsRefreshTargetOfflineRemoved(t *testing.T) {
+	f := newActionsFixture(t)
+	f.rotating(t)
+	f.actions.PostLogin(t, f.tid, "drop", `exports.onExecutePostLogin = async (event, api) => {
+	  if (event.transaction.protocol === "oauth2-refresh-token") api.transaction.removeTargetScope("offline_access");
+	};`)
+	_, body := f.token(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", "openid offline_access"))
+	raw := body["refresh_token"].(string)
+	status, body := f.token(t, refreshForm("ropg", raw, "client_secret", "ropg-secret"))
+	if status != 200 || body["refresh_token"] != nil || body["scope"] != "openid" {
+		t.Fatalf("refresh: %d %v", status, body)
+	}
+	if rt := f.storedRT(t, raw); rt.RotatedAt != nil || rt.RevokedAt != nil {
+		t.Fatalf("presented token changed: %+v", rt)
+	}
+}

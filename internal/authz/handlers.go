@@ -477,12 +477,10 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 		}
 	}
 	if eff != nil && eff.Target != nil {
-		// The refresh family's ceiling is the authorized set without the
-		// Actions' target-scope edits (spec §7); the code and its tokens
-		// carry the edited set.
-		ceilingIn := in
-		ceilingIn.Scopes = authorized
-		if ceiling := access.Decide(ceilingIn).Scopes; !slices.Equal(ceiling, d.Scopes) {
+		// The refresh family's ceiling is the issued (edited, consented)
+		// set without the Actions' target additions (spec §7); the code
+		// and its tokens carry the edited set.
+		if ceiling := actions.CeilingOf(d.Scopes, authorized); !slices.Equal(ceiling, d.Scopes) {
 			edited := *eff
 			edited.Ceiling = append([]string{}, ceiling...)
 			eff = &edited

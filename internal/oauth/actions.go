@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
@@ -134,4 +135,45 @@ func (h *Handlers) openEffects(ctx context.Context, tenantID, purpose, hash stri
 		return nil, serverError()
 	}
 	return eff, nil
+}
+
+// consentedAdditions limits a refresh flow's target scopes for a client
+// that goes through consent: the refresh grant has no consent step, so
+// scopes the Actions add beyond before (the scopes authorized before the
+// flow) are kept only when the user's grant for the audience holds them;
+// others are dropped silently, as policy-filtered scopes are. First-party
+// clients that skip consent are not limited.
+func (h *Handlers) consentedAdditions(ctx context.Context, tenantID string, c *store.Client, userID string, rs *store.ResourceServer, before, target []string) ([]string, *Error) {
+	var added []string
+	for _, s := range target {
+		if !slices.Contains(before, s) {
+			added = append(added, s)
+		}
+	}
+	if len(added) == 0 || !access.ConsentApplies(c, rs) {
+		return target, nil
+	}
+	audience := ""
+	if rs != nil {
+		audience = rs.Identifier
+	}
+	if audience == "" {
+		return actions.CeilingOf(target, before), nil
+	}
+	var granted []string
+	g, err := h.Store.UserGrants().Find(ctx, tenantID, c.ClientID, userID, audience)
+	switch {
+	case err == nil:
+		granted = g.Scopes
+	case !errors.Is(err, store.ErrNotFound):
+		h.log().ErrorContext(ctx, "load user grant", "tenant", tenantID, "err", err)
+		return nil, serverError()
+	}
+	out := []string{}
+	for _, s := range target {
+		if slices.Contains(before, s) || slices.Contains(granted, s) {
+			out = append(out, s)
+		}
+	}
+	return out, nil
 }
