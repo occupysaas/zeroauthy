@@ -36,7 +36,21 @@ func (h *Handlers) authorizeUserToken(ctx context.Context, tid, uid string, rs *
 		if err != nil {
 			return out, serverError()
 		}
-		snap = &store.AuthorizationSnapshot{API: current, Permissions: frozen.Permissions}
+		// Assignments are fixed for this flow, while permissions must still
+		// belong to the current API definition (Plan 26's D intersect U).
+		declared := make(map[string]bool, len(current.Scopes))
+		for _, scope := range current.Scopes {
+			if !slices.Contains(oidcScopes, scope.Value) && scope.Value != "offline_access" {
+				declared[scope.Value] = true
+			}
+		}
+		permissions := []string{}
+		for _, permission := range frozen.Permissions {
+			if declared[permission] {
+				permissions = append(permissions, permission)
+			}
+		}
+		snap = &store.AuthorizationSnapshot{API: current, Permissions: permissions}
 	}
 	var err error
 	if snap == nil {

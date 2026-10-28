@@ -22,6 +22,46 @@ import (
 
 const acmeUserScopes = "openid profile offline_access read:things"
 
+func TestActionsFrozenPermissionsRespectCurrentAPIDefinition(t *testing.T) {
+	f := newActionsFixture(t)
+	ctx := context.Background()
+	f.setRBAC(t, true)
+	writePermission := []store.PermissionKey{{ResourceServerIdentifier: acmeAPI, PermissionName: "write:things"}}
+	if err := f.st.RBAC().ChangeUserPermissions(ctx, f.tid, f.aliceID(t), true, writePermission); err != nil {
+		t.Fatal(err)
+	}
+	api, err := f.st.ResourceServers().GetByIdentifier(ctx, f.tid, acmeAPI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	api.TokenDialect = "access_token_authz"
+	if err := f.st.ResourceServers().Update(ctx, api); err != nil {
+		t.Fatal(err)
+	}
+	f.actions.PostLogin(t, f.tid, "snapshot-only", `exports.onExecutePostLogin=async()=>{};`)
+	code := f.authorize(t, "rt-spa", "https://rt.acme.test/cb", acmeUserScopes)
+	// Assignment changes stay frozen; API definition changes still apply.
+	if err := f.st.RBAC().ChangeUserPermissions(ctx, f.tid, f.aliceID(t), false, writePermission); err != nil {
+		t.Fatal(err)
+	}
+	// The assignment existed when the flow ran, but the API no longer defines it.
+	api.Scopes = []store.Scope{{Value: "write:things"}}
+	if err := f.st.ResourceServers().Update(ctx, api); err != nil {
+		t.Fatal(err)
+	}
+	status, body := f.token(t, codeForm(code, "rt-spa", "https://rt.acme.test/cb", pkceVerifier))
+	if status != 200 {
+		t.Fatalf("exchange %d %v", status, body)
+	}
+	claims, _ := verifyToken(t, f.keys, f.tid, body["access_token"].(string))
+	if slices.Contains(strings.Fields(body["scope"].(string)), "read:things") {
+		t.Fatalf("removed API scope survived: %v", body["scope"])
+	}
+	if p := claims["permissions"].([]any); len(p) != 1 || p[0] != "write:things" {
+		t.Fatalf("want frozen write assignment without removed read API permission: %v", p)
+	}
+}
+
 // A Management API side effect during an Action belongs to the next issuance.
 // Exercise both immediate tokens and effects sealed onto an authorization code.
 func TestActionsRBACSnapshotBeforeExternalAssignment(t *testing.T) {
