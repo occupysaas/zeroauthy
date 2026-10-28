@@ -360,7 +360,11 @@ and an operator log with its execution ID, without undoing the successful user
 operation. Custom-email Actions finish as sent unless they request retry/drop.
 Only the final notification call counts; reasons truncate to 1024 characters.
 Retry and uncaught errors/timeouts schedule at 30 seconds, 1, 2, 4 and 8 minutes,
-then fail after five retries. Drop is terminal. Terminal jobs and executions
+then fail after five retries. Drop is terminal, even if a later Action in the
+same attempt fails. An attempt in which an Action completed without asking to
+retry is never retried, because a retry would run that Action (and send the
+email) again; such a job is marked failed. A job envelope that cannot open is
+failed at once. Terminal jobs and executions
 expire after ten days. The console links an execution to its persisted job ID
 and attempt number through the operator-only local endpoint
 `GET /api/system/tenants/{tenant}/actions/executions/{id}/attempt` (204 for
@@ -371,7 +375,9 @@ and password changes still succeed with a logged drop; email send reports a
 provider failure.
 
 Configure an enabled `custom` email provider and bind an Action to
-`custom-email-provider`. There is no provider-transport fallback when that
+`custom-email-provider`. As in Auth0, at most one Action can be bound to this
+trigger; a second binding is refused with 400 by the Management API, the seed
+and the console. There is no provider-transport fallback when that
 provider is enabled, and missing bindings are a provider configuration error.
 The Action receives rendered `event.notification` from/to/subject/html/text,
 locale and message type. Produced types are `verify_email`, `reset_email`,

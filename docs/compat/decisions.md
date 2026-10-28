@@ -1309,3 +1309,19 @@ module flag is stale relative to that pinned source. This is source support,
 not a completed local round-trip; Task 13 must exercise all four Deploy CLI
 format/credential cells with modules. Implementation is original; no upstream
 code was copied or adapted.
+
+Final-review addendum (2026-10-28). Auth0 documents "You can have at most one
+Action bound to the `custom-email-provider` trigger"
+(https://auth0.com/docs/customize/email/configure-a-custom-email-provider/configure-a-custom-email-provider-with-terraform).
+zeroauthy enforces that limit in `PATCH /actions/triggers/custom-email-provider/bindings`,
+the seed and the console. Auth0 documents no error body for a second binding;
+the refusal uses the existing local binding-validation 400 (`invalid_body`),
+a local choice. Independently of the limit (jobs queued earlier, or bindings
+written outside the API), a recorded `drop` is terminal even when a later
+Action fails, and an attempt in which any Action completed without asking to
+retry is failed instead of retried, so a completed Action never runs again; a
+job envelope that cannot open fails at once. Without an Actions engine, a
+signup whose tenant has pre-user-registration bound fails closed, as the reset
+page does. Restoring an old Action version into the draft (`update_draft`)
+keeps that version's pins to deleted-module tombstones; only the Action whose
+versions pin a tombstone may keep it in its draft.
