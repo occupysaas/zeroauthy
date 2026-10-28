@@ -1,7 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { defineComponent, h } from 'vue'
-import Actions from './Actions.vue'
 import PlannedPage from './PlannedPage.vue'
 import PreviewTable from './PreviewTable.vue'
 import Toggle from '../../ui/Toggle.vue'
@@ -11,18 +10,6 @@ import { isPlanned, sections } from '../../layout/sections'
 import { mountAt } from '../../test/mount'
 
 const never = () => ({ status: 500, body: {} })
-
-describe('PlannedPage', () => {
-  it('renders title, banner and placeholder without calling the API', async () => {
-    const { wrapper, calls } = await mountAt(Actions, '/t/acme/actions', never)
-    expect(wrapper.get('h1').text()).toBe('Actions')
-    const banner = wrapper.get('[role=status]').text()
-    expect(banner).toContain('Planned · later')
-    expect(banner).toContain('/api/v2/actions')
-    expect(wrapper.text()).toContain('This section is planned. Its page will be designed when its API is built.')
-    expect(calls).toEqual([])
-  })
-})
 
 describe('PlannedPage slots', () => {
   it('shows slots and breadcrumb, hiding the placeholder', async () => {
@@ -72,7 +59,7 @@ describe('assertPreviewInert', () => {
 })
 
 it('keeps only sections that are still planned', () => {
-  expect(Object.keys(plannedPages).sort()).toEqual(['actions', 'logs', 'mfa', 'organizations'])
+  expect(Object.keys(plannedPages).sort()).toEqual(['logs', 'mfa', 'organizations'])
   expect(isPlanned(sections.find(s => s.key === 'emails')!)).toBe(false)
   for (const key of ['settings', 'attack-protection']) expect(isPlanned(sections.find(s => s.key === key)!)).toBe(false)
 })
