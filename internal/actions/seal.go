@@ -28,12 +28,15 @@ type sealedEffects struct {
 	AddScopes    []string       `json:"add_scopes,omitempty"`
 	RemoveScopes []string       `json:"remove_scopes,omitempty"`
 	Target       *[]string      `json:"target,omitempty"`
+	Ceiling      *[]string      `json:"ceiling,omitempty"`
 }
 
-// HasTokenEffects reports whether e changes a token: custom claims or
-// accessToken scope edits. A nil e has none.
+// HasTokenEffects reports whether e changes a token: custom claims,
+// accessToken scope edits, or a refresh ceiling that differs from the
+// issued scopes. A nil e has none.
 func (e *Effects) HasTokenEffects() bool {
-	return e != nil && (len(e.AccessClaims) > 0 || len(e.IDClaims) > 0 || len(e.AddScopes) > 0 || len(e.RemoveScopes) > 0)
+	return e != nil && (len(e.AccessClaims) > 0 || len(e.IDClaims) > 0 || len(e.AddScopes) > 0 || len(e.RemoveScopes) > 0 ||
+		e.Ceiling != nil)
 }
 
 // SealEffects envelope-encrypts e's token effects (custom claims may be
@@ -49,6 +52,10 @@ func SealEffects(w keys.Wrapper, tenantID, purpose string, e *Effects, bind ...s
 		if e.Target != nil {
 			t := append([]string{}, e.Target.Scopes...)
 			s.Target = &t
+		}
+		if e.Ceiling != nil {
+			c := append([]string{}, e.Ceiling...)
+			s.Ceiling = &c
 		}
 	}
 	plain, err := json.Marshal(s)
@@ -75,6 +82,9 @@ func OpenEffects(w keys.Wrapper, tenantID, purpose string, sealed []byte, bind .
 	e := &Effects{AccessClaims: s.AccessClaims, IDClaims: s.IDClaims, AddScopes: s.AddScopes, RemoveScopes: s.RemoveScopes}
 	if s.Target != nil {
 		e.Target = &TargetEdit{Scopes: *s.Target}
+	}
+	if s.Ceiling != nil {
+		e.Ceiling = *s.Ceiling
 	}
 	return e, nil
 }

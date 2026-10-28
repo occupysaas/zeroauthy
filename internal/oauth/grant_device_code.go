@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
@@ -85,7 +86,8 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 	}
 	var rt *store.RefreshToken
 	var raw string
-	if offline {
+	ceiling := refreshCeiling(eff, scopes, rs, offlineAllowed(c, rs))
+	if offline && slices.Contains(ceiling, "offline_access") {
 		absolute, _ := refreshLifetimes(c.RefreshToken)
 		var expiresAt time.Time
 		if absolute > 0 {
@@ -93,7 +95,7 @@ func (h *Handlers) deviceCodeGrant(ctx context.Context, res tenant.Resolved, c *
 		}
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
 			origin:   res.Origin(),
-			familyID: familyForDevice(hash), userID: user.UserID, audience: dc.Audience, scopes: scopes, expiresAt: expiresAt,
+			familyID: familyForDevice(hash), userID: user.UserID, audience: dc.Audience, scopes: ceiling, expiresAt: expiresAt,
 		})
 	}
 	// The user approved at /activate, possibly long ago, so there is no

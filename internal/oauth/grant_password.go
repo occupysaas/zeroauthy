@@ -198,6 +198,9 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	if oerr != nil {
 		return nil, oerr
 	}
+	// The refresh family's ceiling is the authorized set before the
+	// Actions' target-scope edits (spec §7).
+	ceiling := d.Scopes
 	if eff != nil && eff.Target != nil {
 		// Target-scope edits come before API-definition and policy filtering.
 		if d, oerr = h.decide(ctx, tenantID, access.Password, c, rs, userScopes(eff.Target.Scopes, rs, offlineAllowed(c, rs))); oerr != nil {
@@ -213,7 +216,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	}
 	var rt *store.RefreshToken
 	var raw string
-	if offline {
+	if offline && slices.Contains(ceiling, "offline_access") {
 		absolute, _ := refreshLifetimes(c.RefreshToken)
 		var expiresAt time.Time
 		if absolute > 0 {
@@ -222,7 +225,7 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
 			origin:   res.Origin(),
 			familyID: "rtf_" + secrets.RandomString(32), userID: user.UserID,
-			audience: aud, scopes: scopes, authTime: now, expiresAt: expiresAt,
+			audience: aud, scopes: ceiling, authTime: now, expiresAt: expiresAt,
 		})
 	}
 	// The password was checked against the user at this Version. A reset,

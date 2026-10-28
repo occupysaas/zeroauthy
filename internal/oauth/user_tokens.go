@@ -253,5 +253,3 @@ func (h *Handlers) operatorClaim(ctx context.Context, res tenant.Resolved, c *st
 	}
 	return slices.Clone(op.Tenants), nil
 }
-
-

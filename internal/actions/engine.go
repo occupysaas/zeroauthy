@@ -48,6 +48,11 @@ type Effects struct {
 	Target                    *TargetEdit
 	AppMetadata, UserMetadata map[string]any
 	TxnMetadata               map[string]any
+	// Ceiling is set by callers, not the engine: the authorized scopes
+	// before the flow's target-scope edits, the refresh family's ceiling
+	// (spec §7) when it differs from the issued scopes. Nil: the issued
+	// scopes are the ceiling.
+	Ceiling []string
 }
 
 // Denial is access.deny or validation.error. Code is "access_denied" for a
@@ -186,6 +191,11 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 	}
 	if len(bound) == 0 {
 		return &Result{}, nil
+	}
+	if in.Prepare != nil {
+		if err := in.Prepare(ctx, &in); err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
 	}
 	var roles []roleJSON
 	if in.User != nil {

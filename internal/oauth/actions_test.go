@@ -2,6 +2,8 @@ package oauth
 
 import (
 	"context"
+	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -9,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/actions/actionstest"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
@@ -189,9 +192,16 @@ func TestActionsUserGrants(t *testing.T) {
 				if at["sub"] != f.aliceID(t) || at["https://auth0.com/x"] != nil {
 					t.Fatalf("reserved or Auth0 claims applied: %v", at)
 				}
-				if b, _ := at["https://acme.test/body"].(string); strings.Contains(b, "password") || strings.Contains(b, "secret") ||
-					strings.Contains(b, "verifier") || strings.Contains(b, "refresh_token,") || slices.Contains(strings.Split(b, ","), "code") {
-					t.Fatalf("credentials reached event.request.body: %q", b)
+				b, _ := at["https://acme.test/body"].(string)
+				for _, secret := range []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code", "code"} {
+					if slices.Contains(strings.Split(b, ","), secret) {
+						t.Fatalf("%s reached event.request.body: %q", secret, b)
+					}
+				}
+				// /authorize flows pass no body; token-endpoint grants pass theirs.
+				if fromAuthorize := grant == "code" || grant == "device"; fromAuthorize != (b == "") ||
+					(!fromAuthorize && !slices.Contains(strings.Split(b, ","), "grant_type")) {
+					t.Fatalf("event.request.body = %q", b)
 				}
 				id, _ := verifyToken(t, f.keys, f.tid, body["id_token"].(string))
 				if id["https://acme.test/email"] != "alice@acme.test" || id["https://acme.test/protocol"] != nil {
@@ -205,7 +215,10 @@ func TestActionsUserGrants(t *testing.T) {
 				if raw == "" {
 					t.Fatal("no refresh token")
 				}
-				if rt := f.storedRT(t, raw); slices.Contains(rt.Scopes, "write:x") || !slices.Contains(rt.Scopes, "profile") {
+				// Nor does the transaction.addTargetScope addition (write:things),
+				// with RBAC on or off: the ceiling is Plan 26's pre-RBAC set.
+				if rt := f.storedRT(t, raw); slices.Contains(rt.Scopes, "write:x") || slices.Contains(rt.Scopes, "write:things") ||
+					!slices.Contains(rt.Scopes, "profile") || !slices.Contains(rt.Scopes, "read:things") {
 					t.Fatalf("refresh ceiling %v", rt.Scopes)
 				}
 			})
@@ -331,5 +344,180 @@ func TestActionsClientCredentials(t *testing.T) {
 				t.Fatalf("got %d %v", status, body)
 			}
 		})
+	}
+}
+
+// TestActionsRefreshReadds: Action additions are not kept by the refresh
+// family; on refresh they are present only when the re-run flow adds them
+// again.
+func TestActionsRefreshReadds(t *testing.T) {
+	for _, rbac := range []bool{false, true} {
+		for _, again := range []bool{false, true} {
+			t.Run(fmt.Sprintf("rbac=%v/readd=%v", rbac, again), func(t *testing.T) {
+				f := newActionsFixture(t)
+				f.setRBAC(t, rbac)
+				cond := `event.transaction.protocol !== "oauth2-refresh-token"`
+				if again {
+					cond = "true"
+				}
+				f.actions.PostLogin(t, f.tid, "cond", `exports.onExecutePostLogin = async (event, api) => {
+				  if (`+cond+`) {
+				    api.transaction.addTargetScope("write:things");
+				    api.accessToken.addScope("write:x");
+				    api.accessToken.setCustomClaim("https://acme.test/c", 1);
+				  }
+				};`)
+				status, body := f.token(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", "openid offline_access read:things"))
+				if status != 200 {
+					t.Fatalf("password: %d %v", status, body)
+				}
+				raw := body["refresh_token"].(string)
+				if rt := f.storedRT(t, raw); slices.Contains(rt.Scopes, "write:things") || slices.Contains(rt.Scopes, "write:x") {
+					t.Fatalf("ceiling %v", rt.Scopes)
+				}
+				status, body = f.token(t, refreshForm("ropg", raw, "client_secret", "ropg-secret"))
+				if status != 200 {
+					t.Fatalf("refresh: %d %v", status, body)
+				}
+				want := "openid offline_access read:things"
+				switch {
+				case again && !rbac:
+					want += " write:things write:x"
+				case again:
+					want += " write:x"
+				}
+				at, _ := verifyToken(t, f.keys, f.tid, body["access_token"].(string))
+				if body["scope"] != want || at["scope"] != want || (at["https://acme.test/c"] != nil) != again {
+					t.Fatalf("refresh scope %v (JWT %v), want %q; claims %v", body["scope"], at["scope"], want, at)
+				}
+			})
+		}
+	}
+}
+
+// rotating makes ropg's refresh tokens rotate, without leeway.
+func (f *actionsFixture) rotating(t *testing.T) {
+	t.Helper()
+	ctx := context.Background()
+	c, err := f.st.Clients().Get(ctx, f.tid, "ropg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.RefreshToken.Rotating = true
+	if err := f.st.Clients().Update(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestActionsRefreshOfflineRemoved: removeScope("offline_access") on refresh
+// returns no refresh token and neither rotates nor extends the presented one.
+func TestActionsRefreshOfflineRemoved(t *testing.T) {
+	f := newActionsFixture(t)
+	f.rotating(t)
+	f.actions.PostLogin(t, f.tid, "drop", `exports.onExecutePostLogin = async (event, api) => {
+	  if (event.transaction.protocol === "oauth2-refresh-token") api.accessToken.removeScope("offline_access");
+	};`)
+	_, body := f.token(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", "openid offline_access"))
+	raw := body["refresh_token"].(string)
+	status, body := f.token(t, refreshForm("ropg", raw, "client_secret", "ropg-secret"))
+	if status != 200 || body["refresh_token"] != nil || body["scope"] != "openid" {
+		t.Fatalf("refresh: %d %v", status, body)
+	}
+	if rt := f.storedRT(t, raw); rt.RotatedAt != nil || rt.RevokedAt != nil {
+		t.Fatalf("presented token changed: %+v", rt)
+	}
+}
+
+// TestActionsRefreshReplayRunsNothing: a replayed (rotated) refresh token is
+// refused before the post-login flow: no Action, no execution record.
+func TestActionsRefreshReplayRunsNothing(t *testing.T) {
+	f := newActionsFixture(t)
+	f.rotating(t)
+	counts := &actionstest.Counts{}
+	cs := actionstest.CountingStore{Store: f.st, Counts: counts}
+	f.h.Store, f.actions.Engine.Store = cs, cs
+	f.actions.PostLogin(t, f.tid, "count", `exports.onExecutePostLogin = async (event, api) => {};`)
+	_, body := f.token(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", "openid offline_access"))
+	first := body["refresh_token"].(string)
+	if status, body := f.token(t, refreshForm("ropg", first, "client_secret", "ropg-secret")); status != 200 || body["refresh_token"] == nil {
+		t.Fatalf("refresh: %d %v", status, body)
+	}
+	counts.Reset()
+	status, body := f.token(t, refreshForm("ropg", first, "client_secret", "ropg-secret"))
+	if status != 400 || body["error"] != "invalid_grant" {
+		t.Fatalf("replay: %d %v", status, body)
+	}
+	if n := counts.Snapshot(); n["Actions.Bindings"] != 0 || n["Actions.CreateExecution"] != 0 {
+		t.Fatalf("replay ran the flow: %v", n)
+	}
+}
+
+// TestActionsNoBindingsCost: without bound post-login Actions a refresh
+// costs one bindings read and no other added query.
+func TestActionsNoBindingsCost(t *testing.T) {
+	f := newActionsFixture(t)
+	counts := &actionstest.Counts{}
+	cs := actionstest.CountingStore{Store: f.st, Counts: counts}
+	f.h.Store, f.actions.Engine.Store = cs, cs
+	_, body := f.token(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", "openid offline_access"))
+	raw := body["refresh_token"].(string)
+	run := func(engine bool) map[string]int {
+		f.h.Actions = nil
+		if engine {
+			f.h.Actions = f.actions.Engine
+		}
+		counts.Reset()
+		if status, body := f.token(t, refreshForm("ropg", raw, "client_secret", "ropg-secret")); status != 200 {
+			t.Fatalf("refresh: %d %v", status, body)
+		}
+		return counts.Snapshot()
+	}
+	assertOneBindingsRead(t, run(false), run(true))
+}
+
+// assertOneBindingsRead checks that with differs from without by exactly
+// one Actions accessor call, that is one Bindings read.
+func assertOneBindingsRead(t *testing.T, without, with map[string]int) {
+	t.Helper()
+	want := maps.Clone(without)
+	want["Actions"]++
+	want["Actions.Bindings"]++
+	if !maps.Equal(with, want) {
+		t.Fatalf("queries with an engine and no bindings %v, want %v", with, want)
+	}
+}
+
+// credentialsByGrant lists each token grant's credential parameters. Every
+// registered grant must be listed, so a new grant cannot leak its
+// credentials into event.request.body unnoticed.
+var credentialsByGrant = map[string][]string{
+	"authorization_code": {"code", "code_verifier", "client_secret", "client_assertion"},
+	"client_credentials": {"client_secret", "client_assertion"},
+	"refresh_token":      {"refresh_token", "client_secret", "client_assertion"},
+	"password":           {"password", "client_secret", "client_assertion"},
+	GrantPasswordRealm:   {"password", "client_secret", "client_assertion"},
+	GrantDeviceCode:      {"device_code", "client_secret", "client_assertion"},
+}
+
+func TestActionsBodyStripsEveryGrant(t *testing.T) {
+	for grant := range grantHandlers {
+		creds, ok := credentialsByGrant[grant]
+		if !ok {
+			t.Errorf("grant %q has no credential list: add it here and strip its credentials from event.request.body", grant)
+			continue
+		}
+		body := map[string]any{"grant_type": grant, "scope": "openid"}
+		for _, c := range creds {
+			body[c] = "secret"
+		}
+		got := actions.StripCredentials(body)
+		for _, c := range creds {
+			if _, leaked := got[c]; leaked {
+				t.Errorf("grant %q: %s reaches event.request.body", grant, c)
+			}
+		}
+		if got["scope"] != "openid" || got["grant_type"] != grant {
+			t.Errorf("grant %q: body %v", grant, got)
+		}
 	}
 }

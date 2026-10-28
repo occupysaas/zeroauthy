@@ -19,17 +19,20 @@ func TestFilterClaims(t *testing.T) {
 		"sid", "sip_callid", "sip_cseq_num", "sip_date", "sip_from_tag", "sip_via_branch", "sub", "sub_jwk",
 		"toe", "txn", "typ", "uuid", "vot", "vtm", "x5t#S256", "scope"}
 	custom := map[string]any{
-		"https://example.com/ok":       1,
-		"urn:example:ok":               2,
-		"plain":                        3,
-		"https://auth0.com/x":          4,
-		"https://tenant.auth0.com/x":   5,
-		"http://webtask.io/x":          6,
-		"https://a.webtask.run/x":      7,
-		"urn:auth0:x":                  8,
-		"URN:AUTH0:y":                  9,
-		"https://example.com/existing": 10,
-		"https://auth0.com.evil.test/": 11,
+		"https://example.com/ok":         1,
+		"urn:example:ok":                 2,
+		"plain":                          3,
+		"https://auth0.com/x":            4,
+		"https://tenant.auth0.com/x":     5,
+		"http://webtask.io/x":            6,
+		"https://a.webtask.run/x":        7,
+		"urn:auth0:x":                    8,
+		"URN:AUTH0:y":                    9,
+		"https://example.com/existing":   10,
+		"https://auth0.com.evil.test/":   11,
+		"https://zeroauthy.dev/operator": 12,
+		"https://x.zeroauthy.dev/y":      13,
+		"urn:zeroauthy:z":                14,
 	}
 	for _, r := range reserved {
 		custom[r] = "x"

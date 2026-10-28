@@ -16,12 +16,19 @@ import (
 // cookie, scoped to cookiePath) and returns it. startTxn uses it. The
 // transaction keeps a copy of params.
 func (h *Handlers) CreateTxn(w http.ResponseWriter, r *http.Request, res tenant.Resolved, clientID string, params map[string]string, cookiePath string) (*store.AuthTransaction, error) {
+	return h.createTxn(w, r, res, clientID, params, cookiePath, nil)
+}
+
+// createTxn is CreateTxn; prepare, when set, may add params bound to the
+// new transaction's ID before it is stored.
+func (h *Handlers) createTxn(w http.ResponseWriter, r *http.Request, res tenant.Resolved, clientID string, params map[string]string, cookiePath string,
+	prepare func(txnID string, params map[string]string) error) (*store.AuthTransaction, error) {
 	now := h.now()
 	params = maps.Clone(params)
+	if params == nil && (prepare != nil || cookiePath != "/u") {
+		params = map[string]string{}
+	}
 	if cookiePath != "/u" {
-		if params == nil {
-			params = map[string]string{}
-		}
 		params[cookiePathKey] = cookiePath
 	}
 	cookieValue := secrets.RandomString(43)
@@ -43,6 +50,11 @@ func (h *Handlers) CreateTxn(w http.ResponseWriter, r *http.Request, res tenant.
 		}
 		if err == nil && config.Prompts["identifier_first"] == true {
 			txn.HostedState.Step = "identifier"
+		}
+	}
+	if prepare != nil {
+		if err := prepare(txn.ID, params); err != nil {
+			return nil, err
 		}
 	}
 	if err := h.Store.AuthTransactions().Create(r.Context(), txn); err != nil {

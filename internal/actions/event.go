@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"maps"
 	"slices"
 	"time"
@@ -49,6 +50,10 @@ type PostLoginInput struct {
 	// CanRedirect is api.redirect.canRedirect(): an interactive browser
 	// flow that is not prompt=none.
 	CanRedirect bool
+	// Prepare, when set, completes the input (for example loads the user
+	// or connection) once the engine knows Actions are bound, so a tenant
+	// without post-login Actions pays only the bindings read.
+	Prepare func(ctx context.Context, in *PostLoginInput) error
 }
 
 // CredentialsInput is everything a credentials-exchange flow sees.
@@ -85,8 +90,15 @@ func obj(m map[string]any) map[string]any {
 }
 
 // credentialParams are request body parameters that are credentials and
-// never reach an Action's event.request.body.
+// never reach an Action's event.request.body. It is a deny-list, not an
+// allowlist: Auth0 passes the request body, and Actions read non-secret
+// custom parameters from it. Every token grant's credentials must be
+// listed; oauth's TestActionsBodyStripsEveryGrant enforces that.
 var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code"}
+
+// StripCredentials is body without its credentials (the authorization code
+// grant's code is one too), as event.request.body carries it.
+func StripCredentials(body map[string]any) map[string]any { return requestBody(body) }
 
 // requestBody is r's body without its credentials; the authorization
 // code grant's code is one too.

@@ -39,10 +39,13 @@ func requestInfoFrom(ctx context.Context) actions.RequestInfo {
 type loginFlow struct {
 	user       *store.User
 	connection *store.Connection // nil when unknown
-	rs         *store.ResourceServer
-	protocol   string
-	requested  []string
-	target     []string
+	// userConnection loads connection from the user's first identity, only
+	// when Actions are bound.
+	userConnection bool
+	rs             *store.ResourceServer
+	protocol       string
+	requested      []string
+	target         []string
 }
 
 // postLogin runs the tenant's post-login flow for a token-endpoint grant,
@@ -54,10 +57,18 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 	if h.Actions == nil {
 		return nil, nil
 	}
-	result, err := h.Actions.PostLogin(ctx, actions.PostLoginInput{
+	in := actions.PostLoginInput{
 		Tenant: res, Client: c, User: f.user, Connection: f.connection, Request: requestInfoFrom(ctx),
 		Protocol: f.protocol, RequestedScopes: f.requested, TargetScopes: f.target, ResourceServer: f.rs,
-	})
+	}
+	if f.userConnection {
+		in.Prepare = func(ctx context.Context, in *actions.PostLoginInput) error {
+			conn, err := h.userConnection(ctx, res.Tenant.ID, in.User)
+			in.Connection = conn
+			return err
+		}
+	}
+	result, err := h.Actions.PostLogin(ctx, in)
 	if err != nil {
 		var fe *actions.ErrFlow
 		if !errors.As(err, &fe) {
@@ -72,36 +83,43 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 }
 
 // targetScopes is scopes after the flow's transaction target-scope edits,
-// kept within ceiling when one is given (a refresh token's scopes). The
+// kept within allowed when it is given (a client grant's scopes). The
 // result is still filtered by API definition, client policy and RBAC.
-func targetScopes(eff *actions.Effects, scopes, ceiling []string) []string {
+func targetScopes(eff *actions.Effects, scopes, allowed []string) []string {
 	if eff == nil || eff.Target == nil {
 		return scopes
 	}
 	out := []string{}
 	for _, s := range eff.Target.Scopes {
-		if ceiling == nil || slices.Contains(ceiling, s) {
+		if allowed == nil || slices.Contains(allowed, s) {
 			out = append(out, s)
 		}
 	}
 	return out
 }
 
+// refreshCeiling is the scope set a refresh family started by a code or
+// device approval stores: the authorized set before the Actions'
+// target-scope edits (spec §7), which the flow recorded when it differs
+// from the issued scopes.
+func refreshCeiling(eff *actions.Effects, scopes []string, rs *store.ResourceServer, offline bool) []string {
+	if eff == nil || eff.Ceiling == nil {
+		return scopes
+	}
+	return userScopes(eff.Ceiling, rs, offline)
+}
+
 // userConnection is the connection of the user's first identity, for
 // event.connection; nil when it cannot be found.
-func (h *Handlers) userConnection(ctx context.Context, tenantID string, u *store.User) (*store.Connection, *Error) {
-	if h.Actions == nil || len(u.Identities) == 0 {
+func (h *Handlers) userConnection(ctx context.Context, tenantID string, u *store.User) (*store.Connection, error) {
+	if u == nil || len(u.Identities) == 0 {
 		return nil, nil
 	}
 	conn, err := h.Store.Connections().GetByName(ctx, tenantID, u.Identities[0].Connection)
 	if errors.Is(err, store.ErrNotFound) {
 		return nil, nil
 	}
-	if err != nil {
-		h.log().ErrorContext(ctx, "load connection for Actions", "tenant", tenantID, "err", err)
-		return nil, serverError()
-	}
-	return conn, nil
+	return conn, err
 }
 
 // openEffects opens the post-login effects sealed onto a code or device

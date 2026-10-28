@@ -93,25 +93,26 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if oerr != nil {
 		return nil, oerr
 	}
-	// The post-login flow runs again (spec §7): its claims and addScope
-	// results are not stored with the family, so it must re-add them. Its
-	// target-scope edits stay within the family's ceiling, which never
-	// grows.
-	conn, oerr := h.userConnection(ctx, tenantID, user)
-	if oerr != nil {
-		return nil, oerr
-	}
-	eff, oerr := h.postLogin(ctx, res, c, loginFlow{user: user, connection: conn, rs: rs, protocol: actions.ProtocolRefreshToken,
+	// The post-login flow runs again (spec §7), after the reuse checks
+	// above, so a replayed token runs no Action. Its claims and its
+	// target-scope and addScope additions are never stored with the
+	// family (whose ceiling never grows): the flow must add them again.
+	// Target edits are filtered by API definition, policy and RBAC.
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
 		requested: d.Scopes, target: d.Scopes})
 	if oerr != nil {
 		return nil, oerr
 	}
 	if eff != nil && eff.Target != nil {
-		if d, oerr = h.decide(ctx, tenantID, access.Refresh, c, rs, userScopes(targetScopes(eff, nil, rt.Scopes), rs, true)); oerr != nil {
+		if d, oerr = h.decide(ctx, tenantID, access.Refresh, c, rs, userScopes(eff.Target.Scopes, rs, true)); oerr != nil {
 			return nil, oerr
 		}
 	}
 	scopes = d.Scopes
+	// accessToken.removeScope("offline_access") ends the exchange without a
+	// new refresh token, as at the other grants: the token is neither
+	// rotated nor extended.
+	keep := eff == nil || !slices.Contains(eff.RemoveScopes, "offline_access")
 	resp, _, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		user: user, rs: rs, lifetime: lifetime, scopes: scopes,
 		sessionID: rt.SessionID, authTime: rt.AuthTime, effects: eff,
@@ -128,6 +129,9 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	var writeErr error
 	var nextRaw string
 	err = h.mintTx(ctx, tenantID, rt.UserID, &version, func(tx store.Store) error {
+		if !keep {
+			return nil
+		}
 		if rt.Rotating {
 			next, raw := h.newRefreshToken(c, tenantID, refreshGrant{
 				origin:   res.Origin(),
@@ -170,7 +174,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		h.log().ErrorContext(ctx, "extend refresh token", "tenant", tenantID, "err", err)
 		return nil, serverError()
 	}
-	if rt.Rotating {
+	if rt.Rotating && keep {
 		resp.RefreshToken = &nextRaw
 	}
 	return resp, nil

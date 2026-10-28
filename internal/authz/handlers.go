@@ -256,16 +256,15 @@ func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tena
 	params := fr.params()
 	params[ParamStage] = stageConsent
 	params[sessionKey] = sess.ID
+	var prepare func(string, map[string]string) error
 	if eff != nil {
-		sealed, err := h.sealConsent(res.Tenant.ID, sess.ID, client.ClientID, eff)
-		if err != nil {
-			h.log().ErrorContext(r.Context(), "seal Action effects", "tenant", res.Tenant.ID, "err", err)
-			h.refuse(w, r, res, client, fr, errServer())
-			return
+		prepare = func(txnID string, params map[string]string) error {
+			sealed, err := h.sealConsent(res.Tenant.ID, txnID, sess.ID, client.ClientID, eff)
+			params[effectsKey] = sealed
+			return err
 		}
-		params[effectsKey] = sealed
 	}
-	h.startTxn(w, r, res, client, fr, params, "/u/consent")
+	h.startTxnWith(w, r, res, client, fr, params, "/u/consent", prepare)
 }
 
 // invalidTxn shows the generic error page for a transaction used at the
@@ -278,7 +277,13 @@ func (h *Handlers) invalidTxn(w http.ResponseWriter, r *http.Request, res tenant
 // startTxn stores params in a transaction bound to this browser and
 // redirects to page.
 func (h *Handlers) startTxn(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, params map[string]string, page string) {
-	txn, err := h.CreateTxn(w, r, res, client.ClientID, params, "/u")
+	h.startTxnWith(w, r, res, client, fr, params, page, nil)
+}
+
+// startTxnWith is startTxn with createTxn's prepare.
+func (h *Handlers) startTxnWith(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, params map[string]string, page string,
+	prepare func(string, map[string]string) error) {
+	txn, err := h.createTxn(w, r, res, client.ClientID, params, "/u", prepare)
 	if err != nil {
 		h.log().ErrorContext(r.Context(), "create login transaction", "tenant", res.Tenant.ID, "err", err)
 		h.refuse(w, r, res, client, fr, errServer())
@@ -444,6 +449,7 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 			return
 		}
 	}
+	authorized := in.Scopes
 	if eff != nil && eff.Target != nil {
 		in.Scopes = eff.Target.Scopes
 	}
@@ -468,6 +474,18 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 			h.log().ErrorContext(ctx, "store user grant", "tenant", res.Tenant.ID, "err", err)
 			h.refuse(w, r, res, client, fr, errServer())
 			return
+		}
+	}
+	if eff != nil && eff.Target != nil {
+		// The refresh family's ceiling is the authorized set without the
+		// Actions' target-scope edits (spec §7); the code and its tokens
+		// carry the edited set.
+		ceilingIn := in
+		ceilingIn.Scopes = authorized
+		if ceiling := access.Decide(ceilingIn).Scopes; !slices.Equal(ceiling, d.Scopes) {
+			edited := *eff
+			edited.Ceiling = append([]string{}, ceiling...)
+			eff = &edited
 		}
 	}
 	h.approve(w, r, res, client, fr, sess, d.Scopes, eff)

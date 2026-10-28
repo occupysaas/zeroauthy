@@ -38,8 +38,9 @@ func init() {
 	}
 }
 
-// restrictedHosts are Auth0's own domains, refused as claim namespaces.
-var restrictedHosts = []string{"auth0.com", "webtask.io", "webtask.run"}
+// restrictedHosts are Auth0's own domains, refused as claim namespaces, and
+// zeroauthy's (tenant.OperatorClaim lives under zeroauthy.dev).
+var restrictedHosts = []string{"auth0.com", "webtask.io", "webtask.run", "zeroauthy.dev"}
 
 // namespaced reports whether a claim name carries a namespace: an http(s)
 // URL or a URN.
@@ -52,7 +53,7 @@ func namespaced(name string) bool {
 // Auth0 domain (or one of its subdomains).
 func restrictedNamespace(name string) bool {
 	l := strings.ToLower(name)
-	if strings.HasPrefix(l, "urn:auth0") {
+	if strings.HasPrefix(l, "urn:auth0") || strings.HasPrefix(l, "urn:zeroauthy") {
 		return true
 	}
 	if !strings.HasPrefix(l, "http://") && !strings.HasPrefix(l, "https://") {

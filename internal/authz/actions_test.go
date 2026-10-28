@@ -204,6 +204,12 @@ func TestActionsDenyAndErrorSurfaces(t *testing.T) {
 		if strings.Contains(txn.Params[effectsKey], "admin:x") || strings.Contains(txn.Params[effectsKey], "acme.test/claim") {
 			t.Fatal("effects stored in the clear on the transaction")
 		}
+		// The seal is bound to this transaction.
+		other := *txn
+		other.ID = "another-transaction"
+		if _, err := e.h.consentEffects(e.tenant.ID, &other); err == nil {
+			t.Fatal("sealed effects opened on another transaction")
+		}
 		cl := location(t, e.consent(t, txn, ck, true))
 		code := cl.Query().Get("code")
 		if cl.Host != "partner.example" || code == "" {
@@ -333,4 +339,95 @@ func (e *actionsEnv) continueDevice(t *testing.T, dc *store.DeviceCode) *httptes
 	r.AddCookie(e.login(t, fixedNow()))
 	e.h.ContinueDevice(rec, r, e.res(), dc, "")
 	return rec
+}
+
+// TestActionsConsentMarker: a flow without token or scope effects leaves
+// only a marker on the consent transaction, and accepting still does not
+// run it again.
+func TestActionsConsentMarker(t *testing.T) {
+	e := newActionsEnv(t)
+	e.postLogin(t, "meta", ``)
+	ck := e.login(t, fixedNow())
+	loc := location(t, e.get(t, partnerQuery(), ck))
+	txn, err := e.st.AuthTransactions().Get(context.Background(), e.tenant.ID, loc.Query().Get("state"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if txn.Params[effectsKey] != ranEmpty {
+		t.Fatalf("effects param = %q", txn.Params[effectsKey])
+	}
+	if cl := location(t, e.consent(t, txn, ck, true)); cl.Query().Get("code") == "" || e.runs(t) != 1 {
+		t.Fatalf("Location = %s runs=%v", cl, e.runs(t))
+	}
+}
+
+// TestActionsQueryOmitsInternalKeys: event.request.query is the
+// authorization request without zeroauthy's own keys (za_pushed).
+func TestActionsQueryOmitsInternalKeys(t *testing.T) {
+	e := newActionsEnv(t)
+	e.postLogin(t, "query", `api.user.setAppMetadata("query", Object.keys(event.request.query).sort().join(","));`)
+	q := goodQuery()
+	loc := location(t, e.get(t, q, e.login(t, fixedNow())))
+	if loc.Query().Get("code") == "" {
+		t.Fatalf("Location = %s", loc)
+	}
+	// A pushed request carries za_pushed in its transaction params.
+	req := ParseRequest(q)
+	req.Pushed = true
+	if _, ok := req.Params()[pushedKey]; !ok {
+		t.Fatal("test premise: pushed requests carry an internal key")
+	}
+	rec := httptest.NewRecorder()
+	r := httptestRequest("https://acme.example.test/authorize")
+	ck := e.login(t, fixedNow())
+	r.AddCookie(ck)
+	client, err := e.st.Clients().Get(context.Background(), e.tenant.ID, "spa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.h.finish(rec, r, e.res(), client, flowReq{Request: req}, e.session(t, ck), nil, false, false)
+	u, err := e.st.Users().FindByLogin(context.Background(), e.tenant.ID, "Username-Password-Authentication", "alice@acme.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := u.AppMetadata["query"].(string)
+	if strings.Contains(got, "za_") || !strings.Contains(got, "client_id") {
+		t.Fatalf("event.request.query keys = %q", got)
+	}
+}
+
+// TestActionsNoBindingsCost: without bound post-login Actions, /authorize
+// costs one bindings read and no other added query.
+func TestActionsNoBindingsCost(t *testing.T) {
+	e := newActionsEnv(t)
+	counts := &actionstest.Counts{}
+	cs := actionstest.CountingStore{Store: e.st, Counts: counts}
+	e.h.Store, e.actions.Engine.Store = cs, cs
+	run := func(engine bool) map[string]int {
+		e.h.Actions = nil
+		if engine {
+			e.h.Actions = e.actions.Engine
+		}
+		ck := e.login(t, fixedNow())
+		counts.Reset()
+		if loc := location(t, e.get(t, goodQuery(), ck)); loc.Query().Get("code") == "" {
+			t.Fatalf("Location = %s", loc)
+		}
+		return counts.Snapshot()
+	}
+	without, with := run(false), run(true)
+	want := map[string]int{}
+	for k, v := range without {
+		want[k] = v
+	}
+	want["Actions"]++
+	want["Actions.Bindings"]++
+	if len(with) != len(want) {
+		t.Fatalf("queries with an engine and no bindings %v, want %v", with, want)
+	}
+	for k, v := range want {
+		if with[k] != v {
+			t.Fatalf("queries with an engine and no bindings %v, want %v", with, want)
+		}
+	}
 }

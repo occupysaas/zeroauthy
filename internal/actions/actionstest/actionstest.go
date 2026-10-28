@@ -160,3 +160,125 @@ func (e *Env) CredentialsExchange(t testing.TB, tenantID, name, code string) {
 	t.Helper()
 	e.Bind(t, tenantID, actions.TriggerCredentialsExchange, e.Deploy(t, tenantID, actions.TriggerCredentialsExchange, name, code))
 }
+
+// Counts counts repository use through a CountingStore: each accessor
+// call (one per query in practice) by repository name, and the Actions
+// repository's Bindings and CreateExecution calls ("Actions.Bindings",
+// "Actions.CreateExecution").
+type Counts struct {
+	mu sync.Mutex
+	n  map[string]int
+}
+
+func (c *Counts) add(name string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.n == nil {
+		c.n = map[string]int{}
+	}
+	c.n[name]++
+}
+
+// Snapshot returns a copy of the counts.
+func (c *Counts) Snapshot() map[string]int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := map[string]int{}
+	for k, v := range c.n {
+		out[k] = v
+	}
+	return out
+}
+
+// Reset clears the counts.
+func (c *Counts) Reset() {
+	c.mu.Lock()
+	c.n = nil
+	c.mu.Unlock()
+}
+
+// CountingStore wraps a store and counts its repository use in Counts,
+// transactions included.
+type CountingStore struct {
+	store.Store
+	Counts *Counts
+}
+
+func (s CountingStore) WithTx(ctx context.Context, fn func(tx store.Store) error) error {
+	s.Counts.add("WithTx")
+	return s.Store.WithTx(ctx, func(tx store.Store) error { return fn(CountingStore{tx, s.Counts}) })
+}
+
+func (s CountingStore) Actions() store.Actions {
+	s.Counts.add("Actions")
+	return countingActions{s.Store.Actions(), s.Counts}
+}
+
+type countingActions struct {
+	store.Actions
+	c *Counts
+}
+
+func (a countingActions) Bindings(ctx context.Context, tenantID, trigger string) ([]store.BoundVersion, error) {
+	a.c.add("Actions.Bindings")
+	return a.Actions.Bindings(ctx, tenantID, trigger)
+}
+
+func (a countingActions) CreateExecution(ctx context.Context, e *store.Execution) error {
+	a.c.add("Actions.CreateExecution")
+	return a.Actions.CreateExecution(ctx, e)
+}
+
+func (s CountingStore) RBAC() store.RBAC       { s.Counts.add("RBAC"); return s.Store.RBAC() }
+func (s CountingStore) Tenants() store.Tenants { s.Counts.add("Tenants"); return s.Store.Tenants() }
+func (s CountingStore) Clients() store.Clients { s.Counts.add("Clients"); return s.Store.Clients() }
+func (s CountingStore) ResourceServers() store.ResourceServers {
+	s.Counts.add("ResourceServers")
+	return s.Store.ResourceServers()
+}
+func (s CountingStore) ClientGrants() store.ClientGrants {
+	s.Counts.add("ClientGrants")
+	return s.Store.ClientGrants()
+}
+func (s CountingStore) UserGrants() store.UserGrants {
+	s.Counts.add("UserGrants")
+	return s.Store.UserGrants()
+}
+func (s CountingStore) SigningKeys() store.SigningKeys {
+	s.Counts.add("SigningKeys")
+	return s.Store.SigningKeys()
+}
+func (s CountingStore) Connections() store.Connections {
+	s.Counts.add("Connections")
+	return s.Store.Connections()
+}
+func (s CountingStore) Users() store.Users       { s.Counts.add("Users"); return s.Store.Users() }
+func (s CountingStore) Sessions() store.Sessions { s.Counts.add("Sessions"); return s.Store.Sessions() }
+func (s CountingStore) AuthTransactions() store.AuthTransactions {
+	s.Counts.add("AuthTransactions")
+	return s.Store.AuthTransactions()
+}
+func (s CountingStore) AuthCodes() store.AuthCodes {
+	s.Counts.add("AuthCodes")
+	return s.Store.AuthCodes()
+}
+func (s CountingStore) DeviceCodes() store.DeviceCodes {
+	s.Counts.add("DeviceCodes")
+	return s.Store.DeviceCodes()
+}
+func (s CountingStore) RefreshTokens() store.RefreshTokens {
+	s.Counts.add("RefreshTokens")
+	return s.Store.RefreshTokens()
+}
+func (s CountingStore) Operators() store.Operators {
+	s.Counts.add("Operators")
+	return s.Store.Operators()
+}
+func (s CountingStore) HostedLogins() store.HostedLogins {
+	s.Counts.add("HostedLogins")
+	return s.Store.HostedLogins()
+}
+func (s CountingStore) Protection() store.Protection {
+	s.Counts.add("Protection")
+	return s.Store.Protection()
+}

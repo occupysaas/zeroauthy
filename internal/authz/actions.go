@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"net/http"
@@ -29,24 +30,11 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		return nil, true
 	}
 	ctx := r.Context()
-	user, err := h.Store.Users().Get(ctx, res.Tenant.ID, sess.UserID)
-	if err != nil {
-		h.log().ErrorContext(ctx, "load user for Actions", "tenant", res.Tenant.ID, "err", err)
-		h.refuse(w, r, res, client, fr, errServer())
-		return nil, false
-	}
-	conn, err := h.Store.Connections().GetByName(ctx, res.Tenant.ID, sess.Connection)
-	if errors.Is(err, store.ErrNotFound) {
-		conn, err = nil, nil
-	}
-	if err != nil {
-		h.log().ErrorContext(ctx, "load connection for Actions", "tenant", res.Tenant.ID, "err", err)
-		h.refuse(w, r, res, client, fr, errServer())
-		return nil, false
-	}
 	query := map[string]any{}
 	for k, v := range fr.Request.Params() {
-		query[k] = v
+		if !strings.HasPrefix(k, "za_") { // zeroauthy's own transaction keys
+			query[k] = v
+		}
 	}
 	protocol := actions.ProtocolOIDCBasicProfile
 	if fr.device() {
@@ -57,7 +45,21 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		locale = l[0]
 	}
 	result, err := h.Actions.PostLogin(ctx, actions.PostLoginInput{
-		Tenant: res, Client: client, User: user, Connection: conn, Session: sess,
+		Tenant: res, Client: client, Session: sess,
+		// Loaded only when Actions are bound: a tenant without post-login
+		// Actions pays only the bindings read.
+		Prepare: func(ctx context.Context, in *actions.PostLoginInput) error {
+			user, err := h.Store.Users().Get(ctx, res.Tenant.ID, sess.UserID)
+			if err != nil {
+				return err
+			}
+			conn, err := h.Store.Connections().GetByName(ctx, res.Tenant.ID, sess.Connection)
+			if errors.Is(err, store.ErrNotFound) {
+				conn, err = nil, nil
+			}
+			in.User, in.Connection = user, conn
+			return err
+		},
 		// The login form's body (with the password) is never passed on.
 		Request: actions.RequestInfo{
 			IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: r.Host, Method: r.Method,
@@ -108,9 +110,17 @@ func firstLanguage(h string) string {
 	return strings.TrimSpace(tag)
 }
 
-// sealConsent seals eff for a consent transaction of sessionID and client.
-func (h *Handlers) sealConsent(tenantID, sessionID, clientID string, eff *actions.Effects) (string, error) {
-	b, err := actions.SealEffects(h.Wrapper, tenantID, actions.SealConsent, eff, sessionID, clientID)
+// ranEmpty marks a consent transaction whose post-login flow ran without
+// token or scope effects; nothing needs sealing.
+const ranEmpty = "-"
+
+// sealConsent seals eff for consent transaction txnID of sessionID and
+// client; a flow without effects is only marked as run.
+func (h *Handlers) sealConsent(tenantID, txnID, sessionID, clientID string, eff *actions.Effects) (string, error) {
+	if !eff.HasTokenEffects() && eff.Target == nil {
+		return ranEmpty, nil
+	}
+	b, err := actions.SealEffects(h.Wrapper, tenantID, actions.SealConsent, eff, txnID, sessionID, clientID)
 	if err != nil {
 		return "", err
 	}
@@ -122,14 +132,17 @@ func (h *Handlers) sealConsent(tenantID, sessionID, clientID string, eff *action
 // when the transaction began).
 func (h *Handlers) consentEffects(tenantID string, txn *store.AuthTransaction) (*actions.Effects, error) {
 	raw, ok := txn.Params[effectsKey]
-	if !ok {
+	switch {
+	case !ok:
 		return nil, nil
+	case raw == ranEmpty:
+		return &actions.Effects{}, nil
 	}
 	b, err := base64.RawURLEncoding.DecodeString(raw)
 	if err != nil {
 		return nil, err
 	}
-	return actions.OpenEffects(h.Wrapper, tenantID, actions.SealConsent, b, txn.Params[sessionKey], txn.ClientID)
+	return actions.OpenEffects(h.Wrapper, tenantID, actions.SealConsent, b, txn.ID, txn.Params[sessionKey], txn.ClientID)
 }
 
 // sealFor seals eff's token effects for a code or device code bound to
