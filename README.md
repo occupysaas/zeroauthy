@@ -36,7 +36,7 @@ features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–23)
+**Done** (Plans 1–27; Plan 28 in final verification)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -70,17 +70,23 @@ each with its console screens; the full breakdown is in the
   domain-bound login and notification links, and console controls. See the
   [operator guide](docs/custom-domains.md) and [acceptance record](docs/superpowers/2026-10-26-plan-23-implementation-record.md).
 
-**Later** (Plans 24–38)
+**Roles, connections and Actions (Plans 24–28)**
+
+- Generic OAuth/OIDC, Google and Microsoft connections; roles and permissions.
+- [Actions](docs/actions.md): login and credentials exchange, signup, password
+  reset/change and custom email triggers; immutable Modules, shared jobs,
+  console and migration tooling. Plan 28 final acceptance status and limits
+  are recorded in the [implementation record](docs/superpowers/2026-10-28-plan-28-implementation-record.md).
+
+**Later** (Plans 29–38)
 
 | Plans | Area |
 |---|---|
-| 24–25 | Social connections (generic OAuth 2 and OIDC, Google, Apple, Facebook, Microsoft, …) |
-| 26–28 | Roles and permissions; Actions |
 | 29–32 | Organizations; logs, log streams and stats; event streams |
 | 33–35 | MFA; passwordless and SMS; `private_key_jwt`, JAR and token exchange |
 | 36–38 | Enterprise connections (OIDC, Okta, Entra ID, SAML, WS-Federation, AD/LDAP), SCIM, Forms and Flows |
 
-Of the roadmap's 42 resource groupings, 20 are done, 18 are planned and 4 are not planned (Rules, Hooks and
+The roadmap tracks 42 resource groupings; its [coverage table](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md#management-api-coverage-by-resource) records completed and remaining work. Four groups are not planned (Rules, Hooks and
 rules-configs, which Auth0 is retiring, and customer-managed encryption keys).
 
 ## Quick start
