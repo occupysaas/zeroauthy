@@ -21,7 +21,8 @@ async function lookup() {
     const r = await api.getActionExecution(c.tenant, id)
     if (!current(c) || seq !== requests) return
     result.value = r
-    const a = await api.getActionExecutionAttempt(c.tenant, id)
+    // The attempt is optional metadata: a failed lookup leaves the loaded execution as it is.
+    const a = await api.getActionExecutionAttempt(c.tenant, id).catch(() => undefined)
     if (current(c) && seq === requests) attempt.value = a || undefined
   }
   catch (e) { if (current(c) && seq === requests) error.value = errorMessage(e) }
