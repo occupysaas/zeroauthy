@@ -70,7 +70,7 @@ each with its console screens; the full breakdown is in the
   domain-bound login and notification links, and console controls. See the
   [operator guide](docs/custom-domains.md) and [acceptance record](docs/superpowers/2026-10-26-plan-23-implementation-record.md).
 
-**Later** (Plans 24–38)
+**Later** (Plans 29–47)
 
 | Plans | Area |
 |---|---|
