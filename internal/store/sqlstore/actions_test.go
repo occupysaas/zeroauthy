@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/pkg/storetest"
 )
 
-var actionTables = []string{"actions", "action_versions", "action_builds", "action_artifacts", "action_bindings", "action_executions", "action_continues"}
+var actionTables = []string{"actions", "action_versions", "action_builds", "action_artifacts", "action_bindings", "action_binding_sets", "action_executions", "action_continues"}
 
 // tableShape lists "column type nullability" for a table, per dialect.
 func tableShape(t *testing.T, s *Store, table string) []string {
@@ -229,6 +230,109 @@ func TestActionsConcurrency(t *testing.T) {
 					}
 				}
 			})
+		})
+	}
+}
+
+func TestActionsSeedBindings(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			storetest.ActionsSeedBindings(t, func(t *testing.T) store.Store { return mustOpen(t, mk(t)) })
+		})
+	}
+}
+
+func TestActionsSeedBindingsRestartAndLegacy(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			dsn := mk(t)
+			s := mustOpen(t, dsn)
+			must := func(err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			must(s.Tenants().Create(ctx, &store.Tenant{ID: "restart", Name: "restart"}))
+			must(s.Actions().PutBuild(ctx, &store.Build{TenantID: "restart", ID: "built", Status: store.BuildBuilt}))
+			must(s.Actions().PutArtifact(ctx, "restart", "built", []byte("artifact")))
+			must(s.Actions().CreateAction(ctx, &store.Action{TenantID: "restart", ID: "a", Name: "a", Trigger: "post-login", Runtime: "node22", DraftBuildID: "built"}))
+			_, err := s.Actions().Deploy(ctx, "restart", "a", "")
+			must(err)
+			seed := []store.Binding{{ActionID: "a", DisplayName: "seed"}}
+			_, err = s.Actions().InitializeBindings(ctx, "restart", "post-login", seed)
+			must(err)
+			// Simulate legacy nonempty binding rows with no durable marker.
+			_, err = s.exec(ctx, `DELETE FROM action_binding_sets WHERE tenant_id=?`, "restart")
+			must(err)
+			got, err := s.Actions().InitializeBindings(ctx, "restart", "post-login", []store.Binding{})
+			must(err)
+			if len(got) != 1 || got[0].DisplayName != "seed" {
+				t.Fatal("legacy nonempty binding overwritten")
+			}
+			var count int
+			must(s.queryRow(ctx, `SELECT COUNT(*) FROM action_binding_sets WHERE tenant_id=?`, "restart").Scan(&count))
+			if count != 1 {
+				t.Fatal("legacy marker not backfilled")
+			}
+			_, err = s.Actions().ReplaceBindings(ctx, "restart", "post-login", nil)
+			must(err)
+			must(s.Close())
+			reopened := mustOpen(t, dsn)
+			initialized, err := reopened.Actions().BindingsInitialized(ctx, "restart", "post-login")
+			must(err)
+			if !initialized {
+				t.Fatal("explicit empty initialization did not survive database reopen")
+			}
+			got, err = reopened.Actions().InitializeBindings(ctx, "restart", "post-login", seed)
+			must(err)
+			if len(got) != 0 {
+				t.Fatal("database restart reenabled disabled flow")
+			}
+		})
+	}
+}
+
+// Public caller transactions may read before the repository acquires its
+// Actions lock. MySQL must not retain that earlier consistent-read snapshot.
+func TestActionsSeedBindingsCallerTransactionFresh(t *testing.T) {
+	for name, mk := range dsnsUnderTest(t) {
+		if name == "sqlite" {
+			continue
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			s := mustOpen(t, mk(t))
+			if err := s.Tenants().Create(ctx, &store.Tenant{ID: "caller", Name: "caller"}); err != nil {
+				t.Fatal(err)
+			}
+			err := s.WithTx(ctx, func(tx store.Store) error {
+				initialized, err := tx.Actions().BindingsInitialized(ctx, "caller", "post-login")
+				if err != nil {
+					return err
+				}
+				if initialized {
+					return errors.New("unexpected initial marker")
+				}
+				// A different connection commits a management clear after the caller's
+				// first read and before InitializeBindings takes the tenant writer lock.
+				if _, err := s.Actions().ReplaceBindings(ctx, "caller", "post-login", nil); err != nil {
+					return err
+				}
+				bs, err := tx.Actions().InitializeBindings(ctx, "caller", "post-login", []store.Binding{{ActionID: "obsolete-seed-ref"}})
+				if err != nil {
+					return err
+				}
+				if len(bs) != 0 {
+					return errors.New("caller snapshot resurrected bindings")
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
 		})
 	}
 }

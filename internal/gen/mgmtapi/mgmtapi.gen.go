@@ -2718,11 +2718,14 @@ type ActionTestRequest struct {
 // ActionTestResponse defines model for ActionTestResponse.
 type ActionTestResponse struct {
 	Payload struct {
-		Commands    *[]map[string]interface{} `json:"commands,omitempty"`
-		DurationMs  *int                      `json:"duration_ms,omitempty"`
-		Error       *string                   `json:"error,omitempty"`
-		ExecutionId *string                   `json:"execution_id,omitempty"`
-		Logs        *[]string                 `json:"logs,omitempty"`
+		Commands   *[]map[string]interface{} `json:"commands,omitempty"`
+		DurationMs *int                      `json:"duration_ms,omitempty"`
+		Error      *struct {
+			Id      string `json:"id"`
+			Message string `json:"message"`
+		} `json:"error,omitempty"`
+		ExecutionId *string   `json:"execution_id,omitempty"`
+		Logs        *[]string `json:"logs,omitempty"`
 	} `json:"payload"`
 }
 

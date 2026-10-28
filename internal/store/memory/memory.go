@@ -34,6 +34,7 @@ type state struct {
 	actionVersions         map[key]*store.ActionVersion
 	builds                 map[key]*store.Build
 	artifacts              map[key][]byte
+	bindingSets            map[key]bool            // durable per-trigger initialization, including empty lists
 	bindings               map[key][]store.Binding // key: tenant, trigger
 	executions             map[key]*store.Execution
 	continues              map[key]*store.ContinueState
@@ -96,7 +97,7 @@ func NewWithClock(now func() time.Time) *Store {
 func New() *Store {
 	return &Store{state: &state{
 		actions: map[key]*store.Action{}, actionVersions: map[key]*store.ActionVersion{}, builds: map[key]*store.Build{},
-		artifacts: map[key][]byte{}, bindings: map[key][]store.Binding{}, executions: map[key]*store.Execution{}, continues: map[key]*store.ContinueState{},
+		bindingSets: map[key]bool{}, artifacts: map[key][]byte{}, bindings: map[key][]store.Binding{}, executions: map[key]*store.Execution{}, continues: map[key]*store.ContinueState{},
 		roles: map[key]*store.Role{}, rolePermissions: map[permissionEdge]bool{}, userPermissions: map[permissionEdge]bool{}, roleMembers: map[memberEdge]bool{},
 		now:            time.Now,
 		customDomains:  map[key]*store.CustomDomain{},

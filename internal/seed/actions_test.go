@@ -2,6 +2,7 @@ package seed
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -173,5 +174,48 @@ func TestActionsSeedBuildFailureLeavesNoOwnedDraft(t *testing.T) {
 	a, err := st.Actions().GetActionByName(ctx, tn.ID, "login")
 	if err != nil || a.DeployedVersionID == "" {
 		t.Fatalf("retry did not deploy: %+v %v", a, err)
+	}
+}
+
+func TestActionsSeedPreservesExplicitlyEmptyBindings(t *testing.T) {
+	for _, initiallyEmpty := range []bool{false, true} {
+		t.Run(fmt.Sprint(initiallyEmpty), func(t *testing.T) {
+			ctx := context.Background()
+			st := memory.New()
+			w := testWrapper(t)
+			ae := actionstest.NewOffline(t, st, w)
+			f, err := Parse([]byte(actionsSeed))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if initiallyEmpty {
+				plain, err := Parse([]byte("tenants:\n- name: acme\n  domains: [acme.test]\n"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := Apply(ctx, st, plain, nil, w); err != nil {
+					t.Fatal(err)
+				}
+			} else if err := ApplyWithActions(ctx, st, f, nil, w, ae.Engine); err != nil {
+				t.Fatal(err)
+			}
+			tn, err := st.Tenants().GetByName(ctx, "acme")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := st.Actions().ReplaceBindings(ctx, tn.ID, "post-login", nil); err != nil {
+				t.Fatal(err)
+			}
+			for _, mode := range []Mode{ModeApply, ModeCreateOnly} {
+				f.Mode = mode
+				if err := ApplyWithActions(ctx, st, f, nil, w, ae.Engine); err != nil {
+					t.Fatal(err)
+				}
+				bs, err := st.Actions().Bindings(ctx, tn.ID, "post-login")
+				if err != nil || len(bs) != 0 {
+					t.Fatalf("restart reenabled disabled flow: %v %v", bs, err)
+				}
+			}
+		})
 	}
 }

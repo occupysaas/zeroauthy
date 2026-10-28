@@ -11,3 +11,7 @@ CREATE TABLE action_continues (tenant_id TEXT NOT NULL, state_hash TEXT NOT NULL
 CREATE INDEX action_continues_by_expiry ON action_continues (expires_at);
 ALTER TABLE auth_codes ADD COLUMN action_effects BYTEA NULL;
 ALTER TABLE device_codes ADD COLUMN action_effects BYTEA NULL;
+
+-- Initialization survives deliberately empty lists and Action deletion.
+CREATE TABLE action_binding_sets (tenant_id TEXT NOT NULL, trigger_id VARCHAR(64) NOT NULL, PRIMARY KEY (tenant_id,trigger_id), FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE);
+INSERT INTO action_binding_sets (tenant_id,trigger_id) SELECT DISTINCT tenant_id,trigger_id FROM action_bindings;

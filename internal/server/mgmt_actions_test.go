@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/zeroauthy/zeroauthy/internal/actions/actionstest"
+	"github.com/zeroauthy/zeroauthy/internal/seed"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"net/http/httptest"
 	"net/url"
@@ -93,9 +94,30 @@ func TestActionsManagementResponseSchemas(t *testing.T) {
 	call("GET", "/actions/"+id+"/versions/"+vid, nil, 200)
 	call("POST", "/actions/"+id+"/versions/"+vid+"/deploy", map[string]any{}, 202)
 	call("POST", "/actions/"+id+"/test", map[string]any{"payload": map[string]any{}}, 200)
+	call("PATCH", "/actions/"+id, map[string]any{"code": `exports.onExecutePostLogin=async()=>{throw new Error("contract throw");};`}, 200)
+	thrown := call("POST", "/actions/"+id+"/test", map[string]any{"payload": map[string]any{}}, 200)
+	payload := thrown["payload"].(map[string]any)
+	actionError, ok := payload["error"].(map[string]any)
+	if !ok || actionError["id"] == nil || actionError["message"] == nil {
+		t.Fatalf("throwing Action error=%v", payload)
+	}
 	call("GET", "/triggers", nil, 200)
 	call("PATCH", "/triggers/post-login/bindings", map[string]any{"bindings": []any{map[string]any{"ref": map[string]any{"type": "action_id", "value": id}}}}, 200)
 	call("GET", "/triggers/post-login/bindings", nil, 200)
+	call("PATCH", "/triggers/post-login/bindings", map[string]any{"bindings": []any{}}, 200)
+	seeded, err := seed.Parse([]byte("tenants:\n- name: acme\n  domains: [acme.example.test, login.acme.test]\n  triggers:\n    post-login:\n      bindings: [{ref: {type: action_name, value: renamed}}]\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	seeded.Mode = seed.ModeCreateOnly
+	if err := seed.ApplyWithActions(context.Background(), st, seeded, nil, ae.Engine.Secrets, ae.Engine); err != nil {
+		t.Fatal(err)
+	}
+	preserved := call("GET", "/triggers/post-login/bindings", nil, 200)
+	if preserved["total"] != float64(0) {
+		t.Fatalf("seed restart undid management clear: %v", preserved)
+	}
+
 	tn, _ := st.Tenants().GetByName(context.Background(), "acme")
 	if err := st.Actions().CreateExecution(context.Background(), &store.Execution{TenantID: tn.ID, ID: "record", Trigger: "post-login", Status: "success", Results: []store.ExecutionResult{{ActionName: "renamed", ErrorID: "test_error", ErrorMsg: "failed", StartedAt: time.Now(), EndedAt: time.Now()}}, CreatedAt: time.Now(), UpdatedAt: time.Now()}); err != nil {
 		t.Fatal(err)

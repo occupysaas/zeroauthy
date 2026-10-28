@@ -178,6 +178,9 @@ func (r actionsRepo) DeleteAction(_ context.Context, tid, id string, force bool)
 		if k.tenant != tid {
 			continue
 		}
+		if slices.ContainsFunc(list, func(b store.Binding) bool { return b.ActionID == id }) {
+			r.s.bindingSets[k] = true
+		}
 		list = slices.DeleteFunc(slices.Clone(list), func(b store.Binding) bool { return b.ActionID == id })
 		if len(list) == 0 {
 			delete(r.s.bindings, k)
@@ -350,7 +353,24 @@ func (r actionsRepo) Bindings(_ context.Context, tid, trigger string) ([]store.B
 	return r.s.bound(tid, trigger)
 }
 
+func (r actionsRepo) BindingsInitialized(_ context.Context, tid, trigger string) (bool, error) {
+	if len(actionsrules.ValidateBindings(trigger, nil)) > 0 {
+		return false, store.ErrInvalid
+	}
+	r.s.readLock()
+	defer r.s.readUnlock()
+	if r.s.tenants[tid] == nil {
+		return false, store.ErrNotFound
+	}
+	return r.s.bindingSets[key{tid, trigger}] || len(r.s.bindings[key{tid, trigger}]) > 0, nil
+}
+func (r actionsRepo) InitializeBindings(_ context.Context, tid, trigger string, in []store.Binding) ([]store.BoundVersion, error) {
+	return r.replaceBindings(tid, trigger, in, true)
+}
 func (r actionsRepo) ReplaceBindings(_ context.Context, tid, trigger string, in []store.Binding) ([]store.BoundVersion, error) {
+	return r.replaceBindings(tid, trigger, in, false)
+}
+func (r actionsRepo) replaceBindings(tid, trigger string, in []store.Binding, initialize bool) ([]store.BoundVersion, error) {
 	if tid == "" || len(actionsrules.ValidateBindings(trigger, in)) > 0 {
 		return nil, store.ErrInvalid
 	}
@@ -358,6 +378,10 @@ func (r actionsRepo) ReplaceBindings(_ context.Context, tid, trigger string, in 
 	defer r.s.unlock()
 	if r.s.tenants[tid] == nil {
 		return nil, store.ErrNotFound
+	}
+	if initialize && (r.s.bindingSets[key{tid, trigger}] || len(r.s.bindings[key{tid, trigger}]) > 0) {
+		r.s.bindingSets[key{tid, trigger}] = true
+		return r.s.bound(tid, trigger)
 	}
 	now := r.s.now()
 	next := make([]store.Binding, len(in))
@@ -378,6 +402,7 @@ func (r actionsRepo) ReplaceBindings(_ context.Context, tid, trigger string, in 
 		}
 		next[i] = b
 	}
+	r.s.bindingSets[key{tid, trigger}] = true
 	if len(next) == 0 {
 		delete(r.s.bindings, key{tid, trigger})
 	} else {
@@ -481,6 +506,7 @@ func (s *Store) deleteActionsTenant(id string) {
 	deleteTenantKeys(s.builds, id)
 	deleteTenantKeys(s.artifacts, id)
 	deleteTenantKeys(s.bindings, id)
+	deleteTenantKeys(s.bindingSets, id)
 	deleteTenantKeys(s.executions, id)
 	deleteTenantKeys(s.continues, id)
 }

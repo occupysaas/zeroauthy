@@ -325,10 +325,29 @@ func TestActionsOldPlugin(t *testing.T) {
 	if _, err := old.Actions().Bindings(ctx, "t", "post-login"); !errors.Is(err, store.ErrActionsUnavailable) {
 		t.Fatalf("bindings on old plugin: %v", err)
 	}
+	if _, err := old.Actions().BindingsInitialized(ctx, "t", "post-login"); !errors.Is(err, store.ErrActionsUnavailable) {
+		t.Fatalf("marker read on old plugin: %v", err)
+	}
+	if _, err := old.Actions().InitializeBindings(ctx, "t", "post-login", nil); !errors.Is(err, store.ErrActionsUnavailable) {
+		t.Fatalf("initialization on old plugin: %v", err)
+	}
 	if _, err := old.Actions().GetArtifact(ctx, "t", "b"); !errors.Is(err, store.ErrActionsUnavailable) {
 		t.Fatalf("artifact on old plugin: %v", err)
 	}
 	if err := old.Actions().PutArtifact(ctx, "t", "b", []byte("x")); !errors.Is(err, store.ErrActionsUnavailable) {
 		t.Fatalf("put artifact on old plugin: %v", err)
+	}
+}
+
+type versionOneActionsPlugin struct{ *Server }
+
+func (versionOneActionsPlugin) ActionsCapabilities(context.Context, *storev1.PingRequest) (*storev1.ActionsCapabilitiesResult, error) {
+	return &storev1.ActionsCapabilitiesResult{Version: 1}, nil
+}
+func TestActionsVersionOnePluginRefused(t *testing.T) {
+	c := serveWith(t, versionOneActionsPlugin{NewServer(memory.New())})
+	defer c.Close()
+	if err := c.CheckActionsSupport(context.Background()); !errors.Is(err, store.ErrActionsUnavailable) {
+		t.Fatalf("v1 plugin without durable binding ownership accepted: %v", err)
 	}
 }

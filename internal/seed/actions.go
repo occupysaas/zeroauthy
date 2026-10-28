@@ -181,11 +181,11 @@ func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() t
 		}
 		for trigger, t := range in.Triggers {
 			err := st.WithTx(ctx, func(tx store.Store) error {
-				old, err := tx.Actions().Bindings(ctx, tn.ID, trigger)
+				initialized, err := tx.Actions().BindingsInitialized(ctx, tn.ID, trigger)
 				if err != nil {
 					return err
 				}
-				if len(old) > 0 {
+				if initialized {
 					return nil
 				}
 				bs := []store.Binding{}
@@ -202,7 +202,7 @@ func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() t
 					}
 					bs = append(bs, store.Binding{ActionID: a.ID, Trigger: trigger, DisplayName: b.DisplayName})
 				}
-				_, err = tx.Actions().ReplaceBindings(ctx, tn.ID, trigger, bs)
+				_, err = tx.Actions().InitializeBindings(ctx, tn.ID, trigger, bs)
 				return err
 			})
 			if err != nil {

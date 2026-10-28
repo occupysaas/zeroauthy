@@ -37,14 +37,14 @@ func (c *Client) CheckActionsSupport(ctx context.Context) error {
 	if err := errFromPB(v.GetError()); err != nil {
 		return err
 	}
-	if v.Version < 1 {
+	if v.Version < 2 {
 		return store.ErrActionsUnavailable
 	}
 	return nil
 }
 
 func (s *Server) ActionsCapabilities(context.Context, *storev1.PingRequest) (*storev1.ActionsCapabilitiesResult, error) {
-	return &storev1.ActionsCapabilitiesResult{Version: 1}, nil
+	return &storev1.ActionsCapabilitiesResult{Version: 2}, nil
 }
 
 func depsToPB(d []store.Dependency) []*storev1.ActionDependency {
@@ -580,6 +580,47 @@ func (r clientActions) Bindings(ctx context.Context, tid, trigger string) ([]sto
 func (srv *Server) ActionsBindings(ctx context.Context, q *storev1.ActionsRequest) (*storev1.ActionsResponse, error) {
 	return srv.actionsServe(q, func(a store.Actions, o *storev1.ActionsResponse) error {
 		v, err := a.Bindings(ctx, q.TenantId, q.Trigger)
+		o.Bound = boundToPB(v)
+		return err
+	}), nil
+}
+
+// Version 2 includes durable, atomic seed binding initialization.
+func (r clientActions) BindingsInitialized(ctx context.Context, tid, trigger string) (bool, error) {
+	q := r.req(tid)
+	q.Trigger = trigger
+	v, err := r.call("BindingsInitialized", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsBindingsInitialized(ctx, q) })
+	if err != nil {
+		return false, err
+	}
+	return v.BindingsInitialized, nil
+}
+func (srv *Server) ActionsBindingsInitialized(ctx context.Context, q *storev1.ActionsRequest) (*storev1.ActionsResponse, error) {
+	return srv.actionsServe(q, func(a store.Actions, o *storev1.ActionsResponse) error {
+		v, err := a.BindingsInitialized(ctx, q.TenantId, q.Trigger)
+		o.BindingsInitialized = v
+		return err
+	}), nil
+}
+func (r clientActions) InitializeBindings(ctx context.Context, tid, trigger string, b []store.Binding) ([]store.BoundVersion, error) {
+	q := r.req(tid)
+	q.Trigger = trigger
+	for _, v := range b {
+		q.Bindings = append(q.Bindings, bindingToPB(v))
+	}
+	v, err := r.call("InitializeBindings", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsInitializeBindings(ctx, q) })
+	if err != nil {
+		return nil, err
+	}
+	return boundFromPB(v.Bound), nil
+}
+func (srv *Server) ActionsInitializeBindings(ctx context.Context, q *storev1.ActionsRequest) (*storev1.ActionsResponse, error) {
+	return srv.actionsServe(q, func(a store.Actions, o *storev1.ActionsResponse) error {
+		bs := make([]store.Binding, 0, len(q.Bindings))
+		for _, v := range q.Bindings {
+			bs = append(bs, bindingFromPB(v))
+		}
+		v, err := a.InitializeBindings(ctx, q.TenantId, q.Trigger, bs)
 		o.Bound = boundToPB(v)
 		return err
 	}), nil

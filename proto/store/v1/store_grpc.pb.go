@@ -49,6 +49,8 @@ const (
 	StoreService_ActionsPutArtifact_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsPutArtifact"
 	StoreService_ActionsGetArtifact_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsGetArtifact"
 	StoreService_ActionsBindings_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsBindings"
+	StoreService_ActionsBindingsInitialized_FullMethodName             = "/zeroauthy.store.v1.StoreService/ActionsBindingsInitialized"
+	StoreService_ActionsInitializeBindings_FullMethodName              = "/zeroauthy.store.v1.StoreService/ActionsInitializeBindings"
 	StoreService_ActionsReplaceBindings_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ActionsReplaceBindings"
 	StoreService_ActionsCreateExecution_FullMethodName                 = "/zeroauthy.store.v1.StoreService/ActionsCreateExecution"
 	StoreService_ActionsGetExecution_FullMethodName                    = "/zeroauthy.store.v1.StoreService/ActionsGetExecution"
@@ -339,6 +341,8 @@ type StoreServiceClient interface {
 	// The first message carries total_size and sha256 for integrity checks.
 	ActionsGetArtifact(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ActionsArtifactChunk], error)
 	ActionsBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsBindingsInitialized(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
+	ActionsInitializeBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsReplaceBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsCreateExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
 	ActionsGetExecution(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error)
@@ -863,6 +867,26 @@ func (c *storeServiceClient) ActionsBindings(ctx context.Context, in *ActionsReq
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ActionsResponse)
 	err := c.cc.Invoke(ctx, StoreService_ActionsBindings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsBindingsInitialized(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsBindingsInitialized_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) ActionsInitializeBindings(ctx context.Context, in *ActionsRequest, opts ...grpc.CallOption) (*ActionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActionsResponse)
+	err := c.cc.Invoke(ctx, StoreService_ActionsInitializeBindings_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2894,6 +2918,8 @@ type StoreServiceServer interface {
 	// The first message carries total_size and sha256 for integrity checks.
 	ActionsGetArtifact(*ActionsRequest, grpc.ServerStreamingServer[ActionsArtifactChunk]) error
 	ActionsBindings(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsBindingsInitialized(context.Context, *ActionsRequest) (*ActionsResponse, error)
+	ActionsInitializeBindings(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsReplaceBindings(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsCreateExecution(context.Context, *ActionsRequest) (*ActionsResponse, error)
 	ActionsGetExecution(context.Context, *ActionsRequest) (*ActionsResponse, error)
@@ -3201,6 +3227,12 @@ func (UnimplementedStoreServiceServer) ActionsGetArtifact(*ActionsRequest, grpc.
 }
 func (UnimplementedStoreServiceServer) ActionsBindings(context.Context, *ActionsRequest) (*ActionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ActionsBindings not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsBindingsInitialized(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsBindingsInitialized not implemented")
+}
+func (UnimplementedStoreServiceServer) ActionsInitializeBindings(context.Context, *ActionsRequest) (*ActionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ActionsInitializeBindings not implemented")
 }
 func (UnimplementedStoreServiceServer) ActionsReplaceBindings(context.Context, *ActionsRequest) (*ActionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ActionsReplaceBindings not implemented")
@@ -4317,6 +4349,42 @@ func _StoreService_ActionsBindings_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).ActionsBindings(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsBindingsInitialized_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsBindingsInitialized(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsBindingsInitialized_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsBindingsInitialized(ctx, req.(*ActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_ActionsInitializeBindings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).ActionsInitializeBindings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_ActionsInitializeBindings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).ActionsInitializeBindings(ctx, req.(*ActionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -7888,6 +7956,14 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ActionsBindings",
 			Handler:    _StoreService_ActionsBindings_Handler,
+		},
+		{
+			MethodName: "ActionsBindingsInitialized",
+			Handler:    _StoreService_ActionsBindingsInitialized_Handler,
+		},
+		{
+			MethodName: "ActionsInitializeBindings",
+			Handler:    _StoreService_ActionsInitializeBindings_Handler,
 		},
 		{
 			MethodName: "ActionsReplaceBindings",

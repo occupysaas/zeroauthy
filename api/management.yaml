@@ -5465,7 +5465,12 @@ components:
               items:
                 type: string
             error:
-              type: string
+              type: object
+              additionalProperties: false
+              properties:
+                id: {type: string}
+                message: {type: string}
+              required: [id, message]
             execution_id:
               type: string
             duration_ms:

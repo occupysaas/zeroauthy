@@ -95,6 +95,8 @@ service StoreService {
   // The first message carries total_size and sha256 for integrity checks.
   rpc ActionsGetArtifact(ActionsRequest) returns (stream ActionsArtifactChunk);
   rpc ActionsBindings(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsBindingsInitialized(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsInitializeBindings(ActionsRequest) returns (ActionsResponse);
   rpc ActionsReplaceBindings(ActionsRequest) returns (ActionsResponse);
   rpc ActionsCreateExecution(ActionsRequest) returns (ActionsResponse);
   rpc ActionsGetExecution(ActionsRequest) returns (ActionsResponse);
@@ -1066,6 +1068,7 @@ message ActionsResponse {
   Error error=1; ActionMsg action=2; repeated ActionMsg actions=3; int64 total=4;
   ActionVersionMsg version=5; repeated ActionVersionMsg versions=6; ActionBuildMsg build=7;
   repeated ActionBoundMsg bound=8; ActionExecutionMsg execution=9; ActionContinueMsg continue_state=10; int64 count=11;
+  bool bindings_initialized=12;
 }
 message ActionsArtifactChunk {
   Error error=1; string tx_id=2; string tenant_id=3; string build_id=4;

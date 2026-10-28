@@ -171,6 +171,29 @@ func (r actionsRepo) DeleteAction(ctx context.Context, tenant, id string, force 
 		if n > 0 && !force {
 			return store.ErrConflict
 		}
+		rows, err := tx.query(ctx, `SELECT DISTINCT trigger_id FROM action_bindings WHERE tenant_id=? AND action_id=?`, tenant, id)
+		if err != nil {
+			return err
+		}
+		var triggers []string
+		for rows.Next() {
+			var trigger string
+			if err := rows.Scan(&trigger); err != nil {
+				rows.Close()
+				return err
+			}
+			triggers = append(triggers, trigger)
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return err
+		}
+		for _, trigger := range triggers {
+			if err := (actionsRepo{tx}).markBindings(ctx, tenant, trigger); err != nil {
+				return err
+			}
+		}
 		for _, q := range []string{
 			`DELETE FROM action_bindings WHERE tenant_id=? AND action_id=?`,
 			`DELETE FROM action_versions WHERE tenant_id=? AND action_id=?`,
@@ -482,12 +505,57 @@ func (r actionsRepo) Bindings(ctx context.Context, tenant, trigger string) ([]st
 	return r.bound(ctx, tenant, trigger)
 }
 
+// Binding initialization is separate from rows so an empty list remains owned.
+func (r actionsRepo) BindingsInitialized(ctx context.Context, tenant, trigger string) (bool, error) {
+	if len(actionsrules.ValidateBindings(trigger, nil)) > 0 {
+		return false, store.ErrInvalid
+	}
+	var initialized bool
+	err := r.s.queryRow(ctx, `SELECT EXISTS(SELECT 1 FROM action_binding_sets WHERE tenant_id=? AND trigger_id=?) OR EXISTS(SELECT 1 FROM action_bindings WHERE tenant_id=? AND trigger_id=?) FROM tenants WHERE id=?`, tenant, trigger, tenant, trigger, tenant).Scan(&initialized)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, store.ErrNotFound
+	}
+	return initialized, err
+}
+
+// markBindings is called only while holding the tenant Actions writer lock.
+func (r actionsRepo) markBindings(ctx context.Context, tenant, trigger string) error {
+	var exists bool
+	if err := r.s.queryRow(ctx, `SELECT EXISTS(SELECT 1 FROM action_binding_sets WHERE tenant_id=? AND trigger_id=?)`, tenant, trigger).Scan(&exists); err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+	_, err := r.s.exec(ctx, `INSERT INTO action_binding_sets (tenant_id,trigger_id) VALUES (?,?)`, tenant, trigger)
+	return err
+}
+func (r actionsRepo) InitializeBindings(ctx context.Context, tenant, trigger string, in []store.Binding) ([]store.BoundVersion, error) {
+	return r.replaceBindings(ctx, tenant, trigger, in, true)
+}
 func (r actionsRepo) ReplaceBindings(ctx context.Context, tenant, trigger string, in []store.Binding) ([]store.BoundVersion, error) {
+	return r.replaceBindings(ctx, tenant, trigger, in, false)
+}
+func (r actionsRepo) replaceBindings(ctx context.Context, tenant, trigger string, in []store.Binding, initialize bool) ([]store.BoundVersion, error) {
 	if tenant == "" || len(actionsrules.ValidateBindings(trigger, in)) > 0 {
 		return nil, store.ErrInvalid
 	}
 	var out []store.BoundVersion
 	err := r.atomic(ctx, tenant, func(tx *Store) error {
+		repo := actionsRepo{tx}
+		if initialize {
+			initialized, err := repo.BindingsInitialized(ctx, tenant, trigger)
+			if err != nil {
+				return err
+			}
+			if initialized {
+				if err := repo.markBindings(ctx, tenant, trigger); err != nil {
+					return err
+				}
+				out, err = repo.bound(ctx, tenant, trigger)
+				return err
+			}
+		}
 		now := time.Now().UTC()
 		for _, b := range in {
 			a, err := (actionsRepo{tx}).GetAction(ctx, tenant, b.ActionID)
@@ -515,6 +583,9 @@ func (r actionsRepo) ReplaceBindings(ctx context.Context, tenant, trigger string
 				tenant, trigger, i, b.ID, b.ActionID, b.DisplayName, micros(b.CreatedAt), micros(b.UpdatedAt)); err != nil {
 				return err
 			}
+		}
+		if err := repo.markBindings(ctx, tenant, trigger); err != nil {
+			return err
 		}
 		var err error
 		out, err = (actionsRepo{tx}).bound(ctx, tenant, trigger)

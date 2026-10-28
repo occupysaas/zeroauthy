@@ -11,3 +11,7 @@ CREATE TABLE action_continues (tenant_id VARCHAR(64) NOT NULL, state_hash VARBIN
 CREATE INDEX action_continues_by_expiry ON action_continues (expires_at);
 ALTER TABLE auth_codes ADD COLUMN action_effects LONGBLOB NULL;
 ALTER TABLE device_codes ADD COLUMN action_effects LONGBLOB NULL;
+
+-- Initialization survives deliberately empty lists and Action deletion.
+CREATE TABLE action_binding_sets (tenant_id VARCHAR(64) NOT NULL, trigger_id VARCHAR(64) NOT NULL, PRIMARY KEY (tenant_id,trigger_id), FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
+INSERT INTO action_binding_sets (tenant_id,trigger_id) SELECT DISTINCT tenant_id,trigger_id FROM action_bindings;

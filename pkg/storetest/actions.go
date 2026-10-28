@@ -17,6 +17,7 @@ import (
 // bindings, single-use continue states, purges and tenant isolation. It runs
 // unchanged against every driver.
 func testActions(t *testing.T, factory Factory) {
+	t.Run("SeedBindings", func(t *testing.T) { ActionsSeedBindings(t, factory) })
 	ctx := context.Background()
 	s := open(t, factory)
 	must := func(err error) {

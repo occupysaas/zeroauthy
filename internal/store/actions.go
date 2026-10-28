@@ -172,8 +172,16 @@ type Actions interface {
 	GetArtifact(ctx context.Context, tenantID, buildID string) ([]byte, error)
 	// Bindings reads one consistent ordered snapshot.
 	Bindings(ctx context.Context, tenantID, trigger string) ([]BoundVersion, error)
+	// BindingsInitialized reports durable trigger initialization, including an
+	// explicitly empty management or seed list. Missing tenants are ErrNotFound.
+	BindingsInitialized(ctx context.Context, tenantID, trigger string) (bool, error)
+	// InitializeBindings applies a seed only if the trigger is uninitialized.
+	// The check, replacement and marker are atomic with ReplaceBindings. Once
+	// initialized it returns the current list without resolving obsolete refs.
+	InitializeBindings(ctx context.Context, tenantID, trigger string, b []Binding) ([]BoundVersion, error)
 	// ReplaceBindings atomically replaces a trigger's bindings. Every Action
 	// must exist, match the trigger and be deployed (ErrInvalid otherwise).
+	// Every successful replacement durably marks the trigger initialized, even empty.
 	ReplaceBindings(ctx context.Context, tenantID, trigger string, b []Binding) ([]BoundVersion, error)
 	CreateExecution(ctx context.Context, e *Execution) error
 	GetExecution(ctx context.Context, tenantID, id string) (*Execution, error)
@@ -249,4 +257,11 @@ func (UnimplementedActions) ConsumeContinue(context.Context, string, string, tim
 }
 func (UnimplementedActions) PurgeContinue(context.Context, time.Time) (int, error) {
 	return 0, ErrActionsUnavailable
+}
+
+func (UnimplementedActions) BindingsInitialized(context.Context, string, string) (bool, error) {
+	return false, ErrActionsUnavailable
+}
+func (UnimplementedActions) InitializeBindings(context.Context, string, string, []Binding) ([]BoundVersion, error) {
+	return nil, ErrActionsUnavailable
 }
