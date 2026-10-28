@@ -1,0 +1,1 @@
+[{"name":"Deploy Claim","runtime":"node22","supported_triggers":[{"id":"post-login","version":"v3"}],"code":"exports.onExecutePostLogin=async(e,a)=>a.idToken.setCustomClaim('https://actions.test/deployed',e.secrets.DEPLOY_VALUE);"}]

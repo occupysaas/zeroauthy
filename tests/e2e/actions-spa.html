@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Plan27 Actions SPA</title></head>
+<body><button id="login">Login</button><pre id="error"></pre><script src="/auth0-spa-js.js"></script><script>
+(async()=>{
+ window.client=new auth0.Auth0Client({domain:'sdk.e2e.test',clientId:'m24-spa',cacheLocation:'localstorage',authorizationParams:{redirect_uri:'https://callback.e2e.test/spa',audience:'https://rbac.e2e.test',scope:'openid profile email read:x'}});
+ if(location.search.includes('code=')){await client.handleRedirectCallback();window.claims=await client.getIdTokenClaims();window.access=await client.getTokenSilently();}
+ document.querySelector('#login').onclick=()=>client.loginWithRedirect({authorizationParams:{connection:'Username-Password-Authentication'}});window.ready=true;
+})().catch(e=>{window.failure=String(e);document.querySelector('#error').textContent=window.failure;});
+</script></body></html>

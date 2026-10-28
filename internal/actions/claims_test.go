@@ -211,6 +211,7 @@ func TestSealEffects(t *testing.T) {
 	}
 	e := &Effects{AccessClaims: map[string]any{"https://x/a": "secret"}, IDClaims: map[string]any{"https://x/i": 1.0},
 		AddScopes: []string{"a"}, RemoveScopes: []string{"b"}, Target: &TargetEdit{Scopes: []string{}},
+		RBAC:        &RBACSnapshot{Audience: "https://api.test", Permissions: []string{}},
 		AppMetadata: map[string]any{"m": 1}, TxnMetadata: map[string]any{"t": 1}}
 	sealed, err := SealEffects(w, "t1", SealCode, e, "hash")
 	if err != nil {
@@ -224,7 +225,10 @@ func TestSealEffects(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := &Effects{AccessClaims: e.AccessClaims, IDClaims: e.IDClaims, AddScopes: e.AddScopes, RemoveScopes: e.RemoveScopes,
-		Target: &TargetEdit{Scopes: []string{}}}
+		Target: &TargetEdit{Scopes: []string{}}, RBAC: e.RBAC}
+	if !(&Effects{RBAC: e.RBAC}).HasTokenEffects() {
+		t.Fatal("a permissions-only snapshot must survive code/device/consent sealing")
+	}
 	if mustMarshal(t, got) != mustMarshal(t, want) {
 		t.Fatalf("opened %+v, want %+v", got, want)
 	}

@@ -22,6 +22,65 @@ import (
 
 const acmeUserScopes = "openid profile offline_access read:things"
 
+// A Management API side effect during an Action belongs to the next issuance.
+// Exercise both immediate tokens and effects sealed onto an authorization code.
+func TestActionsRBACSnapshotBeforeExternalAssignment(t *testing.T) {
+	for _, grant := range []string{"password", "code", "device", "refresh"} {
+		t.Run(grant, func(t *testing.T) {
+			f := newActionsFixture(t)
+			ctx := context.Background()
+			api, _ := f.st.ResourceServers().GetByIdentifier(ctx, f.tid, acmeAPI)
+			api.EnforcePolicies, api.TokenDialect = true, "access_token_authz"
+			if err := f.st.ResourceServers().Update(ctx, api); err != nil {
+				t.Fatal(err)
+			}
+			var refresh string
+			if grant == "refresh" {
+				status, body := f.token(t, pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", acmeUserScopes))
+				if status != 200 {
+					t.Fatal(body)
+				}
+				refresh = body["refresh_token"].(string)
+			}
+			relay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				err := f.st.RBAC().ChangeUserPermissions(r.Context(), f.tid, f.aliceID(t), true, []store.PermissionKey{{ResourceServerIdentifier: acmeAPI, PermissionName: "read:things"}})
+				if err != nil {
+					http.Error(w, "assignment", 500)
+					return
+				}
+				w.WriteHeader(204)
+			}))
+			defer relay.Close()
+			f.actions.PostLogin(t, f.tid, "external-assignment", fmt.Sprintf(`exports.onExecutePostLogin=async()=>{const r=await fetch(%q);if(!r.ok)throw Error('assignment');};`, relay.URL))
+			for issuance := 0; issuance < 2; issuance++ {
+				form := pw("ropg", "ropg-secret", "alice@acme.test", "alice password 1", "audience", acmeAPI, "scope", acmeUserScopes)
+				switch grant {
+				case "code":
+					form = codeForm(f.authorize(t, "rt-spa", "https://rt.acme.test/cb", acmeUserScopes), "rt-spa", "https://rt.acme.test/cb", pkceVerifier)
+				case "device":
+					form = deviceForm("dev", f.approveDevice(t, acmeUserScopes))
+				case "refresh":
+					form = refreshForm("ropg", refresh, "client_secret", "ropg-secret")
+				}
+				status, body := f.token(t, form)
+				if status != 200 {
+					t.Fatalf("issuance %d: %d %v", issuance, status, body)
+				}
+				claims, _ := verifyToken(t, f.keys, f.tid, body["access_token"].(string))
+				permissions := claims["permissions"].([]any)
+				if len(permissions) != issuance {
+					t.Fatalf("issuance %d permissions=%v; current flow must keep its pre-Action snapshot", issuance, permissions)
+				}
+				if grant == "refresh" {
+					if raw, ok := body["refresh_token"].(string); ok {
+						refresh = raw
+					}
+				}
+			}
+		})
+	}
+}
+
 // actionsFixture is the token fixture with a real Actions engine, and the
 // /authorize handlers for the flows whose post-login flow runs there.
 type actionsFixture struct {

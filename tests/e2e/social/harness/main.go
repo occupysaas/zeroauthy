@@ -8,14 +8,21 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/actions/build"
+	"github.com/zeroauthy/zeroauthy/internal/config"
 	"log/slog"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/netip"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -119,9 +126,37 @@ func run() error {
 		defer runner.Close()
 		flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: ps, Log: slog.Default()}
 		domains := customdomain.NewService(st, &customdomain.BoundedResolver{Server: "127.0.0.1:8073"}, customdomain.ServiceConfig{SystemHost: "system.e2e.test", OriginDomain: "origin.e2e.test", OriginTLSReady: true, Proxy: customdomain.ProxyPolicy{Trusted: []netip.Prefix{netip.MustParsePrefix("127.0.0.1/32")}}}, time.Now, rand.Reader)
+		var engine *actions.Engine
+		if os.Getenv("E2E_M27") == "1" {
+			cfg := config.Actions{CacheDir: filepath.Join(os.Getenv("E2E_ACTIONS_CACHE"), port), Registry: os.Getenv("E2E_NPM_REGISTRY")}
+			builds, err := build.New(cfg, st, slog.Default())
+			if err != nil {
+				return err
+			}
+			defer builds.Close()
+			pool, err := actions.NewRunner(cfg, builds, slog.Default())
+			if err != nil {
+				return err
+			}
+			defer pool.Close()
+			engine = &actions.Engine{Store: st, Builds: builds, Runner: pool, Secrets: wrapper, Log: slog.Default()}
+		}
 		za := server.New(server.Deps{Domains: domains, Store: st, Keys: km, Wrapper: wrapper, Resolver: tenant.NewResolver(st.Tenants(), "", false),
-			Sessions: &session.Manager{Store: st}, Log: slog.Default(), SystemHost: "system.e2e.test", Federation: flows})
+			Sessions: &session.Manager{Store: st}, Log: slog.Default(), SystemHost: "system.e2e.test", Federation: flows, Actions: engine})
 		mux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if os.Getenv("E2E_M27") == "1" && strings.EqualFold(strings.Split(r.Host, ":")[0], "callback.e2e.test") {
+				switch r.URL.Path {
+				case "/spa":
+					http.ServeFile(w, r, "tests/e2e/actions-spa.html")
+				case "/redirect":
+					http.ServeFile(w, r, "tests/e2e/actions-redirect.html")
+				case "/auth0-spa-js.js":
+					http.ServeFile(w, r, "tests/e2e/node_modules/@auth0/auth0-spa-js/dist/auth0-spa-js.production.js")
+				default:
+					_, _ = w.Write([]byte("Application callback"))
+				}
+				return
+			}
 			if strings.EqualFold(strings.Split(r.Host, ":")[0], idpHost) {
 				idp.ServeHTTP(w, r)
 				return
@@ -140,6 +175,20 @@ func run() error {
 		}()
 	}
 	control := http.NewServeMux()
+	if os.Getenv("E2E_M27") == "1" {
+		target, _ := url.Parse("https://sdk.e2e.test:9543")
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		proxy.Transport = &http.Transport{TLSClientConfig: &tls.Config{RootCAs: roots}, DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, network, "127.0.0.1:9543")
+		}}
+		original := proxy.Director
+		proxy.Director = func(r *http.Request) {
+			r.URL.Path = strings.TrimPrefix(r.URL.Path, "/action-sdk")
+			original(r)
+			r.Host = "sdk.e2e.test"
+		}
+		control.Handle("/action-sdk/", proxy)
+	}
 	control.HandleFunc("POST /dns", func(w http.ResponseWriter, r *http.Request) {
 		var row struct {
 			Name  string

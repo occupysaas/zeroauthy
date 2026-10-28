@@ -24,6 +24,7 @@ const (
 // scope edits. Metadata is committed (or discarded) when the flow ends and
 // transaction metadata never leaves it.
 type sealedEffects struct {
+	RBAC         *RBACSnapshot  `json:"rbac,omitempty"`
 	AccessClaims map[string]any `json:"access_claims,omitempty"`
 	IDClaims     map[string]any `json:"id_claims,omitempty"`
 	AddScopes    []string       `json:"add_scopes,omitempty"`
@@ -37,7 +38,7 @@ type sealedEffects struct {
 // issued scopes. A nil e has none.
 func (e *Effects) HasTokenEffects() bool {
 	return e != nil && (len(e.AccessClaims) > 0 || len(e.IDClaims) > 0 || len(e.AddScopes) > 0 || len(e.RemoveScopes) > 0 ||
-		e.Ceiling != nil)
+		e.Ceiling != nil || e.RBAC != nil)
 }
 
 // SealEffects envelope-encrypts e's token effects (custom claims may be
@@ -49,7 +50,7 @@ func SealEffects(w keys.Wrapper, tenantID, purpose string, e *Effects, bind ...s
 	}
 	var s sealedEffects
 	if e != nil {
-		s = sealedEffects{AccessClaims: e.AccessClaims, IDClaims: e.IDClaims, AddScopes: e.AddScopes, RemoveScopes: e.RemoveScopes}
+		s = sealedEffects{AccessClaims: e.AccessClaims, IDClaims: e.IDClaims, AddScopes: e.AddScopes, RemoveScopes: e.RemoveScopes, RBAC: e.RBAC}
 		if e.Target != nil {
 			t := append([]string{}, e.Target.Scopes...)
 			s.Target = &t
@@ -80,7 +81,7 @@ func OpenEffects(w keys.Wrapper, tenantID, purpose string, sealed []byte, bind .
 	if err := json.Unmarshal(plain, &s); err != nil {
 		return nil, fmt.Errorf("actions: decoding effects: %w", err)
 	}
-	e := &Effects{AccessClaims: s.AccessClaims, IDClaims: s.IDClaims, AddScopes: s.AddScopes, RemoveScopes: s.RemoveScopes}
+	e := &Effects{AccessClaims: s.AccessClaims, IDClaims: s.IDClaims, AddScopes: s.AddScopes, RemoveScopes: s.RemoveScopes, RBAC: s.RBAC}
 	if s.Target != nil {
 		e.Target = &TargetEdit{Scopes: *s.Target}
 	}

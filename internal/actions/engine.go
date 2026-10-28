@@ -38,11 +38,19 @@ var (
 // TargetEdit is the target scope set after the flow's transaction edits.
 type TargetEdit struct{ Scopes []string }
 
-// Effects are a flow's validated, accumulated results. Claims are not yet
-// filtered: minting applies FilterClaims. AppMetadata and UserMetadata are
-// the metadata patches (a nil value deletes the key); TxnMetadata is the
-// transaction metadata, which is never persisted.
+// RBACSnapshot preserves effective permissions, while token issuance still
+// evaluates the current API definition and application policy.
+type RBACSnapshot struct {
+	Audience    string   `json:"audience"`
+	Permissions []string `json:"permissions"`
+}
+
+// Effects are a flow's validated, accumulated results. Claims are filtered
+// during minting. Metadata patches commit only when the flow completes.
 type Effects struct {
+	// RBAC is fixed before the first Action. Management API assignments made
+	// by an Action affect the next issuance, including across redirects/code exchange.
+	RBAC                      *RBACSnapshot
 	AccessClaims, IDClaims    map[string]any
 	AddScopes, RemoveScopes   []string
 	Target                    *TargetEdit
@@ -217,6 +225,16 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 	f := &flow{tenantID: tenantID, trigger: TriggerPostLogin, handler: handlerFor(TriggerPostLogin), hostname: in.Tenant.Host,
 		units: pinned(bound), roles: roles, acc: newAccum(TriggerPostLogin, in.TargetScopes, nil, in.CanRedirect),
 		cache: e.caches.get(tenantID, TriggerPostLogin), input: &in}
+	if in.User != nil && in.ResourceServer != nil && !in.ResourceServer.IsSystem && in.ResourceServer.EnforcePolicies {
+		snapshot, err := e.Store.RBAC().Snapshot(ctx, tenantID, in.User.UserID, in.ResourceServer.Identifier)
+		if err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+		if snapshot == nil || snapshot.API == nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, errors.New("missing RBAC snapshot"))
+		}
+		f.acc.eff.RBAC = &RBACSnapshot{Audience: in.ResourceServer.Identifier, Permissions: append([]string{}, snapshot.Permissions...)}
+	}
 	f.event = func() map[string]any { return postLoginEvent(&in, names, f.acc) }
 	return e.run(ctx, f, in.User)
 }

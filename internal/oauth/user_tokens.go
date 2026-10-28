@@ -147,7 +147,11 @@ type userTokens struct {
 func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *store.Client, ut userTokens) (resp *authapi.TokenResponse, offline bool, oerr *Error) {
 	tenantID := res.Tenant.ID
 	requestedScopes := len(ut.scopes) > 0
-	auth, authErr := h.authorizeUserToken(ctx, tenantID, ut.user.UserID, ut.rs, ut.scopes)
+	var frozen *actions.RBACSnapshot
+	if ut.effects != nil {
+		frozen = ut.effects.RBAC
+	}
+	auth, authErr := h.authorizeUserToken(ctx, tenantID, ut.user.UserID, ut.rs, ut.scopes, frozen)
 	if authErr != nil {
 		return nil, false, authErr
 	}
