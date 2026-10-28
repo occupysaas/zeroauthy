@@ -1,6 +1,11 @@
 # Plan 27 — Actions I Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+
+**Status (2026-10-28):** Tasks 1–12 implemented with scoped reviews; Task 13
+local checks and documentation finished. Final independent whole-branch review
+is pending. Actual results, deviations and deferred items are in the
+[implementation record](../2026-10-27-plan-27-implementation-record.md).
 
 **Goal:** Run tenant-authored Auth0 Actions at post-login and credentials-exchange, with npm dependencies, versioned deploys, ordered bindings, redirect/continue, management, console, seed and Deploy CLI support.
 
@@ -41,10 +46,10 @@ Order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 �
 
 **Interfaces:** `actionsrules.Inventory() Inventory` embedded from JSON: `Operations []OperationContract` (method, path, scopes, request/response fields, statuses, errors, limits, source URL, evidence class: documented/observed/local), `Triggers []TriggerContract` (id, `event` fields, `api` members each marked `supported`/`empty`/`unsupported`), `Limits map[string]int`.
 
-- [ ] Write `TestActionsInventory`: exactly the 14 operations of spec §4 (actions list, create, get, patch, delete; deploy; versions list, get; version deploy; test; triggers list; bindings get, patch; execution get), both triggers, every post-login and credentials-exchange `api` member from §6 classified, every Global Constraints limit present with a source or named D-0053 decision.
-- [ ] Run `go test ./internal/actionsrules -run '^TestActionsInventory$' -count=1`; expect FAIL (missing inventory).
+- [x] Write `TestActionsInventory`: exactly the 14 operations of spec §4 (actions list, create, get, patch, delete; deploy; versions list, get; version deploy; test; triggers list; bindings get, patch; execution get), both triggers, every post-login and credentials-exchange `api` member from §6 classified, every Global Constraints limit present with a source or named D-0053 decision.
+- [x] Run `go test ./internal/actionsrules -run '^TestActionsInventory$' -count=1`; expect FAIL (missing inventory).
 - [ ] Read each source in spec §3 and every linked operation; review the changelog since its recorded coverage. Freeze: response envelopes and statuses; deny/error delivery for authorize and token endpoints (default per spec §6; uncaught error → `server_error` to redirect URI with generic description, hosted error page with reference when the client shows error pages); credentials-exchange deny codes; whether secret changes need redeploy; consent-before-post-login order; which `event` fields reflect earlier Actions; `/userinfo` custom claims. Record unknowns as unavailable, never invented.
-- [ ] Write D-0053 covering every local choice in Global Constraints and spec "author's call" items. Populate inventory; rerun; expect PASS. Commit `docs: freeze Actions compatibility contracts`.
+- [x] Write D-0053 covering every local choice in Global Constraints and spec "author's call" items. Populate inventory; rerun; expect PASS. Commit `docs: freeze Actions compatibility contracts`.
 
 ## Task 2: Shared sandboxed Node runner
 
@@ -55,12 +60,12 @@ Order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 �
 - `noderunner.Sandbox(cmd *exec.Cmd, reads, writes []string, allowNet bool)` builds the empty env and `--permission` args; reused by Task 6 builds.
 - Actions protocol (`runner.mjs`): request `{version_key, code, deps_root, handler, event, secrets, cache, roles, state, hostname}`; response `{commands:[{op:string,args:[...]}], logs:[string], error?:{message,stack}}`. `handler` ∈ `onExecutePostLogin`, `onContinuePostLogin`, `onExecuteCredentialsExchange`. `require` resolves only inside `deps_root/node_modules` for that version; one `vm` context per `version_key`.
 
-- [ ] **Feasibility gate first:** write `TestSandboxNPMFeasibility` running bundled `npm-cli.js install --ignore-scripts` of a one-package local registry fixture under `node --permission` with reads = npm dir + build dir, writes = build dir, no child processes, on the Node versions available locally (22.x and the newest installed). If npm cannot complete under these limits, stop and report to the maintainer with the exact failure; do not weaken the sandbox.
-- [ ] Write `TestSandboxNoServerEnvironment`: set `ZEROAUTHY_CANARY=s3cr3t-canary` in the test process; from an Action handler and from customdb, assert `process.env` has no canary, and reading `/proc/self/environ`, `/proc/<ppid>/environ`, `/proc/1/environ`, another tenant's build root and the server's config file all throw permission errors (Linux; skip with explicit message elsewhere).
-- [ ] Write `TestActionsRunnerIsolation`: two tenants' secrets/cache never visible across processes; a 25 s busy loop is killed at the 20 s budget and only that tenant's in-flight calls fail; a customdb call for the same tenant is unaffected; `require('child_process')`, workers and addons fail.
-- [ ] Run `go test ./internal/noderunner ./internal/customdb -count=1`; expect new tests FAIL.
-- [ ] Extract the pool/sandbox code, add the Actions runner script, and keep all existing customdb tests passing unchanged.
-- [ ] Rerun; expect PASS, including the whole existing `./internal/customdb` suite. Commit `refactor: share a sandboxed Node runner for custom databases and Actions`.
+- [x] **Feasibility gate first:** write `TestSandboxNPMFeasibility` running bundled `npm-cli.js install --ignore-scripts` of a one-package local registry fixture under `node --permission` with reads = npm dir + build dir, writes = build dir, no child processes, on the Node versions available locally (22.x and the newest installed). If npm cannot complete under these limits, stop and report to the maintainer with the exact failure; do not weaken the sandbox.
+- [x] Write `TestSandboxNoServerEnvironment`: set `ZEROAUTHY_CANARY=s3cr3t-canary` in the test process; from an Action handler and from customdb, assert `process.env` has no canary, and reading `/proc/self/environ`, `/proc/<ppid>/environ`, `/proc/1/environ`, another tenant's build root and the server's config file all throw permission errors (Linux; skip with explicit message elsewhere).
+- [x] Write `TestActionsRunnerIsolation`: two tenants' secrets/cache never visible across processes; a 25 s busy loop is killed at the 20 s budget and only that tenant's in-flight calls fail; a customdb call for the same tenant is unaffected; `require('child_process')`, workers and addons fail.
+- [x] Run `go test ./internal/noderunner ./internal/customdb -count=1`; expect new tests FAIL.
+- [x] Extract the pool/sandbox code, add the Actions runner script, and keep all existing customdb tests passing unchanged.
+- [x] Rerun; expect PASS, including the whole existing `./internal/customdb` suite. Commit `refactor: share a sandboxed Node runner for custom databases and Actions`.
 
 ## Task 3: Domain rules and memory store
 
@@ -78,28 +83,28 @@ Order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 �
 
 Rules in `actionsrules`: `NormalizeAction(a *store.Action) []error`, `ValidateDependencies([]store.Dependency) []error` (refuse ranges, git/file/URL/tarball specs, `registry_url`), `ValidateSecrets`, `ValidateBindings`.
 
-- [ ] Add shared conformance `Actions` subtests: CRUD, case-sensitive unique names, copy isolation, limits, version numbering under concurrent deploys, rollback creates n+1, delete with/without force, bindings order/replace/missing-deployed refusal, consistent `Bindings` snapshot during concurrent `ReplaceBindings`, execution and continue purge, `ConsumeContinue` single-use under concurrency, tenant deletion cleanup, two tenants with identical names isolated, transaction rollback.
-- [ ] Run `go test ./internal/actionsrules ./internal/store/memory -run 'Test(Actions|Conformance)' -count=1`; expect FAIL.
-- [ ] Implement models, rules, memory repository and tx clone/rollback; other Store implementations return explicit unsupported errors until Tasks 4–5.
-- [ ] Rerun plus `go build ./...`; expect PASS. Commit `feat: add Actions domain and memory persistence`.
+- [x] Add shared conformance `Actions` subtests: CRUD, case-sensitive unique names, copy isolation, limits, version numbering under concurrent deploys, rollback creates n+1, delete with/without force, bindings order/replace/missing-deployed refusal, consistent `Bindings` snapshot during concurrent `ReplaceBindings`, execution and continue purge, `ConsumeContinue` single-use under concurrency, tenant deletion cleanup, two tenants with identical names isolated, transaction rollback.
+- [x] Run `go test ./internal/actionsrules ./internal/store/memory -run 'Test(Actions|Conformance)' -count=1`; expect FAIL.
+- [x] Implement models, rules, memory repository and tx clone/rollback; other Store implementations return explicit unsupported errors until Tasks 4–5.
+- [x] Rerun plus `go build ./...`; expect PASS. Commit `feat: add Actions domain and memory persistence`.
 
 ## Task 4: SQL storage and migration
 
 **Files:** Create `internal/store/sqlstore/actions.go`, `internal/store/sqlstore/actions_test.go`, `internal/store/sqlstore/migrations/{sqlite,postgres,mysql}/0023_actions.sql`; modify `internal/store/sqlstore/{sqlstore,tx,tenants}.go`.
 
-- [ ] Add `TestActionsMigration` (pre-0023 database upgrades; fresh and upgraded schemas agree) and `TestActionsConcurrency` (concurrent deploy numbering, bind-vs-delete, `ConsumeContinue` races) on all dialects; artifacts stored as BLOB/BYTEA/LONGBLOB.
-- [ ] Run `./scripts/test-sql.sh -run 'Test(Actions|Conformance)' ./internal/store/sqlstore/...`; expect FAIL. Record any unavailable service as not run.
-- [ ] Implement tables with tenant-inclusive keys, per-tenant serialization for bindings/delete (reuse Plan 26's tenant lock pattern), cascades on tenant delete.
-- [ ] Rerun; require actual SQLite/PostgreSQL/MySQL results. Commit `feat: persist Actions across SQL drivers`.
+- [x] Add `TestActionsMigration` (pre-0023 database upgrades; fresh and upgraded schemas agree) and `TestActionsConcurrency` (concurrent deploy numbering, bind-vs-delete, `ConsumeContinue` races) on all dialects; artifacts stored as BLOB/BYTEA/LONGBLOB.
+- [x] Run `./scripts/test-sql.sh -run 'Test(Actions|Conformance)' ./internal/store/sqlstore/...`; expect FAIL. Record any unavailable service as not run.
+- [x] Implement tables with tenant-inclusive keys, per-tenant serialization for bindings/delete (reuse Plan 26's tenant lock pattern), cascades on tenant delete.
+- [x] Rerun; require actual SQLite/PostgreSQL/MySQL results. Commit `feat: persist Actions across SQL drivers`.
 
 ## Task 5: Plugin protocol and capability
 
 **Files:** Modify `proto/store/v1/*.proto` (additive), `internal/store/grpcstore/{client_repos,codec}.go`, `pkg/storeplugin/*`, plugin capability negotiation; create `internal/store/grpcstore/actions_test.go`.
 
-- [ ] Add `TestActionsPluginRoundTrip` (every field including sealed secrets and chunked artifacts ≥ 4 MB) and `TestActionsOldPlugin` (server with Actions configured refuses startup against a plugin lacking the capability, with a clear error).
-- [ ] Run `go test ./internal/store/grpcstore -run 'Test(Actions|Conformance)' -count=1`; expect FAIL.
-- [ ] Implement RPCs, error mapping, streamed artifact transfer and capability check.
-- [ ] `go generate ./...` twice (stable), rerun tests, `go build ./...`; expect PASS. Commit `feat: expose Actions through storage plugins`.
+- [x] Add `TestActionsPluginRoundTrip` (every field including sealed secrets and chunked artifacts ≥ 4 MB) and `TestActionsOldPlugin` (server with Actions configured refuses startup against a plugin lacking the capability, with a clear error).
+- [x] Run `go test ./internal/store/grpcstore -run 'Test(Actions|Conformance)' -count=1`; expect FAIL.
+- [x] Implement RPCs, error mapping, streamed artifact transfer and capability check.
+- [x] `go generate ./...` twice (stable), rerun tests, `go build ./...`; expect PASS. Commit `feat: expose Actions through storage plugins`.
 
 ## Task 6: Sandboxed dependency builds and artifacts
 
@@ -107,11 +112,11 @@ Rules in `actionsrules`: `NormalizeAction(a *store.Action) []error`, `ValidateDe
 
 **Interfaces:** `config.Actions{Node, NPMCLI, Registry, CacheDir string; MaxMemoryMB int; IdleTimeout, BuildTimeout time.Duration; MaxArtifactMB, MaxConcurrentBuilds int}` defaults `node`, npm resolved beside node, `https://registry.npmjs.org/`, `<data>/actions-cache`, 256, 5m, 2m, 50, 2. `build.Manager.Queue(ctx, tenantID string, deps []store.Dependency, runtime string) (buildID string, err error)`; `(*Manager).Ensure(ctx, tenantID, buildID string) (root string, err error)` (extract from store if absent; verifies SHA-256); `(*Manager).Prewarm(ctx)`. Per-tenant root `<CacheDir>/<tenantID>/<buildID>/`, 0700.
 
-- [ ] Write a local registry fixture (httptest serving packuments and tarballs generated in-test, including a scoped package and one with a `postinstall` that would write a marker file).
-- [ ] Write `TestBuildResolvesAndPacks` (exact, empty, `latest` → recorded exact versions; scoped OK), `TestBuildRefuses` (range, git/URL/file spec, `registry_url`, size cap, timeout), `TestBuildIgnoresScripts` (marker never written), `TestBuildNoServerEnvironment` (canary from Task 2 unreadable during install), `TestEnsureExtractsOnFreshNode` (second manager with empty cache dir extracts from store; corrupt artifact fails closed), `TestBuildTenantRoots` (tenant A's process cannot read tenant B's root).
-- [ ] Run `go test ./internal/actions/build -count=1`; expect FAIL.
-- [ ] Implement with `noderunner.Sandbox`, content-addressed build IDs, bounded concurrency, status transitions `pending → building → built|failed`, prewarm at startup and after deploy.
-- [ ] Rerun; expect PASS. Commit `feat: build Action dependencies in a sandbox and share artifacts`.
+- [x] Write a local registry fixture (httptest serving packuments and tarballs generated in-test, including a scoped package and one with a `postinstall` that would write a marker file).
+- [x] Write `TestBuildResolvesAndPacks` (exact, empty, `latest` → recorded exact versions; scoped OK), `TestBuildRefuses` (range, git/URL/file spec, `registry_url`, size cap, timeout), `TestBuildIgnoresScripts` (marker never written), `TestBuildNoServerEnvironment` (canary from Task 2 unreadable during install), `TestEnsureExtractsOnFreshNode` (second manager with empty cache dir extracts from store; corrupt artifact fails closed), `TestBuildTenantRoots` (tenant A's process cannot read tenant B's root).
+- [x] Run `go test ./internal/actions/build -count=1`; expect FAIL.
+- [x] Implement with `noderunner.Sandbox`, content-addressed build IDs, bounded concurrency, status transitions `pending → building → built|failed`, prewarm at startup and after deploy.
+- [x] Rerun; expect PASS. Commit `feat: build Action dependencies in a sandbox and share artifacts`.
 
 ## Task 7: Flow engine, event and api model
 
@@ -126,10 +131,10 @@ Rules in `actionsrules`: `NormalizeAction(a *store.Action) []error`, `ValidateDe
 - `actions.FilterClaims(kind ClaimTarget, existing map[string]any, custom map[string]any, mgmtAudience bool) (map[string]any, error)`; `Effects.ApplyScopes(base []string, filtered []string) []string`.
 - Protocol values: `oidc-basic-profile`, `oauth2-device-code`, `oauth2-password`, `oauth2-resource-owner`, `oauth2-refresh-token`, `oauth2-client-credentials` (freeze in Task 1).
 
-- [ ] Write `TestEngineOrderAndDeny` (three bound Actions; deny in second stops third; metadata from first commits on deny), `TestEngineFailClosed` (throw, timeout, unsupported `api.session.revoke`/`multifactor.enable`/`prompt.render`/`samlResponse.*`, invalid args each produce `ErrFlow` with execution record and no metadata commit), `TestEngineRoles` (`event.authorization.roles` names; `getUserEffectiveRoles` paging `take ≤ 100`, by IDs ≤ 100, by names ≤ 50; groups empty; snapshot fixed at flow start), `TestEngineCache` (limits, TTL, eviction, per tenant+trigger), `TestEngineSecretsMasked` (logs/test output masked), `TestEngineTestDryRun` (no writes, real `fetch` against httptest, roles empty for unknown user, `400`-mapped error when draft not built), `TestEngineCredentialsExchange` (claims, target scopes, deny codes; no `addScope`), `TestFilterClaims` (every reserved name in spec §7 dropped, `auth0.com`/`webtask.io`/`webtask.run`/`urn:auth0` namespaces dropped, non-namespaced dropped for Management audience, > 100 kB fails), `TestEnginePinnedVersions` (rebinding mid-flow does not alter the running list).
-- [ ] Run `go test ./internal/actions -count=1`; expect FAIL.
-- [ ] Implement: snapshot bindings once, ensure builds, call runner per Action, validate each command in Go, accumulate effects, write execution records, commit metadata via the same merge/validation as `PATCH /api/v2/users/{id}` at flow end per spec §6 rules, schedule execution purge on the jobs worker.
-- [ ] Rerun with `-race`; expect PASS. Commit `feat: run post-login and credentials-exchange Action flows`.
+- [x] Write `TestEngineOrderAndDeny` (three bound Actions; deny in second stops third; metadata from first commits on deny), `TestEngineFailClosed` (throw, timeout, unsupported `api.session.revoke`/`multifactor.enable`/`prompt.render`/`samlResponse.*`, invalid args each produce `ErrFlow` with execution record and no metadata commit), `TestEngineRoles` (`event.authorization.roles` names; `getUserEffectiveRoles` paging `take ≤ 100`, by IDs ≤ 100, by names ≤ 50; groups empty; snapshot fixed at flow start), `TestEngineCache` (limits, TTL, eviction, per tenant+trigger), `TestEngineSecretsMasked` (logs/test output masked), `TestEngineTestDryRun` (no writes, real `fetch` against httptest, roles empty for unknown user, `400`-mapped error when draft not built), `TestEngineCredentialsExchange` (claims, target scopes, deny codes; no `addScope`), `TestFilterClaims` (every reserved name in spec §7 dropped, `auth0.com`/`webtask.io`/`webtask.run`/`urn:auth0` namespaces dropped, non-namespaced dropped for Management audience, > 100 kB fails), `TestEnginePinnedVersions` (rebinding mid-flow does not alter the running list).
+- [x] Run `go test ./internal/actions -count=1`; expect FAIL.
+- [x] Implement: snapshot bindings once, ensure builds, call runner per Action, validate each command in Go, accumulate effects, write execution records, commit metadata via the same merge/validation as `PATCH /api/v2/users/{id}` at flow end per spec §6 rules, schedule execution purge on the jobs worker.
+- [x] Rerun with `-race`; expect PASS. Commit `feat: run post-login and credentials-exchange Action flows`.
 
 ## Task 8: Token integration across grants
 
@@ -137,12 +142,12 @@ Rules in `actionsrules`: `NormalizeAction(a *store.Action) []error`, `ValidateDe
 
 **Interfaces:** `userTokens.effects *actions.Effects` consumed by `mintUserTokens`; `AccessTokenParams.CustomClaims`, `IDTokenParams.CustomClaims map[string]any` (already filtered). Scope order exactly spec §7; refresh ceiling stays Plan 26's pre-Action set.
 
-- [ ] Write `TestActionsUserGrants`, table-driven over code, device, password, password-realm and refresh × RBAC on/off: namespaced access and ID claims present in signed JWTs; `transaction.addTargetScope('write:x')` dropped when RBAC denies; `accessToken.addScope('write:x')` present despite RBAC; `removeScope` removes; response `scope` equals JWT `scope`; refresh family ceiling unchanged and re-run Actions re-add claims; `canRedirect` false on token-endpoint grants and `sendUserTo` there fails closed.
-- [ ] Write `TestActionsDenyAndErrorSurfaces`: deny → `error=access_denied&error_description=<reason>` to redirect URI, error page when the client protects redirects, `403 access_denied` at token endpoint; thrown error → `server_error` with generic description and hosted page reference; no code row created in any failure; consent screen lists scopes added via `transaction.addTargetScope` but not via `accessToken.addScope`; accepting consent issues the code without re-running Actions (exactly one execution record); declining consent issues no code.
-- [ ] Write `TestActionsClientCredentials`: claims added, deny codes mapped, target scopes intersected with client grant, flow failure → no token.
-- [ ] Run `go test ./internal/oauth ./internal/authz -run 'TestActions' -count=1`; expect FAIL.
-- [ ] Implement the hooks; store effects sealed on codes/device codes; apply claims through `FilterClaims`; log execution IDs with tenant, trigger and Action name.
-- [ ] Rerun with `-race` plus `go test -race ./internal/oauth ./internal/authz ./internal/login`; expect PASS. Commit `feat: apply Action effects to user and machine tokens`.
+- [x] Write `TestActionsUserGrants`, table-driven over code, device, password, password-realm and refresh × RBAC on/off: namespaced access and ID claims present in signed JWTs; `transaction.addTargetScope('write:x')` dropped when RBAC denies; `accessToken.addScope('write:x')` present despite RBAC; `removeScope` removes; response `scope` equals JWT `scope`; refresh family ceiling unchanged and re-run Actions re-add claims; `canRedirect` false on token-endpoint grants and `sendUserTo` there fails closed.
+- [x] Write `TestActionsDenyAndErrorSurfaces`: deny → `error=access_denied&error_description=<reason>` to redirect URI, error page when the client protects redirects, `403 access_denied` at token endpoint; thrown error → `server_error` with generic description and hosted page reference; no code row created in any failure; consent screen lists scopes added via `transaction.addTargetScope` but not via `accessToken.addScope`; accepting consent issues the code without re-running Actions (exactly one execution record); declining consent issues no code.
+- [x] Write `TestActionsClientCredentials`: claims added, deny codes mapped, target scopes intersected with client grant, flow failure → no token.
+- [x] Run `go test ./internal/oauth ./internal/authz -run 'TestActions' -count=1`; expect FAIL.
+- [x] Implement the hooks; store effects sealed on codes/device codes; apply claims through `FilterClaims`; log execution IDs with tenant, trigger and Action name.
+- [x] Rerun with `-race` plus `go test -race ./internal/oauth ./internal/authz ./internal/login`; expect PASS. Commit `feat: apply Action effects to user and machine tokens`.
 
 ## Task 9: Redirect and continue
 
@@ -150,46 +155,46 @@ Rules in `actionsrules`: `NormalizeAction(a *store.Action) []error`, `ValidateDe
 
 **Interfaces:** `(*Engine).ContinuePostLogin(ctx, tenantID, state string, sess *store.LoginSession, req RequestInfo) (*Result, error)`; continue payload (sealed) = accumulated effects, held metadata, pinned remaining bound versions, current Action index, redirect count, original flow request, login session ID.
 
-- [ ] Write `TestActionsRedirectRoundTrip`: `sendUserTo(url,{query:{a:'1'}})` redirects with `a=1&state=…`; `/continue` (GET and form POST) runs `onContinuePostLogin` with the new `event.request.query/body`, then the remaining Actions; code issued afterwards carries effects from both phases.
-- [ ] Write `TestActionsContinueRejects`: missing, wrong, expired (15 min), replayed, other-session, other-tenant and other-origin states → `invalid_request`; held metadata not committed; sixth redirect fails closed; `prompt=none` → `interaction_required`.
-- [ ] Write `TestActionsRedirectTokens`: `encodeToken` HS256 with `sub`, `iss`, `iat`, `exp` (default 900 s), `ip`, payload; `validateToken` rejects bad signature, expiry, missing/mismatched `state`, and reads `session_token` or a named parameter from query or body.
-- [ ] Run `go test ./internal/actions ./internal/authz -run 'TestActions(Redirect|Continue)' -count=1`; expect FAIL.
-- [ ] Implement; purge expired states on the jobs worker.
-- [ ] Rerun with `-race`; expect PASS. Commit `feat: support Action redirects and continue`.
+- [x] Write `TestActionsRedirectRoundTrip`: `sendUserTo(url,{query:{a:'1'}})` redirects with `a=1&state=…`; `/continue` (GET and form POST) runs `onContinuePostLogin` with the new `event.request.query/body`, then the remaining Actions; code issued afterwards carries effects from both phases.
+- [x] Write `TestActionsContinueRejects`: missing, wrong, expired (15 min), replayed, other-session, other-tenant and other-origin states → `invalid_request`; held metadata not committed; sixth redirect fails closed; `prompt=none` → `interaction_required`.
+- [x] Write `TestActionsRedirectTokens`: `encodeToken` HS256 with `sub`, `iss`, `iat`, `exp` (default 900 s), `ip`, payload; `validateToken` rejects bad signature, expiry, missing/mismatched `state`, and reads `session_token` or a named parameter from query or body.
+- [x] Run `go test ./internal/actions ./internal/authz -run 'TestActions(Redirect|Continue)' -count=1`; expect FAIL.
+- [x] Implement; purge expired states on the jobs worker.
+- [x] Rerun with `-race`; expect PASS. Commit `feat: support Action redirects and continue`.
 
 ## Task 10: Management API, seed and bootstrap scopes
 
 **Files:** Modify `api/management.yaml` (with `x-source`), generated server/types, `internal/mgmt/{actions.go,actions_versions.go,actions_bindings.go,actions_executions.go}` (create), `internal/tenantsetup` scope registration, `internal/seed/{actions.go,validate.go,apply.go}`; create `internal/mgmt/actions_test.go`, `internal/seed/actions_test.go`.
 
-- [ ] Write `TestActionsManagementContract`: every operation in Task 1's inventory — success shapes, secrets write-only (`name`, `updated_at` only), `all_changes_deployed`, build `status`, deploy of unbuilt draft `400`, rollback numbering, bindings by `action_id`/`action_name`/`binding_id`, binding `secrets` and `registry_url` refused, `DELETE` bound without `force` refused, test endpoint dry-run, execution `404` after purge, 401/403 for each scope, cross-tenant `404`, unknown fields `400`, creating an Action for an unsupported trigger `400`, `GET /actions/triggers` lists only `post-login` and `credentials-exchange`, every limit.
-- [ ] Write `TestActionsScopesUpgrade` (existing tenants gain `read/create/update/delete:actions` definitions; restricted grants not expanded) and `TestActionsSeed` (code, dependencies, secrets, deploy flag, bindings; create-only restart preserves management edits; unsupported trigger refused).
-- [ ] Run `go test ./internal/mgmt ./internal/seed ./internal/tenantsetup -run 'TestActions' -count=1`; expect FAIL.
-- [ ] Implement schema, handlers (secrets sealed with tenant+action binding), build queueing on save, deploy/prewarm, seed.
-- [ ] Regenerate; rerun; `make check-sources`; expect PASS. Commit `feat: manage Actions, versions, bindings and executions`.
+- [x] Write `TestActionsManagementContract`: every operation in Task 1's inventory — success shapes, secrets write-only (`name`, `updated_at` only), `all_changes_deployed`, build `status`, deploy of unbuilt draft `400`, rollback numbering, bindings by `action_id`/`action_name`/`binding_id`, binding `secrets` and `registry_url` refused, `DELETE` bound without `force` refused, test endpoint dry-run, execution `404` after purge, 401/403 for each scope, cross-tenant `404`, unknown fields `400`, creating an Action for an unsupported trigger `400`, `GET /actions/triggers` lists only `post-login` and `credentials-exchange`, every limit.
+- [x] Write `TestActionsScopesUpgrade` (existing tenants gain `read/create/update/delete:actions` definitions; restricted grants not expanded) and `TestActionsSeed` (code, dependencies, secrets, deploy flag, bindings; create-only restart preserves management edits; unsupported trigger refused).
+- [x] Run `go test ./internal/mgmt ./internal/seed ./internal/tenantsetup -run 'TestActions' -count=1`; expect FAIL.
+- [x] Implement schema, handlers (secrets sealed with tenant+action binding), build queueing on save, deploy/prewarm, seed.
+- [x] Regenerate; rerun; `make check-sources`; expect PASS. Commit `feat: manage Actions, versions, bindings and executions`.
 
 ## Task 11: Console
 
 **Files:** Create `console/src/pages/actions/{Library.vue,Editor.vue,Versions.vue,TestPanel.vue,Triggers.vue,Execution.vue}` and `*.test.ts`; modify router, nav, locales; remove `console/src/pages/planned/Actions.vue` and its planned-page test entry.
 
-- [ ] Write Vitest cases: list/create/delete (force confirmation when bound); editor save keeps draft on failure and reload-before-retry; dependency add/remove with exact-version validation; write-only secrets (never displayed after save); build status/errors polling; deploy and rollback; test panel shows commands/logs/errors with masked secrets; triggers page reorders bindings with up/down buttons and keyboard, refuses undeployed Actions; execution lookup; stale tenant/route replies ignored.
-- [ ] Run `npm --prefix console test -- src/pages/actions`; expect FAIL.
-- [ ] Implement with existing components (`ScriptEditor`, `Field`, `Modal`, `Banner`), localized strings, accessible names; original layouts only.
-- [ ] Run `make console`; expect lint, typecheck, tests and production build PASS. Commit `feat: add Actions to the console`.
+- [x] Write Vitest cases: list/create/delete (force confirmation when bound); editor save keeps draft on failure and reload-before-retry; dependency add/remove with exact-version validation; write-only secrets (never displayed after save); build status/errors polling; deploy and rollback; test panel shows commands/logs/errors with masked secrets; triggers page reorders bindings with up/down buttons and keyboard, refuses undeployed Actions; execution lookup; stale tenant/route replies ignored.
+- [x] Run `npm --prefix console test -- src/pages/actions`; expect FAIL.
+- [x] Implement with existing components (`ScriptEditor`, `Field`, `Modal`, `Banner`), localized strings, accessible names; original layouts only.
+- [x] Run `make console`; expect lint, typecheck, tests and production build PASS. Commit `feat: add Actions to the console`.
 
 ## Task 12: Tools, browser flows and Deploy CLI
 
 **Files:** Create `tests/e2e/run-m27-actions.sh`, `tests/e2e/m27-actions-cli.mjs`, `tests/e2e/m27-node-auth0.mjs`, `tests/e2e/m27-actions.spec.mjs`, `tests/e2e/fixtures/npm-registry/` (static registry built by script from pinned tarballs, including `auth0@7.4.0` and its dependency closure); modify `Makefile` (`e2e-actions`), `tests/e2e/deploy-cli/*`, `internal/deploymigration` comparators.
 
-- [ ] Add cases: auth0-cli `actions` commands (create/list/show/update/deploy/delete) plus `auth0 api` for bindings/executions; node-auth0 for all 14 operations; Playwright with auth0-spa-js reading a namespaced ID-token claim and an access-token claim; roles copied into a claim; deny shown on the hosted error page; redirect to a fixture page that adds `a=1` and posts back an `encodeToken` token; credentials-exchange claim and deny; an Action using `require('auth0')` ManagementClient with M2M secrets to assign a default role that appears in `permissions` on the next login; console create/edit/deploy/bind/test.
-- [ ] Extend Deploy CLI four-cell matrix (YAML/directory × generated/preserved) with `actions` and `triggers`; compare by Action name; secrets via keyword replacement; negative fixtures for missing Action, binding or code; post-import login proves the claim.
-- [ ] Run `make e2e-actions` and `make e2e-deploy`; expect FAIL before fixtures, then PASS. Missing tools recorded as unavailable, not skipped into PASS.
-- [ ] Commit `test: verify Actions with CLI SDK browser and Deploy CLI`.
+- [x] Add cases: auth0-cli `actions` commands (create/list/show/update/deploy/delete) plus `auth0 api` for bindings/executions; node-auth0 for all 14 operations; Playwright with auth0-spa-js reading a namespaced ID-token claim and an access-token claim; roles copied into a claim; deny shown on the hosted error page; redirect to a fixture page that adds `a=1` and posts back an `encodeToken` token; credentials-exchange claim and deny; an Action using `require('auth0')` ManagementClient with M2M secrets to assign a default role that appears in `permissions` on the next login; console create/edit/deploy/bind/test.
+- [x] Extend Deploy CLI four-cell matrix (YAML/directory × generated/preserved) with `actions` and `triggers`; compare by Action name; secrets via keyword replacement; negative fixtures for missing Action, binding or code; post-import login proves the claim.
+- [x] Run `make e2e-actions` and `make e2e-deploy`; expect FAIL before fixtures, then PASS. Missing tools recorded as unavailable, not skipped into PASS.
+- [x] Commit `test: verify Actions with CLI SDK browser and Deploy CLI`.
 
 ## Task 13: Final regression, documentation and record
 
 **Files:** Create `docs/actions.md`, `docs/superpowers/2026-10-27-plan-27-implementation-record.md`; modify `docs/compat/matrix.md`, `docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md` (Plan 27 done; Plan 28 drops npm dependencies), `docs/custom-db.md` (shared runner note), config reference.
 
-- [ ] Document: supported/empty/unsupported `api` members, scope order and `addScope` bypass, claim rules, redirect/continue, metadata commit rules, execution IDs, npm rules and registry/mirror configuration, sandbox guarantees and the container/dedicated-uid hardening advice, replica artifact behavior, limits.
-- [ ] Run `go generate ./...` twice (stable), `make check-sources`, `go vet ./...`, `go test -race -timeout=30m ./...`, `./scripts/test-sql.sh -timeout=30m ./internal/store/sqlstore/...`, `make console`, `make e2e`, `make e2e-actions`, `make e2e-rbac`, `make e2e-deploy`, `make e2e-social`, `make e2e-email-accounts`, `make e2e-domains`, `tests/conformance/run.sh`. Record actual results, skips and unavailable services.
-- [ ] Review the five Review Focus outcomes and spec coverage; fix defects with regression tests; rerun affected checks.
-- [ ] Commit `docs: record Actions behavior and verification evidence`. Hand off for review; do not merge or push.
+- [x] Document: supported/empty/unsupported `api` members, scope order and `addScope` bypass, claim rules, redirect/continue, metadata commit rules, execution IDs, npm rules and registry/mirror configuration, sandbox guarantees and the container/dedicated-uid hardening advice, replica artifact behavior, limits.
+- [x] Run `go generate ./...` twice (stable), `make check-sources`, `go vet ./...`, `go test -race -timeout=30m ./...`, `./scripts/test-sql.sh -timeout=30m ./internal/store/sqlstore/...`, `make console`, `make e2e`, `make e2e-actions`, `make e2e-rbac`, `make e2e-deploy`, `make e2e-social`, `make e2e-email-accounts`, `make e2e-domains`, `tests/conformance/run.sh`. Record actual results, skips and unavailable services.
+- [ ] Review the five Review Focus outcomes and spec coverage; fix defects with regression tests; rerun affected checks. (Scoped reviews and documented coverage complete; final whole-branch review pending.)
+- [x] Commit `docs: record Actions behavior and verification evidence`. Hand off for review; do not merge or push.

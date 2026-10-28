@@ -1096,7 +1096,8 @@ Local choices where public material is silent or open:
   rule above. `event` reflects earlier Actions for `transaction.target_scopes`
   and `transaction.metadata` (documented) and `user.app_metadata`/`user_metadata`
   after a commit-free in-memory overlay (local).
-- `/userinfo` echoes namespaced ID-token custom claims (local default).
+- `/userinfo` does not return Action ID-token custom claims in Plan 27; this
+  supersedes the original local default and remains deferred (Ruling 10).
   Non-namespaced access-token claims are dropped for the tenant's Management
   API audience. `request.geoip`, `asn`, organization, MFA, prompt, agent and
   Enterprise members are omitted; `groups.*` return empty; `rules.wasExecuted`
@@ -1116,12 +1117,56 @@ Local choices where public material is silent or open:
   only that it must be unbound).
 - Byte units: Auth0's "kB" limits are taken as decimal (code and custom claims
   100,000 bytes; cache values 4,096 and total 8,192 as binary-exact values the
-  public page writes as 4 kB/8 kB; secret value 4096 characters); the artifact
+  public page writes as 4 kB/8 kB; secret value 4096 bytes); the artifact
   limit is 50,000,000 bytes. The inventory stores these exact integers.
 - Unsupported `api` members throw at call time and fail the flow; none is
   silently omitted. "Metadata commits at flow end" means user and app
   metadata; transaction metadata lives only for the transaction.
 - Consent order source:
   https://auth0.com/docs/customize/actions/handling-scopes-in-actions.
+
+- Token-endpoint post-login `validation.error` is 403 with its supplied code.
+  Codes are 1–128 bytes in the RFC 6749 error charset; reasons/messages replace
+  disallowed bytes with `?` and truncate at 512 bytes. Device approval cannot
+  redirect. Password/realm protocols are `oauth2-password` /
+  `oauth2-resource-owner`; `device_code` joins stripped request credentials.
+- User scope order is request → target edits → API/application policy/RBAC →
+  consent → final access-token edits. `addScope` bypasses the former checks;
+  add/removeScope do not change ID-token issuance, and adding offline_access
+  cannot create a refresh token. Refresh ceilings are issued/consented scopes
+  intersected with pre-Action authorized scopes; Action additions never enter
+  them. Refresh reruns Actions; consent-requiring clients' target additions
+  also need stored audience grants. Target edits can restore family scopes
+  omitted by a downscoped refresh request. Removing final offline_access
+  suppresses rotation, while target-only removal can still rotate a family.
+- Bound post-login flows on RBAC-enabled APIs snapshot assignments before
+  execution. They survive consent/code/device/continue; role assignment via
+  Management API affects the next issuance. Current API definitions/settings
+  and application policy still apply at mint; captured permissions intersect
+  current declared non-protocol API permissions. Without a captured flow,
+  ordinary issuance-time RBAC reads apply. RBAC-disabled APIs omit permissions.
+- Redirect/resume phases each have their own execution record; an execution
+  ID does not span the browser gap. Test IDs are ephemeral with no lookup row.
+  Execution purge runs hourly and expired continue-state purge every minute.
+- Synchronous latest resolution is limited to 15 seconds per resolver process,
+  with a separate bounded semaphore; slot wait follows caller context.
+  Interrupted pending/building drafts recover on Queue/GET/deploy/test,
+  rather than a startup scan. Artifacts are store-backed and hash-verified on
+  extraction; existing extracted roots are trusted. npm runs with private HOME,
+  empty user/global configs and ignored scripts; its built-in npmrc remains
+  readable. Registry authentication via operator .npmrc is unsupported.
+- Action seed application uses ApplyWithActions: ordinary seed transaction,
+  then external builds, then atomic ready Action create/deploy. Existing names
+  and initialized trigger sets are create-only in both modes. Durable atomic
+  tenant/trigger initialization preserves management [] across restarts and
+  remains retryable after rollback. This supersedes the empty-trigger heuristic.
+  Actions plugin capability is 2; older plugins refuse startup.
+- Runtime console capture currently keeps 100 messages of up to 2048
+  characters each (plus level prefix). Inventory's 256-character per-Action
+  declaration is not enforced; this is a deferred minor contract drift.
+
+Local implementation and verification are recorded in the
+[Plan 27 record](../superpowers/2026-10-27-plan-27-implementation-record.md).
+Final whole-branch review is pending; no live upstream parity is claimed.
 
 These are implementation contracts, not proof of completion or live parity.

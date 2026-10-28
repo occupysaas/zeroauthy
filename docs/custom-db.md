@@ -144,6 +144,11 @@ Which fields follow your store after the first login (D-0024):
 - **Limits.** One execution may run for 20 seconds; after that the tenant's process is killed. A script may be at most 100 kB.
 - **Process model.** Each tenant gets its own Node.js process, started on first use and stopped when idle. Within it, each connection has its own `vm` context.
 
+The process pool and permission sandbox are shared with [Actions](actions.md)
+through `internal/noderunner`. Each feature owns a separate pool: killing a
+tenant's Actions process does not interrupt that tenant's custom database
+process, and their npm roots remain separate.
+
 ## Security
 
 What zeroauthy enforces:
