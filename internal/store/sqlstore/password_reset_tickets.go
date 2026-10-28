@@ -14,16 +14,16 @@ type resetTickets struct{ s *Store }
 func (s *Store) PasswordResetTickets() store.PasswordResetTickets { return resetTickets{s} }
 
 const resetTicketCols = `tenant_id, id, token_hash, user_id, connection, client_id, lang, expires_at, used_at, created_at,
- result_url, include_email_in_redirect, mark_email_verified, origin`
+ result_url, include_email_in_redirect, mark_email_verified, origin, challenge_passed_at, challenge_result_url`
 
 func (r resetTickets) Create(ctx context.Context, t *store.PasswordResetTicket) error {
 	// Retried on deadlock: on MySQL an INSERT can be the victim of a cycle
 	// with the range DELETEs of DeleteExpired and DeleteByUser (gap locks).
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO password_reset_tickets (`+resetTicketCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		_, err := tx.exec(ctx, `INSERT INTO password_reset_tickets (`+resetTicketCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			t.TenantID, t.ID, t.TokenHash, t.UserID, t.Connection, t.ClientID, t.Lang,
 			micros(t.ExpiresAt), nullMicros(t.UsedAt), micros(t.CreatedAt),
-			t.ResultURL, t.IncludeEmailInRedirect, t.MarkEmailVerified, t.Origin)
+			t.ResultURL, t.IncludeEmailInRedirect, t.MarkEmailVerified, t.Origin, nullMicros(t.ChallengePassedAt), t.ChallengeResultURL)
 		return tx.conflict(err)
 	})
 }
@@ -120,11 +120,35 @@ func (r resetTickets) DeleteExpired(ctx context.Context, before time.Time) (int,
 func scanResetTicket(row scanner) (*store.PasswordResetTicket, error) {
 	var t store.PasswordResetTicket
 	var exp, created int64
-	var used sql.NullInt64
+	var used, passed sql.NullInt64
 	if err := row.Scan(&t.TenantID, &t.ID, &t.TokenHash, &t.UserID, &t.Connection, &t.ClientID, &t.Lang,
-		&exp, &used, &created, &t.ResultURL, &t.IncludeEmailInRedirect, &t.MarkEmailVerified, &t.Origin); err != nil {
+		&exp, &used, &created, &t.ResultURL, &t.IncludeEmailInRedirect, &t.MarkEmailVerified, &t.Origin, &passed, &t.ChallengeResultURL); err != nil {
 		return nil, err
 	}
+	t.ChallengePassedAt = fromNullMicros(passed)
 	t.ExpiresAt, t.CreatedAt, t.UsedAt = fromMicros(exp), fromMicros(created), fromNullMicros(used)
 	return &t, nil
+}
+
+// MarkChallengePassed locks the bearer ticket and refuses spent or expired
+// tickets. This write joins a caller's transaction without consuming the ticket.
+func (r resetTickets) MarkChallengePassed(ctx context.Context, tenantID, hash string, at time.Time, resultURL string) error {
+	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		ticket, err := (resetTickets{tx}).GetByTokenHash(ctx, tenantID, hash)
+		if err != nil {
+			return err
+		}
+		ticket, err = (resetTickets{tx}).getLatest(ctx, tenantID, ticket.ID)
+		if err != nil {
+			return err
+		}
+		if ticket.UsedAt != nil {
+			return store.ErrAlreadyUsed
+		}
+		if !ticket.ExpiresAt.After(at) {
+			return store.ErrNotFound
+		}
+		_, err = tx.exec(ctx, `UPDATE password_reset_tickets SET challenge_passed_at=?,challenge_result_url=? WHERE tenant_id=? AND id=?`, micros(at), resultURL, tenantID, ticket.ID)
+		return err
+	})
 }

@@ -28,7 +28,8 @@ func insertLegacyUser(t *testing.T, s *Store, u *store.User) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mustExec(t, s, "INSERT INTO users ("+userCols+") VALUES ("+strings.TrimSuffix(strings.Repeat("?,", len(args)), ",")+")", args...)
+	args = args[:22]
+	mustExec(t, s, "INSERT INTO users ("+userColsBeforeActionsII+") VALUES ("+strings.TrimSuffix(strings.Repeat("?,", len(args)), ",")+")", args...)
 }
 
 func legacyFixture(t *testing.T, s *Store) {

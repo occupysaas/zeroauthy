@@ -173,8 +173,8 @@ func TestSchemaConstraints(t *testing.T) {
 
 func TestLatestVersion(t *testing.T) {
 	for _, d := range []dialect{dSQLite, dPostgres, dMySQL} {
-		if v := (&Store{d: d}).LatestVersion(); v != 23 {
-			t.Errorf("%s LatestVersion = %d, want 23", d.name, v)
+		if v := (&Store{d: d}).LatestVersion(); v != 24 {
+			t.Errorf("%s LatestVersion = %d, want 24", d.name, v)
 		}
 	}
 }
@@ -388,9 +388,11 @@ func TestMigration0016PreservesData(t *testing.T) {
 			oldCols := strings.Join(strings.Split(tenantCols, ",")[:21], ",")
 			mustExec(t, s, `INSERT INTO tenants (`+oldCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args[:21]...)
 			user := &store.User{TenantID: "legacy", UserID: "auth0|existing", Email: "old@example.test"}
-			if err := s.Users().Create(ctx, user); err != nil {
+			args, err = userArgs(user)
+			if err != nil {
 				t.Fatal(err)
 			}
+			mustExec(t, s, `INSERT INTO users (`+userColsBeforeActionsII+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args[:22]...)
 			job := &store.Job{TenantID: "legacy", ID: "job", Type: store.JobType("users_import"), Status: store.JobStatus("pending"), Input: []byte("preserved input")}
 			if err := s.Jobs().Create(ctx, job); err != nil {
 				t.Fatal(err)

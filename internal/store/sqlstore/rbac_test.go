@@ -137,9 +137,7 @@ func TestRBACUpgradePreservesLegacy(t *testing.T) {
 				t.Fatal(err)
 			}
 			user := &store.User{TenantID: "old", UserID: "old-user", Email: "old@example.test"}
-			if err := s.Users().Create(ctx, user); err != nil {
-				t.Fatal(err)
-			}
+			insertLegacyUser(t, s, user)
 			if err := s.Migrate(ctx); err != nil {
 				t.Fatal(err)
 			}

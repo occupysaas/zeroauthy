@@ -334,7 +334,9 @@ func dropUserFederation(ctx context.Context, tx *Store, tenantID, userID string)
 // not resolve to exactly one connection of its strategy, or that two users
 // claim, stops the migration with a report of IDs; no token is ever read.
 func backfillFederatedIdentities(ctx context.Context, tx *Store) error {
-	rows, err := tx.query(ctx, `SELECT `+userCols+` FROM users WHERE identities LIKE ? OR identities LIKE ? OR identities LIKE ? ORDER BY tenant_id, user_id`,
+	// Migration 0021 runs before 0024 adds last_password_reset. Supply NULL
+	// to the current scanner without requiring a future schema column.
+	rows, err := tx.query(ctx, `SELECT `+userColsBeforeActionsII+`,NULL FROM users WHERE identities LIKE ? OR identities LIKE ? OR identities LIKE ? ORDER BY tenant_id, user_id`,
 		`%"Provider":"google-oauth2"%`, `%"Provider":"oauth2"%`, `%"Provider":"oidc"%`)
 	if err != nil {
 		return err
