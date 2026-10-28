@@ -9,3 +9,5 @@ CREATE TABLE action_executions (tenant_id TEXT NOT NULL, id TEXT NOT NULL, trigg
 CREATE INDEX action_executions_by_created ON action_executions (created_at);
 CREATE TABLE action_continues (tenant_id TEXT NOT NULL, state_hash TEXT NOT NULL, session_id TEXT NOT NULL, sealed BLOB NOT NULL, expires_at BIGINT NOT NULL, created_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,state_hash), FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE);
 CREATE INDEX action_continues_by_expiry ON action_continues (expires_at);
+ALTER TABLE auth_codes ADD COLUMN action_effects BLOB NULL;
+ALTER TABLE device_codes ADD COLUMN action_effects BLOB NULL;

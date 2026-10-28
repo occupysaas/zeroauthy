@@ -38,35 +38,41 @@ var (
 
 // Local bounds on deny and validation.error values, which reach OAuth
 // error/error_description (RFC 6749 §5.2 charset: %x20-21 / %x23-5B /
-// %x5D-7E). Outside them the flow fails closed (D-0053-style local choice).
+// %x5D-7E). An error code outside them fails the flow closed; a reason or
+// message is sanitized instead (D-0053-style local choice), so a localized
+// deny still denies rather than becoming a server error.
 const (
 	maxErrorCodeBytes   = 128
 	maxErrorReasonBytes = 512
 )
 
-// oauthErrorText reports whether s uses only the RFC 6749 error charset.
-func oauthErrorText(s string) bool {
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c < 0x20 || c > 0x7e || c == '"' || c == '\\' {
-			return false
-		}
-	}
-	return true
+// oauthErrorChar reports whether c is in the RFC 6749 error charset.
+func oauthErrorChar(c rune) bool {
+	return c >= 0x20 && c <= 0x7e && c != '"' && c != '\\'
 }
 
 func checkCode(op, code string) error {
-	if code == "" || len(code) > maxErrorCodeBytes || !oauthErrorText(code) {
+	if code == "" || len(code) > maxErrorCodeBytes || strings.IndexFunc(code, func(r rune) bool { return !oauthErrorChar(r) }) >= 0 {
 		return invalid(op, "error code must be 1-%d printable ASCII characters without '\"' or '\\'", maxErrorCodeBytes)
 	}
 	return nil
 }
 
-func checkReason(op, reason string) error {
-	if len(reason) > maxErrorReasonBytes || !oauthErrorText(reason) {
-		return invalid(op, "reason must be at most %d printable ASCII characters without '\"' or '\\'", maxErrorReasonBytes)
+// sanitizeReason replaces every character outside the RFC 6749 error
+// charset (including each non-ASCII character and invalid byte) with '?'
+// and cuts the result at maxErrorReasonBytes.
+func sanitizeReason(reason string) string {
+	var b strings.Builder
+	for _, r := range reason {
+		if b.Len() >= maxErrorReasonBytes {
+			break
+		}
+		if !oauthErrorChar(r) {
+			r = '?'
+		}
+		b.WriteRune(r)
 	}
-	return nil
+	return b.String()
 }
 
 // credentialsDenyCodes are the documented credentials-exchange deny codes.
@@ -196,10 +202,7 @@ func (a *accum) apply(c command) error {
 		if err := checkCode(c.Op, code); err != nil {
 			return err
 		}
-		if err := checkReason(c.Op, msg); err != nil {
-			return err
-		}
-		a.setDenial(&Denial{Code: code, Reason: msg})
+		a.setDenial(&Denial{Code: code, Reason: sanitizeReason(msg)})
 	case "accessToken.setCustomClaim", "idToken.setCustomClaim":
 		if err := argCount(c, 2, 2); err != nil {
 			return err
@@ -323,10 +326,7 @@ func (a *accum) deny(c command) error {
 		if err != nil {
 			return err
 		}
-		if err := checkReason(c.Op, reason); err != nil {
-			return err
-		}
-		a.setDenial(&Denial{Code: code, Reason: reason})
+		a.setDenial(&Denial{Code: code, Reason: sanitizeReason(reason)})
 		return nil
 	}
 	if err := argCount(c, 0, 1); err != nil {
@@ -336,10 +336,7 @@ func (a *accum) deny(c command) error {
 	if err != nil {
 		return err
 	}
-	if err := checkReason(c.Op, reason); err != nil {
-		return err
-	}
-	a.setDenial(&Denial{Code: "access_denied", Reason: reason})
+	a.setDenial(&Denial{Code: "access_denied", Reason: sanitizeReason(reason)})
 	return nil
 }
 

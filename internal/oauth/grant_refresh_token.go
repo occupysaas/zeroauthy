@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -92,10 +93,28 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if oerr != nil {
 		return nil, oerr
 	}
+	// The post-login flow runs again (spec §7): its claims and addScope
+	// results are not stored with the family, so it must re-add them. Its
+	// target-scope edits stay within the family's ceiling, which never
+	// grows.
+	conn, oerr := h.userConnection(ctx, tenantID, user)
+	if oerr != nil {
+		return nil, oerr
+	}
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{user: user, connection: conn, rs: rs, protocol: actions.ProtocolRefreshToken,
+		requested: d.Scopes, target: d.Scopes})
+	if oerr != nil {
+		return nil, oerr
+	}
+	if eff != nil && eff.Target != nil {
+		if d, oerr = h.decide(ctx, tenantID, access.Refresh, c, rs, userScopes(targetScopes(eff, nil, rt.Scopes), rs, true)); oerr != nil {
+			return nil, oerr
+		}
+	}
 	scopes = d.Scopes
-	resp, oerr := h.mintUserTokens(ctx, res, c, userTokens{
+	resp, _, oerr := h.mintUserTokens(ctx, res, c, userTokens{
 		user: user, rs: rs, lifetime: lifetime, scopes: scopes,
-		sessionID: rt.SessionID, authTime: rt.AuthTime,
+		sessionID: rt.SessionID, authTime: rt.AuthTime, effects: eff,
 	})
 	if oerr != nil {
 		return nil, oerr

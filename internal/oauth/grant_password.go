@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -182,20 +183,37 @@ func (h *Handlers) resourceOwner(ctx context.Context, res tenant.Resolved, c *st
 	if oerr != nil {
 		return nil, oerr
 	}
-	d, oerr := h.decide(ctx, tenantID, access.Password, c, rs, userScopes(strings.Fields(form.Get("scope")), rs, offlineAllowed(c, rs)))
+	requested := strings.Fields(form.Get("scope"))
+	// A request the API's policy refuses is refused before any Action runs.
+	d, oerr := h.decide(ctx, tenantID, access.Password, c, rs, userScopes(requested, rs, offlineAllowed(c, rs)))
 	if oerr != nil {
 		return nil, oerr
 	}
+	protocol := actions.ProtocolPassword
+	if form.Get("grant_type") == GrantPasswordRealm {
+		protocol = actions.ProtocolResourceOwner
+	}
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{user: user, connection: conn, rs: rs, protocol: protocol,
+		requested: requested, target: requested})
+	if oerr != nil {
+		return nil, oerr
+	}
+	if eff != nil && eff.Target != nil {
+		// Target-scope edits come before API-definition and policy filtering.
+		if d, oerr = h.decide(ctx, tenantID, access.Password, c, rs, userScopes(eff.Target.Scopes, rs, offlineAllowed(c, rs))); oerr != nil {
+			return nil, oerr
+		}
+	}
 	scopes := d.Scopes
-	resp, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		user: user, rs: rs, lifetime: lifetime, scopes: scopes, authTime: now, grantType: "password",
+	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
+		user: user, rs: rs, lifetime: lifetime, scopes: scopes, authTime: now, grantType: "password", effects: eff,
 	})
 	if oerr != nil {
 		return nil, oerr
 	}
 	var rt *store.RefreshToken
 	var raw string
-	if responseHasScope(resp, "offline_access") {
+	if offline {
 		absolute, _ := refreshLifetimes(c.RefreshToken)
 		var expiresAt time.Time
 		if absolute > 0 {

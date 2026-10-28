@@ -2,5 +2,6 @@
 {{define "content"}}
 <p class="alert" role="alert">{{.Data.Message}}</p>
 {{if .Data.Detail}}<p class="alt"><small>{{.Data.Detail}}</small></p>{{end}}
+{{if .Data.Reference}}<p class="alt"><small>{{t .Tenant.L "zeroauthy.error.reference" "reference" .Data.Reference}}</small></p>{{end}}
 <p class="alt">{{t .Tenant.L "zeroauthy.error.description"}}</p>
 {{end}}

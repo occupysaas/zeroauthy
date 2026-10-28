@@ -653,6 +653,7 @@ message AuthCode {
   google.protobuf.Timestamp used_at = 15;     // absent = nil
   google.protobuf.Timestamp replayed_at = 16; // absent = nil
   string origin = 17;
+  bytes action_effects = 18; // sealed post-login effects; empty = none
 }
 message PushedAuthRequest {
   string tenant_id = 1; string id_hash = 2; string client_id = 3; StringMap params = 4;
@@ -669,6 +670,7 @@ message DeviceCode {
   optional google.protobuf.Timestamp expired_reported_at = 11; // absent = nil
   google.protobuf.Timestamp expires_at = 12; google.protobuf.Timestamp created_at = 13;
   string origin = 14;
+  bytes action_effects = 15; // sealed post-login effects; empty = none
 }
 
 message RefreshToken {
@@ -863,6 +865,7 @@ message DeviceCodeResult { Error error = 1; DeviceCode value = 2; } // Decide ma
 message DeviceDecisionRequest {
   string tx_id = 1; string tenant_id = 2; string device_code_hash = 3;
   string status = 4; string user_id = 5; StringList granted_scopes = 6;
+  bytes action_effects = 7;
 }
 message DevicePollRequest {
   string tx_id = 1; string tenant_id = 2; string device_code_hash = 3; google.protobuf.Timestamp at = 4;

@@ -818,6 +818,10 @@ type AuthCode struct {
 	CreatedAt           time.Time
 	UsedAt              *time.Time
 	ReplayedAt          *time.Time // first presentation after UsedAt; see AuthCodes.Consume
+	// ActionEffects are the post-login flow's effects, sealed by the server
+	// (bound to the tenant and code); nil when no Action ran. Stores keep
+	// the bytes opaque and exact.
+	ActionEffects []byte
 }
 
 // PushedAuthRequest is an authorization request pushed to /oauth/par
@@ -859,6 +863,9 @@ type DeviceCode struct {
 	Status         DeviceCodeStatus
 	UserID         string   // set by Decide(approved)
 	GrantedScopes  []string // set by Decide(approved)
+	// ActionEffects are the post-login flow's sealed effects, set by
+	// Decide(approved); nil when no Action ran. Opaque to stores.
+	ActionEffects []byte
 	// LastPolledAt is the last poll that was not answered slow_down.
 	LastPolledAt      *time.Time
 	ExpiredReportedAt *time.Time
@@ -874,6 +881,7 @@ type DeviceDecision struct {
 	Status        DeviceCodeStatus // DeviceCodeApproved or DeviceCodeDenied
 	UserID        string
 	GrantedScopes []string
+	ActionEffects []byte // sealed post-login effects (approved only)
 }
 
 // DevicePollOutcome is how the token endpoint answers one poll.

@@ -104,7 +104,7 @@ func (h *Handlers) ContinueDevice(w http.ResponseWriter, r *http.Request, res te
 		return
 	}
 	// The device confirmation screen was just shown.
-	h.finish(w, r, res, client, fr, sess, false, true)
+	h.finish(w, r, res, client, fr, sess, nil, false, true)
 }
 
 // DenyDevice marks a pending code denied and redirects to /device/denied.

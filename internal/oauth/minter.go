@@ -2,6 +2,7 @@
 package oauth
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -43,6 +44,9 @@ type AccessTokenParams struct {
 	// Operator, when not empty, is the tenant.OperatorClaim: the tenants a
 	// console operator manages.
 	Operator []string
+	// CustomClaims are Action custom claims, already filtered
+	// (actions.FilterClaims); a claim the token already carries is kept.
+	CustomClaims map[string]any
 }
 
 type accessTokenClaims struct {
@@ -123,7 +127,14 @@ func (m *Minter) AccessToken(ctx context.Context, p AccessTokenParams) (string, 
 		tokenType = "at+jwt"
 		c.ClientID, c.AuthorizedParty, c.GrantType = p.ClientID, "", ""
 	}
-	return m.Keys.SignWithType(ctx, p.TenantID, c, tokenType)
+	if len(p.CustomClaims) == 0 {
+		return m.Keys.SignWithType(ctx, p.TenantID, c, tokenType)
+	}
+	merged, err := withCustomClaims(c, p.CustomClaims)
+	if err != nil {
+		return "", err
+	}
+	return m.Keys.SignWithType(ctx, p.TenantID, merged, tokenType)
 }
 
 // DefaultIDTokenLifetime applies when the client sets none.
@@ -149,6 +160,9 @@ type IDTokenParams struct {
 	AccessToken string
 	// Lifetime defaults to DefaultIDTokenLifetime when zero.
 	Lifetime time.Duration
+	// CustomClaims are Action custom claims, already filtered
+	// (actions.FilterClaims); a claim the token already carries is kept.
+	CustomClaims map[string]any
 }
 
 // IDToken returns a signed OpenID Connect ID token.
@@ -176,5 +190,30 @@ func (m *Minter) IDToken(ctx context.Context, p IDTokenParams) (string, error) {
 		sum := sha256.Sum256([]byte(p.AccessToken))
 		c["at_hash"] = base64.RawURLEncoding.EncodeToString(sum[:16])
 	}
+	for k, v := range p.CustomClaims {
+		if _, ok := c[k]; !ok {
+			c[k] = v
+		}
+	}
 	return m.Keys.Sign(ctx, p.TenantID, c)
+}
+
+// withCustomClaims returns c's claims plus custom claims c does not carry.
+func withCustomClaims(c accessTokenClaims, custom map[string]any) (map[string]any, error) {
+	b, err := json.Marshal(c)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]any{}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber() // iat and exp stay integers
+	if err := dec.Decode(&out); err != nil {
+		return nil, err
+	}
+	for k, v := range custom {
+		if _, ok := out[k]; !ok {
+			out[k] = v
+		}
+	}
+	return out, nil
 }

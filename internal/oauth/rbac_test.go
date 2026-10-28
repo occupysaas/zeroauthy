@@ -41,7 +41,7 @@ func TestRBACUserGrants(t *testing.T) {
 			if err := f.st.ResourceServers().Update(ctx, api); err != nil {
 				t.Fatal(err)
 			}
-			resp, e := f.h.mintUserTokens(ctx, tenant.Resolved{Tenant: tn, Host: "acme.example.test"}, c, userTokens{user: user, rs: api, scopes: []string{"openid", "read:things", "write:things"}, lifetime: DefaultAccessTokenLifetime})
+			resp, _, e := f.h.mintUserTokens(ctx, tenant.Resolved{Tenant: tn, Host: "acme.example.test"}, c, userTokens{user: user, rs: api, scopes: []string{"openid", "read:things", "write:things"}, lifetime: DefaultAccessTokenLifetime})
 			if e != nil {
 				t.Fatal(e)
 			}

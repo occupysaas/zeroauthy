@@ -84,7 +84,7 @@ func TestOperatorClaim(t *testing.T) {
 	f, res, c, rs := operatorFixture(t)
 	ctx := context.Background()
 	user, _ := f.st.Users().Get(ctx, res.Tenant.ID, "auth0|op")
-	resp, oerr := f.h.mintUserTokens(ctx, res, c, userTokens{user: user, rs: rs, lifetime: 3600e9, scopes: []string{"openid"}})
+	resp, _, oerr := f.h.mintUserTokens(ctx, res, c, userTokens{user: user, rs: rs, lifetime: 3600e9, scopes: []string{"openid"}})
 	if oerr != nil {
 		t.Fatal(oerr)
 	}
@@ -101,7 +101,7 @@ func TestOperatorClaim(t *testing.T) {
 	if _, ok := idc[tenant.OperatorClaim]; ok {
 		t.Error("id token carries the operator claim")
 	}
-	resp, oerr = f.h.mintUserTokens(ctx, res, c, userTokens{user: user, lifetime: 3600e9, scopes: []string{"openid"}})
+	resp, _, oerr = f.h.mintUserTokens(ctx, res, c, userTokens{user: user, lifetime: 3600e9, scopes: []string{"openid"}})
 	if oerr != nil {
 		t.Fatal(oerr)
 	}
@@ -114,12 +114,12 @@ func TestOperatorAudienceRefusesNonOperators(t *testing.T) {
 	f, res, c, rs := operatorFixture(t)
 	ctx := context.Background()
 	user, _ := f.st.Users().Get(ctx, res.Tenant.ID, "auth0|plain")
-	_, oerr := f.h.mintUserTokens(ctx, res, c, userTokens{user: user, rs: rs, lifetime: 3600e9})
+	_, _, oerr := f.h.mintUserTokens(ctx, res, c, userTokens{user: user, rs: rs, lifetime: 3600e9})
 	if oerr == nil || oerr.Code != "access_denied" {
 		t.Fatalf("non-operator: %v", oerr)
 	}
 	// The same user may still sign in without the operator audience.
-	if _, oerr := f.h.mintUserTokens(ctx, res, c, userTokens{user: user, lifetime: 3600e9, scopes: []string{"openid"}}); oerr != nil {
+	if _, _, oerr := f.h.mintUserTokens(ctx, res, c, userTokens{user: user, lifetime: 3600e9, scopes: []string{"openid"}}); oerr != nil {
 		t.Fatalf("no audience: %v", oerr)
 	}
 }
@@ -139,7 +139,7 @@ func TestOperatorClaimOnlyFromSystemTenant(t *testing.T) {
 		t.Fatal(err)
 	}
 	c, _ := f.st.Clients().Get(ctx, tn.ID, "code-spa")
-	resp, oerr := f.h.mintUserTokens(ctx, tenant.Resolved{Tenant: tn, Host: "acme.example.test"}, c, userTokens{user: user, rs: rs, lifetime: 3600e9})
+	resp, _, oerr := f.h.mintUserTokens(ctx, tenant.Resolved{Tenant: tn, Host: "acme.example.test"}, c, userTokens{user: user, rs: rs, lifetime: 3600e9})
 	if oerr != nil {
 		t.Fatal(oerr)
 	}
@@ -157,7 +157,7 @@ func TestOperatorAudienceOnlyForConsole(t *testing.T) {
 	other := *c
 	other.ClientID = "another-spa"
 	user, _ := f.st.Users().Get(ctx, res.Tenant.ID, "auth0|op")
-	_, oerr := f.h.mintUserTokens(ctx, res, &other, userTokens{user: user, rs: rs, lifetime: 3600e9})
+	_, _, oerr := f.h.mintUserTokens(ctx, res, &other, userTokens{user: user, rs: rs, lifetime: 3600e9})
 	if oerr == nil || oerr.Code != "access_denied" {
 		t.Fatalf("another client: %v", oerr)
 	}

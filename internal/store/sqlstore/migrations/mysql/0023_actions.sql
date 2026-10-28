@@ -9,3 +9,5 @@ CREATE TABLE action_executions (tenant_id VARCHAR(64) NOT NULL, id VARBINARY(255
 CREATE INDEX action_executions_by_created ON action_executions (created_at);
 CREATE TABLE action_continues (tenant_id VARCHAR(64) NOT NULL, state_hash VARBINARY(255) NOT NULL, session_id LONGTEXT NOT NULL, sealed LONGBLOB NOT NULL, expires_at BIGINT NOT NULL, created_at BIGINT NOT NULL, PRIMARY KEY (tenant_id,state_hash), FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
 CREATE INDEX action_continues_by_expiry ON action_continues (expires_at);
+ALTER TABLE auth_codes ADD COLUMN action_effects LONGBLOB NULL;
+ALTER TABLE device_codes ADD COLUMN action_effects LONGBLOB NULL;

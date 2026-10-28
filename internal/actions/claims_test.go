@@ -1,11 +1,14 @@
 package actions
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 )
 
 func TestFilterClaims(t *testing.T) {
@@ -113,11 +116,11 @@ func TestCommandsRejectUnknown(t *testing.T) {
 		{TriggerPostLogin, "redirect.sendUserTo", `["javascript:alert(1)"]`, false},
 		{TriggerPostLogin, "redirect.sendUserTo", `["https://example.test/"]`, false},
 		{TriggerPostLogin, "access.deny", `["fine reason"]`, true},
-		{TriggerPostLogin, "access.deny", `["` + strings.Repeat("r", 513) + `"]`, false},
+		{TriggerPostLogin, "access.deny", `["` + strings.Repeat("r", 513) + `"]`, true}, // truncated
 		{TriggerPostLogin, "validation.error", `["code", "message"]`, true},
 		{TriggerPostLogin, "validation.error", `["` + strings.Repeat("c", 129) + `", "m"]`, false},
 		{TriggerPostLogin, "validation.error", `["a\\b", "m"]`, false},
-		{TriggerCredentialsExchange, "access.deny", `["invalid_scope", "bad\u0001"]`, false},
+		{TriggerCredentialsExchange, "access.deny", `["invalid_scope", "bad\u0001"]`, true}, // sanitized
 	} {
 		f := newAccum(c.trigger, nil, nil, true)
 		err := f.apply(command{Op: c.op, Args: raw(c.args)})
@@ -134,5 +137,97 @@ func TestCommandsRejectUnknown(t *testing.T) {
 	}
 	if err := f.apply(command{Op: "transaction.setMetadata", Args: raw(`["k9", "` + strings.Repeat("v", 500) + `"]`)}); err == nil {
 		t.Fatal("transaction metadata total not bounded")
+	}
+}
+
+// TestDenyReasonSanitized: deny reasons and validation.error messages reach
+// OAuth error_description, so characters outside the RFC 6749 charset are
+// replaced and the text is cut at 512 bytes; the flow still denies (a
+// localized reason is not a server error). Error codes stay strict.
+func TestDenyReasonSanitized(t *testing.T) {
+	for _, c := range []struct {
+		trigger, op, args, code, reason string
+	}{
+		{TriggerPostLogin, "access.deny", `["Zugriff f\u00fcr \u00c4rzte verweigert"]`, "access_denied", "Zugriff f?r ?rzte verweigert"},
+		{TriggerPostLogin, "access.deny", `["say \"no\" \\ now\n"]`, "access_denied", "say ?no? ? now?"},
+		{TriggerPostLogin, "access.deny", `["\u65e5\u672c"]`, "access_denied", "??"},
+		{TriggerPostLogin, "access.deny", `["` + strings.Repeat("r", 600) + `"]`, "access_denied", strings.Repeat("r", 512)},
+		{TriggerPostLogin, "validation.error", `["bad_thing", "Grö\u00dfe"]`, "bad_thing", "Gr??e"},
+		{TriggerCredentialsExchange, "access.deny", `["invalid_scope", "nicht erlaubt: \u00df"]`, "invalid_scope", "nicht erlaubt: ?"},
+	} {
+		var args []json.RawMessage
+		if err := json.Unmarshal([]byte(c.args), &args); err != nil {
+			t.Fatal(err)
+		}
+		f := newAccum(c.trigger, nil, nil, false)
+		if err := f.apply(command{Op: c.op, Args: args}); err != nil {
+			t.Errorf("%s %s: %v", c.op, c.args, err)
+			continue
+		}
+		if f.denied == nil || f.denied.Code != c.code || f.denied.Reason != c.reason {
+			t.Errorf("%s %s: denial = %+v, want %s %q", c.op, c.args, f.denied, c.code, c.reason)
+		}
+	}
+}
+
+// TestRequestBodyStripsCredentials: event.request.body never carries the
+// request's credentials (the authorization code too, for its grant).
+func TestRequestBodyStripsCredentials(t *testing.T) {
+	body := map[string]any{"grant_type": "authorization_code", "code": "c", "password": "p", "client_secret": "s",
+		"client_assertion": "a", "code_verifier": "v", "refresh_token": "r", "device_code": "d", "username": "u", "scope": "openid"}
+	got := requestEvent(RequestInfo{Body: body}, "h", false)["body"].(map[string]any)
+	want := map[string]any{"grant_type": "authorization_code", "username": "u", "scope": "openid"}
+	if b, w := mustMarshal(t, got), mustMarshal(t, want); b != w {
+		t.Fatalf("body = %s, want %s", b, w)
+	}
+	if len(body) != 10 {
+		t.Fatal("the input body was modified")
+	}
+	// Another grant's "code" parameter is not a credential.
+	got = requestEvent(RequestInfo{Body: map[string]any{"grant_type": "password", "code": "x"}}, "h", false)["body"].(map[string]any)
+	if got["code"] != "x" {
+		t.Fatalf("body = %v", got)
+	}
+}
+
+func mustMarshal(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+// TestSealEffects: sealed effects open only under the same tenant, purpose
+// and binding, and keep claims and scope edits.
+func TestSealEffects(t *testing.T) {
+	w, err := keys.NewLocalWrapper(bytes.Repeat([]byte{3}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := &Effects{AccessClaims: map[string]any{"https://x/a": "secret"}, IDClaims: map[string]any{"https://x/i": 1.0},
+		AddScopes: []string{"a"}, RemoveScopes: []string{"b"}, Target: &TargetEdit{Scopes: []string{}},
+		AppMetadata: map[string]any{"m": 1}, TxnMetadata: map[string]any{"t": 1}}
+	sealed, err := SealEffects(w, "t1", SealCode, e, "hash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(sealed, []byte("secret")) {
+		t.Fatal("claims stored in the clear")
+	}
+	got, err := OpenEffects(w, "t1", SealCode, sealed, "hash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := &Effects{AccessClaims: e.AccessClaims, IDClaims: e.IDClaims, AddScopes: e.AddScopes, RemoveScopes: e.RemoveScopes,
+		Target: &TargetEdit{Scopes: []string{}}}
+	if mustMarshal(t, got) != mustMarshal(t, want) {
+		t.Fatalf("opened %+v, want %+v", got, want)
+	}
+	for _, c := range [][3]string{{"t2", SealCode, "hash"}, {"t1", SealDevice, "hash"}, {"t1", SealCode, "other"}} {
+		if _, err := OpenEffects(w, c[0], c[1], sealed, c[2]); err == nil {
+			t.Errorf("opened under %v", c)
+		}
 	}
 }

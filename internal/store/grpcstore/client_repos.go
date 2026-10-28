@@ -859,6 +859,7 @@ func (a clientDeviceCodes) Decide(ctx context.Context, tenantID, deviceCodeHash 
 	r, err := a.c.rpc.DeviceCodesDecide(ctx, &storev1.DeviceDecisionRequest{
 		TxId: a.c.txID, TenantId: tenantID, DeviceCodeHash: deviceCodeHash,
 		Status: string(dec.Status), UserId: dec.UserID, GrantedScopes: stringsToPB(dec.GrantedScopes),
+		ActionEffects: dec.ActionEffects,
 	})
 	return decOne("DeviceCodesDecide", err, r.GetError(), r.GetValue(), deviceCodeFromPB)
 }

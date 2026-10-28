@@ -368,9 +368,6 @@ func TestEngineFailClosed(t *testing.T) {
 		"encodeToken":      `try { api.redirect.encodeToken({}); } catch (e) {}`,
 		"bad app metadata": `api.user.setAppMetadata("$bad", 1);`,
 		"huge claims":      `api.idToken.setCustomClaim("https://x.test/big", "x".repeat(100001));`,
-		"deny quote":       `api.access.deny('say "no"');`,
-		"deny long":        `api.access.deny("x".repeat(513));`,
-		"deny unicode":     `api.access.deny("nein \u00fc");`,
 		"validation code":  `api.validation.error("bad code\n", "m");`,
 	}
 	i := 0
@@ -398,8 +395,8 @@ func TestEngineFailClosed(t *testing.T) {
 			}
 			wantID := map[string]string{"throw": "runtime_error", "timeout": "timeout", "session.revoke": "unsupported_api",
 				"multifactor": "unsupported_api", "bad scope": "invalid_api_call", "no redirect": "redirect_not_supported",
-				"deny quote": "invalid_api_call", "deny long": "invalid_api_call", "deny unicode": "invalid_api_call", "validation code": "invalid_api_call",
-				"huge claims": "claims_too_large", "unknown method": "runtime_error"}[name]
+				"validation code": "invalid_api_call",
+				"huge claims":     "claims_too_large", "unknown method": "runtime_error"}[name]
 			if wantID != "" && e.Results[0].ErrorID != wantID {
 				t.Fatalf("error id = %q (%s), want %q", e.Results[0].ErrorID, e.Results[0].ErrorMsg, wantID)
 			}

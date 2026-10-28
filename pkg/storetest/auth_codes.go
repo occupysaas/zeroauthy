@@ -16,8 +16,13 @@ func newAuthCode(tenantID, hash string) *store.AuthCode {
 		UserID: "auth0|u1", SessionID: "s1", Scopes: []string{"openid", "email"},
 		Audience: "https://api.test", Nonce: "n", CodeChallenge: "ch", CodeChallengeMethod: "S256",
 		AuthTime: ts(0), ExpiresAt: ts(time.Minute), CreatedAt: ts(0),
+		ActionEffects: sealedEffects(),
 	}
 }
+
+// sealedEffects is an opaque sealed blob; stores keep it byte-exact,
+// including NUL and invalid UTF-8.
+func sealedEffects() []byte { return []byte{0, 0xff, 0xfe, 'e', 0, 0x80, 0x7f} }
 
 func testAuthCodes(t *testing.T, newStore Factory) {
 	ctx := context.Background()
@@ -72,6 +77,20 @@ func testAuthCodes(t *testing.T, newStore Factory) {
 		mustErrIs(t, err, store.ErrNotFound)
 		_, err = s.AuthCodes().Get(ctx, "ten_b", "h1")
 		mustErrIs(t, err, store.ErrNotFound)
+	})
+
+	t.Run("ActionEffects", func(t *testing.T) {
+		s := open(t, newStore)
+		none := newAuthCode("ten_a", "h2")
+		none.ActionEffects = nil
+		mustNoErr(t, s.AuthCodes().Create(ctx, none))
+		got, err := s.AuthCodes().Get(ctx, "ten_a", "h2")
+		mustNoErr(t, err)
+		mustEqual(t, got.ActionEffects == nil, true)
+		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode("ten_a", "h3")))
+		used, err := s.AuthCodes().Consume(ctx, "ten_a", "h3", ts(time.Second))
+		mustNoErr(t, err)
+		mustEqual(t, used.ActionEffects, sealedEffects())
 	})
 
 	t.Run("GetReturnsCopies", func(t *testing.T) {

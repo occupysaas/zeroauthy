@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -58,6 +59,7 @@ func (r deviceCodes) Decide(_ context.Context, tenantID, deviceCodeHash string, 
 	d.Status = dec.Status
 	d.UserID = dec.UserID
 	d.GrantedScopes = append([]string(nil), dec.GrantedScopes...)
+	d.ActionEffects = slices.Clone(dec.ActionEffects)
 	return cloneDeviceCode(d), nil
 }
 

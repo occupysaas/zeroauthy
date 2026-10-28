@@ -5927,6 +5927,7 @@ type AuthCode struct {
 	UsedAt              *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=used_at,json=usedAt,proto3" json:"used_at,omitempty"`             // absent = nil
 	ReplayedAt          *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=replayed_at,json=replayedAt,proto3" json:"replayed_at,omitempty"` // absent = nil
 	Origin              string                 `protobuf:"bytes,17,opt,name=origin,proto3" json:"origin,omitempty"`
+	ActionEffects       []byte                 `protobuf:"bytes,18,opt,name=action_effects,json=actionEffects,proto3" json:"action_effects,omitempty"` // sealed post-login effects; empty = none
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -6080,6 +6081,13 @@ func (x *AuthCode) GetOrigin() string {
 	return ""
 }
 
+func (x *AuthCode) GetActionEffects() []byte {
+	if x != nil {
+		return x.ActionEffects
+	}
+	return nil
+}
+
 type PushedAuthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
@@ -6196,6 +6204,7 @@ type DeviceCode struct {
 	ExpiresAt         *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	Origin            string                 `protobuf:"bytes,14,opt,name=origin,proto3" json:"origin,omitempty"`
+	ActionEffects     []byte                 `protobuf:"bytes,15,opt,name=action_effects,json=actionEffects,proto3" json:"action_effects,omitempty"` // sealed post-login effects; empty = none
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -6326,6 +6335,13 @@ func (x *DeviceCode) GetOrigin() string {
 		return x.Origin
 	}
 	return ""
+}
+
+func (x *DeviceCode) GetActionEffects() []byte {
+	if x != nil {
+		return x.ActionEffects
+	}
+	return nil
 }
 
 type RefreshToken struct {
@@ -10670,6 +10686,7 @@ type DeviceDecisionRequest struct {
 	Status         string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
 	UserId         string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	GrantedScopes  *StringList            `protobuf:"bytes,6,opt,name=granted_scopes,json=grantedScopes,proto3" json:"granted_scopes,omitempty"`
+	ActionEffects  []byte                 `protobuf:"bytes,7,opt,name=action_effects,json=actionEffects,proto3" json:"action_effects,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -10742,6 +10759,13 @@ func (x *DeviceDecisionRequest) GetUserId() string {
 func (x *DeviceDecisionRequest) GetGrantedScopes() *StringList {
 	if x != nil {
 		return x.GrantedScopes
+	}
+	return nil
+}
+
+func (x *DeviceDecisionRequest) GetActionEffects() []byte {
+	if x != nil {
+		return x.ActionEffects
 	}
 	return nil
 }
@@ -16495,7 +16519,7 @@ const file_store_proto_rawDesc = "" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12*\n" +
 	"\x11hosted_state_json\x18\t \x01(\tR\x0fhostedStateJson\x12\x16\n" +
 	"\x06origin\x18\n" +
-	" \x01(\tR\x06origin\"\xba\x05\n" +
+	" \x01(\tR\x06origin\"\xe1\x05\n" +
 	"\bAuthCode\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
 	"\tcode_hash\x18\x02 \x01(\tR\bcodeHash\x12\x1b\n" +
@@ -16518,7 +16542,8 @@ const file_store_proto_rawDesc = "" +
 	"\aused_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\x06usedAt\x12;\n" +
 	"\vreplayed_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"replayedAt\x12\x16\n" +
-	"\x06origin\x18\x11 \x01(\tR\x06origin\"\xe0\x02\n" +
+	"\x06origin\x18\x11 \x01(\tR\x06origin\x12%\n" +
+	"\x0eaction_effects\x18\x12 \x01(\fR\ractionEffects\"\xe0\x02\n" +
 	"\x11PushedAuthRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x17\n" +
 	"\aid_hash\x18\x02 \x01(\tR\x06idHash\x12\x1b\n" +
@@ -16529,7 +16554,7 @@ const file_store_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x123\n" +
 	"\aused_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x06usedAt\x12\x16\n" +
-	"\x06origin\x18\b \x01(\tR\x06origin\"\xb3\x05\n" +
+	"\x06origin\x18\b \x01(\tR\x06origin\"\xda\x05\n" +
 	"\n" +
 	"DeviceCode\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12(\n" +
@@ -16548,7 +16573,8 @@ const file_store_proto_rawDesc = "" +
 	"expires_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x129\n" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x16\n" +
-	"\x06origin\x18\x0e \x01(\tR\x06originB\x11\n" +
+	"\x06origin\x18\x0e \x01(\tR\x06origin\x12%\n" +
+	"\x0eaction_effects\x18\x0f \x01(\fR\ractionEffectsB\x11\n" +
 	"\x0f_last_polled_atB\x16\n" +
 	"\x14_expired_reported_at\"\xbd\x05\n" +
 	"\fRefreshToken\x12\x1b\n" +
@@ -16932,14 +16958,15 @@ const file_store_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x1e.zeroauthy.store.v1.DeviceCodeR\x05value\"y\n" +
 	"\x10DeviceCodeResult\x12/\n" +
 	"\x05error\x18\x01 \x01(\v2\x19.zeroauthy.store.v1.ErrorR\x05error\x124\n" +
-	"\x05value\x18\x02 \x01(\v2\x1e.zeroauthy.store.v1.DeviceCodeR\x05value\"\xeb\x01\n" +
+	"\x05value\x18\x02 \x01(\v2\x1e.zeroauthy.store.v1.DeviceCodeR\x05value\"\x92\x02\n" +
 	"\x15DeviceDecisionRequest\x12\x13\n" +
 	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12(\n" +
 	"\x10device_code_hash\x18\x03 \x01(\tR\x0edeviceCodeHash\x12\x16\n" +
 	"\x06status\x18\x04 \x01(\tR\x06status\x12\x17\n" +
 	"\auser_id\x18\x05 \x01(\tR\x06userId\x12E\n" +
-	"\x0egranted_scopes\x18\x06 \x01(\v2\x1e.zeroauthy.store.v1.StringListR\rgrantedScopes\"\x9b\x01\n" +
+	"\x0egranted_scopes\x18\x06 \x01(\v2\x1e.zeroauthy.store.v1.StringListR\rgrantedScopes\x12%\n" +
+	"\x0eaction_effects\x18\a \x01(\fR\ractionEffects\"\x9b\x01\n" +
 	"\x11DevicePollRequest\x12\x13\n" +
 	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12(\n" +

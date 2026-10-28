@@ -124,6 +124,7 @@ func cloneAuthTransaction(t *store.AuthTransaction) *store.AuthTransaction {
 func cloneAuthCode(c *store.AuthCode) *store.AuthCode {
 	out := *c
 	out.Scopes = slices.Clone(c.Scopes)
+	out.ActionEffects = slices.Clone(c.ActionEffects)
 	if c.UsedAt != nil {
 		t := *c.UsedAt
 		out.UsedAt = &t
@@ -149,6 +150,7 @@ func cloneDeviceCode(d *store.DeviceCode) *store.DeviceCode {
 	out := *d
 	out.Scopes = slices.Clone(d.Scopes)
 	out.GrantedScopes = slices.Clone(d.GrantedScopes)
+	out.ActionEffects = slices.Clone(d.ActionEffects)
 	if d.LastPolledAt != nil {
 		t := *d.LastPolledAt
 		out.LastPolledAt = &t

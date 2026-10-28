@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/system"
@@ -130,22 +131,31 @@ type userTokens struct {
 	grantType string
 	// omitAtHash leaves at_hash out of the ID token.
 	omitAtHash bool
+	// effects are the post-login flow's: custom claims and accessToken
+	// scope edits. nil when no Action ran.
+	effects *actions.Effects
 }
 
 // mintUserTokens returns an access token and, with scope openid, an ID
-// token (D-0008).
-func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *store.Client, ut userTokens) (*authapi.TokenResponse, *Error) {
+// token (D-0008). Scope order (spec §7): ut.scopes already carry the
+// Actions' target-scope edits and API-definition and client-policy
+// filtering; RBAC filters them here, and accessToken.addScope/removeScope
+// edit only the access token's scope, which the response's scope equals.
+// The ID token, the audiences and refresh state keep the authorized set.
+// offline reports that a refresh token may be issued: offline_access is in
+// the authorized set and the final scope.
+func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *store.Client, ut userTokens) (resp *authapi.TokenResponse, offline bool, oerr *Error) {
 	tenantID := res.Tenant.ID
 	requestedScopes := len(ut.scopes) > 0
 	auth, authErr := h.authorizeUserToken(ctx, tenantID, ut.user.UserID, ut.rs, ut.scopes)
 	if authErr != nil {
-		return nil, authErr
+		return nil, false, authErr
 	}
 	ut.rs, ut.scopes = auth.API, auth.Scopes
 	if ut.rs != nil && !ut.rs.IsSystem {
 		decision, e := h.decide(ctx, tenantID, access.Refresh, c, ut.rs, ut.scopes)
 		if e != nil {
-			return nil, e
+			return nil, false, e
 		}
 		ut.scopes = decision.Scopes
 		ut.lifetime = DefaultAccessTokenLifetime
@@ -170,22 +180,38 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	}
 	operator, oerr := h.operatorClaim(ctx, res, c, ut)
 	if oerr != nil {
-		return nil, oerr
+		return nil, false, oerr
+	}
+	final := ut.effects.ApplyScopes(nil, ut.scopes)
+	var accessClaims, idClaims map[string]any
+	if ut.effects != nil {
+		// Non-namespaced claims never reach the Management API.
+		mgmt := ut.rs != nil && ut.rs.IsSystem
+		var err error
+		if accessClaims, err = actions.FilterClaims(actions.ClaimAccessToken, nil, ut.effects.AccessClaims, mgmt); err == nil {
+			idClaims, err = actions.FilterClaims(actions.ClaimIDToken, nil, ut.effects.IDClaims, false)
+		}
+		if err != nil {
+			h.log().ErrorContext(ctx, "apply Action custom claims", "tenant", tenantID, "err", err)
+			return nil, false, serverError()
+		}
 	}
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{
 		TenantID: tenantID, Issuer: res.Issuer(), Subject: ut.user.UserID, Audience: audiences,
-		ClientID: c.ClientID, Scopes: ut.scopes, Lifetime: ut.lifetime, GrantType: ut.grantType,
+		ClientID: c.ClientID, Scopes: final, Lifetime: ut.lifetime, GrantType: ut.grantType,
 		Operator: operator, TokenDialect: dialect, Permissions: auth.Permissions, IncludePermissions: auth.IncludePermissions,
+		CustomClaims: accessClaims,
 	})
 	if err != nil {
 		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
-		return nil, serverError()
+		return nil, false, serverError()
 	}
-	resp := &authapi.TokenResponse{AccessToken: accessToken, TokenType: "Bearer", ExpiresIn: int(ut.lifetime / time.Second)}
-	if len(ut.scopes) > 0 || requestedScopes {
-		s := strings.Join(ut.scopes, " ")
+	resp = &authapi.TokenResponse{AccessToken: accessToken, TokenType: "Bearer", ExpiresIn: int(ut.lifetime / time.Second)}
+	if len(final) > 0 || requestedScopes {
+		s := strings.Join(final, " ")
 		resp.Scope = &s
 	}
+	offline = slices.Contains(ut.scopes, "offline_access") && slices.Contains(final, "offline_access")
 	if openid {
 		atHashSource := accessToken
 		if ut.omitAtHash {
@@ -194,15 +220,15 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		idToken, err := h.Minter.IDToken(ctx, IDTokenParams{
 			TenantID: tenantID, Issuer: res.Issuer(), ClientID: c.ClientID, User: ut.user, Scopes: ut.scopes,
 			Nonce: ut.nonce, SessionID: ut.sessionID, AuthTime: ut.authTime, AccessToken: atHashSource,
-			Lifetime: time.Duration(c.IDTokenLifetime) * time.Second,
+			Lifetime: time.Duration(c.IDTokenLifetime) * time.Second, CustomClaims: idClaims,
 		})
 		if err != nil {
 			h.log().ErrorContext(ctx, "mint id token", "tenant", tenantID, "err", err)
-			return nil, serverError()
+			return nil, false, serverError()
 		}
 		resp.IdToken = &idToken
 	}
-	return resp, nil
+	return resp, offline, nil
 }
 
 // operatorClaim is the tenant.OperatorClaim of a system-tenant access token
@@ -228,7 +254,4 @@ func (h *Handlers) operatorClaim(ctx context.Context, res tenant.Resolved, c *st
 	return slices.Clone(op.Tenants), nil
 }
 
-// responseHasScope checks the final issuance snapshot before creating refresh state.
-func responseHasScope(resp *authapi.TokenResponse, scope string) bool {
-	return resp.Scope != nil && slices.Contains(strings.Fields(*resp.Scope), scope)
-}
+

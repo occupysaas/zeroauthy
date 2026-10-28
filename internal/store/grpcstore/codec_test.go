@@ -372,6 +372,7 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime,
 		ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
 		UsedAt: ptr(nanoTime.Add(time.Second)), ReplayedAt: ptr(nanoTime.Add(2 * time.Second)),
+		ActionEffects: []byte{0, 0xff, 'x'},
 	}, authCodeToPB, authCodeFromPB)
 	roundTrip(t, "empty", &store.AuthCode{Scopes: []string{}}, authCodeToPB, authCodeFromPB)
 	roundTrip(t, "zero", &store.AuthCode{}, authCodeToPB, authCodeFromPB)
@@ -549,6 +550,7 @@ func TestDeviceCodeCodecRoundTrip(t *testing.T) {
 		Scopes: []string{"openid", "email"}, Audience: "https://api", Status: store.DeviceCodeApproved,
 		UserID: "u", GrantedScopes: []string{"openid"},
 		LastPolledAt: &nanoTime, ExpiredReportedAt: &nanoTime, ExpiresAt: nanoTime, CreatedAt: nanoTime,
+		ActionEffects: []byte{0, 0xff, 'x'},
 	}, deviceCodeToPB, deviceCodeFromPB)
 	roundTrip(t, "pending", &store.DeviceCode{
 		TenantID: "ten", DeviceCodeHash: "dh", UserCodeHash: "uh", ClientID: "c",

@@ -76,6 +76,18 @@ func TestActionsMigration(t *testing.T) {
 				t.Fatal(err)
 			}
 			fresh := mustOpen(t, mk(t))
+			// 0023 also adds the sealed post-login effects to codes.
+			for _, table := range []string{"auth_codes", "device_codes"} {
+				shape := tableShape(t, fresh, table)
+				want := map[string]string{"sqlite": "action_effects BLOB NULL", "postgres": "action_effects BYTEA YES",
+					"mysql": "action_effects LONGBLOB YES"}[fresh.d.name]
+				if !slices.Contains(shape, want) {
+					t.Errorf("%s: no %q column in %v", table, want, shape)
+				}
+				if got := tableShape(t, old, table); !slices.Equal(got, shape) {
+					t.Errorf("%s: upgraded %v != fresh %v", table, got, shape)
+				}
+			}
 			for _, table := range actionTables {
 				if got, want := tableShape(t, old, table), tableShape(t, fresh, table); len(want) == 0 || !slices.Equal(got, want) {
 					t.Errorf("%s: upgraded %v != fresh %v", table, got, want)

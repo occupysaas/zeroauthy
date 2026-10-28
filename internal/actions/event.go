@@ -84,13 +84,30 @@ func obj(m map[string]any) map[string]any {
 	return maps.Clone(m)
 }
 
+// credentialParams are request body parameters that are credentials and
+// never reach an Action's event.request.body.
+var credentialParams = []string{"password", "client_secret", "client_assertion", "code_verifier", "refresh_token", "device_code"}
+
+// requestBody is r's body without its credentials; the authorization
+// code grant's code is one too.
+func requestBody(body map[string]any) map[string]any {
+	out := obj(body)
+	for _, k := range credentialParams {
+		delete(out, k)
+	}
+	if gt, _ := out["grant_type"].(string); gt == "authorization_code" {
+		delete(out, "code")
+	}
+	return out
+}
+
 func requestEvent(r RequestInfo, host string, query bool) map[string]any {
 	hostname := r.Hostname
 	if hostname == "" {
 		hostname = host
 	}
 	out := map[string]any{"ip": r.IP, "hostname": hostname, "method": r.Method, "user_agent": r.UserAgent,
-		"language": r.Language, "body": obj(r.Body)}
+		"language": r.Language, "body": requestBody(r.Body)}
 	if query {
 		out["query"] = obj(r.Query)
 	}

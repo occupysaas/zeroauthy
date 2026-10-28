@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -34,6 +35,10 @@ type Handlers struct {
 	// The throttles are the hosted login's, so both paths share limits.
 	Database          *identity.Database
 	TrustProxyHeaders bool
+
+	// Actions runs post-login and credentials-exchange flows; nil runs
+	// none. Sealed effects on codes and device approvals open with Wrapper.
+	Actions *actions.Engine
 }
 
 func (h *Handlers) now() time.Time {

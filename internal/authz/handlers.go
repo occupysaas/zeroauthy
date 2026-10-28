@@ -14,8 +14,10 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -36,6 +38,14 @@ type Handlers struct {
 	Sessions *session.Manager
 	Log      *slog.Logger
 	Now      func() time.Time
+
+	// Actions runs post-login flows; nil runs none.
+	Actions *actions.Engine
+	// Wrapper seals the flow's effects on consent transactions, codes and
+	// device approvals; it is required with Actions.
+	Wrapper keys.Wrapper
+	// TrustProxyHeaders is server.trust_proxy_headers, for event.request.ip.
+	TrustProxyHeaders bool
 }
 
 func (h *Handlers) now() time.Time {
@@ -133,7 +143,7 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		h.startLogin(w, r, res, client, fr)
 		return
 	}
-	h.finish(w, r, res, client, fr, sess, false, false)
+	h.finish(w, r, res, client, fr, sess, nil, false, false)
 }
 
 // maxAuthorizeFormBytes bounds a POST /authorize body.
@@ -239,11 +249,22 @@ func (h *Handlers) startLogin(w http.ResponseWriter, r *http.Request, res tenant
 	h.startTxn(w, r, res, client, fr, params, page)
 }
 
-// startConsent sends an authenticated user to the consent page.
-func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession) {
+// startConsent sends an authenticated user to the consent page. The
+// post-login effects eff (nil when no flow ran) travel sealed in the
+// transaction, so accepting consent does not run the flow again.
+func (h *Handlers) startConsent(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, eff *actions.Effects) {
 	params := fr.params()
 	params[ParamStage] = stageConsent
 	params[sessionKey] = sess.ID
+	if eff != nil {
+		sealed, err := h.sealConsent(res.Tenant.ID, sess.ID, client.ClientID, eff)
+		if err != nil {
+			h.log().ErrorContext(r.Context(), "seal Action effects", "tenant", res.Tenant.ID, "err", err)
+			h.refuse(w, r, res, client, fr, errServer())
+			return
+		}
+		params[effectsKey] = sealed
+	}
 	h.startTxn(w, r, res, client, fr, params, "/u/consent")
 }
 
@@ -289,12 +310,12 @@ func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Res
 		return
 	}
 	// The login or signup page was just shown, so no confirmation (D-0027).
-	h.finish(w, r, res, client, fr, sess, false, true)
+	h.finish(w, r, res, client, fr, sess, nil, false, true)
 }
 
-func (h *Handlers) issueCode(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, scopes []string) {
+func (h *Handlers) issueCode(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, scopes []string, eff *actions.Effects) {
 	ctx := r.Context()
-	code, err := h.createCode(ctx, res, client, req, sess, scopes)
+	code, err := h.createCode(ctx, res, client, req, sess, scopes, eff)
 	if err != nil {
 		h.log().ErrorContext(ctx, "issue authorization code", "tenant", res.Tenant.ID, "err", err)
 		h.deny(w, r, res, client, req, errServer())
@@ -307,10 +328,15 @@ func (h *Handlers) issueCode(w http.ResponseWriter, r *http.Request, res tenant.
 	writeResponse(w, r, req, params)
 }
 
-func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, scopes []string) (string, error) {
+func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, scopes []string, eff *actions.Effects) (string, error) {
 	now := h.now()
 	code := secrets.RandomString(43)
+	sealed, err := h.sealFor(res.Tenant.ID, actions.SealCode, secrets.HashToken(code), eff)
+	if err != nil {
+		return "", err
+	}
 	ac := &store.AuthCode{
+		ActionEffects:       sealed,
 		Origin:              res.Origin(),
 		TenantID:            res.Tenant.ID,
 		CodeHash:            secrets.HashToken(code),
@@ -388,11 +414,15 @@ func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client 
 	return in, audienceKey, nil
 }
 
-// finish runs the access decision for an authenticated request: it
-// approves it, sends the browser to the consent page, or refuses it.
-// accepted means the user just accepted the consent page for this request;
-// screenShown means a login or signup page was shown in this transaction.
-func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, accepted, screenShown bool) {
+// finish runs the post-login flow and the access decision for an
+// authenticated request: it approves it, sends the browser to the consent
+// page, or refuses it. carried are the effects of a flow that already ran
+// for this request (accepting consent); nil runs the flow, before consent
+// (D-0053), so the consent page lists the scopes after the Actions'
+// target-scope edits. accepted means the user just accepted the consent
+// page for this request; screenShown means a login or signup page was shown
+// in this transaction.
+func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, carried *actions.Effects, accepted, screenShown bool) {
 	ctx := r.Context()
 	in, audienceKey, err := h.accessInput(ctx, res, client, fr, sess.UserID)
 	if err != nil {
@@ -401,13 +431,29 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 		return
 	}
 	in.ScreenShown = screenShown || accepted
+	eff := carried
+	if eff == nil {
+		// A request the API's policy refuses is refused before any Action
+		// runs; prompt=none's consent_required waits for the target scopes.
+		if d := access.Decide(in); d.Err != nil && d.Err.Code != "consent_required" {
+			h.refuse(w, r, res, client, fr, &Error{d.Err.Code, d.Err.Description})
+			return
+		}
+		var ok bool
+		if eff, ok = h.postLogin(w, r, res, client, fr, sess, in); !ok {
+			return
+		}
+	}
+	if eff != nil && eff.Target != nil {
+		in.Scopes = eff.Target.Scopes
+	}
 	d := access.Decide(in)
 	switch {
 	case d.Err != nil:
 		h.refuse(w, r, res, client, fr, &Error{d.Err.Code, d.Err.Description})
 		return
 	case (d.Consent || d.Confirmation) && !accepted:
-		h.startConsent(w, r, res, client, fr, sess)
+		h.startConsent(w, r, res, client, fr, sess, eff)
 		return
 	case d.Consent: // accepted
 		now := h.now()
@@ -424,7 +470,7 @@ func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Res
 			return
 		}
 	}
-	h.approve(w, r, res, client, fr, sess, d.Scopes)
+	h.approve(w, r, res, client, fr, sess, d.Scopes, eff)
 }
 
 // Consent finishes a consent-page transaction. Declining is access_denied
@@ -463,10 +509,17 @@ func (h *Handlers) Consent(w http.ResponseWriter, r *http.Request, res tenant.Re
 		}
 	}
 	if login {
+		// A new login runs the post-login flow again.
 		h.startLogin(w, r, res, client, fr)
 		return
 	}
-	h.finish(w, r, res, client, fr, sess, true, true)
+	eff, err := h.consentEffects(res.Tenant.ID, txn)
+	if err != nil {
+		h.log().ErrorContext(ctx, "open Action effects", "tenant", res.Tenant.ID, "err", err)
+		h.refuse(w, r, res, client, fr, errServer())
+		return
+	}
+	h.finish(w, r, res, client, fr, sess, eff, true, true)
 }
 
 // ConsentView describes the page for txn. It returns an error when the
@@ -483,6 +536,15 @@ func (h *Handlers) ConsentView(ctx context.Context, res tenant.Resolved, txn *st
 	in, _, err := h.accessInput(ctx, res, client, fr, sess.UserID)
 	if err != nil {
 		return nil, err
+	}
+	// The page lists the scopes left after the Actions' target-scope edits
+	// and policy filtering; accessToken.addScope results are not shown.
+	eff, err := h.consentEffects(res.Tenant.ID, txn)
+	if err != nil {
+		return nil, err
+	}
+	if eff != nil && eff.Target != nil {
+		in.Scopes = eff.Target.Scopes
 	}
 	d := access.Decide(in)
 	if d.Err != nil {

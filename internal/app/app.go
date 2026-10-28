@@ -30,6 +30,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
+	"github.com/zeroauthy/zeroauthy/internal/noderunner"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/seed"
@@ -48,6 +49,7 @@ type App struct {
 	store      store.Store
 	runner     *customdb.NodeRunner
 	builds     *actionsbuild.Manager // Actions dependency builds
+	actions    *noderunner.Pool      // Actions flow processes
 	profiles   *script.Runner        // nil when profile scripts cannot run
 	jobs       *jobs.Runner
 	handler    http.Handler
@@ -319,6 +321,17 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		}
 		return nil, err
 	}
+	// Actions flows run in their own Node processes, started on first use.
+	actionsRunner, err := actions.NewRunner(cfg.Actions, builds, log)
+	if err != nil {
+		builds.Close()
+		_ = runner.Close()
+		if profiles != nil {
+			_ = profiles.Close()
+		}
+		return nil, err
+	}
+	engine := &actions.Engine{Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
 	sec := cfg.Security
 	return &App{
@@ -331,6 +344,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		store:      st,
 		runner:     runner,
 		builds:     builds,
+		actions:    actionsRunner,
 		jobs:       jobRunner,
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
@@ -346,6 +360,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			Wrapper:      wrapper,
 			Scripts:      &customdb.Client{Exec: runner, Wrapper: wrapper},
 			Federation:   flows,
+			Actions:      engine,
 
 			Protection:        &protection.Service{Store: st, Log: log, BreachChecker: checker, Wrapper: wrapper, Notifier: tenantEmail},
 			TrustProxyHeaders: cfg.Server.TrustProxyHeaders,
@@ -631,15 +646,18 @@ func (a *App) Serve(ctx context.Context) error {
 	}
 }
 
-// Close stops Actions builds and the custom database runner and closes the
+// Close stops Actions builds and runners and the custom database runner and closes the
 // store.
 func (a *App) Close() error {
 	if a.builds != nil {
 		a.builds.Close()
 	}
 	var errRunner error
+	if a.actions != nil {
+		errRunner = a.actions.Close()
+	}
 	if a.runner != nil {
-		errRunner = a.runner.Close()
+		errRunner = errors.Join(errRunner, a.runner.Close())
 	}
 	if a.profiles != nil {
 		_ = a.profiles.Close()

@@ -1,0 +1,142 @@
+package authz
+
+import (
+	"encoding/base64"
+	"errors"
+	"net/http"
+	"slices"
+	"strings"
+
+	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
+	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
+	"github.com/zeroauthy/zeroauthy/internal/ui"
+)
+
+// effectsKey holds a consent transaction's sealed post-login effects, so
+// accepting consent issues the code without running the flow again.
+const effectsKey = "za_action_effects"
+
+// postLogin runs the tenant's post-login flow for an authenticated request,
+// before consent (D-0053). in carries the API the request names. It returns
+// the flow's effects; on a denial or failure the response has been written
+// and ok is false. Without an engine no Action runs and the effects are nil.
+func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, in access.Input) (*actions.Effects, bool) {
+	if h.Actions == nil {
+		return nil, true
+	}
+	ctx := r.Context()
+	user, err := h.Store.Users().Get(ctx, res.Tenant.ID, sess.UserID)
+	if err != nil {
+		h.log().ErrorContext(ctx, "load user for Actions", "tenant", res.Tenant.ID, "err", err)
+		h.refuse(w, r, res, client, fr, errServer())
+		return nil, false
+	}
+	conn, err := h.Store.Connections().GetByName(ctx, res.Tenant.ID, sess.Connection)
+	if errors.Is(err, store.ErrNotFound) {
+		conn, err = nil, nil
+	}
+	if err != nil {
+		h.log().ErrorContext(ctx, "load connection for Actions", "tenant", res.Tenant.ID, "err", err)
+		h.refuse(w, r, res, client, fr, errServer())
+		return nil, false
+	}
+	query := map[string]any{}
+	for k, v := range fr.Request.Params() {
+		query[k] = v
+	}
+	protocol := actions.ProtocolOIDCBasicProfile
+	if fr.device() {
+		protocol = actions.ProtocolDeviceCode
+	}
+	locale := ""
+	if l := strings.Fields(fr.UILocales); len(l) > 0 {
+		locale = l[0]
+	}
+	result, err := h.Actions.PostLogin(ctx, actions.PostLoginInput{
+		Tenant: res, Client: client, User: user, Connection: conn, Session: sess,
+		// The login form's body (with the password) is never passed on.
+		Request: actions.RequestInfo{
+			IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: r.Host, Method: r.Method,
+			UserAgent: r.UserAgent(), Language: firstLanguage(r.Header.Get("Accept-Language")),
+			Query: query, Body: map[string]any{},
+		},
+		Transaction:     actions.TransactionInfo{RedirectURI: fr.RedirectURI, State: fr.State, Locale: locale},
+		Protocol:        protocol,
+		RequestedScopes: fr.Scopes(),
+		TargetScopes:    fr.Scopes(),
+		ResourceServer:  in.API,
+		// Redirects arrive with Task 9; a device approval does not redirect.
+		CanRedirect: !fr.device() && !slices.Contains(fr.Prompts(), "none"),
+	})
+	var fe *actions.ErrFlow
+	switch {
+	case errors.As(err, &fe):
+		h.actionsFailed(w, r, res, client, fr, fe.ExecutionID)
+		return nil, false
+	case err != nil:
+		h.log().ErrorContext(ctx, "run post-login Actions", "tenant", res.Tenant.ID, "err", err)
+		h.actionsFailed(w, r, res, client, fr, "")
+		return nil, false
+	case result.Denied != nil:
+		h.refuse(w, r, res, client, fr, &Error{Code: result.Denied.Code, Description: result.Denied.Reason})
+		return nil, false
+	}
+	return &result.Effects, true
+}
+
+// actionsFailed ends fr after a failed post-login flow: server_error with a
+// generic description, and the hosted error page with the execution
+// reference when the error is shown rather than redirected (D-0053). The
+// reference never reaches error_description.
+func (h *Handlers) actionsFailed(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, executionID string) {
+	if fr.device() || access.ShowErrorPage(client) {
+		view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, fr.UILocales))
+		ui.RenderErrorReference(w, http.StatusInternalServerError, view, view.L.T(i18n.KeyErrServer), executionID)
+		return
+	}
+	writeResponse(w, r, fr.Request, errorParams(errServer(), fr.State))
+}
+
+// firstLanguage is the first tag of an Accept-Language header.
+func firstLanguage(h string) string {
+	tag, _, _ := strings.Cut(h, ",")
+	tag, _, _ = strings.Cut(tag, ";")
+	return strings.TrimSpace(tag)
+}
+
+// sealConsent seals eff for a consent transaction of sessionID and client.
+func (h *Handlers) sealConsent(tenantID, sessionID, clientID string, eff *actions.Effects) (string, error) {
+	b, err := actions.SealEffects(h.Wrapper, tenantID, actions.SealConsent, eff, sessionID, clientID)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// consentEffects opens the post-login effects carried by a consent
+// transaction. nil without an error means the flow has not run (no engine
+// when the transaction began).
+func (h *Handlers) consentEffects(tenantID string, txn *store.AuthTransaction) (*actions.Effects, error) {
+	raw, ok := txn.Params[effectsKey]
+	if !ok {
+		return nil, nil
+	}
+	b, err := base64.RawURLEncoding.DecodeString(raw)
+	if err != nil {
+		return nil, err
+	}
+	return actions.OpenEffects(h.Wrapper, tenantID, actions.SealConsent, b, txn.Params[sessionKey], txn.ClientID)
+}
+
+// sealFor seals eff's token effects for a code or device code bound to
+// hash; nil when there are none.
+func (h *Handlers) sealFor(tenantID, purpose, hash string, eff *actions.Effects) ([]byte, error) {
+	if !eff.HasTokenEffects() {
+		return nil, nil
+	}
+	return actions.SealEffects(h.Wrapper, tenantID, purpose, eff, hash)
+}

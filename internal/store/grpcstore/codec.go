@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -903,7 +904,7 @@ func authCodeToPB(c *store.AuthCode) (*storev1.AuthCode, error) {
 		UserId: c.UserID, SessionId: c.SessionID, Scopes: stringsToPB(c.Scopes), Audience: c.Audience,
 		Nonce: c.Nonce, CodeChallenge: c.CodeChallenge, CodeChallengeMethod: c.CodeChallengeMethod,
 		AuthTime: tsToPB(c.AuthTime), ExpiresAt: tsToPB(c.ExpiresAt), CreatedAt: tsToPB(c.CreatedAt),
-		UsedAt: optTSToPB(c.UsedAt), ReplayedAt: optTSToPB(c.ReplayedAt),
+		UsedAt: optTSToPB(c.UsedAt), ReplayedAt: optTSToPB(c.ReplayedAt), ActionEffects: c.ActionEffects,
 	}, nil
 }
 
@@ -920,7 +921,7 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 		UserID: pb.UserId, SessionID: pb.SessionId, Scopes: stringsFromPB(pb.Scopes), Audience: pb.Audience,
 		Nonce: pb.Nonce, CodeChallenge: pb.CodeChallenge, CodeChallengeMethod: pb.CodeChallengeMethod,
 		AuthTime: tsFromPB(pb.AuthTime), ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
-		UsedAt: optTSFromPB(pb.UsedAt), ReplayedAt: optTSFromPB(pb.ReplayedAt),
+		UsedAt: optTSFromPB(pb.UsedAt), ReplayedAt: optTSFromPB(pb.ReplayedAt), ActionEffects: bytesFromPB(pb.ActionEffects),
 	}, nil
 }
 
@@ -963,7 +964,7 @@ func deviceCodeToPB(d *store.DeviceCode) (*storev1.DeviceCode, error) {
 		Scopes: stringsToPB(d.Scopes), Audience: d.Audience, Status: string(d.Status), UserId: d.UserID,
 		GrantedScopes: stringsToPB(d.GrantedScopes),
 		LastPolledAt:  optTSToPB(d.LastPolledAt), ExpiredReportedAt: optTSToPB(d.ExpiredReportedAt),
-		ExpiresAt: tsToPB(d.ExpiresAt), CreatedAt: tsToPB(d.CreatedAt),
+		ExpiresAt: tsToPB(d.ExpiresAt), CreatedAt: tsToPB(d.CreatedAt), ActionEffects: d.ActionEffects,
 	}, nil
 }
 
@@ -980,8 +981,16 @@ func deviceCodeFromPB(pb *storev1.DeviceCode) (*store.DeviceCode, error) {
 		Scopes: stringsFromPB(pb.Scopes), Audience: pb.Audience, Status: store.DeviceCodeStatus(pb.Status), UserID: pb.UserId,
 		GrantedScopes: stringsFromPB(pb.GrantedScopes),
 		LastPolledAt:  optTSFromPB(pb.LastPolledAt), ExpiredReportedAt: optTSFromPB(pb.ExpiredReportedAt),
-		ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
+		ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt), ActionEffects: bytesFromPB(pb.ActionEffects),
 	}, nil
+}
+
+// bytesFromPB copies an opaque bytes field; empty is nil.
+func bytesFromPB(b []byte) []byte {
+	if len(b) == 0 {
+		return nil
+	}
+	return slices.Clone(b)
 }
 
 // devicePollOutcomeFromPB rejects an outcome this host does not know rather
