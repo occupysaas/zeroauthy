@@ -239,6 +239,10 @@ func (srv *Server) actionsServe(q *storev1.ActionsRequest, f func(store.Actions,
 }
 
 func (r clientActions) CreateAction(ctx context.Context, a *store.Action) error {
+	// Temporary until this driver persists Actions II module pins.
+	if len(a.Modules) > 0 {
+		return store.ErrActionsUnavailable
+	}
 	q := r.req(a.TenantID)
 	q.Action = actionToPB(a)
 	_, err := r.call("CreateAction", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsCreateAction(ctx, q) })
@@ -285,6 +289,10 @@ func (srv *Server) ActionsGetActionByName(ctx context.Context, q *storev1.Action
 }
 
 func (r clientActions) UpdateAction(ctx context.Context, a *store.Action) error {
+	// Temporary until this driver persists Actions II module pins.
+	if len(a.Modules) > 0 {
+		return store.ErrActionsUnavailable
+	}
 	q := r.req(a.TenantID)
 	q.Action = actionToPB(a)
 	_, err := r.call("UpdateAction", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsUpdateAction(ctx, q) })

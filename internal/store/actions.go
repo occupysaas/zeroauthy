@@ -50,6 +50,7 @@ type ActionSecret struct {
 // Action is a tenant's Action and its mutable draft.
 type Action struct {
 	TenantID, ID, Name, Trigger, Runtime, Code string
+	Modules                                    []ModuleRef
 	Dependencies                               []Dependency
 	Secrets                                    []ActionSecret
 	DraftBuildID                               string
@@ -62,6 +63,7 @@ type ActionVersion struct {
 	TenantID, ActionID, ID string
 	Number                 int
 	Code, Runtime, BuildID string
+	Modules                []ModuleRef
 	Dependencies           []Dependency // resolved
 	Secrets                []ActionSecret
 	CreatedAt              time.Time
@@ -150,6 +152,32 @@ type ActionFilter struct {
 // Actions persists Actions, versions, builds, bindings, executions and
 // continue states. Every method is tenant scoped.
 type Actions interface {
+	CreateModule(ctx context.Context, m *ActionModule) error
+	GetModule(ctx context.Context, tenantID, id string) (*ActionModule, error)
+	GetModuleByName(ctx context.Context, tenantID, name string) (*ActionModule, error)
+	// UpdateModule replaces draft fields; names and publication metadata are immutable.
+	UpdateModule(ctx context.Context, m *ActionModule) error
+	// DeleteModule returns ErrPrecondition for draft/current deployment use;
+	// older versions and jobs retain hidden runtime tombstones.
+	DeleteModule(ctx context.Context, tenantID, id string) error
+	ListModules(ctx context.Context, tenantID string, p PageRequest) (Paged[ActionModule], error)
+	// PublishModule atomically snapshots the draft. Unchanged drafts return ErrConflict,
+	// exhausted version limits ErrPrecondition, and unavailable artifacts ErrBuildNotReady.
+	PublishModule(ctx context.Context, tenantID, id string) (*ActionModuleVersion, error)
+	RollbackModule(ctx context.Context, tenantID, id, versionID string) (*ActionModule, error)
+	ListModuleVersions(ctx context.Context, tenantID, id string, p PageRequest) (Paged[ActionModuleVersion], error)
+	// GetModuleVersion also reads hidden tombstones retained by immutable pins.
+	GetModuleVersion(ctx context.Context, tenantID, moduleID, versionID string) (*ActionModuleVersion, error)
+	ModuleUsers(ctx context.Context, tenantID, moduleID string, p PageRequest) (Paged[ModuleUser], error)
+	// EnqueueJob returns ErrPrecondition at the per-tenant pending cap.
+	EnqueueJob(ctx context.Context, j *ActionJob) error
+	// ClaimJobs atomically leases due pending jobs in NextAt order across tenants.
+	ClaimJobs(ctx context.Context, now time.Time, lease time.Duration, max int) ([]ActionJob, error)
+	// FinishJob updates worker state only if the lease still matches (ErrConflict otherwise).
+	FinishJob(ctx context.Context, j *ActionJob, leaseUntil time.Time) error
+	// PurgeJobs removes terminal jobs, their execution records and unpinned tombstones.
+	PurgeJobs(ctx context.Context, before time.Time) (int, error)
+
 	CreateAction(ctx context.Context, a *Action) error
 	GetAction(ctx context.Context, tenantID, id string) (*Action, error)
 	GetActionByName(ctx context.Context, tenantID, name string) (*Action, error)
@@ -266,4 +294,50 @@ func (UnimplementedActions) BindingsInitialized(context.Context, string, string)
 }
 func (UnimplementedActions) InitializeBindings(context.Context, string, string, []Binding) ([]BoundVersion, error) {
 	return nil, ErrActionsUnavailable
+}
+
+func (UnimplementedActions) CreateModule(context.Context, *ActionModule) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) GetModule(context.Context, string, string) (*ActionModule, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) GetModuleByName(context.Context, string, string) (*ActionModule, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) UpdateModule(context.Context, *ActionModule) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) DeleteModule(context.Context, string, string) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) ListModules(context.Context, string, PageRequest) (Paged[ActionModule], error) {
+	return Paged[ActionModule]{}, ErrActionsUnavailable
+}
+func (UnimplementedActions) PublishModule(context.Context, string, string) (*ActionModuleVersion, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) RollbackModule(context.Context, string, string, string) (*ActionModule, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) ListModuleVersions(context.Context, string, string, PageRequest) (Paged[ActionModuleVersion], error) {
+	return Paged[ActionModuleVersion]{}, ErrActionsUnavailable
+}
+func (UnimplementedActions) GetModuleVersion(context.Context, string, string, string) (*ActionModuleVersion, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) ModuleUsers(context.Context, string, string, PageRequest) (Paged[ModuleUser], error) {
+	return Paged[ModuleUser]{}, ErrActionsUnavailable
+}
+func (UnimplementedActions) EnqueueJob(context.Context, *ActionJob) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) ClaimJobs(context.Context, time.Time, time.Duration, int) ([]ActionJob, error) {
+	return nil, ErrActionsUnavailable
+}
+func (UnimplementedActions) FinishJob(context.Context, *ActionJob, time.Time) error {
+	return ErrActionsUnavailable
+}
+func (UnimplementedActions) PurgeJobs(context.Context, time.Time) (int, error) {
+	return 0, ErrActionsUnavailable
 }

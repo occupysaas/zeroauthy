@@ -66,6 +66,7 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
+		modules: cloneMap(s.modules, cloneModule), moduleVersions: cloneMap(s.moduleVersions, cloneModuleVersion), actionJobs: cloneMap(s.actionJobs, cloneActionJob),
 		actions: cloneMap(s.actions, cloneAction), actionVersions: cloneMap(s.actionVersions, cloneActionVersion), builds: cloneMap(s.builds, cloneBuild),
 		bindingSets: maps.Clone(s.bindingSets), artifacts: cloneArtifacts(s.artifacts), bindings: cloneBindingLists(s.bindings), executions: cloneMap(s.executions, cloneExecution), continues: cloneMap(s.continues, cloneContinue),
 		roles: cloneMap(s.roles, cloneRole), rolePermissions: maps.Clone(s.rolePermissions), userPermissions: maps.Clone(s.userPermissions), roleMembers: maps.Clone(s.roleMembers),
@@ -116,6 +117,7 @@ func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.actions, s.actionVersions, s.builds, s.artifacts = snap.actions, snap.actionVersions, snap.builds, snap.artifacts
+	s.modules, s.moduleVersions, s.actionJobs = snap.modules, snap.moduleVersions, snap.actionJobs
 	s.bindingSets = snap.bindingSets
 	s.bindings, s.executions, s.continues = snap.bindings, snap.executions, snap.continues
 	s.roles, s.rolePermissions, s.userPermissions, s.roleMembers = snap.roles, snap.rolePermissions, snap.userPermissions, snap.roleMembers

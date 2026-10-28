@@ -10,6 +10,11 @@ type (
 	RBAC                        = store.RBAC
 	Actions                     = store.Actions
 	UnimplementedActions        = store.UnimplementedActions
+	ActionModule                = store.ActionModule
+	ActionModuleVersion         = store.ActionModuleVersion
+	ModuleRef                   = store.ModuleRef
+	ModuleUser                  = store.ModuleUser
+	ActionJob                   = store.ActionJob
 	Action                      = store.Action
 	ActionVersion               = store.ActionVersion
 	ActionSecret                = store.ActionSecret
@@ -163,6 +168,7 @@ var (
 	ErrNotFound                          = store.ErrNotFound
 	ErrConflict                          = store.ErrConflict
 	ErrAlreadyUsed                       = store.ErrAlreadyUsed
+	ErrPrecondition                      = store.ErrPrecondition
 	ErrInvalid                           = store.ErrInvalid
 	ErrEmailRepositoryUnavailable        = store.ErrEmailRepositoryUnavailable
 	ErrFederationUnavailable             = store.ErrFederationUnavailable

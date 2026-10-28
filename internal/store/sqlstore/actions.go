@@ -95,6 +95,10 @@ func scanActionVersion(r scanner) (*store.ActionVersion, error) {
 }
 
 func (r actionsRepo) CreateAction(ctx context.Context, a *store.Action) error {
+	// Temporary until this driver persists Actions II module pins.
+	if len(a.Modules) > 0 {
+		return store.ErrActionsUnavailable
+	}
 	c := *a
 	if len(actionsrules.NormalizeAction(&c)) > 0 || c.ID == "" || c.TenantID == "" {
 		return store.ErrInvalid
@@ -132,6 +136,10 @@ func (r actionsRepo) oneAction(ctx context.Context, q string, args ...any) (*sto
 }
 
 func (r actionsRepo) UpdateAction(ctx context.Context, a *store.Action) error {
+	// Temporary until this driver persists Actions II module pins.
+	if len(a.Modules) > 0 {
+		return store.ErrActionsUnavailable
+	}
 	c := *a
 	if len(actionsrules.NormalizeAction(&c)) > 0 {
 		return store.ErrInvalid

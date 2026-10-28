@@ -30,6 +30,9 @@ type Store struct {
 // txMu's read lock and mu's read lock, so independent reads can run together.
 type state struct {
 	roles                  map[key]*store.Role
+	modules                map[key]*store.ActionModule
+	moduleVersions         map[key]*store.ActionModuleVersion
+	actionJobs             map[key]*store.ActionJob
 	actions                map[key]*store.Action
 	actionVersions         map[key]*store.ActionVersion
 	builds                 map[key]*store.Build
@@ -96,6 +99,7 @@ func NewWithClock(now func() time.Time) *Store {
 // New returns an empty store.
 func New() *Store {
 	return &Store{state: &state{
+		modules: map[key]*store.ActionModule{}, moduleVersions: map[key]*store.ActionModuleVersion{}, actionJobs: map[key]*store.ActionJob{},
 		actions: map[key]*store.Action{}, actionVersions: map[key]*store.ActionVersion{}, builds: map[key]*store.Build{},
 		bindingSets: map[key]bool{}, artifacts: map[key][]byte{}, bindings: map[key][]store.Binding{}, executions: map[key]*store.Execution{}, continues: map[key]*store.ContinueState{},
 		roles: map[key]*store.Role{}, rolePermissions: map[permissionEdge]bool{}, userPermissions: map[permissionEdge]bool{}, roleMembers: map[memberEdge]bool{},
