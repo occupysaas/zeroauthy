@@ -180,7 +180,9 @@ type CustomDB struct {
 
 // Actions configures the Actions runner and the npm dependency builds.
 type Actions struct {
-	Node string `koanf:"node"` // Node.js executable; default "node"
+	JobWorkers      int           `koanf:"job_workers"`
+	JobPollInterval time.Duration `koanf:"job_poll_interval"`
+	Node            string        `koanf:"node"` // Node.js executable; default "node"
 	// NPMCLI is the absolute path of npm's bin/npm-cli.js; default the npm
 	// bundled with Node (<node prefix>/lib/node_modules/npm). Builds run it
 	// under Node's permission model, never as a separate npm executable.
@@ -256,6 +258,7 @@ func defaults() *Config {
 		Actions: Actions{
 			Node: "node", Registry: "https://registry.npmjs.org/", MaxMemoryMB: 256, IdleTimeout: 5 * time.Minute,
 			BuildTimeout: 2 * time.Minute, MaxArtifactMB: maxActionsArtifactMB, MaxConcurrentBuilds: 2,
+			JobWorkers: 2, JobPollInterval: time.Second,
 		},
 		Email: Email{Driver: "log", From: "zeroauthy@localhost", SMTP: SMTP{Port: 587}},
 	}
@@ -539,6 +542,12 @@ func (s Security) MasterKeyBytes() ([]byte, error) {
 
 func (a Actions) validate() []error {
 	var errs []error
+	if a.JobWorkers < 1 {
+		errs = append(errs, errors.New("actions.job_workers must be positive"))
+	}
+	if a.JobPollInterval <= 0 {
+		errs = append(errs, errors.New("actions.job_poll_interval must be positive"))
+	}
 	if a.Node == "" {
 		errs = append(errs, errors.New("actions.node must not be empty"))
 	}

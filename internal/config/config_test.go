@@ -424,16 +424,16 @@ func TestActionsSettings(t *testing.T) {
 	a := cfg.Actions
 	if a.Node != "node" || a.NPMCLI != "" || a.Registry != "https://registry.npmjs.org/" || a.CacheDir != "" ||
 		a.MaxMemoryMB != 256 || a.IdleTimeout != 5*time.Minute || a.BuildTimeout != 2*time.Minute ||
-		a.MaxArtifactMB != 50 || a.MaxConcurrentBuilds != 2 {
+		a.MaxArtifactMB != 50 || a.MaxConcurrentBuilds != 2 || a.JobWorkers != 2 || a.JobPollInterval != time.Second {
 		t.Errorf("defaults = %+v", a)
 	}
 	cfg, err = Load("", []string{base, sysHost, "ZEROAUTHY_ACTIONS__CACHE_DIR=/var/cache/za", "ZEROAUTHY_ACTIONS__NPM_CLI=/opt/npm/bin/npm-cli.js",
-		"ZEROAUTHY_ACTIONS__REGISTRY=http://mirror.internal:4873/", "ZEROAUTHY_ACTIONS__BUILD_TIMEOUT=30s", "ZEROAUTHY_ACTIONS__MAX_CONCURRENT_BUILDS=4"})
+		"ZEROAUTHY_ACTIONS__REGISTRY=http://mirror.internal:4873/", "ZEROAUTHY_ACTIONS__BUILD_TIMEOUT=30s", "ZEROAUTHY_ACTIONS__MAX_CONCURRENT_BUILDS=4", "ZEROAUTHY_ACTIONS__JOB_WORKERS=3", "ZEROAUTHY_ACTIONS__JOB_POLL_INTERVAL=25ms"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if a := cfg.Actions; a.CacheDir != "/var/cache/za" || a.NPMCLI != "/opt/npm/bin/npm-cli.js" || a.Registry != "http://mirror.internal:4873/" ||
-		a.BuildTimeout != 30*time.Second || a.MaxConcurrentBuilds != 4 {
+		a.BuildTimeout != 30*time.Second || a.MaxConcurrentBuilds != 4 || a.JobWorkers != 3 || a.JobPollInterval != 25*time.Millisecond {
 		t.Errorf("env not applied: %+v", a)
 	}
 	for bad, want := range map[string]string{
@@ -448,6 +448,10 @@ func TestActionsSettings(t *testing.T) {
 		"MAX_ARTIFACT_MB=0":           "actions.max_artifact_mb",
 		"MAX_ARTIFACT_MB=51":          "actions.max_artifact_mb",
 		"MAX_CONCURRENT_BUILDS=0":     "actions.max_concurrent_builds",
+		"JOB_WORKERS=0":               "actions.job_workers",
+		"JOB_WORKERS=-1":              "actions.job_workers",
+		"JOB_POLL_INTERVAL=0s":        "actions.job_poll_interval",
+		"JOB_POLL_INTERVAL=-1s":       "actions.job_poll_interval",
 	} {
 		_, err := Load("", []string{base, sysHost, "ZEROAUTHY_ACTIONS__" + bad})
 		if err == nil || !strings.Contains(err.Error(), want) {

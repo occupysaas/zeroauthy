@@ -105,3 +105,42 @@ func TestSweepRemovesExpiredRecords(t *testing.T) {
 		t.Errorf("permanent claim swept: %v,%v", ok, err)
 	}
 }
+
+// Actions retention must run even when the separate Management job pool is off.
+func TestSweepActionsJobs(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 10, 28, 12, 0, 0, 0, time.UTC)
+	clock := now.Add(-11 * 24 * time.Hour)
+	st := memory.NewWithClock(func() time.Time { return clock })
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(st.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
+	must(st.Actions().CreateExecution(ctx, &store.Execution{TenantID: "t", ID: "old", Trigger: "post-user-registration", Status: "final", CreatedAt: clock}))
+	must(st.Actions().EnqueueJob(ctx, &store.ActionJob{TenantID: "t", ID: "done", Trigger: "post-user-registration", NextAt: clock}))
+	jobs, err := st.Actions().ClaimJobs(ctx, clock, time.Minute, 1)
+	must(err)
+	if len(jobs) != 1 {
+		t.Fatal(jobs)
+	}
+	j := jobs[0]
+	j.Status = "done"
+	j.ExecutionIDs = []string{"old"}
+	must(st.Actions().FinishJob(ctx, &j, j.LeaseUntil))
+	must(st.Actions().EnqueueJob(ctx, &store.ActionJob{TenantID: "t", ID: "pending", Trigger: "post-user-registration", NextAt: clock}))
+	count, err := sweep(ctx, st, now)
+	if err != nil || count != 1 {
+		t.Fatalf("Actions job sweep: %d %v", count, err)
+	}
+	if _, err := st.Actions().GetExecution(ctx, "t", "old"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("execution retained: %v", err)
+	}
+	jobs, err = st.Actions().ClaimJobs(ctx, now, time.Minute, 10)
+	must(err)
+	if len(jobs) != 1 || jobs[0].ID != "pending" {
+		t.Fatalf("pending job removed: %v", jobs)
+	}
+}
