@@ -66,7 +66,10 @@ type Effects struct {
 // Denial is access.deny or validation.error. Code is "access_denied" for a
 // post-login deny, the validation.error code, or the credentials-exchange
 // deny code.
-type Denial struct{ Code, Reason string }
+type Denial struct{ Code, Reason, UserMessage string }
+
+// NotificationOutcome is the last retry/drop call of an email flow.
+type NotificationOutcome struct{ Kind, Reason string }
 
 // Redirect is a recorded api.redirect.sendUserTo (spec §8).
 type Redirect struct {
@@ -77,6 +80,8 @@ type Redirect struct {
 // Result is the outcome of a flow that did not fail.
 type Result struct {
 	Effects      Effects
+	ResultURL    string
+	Notification *NotificationOutcome
 	Denied       *Denial
 	Redirect     *Redirect
 	ExecutionID  string
@@ -142,16 +147,18 @@ type roleJSON struct {
 
 // wireRequest is the runner.mjs request; the Pool adds "id".
 type wireRequest struct {
-	VersionKey string                 `json:"version_key"`
-	Code       string                 `json:"code"`
-	DepsRoot   string                 `json:"deps_root"`
-	Handler    string                 `json:"handler"`
-	Event      map[string]any         `json:"event"`
-	Secrets    map[string]string      `json:"secrets"`
-	Cache      map[string]cacheRecord `json:"cache"`
-	Roles      []roleJSON             `json:"roles"`
-	State      map[string]any         `json:"state"`
-	Hostname   string                 `json:"hostname"`
+	VersionKey     string                 `json:"version_key"`
+	Code           string                 `json:"code"`
+	DepsRoot       string                 `json:"deps_root"`
+	Handler        string                 `json:"handler"`
+	API            []string               `json:"api"`
+	UnsupportedAPI []string               `json:"unsupported_api"`
+	Event          map[string]any         `json:"event"`
+	Secrets        map[string]string      `json:"secrets"`
+	Cache          map[string]cacheRecord `json:"cache"`
+	Roles          []roleJSON             `json:"roles"`
+	State          map[string]any         `json:"state"`
+	Hostname       string                 `json:"hostname"`
 }
 
 type wireResponse struct {
@@ -188,13 +195,6 @@ type stepOut struct {
 	commands []command
 	logs     []string
 	red      *customdb.Redactor
-}
-
-func handlerFor(trigger string) string {
-	if trigger == TriggerCredentialsExchange {
-		return "onExecuteCredentialsExchange"
-	}
-	return "onExecutePostLogin"
 }
 
 // PostLogin runs the tenant's post-login flow.
@@ -409,7 +409,7 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		e.log().Info("actions flow denied", "tenant", f.tenantID, "trigger", f.trigger,
 			"action", ex.Results[len(ex.Results)-1].ActionName, "execution_id", execID, "code", d.Code)
 	}
-	return &Result{Effects: f.acc.eff, Denied: f.acc.denied, ExecutionID: execID, Continuation: continuationOf(f)}, nil
+	return &Result{Effects: f.acc.eff, Denied: f.acc.denied, ResultURL: f.acc.resultURL, Notification: f.acc.notification, ExecutionID: execID, Continuation: continuationOf(f)}, nil
 }
 
 func hasMetadata(user *store.User, eff *Effects) bool {
@@ -467,6 +467,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	red := customdb.NewRedactor(vals)
 	req := wireRequest{VersionKey: u.versionKey, Code: u.code, DepsRoot: root, Handler: f.handler, Event: event,
 		Secrets: vals, Cache: f.cache.snapshot(e.now()), Roles: f.roles,
+		API: triggerSpecs[f.trigger].API, UnsupportedAPI: triggerSpecs[f.trigger].unsupported,
 		State: map[string]any{"canRedirect": f.acc.canRedirect, "state": f.state}, Hostname: f.hostname}
 	if req.Roles == nil {
 		req.Roles = []roleJSON{}
@@ -610,7 +611,7 @@ func (e *Engine) Test(ctx context.Context, tenantID, actionID string, payload js
 		}
 	}
 	f := &flow{tenantID: tenantID, trigger: a.Trigger, handler: handlerFor(a.Trigger), roles: roles,
-		acc:   newAccum(a.Trigger, target, nil, a.Trigger == TriggerPostLogin),
+		acc:   newAccum(a.Trigger, target, nil, a.Trigger == TriggerPostLogin || a.Trigger == TriggerResetPostChallenge),
 		cache: newActionCache(), deadline: time.Now().Add(e.budget())}
 	if t, err := e.Store.Tenants().Get(ctx, tenantID); err == nil {
 		f.hostname = t.CanonicalHost

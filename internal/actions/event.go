@@ -2,8 +2,10 @@ package actions
 
 import (
 	"context"
+	"encoding/json"
 	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -30,10 +32,60 @@ type RequestInfo struct {
 	Query, Body map[string]any
 }
 
-// TransactionInfo carries the authorization transaction fields of
-// event.transaction that are not scopes.
+// TransactionInfo carries the authorization transaction fields. Signup
+// uses its Protocol and RequestedScopes; post-login preserves the existing
+// PostLoginInput.Protocol and RequestedScopes fields.
 type TransactionInfo struct {
-	ID, RedirectURI, State, Locale string
+	ID, RedirectURI, State, Locale                                                string
+	Protocol, ResponseMode, ResponseType, UILocales, Prompt, LoginHint, ACRValues string
+	RequestedScopes                                                               []string
+}
+
+// RegistrationInput describes a prospective or newly created signup profile.
+// Transaction is nil for dbconnections/signup; CustomDomain is supplied only
+// when the request used a custom domain.
+type RegistrationInput struct {
+	Tenant       tenant.Resolved
+	Client       *store.Client
+	User         *store.User
+	Connection   *store.Connection
+	Request      RequestInfo
+	Transaction  *TransactionInfo
+	CustomDomain string
+}
+
+// PostChangePasswordInput snapshots the profile after a password change.
+type PostChangePasswordInput struct {
+	Tenant     tenant.Resolved
+	User       *store.User
+	Connection *store.Connection
+	Request    RequestInfo
+}
+
+// ResetChallengeInput carries a valid, unspent reset ticket and its profile.
+type ResetChallengeInput struct {
+	Tenant      tenant.Resolved
+	Client      *store.Client
+	User        *store.User
+	Connection  *store.Connection
+	Ticket      *store.PasswordResetTicket
+	Request     RequestInfo
+	CanRedirect bool
+}
+
+// EmailMessage is the rendered message handed to a custom email Action.
+type EmailMessage struct{ From, To, Subject, HTML, Text, Locale, Type string }
+
+// EmailInput snapshots a custom provider hand-off. Tenant is its ID;
+// TenantInfo supplies the tenant profile, loaded by the caller.
+type EmailInput struct {
+	Tenant     string
+	TenantInfo *store.Tenant
+	User       *store.User
+	Client     *store.Client
+	Connection *store.Connection
+	Message    EmailMessage
+	Request    RequestInfo
 }
 
 // PostLoginInput is everything a post-login flow sees.
@@ -253,6 +305,146 @@ func credentialsEvent(in *CredentialsInput, a *accum) map[string]any {
 	}
 	if rs := resourceServerEvent(in.ResourceServer); rs != nil {
 		ev["resource_server"] = rs
+	}
+	return ev
+}
+
+func connectionEvent(c *store.Connection) map[string]any {
+	return map[string]any{"id": c.ID, "name": c.Name, "strategy": c.Strategy, "metadata": map[string]any{}}
+}
+
+func signupTransaction(t *TransactionInfo) map[string]any {
+	return map[string]any{"locale": t.Locale, "protocol": t.Protocol, "redirect_uri": t.RedirectURI,
+		"requested_scopes": strs(t.RequestedScopes), "response_mode": t.ResponseMode, "response_type": t.ResponseType,
+		"state": t.State, "ui_locales": t.UILocales, "prompt": t.Prompt, "login_hint": t.LoginHint, "acr_values": t.ACRValues}
+}
+
+// signupRequest removes password-like fields recursively while retaining
+// arbitrary custom body parameters. Existing grant credential stripping also
+// applies within nested objects and arrays; the caller's body is untouched.
+func signupRequest(r RequestInfo, host string, query bool) map[string]any {
+	ev := requestEvent(r, host, query)
+	// Normalize JSON-shaped typed maps/slices too; otherwise a nested
+	// map[string]string could bypass the generic-map recursion.
+	var body map[string]any
+	raw, err := json.Marshal(r.Body)
+	if err == nil {
+		_ = json.Unmarshal(raw, &body)
+	}
+	ev["body"] = scrubBody(body)
+	return ev
+}
+
+func scrubBody(body map[string]any) map[string]any {
+	out := map[string]any{}
+	for key, value := range requestBody(body) {
+		normalized := strings.Map(func(r rune) rune {
+			if r == '_' || r == '-' || r == ' ' {
+				return -1
+			}
+			return r
+		}, strings.ToLower(key))
+		if strings.Contains(normalized, "password") || strings.Contains(normalized, "passwd") || strings.Contains(normalized, "pwd") {
+			continue
+		}
+		out[key] = scrubValue(value)
+	}
+	return out
+}
+
+func scrubValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		return scrubBody(x)
+	case []any:
+		out := make([]any, len(x))
+		for i, v := range x {
+			out[i] = scrubValue(v)
+		}
+		return out
+	default:
+		return v
+	}
+}
+
+func registrationEvent(in *RegistrationInput, a *accum) map[string]any {
+	ev := map[string]any{"client": clientEvent(in.Client), "tenant": tenantEvent(in.Tenant), "request": signupRequest(in.Request, in.Tenant.Host, false)}
+	if in.Connection != nil {
+		ev["connection"] = connectionEvent(in.Connection)
+	}
+	if in.Transaction != nil {
+		ev["transaction"] = signupTransaction(in.Transaction)
+	}
+	if in.CustomDomain != "" {
+		ev["custom_domain"] = map[string]any{"domain": in.CustomDomain, "domain_metadata": map[string]any{}}
+	}
+	if in.User != nil {
+		profile := userEvent(in.User, &a.eff)
+		user := map[string]any{}
+		for _, key := range []string{"email", "username", "name", "given_name", "family_name", "nickname", "picture", "phone_number", "user_metadata", "app_metadata"} {
+			if value, ok := profile[key]; ok {
+				user[key] = value
+			}
+		}
+		ev["user"] = user
+	}
+	return ev
+}
+
+func postRegistrationEvent(in *RegistrationInput, a *accum) map[string]any {
+	ev := map[string]any{"user": userEvent(in.User, &a.eff), "tenant": tenantEvent(in.Tenant), "request": signupRequest(in.Request, in.Tenant.Host, false)}
+	if in.Connection != nil {
+		ev["connection"] = connectionEvent(in.Connection)
+	}
+	if in.Transaction != nil {
+		ev["transaction"] = signupTransaction(in.Transaction)
+	}
+	return ev
+}
+
+func postChangePasswordEvent(in *PostChangePasswordInput) map[string]any {
+	ev := map[string]any{"tenant": tenantEvent(in.Tenant), "request": signupRequest(in.Request, in.Tenant.Host, false)}
+	if in.Connection != nil {
+		ev["connection"] = connectionEvent(in.Connection)
+	}
+	if u := in.User; u != nil {
+		user := map[string]any{"user_id": u.UserID, "email": u.Email, "email_verified": u.EmailVerified, "username": u.Username, "phone_number": u.PhoneNumber, "phone_verified": u.PhoneVerified}
+		if u.LastPasswordReset != nil {
+			user["last_password_reset"] = rfc3339(*u.LastPasswordReset)
+		}
+		ev["user"] = user
+	}
+	return ev
+}
+
+func resetChallengeEvent(in *ResetChallengeInput, a *accum) map[string]any {
+	locale := ""
+	if in.Ticket != nil {
+		locale = in.Ticket.Lang
+	}
+	ev := map[string]any{"user": userEvent(in.User, &a.eff), "tenant": tenantEvent(in.Tenant), "request": signupRequest(in.Request, in.Tenant.Host, true), "transaction": map[string]any{"locale": locale, "correlation_id": ""}}
+	if in.Client != nil {
+		ev["client"] = clientEvent(in.Client)
+	}
+	if in.Connection != nil {
+		ev["connection"] = connectionEvent(in.Connection)
+	}
+	return ev
+}
+
+func emailEvent(in *EmailInput, a *accum) map[string]any {
+	host := ""
+	ten := map[string]any{"id": in.Tenant, "friendly_name": "", "support_email": "", "support_url": ""}
+	if t := in.TenantInfo; t != nil {
+		host = t.CanonicalHost
+		ten["friendly_name"] = t.FriendlyName
+		ten["support_email"] = t.SupportEmail
+		ten["support_url"] = t.SupportURL
+	}
+	m := in.Message
+	ev := map[string]any{"user": userEvent(in.User, &a.eff), "client": clientEvent(in.Client), "tenant": ten, "request": signupRequest(in.Request, host, false), "notification": map[string]any{"from": m.From, "to": m.To, "subject": m.Subject, "html": m.HTML, "text": m.Text, "locale": m.Locale, "message_type": m.Type}}
+	if in.Connection != nil {
+		ev["connection"] = connectionEvent(in.Connection)
 	}
 	return ev
 }

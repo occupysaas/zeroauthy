@@ -2,7 +2,7 @@
 // databases run in separate processes.
 //
 // Protocol: one JSON request per stdin line,
-//   {id, version_key, code, deps_root, handler, event, secrets, cache, roles, state, hostname}
+//   {id, version_key, code, deps_root, handler, api, unsupported_api, event, secrets, cache, roles, state, hostname}
 // one JSON response per stdout line,
 //   {id, commands: [{op, args}], logs: [string], error?: {message, stack}}
 // The handler records api calls as commands; the server validates and
@@ -58,7 +58,7 @@ Object.defineProperty(net.Socket.prototype, 'connect', {
   writable: false, enumerable: false, configurable: false,
 });
 
-const handlers = new Set(['onExecutePostLogin', 'onContinuePostLogin', 'onExecuteCredentialsExchange']);
+const handlers = new Set(['onExecutePostLogin', 'onContinuePostLogin', 'onExecuteCredentialsExchange', 'onExecutePreUserRegistration', 'onExecutePostUserRegistration', 'onExecutePostChangePassword', 'onExecutePostChallenge', 'onContinuePostChallenge', 'onExecuteCustomEmailProvider']);
 
 // The denylist only gives clear errors; --permission is the control.
 const denied = new Set(['child_process', 'cluster', 'worker_threads', 'inspector', 'vm', 'v8', 'module', 'repl', 'wasi', 'trace_events']);
@@ -166,7 +166,8 @@ const cloneInto = (parse, v) => parse(JSON.stringify(v));
 // check.
 function buildApi(req, commands, event, parse) {
   const api = {};
-  const record = (op, args) => { commands.push({ op, args: json(op, args) }); return api; };
+  const selected = {};
+  const record = (op, args) => { commands.push({ op, args: json(op, args) }); return selected; };
   const method = (ns, name) => (...args) => record(ns + '.' + name, args);
   const ns = (name, methods) => Object.fromEntries(methods.map((m) => [m, method(name, m)]));
   const unsupported = (name) => new Proxy({}, {
@@ -178,7 +179,6 @@ function buildApi(req, commands, event, parse) {
       };
     },
   });
-  const postLogin = req.handler !== 'onExecuteCredentialsExchange';
 
   // Target scopes and transaction metadata are visible at once in event
   // (Auth0 documents both as real time).
@@ -211,8 +211,8 @@ function buildApi(req, commands, event, parse) {
       return record('transaction.clearTargetScopes', []);
     },
   };
-  api.access = postLogin ? ns('access', ['deny']) : { deny: (code, reason) => record('access.deny', reason === undefined ? [code] : [code, reason]) };
-  api.accessToken = postLogin ? ns('accessToken', ['setCustomClaim', 'addScope', 'removeScope']) : ns('accessToken', ['setCustomClaim']);
+  api.access = ns('access', ['deny']);
+  api.accessToken = ns('accessToken', ['setCustomClaim', 'addScope', 'removeScope']);
 
   const cache = new Map(Object.entries(req.cache ?? {}));
   api.cache = {
@@ -246,7 +246,6 @@ function buildApi(req, commands, event, parse) {
       return cloneInto(parse, { type: 'success' });
     },
   };
-  if (!postLogin) return api;
 
   api.idToken = ns('idToken', ['setCustomClaim']);
   api.user = ns('user', ['setAppMetadata', 'setUserMetadata']);
@@ -258,8 +257,10 @@ function buildApi(req, commands, event, parse) {
       if (value === null || value === undefined) delete txn.metadata[key];
       else txn.metadata[key] = cloneInto(parse, value);
     }
-    return api;
+    return selected;
   };
+  api.transaction.setResultUrl = method('transaction', 'setResultUrl');
+  api.notification = ns('notification', ['retry', 'drop']);
   const state = req.state ?? {};
   api.redirect = {
     canRedirect: () => state.canRedirect === true,
@@ -329,7 +330,24 @@ function buildApi(req, commands, event, parse) {
   api.groups = { getUserGroups: () => out({ groups: [] }), hasGroupMembership: () => Promise.resolve(false) };
   api.rules = { wasExecuted: () => false };
   for (const name of unsupportedNamespaces) api[name] = unsupported(name);
-  return api;
+  // Only capabilities sent by the server are exposed. The same frozen
+  // inventory drives Go's command allowlist; helper/read methods are local.
+  const unsupportedMembers = new Set(req.unsupported_api ?? []);
+  for (const member of req.api ?? []) {
+    const [name, methodName] = member.split('.');
+    if (!selected[name]) selected[name] = {};
+    if (unsupportedMembers.has(member)) selected[name][methodName] = unsupported(name)[methodName];
+    else if (typeof api[name]?.[methodName] === 'function') selected[name][methodName] = api[name][methodName];
+    else selected[name][methodName] = unsupported(name)[methodName];
+  }
+  // Preserve Plan 27's clear unsupported errors for unknown methods within
+  // its deliberately unsupported namespaces, and reset authentication.*.
+  for (const name of unsupportedNamespaces) {
+    if (!selected[name]) continue;
+    const fallback = unsupported(name);
+    selected[name] = new Proxy(selected[name], { get: (target, key) => target[key] ?? fallback[key] });
+  }
+  return selected;
 }
 
 function respond(obj) { process.stdout.write(JSON.stringify(obj) + '\n'); }
