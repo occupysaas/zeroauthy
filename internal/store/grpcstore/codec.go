@@ -125,6 +125,8 @@ func errToPB(err error) *storev1.Error {
 		return nil
 	case errors.Is(err, store.ErrActionsUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_ACTIONS_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrPrecondition):
+		return &storev1.Error{Kind: storev1.Error_KIND_PRECONDITION, Message: err.Error()}
 	case errors.Is(err, store.ErrBuildNotReady):
 		return &storev1.Error{Kind: storev1.Error_KIND_BUILD_NOT_READY, Message: err.Error()}
 	case errors.Is(err, store.ErrRBACUnavailable):
@@ -157,6 +159,8 @@ func errFromPB(e *storev1.Error) error {
 	switch e.Kind {
 	case storev1.Error_KIND_ACTIONS_UNAVAILABLE:
 		return store.ErrActionsUnavailable
+	case storev1.Error_KIND_PRECONDITION:
+		return store.ErrPrecondition
 	case storev1.Error_KIND_BUILD_NOT_READY:
 		return store.ErrBuildNotReady
 	case storev1.Error_KIND_RBAC_UNAVAILABLE:
@@ -737,7 +741,7 @@ func userToPB(u *store.User) (*storev1.User, error) {
 		TenantId: u.TenantID, UserId: u.UserID, Email: u.Email, EmailVerified: u.EmailVerified,
 		Username: u.Username, Name: u.Name, Nickname: u.Nickname, Picture: u.Picture,
 		GivenName: u.GivenName, FamilyName: u.FamilyName, Blocked: u.Blocked,
-		LastLogin: optTSToPB(u.LastLogin), LoginsCount: int64(u.LoginsCount),
+		LastPasswordReset: optTSToPB(u.LastPasswordReset), LastLogin: optTSToPB(u.LastLogin), LoginsCount: int64(u.LoginsCount),
 		CreatedAt: tsToPB(u.CreatedAt), UpdatedAt: tsToPB(u.UpdatedAt),
 		PhoneNumber: u.PhoneNumber, PhoneVerified: u.PhoneVerified, LastIp: u.LastIP, Version: u.Version,
 	}
@@ -776,14 +780,14 @@ func userFromPB(pb *storev1.User) (*store.User, error) {
 	if pb == nil {
 		return nil, nil
 	}
-	if err := checkTS(pb.LastLogin, pb.CreatedAt, pb.UpdatedAt); err != nil {
+	if err := checkTS(pb.LastPasswordReset, pb.LastLogin, pb.CreatedAt, pb.UpdatedAt); err != nil {
 		return nil, err
 	}
 	u := &store.User{
 		TenantID: pb.TenantId, UserID: pb.UserId, Email: pb.Email, EmailVerified: pb.EmailVerified,
 		Username: pb.Username, Name: pb.Name, Nickname: pb.Nickname, Picture: pb.Picture,
 		GivenName: pb.GivenName, FamilyName: pb.FamilyName, Blocked: pb.Blocked,
-		LastLogin: optTSFromPB(pb.LastLogin), LoginsCount: int(pb.LoginsCount),
+		LastPasswordReset: optTSFromPB(pb.LastPasswordReset), LastLogin: optTSFromPB(pb.LastLogin), LoginsCount: int(pb.LoginsCount),
 		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt),
 		PhoneNumber: pb.PhoneNumber, PhoneVerified: pb.PhoneVerified, LastIP: pb.LastIp, Version: pb.Version,
 	}
@@ -1047,7 +1051,7 @@ func passwordResetTicketToPB(p *store.PasswordResetTicket) (*storev1.PasswordRes
 		TenantId: p.TenantID, Id: p.ID, TokenHash: p.TokenHash, UserId: p.UserID,
 		Connection: p.Connection, ClientId: p.ClientID, Lang: p.Lang,
 		ExpiresAt: tsToPB(p.ExpiresAt), UsedAt: optTSToPB(p.UsedAt), CreatedAt: tsToPB(p.CreatedAt),
-		ResultUrl: p.ResultURL, IncludeEmailInRedirect: p.IncludeEmailInRedirect, MarkEmailVerified: p.MarkEmailVerified,
+		ChallengePassedAt: optTSToPB(p.ChallengePassedAt), ChallengeResultUrl: p.ChallengeResultURL, ResultUrl: p.ResultURL, IncludeEmailInRedirect: p.IncludeEmailInRedirect, MarkEmailVerified: p.MarkEmailVerified,
 	}, nil
 }
 
@@ -1055,7 +1059,7 @@ func passwordResetTicketFromPB(pb *storev1.PasswordResetTicket) (*store.Password
 	if pb == nil {
 		return nil, nil
 	}
-	if err := checkTS(pb.ExpiresAt, pb.UsedAt, pb.CreatedAt); err != nil {
+	if err := checkTS(pb.ChallengePassedAt, pb.ExpiresAt, pb.UsedAt, pb.CreatedAt); err != nil {
 		return nil, err
 	}
 	return &store.PasswordResetTicket{
@@ -1063,7 +1067,7 @@ func passwordResetTicketFromPB(pb *storev1.PasswordResetTicket) (*store.Password
 		TenantID: pb.TenantId, ID: pb.Id, TokenHash: pb.TokenHash, UserID: pb.UserId,
 		Connection: pb.Connection, ClientID: pb.ClientId, Lang: pb.Lang,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), UsedAt: optTSFromPB(pb.UsedAt), CreatedAt: tsFromPB(pb.CreatedAt),
-		ResultURL: pb.ResultUrl, IncludeEmailInRedirect: pb.IncludeEmailInRedirect, MarkEmailVerified: pb.MarkEmailVerified,
+		ChallengePassedAt: optTSFromPB(pb.ChallengePassedAt), ChallengeResultURL: pb.ChallengeResultUrl, ResultURL: pb.ResultUrl, IncludeEmailInRedirect: pb.IncludeEmailInRedirect, MarkEmailVerified: pb.MarkEmailVerified,
 	}, nil
 }
 

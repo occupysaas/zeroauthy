@@ -332,7 +332,7 @@ func TestUserRoundTrip(t *testing.T) {
 		Identities: []store.Identity{{Connection: "db", Provider: "auth0", UserID: "u1", PasswordHash: "$argon2id$..."},
 			{Connection: "db", Provider: "auth0", UserID: "u2", PasswordHash: "$argon2id$2", ProfileData: map[string]any{"email": "b@example.test", "email_verified": false}},
 			{Connection: "other", Provider: "auth0", UserID: "u3", ImportedHash: `{"alg":"bcrypt","hash":"$2b$10$x"}`, ProfileData: map[string]any{}}},
-		LastLogin: ptr(nanoTime), LoginsCount: 7, CreatedAt: nanoTime,
+		LastPasswordReset: ptr(nanoTime.Add(-time.Hour)), LastLogin: ptr(nanoTime), LoginsCount: 7, CreatedAt: nanoTime,
 		PhoneNumber: "+14155550100", PhoneVerified: true, LastIP: "2001:db8::1", Version: 5, UpdatedAt: nanoTime.Add(time.Second),
 	}, userToPB, userFromPB)
 	roundTrip(t, "empty", &store.User{UserMetadata: map[string]any{}, AppMetadata: map[string]any{}, Identities: []store.Identity{}}, userToPB, userFromPB)
@@ -395,6 +395,7 @@ func TestPasswordResetTicketRoundTrip(t *testing.T) {
 		Origin:   "https://login.example",
 		TenantID: "ten", ID: "tk", TokenHash: "th", UserID: "auth0|u1", Connection: "db", ClientID: "cid",
 		Lang: "de", ExpiresAt: nanoTime.Add(time.Hour), UsedAt: ptr(nanoTime.Add(time.Second)), CreatedAt: nanoTime,
+		ChallengePassedAt: ptr(nanoTime), ChallengeResultURL: "https://app.test/challenged",
 		ResultURL: "https://app.test/done", IncludeEmailInRedirect: true, MarkEmailVerified: true,
 	}, passwordResetTicketToPB, passwordResetTicketFromPB)
 	roundTrip(t, "zero", &store.PasswordResetTicket{}, passwordResetTicketToPB, passwordResetTicketFromPB)
@@ -436,6 +437,12 @@ func TestNilEntities(t *testing.T) {
 
 func TestInvalidInputs(t *testing.T) {
 	bad := &timestamppb.Timestamp{Seconds: 1 << 60}
+	if _, err := userFromPB(&storev1.User{LastPasswordReset: bad}); err == nil {
+		t.Fatal("invalid password reset timestamp accepted")
+	}
+	if _, err := passwordResetTicketFromPB(&storev1.PasswordResetTicket{ChallengePassedAt: bad}); err == nil {
+		t.Fatal("invalid challenge pass timestamp accepted")
+	}
 	if _, err := userFromPB(&storev1.User{CreatedAt: bad}); err == nil {
 		t.Fatal("invalid timestamp accepted")
 	}
@@ -485,7 +492,8 @@ func TestTimeHelpers(t *testing.T) {
 }
 
 func TestErrorMapping(t *testing.T) {
-	for _, e := range []error{nil, store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed,
+	for _, e := range []error{nil, store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed, store.ErrPrecondition,
+		fmt.Errorf("wrapped: %w", store.ErrPrecondition),
 		fmt.Errorf("wrapped: %w", store.ErrConflict)} {
 		got := errFromPB(errToPB(e))
 		if e == nil {

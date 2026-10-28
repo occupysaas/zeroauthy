@@ -37,14 +37,14 @@ func (c *Client) CheckActionsSupport(ctx context.Context) error {
 	if err := errFromPB(v.GetError()); err != nil {
 		return err
 	}
-	if v.Version < 2 {
-		return store.ErrActionsUnavailable
+	if v.Version < 3 {
+		return fmt.Errorf("storage plugin Actions: capability 3 required (plugin provides %d); upgrade the storage plugin: %w", v.Version, store.ErrActionsUnavailable)
 	}
 	return nil
 }
 
 func (s *Server) ActionsCapabilities(context.Context, *storev1.PingRequest) (*storev1.ActionsCapabilitiesResult, error) {
-	return &storev1.ActionsCapabilitiesResult{Version: 2}, nil
+	return &storev1.ActionsCapabilitiesResult{Version: 3}, nil
 }
 
 func depsToPB(d []store.Dependency) []*storev1.ActionDependency {
@@ -90,7 +90,7 @@ func actionToPB(a *store.Action) *storev1.ActionMsg {
 		return nil
 	}
 	return &storev1.ActionMsg{TenantId: a.TenantID, Id: a.ID, Name: a.Name, Trigger: a.Trigger, Runtime: a.Runtime, Code: a.Code,
-		Dependencies: depsToPB(a.Dependencies), Secrets: secretsToPB(a.Secrets), DraftBuildId: a.DraftBuildID,
+		Modules: moduleRefsToPB(a.Modules), Dependencies: depsToPB(a.Dependencies), Secrets: secretsToPB(a.Secrets), DraftBuildId: a.DraftBuildID,
 		DeployedVersionId: a.DeployedVersionID, CreatedAt: tsToPB(a.CreatedAt), UpdatedAt: tsToPB(a.UpdatedAt)}
 }
 
@@ -99,7 +99,7 @@ func actionFromPB(a *storev1.ActionMsg) *store.Action {
 		return nil
 	}
 	return &store.Action{TenantID: a.TenantId, ID: a.Id, Name: a.Name, Trigger: a.Trigger, Runtime: a.Runtime, Code: a.Code,
-		Dependencies: depsFromPB(a.Dependencies), Secrets: secretsFromPB(a.Secrets), DraftBuildID: a.DraftBuildId,
+		Modules: moduleRefsFromPB(a.Modules), Dependencies: depsFromPB(a.Dependencies), Secrets: secretsFromPB(a.Secrets), DraftBuildID: a.DraftBuildId,
 		DeployedVersionID: a.DeployedVersionId, CreatedAt: tsFromPB(a.CreatedAt), UpdatedAt: tsFromPB(a.UpdatedAt)}
 }
 
@@ -108,7 +108,7 @@ func versionToPB(v *store.ActionVersion) *storev1.ActionVersionMsg {
 		return nil
 	}
 	return &storev1.ActionVersionMsg{TenantId: v.TenantID, ActionId: v.ActionID, Id: v.ID, Number: int64(v.Number), Code: v.Code,
-		Runtime: v.Runtime, BuildId: v.BuildID, Dependencies: depsToPB(v.Dependencies), Secrets: secretsToPB(v.Secrets), CreatedAt: tsToPB(v.CreatedAt)}
+		Runtime: v.Runtime, BuildId: v.BuildID, Modules: moduleRefsToPB(v.Modules), Dependencies: depsToPB(v.Dependencies), Secrets: secretsToPB(v.Secrets), CreatedAt: tsToPB(v.CreatedAt)}
 }
 
 func versionFromPB(v *storev1.ActionVersionMsg) *store.ActionVersion {
@@ -116,7 +116,7 @@ func versionFromPB(v *storev1.ActionVersionMsg) *store.ActionVersion {
 		return nil
 	}
 	return &store.ActionVersion{TenantID: v.TenantId, ActionID: v.ActionId, ID: v.Id, Number: int(v.Number), Code: v.Code,
-		Runtime: v.Runtime, BuildID: v.BuildId, Dependencies: depsFromPB(v.Dependencies), Secrets: secretsFromPB(v.Secrets), CreatedAt: tsFromPB(v.CreatedAt)}
+		Runtime: v.Runtime, BuildID: v.BuildId, Modules: moduleRefsFromPB(v.Modules), Dependencies: depsFromPB(v.Dependencies), Secrets: secretsFromPB(v.Secrets), CreatedAt: tsFromPB(v.CreatedAt)}
 }
 
 func buildToPB(b *store.Build) *storev1.ActionBuildMsg {
@@ -239,10 +239,6 @@ func (srv *Server) actionsServe(q *storev1.ActionsRequest, f func(store.Actions,
 }
 
 func (r clientActions) CreateAction(ctx context.Context, a *store.Action) error {
-	// Temporary until this driver persists Actions II module pins.
-	if len(a.Modules) > 0 {
-		return store.ErrActionsUnavailable
-	}
 	q := r.req(a.TenantID)
 	q.Action = actionToPB(a)
 	_, err := r.call("CreateAction", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsCreateAction(ctx, q) })
@@ -289,10 +285,6 @@ func (srv *Server) ActionsGetActionByName(ctx context.Context, q *storev1.Action
 }
 
 func (r clientActions) UpdateAction(ctx context.Context, a *store.Action) error {
-	// Temporary until this driver persists Actions II module pins.
-	if len(a.Modules) > 0 {
-		return store.ErrActionsUnavailable
-	}
 	q := r.req(a.TenantID)
 	q.Action = actionToPB(a)
 	_, err := r.call("UpdateAction", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsUpdateAction(ctx, q) })

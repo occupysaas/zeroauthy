@@ -20,6 +20,9 @@
 //     the shared backing store, including transaction views and tenant deletion.
 //     Plugins missing any new signing-key RPC fail closed with an upgrade error;
 //     rotation never falls back to the legacy result-less RPC.
+//   - Actions capability 3 includes modules, immutable Action/module pins, durable
+//     transactional jobs, reset-ticket challenge outcomes and LastPasswordReset.
+//     Older plugins are refused at startup; rebuild against the current SDK.
 //   - Keep main to a single call, storeplugin.Serve(yourStore).
 //   - Stdout carries the go-plugin handshake, so write logs to stderr only.
 //     Lines on stderr that start with "[ERROR] " reach the host's log.
@@ -225,4 +228,9 @@ func KillForTest(s store.Store) {
 	if o, ok := s.(*opened); ok {
 		o.client.Kill()
 	}
+}
+
+// CheckActionsSupport preserves the client's startup admission through the SDK wrapper.
+func (o *opened) CheckActionsSupport(ctx context.Context) error {
+	return o.Store.(store.ActionsSupporter).CheckActionsSupport(ctx)
 }
