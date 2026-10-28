@@ -74,11 +74,25 @@ each with its console screens; the full breakdown is in the
 
 | Plans | Area |
 |---|---|
-| 24–25 | Social connections (generic OAuth 2 and OIDC, Google, Apple, Facebook, Microsoft, …) |
-| 26–28 | Roles and permissions; Actions |
-| 29–32 | Organizations; logs, log streams and stats; event streams |
-| 33–35 | MFA; passwordless and SMS; `private_key_jwt`, JAR and token exchange |
-| 36–38 | Enterprise connections (OIDC, Okta, Entra ID, SAML, WS-Federation, AD/LDAP), SCIM, Forms and Flows |
+| 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full | 26 |
+| 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |
+| 31 | Logs, log streams, stats | full | 19 |
+| 32 | Event streams | short | 31 |
+| 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full | 21, 27 |
+| 34 | Passwordless and phone: email and SMS connections, phone providers and templates, MFA by SMS and voice | full | 33 |
+| 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
+| 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
+| 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
+| 38 | AD/LDAP connector, Forms and Flows, network ACLs, remaining resources | full | 27, 37 |
+| 39 | Additional social providers (Apple, Facebook, GitHub, …) | short (Apple full) | 24 |
+| 40 | Actions III: newer triggers, Early Access members, `/userinfo` claims | short | 28, 22 |
+| 41 | OIDC protocol extras, CIBA, formal OIDF certification | full | 33, 35 |
+| 42 | My Account API and My Organization API | full | 30, 33 |
+| 43 | Token Vault and connected accounts | full | 24, 35 |
+| 44 | ACUL and the remaining Universal Login modes | full | 22, 29, 33 |
+| 45 | Operational hardening sweep | short | — |
+| 46 | Release pipeline, packaging, samples | short | 45 |
+| 47 | Hosted zeroauthy (multi-tenant SaaS) | full | 29, 31, 46 |
 
 Of the roadmap's 42 resource groupings, 20 are done, 18 are planned and 4 are not planned (Rules, Hooks and
 rules-configs, which Auth0 is retiring, and customer-managed encryption keys).
