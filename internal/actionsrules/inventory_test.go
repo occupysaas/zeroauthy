@@ -233,7 +233,7 @@ func TestActionsInventory(t *testing.T) {
 	}
 	for _, name := range []string{
 		"code_bytes", "name_min", "name_max", "secrets_max", "secret_name_max", "secret_value_max",
-		"dependencies_max", "bindings_per_trigger_max", "flow_budget_seconds", "artifact_bytes_max",
+		"dependencies_max", "bindings_per_trigger_max", "custom_email_provider_bindings_max", "flow_budget_seconds", "artifact_bytes_max",
 		"cache_entries_max", "cache_key_bytes_max", "cache_value_bytes_max", "cache_total_bytes_max",
 		"cache_default_ttl_seconds", "cache_max_ttl_seconds", "continue_state_seconds",
 		"redirects_per_login_max", "execution_retention_days", "custom_claims_bytes_max",

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -92,15 +93,19 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 	}
 	var result *Result
 	var runErr error
+	var f *flow
+	// An envelope that does not open or decode can never succeed: it is
+	// failed at once and never retried.
+	corrupt := false
 	plain, err := keys.OpenBound(e.Secrets, jobLabel, []string{j.TenantID, j.ID, j.Trigger}, j.Sealed)
 	var p jobPayload
 	if err != nil || !asyncTrigger(j.Trigger) || json.Unmarshal(plain, &p) != nil || len(p.Units) == 0 || p.Input == nil {
-		runErr = errors.New("actions: invalid job envelope")
+		runErr, corrupt = errors.New("actions: invalid job envelope"), true
 	} else {
-		f := &flow{jobID: j.ID, jobAttempt: j.Attempts, tenantID: j.TenantID, trigger: j.Trigger, handler: handlerFor(j.Trigger), acc: newAccum(j.Trigger, nil, nil, false), cache: e.caches.get(j.TenantID, j.Trigger)}
+		f = &flow{jobID: j.ID, jobAttempt: j.Attempts, tenantID: j.TenantID, trigger: j.Trigger, handler: handlerFor(j.Trigger), acc: newAccum(j.Trigger, nil, nil, false), cache: e.caches.get(j.TenantID, j.Trigger)}
 		for _, u := range p.Units {
 			if u.ActionID == "" || u.VersionKey == "" || u.BuildID == "" || len(u.Modules) != len(u.ModuleVersions) {
-				runErr = errors.New("actions: invalid job snapshot")
+				runErr, corrupt = errors.New("actions: invalid job snapshot"), true
 				break
 			}
 			f.units = append(f.units, unit{name: u.Name, actionID: u.ActionID, versionKey: u.VersionKey, code: u.Code, buildID: u.BuildID, secrets: u.Secrets, moduleRefs: u.Modules, moduleVersions: u.ModuleVersions})
@@ -135,19 +140,32 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 	next.Status = "done"
 	next.LeaseUntil = time.Time{}
 	next.UpdatedAt = e.now()
+	if corrupt {
+		next.Status = "failed"
+		return &next
+	}
+	// A drop recorded by any Action is terminal, even when a later Action
+	// failed or asked to retry.
+	if f.dropped != nil {
+		e.log().Info("actions email outcome", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID, "outcome", f.dropped.Kind, "reason", f.dropped.Reason)
+		next.Status = "dropped"
+		return &next
+	}
 	retry := runErr != nil
 	if result != nil && result.Notification != nil {
 		outcome := result.Notification
 		e.log().Info("actions email outcome", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID, "outcome", outcome.Kind, "reason", outcome.Reason)
-		if outcome.Kind == "drop" {
-			next.Status = "dropped"
-			return &next
-		}
 		retry = outcome.Kind == "retry"
 	}
 	if retry {
 		next.Status = "failed"
-		if j.Trigger == TriggerCustomEmailProvider && j.Attempts <= 5 {
+		// A retry reruns every pinned Action; one that already completed
+		// (and may have delivered the email) must not run again.
+		completed := slices.Contains(f.outcomes, "ok")
+		if completed && j.Trigger == TriggerCustomEmailProvider {
+			e.log().Warn("actions email not retried: an Action in the flow already completed", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID)
+		}
+		if j.Trigger == TriggerCustomEmailProvider && j.Attempts <= 5 && !completed {
 			delays := [...]time.Duration{30 * time.Second, time.Minute, 2 * time.Minute, 4 * time.Minute, 8 * time.Minute}
 			next.Status = "pending"
 			next.NextAt = e.now().Add(delays[max(j.Attempts, 1)-1])

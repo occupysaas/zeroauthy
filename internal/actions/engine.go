@@ -153,6 +153,12 @@ type flow struct {
 	redirectCount, position              int
 	state                                string
 	remaining                            time.Duration
+	// outcomes records, per Action run in this attempt, "ok", "error" or
+	// the notification kind the Action itself recorded. dropped is the
+	// first drop. Job runs use both: drop is terminal, and an attempt in
+	// which an Action completed is never retried (it would run again).
+	outcomes []string
+	dropped  *NotificationOutcome
 }
 
 // stepOut is what one Action produced, masked.
@@ -299,7 +305,19 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 	failed := ""
 	for i, u := range f.units {
 		started := e.now()
+		before := f.acc.notification
 		_, err := e.step(fctx, f, u, f.event())
+		switch n := f.acc.notification; {
+		case err != nil:
+			f.outcomes = append(f.outcomes, "error")
+		case n != nil && n != before:
+			f.outcomes = append(f.outcomes, n.Kind)
+			if n.Kind == "drop" && f.dropped == nil {
+				f.dropped = n
+			}
+		default:
+			f.outcomes = append(f.outcomes, "ok")
+		}
 		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
 		if err != nil {
 			r.ErrorID, r.ErrorMsg = errorID(err), err.Error()

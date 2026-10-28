@@ -1421,7 +1421,7 @@ const en = {
     chooseTrigger: 'Choose a trigger', unsupportedTrigger: 'This trigger is not supported.', bindings: 'Ordered bindings',
     reorderHint: 'Use Move up and Move down, or focus a binding and press Alt + Arrow Up or Alt + Arrow Down.',
     up: 'Move up', down: 'Move down', remove: 'Remove', removeNamed: 'Remove {name}', noBindings: 'No Actions are bound to this trigger.',
-    action: 'Action', chooseAction: 'Choose an Action', draft: 'Draft only', addBinding: 'Add binding',
+    action: 'Action', chooseAction: 'Choose an Action', draft: 'Draft only', addBinding: 'Add binding', singleBinding: 'Only one Action can be bound to this trigger. Remove the current binding to replace it.',
     undeployed: 'Deploy this Action before adding it to a trigger.', saveBindings: 'Save bindings', bindingsSaved: 'Trigger bindings saved.', reloadBindings: 'Reload bindings',
     executionHint: 'Find an execution by ID. Results are retained for 10 days and secret values are masked.', executionId: 'Execution ID', lookup: 'Look up',
     build: { pending: 'pending', building: 'building', packaged: 'packaged', built: 'built', retrying: 'retrying', failed: 'failed' },

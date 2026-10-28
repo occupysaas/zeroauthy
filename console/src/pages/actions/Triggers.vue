@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import type { Action, ActionTrigger } from '../../api/client'
@@ -31,12 +31,14 @@ async function load() {
   } catch (e) { if (current(c) && seq === reads) error.value = errorMessage(e) }
   finally { if (current(c) && seq === reads) loading.value = false }
 }
+// Auth0 allows one Action bound to custom-email-provider; every other trigger takes up to 20.
+const maxBindings = computed(() => trigger.value === 'custom-email-provider' ? 1 : 20)
 watch(key, () => { actions.value = []; bindings.value = []; triggers.value = []; selected.value = ''; error.value = ''; notice.value = ''; busy.value = false; reloadRequired.value = false; void load() }, { immediate: true })
 function add() {
   const a = actions.value.find(a => a.id === selected.value)
   if (!ready.value || !a || busy.value || reloadRequired.value) return
   if (!a.deployed_version) { error.value = t('actions.undeployed'); return }
-  if (bindings.value.length >= 20 || bindings.value.some(b => b.actionId === a.id)) return
+  if (bindings.value.length >= maxBindings.value || bindings.value.some(b => b.actionId === a.id)) return
   error.value = ''; notice.value = ''; bindings.value.push({ actionId: a.id, name: a.name })
 }
 function move(i: number, delta: number) {
@@ -70,8 +72,8 @@ function selectTrigger(e: Event) { void router.push({ name: 'action-triggers', p
     <template v-else-if="ready && trigger && triggers.some(tr => tr.id === trigger)">
       <section class="card stack"><h2>{{ t('actions.bindings') }}</h2><p id="binding-keyboard-hint" class="muted">{{ t('actions.reorderHint') }}</p>
         <ol class="stack pl-6"><li v-for="(b, i) in bindings" :key="b.actionId" data-testid="binding-row" tabindex="0" aria-describedby="binding-keyboard-hint" @keydown="reorder($event, i)"><div class="row flex-wrap"><span class="flex-1">{{ b.name }}</span><Button :aria-label="t('actions.up')" :disabled="busy || reloadRequired || i === 0" @click="move(i, -1)">{{ t('actions.up') }}</Button><Button :aria-label="t('actions.down')" :disabled="busy || reloadRequired || i === bindings.length - 1" @click="move(i, 1)">{{ t('actions.down') }}</Button><Button :disabled="busy || reloadRequired" :aria-label="t('actions.removeNamed', { name: b.name })" @click="bindings.splice(i, 1)">{{ t('actions.remove') }}</Button></div></li></ol>
-        <p v-if="!bindings.length">{{ t('actions.noBindings') }}</p>
-        <div class="row flex-wrap"><Field id="binding-action" :label="t('actions.action')"><select id="binding-action" v-model="selected" :disabled="busy || reloadRequired"><option value="">{{ t('actions.chooseAction') }}</option><option v-for="a in actions.filter(a => !bindings.some(b => b.actionId === a.id))" :key="a.id" :value="a.id">{{ a.name }}{{ a.deployed_version ? '' : ' · ' + t('actions.draft') }}</option></select></Field><Button :disabled="busy || reloadRequired || !selected || bindings.length >= 20" @click="add">{{ t('actions.addBinding') }}</Button></div>
+        <p v-if="!bindings.length">{{ t('actions.noBindings') }}</p><p v-if="maxBindings === 1" class="muted">{{ t('actions.singleBinding') }}</p>
+        <div class="row flex-wrap"><Field id="binding-action" :label="t('actions.action')"><select id="binding-action" v-model="selected" :disabled="busy || reloadRequired"><option value="">{{ t('actions.chooseAction') }}</option><option v-for="a in actions.filter(a => !bindings.some(b => b.actionId === a.id))" :key="a.id" :value="a.id">{{ a.name }}{{ a.deployed_version ? '' : ' · ' + t('actions.draft') }}</option></select></Field><Button :disabled="busy || reloadRequired || !selected || bindings.length >= maxBindings" @click="add">{{ t('actions.addBinding') }}</Button></div>
       </section>
       <Button variant="primary" :disabled="busy || reloadRequired" @click="save">{{ t('actions.saveBindings') }}</Button>
     </template>

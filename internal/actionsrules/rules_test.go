@@ -106,6 +106,10 @@ func TestActionsValidateBindings(t *testing.T) {
 	if len(ValidateBindings("post-login", []store.Binding{{ActionID: "a", Trigger: "credentials-exchange"}})) == 0 {
 		t.Error("mismatched trigger")
 	}
+	// Auth0 allows at most one Action bound to custom-email-provider.
+	if len(ValidateBindings("custom-email-provider", b(1))) != 0 || len(ValidateBindings("custom-email-provider", b(2))) == 0 || len(ValidateBindings("custom-email-provider", nil)) != 0 {
+		t.Error("custom-email-provider binding limit")
+	}
 }
 
 // Rejecting malformed reference pairs prevents silently pinning a different module.

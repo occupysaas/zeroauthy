@@ -393,3 +393,58 @@ func TestJobsModuleSnapshotIntegrity(t *testing.T) {
 		})
 	}
 }
+
+// A recorded drop is terminal even when a later bound Action fails, and an
+// attempt in which any Action completed is never retried: a retry would run
+// the completed Action again and could deliver the email twice (I-1).
+func TestJobsEmailMultipleBindingsNeverRerun(t *testing.T) {
+	for _, tc := range []struct{ name, first, second, status string }{
+		{"drop-then-throw", `a.notification.drop('bad address')`, `throw Error('later failure')`, "dropped"},
+		{"drop-then-retry", `a.notification.drop('bad address')`, `a.notification.retry('later')`, "dropped"},
+		{"sent-then-throw", `return`, `throw Error('later failure')`, "failed"},
+		{"sent-then-retry", `return`, `a.notification.retry('later')`, "failed"},
+		{"sent-then-timeout", `return`, `await new Promise(()=>{})`, "failed"},
+		{"retry-then-throw", `a.notification.retry('first')`, `throw Error('later failure')`, "pending"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newHarness(t)
+			if tc.name == "sent-then-timeout" {
+				h.eng.FlowBudget = time.Second
+			}
+			var deliveries atomic.Int32
+			sink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { deliveries.Add(1) }))
+			defer sink.Close()
+			a := h.action("t1", actions.TriggerCustomEmailProvider, "deliver", fmt.Sprintf(`exports.onExecuteCustomEmailProvider=async(e,a)=>{await fetch(%q);%s}`, sink.URL, tc.first), nil, false)
+			b := h.action("t1", actions.TriggerCustomEmailProvider, "second", `exports.onExecuteCustomEmailProvider=async(e,a)=>{`+tc.second+`}`, nil, false)
+			h.bind("t1", a.Trigger, a, b)
+			enqueueJob(t, h, a.Trigger, map[string]any{})
+			j := claimJob(t, h)
+			n := finishJob(t, h, &j)
+			if n.Status != tc.status || len(n.ExecutionIDs) != 1 {
+				t.Fatalf("status %q want %q (executions %d)", n.Status, tc.status, len(n.ExecutionIDs))
+			}
+			if tc.status != "pending" {
+				if js, _ := h.st.Actions().ClaimJobs(context.Background(), h.clock().Add(24*time.Hour), time.Minute, 1); len(js) != 0 {
+					t.Fatal("terminal job reclaimed")
+				}
+			}
+			if got := deliveries.Load(); got != 1 {
+				t.Fatalf("deliveries %d", got)
+			}
+		})
+	}
+}
+
+// An envelope that cannot open can never succeed; it must not be retried (M-2).
+func TestJobsEmailCorruptEnvelopeNotRetried(t *testing.T) {
+	h := newHarness(t)
+	a := h.action("t1", actions.TriggerCustomEmailProvider, "email", `exports.onExecuteCustomEmailProvider=()=>{}`, nil, false)
+	h.bind("t1", a.Trigger, a)
+	enqueueJob(t, h, a.Trigger, map[string]any{})
+	j := claimJob(t, h)
+	j.Sealed[0] ^= 1
+	n := h.eng.RunJob(context.Background(), &j)
+	if n == nil || n.Status != "failed" || len(n.ExecutionIDs) != 1 {
+		t.Fatalf("corrupt envelope: %+v", n)
+	}
+}

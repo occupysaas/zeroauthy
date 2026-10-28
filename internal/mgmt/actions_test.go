@@ -449,6 +449,39 @@ func TestActionsBindingReferenceUpdatesTimestamp(t *testing.T) {
 	}
 }
 
+// Auth0 allows one Action bound to custom-email-provider; a second binding
+// would let a retry re-run an Action that already delivered the email.
+func TestActionsCustomEmailProviderSingleBinding(t *testing.T) {
+	e := newClientsEnv(t)
+	ae := actionstest.NewOffline(t, e.st, e.w)
+	e.h.Actions = ae.Engine
+	a := ae.Deploy(t, e.tn.ID, "custom-email-provider", "mailer-a", "exports.onExecuteCustomEmailProvider=async()=>{};")
+	b := ae.Deploy(t, e.tn.ID, "custom-email-provider", "mailer-b", "exports.onExecuteCustomEmailProvider=async()=>{};")
+	bind := func(ids ...string) int {
+		bs := []any{}
+		for _, id := range ids {
+			bs = append(bs, map[string]any{"ref": map[string]any{"type": "action_id", "value": id}})
+		}
+		rec, _ := e.call(t, e.tn, m2mCaller("update:actions"), "PATCH", "/bindings", map[string]any{"bindings": bs}, func(w http.ResponseWriter, r *http.Request) { e.h.UpdateActionBindings(w, r, "custom-email-provider") })
+		return rec.Code
+	}
+	if c := bind(a.ID, b.ID); c != 400 {
+		t.Fatalf("two bindings=%d", c)
+	}
+	if bs, _ := e.st.Actions().Bindings(context.Background(), e.tn.ID, "custom-email-provider"); len(bs) != 0 {
+		t.Fatalf("refused bindings stored: %v", bs)
+	}
+	if c := bind(a.ID); c != 200 {
+		t.Fatalf("one binding=%d", c)
+	}
+	if c := bind(b.ID); c != 200 {
+		t.Fatalf("replacing the binding=%d", c)
+	}
+	if c := bind(); c != 200 {
+		t.Fatalf("clearing bindings=%d", c)
+	}
+}
+
 func TestActionSupportedTriggersRoundTrip(t *testing.T) {
 	e := newClientsEnv(t)
 	ae := actionstest.NewOffline(t, e.st, e.w)

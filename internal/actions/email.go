@@ -57,13 +57,19 @@ func (e *Engine) RunEmailNow(ctx context.Context, in EmailInput) (EmailOutcome, 
 		if errors.As(err, &flowErr) {
 			out.ExecutionID = flowErr.ExecutionID
 		}
+		// As for a job, a recorded drop is the outcome even if a later Action failed.
+		if f.dropped != nil && out.ExecutionID != "" {
+			out.Status, out.Reason = f.dropped.Kind, f.dropped.Reason
+			return out, nil
+		}
 		return out, err
 	}
 	out.Status = "sent"
 	out.ExecutionID = result.ExecutionID
-	if result.Notification != nil {
-		out.Status = result.Notification.Kind
-		out.Reason = result.Notification.Reason
+	if n := result.Notification; f.dropped != nil {
+		out.Status, out.Reason = f.dropped.Kind, f.dropped.Reason
+	} else if n != nil {
+		out.Status, out.Reason = n.Kind, n.Reason
 	}
 	return out, nil
 }

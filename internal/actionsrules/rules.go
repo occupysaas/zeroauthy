@@ -105,6 +105,10 @@ func ValidateBindings(trigger string, b []store.Binding) []error {
 	if len(b) > limit("bindings_per_trigger_max") {
 		errs = append(errs, fmt.Errorf("at most %d bindings per trigger", limit("bindings_per_trigger_max")))
 	}
+	// Auth0 allows at most one Action bound to custom-email-provider.
+	if trigger == "custom-email-provider" && len(b) > limit("custom_email_provider_bindings_max") {
+		errs = append(errs, fmt.Errorf("at most %d Action can be bound to custom-email-provider", limit("custom_email_provider_bindings_max")))
+	}
 	for i, v := range b {
 		if v.ActionID == "" {
 			errs = append(errs, fmt.Errorf("binding %d has no action", i))
