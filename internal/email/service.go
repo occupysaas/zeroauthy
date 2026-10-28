@@ -335,6 +335,10 @@ func (s *Service) SendTestOutcome(ctx context.Context, tenantID, name, recipient
 		msg.Type = "try_provider_configuration_email"
 		msg.Locale = "en"
 		out, err := s.Actions.RunEmailNow(ctx, emailInput(tenantID, msg))
+		// A lookup/configuration failure is not a completed first attempt.
+		if err != nil && out.ExecutionID == "" {
+			return nil, fmt.Errorf("%w: %v", ErrProviderConfiguration, err)
+		}
 		return &out, err
 	}
 	return nil, s.deliver(ctx, tenantID, msg, provider)

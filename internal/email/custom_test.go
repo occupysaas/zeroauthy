@@ -6,6 +6,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"testing"
+	"time"
 )
 
 type customQueue struct {
@@ -67,6 +68,17 @@ func TestCustomEmailProviderTestSend(t *testing.T) {
 	}
 	if err := st.EmailTemplates().Put(ctx, &store.EmailTemplate{TenantID: "tenant-a", Name: "verify_email", Fields: map[string]any{"body": "<p>Verify</p>", "subject": "Verify"}}, 0); err != nil {
 		t.Fatal(err)
+	}
+	s.Actions = &actions.Engine{Store: st}
+	out, err := s.SendTestOutcome(ctx, "tenant-a", "verify_email", "operator@example.test")
+	if out != nil || !errors.Is(err, ErrProviderConfiguration) {
+		t.Fatalf("unbound test send outcome=%+v err=%v", out, err)
+	}
+	if err := s.SendTest(ctx, "tenant-a", "verify_email", "operator@example.test"); !errors.Is(err, ErrProviderConfiguration) {
+		t.Fatalf("unbound error-only API: %v", err)
+	}
+	if jobs, _ := st.Actions().ClaimJobs(ctx, s.clock(), time.Minute, 1); len(jobs) != 0 {
+		t.Fatal("unbound test queued")
 	}
 	for _, status := range []string{"sent", "retry", "drop", "failed"} {
 		q := &customQueue{outcome: actions.EmailOutcome{Status: status, Reason: "reason", ExecutionID: "execution"}}
