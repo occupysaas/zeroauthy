@@ -17,6 +17,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -406,5 +407,97 @@ func TestModulesTenantIsolation(t *testing.T) {
 	pinModule(t, h, b, mb, vb)
 	if got := h.mustPostLogin("t2").Effects.IDClaims["answer"]; got != "isolated" {
 		t.Fatalf("B reached A deps: %v", got)
+	}
+}
+
+// A continuation owns its immutable module snapshot even after deleting its
+// parent Action purges all persistent Action versions and module pins.
+func TestModulesContinueAfterParentDeletion(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	m, mv := moduleFixture(t, h, "t1", "util", `exports.greet=()=>actions.secrets.KEY`, map[string]string{"KEY": "retained-module-secret"})
+	a := h.action("t1", trigLogin, "redirect", `exports.onExecutePostLogin=(e,a)=>a.redirect.sendUserTo('https://step.test/');exports.onContinuePostLogin=(e,a)=>a.idToken.setCustomClaim('retained',require('actions:util').greet())`, nil, true)
+	pinModule(t, h, a, m, mv)
+	h.bind("t1", trigLogin, a)
+	in := redirectInput(h)
+	r, err := h.eng.PostLogin(ctx, in)
+	state := redirectState(t, r, err)
+	if err = h.st.Actions().DeleteAction(ctx, "t1", a.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err = h.st.Actions().DeleteModule(ctx, "t1", m.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = h.st.Actions().GetModuleVersion(ctx, "t1", m.ID, mv.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("module version was not purged: %v", err)
+	}
+	r, err = resume(t, h, "t1", state, in.Session, actions.RequestInfo{Hostname: "t1.example.test"})
+	if err != nil || r.Effects.IDClaims["retained"] != "retained-module-secret" {
+		t.Fatalf("resume after parent deletion: %#v %v", r, err)
+	}
+}
+
+func TestModulesContinueSnapshotRejects(t *testing.T) {
+	for _, fault := range []string{"missing", "zero", "wrong-tenant", "wrong-module", "wrong-version", "wrong-number", "extra"} {
+		t.Run(fault, func(t *testing.T) {
+			h := newHarness(t)
+			ctx := context.Background()
+			m, mv := moduleFixture(t, h, "t1", "util", `exports.x=1`, nil)
+			a := h.action("t1", trigLogin, "redirect", `exports.onExecutePostLogin=(e,a)=>a.redirect.sendUserTo('https://step.test/');exports.onContinuePostLogin=(e,a)=>a.user.setAppMetadata('escaped',true)`, nil, true)
+			pinModule(t, h, a, m, mv)
+			h.bind("t1", trigLogin, a)
+			in := redirectInput(h)
+			r, err := h.eng.PostLogin(ctx, in)
+			state := redirectState(t, r, err)
+			c, err := h.st.Actions().ConsumeContinue(ctx, "t1", secrets.HashToken(state), in.Session.ID, h.clock())
+			if err != nil {
+				t.Fatal(err)
+			}
+			fields := []string{"t1", c.StateHash, in.Session.ID, in.Tenant.Origin()}
+			plain, err := keys.OpenBound(h.w, "action-continue/v1", fields, c.Sealed)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var payload map[string]any
+			if err = json.Unmarshal(plain, &payload); err != nil {
+				t.Fatal(err)
+			}
+			var snapshot map[string]any
+			if err = json.Unmarshal([]byte(mustJSON(t, mv)), &snapshot); err != nil {
+				t.Fatal(err)
+			}
+			u := payload["Units"].([]any)[0].(map[string]any)
+			versions := []any{snapshot}
+			switch fault {
+			case "missing":
+				versions = nil
+			case "zero":
+				versions = []any{map[string]any{}}
+			case "wrong-tenant":
+				snapshot["TenantID"] = "t2"
+			case "wrong-module":
+				snapshot["ModuleID"] = "other"
+			case "wrong-version":
+				snapshot["ID"] = "other"
+			case "wrong-number":
+				snapshot["Number"] = float64(99)
+			case "extra":
+				versions = append(versions, snapshot)
+			}
+			u["ModuleVersions"] = versions
+			c.Sealed, err = keys.SealBound(h.w, "action-continue/v1", fields, []byte(mustJSON(t, payload)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = h.st.Actions().CreateContinue(ctx, c); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = resume(t, h, "t1", state, in.Session, actions.RequestInfo{Hostname: "t1.example.test"}); err == nil {
+				t.Fatal("malformed module snapshot resumed")
+			}
+			if h.user("t1").AppMetadata["escaped"] != nil {
+				t.Fatal("malformed snapshot ran Action")
+			}
+		})
 	}
 }

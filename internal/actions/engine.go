@@ -175,6 +175,7 @@ type unit struct {
 	name, actionID, versionKey, code, buildID string
 	secrets                                   []store.ActionSecret
 	moduleRefs                                []store.ModuleRef
+	moduleVersions                            []store.ActionModuleVersion // sealed continuation snapshots; nil uses store
 	depsRoot                                  string
 	modules                                   []moduleUnit
 }
