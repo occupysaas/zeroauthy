@@ -122,72 +122,166 @@ function json(op, v) {
 
 const unsupportedNamespaces = ['session', 'refreshToken', 'authentication', 'multifactor', 'prompt', 'samlResponse'];
 
+const utf8Bytes = (s) => Buffer.byteLength(s, 'utf8');
+const cacheKeyMax = 64;
+const cacheValueMax = 4096;
+const cacheDefaultTTL = 15 * 60 * 1000;
+const cacheMaxTTL = 24 * 60 * 60 * 1000;
+const rolesTakeMax = 100;
+const rolesIdsMax = 100;
+const rolesNamesMax = 50;
+const rolesTakeDefault = 50;
+
+// clone copies a JSON value into the Action's realm.
+const cloneInto = (parse, v) => parse(JSON.stringify(v));
+
 // buildApi returns the api object for one call. Mutating methods record a
 // command and return api (Auth0's api methods chain); readers answer from
-// the request. Namespaces zeroauthy does not support throw, so a copied
-// Action never silently skips a security check.
-function buildApi(req, commands) {
+// the request. The server validates every command again and refuses unknown
+// ones, so nothing here is trusted. Unsupported members record an
+// "unsupported" command before they throw: an Action that catches the error
+// still fails its flow, so a copied Action never silently skips a security
+// check.
+function buildApi(req, commands, event, parse) {
   const api = {};
-  const recorder = (ns) => new Proxy({}, {
-    get(_, method) {
-      // Not methods: symbols, 'then' (so api parts are not thenables) and
-      // Object.prototype members.
-      if (typeof method !== 'string' || method === 'then' || method in Object.prototype) return undefined;
-      return (...args) => {
-        const op = ns + '.' + method;
-        commands.push({ op, args: json(op, args) });
-        return api;
+  const record = (op, args) => { commands.push({ op, args: json(op, args) }); return api; };
+  const method = (ns, name) => (...args) => record(ns + '.' + name, args);
+  const ns = (name, methods) => Object.fromEntries(methods.map((m) => [m, method(name, m)]));
+  const unsupported = (name) => new Proxy({}, {
+    get(_, m) {
+      if (typeof m !== 'string' || m === 'then' || m in Object.prototype) return undefined;
+      return () => {
+        commands.push({ op: 'unsupported', args: [`${name}.${m}`] });
+        throw new Error(`api.${name}.${m} is not supported by zeroauthy`);
       };
     },
   });
-  const unsupported = (ns) => new Proxy({}, {
-    get(_, method) {
-      if (typeof method !== 'string' || method === 'then' || method in Object.prototype) return undefined;
-      return () => { throw new Error(`api.${ns}.${method} is not supported by zeroauthy`); };
+  const postLogin = req.handler !== 'onExecuteCredentialsExchange';
+
+  // Target scopes and transaction metadata are visible at once in event
+  // (Auth0 documents both as real time).
+  const txn = event && typeof event.transaction === 'object' && event.transaction ? event.transaction : null;
+  const targets = () => {
+    if (!txn) return null;
+    if (!Array.isArray(txn.target_scopes)) txn.target_scopes = parse('[]');
+    return txn.target_scopes;
+  };
+  const scopeArg = (op, s) => { if (typeof s !== 'string' || s === '') throw new TypeError(`api.${op}: scope must be a non-empty string`); return s; };
+  api.transaction = {
+    addTargetScope(scope) {
+      scopeArg('transaction.addTargetScope', scope);
+      const t = targets(); if (t && !t.includes(scope)) t.push(scope);
+      return record('transaction.addTargetScope', [scope]);
     },
-  });
-  const cache = new Map(Object.entries(req.cache ?? {}));
-  const cacheApi = {
-    get(key) { const r = cache.get(String(key)); return r === undefined ? undefined : json('cache.get', r); },
-    set(key, value, options) {
-      const record = { value: String(value) };
-      if (options && options.expires_at !== undefined) record.expires_at = options.expires_at;
-      commands.push({ op: 'cache.set', args: json('cache.set', [String(key), String(value), options ?? null]) });
-      cache.set(String(key), record);
-      return { type: 'success', record: { ...record } };
+    removeTargetScope(scope) {
+      scopeArg('transaction.removeTargetScope', scope);
+      const t = targets(); if (t) { const i = t.indexOf(scope); if (i >= 0) t.splice(i, 1); }
+      return record('transaction.removeTargetScope', [scope]);
     },
-    delete(key) {
-      commands.push({ op: 'cache.delete', args: [String(key)] });
-      cache.delete(String(key));
-      return { type: 'success' };
+    setTargetScopes(scopes) {
+      if (!Array.isArray(scopes)) throw new TypeError('api.transaction.setTargetScopes: scopes must be an array of strings');
+      scopes.forEach((s) => scopeArg('transaction.setTargetScopes', s));
+      const t = targets(); if (t) { t.length = 0; for (const s of scopes) if (!t.includes(s)) t.push(s); }
+      return record('transaction.setTargetScopes', [scopes]);
+    },
+    clearTargetScopes() {
+      const t = targets(); if (t) t.length = 0;
+      return record('transaction.clearTargetScopes', []);
     },
   };
-  const roles = Array.isArray(req.roles) ? req.roles : [];
+  api.access = postLogin ? ns('access', ['deny']) : { deny: (code, reason) => record('access.deny', reason === undefined ? [code] : [code, reason]) };
+  api.accessToken = postLogin ? ns('accessToken', ['setCustomClaim', 'addScope', 'removeScope']) : ns('accessToken', ['setCustomClaim']);
+
+  const cache = new Map(Object.entries(req.cache ?? {}));
+  api.cache = {
+    get(key) { const r = cache.get(String(key)); return r === undefined ? undefined : cloneInto(parse, r); },
+    set(key, value, options) {
+      const k = String(key), v = String(value);
+      if (k === '' || utf8Bytes(k) > cacheKeyMax) throw new RangeError(`api.cache.set: key must be 1-${cacheKeyMax} bytes`);
+      if (utf8Bytes(v) > cacheValueMax) throw new RangeError(`api.cache.set: value exceeds ${cacheValueMax} bytes`);
+      const opts = {};
+      if (options != null) {
+        if (typeof options !== 'object') throw new TypeError('api.cache.set: options must be an object');
+        for (const f of ['ttl', 'expires_at']) {
+          if (options[f] === undefined) continue;
+          if (typeof options[f] !== 'number' || !Number.isFinite(options[f]) || options[f] <= 0) throw new TypeError(`api.cache.set: ${f} must be a positive number`);
+          opts[f] = Math.floor(options[f]);
+        }
+      }
+      const now = Date.now();
+      let exp = now + Math.min(opts.ttl ?? cacheDefaultTTL, cacheMaxTTL);
+      if (opts.expires_at !== undefined) exp = Math.min(exp, opts.expires_at);
+      exp = Math.min(exp, now + cacheMaxTTL);
+      commands.push({ op: 'cache.set', args: [k, v, opts] });
+      const r = { value: v, expires_at: exp };
+      cache.set(k, r);
+      return cloneInto(parse, { type: 'success', record: r });
+    },
+    delete(key) {
+      const k = String(key);
+      commands.push({ op: 'cache.delete', args: [k] });
+      cache.delete(k);
+      return cloneInto(parse, { type: 'success' });
+    },
+  };
+  if (!postLogin) return api;
+
+  api.idToken = ns('idToken', ['setCustomClaim']);
+  api.user = ns('user', ['setAppMetadata', 'setUserMetadata']);
+  api.validation = ns('validation', ['error']);
+  api.transaction.setMetadata = (key, value) => {
+    record('transaction.setMetadata', [key, value]);
+    if (txn && typeof key === 'string') {
+      if (!txn.metadata || typeof txn.metadata !== 'object') txn.metadata = parse('{}');
+      if (value === null || value === undefined) delete txn.metadata[key];
+      else txn.metadata[key] = cloneInto(parse, value);
+    }
+    return api;
+  };
   const state = req.state ?? {};
-  api.access = recorder('access');
-  api.accessToken = recorder('accessToken');
-  api.transaction = recorder('transaction');
-  api.cache = cacheApi;
-  if (req.handler !== 'onExecuteCredentialsExchange') {
-    api.idToken = recorder('idToken');
-    api.user = recorder('user');
-    api.redirect = new Proxy({}, {
-      get(_, method) {
-        if (method === 'canRedirect') return () => state.canRedirect === true;
-        if (method === 'sendUserTo') return (...args) => { commands.push({ op: 'redirect.sendUserTo', args: json('redirect.sendUserTo', args) }); return api; };
-        if (typeof method !== 'string') return undefined;
-        return () => { throw new Error(`api.redirect.${method} is not supported by zeroauthy`); };
-      },
-    });
-    api.roles = {
-      getUserEffectiveRoles: async () => json('roles', roles),
-      getUserEffectiveRolesByIds: async (ids) => json('roles', roles.filter((r) => (ids ?? []).includes(r && r.id))),
-      getUserEffectiveRolesByNames: async (names) => json('roles', roles.filter((r) => (names ?? []).includes(r && r.name))),
-    };
-    api.groups = { getUserGroups: async () => [], hasGroupMembership: async () => false };
-    api.rules = { wasExecuted: () => false };
-    for (const ns of unsupportedNamespaces) api[ns] = unsupported(ns);
-  }
+  api.redirect = {
+    canRedirect: () => state.canRedirect === true,
+    sendUserTo: (...args) => record('redirect.sendUserTo', args),
+    encodeToken: () => { commands.push({ op: 'unsupported', args: ['redirect.encodeToken'] }); throw new Error('api.redirect.encodeToken is not supported by zeroauthy'); },
+    validateToken: () => { commands.push({ op: 'unsupported', args: ['redirect.validateToken'] }); throw new Error('api.redirect.validateToken is not supported by zeroauthy'); },
+  };
+
+  // Roles come from the snapshot taken when the flow started.
+  const roles = Array.isArray(req.roles) ? req.roles : [];
+  const out = (v) => Promise.resolve(cloneInto(parse, v));
+  const stringList = (op, v, max) => {
+    if (!Array.isArray(v) || v.some((x) => typeof x !== 'string')) throw new TypeError(`api.roles.${op}: expects an array of strings`);
+    if (v.length > max) throw new RangeError(`api.roles.${op}: at most ${max} values`);
+    return v;
+  };
+  api.roles = {
+    getUserEffectiveRoles(params) {
+      const p = params ?? {};
+      const take = p.take === undefined ? rolesTakeDefault : p.take;
+      if (!Number.isInteger(take) || take < 1 || take > rolesTakeMax) return Promise.reject(new RangeError(`api.roles.getUserEffectiveRoles: take must be 1-${rolesTakeMax}`));
+      let from = 0;
+      if (p.from !== undefined && p.from !== null && p.from !== '') {
+        const n = /^[0-9]{1,9}$/.test(String(p.from)) ? Number(p.from) : NaN;
+        if (!Number.isInteger(n) || n > roles.length) return Promise.reject(new TypeError('api.roles.getUserEffectiveRoles: invalid from'));
+        from = n;
+      }
+      const page = roles.slice(from, from + take);
+      const res = { roles: page };
+      if (from + take < roles.length) res.next = String(from + take);
+      return out(res);
+    },
+    getUserEffectiveRolesByIds(ids) {
+      try { stringList('getUserEffectiveRolesByIds', ids, rolesIdsMax); } catch (e) { return Promise.reject(e); }
+      return out({ roles: roles.filter((r) => ids.includes(r && r.id)) });
+    },
+    getUserEffectiveRolesByNames(names) {
+      try { stringList('getUserEffectiveRolesByNames', names, rolesNamesMax); } catch (e) { return Promise.reject(e); }
+      return out({ roles: roles.filter((r) => names.includes(r && r.name)) });
+    },
+  };
+  api.groups = { getUserGroups: () => out({ groups: [] }), hasGroupMembership: () => Promise.resolve(false) };
+  api.rules = { wasExecuted: () => false };
+  for (const name of unsupportedNamespaces) api[name] = unsupported(name);
   return api;
 }
 
@@ -213,7 +307,7 @@ async function run(req) {
       // Build event in the Action's own realm.
       const event = v.parse(JSON.stringify(req.event ?? {}));
       event.secrets = v.parse(JSON.stringify(req.secrets ?? {}));
-      await fn(event, buildApi(req, commands));
+      await fn(event, buildApi(req, commands, event, v.parse));
     } catch (e) {
       error = errorOf(e);
     }

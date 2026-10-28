@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	actionsbuild "github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/config"
@@ -268,6 +269,11 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			store.JobUsersImport: jobs.Importer{Mailer: mailer, Email: tenantEmail, Log: log},
 			store.JobUsersExport: jobs.Exporter{View: mgmt.UserJSON, Log: log},
 		},
+		Sweeps: []jobs.Sweep{{Name: "actions executions", Every: time.Hour,
+			Run: func(ctx context.Context, st store.Store, now time.Time) error {
+				_, err := actions.PurgeExecutions(ctx, st, now)
+				return err
+			}}},
 	}
 
 	var checker protection.BreachChecker

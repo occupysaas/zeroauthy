@@ -212,6 +212,15 @@ func (p *Pool) CallWith(ctx context.Context, tenantID string, req any, opts Call
 	if len(body) < 2 || body[0] != '{' {
 		return nil, errors.New("noderunner: request is not a JSON object")
 	}
+	// The Pool owns "id": a request carrying its own would never match its
+	// answer and would wait out the whole budget.
+	var members map[string]json.RawMessage
+	if err := json.Unmarshal(body, &members); err != nil {
+		return nil, errors.New("noderunner: request is not a JSON object")
+	}
+	if _, ok := members["id"]; ok {
+		return nil, errors.New(`noderunner: the request member "id" is reserved`)
+	}
 	if err := p.Probe(); err != nil {
 		return nil, err
 	}

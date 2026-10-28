@@ -340,3 +340,25 @@ func TestActionsRunnerVersions(t *testing.T) {
 		t.Fatalf("logs = %q", resp.Logs)
 	}
 }
+
+// TestCallRejectsReservedID: the Pool owns the request "id"; a request that
+// carries one fails at once instead of waiting for an answer that never
+// matches.
+func TestCallRejectsReservedID(t *testing.T) {
+	p := actionsPool(t, t.TempDir())
+	for _, req := range []any{
+		map[string]any{"id": 7, "handler": "onExecutePostLogin"},
+		json.RawMessage(`{"handler":"onExecutePostLogin", "id" :null}`),
+	} {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		start := time.Now()
+		_, err := p.CallWith(ctx, "t1", req, noderunner.CallOptions{Budget: 10 * time.Second})
+		cancel()
+		if err == nil || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, noderunner.ErrTimeout) {
+			t.Fatalf("request with id: err = %v, want an immediate refusal", err)
+		}
+		if !strings.Contains(err.Error(), `"id"`) || time.Since(start) > time.Second {
+			t.Fatalf("err = %v after %v", err, time.Since(start))
+		}
+	}
+}

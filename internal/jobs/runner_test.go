@@ -307,3 +307,42 @@ func (f finishJobs) Finish(ctx context.Context, tenantID, id, owner string, st s
 	f.n.Add(1)
 	return f.Jobs.Finish(ctx, tenantID, id, owner, st, details, at)
 }
+
+// TestSweepsRunPeriodically: housekeeping sweeps (such as the Actions
+// execution purge) run at start and every interval while workers run, and
+// stop with Run; a process without workers runs none.
+func TestSweepsRunPeriodically(t *testing.T) {
+	st := memory.New()
+	var runs atomic.Int32
+	sweep := Sweep{Name: "count", Every: 20 * time.Millisecond, Run: func(ctx context.Context, st store.Store, now time.Time) error {
+		runs.Add(1)
+		return errors.New("logged, not fatal")
+	}}
+	r := newRunner(st, nil, 1)
+	r.Sweeps = []Sweep{sweep}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { r.Run(ctx); close(done) }()
+	deadline := time.Now().Add(5 * time.Second)
+	for runs.Load() < 3 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	cancel()
+	<-done
+	if runs.Load() < 3 {
+		t.Fatalf("sweep ran %d times", runs.Load())
+	}
+	after := runs.Load()
+	time.Sleep(60 * time.Millisecond)
+	if runs.Load() != after {
+		t.Fatal("sweep kept running after Run returned")
+	}
+
+	idle := newRunner(st, nil, 0)
+	idle.Sweeps = []Sweep{sweep}
+	runs.Store(0)
+	idle.Run(context.Background())
+	if runs.Load() != 0 {
+		t.Fatal("a process without workers ran a sweep")
+	}
+}
