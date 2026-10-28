@@ -109,7 +109,7 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		ClientID: fields["client_id"], Email: fields["email"], Username: fields["username"], Password: fields["password"],
 		GivenName: fields["given_name"], FamilyName: fields["family_name"], Name: fields["name"],
 		Nickname: fields["nickname"], Picture: fields["picture"], UserMetadata: meta,
-		Actions: signupactions.Callbacks(h.Actions, signupactions.Input(r, res, client, conn, body, h.TrustProxyHeaders)),
+		Actions: signupactions.Callbacks(h.Store, h.Actions, signupactions.Input(r, res, client, conn, body, h.TrustProxyHeaders)),
 	})
 	if riskErr := h.recordFailure(r, res, "signup", attemptID, err); riskErr != nil {
 		h.internal(w, r, "record risk", riskErr)

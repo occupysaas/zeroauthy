@@ -47,3 +47,28 @@ func TestSignupPreRegistration(t *testing.T) {
 		})
 	}
 }
+
+// Bound pre-registration Actions without a runtime must fail closed, as the
+// reset page does (M-1); an unbound tenant still signs up.
+func TestSignupPreRegistrationWithoutEngine(t *testing.T) {
+	for _, bound := range []bool{true, false} {
+		e := newEnv(t)
+		w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{6}, 32))
+		a := actionstest.NewOffline(t, e.st, w)
+		tn, _ := e.st.Tenants().GetByName(context.Background(), "acme")
+		if bound {
+			a.Bind(t, tn.ID, actions.TriggerPreUserRegistration, a.Deploy(t, tn.ID, actions.TriggerPreUserRegistration, "pre", `exports.onExecutePreUserRegistration=()=>{};`))
+		}
+		e.h.Actions = nil
+		b := e.browser("acme.example.test")
+		_, state, csrf := b.begin(t, "screen_hint", "signup")
+		rec := b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"action@acme.test"}, "password": {"a good password 1"}})
+		_, err := e.st.Users().FindByLogin(context.Background(), tn.ID, "Username-Password-Authentication", "action@acme.test")
+		if bound && (rec.Code != 400 || !errors.Is(err, store.ErrNotFound)) {
+			t.Fatalf("bound without engine: %d %v", rec.Code, err)
+		}
+		if !bound && (rec.Code != 302 || err != nil) {
+			t.Fatalf("unbound without engine: %d %v %s", rec.Code, err, rec.Body)
+		}
+	}
+}

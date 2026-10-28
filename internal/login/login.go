@@ -522,7 +522,9 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		input := signupactions.Input(r, f.res, client, f.conn, body, h.TrustProxyHeaders)
 		p := f.txn.Params
 		input.Transaction = &actions.TransactionInfo{ID: f.txn.ID, Locale: f.view.L.Lang(), Protocol: actions.ProtocolOIDCBasicProfile, RedirectURI: p["redirect_uri"], RequestedScopes: strings.Fields(p["scope"]), ResponseMode: p["response_mode"], ResponseType: p["response_type"], State: p["state"], UILocales: p["ui_locales"], Prompt: p["prompt"], LoginHint: p["login_hint"], ACRValues: p["acr_values"]}
-		callbacks = signupactions.Callbacks(h.Actions, input)
+		callbacks = signupactions.Callbacks(h.Store, h.Actions, input)
+	} else {
+		callbacks = signupactions.Callbacks(h.Store, nil, actions.RegistrationInput{Tenant: f.res})
 	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
 		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"), Actions: callbacks,

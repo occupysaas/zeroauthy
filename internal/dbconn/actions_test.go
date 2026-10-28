@@ -218,3 +218,24 @@ func TestSignupPostRegistrationRollback(t *testing.T) {
 		t.Fatalf("rollback jobs %v %v", jobs, err)
 	}
 }
+
+// Bound pre-registration Actions without a runtime must fail closed (M-1).
+func TestSignupPreRegistrationWithoutEngine(t *testing.T) {
+	for _, bound := range []bool{true, false} {
+		e := newEnv(t)
+		e.strict = false
+		a := signupActions(t, e, "")
+		if bound {
+			a.Bind(t, e.tenantID, actions.TriggerPreUserRegistration, a.Deploy(t, e.tenantID, actions.TriggerPreUserRegistration, "pre", `exports.onExecutePreUserRegistration=()=>{};`))
+		}
+		e.h.Actions = nil
+		status, body, raw := e.post(t, "/dbconnections/signup", "application/json", `{"client_id":"app","connection":"Username-Password-Authentication","email":"signup@acme.test","password":"a good password 1"}`)
+		_, err := e.st.Users().FindByLogin(context.Background(), e.tenantID, "Username-Password-Authentication", "signup@acme.test")
+		if bound && (status != 400 || body["code"] != "extensibility_error" || !errors.Is(err, store.ErrNotFound)) {
+			t.Fatalf("bound without engine: %d %s %v", status, raw, err)
+		}
+		if !bound && (status != 200 || err != nil) {
+			t.Fatalf("unbound without engine: %d %s %v", status, raw, err)
+		}
+	}
+}
