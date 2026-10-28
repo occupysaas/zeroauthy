@@ -171,3 +171,17 @@ it.each([
   resolve(name === 'action-test' ? ok({ payload: { logs: ['old tenant result'] } }) : ok({ id: 'old tenant result', status: 'failed', results: [] })); await flushPromises()
   expect(w.text()).not.toContain('old tenant result')
 })
+
+it('cannot clear bindings when their initial read failed, and recovers after retry', async () => {
+  let fail = true
+  const { wrapper: w, calls } = await setup('action-triggers', '/t/acme/actions/triggers/post-login', c => c.url.endsWith('/triggers') ? ok({ triggers: [{ id: 'post-login' }] }) : c.url.includes('/bindings') ? fail ? { status: 503, body: { message: 'Unavailable' } } : ok({ bindings: [binding('a')], total: 1, page: 0, per_page: 100 }) : listing([action('a', { deployed_version: version() })]))
+  const save = w.findAll('button').find(b => b.text() === 'Save bindings')
+  if (save) await save.trigger('click')
+  await flushPromises()
+  expect(calls.filter(c => c.method === 'PATCH')).toHaveLength(0)
+  fail = false
+  await click(w, 'Try again'); await flushPromises()
+  expect(w.findAll('[data-testid=binding-row]')).toHaveLength(1)
+  await click(w, 'Save bindings'); await flushPromises()
+  expect(calls.find(c => c.method === 'PATCH')!.body).toMatchObject({ bindings: [{ ref: { value: 'a' } }] })
+})
