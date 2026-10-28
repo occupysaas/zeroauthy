@@ -1,13 +1,13 @@
 # zeroauthy — Design: finishing the Management API (roadmap, Plans 19 onward)
 
-- **Status:** Draft for maintainer review (2026-10-19)
+- **Status:** Draft for maintainer review (2026-10-19); Plans 29 onward and the follow-up plans 39–47 refreshed 2026-10-28
 - **Date:** 2026-10-19
 - **Scope:** every Auth0 Management API v2 resource not covered by slices 1–4 (applications, APIs, client grants, database connections, users and jobs), broken into plans with an order, dependencies and a short design each.
 - **Inputs:** the management design (`2026-10-18-zeroauthy-management-design.md`), the users design (`2026-10-19-zeroauthy-users-design.md`), the compatibility matrix, the follow-ups file, and the maintainer's 2026-10-19 rulings.
 
 ## 0. Where we are (2026-10-28)
 
-**Plans done:** 27. **Left to implement in this roadmap:** 11 (Plans 28–38), subject to splitting larger designs.
+**Plans done:** 27. **In implementation:** Plan 28 (Actions II; design and plan approved, Tasks 1–7 committed on `plan-28-actions-ii`, Task 8 signup triggers under way). **Left in this roadmap:** 10 more (Plans 29–38), subject to splitting larger designs, then the follow-up plans 39–47 (§3a) that collect work deferred by earlier plans.
 
 ### Done
 
@@ -36,7 +36,7 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 | Status | Count | Resources |
 |---|---|---|
 | **Done / implemented locally** | 24 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I (Plan 27) |
-| **Planned, short design** | 5 | Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
+| **Planned, short design** | 5 | Actions II (in implementation), organizations II, event streams, client credentials / token exchange, enterprise OIDC |
 | **Planned, full design** | 9 | organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
@@ -91,9 +91,18 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 35 | Client credentials: `private_key_jwt`, JAR, token exchange profiles | short | 27 |
 | 36 | Remaining enterprise OIDC: `oidc`, `okta`, Entra extras, connection keys (`waad` sign-in moves to 25) | short | 24, 25 |
 | 37 | SAML and WS-Federation (sub-project 4), SCIM, self-service SSO profiles | full | 36 |
-| 38 | AD/LDAP connector, Forms and Flows, remaining resources | full | 27, 37 |
+| 38 | AD/LDAP connector, Forms and Flows, network ACLs, remaining resources | full | 27, 37 |
+| 39 | Additional social providers (Apple, Facebook, GitHub, …) | short (Apple full) | 24 |
+| 40 | Actions III: newer triggers, Early Access members, `/userinfo` claims | short | 28, 22 |
+| 41 | OIDC protocol extras, CIBA, formal OIDF certification | full | 33, 35 |
+| 42 | My Account API and My Organization API | full | 30, 33 |
+| 43 | Token Vault and connected accounts | full | 24, 35 |
+| 44 | ACUL and the remaining Universal Login modes | full | 22, 29, 33 |
+| 45 | Operational hardening sweep | short | — |
+| 46 | Release pipeline, packaging, samples | short | 45 |
+| 47 | Hosted zeroauthy (multi-tenant SaaS) | full | 29, 31, 46 |
 
-Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core spec and may itself split.
+Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core spec and may itself split. Plans 39–47 are follow-ups (§3a): 39, 40 and 45 can run at any point after their dependencies; 41 should follow 33 and 35 so the certification run covers JAR and `acr`; 47 comes last.
 
 ## 3. Plans
 
@@ -237,15 +246,21 @@ first full Go run's local diagnostic timeout and successful retry are recorded.
 Live upstream observation remains unavailable. This is local implementation
 evidence, not formal certification or a claim that all Actions APIs exist.
 
-### Plan 28 — Actions II
+### Plan 28 — Actions II (in implementation)
 
-Remaining triggers: `pre-user-registration`, `post-user-registration`, `post-change-password`, `send-phone-message` (used by Plan 34), `password-reset-post-challenge`, `custom-email-provider` and `custom-phone-provider` (Plans 21 and 34), `custom-token-exchange` (Plan 35), `event-stream`? if Auth0 has it at build time. Modules (`/actions/modules` and versions). Npm dependencies, Action secrets, immutable build artifacts and offline registry configuration were delivered in Plan 27 and are removed from this plan. **Short**, on Plan 27's design.
+**Design and plan (2026-10-28):** [spec](2026-10-28-zeroauthy-actions-ii-design.md) and [implementation plan](../plans/2026-10-28-zeroauthy-plan-28-actions-ii.md), on Plan 27's design. Tasks 1–7 (contracts, D-0054, memory/SQL/plugin storage with migration 0024 and capability 3, trigger table, Modules, durable job queue) are committed on `plan-28-actions-ii`; Task 8 (signup triggers) is under way.
+
+**Scope:** `pre-user-registration` (blocking), `post-user-registration`, `post-change-password` (non-blocking, durable job queue), `password-reset-post-challenge` (blocking, can redirect), `custom-email-provider` (retryable; Plan 21's stored `custom` provider becomes live); Actions Modules (ten operations, pinned per Action version, tombstones); console, seed and Deploy CLI.
+
+**Deferred by the spec:** `send-phone-message`/`custom-phone-provider` → 34; `custom-token-exchange` → 35; `event-stream` → 32; `api.authentication.*` → 33; `api.prompt.render` → 38; `password-hash-migration`, `login-post-identifier`, `signup-post-identifier`, `post-credential-validation` and Early Access members (custom user IDs through `api.user.setUserId`, risk signals, `security_context` JA3/JA4) → 40. The public changelog now lists `setUserId` at signup as available; Plan 40's Task 1 rechecks its status.
 
 ### Plan 29 — Organizations I (full design)
 
 **Endpoints:** `/api/v2/organizations` (CRUD, `name/{name}` lookup), `/organizations/{id}/members`, `/members/{user_id}/roles`, `/organizations/{id}/enabled_connections` (`assign_membership_on_login`, `show_as_button`, `is_signup_enabled`), `/users/{id}/organizations`; client fields `organization_usage`, `organization_require_behavior` become enforced (inert since D-0039).
 
-**Runtime:** `organization` parameter at `/authorize`; the organization prompt (`pre_login_prompt`, `post_login_prompt`, `no_prompt`); `org_id` and `org_name` claims; membership checks; organization branding on hosted pages (Plan 22 variables); organization-scoped roles in tokens (Plan 26).
+**Runtime:** `organization` parameter at `/authorize`; the organization prompt (`pre_login_prompt`, `post_login_prompt`, `no_prompt`); `org_id` and `org_name` claims; membership checks; organization branding on hosted pages (Plan 22 variables, which today render without organization context); organization-scoped roles in tokens (Plan 26 left them out); `event.organization` in post-login and the Plan 28 triggers (empty today).
+
+**Carried in:** per-tenant operators (the Plan 13 follow-up): the system API sets an operator's tenant list and tenant-scoped operator tokens, as a short sub-design. Hosted-signup `is_signup_enabled` per organization connection.
 
 **Console:** Organizations list and detail (members, connections, roles, branding).
 
@@ -253,7 +268,7 @@ Remaining triggers: `pre-user-registration`, `post-user-registration`, `post-cha
 
 ### Plan 30 — Organizations II
 
-`/organizations/{id}/invitations` (create, list, delete) with the `user_invitation` email (Plan 21) and the invitation acceptance flow (`invitation` and `organization` parameters at `/authorize`); `/organizations/{id}/client-grants` and grant `organization_usage`/`allow_any_organization` enforcement (inert since D-0041); `/organizations/{id}/discovery-domains` and home-realm discovery by email domain if documented at build time. **Short.**
+`/organizations/{id}/invitations` (create, list, delete) with the `user_invitation` email (Plan 21) and the invitation acceptance flow (`invitation` and `organization` parameters at `/authorize`); `/organizations/{id}/client-grants` and grant `organization_usage`/`allow_any_organization` enforcement (inert since D-0041); `/organizations/{id}/discovery-domains` and home-realm discovery by email domain if documented at build time. The `user_invitation` template is stored-only since Plan 21 and becomes live here. Auth0's My Organization API (organization-admin self-service, Early Access since 2026-09) goes to Plan 42, not here. **Short.**
 
 ### Plan 31 — Logs, log streams, stats (full design)
 
@@ -261,7 +276,9 @@ Remaining triggers: `pre-user-registration`, `post-user-registration`, `post-cha
 
 **Runtime:** every Authentication API, hosted-page and Management API event writes an Auth0-typed log event (`s`, `f`, `fp`, `fu`, `ss`, `fs`, `scp`, `sapi`, `seccft`, `limit_wc`, … per Auth0's documented event-type codes), replacing "Management writes go to the server log" (management design §6); tenant retention as configured; streams deliver with retries and filters; stats aggregate from logs.
 
-**Full design questions:** storage volume and retention per driver, the query engine (reuse of the Plan 17 query tree), delivery guarantees for streams, privacy (IP and user agent handling).
+**Full design questions:** storage volume and retention per driver, the query engine (reuse of the Plan 17 query tree), delivery guarantees for streams (reuse Plan 28's durable job queue and lease rather than a second one), privacy (IP and user agent handling).
+
+**Carried in:** the tenant log for Management API writes (Plan 13 follow-up); Action execution failures and job outcomes (Plans 27–28) as log events; administrator notices for blocked accounts and breached passwords (Plan 19 follow-up), which Auth0 delivers through logs.
 
 **Console:** Logs (search, detail), Log streams, stats on Home.
 
@@ -269,13 +286,15 @@ Remaining triggers: `pre-user-registration`, `post-user-registration`, `post-cha
 
 ### Plan 32 — Event streams
 
-`/api/v2/event-streams` (CRUD, `test`, `/deliveries`, `/redeliver`) for `webhook` and `eventbridge` destinations; Auth0's CloudEvents payloads for `user.created`, `user.updated`, `user.deleted` and any event types added by build time; signed webhook delivery with retries, sharing Plan 31's delivery machinery. **Short.**
+`/api/v2/event-streams` (CRUD, `test`, `/deliveries`, `/redeliver`) for `webhook` and `eventbridge` destinations; Auth0's CloudEvents payloads for `user.created`, `user.updated`, `user.deleted` and any event types added by build time; signed webhook delivery with retries, sharing Plan 31's delivery machinery. The `event-stream` Action trigger (deferred by Plan 28) ships here if Auth0 documents it at build time. **Short.**
 
 ### Plan 33 — MFA I (full design)
 
 **Endpoints:** `/api/v2/guardian/factors` (`GET`, `PUT /{name}`), `/guardian/policies`, `/guardian/enrollments/{id}`, `POST /guardian/enrollments/ticket`, `/guardian/factors/sms|phone/...` templates and providers stored for Plan 34; user endpoints `/users/{id}/authentication-methods` (CRUD), `/users/{id}/enrollments`, `DELETE /users/{id}/multifactor/{provider}`, `POST /users/{id}/recovery-code-regeneration`, `POST /users/{id}/multifactor/actions/invalidate-remember-browser`.
 
 **Runtime:** factors `otp`, `email`, `recovery-code`, `webauthn-roaming`, `webauthn-platform` (passkeys as a second factor); policies (`all-applications`, `confidence-score`, never); MFA prompts on hosted login with remember-browser; the Authentication API `/mfa/associate`, `/mfa/challenge`, `/mfa/authenticators` and the `mfa-otp`, `mfa-oob`, `mfa-recovery-code` grants with `mfa_required` (the Plan 5 follow-up); `api.multifactor.enable` in post-login Actions; the MFA email templates from Plan 21. `push-notification` (needs Auth0's Guardian app) and `duo` stay stored, not enforced (§5).
+
+**Carried in:** `api.authentication.challengeWith`/`challengeWithAny` and `api.multifactor.enable` (fail closed since Plans 27–28) in post-login and `password-reset-post-challenge`; tenant `customize_mfa_in_postlogin_action` (stored since Plan 19); passkey connection options (D-0042) and the WebAuthn hosted-page controls Plan 22 deferred; WebAuthn RP ID enforcement for custom domains (stored-only since Plan 23); `acr`/`amr` values needed by Plan 41.
 
 **E2E:** Playwright enrolment and challenge with a TOTP generator and a virtual WebAuthn authenticator; node-auth0 `guardian`; auth0-auth-js MFA grants.
 
@@ -285,9 +304,11 @@ Remaining triggers: `pre-user-registration`, `post-user-registration`, `post-cha
 
 **Runtime:** `/passwordless/start` and the `passwordless/otp` grant; code and magic-link login on hosted pages; SMS through Twilio or the `send-phone-message`/`custom-phone-provider` Actions; MFA by SMS and voice; phone-based password reset (the management design follow-up); phone numbers as identifiers (`attributes` stored since D-0042 become enforced).
 
+**Carried in:** the `send-phone-message` and `custom-phone-provider` Action triggers (deferred by Plan 28). Maintainer note (2026-10-28): users will want SMS choices beyond Twilio, such as Amazon SNS and Azure Communication Services. Auth0's answer is `custom-phone-provider`, so this plan ships tested example Actions for SNS, Azure Communication Services and Vonage; native non-Twilio providers would go beyond Auth0 and need a maintainer decision then. Also: the phone-provider-protection API (unblocks Deploy CLI's attack-protection handler, Plan 20), passwordless bot policy (Plan 19 owner), and the code-based email templates (`verify_email_by_code`, `auth_email_by_code`, `reset_email_by_code`, stored-only since Plan 21).
+
 ### Plan 35 — Client credentials, JAR, token exchange
 
-`/api/v2/clients/{id}/credentials` (CRUD) with `public_key` and `x509_cert` credentials; `private_key_jwt` client authentication at `/oauth/token`, `/oauth/par` and `/oauth/revoke`; JAR (`request` objects signed with those keys); `signed_request_object` client settings; `/api/v2/token-exchange-profiles` with the custom token exchange grant and its Action (Plan 28). mTLS client auth and RAR are listed in §5 for a later decision. **Short.**
+`/api/v2/clients/{id}/credentials` (CRUD) with `public_key` and `x509_cert` credentials; `private_key_jwt` client authentication at `/oauth/token`, `/oauth/par` and `/oauth/revoke`; JAR (`request` objects signed with those keys); `signed_request_object` client settings; `/api/v2/token-exchange-profiles` with the custom token exchange grant and its Action (Plan 28). mTLS client auth and RAR are listed in §5 for a later decision. Also carries the `custom-token-exchange` trigger (deferred by Plan 28), its tenant protection settings (Plan 19 owner), `HS256`/`PS256` and `signing_secret` for resource servers, and lifts D-0035 (`request_not_supported`). **Short.**
 
 ### Plan 36 — Enterprise OIDC connections
 
@@ -295,13 +316,54 @@ Remaining `oidc` and `okta` enterprise features, front-channel OIDC, home-realm 
 
 ### Plan 37 — SAML, WS-Federation, SCIM, self-service SSO (full design; sub-project 4)
 
-SAML as identity provider (`samlp` addon on clients) and as service provider (`samlp` connections), WS-Federation (`wsfed` addon, `adfs` connection), `/samlp/{client_id}` metadata, SAML logout; `/api/v2/connections/{id}/scim-configuration` (and tokens) with an inbound SCIM 2.0 server; `/api/v2/self-service-profiles` and SSO tickets with the self-service setup flow. Likely two or three plans after its design.
+SAML as identity provider (`samlp` addon on clients) and as service provider (`samlp` connections), WS-Federation (`wsfed` addon, `adfs` connection), `/samlp/{client_id}` metadata, SAML logout; `/api/v2/connections/{id}/scim-configuration` (and tokens) with an inbound SCIM 2.0 server; `/api/v2/self-service-profiles` and SSO tickets with the self-service setup flow. Directory groups from SCIM and enterprise connections (Plan 26 left groups out) land here if Auth0 documents a groups resource at build time. Likely two or three plans after its design.
 
 ### Plan 38 — AD/LDAP, Forms and Flows, the rest (full design)
 
 - **AD/LDAP:** the `ad` strategy. Auth0's AD/LDAP connector is open source (MIT); the design decides whether zeroauthy speaks that connector's protocol (so existing connectors keep working) or ships its own LDAP bind.
-- **Forms and Flows:** `/api/v2/forms`, `/api/v2/flows`, `/flows/{id}/executions`, `/flows/vault/connections`; a visual flow builder is a large console project.
-- **Remaining resources** listed at build time from Auth0's reference: `/api/v2/device-credentials`, `/api/v2/network-acls`, `/api/v2/user-attribute-profiles`, `/api/v2/connection-profiles`, `/api/v2/risk-assessments` settings, and anything Auth0 adds while the roadmap runs (the changelog review feeds this plan).
+- **Forms and Flows:** `/api/v2/forms`, `/api/v2/flows`, `/flows/{id}/executions`, `/flows/vault/connections`; `api.prompt.render` in Actions (fails closed since Plan 28); a visual flow builder is a large console project.
+- **Network ACLs:** `/api/v2/network-acls` with enforcement at the edge of every tenant request; the October 2026 changelog added an Early Access tenant ACL rule editor, so the rule shape is rechecked at build time.
+- **Remaining resources** listed at build time from Auth0's reference: `/api/v2/device-credentials`, `/api/v2/user-attribute-profiles`, `/api/v2/connection-profiles`, `/api/v2/risk-assessments` settings, and anything Auth0 adds while the roadmap runs (the changelog review feeds this plan).
+
+## 3a. Follow-up plans (after Plan 38)
+
+Work that earlier plans deferred or that sits outside the Management API reference but matters for a drop-in replacement. Numbers are proposals; the maintainer may reorder them, and each starts with Task 1 observation and a changelog review like the plans above.
+
+### Plan 39 — Additional social providers
+
+`apple`, `facebook`, `github`, `linkedin`, `twitter`, `amazon`, `discord`, `slack` and the rest of Auth0's social strategy list, on Plan 24's federation core (deferred from Plan 25). Apple needs the client-secret JWT, `form_post` callback and private-relay email handling, so it gets a full design; the others are profile mapping plus a fixture provider each. Extends the Deploy CLI federated fixture lane. **Short, Apple full.**
+
+### Plan 40 — Actions III
+
+Triggers Auth0 lists that Plan 28 deferred: `password-hash-migration`, `login-post-identifier`, `signup-post-identifier`, `post-credential-validation`, each only once Auth0 documents its event and `api`; Early Access members that reach general availability (`api.user.setUserId` in `pre-user-registration`, risk signals, `security_context`). Also the `/userinfo` custom-claim echo deferred by Plan 27, Actions validation of Plan 22's transient `ulp-` fields, and the Plan 27/28 deferred-minor ledgers (console log aggregate cap, sandbox probe assertions). **Short**, on Plans 27–28.
+
+### Plan 41 — OIDC protocol extras, CIBA and formal certification
+
+The Plan 12 follow-ups: the `claims` parameter, `acr_values`, `address`/`phone` scopes and the remaining `profile` claims; front-channel and back-channel logout; Dynamic Client Registration (`/oidc/register`, Auth0's tenant flag); CIBA (`/bc-authorize`, the `async_approval` template stored since Plan 21). Then the formal OpenID certification submission under the open-source fee waiver (maintainer signs and submits), adding the new profiles (back-channel logout, Dynamic OP, FAPI only if Auth0 supports it) and a `client_secret_post` variant run. Implicit/Hybrid profiles only where Auth0 behaviour passes; each spec-vs-Auth0 conflict goes to the maintainer (spec-compliant default plus an opt-in non-compliant environment variable). **Full.**
+
+### Plan 42 — My Account API and My Organization API
+
+Auth0's end-user-facing APIs outside `/api/v2`: the My Account API (users manage their own authentication methods, passkeys and connected identities) and the My Organization API (organization administrators manage members, invitations and roles; Early Access since 2026-09, with log events). Both reuse Plans 30 and 33 and need their own audiences, scopes and consent. **Full.**
+
+### Plan 43 — Token Vault and connected accounts
+
+`federated-connections-tokensets` and the token-exchange path that lets an application obtain a user's upstream provider tokens (Auth0's Token Vault, used by its AI-agent features), which Plan 24 explicitly left out. Needs Plan 24's sealed upstream-token storage and Plan 35's token exchange. **Full**, because refresh, revocation and consent policy are product decisions.
+
+### Plan 44 — ACUL and the remaining Universal Login modes
+
+Advanced Customizations for Universal Login (tenant-built screens through the prompt rendering API), Classic Login, WebAuthn-first and social controls on hosted pages, prompt partials with custom-domain context: all deferred by Plans 22–23. ACUL runs tenant JavaScript in the browser, which Plan 22 rejects today, so the design must settle the content-security boundary first. Unblocks the Deploy CLI ACUL export. **Full.**
+
+### Plan 45 — Operational hardening sweep
+
+Open items from the follow-ups file with no feature home: general Authentication API rate limiting and shared device-activation counters (Plans 2, 11, 19); custom-script Try limiting; CORS origin index for large tenants; orphaned sealed-token sweep (Plan 24); a durable retry schedule for hosted wildcard certificates, additional DNS providers and challenge delegation (Plan 23); custom public signing JWKS publication (Plans 20, 23); the Plan 27 MySQL deploy/delete freshness closure; a Playwright accessibility audit of the console. **Short**; may split by area.
+
+### Plan 46 — Release pipeline, packaging and samples
+
+Versioned releases, container images and checksums; the conformance gate as the release's last step (Plan 12 follow-up); upgrade and rollback notes across migrations; the Android TV device-flow sample app (Plan 11 follow-up); console translations beyond English if not done earlier. **Short.**
+
+### Plan 47 — Hosted zeroauthy
+
+The maintainer's hosting offer: tenant sign-up, subdomain and droplet provisioning through the DigitalOcean CLI, per-tenant quotas and isolation, billing hooks, backup/restore, and a decision on per-tenant keys (revisits customer-managed encryption keys, §5). Builds on per-tenant operators (29), logs (31) and the release pipeline (46). A product of its own rather than an Auth0 parity item. **Full.**
 
 ## 4. Cross-cutting work and where it lands
 
@@ -310,18 +372,24 @@ SAML as identity provider (`samlp` addon on clients) and as service provider (`s
 | Rate-limit headers and a Management API limiter (Plan 13 follow-up) | 19 |
 | Store-backed throttles and send limits for multi-instance deployments | 19 |
 | Tenant log for Management API writes (Plan 13 follow-up) | 31 |
-| Per-tenant operators (Plan 13 follow-up): system API and tenant-scoped operator tokens | 29 (alongside organization membership; short sub-design) |
+| Per-tenant operators (Plan 13 follow-up): system API and tenant-scoped operator tokens | 29 (alongside organization membership; short sub-design); hosting needs it in 47 |
 | Keeping client IDs and secrets on migration (D-0039), the system API name (D-0041) | 20 |
 | `HS256`/`PS256` and `signing_secret` for resource servers | 35 |
 | Inert client and grant fields from D-0039/D-0041 | the plan owning each feature (organizations 29–30, RAR §5, token encryption §5) |
 | Stored-not-enforced connection options from D-0042 | passkeys 33, attributes and phone 34, MFA 33, `display_name`/`show_as_button` 22 |
 | Console translations beyond English | any plan; no dependency |
 | `auth0-deploy-cli` round trip | grows from Plan 20 onward; each plan removes its resource types from `AUTH0_EXCLUDED` |
+| Deploy CLI database migration (needs Actions) and attack-protection handler (needs phone-provider protection) | 28, 34 |
+| Durable job queue (Plan 28) reused for log streams, event streams and invitations | 31, 32, 30 |
+| Action APIs that fail closed until their feature exists: `api.authentication.*`, `api.multifactor.*`, `api.prompt.render` | 33, 38 |
+| SMS providers beyond Twilio: through `custom-phone-provider` examples, not native providers | 34 |
+| General Authentication API rate limits, device counters, script Try limits | 45 |
+| OIDF certification submission and new profiles | 41 (local conformance runs every plan) |
 
 ## 5. Not planned (with reasons)
 
 - **Rules, Hooks, rules-configs** (`/api/v2/rules`, `/rules-configs`, `/hooks`): end-of-life on Auth0 in favour of Actions. `GET` returns empty lists so `auth0-deploy-cli` exports work; writes answer as Auth0 answers for a tenant without them (Task 1 of Plan 20 records it).
-- **Customer-managed encryption keys** (`/api/v2/keys/encryption`, BYOK): zeroauthy's master key is already the operator's own; revisit if a hosted offer needs per-tenant keys.
+- **Customer-managed encryption keys** (`/api/v2/keys/encryption`, BYOK): zeroauthy's master key is already the operator's own; Plan 47 revisits it for the hosted offer.
 - **Guardian push notifications and Duo:** need Auth0's own app or a vendor contract. Stored, not enforced.
 - **Vendor-contract CAPTCHA (Arkose) and Auth0's own bot challenge:** stored, not enforced.
 - **Marketplace, integration catalogues, extensions:** dashboard features with no Management API surface worth matching.
@@ -332,7 +400,7 @@ Anything here can move into a plan by maintainer decision.
 
 ## 6. Risks
 
-- **Size.** Plans 22, 27, 31, 33 and 37 are each larger than any plan so far; their full designs should split them further rather than grow single plans.
+- **Size.** Plans 22, 27, 31, 33, 37, 41 and 44 are each larger than any plan so far; their full designs should split them further rather than grow single plans.
 - **Observation limits.** Some resources need paid Auth0 plans (organizations at scale, enterprise connections, log streams, custom domains with managed certificates). Task 1 records what the maintainer's tenant can show; the rest follows the docs and is logged.
-- **Moving target.** Auth0 ships Management API changes monthly. The changelog review before each plan keeps the roadmap current; Plan 38 collects new resources.
+- **Moving target.** Auth0 ships Management API changes monthly. The changelog review before each plan keeps the roadmap current; Plan 38 collects new Management API resources and Plans 40–43 the newer runtime APIs (Early Access items are tracked, not built, until Auth0 documents them as available).
 - **Runtime security.** Actions, Liquid templates and email templates run tenant-supplied code or markup. Each full design must state the sandbox (no environment, no host files, limits), as D-0022 did for custom databases.
