@@ -60,7 +60,7 @@ func TestEmailInventoryComplete(t *testing.T) {
 	}
 	seenProviders := map[string]bool{}
 	executable := 0
-	customDisabled := false
+	customExecutable := false
 	for _, p := range inventory.Providers {
 		if p.Name == "" || p.Source == "" || seenProviders[p.Name] {
 			t.Errorf("empty, unsourced or duplicate provider: %+v", p)
@@ -72,12 +72,12 @@ func TestEmailInventoryComplete(t *testing.T) {
 		if p.Name != "custom" && p.VendorDoc == "" {
 			t.Errorf("provider %s has no official protocol source", p.Name)
 		}
-		if p.Name == "custom" && !p.Executable {
-			customDisabled = true
+		if p.Name == "custom" && p.Executable {
+			customExecutable = true
 		}
 	}
-	if executable != 9 || !customDisabled || !seenProviders["custom"] {
-		t.Errorf("executable providers = %d; custom must remain disabled-only", executable)
+	if executable != 10 || !customExecutable || !seenProviders["custom"] {
+		t.Errorf("executable providers = %d; custom must be executable", executable)
 	}
 	seenFields := map[string]bool{}
 	for _, field := range inventory.TemplateFields {

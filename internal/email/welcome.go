@@ -24,5 +24,5 @@ func WelcomeEmailMessage(l *i18n.Localizer) Message {
 	if err := welcomeHTML.Execute(&html, data); err != nil {
 		panic(err)
 	}
-	return Message{Subject: l.T(i18n.KeyEmailWelcomeSubject), Text: text.String(), HTML: html.String()}
+	return Message{Type: "welcome_email", Locale: l.Lang(), Subject: l.T(i18n.KeyEmailWelcomeSubject), Text: text.String(), HTML: html.String()}
 }

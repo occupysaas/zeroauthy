@@ -2550,6 +2550,30 @@ func (e UsersExportJobCreateFormat) Valid() bool {
 	}
 }
 
+// Defines values for TestTenantEmail200JSONResponseBodyStatus.
+const (
+	TestTenantEmail200JSONResponseBodyStatusDrop   TestTenantEmail200JSONResponseBodyStatus = "drop"
+	TestTenantEmail200JSONResponseBodyStatusFailed TestTenantEmail200JSONResponseBodyStatus = "failed"
+	TestTenantEmail200JSONResponseBodyStatusRetry  TestTenantEmail200JSONResponseBodyStatus = "retry"
+	TestTenantEmail200JSONResponseBodyStatusSent   TestTenantEmail200JSONResponseBodyStatus = "sent"
+)
+
+// Valid indicates whether the value is a known member of the TestTenantEmail200JSONResponseBodyStatus enum.
+func (e TestTenantEmail200JSONResponseBodyStatus) Valid() bool {
+	switch e {
+	case TestTenantEmail200JSONResponseBodyStatusDrop:
+		return true
+	case TestTenantEmail200JSONResponseBodyStatusFailed:
+		return true
+	case TestTenantEmail200JSONResponseBodyStatusRetry:
+		return true
+	case TestTenantEmail200JSONResponseBodyStatusSent:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetHooksParamsTriggerId.
 const (
 	GetHooksParamsTriggerIdCredentialsExchange  GetHooksParamsTriggerId = "credentials-exchange"
@@ -5408,6 +5432,9 @@ type PreviewTenantBrandingJSONBody struct {
 	Overrides *map[string]interface{} `json:"overrides,omitempty"`
 	Screen    string                  `json:"screen"`
 }
+
+// TestTenantEmail200JSONResponseBodyStatus defines parameters for TestTenantEmail.
+type TestTenantEmail200JSONResponseBodyStatus string
 
 // GetTenantJobsParams defines parameters for GetTenantJobs.
 type GetTenantJobsParams struct {

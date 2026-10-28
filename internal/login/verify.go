@@ -140,6 +140,8 @@ func (m *VerificationMailer) Send(ctx context.Context, res tenant.Resolved, u *s
 	}
 	msg := email.VerifyEmailMessage(i18n.New(localized, lang), dbconn.VerificationLink(res.Issuer(), raw))
 	msg.To = u.Email
+	msg.UserID = u.UserID
+	msg.ClientID = clientID
 	if m.Email != nil {
 		return m.Email.SendMessage(ctx, res.Tenant.ID, msg)
 	}

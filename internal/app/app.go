@@ -336,6 +336,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		return nil, err
 	}
 	engine := &actions.Engine{Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
+	tenantEmail.Actions = engine
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
 	sec := cfg.Security
 	buildsOwned = true

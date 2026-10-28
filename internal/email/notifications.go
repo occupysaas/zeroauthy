@@ -93,7 +93,9 @@ func (s *Service) Notify(ctx context.Context, tenantID, userID, purpose string) 
 	if err != nil {
 		return err
 	}
-	return s.SendMessage(ctx, tenantID, SecurityNotificationMessage(i18n.New(tenant, "en"), purpose, user.Email))
+	msg := SecurityNotificationMessage(i18n.New(tenant, "en"), purpose, user.Email)
+	msg.UserID = userID
+	return s.SendMessage(ctx, tenantID, msg)
 }
 
 // SecurityNotificationMessage creates localized default copy when a tenant
@@ -104,7 +106,7 @@ func SecurityNotificationMessage(l *i18n.Localizer, purpose, to string) Message 
 		subjectKey, bodyKey = i18n.KeyEmailStolenCredentialsSubject, i18n.KeyEmailStolenCredentialsBody
 	}
 	body := l.T(bodyKey)
-	return Message{To: to, Subject: l.T(subjectKey), Text: body, HTML: fmt.Sprintf("<p>%s</p>", html.EscapeString(body))}
+	return Message{Type: purpose, Locale: l.Lang(), To: to, Subject: l.T(subjectKey), Text: body, HTML: fmt.Sprintf("<p>%s</p>", html.EscapeString(body))}
 }
 
 var ErrUnsafeEmailRedirect = errors.New("email: result URL is not an exact trusted HTTPS destination")

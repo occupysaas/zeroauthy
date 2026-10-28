@@ -8418,6 +8418,20 @@ export interface operations {
             };
         };
         responses: {
+            /** @description The custom email Action's first attempt outcome; no job or retry is enqueued. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "sent" | "retry" | "drop" | "failed";
+                        reason?: string;
+                        execution_id?: string;
+                    };
+                };
+            };
             /** @description The provider accepted the test message. */
             204: {
                 headers: {

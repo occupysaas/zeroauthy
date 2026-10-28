@@ -32,7 +32,7 @@ func VerifyEmailMessage(l *i18n.Localizer, link string) Message {
 	if err := verifyHTML.Execute(&htm, data); err != nil {
 		panic(err)
 	}
-	return Message{Subject: l.T(i18n.KeyEmailVerifySubject), Text: txt.String(), HTML: htm.String()}
+	return Message{Type: "verify_email", Locale: l.Lang(), Subject: l.T(i18n.KeyEmailVerifySubject), Text: txt.String(), HTML: htm.String()}
 }
 
 // VerifyEmail is one verification email: the recipient, the language and

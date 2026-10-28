@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/zeroauthy/zeroauthy/internal/customdomain"
+	"fmt"
 	"net/mail"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/customdomain"
 	xhtml "golang.org/x/net/html"
 
 	"github.com/zeroauthy/zeroauthy/internal/email/providers"
@@ -34,7 +36,12 @@ type Policy struct {
 type ProviderFactory interface {
 	New(context.Context, string, int64, providers.Config) (providers.Transport, error)
 }
+type ActionsQueue interface {
+	EnqueueEmail(context.Context, store.Store, actions.EmailInput) error
+	RunEmailNow(context.Context, actions.EmailInput) (actions.EmailOutcome, error)
+}
 type Service struct {
+	Actions     ActionsQueue
 	Store       store.Store
 	Wrapper     keys.Wrapper
 	Renderer    Renderer
@@ -140,6 +147,39 @@ func (s *Service) deliver(ctx context.Context, tenantID string, msg Message, p *
 	msg.From = from
 	if err := validateMessage(from, msg); err != nil {
 		return err
+	}
+	if p.Name == "custom" {
+		if s.Actions == nil {
+			return ErrProviderConfiguration
+		}
+		in := emailInput(tenantID, msg)
+		if err := s.Store.WithTx(ctx, func(tx store.Store) error {
+			if msg.UserID != "" {
+				var err error
+				in.User, err = tx.Users().Get(ctx, tenantID, msg.UserID)
+				if err != nil {
+					return err
+				}
+			}
+			if len(in.User.Identities) > 0 && in.User.Identities[0].Connection != "" {
+				conn, err := tx.Connections().GetByName(ctx, tenantID, in.User.Identities[0].Connection)
+				if err != nil && !errors.Is(err, store.ErrNotFound) {
+					return err
+				}
+				in.Connection = conn
+			}
+			if msg.ClientID != "" {
+				var err error
+				in.Client, err = tx.Clients().Get(ctx, tenantID, msg.ClientID)
+				if err != nil {
+					return err
+				}
+			}
+			return s.Actions.EnqueueEmail(ctx, tx, in)
+		}); err != nil {
+			return fmt.Errorf("%w: %v", ErrProviderConfiguration, err)
+		}
+		return nil
 	}
 	if s.Wrapper == nil || s.Providers == nil {
 		return ErrServiceUnavailable
@@ -249,7 +289,7 @@ func (s *Service) Send(ctx context.Context, event Event) error {
 	if from == "" {
 		from = "zeroauthy@localhost"
 	}
-	msg := Message{From: from, To: user.Email, Subject: rendered.Subject, HTML: rendered.HTML, Text: htmlToText(rendered.HTML)}
+	msg := Message{Type: event.Template, Locale: event.Language, UserID: event.UserID, ClientID: event.ClientID, From: from, To: user.Email, Subject: rendered.Subject, HTML: rendered.HTML, Text: htmlToText(rendered.HTML)}
 	if err = validateMessage(from, msg); err != nil {
 		return err
 	}
@@ -265,12 +305,18 @@ func (s *Service) Preview(ctx context.Context, tenantID, name string, overrides 
 // SendTest renders a stored tenant template for a verified operator selected
 // by the caller and submits it through that tenant's current provider.
 func (s *Service) SendTest(ctx context.Context, tenantID, name, recipient string) error {
+	_, err := s.SendTestOutcome(ctx, tenantID, name, recipient)
+	return err
+}
+
+// SendTestOutcome returns the custom Action's first attempt, or nil for a transport delivery.
+func (s *Service) SendTestOutcome(ctx context.Context, tenantID, name, recipient string) (*actions.EmailOutcome, error) {
 	if recipient == "" {
-		return store.ErrInvalid
+		return nil, store.ErrInvalid
 	}
 	rendered, provider, err := s.renderTemplate(ctx, tenantID, name, recipient, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	msg := Message{From: rendered.From, To: recipient, Subject: rendered.Subject, Text: rendered.Text, HTML: rendered.HTML}
 	if msg.From == "" {
@@ -280,9 +326,18 @@ func (s *Service) SendTest(ctx context.Context, tenantID, name, recipient string
 		msg.From = "zeroauthy@localhost"
 	}
 	if err = validateMessage(msg.From, msg); err != nil {
-		return err
+		return nil, err
 	}
-	return s.deliver(ctx, tenantID, msg, provider)
+	if provider != nil && provider.Name == "custom" {
+		if s.Actions == nil {
+			return nil, ErrProviderConfiguration
+		}
+		msg.Type = "try_provider_configuration_email"
+		msg.Locale = "en"
+		out, err := s.Actions.RunEmailNow(ctx, emailInput(tenantID, msg))
+		return &out, err
+	}
+	return nil, s.deliver(ctx, tenantID, msg, provider)
 }
 
 func (s *Service) renderSynthetic(ctx context.Context, tenantID, name, recipient string, overrides map[string]any) (Rendered, error) {
@@ -495,4 +550,11 @@ func (s *Service) renderContext(ctx context.Context, tenantID string, tenant, us
 		}
 	}
 	return BuildRenderContext(tenant, user, application, cd, language, link)
+}
+
+func emailInput(tenant string, msg Message) actions.EmailInput {
+	if msg.Locale == "" {
+		msg.Locale = "en"
+	}
+	return actions.EmailInput{Tenant: tenant, User: &store.User{Email: msg.To}, Message: actions.EmailMessage{From: msg.From, To: msg.To, Subject: msg.Subject, HTML: msg.HTML, Text: msg.Text, Locale: msg.Locale, Type: msg.Type}}
 }

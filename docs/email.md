@@ -54,8 +54,12 @@ follow redirects. Configure the provider credentials and sender with the
 provider's own service; zeroauthy does not validate live vendor account status
 when saving a provider.
 
-`custom` is accepted only as disabled stored configuration. It does not run
-Actions. A configured provider's send failure is reported as a failed or
+An enabled `custom` provider hands rendered messages to a bound
+`custom-email-provider` Action through the durable Actions queue. Without a
+binding, sends fail as a provider configuration error. Test sends run one
+attempt immediately and report sent, retry, drop or failed. Queued deliveries
+retry up to five times at 30 seconds, 1, 2, 4 and 8 minutes. A worker crash can
+repeat a delivery after its lease expires; delivery is at least once. A configured transport provider's send failure is reported as a failed or
 uncertain send; zeroauthy does not switch providers or automatically retry a
 message whose remote acceptance is unknown.
 
@@ -82,7 +86,7 @@ a trusted signup that is already verified); it is disabled by default.
 after the corresponding authoritative security event. Messages to unknown
 identifiers are never sent. The remaining code, MFA, invitation and approval
 templates are stored and can be previewed or test-sent, but their workflows
-are not implemented. `custom` provider execution is also stored-only.
+are not implemented.
 
 Template `resultUrl` values used for verification or reset must satisfy the
 email-ticket redirect rules: HTTPS and, when an application is associated, an

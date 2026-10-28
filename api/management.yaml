@@ -4012,6 +4012,18 @@ paths:
           application/json:
             schema: {$ref: "#/components/schemas/EmailTestRequest"}
       responses:
+        "200":
+          description: The custom email Action's first attempt outcome; no job or retry is enqueued.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status: {type: string, enum: [sent, retry, drop, failed]}
+                  reason: {type: string}
+                  execution_id: {type: string}
         "204": {description: The provider accepted the test message.}
         "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}

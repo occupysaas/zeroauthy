@@ -8,6 +8,9 @@ import (
 )
 
 func TestValidateProviderCredentialsAndRedaction(t *testing.T) {
+	if err := ValidateProvider(rawProvider(map[string]any{"name": "custom", "enabled": true}), nil); err != nil {
+		t.Fatal(err)
+	}
 	secret := "SENTINEL_EMAIL_SECRET"
 	provider := rawProvider(map[string]any{
 		"name": "sendgrid", "enabled": true, "default_from_address": "mail@example.test",
@@ -26,7 +29,6 @@ func TestValidateProviderCredentialsAndRedaction(t *testing.T) {
 		t.Fatalf("secret leaked from public projection: %s", b)
 	}
 	for _, bad := range []map[string]any{
-		{"name": "custom", "enabled": true},
 		{"name": "sendgrid", "enabled": true, "credentials": map[string]any{"api_key": ""}},
 		{"name": "sendgrid", "enabled": true, "credentials": map[string]any{"api_key": secret, "smtp_pass": "bad"}},
 		{"name": "smtp", "enabled": true, "credentials": map[string]any{"smtp_host": "localhost", "smtp_pass": secret}},

@@ -53,10 +53,10 @@ func TestManagementEmailProviderAndTemplateAPIs(t *testing.T) {
 	if status, _ := c.do(h, "GET", base, admin, nil); status != http.StatusNotFound {
 		t.Fatalf("deleted provider: %d", status)
 	}
-	if status, _ := c.do(h, "POST", base, admin, map[string]any{"name": "custom", "enabled": true}); status != http.StatusBadRequest {
+	if status, _ := c.do(h, "POST", base, admin, map[string]any{"name": "custom", "enabled": true}); status != http.StatusCreated {
 		t.Fatalf("enabled custom provider: %d", status)
 	}
-	if status, _ := c.do(h, "POST", base, admin, map[string]any{"name": "custom", "enabled": false}); status != http.StatusCreated {
+	if status, _ := c.do(h, "PATCH", base, admin, map[string]any{"enabled": false}); status != http.StatusOK {
 		t.Fatalf("disabled custom provider: %d", status)
 	}
 	if status, _ := c.do(h, "DELETE", base, admin, nil); status != http.StatusNoContent {
