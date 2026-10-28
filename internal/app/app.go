@@ -284,11 +284,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			store.JobUsersImport: jobs.Importer{Mailer: mailer, Email: tenantEmail, Log: log},
 			store.JobUsersExport: jobs.Exporter{View: mgmt.UserJSON, Log: log},
 		},
-		Sweeps: []jobs.Sweep{{Name: "actions executions", Every: time.Hour,
-			Run: func(ctx context.Context, st store.Store, now time.Time) error {
-				_, err := actions.PurgeExecutions(ctx, st, now)
-				return err
-			}}, {Name: "actions continuations", Every: time.Minute,
+		Sweeps: []jobs.Sweep{{Name: "actions continuations", Every: time.Minute,
 			Run: func(ctx context.Context, st store.Store, now time.Time) error {
 				_, err := actions.PurgeContinue(ctx, st, now)
 				return err
