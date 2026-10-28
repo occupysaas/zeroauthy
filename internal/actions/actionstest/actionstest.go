@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"strings"
@@ -74,10 +76,25 @@ type Env struct {
 // New returns an engine over st whose secrets open with w.
 func New(t testing.TB, st store.Store, w keys.Wrapper) *Env {
 	t.Helper()
+	return newEnv(t, st, w, "")
+}
+
+// NewOffline returns an engine whose registry is a loopback-only fixture.
+// Empty builds work normally; accidental dependency requests fail locally.
+func NewOffline(t testing.TB, st store.Store, w keys.Wrapper) *Env {
+	t.Helper()
+	registry := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "offline registry fixture", http.StatusNotFound)
+	}))
+	t.Cleanup(registry.Close)
+	return newEnv(t, st, w, registry.URL)
+}
+func newEnv(t testing.TB, st store.Store, w keys.Wrapper, registry string) *Env {
+	t.Helper()
 	RequireNode(t)
 	logs := &Logs{}
 	log := slog.New(slog.NewTextHandler(logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	cfg := config.Actions{CacheDir: t.TempDir(), IdleTimeout: time.Minute}
+	cfg := config.Actions{CacheDir: t.TempDir(), IdleTimeout: time.Minute, Registry: registry}
 	builds, err := build.New(cfg, st, log)
 	if err != nil {
 		t.Fatal(err)

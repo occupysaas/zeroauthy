@@ -580,3 +580,59 @@ func scopedAll(w http.ResponseWriter, r *http.Request, fn http.HandlerFunc, scop
 	}
 	fn(w, r)
 }
+
+func (a mgmtAPI) GetActions(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetActionsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActions(w, r) }, "read:actions")
+}
+
+func (a mgmtAPI) CreateAction(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.CreateAction(w, r) }, "create:actions")
+}
+
+func (a mgmtAPI) GetAction(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetAction(w, r, id) }, "read:actions")
+}
+
+func (a mgmtAPI) UpdateAction(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateAction(w, r, id) }, "update:actions")
+}
+
+func (a mgmtAPI) DeleteAction(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.DeleteActionParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteAction(w, r, id) }, "delete:actions")
+}
+
+func (a mgmtAPI) DeployAction(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeployAction(w, r, id) }, "create:actions")
+}
+
+func (a mgmtAPI) GetActionVersions(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetActionVersionsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionVersions(w, r, id) }, "read:actions")
+}
+
+func (a mgmtAPI) GetActionVersion(w http.ResponseWriter, r *http.Request, id string, versionId string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionVersion(w, r, id, versionId) }, "read:actions")
+}
+
+func (a mgmtAPI) DeployActionVersion(w http.ResponseWriter, r *http.Request, id string, versionId string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeployActionVersion(w, r, id, versionId) }, "create:actions")
+}
+
+func (a mgmtAPI) TestAction(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.TestAction(w, r, id) }, "create:actions")
+}
+
+func (a mgmtAPI) GetActionTriggers(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionTriggers(w, r) }, "read:actions")
+}
+
+func (a mgmtAPI) GetActionBindings(w http.ResponseWriter, r *http.Request, triggerId string, _ mgmtapi.GetActionBindingsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionBindings(w, r, triggerId) }, "read:actions")
+}
+
+func (a mgmtAPI) UpdateActionBindings(w http.ResponseWriter, r *http.Request, triggerId string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateActionBindings(w, r, triggerId) }, "update:actions")
+}
+
+func (a mgmtAPI) GetActionExecution(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionExecution(w, r, id) }, "read:actions")
+}

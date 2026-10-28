@@ -36,6 +36,13 @@ import (
 // user) as missing, and the loser's insert conflicts. On the retry the
 // winner's rows exist and are updated instead.
 func Apply(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper) error {
+	if hasActions(f) {
+		return errors.New("seed: Actions require ApplyWithActions")
+	}
+	return applyOrdinary(ctx, st, f, now, w)
+}
+
+func applyOrdinary(ctx context.Context, st store.Store, f *File, now func() time.Time, w keys.Wrapper) error {
 	err := apply(ctx, st, f, now, w)
 	if errors.Is(err, store.ErrConflict) {
 		err = apply(ctx, st, f, now, w)

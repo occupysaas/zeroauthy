@@ -177,6 +177,18 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	if err := tenantsetup.ReconcileDomains(ctx, st, cfg.Server.BaseDomain, systemHost, cfg.Server.OriginDomain()); err != nil {
 		return nil, fmt.Errorf("app: domain reconciliation: %w", err)
 	}
+	// Seed Actions build outside the ordinary seed transaction. Keep this
+	// manager for the runtime so configuration and artifacts are identical.
+	builds, err := actionsbuild.New(cfg.Actions, st, log)
+	if err != nil {
+		return nil, err
+	}
+	buildsOwned := false
+	defer func() {
+		if !buildsOwned {
+			builds.Close()
+		}
+	}()
 	if cfg.Seed != "" {
 		f, err := seed.Load(cfg.Seed)
 		if err != nil {
@@ -189,7 +201,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		if err := f.CheckManagementAPI(cfg.Server.BaseDomain); err != nil {
 			return nil, err
 		}
-		if err := seed.Apply(ctx, st, f, time.Now, wrapper); err != nil {
+		if err := seed.ApplyWithActions(ctx, st, f, time.Now, wrapper, &actions.Engine{Store: st, Builds: builds, Secrets: wrapper, Log: log}); err != nil {
 			return nil, err
 		}
 		log.Info("applied seed", "file", cfg.Seed, "mode", cfg.SeedMode, "tenants", len(f.Tenants))
@@ -316,15 +328,6 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		log.Warn("custom OAuth2 profile scripts unavailable", "reason", err)
 		profiles = nil
 	}
-	// Actions dependency builds; Node and npm are needed only once a build runs.
-	builds, err := actionsbuild.New(cfg.Actions, st, log)
-	if err != nil {
-		_ = runner.Close()
-		if profiles != nil {
-			_ = profiles.Close()
-		}
-		return nil, err
-	}
 	// Actions flows run in their own Node processes, started on first use.
 	actionsRunner, err := actions.NewRunner(cfg.Actions, builds, log)
 	if err != nil {
@@ -338,6 +341,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 	engine := &actions.Engine{Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
 	sec := cfg.Security
+	buildsOwned = true
 	return &App{
 		profiles:   profiles,
 		tls:        tlsManager,

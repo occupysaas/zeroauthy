@@ -48,6 +48,8 @@ type File struct {
 }
 
 type Tenant struct {
+	Actions          []Action                  `yaml:"actions"`
+	Triggers         map[string]Trigger        `yaml:"triggers"`
 	AttackProtection map[string]map[string]any `yaml:"attack_protection"`
 	// Settings uses the public tenant settings inventory; legacy top-level durations remain seconds.
 	Settings map[string]any `yaml:"settings"`
