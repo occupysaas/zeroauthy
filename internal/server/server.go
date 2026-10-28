@@ -179,7 +179,7 @@ func New(d Deps) http.Handler {
 		sharedProtection.Notifier = d.EmailService
 	}
 	dbconnHandlers := &dbconn.Handlers{
-		Store: d.Store, Database: db,
+		Store: d.Store, Database: db, Actions: d.Actions,
 		Protection: sharedProtection, TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 		Mailer:       d.Mailer,
 		Email:        d.EmailService,
@@ -188,6 +188,7 @@ func New(d Deps) http.Handler {
 	lg := &login.Handlers{
 		Store: d.Store, Sessions: d.Sessions, Authz: az,
 		Database:          db,
+		Actions:           d.Actions,
 		Resets:            dbconnHandlers,
 		Federation:        d.Federation,
 		Verification:      verification,

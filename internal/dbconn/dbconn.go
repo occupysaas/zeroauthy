@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
@@ -24,6 +25,7 @@ const maxBodyBytes = 64 << 10
 
 // Handlers serves the /dbconnections endpoints.
 type Handlers struct {
+	Actions           *actions.Engine
 	Protection        *protection.Service
 	Store             store.Store
 	Database          *identity.Database

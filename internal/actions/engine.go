@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
@@ -35,58 +36,13 @@ var (
 	ErrTimeout = errors.New("actions: the flow exceeded its time limit")
 )
 
-// TargetEdit is the target scope set after the flow's transaction edits.
-type TargetEdit struct{ Scopes []string }
-
-// RBACSnapshot preserves effective permissions, while token issuance still
-// evaluates the current API definition and application policy.
-type RBACSnapshot struct {
-	Audience    string   `json:"audience"`
-	Permissions []string `json:"permissions"`
-}
-
-// Effects are a flow's validated, accumulated results. Claims are filtered
-// during minting. Metadata patches commit only when the flow completes.
-type Effects struct {
-	// RBAC is fixed before the first Action. Management API assignments made
-	// by an Action affect the next issuance, including across redirects/code exchange.
-	RBAC                      *RBACSnapshot
-	AccessClaims, IDClaims    map[string]any
-	AddScopes, RemoveScopes   []string
-	Target                    *TargetEdit
-	AppMetadata, UserMetadata map[string]any
-	TxnMetadata               map[string]any
-	// Ceiling is set by callers, not the engine: the authorized scopes
-	// before the flow's target-scope edits, the refresh family's ceiling
-	// (spec §7) when it differs from the issued scopes. Nil: the issued
-	// scopes are the ceiling.
-	Ceiling []string
-}
-
-// Denial is access.deny or validation.error. Code is "access_denied" for a
-// post-login deny, the validation.error code, or the credentials-exchange
-// deny code.
-type Denial struct{ Code, Reason, UserMessage string }
-
-// NotificationOutcome is the last retry/drop call of an email flow.
-type NotificationOutcome struct{ Kind, Reason string }
-
-// Redirect is a recorded api.redirect.sendUserTo (spec §8).
-type Redirect struct {
-	URL   string
-	Query map[string]string
-}
-
-// Result is the outcome of a flow that did not fail.
-type Result struct {
-	Effects      Effects
-	ResultURL    string
-	Notification *NotificationOutcome
-	Denied       *Denial
-	Redirect     *Redirect
-	ExecutionID  string
-	Continuation map[string]string
-}
+type TargetEdit = actionresult.TargetEdit
+type RBACSnapshot = actionresult.RBACSnapshot
+type Effects = actionresult.Effects
+type Denial = actionresult.Denial
+type NotificationOutcome = actionresult.NotificationOutcome
+type Redirect = actionresult.Redirect
+type Result = actionresult.Result
 
 // ErrFlow is a failed flow: no code or token may be issued. ExecutionID
 // names its execution record; it is for operators and the hosted error
@@ -187,6 +143,7 @@ type flow struct {
 	roles                                []roleJSON
 	acc                                  *accum
 	event                                func() map[string]any
+	validate                             func(*Effects) error
 	cache                                *actionCache
 	deadline                             time.Time
 	input                                *PostLoginInput
@@ -371,6 +328,14 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		f.handler = handlerFor(f.trigger)
 		if failure != nil || f.acc.denied != nil {
 			break
+		}
+	}
+	if failure == nil && f.acc.denied == nil && f.validate != nil {
+		if err := f.validate(&f.acc.eff); err != nil {
+			failure = err
+			last := &ex.Results[len(ex.Results)-1]
+			last.ErrorID, last.ErrorMsg = "internal_error", "the flow's metadata is invalid"
+			failed = last.ActionName
 		}
 	}
 	ex.UpdatedAt = e.now()

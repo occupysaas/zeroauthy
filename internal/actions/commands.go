@@ -342,7 +342,7 @@ func (a *accum) deny(c command) error {
 		if err != nil {
 			return err
 		}
-		a.setDenial(&Denial{Code: "access_denied", Reason: reason, UserMessage: message})
+		a.setDenial(&Denial{Code: "extensibility_error", Reason: reason, UserMessage: message})
 		return nil
 	}
 	if err := argCount(c, 0, 1); err != nil {

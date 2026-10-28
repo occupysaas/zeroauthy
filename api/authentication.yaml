@@ -662,7 +662,8 @@ paths:
         policy not met) and `user_exists` (409). On a custom database
         connection, a `create` script's `UnauthorizedError` is `401` with
         `unauthorized` and the script's message, and a failing script is
-        `500` with `server_error` (D-0023).
+        `500` with `server_error` (D-0023). A denied or failed pre-registration
+        Action returns 400 `{name, code, description, statusCode}` (D-0054).
       x-source:
         - https://auth0.com/docs/api/authentication/signup/create-a-new-user
       requestBody:
@@ -682,7 +683,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/SignupResponse"
         "400":
-          $ref: "#/components/responses/OAuthErrorResponse"
+          description: Invalid signup, password policy failure, or denied/failed registration Action.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/OAuthError"
+                  - $ref: "#/components/schemas/ExtensibilityError"
         "401":
           $ref: "#/components/responses/OAuthErrorResponse"
         "404":
@@ -873,6 +880,16 @@ components:
         name: {type: string}
         nickname: {type: string}
         picture: {type: string}
+    ExtensibilityError:
+      description: Registration Action failure or denial (local compatibility decision D-0054).
+      x-source: docs/compat/decisions.md#d-0054-actions-ii
+      type: object
+      required: [name, code, description, statusCode]
+      properties:
+        name: {type: string, enum: [ExtensibilityError]}
+        code: {type: string}
+        description: {type: string}
+        statusCode: {type: integer, enum: [400]}
     OAuthError:
       type: object
       required: [error, error_description]

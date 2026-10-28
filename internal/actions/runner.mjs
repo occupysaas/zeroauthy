@@ -374,9 +374,11 @@ function buildApi(req, commands, event, parse) {
     else if (typeof api[name]?.[methodName] === 'function') selected[name][methodName] = api[name][methodName];
     else selected[name][methodName] = unsupported(name)[methodName];
   }
-  // Preserve Plan 27's clear unsupported errors for unknown methods within
-  // its deliberately unsupported namespaces, and reset authentication.*.
-  for (const name of unsupportedNamespaces) {
+  // Pre-registration's unsupported methods (including EA user.setUserId)
+  // must fail closed even when caught. Preserve existing triggers' capability
+  // introspection and their explicitly unsupported namespaces.
+  const guardedNamespaces = req.handler === 'onExecutePreUserRegistration' ? Object.keys(selected) : unsupportedNamespaces;
+  for (const name of guardedNamespaces) {
     if (!selected[name]) continue;
     const fallback = unsupported(name);
     selected[name] = new Proxy(selected[name], { get: (target, key) => target[key] ?? fallback[key] });

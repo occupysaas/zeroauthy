@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/dbconn"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
@@ -23,6 +24,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
+	"github.com/zeroauthy/zeroauthy/internal/signupactions"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/ui"
@@ -33,6 +35,7 @@ const maxFormBytes = 16 << 10
 var errTxn = errors.New("login: invalid or expired transaction")
 
 type Handlers struct {
+	Actions    *actions.Engine
 	Protection *protection.Service
 	Store      store.Store
 	Sessions   *session.Manager
@@ -501,8 +504,28 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		h.renderSignup(w, r, status, f, data)
 		return
 	}
+	var callbacks identity.SignupActions
+	if h.Actions != nil {
+		client, err := h.Store.Clients().Get(r.Context(), f.res.Tenant.ID, f.txn.ClientID)
+		if err != nil {
+			h.fail(w, r, err, f)
+			return
+		}
+		body := map[string]any{}
+		for k, v := range r.PostForm {
+			if len(v) == 1 {
+				body[k] = v[0]
+			} else {
+				body[k] = v
+			}
+		}
+		input := signupactions.Input(r, f.res, client, f.conn, body, h.TrustProxyHeaders)
+		p := f.txn.Params
+		input.Transaction = &actions.TransactionInfo{ID: f.txn.ID, Locale: f.view.L.Lang(), Protocol: actions.ProtocolOIDCBasicProfile, RedirectURI: p["redirect_uri"], RequestedScopes: strings.Fields(p["scope"]), ResponseMode: p["response_mode"], ResponseType: p["response_type"], State: p["state"], UILocales: p["ui_locales"], Prompt: p["prompt"], LoginHint: p["login_hint"], ACRValues: p["acr_values"]}
+		callbacks = signupactions.Callbacks(h.Actions, input)
+	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
-		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"),
+		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"), Actions: callbacks,
 	})
 	if riskErr := h.recordFailure(r, f.res, "signup", attemptID, err); riskErr != nil {
 		h.fail(w, r, riskErr, f)
@@ -515,7 +538,16 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	var pe *identity.PolicyError
 	var ue *identity.UnauthorizedError
+	var denied *identity.ErrSignupDenied
+	var failed *identity.ErrSignupActionFailed
 	switch {
+	case errors.As(err, &denied):
+		data.Error = denied.Description
+		h.renderSignup(w, r, http.StatusBadRequest, f, data)
+		return
+	case errors.As(err, &failed):
+		ui.RenderErrorReference(w, http.StatusBadRequest, f.view, f.view.L.T(i18n.KeyErrServer), failed.ExecutionID)
+		return
 	case errors.As(err, &ue):
 		data.Error = ue.Message
 		h.renderSignup(w, r, http.StatusUnauthorized, f, data)

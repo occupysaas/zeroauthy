@@ -11,6 +11,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/loginid"
@@ -300,6 +301,7 @@ type SignupInput struct {
 	GivenName, FamilyName, Name, Nickname string
 	Picture                               string
 	UserMetadata                          map[string]any
+	Actions                               SignupActions
 }
 
 const maxProfileFieldRunes = loginid.MaxProfileFieldRunes
@@ -424,13 +426,10 @@ func (d *Database) Signup(ctx context.Context, conn *store.Connection, in Signup
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	if err := d.Store.Users().Create(ctx, u); err != nil {
-		if errors.Is(err, store.ErrConflict) {
-			return nil, ErrUserExists
-		}
+	if err := d.runSignupActions(ctx, in.Actions, u); err != nil {
 		return nil, err
 	}
-	if err := RecordPassword(ctx, d.Store, conn, u.UserID, hash); err != nil {
+	if err := d.insertSignup(ctx, conn, in.Actions, u, hash); err != nil {
 		return nil, err
 	}
 	return u, nil
@@ -462,4 +461,99 @@ func (d *Database) FindForReset(ctx context.Context, conn *store.Connection, ema
 		return nil, store.ErrNotFound
 	}
 	return user, nil
+}
+
+// SignupActions injects signup flows without coupling identity to the Actions runtime.
+// actionresult.Result is aliased as actions.Result.
+type SignupActions struct {
+	Run     func(context.Context, *store.User) (*actionresult.Result, error)
+	Enqueue func(context.Context, store.Store, *store.User) error
+}
+
+type ErrSignupDenied struct{ Code, Description string }
+
+func (e *ErrSignupDenied) Error() string { return "signup denied" }
+
+type ErrSignupActionFailed struct{ ExecutionID string }
+
+func (e *ErrSignupActionFailed) Error() string { return "signup Action failed" }
+
+func (d *Database) runSignupActions(ctx context.Context, a SignupActions, u *store.User) error {
+	if a.Run == nil {
+		return nil
+	}
+	result, err := a.Run(ctx, u)
+	if err != nil {
+		var failed *ErrSignupActionFailed
+		if errors.As(err, &failed) {
+			return failed
+		}
+		return &ErrSignupActionFailed{}
+	}
+	if result == nil {
+		return &ErrSignupActionFailed{}
+	}
+	if result.Denied != nil {
+		code := result.Denied.Code
+		if code == "" {
+			code = "extensibility_error"
+		}
+		message := result.Denied.UserMessage
+		if message == "" {
+			message = "Unable to complete signup."
+		}
+		return &ErrSignupDenied{Code: code, Description: message}
+	}
+	userMeta := mergeSignupMetadata(u.UserMetadata, result.Effects.UserMetadata)
+	appMeta := mergeSignupMetadata(u.AppMetadata, result.Effects.AppMetadata)
+	if CheckMetadata("user_metadata", userMeta) != nil || CheckMetadata("app_metadata", appMeta) != nil {
+		return &ErrSignupActionFailed{ExecutionID: result.ExecutionID}
+	}
+	u.UserMetadata, u.AppMetadata = userMeta, appMeta
+	return nil
+}
+func mergeSignupMetadata(base, patch map[string]any) map[string]any {
+	out := make(map[string]any, len(base)+len(patch))
+	for k, v := range base {
+		out[k] = v
+	}
+	for k, v := range patch {
+		if v == nil {
+			delete(out, k)
+		} else {
+			out[k] = v
+		}
+	}
+	return out
+}
+func (d *Database) insertSignup(ctx context.Context, conn *store.Connection, a SignupActions, u *store.User, hash string) error {
+	err := d.Store.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.Users().Create(ctx, u); err != nil {
+			return err
+		}
+		if hash != "" {
+			if err := RecordPassword(ctx, tx, conn, u.UserID, hash); err != nil {
+				return err
+			}
+		}
+		return d.enqueueSignup(ctx, tx, conn, a, u)
+	})
+	if errors.Is(err, store.ErrConflict) {
+		return ErrUserExists
+	}
+	return err
+}
+
+// enqueueSignup queues post-registration in tx. A full queue drops the job
+// with a log line and keeps the signup.
+func (d *Database) enqueueSignup(ctx context.Context, tx store.Store, conn *store.Connection, a SignupActions, u *store.User) error {
+	if a.Enqueue == nil {
+		return nil
+	}
+	err := a.Enqueue(ctx, tx, u)
+	if errors.Is(err, store.ErrPrecondition) {
+		d.log().WarnContext(ctx, "post-registration Action job dropped", "tenant", conn.TenantID, "user_id", u.UserID, "error", err)
+		return nil
+	}
+	return err
 }

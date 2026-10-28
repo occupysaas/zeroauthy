@@ -12,6 +12,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
+	"github.com/zeroauthy/zeroauthy/internal/signupactions"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 )
@@ -58,7 +59,8 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 	tenantID := res.Tenant.ID
 
-	if _, err := h.Store.Clients().Get(ctx, tenantID, fields["client_id"]); errors.Is(err, store.ErrNotFound) {
+	client, err := h.Store.Clients().Get(ctx, tenantID, fields["client_id"])
+	if errors.Is(err, store.ErrNotFound) {
 		writeErr(w, http.StatusBadRequest, "invalid_request", "unknown client")
 		return
 	} else if err != nil {
@@ -107,6 +109,7 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 		ClientID: fields["client_id"], Email: fields["email"], Username: fields["username"], Password: fields["password"],
 		GivenName: fields["given_name"], FamilyName: fields["family_name"], Name: fields["name"],
 		Nickname: fields["nickname"], Picture: fields["picture"], UserMetadata: meta,
+		Actions: signupactions.Callbacks(h.Actions, signupactions.Input(r, res, client, conn, body, h.TrustProxyHeaders)),
 	})
 	if riskErr := h.recordFailure(r, res, "signup", attemptID, err); riskErr != nil {
 		h.internal(w, r, "record risk", riskErr)
@@ -114,7 +117,15 @@ func (h *Handlers) Signup(w http.ResponseWriter, r *http.Request) {
 	}
 	var pe *identity.PolicyError
 	var ue *identity.UnauthorizedError
+	var denied *identity.ErrSignupDenied
+	var failed *identity.ErrSignupActionFailed
 	switch {
+	case errors.As(err, &denied):
+		signupActionError(w, denied.Code, denied.Description)
+		return
+	case errors.As(err, &failed):
+		signupActionError(w, "extensibility_error", "Unable to complete signup.")
+		return
 	case errors.As(err, &ue):
 		writeErr(w, http.StatusUnauthorized, "unauthorized", ue.Message)
 		return
@@ -168,4 +179,8 @@ func userMetadata(v any) (map[string]any, error) {
 		}
 	}
 	return m, nil
+}
+
+func signupActionError(w http.ResponseWriter, code, description string) {
+	httpx.WriteJSON(w, http.StatusBadRequest, map[string]any{"name": "ExtensibilityError", "code": code, "description": description, "statusCode": http.StatusBadRequest})
 }
