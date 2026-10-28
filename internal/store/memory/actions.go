@@ -159,7 +159,18 @@ func (r actionsRepo) UpdateAction(_ context.Context, a *store.Action) error {
 	if r.s.nameTaken(c.TenantID, c.Name, c.ID) {
 		return store.ErrConflict
 	}
-	refs, err := r.s.resolveModuleRefs(c.TenantID, c.Modules)
+	refs, err := store.ResolveDraftModuleRefs(c.Modules,
+		func(id string) (bool, error) { return r.s.modules[key{c.TenantID, id}] != nil, nil },
+		func() ([]store.ModuleRef, error) {
+			var pins []store.ModuleRef
+			for k, v := range r.s.actionVersions {
+				if k.tenant == c.TenantID && v.ActionID == c.ID {
+					pins = append(pins, v.Modules...)
+				}
+			}
+			return pins, nil
+		},
+		func(refs []store.ModuleRef) ([]store.ModuleRef, error) { return r.s.resolveModuleRefs(c.TenantID, refs) })
 	if err != nil {
 		return err
 	}

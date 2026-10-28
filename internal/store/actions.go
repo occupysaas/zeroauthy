@@ -344,3 +344,68 @@ func (UnimplementedActions) FinishJob(context.Context, *ActionJob, time.Time) er
 func (UnimplementedActions) PurgeJobs(context.Context, time.Time) (int, error) {
 	return 0, ErrActionsUnavailable
 }
+
+// ResolveDraftModuleRefs resolves an Action draft's module references. A
+// reference naming, by module and version ID, a version that one of the
+// Action's own versions pins is kept as that pin even when its module was
+// deleted (a hidden tombstone): restoring an old version into the draft keeps
+// working (Actions II spec §8). The tombstone cannot purge while that version
+// exists. Every other reference goes through resolve, which accepts only
+// live modules. live reports whether a module is visible; pins lists the
+// module references of the Action's versions.
+func ResolveDraftModuleRefs(refs []ModuleRef, live func(moduleID string) (bool, error), pins func() ([]ModuleRef, error), resolve func([]ModuleRef) ([]ModuleRef, error)) ([]ModuleRef, error) {
+	kept := map[int]ModuleRef{}
+	var pinned []ModuleRef
+	loaded := false
+	for i, ref := range refs {
+		if ref.ModuleID == "" || ref.VersionID == "" {
+			continue
+		}
+		ok, err := live(ref.ModuleID)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			continue
+		}
+		if !loaded {
+			if pinned, err = pins(); err != nil {
+				return nil, err
+			}
+			loaded = true
+		}
+		for _, p := range pinned {
+			if p.ModuleID == ref.ModuleID && p.VersionID == ref.VersionID && (ref.ModuleName == "" || ref.ModuleName == p.ModuleName) && (ref.VersionNumber == 0 || ref.VersionNumber == p.VersionNumber) {
+				kept[i] = p
+				break
+			}
+		}
+	}
+	if len(kept) == 0 {
+		return resolve(refs)
+	}
+	rest := make([]ModuleRef, 0, len(refs)-len(kept))
+	for i, ref := range refs {
+		if _, ok := kept[i]; !ok {
+			rest = append(rest, ref)
+		}
+	}
+	resolved, err := resolve(rest)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ModuleRef, 0, len(refs))
+	ids, names := map[string]bool{}, map[string]bool{}
+	for i := range refs {
+		r, ok := kept[i]
+		if !ok {
+			r, resolved = resolved[0], resolved[1:]
+		}
+		if ids[r.ModuleID] || names[r.ModuleName] {
+			return nil, ErrInvalid
+		}
+		ids[r.ModuleID], names[r.ModuleName] = true, true
+		out = append(out, r)
+	}
+	return out, nil
+}

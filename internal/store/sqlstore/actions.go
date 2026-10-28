@@ -167,7 +167,36 @@ func (r actionsRepo) UpdateAction(ctx context.Context, a *store.Action) error {
 		if c.Trigger != old.Trigger {
 			return store.ErrInvalid
 		}
-		refs, err := (actionsRepo{tx}).resolveModuleRefs(ctx, c.TenantID, c.Modules)
+		repo := actionsRepo{tx}
+		refs, err := store.ResolveDraftModuleRefs(c.Modules,
+			func(id string) (bool, error) {
+				_, err := repo.GetModule(ctx, c.TenantID, id)
+				if errors.Is(err, store.ErrNotFound) {
+					return false, nil
+				}
+				return err == nil, err
+			},
+			func() ([]store.ModuleRef, error) {
+				rows, err := tx.query(ctx, `SELECT modules FROM action_versions WHERE tenant_id=? AND action_id=?`, c.TenantID, c.ID)
+				if err != nil {
+					return nil, err
+				}
+				defer rows.Close()
+				var pins []store.ModuleRef
+				for rows.Next() {
+					var raw string
+					var refs []store.ModuleRef
+					if err := rows.Scan(&raw); err != nil {
+						return nil, err
+					}
+					if err := fromJSON(raw, &refs); err != nil {
+						return nil, err
+					}
+					pins = append(pins, refs...)
+				}
+				return pins, rows.Err()
+			},
+			func(refs []store.ModuleRef) ([]store.ModuleRef, error) { return repo.resolveModuleRefs(ctx, c.TenantID, refs) })
 		if err != nil {
 			return err
 		}

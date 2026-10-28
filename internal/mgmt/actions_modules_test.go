@@ -415,3 +415,44 @@ func TestActionsModulesPinnedVersionsAndDeployedOnlyUse(t *testing.T) {
 		t.Fatal(a)
 	}
 }
+
+// Redeploying an old version with update_draft must keep working after a
+// module it pins was deleted: the draft takes the version's pins verbatim (M-7).
+func TestActionsRollbackUpdateDraftWithTombstonedModule(t *testing.T) {
+	e := newClientsEnv(t)
+	ae := actionstest.NewOffline(t, e.st, e.w)
+	e.h.Actions = ae.Engine
+	caller := m2mCaller("read:actions", "create:actions", "update:actions", "delete:actions")
+	call := func(method string, body any, fn http.HandlerFunc, want int) map[string]any {
+		t.Helper()
+		rec, out := e.call(t, e.tn, caller, method, "/resource", body, fn)
+		if rec.Code != want {
+			t.Fatalf("%d %s want %d", rec.Code, rec.Body, want)
+		}
+		m, _ := out.(map[string]any)
+		return m
+	}
+	m := call("POST", map[string]any{"name": "doomed", "code": "module.exports={n:1}", "publish": true}, e.h.CreateActionModule, 201)
+	mid := m["id"].(string)
+	mvid := m["latest_version"].(map[string]any)["id"].(string)
+	a := call("POST", map[string]any{"name": "pinner", "supported_triggers": []any{map[string]any{"id": "post-login"}}, "modules": []any{map[string]any{"module_name": "doomed", "module_version_number": 1}}, "deploy": true}, e.h.CreateAction, 201)
+	aid := a["id"].(string)
+	old := a["deployed_version"].(map[string]any)["id"].(string)
+	call("PATCH", map[string]any{"modules": []any{}}, func(w http.ResponseWriter, r *http.Request) { e.h.UpdateAction(w, r, aid) }, 200)
+	call("POST", nil, func(w http.ResponseWriter, r *http.Request) { e.h.DeployAction(w, r, aid) }, 202)
+	call("DELETE", nil, func(w http.ResponseWriter, r *http.Request) { e.h.DeleteActionModule(w, r, mid) }, 204)
+	restored := call("POST", map[string]any{"update_draft": true}, func(w http.ResponseWriter, r *http.Request) { e.h.DeployActionVersion(w, r, aid, old) }, 202)
+	if restored["modules"].([]any)[0].(map[string]any)["module_version_id"] != mvid {
+		t.Fatal(restored)
+	}
+	a = call("GET", nil, func(w http.ResponseWriter, r *http.Request) { e.h.GetAction(w, r, aid) }, 200)
+	if refs := a["modules"].([]any); len(refs) != 1 || refs[0].(map[string]any)["module_version_id"] != mvid || a["all_changes_deployed"] != true {
+		t.Fatal(a)
+	}
+	// The restored draft stays editable and deployable on its pinned tombstone.
+	call("PATCH", map[string]any{"code": "exports.onExecutePostLogin=async()=>{};"}, func(w http.ResponseWriter, r *http.Request) { e.h.UpdateAction(w, r, aid) }, 200)
+	call("POST", nil, func(w http.ResponseWriter, r *http.Request) { e.h.DeployAction(w, r, aid) }, 202)
+	// A deleted module still cannot be newly referenced by a draft.
+	other := call("POST", map[string]any{"name": "other", "supported_triggers": []any{map[string]any{"id": "post-login"}}}, e.h.CreateAction, 201)
+	call("PATCH", map[string]any{"modules": []any{map[string]any{"module_id": mid, "module_version_id": mvid}}}, func(w http.ResponseWriter, r *http.Request) { e.h.UpdateAction(w, r, other["id"].(string)) }, 400)
+}

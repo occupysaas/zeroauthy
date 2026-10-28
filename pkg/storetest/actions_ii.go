@@ -204,6 +204,25 @@ func testActionsII(t *testing.T, factory Factory) {
 		must(t, e)
 		_, e = a.Deploy(ctx, "ii", "x", old.ID)
 		must(t, e)
+		// Restoring the old version into the draft keeps its tombstoned pin;
+		// another Action still cannot reference the deleted module.
+		x, e = a.GetAction(ctx, "ii", "x")
+		must(t, e)
+		x.Modules = old.Modules
+		must(t, a.UpdateAction(ctx, x))
+		x, e = a.GetAction(ctx, "ii", "x")
+		must(t, e)
+		if len(x.Modules) != 1 || x.Modules[0] != old.Modules[0] {
+			t.Fatal("restored draft pins", x.Modules)
+		}
+		must(t, a.UpdateAction(ctx, x))
+		y := &store.Action{TenantID: "ii", ID: "y", Name: "y", Trigger: "post-login", DraftBuildID: "built"}
+		must(t, a.CreateAction(ctx, y))
+		y.Modules = old.Modules
+		if e = a.UpdateAction(ctx, y); !errors.Is(e, store.ErrInvalid) {
+			t.Fatal("foreign tombstone pin accepted", e)
+		}
+		must(t, a.DeleteAction(ctx, "ii", "y", true))
 		must(t, a.DeleteAction(ctx, "ii", "x", true))
 		_, e = a.PurgeJobs(ctx, time.Now())
 		must(t, e)
