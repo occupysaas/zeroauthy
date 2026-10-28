@@ -1838,7 +1838,9 @@ export interface paths {
          * @description A zeroauthy-only operator extension, separate from Auth0's execution
          *     representation. Requires the target tenant grant. Reports the persisted
          *     job ID and one-based attempt of this execution, not current job state.
-         *     Ordinary synchronous and test executions return 204.
+         *     Ordinary synchronous and test executions return 204. The cited public
+         *     execution operation supplies the execution identity only; the attempt
+         *     fields are a local extension documented in docs/actions.md.
          */
         get: operations["getTenantActionExecutionAttempt"];
         put?: never;
