@@ -116,7 +116,7 @@ func TestActionsContinueRejects(t *testing.T) {
 			case "other-user":
 				sess.UserID = "auth0|other"
 			case "copied-to-tenant", "copied-to-session", "copied-to-state":
-				c, e := h.st.Actions().ConsumeContinue(ctx, tid, secrets.HashToken(state), h.clock())
+				c, e := h.st.Actions().ConsumeContinue(ctx, tid, secrets.HashToken(state), sess.ID, h.clock())
 				if e != nil {
 					t.Fatal(e)
 				}
@@ -137,7 +137,7 @@ func TestActionsContinueRejects(t *testing.T) {
 					t.Fatal(e)
 				}
 			case "tampered":
-				c, e := h.st.Actions().ConsumeContinue(ctx, tid, secrets.HashToken(state), h.clock())
+				c, e := h.st.Actions().ConsumeContinue(ctx, tid, secrets.HashToken(state), sess.ID, h.clock())
 				if e != nil {
 					t.Fatal(e)
 				}
@@ -154,6 +154,26 @@ func TestActionsContinueRejects(t *testing.T) {
 			}
 		})
 	}
+	t.Run("other session does not burn state", func(t *testing.T) {
+		h := newHarness(t)
+		a := h.action("t1", trigLogin, "redirect", `exports.onExecutePostLogin=(e,a)=>{a.user.setAppMetadata('held',true);a.redirect.sendUserTo('https://step.test/')};exports.onContinuePostLogin=()=>{};`, nil, false)
+		h.bind("t1", trigLogin, a)
+		in := redirectInput(h)
+		r, err := h.eng.PostLogin(context.Background(), in)
+		state := redirectState(t, r, err)
+		other := *in.Session
+		other.ID = "attacker"
+		req := actions.RequestInfo{Hostname: "t1.example.test"}
+		if _, err = resume(t, h, "t1", state, &other, req); !errors.Is(err, actions.ErrInvalidContinue) {
+			t.Fatal("other session accepted")
+		}
+		if r, err = resume(t, h, "t1", state, in.Session, req); err != nil || r.Redirect != nil {
+			t.Fatalf("original session after foreign attempt: %+v %v", r, err)
+		}
+		if h.user("t1").AppMetadata["held"] != true {
+			t.Fatal("held metadata not committed")
+		}
+	})
 	t.Run("sixth redirect fails closed", func(t *testing.T) {
 		h := newHarness(t)
 		a := h.action("t1", trigLogin, "loop", `exports.onExecutePostLogin=(e,a)=>{a.user.setAppMetadata('held',true);a.redirect.sendUserTo('https://step.test/')};exports.onContinuePostLogin=(e,a)=>a.redirect.sendUserTo('https://step.test/');`, nil, false)
@@ -436,5 +456,31 @@ func TestActionsContinueValidator(t *testing.T) {
 				t.Fatalf("rejected state remained usable: %v", err)
 			}
 		})
+	}
+}
+
+// TestActionsTransactionID: event.transaction.id is set for each login and
+// stays the same across a redirect.
+func TestActionsTransactionID(t *testing.T) {
+	h := newHarness(t)
+	a := h.action("t1", trigLogin, "txid", `exports.onExecutePostLogin=(e,a)=>{a.redirect.sendUserTo('https://step.test/',{query:{tx:e.transaction.id}})};exports.onContinuePostLogin=(e,a)=>{a.idToken.setCustomClaim('tx',e.transaction.id)};`, nil, false)
+	h.bind("t1", trigLogin, a)
+	in := redirectInput(h)
+	r, err := h.eng.PostLogin(context.Background(), in)
+	state := redirectState(t, r, err)
+	u, _ := url.Parse(r.Redirect.URL)
+	tx := u.Query().Get("tx")
+	if len(tx) < 16 {
+		t.Fatalf("transaction id %q", tx)
+	}
+	r, err = resume(t, h, "t1", state, in.Session, actions.RequestInfo{Hostname: "t1.example.test"})
+	if err != nil || r.Effects.IDClaims["tx"] != tx {
+		t.Fatalf("after redirect: %+v %v", r, err)
+	}
+	r2, err := h.eng.PostLogin(context.Background(), redirectInput(h))
+	redirectState(t, r2, err)
+	u2, _ := url.Parse(r2.Redirect.URL)
+	if u2.Query().Get("tx") == tx {
+		t.Fatal("transaction id reused across logins")
 	}
 }

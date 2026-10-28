@@ -212,6 +212,10 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
+	// event.transaction.id names this login; a redirect's sealed input keeps it.
+	if in.Transaction.ID == "" {
+		in.Transaction.ID = secrets.RandomString(24)
+	}
 	var roles []roleJSON
 	if in.User != nil {
 		if roles, err = e.roleSnapshot(ctx, tenantID, in.User.UserID); err != nil {
@@ -454,6 +458,11 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 			return nil, fmt.Errorf("actions: secret %q of %q does not open", s.Name, u.name)
 		}
 		vals[s.Name] = v
+	}
+	// Ensure may have waited on a build lock past the deadline; dispatching
+	// now would hit the runner's watchdog and kill the tenant's process.
+	if ctx.Err() != nil || time.Until(f.deadline) <= 0 {
+		return nil, ErrTimeout
 	}
 	red := customdb.NewRedactor(vals)
 	req := wireRequest{VersionKey: u.versionKey, Code: u.code, DepsRoot: root, Handler: f.handler, Event: event,

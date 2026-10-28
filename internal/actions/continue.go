@@ -99,7 +99,7 @@ func (e *Engine) ContinuePostLoginValidated(ctx context.Context, tenantID, state
 	if state == "" || len(state) > 512 || sess == nil || sess.ID == "" || sess.TenantID != tenantID {
 		return nil, ErrInvalidContinue
 	}
-	c, err := e.Store.Actions().ConsumeContinue(ctx, tenantID, secrets.HashToken(state), e.now())
+	c, err := e.Store.Actions().ConsumeContinue(ctx, tenantID, secrets.HashToken(state), sess.ID, e.now())
 	if err != nil || c.SessionID != sess.ID {
 		return nil, ErrInvalidContinue
 	}

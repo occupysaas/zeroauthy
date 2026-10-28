@@ -7,7 +7,7 @@
 
 ## 0. Where we are (2026-10-28)
 
-**Plans done:** 26. **Implemented and locally verified, final review pending:** 1 (Plan 27). **Left to implement in this roadmap:** 11 (Plans 28–38), subject to splitting larger designs.
+**Plans done:** 27. **Left to implement in this roadmap:** 11 (Plans 28–38), subject to splitting larger designs.
 
 ### Done
 
@@ -27,7 +27,7 @@
 | 21–23 | Email providers/templates, branding and Universal Login, custom domains and automatic certificates |
 | 24–25 | Generic OAuth/OIDC, Google and Microsoft personal/work/school account connections |
 | 26 | Tenant roles/direct permissions, runtime RBAC, four token profiles, console and Deploy CLI role migration |
-| 27 | Actions I implemented and locally verified; final review pending. Post-login/credentials-exchange, npm builds, redirect/continue, Management API, console, seed and Deploy CLI; /userinfo custom claims deferred |
+| 27 | Actions I: post-login/credentials-exchange, npm builds, redirect/continue, Management API, console, seed and Deploy CLI; /userinfo custom claims deferred |
 
 ### Management API coverage by resource
 
@@ -35,7 +35,7 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done / implemented locally** | 24 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I (Plan 27; final review pending) |
+| **Done / implemented locally** | 24 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I (Plan 27) |
 | **Planned, short design** | 5 | Actions II, organizations II, event streams, client credentials / token exchange, enterprise OIDC |
 | **Planned, full design** | 9 | organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
@@ -80,7 +80,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 24 | Social connections I: generic OAuth 2 and OIDC, Google | full (done) | 17 |
 | 25 | Email-account sign-in: Microsoft personal and work/school; Google/Gmail/Workspace coverage | full (done) | 24 |
 | 26 | Roles and permissions (RBAC) | short (done) | 17 |
-| 27 | Actions I: runtime, post-login, credentials exchange, npm dependencies, the Actions API | full (implemented/verified; final review pending) | 26 |
+| 27 | Actions I: runtime, post-login, credentials exchange, npm dependencies, the Actions API | full (done) | 26 |
 | 28 | Actions II: the remaining triggers and modules | short | 27 |
 | 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full | 26 |
 | 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |

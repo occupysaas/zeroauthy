@@ -1119,6 +1119,10 @@ Local choices where public material is silent or open:
   100,000 bytes; cache values 4,096 and total 8,192 as binary-exact values the
   public page writes as 4 kB/8 kB; secret value 4096 bytes); the artifact
   limit is 50,000,000 bytes. The inventory stores these exact integers.
+- `event.transaction.id` is a random 24-character ID generated per post-login
+  flow and kept across redirects (local format; credentials-exchange has
+  none). Action code cannot connect to unix-domain socket paths (local
+  hardening; Node's permission model does not cover them); TCP is open.
 - Unsupported `api` members throw at call time and fail the flow; none is
   silently omitted. "Metadata commits at flow end" means user and app
   metadata; transaction metadata lives only for the transaction.
@@ -1167,6 +1171,6 @@ Local choices where public material is silent or open:
 
 Local implementation and verification are recorded in the
 [Plan 27 record](../superpowers/2026-10-27-plan-27-implementation-record.md).
-Final whole-branch review is pending; no live upstream parity is claimed.
+The final whole-branch review and its fixes are in the implementation record; no live upstream parity is claimed.
 
 These are implementation contracts, not proof of completion or live parity.

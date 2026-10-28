@@ -2,9 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
-**Status (2026-10-28):** Tasks 1–12 implemented with scoped reviews; Task 13
-local checks and documentation finished. Final independent whole-branch review
-is pending. Actual results, deviations and deferred items are in the
+**Status (2026-10-28):** Tasks 1–13 complete. The final independent
+whole-branch review found no Critical issue; its Important (unix-domain
+sockets) and four Minor findings are fixed with post-fix verification.
+Actual results, deviations and deferred items are in the
 [implementation record](../2026-10-27-plan-27-implementation-record.md).
 
 **Goal:** Run tenant-authored Auth0 Actions at post-login and credentials-exchange, with npm dependencies, versioned deploys, ordered bindings, redirect/continue, management, console, seed and Deploy CLI support.
@@ -196,5 +197,5 @@ Rules in `actionsrules`: `NormalizeAction(a *store.Action) []error`, `ValidateDe
 
 - [x] Document: supported/empty/unsupported `api` members, scope order and `addScope` bypass, claim rules, redirect/continue, metadata commit rules, execution IDs, npm rules and registry/mirror configuration, sandbox guarantees and the container/dedicated-uid hardening advice, replica artifact behavior, limits.
 - [x] Run `go generate ./...` twice (stable), `make check-sources`, `go vet ./...`, `go test -race -timeout=30m ./...`, `./scripts/test-sql.sh -timeout=30m ./internal/store/sqlstore/...`, `make console`, `make e2e`, `make e2e-actions`, `make e2e-rbac`, `make e2e-deploy`, `make e2e-social`, `make e2e-email-accounts`, `make e2e-domains`, `tests/conformance/run.sh`. Record actual results, skips and unavailable services.
-- [ ] Review the five Review Focus outcomes and spec coverage; fix defects with regression tests; rerun affected checks. (Scoped reviews and documented coverage complete; final whole-branch review pending.)
+- [x] Review the five Review Focus outcomes and spec coverage; fix defects with regression tests; rerun affected checks.
 - [x] Commit `docs: record Actions behavior and verification evidence`. Hand off for review; do not merge or push.

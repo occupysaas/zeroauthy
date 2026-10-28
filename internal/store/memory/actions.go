@@ -471,12 +471,12 @@ func (r actionsRepo) CreateContinue(_ context.Context, c *store.ContinueState) e
 	return nil
 }
 
-func (r actionsRepo) ConsumeContinue(_ context.Context, tid, hash string, now time.Time) (*store.ContinueState, error) {
+func (r actionsRepo) ConsumeContinue(_ context.Context, tid, hash, sessionID string, now time.Time) (*store.ContinueState, error) {
 	r.s.lock()
 	defer r.s.unlock()
 	k := key{tid, hash}
 	v := r.s.continues[k]
-	if v == nil {
+	if v == nil || v.SessionID != sessionID {
 		return nil, store.ErrNotFound
 	}
 	delete(r.s.continues, k)

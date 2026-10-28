@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -107,7 +108,7 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 // credentialsExchange runs the tenant's credentials-exchange flow after
 // client authentication and the client-grant check, before minting. It
 // returns the scopes after the flow's target-scope edits, intersected with
-// the client grant (allowed), and the filtered custom claims. A denial is
+// the client grant (allowed) and the API's defined scopes, and the filtered custom claims. A denial is
 // the OAuth error its code names (invalid_scope and invalid_request 400,
 // server_error 500, D-0053); a failed flow is server_error.
 func (h *Handlers) credentialsExchange(ctx context.Context, res tenant.Resolved, c *store.Client, rs *store.ResourceServer, requested, scopes, allowed []string) ([]string, map[string]any, *Error) {
@@ -132,7 +133,14 @@ func (h *Handlers) credentialsExchange(ctx context.Context, res tenant.Resolved,
 		}
 		return nil, nil, &Error{Status: status, Code: d.Code, Description: d.Reason}
 	}
-	scopes = targetScopes(&result.Effects, scopes, allowed)
+	// A grant's scopes outlive deleted API scopes; only defined ones count.
+	defined := []string{}
+	for _, v := range allowed {
+		if slices.ContainsFunc(rs.Scopes, func(d store.Scope) bool { return d.Value == v }) {
+			defined = append(defined, v)
+		}
+	}
+	scopes = targetScopes(&result.Effects, scopes, defined)
 	// Non-namespaced claims never reach the Management API.
 	claims, err := actions.FilterClaims(actions.ClaimAccessToken, nil, result.Effects.AccessClaims, rs.IsSystem)
 	if err != nil {

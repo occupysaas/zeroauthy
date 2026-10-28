@@ -240,12 +240,19 @@ boundary. Node permissions restrict reads to the runner and that tenant's
 build root; execution has no writes, child processes, workers, addons or
 WASI. Builds can read npm and their private work directory and write only
 there. Execution inherits no server environment; builds receive only their
-private HOME. Process signalling methods are locked out. VM isolation alone
-is not the security boundary.
+private HOME. Process signalling methods are locked out. Node's permission
+model does not cover connecting to a unix-domain socket path, so the runner
+refuses path connections through `net`, `tls` and `http` (`socketPath`);
+otherwise Action code running as the server's uid could reach peer-auth
+database sockets or a rootless container-runtime API. TCP stays open. VM
+isolation alone is not the security boundary.
 
 For untrusted tenants, run under a dedicated uid or in a container. Apply
 network egress policy (including internal/link-local metadata services),
-cgroup/container memory limits and disk quotas. Network access is open;
+cgroup/container memory limits and disk quotas. A database reached over TCP
+on loopback, or any local service without authentication, remains reachable:
+give the server's database role a password rather than peer/trust
+authentication. Network access (TCP) is open;
 `max_memory_mb` caps the runner heap, not Buffers or total RSS, and npm has no
 heap cap. Install size monitoring polls every 250 ms and can overshoot before
 termination; the final artifact cap is exact. This is not a hard disk quota.

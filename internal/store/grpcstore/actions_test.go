@@ -129,10 +129,10 @@ func TestActionsPluginRoundTrip(t *testing.T) {
 	if err := a.CreateContinue(ctx, cs); err != nil {
 		t.Fatal(err)
 	}
-	if g, err := a.ConsumeContinue(ctx, "t", "h", now); err != nil || !reflect.DeepEqual(g, cs) {
+	if g, err := a.ConsumeContinue(ctx, "t", "h", "s", now); err != nil || !reflect.DeepEqual(g, cs) {
 		t.Fatalf("continue %+v %v", g, err)
 	}
-	if _, err := a.ConsumeContinue(ctx, "t", "h", now); !errors.Is(err, store.ErrNotFound) {
+	if _, err := a.ConsumeContinue(ctx, "t", "h", "s", now); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("single use: %v", err)
 	}
 	if n, err := a.PurgeContinue(ctx, now); err != nil || n != 0 {

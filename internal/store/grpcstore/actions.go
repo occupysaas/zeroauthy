@@ -709,9 +709,9 @@ func (srv *Server) ActionsCreateContinue(ctx context.Context, q *storev1.Actions
 	}), nil
 }
 
-func (r clientActions) ConsumeContinue(ctx context.Context, tid, stateHash string, now time.Time) (*store.ContinueState, error) {
+func (r clientActions) ConsumeContinue(ctx context.Context, tid, stateHash, sessionID string, now time.Time) (*store.ContinueState, error) {
 	q := r.req(tid)
-	q.StateHash, q.Time = stateHash, tsToPB(now)
+	q.StateHash, q.SessionId, q.Time = stateHash, sessionID, tsToPB(now)
 	v, err := r.call("ConsumeContinue", func() (*storev1.ActionsResponse, error) { return r.c.rpc.ActionsConsumeContinue(ctx, q) })
 	if err != nil {
 		return nil, err
@@ -720,7 +720,7 @@ func (r clientActions) ConsumeContinue(ctx context.Context, tid, stateHash strin
 }
 func (srv *Server) ActionsConsumeContinue(ctx context.Context, q *storev1.ActionsRequest) (*storev1.ActionsResponse, error) {
 	return srv.actionsServe(q, func(a store.Actions, o *storev1.ActionsResponse) error {
-		v, err := a.ConsumeContinue(ctx, q.TenantId, q.StateHash, tsFromPB(q.Time))
+		v, err := a.ConsumeContinue(ctx, q.TenantId, q.StateHash, q.SessionId, tsFromPB(q.Time))
 		o.ContinueState = continueToPB(v)
 		return err
 	}), nil

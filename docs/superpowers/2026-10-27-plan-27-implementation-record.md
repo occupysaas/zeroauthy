@@ -3,7 +3,8 @@
 Branch `plan-27-actions`; implementation baseline `e089fef`; reviewed runtime
 through `7543ea4`. Tasks 1–12 are implemented with scoped reviews and fixes.
 Task 13 records the completed local verification and operator documentation.
-**Final independent whole-branch review is pending.** No merge or push is part
+The final independent whole-branch review (`dbd8712..e1aaee9`) and its fixes
+are recorded at the end. No merge or push is part
 of this work. Public-source contracts and local tests do not establish live
 Auth0 parity; no live upstream tenant was available.
 
@@ -201,6 +202,7 @@ are listed separately so an old note is not mistaken for an open defect.
 | Task 8 | /userinfo claim gap (Ruling 10). Concurrent uses of the same initially valid refresh token can both run Actions; loser receives no token but its metadata/execution may persist. Target edits on refresh are bounded by the family rather than the narrower request, and target-only offline_access removal can still rotate (documented choices). Integration hooks preceded tests; RED was proved by temporarily disabling hooks (32/33 assertions failed). Some fix-round tests were written alongside changes and mutation-checked rather than independently RED first; no stronger TDD claim is made. |
 | Task 11 | Dry-run execution ID links to lookup despite no persisted record. Build polling stops after a transient failure without an in-editor retry control. |
 | Task 12 | Single-Action Deploy fixture proves presence/reference migration, not runtime reordering of multiple bindings; comparator array-order assertions cover comparison only. |
+| Final review | Custom-database runners (D-0022) share the unix-domain-socket gap closed for Actions; their runner script has no socket lockout yet (outside Plan 27). The post-Ensure deadline re-check has no dedicated regression test: Engine takes concrete build/runner types, so a delayed build lock cannot be injected without new seams. An older storage plugin that ignores the new `session_id` field still consumes a continue state for any session; the engine's session check then refuses it, as before. |
 | Task 13 self-review | Inventory declares console_log_chars_per_action=256; runtime captures up to 100 messages of 2048 characters each plus level prefix, without that aggregate cap. Runtime behavior is documented; inventory/enforcement drift is deferred. |
 
 Resolved carried items: Task 2 missing bundled npm now fails under
@@ -217,6 +219,42 @@ extra loads were fixed; redirect availability became real in Task 9. Task
 10 empty-list seed ownership is durable after `d8b0c01`, superseding all
 older reports' heuristic. Task 11 failed-read ready gate fixed in `8d94517`.
 
-Final independent whole-branch review and its disposition must be appended
-before claiming the plan reviewed/complete. No live Auth0, formal OIDF
-certification, deferred triggers/modules or /userinfo claim parity is claimed.
+## Final whole-branch review
+
+An independent reviewer read `dbd8712..e1aaee9` (generated, console and E2E
+files sampled), ran the in-memory Actions, runner, authz, mgmt, OAuth and seed
+packages, and probed the sandbox on Node 22.23.4, 24.20.0 and 26.8.1. Verdict:
+ready with fixes; no Critical issue. The five Review Focus outcomes held inside
+the file sandbox. Findings and disposition:
+
+| # | Severity | Finding | Disposition |
+|---|---|---|---|
+| 1 | Important | Node's permission model does not cover `connect()` to a unix-domain socket path (Node 22/24 have no network permission; `--allow-net` on 26 allows pipes), so Action code could reach peer-auth database or container-runtime sockets owned by the server's uid. Reproduced locally on Node 26.8.1. | Fixed: `runner.mjs` replaces `net.Socket.prototype.connect` (non-writable, non-configurable) and refuses path connections, which covers `net`, `tls` and `http` `socketPath`; TCP stays open. `TestEngineNoUnixSockets` failed before the fix and passes on Node 26.8.1 locally and on Node 22 and 24 (`node:22`, `node:24` containers). Operator guide and D-0053 updated. |
+| 2 | Minor | A step whose deadline passed while `Builds.Ensure` waited on a build lock was still dispatched with a 1 ms budget, and the watchdog could kill the tenant's process. | Fixed: deadline/context re-checked after Ensure and secret opening; returns `ErrTimeout` without dispatch. No dedicated test (ledger). |
+| 3 | Minor | A continue state was deleted before the session check, so another session holding the state could burn it. | Fixed: `ConsumeContinue` takes the session ID (store interface, memory, SQL `AND session_id=?`, gRPC `ActionsRequest.session_id=19`); another session's row is ErrNotFound and stays. Conformance and engine regression (`other session does not burn state`). |
+| 4 | Minor | Credentials-exchange target edits were bounded by raw grant scopes, which can outlive scopes deleted from the API. | Fixed: target edits intersect the grant with the API's defined scopes. Regression subtest failed before the fix. |
+| 5 | Minor | `event.transaction.id` was always empty. | Fixed: random 24-character ID per post-login flow, kept across redirects (D-0053). `TestActionsTransactionID`. |
+
+The reviewer set aside, with reasons, outbound TCP/link-local egress (operator
+egress per spec §2), same-tenant cross-Action interference (tenant process is
+the boundary), test-endpoint dry runs sharing the live process, build/artifact
+GC, the fixed in-flight limit of 64, old-plugin startup refusal (Ruling 14),
+empty optional event fields and items already in the ledger above.
+
+Post-fix verification on the fixed tree:
+
+| Check | Result |
+|---|---|
+| `go generate ./...` twice | Stable (identical diff after both runs) |
+| `make check-sources`, `go vet ./...` | Exit 0 |
+| `ZA_REQUIRE_NODE=1 go test -race` on actions, actions/build, noderunner, oauth, authz, memory, grpcstore, mgmt, seed, pkg/... | All ok (grpcstore 398.7s, oauth 89.4s) |
+| `./scripts/test-sql.sh -timeout=30m ./internal/store/sqlstore/...` | ok, 597.6s (SQLite, PostgreSQL 17, MySQL 8.4) |
+| `make e2e-actions` | Exit 0: node-auth0 fourteen operations and grants, five Playwright cases including redirect/continue, auth0-cli operations; no skips |
+| Node 22/24 sandbox regression | `TestEngineNoUnixSockets` and `TestEngineFailClosed` pass in `node:22` and `node:24` containers |
+
+Lanes not rerun after these fixes (unaffected code paths): `make console`,
+`make e2e`, `e2e-rbac`, `e2e-deploy`, `e2e-social`, `e2e-email-accounts`,
+`e2e-domains`, conformance; their Task 13 results above stand for `e1aaee9`.
+
+No live Auth0, formal OIDF certification, deferred triggers/modules or
+/userinfo claim parity is claimed.

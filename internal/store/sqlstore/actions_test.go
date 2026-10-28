@@ -217,7 +217,7 @@ func TestActionsConcurrency(t *testing.T) {
 					var wg sync.WaitGroup
 					for range 8 {
 						wg.Go(func() {
-							if _, err := a.ConsumeContinue(ctx, "t", h, now); err == nil {
+							if _, err := a.ConsumeContinue(ctx, "t", h, "s", now); err == nil {
 								wins.Add(1)
 							} else if !errors.Is(err, store.ErrNotFound) {
 								t.Error(err)

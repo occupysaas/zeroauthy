@@ -19,6 +19,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import net from 'node:net';
 
 // Node's permission model does not stop signals to other processes of the
 // same uid (zeroauthy itself, other tenants' runners). Lock those APIs before
@@ -35,6 +36,27 @@ lockOut(process, '_kill', 'process.kill');
 lockOut(process, '_debugProcess', 'process._debugProcess');
 lockOut(process, '_debugEnd', 'process._debugEnd');
 lockOut(os, 'setPriority', 'os.setPriority');
+
+// Node's permission model does not cover connect() to a unix-domain socket
+// path (Node 22/24 have no network permission; --allow-net on 25+ allows
+// pipes too), so code running as the server's uid could reach peer-auth
+// databases or container-runtime sockets. net, tls and http (socketPath) all
+// connect through Socket.prototype.connect; refuse path-based connections
+// there. TCP stays open (spec §2).
+function socketPath(args) {
+  let a = args[0];
+  if (Array.isArray(a)) a = a[0]; // internally normalized [options, cb]
+  if (a !== null && typeof a === 'object') return a.path != null;
+  return typeof a === 'string' && !/^\s*\d+\s*$/.test(a);
+}
+const connect = net.Socket.prototype.connect;
+Object.defineProperty(net.Socket.prototype, 'connect', {
+  value: function (...args) {
+    if (socketPath(args)) throw new Error('unix-domain sockets are not available to Actions');
+    return connect.apply(this, args);
+  },
+  writable: false, enumerable: false, configurable: false,
+});
 
 const handlers = new Set(['onExecutePostLogin', 'onContinuePostLogin', 'onExecuteCredentialsExchange']);
 

@@ -189,7 +189,9 @@ type Actions interface {
 	PurgeExecutions(ctx context.Context, before time.Time) (int, error)
 	CreateContinue(ctx context.Context, c *ContinueState) error
 	// ConsumeContinue is single use; an expired or absent state is ErrNotFound.
-	ConsumeContinue(ctx context.Context, tenantID, stateHash string, now time.Time) (*ContinueState, error)
+	// A state bound to another session is ErrNotFound and stays unconsumed,
+	// so presenting it from a different session cannot burn it.
+	ConsumeContinue(ctx context.Context, tenantID, stateHash, sessionID string, now time.Time) (*ContinueState, error)
 	// PurgeContinue deletes states with ExpiresAt before the cutoff.
 	PurgeContinue(ctx context.Context, before time.Time) (int, error)
 }
@@ -252,7 +254,7 @@ func (UnimplementedActions) PurgeExecutions(context.Context, time.Time) (int, er
 func (UnimplementedActions) CreateContinue(context.Context, *ContinueState) error {
 	return ErrActionsUnavailable
 }
-func (UnimplementedActions) ConsumeContinue(context.Context, string, string, time.Time) (*ContinueState, error) {
+func (UnimplementedActions) ConsumeContinue(context.Context, string, string, string, time.Time) (*ContinueState, error) {
 	return nil, ErrActionsUnavailable
 }
 func (UnimplementedActions) PurgeContinue(context.Context, time.Time) (int, error) {

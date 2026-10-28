@@ -1063,6 +1063,7 @@ message ActionsRequest {
   google.protobuf.Timestamp time=13; // before/now cutoff
   ActionMsg action=14; ActionBuildMsg build=15; ActionExecutionMsg execution=16; ActionContinueMsg continue_state=17;
   repeated ActionBindingMsg bindings=18;
+  string session_id=19;
 }
 message ActionsResponse {
   Error error=1; ActionMsg action=2; repeated ActionMsg actions=3; int64 total=4;

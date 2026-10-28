@@ -666,16 +666,16 @@ func (s *Store) insertErr(err error) error {
 	return s.conflict(err)
 }
 
-// ConsumeContinue locks the row, deletes it and only then decides whether it
-// had expired, so an expired state is removed too and a state is returned to
-// at most one caller.
-func (r actionsRepo) ConsumeContinue(ctx context.Context, tenant, hash string, now time.Time) (*store.ContinueState, error) {
+// ConsumeContinue locks the session's row, deletes it and only then decides
+// whether it had expired, so an expired state is removed too and a state is
+// returned to at most one caller. Another session's row is left alone.
+func (r actionsRepo) ConsumeContinue(ctx context.Context, tenant, hash, sessionID string, now time.Time) (*store.ContinueState, error) {
 	var out *store.ContinueState
 	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
 		out = nil
 		var c store.ContinueState
 		var expires, created int64
-		err := tx.queryRow(ctx, `SELECT tenant_id,state_hash,session_id,sealed,expires_at,created_at FROM action_continues WHERE tenant_id=? AND state_hash=?`+tx.d.forUpdate, tenant, hash).
+		err := tx.queryRow(ctx, `SELECT tenant_id,state_hash,session_id,sealed,expires_at,created_at FROM action_continues WHERE tenant_id=? AND state_hash=? AND session_id=?`+tx.d.forUpdate, tenant, hash, sessionID).
 			Scan(&c.TenantID, &c.StateHash, &c.SessionID, &c.Sealed, &expires, &created)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil

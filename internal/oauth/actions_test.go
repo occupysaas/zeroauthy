@@ -388,6 +388,30 @@ func TestActionsClientCredentials(t *testing.T) {
 			t.Fatalf("client secret reached the event: %q", b)
 		}
 	})
+	t.Run("target scopes stay within the API's defined scopes", func(t *testing.T) {
+		f := newActionsFixture(t)
+		ctx := context.Background()
+		g, err := f.st.ClientGrants().Find(ctx, f.tid, "m2m", acmeAPI, store.SubjectTypeClient)
+		if err != nil || g.AllowAllScopes || !slices.Contains(g.Scopes, "write:things") {
+			t.Fatalf("grant %+v %v", g, err)
+		}
+		// The API stops defining write:things; the grant still lists it.
+		api, err := f.st.ResourceServers().GetByIdentifier(ctx, f.tid, acmeAPI)
+		if err != nil {
+			t.Fatal(err)
+		}
+		api.Scopes = slices.DeleteFunc(api.Scopes, func(s store.Scope) bool { return s.Value == "write:things" })
+		if err := f.st.ResourceServers().Update(ctx, api); err != nil {
+			t.Fatal(err)
+		}
+		f.actions.CredentialsExchange(t, f.tid, "cc", `exports.onExecuteCredentialsExchange = async (event, api) => {
+		  api.transaction.addTargetScope("write:things");
+		};`)
+		status, body := f.token(t, m2m())
+		if status != 200 || body["scope"] != "read:things" {
+			t.Fatalf("got %d %v", status, body)
+		}
+	})
 	t.Run("non-namespaced claims are dropped for the Management API", func(t *testing.T) {
 		f := newActionsFixture(t)
 		f.actions.CredentialsExchange(t, f.tid, "cc", `exports.onExecuteCredentialsExchange = async (event, api) => {

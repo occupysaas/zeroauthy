@@ -469,19 +469,22 @@ func testActions(t *testing.T, factory Factory) {
 		if err := a.CreateContinue(ctx, cs("act-a", "h1", now.Add(time.Hour))); !errors.Is(err, store.ErrConflict) {
 			t.Fatal(err)
 		}
-		if _, err := a.ConsumeContinue(ctx, "act-b", "h1", now); !errors.Is(err, store.ErrNotFound) {
+		if _, err := a.ConsumeContinue(ctx, "act-b", "h1", "sess", now); !errors.Is(err, store.ErrNotFound) {
 			t.Fatalf("cross tenant consume: %v", err)
 		}
-		got, err := a.ConsumeContinue(ctx, "act-a", "h1", now)
+		if _, err := a.ConsumeContinue(ctx, "act-a", "h1", "other", now); !errors.Is(err, store.ErrNotFound) {
+			t.Fatalf("other session consume: %v", err)
+		}
+		got, err := a.ConsumeContinue(ctx, "act-a", "h1", "sess", now)
 		must(err)
 		if got.SessionID != "sess" || string(got.Sealed) != "seal" {
 			t.Fatalf("%+v", got)
 		}
-		if _, err := a.ConsumeContinue(ctx, "act-a", "h1", now); !errors.Is(err, store.ErrNotFound) {
+		if _, err := a.ConsumeContinue(ctx, "act-a", "h1", "sess", now); !errors.Is(err, store.ErrNotFound) {
 			t.Fatalf("reuse: %v", err)
 		}
 		must(a.CreateContinue(ctx, cs("act-a", "exp", now.Add(time.Minute))))
-		if _, err := a.ConsumeContinue(ctx, "act-a", "exp", now.Add(2*time.Minute)); !errors.Is(err, store.ErrNotFound) {
+		if _, err := a.ConsumeContinue(ctx, "act-a", "exp", "sess", now.Add(2*time.Minute)); !errors.Is(err, store.ErrNotFound) {
 			t.Fatalf("expired: %v", err)
 		}
 		must(a.CreateContinue(ctx, cs("act-a", "race", now.Add(time.Hour))))
@@ -491,7 +494,7 @@ func testActions(t *testing.T, factory Factory) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				if _, err := a.ConsumeContinue(ctx, "act-a", "race", now); err == nil {
+				if _, err := a.ConsumeContinue(ctx, "act-a", "race", "sess", now); err == nil {
 					wins.Add(1)
 				} else if !errors.Is(err, store.ErrNotFound) {
 					t.Error(err)
@@ -509,7 +512,7 @@ func testActions(t *testing.T, factory Factory) {
 		if n != 1 {
 			t.Fatalf("purged %d", n)
 		}
-		if _, err := a.ConsumeContinue(ctx, "act-b", "p2", now); err != nil {
+		if _, err := a.ConsumeContinue(ctx, "act-b", "p2", "sess", now); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -586,7 +589,7 @@ func testActions(t *testing.T, factory Factory) {
 		_, checks["build"] = a.GetBuild(ctx, "act-gone", "gb")
 		_, checks["artifact"] = a.GetArtifact(ctx, "act-gone", "gb")
 		_, checks["execution"] = a.GetExecution(ctx, "act-gone", "ge")
-		_, checks["continue"] = a.ConsumeContinue(ctx, "act-gone", "gh", now)
+		_, checks["continue"] = a.ConsumeContinue(ctx, "act-gone", "gh", "sess", now)
 		for name, err := range checks {
 			if !errors.Is(err, store.ErrNotFound) {
 				t.Errorf("%s survived tenant delete: %v", name, err)

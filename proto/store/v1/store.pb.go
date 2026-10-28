@@ -15523,6 +15523,7 @@ type ActionsRequest struct {
 	Execution     *ActionExecutionMsg    `protobuf:"bytes,16,opt,name=execution,proto3" json:"execution,omitempty"`
 	ContinueState *ActionContinueMsg     `protobuf:"bytes,17,opt,name=continue_state,json=continueState,proto3" json:"continue_state,omitempty"`
 	Bindings      []*ActionBindingMsg    `protobuf:"bytes,18,rep,name=bindings,proto3" json:"bindings,omitempty"`
+	SessionId     string                 `protobuf:"bytes,19,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -15681,6 +15682,13 @@ func (x *ActionsRequest) GetBindings() []*ActionBindingMsg {
 		return x.Bindings
 	}
 	return nil
+}
+
+func (x *ActionsRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
 }
 
 type ActionsResponse struct {
@@ -17407,7 +17415,7 @@ const file_store_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x129\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xb2\x05\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xd1\x05\n" +
 	"\x0eActionsRequest\x12\x13\n" +
 	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x0e\n" +
@@ -17429,7 +17437,9 @@ const file_store_proto_rawDesc = "" +
 	"\x05build\x18\x0f \x01(\v2\".zeroauthy.store.v1.ActionBuildMsgR\x05build\x12D\n" +
 	"\texecution\x18\x10 \x01(\v2&.zeroauthy.store.v1.ActionExecutionMsgR\texecution\x12L\n" +
 	"\x0econtinue_state\x18\x11 \x01(\v2%.zeroauthy.store.v1.ActionContinueMsgR\rcontinueState\x12@\n" +
-	"\bbindings\x18\x12 \x03(\v2$.zeroauthy.store.v1.ActionBindingMsgR\bbindings\"\x9b\x05\n" +
+	"\bbindings\x18\x12 \x03(\v2$.zeroauthy.store.v1.ActionBindingMsgR\bbindings\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x13 \x01(\tR\tsessionId\"\x9b\x05\n" +
 	"\x0fActionsResponse\x12/\n" +
 	"\x05error\x18\x01 \x01(\v2\x19.zeroauthy.store.v1.ErrorR\x05error\x125\n" +
 	"\x06action\x18\x02 \x01(\v2\x1d.zeroauthy.store.v1.ActionMsgR\x06action\x127\n" +
