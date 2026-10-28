@@ -670,6 +670,69 @@ func TestPrewarm(t *testing.T) {
 	}
 }
 
+// Startup must extract module trees too, including hidden versions restored
+// through an old Action deployment. All npm requests use the local registry.
+func TestPrewarmModulePins(t *testing.T) {
+	node := requireNode(t)
+	reg := fixtureRegistry(t, filepath.Join(t.TempDir(), "marker"))
+	st := newStore(t, "ta")
+	ctx := context.Background()
+	m1 := newManager(t, testConfig(t, node, reg), st)
+	aid := queue(t, m1, "ta")
+	mid := queue(t, m1, "ta", store.Dependency{Name: "za-pad", Version: "1.0.0"})
+	for _, id := range []string{aid, mid} {
+		if b := waitBuild(t, st, "ta", id); b.Status != store.BuildBuilt {
+			t.Fatalf("build: %#v", b)
+		}
+	}
+	m := &store.ActionModule{TenantID: "ta", ID: "m", Name: "util", Code: `exports.x=require('za-pad')`, DraftBuildID: mid, Dependencies: []store.Dependency{{Name: "za-pad", Version: "1.0.0"}}}
+	if err := st.Actions().CreateModule(ctx, m); err != nil {
+		t.Fatal(err)
+	}
+	mv, err := st.Actions().PublishModule(ctx, "ta", "m")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &store.Action{TenantID: "ta", ID: "a", Name: "a", Trigger: "post-login", Runtime: actionsrules.Runtime, DraftBuildID: aid, Modules: []store.ModuleRef{{ModuleID: "m", VersionID: mv.ID}}}
+	if err = st.Actions().CreateAction(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	v, err := st.Actions().Deploy(ctx, "ta", "a", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.Modules = nil
+	if err = st.Actions().UpdateAction(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = st.Actions().Deploy(ctx, "ta", "a", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err = st.Actions().DeleteModule(ctx, "ta", "m"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = st.Actions().Deploy(ctx, "ta", "a", v.ID); err != nil {
+		t.Fatal(err)
+	}
+	cfg := testConfig(t, node, reg)
+	m2 := newManager(t, cfg, st)
+	if err = m2.Prewarm(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if got := installedVersionT(t, filepath.Join(cfg.CacheDir, "ta", mid), "za-pad"); got != "1.0.0" {
+		t.Fatalf("module package: %s", got)
+	}
+	// A missing module artifact must be reported by startup rather than
+	// silently leaving the deployment only partially available.
+	if err = st.Actions().PutArtifact(ctx, "ta", mid, []byte("corrupt")); err != nil {
+		t.Fatal(err)
+	}
+	m3 := newManager(t, testConfig(t, node, reg), st)
+	if err = m3.Prewarm(ctx); !errors.Is(err, ErrCorruptArtifact) {
+		t.Fatalf("corrupt pinned module: %v", err)
+	}
+}
+
 func TestResolveBoundedAndTimesOut(t *testing.T) {
 	node := requireNode(t)
 	reg := fixtureRegistry(t, filepath.Join(t.TempDir(), "marker"))

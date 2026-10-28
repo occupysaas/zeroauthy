@@ -27,6 +27,7 @@ var ErrInvalidContinue = errors.New("actions: invalid continuation state")
 type continueUnit struct {
 	Name, ActionID, VersionKey, Code, BuildID string
 	Secrets                                   []store.ActionSecret
+	Modules                                   []store.ModuleRef
 }
 type continuePayload struct {
 	Input                   PostLoginInput
@@ -57,7 +58,7 @@ func (e *Engine) suspend(ctx context.Context, st store.Store, f *flow, index int
 	}
 	p := continuePayload{Input: *f.input, Roles: f.roles, Effects: f.acc.eff, Target: f.acc.target, Position: f.position + index, RedirectCount: f.redirectCount + 1, Remaining: f.remaining}
 	for _, u := range f.units[index:] {
-		p.Units = append(p.Units, continueUnit{Name: u.name, ActionID: u.actionID, VersionKey: u.versionKey, Code: u.code, BuildID: u.buildID, Secrets: u.secrets})
+		p.Units = append(p.Units, continueUnit{Name: u.name, ActionID: u.actionID, VersionKey: u.versionKey, Code: u.code, BuildID: u.buildID, Secrets: u.secrets, Modules: u.moduleRefs})
 	}
 	plain, err := json.Marshal(p)
 	if err != nil {
@@ -126,7 +127,7 @@ func (e *Engine) ContinuePostLoginValidated(ctx context.Context, tenantID, state
 		roles: p.Roles, acc: newAccum(TriggerPostLogin, p.Target, nil, true), cache: e.caches.get(tenantID, TriggerPostLogin), redirectCount: p.RedirectCount, position: p.Position, state: state, remaining: p.Remaining}
 	f.acc.eff = p.Effects
 	for _, u := range p.Units {
-		f.units = append(f.units, unit{name: u.Name, actionID: u.ActionID, versionKey: u.VersionKey, code: u.Code, buildID: u.BuildID, secrets: u.Secrets})
+		f.units = append(f.units, unit{name: u.Name, actionID: u.ActionID, versionKey: u.VersionKey, code: u.Code, buildID: u.BuildID, secrets: u.Secrets, moduleRefs: u.Modules})
 	}
 	names := make([]string, len(f.roles))
 	for i, r := range f.roles {

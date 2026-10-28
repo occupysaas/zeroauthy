@@ -2,7 +2,7 @@
 // databases run in separate processes.
 //
 // Protocol: one JSON request per stdin line,
-//   {id, version_key, code, deps_root, handler, api, unsupported_api, event, secrets, cache, roles, state, hostname}
+//   {id, version_key, code, deps_root, modules, handler, api, unsupported_api, event, secrets, cache, roles, state, hostname}
 // one JSON response per stdout line,
 //   {id, commands: [{op, args}], logs: [string], error?: {message, stack}}
 // The handler records api calls as commands; the server validates and
@@ -71,6 +71,7 @@ function requireFor(depsRoot) {
   const resolver = modules ? createRequire(path.join(modules, 'noop.js')) : null;
   return function require(name) {
     const spec = String(name);
+    if (spec.startsWith('actions:')) throw new Error('Actions Modules cannot require actions:*');
     const bare = spec.replace(/^node:/, '');
     if (denied.has(bare)) throw new Error(`module "${bare}" is not available to Actions`);
     if (spec.startsWith('node:') || builtinModules.includes(bare)) return builtinRequire('node:' + bare);
@@ -103,17 +104,8 @@ const console_ = { log: logger('info'), info: logger('info'), warn: logger('warn
 const versions = new Map(); // version_key → {hash, ctx, exports}
 const maxVersions = 256;
 
-function load(req) {
-  const key = String(req.version_key ?? '');
-  if (!key) throw new Error('version_key is required');
-  const hash = createHash('sha256').update(String(req.code ?? '')).update('\0').update(String(req.deps_root ?? '')).digest('hex');
-  let v = versions.get(key);
-  if (v && v.hash === hash) {
-    versions.delete(key);
-    versions.set(key, v);
-    return v;
-  }
-  const ctx = vm.createContext({
+function contextFor(name) {
+  return vm.createContext({
     console: console_,
     setTimeout, clearTimeout, setInterval, clearInterval, setImmediate, clearImmediate, queueMicrotask,
     Buffer, URL, URLSearchParams, TextEncoder, TextDecoder, AbortController, AbortSignal,
@@ -121,12 +113,54 @@ function load(req) {
     atob, btoa, structuredClone,
     // The real process: its env is empty and --permission guards the rest.
     process,
-  }, { name: 'action:' + key });
+  }, { name });
+}
+
+function load(req) {
+  const key = String(req.version_key ?? '');
+  if (!key) throw new Error('version_key is required');
+  // Draft keys remain stable across edits; pins and secret snapshots must
+  // participate in invalidation so draft tests never reuse stale modules.
+  const hash = createHash('sha256').update(JSON.stringify([req.code, req.deps_root, req.modules ?? []])).digest('hex');
+  let v = versions.get(key);
+  if (v && v.hash === hash) {
+    versions.delete(key);
+    versions.set(key, v);
+    return v;
+  }
+  const ctx = contextFor('action:' + key);
+  const available = new Map();
+  for (const m of req.modules ?? []) {
+    if (!m.name || !m.version_key || available.has(m.name)) throw new Error('invalid Actions Module pin');
+    available.set(m.name, m);
+  }
+  // Cache belongs to this Action context, never the tenant process. A module
+  // exports its realm's objects and is evaluated once per pinned version here.
+  const loaded = new Map();
+  const actionRequire = requireFor(req.deps_root);
+  function require(name) {
+    const spec = String(name);
+    if (!spec.startsWith('actions:')) return actionRequire(spec);
+    const m = available.get(spec.slice('actions:'.length));
+    if (!m) throw new Error(`module "${spec}" is not pinned to this Action`);
+    if (loaded.has(m.version_key)) return loaded.get(m.version_key);
+    const mctx = contextFor('action:' + key + ':module:' + m.version_key);
+    const parse = vm.runInContext('JSON.parse', mctx);
+    // Only this module's secrets enter its realm. There is no event or api,
+    // and its require cannot reach another module or the Action's npm tree.
+    mctx.actions = parse(JSON.stringify({ secrets: m.secrets ?? {} }));
+    const mod = vm.runInContext('({ exports: {} })', mctx);
+    const filename = `module-${m.version_key}.js`;
+    const wrapper = new vm.Script('(function (exports, require, module, __filename, __dirname) {\n' + String(m.code ?? '') + '\n})', { filename, lineOffset: -1 }).runInContext(mctx);
+    wrapper.call(mod.exports, mod.exports, requireFor(m.deps_root), mod, filename, '/');
+    loaded.set(m.version_key, mod.exports);
+    return mod.exports;
+  }
   const module = { exports: {} };
   const filename = `action-${key}.js`;
   const wrapper = new vm.Script('(function (exports, require, module, __filename, __dirname) {\n' + String(req.code ?? '') + '\n})', { filename, lineOffset: -1 })
     .runInContext(ctx);
-  wrapper.call(module.exports, module.exports, requireFor(req.deps_root), module, filename, '/');
+  wrapper.call(module.exports, module.exports, require, module, filename, '/');
   v = { hash, ctx, exports: module.exports, parse: vm.runInContext('JSON.parse', ctx) };
   versions.delete(key);
   versions.set(key, v);

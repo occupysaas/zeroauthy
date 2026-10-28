@@ -108,7 +108,7 @@ type Engine struct {
 	Store   store.Store
 	Runner  *noderunner.Pool
 	Builds  *build.Manager
-	Secrets keys.Wrapper // opens Action secrets (keys.OpenActionSecret)
+	Secrets keys.Wrapper // opens tenant-bound Action and Module secret snapshots
 	Now     func() time.Time
 	Log     *slog.Logger
 	// FlowBudget bounds one trigger flow; 0 means Auth0's 20 s.
@@ -155,6 +155,7 @@ type wireRequest struct {
 	UnsupportedAPI []string               `json:"unsupported_api"`
 	Event          map[string]any         `json:"event"`
 	Secrets        map[string]string      `json:"secrets"`
+	Modules        []wireModule           `json:"modules"`
 	Cache          map[string]cacheRecord `json:"cache"`
 	Roles          []roleJSON             `json:"roles"`
 	State          map[string]any         `json:"state"`
@@ -173,6 +174,9 @@ type wireResponse struct {
 type unit struct {
 	name, actionID, versionKey, code, buildID string
 	secrets                                   []store.ActionSecret
+	moduleRefs                                []store.ModuleRef
+	depsRoot                                  string
+	modules                                   []moduleUnit
 }
 
 // flow is one trigger execution in progress.
@@ -271,7 +275,7 @@ func pinned(bound []store.BoundVersion) []unit {
 	out := make([]unit, len(bound))
 	for i, b := range bound {
 		out[i] = unit{name: b.Action.Name, actionID: b.Action.ID, versionKey: b.Version.ID, code: b.Version.Code,
-			buildID: b.Version.BuildID, secrets: b.Version.Secrets}
+			buildID: b.Version.BuildID, secrets: b.Version.Secrets, moduleRefs: b.Version.Modules}
 	}
 	return out
 }
@@ -438,19 +442,20 @@ func (e *Engine) commitMetadata(ctx context.Context, tx store.Store, tenantID st
 }
 
 // step runs one Action and applies its commands to f.acc. Its errors are
-// masked with the Action's secrets.
+// masked with the Action's and its pinned Modules' secrets.
 func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any) (*stepOut, error) {
 	remaining := time.Until(f.deadline)
 	if remaining <= 0 {
 		return nil, ErrTimeout
 	}
-	root, err := e.Builds.Ensure(ctx, f.tenantID, u.buildID)
+	loaded, err := e.loadUnits(ctx, f.tenantID, []unit{u})
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ErrTimeout
 		}
-		return nil, fmt.Errorf("actions: dependencies of %q: %w", u.name, err)
+		return nil, err
 	}
+	u = loaded[0]
 	vals := make(map[string]string, len(u.secrets))
 	for _, s := range u.secrets {
 		v, err := keys.OpenActionSecret(e.Secrets, f.tenantID, u.actionID, s.Name, s.Sealed)
@@ -459,14 +464,27 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		}
 		vals[s.Name] = v
 	}
+	red := customdb.NewRedactor(vals)
+	modules := make([]wireModule, 0, len(u.modules))
+	for _, m := range u.modules {
+		mv := make(map[string]string, len(m.version.Secrets))
+		for _, s := range m.version.Secrets {
+			v, err := keys.OpenModuleSecret(e.Secrets, f.tenantID, m.version.ModuleID, s.Name, s.Sealed)
+			if err != nil {
+				return nil, fmt.Errorf("actions: secret %q of module %q does not open", s.Name, m.name)
+			}
+			mv[s.Name] = v
+		}
+		red = red.Union(customdb.NewRedactor(mv))
+		modules = append(modules, wireModule{Name: m.name, VersionKey: m.version.ID, Code: m.version.Code, DepsRoot: m.depsRoot, Secrets: mv})
+	}
 	// Ensure may have waited on a build lock past the deadline; dispatching
 	// now would hit the runner's watchdog and kill the tenant's process.
 	if ctx.Err() != nil || time.Until(f.deadline) <= 0 {
 		return nil, ErrTimeout
 	}
-	red := customdb.NewRedactor(vals)
-	req := wireRequest{VersionKey: u.versionKey, Code: u.code, DepsRoot: root, Handler: f.handler, Event: event,
-		Secrets: vals, Cache: f.cache.snapshot(e.now()), Roles: f.roles,
+	req := wireRequest{VersionKey: u.versionKey, Code: u.code, DepsRoot: u.depsRoot, Handler: f.handler, Event: event,
+		Secrets: vals, Modules: modules, Cache: f.cache.snapshot(e.now()), Roles: f.roles,
 		API: triggerSpecs[f.trigger].API, UnsupportedAPI: triggerSpecs[f.trigger].unsupported,
 		State: map[string]any{"canRedirect": f.acc.canRedirect, "state": f.state}, Hostname: f.hostname}
 	if req.Roles == nil {
@@ -486,7 +504,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	case errors.Is(err, noderunner.ErrTimeout), err != nil && ctx.Err() != nil:
 		return nil, ErrTimeout
 	case err != nil:
-		return nil, fmt.Errorf("actions: runner: %w", err)
+		return nil, &maskedError{msg: red.RedactLine(fmt.Sprintf("actions: runner: %v", err)), err: err}
 	}
 	var resp wireResponse
 	if err := json.Unmarshal(raw, &resp); err != nil {
@@ -619,7 +637,7 @@ func (e *Engine) Test(ctx context.Context, tenantID, actionID string, payload js
 	fctx, cancel := context.WithDeadline(ctx, f.deadline)
 	defer cancel()
 	start := time.Now()
-	u := unit{name: a.Name, actionID: a.ID, versionKey: "draft:" + a.ID, code: a.Code, buildID: a.DraftBuildID, secrets: a.Secrets}
+	u := unit{name: a.Name, actionID: a.ID, versionKey: "draft:" + a.ID, code: a.Code, buildID: a.DraftBuildID, secrets: a.Secrets, moduleRefs: a.Modules}
 	st, err := e.step(fctx, f, u, event)
 	if errors.Is(err, build.ErrNotBuilt) {
 		return nil, ErrDraftNotBuilt
