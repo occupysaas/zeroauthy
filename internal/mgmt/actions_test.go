@@ -162,7 +162,7 @@ func TestActionsManagementLimits(t *testing.T) {
 		{"code bytes", func(m map[string]any) { m["code"] = strings.Repeat("x", 100001) }},
 		{"runtime", func(m map[string]any) { m["runtime"] = "node18" }},
 		{"empty runtime", func(m map[string]any) { m["runtime"] = "" }},
-		{"unsupported trigger", func(m map[string]any) { m["supported_triggers"] = []any{map[string]any{"id": "pre-user-registration"}} }},
+		{"unsupported trigger", func(m map[string]any) { m["supported_triggers"] = []any{map[string]any{"id": "send-phone-message"}} }},
 		{"two triggers", func(m map[string]any) {
 			m["supported_triggers"] = []any{map[string]any{"id": "post-login"}, map[string]any{"id": "credentials-exchange"}}
 		}},

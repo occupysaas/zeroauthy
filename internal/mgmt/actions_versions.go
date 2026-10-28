@@ -9,7 +9,7 @@ import (
 )
 
 func (h *Handlers) actionVersionView(ctx context.Context, v *store.ActionVersion) (map[string]any, error) {
-	out := map[string]any{"id": v.ID, "action_id": v.ActionID, "number": v.Number, "code": v.Code, "runtime": v.Runtime, "dependencies": dependencyViews(v.Dependencies), "secrets": secretViews(v.Secrets), "created_at": v.CreatedAt, "status": "built"}
+	out := map[string]any{"id": v.ID, "action_id": v.ActionID, "number": v.Number, "code": v.Code, "modules": moduleRefViews(v.Modules), "runtime": v.Runtime, "dependencies": dependencyViews(v.Dependencies), "secrets": secretViews(v.Secrets), "created_at": v.CreatedAt, "status": "built"}
 	b, err := h.Store.Actions().GetBuild(ctx, v.TenantID, v.BuildID)
 	if err != nil {
 		return nil, err
@@ -127,6 +127,7 @@ func (h *Handlers) DeployActionVersion(w http.ResponseWriter, r *http.Request, i
 			if err != nil {
 				return err
 			}
+			a.Modules = v.Modules
 			a.Code, a.Runtime, a.Dependencies, a.Secrets, a.DraftBuildID = v.Code, v.Runtime, v.Dependencies, v.Secrets, v.BuildID
 			a.UpdatedAt = h.now()
 			if err := tx.Actions().UpdateAction(r.Context(), a); err != nil {

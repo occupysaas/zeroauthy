@@ -61,7 +61,7 @@ func TestActionsManagementRoutes(t *testing.T) {
 	if rec.Code != 200 {
 		t.Fatalf("triggers=%d %s", rec.Code, rec.Body)
 	}
-	if len(out["triggers"].([]any)) != 2 {
+	if len(out["triggers"].([]any)) != 7 {
 		t.Fatal(out)
 	}
 }
@@ -83,6 +83,20 @@ func TestActionsManagementResponseSchemas(t *testing.T) {
 		_ = json.Unmarshal(b, &out)
 		return out
 	}
+	m := call("POST", "/modules", map[string]any{"name": "shared", "code": "module.exports={}", "publish": true}, 201)
+	mid := m["id"].(string)
+	mvid := m["latest_version"].(map[string]any)["id"].(string)
+	call("GET", "/modules", nil, 200)
+	call("GET", "/modules/"+mid, nil, 200)
+	call("PATCH", "/modules/"+mid, map[string]any{"code": "module.exports={n:2}"}, 200)
+	call("POST", "/modules/"+mid+"/rollback", map[string]any{"module_version_id": mvid}, 200)
+	call("GET", "/modules/"+mid+"/versions", nil, 200)
+	call("GET", "/modules/"+mid+"/versions/"+mvid, nil, 200)
+	call("POST", "/modules/"+mid+"/versions", nil, 409)
+	call("GET", "/modules/"+mid+"/actions", nil, 200)
+	call("PATCH", "/modules/"+mid, map[string]any{"code": "module.exports={n:3}"}, 200)
+	call("POST", "/modules/"+mid+"/versions", nil, 200)
+	call("DELETE", "/modules/"+mid, nil, 204)
 	a := call("POST", "/actions", map[string]any{"name": "router", "supported_triggers": []any{map[string]any{"id": "post-login"}}, "deploy": true, "code": `exports.onExecutePostLogin=async(event,api)=>{api.access.deny("dry");};`}, 201)
 	id := a["id"].(string)
 	call("GET", "/actions", nil, 200)

@@ -48,6 +48,7 @@ type File struct {
 }
 
 type Tenant struct {
+	Modules          []ActionModule            `yaml:"modules"`
 	Actions          []Action                  `yaml:"actions"`
 	Triggers         map[string]Trigger        `yaml:"triggers"`
 	AttackProtection map[string]map[string]any `yaml:"attack_protection"`
