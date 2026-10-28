@@ -149,3 +149,22 @@ Nothing in the visible text contradicts the Task 1 contracts; the Oct 9 entry
 agrees with the handling-scopes page. Modules and other triggers are Plan 28.
 The unread tail was not reviewed. See [Actions review](observations/actions.md)
 and D-0053. Live tenant observation remains unavailable.
+
+## 2026-10-28 — Plan 28 Task 1
+
+Reviewed the interval from 2026-10-26 onward using the official
+[full changelog text](https://auth0.com/changelog/llms-full.txt), fetched in
+full (733,166 bytes) after the web tool rejected the large HTML page. The
+newest visible entry is still October 26, 2026: Identity Conversion Suite
+entered Early Access, combining anonymous sessions and login experiments.
+That entry adds no Actions II contract change; there are no visible later
+entries to add. Latest published-entry coverage remains 2026-10-26; the fresh
+review was performed on 2026-10-28.
+
+The earlier Modules GA and custom-user-ID Early Access entries remain as
+recorded in Plan 27. Public trigger references and the Action create enum
+were reviewed separately: phone triggers → Plan 34, custom-token-exchange →
+35, event-stream → 32; password-hash-migration, login-post-identifier,
+signup-post-identifier and post-credential-validation remain deferred.
+Early Access custom IDs/risk data are deferred. See D-0054 and the
+[Actions II review](observations/actions.md#actions-ii-contract-review-2026-10-28).

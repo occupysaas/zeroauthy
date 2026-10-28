@@ -119,3 +119,117 @@ Sources: [limitations](https://auth0.com/docs/customize/actions/limitations), [p
 ## Changelog
 
 See `changelog-review.md` (https://auth0.com/changelog, reviewed 2026-10-27).
+
+## Actions II contract review (2026-10-28)
+
+This section extends the dated Actions I review above. Machine-readable
+contracts now cover 24 operations and seven supported triggers. Task 1 freezes
+contracts; later tasks supply runtime and Management API implementation.
+Public documentation and open-source source review were performed by the
+implementer; any live evidence is supplied separately under CLEAN_ROOM.md.
+
+Public sources fetched successfully on 2026-10-28:
+
+| Surface | References |
+|---|---|
+| Trigger scope and timing | [Catalogue](https://auth0.com/docs/customize/actions/explore-triggers), [pre-registration overview](https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/pre-user-registration-trigger), [post-registration overview](https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/post-user-registration-trigger), [password change overview](https://auth0.com/docs/customize/actions/explore-triggers/password-reset-triggers/post-change-password-trigger), [reset challenge overview](https://auth0.com/docs/customize/actions/explore-triggers/password-reset-post-challenge) |
+| Pre-registration | [event](https://auth0.com/docs/customize/actions/reference/pre-user-registration/pre-user-registration-event-object), [api](https://auth0.com/docs/customize/actions/reference/pre-user-registration/pre-user-registration-api-object) |
+| Post-registration | [event](https://auth0.com/docs/customize/actions/reference/post-user-registration/post-user-registration-event-object), [api](https://auth0.com/docs/customize/actions/reference/post-user-registration/post-user-registration-api-object) |
+| Password change | [event](https://auth0.com/docs/customize/actions/reference/post-change-password/post-change-password-event-object), [api](https://auth0.com/docs/customize/actions/reference/post-change-password/post-change-password-api-object) |
+| Reset challenge | [event](https://auth0.com/docs/customize/actions/reference/password-reset-post-challenge/password-reset-post-challenge-event-object), [api](https://auth0.com/docs/customize/actions/reference/password-reset-post-challenge/password-reset-post-challenge-api-object) |
+| Custom email | [event](https://auth0.com/docs/customize/actions/reference/custom-email-provider/custom-email-provider-event-object), [api](https://auth0.com/docs/customize/actions/reference/custom-email-provider/custom-email-provider-api-object) |
+| Modules/runtime | [Modules](https://auth0.com/docs/customize/actions/modules), [tutorial](https://auth0.com/docs/customize/actions/modules/write-your-first-action-module), [limitations](https://auth0.com/docs/customize/actions/limitations), [Action create schema](https://auth0.com/docs/api/management/v2/actions/post-action) |
+| Module CRUD | [list](https://auth0.com/docs/api/management/v2/actions/get-action-modules), [create](https://auth0.com/docs/api/management/v2/actions/post-action-module), [get](https://auth0.com/docs/api/management/v2/actions/get-action-module), [update](https://auth0.com/docs/api/management/v2/actions/patch-action-module), [delete](https://auth0.com/docs/api/management/v2/actions/delete-action-module) |
+| Module usage/versioning | [used by](https://auth0.com/docs/api/management/v2/actions/get-action-module-actions), [rollback](https://auth0.com/docs/api/management/v2/actions/post-action-module-rollback), [versions](https://auth0.com/docs/api/management/v2/actions/get-action-module-versions), [publish](https://auth0.com/docs/api/management/v2/actions/post-action-module-version), [get version](https://auth0.com/docs/api/management/v2/actions/get-action-module-version) |
+
+The web retrieval tool could not open one reset reference and rejected the
+large changelog HTML. Direct HTTPS retrieval succeeded for every reference
+above and for the official full changelog text. An initially guessed reset
+overview URL under `password-reset-triggers` returned 404; the catalogue links
+to the successful URL listed above. No hosted login or dashboard was captured.
+
+Facts confirmed in our words:
+
+- Pre-registration blocks; post-registration/password-change are asynchronous
+  and their outcome does not change the transaction. Pre-registration API has
+  deny with a user message, metadata setters, cache and validation error;
+  post-registration/password-change have cache only.
+- Reset handlers are exactly `onExecutePostChallenge` and
+  `onContinuePostChallenge`, in the reset overview's examples. Reset API has
+  deny, two authentication challenges, three redirect methods, cache, prompt
+  render and result URL. `redirect.canRedirect` is absent from this reference;
+  zeroauthy retains it as a local helper (D-0054). Challenges and Forms remain
+  unsupported and fail closed.
+- Custom email API has cache, retry and drop. Last notification call wins;
+  retry allows five retries, and reasons truncate to 1024 characters. The
+  exact delay sequence and thrown-error behavior remain D-0054 choices.
+- Event references contain optional fields beyond zeroauthy's current flows:
+  organization, GeoIP, authentication/risk, security_context and Forms. Their
+  absence is explicit local scope. Pre-registration receives a prospective
+  user, post-registration an existing user, password change includes
+  `last_password_reset`, and email includes the rendered notification.
+- Modules have independent secrets/npm dependencies, run in the importing
+  Action's runtime, cannot import another Action module, and use
+  `require('actions:<name>')` and `actions.secrets`. Publishing snapshots an
+  immutable numbered version. Rollback copies an older version into the draft.
+  An Action explicitly pins a module version, with no automatic upgrade.
+- Public schemas give module name/code bounds 255/65536 characters and immutable
+  name on update; create/publish/delete succeed with 201/200/204. Duplicate
+  creation and unchanged publish are 409; in-use delete/version limit are 412.
+  Public used-by prose speaks of deployed Action versions; extending the
+  in-use definition to drafts and retaining tombstones for old pins are local
+  safety choices. Module counts and queue constraints are D-0054 defaults.
+
+### Pinned open-source client provenance
+
+Only publicly released, MIT-licensed sources were studied. No source was
+copied or closely adapted; this is a capability/protocol review.
+
+| Repository/version | Files inspected | Exposed support |
+|---|---|---|
+| [auth0/auth0-deploy-cli v9.1.0](https://github.com/auth0/auth0-deploy-cli/tree/v9.1.0) | `src/tools/auth0/handlers/actionModules.ts`, `src/tools/auth0/handlers/actions.ts`, `src/context/yaml/handlers/actionModules.ts`, `src/context/directory/handlers/actionModules.ts` | `actionModules` YAML and directory import/export, external `action-modules/<name>/code.js`, dependencies/secrets and publish state; Action references by module name/version number resolved to IDs. Publication follows draft changes with `all_changes_published:true`. Source supports the required four-cell Deploy matrix. |
+| [auth0/auth0-cli v1.37.0](https://github.com/auth0/auth0-cli/tree/v1.37.0) | `internal/cli/actions_modules.go`, `internal/cli/actions_modules_versions.go`, `internal/cli/actions.go`, `internal/cli/api.go` | Native `actions modules` list/show/create/update/delete/actions; versions list/show/rollback/publish. Create/update accept code, dependencies, secrets, publish; create also API version. Actions create/update accept repeatable `--module` ID/version-ID pairs. Generic `api` remains an alternative. |
+| [auth0/node-auth0 v7.4.0](https://github.com/auth0/node-auth0/tree/v7.4.0) | `src/management/api/resources/actions/client/Client.ts`, `src/management/api/resources/actions/resources/modules/client/Client.ts`, `src/management/api/resources/actions/resources/modules/resources/versions/client/Client.ts` | `actions.modules.{list,create,get,update,delete,listActions,rollback}` and `actions.modules.versions.{list,create,get}`: all ten module operations, including 409/412 error mappings. |
+
+The current tutorial says auth0-cli has no module commands/flag; pinned
+1.37.0 source exposes both. We record this discrepancy and use documented
+Management API payloads; no undocumented server behavior is inferred from the
+client's stricter lowercase module-name validation. Source capability does not
+prove a local or upstream client round-trip; those are later verification.
+
+### Live observation availability
+
+Observer credentials were detected through `fish -c` using a presence-only
+check; no values were printed or consumed by the implementer. The controller
+assigned a separate observer. The final sanitized observation disposition is
+recorded below; until an observation succeeds, spec §2 defaults remain local
+D-0054 decisions rather than claims of Auth0 parity.
+
+The separate observer completed the 2026-10-28 attempt using documented
+Management API endpoints with auth0-cli and sufficient scopes. Initial and
+final reads of pre-registration, post-registration and post-change-password
+bindings were empty. Isolated client/connection creation succeeded, but Action
+creation returned HTTP 400 (`validation` / `invalid_request`) for explicit
+`node22` with both v1 and v2; the exact validation cause was not established.
+No Action was created/deployed/bound, and no binding write occurred. Cleanup
+of only the newly created client/connection resources succeeded; original
+binding state was confirmed unchanged. Credentials stayed with the observer;
+no credentials, tenant/resource identifiers or personal data enter these notes.
+
+| Spec §2 item | Live result |
+|---|---|
+| 1: Management API creation fires registration | **Unavailable:** no bound observer Action; no execution conclusion. Default remains signup only. |
+| 2: Password change sources | **Unavailable:** no bound observer Action; no password-change execution observed. Default source matrix remains D-0054. |
+| 3: Signup deny/validation response | **Unavailable:** no deny/validation Action; no signup error body observed. Default 400 body remains D-0054. |
+
+This is a setup failure, not a passing behavior test or an observation of the
+proposed default behavior. Public rollback reference supports draft-only
+replacement (§2 item 6); thrown-email-error retries and module count limits
+(items 4–5) remain local defaults, with no live confirmation.
+
+The successful documented trigger catalogue read reported `v2` current and
+`v1` deprecated for pre-/post-user-registration and post-change-password, and
+listed `node22`. Their inventory `version` records that observed metadata;
+other trigger versions remain unspecified here. This does not demonstrate
+execution, deployment, or wire-error parity. Task 1 does not change existing
+runtime/Management API trigger-version handling.
