@@ -147,6 +147,7 @@ type flow struct {
 	cache                                *actionCache
 	deadline                             time.Time
 	input                                *PostLoginInput
+	reset                                *ResetChallengeInput
 	redirectCount, position              int
 	state                                string
 	remaining                            time.Duration

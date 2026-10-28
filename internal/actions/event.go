@@ -71,6 +71,12 @@ type ResetChallengeInput struct {
 	Ticket      *store.PasswordResetTicket
 	Request     RequestInfo
 	CanRedirect bool
+	// PageCookie is the reset page's cookie value; a redirect binds its
+	// continuation to it. It is never sealed.
+	PageCookie string `json:"-"`
+	// Prepare, when set, completes the input once the engine knows Actions
+	// are bound, as PostLoginInput.Prepare does.
+	Prepare func(ctx context.Context, in *ResetChallengeInput) error `json:"-"`
 }
 
 // EmailMessage is the rendered message handed to a custom email Action.

@@ -48,22 +48,19 @@ func continuationOf(f *flow) map[string]string {
 }
 
 func (e *Engine) suspend(ctx context.Context, st store.Store, f *flow, index int) (*Redirect, error) {
+	if f.reset != nil {
+		return e.suspendReset(ctx, st, f, index)
+	}
 	if f.input == nil || f.input.Session == nil || f.input.Session.ID == "" || f.input.User == nil {
 		return nil, fmt.Errorf("actions: redirect requires a login session")
 	}
-	if f.redirectCount >= maxRedirects {
-		return nil, fmt.Errorf("actions: too many redirects")
-	}
-	if f.remaining <= 0 {
-		return nil, ErrTimeout
+	if err := suspendable(f); err != nil {
+		return nil, err
 	}
 	p := continuePayload{Input: *f.input, Roles: f.roles, Effects: f.acc.eff, Target: f.acc.target, Position: f.position + index, RedirectCount: f.redirectCount + 1, Remaining: f.remaining}
-	for _, u := range f.units[index:] {
-		versions, err := resolveModuleVersions(ctx, st.Actions(), f.tenantID, u)
-		if err != nil {
-			return nil, err
-		}
-		p.Units = append(p.Units, continueUnit{Name: u.name, ActionID: u.actionID, VersionKey: u.versionKey, Code: u.code, BuildID: u.buildID, Secrets: u.secrets, Modules: u.moduleRefs, ModuleVersions: versions})
+	var err error
+	if p.Units, err = continueUnits(ctx, st, f, index); err != nil {
+		return nil, err
 	}
 	plain, err := json.Marshal(p)
 	if err != nil {
@@ -76,9 +73,37 @@ func (e *Engine) suspend(ctx context.Context, st store.Store, f *flow, index int
 	if err != nil {
 		return nil, err
 	}
+	return e.storeContinue(ctx, st, f, state, sessID, sealed)
+}
+
+func suspendable(f *flow) error {
+	if f.redirectCount >= maxRedirects {
+		return fmt.Errorf("actions: too many redirects")
+	}
+	if f.remaining <= 0 {
+		return ErrTimeout
+	}
+	return nil
+}
+
+// continueUnits snapshots the redirecting Action and the flow's tail.
+func continueUnits(ctx context.Context, st store.Store, f *flow, index int) ([]continueUnit, error) {
+	var out []continueUnit
+	for _, u := range f.units[index:] {
+		versions, err := resolveModuleVersions(ctx, st.Actions(), f.tenantID, u)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, continueUnit{Name: u.name, ActionID: u.actionID, VersionKey: u.versionKey, Code: u.code, BuildID: u.buildID, Secrets: u.secrets, Modules: u.moduleRefs, ModuleVersions: versions})
+	}
+	return out, nil
+}
+
+// storeContinue saves the sealed state under binding and builds the redirect.
+func (e *Engine) storeContinue(ctx context.Context, st store.Store, f *flow, state, binding string, sealed []byte) (*Redirect, error) {
 	now := e.now()
-	c := &store.ContinueState{TenantID: f.tenantID, StateHash: hash, SessionID: sessID, Sealed: sealed, CreatedAt: now, ExpiresAt: now.Add(continueLifetime)}
-	if err = st.Actions().CreateContinue(ctx, c); err != nil {
+	c := &store.ContinueState{TenantID: f.tenantID, StateHash: secrets.HashToken(state), SessionID: binding, Sealed: sealed, CreatedAt: now, ExpiresAt: now.Add(continueLifetime)}
+	if err := st.Actions().CreateContinue(ctx, c); err != nil {
 		return nil, err
 	}
 	u, _ := url.Parse(f.acc.redirect.URL)
@@ -89,6 +114,14 @@ func (e *Engine) suspend(ctx context.Context, st store.Store, f *flow, index int
 	q.Set("state", state)
 	u.RawQuery = q.Encode()
 	return &Redirect{URL: u.String(), Query: map[string]string{"state": state}}, nil
+}
+
+// requestOrigin is the origin a continuation must be resumed on.
+func requestOrigin(req RequestInfo) string {
+	if req.Origin == "" && req.Hostname != "" {
+		return "https://" + tenant.NormalizeHost(req.Hostname)
+	}
+	return req.Origin
 }
 
 // ContinuePostLogin consumes a single-use, session-, tenant- and origin-bound
@@ -102,17 +135,14 @@ func (e *Engine) ContinuePostLogin(ctx context.Context, tenantID, state string, 
 // trusted original caller flow parameters; returning an error aborts the flow
 // and discards its held effects. The consumed state cannot be retried.
 func (e *Engine) ContinuePostLoginValidated(ctx context.Context, tenantID, state string, sess *store.LoginSession, req RequestInfo, validate func(context.Context, map[string]string) error) (*Result, error) {
-	if state == "" || len(state) > 512 || sess == nil || sess.ID == "" || sess.TenantID != tenantID {
+	if state == "" || len(state) > 512 || IsResetState(state) || sess == nil || sess.ID == "" || sess.TenantID != tenantID {
 		return nil, ErrInvalidContinue
 	}
 	c, err := e.Store.Actions().ConsumeContinue(ctx, tenantID, secrets.HashToken(state), sess.ID, e.now())
 	if err != nil || c.SessionID != sess.ID {
 		return nil, ErrInvalidContinue
 	}
-	origin := req.Origin
-	if origin == "" && req.Hostname != "" {
-		origin = "https://" + tenant.NormalizeHost(req.Hostname)
-	}
+	origin := requestOrigin(req)
 	plain, err := keys.OpenBound(e.Secrets, continueLabel, []string{tenantID, c.StateHash, sess.ID, origin}, c.Sealed)
 	if err != nil {
 		return nil, ErrInvalidContinue

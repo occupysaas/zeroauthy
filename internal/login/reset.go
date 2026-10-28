@@ -1,11 +1,16 @@
 package login
 
 import (
+	"context"
 	"crypto/subtle"
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
+	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
@@ -17,6 +22,15 @@ import (
 
 // resetCookie holds the CSRF token of the new-password form.
 const resetCookie = "za_reset"
+
+// resetContinueCookie carries "<ticket>.<za_reset value>" to /continue while a
+// password-reset-post-challenge Action redirects. It is SameSite=None, like
+// the session cookie, because the browser returns from another site, and it
+// is scoped to /continue.
+const resetContinueCookie = "za_reset_continue"
+
+// errResetUnusable: the ticket's user or connection cannot be reset.
+var errResetUnusable = errors.New("login: reset ticket is not usable")
 
 func (h *Handlers) resetRequestData(f *flow, email string) ui.ResetRequestData {
 	return ui.ResetRequestData{
@@ -139,6 +153,8 @@ func setResetCookie(w http.ResponseWriter, value string, maxAge int) {
 // ResetPasswordPage serves GET /u/reset-password?ticket=…: the
 // new-password form (screen reset-password), or the error screen for an
 // unknown, used or expired ticket. Viewing the form does not use the ticket.
+// A bound password-reset-post-challenge flow runs first, unless the ticket
+// already passed it.
 func (h *Handlers) ResetPasswordPage(w http.ResponseWriter, r *http.Request) {
 	res, ok := tenant.FromContext(r.Context())
 	if !ok {
@@ -155,14 +171,180 @@ func (h *Handlers) ResetPasswordPage(w http.ResponseWriter, r *http.Request) {
 		h.renderResetError(w, view, p)
 		return
 	}
+	csrf := secrets.RandomString(32)
+	setResetCookie(w, csrf, 900)
+	if tk.ChallengePassedAt == nil && !h.resetChallenge(w, r, res, view, raw, tk, csrf) {
+		return
+	}
+	h.showResetForm(w, r, res, view, raw, tk, csrf)
+}
+
+func (h *Handlers) showResetForm(w http.ResponseWriter, r *http.Request, res tenant.Resolved, view ui.Tenant, raw string, tk *store.PasswordResetTicket, csrf string) {
 	if _, err := h.prepareCaptcha(r, res, &view, "reset", tk.ID); err != nil {
 		status, key := captchaFailure(err)
 		ui.RenderError(w, status, view, view.L.T(key))
 		return
 	}
+	ui.RenderResetForm(w, http.StatusOK, view, ui.ResetFormData{Ticket: raw, CSRF: csrf})
+}
+
+// resetChallengeBound reports whether password-reset-post-challenge has
+// bindings now; POST reads it again, so bindings added after the page
+// loaded still apply.
+func (h *Handlers) resetChallengeBound(ctx context.Context, tenantID string) (bool, error) {
+	bound, err := h.Store.Actions().Bindings(ctx, tenantID, actions.TriggerResetPostChallenge)
+	return len(bound) > 0, err
+}
+
+// resetRequest is event.request for the reset page. The ticket, a bearer
+// credential, is not shown to Actions.
+func (h *Handlers) resetRequest(r *http.Request, res tenant.Resolved) actions.RequestInfo {
+	q := map[string]any{}
+	for k, v := range r.URL.Query() {
+		if k != "ticket" && len(v) > 0 {
+			q[k] = v[0]
+		}
+	}
+	return actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: res.Host, Origin: res.Origin(), Method: r.Method,
+		UserAgent: r.UserAgent(), Language: r.Header.Get("Accept-Language"), Query: q}
+}
+
+// resetChallenge runs the flow for an unpassed ticket. It reports whether
+// the form may be shown; otherwise it has written the response.
+func (h *Handlers) resetChallenge(w http.ResponseWriter, r *http.Request, res tenant.Resolved, view ui.Tenant, raw string, tk *store.PasswordResetTicket, csrf string) bool {
+	ctx := r.Context()
+	if h.Actions == nil {
+		// Bound Actions without a runtime fail closed.
+		bound, err := h.resetChallengeBound(ctx, res.Tenant.ID)
+		if err != nil {
+			h.fail(w, r, err, nil)
+			return false
+		}
+		if bound {
+			h.log().ErrorContext(ctx, "reset: password-reset-post-challenge is bound but the Actions runtime is unavailable", "tenant", res.Tenant.ID)
+			ui.RenderError(w, http.StatusInternalServerError, view, view.L.T(i18n.KeyErrServer))
+		}
+		return !bound
+	}
+	in := actions.ResetChallengeInput{Tenant: res, Ticket: tk, Request: h.resetRequest(r, res), CanRedirect: true, PageCookie: csrf,
+		Prepare: func(ctx context.Context, in *actions.ResetChallengeInput) error {
+			user, err := h.Store.Users().Get(ctx, res.Tenant.ID, tk.UserID)
+			if errors.Is(err, store.ErrNotFound) || err == nil && user.Blocked {
+				return errResetUnusable
+			} else if err != nil {
+				return err
+			}
+			conn, err := h.Store.Connections().GetByName(ctx, res.Tenant.ID, tk.Connection)
+			if errors.Is(err, store.ErrNotFound) || err == nil && conn.Strategy != store.StrategyDatabase {
+				return errResetUnusable
+			} else if err != nil {
+				return err
+			}
+			in.User, in.Connection = user, conn
+			if tk.ClientID != "" {
+				client, err := h.Store.Clients().Get(ctx, res.Tenant.ID, tk.ClientID)
+				if err != nil && !errors.Is(err, store.ErrNotFound) {
+					return err
+				}
+				in.Client = client
+			}
+			return nil
+		}}
+	result, err := h.Actions.ResetPostChallenge(ctx, in)
+	return h.resetOutcome(w, r, res, view, raw, csrf, result, err)
+}
+
+// resetOutcome applies a challenge flow's result: deny, failure or redirect
+// write the response and report false; a completed flow records the pass on
+// the ticket. The ticket is never spent here.
+func (h *Handlers) resetOutcome(w http.ResponseWriter, r *http.Request, res tenant.Resolved, view ui.Tenant, raw, page string, result *actions.Result, err error) bool {
+	ctx := r.Context()
+	var failed *actions.ErrFlow
+	switch {
+	case errors.Is(err, errResetUnusable):
+		h.renderResetError(w, view, resetInvalid)
+		return false
+	case errors.As(err, &failed):
+		ui.RenderErrorReference(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrServer), failed.ExecutionID)
+		return false
+	case err != nil:
+		h.fail(w, r, err, nil)
+		return false
+	case result.Denied != nil:
+		desc := result.Denied.Reason
+		if desc == "" {
+			desc = view.L.T(i18n.KeyResetErrGeneric)
+		}
+		ui.RenderResetError(w, http.StatusBadRequest, view, ui.ResetErrorData{Title: view.L.T(i18n.KeyResetErrGenericTitle), Description: desc})
+		return false
+	case result.Redirect != nil:
+		http.SetCookie(w, &http.Cookie{Name: resetContinueCookie, Value: raw + "." + page, Path: "/continue", MaxAge: 900,
+			HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode})
+		// The page URL holds the ticket; it must not leak as a referrer.
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Cache-Control", "no-store")
+		http.Redirect(w, r, result.Redirect.URL, http.StatusFound)
+		return false
+	case result.ExecutionID == "":
+		return true // nothing bound
+	}
+	err = h.Store.PasswordResetTickets().MarkChallengePassed(ctx, res.Tenant.ID, secrets.HashToken(raw), h.now(), result.ResultURL)
+	switch {
+	case errors.Is(err, store.ErrAlreadyUsed):
+		h.renderResetError(w, view, resetUsed)
+	case errors.Is(err, store.ErrNotFound):
+		h.renderResetError(w, view, resetExpired)
+	case err != nil:
+		h.fail(w, r, err, nil)
+	default:
+		return true
+	}
+	return false
+}
+
+// ResetContinue resumes a reset page's suspended challenge flow from
+// /continue. The state, the ticket and the page cookie must all match; a
+// completed flow records the pass and shows the new-password form.
+func (h *Handlers) ResetContinue(w http.ResponseWriter, r *http.Request, state string, req actions.RequestInfo) {
+	invalid := func() { httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "invalid continuation state") }
+	res, ok := tenant.FromContext(r.Context())
+	if !ok || h.Actions == nil {
+		invalid()
+		return
+	}
+	c, err := r.Cookie(resetContinueCookie)
+	if err != nil {
+		invalid()
+		return
+	}
+	raw, page, ok := strings.Cut(c.Value, ".")
+	if !ok || raw == "" || page == "" {
+		invalid()
+		return
+	}
+	tk, view, p, err := h.resetTicket(r, res, raw)
+	if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	if tk == nil {
+		h.renderResetError(w, view, p)
+		return
+	}
+	result, err := h.Actions.ContinueResetChallenge(r.Context(), res.Tenant.ID, state, secrets.HashToken(raw), page, req)
+	if errors.Is(err, actions.ErrInvalidContinue) {
+		invalid()
+		return
+	}
+	if err != nil || result.Redirect == nil {
+		http.SetCookie(w, &http.Cookie{Name: resetContinueCookie, Value: "", Path: "/continue", MaxAge: -1, HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode})
+	}
+	if !h.resetOutcome(w, r, res, view, raw, page, result, err) {
+		return
+	}
 	csrf := secrets.RandomString(32)
 	setResetCookie(w, csrf, 900)
-	ui.RenderResetForm(w, http.StatusOK, view, ui.ResetFormData{Ticket: raw, CSRF: csrf})
+	h.showResetForm(w, r, res, view, raw, tk, csrf)
 }
 
 // ResetPasswordSubmit serves POST /u/reset-password. It ends every
@@ -210,6 +392,20 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	if !csrfOK {
 		h.renderResetError(w, view, resetInvalid)
 		return
+	}
+	// A submit cannot skip a bound challenge, including one bound after the
+	// page loaded. The ticket stays unused.
+	if tk.ChallengePassedAt == nil {
+		bound, err := h.resetChallengeBound(ctx, res.Tenant.ID)
+		if err != nil {
+			h.fail(w, r, err, nil)
+			return
+		}
+		if bound {
+			h.log().InfoContext(ctx, "reset refused: challenge not passed", "tenant", res.Tenant.ID, "user_id", tk.UserID)
+			h.renderResetError(w, view, resetInvalid)
+			return
+		}
 	}
 	conn, err := h.Store.Connections().GetByName(ctx, res.Tenant.ID, tk.Connection)
 	if errors.Is(err, store.ErrNotFound) || (err == nil && conn.Strategy != store.StrategyDatabase) {
@@ -341,7 +537,8 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 8. In one transaction, log the user out everywhere, invalidate
-	// their other reset links and, on a local connection, set the password.
+	// their other reset links, record last_password_reset, queue
+	// post-change-password and, on a local connection, set the password.
 	// Either way the user's Version changes, so a grant that checked the
 	// old password and has not minted yet is refused. A storage failure
 	// rolls this step back, but the link is already spent (and on a legacy
@@ -355,7 +552,8 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 			if _, err := tx.Users().BumpVersion(ctx, res.Tenant.ID, tk.UserID); err != nil {
 				return err
 			}
-		} else if _, err := tx.Users().GetForUpdate(ctx, res.Tenant.ID, tk.UserID); err != nil {
+		}
+		if err := recordPasswordReset(ctx, tx, res.Tenant.ID, tk.UserID, now); err != nil {
 			return err
 		}
 		if _, err := tx.Sessions().DeleteByUser(ctx, res.Tenant.ID, tk.UserID); err != nil {
@@ -370,13 +568,20 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 		if err := protection.ClearIdentity(ctx, tx, conn, user); err != nil {
 			return err
 		}
-		if legacy {
-			return identity.RecordPassword(ctx, tx, conn, tk.UserID, hash)
+		if !legacy {
+			if err := tx.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); err != nil {
+				return err
+			}
 		}
-		if err := tx.Users().SetPasswordHash(ctx, res.Tenant.ID, tk.UserID, tk.Connection, hash, now); err != nil {
+		if err := identity.RecordPassword(ctx, tx, conn, tk.UserID, hash); err != nil {
 			return err
 		}
-		return identity.RecordPassword(ctx, tx, conn, tk.UserID, hash)
+		changed, err := tx.Users().Get(ctx, res.Tenant.ID, tk.UserID)
+		if err != nil {
+			return err
+		}
+		return actions.PasswordChanged(ctx, tx, h.Actions, res, changed, conn, actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders),
+			Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: r.Header.Get("Accept-Language")})
 	})
 	if errors.Is(err, store.ErrNotFound) {
 		h.renderResetError(w, view, resetInvalid)
@@ -388,7 +593,8 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	h.log().InfoContext(ctx, "password reset", "tenant", res.Tenant.ID, "user_id", tk.UserID)
 	// A Management API ticket with mark_email_as_verified also verifies
 	// the email (U6). Its result_url is not used: Auth0's page shows the
-	// success message and does not redirect.
+	// success message and does not redirect. An Action's setResultUrl does
+	// redirect (D-0054).
 	if tk.MarkEmailVerified {
 		if err := h.setEmailVerified(ctx, res.Tenant.ID, tk.UserID, now); err != nil {
 			h.log().ErrorContext(ctx, "reset: mark email verified", "tenant", res.Tenant.ID, "user_id", tk.UserID, "err", err)
@@ -400,5 +606,20 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 	if _, err := h.Sessions.End(ctx, w, r, res.Tenant); err != nil {
 		h.log().WarnContext(ctx, "reset: end session", "tenant", res.Tenant.ID, "err", err)
 	}
+	if tk.ChallengeResultURL != "" {
+		w.Header().Set("Cache-Control", "no-store")
+		http.Redirect(w, r, tk.ChallengeResultURL, http.StatusFound)
+		return
+	}
 	ui.RenderResetSuccess(w, view)
+}
+
+// recordPasswordReset locks the user and sets last_password_reset in tx.
+func recordPasswordReset(ctx context.Context, tx store.Store, tenantID, userID string, at time.Time) error {
+	u, err := tx.Users().GetForUpdate(ctx, tenantID, userID)
+	if err != nil {
+		return err
+	}
+	u.LastPasswordReset, u.UpdatedAt = &at, at
+	return tx.Users().Update(ctx, u)
 }

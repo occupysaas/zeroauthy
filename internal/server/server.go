@@ -196,6 +196,7 @@ func New(d Deps) http.Handler {
 		DeviceTxnThrottle: d.DeviceTxnThrottle, DeviceIPThrottle: d.DeviceIPThrottle, DeviceTenantThrottle: d.DeviceTenantThrottle,
 		TrustProxyHeaders: d.TrustProxyHeaders, Log: d.Log,
 	}
+	az.ResetContinue = lg.ResetContinue
 
 	// Authentication API: every route is tenant-scoped.
 	r.Group(func(tr chi.Router) {
