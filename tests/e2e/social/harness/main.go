@@ -15,6 +15,8 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/email"
+	"github.com/zeroauthy/zeroauthy/internal/email/providers"
 	"log/slog"
 	"net"
 	"net/http"
@@ -105,6 +107,26 @@ func run() error {
 			if err != nil {
 				return err
 			}
+			if os.Getenv("E2E_M28") == "1" {
+				// A verified fixture operator is required by the real email-test
+				// endpoint. Authentication still uses the hosted bootstrap/login.
+				sys, err := st.Tenants().GetByName(ctx, tenant.SystemName)
+				if err != nil {
+					return err
+				}
+				login, err := st.Users().FindByLogin(ctx, sys.ID, system.OperatorsConnection, "operator@e2e.local")
+				if err != nil {
+					return err
+				}
+				operator, err := st.Users().Get(ctx, sys.ID, login.UserID)
+				if err != nil {
+					return err
+				}
+				operator.EmailVerified = true
+				if err := st.Users().Update(ctx, operator); err != nil {
+					return err
+				}
+			}
 			if err := os.WriteFile(os.Getenv("E2E_SETUP_FILE"), []byte(link), 0o600); err != nil {
 				return err
 			}
@@ -141,11 +163,24 @@ func run() error {
 			defer pool.Close()
 			engine = &actions.Engine{Store: st, Builds: builds, Runner: pool, Secrets: wrapper, Log: slog.Default()}
 		}
-		za := server.New(server.Deps{Domains: domains, Store: st, Keys: km, Wrapper: wrapper, Resolver: tenant.NewResolver(st.Tenants(), "", false),
+		var emailService *email.Service
+		if os.Getenv("E2E_M28") == "1" {
+			renderer, err := email.NewRenderer()
+			if err != nil {
+				return err
+			}
+			emailService = &email.Service{Store: st, Wrapper: wrapper, Renderer: renderer, Providers: &providers.Factory{}, DefaultFrom: "fixture@example.test", Actions: engine}
+			worker := &actions.Worker{Engine: engine, Store: st, Workers: 1, Poll: 20 * time.Millisecond}
+			go worker.Run(ctx)
+		}
+		za := server.New(server.Deps{EmailService: emailService, Domains: domains, Store: st, Keys: km, Wrapper: wrapper, Resolver: tenant.NewResolver(st.Tenants(), "", false),
 			Sessions: &session.Manager{Store: st}, Log: slog.Default(), SystemHost: "system.e2e.test", Federation: flows, Actions: engine})
 		mux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if os.Getenv("E2E_M27") == "1" && strings.EqualFold(strings.Split(r.Host, ":")[0], "callback.e2e.test") {
 				switch r.URL.Path {
+				case "/reset-redirect":
+					w.Header().Set("Content-Type", "text/html")
+					_, _ = w.Write([]byte(`<form method="post" action="https://sdk.e2e.test/continue?ok=1"><input name="state" type="hidden"><button>Continue reset</button></form><script>document.querySelector("input").value=new URLSearchParams(location.search).get("state")</script>`))
 				case "/spa":
 					http.ServeFile(w, r, "tests/e2e/actions-spa.html")
 				case "/redirect":
@@ -175,6 +210,24 @@ func run() error {
 		}()
 	}
 	control := http.NewServeMux()
+	if os.Getenv("E2E_M28") == "1" {
+		var mu sync.Mutex
+		rows := []json.RawMessage{}
+		control.HandleFunc("/m28/sink", func(w http.ResponseWriter, r *http.Request) {
+			mu.Lock()
+			defer mu.Unlock()
+			w.Header().Set("Content-Type", "application/json")
+			if r.Method == "POST" {
+				var row json.RawMessage
+				if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&row) != nil {
+					http.Error(w, "bad JSON", 400)
+					return
+				}
+				rows = append(rows, row)
+			}
+			_ = json.NewEncoder(w).Encode(rows)
+		})
+	}
 	if os.Getenv("E2E_M27") == "1" {
 		target, _ := url.Parse("https://sdk.e2e.test:9543")
 		proxy := httputil.NewSingleHostReverseProxy(target)

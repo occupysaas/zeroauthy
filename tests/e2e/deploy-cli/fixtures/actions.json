@@ -1,1 +1,104 @@
-[{"name":"Deploy Claim","runtime":"node22","supported_triggers":[{"id":"post-login","version":"v3"}],"code":"exports.onExecutePostLogin=async(e,a)=>a.idToken.setCustomClaim('https://actions.test/deployed',e.secrets.DEPLOY_VALUE);"}]
+[
+  {
+    "name": "Deploy Claim",
+    "runtime": "node22",
+    "supported_triggers": [
+      {
+        "id": "post-login",
+        "version": "v3"
+      }
+    ],
+    "code": "exports.onExecutePostLogin=async(e,a)=>{a.idToken.setCustomClaim('https://actions.test/deployed',e.secrets.DEPLOY_VALUE);a.idToken.setCustomClaim('https://actions.test/module',require('actions:deploy-util').value())};",
+    "modules": [
+      {
+        "module_name": "deploy-util",
+        "module_version_number": 1
+      }
+    ]
+  },
+  {
+    "name": "Deploy pre-user-registration",
+    "runtime": "node22",
+    "supported_triggers": [
+      {
+        "id": "pre-user-registration",
+        "version": "v2"
+      }
+    ],
+    "code": "exports.onExecutePreUserRegistration=()=>{};",
+    "modules": [
+      {
+        "module_name": "deploy-util",
+        "module_version_number": 1
+      }
+    ]
+  },
+  {
+    "name": "Deploy post-user-registration",
+    "runtime": "node22",
+    "supported_triggers": [
+      {
+        "id": "post-user-registration",
+        "version": "v2"
+      }
+    ],
+    "code": "exports.onExecutePostUserRegistration=()=>{};",
+    "modules": [
+      {
+        "module_name": "deploy-util",
+        "module_version_number": 1
+      }
+    ]
+  },
+  {
+    "name": "Deploy post-change-password",
+    "runtime": "node22",
+    "supported_triggers": [
+      {
+        "id": "post-change-password",
+        "version": "v2"
+      }
+    ],
+    "code": "exports.onExecutePostChangePassword=()=>{};",
+    "modules": [
+      {
+        "module_name": "deploy-util",
+        "module_version_number": 1
+      }
+    ]
+  },
+  {
+    "name": "Deploy password-reset-post-challenge",
+    "runtime": "node22",
+    "supported_triggers": [
+      {
+        "id": "password-reset-post-challenge",
+        "version": "v2"
+      }
+    ],
+    "code": "exports.onExecutePostChallenge=()=>{};",
+    "modules": [
+      {
+        "module_name": "deploy-util",
+        "module_version_number": 1
+      }
+    ]
+  },
+  {
+    "name": "Deploy custom-email-provider",
+    "runtime": "node22",
+    "supported_triggers": [
+      {
+        "id": "custom-email-provider",
+        "version": "v1"
+      }
+    ],
+    "code": "exports.onExecuteCustomEmailProvider=()=>{};",
+    "modules": [
+      {
+        "module_name": "deploy-util",
+        "module_version_number": 1
+      }
+    ]
+  }
+]

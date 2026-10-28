@@ -1,0 +1,1 @@
+[{"name": "deploy-util", "code": "exports.value=()=> 'module-deployed:'+actions.secrets.MODULE_VALUE", "secrets": [{"name": "MODULE_VALUE"}]}]

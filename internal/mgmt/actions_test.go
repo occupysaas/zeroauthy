@@ -448,3 +448,36 @@ func TestActionsBindingReferenceUpdatesTimestamp(t *testing.T) {
 		t.Fatalf("binding update timestamps before=%+v after=%+v", before, after)
 	}
 }
+
+func TestActionSupportedTriggersRoundTrip(t *testing.T) {
+	e := newClientsEnv(t)
+	ae := actionstest.NewOffline(t, e.st, e.w)
+	e.h.Actions = ae.Engine
+	for i, trigger := range []string{"post-login", "credentials-exchange", "pre-user-registration", "post-user-registration", "post-change-password", "password-reset-post-challenge", "custom-email-provider"} {
+		t.Run(trigger, func(t *testing.T) {
+			caller := m2mCaller("read:actions", "create:actions")
+			rec, out := e.call(t, e.tn, caller, "POST", "/actions", map[string]any{"name": fmt.Sprintf("source-%d", i), "code": "", "supported_triggers": []any{map[string]any{"id": trigger}}}, e.h.CreateAction)
+			if rec.Code != 201 {
+				t.Fatalf("create: %d %s", rec.Code, rec.Body)
+			}
+			refs := out.(map[string]any)["supported_triggers"].([]any)
+			ref := refs[0].(map[string]any)
+			if len(ref) != 2 || ref["id"] != trigger || ref["version"] == nil {
+				t.Fatalf("Action reference contains non-writable catalogue metadata: %v", ref)
+			}
+			rec, _ = e.call(t, e.tn, caller, "POST", "/actions", map[string]any{"name": fmt.Sprintf("copy-%d", i), "code": "", "supported_triggers": refs}, e.h.CreateAction)
+			if rec.Code != 201 {
+				t.Fatalf("export/reimport: %d %s", rec.Code, rec.Body)
+			}
+		})
+	}
+	rec, out := e.call(t, e.tn, m2mCaller("read:actions"), "GET", "/triggers", nil, e.h.GetActionTriggers)
+	if rec.Code != 200 {
+		t.Fatal(rec.Body.String())
+	}
+	for _, raw := range out.(map[string]any)["triggers"].([]any) {
+		if raw.(map[string]any)["binding_policy"] != "trigger-bound" {
+			t.Fatal("catalogue binding policy lost")
+		}
+	}
+}

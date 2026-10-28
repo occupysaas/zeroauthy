@@ -146,7 +146,7 @@ func TestResetPostChallenge(t *testing.T) {
 
 	t.Run("redirect and continue", func(t *testing.T) {
 		re := newResetActionsEnv(t)
-		re.bind(t, resetRedirectCode)
+		re.bind(t, resetRedirectCode+`exports.onContinuePostChallenge=(event,api)=>{if(event.request.query.ok!=='1')return api.access.deny('verification failed');api.transaction.setResultUrl('https://app.acme.test/done');};`)
 		ticket := re.issueTicket(t, "alice@acme.test", time.Hour)
 		b := re.browser("acme.example.test")
 		state := redirectState(t, b, ticket)
@@ -157,13 +157,16 @@ func TestResetPostChallenge(t *testing.T) {
 		if rec.Code != 200 || !csrfField.MatchString(rec.Body.String()) || !strings.Contains(rec.Body.String(), ticket) {
 			t.Fatalf("continue = %d %s", rec.Code, rec.Body)
 		}
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'self' https://app.acme.test;") {
+			t.Fatalf("continued reset form CSP omits validated result origin: %s", csp)
+		}
 		if re.ticket(t, ticket).ChallengePassedAt == nil {
 			t.Fatal("resumed pass not recorded")
 		}
 		if replay := b.do(t, "GET", "/continue?"+url.Values{"state": {state}, "ok": {"1"}}.Encode(), nil); !invalidContinue(replay) {
 			t.Fatalf("replay = %d %s", replay.Code, replay.Body)
 		}
-		if rec := submit(t, b, rec, ticket, "new password 123"); rec.Code != 200 || !re.passwordIs(t, "new password 123") {
+		if rec := submit(t, b, rec, ticket, "new password 123"); rec.Code != http.StatusFound || rec.Header().Get("Location") != "https://app.acme.test/done" || !re.passwordIs(t, "new password 123") {
 			t.Fatalf("submit = %d %s", rec.Code, rec.Body)
 		}
 	})
@@ -229,7 +232,14 @@ func TestResetPostChallenge(t *testing.T) {
 		ticket := re.issueTicket(t, "alice@acme.test", time.Hour)
 		b := re.browser("acme.example.test")
 		rec := b.do(t, "GET", "/u/reset-password?ticket="+ticket, nil)
-		rec = submit(t, b, rec, ticket, "new password 123")
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'self' https://app.acme.test;") {
+			t.Fatalf("reset form CSP omits validated result origin: %s", csp)
+		}
+		invalid := submit(t, b, rec, ticket, "short")
+		if csp := invalid.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'self' https://app.acme.test;") {
+			t.Fatalf("invalid password form CSP loses result origin: %s", csp)
+		}
+		rec = submit(t, b, invalid, ticket, "new password 123")
 		if rec.Code != http.StatusFound || rec.Header().Get("Location") != "https://app.acme.test/done?from=reset" {
 			t.Fatalf("result = %d %q %s", rec.Code, rec.Header().Get("Location"), rec.Body)
 		}

@@ -15,7 +15,7 @@ cleanup() {
   for p in "${pids[@]}"; do kill -TERM -- "-$p" 2>/dev/null || kill "$p" 2>/dev/null || true; done
   sleep 0.3
   for p in "${pids[@]}"; do kill -KILL -- "-$p" 2>/dev/null || true; done
-  rm -rf "$work"
+  if [[ ${E2E_KEEP_WORK:-0} == 1 ]]; then echo "Deploy CLI artifacts: $work"; else rm -rf "$work"; fi
 }
 trap cleanup EXIT
 trap 'exit 130' INT

@@ -180,12 +180,20 @@ func (h *Handlers) ResetPasswordPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) showResetForm(w http.ResponseWriter, r *http.Request, res tenant.Resolved, view ui.Tenant, raw string, tk *store.PasswordResetTicket, csrf string) {
+	// The challenge may have just stored its result URL. Read the committed
+	// ticket so both the direct and continuation form admit its validated origin.
+	fresh, err := h.Store.PasswordResetTickets().GetByTokenHash(r.Context(), res.Tenant.ID, secrets.HashToken(raw))
+	if err != nil {
+		h.fail(w, r, err, nil)
+		return
+	}
+	tk = fresh
 	if _, err := h.prepareCaptcha(r, res, &view, "reset", tk.ID); err != nil {
 		status, key := captchaFailure(err)
 		ui.RenderError(w, status, view, view.L.T(key))
 		return
 	}
-	ui.RenderResetForm(w, http.StatusOK, view, ui.ResetFormData{Ticket: raw, CSRF: csrf})
+	ui.RenderResetForm(w, http.StatusOK, view, ui.ResetFormData{Ticket: raw, CSRF: csrf, RedirectURI: tk.ChallengeResultURL})
 }
 
 // resetChallengeBound reports whether password-reset-post-challenge has
@@ -418,7 +426,7 @@ func (h *Handlers) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
 
 	// 3. The new password; the ticket stays usable while it is rejected.
 	pw := r.PostForm.Get("password")
-	form := ui.ResetFormData{Ticket: raw, CSRF: csrf}
+	form := ui.ResetFormData{Ticket: raw, CSRF: csrf, RedirectURI: tk.ChallengeResultURL}
 	if err := h.submitCaptcha(r, res, &view, "reset", tk.ID, attemptID); err != nil {
 		status, key := captchaFailure(err)
 		form.Error = view.L.T(key)

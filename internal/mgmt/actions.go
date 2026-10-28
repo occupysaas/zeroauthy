@@ -129,6 +129,15 @@ func actionTriggerView(trigger string) map[string]any {
 	}
 	return map[string]any{"id": trigger, "version": version, "binding_policy": "trigger-bound"}
 }
+
+// Action references must remain writable when exported by Deploy CLI.
+// binding_policy belongs to trigger discovery, not supported_triggers.
+func actionTriggerReference(trigger string) map[string]any {
+	ref := actionTriggerView(trigger)
+	delete(ref, "binding_policy")
+	return ref
+}
+
 func dependencyViews(ds []store.Dependency) []map[string]any {
 	out := make([]map[string]any, 0, len(ds))
 	for _, d := range ds {
@@ -163,7 +172,7 @@ func (h *Handlers) actionView(ctx context.Context, a *store.Action) (map[string]
 	if err := h.recoverAction(ctx, a); err != nil {
 		return nil, err
 	}
-	out := map[string]any{"id": a.ID, "name": a.Name, "supported_triggers": []map[string]any{actionTriggerView(a.Trigger)}, "code": a.Code, "modules": moduleRefViews(a.Modules), "runtime": a.Runtime, "dependencies": dependencyViews(a.Dependencies), "secrets": secretViews(a.Secrets), "created_at": a.CreatedAt, "updated_at": a.UpdatedAt, "status": "pending", "errors": []string{}, "all_changes_deployed": false}
+	out := map[string]any{"id": a.ID, "name": a.Name, "supported_triggers": []map[string]any{actionTriggerReference(a.Trigger)}, "code": a.Code, "modules": moduleRefViews(a.Modules), "runtime": a.Runtime, "dependencies": dependencyViews(a.Dependencies), "secrets": secretViews(a.Secrets), "created_at": a.CreatedAt, "updated_at": a.UpdatedAt, "status": "pending", "errors": []string{}, "all_changes_deployed": false}
 	var b *store.Build
 	if a.DraftBuildID != "" {
 		var err error

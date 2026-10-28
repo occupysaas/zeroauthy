@@ -140,8 +140,8 @@ async function prepareImport(input, name, mutate = () => {}, { inject = true } =
 // The checked export contains secret names only. The actual pinned Deploy CLI
 // resolves keyword values from its private target config during import.
 async function injectActionKeywords(destination){
- if(format==='yaml'){const data=parseYaml(await readFile(destination,'utf8'));for(const a of data.actions??[])a.secrets=a.secrets.map(s=>({...s,value:'##ACTION_SECRET##'}));await writeFile(destination,dumpYaml(data),{mode:0o600});}
- else{const dir=path.join(destination,'actions');for(const file of await readdir(dir)){if(!file.endsWith('.json'))continue;const p=path.join(dir,file),a=JSON.parse(await readFile(p,'utf8'));a.secrets=a.secrets.map(s=>({...s,value:'##ACTION_SECRET##'}));await writeFile(p,JSON.stringify(a),{mode:0o600});}}
+ if(format==='yaml'){const data=parseYaml(await readFile(destination,'utf8'));for(const a of [...data.actions??[],...data.actionModules??[]])a.secrets=a.secrets.map(s=>({...s,value:'##ACTION_SECRET##'}));await writeFile(destination,dumpYaml(data),{mode:0o600});}
+ else{for(const resource of ['actions','action-modules']){const dir=path.join(destination,resource);for(const file of await readdir(dir)){if(!file.endsWith('.json'))continue;const p=path.join(dir,file),a=JSON.parse(await readFile(p,'utf8'));a.secrets=a.secrets.map(s=>({...s,value:'##ACTION_SECRET##'}));await writeFile(p,JSON.stringify(a),{mode:0o600});}}}
 }
 async function actionNegatives(input){
  for(const kind of ['action','binding','code']){
@@ -184,6 +184,7 @@ async function federatedLogin(clientId, connection, subject, rbac=false) {
   assert.ok(token.access_token);if(!rbac)assert.equal(token.scope,'openid profile email');
   const claims=JSON.parse(Buffer.from(token.id_token.split('.')[1],'base64url'));
   assert.equal(claims['https://actions.test/deployed'],actionSecret,'post-import Action claim/keyword secret was lost');
+  assert.equal(claims['https://actions.test/module'],'module-deployed:'+actionSecret,'post-import module runtime was lost');
   assert.equal(claims.nonce,nonce);assert.equal(claims.aud,clientId);assert.equal(claims.iss,`https://${targetConfig.AUTH0_DOMAIN}/`);
   return rbac?{sub:claims.sub,token}:claims.sub;
 }
@@ -230,9 +231,11 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
   await api(sourceConfig,'PATCH',`resource-servers/${rbacAPI.id}`,{enforce_policies:true,token_dialect:'rfc9068_profile_authz',skip_consent_for_verifiable_first_party_clients:true});
   const roleDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/roles.json'),'utf8'));
   for(const {permissions,...declaration} of roleDeclarations){const role=await api(sourceConfig,'POST','roles',declaration);await api(sourceConfig,'POST',`roles/${role.id}/permissions`,{permissions});}
+  const moduleDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/action-modules.json'),'utf8'));
+  for(const declaration of moduleDeclarations){const mod=await api(sourceConfig,'POST','actions/modules',{...declaration,secrets:[{name:'MODULE_VALUE',value:actionSecret}]});let built=false;for(let n=0;n<300;n++){const draft=await api(sourceConfig,'GET',`actions/modules/${mod.id}`);if(draft.status==='built'){built=true;break;}assert.notEqual(draft.status,'failed');await new Promise(r=>setTimeout(r,100));}assert.ok(built);await api(sourceConfig,'POST',`actions/modules/${mod.id}/versions`);}
   const actionDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/actions.json'),'utf8'));
   for(const declaration of actionDeclarations){const a=await api(sourceConfig,'POST','actions/actions',{...declaration,secrets:[{name:'DEPLOY_VALUE',value:actionSecret}]});let built=false;for(let n=0;n<300;n++){const draft=await api(sourceConfig,'GET',`actions/actions/${a.id}`);if(draft.status==='built'){built=true;break;}assert.notEqual(draft.status,'failed');await new Promise(r=>setTimeout(r,100));}assert.ok(built,'source Action build timeout');await api(sourceConfig,'POST',`actions/actions/${a.id}/deploy`);}
-  await api(sourceConfig,'PATCH','actions/triggers/post-login/bindings',{bindings:actionDeclarations.map(a=>({ref:{type:'action_name',value:a.name},display_name:a.name}))});
+  for(const trigger of new Set(actionDeclarations.map(a=>a.supported_triggers[0].id)))await api(sourceConfig,'PATCH',`actions/triggers/${trigger}/bindings`,{bindings:actionDeclarations.filter(a=>a.supported_triggers[0].id===trigger).map(a=>({ref:{type:'action_name',value:a.name},display_name:a.name}))});
   const sourcePublicExport = await exportTo('source', 'source-export');
   await assertNoEmailSecrets(sourcePublicExport);
   await actionNegatives(sourcePublicExport);
@@ -286,7 +289,7 @@ function assertPrivateEmailCredential() {
 }
 assertPrivateEmailCredential();
 let targetPath = await exportTo('target', 'target-first');
-assert.equal(checkedCompare(sourcePath, targetPath).equivalent, true, 'first round trip differs');
+const firstReport=checkedCompare(sourcePath,targetPath);assert.equal(firstReport.equivalent,true,`first round trip differs: ${JSON.stringify(firstReport)}`);
 const imported = (await exportClients(targetConfig))[0];
 // Every migrated connection must log in through its provider on the target,
 // with canonical identities keyed by the imported connection names.
@@ -312,6 +315,7 @@ const rbacLogin=await federatedLogin(browser.client_id,'google-oauth2','deploy-g
 const rbacClaims=JSON.parse(Buffer.from(rbacLogin.token.access_token.split('.')[1],'base64url'));
 assert.equal(rbacLogin.sub,rbacSubject);assert.ok(rbacLogin.token.scope.split(' ').includes('read:fixture'));assert.ok(!rbacLogin.token.scope.split(' ').includes('write:fixture'));
 assert.deepEqual(rbacClaims.permissions,['read:fixture']);assert.equal(rbacClaims.client_id,browser.client_id);assert.equal(JSON.parse(Buffer.from(rbacLogin.token.access_token.split('.')[0],'base64url')).typ,'at+jwt');
+console.log('Plan 28 deploy: shared module code/private secret and canonical name/version pins; all five new trigger Actions and bindings; real post-import module claim passed');
 console.log('Plan 27 deploy: Actions/code/ordered trigger bindings, private keyword replacement and all post-import login claims passed');
 console.log('Plan 26 deploy: tenant role/API fields and post-import federated RBAC code exchange passed');
 console.log(`Plan 25 deploy: ${federation.length} federated connections (5 strategies) imported with explicit secret reinjection; missing/uninjected imports rejected; first and repeat provider logins passed`);

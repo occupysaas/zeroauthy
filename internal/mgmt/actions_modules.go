@@ -370,7 +370,7 @@ func (h *Handlers) GetActionModuleActions(w http.ResponseWriter, r *http.Request
 		}
 		for _, ref := range refs {
 			if ref.ModuleID == id {
-				out = append(out, map[string]any{"action_id": u.ID, "action_name": u.Name, "module_version_id": ref.VersionID, "module_version_number": ref.VersionNumber, "supported_triggers": []map[string]any{actionTriggerView(u.Trigger)}})
+				out = append(out, map[string]any{"action_id": u.ID, "action_name": u.Name, "module_version_id": ref.VersionID, "module_version_number": ref.VersionNumber, "supported_triggers": []map[string]any{actionTriggerReference(u.Trigger)}})
 				break
 			}
 		}
