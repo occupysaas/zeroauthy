@@ -69,3 +69,25 @@ it('removes an unused module and refreshes the library', async () => {
  await click(w,'Delete'); await flushPromises(); await new DOMWrapper(document.querySelector('[data-testid=confirm-delete]')!).trigger('click'); await flushPromises()
  expect(calls.some(c => c.method === 'DELETE')).toBe(true); expect(w.text()).toContain('No modules yet.')
 })
+
+it.each([204, 412])('ignores a delayed DELETE %s after its modal is closed and replaced', async status => {
+ let resolve!: (r: Reply) => void
+ const { wrapper: w, calls } = await setup('action-modules', '/t/acme/actions/modules', c => c.method === 'DELETE' ? new Promise<Reply>(r => { resolve = r }) : c.url.includes('/actions?') ? ok({ actions: [], total: 0 }) : ok({ modules: [module, { ...module, id: 'other', name: 'Other' }], total: 2 }))
+ await w.findAll('button').find(b => b.text() === 'Delete')!.trigger('click'); await flushPromises()
+ await new DOMWrapper(document.querySelector('[data-testid=confirm-delete]')!).trigger('click'); await flushPromises()
+ await new DOMWrapper(document.querySelector('[role=dialog]')!).trigger('keydown', { key: 'Escape' }); await flushPromises()
+ await w.findAll('button').filter(b => b.text() === 'Delete')[1]!.trigger('click'); await flushPromises()
+ resolve({ status, body: status === 412 ? { message: 'In use' } : undefined }); await flushPromises()
+ expect(document.querySelector('[role=dialog]')?.textContent).toContain('Delete Other')
+ expect(calls.some(c => c.url.includes('/other/actions'))).toBe(false)
+ expect(document.querySelector('[data-testid=confirm-delete]')?.hasAttribute('disabled')).toBe(false)
+})
+
+it.each([
+ ['action-module-editor', '/t/acme/actions/modules/m', true],
+ ['action-editor', '/t/acme/actions/a', false],
+] as const)('keeps explicit character versus byte code limits in the shared %s lifecycle', async (route, path, saves) => {
+ const { wrapper: w, calls } = await setup(route, path, c => c.url.includes('/modules?') ? ok({modules:[],total:0}) : ok({ ...module, modules:[], supported_triggers:[{id:'post-login'}],runtime:'node22' }))
+ await w.get('#action-code').setValue('😀'.repeat(40000)); await click(w, 'Save draft'); await flushPromises()
+ expect(calls.some(c => c.method === 'PATCH')).toBe(saves)
+})

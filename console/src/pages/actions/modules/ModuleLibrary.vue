@@ -13,7 +13,7 @@ import ActionNav from '../ActionNav.vue'
 import { buildStatusKey, useActionContext } from '../context'
 const { t } = useI18n(), router = useRouter(), { api, tenant, key, capture, current } = useActionContext()
 const items = ref<ActionModule[]>([]), page = ref(0), total = ref(0), loading = ref(false), busy = ref(false), error = ref(''), name = ref(''), creating = ref(false), deleting = ref(false), selected = ref<ActionModule>(), users = ref<ActionModuleActionsPage>(), userPage = ref(0)
-let reads = 0, userReads = 0
+let reads = 0, userReads = 0, modalGeneration = 0
 let deletion: ReturnType<typeof capture>
 async function load() {
  const c = capture(), seq = ++reads
@@ -31,7 +31,8 @@ async function create() {
  catch(e) { if(current(c)) error.value = errorMessage(e) }
  finally { if(current(c)) busy.value = false }
 }
-function ask(m: ActionModule) { ++userReads; deletion = capture(); selected.value = m; users.value = undefined; userPage.value = 0; error.value = ''; deleting.value = true }
+watch(deleting, () => { ++modalGeneration; ++userReads; busy.value = false }, { flush: 'sync' })
+function ask(m: ActionModule) { ++modalGeneration; ++userReads; busy.value = false; deletion = capture(); selected.value = m; users.value = undefined; userPage.value = 0; error.value = ''; deleting.value = true }
 async function loadUsers(n = 0) {
  const c = deletion, id = selected.value?.id, seq = ++userReads; if(!c || !current(c) || !id) return
  userPage.value = n
@@ -39,11 +40,12 @@ async function loadUsers(n = 0) {
  catch(e) { if(current(c) && seq === userReads) error.value = errorMessage(e) }
 }
 async function remove() {
- const c = deletion, m = selected.value; if(!c || !current(c) || !m || busy.value || users.value) return
+ const c = deletion, m = selected.value, generation = modalGeneration; if(!c || !current(c) || !m || busy.value || users.value) return
+ const active = () => current(c) && deleting.value && modalGeneration === generation && selected.value?.id === m.id
  busy.value = true; error.value = ''
- try { await api.deleteActionModule(c.tenant, m.id); if(current(c)) { deleting.value = false; await load() } }
- catch(e) { if(current(c)) { error.value = errorMessage(e); if(e instanceof ApiError && e.status === 412) await loadUsers() } }
- finally { if(current(c)) busy.value = false }
+ try { await api.deleteActionModule(c.tenant, m.id); if(active()) { deleting.value = false; await load() } }
+ catch(e) { if(active()) { error.value = errorMessage(e); if(e instanceof ApiError && e.status === 412) await loadUsers() } }
+ finally { if(active()) busy.value = false }
 }
 function goto(n: number) { page.value = n; void load() }
 </script>

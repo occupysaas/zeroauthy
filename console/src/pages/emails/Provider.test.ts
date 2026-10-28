@@ -75,6 +75,7 @@ describe('Email provider settings', () => {
 it('allows enabling custom delivery and explains its required Action binding', async () => {
  const { wrapper, calls } = await mountAt(Provider, '/t/acme/emails', c => ({ status: 200, body: c.method === 'PATCH' ? { ...stored, name: 'custom', enabled: true } : stored }))
  await wrapper.get('#email-provider-name').setValue('custom')
+ expect(wrapper.get('option[value=custom]').text()).toBe('Custom')
  expect(wrapper.text()).toContain('custom-email-provider')
  const enabled = wrapper.get('input[type=checkbox]'); expect(enabled.attributes('disabled')).toBeUndefined(); await enabled.setValue(true)
  await wrapper.findAll('button').find(b => b.text() === 'Save provider')!.trigger('click'); await flushPromises()

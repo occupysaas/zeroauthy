@@ -1,54 +1,30 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ActionModule, ActionModuleRef, ActionModuleVersion, Action, ActionDependency, ActionSecretInput } from '../../api/client'
+import type { ActionModule, ActionModuleRef, ActionModuleVersion, Action } from '../../api/client'
 import { errorMessage } from '../../context'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import ScriptEditor from '../connections/social/ScriptEditor.vue'
+import DraftConfiguration from './DraftConfiguration.vue'
+import { useDraftEditor } from './useDraftEditor'
 import ActionNav from './ActionNav.vue'
-import { buildStatusKey, exactVersion, packageName, pendingBuild, useActionContext } from './context'
-const { t } = useI18n(), { api, tenant, key, capture, current } = useActionContext()
-const action = ref<Action>(), name = ref(''), code = ref(''), dependencies = ref<ActionDependency[]>([]), secrets = ref<ActionSecretInput[]>([])
+import { buildStatusKey, useActionContext } from './context'
+const { t } = useI18n(), ctx = useActionContext(), { api, tenant, capture, current } = ctx
 const modules = ref<ActionModuleRef[]>([]), availableModules = ref<ActionModule[]>([]), moduleVersions = ref<Record<string, ActionModuleVersion[]>>({}), moduleChoice = ref(''), versionChoice = ref('')
 let moduleReads = 0
-const loading = ref(false), busy = ref(false), error = ref(''), notice = ref(''), reloadRequired = ref(false), baseline = ref('')
-let poll: ReturnType<typeof setTimeout> | undefined, readSeq = 0
-const draft = () => JSON.stringify({ name: name.value, code: code.value, dependencies: dependencies.value, secrets: secrets.value, modules: modules.value })
-const dirty = computed(() => draft() !== baseline.value)
-function stopPolling() { clearTimeout(poll); poll = undefined }
-function apply(a: Action) {
-  action.value = a; name.value = a.name; code.value = a.code
-  dependencies.value = a.dependencies.map(d => ({ ...d }))
-  secrets.value = a.secrets.map(s => ({ name: s.name }))
-  modules.value = (a.modules ?? []).map(m => ({ ...m }))
-  baseline.value = draft()
-}
-function schedule(c: ReturnType<typeof capture>) {
-  stopPolling()
-  if (current(c) && pendingBuild(action.value?.status)) poll = setTimeout(() => { void read(true) }, 1500)
-}
-async function read(preserve = false) {
-  const c = capture(), seq = ++readSeq
-  if (!c) return
-  if (!preserve) loading.value = true
-  error.value = ''
-  try {
-    const a = await api.getAction(c.tenant, c.id)
-    if (!current(c) || seq !== readSeq) return
-    if (preserve) action.value = a
-    else apply(a)
-    reloadRequired.value = false
-    schedule(c)
-  } catch (e) { if (current(c) && seq === readSeq) error.value = errorMessage(e) }
-  finally { if (current(c) && seq === readSeq) loading.value = false }
-}
-watch(key, () => {
-  stopPolling(); ++readSeq; ++moduleReads; modules.value = []; availableModules.value = []; moduleVersions.value = {}; moduleChoice.value = ''; versionChoice.value = ''; action.value = undefined; name.value = ''; code.value = ''; dependencies.value = []; secrets.value = []; baseline.value = ''; busy.value = false; loading.value = false; reloadRequired.value = false; error.value = ''; notice.value = ''
-  void read(); void loadModules()
-}, { immediate: true })
-onBeforeUnmount(stopPolling)
+const { resource: action, name, code, dependencies, secrets, loading, busy, error, notice, reloadRequired, dirty, read, save, reload, publish: deploy } = useDraftEditor<Action>({
+ context: ctx,
+ limits: { name: 128, code: 100000, codeUnit: 'bytes', invalid: 'actions.invalidDraft' },
+ read: (tenant, id) => api.getAction(tenant, id),
+ update: (tenant, id, draft) => api.updateAction(tenant, id, { ...draft, runtime: 'node22', modules: modules.value.map(m => ({ ...m })) }),
+ publish: async (tenant, id, value) => ({ ...value, deployed_version: await api.deployAction(tenant, id), all_changes_deployed: true }),
+ published: 'actions.deployed', extraDraft: () => modules.value,
+ applyExtra: value => { modules.value = (value.modules ?? []).map(m => ({ ...m })) },
+ validateExtra: () => modules.value.length > 10 || new Set(modules.value.map(m => m.module_id)).size !== modules.value.length || modules.value.some(m => !m.module_id || !m.module_version_id) ? 'actions.invalidModules' : undefined,
+ resetExtra: () => { ++moduleReads; modules.value = []; availableModules.value = []; moduleVersions.value = {}; moduleChoice.value = ''; versionChoice.value = ''; void loadModules() },
+})
 async function loadModules() {
  const c = capture(); if(!c) return
  try { const all: ActionModule[] = []; for(let page = 0; ; page++) { const r = await api.listActionModules(c.tenant, { page, per_page: 100 }); if(!current(c)) return; all.push(...r.modules); if(all.length >= r.total || !r.modules.length) break }; availableModules.value = all }
@@ -63,51 +39,6 @@ function addModule() {
  const m = availableModules.value.find(m => m.id === moduleChoice.value), v = moduleVersions.value[moduleChoice.value]?.find(v => v.id === versionChoice.value)
  if(!m || !v || modules.value.length >= 10 || modules.value.some(r => r.module_id === m.id)) return
  modules.value.push({ module_id: m.id, module_name: m.name, module_version_id: v.id, module_version_number: v.version_number })
-}
-function validate(): boolean {
-  if(modules.value.length > 10 || new Set(modules.value.map(m => m.module_id)).size !== modules.value.length || modules.value.some(m => !m.module_id || !m.module_version_id)) { error.value = t('actions.invalidModules'); return false }
-
-  if (!name.value || [...name.value].length > 128 || new TextEncoder().encode(code.value).length > 100000) { error.value = t('actions.invalidDraft'); return false }
-  const seen = new Set<string>()
-  for (const d of dependencies.value) {
-    if (d.name.length > 214 || !packageName.test(d.name) || seen.has(d.name) || (d.version && d.version !== 'latest' && !exactVersion.test(d.version))) { error.value = t('actions.invalidDependency'); return false }
-    seen.add(d.name)
-  }
-  const names = new Set<string>()
-  for (const s of secrets.value) {
-    if (!/^[A-Za-z0-9_]{1,128}$/.test(s.name) || names.has(s.name) || (s.value !== undefined && new TextEncoder().encode(s.value).length > 4096)) { error.value = t('actions.invalidSecret'); return false }
-    names.add(s.name)
-  }
-  return true
-}
-async function save() {
-  const c = capture()
-  if (!c || !action.value || busy.value || reloadRequired.value || !validate()) return
-  stopPolling(); ++readSeq; busy.value = true; notice.value = ''; error.value = ''
-  try {
-    const a = await api.updateAction(c.tenant, c.id, { runtime: 'node22', name: name.value, code: code.value, dependencies: dependencies.value.map(d => ({ ...d })), modules: modules.value.map(m => ({ ...m })), secrets: secrets.value.map(s => ({ ...s })) })
-    if (!current(c)) return
-    apply(a); notice.value = t('actions.saved'); schedule(c)
-  } catch (e) {
-    if (current(c)) { error.value = errorMessage(e); reloadRequired.value = true }
-  } finally { if (current(c)) busy.value = false }
-}
-async function reload() {
-  if (busy.value) return
-  busy.value = true
-  const c = capture()
-  await read(true)
-  if (current(c)) busy.value = false
-}
-async function deploy() {
-  const c = capture()
-  if (!c || !action.value || busy.value || dirty.value || reloadRequired.value || action.value.status !== 'built') return
-  busy.value = true; error.value = ''; notice.value = ''; stopPolling(); ++readSeq
-  try {
-    const v = await api.deployAction(c.tenant, c.id)
-    if (current(c)) { action.value = { ...action.value!, deployed_version: v, all_changes_deployed: true }; notice.value = t('actions.deployed') }
-  } catch (e) { if (current(c)) { error.value = errorMessage(e); reloadRequired.value = true } }
-  finally { if (current(c)) busy.value = false }
 }
 </script>
 <template>
@@ -133,24 +64,7 @@ async function deploy() {
             <Field id="module-version-choice" :label="t('actions.moduleVersion')"><select id="module-version-choice" v-model="versionChoice"><option value="">—</option><option v-for="v in moduleVersions[moduleChoice] ?? []" :key="v.id" :value="v.id">{{ v.version_number }}</option></select></Field>
             <Button :disabled="modules.length >= 10 || !versionChoice" @click="addModule">{{ t('actions.addModule') }}</Button>
           </section>
-          <section class="card stack" :aria-label="t('actions.dependencies')">
-            <h2>{{ t('actions.dependencies') }}</h2><p id="dependency-hint" class="muted">{{ t('actions.dependencyHint') }}</p>
-            <div v-for="(d, i) in dependencies" :key="i" class="row flex-wrap">
-              <Field :id="'dependency-name-' + i" :label="t('actions.packageName')"><input :id="'dependency-name-' + i" v-model="d.name" aria-describedby="dependency-hint" /></Field>
-              <Field :id="'dependency-version-' + i" :label="t('actions.version')"><input :id="'dependency-version-' + i" v-model="d.version" aria-describedby="dependency-hint" /></Field>
-              <Button @click="dependencies.splice(i, 1)">{{ t('actions.removeDependency') }}</Button>
-            </div>
-            <Button :disabled="dependencies.length >= 50" @click="dependencies.push({ name: '', version: '' })">{{ t('actions.addDependency') }}</Button>
-          </section>
-          <section class="card stack" :aria-label="t('actions.secrets')">
-            <h2>{{ t('actions.secrets') }}</h2><p id="secrets-hint" class="muted">{{ t('actions.secretHint') }}</p>
-            <div v-for="(s, i) in secrets" :key="i" class="row flex-wrap">
-              <Field :id="'secret-name-' + i" :label="t('actions.secretName')"><input :id="'secret-name-' + i" v-model="s.name" aria-describedby="secrets-hint" /></Field>
-              <Field :id="'secret-value-' + i" :label="t('actions.secretValue')"><input :id="'secret-value-' + i" :value="s.value ?? ''" type="password" autocomplete="new-password" aria-describedby="secrets-hint" @input="s.value = ($event.target as HTMLInputElement).value" /></Field>
-              <Button @click="secrets.splice(i, 1)">{{ t('actions.removeSecret') }}</Button>
-            </div>
-            <Button :disabled="secrets.length >= 64" @click="secrets.push({ name: '', value: '' })">{{ t('actions.addSecret') }}</Button>
-          </section>
+          <DraftConfiguration v-model:dependencies="dependencies" v-model:secrets="secrets" />
         </fieldset>
         <div class="row"><Button type="submit" variant="primary" :disabled="busy || reloadRequired">{{ t('actions.save') }}</Button><Button v-if="reloadRequired" :disabled="busy" @click="reload">{{ t('actions.reload') }}</Button></div>
         <p v-if="reloadRequired" class="muted">{{ t('actions.reloadHint') }}</p>

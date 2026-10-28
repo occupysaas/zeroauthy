@@ -1377,7 +1377,7 @@ const en = {
     },
     providerNames: {
       smtp: 'SMTP', sendgrid: 'SendGrid', mailgun: 'Mailgun', mandrill: 'Mandrill', sparkpost: 'SparkPost',
-      ses: 'Amazon SES', azure_cs: 'Azure Communication Services', ms365: 'Microsoft 365', resend: 'Resend', custom: 'Custom (disabled)',
+      ses: 'Amazon SES', azure_cs: 'Azure Communication Services', ms365: 'Microsoft 365', resend: 'Resend', custom: 'Custom',
     },
     credentialNames: {
       smtp_host: 'SMTP host', smtp_port: 'SMTP port', smtp_user: 'SMTP username', smtp_pass: 'SMTP password',
