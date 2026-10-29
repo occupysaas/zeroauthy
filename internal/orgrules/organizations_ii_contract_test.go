@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
 )
 
 func TestOrganizationsIIContractAudit(t *testing.T) {
@@ -144,4 +145,102 @@ func TestOrganizationsIIScopesAndLocalRulings(t *testing.T) {
 	for k := range want {
 		t.Errorf("missing scoped route %s", k)
 	}
+}
+
+func TestOrganizationsIINullableAccessLevels(t *testing.T) {
+	data, err := os.ReadFile("../../api/management.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := openapi3.NewLoader().LoadFromData(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	validators := map[string]func(string) bool{
+		"create organization": func(s string) bool {
+			return mgmtapi.IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel(s).Valid()
+		},
+		"create member": func(s string) bool {
+			return mgmtapi.IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel(s).Valid()
+		},
+		"update organization": func(s string) bool {
+			return mgmtapi.IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel(s).Valid()
+		},
+		"update member": func(s string) bool {
+			return mgmtapi.IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel(s).Valid()
+		},
+	}
+	for name, valid := range validators {
+		if valid("<nil>") {
+			t.Errorf("%s generated validator accepts invented wire string <nil>", name)
+		}
+		for _, v := range []string{"none", "readonly", "limited", "full"} {
+			if !valid(v) {
+				t.Errorf("%s rejects %s", name, v)
+			}
+		}
+	}
+	for _, name := range []string{"IICreateOrganizationAllConnectionRequestContent", "IIUpdateOrganizationAllConnectionRequestContent"} {
+		for _, field := range []string{"organization_access_level", "organization_member_access_level"} {
+			schema := doc.Components.Schemas[name].Value.Properties[field].Value
+			if err := schema.VisitJSON(nil); err != nil {
+				t.Errorf("%s.%s rejects documented null clear: %v", name, field, err)
+			}
+			if err := schema.VisitJSON("<nil>"); err == nil {
+				t.Errorf("%s.%s schema accepts invented wire string", name, field)
+			}
+		}
+	}
+}
+
+func TestOrganizationsIIReverseGrantResponseValidation(t *testing.T) {
+	data, err := os.ReadFile("../../api/management.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := openapi3.NewLoader().LoadFromData(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := doc.Components.Schemas["IIListClientGrantOrganizationsResponseContent"].Value
+	for _, body := range []string{`{"organizations":[]}`, `{"organizations":[{"id":"org_example"}]}`, `{"organizations":[],"next":"cursor"}`, `{"start":0,"limit":50,"total":0,"organizations":[]}`, `[]`} {
+		var value any
+		if err := json.Unmarshal([]byte(body), &value); err != nil {
+			t.Fatal(err)
+		}
+		if err := response.VisitJSON(value); err != nil {
+			t.Errorf("valid response %s: %v", body, err)
+		}
+	}
+	for _, body := range []string{`{}`, `{"start":0,"organizations":[]}`, `{"start":0,"limit":50,"total":0}`} {
+		var value any
+		if err := json.Unmarshal([]byte(body), &value); err != nil {
+			t.Fatal(err)
+		}
+		if err := response.VisitJSON(value); err == nil {
+			t.Errorf("invalid partial response accepted: %s", body)
+		}
+	}
+}
+
+func TestOrganizationsIIClientListTakeContract(t *testing.T) {
+	data, err := os.ReadFile("../../api/management.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := openapi3.NewLoader().LoadFromData(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range doc.Paths.Value("/api/v2/organizations/{id}/clients").Get.Parameters {
+		if p.Value.Name != "take" {
+			continue
+		}
+		schema := p.Value.Schema.Value
+		if schema.Default != float64(50) || schema.Max == nil || *schema.Max != 100 {
+			t.Errorf("client take requires default50/max100: %+v", schema)
+		}
+		return
+	}
+	t.Fatal("client list take parameter missing")
 }

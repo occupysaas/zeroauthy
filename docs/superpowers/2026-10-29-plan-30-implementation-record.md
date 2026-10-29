@@ -101,3 +101,37 @@ Actual follow-up verification:
   implementation and its broader validation remain Tasks 2–17.
 
 Task 1 review report: `.superpowers/sdd/2026-10-29-zeroauthy-plan-30-organizations-ii/task-1-report.md`.
+
+## Task 1 review round 1 fixes
+
+Verified both important review findings and the client-list paging discrepancy.
+JSON null appeared in nullable access-level enum arrays, causing oapi-codegen to
+emit a valid string constant `<nil>` in all four create/update access validators.
+Keep nullable:true and the four real string enum values; remove the null enum
+entry. Regenerated output removes the invented constant, while schema validation
+still accepts JSON null for the documented clear behavior.
+
+Reverse grant organization offset responses now require start, limit, total and
+organizations; checkpoint responses require organizations. With existing closed
+objects, these oneOf branches are disjoint even when next is omitted on the last
+page. Client-list take now structurally records default50/max100.
+
+Actual checks:
+
+- RED `go test ./internal/orgrules -run
+  'TestOrganizationsII(NullableAccessLevels|ReverseGrantResponseValidation|ClientListTakeContract)$'
+  -count=1`: FAIL for four generated `<nil>` validators, overlapping empty and
+  nonempty terminal checkpoint responses, accepted partial offset objects, and
+  missing client take maximum/default. Schema validation is real VisitJSON on
+  parsed payloads, not merely checking schema text.
+- `make generate`: PASS; inspected generated enum removal, required response
+  fields, and take parameter changes. No generated file was edited by hand.
+- GREEN same focused regression command: PASS. Tests assert all four legitimate
+  access strings remain valid, JSON null clears are accepted, `<nil>` is rejected,
+  terminal/empty/nonterminal checkpoint, offset and bare-array responses validate,
+  and malformed partial objects fail validation.
+- `go test ./internal/orgrules ./api -count=1`: PASS.
+- `go test ./internal/mgmt -run '^$'`: PASS (compile only, no tests selected).
+- `git diff --check`: PASS. No broad/database/runtime suites run for these fixes.
+
+Controller ledger remains open for re-review.

@@ -1703,19 +1703,16 @@ func (e EmailTemplatePatchSyntax) Valid() bool {
 
 // Defines values for IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel.
 const (
-	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull        IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "full"
-	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelLessThannil IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "<nil>"
-	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited     IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "limited"
-	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelNone        IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "none"
-	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelReadonly    IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "readonly"
+	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull     IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "full"
+	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited  IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "limited"
+	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelNone     IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "none"
+	IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelReadonly IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "readonly"
 )
 
 // Valid indicates whether the value is a known member of the IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel enum.
 func (e IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel) Valid() bool {
 	switch e {
 	case IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull:
-		return true
-	case IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelLessThannil:
 		return true
 	case IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited:
 		return true
@@ -1730,19 +1727,16 @@ func (e IICreateOrganizationAllConnectionRequestContentOrganizationAccessLevel) 
 
 // Defines values for IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel.
 const (
-	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull        IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "full"
-	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLessThannil IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "<nil>"
-	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited     IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "limited"
-	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelNone        IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "none"
-	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelReadonly    IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "readonly"
+	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull     IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "full"
+	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited  IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "limited"
+	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelNone     IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "none"
+	IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelReadonly IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "readonly"
 )
 
 // Valid indicates whether the value is a known member of the IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel enum.
 func (e IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel) Valid() bool {
 	switch e {
 	case IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull:
-		return true
-	case IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLessThannil:
 		return true
 	case IICreateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited:
 		return true
@@ -1985,19 +1979,16 @@ func (e IISearchParserEnum) Valid() bool {
 
 // Defines values for IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel.
 const (
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull        IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "full"
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelLessThannil IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "<nil>"
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited     IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "limited"
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelNone        IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "none"
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelReadonly    IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "readonly"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull     IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "full"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited  IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "limited"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelNone     IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "none"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelReadonly IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel = "readonly"
 )
 
 // Valid indicates whether the value is a known member of the IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel enum.
 func (e IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel) Valid() bool {
 	switch e {
 	case IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelFull:
-		return true
-	case IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelLessThannil:
 		return true
 	case IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevelLimited:
 		return true
@@ -2012,19 +2003,16 @@ func (e IIUpdateOrganizationAllConnectionRequestContentOrganizationAccessLevel) 
 
 // Defines values for IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel.
 const (
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull        IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "full"
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLessThannil IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "<nil>"
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited     IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "limited"
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelNone        IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "none"
-	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelReadonly    IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "readonly"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull     IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "full"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited  IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "limited"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelNone     IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "none"
+	IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelReadonly IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel = "readonly"
 )
 
 // Valid indicates whether the value is a known member of the IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel enum.
 func (e IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevel) Valid() bool {
 	switch e {
 	case IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelFull:
-		return true
-	case IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLessThannil:
 		return true
 	case IIUpdateOrganizationAllConnectionRequestContentOrganizationMemberAccessLevelLimited:
 		return true
@@ -4941,16 +4929,16 @@ type IIGetOrganizationInvitationResponseContent struct {
 
 // IIListClientGrantOrganizationsOffsetPaginatedResponseContent defines model for IIListClientGrantOrganizationsOffsetPaginatedResponseContent.
 type IIListClientGrantOrganizationsOffsetPaginatedResponseContent struct {
-	Limit         *float32          `json:"limit,omitempty"`
-	Organizations *[]IIOrganization `json:"organizations,omitempty"`
-	Start         *float32          `json:"start,omitempty"`
-	Total         *float32          `json:"total,omitempty"`
+	Limit         float32          `json:"limit"`
+	Organizations []IIOrganization `json:"organizations"`
+	Start         float32          `json:"start"`
+	Total         float32          `json:"total"`
 }
 
 // IIListClientGrantOrganizationsPaginatedResponseContent defines model for IIListClientGrantOrganizationsPaginatedResponseContent.
 type IIListClientGrantOrganizationsPaginatedResponseContent struct {
-	Next          *string           `json:"next,omitempty"`
-	Organizations *[]IIOrganization `json:"organizations,omitempty"`
+	Next          *string          `json:"next,omitempty"`
+	Organizations []IIOrganization `json:"organizations"`
 }
 
 // IIListClientGrantOrganizationsResponseContent defines model for IIListClientGrantOrganizationsResponseContent.

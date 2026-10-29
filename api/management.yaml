@@ -7577,6 +7577,8 @@ paths:
         schema:
           type: integer
           minimum: 1
+          maximum: 100
+          default: 50
       responses:
         '200':
           description: Operation completed
@@ -9218,7 +9220,6 @@ components:
           - readonly
           - limited
           - full
-          - null
           description: Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission
             preserves (D-0055/D-0056).
         organization_member_access_level:
@@ -9229,7 +9230,6 @@ components:
           - readonly
           - limited
           - full
-          - null
           description: Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH
             omission preserves (D-0055/D-0056).
         is_enabled:
@@ -9320,7 +9320,6 @@ components:
           - readonly
           - limited
           - full
-          - null
           description: Stored delegation metadata only. Null resets none. Omitted on create defaults none; PATCH omission
             preserves (D-0055/D-0056).
         organization_member_access_level:
@@ -9331,7 +9330,6 @@ components:
           - readonly
           - limited
           - full
-          - null
           description: Stored delegation metadata only. Null resets none. Omitted on create defaults limited; PATCH
             omission preserves (D-0055/D-0056).
         is_enabled:
@@ -9431,6 +9429,7 @@ components:
           type: boolean
     IIListClientGrantOrganizationsOffsetPaginatedResponseContent:
       type: object
+      required: [start, limit, total, organizations]
       additionalProperties: false
       properties:
         start:
@@ -9445,6 +9444,7 @@ components:
             $ref: '#/components/schemas/IIOrganization'
     IIListClientGrantOrganizationsPaginatedResponseContent:
       type: object
+      required: [organizations]
       additionalProperties: false
       properties:
         next:

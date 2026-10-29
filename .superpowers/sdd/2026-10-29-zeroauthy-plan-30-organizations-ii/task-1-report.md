@@ -28,3 +28,19 @@ only via a later administrative PATCH, not DNS lookup. No operational guide
 claim or controller ledger checkbox was changed. Runtime implementation remains
 subsequent tasks. Explicit-org M2M moves to Plan 30; quotas stay Plan 35 and
 self-service delegation stays Plan 42.
+
+## Review round 1 fixes
+
+Addressed both important findings and the minor paging issue. Nullable access
+schemas retain nullable:true with exactly the four legal enum strings, removing
+four generated `<nil>` constants/Valid cases. Reverse grant offset/checkpoint
+oneOf branches require their distinct fields. Client take has default50/max100.
+
+RED focused regressions reproduced all reported failures. GREEN after
+`make generate`: `go test ./internal/orgrules -run
+'TestOrganizationsII(NullableAccessLevels|ReverseGrantResponseValidation|ClientListTakeContract)$'
+-count=1` PASS. Also PASS: `go test ./internal/orgrules ./api -count=1`,
+`go test ./internal/mgmt -run '^$'` (compile only), and `git diff --check`.
+Tests exercise generated Valid methods plus actual JSON Schema validation of
+null/string values and terminal/offset response payloads. No broad suites run.
+Controller ledger awaits re-review.
