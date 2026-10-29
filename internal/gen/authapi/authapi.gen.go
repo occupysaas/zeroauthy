@@ -341,6 +341,9 @@ type TokenRequest struct {
 	// GrantType Examples: client_credentials
 	GrantType string `json:"grant_type"`
 
+	// Organization Refused with `invalid_request` for grant_type=client_credentials (organization client grants are not available yet). The password, password-realm and device code grants ignore it (D-0055).
+	Organization *string `json:"organization,omitempty"`
+
 	// Password The user's password (password grants).
 	Password *string `json:"password,omitempty"`
 
@@ -453,10 +456,10 @@ type AuthorizeParams struct {
 	// Request A request object (JAR). Not supported: refused with `request_not_supported` (`invalid_request` for strict third-party applications).
 	Request *string `form:"request,omitempty" json:"request,omitempty"`
 
-	// Organization Not supported yet; rejected.
+	// Organization An organization ID, or its name while the tenant's `allow_organization_name_in_authentication_api` is on (the ID is matched first). An empty value counts as absent. Refused with `invalid_request` when the application's `organization_usage` is `deny`, when the organization is unknown, or when a name is sent while names are off; a third-party application facing an organization that blocks third-party access gets `access_denied`. An application with `organization_usage` `require` and `no_prompt` must send one. With `request_uri`, only the pushed value counts (D-0055).
 	Organization *string `form:"organization,omitempty" json:"organization,omitempty"`
 
-	// Invitation Not supported yet; rejected.
+	// Invitation Invitations are not available yet: any value is refused with `invalid_request`.
 	Invitation *string `form:"invitation,omitempty" json:"invitation,omitempty"`
 }
 

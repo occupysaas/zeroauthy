@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
 // Request holds the /authorize parameters zeroauthy uses. Unknown
@@ -29,6 +31,11 @@ type Request struct {
 	Organization        string
 	Invitation          string
 	UILocales           string
+	// OrgID and OrgMode bind the resolved organization (spec §5.1). They
+	// are stored under store.TxnParamOrgID and store.TxnParamOrgMode;
+	// ParseRequest never reads them, so a client cannot set them.
+	OrgID   string
+	OrgMode OrgMode
 	// Ext holds ext-* parameters, kept for Actions (sub-project 2).
 	Ext map[string]string
 	// Pushed is true for a request that came from /oauth/par.
@@ -44,8 +51,7 @@ type Request struct {
 }
 
 // strictUnsupported are /authorize parameters that strict third-party
-// applications may not send (D-0025). Organization and invitation are
-// refused for every client until Organizations exist.
+// applications may not send (D-0025).
 var strictUnsupported = []string{"claims", "id_token_hint", "login_ticket", "request", "request_uri", "screen_hint"}
 
 // paramNames maps query parameter names to Request fields; it drives
@@ -157,6 +163,12 @@ func (r Request) Params() map[string]string {
 	if r.Pushed {
 		out[pushedKey] = "1"
 	}
+	if r.OrgID != "" {
+		out[store.TxnParamOrgID] = r.OrgID
+	}
+	if r.OrgMode != OrgNone {
+		out[store.TxnParamOrgMode] = string(r.OrgMode)
+	}
 	return out
 }
 
@@ -175,6 +187,7 @@ func RequestFromParams(p map[string]string) Request {
 		}
 	}
 	r.Pushed = p[pushedKey] == "1"
+	r.OrgID, r.OrgMode = p[store.TxnParamOrgID], OrgMode(p[store.TxnParamOrgMode])
 	return r
 }
 

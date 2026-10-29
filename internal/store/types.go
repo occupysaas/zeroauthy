@@ -806,6 +806,10 @@ type LoginSession struct {
 const (
 	TxnParamFlow  = "za_flow"
 	TxnFlowDevice = "device"
+	// TxnParamOrgID holds the organization resolved at /authorize or PAR,
+	// and TxnParamOrgMode how the request uses organizations (D-0055).
+	TxnParamOrgID   = "za_org_id"
+	TxnParamOrgMode = "za_org_mode"
 )
 
 // AuthTransaction holds an /authorize request while the user logs in.

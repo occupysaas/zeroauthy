@@ -129,7 +129,9 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		h.deny(w, r, res, client, req, errServer())
 		return
 	}
-	login := h.needsLogin(req, sess)
+	// The hosted login checks membership and the organization's
+	// connections, so a request that uses organizations never skips it.
+	login := h.needsLogin(req, sess) || req.OrgMode != OrgNone
 	if !login {
 		login, err = h.connectionDisabled(ctx, res, client, sess)
 		if err != nil {

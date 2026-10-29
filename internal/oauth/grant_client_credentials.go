@@ -63,6 +63,12 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 	if grant == nil {
 		return nil, accessDenied("client is not authorized for this audience")
 	}
+	// Organization client grants arrive with Plan 30. Until then no audience
+	// admits an organization here, as observed for the Management API
+	// (D-0055); the client's organization_usage plays no part.
+	if form.Get("organization") != "" {
+		return nil, invalidRequest("this application may not request an organization for this audience")
+	}
 	allowed := grant.EffectiveScopes(rs.Scopes)
 	scopes, oerr := resolveScopes(form.Get("scope"), allowed, rs.Scopes)
 	if oerr != nil {

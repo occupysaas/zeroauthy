@@ -1500,9 +1500,16 @@ unobserved parts keep the spec default as a local decision.
 - Tenant flag: `allow_organization_name_in_authentication_api`, default
   false (documented). It was not toggled during observation, so name
   acceptance is a documented default.
-- Client credentials with `organization` stay `invalid_request` until Plan 30.
-  This matches the observed result for the reserved Management API audience.
-  Client `organization_usage` does not affect client credentials.
+- Client credentials with `organization` stay `invalid_request` (400) until
+  Plan 30, **for every audience** (local), after the client-grant check, so
+  a missing grant is still 403 `access_denied`. This matches the observed
+  result for the reserved Management API audience. Client
+  `organization_usage` does not affect client credentials.
+- `/authorize` and PAR bind the resolved organization in the request under
+  the internal `za_org_id`/`za_org_mode` keys, which no request parameter
+  can set. With `request_uri`, an `organization` in the query is ignored
+  like every other extra parameter (Plan 10 rule P1), so it can neither add
+  nor override the pushed one (local).
 
 **`/organizations/{id}/connections` ruling.** It is not a documented GA alias.
 The public OpenAPI document marks all five operations
