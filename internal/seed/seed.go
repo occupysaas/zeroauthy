@@ -63,6 +63,7 @@ type Tenant struct {
 	DefaultDirectory    string           `yaml:"default_directory"`
 	AllowedLogoutURLs   []string         `yaml:"allowed_logout_urls"`
 	ResourceServers     []ResourceServer `yaml:"resource_servers"`
+	Organizations       []Organization   `yaml:"organizations"`
 	Roles               []Role           `yaml:"roles"`
 	Clients             []Client         `yaml:"clients"`
 	ClientGrants        []ClientGrant    `yaml:"client_grants"`
@@ -169,6 +170,10 @@ type Client struct {
 	IDTokenLifetime         int          `yaml:"id_token_lifetime"`
 	RefreshToken            RefreshToken `yaml:"refresh_token"`
 
+	OrganizationUsage            string   `yaml:"organization_usage"`
+	OrganizationRequireBehavior  string   `yaml:"organization_require_behavior"`
+	OrganizationDiscoveryMethods []string `yaml:"organization_discovery_methods"`
+
 	IsFirstParty                                   *bool  `yaml:"is_first_party"`
 	ThirdPartySecurityMode                         string `yaml:"third_party_security_mode"`
 	RedirectionPolicy                              string `yaml:"redirection_policy"`
@@ -183,6 +188,7 @@ type Client struct {
 func (c *Client) spec() clientrules.Spec {
 	return clientrules.Spec{
 		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: c.TokenEndpointAuthMethod,
+		OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
 		GrantTypes: c.GrantTypes, Callbacks: c.Callbacks, AllowedLogoutURLs: c.AllowedLogoutURLs,
 		WebOrigins: c.WebOrigins, AllowedOrigins: c.AllowedOrigins, IDTokenLifetime: c.IDTokenLifetime,
 		RefreshToken: clientrules.RefreshToken{

@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Organizations SPA acceptance</title></head>
+<body><button id="login">Login</button><pre id="error"></pre><script src="/auth0-spa-js.js"></script><script>
+(async()=>{
+ window.client=new auth0.Auth0Client({domain:'sdk.e2e.test',clientId:'m24-spa',authorizationParams:{redirect_uri:'https://callback.e2e.test/org-spa',scope:'openid profile email'}});
+ if(location.search.includes('code=')){await client.handleRedirectCallback();window.claims=await client.getIdTokenClaims();window.user=await client.getUser();}
+ const organization=new URLSearchParams(location.search).get('organization');
+ document.querySelector('#login').onclick=()=>client.loginWithRedirect({authorizationParams:{organization,connection:'Username-Password-Authentication'}});window.ready=true;
+})().catch(e=>{window.failure=String(e);document.querySelector('#error').textContent=window.failure;});
+</script></body></html>

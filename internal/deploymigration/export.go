@@ -311,6 +311,8 @@ func resourceName(path string) string {
 		return "triggers"
 	case "roles", "role":
 		return "roles"
+	case "organizations":
+		return "organizations"
 	case "clients", "client":
 		return "clients"
 	case "resourceservers", "resource-servers", "resource_servers":

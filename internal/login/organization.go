@@ -37,7 +37,7 @@ func (h *Handlers) renderOrganization(w http.ResponseWriter, r *http.Request, f 
 	if !h.prepareHostedForm(w, r, f, "organizations", screen) {
 		return
 	}
-	ui.RenderOrganization(w, status, f.view, ui.OrganizationData{State: f.txn.ID, CSRF: f.txn.CSRFToken, Revision: f.txn.HostedState.Revision, Orgs: orgs, Error: message}, screen)
+	ui.RenderOrganization(w, status, f.view, ui.OrganizationData{RedirectURI: f.txn.Params["redirect_uri"], State: f.txn.ID, CSRF: f.txn.CSRFToken, Revision: f.txn.HostedState.Revision, Orgs: orgs, Error: message}, screen)
 }
 
 // bindOrg replaces only a still-pending transaction in a single store tx. The

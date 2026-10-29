@@ -176,11 +176,13 @@ func run() error {
 		za := server.New(server.Deps{EmailService: emailService, Domains: domains, Store: st, Keys: km, Wrapper: wrapper, Resolver: tenant.NewResolver(st.Tenants(), "", false),
 			Sessions: &session.Manager{Store: st}, Log: slog.Default(), SystemHost: "system.e2e.test", Federation: flows, Actions: engine})
 		mux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if os.Getenv("E2E_M27") == "1" && strings.EqualFold(strings.Split(r.Host, ":")[0], "callback.e2e.test") {
+			if (os.Getenv("E2E_M27") == "1" || os.Getenv("E2E_M29") == "1") && strings.EqualFold(strings.Split(r.Host, ":")[0], "callback.e2e.test") {
 				switch r.URL.Path {
 				case "/reset-redirect":
 					w.Header().Set("Content-Type", "text/html")
 					_, _ = w.Write([]byte(`<form method="post" action="https://sdk.e2e.test/continue?ok=1"><input name="state" type="hidden"><button>Continue reset</button></form><script>document.querySelector("input").value=new URLSearchParams(location.search).get("state")</script>`))
+				case "/org-spa":
+					http.ServeFile(w, r, "tests/e2e/organizations-spa.html")
 				case "/spa":
 					http.ServeFile(w, r, "tests/e2e/actions-spa.html")
 				case "/redirect":

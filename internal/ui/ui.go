@@ -648,11 +648,12 @@ func customDomainVars(pd *customdomain.PublicDomain) map[string]any {
 }
 
 type OrganizationData struct {
+	RedirectURI        string // validated callback; browsers check form-action across redirects
 	State, CSRF, Error string
 	Revision           int64
 	Orgs               []store.Organization
 }
 
 func RenderOrganization(w http.ResponseWriter, status int, t Tenant, d OrganizationData, screen string) {
-	render(w, status, screen, t, d, "")
+	render(w, status, screen, t, d, formActionFor(d.RedirectURI))
 }

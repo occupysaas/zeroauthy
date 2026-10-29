@@ -332,3 +332,18 @@ func TestRBACMigrationEquivalence(t *testing.T) {
 		})
 	}
 }
+
+func TestCompareOrganizations(t *testing.T) {
+	m := Manifest{Resources: []ManifestResource{{Name: "organizations", Status: "included"}}}
+	source := deploymigration.Export{Resources: map[string]json.RawMessage{"organizations": json.RawMessage(`[{"name":"acme","display_name":"Acme","branding":{"colors":{"primary":"#123456","page_background":"#ffffff"}},"metadata":{"team":"engineering"},"connections":[{"name":"Users","assign_membership_on_login":true,"is_signup_enabled":true,"show_as_button":true}]}]`)}}
+	target := deploymigration.Export{Resources: map[string]json.RawMessage{"organizations": append(json.RawMessage(nil), source.Resources["organizations"]...)}}
+	if r := Compare(source, target, m, Domains{}); !r.Equivalent {
+		t.Fatalf("same organizations rejected: %+v", r)
+	}
+	for _, change := range []struct{ from, to string }{{"Acme", "Changed"}, {"engineering", "other"}, {"#123456", "#654321"}, {`"assign_membership_on_login":true`, `"assign_membership_on_login":false`}, {`"is_signup_enabled":true`, `"is_signup_enabled":false`}, {`"show_as_button":true`, `"show_as_button":false`}, {`"name":"Users"`, `"name":"Missing"`}} {
+		target.Resources["organizations"] = json.RawMessage(strings.Replace(string(source.Resources["organizations"]), change.from, change.to, 1))
+		if Compare(source, target, m, Domains{}).Equivalent {
+			t.Fatalf("organization data loss ignored: %s", change.from)
+		}
+	}
+}

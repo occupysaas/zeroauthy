@@ -82,3 +82,24 @@ func TestOrganizationTemplatesCustomText(t *testing.T) {
 		}
 	}
 }
+
+// A real browser enforces form-action before submitting either hosted step.
+func TestOrganizationFormAction(t *testing.T) {
+	for _, screen := range []string{"organization-selection", "organization-picker"} {
+		rec := httptest.NewRecorder()
+		RenderOrganization(rec, 200, TenantView(&store.Tenant{Name: "Acme"}, i18n.Default()), OrganizationData{}, screen)
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'self';") {
+			t.Fatalf("%s blocks its own form: %s", screen, csp)
+		}
+	}
+}
+
+func TestOrganizationFormActionCallback(t *testing.T) {
+	for _, screen := range []string{"organization-selection", "organization-picker"} {
+		rec := httptest.NewRecorder()
+		RenderOrganization(rec, 200, TenantView(&store.Tenant{Name: "Acme"}, i18n.Default()), OrganizationData{RedirectURI: "https://app.example.test/callback"}, screen)
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "form-action 'self' https://app.example.test;") {
+			t.Fatalf("%s blocks validated callback: %s", screen, csp)
+		}
+	}
+}

@@ -18,6 +18,9 @@ tenants:
         grant_types: [client_credentials]
       - client_id: e2e-cli-fixture
         name: E2E deploy fixture
+        organization_usage: allow
+        organization_require_behavior: pre_login_prompt
+        organization_discovery_methods: [organization_name]
         app_type: non_interactive
         client_secret: e2e-cli-fixture-secret-not-for-production
         grant_types: [client_credentials]
@@ -35,6 +38,15 @@ tenants:
           - create:actions
           - update:actions
           - delete:actions
+          - read:organizations
+          - create:organizations
+          - update:organizations
+          - delete:organizations
+          - read:organization_connections
+          - create:organization_connections
+          - update:organization_connections
+          - delete:organization_connections
+          - read:organization_client_grants
           - read:roles
           - create:roles
           - update:roles
@@ -111,6 +123,15 @@ tenants:
           - create:actions
           - update:actions
           - delete:actions
+          - read:organizations
+          - create:organizations
+          - update:organizations
+          - delete:organizations
+          - read:organization_connections
+          - create:organization_connections
+          - update:organization_connections
+          - delete:organization_connections
+          - read:organization_client_grants
           - read:roles
           - create:roles
           - update:roles

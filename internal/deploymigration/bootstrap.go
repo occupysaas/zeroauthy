@@ -51,6 +51,10 @@ type exportedClient struct {
 	} `json:"jwt_configuration"`
 	SkipConfirmation *bool `json:"skip_non_verifiable_callback_uri_confirmation_prompt"`
 	RequirePAR       bool  `json:"require_pushed_authorization_requests"`
+
+	OrganizationUsage            string   `json:"organization_usage"`
+	OrganizationRequireBehavior  string   `json:"organization_require_behavior"`
+	OrganizationDiscoveryMethods []string `json:"organization_discovery_methods"`
 }
 
 type exportedRefreshToken struct {
@@ -130,7 +134,9 @@ func PrepareBootstrap(source Export, bootstrap *seed.File, credentials map[strin
 			}
 			neededSecrets[c.ClientID] = true
 		}
-		t.Clients = append(t.Clients, seed.Client{ClientID: c.ClientID, Name: c.Name, AppType: c.AppType, ClientSecret: secret,
+		t.Clients = append(t.Clients, seed.Client{
+			OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
+			ClientID: c.ClientID, Name: c.Name, AppType: c.AppType, ClientSecret: secret,
 			TokenEndpointAuthMethod: c.AuthMethod, GrantTypes: slices.Clone(c.GrantTypes), Callbacks: slices.Clone(c.Callbacks),
 			AllowedLogoutURLs: slices.Clone(c.AllowedLogoutURLs), WebOrigins: slices.Clone(c.WebOrigins), AllowedOrigins: slices.Clone(c.AllowedOrigins),
 			IDTokenLifetime: c.IDTokenLifetime, IsFirstParty: c.IsFirstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode,
@@ -295,7 +301,9 @@ func validateBootstrap(f *seed.File, w keys.Wrapper) error {
 }
 
 func clientSpec(c seed.Client, parSupported bool) clientrules.Spec {
-	return clientrules.Spec{Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: c.TokenEndpointAuthMethod, GrantTypes: slices.Clone(c.GrantTypes), Callbacks: slices.Clone(c.Callbacks), AllowedLogoutURLs: slices.Clone(c.AllowedLogoutURLs), WebOrigins: slices.Clone(c.WebOrigins), AllowedOrigins: slices.Clone(c.AllowedOrigins), IDTokenLifetime: c.IDTokenLifetime, IsFirstParty: c.IsFirstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode, RedirectionPolicy: c.RedirectionPolicy, RefreshToken: clientrules.RefreshToken{RotationType: c.RefreshToken.RotationType, ExpirationType: c.RefreshToken.ExpirationType, Leeway: c.RefreshToken.Leeway, TokenLifetime: c.RefreshToken.TokenLifetime, IdleTokenLifetime: c.RefreshToken.IdleTokenLifetime}, RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests}
+	return clientrules.Spec{
+		OrganizationUsage: c.OrganizationUsage, OrganizationRequireBehavior: c.OrganizationRequireBehavior, OrganizationDiscoveryMethods: slices.Clone(c.OrganizationDiscoveryMethods),
+		Name: c.Name, AppType: c.AppType, TokenEndpointAuthMethod: c.TokenEndpointAuthMethod, GrantTypes: slices.Clone(c.GrantTypes), Callbacks: slices.Clone(c.Callbacks), AllowedLogoutURLs: slices.Clone(c.AllowedLogoutURLs), WebOrigins: slices.Clone(c.WebOrigins), AllowedOrigins: slices.Clone(c.AllowedOrigins), IDTokenLifetime: c.IDTokenLifetime, IsFirstParty: c.IsFirstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode, RedirectionPolicy: c.RedirectionPolicy, RefreshToken: clientrules.RefreshToken{RotationType: c.RefreshToken.RotationType, ExpirationType: c.RefreshToken.ExpirationType, Leeway: c.RefreshToken.Leeway, TokenLifetime: c.RefreshToken.TokenLifetime, IdleTokenLifetime: c.RefreshToken.IdleTokenLifetime}, RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests}
 }
 func normalizedHosts(in []string) []string {
 	out := make([]string, len(in))

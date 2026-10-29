@@ -440,7 +440,7 @@ func compareGrants(src, dst []object, clients, apis map[string]string, r *Report
 	}
 }
 func compareRecords(name string, src, dst []object, m Manifest, domains Domains, r *Report) {
-	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template", "branding": "$singleton", "prompts": "$singleton", "themes": "displayName", "customDomains": "domain", "roles": "name", "actions": "name", "actionModules": "name", "triggers": "$singleton"}[name]
+	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template", "branding": "$singleton", "prompts": "$singleton", "themes": "displayName", "customDomains": "domain", "roles": "name", "organizations": "name", "actions": "name", "actionModules": "name", "triggers": "$singleton"}[name]
 	by := map[string]object{}
 	for _, o := range src {
 		k := naturalKey(o, keyField)
@@ -482,7 +482,7 @@ func compareRecords(name string, src, dst []object, m Manifest, domains Domains,
 				}
 			}
 		}
-		if name == "resourceServers" || name == "roles" || name == "actions" || name == "actionModules" {
+		if name == "resourceServers" || name == "roles" || name == "organizations" || name == "actions" || name == "actionModules" {
 			delete(a, "id")
 			delete(b, "id")
 		}
@@ -506,7 +506,7 @@ func compareRecords(name string, src, dst []object, m Manifest, domains Domains,
 func sortNamedSets(resource string, row object) {
 	fields := map[string][]string{
 		"clientGrants": {"scope", "scopes"}, "clients": {"grant_types"},
-		"roles": {"permissions"}, "resourceServers": {"scopes"}, "connections": {"enabled_clients"}, "databases": {"enabled_clients"},
+		"organizations": {"connections", "client_grants"}, "roles": {"permissions"}, "resourceServers": {"scopes"}, "connections": {"enabled_clients"}, "databases": {"enabled_clients"},
 	}
 	for _, field := range fields[resource] {
 		values, ok := row[field].([]any)

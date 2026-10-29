@@ -3,14 +3,12 @@
 Plan 20 pins `auth0-deploy-cli` 9.1.0 and records its resource inventory and
 field-specific comparison rules in
 [`tests/e2e/deploy-cli/manifest.json`](../tests/e2e/deploy-cli/manifest.json).
-The local CLI lane covers nonempty clients, resource servers, client grants,
-and tenant settings. The manifest explicitly marks three pinned handlers as
-`tool-unsupported`: `databases` always queries the unimplemented Actions API;
-`connections` filters out the only implemented strategy (`auth0`); and
-`attackProtection` queries the unimplemented phone-provider-protection API.
-Their parser/reference fixtures and direct Management API coverage remain,
-but this tool lane does not establish their migration compatibility. Future
-provider/Actions/phone milestones own removal of these exclusions.
+The local CLI lane covers the nonempty resource families marked `included`
+in that manifest, including organizations and federated connections. Database
+connections remain excluded from this matrix; the pinned handler does not
+establish their migration compatibility. `attackProtection` is marked
+`tool-unsupported` because it queries the unimplemented phone-provider-protection
+API. Direct SDK/API coverage remains authoritative for those resources.
 Rules, hooks and their configurations are finite empty compatibility
 collections; they do not execute scripts.
 
@@ -163,3 +161,25 @@ operations; the Deploy CLI resource inventory does not imply those assignments
 were migrated. The local lane assigns a fixture user after import and verifies
 actual federated login/token enforcement. See [roles and permissions](rbac.md)
 for scope ceilings, token profiles and storage-plugin upgrade requirements.
+
+Plan 29 adds nonempty **organizations** to every cell of the same four-cell
+matrix. Fixtures include display names, branding colors, metadata and enabled
+enterprise connections with different automatic-membership/button flags. The
+strict comparator matches organizations and their connection references by
+name and retains all connection policy fields. API reads after import verify
+that the organization links exist. Application `organization_usage`,
+`organization_require_behavior` and `organization_discovery_methods` also
+survive import, including the offline credential-preserving bootstrap.
+
+Pinned Deploy CLI 9.1.0 uses `/organizations/{id}/connections` for these links
+and reads `/organizations/{id}/client-grants` even when none exist. Plan 29
+serves the former from the enabled-connection links and the latter as an empty
+read-only collection (D-0055). Organization grants, discovery domains and
+organization clients remain deferred. The pinned tool exports **no members or
+member roles**: their migration is unavailable in this matrix, not a passing
+migration test. Use the Management API or create-only seed references for
+those resources.
+
+`make e2e-organizations` independently exercises the pinned Management SDK,
+CLI, SPA SDK, hosted organization pages and console against local zeroauthy.
+No Auth0 tenant requests are made by either local lane.
