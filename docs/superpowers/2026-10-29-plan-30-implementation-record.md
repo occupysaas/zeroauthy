@@ -8,7 +8,8 @@ Worktree: `/mnt/nvme2/code/zeroauthy-plan-30`.
 ## Progress
 
 Task 1 is complete and controller-reviewed, including review fix `5e2ae89`.
-Task 2 is submitted for controller review in this commit; Tasks 3–17 remain. The inventory
+Task 2 is complete and controller-reviewed at `2caddb4`. Task 3 is submitted
+for controller review; Tasks 4–17 remain. The inventory
 freezes contracts, not operational endpoints. API YAML, individual public scope
 audit, Authentication/reset context, expanded EA connection contracts and D-0056
 are now included in the Task 1 submission.
@@ -220,3 +221,127 @@ Final focused verification before commit:
 - Final `go test ./internal/store/memory -run
   'OrganizationsII|TestConformance/(Organizations|ClientGrants)$' -race -count=1`:
   PASS, including the added reference regression.
+
+
+## Task 3 — SQL Organizations II submission
+
+All 22 OrganizationsII storage methods now persist on SQLite, PostgreSQL and
+MySQL, using existing Store/WithTx views. Migration 0026 preserves Plan 29
+organizations, links, memberships, roles and grants, supplies entitlement=false,
+enabled=true, connection name from the underlying connection, access none/limited,
+and grant deny/false. Codecs round-trip actual enablement with IsEnabledSet=true;
+omitted replacement fields preserve current policy. Wrapped invitation payloads
+preserve metadata null/empty distinctions, role slices, timestamps and sealed
+bytes. No plaintext bearer or URL column is introduced.
+
+The tenant policy lock now precedes dependent reads/writes in II operations and
+existing client/connection/grant/user policy operations. User deletion takes the
+tenant lock before the user row. User update, password/imported-hash/version and
+login-stat writes use the same order to avoid inversion when composed with policy
+reads inside WithTx. Transaction policy reads hold that lock until commit.
+Consumed receipt, membership and role writes use the caller's transaction only;
+receipt replay is fully bound and survives explicit invitation deletion.
+
+Integration rulings:
+
+- New tables constrain organization, client, grant, optional forced connection,
+  user and role ownership through composite tenant foreign keys. Existing Plan 29
+  organization tables retain their established manual cascades; rebuilding those
+  tables is unnecessary to constrain every new reference and would enlarge a
+  data-preserving migration. New child FKs cascade with those existing deletes.
+- Receipts deliberately have no invitation FK: invitation DELETE must preserve
+  committed receipt replay. They still reference organization/user by tenant.
+  The role edge uses a restrictive role FK; repository role deletion first revokes
+  the whole invite, avoiding silent removal of a promised role. User deletion
+  destroys its retained consumed invitation before its receipt can disappear.
+- Existing standalone repository fixtures without tenant rows remain supported
+  by policyRead/policyWrite; real tenants always acquire the tenant lock. II
+  operations themselves require an existing tenant/owner and never use that
+  compatibility exception.
+- Controller ruling: AuthTransaction.Params remains the sole validated invitation
+  binding authority for Task 7, so no duplicate InvitationID field/column is added.
+  PasswordResetTicket.OrganizationID is added now and carried through SQL codecs;
+  Task 4 must carry it through the additive plugin protocol.
+- The SQL invitation clock is injectable before use, including transactional
+  handles. Active reads compare the decoded precise expiry, so the nanosecond
+  before expiry remains active and exact expiry does not. Explicit consume time
+  remains authoritative for acceptance, with SQL receipt times at microseconds.
+
+Actual RED/GREEN and verification:
+
+- Initial `go test ./internal/store/sqlstore -run OrganizationsII -count=1`:
+  FAIL: unavailable SQL II placeholder in every shared operation group, plus
+  missing enabled/access defaults. This preceded persistence implementation.
+- After persistence: same command FAIL: role deletion left a usable invite.
+  Role deletion now removes the promised-role invite before removing its role.
+- `go test ./internal/store/sqlstore -run OrganizationsIIResetContext -count=1`:
+  compile FAIL for missing PasswordResetTicket.OrganizationID; then added the
+  scalar model field, migration and SQL create/read/consume codecs.
+- `go test ./internal/store/sqlstore -run OrganizationsIIReadExpiryBoundary
+  -count=1`: compile FAIL for missing orgIIClock (and the still-missing reset
+  field); added injected clock propagation and exact expiry comparisons.
+- Named migration-from25 and first barrier race tests were added after the
+  initial shared-suite RED and initial implementation. Their first run passed
+  (0.244s); no named-test RED is claimed.
+- `go test ./internal/store/sqlstore -run OrganizationsII -count=1`: PASS
+  (1.042s), including shared suites, migration, both named races, reset and clock.
+- `ZEROAUTHY_TEST_PG_PORT=55632 ZEROAUTHY_TEST_MYSQL_PORT=53506
+  ./scripts/test-sql.sh -run OrganizationsII -count=1 -timeout=30m -v
+  ./internal/store/sqlstore/...`: PASS (52.401s, race enabled by script).
+  SQLite, PostgreSQL and MySQL shared suites, migration, races, reset and exact
+  expiry each ran and passed; no configured driver skipped.
+- Added reverse schedule barriers: a policy reader holds its transaction while a
+  launched writer attempts a mutation with a bounded context; the writer must
+  block until its deadline. Acceptance commits, then the writer succeeds. Covers
+  organization/association/link/client/connection/grant/user updates and
+  invitation/organization/client/user/tenant deletes. Uses no scheduling sleeps.
+  `go test ./internal/store/sqlstore -run OrganizationsIIPolicyReadHoldsWriter
+  -count=1`: PASS (2.361s on SQLite).
+- Raw SQL composite-owner tests reject cross-tenant organization/client/grant
+  references and absent user references, independently of repository validation.
+- Compile-only `go test ./internal/store/... ./internal/mgmt ./internal/orglogin
+  ./pkg/store ./pkg/storetest -run '^$'`: PASS; no runtime plugin tests selected.
+
+Final covering/targeted evidence:
+
+- Final covering command (race enabled by script):
+  `ZEROAUTHY_TEST_PG_PORT=55632 ZEROAUTHY_TEST_MYSQL_PORT=53506
+  ./scripts/test-sql.sh -run
+  'OrganizationsII|^TestOrganizationsMigration$|^TestOrganizationsConcurrency$|^TestOrganizationMembershipSQLPolicyOrdering$|^TestRBAC'
+  -count=1 -timeout=30m -v ./internal/store/sqlstore/...`.
+  Actual overall result FAIL (475.803s), solely
+  TestRBACNestedTransactionCurrentReads/mysql Error 1205 lock wait timeout.
+  All new II groups, migration, both race schedules, reset/expiry/owner checks and
+  the focused legacy wrapper passed on SQLite, PostgreSQL and MySQL. The legacy
+  wrapper passed MySQL 94.77s, SQLite 181.11s, PostgreSQL 20.10s. It selects exactly
+  Organizations, ClientGrants, TenantsDelete, RBAC, Clients, Connections, Users,
+  UserDelete, PasswordResetTickets and AuthTransactions. Existing organization
+  migration/concurrency/membership-ordering and other selected RBAC tests passed.
+  No SKIP lines. Log: `task-3-all-drivers-final.log`.
+- Root cause: the old MySQL stale-snapshot test established its earlier read with
+  transactional Users.Get, then synchronously used the outer store for an
+  independent API mutation. Users.Get now intentionally takes the tenant policy
+  lock, so that independent writer correctly blocks until the outer transaction
+  finishes. Replaced only that setup read with a raw nonlocking SELECT, preserving
+  every original stale-snapshot/removed-permission assertion. No production code
+  changed in response to this failure.
+- Targeted correction verification:
+  `ZEROAUTHY_TEST_PG_PORT=55632 ZEROAUTHY_TEST_MYSQL_PORT=53506
+  ./scripts/test-sql.sh -run '^TestRBACNestedTransactionCurrentReads$'
+  -count=1 -timeout=30m -v ./internal/store/sqlstore/...` PASS (1.946s;
+  MySQL case 0.92s). This existing test is intentionally MySQL-only; no PostgreSQL/
+  SQLite coverage is claimed for this targeted command. Log:
+  `task-3-rbac-current-reads.log`. The large covering run was not repeated after
+  this fixture-only correction; its actual failure is retained above.
+- Concrete review risk: transactional client/connection/grant/user reads now hold
+  the tenant policy lock until commit, serializing independent writes for that
+  tenant. Callers composing an outer-store write after such a read can block, as
+  the regression above demonstrated. WithTx callers must use the supplied store;
+  independent reviewer should assess the wider read-lock impact. The new reverse
+  race tests pin intended lock retention across acceptance and later revocation.
+- Only task-specific container instances were created/removed by the script;
+  shared services were left running. Both driver ports were task-specific.
+- `git diff --check`: PASS before commit.
+
+No full Go/SQL suite, browser, console or runtime plugin tests are claimed.
+Controller owns Task 3 review and ledger completion.

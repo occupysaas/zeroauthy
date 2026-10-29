@@ -237,7 +237,9 @@ Plan 29 tenant-policy lock before dependent rows.
 - [ ] Run `go test ./internal/store/sqlstore -run OrganizationsII -count=1`;
   expect FAIL until SQLite persistence/migration is implemented.
 - [ ] Implement parameterized queries, composite ownership constraints, cleanup
-  and indexes. Carry receipt/binding fields through authorization/reset codecs.
+  and indexes. Keep the validated invitation binding in existing AuthTransaction.Params (no
+  duplicate authority); carry PasswordResetTicket.OrganizationID through SQL
+  reset codecs and the later plugin protocol.
   Apply policy lock ordering consistently to pre-existing deletion/update paths.
 - [ ] Run focused SQLite tests, then
   `./scripts/test-sql.sh -run OrganizationsII -count=1 ./internal/store/sqlstore/...`;

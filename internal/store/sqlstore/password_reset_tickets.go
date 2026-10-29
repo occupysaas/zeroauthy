@@ -14,16 +14,16 @@ type resetTickets struct{ s *Store }
 func (s *Store) PasswordResetTickets() store.PasswordResetTickets { return resetTickets{s} }
 
 const resetTicketCols = `tenant_id, id, token_hash, user_id, connection, client_id, lang, expires_at, used_at, created_at,
- result_url, include_email_in_redirect, mark_email_verified, origin, challenge_passed_at, challenge_result_url`
+ result_url, include_email_in_redirect, mark_email_verified, origin, challenge_passed_at, challenge_result_url, organization_id`
 
 func (r resetTickets) Create(ctx context.Context, t *store.PasswordResetTicket) error {
 	// Retried on deadlock: on MySQL an INSERT can be the victim of a cycle
 	// with the range DELETEs of DeleteExpired and DeleteByUser (gap locks).
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO password_reset_tickets (`+resetTicketCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		_, err := tx.exec(ctx, `INSERT INTO password_reset_tickets (`+resetTicketCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			t.TenantID, t.ID, t.TokenHash, t.UserID, t.Connection, t.ClientID, t.Lang,
 			micros(t.ExpiresAt), nullMicros(t.UsedAt), micros(t.CreatedAt),
-			t.ResultURL, t.IncludeEmailInRedirect, t.MarkEmailVerified, t.Origin, nullMicros(t.ChallengePassedAt), t.ChallengeResultURL)
+			t.ResultURL, t.IncludeEmailInRedirect, t.MarkEmailVerified, t.Origin, nullMicros(t.ChallengePassedAt), t.ChallengeResultURL, t.OrganizationID)
 		return tx.conflict(err)
 	})
 }
@@ -122,7 +122,7 @@ func scanResetTicket(row scanner) (*store.PasswordResetTicket, error) {
 	var exp, created int64
 	var used, passed sql.NullInt64
 	if err := row.Scan(&t.TenantID, &t.ID, &t.TokenHash, &t.UserID, &t.Connection, &t.ClientID, &t.Lang,
-		&exp, &used, &created, &t.ResultURL, &t.IncludeEmailInRedirect, &t.MarkEmailVerified, &t.Origin, &passed, &t.ChallengeResultURL); err != nil {
+		&exp, &used, &created, &t.ResultURL, &t.IncludeEmailInRedirect, &t.MarkEmailVerified, &t.Origin, &passed, &t.ChallengeResultURL, &t.OrganizationID); err != nil {
 		return nil, err
 	}
 	t.ChallengePassedAt = fromNullMicros(passed)

@@ -78,6 +78,10 @@ func (r rbac) DeleteRole(ctx context.Context, tenant, id string) error {
 		if _, err := t.GetRole(ctx, tenant, id); err != nil {
 			return err
 		}
+		if _, err := t.s.exec(ctx, `DELETE FROM organization_invitations WHERE tenant_id=? AND id IN (SELECT invitation_id FROM organization_invitation_roles WHERE tenant_id=? AND role_id=?)`, tenant, tenant, id); err != nil {
+			return err
+		}
+
 		for _, table := range []string{"organization_member_roles", "rbac_user_roles", "rbac_role_permissions"} {
 			if _, err := t.s.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id=? AND role_id=?`, tenant, id); err != nil {
 				return err

@@ -46,13 +46,13 @@ func (r organizations) atomic(ctx context.Context, tid string, fn func(organizat
 	})
 }
 
-const orgCols = `tenant_id, id, name, display_name, branding, metadata, third_party_client_access, created_at, updated_at`
+const orgCols = `tenant_id, id, name, display_name, branding, metadata, third_party_client_access, created_at, updated_at, is_app_entitlement_active`
 
 func scanOrg(row scanner) (*store.Organization, error) {
 	var o store.Organization
 	var branding, metadata sql.NullString
 	var created, updated int64
-	if err := row.Scan(&o.TenantID, &o.ID, &o.Name, &o.DisplayName, &branding, &metadata, &o.ThirdPartyClientAccess, &created, &updated); err != nil {
+	if err := row.Scan(&o.TenantID, &o.ID, &o.Name, &o.DisplayName, &branding, &metadata, &o.ThirdPartyClientAccess, &created, &updated, &o.IsAppEntitlementActive); err != nil {
 		return nil, err
 	}
 	if branding.Valid {
@@ -129,9 +129,43 @@ func (r organizations) checkConnection(ctx context.Context, tid string, c store.
 	return nil
 }
 
+func (r organizations) normalizeConnection(ctx context.Context, c store.OrganizationConnection, old *store.OrganizationConnection) (store.OrganizationConnection, error) {
+	if !c.IsEnabledSet {
+		c.IsEnabled = true
+		if old != nil {
+			c.IsEnabled = old.IsEnabled
+		}
+	}
+	c.IsEnabledSet = true
+	if c.ConnectionName == "" {
+		if old != nil {
+			c.ConnectionName = old.ConnectionName
+		} else {
+			if err := r.s.queryRow(ctx, `SELECT name FROM connections WHERE tenant_id=? AND id=?`, c.TenantID, c.ConnectionID).Scan(&c.ConnectionName); err != nil {
+				return c, iiNotFound(err)
+			}
+		}
+	}
+	if c.OrganizationAccessLevel == "" {
+		c.OrganizationAccessLevel = "none"
+		if old != nil {
+			c.OrganizationAccessLevel = old.OrganizationAccessLevel
+		}
+	}
+	if c.OrganizationMemberAccessLevel == "" {
+		c.OrganizationMemberAccessLevel = "limited"
+		if old != nil {
+			c.OrganizationMemberAccessLevel = old.OrganizationMemberAccessLevel
+		}
+	}
+	return c, nil
+}
 func (r organizations) insertConnection(ctx context.Context, c store.OrganizationConnection) error {
-	_, err := r.s.exec(ctx, `INSERT INTO organization_connections (tenant_id,organization_id,connection_id,assign_membership_on_login,show_as_button,is_signup_enabled) VALUES (?,?,?,?,?,?)`,
-		c.TenantID, c.OrganizationID, c.ConnectionID, c.AssignMembershipOnLogin, c.ShowAsButton, c.IsSignupEnabled)
+	c, err := r.normalizeConnection(ctx, c, nil)
+	if err != nil {
+		return err
+	}
+	_, err = r.s.exec(ctx, `INSERT INTO organization_connections (`+orgConnCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`, c.TenantID, c.OrganizationID, c.ConnectionID, c.AssignMembershipOnLogin, c.ShowAsButton, c.IsSignupEnabled, c.IsEnabled, c.ConnectionName, c.OrganizationAccessLevel, c.OrganizationMemberAccessLevel)
 	return r.s.conflict(err)
 }
 
@@ -180,8 +214,8 @@ func (r organizations) Create(ctx context.Context, o *store.Organization, conns 
 			n.UpdatedAt = n.CreatedAt
 		}
 		n.CreatedAt, n.UpdatedAt = fromMicros(micros(n.CreatedAt)), fromMicros(micros(n.UpdatedAt))
-		if _, err := t.s.exec(ctx, `INSERT INTO organizations (`+orgCols+`) VALUES (?,?,?,?,?,?,?,?,?)`,
-			n.TenantID, n.ID, n.Name, n.DisplayName, branding, metadata, n.ThirdPartyClientAccess, micros(n.CreatedAt), micros(n.UpdatedAt)); err != nil {
+		if _, err := t.s.exec(ctx, `INSERT INTO organizations (`+orgCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+			n.TenantID, n.ID, n.Name, n.DisplayName, branding, metadata, n.ThirdPartyClientAccess, micros(n.CreatedAt), micros(n.UpdatedAt), n.IsAppEntitlementActive); err != nil {
 			return t.s.conflict(err)
 		}
 		for _, c := range conns {
@@ -199,6 +233,9 @@ func (r organizations) Create(ctx context.Context, o *store.Organization, conns 
 }
 
 func (r organizations) Get(ctx context.Context, tid, id string) (*store.Organization, error) {
+	if err := (organizationsII{r.s}).readLock(ctx, tid); err != nil {
+		return nil, err
+	}
 	o, err := scanOrg(r.s.queryRow(ctx, `SELECT `+orgCols+` FROM organizations WHERE tenant_id=? AND id=?`, tid, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
@@ -207,6 +244,9 @@ func (r organizations) Get(ctx context.Context, tid, id string) (*store.Organiza
 }
 
 func (r organizations) GetByName(ctx context.Context, tid, name string) (*store.Organization, error) {
+	if err := r.s.policyRead(ctx, tid); err != nil {
+		return nil, err
+	}
 	o, err := scanOrg(r.s.queryRow(ctx, `SELECT `+orgCols+` FROM organizations WHERE tenant_id=? AND name=?`, tid, name))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
@@ -264,8 +304,8 @@ func (r organizations) Update(ctx context.Context, o *store.Organization) error 
 			return store.ErrConflict
 		}
 		n.CreatedAt, n.UpdatedAt = cur.CreatedAt, now()
-		_, err = t.s.exec(ctx, `UPDATE organizations SET name=?, display_name=?, branding=?, metadata=?, third_party_client_access=?, updated_at=? WHERE tenant_id=? AND id=?`,
-			n.Name, n.DisplayName, branding, metadata, n.ThirdPartyClientAccess, micros(n.UpdatedAt), n.TenantID, n.ID)
+		_, err = t.s.exec(ctx, `UPDATE organizations SET name=?, display_name=?, branding=?, metadata=?, third_party_client_access=?, updated_at=?, is_app_entitlement_active=? WHERE tenant_id=? AND id=?`,
+			n.Name, n.DisplayName, branding, metadata, n.ThirdPartyClientAccess, micros(n.UpdatedAt), n.IsAppEntitlementActive, n.TenantID, n.ID)
 		return t.s.conflict(err)
 	}); err != nil {
 		return err
@@ -289,11 +329,12 @@ func (r organizations) Delete(ctx context.Context, tid, id string) error {
 	})
 }
 
-const orgConnCols = `tenant_id, organization_id, connection_id, assign_membership_on_login, show_as_button, is_signup_enabled`
+const orgConnCols = `tenant_id, organization_id, connection_id, assign_membership_on_login, show_as_button, is_signup_enabled, is_enabled, connection_name, organization_access_level, organization_member_access_level`
 
 func scanOrgConn(row scanner) (store.OrganizationConnection, error) {
 	var c store.OrganizationConnection
-	err := row.Scan(&c.TenantID, &c.OrganizationID, &c.ConnectionID, &c.AssignMembershipOnLogin, &c.ShowAsButton, &c.IsSignupEnabled)
+	err := row.Scan(&c.TenantID, &c.OrganizationID, &c.ConnectionID, &c.AssignMembershipOnLogin, &c.ShowAsButton, &c.IsSignupEnabled, &c.IsEnabled, &c.ConnectionName, &c.OrganizationAccessLevel, &c.OrganizationMemberAccessLevel)
+	c.IsEnabledSet = true
 	return c, err
 }
 
@@ -357,7 +398,7 @@ func (r organizations) PutConnection(ctx context.Context, c store.OrganizationCo
 		if err := t.checkConnection(ctx, c.TenantID, c); err != nil {
 			return err
 		}
-		_, err := t.GetConnection(ctx, c.TenantID, c.OrganizationID, c.ConnectionID)
+		old, err := t.GetConnection(ctx, c.TenantID, c.OrganizationID, c.ConnectionID)
 		exists := err == nil
 		if err != nil && !errors.Is(err, store.ErrNotFound) {
 			return err
@@ -369,8 +410,12 @@ func (r organizations) PutConnection(ctx context.Context, c store.OrganizationCo
 			return store.ErrNotFound
 		}
 		if !create {
-			_, err := t.s.exec(ctx, `UPDATE organization_connections SET assign_membership_on_login=?, show_as_button=?, is_signup_enabled=? WHERE tenant_id=? AND organization_id=? AND connection_id=?`,
-				c.AssignMembershipOnLogin, c.ShowAsButton, c.IsSignupEnabled, c.TenantID, c.OrganizationID, c.ConnectionID)
+			c, err = t.normalizeConnection(ctx, c, old)
+			if err != nil {
+				return err
+			}
+			_, err := t.s.exec(ctx, `UPDATE organization_connections SET assign_membership_on_login=?, show_as_button=?, is_signup_enabled=?, is_enabled=?, connection_name=?, organization_access_level=?, organization_member_access_level=? WHERE tenant_id=? AND organization_id=? AND connection_id=?`,
+				c.AssignMembershipOnLogin, c.ShowAsButton, c.IsSignupEnabled, c.IsEnabled, c.ConnectionName, c.OrganizationAccessLevel, c.OrganizationMemberAccessLevel, c.TenantID, c.OrganizationID, c.ConnectionID)
 			return err
 		}
 		var n int

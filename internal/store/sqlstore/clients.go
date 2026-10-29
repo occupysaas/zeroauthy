@@ -37,6 +37,9 @@ func (r clients) Create(ctx context.Context, c *store.Client) error {
 }
 
 func (r clients) Get(ctx context.Context, tenantID, clientID string) (*store.Client, error) {
+	if err := r.s.policyRead(ctx, tenantID); err != nil {
+		return nil, err
+	}
 	c, err := scanClient(r.s.queryRow(ctx, `SELECT `+clientCols+` FROM clients WHERE tenant_id = ? AND client_id = ?`, tenantID, clientID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
@@ -50,19 +53,21 @@ func (r clients) Update(ctx context.Context, c *store.Client) error {
 		return err
 	}
 	// args: tenant_id, client_id, then the 21 mutable columns.
-	res, err := r.s.write(ctx, nil, `UPDATE clients SET name=?, app_type=?, secrets=?, token_endpoint_auth_method=?, grant_types=?,
+	return r.s.policyWrite(ctx, c.TenantID, func(tx *Store) error {
+		res, err := tx.exec(ctx, `UPDATE clients SET name=?, app_type=?, secrets=?, token_endpoint_auth_method=?, grant_types=?,
  callbacks=?, allowed_logout_urls=?, web_origins=?, allowed_origins=?, id_token_lifetime=?, refresh_token=?, created_at=?,
  is_first_party=?, third_party_security_mode=?, redirection_policy=?, skip_non_verifiable_callback_uri_confirmation_prompt=?, require_pushed_authorization_requests=?, origin=?,
  organization_usage=?, organization_require_behavior=?, organization_discovery_methods=?
  WHERE tenant_id=? AND client_id=?`, append(args[2:], c.TenantID, c.ClientID)...)
-	if err != nil {
-		return r.s.conflict(err)
-	}
-	return expectRow(res)
+		if err != nil {
+			return tx.conflict(err)
+		}
+		return expectRow(res)
+	})
 }
 
 func (r clients) Delete(ctx context.Context, tenantID, clientID string) error {
-	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+	return r.s.policyWrite(ctx, tenantID, func(tx *Store) error {
 		res, err := tx.exec(ctx, `DELETE FROM clients WHERE tenant_id = ? AND client_id = ?`, tenantID, clientID)
 		if err != nil {
 			return err

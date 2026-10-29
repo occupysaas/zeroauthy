@@ -1025,6 +1025,8 @@ func (ct CustomText) Clone() CustomText {
 // PasswordResetTicket is an issued password-reset link. Only the hash of
 // the ticket token is stored.
 type PasswordResetTicket struct {
+	// OrganizationID preserves the validated organization for reset delivery and resume.
+	OrganizationID     string
 	ChallengePassedAt  *time.Time
 	ChallengeResultURL string
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.

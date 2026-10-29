@@ -107,6 +107,9 @@ func putLogins(ctx context.Context, tx *Store, u *store.User, existing bool) err
 }
 
 func (r users) Get(ctx context.Context, tenantID, userID string) (*store.User, error) {
+	if err := r.s.policyRead(ctx, tenantID); err != nil {
+		return nil, err
+	}
 	u, err := scanUser(r.s.queryRow(ctx, `SELECT `+userCols+` FROM users WHERE tenant_id = ? AND user_id = ?`, tenantID, userID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound
@@ -118,6 +121,9 @@ func (r users) Get(ctx context.Context, tenantID, userID string) (*store.User, e
 // transaction. SQLite has no row locks; its transactions are serialized
 // (BEGIN IMMEDIATE on one connection).
 func (r users) GetForUpdate(ctx context.Context, tenantID, userID string) (*store.User, error) {
+	if err := r.s.policyRead(ctx, tenantID); err != nil {
+		return nil, err
+	}
 	suffix := ""
 	if r.s.tx != nil {
 		suffix = r.s.d.forUpdate
@@ -134,7 +140,7 @@ func (r users) Update(ctx context.Context, u *store.User) error {
 	if err != nil {
 		return err
 	}
-	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+	return r.s.policyWrite(ctx, u.TenantID, func(tx *Store) error {
 		// The stored email and blocked flag decide whether Version moves.
 		var oldEmail string
 		var oldBlocked bool
@@ -189,12 +195,14 @@ func (r users) FindByLogin(ctx context.Context, tenantID, connection, login stri
 }
 
 func (r users) RecordLogin(ctx context.Context, tenantID, userID string, at time.Time, ip string) error {
-	res, err := r.s.write(ctx, nil, `UPDATE users SET last_login=?, last_ip=?, logins_count=logins_count+1 WHERE tenant_id=? AND user_id=?`,
-		micros(at), ip, tenantID, userID)
-	if err != nil {
-		return err
-	}
-	return expectRow(res)
+	return r.s.policyWrite(ctx, tenantID, func(tx *Store) error {
+		res, err := tx.exec(ctx, `UPDATE users SET last_login=?, last_ip=?, logins_count=logins_count+1 WHERE tenant_id=? AND user_id=?`,
+			micros(at), ip, tenantID, userID)
+		if err != nil {
+			return err
+		}
+		return expectRow(res)
+	})
 }
 
 func (r users) SetPasswordHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time) error {
@@ -208,7 +216,7 @@ func (r users) SetPasswordHashIfEmpty(ctx context.Context, tenantID, userID, con
 // setHash reads the identities under a row lock, so the empty check and the
 // write are one step.
 func (r users) setHash(ctx context.Context, tenantID, userID, connection, hash string, at time.Time, onlyIfEmpty bool) error {
-	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+	return r.s.policyWrite(ctx, tenantID, func(tx *Store) error {
 		var raw string
 		err := tx.queryRow(ctx, `SELECT identities FROM users WHERE tenant_id=? AND user_id=?`+tx.d.forUpdate, tenantID, userID).Scan(&raw)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -250,7 +258,7 @@ func (r users) setHash(ctx context.Context, tenantID, userID, connection, hash s
 // UpgradeImportedHash reads the identities under a row lock, so the
 // comparison with imported and the write are one step.
 func (r users) UpgradeImportedHash(ctx context.Context, tenantID, userID, connection, imported, hash string, at time.Time) error {
-	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+	return r.s.policyWrite(ctx, tenantID, func(tx *Store) error {
 		var raw string
 		err := tx.queryRow(ctx, `SELECT identities FROM users WHERE tenant_id=? AND user_id=?`+tx.d.forUpdate, tenantID, userID).Scan(&raw)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -287,7 +295,7 @@ func (r users) UpgradeImportedHash(ctx context.Context, tenantID, userID, connec
 
 func (r users) BumpVersion(ctx context.Context, tenantID, userID string) (int64, error) {
 	var v int64
-	err := r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+	err := r.s.policyWrite(ctx, tenantID, func(tx *Store) error {
 		res, err := tx.exec(ctx, `UPDATE users SET version=version+1 WHERE tenant_id=? AND user_id=?`, tenantID, userID)
 		if err != nil {
 			return err
@@ -358,6 +366,9 @@ func deleteUser(ctx context.Context, tx *Store, tenantID, userID string) error {
 		return e
 	}
 
+	if _, err := tx.exec(ctx, `DELETE FROM organization_invitations WHERE tenant_id=? AND id IN (SELECT invitation_id FROM organization_invitation_receipts WHERE tenant_id=? AND user_id=?)`, tenantID, tenantID, userID); err != nil {
+		return err
+	}
 	for _, table := range userDependents {
 		if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND user_id = ?`, tenantID, userID); err != nil {
 			return err
@@ -367,7 +378,7 @@ func deleteUser(ctx context.Context, tx *Store, tenantID, userID string) error {
 }
 
 func (r users) Delete(ctx context.Context, tenantID, userID string) error {
-	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+	return r.s.policyWrite(ctx, tenantID, func(tx *Store) error {
 		var one int
 		err := tx.queryRow(ctx, `SELECT 1 FROM users WHERE tenant_id = ? AND user_id = ?`+tx.d.forUpdate, tenantID, userID).Scan(&one)
 		if errors.Is(err, sql.ErrNoRows) {
