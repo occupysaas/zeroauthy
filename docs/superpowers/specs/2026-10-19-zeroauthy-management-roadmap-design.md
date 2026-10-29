@@ -276,6 +276,14 @@ branch review is recorded separately from Task 14 regression results.
 
 ### Plan 30 — Organizations II
 
+**Design:** [Organizations II](2026-10-29-zeroauthy-organizations-ii-design.md).
+**Implementation:** [Plan 30](../plans/2026-10-29-zeroauthy-plan-30-organizations-ii.md).
+
+Minimal explicit-organization client-credentials issuance moves into Plan 30
+to make grant enforcement live; quotas remain in Plan 35. The accumulated
+Plan 29 follow-ups make this a multi-track implementation, superseding the
+earlier short-plan estimate.
+
 Carries Plan 29 deferred organization search, app entitlement, EA connection
 parity expansion, change-password organization context, and the reviewed
 organization polish ledger in the Plan 29 implementation record. The already
@@ -283,7 +291,7 @@ active EA connections subset and empty client-grants read must remain tool
 compatible. Organization token quotas remain with Plan 35; groups with Plan 38,
 SAML/WS-Fed login with Plan 37, and My Organization API with Plan 42.
 
-`/organizations/{id}/invitations` (create, list, delete) with the `user_invitation` email (Plan 21) and the invitation acceptance flow (`invitation` and `organization` parameters at `/authorize`); `/organizations/{id}/client-grants` and grant `organization_usage`/`allow_any_organization` enforcement (inert since D-0041); `/organizations/{id}/discovery-domains` and home-realm discovery by email domain if documented at build time. The `user_invitation` template is stored-only since Plan 21 and becomes live here. Auth0's My Organization API (organization-admin self-service, Early Access since 2026-09) goes to Plan 42, not here. **Short.**
+`/organizations/{id}/invitations` (create, list, delete) with the `user_invitation` email (Plan 21) and the invitation acceptance flow (`invitation` and `organization` parameters at `/authorize`); `/organizations/{id}/client-grants` and grant `organization_usage`/`allow_any_organization` enforcement (inert since D-0041); `/organizations/{id}/discovery-domains` and home-realm discovery by email domain if documented at build time. The `user_invitation` template is stored-only since Plan 21 and becomes live here. Auth0's My Organization API (organization-admin self-service, Early Access since 2026-09) goes to Plan 42, not here.
 
 ### Plan 31 — Logs, log streams, stats (full design)
 
