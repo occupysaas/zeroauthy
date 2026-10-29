@@ -244,3 +244,10 @@ func (o *opened) CheckOrganizationsSupport(ctx context.Context) error {
 func (o *opened) OrganizationsSupported() bool {
 	return o.Store.(store.OrganizationsSupporter).OrganizationsSupported()
 }
+
+func (o *opened) CheckOrganizationsIISupport(ctx context.Context) error {
+	return o.Store.(store.OrganizationsIISupporter).CheckOrganizationsIISupport(ctx)
+}
+func (o *opened) OrganizationsIISupported() bool {
+	return o.Store.(store.OrganizationsIISupporter).OrganizationsIISupported()
+}

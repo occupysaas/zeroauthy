@@ -145,3 +145,16 @@ func (UnimplementedOrganizationsII) DeleteDiscoveryDomain(ctx context.Context, t
 func (UnimplementedOrganizationsII) DiscoverOrganizations(ctx context.Context, tid, normalizedDomain string) ([]Organization, error) {
 	return nil, ErrOrganizationsIIUnavailable
 }
+
+// OrganizationsIISupporter negotiates the independently versioned II protocol.
+type OrganizationsIISupporter interface {
+	CheckOrganizationsIISupport(context.Context) error
+	OrganizationsIISupported() bool
+}
+
+func OrganizationsIISupported(st Store) bool {
+	if c, ok := st.(OrganizationsIISupporter); ok {
+		return c.OrganizationsIISupported()
+	}
+	return true
+}

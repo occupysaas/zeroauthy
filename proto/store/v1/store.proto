@@ -74,8 +74,31 @@ service StoreService {
   rpc RBACChangeUserPermissions(RBACRequest) returns (RBACResponse);
   rpc RBACSnapshot(RBACRequest) returns (RBACResponse);
 
-  // Plan 29 Organizations repository. A plugin lacking
-  // OrganizationsCapabilities (version 1) starts with the feature disabled.
+  // Plan 30 capability is independently negotiated; Plan 29 remains version 1.
+  rpc OrganizationsIICapabilities(PingRequest) returns (OrganizationsCapabilitiesResult);
+  rpc OrganizationsIICreateInvitation(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIGetInvitation(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIFindInvitation(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIListInvitations(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIDeleteInvitation(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIConsumeInvitation(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIGetInvitationReceipt(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIPutClients(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIGetClient(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIListClients(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIDeleteClients(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIPutClientGrant(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIDeleteClientGrant(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIListClientGrants(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIGrantOrganizations(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIHasClientGrant(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIPutDiscoveryDomain(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIGetDiscoveryDomain(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIGetDiscoveryDomainByName(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIListDiscoveryDomains(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIDeleteDiscoveryDomain(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIIDiscoverOrganizations(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  // Plan 29 Organizations repository. Missing capability disables this feature.
   rpc OrganizationsCapabilities(PingRequest) returns (OrganizationsCapabilitiesResult);
   rpc OrganizationsCreate(OrganizationsRequest) returns (OrganizationsResponse);
   rpc OrganizationsGet(OrganizationsRequest) returns (OrganizationsResponse);
@@ -385,6 +408,7 @@ message Error {
     KIND_BUILD_NOT_READY = 10; // store.ErrBuildNotReady
     KIND_PRECONDITION = 11; // store.ErrPrecondition
     KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
+    KIND_ORGANIZATIONS_II_UNAVAILABLE = 13; // store.ErrOrganizationsIIUnavailable
     KIND_ORGANIZATIONS_UNAVAILABLE = 12; // store.ErrOrganizationsUnavailable
   }
   Kind kind = 1;
@@ -534,6 +558,7 @@ message ClientGrant {
   string subject_type = 7; // empty = "client" (plugins older than Plan 9)
   string origin = 8;       // "api" or empty (seed)
   bool allow_all_scopes = 9; // every scope the API defines; absent = false
+  string organization_usage = 10; bool allow_any_organization = 11;
 }
 
 message UserGrant {
@@ -750,6 +775,7 @@ message PasswordResetTicket {
   string origin = 14;
   google.protobuf.Timestamp challenge_passed_at = 15; // absent = nil
   string challenge_result_url = 16;
+  string organization_id = 17;
 }
 
 message EmailVerificationTicket {
@@ -1090,10 +1116,12 @@ message OrganizationMsg {
   optional StringMap metadata=6;               // absent = nil (an empty map is distinct)
   string third_party_client_access=7;
   google.protobuf.Timestamp created_at=8; google.protobuf.Timestamp updated_at=9;
+  bool is_app_entitlement_active=10;
 }
 message OrganizationConnectionMsg {
   string tenant_id=1; string organization_id=2; string connection_id=3;
   bool assign_membership_on_login=4; bool show_as_button=5; bool is_signup_enabled=6;
+  optional bool is_enabled=7; string connection_name=8; string organization_access_level=9; string organization_member_access_level=10;
 }
 message OrganizationPageMsg { int64 page=1; int64 per_page=2; bool include_totals=3; string from=4; int64 take=5; string sort=6; }
 // Fields are used by the method that names them: tenant_id/organization_id/
@@ -1199,4 +1227,66 @@ message ActionJobMsg {
   google.protobuf.Timestamp next_at=7; google.protobuf.Timestamp lease_until=8;
   google.protobuf.Timestamp created_at=9; google.protobuf.Timestamp updated_at=10;
   repeated string execution_ids=11; repeated string module_version_ids=12;
+}
+
+message OrganizationInvitationMsg {
+  string tenant_id=1;
+  string organization_id=2;
+  string id=3;
+  string client_id=4;
+  string inviter_name=5;
+  string invitee_email=6;
+  string connection_id=7;
+  StringList roles=8;
+  bytes user_metadata_json=9;
+  bytes app_metadata_json=10;
+  string ticket_hash=11;
+  bytes wrapped_ticket=12;
+  bool send_invitation_email=13;
+  google.protobuf.Timestamp created_at=14;
+  google.protobuf.Timestamp updated_at=15;
+  google.protobuf.Timestamp expires_at=16;
+}
+
+message InvitationReceiptMsg {
+  string tenant_id=1;
+  string organization_id=2;
+  string invitation_id=3;
+  string transaction_id=4;
+  string user_id=5;
+  google.protobuf.Timestamp accepted_at=6;
+}
+
+message OrganizationClientMsg {
+  string tenant_id=1;
+  string organization_id=2;
+  string client_id=3;
+  bool use_for_member_access=4;
+}
+
+message OrganizationDiscoveryDomainMsg {
+  string tenant_id=1;
+  string organization_id=2;
+  string id=3;
+  string domain=4;
+  string status=5;
+  string verification_host=6;
+  string verification_txt=7;
+  bool use_for_organization_discovery=8;
+}
+
+message OrganizationsIIRequest {
+ string tx_id=1; string tenant_id=2; string organization_id=3; string id=4;
+ string client_id=5; string grant_id=6; string transaction_id=7; string user_id=8;
+ string ticket_hash=9; string domain=10; repeated string ids=11;
+ OrganizationPageMsg page=12; bool create=13; google.protobuf.Timestamp now=14;
+ OrganizationInvitationMsg invitation=15; repeated OrganizationClientMsg clients=16;
+ OrganizationDiscoveryDomainMsg discovery_domain=17;
+}
+message OrganizationsIIResponse {
+ Error error=1; OrganizationInvitationMsg invitation=2; repeated OrganizationInvitationMsg invitations=3;
+ InvitationReceiptMsg receipt=4; OrganizationClientMsg client=5; repeated OrganizationClientMsg clients=6;
+ repeated ClientGrant grants=7; repeated OrganizationMsg organizations=8;
+ OrganizationDiscoveryDomainMsg discovery_domain=9; repeated OrganizationDiscoveryDomainMsg discovery_domains=10;
+ int64 total=11; string next=12; bool flag=13;
 }

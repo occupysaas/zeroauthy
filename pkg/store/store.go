@@ -7,6 +7,7 @@ package store
 import "github.com/zeroauthy/zeroauthy/internal/store"
 
 type (
+	OrganizationsIISupporter     = store.OrganizationsIISupporter
 	OrganizationsII              = store.OrganizationsII
 	UnimplementedOrganizationsII = store.UnimplementedOrganizationsII
 	OrganizationInvitation       = store.OrganizationInvitation
@@ -317,3 +318,5 @@ var ErrOrganizationsUnavailable = store.ErrOrganizationsUnavailable
 var ErrOrganizationsIIUnavailable = store.ErrOrganizationsIIUnavailable
 var ErrActionsUnavailable = store.ErrActionsUnavailable
 var ErrBuildNotReady = store.ErrBuildNotReady
+
+var OrganizationsIISupported = store.OrganizationsIISupported

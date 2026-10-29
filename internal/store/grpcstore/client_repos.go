@@ -345,6 +345,11 @@ func (a clientResourceServers) RenameSystem(ctx context.Context, tenantID, ident
 type clientClientGrants struct{ c *Client }
 
 func (a clientClientGrants) Create(ctx context.Context, v *store.ClientGrant) error {
+	if v != nil && (v.AllowAnyOrganization || (v.OrganizationUsage != "" && v.OrganizationUsage != "deny")) {
+		if err := a.c.requireOrganizationsII(ctx); err != nil {
+			return err
+		}
+	}
 	return put("ClientGrantsCreate", v, clientGrantToPB, func(pb *storev1.ClientGrant) (result, error) {
 		return a.c.rpc.ClientGrantsCreate(ctx, &storev1.ClientGrantWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -366,6 +371,11 @@ func (a clientClientGrants) Find(ctx context.Context, tenantID, clientID, audien
 }
 
 func (a clientClientGrants) Update(ctx context.Context, v *store.ClientGrant) error {
+	if v != nil && (v.AllowAnyOrganization || (v.OrganizationUsage != "" && v.OrganizationUsage != "deny")) {
+		if err := a.c.requireOrganizationsII(ctx); err != nil {
+			return err
+		}
+	}
 	return put("ClientGrantsUpdate", v, clientGrantToPB, func(pb *storev1.ClientGrant) (result, error) {
 		return a.c.rpc.ClientGrantsUpdate(ctx, &storev1.ClientGrantWrite{TxId: a.c.txID, Value: pb})
 	})
@@ -967,6 +977,11 @@ func (a clientRefreshTokens) DeleteExpired(ctx context.Context, before time.Time
 type clientPasswordResetTickets struct{ c *Client }
 
 func (a clientPasswordResetTickets) Create(ctx context.Context, v *store.PasswordResetTicket) error {
+	if v != nil && v.OrganizationID != "" {
+		if err := a.c.requireOrganizationsII(ctx); err != nil {
+			return err
+		}
+	}
 	if v != nil && v.Origin != "" {
 		if err := a.c.requireCustomDomains(ctx); err != nil {
 			return err

@@ -75,7 +75,7 @@ func orgToPB(o *store.Organization) *storev1.OrganizationMsg {
 		return nil
 	}
 	pb := &storev1.OrganizationMsg{TenantId: o.TenantID, Id: o.ID, Name: o.Name, DisplayName: o.DisplayName,
-		Metadata: stringMapToPB(o.Metadata), ThirdPartyClientAccess: o.ThirdPartyClientAccess,
+		IsAppEntitlementActive: o.IsAppEntitlementActive, Metadata: stringMapToPB(o.Metadata), ThirdPartyClientAccess: o.ThirdPartyClientAccess,
 		CreatedAt: tsToPB(o.CreatedAt), UpdatedAt: tsToPB(o.UpdatedAt)}
 	if b := o.Branding; b != nil {
 		pb.Branding = &storev1.OrganizationBrandingMsg{LogoUrl: cloneString(b.LogoURL)}
@@ -91,7 +91,7 @@ func orgFromPB(pb *storev1.OrganizationMsg) *store.Organization {
 		return nil
 	}
 	o := &store.Organization{TenantID: pb.TenantId, ID: pb.Id, Name: pb.Name, DisplayName: pb.DisplayName,
-		Metadata: stringMapFromPB(pb.Metadata), ThirdPartyClientAccess: pb.ThirdPartyClientAccess,
+		IsAppEntitlementActive: pb.IsAppEntitlementActive, Metadata: stringMapFromPB(pb.Metadata), ThirdPartyClientAccess: pb.ThirdPartyClientAccess,
 		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt)}
 	if b := pb.Branding; b != nil {
 		o.Branding = &store.OrgBranding{LogoURL: cloneString(b.LogoUrl)}
@@ -111,13 +111,34 @@ func cloneString(s *string) *string {
 }
 
 func orgConnToPB(c store.OrganizationConnection) *storev1.OrganizationConnectionMsg {
-	return &storev1.OrganizationConnectionMsg{TenantId: c.TenantID, OrganizationId: c.OrganizationID, ConnectionId: c.ConnectionID,
-		AssignMembershipOnLogin: c.AssignMembershipOnLogin, ShowAsButton: c.ShowAsButton, IsSignupEnabled: c.IsSignupEnabled}
+	p := &storev1.OrganizationConnectionMsg{TenantId: c.TenantID, OrganizationId: c.OrganizationID, ConnectionId: c.ConnectionID, AssignMembershipOnLogin: c.AssignMembershipOnLogin, ShowAsButton: c.ShowAsButton, IsSignupEnabled: c.IsSignupEnabled, ConnectionName: c.ConnectionName, OrganizationAccessLevel: c.OrganizationAccessLevel, OrganizationMemberAccessLevel: c.OrganizationMemberAccessLevel}
+	if c.IsEnabledSet {
+		v := c.IsEnabled
+		p.IsEnabled = &v
+	}
+	return p
 }
-
 func orgConnFromPB(c *storev1.OrganizationConnectionMsg) store.OrganizationConnection {
-	return store.OrganizationConnection{TenantID: c.GetTenantId(), OrganizationID: c.GetOrganizationId(), ConnectionID: c.GetConnectionId(),
-		AssignMembershipOnLogin: c.GetAssignMembershipOnLogin(), ShowAsButton: c.GetShowAsButton(), IsSignupEnabled: c.GetIsSignupEnabled()}
+	// Preserve omission on writes. Persisted modern rows carry optional presence;
+	// old server reads are normalized by the client read boundary below.
+	return store.OrganizationConnection{TenantID: c.GetTenantId(), OrganizationID: c.GetOrganizationId(), ConnectionID: c.GetConnectionId(), AssignMembershipOnLogin: c.GetAssignMembershipOnLogin(), ShowAsButton: c.GetShowAsButton(), IsSignupEnabled: c.GetIsSignupEnabled(), IsEnabled: c.GetIsEnabled(), IsEnabledSet: c != nil && c.IsEnabled != nil, ConnectionName: c.GetConnectionName(), OrganizationAccessLevel: c.GetOrganizationAccessLevel(), OrganizationMemberAccessLevel: c.GetOrganizationMemberAccessLevel()}
+}
+func orgConnReadFromPB(c *storev1.OrganizationConnectionMsg) store.OrganizationConnection {
+	out := orgConnFromPB(c)
+	if !out.IsEnabledSet {
+		out.IsEnabled = true
+		out.IsEnabledSet = true
+	}
+	if out.OrganizationAccessLevel == "" {
+		out.OrganizationAccessLevel = "none"
+	}
+	if out.OrganizationMemberAccessLevel == "" {
+		out.OrganizationMemberAccessLevel = "limited"
+	}
+	return out
+}
+func orgConnActiveII(c store.OrganizationConnection) bool {
+	return (c.IsEnabledSet && !c.IsEnabled) || c.ConnectionName != "" || (c.OrganizationAccessLevel != "" && c.OrganizationAccessLevel != "none") || (c.OrganizationMemberAccessLevel != "" && c.OrganizationMemberAccessLevel != "limited")
 }
 
 func orgConnsToPB(cs []store.OrganizationConnection) []*storev1.OrganizationConnectionMsg {
@@ -184,6 +205,15 @@ func orgListToPB[T any](r store.OrgResult[T], out *storev1.OrganizationsResponse
 }
 
 func (o clientOrganizations) Create(ctx context.Context, org *store.Organization, conns []store.OrganizationConnection) error {
+	active := org != nil && org.IsAppEntitlementActive
+	for _, c := range conns {
+		active = active || orgConnActiveII(c)
+	}
+	if active {
+		if err := o.c.requireOrganizationsII(ctx); err != nil {
+			return err
+		}
+	}
 	_, err := orgCall(o.c, "Create", &storev1.OrganizationsRequest{Organization: orgToPB(org), Connections: orgConnsToPB(conns)}, o.c.rpc.OrganizationsCreate, ctx)
 	return err
 }
@@ -258,6 +288,11 @@ func (srv *Server) OrganizationsList(ctx context.Context, q *storev1.Organizatio
 }
 
 func (o clientOrganizations) Update(ctx context.Context, org *store.Organization) error {
+	if org != nil && org.IsAppEntitlementActive {
+		if err := o.c.requireOrganizationsII(ctx); err != nil {
+			return err
+		}
+	}
 	_, err := orgCall(o.c, "Update", &storev1.OrganizationsRequest{Organization: orgToPB(org)}, o.c.rpc.OrganizationsUpdate, ctx)
 	return err
 }
@@ -288,7 +323,9 @@ func (o clientOrganizations) Connections(ctx context.Context, tid, orgID string,
 		return out, err
 	}
 	out.Total, out.Next = int(v.Total), v.Next
-	out.Items = append(out.Items, orgConnsFromPB(v.Connections)...)
+	for _, pb := range v.Connections {
+		out.Items = append(out.Items, orgConnReadFromPB(pb))
+	}
 	return out, nil
 }
 func (srv *Server) OrganizationsConnections(ctx context.Context, q *storev1.OrganizationsRequest) (*storev1.OrganizationsResponse, error) {
@@ -305,7 +342,7 @@ func (o clientOrganizations) GetConnection(ctx context.Context, tid, orgID, conn
 	if err != nil {
 		return nil, err
 	}
-	c := orgConnFromPB(v.Connection)
+	c := orgConnReadFromPB(v.Connection)
 	return &c, nil
 }
 func (srv *Server) OrganizationsGetConnection(ctx context.Context, q *storev1.OrganizationsRequest) (*storev1.OrganizationsResponse, error) {
@@ -320,6 +357,11 @@ func (srv *Server) OrganizationsGetConnection(ctx context.Context, q *storev1.Or
 }
 
 func (o clientOrganizations) PutConnection(ctx context.Context, c store.OrganizationConnection, create bool) error {
+	if orgConnActiveII(c) {
+		if err := o.c.requireOrganizationsII(ctx); err != nil {
+			return err
+		}
+	}
 	_, err := orgCall(o.c, "PutConnection", &storev1.OrganizationsRequest{Connection: orgConnToPB(c), Flag: create}, o.c.rpc.OrganizationsPutConnection, ctx)
 	return err
 }
@@ -344,7 +386,11 @@ func (o clientOrganizations) ConnectionsByConnection(ctx context.Context, tid, c
 	if err != nil {
 		return nil, err
 	}
-	return orgConnsFromPB(v.Connections), nil
+	out := make([]store.OrganizationConnection, 0, len(v.Connections))
+	for _, pb := range v.Connections {
+		out = append(out, orgConnReadFromPB(pb))
+	}
+	return out, nil
 }
 func (srv *Server) OrganizationsConnectionsByConnection(ctx context.Context, q *storev1.OrganizationsRequest) (*storev1.OrganizationsResponse, error) {
 	out := &storev1.OrganizationsResponse{}

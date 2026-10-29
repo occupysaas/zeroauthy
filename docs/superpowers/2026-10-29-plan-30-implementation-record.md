@@ -8,8 +8,10 @@ Worktree: `/mnt/nvme2/code/zeroauthy-plan-30`.
 ## Progress
 
 Task 1 is complete and controller-reviewed, including review fix `5e2ae89`.
-Task 2 is complete and controller-reviewed at `2caddb4`. Task 3 is submitted
-for controller review; Tasks 4–17 remain. The inventory
+Task 2 is complete and controller-reviewed at `2caddb4`. Task 3 is complete
+and controller-reviewed at `e8f48a8`, with the race-test scheduling and tenant
+serialization limitations recorded below. Task 4 is submitted for controller
+review; Tasks 5–17 remain. The inventory
 freezes contracts, not operational endpoints. API YAML, individual public scope
 audit, Authentication/reset context, expanded EA connection contracts and D-0056
 are now included in the Task 1 submission.
@@ -345,3 +347,92 @@ Final covering/targeted evidence:
 
 No full Go/SQL suite, browser, console or runtime plugin tests are claimed.
 Controller owns Task 3 review and ledger completion.
+
+
+## Task 4 — OrganizationsII storage plugin submission
+
+Task 3 was controller-reviewed and approved with minor limitations: its reverse
+writer test signals immediately before SQL entry rather than proving that the
+writer has reached the SQL lock, and tenant policy locking serializes throughput
+within a tenant. The original covering-run MySQL fixture failure and targeted
+fixture-only correction remain recorded above; no replacement covering PASS is
+claimed.
+
+Implemented the independent version-1 OrganizationsII capability and all 22
+named typed RPCs. The old Organizations capability and its RPC minimum stay at
+version 1. Client and transaction views share only the capability predicate;
+every II call and active II field write re-probes, so a reconnected plugin's
+cached earlier success cannot authorize dropped policy. Unknown methods and
+version zero are definitive unsupported answers. Transport failures remain
+retryable. The server respects OrganizationsIISupporter and explicitly refuses
+UnimplementedOrganizationsII backing repositories. It does not read an outer
+store during capability checks, which would deadlock while a memory transaction
+holds that store's lock. Custom backing stores must expose their unavailable
+repository or supporter, rather than claim a functioning custom repository.
+
+Existing organization create/update, connection create/update, client-grant
+create/update, and password-reset creation reject unsupported active policy or
+organization context. Legacy enabled=true and none/limited access defaults stay
+compatible. Organization entitlement, optional connection enablement/presence,
+connection name/access levels, grant policy, and PasswordResetTicket.OrganizationID
+are additive protobuf fields. Read boundaries normalize absent old connection
+enablement to true/present and absent access to none/limited. Write decoding
+preserves omitted presence, so replacements retain stored policy. AuthTransaction
+Params remains the sole future invitation binding; no additional field was added.
+
+Invitations, receipts, clients and discovery domains use typed protobuf messages;
+JSON bytes are limited to arbitrary invitation metadata, preserving null versus
+empty objects. Errors on malformed metadata omit payload data. WrappedTicket is
+opaque sealed bytes; no plaintext ticket or invitation URL field is introduced.
+The existing original grant/reset full codec fixtures now include new fields,
+and grant zero/empty expectations explicitly carry the documented deny default.
+Public store aliases and the external plugin wrapper preserve II capability
+negotiation.
+
+Actual verification:
+
+- Initial `go test ./internal/store/grpcstore -run OrganizationsII -count=1`
+  FAIL: unavailable stub across shared operation groups, plus absent enabled/
+  access defaults. This is the preimplementation behavioral RED.
+- Same command after the initial implementation PASS (0.055s).
+- Added capability matrix initially FAIL because its fixture used an invalid
+  organization ID; corrected to a valid org_ ID. Next run FAIL because its
+  positive PutClients case supplied an invalid empty batch; seeded a client and
+  supplied a valid association. Corrected focused command PASS (1.286s).
+  These were test-fixture corrections, not production regressions.
+- An earlier combined race command selected the still-empty positive batch and
+  FAIL (69.521s). It is not claimed passing.
+- `go test ./internal/store/grpcstore -run '^TestClientGrantRoundTrip$' -count=1`
+  FAIL on newly required full-fixture fields and old empty organization-usage
+  expectations. Updated the fixtures to require/true and explicit deny defaults.
+- `go test ./internal/store/grpcstore -run
+  '^(TestOrganizationsII.*|TestClientGrantRoundTrip|TestPasswordResetTicketRoundTrip|TestCodecDefaultsForOldPlugins)$'
+  -race -count=1` PASS (31.950s).
+- `go test ./internal/store/grpcstore -run
+  '^TestConformance(SQLite)?$/(Organizations|ClientGrants)$'
+  -race -count=1 -timeout=5m` PASS (49.496s): original organization and client-grant
+  shared suites through memory and SQLite gRPC backends.
+- `go test ./internal/store/... ./pkg/store ./pkg/storeplugin ./pkg/storetest
+  ./internal/mgmt ./internal/orglogin -run '^$'` PASS (compile only).
+- Final focused check after the reset wire assertion and final capability-error
+  handling: `go test ./internal/store/grpcstore -run
+  '^(TestOrganizationsII.*|TestClientGrantRoundTrip|TestPasswordResetTicketRoundTrip|TestCodecDefaultsForOldPlugins|TestOrganizationsPluginRoundTrip|TestOrganizationsPreconditionMapping|TestOrganizationsOldPlugin|TestOrganizationsVersionZeroRefused)$'
+  -race -count=1 -timeout=5m` PASS (28.229s).
+- `make generate` PASS; generated protobuf outputs were not edited manually.
+  A source-declaration comparison against HEAD verified all 1,146 existing
+  protobuf field declarations retain type and number, with 72 additive fields.
+- `git diff --check` PASS.
+
+Matrix coverage includes no-RPC/v0, org-v1-only, II-v1, transient unavailable then
+recovery, downgraded/upgraded capability on the same client, transaction views,
+new protocol over an unavailable backing repository, and active old-route write
+rejection. Shared memory and SQLite II conformance covers every repository group,
+consume/membership/role rollback, receipt binding/replay, tenant boundaries,
+cascades and sealed-byte copies. Named codec checks pass through actual protobuf
+marshal/unmarshal for nil/empty/nested invitation metadata and nanosecond times;
+this specific nil/empty matrix is a codec-wire test, not a separate persistence
+matrix for every driver. Organization string metadata continues to use the
+existing StringMap wrapper and codec; no new claim about every old plugin's
+string-map behavior is made. No PostgreSQL/MySQL gRPC run, full Go/SQL suite,
+external plugin process, console or browser tests were run for Task 4. Broad
+release validation remains Task 17. Controller owns Task 4 review and ledger.
