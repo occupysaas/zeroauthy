@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
 
@@ -48,111 +47,15 @@ func cloneOrg(o *store.Organization) *store.Organization {
 	return &out
 }
 
-// entry is one listable item with its sort key. Lists are ordered by
-// (sort, id), reversed when desc.
-type entry[T any] struct {
-	item     T
-	sort, id string
-}
-
-func orderEntries[T any](es []entry[T], desc bool) {
-	slices.SortFunc(es, func(a, b entry[T]) int { return cmpEntry(a.sort, a.id, b.sort, b.id, desc) })
-}
-
-func cmpEntry(as, ai, bs, bi string, desc bool) int {
-	n := strings.Compare(as, bs)
-	if n == 0 {
-		n = strings.Compare(ai, bi)
-	}
-	if desc {
-		return -n
-	}
-	return n
-}
-
-// pageEntries pages es, which orderEntries already ordered. sort is the
-// request's Sort value, which the cursor binds with scope.
-func pageEntries[T any](es []entry[T], p store.OrgPage, scope string, desc bool) (store.OrgResult[T], error) {
-	mode, err := orgrules.NormalizePage(&p)
-	if err != nil {
-		return store.OrgResult[T]{}, store.ErrInvalid
-	}
-	out := store.OrgResult[T]{Items: []T{}}
-	if mode == orgrules.Offset {
-		out.Total = len(es)
-		start := len(es)
-		// Division avoids overflow for arbitrarily large page input.
-		if p.Page <= len(es)/p.PerPage {
-			start = p.Page * p.PerPage
-		}
-		for _, e := range es[start:min(len(es), start+p.PerPage)] {
-			out.Items = append(out.Items, e.item)
-		}
-		return out, nil
-	}
-	if p.From != "" {
-		c, err := orgrules.DecodeCursor(p.From, scope, p.Sort)
-		if err != nil {
-			return out, store.ErrInvalid
-		}
-		es = slices.DeleteFunc(slices.Clone(es), func(e entry[T]) bool { return cmpEntry(e.sort, e.id, c.Key, c.ID, desc) <= 0 })
-	}
-	for _, e := range es[:min(len(es), p.Take)] {
-		out.Items = append(out.Items, e.item)
-	}
-	if len(es) > p.Take {
-		last := es[p.Take-1]
-		out.Next = orgrules.EncodeCursor(orgrules.Cursor{Scope: scope, Sort: p.Sort, Key: last.sort, ID: last.id})
-	}
-	return out, nil
-}
-
-// pageIDs pages plain IDs ordered ascending.
-func pageIDs(ids []string, p store.OrgPage, scope string) (store.OrgResult[string], error) {
-	slices.Sort(ids)
-	es := make([]entry[string], len(ids))
-	for i, id := range ids {
-		es[i] = entry[string]{item: id, id: id}
-	}
-	return pageEntries(es, p, scope, false)
-}
-
-// nameCollation ignores case and punctuation like the reference ordering.
-var nameCollation = strings.NewReplacer("-", "", "_", "")
-
-// pageOrgs orders and pages organizations. Offset mode without a sort is
-// ascending by name; checkpoint mode without a sort is creation order.
 func pageOrgs(orgs []*store.Organization, p store.OrgPage, scope string) (store.OrgResult[store.Organization], error) {
-	field, desc, err := orgrules.ParseSort(p.Sort)
-	if err != nil {
-		return store.OrgResult[store.Organization]{}, store.ErrInvalid
-	}
-	if field == "" {
-		field = orgrules.SortName
-		if p.From != "" || p.Take > 0 {
-			field = orgrules.SortCreatedAt
-		}
-	}
-	es := make([]entry[store.Organization], len(orgs))
+	cl := make([]*store.Organization, len(orgs))
 	for i, o := range orgs {
-		e := entry[store.Organization]{item: *cloneOrg(o), id: o.ID}
-		switch field {
-		case orgrules.SortName:
-			e.sort = nameCollation.Replace(strings.ToLower(o.Name))
-		case orgrules.SortDisplayName:
-			e.sort = strings.ToLower(o.DisplayName)
-		default:
-			e.sort = fmt.Sprintf("%020d", o.CreatedAt.UnixNano())
-		}
-		es[i] = e
+		cl[i] = cloneOrg(o)
 	}
-	orderEntries(es, desc)
-	return pageEntries(es, p, scope, desc)
+	return orgrules.PageOrgs(cl, p, scope)
 }
 
-func orgScope(kind, tid string, rest ...string) string {
-	return kind + "/" + tid + "/" + strings.Join(rest, "/")
-}
+func orgScope(kind, tid string, rest ...string) string { return orgrules.Scope(kind, tid, rest...) }
 
 func (r organizations) Create(_ context.Context, o *store.Organization, conns []store.OrganizationConnection) error {
 	if o == nil || o.TenantID == "" || !orgrules.ValidID(o.ID) {
@@ -377,14 +280,14 @@ func (r organizations) Connections(_ context.Context, tid, orgID string, p store
 	if r.s.orgs[key{tid, orgID}] == nil {
 		return store.OrgResult[store.OrganizationConnection]{}, store.ErrNotFound
 	}
-	var es []entry[store.OrganizationConnection]
+	var es []orgrules.Entry[store.OrganizationConnection]
 	for k, c := range r.s.orgConns {
 		if k.tenant == tid && k.org == orgID {
-			es = append(es, entry[store.OrganizationConnection]{item: *c, id: c.ConnectionID})
+			es = append(es, orgrules.Entry[store.OrganizationConnection]{Item: *c, ID: c.ConnectionID})
 		}
 	}
-	orderEntries(es, false)
-	return pageEntries(es, p, orgScope("conns", tid, orgID), false)
+	orgrules.OrderEntries(es, false)
+	return orgrules.PageEntries(es, p, orgScope("conns", tid, orgID), false)
 }
 
 func (r organizations) GetConnection(_ context.Context, tid, orgID, connID string) (*store.OrganizationConnection, error) {
@@ -468,7 +371,7 @@ func (r organizations) Members(_ context.Context, tid, orgID string, p store.Org
 			ids = append(ids, k.user)
 		}
 	}
-	return pageIDs(ids, p, orgScope("members", tid, orgID))
+	return orgrules.PageIDs(ids, p, orgScope("members", tid, orgID))
 }
 
 func (r organizations) AddMembers(_ context.Context, tid, orgID string, userIDs []string) error {
@@ -554,7 +457,7 @@ func (r organizations) MemberRoles(_ context.Context, tid, orgID, userID string,
 			ids = append(ids, k.role)
 		}
 	}
-	return pageIDs(ids, p, orgScope("member-roles", tid, orgID, userID))
+	return orgrules.PageIDs(ids, p, orgScope("member-roles", tid, orgID, userID))
 }
 
 func (r organizations) ChangeMemberRoles(_ context.Context, tid, orgID, userID string, add bool, roleIDs []string) error {
@@ -613,5 +516,5 @@ func (r organizations) RoleMembers(_ context.Context, tid, orgID, roleID string,
 			ids = append(ids, k.user)
 		}
 	}
-	return pageIDs(ids, p, orgScope("role-members", tid, orgID, roleID))
+	return orgrules.PageIDs(ids, p, orgScope("role-members", tid, orgID, roleID))
 }

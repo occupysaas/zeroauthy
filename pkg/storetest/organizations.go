@@ -624,6 +624,42 @@ func testOrganizations(t *testing.T, newStore Factory) {
 		mustNoErr(t, err)
 	})
 
+	// The organization an authorization code or refresh token was issued for
+	// survives storage, and an unbound one stays empty.
+	t.Run("TokenBindings", func(t *testing.T) {
+		s := open(t, newStore)
+		orgSeed(t, s, false)
+		bound := newAuthCode(tid, "bound")
+		bound.OrganizationID = "org_abcdefghij012345"
+		mustNoErr(t, s.AuthCodes().Create(ctx, bound))
+		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode(tid, "plain")))
+		got, err := s.AuthCodes().Get(ctx, tid, "bound")
+		mustNoErr(t, err)
+		mustEqual(t, got.OrganizationID, "org_abcdefghij012345")
+		used, err := s.AuthCodes().Consume(ctx, tid, "bound", ts(time.Second))
+		mustNoErr(t, err)
+		mustEqual(t, used.OrganizationID, "org_abcdefghij012345")
+		got, err = s.AuthCodes().Get(ctx, tid, "plain")
+		mustNoErr(t, err)
+		mustEqual(t, got.OrganizationID, "")
+
+		rt := newRefreshToken(tid, "rt1", "h1", "f1")
+		rt.OrganizationID = "org_abcdefghij012345"
+		mustNoErr(t, s.RefreshTokens().Create(ctx, rt))
+		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken(tid, "rt2", "h2", "f2")))
+		for hash, want := range map[string]string{"h1": "org_abcdefghij012345", "h2": ""} {
+			g, err := s.RefreshTokens().GetByTokenHash(ctx, tid, hash)
+			mustNoErr(t, err)
+			mustEqual(t, g.OrganizationID, want)
+		}
+		next := newRefreshToken(tid, "rt3", "h3", "f1")
+		next.OrganizationID = "org_abcdefghij012345"
+		mustNoErr(t, s.RefreshTokens().Rotate(ctx, tid, "rt1", next, ts(time.Second), 0))
+		g, err := s.RefreshTokens().Get(ctx, tid, "rt3")
+		mustNoErr(t, err)
+		mustEqual(t, g.OrganizationID, "org_abcdefghij012345")
+	})
+
 	t.Run("Limits", func(t *testing.T) {
 		s := open(t, newStore)
 		setter, ok := s.(store.OrgLimitSetter)

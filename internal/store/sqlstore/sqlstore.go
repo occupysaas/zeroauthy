@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -37,6 +38,9 @@ type Store struct {
 	tx *sql.Tx
 	d  dialect
 	st *txState // shared by every Store bound to tx; nil outside one
+	// orgLimits is shared by the pool Store and every transaction Store; nil
+	// (tests building a bare Store) means the frozen limits.
+	orgLimits *atomic.Pointer[store.OrgLimits]
 }
 
 // txState is the state of one transaction shared by its nested calls.
@@ -97,7 +101,7 @@ func Open(ctx context.Context, dsn string) (*Store, error) {
 				"datctype", ctype)
 		}
 	}
-	return &Store{db: db, q: db, d: d}, nil
+	return &Store{db: db, q: db, d: d, orgLimits: &atomic.Pointer[store.OrgLimits]{}}, nil
 }
 
 // pgCtypeFoldsASCIIOnly reports whether PostgreSQL's lower() under this
@@ -203,7 +207,7 @@ func (s *Store) atomic(ctx context.Context, opts *sql.TxOptions, fn func(t *Stor
 			_ = tx.Rollback()
 		}
 	}()
-	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, st: &txState{}}
+	t := &Store{db: s.db, q: tx, tx: tx, d: s.d, st: &txState{}, orgLimits: s.orgLimits}
 	if err := fn(t); err != nil {
 		return err
 	}

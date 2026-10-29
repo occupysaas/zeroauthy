@@ -107,6 +107,11 @@ func (r connections) List(ctx context.Context, tenantID string, f store.Connecti
 // (the identities are JSON, so no index helps).
 func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
+		// The tenant lock orders this delete against Organizations writes,
+		// which lock it before they look at the connection.
+		if err := tx.lockRBAC(ctx, tenantID); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
 		if err := tx.clearProtectionIfTenant(ctx, tenantID, store.ProtectionFilter{ConnectionID: id}); err != nil {
 			return err
 		}
@@ -158,7 +163,7 @@ func (r connections) Delete(ctx context.Context, tenantID, id string) error {
 		if _, err := tx.exec(ctx, `UPDATE tenants SET default_directory = '' WHERE id = ? AND default_directory = ?`, tenantID, name); err != nil {
 			return err
 		}
-		for _, table := range []string{"federated_identities", "federated_tokens"} {
+		for _, table := range []string{"organization_connections", "federated_identities", "federated_tokens"} {
 			if _, err := tx.exec(ctx, `DELETE FROM `+table+` WHERE tenant_id = ? AND connection_id = ?`, tenantID, id); err != nil {
 				return err
 			}
