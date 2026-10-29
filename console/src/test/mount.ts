@@ -9,7 +9,7 @@ import { fakeServices, memoryRouter, tenant, type Call, type Reply } from './ser
 // (the tenant list included).
 export async function mountAt(page: Component, path: string, handler: (c: Call) => Reply | Promise<Reply>, tenantExtra: Partial<SystemTenant> = {}) {
   const { services, calls, pinia, i18n } = fakeServices((c) =>
-    c.url.endsWith('/api/system/tenants') ? { status: 200, body: [tenant('acme', tenantExtra), tenant('system', { reserved: true })] } : handler(c),
+    c.url.endsWith('/api/console/tenants') ? { status: 200, body: [tenant('acme', tenantExtra), tenant('system', { reserved: true })] } : handler(c),
   )
   await useTenantsStore().load(services.api)
   calls.length = 0 // keep only the page's own calls

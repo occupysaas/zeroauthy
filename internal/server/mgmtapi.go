@@ -259,6 +259,13 @@ func (a mgmtAPI) DeleteTenant(w http.ResponseWriter, r *http.Request, name strin
 func (a mgmtAPI) GetOperators(w http.ResponseWriter, r *http.Request)   { a.h.GetOperators(w, r) }
 func (a mgmtAPI) CreateOperator(w http.ResponseWriter, r *http.Request) { a.h.CreateOperator(w, r) }
 
+func (a mgmtAPI) UpdateOperator(w http.ResponseWriter, r *http.Request, id string) {
+	a.h.UpdateOperator(w, r, id)
+}
+func (a mgmtAPI) GetConsoleTenants(w http.ResponseWriter, r *http.Request) {
+	a.h.GetConsoleTenants(w, r)
+}
+
 func (a mgmtAPI) DeleteOperator(w http.ResponseWriter, r *http.Request, id string) {
 	a.h.DeleteOperator(w, r, id)
 }

@@ -1776,6 +1776,30 @@ export interface paths {
         patch: operations["updateTenant"];
         trace?: never;
     };
+    "/api/console/tenants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discover allowed console tenants
+         * @description A local zeroauthy console extension on the system host. Returns only
+         *     tenants allowed by both the signed operator token and its current stored
+         *     grant. Tenant-only operators may discover their tenants here without
+         *     gaining access to any system API. This endpoint has no Auth0 counterpart;
+         *     the cited source supplies dashboard operator context only.
+         */
+        get: operations["getConsoleTenants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/operators": {
         parameters: {
             query?: never;
@@ -1815,12 +1839,19 @@ export interface paths {
         /**
          * Remove an operator
          * @description Removes the operator at once and ends their sessions and refresh
-         *     tokens. Their user stays. The last operator cannot be removed.
+         *     tokens. Their user stays. The last system-capable operator cannot be removed.
          */
         delete: operations["deleteOperator"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update an operator's tenant grants
+         * @description A local zeroauthy extension, requiring a system-capable operator.
+         *     Replaces tenants with existing tenant names, an empty list, or exactly
+         *     ["*"]. Stored changes apply immediately to previously issued tokens.
+         *     Refuses to remove the last operator's system tenant grant.
+         */
+        patch: operations["updateOperator"];
         trace?: never;
     };
     "/api/system/tenants/{tenant}/actions/executions/{id}/attempt": {
@@ -2334,10 +2365,491 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the tenant's organizations */
+        get: operations["ListOrganizations"];
+        put?: never;
+        /** Create an organization; `enabled_connections` also needs `create:organization_connections` */
+        post: operations["CreateOrganization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/name/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an organization by name */
+        get: operations["GetOrganizationByName"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an organization */
+        get: operations["GetOrganization"];
+        put?: never;
+        post?: never;
+        /** Delete an organization with its connections, members and member roles */
+        delete: operations["DeleteOrganization"];
+        options?: never;
+        head?: never;
+        /** Update an organization; `branding` and `metadata` are replaced whole */
+        patch: operations["UpdateOrganization"];
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/enabled_connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an organization's enabled connections */
+        get: operations["ListOrganizationConnections"];
+        put?: never;
+        /** Enable a connection for an organization */
+        post: operations["CreateOrganizationConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/enabled_connections/{connection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an enabled connection */
+        get: operations["GetOrganizationConnection"];
+        put?: never;
+        post?: never;
+        /** Disable a connection for an organization (204 when it was not enabled) */
+        delete: operations["DeleteOrganizationConnection"];
+        options?: never;
+        head?: never;
+        /** Change an enabled connection's flags */
+        patch: operations["UpdateOrganizationConnection"];
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an organization's connections (Early Access upstream; same links as enabled_connections) */
+        get: operations["ListOrganizationAllConnections"];
+        put?: never;
+        /** Add a connection to an organization (Early Access upstream) */
+        post: operations["CreateOrganizationAllConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/connections/{connection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get an organization connection (Early Access upstream) */
+        get: operations["GetOrganizationAllConnection"];
+        put?: never;
+        post?: never;
+        /** Remove a connection from an organization (Early Access upstream) */
+        delete: operations["DeleteOrganizationAllConnection"];
+        options?: never;
+        head?: never;
+        /** Update an organization connection (Early Access upstream) */
+        patch: operations["UpdateOrganizationAllConnection"];
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/client-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an organization's client grants (always empty until organization grants exist) */
+        get: operations["ListOrganizationClientGrants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List an organization's members, ordered by user ID
+         * @description Needs `read:organization_members` or `read:organization_member_roles`;
+         *     `fields` naming `roles` (included) also needs
+         *     `read:organization_member_roles`.
+         */
+        get: operations["ListOrganizationMembers"];
+        put?: never;
+        /** Add members to an organization; all or none, present members are ignored */
+        post: operations["AddOrganizationMembers"];
+        /** Remove members from an organization; non-members are ignored and role assignments are kept */
+        delete: operations["RemoveOrganizationMembers"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/members/{user_id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a member's organization roles (offset pagination only) */
+        get: operations["ListOrganizationMemberRoles"];
+        put?: never;
+        /** Assign roles to a member; the user must be a member and every role must exist */
+        post: operations["AddOrganizationMemberRoles"];
+        /** Remove roles from a member; roles not assigned are ignored */
+        delete: operations["RemoveOrganizationMemberRoles"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/members/{user_id}/effective-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a member's effective organization roles with their sources (checkpoint pagination); only direct roles until groups exist */
+        get: operations["ListOrganizationMemberEffectiveRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/organizations/{id}/roles/{role_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the members holding an organization role (Early Access upstream; checkpoint pagination only)
+         * @description `page`, `per_page` and `include_totals` are accepted and ignored (observed).
+         */
+        get: operations["ListOrganizationRoleMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/users/{id}/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the organizations a user is a member of */
+        get: operations["ListUserOrganizations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description An organization. `branding` and `metadata` are left out when unset; reads never carry `enabled_connections`. */
+        Organization: {
+            /** @description `org_` and 16 letters or digits. */
+            id: string;
+            name: string;
+            display_name: string;
+            branding?: components["schemas"]["OrganizationBranding"];
+            metadata?: components["schemas"]["OrganizationMetadata"];
+            /** @description `block` (default) or `allow`. */
+            third_party_client_access: string;
+            /** @description Always false (D-0055). */
+            is_app_entitlement_active: boolean;
+        };
+        /** @description The create response, which alone echoes the enabled connections. */
+        OrganizationCreated: {
+            /** @description `org_` and 16 letters or digits. */
+            id: string;
+            name: string;
+            display_name: string;
+            branding?: components["schemas"]["OrganizationBranding"];
+            metadata?: components["schemas"]["OrganizationMetadata"];
+            /** @description `block` (default) or `allow`. */
+            third_party_client_access: string;
+            /** @description Always false (D-0055). */
+            is_app_entitlement_active: boolean;
+            enabled_connections?: components["schemas"]["OrganizationEnabledConnection"][];
+        };
+        OrganizationBranding: {
+            logo_url?: string;
+            colors?: components["schemas"]["OrganizationColors"];
+        };
+        /** @description Replaced whole on PATCH; null or {} clears it. */
+        OrganizationBrandingWrite: {
+            /** @description An https URL. */
+            logo_url?: string | null;
+            colors?: components["schemas"]["OrganizationColors"];
+        } | null;
+        OrganizationColors: {
+            /** @description HTML hex color. */
+            primary: string;
+            /** @description HTML hex color. */
+            page_background: string;
+        };
+        OrganizationMetadata: {
+            [key: string]: string;
+        };
+        /** @description Replaced whole on PATCH; null or {} clears it. Keys 1-50 characters matching `^[a-zA-Z0-9]\w*$`; values non-empty strings of at most 255 characters. */
+        OrganizationMetadataWrite: {
+            [key: string]: string;
+        } | null;
+        OrganizationCreate: {
+            name: string;
+            /** @description Defaults to `name` on create. */
+            display_name?: string;
+            branding?: components["schemas"]["OrganizationBrandingWrite"];
+            metadata?: components["schemas"]["OrganizationMetadataWrite"];
+            /** @description `block` (default) or `allow`. */
+            third_party_client_access?: string;
+            /** @description Only false is accepted (D-0055). */
+            is_app_entitlement_active?: boolean;
+            enabled_connections?: components["schemas"]["OrganizationEnabledConnectionCreate"][];
+        };
+        OrganizationUpdate: {
+            name?: string;
+            /** @description Defaults to `name` on create. */
+            display_name?: string;
+            branding?: components["schemas"]["OrganizationBrandingWrite"];
+            metadata?: components["schemas"]["OrganizationMetadataWrite"];
+            /** @description `block` (default) or `allow`. */
+            third_party_client_access?: string;
+            /** @description Only false is accepted (D-0055). */
+            is_app_entitlement_active?: boolean;
+        };
+        /** @description Organizations with `include_totals=true`. */
+        OrganizationsPage: {
+            start: number;
+            limit: number;
+            total: number;
+            organizations: components["schemas"]["Organization"][];
+        };
+        /** @description A checkpoint page; `next` is present while more remain. */
+        OrganizationsCheckpoint: {
+            organizations: components["schemas"]["Organization"][];
+            next?: string;
+        };
+        OrganizationConnectionSummary: {
+            name: string;
+            strategy: string;
+        };
+        OrganizationEnabledConnection: {
+            connection_id: string;
+            /** @description Members are added when they log in through this connection (default false). */
+            assign_membership_on_login: boolean;
+            /** @description Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false). */
+            is_signup_enabled: boolean;
+            /** @description Offer the connection as a button; only enterprise connections can be hidden (default true). */
+            show_as_button: boolean;
+            connection: components["schemas"]["OrganizationConnectionSummary"];
+        };
+        OrganizationEnabledConnectionCreate: {
+            connection_id: string;
+            /** @description Members are added when they log in through this connection (default false). */
+            assign_membership_on_login?: boolean;
+            /** @description Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false). */
+            is_signup_enabled?: boolean;
+            /** @description Offer the connection as a button; only enterprise connections can be hidden (default true). */
+            show_as_button?: boolean;
+        };
+        OrganizationEnabledConnectionUpdate: {
+            /** @description Members are added when they log in through this connection (default false). */
+            assign_membership_on_login?: boolean;
+            /** @description Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false). */
+            is_signup_enabled?: boolean;
+            /** @description Offer the connection as a button; only enterprise connections can be hidden (default true). */
+            show_as_button?: boolean;
+        };
+        /** @description Enabled connections with `include_totals=true`; `limit` is the number of entries returned. */
+        OrganizationEnabledConnectionsPage: {
+            start: number;
+            limit: number;
+            total: number;
+            enabled_connections: components["schemas"]["OrganizationEnabledConnection"][];
+        };
+        /** @description An organization connection of the Early Access resource; the same link as an enabled connection. */
+        OrganizationConnection: {
+            connection_id: string;
+            /** @description Members are added when they log in through this connection (default false). */
+            assign_membership_on_login: boolean;
+            /** @description Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false). */
+            is_signup_enabled: boolean;
+            /** @description Offer the connection as a button; only enterprise connections can be hidden (default true). */
+            show_as_button: boolean;
+            connection: components["schemas"]["OrganizationConnectionSummary"];
+            /** @description Always true; disabled organization connections are not supported (D-0055). */
+            is_enabled: boolean;
+            /** @description Always `none`, the observed default; other values are refused (D-0055). */
+            organization_access_level: string;
+            /** @description Always `limited`, the observed default; other values are refused (D-0055). */
+            organization_member_access_level: string;
+        };
+        OrganizationConnectionCreate: {
+            connection_id: string;
+            /** @description Members are added when they log in through this connection (default false). */
+            assign_membership_on_login?: boolean;
+            /** @description Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false). */
+            is_signup_enabled?: boolean;
+            /** @description Offer the connection as a button; only enterprise connections can be hidden (default true). */
+            show_as_button?: boolean;
+            /** @description Only true is accepted (D-0055). */
+            is_enabled?: boolean;
+            /** @description Only null is accepted (D-0055). */
+            organization_connection_name?: string | null;
+            /** @description Only `none` (or null) is accepted (D-0055). */
+            organization_access_level?: string | null;
+            /** @description Only `limited` (or null) is accepted (D-0055). */
+            organization_member_access_level?: string | null;
+        };
+        OrganizationConnectionUpdate: {
+            /** @description Members are added when they log in through this connection (default false). */
+            assign_membership_on_login?: boolean;
+            /** @description Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false). */
+            is_signup_enabled?: boolean;
+            /** @description Offer the connection as a button; only enterprise connections can be hidden (default true). */
+            show_as_button?: boolean;
+            /** @description Only true is accepted (D-0055). */
+            is_enabled?: boolean;
+            /** @description Only null is accepted (D-0055). */
+            organization_connection_name?: string | null;
+            /** @description Only `none` (or null) is accepted (D-0055). */
+            organization_access_level?: string | null;
+            /** @description Only `limited` (or null) is accepted (D-0055). */
+            organization_member_access_level?: string | null;
+        };
+        /** @description Organization connections with `include_totals=true`; `limit` is the number of entries returned. */
+        OrganizationConnectionsPage: {
+            start: number;
+            limit: number;
+            total: number;
+            connections: components["schemas"]["OrganizationConnection"][];
+        };
+        OrganizationClientGrant: {
+            id?: string;
+            client_id?: string;
+            audience?: string;
+            scope?: string[];
+            /** @description `deny`, `allow` or `require`. */
+            organization_usage?: string;
+            allow_any_organization?: boolean;
+        };
+        /** @description Organization client grants with `include_totals=true`; always empty (D-0055). */
+        OrganizationClientGrantsPage: {
+            start: number;
+            limit: number;
+            total: number;
+            client_grants: components["schemas"]["OrganizationClientGrant"][];
+        };
+        OrganizationMemberRole: {
+            id: string;
+            name: string;
+        };
+        /** @description A member; `fields` may leave properties out. `roles` appears only when `fields` lists it. */
+        OrganizationMember: {
+            user_id?: string;
+            email?: string;
+            picture?: string;
+            name?: string;
+            roles?: components["schemas"]["OrganizationMemberRole"][];
+        };
+        /** @description Members with `include_totals=true`. */
+        OrganizationMembersPage: {
+            start: number;
+            limit: number;
+            total: number;
+            members: components["schemas"]["OrganizationMember"][];
+        };
+        /** @description A checkpoint page; `next` is present while more remain. */
+        OrganizationMembersCheckpoint: {
+            members: components["schemas"]["OrganizationMember"][];
+            next?: string;
+        };
+        OrganizationMemberBatch: {
+            /** @description User IDs, 1 to 10 (D-0055). */
+            members: string[];
+        };
+        OrganizationRoleBatch: {
+            /** @description Role IDs, 1 to 10 (D-0055). A member holds at most 50 roles per organization. */
+            roles: string[];
+        };
+        OrganizationEffectiveRole: {
+            id: string;
+            name: string;
+            description: string;
+            /** @description Where the role comes from; only `direct` until groups exist. */
+            sources: "direct"[];
+        };
+        OrganizationEffectiveRoles: {
+            roles: components["schemas"]["OrganizationEffectiveRole"][];
+            next?: string;
+        };
         ActionTrigger: {
             /** @enum {string} */
             id: "post-login" | "credentials-exchange" | "pre-user-registration" | "post-user-registration" | "post-change-password" | "password-reset-post-challenge" | "custom-email-provider";
@@ -3576,10 +4088,30 @@ export interface components {
             native_social_login?: unknown;
             /** @description Accepted and ignored. */
             mobile?: unknown;
-            /** @description Accepted and ignored. */
-            organization_usage?: unknown;
-            /** @description Accepted and ignored. */
-            organization_require_behavior?: unknown;
+            /**
+             * @description Whether the application logs users in through organizations:
+             *     `deny` (the default when unset), `allow` or `require`. null unsets
+             *     it. `require` is refused while `grant_types` holds `password`,
+             *     password-realm or device_code (D-0055). A value other than `deny`
+             *     is 501 `organizations_unavailable` when the storage plugin lacks
+             *     Organizations.
+             * @enum {string|null}
+             */
+            organization_usage?: "deny" | "allow" | "require" | null;
+            /**
+             * @description What happens when a login names no organization: `no_prompt` (the
+             *     default when unset), `pre_login_prompt` or `post_login_prompt`.
+             *     null unsets it.
+             * @enum {string|null}
+             */
+            organization_require_behavior?: "no_prompt" | "pre_login_prompt" | "post_login_prompt" | null;
+            /**
+             * @description How the organization prompt finds the organization (Early Access
+             *     upstream). Only with `organization_require_behavior`
+             *     `pre_login_prompt`; null unsets it. Stored; the prompt always asks
+             *     for the organization name until email discovery exists (D-0055).
+             */
+            organization_discovery_methods?: ("email" | "organization_name")[] | null;
             /** @description Accepted and ignored. */
             is_token_endpoint_ip_header_trusted?: unknown;
             /** @description Accepted and ignored. */
@@ -3644,6 +4176,18 @@ export interface components {
             redirection_policy?: "open_redirect_protection" | "allow_always";
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean;
             require_pushed_authorization_requests: boolean;
+            /**
+             * @description Left out when unset (deny).
+             * @enum {string}
+             */
+            organization_usage?: "deny" | "allow" | "require";
+            /**
+             * @description Left out when unset (no_prompt).
+             * @enum {string}
+             */
+            organization_require_behavior?: "no_prompt" | "pre_login_prompt" | "post_login_prompt";
+            /** @description Left out when unset. */
+            organization_discovery_methods?: ("email" | "organization_name")[];
             /** @enum {boolean} */
             global: false;
             /** @enum {boolean} */
@@ -4009,6 +4553,10 @@ export interface components {
         OperatorCreate: {
             /** Format: email */
             email: string;
+        };
+        OperatorUpdate: {
+            /** @description Existing tenant names, an empty list, or exactly ["*"]. */
+            tenants: string[];
         };
         OperatorInvite: components["schemas"]["Operator"] & {
             /** @description One-time link, valid for one hour, where the operator chooses a password. */
@@ -4527,6 +5075,15 @@ export interface components {
         };
     };
     responses: {
+        /** @description The storage plugin lacks the Organizations capability (`organizations_unavailable`). */
+        OrganizationsUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ManagementError"];
+            };
+        };
         /** @description The request is invalid (`invalid_body`, `invalid_query_string`). */
         BadRequest: {
             headers: {
@@ -4629,6 +5186,10 @@ export interface components {
         fields: string;
         /** @description Whether `fields` lists the fields to include (true) or to leave out (false). */
         include_fields: boolean;
+        /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+        organizationId: string;
+        /** @description The member's user ID. */
+        memberUserId: string;
     };
     requestBodies: never;
     headers: never;
@@ -9195,6 +9756,29 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    getConsoleTenants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Allowed tenants, ordered by name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemTenant"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     getOperators: {
         parameters: {
             query?: never;
@@ -9263,6 +9847,38 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    updateOperator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The operator's user ID in the system tenant. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OperatorUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated operator. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operator"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
@@ -10649,6 +11265,874 @@ export interface operations {
                 };
                 content?: never;
             };
+        };
+    };
+    ListOrganizations: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
+                page?: number;
+                /** @description Number of results per page, 1 to 100 (default 50). */
+                per_page?: number;
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: boolean;
+                /** @description Checkpoint cursor (`next` of the previous page); checkpoint mode wins over `page`. */
+                from?: string;
+                /** @description Number of results of a checkpoint page, 1 to 100 (default 50). */
+                take?: number;
+                /** @description `name`, `display_name` or `created_at`, with `:1` (ascending) or `:-1`. */
+                sort?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organization"][] | components["schemas"]["OrganizationsPage"] | components["schemas"]["OrganizationsCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    CreateOrganization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationCreate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationCreated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    GetOrganizationByName: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization name; an invalid name is 400 `invalid_uri`. */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organization"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    GetOrganization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organization"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    DeleteOrganization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    UpdateOrganization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organization"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    ListOrganizationConnections: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
+                page?: number;
+                /** @description Number of results per page, 1 to 100 (default 50). */
+                per_page?: number;
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationEnabledConnection"][] | components["schemas"]["OrganizationEnabledConnectionsPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    CreateOrganizationConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationEnabledConnectionCreate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationEnabledConnection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    GetOrganizationConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+                /** @description Connection ID; a malformed one is 400 `invalid_uri`. */
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationEnabledConnection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    DeleteOrganizationConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+                /** @description Connection ID; a malformed one is 400 `invalid_uri`. */
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    UpdateOrganizationConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+                /** @description Connection ID; a malformed one is 400 `invalid_uri`. */
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationEnabledConnectionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationEnabledConnection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    ListOrganizationAllConnections: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
+                page?: number;
+                /** @description Number of results per page, 1 to 100 (default 50). */
+                per_page?: number;
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: boolean;
+                /** @description Only enabled (true) or disabled (false) connections; every stored connection is enabled. */
+                is_enabled?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationConnection"][] | components["schemas"]["OrganizationConnectionsPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    CreateOrganizationAllConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationConnectionCreate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationConnection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    GetOrganizationAllConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+                /** @description Connection ID; a malformed one is 400 `invalid_uri`. */
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationConnection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    DeleteOrganizationAllConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+                /** @description Connection ID; a malformed one is 400 `invalid_uri`. */
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    UpdateOrganizationAllConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+                /** @description Connection ID; a malformed one is 400 `invalid_uri`. */
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationConnectionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationConnection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    ListOrganizationClientGrants: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
+                page?: number;
+                /** @description Number of results per page, 1 to 100 (default 50). */
+                per_page?: number;
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: boolean;
+                /** @description Only grants for this API identifier. */
+                audience?: string;
+                /** @description Only grants of this client. */
+                client_id?: string;
+                /** @description Only these grant IDs (at most 10). */
+                grant_ids?: string[];
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationClientGrant"][] | components["schemas"]["OrganizationClientGrantsPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    ListOrganizationMembers: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
+                page?: number;
+                /** @description Number of results per page, 1 to 100 (default 50). */
+                per_page?: number;
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: boolean;
+                /** @description Checkpoint cursor (`next` of the previous page); checkpoint mode wins over `page`. */
+                from?: string;
+                /** @description Number of results of a checkpoint page, 1 to 100 (default 50). */
+                take?: number;
+                /** @description Comma-separated fields from `user_id`, `email`, `picture`, `name` and `roles`; another name is 400. `roles` is returned only when listed. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to return (true, default) or to leave out (false). */
+                include_fields?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationMember"][] | components["schemas"]["OrganizationMembersPage"] | components["schemas"]["OrganizationMembersCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    AddOrganizationMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationMemberBatch"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    RemoveOrganizationMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationMemberBatch"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    ListOrganizationMemberRoles: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
+                page?: number;
+                /** @description Number of results per page, 1 to 100 (default 50). */
+                per_page?: number;
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                /** @description The member's user ID. */
+                user_id: components["parameters"]["memberUserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role"][] | components["schemas"]["RolePage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    AddOrganizationMemberRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                /** @description The member's user ID. */
+                user_id: components["parameters"]["memberUserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationRoleBatch"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    RemoveOrganizationMemberRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                /** @description The member's user ID. */
+                user_id: components["parameters"]["memberUserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationRoleBatch"];
+            };
+        };
+        responses: {
+            /** @description Operation completed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    ListOrganizationMemberEffectiveRoles: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                /** @description The member's user ID. */
+                user_id: components["parameters"]["memberUserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationEffectiveRoles"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    ListOrganizationRoleMembers: {
+        parameters: {
+            query?: {
+                /** @description Checkpoint cursor (`next` of the previous page). */
+                from?: string;
+                /** @description Number of results, 1 to 100 (default 50). */
+                take?: number;
+                /** @description Comma-separated fields from `user_id`, `email`, `picture` and `name`. */
+                fields?: string;
+                /** @description Whether `fields` lists the fields to return (true, default) or to leave out (false). */
+                include_fields?: boolean;
+                /** @description Ignored. */
+                page?: number;
+                /** @description Ignored. */
+                per_page?: number;
+                /** @description Ignored. */
+                include_totals?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`. */
+                id: components["parameters"]["organizationId"];
+                /** @description Role ID. */
+                role_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationMembersCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
+        };
+    };
+    ListUserOrganizations: {
+        parameters: {
+            query?: {
+                /** @description Page index of the results, from 0; more than 1000 is refused (`invalid_paging`). */
+                page?: number;
+                /** @description Number of results per page, 1 to 100 (default 50). */
+                per_page?: number;
+                /** @description Return an object with the list and `start`, `limit` and `total` instead of a bare array. */
+                include_totals?: boolean;
+                /** @description Checkpoint cursor (`next` of the previous page); checkpoint mode wins over `page`. */
+                from?: string;
+                /** @description Number of results of a checkpoint page, 1 to 100 (default 50). */
+                take?: number;
+            };
+            header?: never;
+            path: {
+                /** @description User ID. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operation completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organization"][] | components["schemas"]["OrganizationsPage"] | components["schemas"]["OrganizationsCheckpoint"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["OrganizationsUnavailable"];
         };
     };
 }

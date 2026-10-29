@@ -849,6 +849,9 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	now := h.now()
 	var out *store.User
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if err := lockSystemOperators(ctx, tx, resolved(r)); err != nil {
+			return err
+		}
 		cur, err := tx.Users().GetForUpdate(ctx, u.TenantID, id)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserNotFound
@@ -999,6 +1002,9 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		}
 	}
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if err := lockSystemOperators(ctx, tx, tn); err != nil {
+			return err
+		}
 		cur, err := tx.Users().GetForUpdate(ctx, tn.ID, id)
 		if err != nil {
 			return err

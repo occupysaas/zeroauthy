@@ -34,7 +34,18 @@ var (
 	errLastOperatorLink   = &Error{Status: http.StatusConflict, Code: "last_operator", Message: "The last operator cannot be linked as a secondary account"}
 )
 
-// lastOperator reports whether userID is the only operator of the reserved
+// lockSystemOperators serializes system-operator changes before locking users.
+// SQL tenant reads inside WithTx lock the row; memory transactions serialize.
+// gRPC forwards the transaction ID to the plugin's same tenant repository.
+func lockSystemOperators(ctx context.Context, st store.Store, tn *store.Tenant) error {
+	if !tn.Reserved {
+		return nil
+	}
+	_, err := st.Tenants().Get(ctx, tn.ID)
+	return err
+}
+
+// lastOperator reports whether userID is the only system-capable operator of the reserved
 // system tenant tn. The Users API on the system tenant reaches operators
 // too, so it refuses what would leave no operator to sign in: deleting,
 // blocking or linking away the last one (the system API's DeleteOperator
@@ -43,16 +54,35 @@ func lastOperator(ctx context.Context, st store.Store, tn *store.Tenant, userID 
 	if !tn.Reserved {
 		return false, nil
 	}
-	if _, err := st.Operators().Get(ctx, tn.ID, userID); errors.Is(err, store.ErrNotFound) {
+	op, err := st.Operators().Get(ctx, tn.ID, userID)
+	if errors.Is(err, store.ErrNotFound) {
 		return false, nil
 	} else if err != nil {
 		return false, err
+	}
+	if !manages(op.Tenants, tn.Name) {
+		return false, nil
 	}
 	ops, err := st.Operators().List(ctx, tn.ID)
 	if err != nil {
 		return false, err
 	}
-	return len(ops) <= 1, nil
+	for _, other := range ops {
+		if other.UserID == userID || !manages(other.Tenants, tn.Name) {
+			continue
+		}
+		u, err := st.Users().Get(ctx, tn.ID, other.UserID)
+		if errors.Is(err, store.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return false, err
+		}
+		if !u.Blocked {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func conflict(format string, args ...any) *Error {
@@ -389,12 +419,110 @@ func (h *Handlers) CreateOperator(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, mgmtapi.OperatorInvite{UserId: v.UserId, Email: v.Email, Tenants: v.Tenants, CreatedAt: v.CreatedAt, SetupUrl: link})
 }
 
+// UpdateOperator replaces the operator's allowed tenant names. Lock the system
+// tenant before reading grants so concurrent removals cannot lose its last admin.
+func (h *Handlers) UpdateOperator(w http.ResponseWriter, r *http.Request, id string) {
+	body, err := decodeObject(r)
+	if err != nil {
+		Fail(w, err)
+		return
+	}
+	var b struct {
+		Tenants *[]string `json:"tenants"`
+	}
+	raw, _ := json.Marshal(body)
+	if err := decodeStrict(raw, &b); err != nil {
+		Fail(w, badBody("%v", err))
+		return
+	}
+	if b.Tenants == nil {
+		Fail(w, badBody("tenants must be an array"))
+		return
+	}
+	names := *b.Tenants
+	if slices.Contains(names, store.OperatorAllTenants) && len(names) != 1 {
+		Fail(w, badBody("* must be the only tenant"))
+		return
+	}
+	sys := resolved(r)
+	var out *store.Operator
+	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		if err := lockSystemOperators(r.Context(), tx, sys); err != nil {
+			return err
+		}
+		op, err := tx.Operators().Get(r.Context(), sys.ID, id)
+		if errors.Is(err, store.ErrNotFound) {
+			return errOperatorNotFound
+		}
+		if err != nil {
+			return err
+		}
+		for _, name := range names {
+			if name == store.OperatorAllTenants {
+				continue
+			}
+			if _, err := tx.Tenants().GetByName(r.Context(), name); errors.Is(err, store.ErrNotFound) {
+				return badBody("unknown tenant %q", name)
+			} else if err != nil {
+				return err
+			}
+		}
+		if !manages(names, sys.Name) {
+			if last, err := lastOperator(r.Context(), tx, sys, id); err != nil {
+				return err
+			} else if last {
+				return errLastOperatorRemove
+			}
+		}
+		op.Tenants = slices.Clone(names)
+		op.UpdatedAt = h.now()
+		if err := tx.Operators().Upsert(r.Context(), op); err != nil {
+			return err
+		}
+		out = op
+		return nil
+	})
+	if err != nil {
+		h.failTx(w, r, "update operator", err)
+		return
+	}
+	view, err := h.operatorView(r, sys.ID, out)
+	if err != nil {
+		Fail(w, internalError(h, r, "read updated operator", err))
+		return
+	}
+	h.audit(r, "update operator tenants", "user_id", id)
+	writeJSON(w, http.StatusOK, view)
+}
+
+// GetConsoleTenants discovers only the tenants allowed by both the operator's
+// signed token and current stored grant. It grants no system API access.
+func (h *Handlers) GetConsoleTenants(w http.ResponseWriter, r *http.Request) {
+	all, err := h.Store.Tenants().List(r.Context())
+	if err != nil {
+		Fail(w, internalError(h, r, "list console tenants", err))
+		return
+	}
+	caller, _ := CallerFrom(r.Context())
+	out := make([]mgmtapi.SystemTenant, 0, len(all))
+	for _, t := range all {
+		if manages(caller.Tenants, t.Name) {
+			out = append(out, h.tenantView(t))
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
 // DeleteOperator removes an operator and ends their sessions and refresh
 // tokens; the user stays. The last operator stays.
 func (h *Handlers) DeleteOperator(w http.ResponseWriter, r *http.Request, id string) {
 	sys := resolved(r)
 	now := h.now()
 	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		// Serialize every operator list change on the system tenant row.
+		if err := lockSystemOperators(r.Context(), tx, sys); err != nil {
+			return err
+		}
 		// Bump the user first: it locks the user, so a grant minting for
 		// the operator runs wholly before this (and its tokens are revoked
 		// below) or after it (and its version check refuses it).
@@ -406,11 +534,9 @@ func (h *Handlers) DeleteOperator(w http.ResponseWriter, r *http.Request, id str
 		} else if err != nil {
 			return err
 		}
-		ops, err := tx.Operators().List(r.Context(), sys.ID)
-		if err != nil {
+		if last, err := lastOperator(r.Context(), tx, sys, id); err != nil {
 			return err
-		}
-		if len(ops) <= 1 {
+		} else if last {
 			return errLastOperatorRemove
 		}
 		if err := tx.Operators().Delete(r.Context(), sys.ID, id); err != nil {
@@ -419,7 +545,7 @@ func (h *Handlers) DeleteOperator(w http.ResponseWriter, r *http.Request, id str
 		if _, err := tx.RefreshTokens().RevokeByUser(r.Context(), sys.ID, id, now); err != nil {
 			return err
 		}
-		_, err = tx.Sessions().DeleteByUser(r.Context(), sys.ID, id)
+		_, err := tx.Sessions().DeleteByUser(r.Context(), sys.ID, id)
 		return err
 	})
 	if err != nil {

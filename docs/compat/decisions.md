@@ -1601,3 +1601,31 @@ organization client grants stay deferred to Plan 30.
   pages were not observed (local).
 - A storage plugin without the capability makes every organization route
   `501 organizations_unavailable` (local error code).
+
+**Addition (Task 11, local operator grants).**
+
+- `PATCH /api/system/operators/{id}` replaces `tenants` with existing tenant
+  names, an empty array, or exactly `["*"]`; missing/null/non-array values,
+  unknown names and mixed wildcard/name lists are 400. The response is the
+  operator object. This follows the existing local system API prefix (D-0040).
+- Both signed token grants and the current stored grants constrain every
+  Management request. Shrinks take effect on the next request without reissuing
+  a token; expanding storage does not expand an old token's narrower grant.
+- Only system-capable operators can manage the system API. A separate local
+  `GET /api/console/tenants`, on the system host, allows operator tenant discovery
+  without a system grant. It returns the existing tenant DTO filtered by the
+  intersection of signed and stored grants. It grants no system API access;
+  M2M callers cannot use it. This dedicated discovery route is the maintainer's
+  Task 11 ruling to preserve the no-system-access requirement for tenant-only
+  operators while allowing their console to load.
+- Operator PATCH/delete and system user delete/block/link-as-secondary serialize
+  on the system tenant row before locking users. Removing the last usable
+  system-capable operator is 409 `last_operator`. Tenant-only grants, orphaned
+  operator rows and blocked users cannot serve as fallback administrators.
+- The console refreshes discovery after a Management API 403, clears stale
+  tenants if discovery fails, and offers tenant creation only with system
+  tenant access.
+
+These are local zeroauthy behaviors, without Auth0 API counterparts. The public
+[dashboard operator guide](https://auth0.com/docs/get-started/manage-dashboard-access/add-dashboard-users)
+provides context only, not these wire contracts.

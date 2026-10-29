@@ -15,6 +15,7 @@ export const useTenantsStore = defineStore('tenants', {
         this.list = await api.listTenants()
         this.error = ''
       } catch (e) {
+        this.list = []
         this.error = e instanceof Error ? e.message : String(e)
       } finally {
         this.loaded = true

@@ -293,6 +293,7 @@ func New(d Deps) http.Handler {
 	})
 	r.Handle("/api/v2/*", own)
 	r.Handle("/api/system/*", own)
+	r.Handle("/api/console/*", own)
 
 	// Export downloads (D-0044): a signed link, no token, on any tenant host.
 	r.Group(func(er chi.Router) {
@@ -339,7 +340,7 @@ func isSystemAPI(r *http.Request) bool { return strings.HasPrefix(r.URL.Path, "/
 // tenant.
 func systemOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !isSystemAPI(r) {
+		if !isSystemAPI(r) && !strings.HasPrefix(r.URL.Path, "/api/console/") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -355,7 +356,7 @@ func systemOnly(next http.Handler) http.Handler {
 func operatorOnly(next http.Handler) http.Handler {
 	operators := mgmt.RequireOperator(next)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isSystemAPI(r) {
+		if isSystemAPI(r) || strings.HasPrefix(r.URL.Path, "/api/console/") {
 			operators.ServeHTTP(w, r)
 			return
 		}

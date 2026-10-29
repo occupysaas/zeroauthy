@@ -4402,6 +4402,31 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/console/tenants:
+    get:
+      operationId: getConsoleTenants
+      tags: [system]
+      summary: Discover allowed console tenants
+      description: |
+        A local zeroauthy console extension on the system host. Returns only
+        tenants allowed by both the signed operator token and its current stored
+        grant. Tenant-only operators may discover their tenants here without
+        gaining access to any system API. This endpoint has no Auth0 counterpart;
+        the cited source supplies dashboard operator context only.
+      x-source:
+        - https://auth0.com/docs/get-started/manage-dashboard-access/add-dashboard-users
+      security: [{operatorToken: []}]
+      responses:
+        "200":
+          description: Allowed tenants, ordered by name.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/SystemTenant"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /api/system/operators:
     get:
       operationId: getOperators
@@ -4452,13 +4477,41 @@ paths:
         required: true
         description: The operator's user ID in the system tenant.
         schema: {type: string}
+    patch:
+      operationId: updateOperator
+      tags: [system]
+      summary: Update an operator's tenant grants
+      description: |
+        A local zeroauthy extension, requiring a system-capable operator.
+        Replaces tenants with existing tenant names, an empty list, or exactly
+        ["*"]. Stored changes apply immediately to previously issued tokens.
+        Refuses to remove the last operator's system tenant grant.
+      x-source:
+        - https://auth0.com/docs/get-started/manage-dashboard-access/add-dashboard-users
+      security: [{operatorToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/OperatorUpdate"}
+      responses:
+        "200":
+          description: The updated operator.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Operator"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
     delete:
       operationId: deleteOperator
       tags: [system]
       summary: Remove an operator
       description: |
         Removes the operator at once and ends their sessions and refresh
-        tokens. Their user stays. The last operator cannot be removed.
+        tokens. Their user stays. The last system-capable operator cannot be removed.
       x-source:
         - https://auth0.com/docs/get-started/manage-dashboard-access/add-dashboard-users
       security: [{operatorToken: []}]
@@ -10602,6 +10655,15 @@ components:
       required: [email]
       properties:
         email: {type: string, format: email}
+    OperatorUpdate:
+      type: object
+      additionalProperties: false
+      required: [tenants]
+      properties:
+        tenants:
+          type: array
+          items: {type: string}
+          description: Existing tenant names, an empty list, or exactly ["*"].
     OperatorInvite:
       allOf:
         - $ref: "#/components/schemas/Operator"

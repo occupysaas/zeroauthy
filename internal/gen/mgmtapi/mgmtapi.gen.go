@@ -4606,6 +4606,12 @@ type OperatorInvite struct {
 	UserId string `json:"user_id"`
 }
 
+// OperatorUpdate defines model for OperatorUpdate.
+type OperatorUpdate struct {
+	// Tenants Existing tenant names, an empty list, or exactly ["*"].
+	Tenants []string `json:"tenants"`
+}
+
 // Organization An organization. `branding` and `metadata` are left out when unset; reads never carry `enabled_connections`.
 type Organization struct {
 	Branding    *OrganizationBranding `json:"branding,omitempty"`
@@ -7087,6 +7093,9 @@ type GetUserSessionsParams struct {
 
 // CreateOperatorJSONRequestBody defines body for CreateOperator for application/json ContentType.
 type CreateOperatorJSONRequestBody = OperatorCreate
+
+// UpdateOperatorJSONRequestBody defines body for UpdateOperator for application/json ContentType.
+type UpdateOperatorJSONRequestBody = OperatorUpdate
 
 // CreateTenantJSONRequestBody defines body for CreateTenant for application/json ContentType.
 type CreateTenantJSONRequestBody = TenantCreate
@@ -9636,6 +9645,9 @@ func (t *GetUserRoles200JSONResponseBody) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetConsoleTenants Discover allowed console tenants
+	// (GET /api/console/tenants)
+	GetConsoleTenants(w http.ResponseWriter, r *http.Request)
 	// GetOperators List operators
 	// (GET /api/system/operators)
 	GetOperators(w http.ResponseWriter, r *http.Request)
@@ -9645,6 +9657,9 @@ type ServerInterface interface {
 	// DeleteOperator Remove an operator
 	// (DELETE /api/system/operators/{id})
 	DeleteOperator(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateOperator Update an operator's tenant grants
+	// (PATCH /api/system/operators/{id})
+	UpdateOperator(w http.ResponseWriter, r *http.Request, id string)
 	// GetTenants List tenants
 	// (GET /api/system/tenants)
 	GetTenants(w http.ResponseWriter, r *http.Request)
@@ -10209,6 +10224,12 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
+// GetConsoleTenants Discover allowed console tenants
+// (GET /api/console/tenants)
+func (_ Unimplemented) GetConsoleTenants(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetOperators List operators
 // (GET /api/system/operators)
 func (_ Unimplemented) GetOperators(w http.ResponseWriter, r *http.Request) {
@@ -10224,6 +10245,12 @@ func (_ Unimplemented) CreateOperator(w http.ResponseWriter, r *http.Request) {
 // DeleteOperator Remove an operator
 // (DELETE /api/system/operators/{id})
 func (_ Unimplemented) DeleteOperator(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateOperator Update an operator's tenant grants
+// (PATCH /api/system/operators/{id})
+func (_ Unimplemented) UpdateOperator(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -11352,6 +11379,20 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// GetConsoleTenants operation middleware
+func (siw *ServerInterfaceWrapper) GetConsoleTenants(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConsoleTenants(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetOperators operation middleware
 func (siw *ServerInterfaceWrapper) GetOperators(w http.ResponseWriter, r *http.Request) {
 
@@ -11397,6 +11438,32 @@ func (siw *ServerInterfaceWrapper) DeleteOperator(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteOperator(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateOperator operation middleware
+func (siw *ServerInterfaceWrapper) UpdateOperator(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateOperator(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -18463,6 +18530,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/api/system/tenants/{name}", wrapper.UpdateTenant)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/console/tenants", wrapper.GetConsoleTenants)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/operators", wrapper.GetOperators)
 	})
 	r.Group(func(r chi.Router) {
@@ -18470,6 +18540,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/system/operators/{id}", wrapper.DeleteOperator)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/system/operators/{id}", wrapper.UpdateOperator)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/actions/executions/{id}/attempt", wrapper.GetTenantActionExecutionAttempt)

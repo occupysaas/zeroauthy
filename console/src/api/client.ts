@@ -120,6 +120,13 @@ export type BrandingPreview = { html: string; warnings: string[] }
 export type BrandingObject = Record<string, unknown>
 
 export class Api {
+  private forbiddenListeners = new Set<() => Promise<void>>()
+
+  onForbidden(listener: () => Promise<void>): () => void {
+    this.forbiddenListeners.add(listener)
+    return () => { this.forbiddenListeners.delete(listener) }
+  }
+
   constructor(
     // systemOrigin is where the system API lives (the console's origin).
     private systemOrigin: string,
@@ -144,6 +151,10 @@ export class Api {
     if (res.status === 204) return undefined as T
     const body = (await res.json().catch(() => null)) as unknown
     if (!res.ok) {
+      // Discovery failures cannot recursively trigger their own refresh.
+      if (res.status === 403 && path !== '/api/console/tenants') {
+        await Promise.allSettled([...this.forbiddenListeners].map((listener) => listener()))
+      }
       const e = (body ?? {}) as Partial<ManagementError>
       const wait = Number(res.headers.get('Retry-After'))
       throw new ApiError(res.status, e.errorCode ?? '', e.message ?? res.statusText ?? 'Request failed', wait > 0 ? wait : undefined)
@@ -681,7 +692,7 @@ export class Api {
   }
 
   listTenants(): Promise<SystemTenant[]> {
-    return this.request(this.systemOrigin, 'GET', '/api/system/tenants')
+    return this.request(this.systemOrigin, 'GET', '/api/console/tenants')
   }
 
   listOperators(): Promise<Operator[]> {

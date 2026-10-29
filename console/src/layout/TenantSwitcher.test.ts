@@ -1,9 +1,11 @@
-import { flushPromises, mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { afterEach, describe, expect, it } from 'vitest'
 import { servicesKey } from '../context'
 import { useTenantsStore } from '../stores/tenants'
 import { fakeServices, memoryRouter, tenant } from '../test/services'
 import TenantSwitcher from './TenantSwitcher.vue'
+
+enableAutoUnmount(afterEach)
 
 async function setup(handler: Parameters<typeof fakeServices>[0]) {
   const { services, calls, pinia, i18n } = fakeServices(handler)
@@ -30,7 +32,7 @@ function items(): HTMLElement[] {
 describe('TenantSwitcher', () => {
   it('lists the tenants and switches, keeping the section', async () => {
     const { wrapper, router } = await setup((c) =>
-      c.url.endsWith('/api/system/tenants') ? { status: 200, body: [tenant('acme'), tenant('globex'), tenant('system', { reserved: true })] } : { status: 404 },
+      c.url.endsWith('/api/console/tenants') ? { status: 200, body: [tenant('acme'), tenant('globex'), tenant('system', { reserved: true })] } : { status: 404 },
     )
     expect(wrapper.text()).toContain('acme')
     await openMenu(wrapper)
@@ -45,10 +47,53 @@ describe('TenantSwitcher', () => {
     wrapper.unmount()
   })
 
+  it('lists only allowed tenants and hides tenant creation without system access', async () => {
+    const { wrapper } = await setup(() => ({ status: 200, body: [tenant('acme')] }))
+    await openMenu(wrapper)
+    const labels = items().map((item) => item.textContent?.trim())
+    expect(labels).toEqual(['acme(current)'])
+    wrapper.unmount()
+  })
+
+  it('refreshes allowed tenants after a Management API 403', async () => {
+    let removed = false
+    const { wrapper, services, calls } = await setup((call) => {
+      if (new URL(call.url).pathname.endsWith('/clients')) {
+        removed = true
+        return { status: 403, body: { errorCode: 'insufficient_scope', message: 'Access removed' } }
+      }
+      return { status: 200, body: removed ? [tenant('globex')] : [tenant('acme'), tenant('globex')] }
+    })
+    await expect(services.api.listClients(tenant('acme'), { page: 0, per_page: 10 })).rejects.toMatchObject({ status: 403 })
+    await flushPromises()
+    await openMenu(wrapper)
+    expect(items().some((item) => item.textContent?.includes('acme'))).toBe(false)
+    expect(items().some((item) => item.textContent?.includes('globex'))).toBe(true)
+    expect(calls.filter((call) => call.url.endsWith('/api/console/tenants'))).toHaveLength(2)
+    wrapper.unmount()
+  })
+
+  it('clears stale tenants when the refresh after a 403 fails', async () => {
+    let removed = false
+    const { wrapper, services } = await setup((call) => {
+      if (new URL(call.url).pathname.endsWith('/clients')) {
+        removed = true
+        return { status: 403, body: { message: 'Access removed' } }
+      }
+      return removed
+        ? { status: 503, body: { message: 'Discovery unavailable' } }
+        : { status: 200, body: [tenant('acme')] }
+    })
+    await expect(services.api.listClients(tenant('acme'), { page: 0, per_page: 10 })).rejects.toMatchObject({ status: 403 })
+    await openMenu(wrapper)
+    expect(items()).toHaveLength(0)
+    expect(document.body.textContent).toContain('Discovery unavailable')
+  })
+
   it('creates a tenant and opens it', async () => {
     const { wrapper, router, calls } = await setup((c) => {
       if (c.method === 'POST') return { status: 201, body: tenant('initech', { domains: ['login.initech.test'] }) }
-      return { status: 200, body: [tenant('acme')] }
+      return { status: 200, body: [tenant('acme'), tenant('system', { reserved: true })] }
     })
     await openMenu(wrapper)
     items()
@@ -73,7 +118,7 @@ describe('TenantSwitcher', () => {
   it('shows the API error when creation fails', async () => {
     const { wrapper, router } = await setup((c) => {
       if (c.method === 'POST') return { status: 409, body: { statusCode: 409, error: 'Conflict', message: 'a tenant named "acme" exists', errorCode: 'conflict' } }
-      return { status: 200, body: [tenant('acme')] }
+      return { status: 200, body: [tenant('acme'), tenant('system', { reserved: true })] }
     })
     await openMenu(wrapper)
     items()

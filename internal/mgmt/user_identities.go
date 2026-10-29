@@ -232,6 +232,9 @@ func (h *Handlers) LinkUserIdentity(w http.ResponseWriter, r *http.Request, id s
 	now := h.now()
 	var out *store.User
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if err := lockSystemOperators(ctx, tx, tn); err != nil {
+			return err
+		}
 		p, err := tx.Users().GetForUpdate(ctx, tn.ID, id)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserNotFound
