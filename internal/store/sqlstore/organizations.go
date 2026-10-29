@@ -88,6 +88,21 @@ func orgJSON(o store.Organization) (branding, metadata any, err error) {
 // now is the current time at the precision the database keeps.
 func now() time.Time { return fromMicros(micros(time.Now().UTC())) }
 
+// insertIgnore inserts a membership row unless its key exists. A plain read
+// in a caller's transaction can miss a row that another transaction
+// committed after it (MySQL REPEATABLE READ keeps the first read's view), so
+// the insert itself skips duplicates instead of failing; this keeps adds
+// idempotent under concurrency. into is "table (cols) VALUES (...)".
+func (r organizations) insertIgnore(ctx context.Context, into string, args ...any) error {
+	q := `INSERT INTO ` + into + ` ON CONFLICT DO NOTHING`
+	if r.s.d.name == "mysql" {
+		// Not INSERT IGNORE, which also hides other errors.
+		q = `INSERT INTO ` + into + ` ON DUPLICATE KEY UPDATE tenant_id=tenant_id`
+	}
+	_, err := r.s.exec(ctx, q, args...)
+	return err
+}
+
 func (r organizations) orgExists(ctx context.Context, tid, id string) error {
 	var one int
 	err := r.s.queryRow(ctx, `SELECT 1 FROM organizations WHERE tenant_id=? AND id=?`, tid, id).Scan(&one)
@@ -460,14 +475,8 @@ func (r organizations) AddMembers(ctx context.Context, tid, orgID string, userID
 			}
 		}
 		for _, id := range userIDs {
-			var n int
-			if err := t.s.queryRow(ctx, `SELECT COUNT(*) FROM organization_members WHERE tenant_id=? AND organization_id=? AND user_id=?`, tid, orgID, id).Scan(&n); err != nil {
+			if err := t.insertIgnore(ctx, `organization_members (tenant_id,organization_id,user_id) VALUES (?,?,?)`, tid, orgID, id); err != nil {
 				return err
-			}
-			if n == 0 {
-				if _, err := t.s.exec(ctx, `INSERT INTO organization_members (tenant_id,organization_id,user_id) VALUES (?,?,?)`, tid, orgID, id); err != nil {
-					return err
-				}
 			}
 		}
 		return nil
@@ -599,7 +608,7 @@ func (r organizations) ChangeMemberRoles(ctx context.Context, tid, orgID, userID
 			return store.ErrPrecondition
 		}
 		for _, id := range missing {
-			if _, err := t.s.exec(ctx, `INSERT INTO organization_member_roles (tenant_id,organization_id,user_id,role_id) VALUES (?,?,?,?)`, tid, orgID, userID, id); err != nil {
+			if err := t.insertIgnore(ctx, `organization_member_roles (tenant_id,organization_id,user_id,role_id) VALUES (?,?,?,?)`, tid, orgID, userID, id); err != nil {
 				return err
 			}
 		}

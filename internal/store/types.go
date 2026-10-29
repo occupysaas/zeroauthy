@@ -167,7 +167,31 @@ type Client struct {
 	// API (and the console), empty for the seed or zeroauthy itself. The
 	// seed never touches API-created clients.
 	Origin string
+
+	// OrganizationUsage is an OrgUsage* value; empty means unset, which
+	// behaves as OrgUsageDeny (D-0055).
+	OrganizationUsage string
+	// OrganizationRequireBehavior is an OrgBehavior* value; empty means
+	// unset, which behaves as OrgBehaviorNoPrompt.
+	OrganizationRequireBehavior string
+	// OrganizationDiscoveryMethods are OrgDiscovery* values, set only with
+	// OrgBehaviorPreLoginPrompt; nil means unset.
+	OrganizationDiscoveryMethods []string
 }
+
+// Client organization settings (D-0055).
+const (
+	OrgUsageDeny    = "deny"
+	OrgUsageAllow   = "allow"
+	OrgUsageRequire = "require"
+
+	OrgBehaviorNoPrompt        = "no_prompt"
+	OrgBehaviorPreLoginPrompt  = "pre_login_prompt"
+	OrgBehaviorPostLoginPrompt = "post_login_prompt"
+
+	OrgDiscoveryEmail = "email"
+	OrgDiscoveryName  = "organization_name"
+)
 
 // OriginAPI marks a client, tenant, resource server or client grant created through the Management or
 // system API.

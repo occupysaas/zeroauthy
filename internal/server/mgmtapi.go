@@ -739,3 +739,37 @@ func (a mgmtAPI) DeleteOrganizationAllConnection(w http.ResponseWriter, r *http.
 func (a mgmtAPI) ListOrganizationClientGrants(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationClientGrantsParams) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationClientGrants(w, r, id) }, "read:organization_client_grants")
 }
+
+// Organization members and roles (Plan 29, D-0055). The member list and the
+// user organizations accept any of their scopes; role members need both.
+// fields=roles on the member list also needs read:organization_member_roles;
+// the handler checks it.
+func (a mgmtAPI) ListOrganizationMembers(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationMembersParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationMembers(w, r, id) }, "read:organization_members", "read:organization_member_roles")
+}
+func (a mgmtAPI) AddOrganizationMembers(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AddOrganizationMembers(w, r, id) }, "create:organization_members")
+}
+func (a mgmtAPI) RemoveOrganizationMembers(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RemoveOrganizationMembers(w, r, id) }, "delete:organization_members")
+}
+func (a mgmtAPI) ListOrganizationMemberRoles(w http.ResponseWriter, r *http.Request, id, userID string, _ mgmtapi.ListOrganizationMemberRolesParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationMemberRoles(w, r, id, userID) }, "read:organization_member_roles")
+}
+func (a mgmtAPI) AddOrganizationMemberRoles(w http.ResponseWriter, r *http.Request, id, userID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AddOrganizationMemberRoles(w, r, id, userID) }, "create:organization_member_roles")
+}
+func (a mgmtAPI) RemoveOrganizationMemberRoles(w http.ResponseWriter, r *http.Request, id, userID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RemoveOrganizationMemberRoles(w, r, id, userID) }, "delete:organization_member_roles")
+}
+func (a mgmtAPI) ListOrganizationMemberEffectiveRoles(w http.ResponseWriter, r *http.Request, id, userID string, _ mgmtapi.ListOrganizationMemberEffectiveRolesParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) {
+		a.h.ListOrganizationMemberEffectiveRoles(w, r, id, userID)
+	}, "read:organization_member_effective_roles")
+}
+func (a mgmtAPI) ListOrganizationRoleMembers(w http.ResponseWriter, r *http.Request, id, roleID string, _ mgmtapi.ListOrganizationRoleMembersParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationRoleMembers(w, r, id, roleID) }, "read:organization_members", "read:roles")
+}
+func (a mgmtAPI) ListUserOrganizations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListUserOrganizationsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListUserOrganizations(w, r, id) }, "read:users", "read:organizations")
+}

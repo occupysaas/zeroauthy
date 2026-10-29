@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -495,5 +496,146 @@ func TestDeleteClientCascades(t *testing.T) {
 	}
 	if _, err := e.st.Clients().Get(ctx, e.sys.ID, system.ConsoleClientID); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestClientOrganizationFields pins the client organization settings
+// (D-0055, observed): values round-trip and null unsets them, a require
+// client cannot hold the password or device grants (in either order),
+// pre_login_prompt goes with any usage, discovery methods only with
+// pre_login_prompt, and a plugin without Organizations refuses non-deny
+// usage with 501.
+func TestClientOrganizationFields(t *testing.T) {
+	e := newClientsEnv(t)
+	all := m2mCaller(allClientScopes...)
+	refused := func(t *testing.T, rec *httptest.ResponseRecorder, status int, code string) {
+		t.Helper()
+		var body map[string]any
+		_ = json.Unmarshal(rec.Body.Bytes(), &body)
+		got, has := body["errorCode"]
+		if rec.Code != status || code == "" && has || code != "" && got != code {
+			t.Fatalf("got %d %s, want %d errorCode %q", rec.Code, rec.Body, status, code)
+		}
+	}
+	patch := func(t *testing.T, id string, body any) map[string]any {
+		t.Helper()
+		rec, out := e.patch(t, all, id, body)
+		if rec.Code != 200 {
+			t.Fatalf("PATCH %v = %d %s", body, rec.Code, rec.Body)
+		}
+		return out
+	}
+	get := func(t *testing.T, id string) map[string]any {
+		t.Helper()
+		rec, out := e.call(t, e.tn, all, "GET", "/api/v2/clients/"+id, nil, func(w http.ResponseWriter, r *http.Request) {
+			e.h.GetClient(w, r, id, mgmtapi.GetClientParams{})
+		})
+		if rec.Code != 200 {
+			t.Fatalf("GET = %d %s", rec.Code, rec.Body)
+		}
+		return out.(map[string]any)
+	}
+	orgKeys := []string{"organization_usage", "organization_require_behavior", "organization_discovery_methods"}
+
+	c := e.mustCreate(t, map[string]any{"name": "Web", "app_type": "regular_web"})
+	id := c["client_id"].(string)
+	for _, k := range orgKeys {
+		if _, ok := c[k]; ok {
+			t.Fatalf("never-set client reports %s: %v", k, c)
+		}
+	}
+
+	// Each value round-trips; pre_login_prompt goes with every usage.
+	for _, usage := range []string{"deny", "allow", "require"} {
+		for _, behavior := range []string{"no_prompt", "pre_login_prompt", "post_login_prompt"} {
+			patch(t, id, map[string]any{"organization_usage": usage, "organization_require_behavior": behavior})
+			if got := get(t, id); got["organization_usage"] != usage || got["organization_require_behavior"] != behavior {
+				t.Fatalf("%s/%s: %v %v", usage, behavior, got["organization_usage"], got["organization_require_behavior"])
+			}
+		}
+	}
+	for _, methods := range [][]string{{"email"}, {"organization_name"}, {"email", "organization_name"}} {
+		out := patch(t, id, map[string]any{"organization_require_behavior": "pre_login_prompt", "organization_discovery_methods": methods})
+		if fmt.Sprint(out["organization_discovery_methods"]) != fmt.Sprint(methods) || fmt.Sprint(get(t, id)["organization_discovery_methods"]) != fmt.Sprint(methods) {
+			t.Fatalf("methods %v: %v", methods, out["organization_discovery_methods"])
+		}
+	}
+
+	for name, tc := range map[string]struct {
+		body any
+		code string
+	}{
+		"unknown usage":                      {map[string]any{"organization_usage": "sometimes"}, "invalid_body"},
+		"number usage":                       {map[string]any{"organization_usage": 1}, "invalid_body"},
+		"unknown behavior":                   {map[string]any{"organization_require_behavior": "prompt"}, "invalid_body"},
+		"empty methods":                      {map[string]any{"organization_discovery_methods": []string{}}, "invalid_body"},
+		"unknown method":                     {map[string]any{"organization_discovery_methods": []string{"phone"}}, "invalid_body"},
+		"string methods":                     {map[string]any{"organization_discovery_methods": "email"}, "invalid_body"},
+		"methods with no_prompt":             {map[string]any{"organization_require_behavior": "no_prompt", "organization_discovery_methods": []string{"email"}}, ""},
+		"behavior change keeping methods":    {map[string]any{"organization_require_behavior": "post_login_prompt"}, ""},
+		"require with password":              {map[string]any{"organization_usage": "require", "grant_types": []string{"authorization_code", "password"}}, ""},
+		"require with password-realm":        {map[string]any{"organization_usage": "require", "grant_types": []string{"http://auth0.com/oauth/grant-type/password-realm"}}, ""},
+		"schema errors win over rule errors": {map[string]any{"organization_usage": "require", "grant_types": []string{"password"}, "organization_require_behavior": "x"}, "invalid_body"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			before := get(t, id)
+			rec, _ := e.patch(t, all, id, tc.body)
+			refused(t, rec, 400, tc.code)
+			if after := get(t, id); fmt.Sprint(after) != fmt.Sprint(before) {
+				t.Fatalf("refused PATCH changed the client:\n%v\n%v", before, after)
+			}
+		})
+	}
+
+	// null unsets each field.
+	out := patch(t, id, map[string]any{"organization_discovery_methods": nil})
+	if _, ok := out["organization_discovery_methods"]; ok || out["organization_require_behavior"] != "pre_login_prompt" {
+		t.Fatalf("null methods: %v", out)
+	}
+	out = patch(t, id, map[string]any{"organization_usage": nil, "organization_require_behavior": nil})
+	for _, k := range orgKeys {
+		if _, ok := out[k]; ok {
+			t.Fatalf("null left %s: %v", k, out)
+		}
+	}
+
+	// A require client keeps the four allowed grants but cannot gain the
+	// password or device grants.
+	patch(t, id, map[string]any{"organization_usage": "require", "grant_types": []string{"authorization_code", "client_credentials", "refresh_token", "implicit"}})
+	for _, g := range []string{"password", "http://auth0.com/oauth/grant-type/password-realm"} {
+		rec, _ := e.patch(t, all, id, map[string]any{"grant_types": []string{"authorization_code", g}})
+		refused(t, rec, 400, "")
+	}
+	// allow and deny clients may hold them.
+	patch(t, id, map[string]any{"organization_usage": "allow", "grant_types": []string{"authorization_code", "password"}})
+	rec, _ := e.patch(t, all, id, map[string]any{"organization_usage": "require"})
+	refused(t, rec, 400, "")
+	native := e.mustCreate(t, map[string]any{"name": "TV", "app_type": "native", "token_endpoint_auth_method": "none",
+		"grant_types": []string{"urn:ietf:params:oauth:grant-type:device_code"}, "organization_usage": "deny"})
+	rec, _ = e.patch(t, all, native["client_id"].(string), map[string]any{"organization_usage": "require"})
+	refused(t, rec, 400, "")
+
+	// POST takes the same fields and rules.
+	created := e.mustCreate(t, map[string]any{"name": "Org app", "organization_usage": "require", "organization_require_behavior": "pre_login_prompt",
+		"organization_discovery_methods": []string{"organization_name"}})
+	if created["organization_usage"] != "require" || created["organization_require_behavior"] != "pre_login_prompt" || fmt.Sprint(created["organization_discovery_methods"]) != "[organization_name]" {
+		t.Fatalf("create=%v", created)
+	}
+	rec, _ = e.create(t, all, map[string]any{"name": "Bad", "organization_usage": "require", "grant_types": []string{"password"}})
+	refused(t, rec, 400, "")
+	rec, _ = e.create(t, all, map[string]any{"name": "Bad", "organization_discovery_methods": []string{"email"}})
+	refused(t, rec, 400, "")
+
+	// A storage plugin without Organizations cannot keep non-deny usage.
+	e.h.Store = noOrgStore{e.st}
+	for _, usage := range []string{"allow", "require"} {
+		rec, _ = e.patch(t, all, id, map[string]any{"organization_usage": usage, "grant_types": []string{"authorization_code"}})
+		refused(t, rec, 501, "organizations_unavailable")
+		rec, _ = e.create(t, all, map[string]any{"name": "Old plugin", "organization_usage": usage})
+		refused(t, rec, 501, "organizations_unavailable")
+	}
+	patch(t, id, map[string]any{"organization_usage": "deny"})
+	if rec, _ := e.create(t, all, map[string]any{"name": "Old plugin deny", "organization_usage": "deny"}); rec.Code != 201 {
+		t.Fatalf("deny on an old plugin: %d %s", rec.Code, rec.Body)
 	}
 }

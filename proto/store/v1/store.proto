@@ -501,6 +501,12 @@ message Client {
   optional bool skip_non_verifiable_callback_uri_confirmation_prompt = 18; // absent = nil
   bool require_pushed_authorization_requests = 19;   // absent = false
   string origin = 20;                                // "api" or empty (seed)
+  // Organization settings (Plan 29, D-0055); empty/absent = unset. A plugin
+  // without OrganizationsCapabilities drops them, so the Management API
+  // refuses non-deny usage with 501 for such a plugin.
+  string organization_usage = 21;
+  string organization_require_behavior = 22;
+  StringList organization_discovery_methods = 23;   // absent = unset
 }
 
 message Scope { string value = 1; string description = 2; }

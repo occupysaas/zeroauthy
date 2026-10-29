@@ -12,3 +12,7 @@ CREATE INDEX organization_member_roles_by_user ON organization_member_roles (ten
 -- for non-organization tokens.
 ALTER TABLE auth_codes ADD COLUMN organization_id TEXT NOT NULL DEFAULT '';
 ALTER TABLE refresh_tokens ADD COLUMN organization_id TEXT NOT NULL DEFAULT '';
+-- Client organization settings (D-0055); empty or NULL while unset.
+ALTER TABLE clients ADD COLUMN organization_usage TEXT NOT NULL DEFAULT '';
+ALTER TABLE clients ADD COLUMN organization_require_behavior TEXT NOT NULL DEFAULT '';
+ALTER TABLE clients ADD COLUMN organization_discovery_methods TEXT NULL;

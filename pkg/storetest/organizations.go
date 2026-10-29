@@ -182,6 +182,44 @@ func testOrganizations(t *testing.T, newStore Factory) {
 		mustEqual(t, res.Total, 1)
 	})
 
+	t.Run("ConcurrentAddMembers", func(t *testing.T) {
+		// Concurrent adds of the same users are idempotent, also inside a
+		// caller's transaction that read before the add (Management handlers
+		// do), and so are concurrent role assignments.
+		s := open(t, newStore)
+		orgSeed(t, s, false)
+		o := newOrg(tid, "race", ts(0))
+		mustNoErr(t, s.Organizations().Create(ctx, o, nil))
+		errs := parallel(8, func(int) error {
+			return s.WithTx(ctx, func(tx store.Store) error {
+				if _, err := tx.Organizations().IsMember(ctx, tid, o.ID, uid(1)); err != nil {
+					return err
+				}
+				return tx.Organizations().AddMembers(ctx, tid, o.ID, []string{uid(1), uid(2)})
+			})
+		})
+		for _, err := range errs {
+			mustNoErr(t, err)
+		}
+		members, err := s.Organizations().Members(ctx, tid, o.ID, store.OrgPage{})
+		mustNoErr(t, err)
+		mustEqual(t, members.Items, []string{uid(1), uid(2)})
+		errs = parallel(8, func(int) error {
+			return s.WithTx(ctx, func(tx store.Store) error {
+				if _, err := tx.Organizations().MemberRoles(ctx, tid, o.ID, uid(1), store.OrgPage{}); err != nil {
+					return err
+				}
+				return tx.Organizations().ChangeMemberRoles(ctx, tid, o.ID, uid(1), true, []string{"r1", "r2"})
+			})
+		})
+		for _, err := range errs {
+			mustNoErr(t, err)
+		}
+		roles, err := s.Organizations().MemberRoles(ctx, tid, o.ID, uid(1), store.OrgPage{})
+		mustNoErr(t, err)
+		mustEqual(t, roles.Items, []string{"r1", "r2"})
+	})
+
 	t.Run("Pagination", func(t *testing.T) {
 		s := open(t, newStore)
 		orgSeed(t, s, true)

@@ -15,7 +15,8 @@ func (s *Store) Clients() store.Clients { return clients{s} }
 
 const clientCols = `tenant_id, client_id, name, app_type, secrets, token_endpoint_auth_method, grant_types, callbacks,
  allowed_logout_urls, web_origins, allowed_origins, id_token_lifetime, refresh_token, created_at,
- is_first_party, third_party_security_mode, redirection_policy, skip_non_verifiable_callback_uri_confirmation_prompt, require_pushed_authorization_requests, origin`
+ is_first_party, third_party_security_mode, redirection_policy, skip_non_verifiable_callback_uri_confirmation_prompt, require_pushed_authorization_requests, origin,
+ organization_usage, organization_require_behavior, organization_discovery_methods`
 
 // secretJSON is the stored form of store.ClientSecret: times are micros, as
 // everywhere else.
@@ -31,7 +32,7 @@ func (r clients) Create(ctx context.Context, c *store.Client) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.s.write(ctx, nil, `INSERT INTO clients (`+clientCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
+	_, err = r.s.write(ctx, nil, `INSERT INTO clients (`+clientCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...)
 	return r.s.conflict(err)
 }
 
@@ -48,10 +49,11 @@ func (r clients) Update(ctx context.Context, c *store.Client) error {
 	if err != nil {
 		return err
 	}
-	// args: tenant_id, client_id, then the 18 mutable columns.
+	// args: tenant_id, client_id, then the 21 mutable columns.
 	res, err := r.s.write(ctx, nil, `UPDATE clients SET name=?, app_type=?, secrets=?, token_endpoint_auth_method=?, grant_types=?,
  callbacks=?, allowed_logout_urls=?, web_origins=?, allowed_origins=?, id_token_lifetime=?, refresh_token=?, created_at=?,
- is_first_party=?, third_party_security_mode=?, redirection_policy=?, skip_non_verifiable_callback_uri_confirmation_prompt=?, require_pushed_authorization_requests=?, origin=?
+ is_first_party=?, third_party_security_mode=?, redirection_policy=?, skip_non_verifiable_callback_uri_confirmation_prompt=?, require_pushed_authorization_requests=?, origin=?,
+ organization_usage=?, organization_require_behavior=?, organization_discovery_methods=?
  WHERE tenant_id=? AND client_id=?`, append(args[2:], c.TenantID, c.ClientID)...)
 	if err != nil {
 		return r.s.conflict(err)
@@ -115,9 +117,11 @@ func scanClient(row scanner) (*store.Client, error) {
 	var secrets, grants, callbacks, logout, webOrigins, origins, refresh string
 	var created int64
 	var skipPrompt sql.NullBool
+	var discovery sql.NullString
 	if err := row.Scan(&c.TenantID, &c.ClientID, &c.Name, &c.AppType, &secrets, &c.TokenEndpointAuthMethod, &grants,
 		&callbacks, &logout, &webOrigins, &origins, &c.IDTokenLifetime, &refresh, &created,
-		&c.IsFirstParty, &c.ThirdPartySecurityMode, &c.RedirectionPolicy, &skipPrompt, &c.RequirePushedAuthorizationRequests, &c.Origin); err != nil {
+		&c.IsFirstParty, &c.ThirdPartySecurityMode, &c.RedirectionPolicy, &skipPrompt, &c.RequirePushedAuthorizationRequests, &c.Origin,
+		&c.OrganizationUsage, &c.OrganizationRequireBehavior, &discovery); err != nil {
 		return nil, err
 	}
 	var ss []secretJSON
@@ -138,6 +142,11 @@ func scanClient(row scanner) (*store.Client, error) {
 				t := fromMicros(*s.ExpiresAt)
 				c.Secrets[i].ExpiresAt = &t
 			}
+		}
+	}
+	if discovery.Valid {
+		if err := fromJSON(discovery.String, &c.OrganizationDiscoveryMethods); err != nil {
+			return nil, err
 		}
 	}
 	c.SkipNonVerifiableCallbackURIConfirmationPrompt = fromNullBool(skipPrompt)
@@ -165,7 +174,16 @@ func clientArgs(c *store.Client) ([]any, error) {
 		}
 		js = append(js, s)
 	}
+	var discovery any // NULL while unset
+	if c.OrganizationDiscoveryMethods != nil {
+		s, err := toJSON(c.OrganizationDiscoveryMethods)
+		if err != nil {
+			return nil, err
+		}
+		discovery = s
+	}
 	return []any{c.TenantID, c.ClientID, c.Name, string(c.AppType), js[0], c.TokenEndpointAuthMethod, js[1], js[2],
 		js[3], js[4], js[5], c.IDTokenLifetime, js[6], micros(c.CreatedAt),
-		c.IsFirstParty, c.ThirdPartySecurityMode, c.RedirectionPolicy, nullBool(c.SkipNonVerifiableCallbackURIConfirmationPrompt), c.RequirePushedAuthorizationRequests, c.Origin}, nil
+		c.IsFirstParty, c.ThirdPartySecurityMode, c.RedirectionPolicy, nullBool(c.SkipNonVerifiableCallbackURIConfirmationPrompt), c.RequirePushedAuthorizationRequests, c.Origin,
+		c.OrganizationUsage, c.OrganizationRequireBehavior, discovery}, nil
 }

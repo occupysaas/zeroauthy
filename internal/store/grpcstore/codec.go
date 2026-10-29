@@ -323,6 +323,9 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		SkipNonVerifiableCallbackUriConfirmationPrompt: cloneBool(c.SkipNonVerifiableCallbackURIConfirmationPrompt),
 		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
 		Origin:                                         c.Origin,
+		OrganizationUsage:                              c.OrganizationUsage,
+		OrganizationRequireBehavior:                    c.OrganizationRequireBehavior,
+		OrganizationDiscoveryMethods:                   stringsToPB(c.OrganizationDiscoveryMethods),
 	}
 	if c.Secrets != nil {
 		pb.Secrets = &storev1.ClientSecretList{Values: make([]*storev1.ClientSecret, 0, len(c.Secrets))}
@@ -359,6 +362,9 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: cloneBool(pb.SkipNonVerifiableCallbackUriConfirmationPrompt),
 		RequirePushedAuthorizationRequests:             pb.RequirePushedAuthorizationRequests,
 		Origin:                                         pb.Origin,
+		OrganizationUsage:                              pb.OrganizationUsage,
+		OrganizationRequireBehavior:                    pb.OrganizationRequireBehavior,
+		OrganizationDiscoveryMethods:                   stringsFromPB(pb.OrganizationDiscoveryMethods),
 	}
 	if pb.Secrets != nil {
 		c.Secrets = make([]store.ClientSecret, 0, len(pb.Secrets.Values))

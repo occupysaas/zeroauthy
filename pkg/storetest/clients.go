@@ -141,6 +141,33 @@ func testClients(t *testing.T, newStore Factory) {
 		mustEqual(t, got, c)
 	})
 
+	t.Run("OrganizationFields", func(t *testing.T) {
+		s := open(t, newStore)
+		c := newClient("ten_a", "orgs")
+		mustNoErr(t, s.Clients().Create(ctx, c))
+		got, err := s.Clients().Get(ctx, "ten_a", "orgs")
+		mustNoErr(t, err)
+		mustEqual(t, got, c) // unset by default
+
+		c.OrganizationUsage = store.OrgUsageRequire
+		c.OrganizationRequireBehavior = store.OrgBehaviorPreLoginPrompt
+		c.OrganizationDiscoveryMethods = []string{store.OrgDiscoveryEmail, store.OrgDiscoveryName}
+		mustNoErr(t, s.Clients().Update(ctx, c))
+		got, err = s.Clients().Get(ctx, "ten_a", "orgs")
+		mustNoErr(t, err)
+		mustEqual(t, got, c)
+		got.OrganizationDiscoveryMethods[0] = "changed" // must not reach the store
+		again, err := s.Clients().Get(ctx, "ten_a", "orgs")
+		mustNoErr(t, err)
+		mustEqual(t, again.OrganizationDiscoveryMethods[0], store.OrgDiscoveryEmail)
+
+		c.OrganizationUsage, c.OrganizationRequireBehavior, c.OrganizationDiscoveryMethods = "", "", nil
+		mustNoErr(t, s.Clients().Update(ctx, c))
+		got, err = s.Clients().Get(ctx, "ten_a", "orgs")
+		mustNoErr(t, err)
+		mustEqual(t, got, c)
+	})
+
 	t.Run("SealedSecrets", func(t *testing.T) {
 		s := open(t, newStore)
 		exp := ts(72 * time.Hour)

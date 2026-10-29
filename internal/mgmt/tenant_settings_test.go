@@ -73,3 +73,35 @@ func TestTenantSettingsTransactionAndAudit(t *testing.T) {
 		t.Fatalf("stale GET %d %s", rec.Code, rec.Body)
 	}
 }
+
+// TestTenantSettingsOrganizationName: the Authentication API organization
+// name flag (stored since Plan 19) round-trips, false by default (D-0055).
+func TestTenantSettingsOrganizationName(t *testing.T) {
+	e := newClientsEnv(t)
+	get := func() any {
+		t.Helper()
+		rec, out := e.call(t, e.tn, m2mCaller("read:tenant_settings"), "GET", "/api/v2/tenants/settings", nil, func(w http.ResponseWriter, r *http.Request) {
+			e.h.GetTenantSettings(w, r, mgmtapi.GetTenantSettingsParams{})
+		})
+		if rec.Code != 200 {
+			t.Fatalf("GET %d %s", rec.Code, rec.Body)
+		}
+		return out.(map[string]any)["allow_organization_name_in_authentication_api"]
+	}
+	if v := get(); v != nil && v != false {
+		t.Fatalf("default = %v", v)
+	}
+	for _, want := range []bool{true, false} {
+		rec, out := e.call(t, e.tn, m2mCaller("update:tenant_settings"), "PATCH", "/api/v2/tenants/settings", map[string]any{"allow_organization_name_in_authentication_api": want}, e.h.UpdateTenantSettings)
+		if rec.Code != 200 || out.(map[string]any)["allow_organization_name_in_authentication_api"] != want {
+			t.Fatalf("PATCH %v = %d %s", want, rec.Code, rec.Body)
+		}
+		if v := get(); v != want {
+			t.Fatalf("GET after %v = %v", want, v)
+		}
+	}
+	rec, _ := e.call(t, e.tn, m2mCaller("update:tenant_settings"), "PATCH", "/api/v2/tenants/settings", map[string]any{"allow_organization_name_in_authentication_api": "yes"}, e.h.UpdateTenantSettings)
+	if rec.Code != 400 {
+		t.Fatalf("non-boolean = %d %s", rec.Code, rec.Body)
+	}
+}
