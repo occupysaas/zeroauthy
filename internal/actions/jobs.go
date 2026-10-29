@@ -44,6 +44,11 @@ func (e *Engine) Enqueue(ctx context.Context, tx store.Store, j AsyncJob) error 
 	if err != nil {
 		return err
 	}
+	return e.enqueueBound(ctx, tx, j, bound)
+}
+
+// enqueueBound snapshots bound, the trigger's bindings in order, into a job.
+func (e *Engine) enqueueBound(ctx context.Context, tx store.Store, j AsyncJob, bound []store.BoundVersion) error {
 	if len(bound) == 0 {
 		return nil
 	}

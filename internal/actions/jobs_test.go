@@ -416,8 +416,22 @@ func TestJobsEmailMultipleBindingsNeverRerun(t *testing.T) {
 			defer sink.Close()
 			a := h.action("t1", actions.TriggerCustomEmailProvider, "deliver", fmt.Sprintf(`exports.onExecuteCustomEmailProvider=async(e,a)=>{await fetch(%q);%s}`, sink.URL, tc.first), nil, false)
 			b := h.action("t1", actions.TriggerCustomEmailProvider, "second", `exports.onExecuteCustomEmailProvider=async(e,a)=>{`+tc.second+`}`, nil, false)
-			h.bind("t1", a.Trigger, a, b)
-			enqueueJob(t, h, a.Trigger, map[string]any{})
+			// The store refuses two custom-email-provider bindings; queue a job
+			// for them directly, as bindings written before the limit would.
+			var bound []store.BoundVersion
+			for _, x := range []*store.Action{a, b} {
+				h.bind("t1", x.Trigger, x)
+				bs, err := h.st.Actions().Bindings(context.Background(), "t1", x.Trigger)
+				if err != nil {
+					t.Fatal(err)
+				}
+				bound = append(bound, bs...)
+			}
+			if err := h.st.WithTx(context.Background(), func(tx store.Store) error {
+				return h.eng.EnqueueBoundForTest(context.Background(), tx, actions.AsyncJob{TenantID: "t1", Trigger: a.Trigger, Input: map[string]any{}}, bound)
+			}); err != nil {
+				t.Fatal(err)
+			}
 			j := claimJob(t, h)
 			n := finishJob(t, h, &j)
 			if n.Status != tc.status || len(n.ExecutionIDs) != 1 {
