@@ -251,3 +251,36 @@ func TestInvitationEmailDeletionDuringSendInvalidatesLink(t *testing.T) {
 		t.Fatal("deleted link still resolves")
 	}
 }
+
+func TestInvitationEmailProviderSenderPrecedence(t *testing.T) {
+	for _, tc := range []struct{ name, templateFrom, want string }{
+		{"provider default", "", "provider@example.test"},
+		{"stored template from", "template@example.test", "template@example.test"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, e, _, fallback, _ := invitationFixture(t)
+			ctx := context.Background()
+			factory := &recordingFactory{}
+			s.Providers = factory
+			if err := s.Store.EmailProviders().Put(ctx, &store.EmailProvider{TenantID: "t", Name: "sendgrid", Enabled: true, DefaultFrom: "provider@example.test", SealedCredentials: providerSecret(t, s.Wrapper, "t", "sendgrid", "key")}, 0); err != nil {
+				t.Fatal(err)
+			}
+			if tc.templateFrom != "" {
+				if err := s.Store.EmailTemplates().Put(ctx, &store.EmailTemplate{TenantID: "t", Name: "user_invitation", Fields: map[string]any{"from": tc.templateFrom, "body": "<p>{{ url }}</p>", "subject": "Invitation"}}, 0); err != nil {
+					t.Fatal(err)
+				}
+			}
+			j := enqueueInvitation(t, e)
+			if n := e.RunJob(ctx, j); n.Status != "done" {
+				t.Fatal(n.Status)
+			}
+			calls := factory.snapshot()
+			if len(calls) != 1 || len(fallback.messages) != 0 {
+				t.Fatalf("provider calls %d fallback calls %d", len(calls), len(fallback.messages))
+			}
+			if calls[0].message.From != tc.want {
+				t.Fatalf("From = %q, want %q", calls[0].message.From, tc.want)
+			}
+		})
+	}
+}

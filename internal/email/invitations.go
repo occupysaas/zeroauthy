@@ -89,7 +89,7 @@ func (s *Service) DeliverInvitation(ctx context.Context, in actions.InvitationDe
 	if err := invitationHTML.Execute(&html, data); err != nil {
 		return nil, err
 	}
-	msg := Message{Type: "user_invitation", Locale: in.Language, ClientID: in.ClientID, To: active.InviteeEmail, Subject: l.T(i18n.KeyEmailInvitationSubject), Text: text.String(), HTML: html.String(), From: s.DefaultFrom}
+	msg := Message{Type: "user_invitation", Locale: in.Language, ClientID: in.ClientID, To: active.InviteeEmail, Subject: l.T(i18n.KeyEmailInvitationSubject), Text: text.String(), HTML: html.String()}
 	if in.TemplateFields != nil {
 		vars, err := BuildRenderContext(tenantRenderMap(tenant), map[string]any{"email": active.InviteeEmail}, map[string]any{"name": in.ApplicationName, "clientID": in.ClientID}, in.CustomDomain, in.Language, ticket.URL)
 		if err != nil {
