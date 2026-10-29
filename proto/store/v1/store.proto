@@ -74,6 +74,29 @@ service StoreService {
   rpc RBACChangeUserPermissions(RBACRequest) returns (RBACResponse);
   rpc RBACSnapshot(RBACRequest) returns (RBACResponse);
 
+  // Plan 29 Organizations repository. A plugin lacking
+  // OrganizationsCapabilities (version 1) starts with the feature disabled.
+  rpc OrganizationsCapabilities(PingRequest) returns (OrganizationsCapabilitiesResult);
+  rpc OrganizationsCreate(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsGet(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsGetByName(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsList(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsUpdate(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsDelete(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsConnections(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsGetConnection(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsPutConnection(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsDeleteConnection(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsConnectionsByConnection(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsMembers(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsAddMembers(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsRemoveMembers(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsIsMember(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsUserOrganizations(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsMemberRoles(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsChangeMemberRoles(OrganizationsRequest) returns (OrganizationsResponse);
+  rpc OrganizationsRoleMembers(OrganizationsRequest) returns (OrganizationsResponse);
+
   // Plan 27 Actions repository. A plugin lacking ActionsCapabilities fails
   // closed; artifacts stream in chunks because they may exceed gRPC's
   // default message size.
@@ -362,6 +385,7 @@ message Error {
     KIND_BUILD_NOT_READY = 10; // store.ErrBuildNotReady
     KIND_PRECONDITION = 11; // store.ErrPrecondition
     KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
+    KIND_ORGANIZATIONS_UNAVAILABLE = 12; // store.ErrOrganizationsUnavailable
   }
   Kind kind = 1;
   string message = 2; // human-readable; for KIND_UNSPECIFIED the whole error
@@ -676,6 +700,7 @@ message AuthCode {
   google.protobuf.Timestamp replayed_at = 16; // absent = nil
   string origin = 17;
   bytes action_effects = 18; // sealed post-login effects; empty = none
+  string organization_id = 19; // Plan 29; empty = no organization
 }
 message PushedAuthRequest {
   string tenant_id = 1; string id_hash = 2; string client_id = 3; StringMap params = 4;
@@ -704,6 +729,7 @@ message RefreshToken {
   google.protobuf.Timestamp revoked_at = 15; // absent = nil
   google.protobuf.Timestamp created_at = 16;
   string origin = 17;
+  string organization_id = 18; // Plan 29; empty = no organization
 }
 
 message PasswordResetTicket {
@@ -1045,6 +1071,38 @@ message RBACRequest { string tx_id=1; string tenant_id=2; string id=3; RBACRole 
 message RBACSnapshot { ResourceServer api=1; repeated string permissions=2; }
 message RBACResponse { Error error=1; RBACRole role=2; repeated RBACRole roles=3; repeated RBACPermissionGrant grants=4; repeated User users=5; int64 total=6; string next=7; RBACSnapshot snapshot=8; }
 message RBACCapabilitiesResult { Error error=1; uint32 version=2; }
+
+// ---- Organizations (Plan 29) ----
+
+message OrganizationColorsMsg { string primary=1; string page_background=2; }
+message OrganizationBrandingMsg { optional string logo_url=1; optional OrganizationColorsMsg colors=2; }
+message OrganizationMsg {
+  string tenant_id=1; string id=2; string name=3; string display_name=4;
+  optional OrganizationBrandingMsg branding=5; // absent = nil
+  optional StringMap metadata=6;               // absent = nil (an empty map is distinct)
+  string third_party_client_access=7;
+  google.protobuf.Timestamp created_at=8; google.protobuf.Timestamp updated_at=9;
+}
+message OrganizationConnectionMsg {
+  string tenant_id=1; string organization_id=2; string connection_id=3;
+  bool assign_membership_on_login=4; bool show_as_button=5; bool is_signup_enabled=6;
+}
+message OrganizationPageMsg { int64 page=1; int64 per_page=2; bool include_totals=3; string from=4; int64 take=5; string sort=6; }
+// Fields are used by the method that names them: tenant_id/organization_id/
+// user_id/role_id/connection_id address rows; ids carries user or role IDs.
+message OrganizationsRequest {
+  string tx_id=1; string tenant_id=2; string organization_id=3; string name=4;
+  OrganizationMsg organization=5; repeated OrganizationConnectionMsg connections=6;
+  OrganizationConnectionMsg connection=7; bool flag=8; // create (PutConnection) / add (ChangeMemberRoles)
+  string connection_id=9; string user_id=10; string role_id=11; repeated string ids=12;
+  OrganizationPageMsg page=13;
+}
+message OrganizationsResponse {
+  Error error=1; OrganizationMsg organization=2; repeated OrganizationMsg organizations=3;
+  OrganizationConnectionMsg connection=4; repeated OrganizationConnectionMsg connections=5;
+  repeated string ids=6; int64 total=7; string next=8; bool flag=9; // flag: IsMember
+}
+message OrganizationsCapabilitiesResult { Error error=1; uint32 version=2; }
 
 // ---- Actions (Plan 27) ----
 

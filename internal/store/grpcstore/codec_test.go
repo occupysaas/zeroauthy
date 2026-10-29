@@ -492,21 +492,20 @@ func TestTimeHelpers(t *testing.T) {
 }
 
 func TestErrorMapping(t *testing.T) {
-	for _, e := range []error{nil, store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed, store.ErrPrecondition,
-		fmt.Errorf("wrapped: %w", store.ErrPrecondition),
-		fmt.Errorf("wrapped: %w", store.ErrConflict)} {
-		got := errFromPB(errToPB(e))
-		if e == nil {
-			if got != nil {
-				t.Fatalf("nil → %v", got)
-			}
-			continue
-		}
-		for _, sentinel := range []error{store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed} {
-			if errors.Is(e, sentinel) != errors.Is(got, sentinel) {
-				t.Fatalf("%v → %v: errors.Is(%v) differs", e, got, sentinel)
+	// Every sentinel travels as itself and never matches another.
+	sentinels := []error{store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed, store.ErrPrecondition, store.ErrOrganizationsUnavailable}
+	for _, e := range sentinels {
+		for _, in := range []error{e, fmt.Errorf("wrapped: %w", e)} {
+			got := errFromPB(errToPB(in))
+			for _, s := range sentinels {
+				if errors.Is(in, s) != errors.Is(got, s) {
+					t.Fatalf("%v → %v: errors.Is(%v) differs", in, got, s)
+				}
 			}
 		}
+	}
+	if got := errFromPB(errToPB(nil)); got != nil {
+		t.Fatalf("nil → %v", got)
 	}
 	other := errFromPB(errToPB(errors.New("next key must have status next")))
 	if other == nil || other.Error() != "next key must have status next" {

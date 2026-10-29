@@ -86,7 +86,7 @@ func testOrganizations(t *testing.T, newStore Factory) {
 		again, err := o.Get(ctx, tid, in.ID)
 		mustNoErr(t, err)
 		mustEqual(t, again.Metadata, map[string]string{"tier": "gold"})
-		mustEqual(t, *again.Branding.LogoURL, logo)
+		mustEqual(t, *again.Branding.LogoURL, "https://x.test/logo.png")
 		again.Metadata["tier"] = "mutated"
 		third, _ := o.Get(ctx, tid, in.ID)
 		mustEqual(t, third.Metadata, map[string]string{"tier": "gold"})

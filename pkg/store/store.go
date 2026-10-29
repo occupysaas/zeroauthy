@@ -31,6 +31,7 @@ type (
 	Paged[T any]                = store.Paged[T]
 	RBACSupporter               = store.RBACSupporter
 	ActionsSupporter            = store.ActionsSupporter
+	OrganizationsSupporter      = store.OrganizationsSupporter
 	UnimplementedRBAC           = store.UnimplementedRBAC
 	Organizations               = store.Organizations
 	UnimplementedOrganizations  = store.UnimplementedOrganizations

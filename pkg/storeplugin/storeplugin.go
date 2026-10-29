@@ -234,3 +234,13 @@ func KillForTest(s store.Store) {
 func (o *opened) CheckActionsSupport(ctx context.Context) error {
 	return o.Store.(store.ActionsSupporter).CheckActionsSupport(ctx)
 }
+
+// CheckOrganizationsSupport preserves the client's capability probe through the SDK wrapper.
+func (o *opened) CheckOrganizationsSupport(ctx context.Context) error {
+	return o.Store.(store.OrganizationsSupporter).CheckOrganizationsSupport(ctx)
+}
+
+// OrganizationsSupported preserves the client's cached capability answer.
+func (o *opened) OrganizationsSupported() bool {
+	return o.Store.(store.OrganizationsSupporter).OrganizationsSupported()
+}

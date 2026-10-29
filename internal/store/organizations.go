@@ -11,6 +11,24 @@ import (
 // not been brought up yet).
 var ErrOrganizationsUnavailable = errors.New("store: Organizations capability unavailable")
 
+// OrganizationsSupporter is implemented by remote stores that negotiate
+// Organizations support. CheckOrganizationsSupport reports why a plugin lacks
+// it; OrganizationsSupported is the cheap, cached predicate for request paths.
+type OrganizationsSupporter interface {
+	CheckOrganizationsSupport(context.Context) error
+	OrganizationsSupported() bool
+}
+
+// OrganizationsSupported reports whether st serves Organizations. Stores that
+// do not negotiate (memory, SQL) always do; a plugin without the capability
+// does not, and callers answer 501 or reject the organization parameter.
+func OrganizationsSupported(st Store) bool {
+	if s, ok := st.(OrganizationsSupporter); ok {
+		return s.OrganizationsSupported()
+	}
+	return true
+}
+
 // Organization is a tenant-scoped group of members (Auth0 Organizations).
 // Branding and Metadata are replaced whole by Update. A nil Metadata or
 // Branding means unset.
