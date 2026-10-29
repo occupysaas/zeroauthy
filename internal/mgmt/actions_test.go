@@ -162,7 +162,7 @@ func TestActionsManagementLimits(t *testing.T) {
 		{"code bytes", func(m map[string]any) { m["code"] = strings.Repeat("x", 100001) }},
 		{"runtime", func(m map[string]any) { m["runtime"] = "node18" }},
 		{"empty runtime", func(m map[string]any) { m["runtime"] = "" }},
-		{"unsupported trigger", func(m map[string]any) { m["supported_triggers"] = []any{map[string]any{"id": "pre-user-registration"}} }},
+		{"unsupported trigger", func(m map[string]any) { m["supported_triggers"] = []any{map[string]any{"id": "send-phone-message"}} }},
 		{"two triggers", func(m map[string]any) {
 			m["supported_triggers"] = []any{map[string]any{"id": "post-login"}, map[string]any{"id": "credentials-exchange"}}
 		}},
@@ -446,5 +446,71 @@ func TestActionsBindingReferenceUpdatesTimestamp(t *testing.T) {
 	}
 	if after[0].UpdatedAt.Equal(before[0].UpdatedAt) || after[0].ID != before[0].ID || !after[0].CreatedAt.Equal(before[0].CreatedAt) {
 		t.Fatalf("binding update timestamps before=%+v after=%+v", before, after)
+	}
+}
+
+// Auth0 allows one Action bound to custom-email-provider; a second binding
+// would let a retry re-run an Action that already delivered the email.
+func TestActionsCustomEmailProviderSingleBinding(t *testing.T) {
+	e := newClientsEnv(t)
+	ae := actionstest.NewOffline(t, e.st, e.w)
+	e.h.Actions = ae.Engine
+	a := ae.Deploy(t, e.tn.ID, "custom-email-provider", "mailer-a", "exports.onExecuteCustomEmailProvider=async()=>{};")
+	b := ae.Deploy(t, e.tn.ID, "custom-email-provider", "mailer-b", "exports.onExecuteCustomEmailProvider=async()=>{};")
+	bind := func(ids ...string) int {
+		bs := []any{}
+		for _, id := range ids {
+			bs = append(bs, map[string]any{"ref": map[string]any{"type": "action_id", "value": id}})
+		}
+		rec, _ := e.call(t, e.tn, m2mCaller("update:actions"), "PATCH", "/bindings", map[string]any{"bindings": bs}, func(w http.ResponseWriter, r *http.Request) { e.h.UpdateActionBindings(w, r, "custom-email-provider") })
+		return rec.Code
+	}
+	if c := bind(a.ID, b.ID); c != 400 {
+		t.Fatalf("two bindings=%d", c)
+	}
+	if bs, _ := e.st.Actions().Bindings(context.Background(), e.tn.ID, "custom-email-provider"); len(bs) != 0 {
+		t.Fatalf("refused bindings stored: %v", bs)
+	}
+	if c := bind(a.ID); c != 200 {
+		t.Fatalf("one binding=%d", c)
+	}
+	if c := bind(b.ID); c != 200 {
+		t.Fatalf("replacing the binding=%d", c)
+	}
+	if c := bind(); c != 200 {
+		t.Fatalf("clearing bindings=%d", c)
+	}
+}
+
+func TestActionSupportedTriggersRoundTrip(t *testing.T) {
+	e := newClientsEnv(t)
+	ae := actionstest.NewOffline(t, e.st, e.w)
+	e.h.Actions = ae.Engine
+	for i, trigger := range []string{"post-login", "credentials-exchange", "pre-user-registration", "post-user-registration", "post-change-password", "password-reset-post-challenge", "custom-email-provider"} {
+		t.Run(trigger, func(t *testing.T) {
+			caller := m2mCaller("read:actions", "create:actions")
+			rec, out := e.call(t, e.tn, caller, "POST", "/actions", map[string]any{"name": fmt.Sprintf("source-%d", i), "code": "", "supported_triggers": []any{map[string]any{"id": trigger}}}, e.h.CreateAction)
+			if rec.Code != 201 {
+				t.Fatalf("create: %d %s", rec.Code, rec.Body)
+			}
+			refs := out.(map[string]any)["supported_triggers"].([]any)
+			ref := refs[0].(map[string]any)
+			if len(ref) != 2 || ref["id"] != trigger || ref["version"] == nil {
+				t.Fatalf("Action reference contains non-writable catalogue metadata: %v", ref)
+			}
+			rec, _ = e.call(t, e.tn, caller, "POST", "/actions", map[string]any{"name": fmt.Sprintf("copy-%d", i), "code": "", "supported_triggers": refs}, e.h.CreateAction)
+			if rec.Code != 201 {
+				t.Fatalf("export/reimport: %d %s", rec.Code, rec.Body)
+			}
+		})
+	}
+	rec, out := e.call(t, e.tn, m2mCaller("read:actions"), "GET", "/triggers", nil, e.h.GetActionTriggers)
+	if rec.Code != 200 {
+		t.Fatal(rec.Body.String())
+	}
+	for _, raw := range out.(map[string]any)["triggers"].([]any) {
+		if raw.(map[string]any)["binding_policy"] != "trigger-bound" {
+			t.Fatal("catalogue binding policy lost")
+		}
 	}
 }

@@ -15,6 +15,7 @@ import (
 
 // Continue resumes a suspended post-login flow on its original tenant origin.
 // The single-use state and the browser's active session jointly authorize it.
+// A reset-page state goes to ResetContinue instead.
 func (h *Handlers) Continue(w http.ResponseWriter, r *http.Request) {
 	invalid := func() { httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "invalid continuation state") }
 	res, ok := tenant.FromContext(r.Context())
@@ -57,17 +58,26 @@ func (h *Handlers) Continue(w http.ResponseWriter, r *http.Request) {
 		}
 		state = body.Get("state")
 	}
-	sess, err := h.ActiveSession(r.Context(), r, res)
-	if err != nil || sess == nil {
-		invalid()
-		return
-	}
 	info := actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders), Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: firstLanguage(r.Header.Get("Accept-Language")), Query: map[string]any{}, Body: map[string]any{}}
 	for k, v := range query {
 		info.Query[k] = v[0]
 	}
 	for k, v := range body {
 		info.Body[k] = v[0]
+	}
+	// A reset page's state is bound to its ticket and page cookie, not a session.
+	if actions.IsResetState(state) {
+		if h.ResetContinue == nil {
+			invalid()
+			return
+		}
+		h.ResetContinue(w, r, state, info)
+		return
+	}
+	sess, err := h.ActiveSession(r.Context(), r, res)
+	if err != nil || sess == nil {
+		invalid()
+		return
 	}
 	var fr flowReq
 	var client *store.Client

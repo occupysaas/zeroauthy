@@ -51,6 +51,7 @@ type App struct {
 	builds     *actionsbuild.Manager // Actions dependency builds
 	actions    *noderunner.Pool      // Actions flow processes
 	profiles   *script.Runner        // nil when profile scripts cannot run
+	actionJobs *actions.Worker
 	jobs       *jobs.Runner
 	handler    http.Handler
 	breachFile *protection.FileChecker
@@ -283,11 +284,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			store.JobUsersImport: jobs.Importer{Mailer: mailer, Email: tenantEmail, Log: log},
 			store.JobUsersExport: jobs.Exporter{View: mgmt.UserJSON, Log: log},
 		},
-		Sweeps: []jobs.Sweep{{Name: "actions executions", Every: time.Hour,
-			Run: func(ctx context.Context, st store.Store, now time.Time) error {
-				_, err := actions.PurgeExecutions(ctx, st, now)
-				return err
-			}}, {Name: "actions continuations", Every: time.Minute,
+		Sweeps: []jobs.Sweep{{Name: "actions continuations", Every: time.Minute,
 			Run: func(ctx context.Context, st store.Store, now time.Time) error {
 				_, err := actions.PurgeContinue(ctx, st, now)
 				return err
@@ -339,6 +336,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		return nil, err
 	}
 	engine := &actions.Engine{Store: st, Runner: actionsRunner, Builds: builds, Secrets: wrapper, Log: log}
+	tenantEmail.Actions = engine
 	flows := &federation.FlowService{Service: federation.Service{Wrapper: wrapper}, Store: st, Providers: providers, Log: log}
 	sec := cfg.Security
 	buildsOwned = true
@@ -353,6 +351,7 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		runner:     runner,
 		builds:     builds,
 		actions:    actionsRunner,
+		actionJobs: &actions.Worker{Engine: engine, Store: st, Workers: cfg.Actions.JobWorkers, Poll: cfg.Actions.JobPollInterval},
 		jobs:       jobRunner,
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
@@ -626,6 +625,12 @@ func (a *App) Serve(ctx context.Context) error {
 				a.log.Warn("actions: pre-extracting deployed builds failed", "err", err)
 			}
 		}()
+	}
+	if a.actionJobs != nil {
+		workerCtx, stopWorker := context.WithCancel(ctx)
+		workerDone := make(chan struct{})
+		go func() { defer close(workerDone); a.actionJobs.Run(workerCtx) }()
+		defer func() { stopWorker(); <-workerDone }()
 	}
 	if a.jobs != nil && a.jobs.Workers > 0 {
 		// Workers stop with Serve, which waits a little for the job they

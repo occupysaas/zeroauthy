@@ -46,3 +46,9 @@ describe('Email preview and test', () => {
     wrapper.unmount()
   })
 })
+
+it('displays custom test-send outcomes and their execution identity', async () => {
+ const { wrapper } = await mountAt(Preview, '/t/acme/emails', c => ({ status: 200, body: c.method === 'GET' ? { template: 'verify_email', enabled: true, subject: 'Saved', body: 'Body' } : { status: 'retry', reason: 'temporary provider failure', execution_id: 'ex-email' } }))
+ await wrapper.findAll('button').find(b => b.text() === 'Send test of saved template')!.trigger('click'); await flushPromises()
+ expect(wrapper.text()).toContain('retry'); expect(wrapper.text()).toContain('temporary provider failure'); expect(wrapper.text()).toContain('ex-email'); wrapper.unmount()
+})

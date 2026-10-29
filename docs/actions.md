@@ -1,12 +1,14 @@
 # Actions
 
-zeroauthy runs tenant JavaScript for `post-login` and `credentials-exchange`.
+zeroauthy runs tenant JavaScript at seven supported triggers, including login,
+signup, password reset and custom email delivery.
 Use the console's Actions library to save a draft, wait for its build, deploy
 it, then add it to an ordered trigger flow. Saving alone does not change the
-running version. The Management API exposes fourteen operations under
+running version. The Management API exposes twenty-four operations under
 `/api/v2/actions`; see [the compatibility decision](compat/decisions.md#d-0053--plan-27-actions-contract-2026-10-27)
 and [verification record](superpowers/2026-10-27-plan-27-implementation-record.md).
-Other triggers and Action Modules are deferred to Plan 28.
+Actions II adds the triggers and Modules described below; see its
+[verification record](superpowers/2026-10-28-plan-28-implementation-record.md).
 
 ## Handlers and events
 
@@ -110,8 +112,9 @@ ID token. This is a deferred parity gap.
 ## Redirect and continue
 
 Check `api.redirect.canRedirect()` before `sendUserTo(url, {query})`.
-Redirects are available only for interactive browser authorization, never
-for device approval or token-endpoint grants. With `prompt=none`, an attempted
+Post-login redirects are available only for interactive browser authorization,
+never for device approval or token-endpoint grants. The reset-page trigger has
+its own ticket-bound redirect flow, described below. With `prompt=none`, an attempted
 redirect returns `interaction_required`; other unavailable redirects fail
 closed. The URL must be absolute HTTP(S).
 
@@ -179,8 +182,8 @@ automatically known to the redactor.
 `runtime: node22` is the API label; the host executes Node ≥22.13. Pure
 JavaScript registry dependencies support exact semver, empty version or
 `latest`; the latter two resolve to exact versions at build. Ranges, git,
-file, URL/tarball specs, per-dependency `registry_url`, binding secrets and
-modules are refused. Native addons cannot load.
+file, URL/tarball specs, per-dependency `registry_url` and binding secrets
+are refused. Modules use their own pinned dependency builds. Native addons cannot load.
 
 Saving queues `pending → building → built|failed`. Deploy requires a built
 draft, creates an immutable version, and snapshots code, resolved dependencies
@@ -224,6 +227,8 @@ Configure YAML `actions` or `ZEROAUTHY_ACTIONS__*` (see also
 | `build_timeout` | `2m` | npm install time limit |
 | `max_artifact_mb` | 50 | Installed/packed cap in decimal MB, range 1–50 |
 | `max_concurrent_builds` | 2 | Concurrent builds and, separately, resolvers per server |
+| `job_workers` | 2 | Durable Actions job workers per server |
+| `job_poll_interval` | `1s` | Delay when no due job is available |
 
 On Linux the default cache base is `$XDG_CACHE_HOME` or `$HOME/.cache`. Without
 either, startup warns and builds fail until `cache_dir` is set. Missing Node
@@ -289,7 +294,7 @@ each ready Action. A failed build can leave ordinary data applied; retry the
 seed. Legacy `Apply` rejects Action-bearing seeds.
 
 Memory, SQLite, PostgreSQL, MySQL and gRPC storage support Actions. Plugins
-must advertise Actions capability **2**; older plugins refuse startup.
+must advertise Actions capability **3**; older plugins refuse startup.
 Upgrade all plugin writers before running this server. Deleting a tenant
 removes its stored Actions, artifacts, executions, states and binding markers.
 Deleting an Action retains shared build artifacts until tenant deletion.
@@ -297,3 +302,143 @@ Deploy CLI round trips cover Actions/triggers in YAML and directory formats
 with generated/preserved credentials and secret keyword replacements;
 exported secret values are never required. Database connection migration is
 excluded from that demonstrated matrix.
+
+## Signup, password and email triggers
+
+| Trigger | Handler | When it runs | API members |
+|---|---|---|---|
+| `pre-user-registration` | `onExecutePreUserRegistration` | Before database or legacy custom-DB signup creates a user | `access.deny`, `validation.error`, metadata setters, cache |
+| `post-user-registration` | `onExecutePostUserRegistration` | Queued with the new signup user | Cache |
+| `post-change-password` | `onExecutePostChangePassword` | Queued with a hosted reset or Management password PATCH | Cache |
+| `password-reset-post-challenge` | `onExecutePostChallenge`, `onContinuePostChallenge` | Before the hosted new-password form | Deny, redirect, cache, `transaction.setResultUrl` |
+| `custom-email-provider` | `onExecuteCustomEmailProvider` | Queued instead of a provider transport when `custom` is enabled | Cache, `notification.retry`, `notification.drop` |
+
+Pre-registration receives the submitted profile without a user ID or password.
+Metadata setters merge validated metadata into the user insert. For a legacy
+custom database, `user_metadata` goes to the create script and `app_metadata`
+remains on the local user. Deny and validation stop signup before any insert or
+create script. Database signup returns HTTP 400 `ExtensibilityError`; deny uses
+`extensibility_error` and the supplied user message, while validation uses its
+code. Hosted signup displays the escaped message. Throws, timeouts and
+unsupported calls fail closed with a generic error and execution reference.
+Management user creation and bulk import do not run registration triggers.
+
+Post-change events include `last_password_reset`, recorded with the local
+password change. A custom-DB script reporting no change queues no job. Bulk
+import and password-hash migration do not fire this trigger. New events omit
+password-like request fields and unavailable geo/security/authentication data.
+These firing/error defaults are local D-0054 choices where live upstream
+observation was unavailable.
+
+Opening a valid reset ticket runs its challenge before showing the password
+form. A completed pass and optional result URL are saved on the ticket; any
+browser holding that bearer ticket then skips the challenge. Deny/error leaves
+the ticket unpassed and unused; reopening tries again. POST checks current
+bindings and refuses an unpassed ticket, including bindings added after the
+form loaded. With no bindings the existing reset flow applies.
+
+Reset redirects resume through `/continue` on the original origin. State is
+single-use and bound to tenant, ticket hash, page-cookie hash and origin rather
+than a login session. `transaction.setResultUrl(url, {query})` overrides the
+post-reset destination; only absolute HTTPS or HTTP localhost is accepted.
+`authentication.challengeWith`, `challengeWithAny` and `prompt.render` remain
+unsupported and fail the reset closed. A passing challenge does not consume the
+ticket; a later reset attempt retains the existing ticket-consumption rules.
+
+## Durable jobs and custom email
+
+Non-blocking triggers snapshot bound Action versions, module versions and the
+event into an encrypted job in the same local transaction as the user/password
+change or email hand-off. No runner executes before commit. Jobs survive server
+restarts and can be claimed by any server sharing the store and master key.
+Workers claim one due job with a 60-second lease. Normally a job runs once;
+a worker crash or expired lease can cause another run, so external side effects
+must tolerate this at-least-once case.
+
+Post-registration/password jobs do not retry. Failure leaves an execution record
+and an operator log with its execution ID, without undoing the successful user
+operation. Custom-email Actions finish as sent unless they request retry/drop.
+Only the final notification call counts; reasons truncate to 1024 characters.
+Retry and uncaught errors/timeouts schedule at 30 seconds, 1, 2, 4 and 8 minutes,
+then fail after five retries. Drop is terminal, even if a later Action in the
+same attempt fails. An attempt in which an Action completed without asking to
+retry is never retried, because a retry would run that Action (and send the
+email) again; such a job is marked failed. A job envelope that cannot open is
+failed at once. Terminal jobs and executions
+expire after ten days. The console links an execution to its persisted job ID
+and attempt number through the operator-only local endpoint
+`GET /api/system/tenants/{tenant}/actions/executions/{id}/attempt` (204 for
+a non-job execution). This metadata is separate from the Auth0-compatible
+execution response; it does not claim a current queue status or future retry
+count. The pending cap is 10,000 jobs per tenant: registration
+and password changes still succeed with a logged drop; email send reports a
+provider failure.
+
+Configure an enabled `custom` email provider and bind an Action to
+`custom-email-provider`. As in Auth0, at most one Action can be bound to this
+trigger; a second binding is refused with 400 by the Management API, the seed
+and the console. There is no provider-transport fallback when that
+provider is enabled, and missing bindings are a provider configuration error.
+The Action receives rendered `event.notification` from/to/subject/html/text,
+locale and message type. Produced types are `verify_email`, `reset_email`,
+`welcome_email`, `blocked_account`, `stolen_credentials`; a test send uses
+`try_provider_configuration_email`. Ordinary send returns after enqueue, not
+after external delivery. Test send waits for the first attempt and queues no
+job. A disabled provider keeps the configured server mailer fallback.
+
+## Actions Modules
+
+Create reusable modules through `/api/v2/actions/modules` or the console.
+Saving changes the draft and queues its dependency build. Publishing requires
+a built draft and creates an immutable numbered version; unchanged publish is
+409, an unbuilt draft is 400, version-limit and in-use deletion are 412.
+Rollback copies a published version into the draft without publishing it.
+PATCH secrets replaces the whole list; values are write-only and encrypted.
+Module names are immutable and unique among visible modules in a tenant.
+The optional `api_version` input is accepted as opaque compatibility metadata
+without runtime effect; the execution runtime remains `node22`.
+
+```js
+// Module named greetings
+module.exports.greet = name => `${actions.secrets.PREFIX} ${name}`;
+// Importing Action, referencing an exact published module version
+const greetings = require('actions:greetings');
+```
+
+Each module has its own VM context, npm dependency tree and `actions.secrets`,
+and cannot require another `actions:*` module. The VM context separates
+secrets by convention only. It is not a security boundary. Action code,
+module code and npm dependencies of one tenant share that tenant's Node
+process, and code can reach the process's host realm (for example through
+`console`, `process`, `Buffer`, `require` or Node built-ins). From there it can
+read other Actions' and modules' secrets in the same tenant. Treat every
+Action, module and dependency in a tenant as one trust domain (D-0054). Known
+Action and module secrets are masked in captured logs. Module objects are
+evaluated once per importing Action version and module version; they are not
+shared across Actions. The tenant process remains the trust boundary described
+above: no server environment variables, no other tenant's processes, and file
+reads limited to the runner and that tenant's build root.
+
+Action references accept `{module_id, module_version_id}` or
+`{module_name, module_version_number}` and return both pairs. Deploy freezes
+them: republishing a module does not upgrade existing Action versions or queued
+jobs. Delete is refused while a draft or currently deployed Action references
+the module. Older Action versions/jobs retain hidden immutable tombstones after
+delete, so their pinned runs continue. Tombstones purge when their last pin is
+removed. A recreated name receives a new ID.
+
+Local limits: 100 modules per tenant, 100 versions per module, 10 modules per
+Action; module name 255 Unicode characters, source 65,536 characters and secret
+value 4096 bytes. These limits and the queue defaults are D-0054 choices.
+Seed modules publish before Actions resolve references by name/number; ownership
+is create-only, like seeded Actions. The pinned Deploy CLI supports modules in
+YAML and directory exports; see the implementation record for demonstrated
+matrix coverage and limitations. Its staged secret restoration can publish
+additional equivalent module versions at the destination. Migration comparison
+therefore ignores the module's latest-publication counter while checking exact
+Action version pins, source code and the imported private-secret runtime claim.
+
+Phone/SMS triggers remain for Plan 34, custom token exchange for Plan 35 and
+event streams for Plan 32. Password-hash migration and identifier/credential
+validation triggers also remain deferred. MFA and Forms APIs await their own
+plans; the seven-trigger catalogue does not claim those runtimes.

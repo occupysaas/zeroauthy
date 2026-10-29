@@ -44,9 +44,9 @@ func (p *procState) redactor() *customdb.Redactor {
 }
 
 // NewRunner returns the Actions runner Pool: one process per tenant that may
-// read only the tenant's extracted-build root, with the flow budget as the
-// call limit, and stderr lines masked with the secrets of the calls made in
-// that process (D-0023 masking) before they are logged.
+// read only the tenant's extracted-build root (Action and Module trees),
+// with the flow budget as the call limit, and stderr lines masked with all
+// Action and Module secrets carried by calls in that process (D-0023 masking).
 func NewRunner(cfg config.Actions, builds *build.Manager, log *slog.Logger) (*noderunner.Pool, error) {
 	if log == nil {
 		log = slog.Default()

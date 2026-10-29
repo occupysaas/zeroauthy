@@ -27,7 +27,7 @@
       "required_scopes": [
         "create:actions"
       ],
-      "request_shape": "{name,supported_triggers[1],code?,dependencies?,runtime?,secrets?,deploy?}; modules/registry_url refused (D-0053)",
+      "request_shape": "{name,supported_triggers[1],code?,dependencies?,runtime?,secrets?,deploy?,modules?}; registry_url refused (D-0053, D-0054)",
       "response_shape": "action object",
       "success_status": 201,
       "error_statuses": [
@@ -68,7 +68,7 @@
       "required_scopes": [
         "update:actions"
       ],
-      "request_shape": "{name?,supported_triggers?,code?,dependencies?,runtime?,secrets?}",
+      "request_shape": "{name?,supported_triggers?,code?,dependencies?,runtime?,secrets?,modules?}",
       "response_shape": "action object",
       "success_status": 200,
       "error_statuses": [
@@ -287,6 +287,230 @@
         "10-day retention"
       ],
       "source_url": "https://auth0.com/docs/api/management/v2/actions/get-execution",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/modules",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "query page,per_page; no paging when absent",
+      "response_shape": "{modules[],total,page,per_page}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-action-modules",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/actions/modules",
+      "required_scopes": [
+        "create:actions"
+      ],
+      "request_shape": "{name,code,secrets?,dependencies?,api_version?,publish?}",
+      "response_shape": "module object",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/post-action-module",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/modules/{id}",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "none",
+      "response_shape": "module object",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-action-module",
+      "evidence": "documented"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/actions/modules/{id}",
+      "required_scopes": [
+        "update:actions"
+      ],
+      "request_shape": "{code?,secrets?,dependencies?}; name immutable; secrets replace list",
+      "response_shape": "module object",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/patch-action-module",
+      "evidence": "documented"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/actions/modules/{id}",
+      "required_scopes": [
+        "delete:actions"
+      ],
+      "request_shape": "none",
+      "response_shape": "empty",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        412,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/delete-action-module",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/modules/{id}/actions",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "query page,per_page",
+      "response_shape": "{actions[],total,page,per_page}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-action-module-actions",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/actions/modules/{id}/rollback",
+      "required_scopes": [
+        "update:actions"
+      ],
+      "request_shape": "{module_version_id}; draft replaced only",
+      "response_shape": "module object",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/post-action-module-rollback",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/modules/{id}/versions",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "query page,per_page",
+      "response_shape": "{versions[],total,page,per_page}",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-action-module-versions",
+      "evidence": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/actions/modules/{id}/versions",
+      "required_scopes": [
+        "update:actions"
+      ],
+      "request_shape": "none; draft must be built",
+      "response_shape": "module version object",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        412,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/post-action-module-version",
+      "evidence": "documented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/actions/modules/{id}/versions/{versionId}",
+      "required_scopes": [
+        "read:actions"
+      ],
+      "request_shape": "none",
+      "response_shape": "module version object",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0054 module and pagination limits"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/actions/get-action-module-version",
       "evidence": "documented"
     }
   ],
@@ -575,7 +799,10 @@
           "note": "throws not supported by zeroauthy; fails closed"
         }
       ],
-      "source_url": "https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object"
+      "source_url": "https://auth0.com/docs/customize/actions/explore-triggers/signup-and-login-triggers/login-trigger/post-login-api-object",
+      "handler": "onExecutePostLogin",
+      "blocking": true,
+      "continue_handler": "onContinuePostLogin"
     },
     {
       "id": "credentials-exchange",
@@ -635,7 +862,273 @@
           "evidence": "documented"
         }
       ],
-      "source_url": "https://auth0.com/docs/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-api-object"
+      "source_url": "https://auth0.com/docs/customize/actions/explore-triggers/machine-to-machine-trigger/credentials-exchange-api-object",
+      "handler": "onExecuteCredentialsExchange",
+      "blocking": true
+    },
+    {
+      "id": "pre-user-registration",
+      "handler": "onExecutePreUserRegistration",
+      "blocking": true,
+      "event": [
+        "user",
+        "connection",
+        "client",
+        "request",
+        "request.body",
+        "tenant",
+        "transaction",
+        "secrets",
+        "custom_domain.domain"
+      ],
+      "api": [
+        {
+          "name": "access.deny",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "user.setAppMetadata",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "user.setUserMetadata",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "validation.error",
+          "support": "supported",
+          "evidence": "documented"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/customize/actions/reference/pre-user-registration/pre-user-registration-api-object",
+      "version": "v2"
+    },
+    {
+      "id": "post-user-registration",
+      "handler": "onExecutePostUserRegistration",
+      "blocking": false,
+      "event": [
+        "user",
+        "user.user_id",
+        "user.created_at",
+        "user.email_verified",
+        "user.user_metadata",
+        "user.app_metadata",
+        "connection",
+        "request",
+        "tenant",
+        "transaction",
+        "secrets"
+      ],
+      "api": [
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/customize/actions/reference/post-user-registration/post-user-registration-api-object",
+      "version": "v2"
+    },
+    {
+      "id": "post-change-password",
+      "handler": "onExecutePostChangePassword",
+      "blocking": false,
+      "event": [
+        "user",
+        "user.user_id",
+        "user.email",
+        "user.email_verified",
+        "user.username",
+        "user.phone_number",
+        "user.phone_verified",
+        "user.last_password_reset",
+        "connection",
+        "request",
+        "tenant",
+        "secrets"
+      ],
+      "api": [
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/customize/actions/reference/post-change-password/post-change-password-api-object",
+      "version": "v2"
+    },
+    {
+      "id": "password-reset-post-challenge",
+      "handler": "onExecutePostChallenge",
+      "blocking": true,
+      "event": [
+        "user",
+        "connection",
+        "client",
+        "request",
+        "tenant",
+        "transaction",
+        "transaction.locale",
+        "transaction.correlation_id",
+        "secrets"
+      ],
+      "api": [
+        {
+          "name": "access.deny",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "authentication.challengeWith",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed (D-0054)"
+        },
+        {
+          "name": "authentication.challengeWithAny",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed (D-0054)"
+        },
+        {
+          "name": "redirect.sendUserTo",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "redirect.encodeToken",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "redirect.validateToken",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "redirect.canRedirect",
+          "support": "supported",
+          "evidence": "local",
+          "note": "Plan 27 helper reused locally; absent from reset API reference (D-0054)"
+        },
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "prompt.render",
+          "support": "unsupported",
+          "evidence": "local",
+          "note": "throws not supported by zeroauthy; fails closed (D-0054)"
+        },
+        {
+          "name": "transaction.setResultUrl",
+          "support": "supported",
+          "evidence": "documented"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/customize/actions/reference/password-reset-post-challenge/password-reset-post-challenge-api-object",
+      "continue_handler": "onContinuePostChallenge"
+    },
+    {
+      "id": "custom-email-provider",
+      "handler": "onExecuteCustomEmailProvider",
+      "blocking": false,
+      "event": [
+        "notification.from",
+        "notification.to",
+        "notification.subject",
+        "notification.html",
+        "notification.text",
+        "notification.locale",
+        "notification.message_type",
+        "user",
+        "client",
+        "tenant",
+        "tenant.friendly_name",
+        "tenant.support_email",
+        "request",
+        "connection",
+        "secrets"
+      ],
+      "api": [
+        {
+          "name": "cache.get",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.set",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "cache.delete",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "notification.retry",
+          "support": "supported",
+          "evidence": "documented"
+        },
+        {
+          "name": "notification.drop",
+          "support": "supported",
+          "evidence": "documented"
+        }
+      ],
+      "source_url": "https://auth0.com/docs/customize/actions/reference/custom-email-provider/custom-email-provider-api-object"
     }
   ],
   "limits": {
@@ -647,6 +1140,7 @@
     "secret_value_max": 4096,
     "dependencies_max": 50,
     "bindings_per_trigger_max": 20,
+    "custom_email_provider_bindings_max": 1,
     "flow_budget_seconds": 20,
     "artifact_bytes_max": 50000000,
     "cache_entries_max": 20,
@@ -662,7 +1156,16 @@
     "transaction_metadata_key_max": 64,
     "transaction_metadata_value_bytes_max": 8192,
     "transaction_metadata_total_bytes_max": 16384,
-    "console_log_chars_per_action": 256
+    "console_log_chars_per_action": 256,
+    "module_code_chars": 65536,
+    "module_name_chars": 255,
+    "module_versions": 100,
+    "modules_per_tenant": 100,
+    "modules_per_action": 10,
+    "job_lease_seconds": 60,
+    "job_pending_per_tenant": 10000,
+    "email_retries": 5,
+    "notification_reason_chars": 1024
   },
   "limit_sources": {
     "code_bytes": "https://auth0.com/docs/customize/actions/limitations",
@@ -673,6 +1176,7 @@
     "secret_value_max": "https://auth0.com/docs/customize/actions/limitations",
     "dependencies_max": "D-0053",
     "bindings_per_trigger_max": "D-0053",
+    "custom_email_provider_bindings_max": "https://auth0.com/docs/customize/email/configure-a-custom-email-provider/configure-a-custom-email-provider-with-terraform",
     "flow_budget_seconds": "https://auth0.com/docs/customize/actions/limitations",
     "artifact_bytes_max": "D-0053",
     "cache_entries_max": "https://auth0.com/docs/customize/actions/limitations",
@@ -688,6 +1192,49 @@
     "transaction_metadata_key_max": "https://auth0.com/docs/customize/actions/limitations",
     "transaction_metadata_value_bytes_max": "https://auth0.com/docs/customize/actions/limitations",
     "transaction_metadata_total_bytes_max": "https://auth0.com/docs/customize/actions/limitations",
-    "console_log_chars_per_action": "https://auth0.com/docs/customize/actions/limitations"
-  }
+    "console_log_chars_per_action": "https://auth0.com/docs/customize/actions/limitations",
+    "module_code_chars": "https://auth0.com/docs/api/management/v2/actions/post-action-module",
+    "module_name_chars": "https://auth0.com/docs/api/management/v2/actions/post-action-module",
+    "module_versions": "D-0054",
+    "modules_per_tenant": "D-0054",
+    "modules_per_action": "D-0054",
+    "job_lease_seconds": "D-0054",
+    "job_pending_per_tenant": "D-0054",
+    "email_retries": "https://auth0.com/docs/customize/actions/reference/custom-email-provider/custom-email-provider-api-object",
+    "notification_reason_chars": "https://auth0.com/docs/customize/actions/reference/custom-email-provider/custom-email-provider-api-object"
+  },
+  "deferred_triggers": [
+    {
+      "id": "send-phone-message",
+      "plan": "34"
+    },
+    {
+      "id": "custom-phone-provider",
+      "plan": "34"
+    },
+    {
+      "id": "custom-token-exchange",
+      "plan": "35"
+    },
+    {
+      "id": "event-stream",
+      "plan": "32"
+    },
+    {
+      "id": "password-hash-migration",
+      "plan": "deferred"
+    },
+    {
+      "id": "login-post-identifier",
+      "plan": "deferred"
+    },
+    {
+      "id": "signup-post-identifier",
+      "plan": "deferred"
+    },
+    {
+      "id": "post-credential-validation",
+      "plan": "deferred"
+    }
+  ]
 }

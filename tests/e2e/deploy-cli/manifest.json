@@ -199,10 +199,10 @@
     },
     {
       "name": "actionModules",
-      "status": "excluded",
-      "owner": "roadmap: Actions milestone",
-      "reason": "Action modules are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 28",
+      "reason": "Action modules and canonical name/version references migrate in all four format/credential cells",
+      "fixture": "fixtures/action-modules.json"
     },
     {
       "name": "triggers",
@@ -454,6 +454,12 @@
       "path": "certificate",
       "rule": "read-only",
       "reason": "Target-local identity, proof or serving state; never imported as ownership evidence"
+    },
+    {
+      "resource": "actionModules",
+      "path": "latest_version_number",
+      "rule": "read-only",
+      "reason": "Deploy CLI republishes unchanged module drafts during repeated private-secret injection; Action pins retain strict module name/version comparisons and execute that pinned version after import."
     }
   ]
 }

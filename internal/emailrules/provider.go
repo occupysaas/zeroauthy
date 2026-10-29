@@ -45,16 +45,11 @@ func ValidateProvider(raw map[string]json.RawMessage, current *store.EmailProvid
 	if _, ok := providerCredentials[name]; !ok {
 		return ErrInvalidProvider
 	}
-	enabled := false
 	if v, ok := raw["enabled"]; ok {
+		var enabled bool
 		if json.Unmarshal(v, &enabled) != nil {
 			return ErrInvalidProvider
 		}
-	} else if current != nil {
-		enabled = current.Enabled
-	}
-	if name == "custom" && enabled {
-		return ErrInvalidProvider
 	}
 	from := ""
 	if v, ok := raw["default_from_address"]; ok && string(v) != "null" {

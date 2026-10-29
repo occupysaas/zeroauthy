@@ -82,3 +82,23 @@ func (r resetTickets) DeleteExpired(_ context.Context, before time.Time) (int, e
 	}
 	return n, nil
 }
+
+// MarkChallengePassed does not consume the bearer ticket or revive expired tickets.
+func (r resetTickets) MarkChallengePassed(_ context.Context, tenantID, hash string, at time.Time, resultURL string) error {
+	r.s.lock()
+	defer r.s.unlock()
+	t, ok := r.findByHash(tenantID, hash)
+	if !ok {
+		return store.ErrNotFound
+	}
+	if t.UsedAt != nil {
+		return store.ErrAlreadyUsed
+	}
+	if !t.ExpiresAt.After(at) {
+		return store.ErrNotFound
+	}
+	v := at
+	t.ChallengePassedAt = &v
+	t.ChallengeResultURL = resultURL
+	return nil
+}

@@ -16,6 +16,7 @@ import (
 // Action and Trigger use the public Management API shape. Seed Action names
 // and existing nonempty binding lists are create-only in both seed modes.
 type Action struct {
+	Modules           []ActionModuleRef  `yaml:"modules"`
 	Name              string             `yaml:"name"`
 	SupportedTriggers []ActionTrigger    `yaml:"supported_triggers"`
 	Code              string             `yaml:"code"`
@@ -45,7 +46,7 @@ type ActionRef struct {
 }
 
 func (a Action) draft(tenantID, id string, now time.Time, w keys.Wrapper) (*store.Action, error) {
-	out := &store.Action{TenantID: tenantID, ID: id, Name: a.Name, Code: a.Code, Runtime: a.Runtime, Dependencies: a.Dependencies, CreatedAt: now, UpdatedAt: now}
+	out := &store.Action{TenantID: tenantID, ID: id, Name: a.Name, Code: a.Code, Runtime: a.Runtime, Modules: moduleRefs(a.Modules), Dependencies: a.Dependencies, CreatedAt: now, UpdatedAt: now}
 	if len(a.SupportedTriggers) != 1 {
 		return nil, fmt.Errorf("Action %q requires exactly one supported trigger", a.Name)
 	}
@@ -67,13 +68,14 @@ func (a Action) draft(tenantID, id string, now time.Time, w keys.Wrapper) (*stor
 }
 func validateActions(in *Tenant) error {
 	var errs []error
+	errs = append(errs, validateModules(in))
 	names := map[string]bool{}
 	for _, a := range in.Actions {
 		if names[a.Name] {
 			errs = append(errs, fmt.Errorf("duplicate Action %q", a.Name))
 		}
 		names[a.Name] = true
-		draft := &store.Action{Name: a.Name, Code: a.Code, Runtime: a.Runtime, Dependencies: a.Dependencies}
+		draft := &store.Action{Name: a.Name, Code: a.Code, Runtime: a.Runtime, Modules: moduleRefs(a.Modules), Dependencies: a.Dependencies}
 		if len(a.SupportedTriggers) != 1 {
 			errs = append(errs, fmt.Errorf("Action %q requires one supported trigger", a.Name))
 		} else {
@@ -101,7 +103,7 @@ func validateActions(in *Tenant) error {
 }
 func hasActions(f *File) bool {
 	for _, t := range f.Tenants {
-		if len(t.Actions) > 0 || len(t.Triggers) > 0 {
+		if len(t.Modules) > 0 || len(t.Actions) > 0 || len(t.Triggers) > 0 {
 			return true
 		}
 	}
@@ -128,6 +130,9 @@ func ApplyWithActions(ctx context.Context, st store.Store, f *File, now func() t
 		}
 		if tn.Origin == store.OriginAPI {
 			continue
+		}
+		if err := applyModules(ctx, st, &in, tn.ID, now, w, engine); err != nil {
+			return err
 		}
 		for _, a := range in.Actions {
 			if _, err := st.Actions().GetActionByName(ctx, tn.ID, a.Name); err == nil {

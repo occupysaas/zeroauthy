@@ -105,6 +105,23 @@ service StoreService {
   rpc ActionsConsumeContinue(ActionsRequest) returns (ActionsResponse);
   rpc ActionsPurgeContinue(ActionsRequest) returns (ActionsResponse);
 
+  // Capability 3: Actions II modules, immutable pins and durable jobs.
+  rpc ActionsCreateModule(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsGetModule(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsGetModuleByName(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsUpdateModule(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsDeleteModule(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsListModules(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsPublishModule(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsRollbackModule(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsListModuleVersions(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsGetModuleVersion(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsModuleUsers(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsEnqueueJob(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsClaimJobs(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsFinishJob(ActionsRequest) returns (ActionsResponse);
+  rpc ActionsPurgeJobs(ActionsRequest) returns (ActionsResponse);
+
   rpc Ping(PingRequest) returns (Result);
   // Plan 23 capability: lossless canonical/origin fields and registry/TLS RPCs.
   rpc MicrosoftFederationSupported(MicrosoftFederationCapabilitiesRequest) returns (Result);
@@ -288,6 +305,7 @@ service StoreService {
   rpc RefreshTokensRevokeByUser(RevokeRequest) returns (CountResult);
   rpc RefreshTokensDeleteExpired(DeleteExpiredRequest) returns (CountResult);
 
+  rpc PasswordResetTicketsMarkChallengePassed(PasswordResetTicketChallengeRequest) returns (Result);
   rpc PasswordResetTicketsCreate(PasswordResetTicketWrite) returns (Result);
   rpc PasswordResetTicketsGetByTokenHash(ScopedKey) returns (PasswordResetTicketResult);
   rpc PasswordResetTicketsConsume(ConsumeRequest) returns (PasswordResetTicketResult);
@@ -342,6 +360,7 @@ message Error {
     KIND_RBAC_UNAVAILABLE = 8; // store.ErrRBACUnavailable
     KIND_ACTIONS_UNAVAILABLE = 9; // store.ErrActionsUnavailable
     KIND_BUILD_NOT_READY = 10; // store.ErrBuildNotReady
+    KIND_PRECONDITION = 11; // store.ErrPrecondition
     KIND_FEDERATION_UNAVAILABLE = 7; // store.ErrFederationUnavailable
   }
   Kind kind = 1;
@@ -625,6 +644,7 @@ message User {
   optional bytes app_metadata_json = 18; // absent = nil map
   string phone_number = 19; bool phone_verified = 20; string last_ip = 21;
   int64 version = 22;
+  google.protobuf.Timestamp last_password_reset = 23; // absent = nil
 }
 
 message LoginSession {
@@ -694,6 +714,8 @@ message PasswordResetTicket {
   google.protobuf.Timestamp created_at = 10;
   string result_url = 11; bool include_email_in_redirect = 12; bool mark_email_verified = 13;
   string origin = 14;
+  google.protobuf.Timestamp challenge_passed_at = 15; // absent = nil
+  string challenge_result_url = 16;
 }
 
 message EmailVerificationTicket {
@@ -884,6 +906,10 @@ message RefreshTokensRotateRequest {
   google.protobuf.Timestamp at = 5; google.protobuf.Duration leeway = 6;
 }
 
+message PasswordResetTicketChallengeRequest {
+  string tx_id = 1; string tenant_id = 2; string token_hash = 3;
+  google.protobuf.Timestamp passed_at = 4; string result_url = 5;
+}
 message PasswordResetTicketWrite { string tx_id = 1; PasswordResetTicket value = 2; }
 message PasswordResetTicketResult { Error error = 1; PasswordResetTicket value = 2; }
 message EmailVerificationTicketWrite { string tx_id = 1; EmailVerificationTicket value = 2; }
@@ -1029,10 +1055,12 @@ message ActionMsg {
   repeated ActionDependency dependencies=7; repeated ActionSecretMsg secrets=8;
   string draft_build_id=9; string deployed_version_id=10;
   google.protobuf.Timestamp created_at=11; google.protobuf.Timestamp updated_at=12;
+  repeated ActionModuleRefMsg modules=13;
 }
 message ActionVersionMsg {
   string tenant_id=1; string action_id=2; string id=3; int64 number=4; string code=5; string runtime=6; string build_id=7;
   repeated ActionDependency dependencies=8; repeated ActionSecretMsg secrets=9; google.protobuf.Timestamp created_at=10;
+  repeated ActionModuleRefMsg modules=11;
 }
 message ActionBuildMsg {
   string tenant_id=1; string id=2; string status=3;
@@ -1045,6 +1073,7 @@ message ActionBindingMsg {
 }
 message ActionBoundMsg { ActionBindingMsg binding=1; ActionMsg action=2; ActionVersionMsg version=3; }
 message ActionExecutionResultMsg {
+  string job_id=6; int32 job_attempt=7;
   string action_name=1; string error_id=2; string error_msg=3;
   google.protobuf.Timestamp started_at=4; google.protobuf.Timestamp ended_at=5;
 }
@@ -1064,15 +1093,44 @@ message ActionsRequest {
   ActionMsg action=14; ActionBuildMsg build=15; ActionExecutionMsg execution=16; ActionContinueMsg continue_state=17;
   repeated ActionBindingMsg bindings=18;
   string session_id=19;
+  ActionModuleMsg module=20; ActionJobMsg job=21;
+  google.protobuf.Duration lease=22; int64 max_jobs=23;
+  google.protobuf.Timestamp lease_until=24;
 }
 message ActionsResponse {
   Error error=1; ActionMsg action=2; repeated ActionMsg actions=3; int64 total=4;
   ActionVersionMsg version=5; repeated ActionVersionMsg versions=6; ActionBuildMsg build=7;
   repeated ActionBoundMsg bound=8; ActionExecutionMsg execution=9; ActionContinueMsg continue_state=10; int64 count=11;
   bool bindings_initialized=12;
+  ActionModuleMsg module=13; repeated ActionModuleMsg modules=14;
+  ActionModuleVersionMsg module_version=15; repeated ActionModuleVersionMsg module_versions=16;
+  repeated ActionModuleUserMsg module_users=17; repeated ActionJobMsg jobs=18;
 }
 message ActionsArtifactChunk {
   Error error=1; string tx_id=2; string tenant_id=3; string build_id=4;
   bytes data=5; int64 total_size=6; bytes sha256=7;
 }
 message ActionsCapabilitiesResult { Error error=1; uint32 version=2; }
+
+// Module references are resolved into all four fields before persistence.
+message ActionModuleRefMsg {
+  string module_id=1; string module_name=2; string version_id=3; int64 version_number=4;
+}
+message ActionModuleMsg {
+  string tenant_id=1; string id=2; string name=3; string code=4;
+  repeated ActionDependency dependencies=5; repeated ActionSecretMsg secrets=6;
+  string draft_build_id=7; int64 latest_version_number=8; bool all_changes_published=9;
+  google.protobuf.Timestamp created_at=10; google.protobuf.Timestamp updated_at=11;
+}
+message ActionModuleVersionMsg {
+  string tenant_id=1; string module_id=2; string id=3; int64 number=4; string code=5; string build_id=6;
+  repeated ActionDependency dependencies=7; repeated ActionSecretMsg secrets=8;
+  google.protobuf.Timestamp created_at=9;
+}
+message ActionModuleUserMsg { ActionMsg action=1; bool in_draft=2; bool in_deployed=3; }
+message ActionJobMsg {
+  string tenant_id=1; string id=2; string trigger=3; string status=4; bytes sealed=5; int64 attempts=6;
+  google.protobuf.Timestamp next_at=7; google.protobuf.Timestamp lease_until=8;
+  google.protobuf.Timestamp created_at=9; google.protobuf.Timestamp updated_at=10;
+  repeated string execution_ids=11; repeated string module_version_ids=12;
+}

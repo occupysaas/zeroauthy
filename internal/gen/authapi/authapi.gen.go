@@ -43,6 +43,36 @@ func (e DeviceCodeResponseInterval) Valid() bool {
 	}
 }
 
+// Defines values for ExtensibilityErrorName.
+const (
+	ExtensibilityErrorNameExtensibilityError ExtensibilityErrorName = "ExtensibilityError"
+)
+
+// Valid indicates whether the value is a known member of the ExtensibilityErrorName enum.
+func (e ExtensibilityErrorName) Valid() bool {
+	switch e {
+	case ExtensibilityErrorNameExtensibilityError:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExtensibilityErrorStatusCode.
+const (
+	N400 ExtensibilityErrorStatusCode = 400
+)
+
+// Valid indicates whether the value is a known member of the ExtensibilityErrorStatusCode enum.
+func (e ExtensibilityErrorStatusCode) Valid() bool {
+	switch e {
+	case N400:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PushedAuthorizationResponseExpiresIn.
 const (
 	N30 PushedAuthorizationResponseExpiresIn = 30
@@ -120,6 +150,20 @@ type DeviceCodeResponseExpiresIn int
 
 // DeviceCodeResponseInterval defines model for DeviceCodeResponse.Interval.
 type DeviceCodeResponseInterval int
+
+// ExtensibilityError Registration Action failure or denial (local compatibility decision D-0054).
+type ExtensibilityError struct {
+	Code        string                       `json:"code"`
+	Description string                       `json:"description"`
+	Name        ExtensibilityErrorName       `json:"name"`
+	StatusCode  ExtensibilityErrorStatusCode `json:"statusCode"`
+}
+
+// ExtensibilityErrorName defines model for ExtensibilityError.Name.
+type ExtensibilityErrorName string
+
+// ExtensibilityErrorStatusCode defines model for ExtensibilityError.StatusCode.
+type ExtensibilityErrorStatusCode int
 
 // JWK defines model for JWK.
 type JWK struct {
@@ -414,6 +458,11 @@ type AuthorizeParams struct {
 
 	// Invitation Not supported yet; rejected.
 	Invitation *string `form:"invitation,omitempty" json:"invitation,omitempty"`
+}
+
+// DbconnectionsSignup400JSONResponseBody defines parameters for DbconnectionsSignup.
+type DbconnectionsSignup400JSONResponseBody struct {
+	union json.RawMessage
 }
 
 // OidcLogoutParams defines parameters for OidcLogout.
@@ -935,6 +984,68 @@ func (a UserInfo) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(object)
+}
+
+// AsOAuthError returns the union data inside the DbconnectionsSignup400JSONResponseBody as a OAuthError
+func (t DbconnectionsSignup400JSONResponseBody) AsOAuthError() (OAuthError, error) {
+	var body OAuthError
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOAuthError overwrites any union data inside the DbconnectionsSignup400JSONResponseBody as the provided OAuthError
+func (t *DbconnectionsSignup400JSONResponseBody) FromOAuthError(v OAuthError) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOAuthError performs a merge with any union data inside the DbconnectionsSignup400JSONResponseBody, using the provided OAuthError
+func (t *DbconnectionsSignup400JSONResponseBody) MergeOAuthError(v OAuthError) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtensibilityError returns the union data inside the DbconnectionsSignup400JSONResponseBody as a ExtensibilityError
+func (t DbconnectionsSignup400JSONResponseBody) AsExtensibilityError() (ExtensibilityError, error) {
+	var body ExtensibilityError
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtensibilityError overwrites any union data inside the DbconnectionsSignup400JSONResponseBody as the provided ExtensibilityError
+func (t *DbconnectionsSignup400JSONResponseBody) FromExtensibilityError(v ExtensibilityError) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtensibilityError performs a merge with any union data inside the DbconnectionsSignup400JSONResponseBody, using the provided ExtensibilityError
+func (t *DbconnectionsSignup400JSONResponseBody) MergeExtensibilityError(v ExtensibilityError) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t DbconnectionsSignup400JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *DbconnectionsSignup400JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
 }
 
 // ServerInterface represents all server handlers.

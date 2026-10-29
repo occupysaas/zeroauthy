@@ -16,9 +16,11 @@ type users struct{ s *Store }
 
 func (s *Store) Users() store.Users { return users{s} }
 
-const userCols = `tenant_id, user_id, email, email_verified, username, name, nickname, picture, given_name, family_name,
+const userColsBeforeActionsII = `tenant_id, user_id, email, email_verified, username, name, nickname, picture, given_name, family_name,
  user_metadata, blocked, identities, last_login, logins_count, created_at, updated_at, app_metadata,
  phone_number, phone_verified, last_ip, version`
+
+const userCols = userColsBeforeActionsII + `, last_password_reset`
 
 func (r users) Create(ctx context.Context, u *store.User) error {
 	args, err := userArgs(u)
@@ -26,7 +28,7 @@ func (r users) Create(ctx context.Context, u *store.User) error {
 		return err
 	}
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
+		if _, err := tx.exec(ctx, `INSERT INTO users (`+userCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, args...); err != nil {
 			return tx.conflict(err)
 		}
 		if err := putLogins(ctx, tx, u, false); err != nil {
@@ -153,10 +155,10 @@ func (r users) Update(ctx context.Context, u *store.User) error {
 		// still counts.
 		res, err := tx.exec(ctx, `UPDATE users SET email=?, email_verified=?, username=?, name=?, nickname=?, picture=?,
  given_name=?, family_name=?, user_metadata=?, blocked=?, identities=?, created_at=?, updated_at=?, app_metadata=?,
- phone_number=?, phone_verified=?, version=version+?
+ phone_number=?, phone_verified=?, last_password_reset=?, version=version+?
  WHERE tenant_id=? AND user_id=?`,
 			args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12],
-			args[15], args[16], args[17], args[18], args[19], bump, u.TenantID, u.UserID)
+			args[15], args[16], args[17], args[18], args[19], args[22], bump, u.TenantID, u.UserID)
 		if err != nil {
 			return tx.conflict(err)
 		}
@@ -381,11 +383,11 @@ func (r users) Delete(ctx context.Context, tenantID, userID string) error {
 func scanUser(row scanner) (*store.User, error) {
 	var u store.User
 	var meta, ids, appMeta string
-	var last sql.NullInt64
+	var last, passwordReset sql.NullInt64
 	var created, updated int64
 	if err := row.Scan(&u.TenantID, &u.UserID, &u.Email, &u.EmailVerified, &u.Username, &u.Name, &u.Nickname, &u.Picture,
 		&u.GivenName, &u.FamilyName, &meta, &u.Blocked, &ids, &last, &u.LoginsCount, &created, &updated, &appMeta,
-		&u.PhoneNumber, &u.PhoneVerified, &u.LastIP, &u.Version); err != nil {
+		&u.PhoneNumber, &u.PhoneVerified, &u.LastIP, &u.Version, &passwordReset); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(appMeta, &u.AppMetadata); err != nil {
@@ -398,6 +400,7 @@ func scanUser(row scanner) (*store.User, error) {
 		return nil, err
 	}
 	u.LastLogin = fromNullMicros(last)
+	u.LastPasswordReset = fromNullMicros(passwordReset)
 	u.CreatedAt, u.UpdatedAt = fromMicros(created), fromMicros(updated)
 	return &u, nil
 }
@@ -417,5 +420,5 @@ func userArgs(u *store.User) ([]any, error) {
 	}
 	return []any{u.TenantID, u.UserID, u.Email, u.EmailVerified, u.Username, u.Name, u.Nickname, u.Picture, u.GivenName,
 		u.FamilyName, meta, u.Blocked, ids, nullMicros(u.LastLogin), u.LoginsCount, micros(u.CreatedAt), micros(u.UpdatedAt), appMeta,
-		u.PhoneNumber, u.PhoneVerified, u.LastIP, int64(0)}, nil
+		u.PhoneNumber, u.PhoneVerified, u.LastIP, int64(0), nullMicros(u.LastPasswordReset)}, nil
 }

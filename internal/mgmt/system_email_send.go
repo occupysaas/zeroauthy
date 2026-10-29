@@ -55,7 +55,13 @@ func (h *Handlers) TestEmail(w http.ResponseWriter, r *http.Request, tenantName 
 	if !h.claimSystemEmail(w, r, t, c, "test", 10*time.Minute, 3) {
 		return
 	}
-	if err = h.EmailService.SendTest(r.Context(), t.ID, name, operator.Email); err != nil {
+	outcome, err := h.EmailService.SendTestOutcome(r.Context(), t.ID, name, operator.Email)
+	if outcome != nil {
+		h.auditSystemEmail(r, t, "test email", name, outcome.Status)
+		writeJSON(w, http.StatusOK, outcome)
+		return
+	}
+	if err != nil {
 		h.auditSystemEmail(r, t, "test email", name, "failed")
 		WriteError(w, http.StatusBadGateway, "email_delivery_failed", "The email provider did not accept the test message")
 		return

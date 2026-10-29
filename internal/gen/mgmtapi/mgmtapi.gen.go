@@ -117,10 +117,60 @@ func (e ActionCreateRuntime) Valid() bool {
 	}
 }
 
+// Defines values for ActionModuleStatus.
+const (
+	ActionModuleStatusBuilding ActionModuleStatus = "building"
+	ActionModuleStatusBuilt    ActionModuleStatus = "built"
+	ActionModuleStatusFailed   ActionModuleStatus = "failed"
+	ActionModuleStatusPackaged ActionModuleStatus = "packaged"
+	ActionModuleStatusPending  ActionModuleStatus = "pending"
+	ActionModuleStatusRetrying ActionModuleStatus = "retrying"
+)
+
+// Valid indicates whether the value is a known member of the ActionModuleStatus enum.
+func (e ActionModuleStatus) Valid() bool {
+	switch e {
+	case ActionModuleStatusBuilding:
+		return true
+	case ActionModuleStatusBuilt:
+		return true
+	case ActionModuleStatusFailed:
+		return true
+	case ActionModuleStatusPackaged:
+		return true
+	case ActionModuleStatusPending:
+		return true
+	case ActionModuleStatusRetrying:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ActionTriggerBindingPolicy.
+const (
+	TriggerBound ActionTriggerBindingPolicy = "trigger-bound"
+)
+
+// Valid indicates whether the value is a known member of the ActionTriggerBindingPolicy enum.
+func (e ActionTriggerBindingPolicy) Valid() bool {
+	switch e {
+	case TriggerBound:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ActionTriggerId.
 const (
-	ActionTriggerIdCredentialsExchange ActionTriggerId = "credentials-exchange"
-	ActionTriggerIdPostLogin           ActionTriggerId = "post-login"
+	ActionTriggerIdCredentialsExchange        ActionTriggerId = "credentials-exchange"
+	ActionTriggerIdCustomEmailProvider        ActionTriggerId = "custom-email-provider"
+	ActionTriggerIdPasswordResetPostChallenge ActionTriggerId = "password-reset-post-challenge"
+	ActionTriggerIdPostChangePassword         ActionTriggerId = "post-change-password"
+	ActionTriggerIdPostLogin                  ActionTriggerId = "post-login"
+	ActionTriggerIdPostUserRegistration       ActionTriggerId = "post-user-registration"
+	ActionTriggerIdPreUserRegistration        ActionTriggerId = "pre-user-registration"
 )
 
 // Valid indicates whether the value is a known member of the ActionTriggerId enum.
@@ -128,7 +178,17 @@ func (e ActionTriggerId) Valid() bool {
 	switch e {
 	case ActionTriggerIdCredentialsExchange:
 		return true
+	case ActionTriggerIdCustomEmailProvider:
+		return true
+	case ActionTriggerIdPasswordResetPostChallenge:
+		return true
+	case ActionTriggerIdPostChangePassword:
+		return true
 	case ActionTriggerIdPostLogin:
+		return true
+	case ActionTriggerIdPostUserRegistration:
+		return true
+	case ActionTriggerIdPreUserRegistration:
 		return true
 	default:
 		return false
@@ -2550,6 +2610,30 @@ func (e UsersExportJobCreateFormat) Valid() bool {
 	}
 }
 
+// Defines values for TestTenantEmail200JSONResponseBodyStatus.
+const (
+	TestTenantEmail200JSONResponseBodyStatusDrop   TestTenantEmail200JSONResponseBodyStatus = "drop"
+	TestTenantEmail200JSONResponseBodyStatusFailed TestTenantEmail200JSONResponseBodyStatus = "failed"
+	TestTenantEmail200JSONResponseBodyStatusRetry  TestTenantEmail200JSONResponseBodyStatus = "retry"
+	TestTenantEmail200JSONResponseBodyStatusSent   TestTenantEmail200JSONResponseBodyStatus = "sent"
+)
+
+// Valid indicates whether the value is a known member of the TestTenantEmail200JSONResponseBodyStatus enum.
+func (e TestTenantEmail200JSONResponseBodyStatus) Valid() bool {
+	switch e {
+	case TestTenantEmail200JSONResponseBodyStatusDrop:
+		return true
+	case TestTenantEmail200JSONResponseBodyStatusFailed:
+		return true
+	case TestTenantEmail200JSONResponseBodyStatusRetry:
+		return true
+	case TestTenantEmail200JSONResponseBodyStatusSent:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetHooksParamsTriggerId.
 const (
 	GetHooksParamsTriggerIdCredentialsExchange  GetHooksParamsTriggerId = "credentials-exchange"
@@ -2597,6 +2681,7 @@ type Action struct {
 	DeployedVersion   *ActionVersion     `json:"deployed_version,omitempty"`
 	Errors            *[]string          `json:"errors,omitempty"`
 	Id                string             `json:"id"`
+	Modules           []ActionModuleRef  `json:"modules"`
 	Name              string             `json:"name"`
 	Runtime           ActionRuntime      `json:"runtime"`
 	Secrets           []ActionSecret     `json:"secrets"`
@@ -2660,6 +2745,7 @@ type ActionCreate struct {
 	Code              *string              `json:"code,omitempty"`
 	Dependencies      *[]ActionDependency  `json:"dependencies,omitempty"`
 	Deploy            *bool                `json:"deploy,omitempty"`
+	Modules           *[]ActionModuleRef   `json:"modules,omitempty"`
 	Name              string               `json:"name"`
 	Runtime           *ActionCreateRuntime `json:"runtime,omitempty"`
 	Secrets           *[]ActionSecretInput `json:"secrets,omitempty"`
@@ -2698,6 +2784,102 @@ type ActionExecution struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// ActionModule defines model for ActionModule.
+type ActionModule struct {
+	ActionsUsingModuleTotal int                  `json:"actions_using_module_total"`
+	AllChangesPublished     bool                 `json:"all_changes_published"`
+	BuiltAt                 *time.Time           `json:"built_at,omitempty"`
+	Code                    string               `json:"code"`
+	CreatedAt               time.Time            `json:"created_at"`
+	Dependencies            []ActionDependency   `json:"dependencies"`
+	Errors                  *[]string            `json:"errors,omitempty"`
+	Id                      string               `json:"id"`
+	LatestVersion           *ActionModuleVersion `json:"latest_version,omitempty"`
+	LatestVersionNumber     *int                 `json:"latest_version_number,omitempty"`
+	Name                    string               `json:"name"`
+	Secrets                 []ActionSecret       `json:"secrets"`
+	Status                  ActionModuleStatus   `json:"status"`
+	UpdatedAt               time.Time            `json:"updated_at"`
+}
+
+// ActionModuleStatus defines model for ActionModule.Status.
+type ActionModuleStatus string
+
+// ActionModuleAction defines model for ActionModuleAction.
+type ActionModuleAction struct {
+	ActionId            string          `json:"action_id"`
+	ActionName          string          `json:"action_name"`
+	ModuleVersionId     string          `json:"module_version_id"`
+	ModuleVersionNumber int             `json:"module_version_number"`
+	SupportedTriggers   []ActionTrigger `json:"supported_triggers"`
+}
+
+// ActionModuleActionsPage defines model for ActionModuleActionsPage.
+type ActionModuleActionsPage struct {
+	Actions []ActionModuleAction `json:"actions"`
+	Page    int                  `json:"page"`
+	PerPage int                  `json:"per_page"`
+	Total   int                  `json:"total"`
+}
+
+// ActionModuleCreate defines model for ActionModuleCreate.
+type ActionModuleCreate struct {
+	// ApiVersion Opaque compatibility value; does not change the node22 module runtime.
+	ApiVersion   *string              `json:"api_version,omitempty"`
+	Code         string               `json:"code"`
+	Dependencies *[]ActionDependency  `json:"dependencies,omitempty"`
+	Name         string               `json:"name"`
+	Publish      *bool                `json:"publish,omitempty"`
+	Secrets      *[]ActionSecretInput `json:"secrets,omitempty"`
+}
+
+// ActionModuleRef Supply a complete ID pair or name and version number pair. Responses include all four fields.
+type ActionModuleRef struct {
+	ModuleId            *string `json:"module_id,omitempty"`
+	ModuleName          *string `json:"module_name,omitempty"`
+	ModuleVersionId     *string `json:"module_version_id,omitempty"`
+	ModuleVersionNumber *int    `json:"module_version_number,omitempty"`
+}
+
+// ActionModuleRollback defines model for ActionModuleRollback.
+type ActionModuleRollback struct {
+	ModuleVersionId string `json:"module_version_id"`
+}
+
+// ActionModuleUpdate defines model for ActionModuleUpdate.
+type ActionModuleUpdate struct {
+	Code         *string              `json:"code,omitempty"`
+	Dependencies *[]ActionDependency  `json:"dependencies,omitempty"`
+	Secrets      *[]ActionSecretInput `json:"secrets,omitempty"`
+}
+
+// ActionModuleVersion defines model for ActionModuleVersion.
+type ActionModuleVersion struct {
+	Code          string             `json:"code"`
+	CreatedAt     time.Time          `json:"created_at"`
+	Dependencies  []ActionDependency `json:"dependencies"`
+	Id            string             `json:"id"`
+	ModuleId      string             `json:"module_id"`
+	Secrets       []ActionSecret     `json:"secrets"`
+	VersionNumber int                `json:"version_number"`
+}
+
+// ActionModuleVersionsPage defines model for ActionModuleVersionsPage.
+type ActionModuleVersionsPage struct {
+	Page     int                   `json:"page"`
+	PerPage  int                   `json:"per_page"`
+	Total    int                   `json:"total"`
+	Versions []ActionModuleVersion `json:"versions"`
+}
+
+// ActionModulesPage defines model for ActionModulesPage.
+type ActionModulesPage struct {
+	Modules []ActionModule `json:"modules"`
+	Page    int            `json:"page"`
+	PerPage int            `json:"per_page"`
+	Total   int            `json:"total"`
+}
+
 // ActionSecret defines model for ActionSecret.
 type ActionSecret struct {
 	Name      string    `json:"name"`
@@ -2731,9 +2913,13 @@ type ActionTestResponse struct {
 
 // ActionTrigger defines model for ActionTrigger.
 type ActionTrigger struct {
-	Id      ActionTriggerId `json:"id"`
-	Version *string         `json:"version,omitempty"`
+	BindingPolicy *ActionTriggerBindingPolicy `json:"binding_policy,omitempty"`
+	Id            ActionTriggerId             `json:"id"`
+	Version       *string                     `json:"version,omitempty"`
 }
+
+// ActionTriggerBindingPolicy defines model for ActionTrigger.BindingPolicy.
+type ActionTriggerBindingPolicy string
 
 // ActionTriggerId defines model for ActionTrigger.Id.
 type ActionTriggerId string
@@ -2748,6 +2934,7 @@ type ActionUpdate struct {
 	// Code At most 100000 UTF-8 bytes.
 	Code              *string              `json:"code,omitempty"`
 	Dependencies      *[]ActionDependency  `json:"dependencies,omitempty"`
+	Modules           *[]ActionModuleRef   `json:"modules,omitempty"`
 	Name              *string              `json:"name,omitempty"`
 	Runtime           *ActionUpdateRuntime `json:"runtime,omitempty"`
 	Secrets           *[]ActionSecretInput `json:"secrets,omitempty"`
@@ -2765,6 +2952,7 @@ type ActionVersion struct {
 	CreatedAt    time.Time            `json:"created_at"`
 	Dependencies []ActionDependency   `json:"dependencies"`
 	Id           string               `json:"id"`
+	Modules      []ActionModuleRef    `json:"modules"`
 	Number       int                  `json:"number"`
 	Runtime      string               `json:"runtime"`
 	Secrets      []ActionSecret       `json:"secrets"`
@@ -5409,6 +5597,9 @@ type PreviewTenantBrandingJSONBody struct {
 	Screen    string                  `json:"screen"`
 }
 
+// TestTenantEmail200JSONResponseBodyStatus defines parameters for TestTenantEmail.
+type TestTenantEmail200JSONResponseBodyStatus string
+
 // GetTenantJobsParams defines parameters for GetTenantJobs.
 type GetTenantJobsParams struct {
 	// Page Page index of the results, from 0.
@@ -5449,6 +5640,33 @@ type DeleteActionParams struct {
 
 // GetActionVersionsParams defines parameters for GetActionVersions.
 type GetActionVersionsParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+}
+
+// GetActionModulesParams defines parameters for GetActionModules.
+type GetActionModulesParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+}
+
+// GetActionModuleActionsParams defines parameters for GetActionModuleActions.
+type GetActionModuleActionsParams struct {
+	// Page Page index of the results, from 0.
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page; more than 100 is refused (`invalid_query_string`).
+	PerPage *PerPage `form:"per_page,omitempty" json:"per_page,omitempty"`
+}
+
+// GetActionModuleVersionsParams defines parameters for GetActionModuleVersions.
+type GetActionModuleVersionsParams struct {
 	// Page Page index of the results, from 0.
 	Page *Page `form:"page,omitempty" json:"page,omitempty"`
 
@@ -5970,6 +6188,15 @@ type TestActionJSONRequestBody = ActionTestRequest
 
 // DeployActionVersionJSONRequestBody defines body for DeployActionVersion for application/json ContentType.
 type DeployActionVersionJSONRequestBody = ActionDeployVersion
+
+// CreateActionModuleJSONRequestBody defines body for CreateActionModule for application/json ContentType.
+type CreateActionModuleJSONRequestBody = ActionModuleCreate
+
+// UpdateActionModuleJSONRequestBody defines body for UpdateActionModule for application/json ContentType.
+type UpdateActionModuleJSONRequestBody = ActionModuleUpdate
+
+// RollbackActionModuleJSONRequestBody defines body for RollbackActionModule for application/json ContentType.
+type RollbackActionModuleJSONRequestBody = ActionModuleRollback
 
 // UpdateActionBindingsJSONRequestBody defines body for UpdateActionBindings for application/json ContentType.
 type UpdateActionBindingsJSONRequestBody = ActionBindingsUpdate
@@ -7959,6 +8186,9 @@ type ServerInterface interface {
 	// UpdateTenant Update a tenant
 	// (PATCH /api/system/tenants/{name})
 	UpdateTenant(w http.ResponseWriter, r *http.Request, name string)
+	// GetTenantActionExecutionAttempt Read local asynchronous Action attempt metadata
+	// (GET /api/system/tenants/{tenant}/actions/executions/{id}/attempt)
+	GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request, tenant string, id string)
 	// PreviewTenantBranding Preview tenant Universal Login branding.
 	// (POST /api/system/tenants/{tenant}/branding/preview)
 	PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string)
@@ -8007,6 +8237,36 @@ type ServerInterface interface {
 	// GetActionExecution GetActionExecution addressed to the current tenant
 	// (GET /api/v2/actions/executions/{id})
 	GetActionExecution(w http.ResponseWriter, r *http.Request, id string)
+	// GetActionModules GetActionModules addressed to the current tenant
+	// (GET /api/v2/actions/modules)
+	GetActionModules(w http.ResponseWriter, r *http.Request, params GetActionModulesParams)
+	// CreateActionModule CreateActionModule addressed to the current tenant
+	// (POST /api/v2/actions/modules)
+	CreateActionModule(w http.ResponseWriter, r *http.Request)
+	// DeleteActionModule DeleteActionModule addressed to the current tenant
+	// (DELETE /api/v2/actions/modules/{id})
+	DeleteActionModule(w http.ResponseWriter, r *http.Request, id string)
+	// GetActionModule GetActionModule addressed to the current tenant
+	// (GET /api/v2/actions/modules/{id})
+	GetActionModule(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateActionModule UpdateActionModule addressed to the current tenant
+	// (PATCH /api/v2/actions/modules/{id})
+	UpdateActionModule(w http.ResponseWriter, r *http.Request, id string)
+	// GetActionModuleActions GetActionModuleActions addressed to the current tenant
+	// (GET /api/v2/actions/modules/{id}/actions)
+	GetActionModuleActions(w http.ResponseWriter, r *http.Request, id string, params GetActionModuleActionsParams)
+	// RollbackActionModule RollbackActionModule addressed to the current tenant
+	// (POST /api/v2/actions/modules/{id}/rollback)
+	RollbackActionModule(w http.ResponseWriter, r *http.Request, id string)
+	// GetActionModuleVersions GetActionModuleVersions addressed to the current tenant
+	// (GET /api/v2/actions/modules/{id}/versions)
+	GetActionModuleVersions(w http.ResponseWriter, r *http.Request, id string, params GetActionModuleVersionsParams)
+	// PublishActionModule PublishActionModule addressed to the current tenant
+	// (POST /api/v2/actions/modules/{id}/versions)
+	PublishActionModule(w http.ResponseWriter, r *http.Request, id string)
+	// GetActionModuleVersion GetActionModuleVersion addressed to the current tenant
+	// (GET /api/v2/actions/modules/{id}/versions/{versionId})
+	GetActionModuleVersion(w http.ResponseWriter, r *http.Request, id string, versionId string)
 	// GetActionTriggers GetActionTriggers addressed to the current tenant
 	// (GET /api/v2/actions/triggers)
 	GetActionTriggers(w http.ResponseWriter, r *http.Request)
@@ -8442,6 +8702,12 @@ func (_ Unimplemented) UpdateTenant(w http.ResponseWriter, r *http.Request, name
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetTenantActionExecutionAttempt Read local asynchronous Action attempt metadata
+// (GET /api/system/tenants/{tenant}/actions/executions/{id}/attempt)
+func (_ Unimplemented) GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request, tenant string, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // PreviewTenantBranding Preview tenant Universal Login branding.
 // (POST /api/system/tenants/{tenant}/branding/preview)
 func (_ Unimplemented) PreviewTenantBranding(w http.ResponseWriter, r *http.Request, tenant string) {
@@ -8535,6 +8801,66 @@ func (_ Unimplemented) DeployActionVersion(w http.ResponseWriter, r *http.Reques
 // GetActionExecution GetActionExecution addressed to the current tenant
 // (GET /api/v2/actions/executions/{id})
 func (_ Unimplemented) GetActionExecution(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionModules GetActionModules addressed to the current tenant
+// (GET /api/v2/actions/modules)
+func (_ Unimplemented) GetActionModules(w http.ResponseWriter, r *http.Request, params GetActionModulesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateActionModule CreateActionModule addressed to the current tenant
+// (POST /api/v2/actions/modules)
+func (_ Unimplemented) CreateActionModule(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteActionModule DeleteActionModule addressed to the current tenant
+// (DELETE /api/v2/actions/modules/{id})
+func (_ Unimplemented) DeleteActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionModule GetActionModule addressed to the current tenant
+// (GET /api/v2/actions/modules/{id})
+func (_ Unimplemented) GetActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateActionModule UpdateActionModule addressed to the current tenant
+// (PATCH /api/v2/actions/modules/{id})
+func (_ Unimplemented) UpdateActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionModuleActions GetActionModuleActions addressed to the current tenant
+// (GET /api/v2/actions/modules/{id}/actions)
+func (_ Unimplemented) GetActionModuleActions(w http.ResponseWriter, r *http.Request, id string, params GetActionModuleActionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RollbackActionModule RollbackActionModule addressed to the current tenant
+// (POST /api/v2/actions/modules/{id}/rollback)
+func (_ Unimplemented) RollbackActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionModuleVersions GetActionModuleVersions addressed to the current tenant
+// (GET /api/v2/actions/modules/{id}/versions)
+func (_ Unimplemented) GetActionModuleVersions(w http.ResponseWriter, r *http.Request, id string, params GetActionModuleVersionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PublishActionModule PublishActionModule addressed to the current tenant
+// (POST /api/v2/actions/modules/{id}/versions)
+func (_ Unimplemented) PublishActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetActionModuleVersion GetActionModuleVersion addressed to the current tenant
+// (GET /api/v2/actions/modules/{id}/versions/{versionId})
+func (_ Unimplemented) GetActionModuleVersion(w http.ResponseWriter, r *http.Request, id string, versionId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -9471,6 +9797,41 @@ func (siw *ServerInterfaceWrapper) UpdateTenant(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// GetTenantActionExecutionAttempt operation middleware
+func (siw *ServerInterfaceWrapper) GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tenant" -------------
+	var tenant string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tenant", chi.URLParam(r, "tenant"), &tenant, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tenant", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTenantActionExecutionAttempt(w, r, tenant, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PreviewTenantBranding operation middleware
 func (siw *ServerInterfaceWrapper) PreviewTenantBranding(w http.ResponseWriter, r *http.Request) {
 
@@ -10061,6 +10422,341 @@ func (siw *ServerInterfaceWrapper) GetActionExecution(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetActionExecution(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionModules operation middleware
+func (siw *ServerInterfaceWrapper) GetActionModules(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetActionModulesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionModules(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateActionModule operation middleware
+func (siw *ServerInterfaceWrapper) CreateActionModule(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateActionModule(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteActionModule operation middleware
+func (siw *ServerInterfaceWrapper) DeleteActionModule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteActionModule(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionModule operation middleware
+func (siw *ServerInterfaceWrapper) GetActionModule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionModule(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateActionModule operation middleware
+func (siw *ServerInterfaceWrapper) UpdateActionModule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateActionModule(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionModuleActions operation middleware
+func (siw *ServerInterfaceWrapper) GetActionModuleActions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetActionModuleActionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionModuleActions(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RollbackActionModule operation middleware
+func (siw *ServerInterfaceWrapper) RollbackActionModule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RollbackActionModule(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionModuleVersions operation middleware
+func (siw *ServerInterfaceWrapper) GetActionModuleVersions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetActionModuleVersionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionModuleVersions(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PublishActionModule operation middleware
+func (siw *ServerInterfaceWrapper) PublishActionModule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PublishActionModule(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetActionModuleVersion operation middleware
+func (siw *ServerInterfaceWrapper) GetActionModuleVersion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "versionId" -------------
+	var versionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "versionId", chi.URLParam(r, "versionId"), &versionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "versionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetActionModuleVersion(w, r, id, versionId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14362,6 +15058,36 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/modules", wrapper.GetActionModules)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/actions/modules", wrapper.CreateActionModule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/actions/modules/{id}", wrapper.DeleteActionModule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/modules/{id}", wrapper.GetActionModule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/actions/modules/{id}", wrapper.UpdateActionModule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/modules/{id}/actions", wrapper.GetActionModuleActions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/actions/modules/{id}/rollback", wrapper.RollbackActionModule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/modules/{id}/versions", wrapper.GetActionModuleVersions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/actions/modules/{id}/versions", wrapper.PublishActionModule)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/actions/modules/{id}/versions/{versionId}", wrapper.GetActionModuleVersion)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/actions/actions", wrapper.GetActions)
 	})
 	r.Group(func(r chi.Router) {
@@ -14699,6 +15425,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/system/operators/{id}", wrapper.DeleteOperator)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/actions/executions/{id}/attempt", wrapper.GetTenantActionExecutionAttempt)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/system/tenants/{tenant}/jobs", wrapper.GetTenantJobs)

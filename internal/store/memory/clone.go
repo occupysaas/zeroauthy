@@ -103,6 +103,10 @@ func cloneUser(u *store.User) *store.User {
 		t := *u.LastLogin
 		out.LastLogin = &t
 	}
+	if u.LastPasswordReset != nil {
+		v := *u.LastPasswordReset
+		out.LastPasswordReset = &v
+	}
 	out.UserMetadata = cloneJSON(u.UserMetadata)
 	out.AppMetadata = cloneJSON(u.AppMetadata)
 	return &out
@@ -178,6 +182,10 @@ func cloneRefreshToken(t *store.RefreshToken) *store.RefreshToken {
 
 func cloneResetTicket(t *store.PasswordResetTicket) *store.PasswordResetTicket {
 	out := *t
+	if t.ChallengePassedAt != nil {
+		v := *t.ChallengePassedAt
+		out.ChallengePassedAt = &v
+	}
 	if t.UsedAt != nil {
 		v := *t.UsedAt
 		out.UsedAt = &v

@@ -113,15 +113,31 @@ func actionPaging(r *http.Request, extra ...string) (store.PageRequest, error) {
 	return store.PageRequest{Page: page, PerPage: per}, err
 }
 func validActionTrigger(trigger string) bool {
-	return trigger == actions.TriggerPostLogin || trigger == actions.TriggerCredentialsExchange
+	return slices.ContainsFunc(actionsrules.Inventory().Triggers, func(t actionsrules.TriggerContract) bool { return t.ID == trigger })
 }
 func actionTriggerView(trigger string) map[string]any {
 	version := "v3"
-	if trigger == actions.TriggerCredentialsExchange {
-		version = "v2"
+	for _, t := range actionsrules.Inventory().Triggers {
+		if t.ID == trigger {
+			if t.Version != "" {
+				version = t.Version
+			} else if trigger == actions.TriggerCredentialsExchange {
+				version = "v2"
+			}
+			break
+		}
 	}
-	return map[string]any{"id": trigger, "version": version}
+	return map[string]any{"id": trigger, "version": version, "binding_policy": "trigger-bound"}
 }
+
+// Action references must remain writable when exported by Deploy CLI.
+// binding_policy belongs to trigger discovery, not supported_triggers.
+func actionTriggerReference(trigger string) map[string]any {
+	ref := actionTriggerView(trigger)
+	delete(ref, "binding_policy")
+	return ref
+}
+
 func dependencyViews(ds []store.Dependency) []map[string]any {
 	out := make([]map[string]any, 0, len(ds))
 	for _, d := range ds {
@@ -156,7 +172,7 @@ func (h *Handlers) actionView(ctx context.Context, a *store.Action) (map[string]
 	if err := h.recoverAction(ctx, a); err != nil {
 		return nil, err
 	}
-	out := map[string]any{"id": a.ID, "name": a.Name, "supported_triggers": []map[string]any{actionTriggerView(a.Trigger)}, "code": a.Code, "runtime": a.Runtime, "dependencies": dependencyViews(a.Dependencies), "secrets": secretViews(a.Secrets), "created_at": a.CreatedAt, "updated_at": a.UpdatedAt, "status": "pending", "errors": []string{}, "all_changes_deployed": false}
+	out := map[string]any{"id": a.ID, "name": a.Name, "supported_triggers": []map[string]any{actionTriggerReference(a.Trigger)}, "code": a.Code, "modules": moduleRefViews(a.Modules), "runtime": a.Runtime, "dependencies": dependencyViews(a.Dependencies), "secrets": secretViews(a.Secrets), "created_at": a.CreatedAt, "updated_at": a.UpdatedAt, "status": "pending", "errors": []string{}, "all_changes_deployed": false}
 	var b *store.Build
 	if a.DraftBuildID != "" {
 		var err error
@@ -182,7 +198,7 @@ func (h *Handlers) actionView(ctx context.Context, a *store.Action) (map[string]
 			return nil, err
 		}
 		out["deployed_version"] = vv
-		out["all_changes_deployed"] = b != nil && a.Code == v.Code && a.Runtime == v.Runtime && a.DraftBuildID == v.BuildID && slices.Equal(b.Resolved, v.Dependencies) && slices.EqualFunc(a.Secrets, v.Secrets, func(a, b store.ActionSecret) bool { return a.Name == b.Name && bytes.Equal(a.Sealed, b.Sealed) })
+		out["all_changes_deployed"] = b != nil && a.Code == v.Code && a.Runtime == v.Runtime && a.DraftBuildID == v.BuildID && slices.Equal(a.Modules, v.Modules) && slices.Equal(b.Resolved, v.Dependencies) && slices.EqualFunc(a.Secrets, v.Secrets, func(a, b store.ActionSecret) bool { return a.Name == b.Name && bytes.Equal(a.Sealed, b.Sealed) })
 	}
 	return out, nil
 }
@@ -234,6 +250,15 @@ func (h *Handlers) readAction(r *http.Request, a *store.Action, create bool) (bo
 					return false, badBody("an Action's trigger cannot change")
 				}
 				a.Trigger = *ts[0].ID
+			}
+		case "modules":
+			var refs []moduleRefInput
+			err = decodeStrict(raw, &refs)
+			if err == nil {
+				a.Modules = make([]store.ModuleRef, 0, len(refs))
+				for _, ref := range refs {
+					a.Modules = append(a.Modules, store.ModuleRef{ModuleID: ref.ModuleID, ModuleName: ref.ModuleName, VersionID: ref.VersionID, VersionNumber: ref.VersionNumber})
+				}
 			}
 		case "dependencies":
 			var ds []struct {
@@ -345,6 +370,11 @@ func (h *Handlers) CreateAction(w http.ResponseWriter, r *http.Request) {
 		h.actionError(w, r, err)
 		return
 	}
+	a, err = h.Store.Actions().GetAction(r.Context(), a.TenantID, a.ID)
+	if err != nil {
+		h.actionError(w, r, err)
+		return
+	}
 	h.audit(r, "create Action", "id", a.ID)
 	h.writeAction(w, r, a, 201)
 }
@@ -399,6 +429,11 @@ func (h *Handlers) UpdateAction(w http.ResponseWriter, r *http.Request, id strin
 		a.UpdatedAt = h.now()
 		err = h.Store.Actions().UpdateAction(r.Context(), a)
 	}
+	if err != nil {
+		h.actionError(w, r, err)
+		return
+	}
+	a, err = h.Store.Actions().GetAction(r.Context(), a.TenantID, a.ID)
 	if err != nil {
 		h.actionError(w, r, err)
 		return
@@ -478,4 +513,19 @@ func (h *Handlers) GetActions(w http.ResponseWriter, r *http.Request) {
 		out = append(out, v)
 	}
 	writeJSON(w, 200, map[string]any{"actions": out, "total": len(items), "page": p.Page, "per_page": p.PerPage})
+}
+
+type moduleRefInput struct {
+	ModuleID      string `json:"module_id,omitempty"`
+	ModuleName    string `json:"module_name,omitempty"`
+	VersionID     string `json:"module_version_id,omitempty"`
+	VersionNumber int    `json:"module_version_number,omitempty"`
+}
+
+func moduleRefViews(refs []store.ModuleRef) []map[string]any {
+	out := make([]map[string]any, 0, len(refs))
+	for _, r := range refs {
+		out = append(out, map[string]any{"module_id": r.ModuleID, "module_name": r.ModuleName, "module_version_id": r.VersionID, "module_version_number": r.VersionNumber})
+	}
+	return out
 }

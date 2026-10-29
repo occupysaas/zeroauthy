@@ -731,9 +731,10 @@ type User struct {
 	Blocked     bool
 	Identities  []Identity
 	// PhoneNumber and PhoneVerified are profile fields, set through Update.
-	PhoneNumber   string
-	PhoneVerified bool
-	LastLogin     *time.Time
+	PhoneNumber       string
+	PhoneVerified     bool
+	LastLogin         *time.Time
+	LastPasswordReset *time.Time
 	// LastIP is the client IP of the last login. Only RecordLogin sets it;
 	// Update keeps the stored value.
 	LastIP      string
@@ -977,6 +978,8 @@ func (ct CustomText) Clone() CustomText {
 // PasswordResetTicket is an issued password-reset link. Only the hash of
 // the ticket token is stored.
 type PasswordResetTicket struct {
+	ChallengePassedAt  *time.Time
+	ChallengeResultURL string
 	// Origin pins the browser issuer/host; legacy empty values mean canonical origin.
 	Origin     string
 	TenantID   string

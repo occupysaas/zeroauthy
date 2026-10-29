@@ -636,3 +636,47 @@ func (a mgmtAPI) UpdateActionBindings(w http.ResponseWriter, r *http.Request, tr
 func (a mgmtAPI) GetActionExecution(w http.ResponseWriter, r *http.Request, id string) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionExecution(w, r, id) }, "read:actions")
 }
+
+func (a mgmtAPI) GetActionModules(w http.ResponseWriter, r *http.Request, _ mgmtapi.GetActionModulesParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionModules(w, r) }, "read:actions")
+}
+
+func (a mgmtAPI) CreateActionModule(w http.ResponseWriter, r *http.Request) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.CreateActionModule(w, r) }, "create:actions")
+}
+
+func (a mgmtAPI) GetActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionModule(w, r, id) }, "read:actions")
+}
+
+func (a mgmtAPI) UpdateActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateActionModule(w, r, id) }, "update:actions")
+}
+
+func (a mgmtAPI) DeleteActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteActionModule(w, r, id) }, "delete:actions")
+}
+
+func (a mgmtAPI) GetActionModuleActions(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetActionModuleActionsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionModuleActions(w, r, id) }, "read:actions")
+}
+
+func (a mgmtAPI) RollbackActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RollbackActionModule(w, r, id) }, "update:actions")
+}
+
+func (a mgmtAPI) GetActionModuleVersions(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.GetActionModuleVersionsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionModuleVersions(w, r, id) }, "read:actions")
+}
+
+func (a mgmtAPI) PublishActionModule(w http.ResponseWriter, r *http.Request, id string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.PublishActionModule(w, r, id) }, "update:actions")
+}
+
+func (a mgmtAPI) GetActionModuleVersion(w http.ResponseWriter, r *http.Request, id string, versionId string) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetActionModuleVersion(w, r, id, versionId) }, "read:actions")
+}
+
+func (a mgmtAPI) GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request, tenant string, id string) {
+	a.h.GetTenantActionExecutionAttempt(w, r, tenant, id)
+}

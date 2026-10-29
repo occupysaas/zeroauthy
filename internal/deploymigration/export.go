@@ -303,6 +303,8 @@ func resourceName(path string) string {
 		candidate = base
 	}
 	switch strings.ToLower(candidate) {
+	case "actionmodules", "action-modules", "action_modules":
+		return "actionModules"
 	case "actions":
 		return "actions"
 	case "triggers":

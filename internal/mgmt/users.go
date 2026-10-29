@@ -14,13 +14,16 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/gen/mgmtapi"
+	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
+	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/userrules"
 	"github.com/zeroauthy/zeroauthy/internal/usersearch"
 )
@@ -865,6 +868,9 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 		}
 		userrules.ApplyPatch(cur, in)
 		cur.UpdatedAt = now
+		if in.Password != nil {
+			cur.LastPasswordReset = &now
+		}
 		if err := tx.Users().Update(ctx, cur); errors.Is(err, store.ErrConflict) {
 			return errUserExists
 		} else if err != nil {
@@ -895,8 +901,12 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 				}
 			}
 		}
-		out, err = tx.Users().Get(ctx, u.TenantID, id)
-		return err
+		if out, err = tx.Users().Get(ctx, u.TenantID, id); err != nil || in.Password == nil {
+			return err
+		}
+		res, _ := tenant.FromContext(ctx)
+		return actions.PasswordChanged(ctx, tx, h.Actions, res, out, conn, actions.RequestInfo{IP: httpx.ClientIP(r, h.TrustProxyHeaders),
+			Hostname: res.Host, Origin: res.Origin(), Method: r.Method, UserAgent: r.UserAgent(), Language: r.Header.Get("Accept-Language")})
 	})
 	if err != nil {
 		h.failTx(w, r, "update user", err)

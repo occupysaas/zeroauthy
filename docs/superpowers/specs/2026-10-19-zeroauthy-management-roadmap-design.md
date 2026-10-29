@@ -35,14 +35,14 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done / implemented locally** | 24 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I (Plan 27) |
-| **Planned, short design** | 5 | Actions II (in implementation), organizations II, event streams, client credentials / token exchange, enterprise OIDC |
+| **Done / implemented locally** | 25 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I and II (Plans 27–28) |
+| **Planned, short design** | 4 | organizations II, event streams, client credentials / token exchange, enterprise OIDC |
 | **Planned, full design** | 9 | organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
 The future Additional social providers plan is deferred without an assigned number and is not an extra counted resource group here.
 
-Read as the roadmap's resource groupings, about 57% is implemented. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
+Read as the roadmap's resource groupings, about 60% is implemented. Read as work, the remaining plans are larger than the finished Management API ones, because most carry a runtime feature (MFA, Actions, organizations, social login) rather than only endpoints. The Authentication API side (sub-project 1) is complete apart from what those features add.
 
 ## 1. Goal and ground rules
 
@@ -81,7 +81,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 25 | Email-account sign-in: Microsoft personal and work/school; Google/Gmail/Workspace coverage | full (done) | 24 |
 | 26 | Roles and permissions (RBAC) | short (done) | 17 |
 | 27 | Actions I: runtime, post-login, credentials exchange, npm dependencies, the Actions API | full (done) | 26 |
-| 28 | Actions II: the remaining triggers and modules | short | 27 |
+| 28 | Actions II: signup, password/reset, custom email and Modules | full (implemented; final review pending) | 27 |
 | 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full | 26 |
 | 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |
 | 31 | Logs, log streams, stats | full | 19 |
@@ -146,7 +146,7 @@ Plans 17 and 18 come from the users design. Plan 37 is sub-project 4 of the core
 **Endpoints:** `GET/POST/PATCH/DELETE /api/v2/emails/provider`; `POST /api/v2/email-templates` and `GET/PUT/PATCH /api/v2/email-templates/{templateName}` for every documented template name (`verify_email`, `verify_email_by_code`, `auth_email_by_code`, `reset_email`, `reset_email_by_code`, `welcome_email`, `blocked_account`, `stolen_credentials`, `enrollment_email`, `mfa_oob_code`, `user_invitation`, `change_password`, `password_reset`, `async_approval` and any added since).
 
 **Runtime:**
-- Tenant providers: SMTP, SendGrid, Mailgun, Mandrill, SparkPost, SES, Azure Communication Services, MS365 and Resend. The server-wide driver remains the fallback when no tenant provider is enabled. `custom` is stored disabled until Actions execution exists.
+- Tenant providers: SMTP, SendGrid, Mailgun, Mandrill, SparkPost, SES, Azure Communication Services, MS365 and Resend. The server-wide driver remains the fallback when no tenant provider is enabled. `custom` delivery is provided by the Plan 28 Actions trigger; other enabled providers retain their transport.
 - Restricted Liquid evaluator with bounded parsing and execution; no external Liquid engine dependency. Provider credentials are envelope-encrypted and write-only. See `docs/email.md` for TLS, outbound policy, template escaping and secret reinjection.
 - Verification, reset, welcome and user security notices are active. Code, MFA, invitation and approval templates remain stored-only until their workflows are implemented. Welcome and security sends use durable claims; uncertain sends are not retried.
 
@@ -246,9 +246,9 @@ first full Go run's local diagnostic timeout and successful retry are recorded.
 Live upstream observation remains unavailable. This is local implementation
 evidence, not formal certification or a claim that all Actions APIs exist.
 
-### Plan 28 — Actions II (in implementation)
+### Plan 28 — Actions II
 
-**Design and plan (2026-10-28):** [spec](2026-10-28-zeroauthy-actions-ii-design.md) and [implementation plan](../plans/2026-10-28-zeroauthy-plan-28-actions-ii.md), on Plan 27's design. Tasks 1–7 (contracts, D-0054, memory/SQL/plugin storage with migration 0024 and capability 3, trigger table, Modules, durable job queue) are committed on `plan-28-actions-ii`; Task 8 (signup triggers) is under way.
+**Done (2026-10-28):** [spec](2026-10-28-zeroauthy-actions-ii-design.md), [plan](../plans/2026-10-28-zeroauthy-plan-28-actions-ii.md), [record](../2026-10-28-plan-28-implementation-record.md). Adds pre-/post-user-registration, post-change-password, password-reset-post-challenge and custom-email-provider; durable encrypted jobs with leases/retries; ten Modules operations, immutable pins, console, seed and Deploy CLI. CLI/SDK/browser and four-cell Deploy acceptance passed; the final whole-branch review and its fix wave are recorded, including the D-0054 limit that secrets are separated only per tenant, not per module. Phone triggers remain Plan 34; custom token exchange Plan 35; event streams Plan 32.
 
 **Scope:** `pre-user-registration` (blocking), `post-user-registration`, `post-change-password` (non-blocking, durable job queue), `password-reset-post-challenge` (blocking, can redirect), `custom-email-provider` (retryable; Plan 21's stored `custom` provider becomes live); Actions Modules (ten operations, pinned per Action version, tombstones); console, seed and Deploy CLI.
 
@@ -301,6 +301,8 @@ evidence, not formal certification or a claim that all Actions APIs exist.
 ### Plan 34 — Passwordless and phone (full design)
 
 **Endpoints:** `/api/v2/connections` with strategies `email` and `sms` and their options (templates, OTP length and lifetime, brute force); `/api/v2/branding/phone/providers` (`twilio`, `custom`) and `/branding/phone/templates` (CRUD, test); `/guardian/factors/sms|phone` providers and templates go live.
+
+**Provider follow-up:** Ship `custom-phone-provider` with tested Action examples for Amazon SNS, Azure Communication Services and other providers alongside built-in Twilio. Native non-Twilio providers would be a scope deviation requiring maintainer agreement.
 
 **Runtime:** `/passwordless/start` and the `passwordless/otp` grant; code and magic-link login on hosted pages; SMS through Twilio or the `send-phone-message`/`custom-phone-provider` Actions; MFA by SMS and voice; phone-based password reset (the management design follow-up); phone numbers as identifiers (`attributes` stored since D-0042 become enforced).
 

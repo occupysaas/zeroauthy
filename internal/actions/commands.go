@@ -14,12 +14,6 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/userrules"
 )
 
-// Trigger IDs.
-const (
-	TriggerPostLogin           = "post-login"
-	TriggerCredentialsExchange = "credentials-exchange"
-)
-
 var (
 	// ErrInvalidCommand reports an api call the server refuses: an unknown
 	// member or an invalid argument. The flow fails closed.
@@ -93,11 +87,13 @@ type accum struct {
 	trigger     string
 	canRedirect bool
 
-	eff      Effects
-	target   []string // current target scopes
-	denied   *Denial
-	redirect *Redirect
-	cache    []cacheOp // of the current Action
+	eff          Effects
+	target       []string // current target scopes
+	resultURL    string
+	notification *NotificationOutcome
+	denied       *Denial
+	redirect     *Redirect
+	cache        []cacheOp // of the current Action
 }
 
 func newAccum(trigger string, target []string, txnMeta map[string]any, canRedirect bool) *accum {
@@ -163,13 +159,6 @@ func argScope(c command, i int) (string, error) {
 	return s, nil
 }
 
-// postLoginOnly lists ops the credentials-exchange api does not have.
-var postLoginOnly = map[string]bool{
-	"accessToken.addScope": true, "accessToken.removeScope": true, "idToken.setCustomClaim": true,
-	"transaction.setMetadata": true, "user.setAppMetadata": true, "user.setUserMetadata": true,
-	"validation.error": true, "redirect.sendUserTo": true,
-}
-
 // apply validates one command against the trigger's api and accumulates it.
 // Unknown ops, unsupported members and invalid arguments are errors.
 func (a *accum) apply(c command) error {
@@ -177,8 +166,8 @@ func (a *accum) apply(c command) error {
 		member, _ := optString(c, 0, "member")
 		return fmt.Errorf("%w: api.%s", ErrUnsupported, member)
 	}
-	if a.trigger == TriggerCredentialsExchange && postLoginOnly[c.Op] {
-		return invalid(c.Op, "not available in the credentials-exchange trigger")
+	if !triggerSpecs[a.trigger].allows(c.Op) {
+		return invalid(c.Op, "not available in the %s trigger", a.trigger)
 	}
 	switch c.Op {
 	case "access.deny":
@@ -198,7 +187,12 @@ func (a *accum) apply(c command) error {
 		if err := checkCode(c.Op, code); err != nil {
 			return err
 		}
-		a.setDenial(&Denial{Code: code, Reason: sanitizeReason(msg)})
+		d := &Denial{Code: code, Reason: sanitizeReason(msg)}
+		if a.trigger == TriggerPreUserRegistration {
+			d.Reason = msg
+			d.UserMessage = msg
+		}
+		a.setDenial(d)
 	case "accessToken.setCustomClaim", "idToken.setCustomClaim":
 		if err := argCount(c, 2, 2); err != nil {
 			return err
@@ -293,6 +287,17 @@ func (a *accum) apply(c command) error {
 		a.cache = append(a.cache, cacheOp{delete: true, key: k})
 	case "redirect.sendUserTo":
 		return a.sendUserTo(c)
+	case "transaction.setResultUrl":
+		return a.setResultURL(c)
+	case "notification.retry", "notification.drop":
+		if err := argCount(c, 0, 1); err != nil {
+			return err
+		}
+		reason, err := optString(c, 0, "reason")
+		if err != nil {
+			return err
+		}
+		a.notification = &NotificationOutcome{Kind: strings.TrimPrefix(c.Op, "notification."), Reason: truncateChars(reason, actionsrules.Inventory().Limits["notification_reason_chars"])}
 	default:
 		return invalid(c.Op, "unknown api member")
 	}
@@ -325,6 +330,21 @@ func (a *accum) deny(c command) error {
 		a.setDenial(&Denial{Code: code, Reason: sanitizeReason(reason)})
 		return nil
 	}
+	if a.trigger == TriggerPreUserRegistration {
+		if err := argCount(c, 0, 2); err != nil {
+			return err
+		}
+		reason, err := optString(c, 0, "reason")
+		if err != nil {
+			return err
+		}
+		message, err := optString(c, 1, "user message")
+		if err != nil {
+			return err
+		}
+		a.setDenial(&Denial{Code: "extensibility_error", Reason: reason, UserMessage: message})
+		return nil
+	}
 	if err := argCount(c, 0, 1); err != nil {
 		return err
 	}
@@ -332,7 +352,10 @@ func (a *accum) deny(c command) error {
 	if err != nil {
 		return err
 	}
-	a.setDenial(&Denial{Code: "access_denied", Reason: sanitizeReason(reason)})
+	if a.trigger != TriggerResetPostChallenge {
+		reason = sanitizeReason(reason)
+	}
+	a.setDenial(&Denial{Code: "access_denied", Reason: reason})
 	return nil
 }
 
@@ -496,4 +519,68 @@ func (a *accum) sendUserTo(c command) error {
 	}
 	a.redirect = r
 	return nil
+}
+
+// truncateChars uses characters, rather than bytes, to retain localized reasons.
+func truncateChars(s string, limit int) string {
+	if utf8.RuneCountInString(s) <= limit {
+		return s
+	}
+	return string([]rune(s)[:limit])
+}
+
+func (a *accum) setResultURL(c command) error {
+	if err := argCount(c, 1, 2); err != nil {
+		return err
+	}
+	raw, err := argString(c, 0, "url")
+	if err != nil {
+		return err
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Hostname() == "" || u.User != nil || (u.Scheme != "https" && !(u.Scheme == "http" && u.Hostname() == "localhost")) {
+		return invalid(c.Op, "url must be absolute https, or http on localhost")
+	}
+	query, err := redirectQuery(c)
+	if err != nil {
+		return err
+	}
+	if len(query) > 0 {
+		q := u.Query()
+		for k, v := range query {
+			q.Set(k, v)
+		}
+		u.RawQuery = q.Encode()
+	}
+	a.resultURL = u.String()
+	return nil
+}
+
+func redirectQuery(c command) (map[string]string, error) {
+	query := map[string]string{}
+	if len(c.Args) < 2 || string(c.Args[1]) == "null" {
+		return query, nil
+	}
+	var opts map[string]json.RawMessage
+	if json.Unmarshal(c.Args[1], &opts) != nil || opts == nil {
+		return nil, invalid(c.Op, "options must be an object")
+	}
+	if raw, ok := opts["query"]; ok {
+		var values map[string]any
+		if json.Unmarshal(raw, &values) != nil || values == nil {
+			return nil, invalid(c.Op, "query must be an object")
+		}
+		for k, v := range values {
+			switch t := v.(type) {
+			case string:
+				query[k] = t
+			case float64, bool:
+				b, _ := json.Marshal(t)
+				query[k] = string(b)
+			default:
+				return nil, invalid(c.Op, "query values must be strings, numbers or booleans")
+			}
+		}
+	}
+	return query, nil
 }

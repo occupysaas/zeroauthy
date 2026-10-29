@@ -14,7 +14,11 @@ import (
 )
 
 // Message is one email. Text is required; HTML is optional.
-type Message struct{ From, To, Subject, Text, HTML string }
+// Type, Locale, UserID and ClientID carry context for custom email Actions.
+type Message struct {
+	From, To, Subject, Text, HTML  string
+	Type, Locale, UserID, ClientID string
+}
 
 type Mailer interface {
 	Send(ctx context.Context, m Message) error

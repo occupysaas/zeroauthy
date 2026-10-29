@@ -1,3 +1,6 @@
+import ModuleLibrary from './pages/actions/modules/ModuleLibrary.vue'
+import ModuleEditor from './pages/actions/modules/ModuleEditor.vue'
+import ModuleVersions from './pages/actions/modules/ModuleVersions.vue'
 import { createRouter, createWebHistory, type RouteRecordRaw, type Router, type RouterHistory } from 'vue-router'
 import type { Api } from './api/client'
 import type { Auth } from './auth/auth'
@@ -90,6 +93,9 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/actions', name: 'actions', component: ActionsLibrary },
   { path: '/t/:tenant/actions/triggers/:trigger?', name: 'action-triggers', component: ActionsTriggers },
   { path: '/t/:tenant/actions/executions', name: 'action-execution', component: ActionsExecution },
+  { path: '/t/:tenant/actions/modules', name: 'action-modules', component: ModuleLibrary },
+  { path: '/t/:tenant/actions/modules/:id', name: 'action-module-editor', component: ModuleEditor },
+  { path: '/t/:tenant/actions/modules/:id/versions', name: 'action-module-versions', component: ModuleVersions },
   { path: '/t/:tenant/actions/:id', name: 'action-editor', component: ActionsEditor },
   { path: '/t/:tenant/actions/:id/versions', name: 'action-versions', component: ActionsVersions },
   { path: '/t/:tenant/actions/:id/test', name: 'action-test', component: ActionsTestPanel },

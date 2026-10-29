@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -39,6 +40,10 @@ func sweep(ctx context.Context, st store.Store, now time.Time) (int, error) {
 			return st.EmailNotifications().Sweep(ctx, before, 100)
 		}, now},
 		{st.Jobs().DeleteExpired, now},
+		{func(ctx context.Context, before time.Time) (int, error) { return actions.PurgeJobs(ctx, st, before) }, now},
+		{func(ctx context.Context, before time.Time) (int, error) {
+			return actions.PurgeExecutions(ctx, st, before)
+		}, now},
 		{func(ctx context.Context, before time.Time) (int, error) {
 			n, err := st.Federation().DeleteExpired(ctx, before)
 			if errors.Is(err, store.ErrFederationUnavailable) {

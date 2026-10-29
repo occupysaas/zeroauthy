@@ -1,4 +1,4 @@
-.PHONY: build test test-sql lint generate check-sources e2e e2e-actions e2e-rbac e2e-email-accounts e2e-social e2e-deploy e2e-signing e2e-email e2e-branding e2e-domains conformance console
+.PHONY: build test test-sql lint generate check-sources e2e e2e-actions e2e-actions-ii e2e-rbac e2e-email-accounts e2e-social e2e-deploy e2e-signing e2e-email e2e-branding e2e-domains conformance console
 
 build:
 	CGO_ENABLED=0 go build -trimpath -o bin/zeroauthy ./cmd/zeroauthy
@@ -60,3 +60,6 @@ conformance:
 console:
 	cd console && npm ci --no-audit --no-fund
 	cd console && npm run gen && npm run lint && npm run typecheck && npm test && npm run build
+
+e2e-actions-ii:
+	./tests/e2e/run-m28-actions-ii.sh

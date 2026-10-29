@@ -139,6 +139,8 @@ func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *st
 	}
 	m := email.ResetPassword(i18n.New(localized, lang), link)
 	m.To = user.Email
+	m.UserID = user.UserID
+	m.ClientID = clientID
 	if h.Email != nil {
 		return h.Email.SendMessage(ctx, res.Tenant.ID, m)
 	}

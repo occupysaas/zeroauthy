@@ -219,3 +219,26 @@ func TestActionsSeedPreservesExplicitlyEmptyBindings(t *testing.T) {
 		})
 	}
 }
+
+// The seed refuses a second custom-email-provider binding, as the API does.
+func TestActionsSeedSingleCustomEmailBinding(t *testing.T) {
+	src := `tenants:
+- name: acme
+  domains: [acme.test]
+  actions:
+  - {name: a, supported_triggers: [{id: custom-email-provider, version: v1}], code: "", deploy: true}
+  - {name: b, supported_triggers: [{id: custom-email-provider, version: v1}], code: "", deploy: true}
+  triggers:
+    custom-email-provider:
+      bindings: [{ref: {type: action_name, value: a}}, {ref: {type: action_name, value: b}}]
+`
+	f, err := Parse([]byte(src))
+	if err == nil {
+		st := memory.New()
+		w := testWrapper(t)
+		err = ApplyWithActions(context.Background(), st, f, nil, w, actionstest.NewOffline(t, st, w).Engine)
+	}
+	if err == nil || !strings.Contains(err.Error(), "custom-email-provider") {
+		t.Fatalf("two custom-email-provider bindings: %v", err)
+	}
+}

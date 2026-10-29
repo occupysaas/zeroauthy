@@ -36,7 +36,7 @@ features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–23)
+**Done** (Plans 1–27; Plan 28 in final verification)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -94,7 +94,7 @@ each with its console screens; the full breakdown is in the
 | 46 | Release pipeline, packaging, samples | short | 45 |
 | 47 | Hosted zeroauthy (multi-tenant SaaS) | full | 29, 31, 46 |
 
-Of the roadmap's 42 resource groupings, 20 are done, 18 are planned and 4 are not planned (Rules, Hooks and
+The roadmap tracks 42 resource groupings; its [coverage table](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md#management-api-coverage-by-resource) records completed and remaining work. Four groups are not planned (Rules, Hooks and
 rules-configs, which Auth0 is retiring, and customer-managed encryption keys).
 
 ## Quick start

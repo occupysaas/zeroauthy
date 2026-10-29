@@ -33,14 +33,6 @@ type sealedEffects struct {
 	Ceiling      *[]string      `json:"ceiling,omitempty"`
 }
 
-// HasTokenEffects reports whether e changes a token: custom claims,
-// accessToken scope edits, or a refresh ceiling that differs from the
-// issued scopes. A nil e has none.
-func (e *Effects) HasTokenEffects() bool {
-	return e != nil && (len(e.AccessClaims) > 0 || len(e.IDClaims) > 0 || len(e.AddScopes) > 0 || len(e.RemoveScopes) > 0 ||
-		e.Ceiling != nil || e.RBAC != nil)
-}
-
 // SealEffects envelope-encrypts e's token effects (custom claims may be
 // sensitive) under the master key, bound to the tenant, the purpose and
 // the bind values. A nil e seals an empty set.

@@ -292,9 +292,6 @@ func validPublicEmailConfig(p *store.EmailProvider) bool {
 	case "ses":
 		allowed = map[string]bool{"region": true, "configuration_set_name": true}
 	case "custom":
-		if p.Enabled {
-			return false
-		}
 	default:
 		return false
 	}

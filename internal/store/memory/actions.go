@@ -40,11 +40,13 @@ func cloneSecrets(in []store.ActionSecret) []store.ActionSecret {
 }
 func cloneAction(a *store.Action) *store.Action {
 	c := *a
+	c.Modules = slices.Clone(a.Modules)
 	c.Dependencies, c.Secrets = cloneDeps(a.Dependencies), cloneSecrets(a.Secrets)
 	return &c
 }
 func cloneActionVersion(v *store.ActionVersion) *store.ActionVersion {
 	c := *v
+	c.Modules = slices.Clone(v.Modules)
 	c.Dependencies, c.Secrets = cloneDeps(v.Dependencies), cloneSecrets(v.Secrets)
 	return &c
 }
@@ -99,6 +101,11 @@ func (r actionsRepo) CreateAction(_ context.Context, a *store.Action) error {
 	if r.s.actions[key{c.TenantID, c.ID}] != nil || r.s.nameTaken(c.TenantID, c.Name, "") {
 		return store.ErrConflict
 	}
+	refs, err := r.s.resolveModuleRefs(c.TenantID, c.Modules)
+	if err != nil {
+		return err
+	}
+	c.Modules = refs
 	c.CreatedAt = r.stamp(c.CreatedAt)
 	c.UpdatedAt = r.stamp(c.UpdatedAt)
 	r.s.actions[key{c.TenantID, c.ID}] = c
@@ -152,6 +159,22 @@ func (r actionsRepo) UpdateAction(_ context.Context, a *store.Action) error {
 	if r.s.nameTaken(c.TenantID, c.Name, c.ID) {
 		return store.ErrConflict
 	}
+	refs, err := store.ResolveDraftModuleRefs(c.Modules,
+		func(id string) (bool, error) { return r.s.modules[key{c.TenantID, id}] != nil, nil },
+		func() ([]store.ModuleRef, error) {
+			var pins []store.ModuleRef
+			for k, v := range r.s.actionVersions {
+				if k.tenant == c.TenantID && v.ActionID == c.ID {
+					pins = append(pins, v.Modules...)
+				}
+			}
+			return pins, nil
+		},
+		func(refs []store.ModuleRef) ([]store.ModuleRef, error) { return r.s.resolveModuleRefs(c.TenantID, refs) })
+	if err != nil {
+		return err
+	}
+	c.Modules = refs
 	c.CreatedAt, c.DeployedVersionID = old.CreatedAt, old.DeployedVersionID
 	c.UpdatedAt = r.stamp(c.UpdatedAt)
 	r.s.actions[key{c.TenantID, c.ID}] = c
@@ -194,6 +217,7 @@ func (r actionsRepo) DeleteAction(_ context.Context, tid, id string, force bool)
 		}
 	}
 	delete(r.s.actions, key{tid, id})
+	r.s.purgeModuleTombstones()
 	return nil
 }
 
@@ -237,6 +261,7 @@ func (r actionsRepo) Deploy(_ context.Context, tid, actionID, from string) (*sto
 		if src == nil || src.ActionID != actionID {
 			return nil, store.ErrNotFound
 		}
+		v.Modules = slices.Clone(src.Modules)
 		v.Code, v.Runtime, v.BuildID = src.Code, src.Runtime, src.BuildID
 		v.Dependencies, v.Secrets = cloneDeps(src.Dependencies), cloneSecrets(src.Secrets)
 	} else {
@@ -245,6 +270,7 @@ func (r actionsRepo) Deploy(_ context.Context, tid, actionID, from string) (*sto
 		if a.DraftBuildID == "" || b == nil || b.Status != store.BuildBuilt || !haveArtifact {
 			return nil, store.ErrBuildNotReady
 		}
+		v.Modules = slices.Clone(a.Modules)
 		v.Code, v.Runtime, v.BuildID = a.Code, a.Runtime, b.ID
 		v.Dependencies, v.Secrets = cloneDeps(b.Resolved), cloneSecrets(a.Secrets)
 	}
@@ -501,6 +527,9 @@ func (r actionsRepo) PurgeContinue(_ context.Context, before time.Time) (int, er
 
 // deleteActionsTenant removes every Actions row of a tenant; the caller holds the lock.
 func (s *Store) deleteActionsTenant(id string) {
+	deleteTenantKeys(s.modules, id)
+	deleteTenantKeys(s.moduleVersions, id)
+	deleteTenantKeys(s.actionJobs, id)
 	deleteTenantKeys(s.actions, id)
 	deleteTenantKeys(s.actionVersions, id)
 	deleteTenantKeys(s.builds, id)

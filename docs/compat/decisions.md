@@ -1174,3 +1174,170 @@ Local implementation and verification are recorded in the
 The final whole-branch review and its fixes are in the implementation record; no live upstream parity is claimed.
 
 These are implementation contracts, not proof of completion or live parity.
+
+## D-0054 — Plan 28 Actions II contracts (2026-10-28)
+
+Sources: the [Actions II source review](observations/actions.md#actions-ii-contract-review-2026-10-28)
+links every public reference and the pinned open-source client files. These
+are implementation contracts; Task 1 does not claim runtime completion.
+Plan 27 isolation, sandbox, build, fail-closed and dry-run rules still apply.
+
+Scope and catalogue (author's call): add only triggers whose calling flow
+already exists: pre-/post-user-registration, post-change-password,
+password-reset-post-challenge and custom-email-provider. With Plan 27's two,
+the catalogue has seven `trigger-bound` triggers; all others remain 400 on
+Action creation. Phone triggers belong to Plan 34, custom-token-exchange to
+35, event-stream to 32. Password-hash-migration, login-post-identifier,
+signup-post-identifier and post-credential-validation have no assigned plan
+(`DeferredTrigger.Plan = "deferred"`). Custom user ID assignment, Akamai risk
+signals and JA3/JA4/security_context remain deferred. The inventory lists
+fields zeroauthy will supply; it does not imply every upstream optional
+field is implemented. GeoIP, security_context and authentication risk data
+are omitted. Reset authentication challenge methods (Plan 33) and prompt
+render (Plan 38) throw "not supported by zeroauthy" and fail closed.
+Reset handler exports are `onExecutePostChallenge` and
+`onContinuePostChallenge`, confirmed in the public reset overview. The reset
+API reference lists three redirect methods, without `canRedirect`; exposing
+`redirect.canRedirect` there is a local reuse of the Plan 27 helper, not a
+claim that the reset reference documents it.
+
+The separate observer's documented trigger catalogue read found `v2` current
+and `v1` deprecated for pre-/post-user-registration and post-change-password,
+with `node22` available. Inventory `Version` records `v2` for those three;
+this metadata does not prove trigger execution or alter runtime behavior in
+Task 1. Versions not confirmed in this review remain unspecified.
+
+The six evidence gaps in spec §2 are frozen as follows; unavailable live
+checks leave these defaults in force (see the observation availability
+record for the actual extent of upstream evidence):
+
+1. Management API user creation and bulk import do not fire registration
+   triggers. Database-connection signups do, including hosted and custom-DB
+   signup; passwordless is deferred until its caller exists.
+2. Post-change-password fires after hosted reset/change-password-ticket
+   submission and Management API PATCH of a database user's `password`.
+   Bulk import, password-hash migration and custom-DB-only changes do not
+   fire it; a custom-DB script reporting no change does not fire it.
+3. Pre-registration deny at `/dbconnections/signup` returns HTTP 400 with
+   `name: ExtensibilityError`, `code: extensibility_error`, `description`
+   equal to the supplied user message and `statusCode: 400`.
+   `validation.error` uses the Action's code instead. Hosted signup shows
+   the user message on its signup page. An uncaught error, timeout or
+   unsupported call returns a generic 400 extensibility error; the hosted
+   generic view includes the execution reference. No user, custom-DB create
+   call or post-registration job is allowed after a failed blocking flow.
+4. Custom-email-provider uncaught errors and timeouts are treated as retry.
+5. At most 100 versions per module, 100 modules per tenant and 10 module
+   references per Action. Module code is at most 65,536 characters and name
+   at most 255; secret values retain the 4096 limit. The code/name bounds
+   are public schema constraints; the counts are local defaults.
+6. Rollback replaces the module draft's code, dependencies and secrets; it
+   does not publish or change existing Action versions. This agrees with
+   the public rollback reference.
+
+Registration metadata is validated and merged into the insert. For a legacy
+custom-DB connection (author's call), merged `user_metadata` is passed to the
+existing create-script contract and `app_metadata` is applied only to the
+local record after that script succeeds. A later duplicate-user/insert
+failure uses the ordinary signup error and discards metadata. Pre-registration
+has no user ID or password. Every request body removes password-like fields.
+Hosted-only transaction fields and custom-domain fields are conditional.
+
+Reset challenge outcome is stored on the bearer reset ticket (author's
+call), with pass time and optional result URL. A passed ticket skips the
+challenge on later opens; deny/error records no pass and does not spend the
+ticket. POST checks current bindings and refuses an unpassed ticket without
+spending it, including bindings added after GET. With no bindings the existing
+POST behavior applies. Redirect/continue binds state to the ticket hash and
+`za_reset` cookie; a resumed success records the pass. `setResultUrl` uses the
+ticket URL rules: absolute HTTPS, or HTTP for localhost, with optional query.
+Invalid URLs fail the flow. Reset deny displays the supplied reason.
+
+Non-blocking work uses a durable, shared per-tenant job queue (author's call).
+Enqueue pins bindings, Action versions and module versions and seals the event
+snapshot with the master-key envelope. Enqueue occurs in the same store
+transaction as the user/password/email write; without a surrounding
+transaction it follows the local write. A worker holds a 60-second lease,
+longer than the 20-second flow budget. A run is delivered again only after
+lease expiry or an explicit email retry; lease expiry gives at-least-once
+delivery. Registration/password jobs run once, even on failure. Every run
+leaves an execution record and failure logs include its ID. Per-tenant
+process limits and timeout effects are shared with blocking Actions.
+
+Custom-email retries use the local schedule 30 s, 1 m, 2 m, 4 m and 8 m
+(five retries after the initial attempt). The final retry/drop call wins;
+reasons truncate to 1024 characters. Drop is terminal; exhaustion is failed.
+The pending cap is 10,000 per tenant. At that cap signup/password changes
+still succeed and log the dropped job; email enqueue reports provider failure.
+Jobs and execution records are purged after 10 days. Custom email with no
+binding is a provider configuration error; no fallback transport. Send returns
+on enqueue; console test send waits for the first attempt up to 20 s and
+reports its outcome. The test message type is
+`try_provider_configuration_email`; other types are emitted only for existing
+email flows. Database users start tracking `last_password_reset`.
+
+Module create with `publish:true` waits for a ready build and publishes in
+the request; failure/timeout leaves no module. Publishing an unbuilt draft is
+400, an unchanged draft 409, version exhaustion 412. Module delete in use is
+412; "in use" means any Action draft or currently deployed Action version
+(author's call). Older versions and queued jobs instead retain hidden module
+version tombstones until no Action version or job pins them. List/usage counts
+use this same local definition. Module names are immutable, PATCH secrets
+replace the whole list, values remain write-only and sealed per tenant/module.
+Public create schema permits names without NUL up to 255 characters; the
+pinned CLI's stricter lowercase name validation is a client rule, not adopted
+as an undocumented server requirement. Module pagination follows the public
+page/per_page schema (page 0, default 20 where paging applies) and Plan 27's
+local maximum 100; module list with both paging parameters absent is unpaged.
+
+Action drafts accept module IDs/version IDs or name/version-number pairs;
+responses include all four fields. Missing modules/versions are 400. Deploy
+pins exact versions, never auto-upgrades. Each module is evaluated once per
+Action-version/module-version pair in a private context with its own npm tree
+and `actions.secrets`, with log masking. It cannot import `actions:*` or read
+another Action/module/tenant's secrets or build tree. Plan 27's `registry_url`
+and binding-secret refusals continue; its Action `modules` refusal is
+superseded. Test execution records effects without applying them, sending
+email or enqueueing jobs. Seed ownership remains create-only.
+
+Pinned open-source support is available: Deploy CLI 9.1.0 imports/exports
+`actionModules` in YAML and directory formats and resolves Action module
+name/number references; auth0-cli 1.37.0 exposes native module and version
+commands and `--module` on Action create/update; node-auth0 7.4.0 exposes all
+ten module operations. The public tutorial's claim that auth0-cli lacks a
+module flag is stale relative to that pinned source. This is source support,
+not a completed local round-trip; Task 13 must exercise all four Deploy CLI
+format/credential cells with modules. Implementation is original; no upstream
+code was copied or adapted.
+
+Final-review addendum (2026-10-28). Auth0 documents "You can have at most one
+Action bound to the `custom-email-provider` trigger"
+(https://auth0.com/docs/customize/email/configure-a-custom-email-provider/configure-a-custom-email-provider-with-terraform).
+zeroauthy enforces that limit in `PATCH /actions/triggers/custom-email-provider/bindings`,
+the seed, the console and every store's `ReplaceBindings`. Auth0 documents no error body for a second binding;
+the refusal uses the existing local binding-validation 400 (`invalid_body`),
+a local choice. Independently of the limit (jobs queued earlier, or bindings
+written outside the API), a recorded `drop` is terminal even when a later
+Action fails, and an attempt in which any Action completed without asking to
+retry is failed instead of retried, so a completed Action never runs again; a
+job envelope that cannot open fails at once. Without an Actions engine, a
+signup whose tenant has pre-user-registration bound fails closed, as the reset
+page does. Restoring an old Action version into the draft (`update_draft`)
+keeps that version's pins to deleted-module tombstones; only the Action whose
+versions pin a tombstone may keep it in its draft.
+
+Isolation addendum (2026-10-28). Review Focus 5 asked that module code be unable
+to read the importing Action's secrets or another module's secrets. The final
+review showed this does not hold. Per-version and per-module VM contexts share
+host-realm objects (`console`, `process`, `Buffer`, `require`, Node built-ins),
+and npm dependencies load through Node's own loader in the host realm. So code
+in a tenant's Actions process can read every Action and module secret of that
+tenant. The maintainer ruled on 2026-10-28 that the tenant is the trust domain.
+Separating secrets inside a tenant is documented as a convention, not a
+guarantee, and no follow-up plan is scheduled. The boundaries that still hold
+are enforced outside the VM. Each tenant has its own Node process with an empty
+environment (no server environment variables), Node `--permission` limits reads
+to the runner and the tenant's build root with no writes, child processes,
+workers, addons or WASI, signalling is locked, and unix-socket path connections
+are refused (D-0053). Whether Auth0 separates secrets between Actions and
+modules of one tenant was not observed.

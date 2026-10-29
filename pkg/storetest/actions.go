@@ -429,7 +429,7 @@ func testActions(t *testing.T, factory Factory) {
 	t.Run("executions and continue", func(t *testing.T) {
 		old := now.Add(-11 * 24 * time.Hour)
 		must(a.CreateExecution(ctx, &store.Execution{TenantID: "act-a", ID: "ex_old", Trigger: "post-login", Status: "final", CreatedAt: old, UpdatedAt: old,
-			Results: []store.ExecutionResult{{ActionName: "x", ErrorID: "e", StartedAt: old, EndedAt: old}}}))
+			Results: []store.ExecutionResult{{ActionName: "x", ErrorID: "e", JobID: "ajob_roundtrip", JobAttempt: 3, StartedAt: old, EndedAt: old}}}))
 		must(a.CreateExecution(ctx, &store.Execution{TenantID: "act-b", ID: "ex_new", Trigger: "post-login", Status: "pending", CreatedAt: now, UpdatedAt: now}))
 		if err := a.CreateExecution(ctx, &store.Execution{TenantID: "act-b", ID: "ex_new"}); !errors.Is(err, store.ErrConflict) {
 			t.Fatal(err)
@@ -442,6 +442,9 @@ func testActions(t *testing.T, factory Factory) {
 		}
 		e, err := a.GetExecution(ctx, "act-a", "ex_old")
 		must(err)
+		if e.Results[0].JobID != "ajob_roundtrip" || e.Results[0].JobAttempt != 3 {
+			t.Fatalf("job attempt lost: %+v", e.Results[0])
+		}
 		e.Results[0].ActionName = "mutated"
 		e, _ = a.GetExecution(ctx, "act-a", "ex_old")
 		if e.Results[0].ActionName != "x" {

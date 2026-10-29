@@ -27,6 +27,8 @@ var (
 	ErrConflict = errors.New("store: conflict")
 	// ErrAlreadyUsed is returned when a single-use entity was already used.
 	ErrAlreadyUsed = errors.New("store: already used")
+	// ErrPrecondition is returned when a resource is in use or a storage limit is reached.
+	ErrPrecondition = errors.New("store: precondition failed")
 	// ErrInvalid is returned for an argument the store refuses to take, such
 	// as a negative file chunk number or a job status that is not final.
 	ErrInvalid = errors.New("store: invalid argument")
@@ -485,6 +487,7 @@ type RefreshTokens interface {
 // PasswordResetTickets stores password-reset tickets, keyed by
 // (TenantID, ID). TokenHash is unique within a tenant.
 type PasswordResetTickets interface {
+	MarkChallengePassed(ctx context.Context, tenantID, tokenHash string, at time.Time, resultURL string) error
 	// Create returns ErrConflict if the ID or TokenHash exists.
 	Create(ctx context.Context, t *PasswordResetTicket) error
 	GetByTokenHash(ctx context.Context, tenantID, tokenHash string) (*PasswordResetTicket, error)

@@ -18,8 +18,8 @@ type actionsRepo struct{ s *Store }
 func (s *Store) Actions() store.Actions { return actionsRepo{s} }
 
 const (
-	actionCols  = `tenant_id,id,name,trigger_id,runtime,code,dependencies,secrets,draft_build_id,deployed_version_id,created_at,updated_at`
-	versionCols = `tenant_id,id,action_id,number,code,runtime,build_id,dependencies,secrets,created_at`
+	actionCols  = `tenant_id,id,name,trigger_id,runtime,code,dependencies,secrets,draft_build_id,deployed_version_id,created_at,updated_at,modules`
+	versionCols = `tenant_id,id,action_id,number,code,runtime,build_id,dependencies,secrets,created_at,modules`
 	buildCols   = `tenant_id,id,status,requested,resolved,errors,artifact_sha256,built_at`
 	execCols    = `tenant_id,id,trigger_id,status,results,created_at,updated_at`
 )
@@ -62,9 +62,9 @@ func stampTime(t time.Time) time.Time {
 
 func scanAction(r scanner) (*store.Action, error) {
 	var a store.Action
-	var deps, secrets string
+	var deps, secrets, modules string
 	var created, updated int64
-	if err := r.Scan(&a.TenantID, &a.ID, &a.Name, &a.Trigger, &a.Runtime, &a.Code, &deps, &secrets, &a.DraftBuildID, &a.DeployedVersionID, &created, &updated); err != nil {
+	if err := r.Scan(&a.TenantID, &a.ID, &a.Name, &a.Trigger, &a.Runtime, &a.Code, &deps, &secrets, &a.DraftBuildID, &a.DeployedVersionID, &created, &updated, &modules); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(deps, &a.Dependencies); err != nil {
@@ -73,21 +73,27 @@ func scanAction(r scanner) (*store.Action, error) {
 	if err := fromJSON(secrets, &a.Secrets); err != nil {
 		return nil, err
 	}
+	if err := fromJSON(modules, &a.Modules); err != nil {
+		return nil, err
+	}
 	a.CreatedAt, a.UpdatedAt = fromMicros(created), fromMicros(updated)
 	return &a, nil
 }
 
 func scanActionVersion(r scanner) (*store.ActionVersion, error) {
 	var v store.ActionVersion
-	var deps, secrets string
+	var deps, secrets, modules string
 	var created int64
-	if err := r.Scan(&v.TenantID, &v.ID, &v.ActionID, &v.Number, &v.Code, &v.Runtime, &v.BuildID, &deps, &secrets, &created); err != nil {
+	if err := r.Scan(&v.TenantID, &v.ID, &v.ActionID, &v.Number, &v.Code, &v.Runtime, &v.BuildID, &deps, &secrets, &created, &modules); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(deps, &v.Dependencies); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(secrets, &v.Secrets); err != nil {
+		return nil, err
+	}
+	if err := fromJSON(modules, &v.Modules); err != nil {
 		return nil, err
 	}
 	v.CreatedAt = fromMicros(created)
@@ -109,8 +115,16 @@ func (r actionsRepo) CreateAction(ctx context.Context, a *store.Action) error {
 	}
 	created, updated := stampTime(c.CreatedAt), stampTime(c.UpdatedAt)
 	return r.atomic(ctx, c.TenantID, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO actions (`+actionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-			c.TenantID, c.ID, c.Name, c.Trigger, c.Runtime, c.Code, deps, secrets, c.DraftBuildID, "", micros(created), micros(updated))
+		refs, err := (actionsRepo{tx}).resolveModuleRefs(ctx, c.TenantID, c.Modules)
+		if err != nil {
+			return err
+		}
+		modules, err := toJSON(refs)
+		if err != nil {
+			return err
+		}
+		_, err = tx.exec(ctx, `INSERT INTO actions (`+actionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			c.TenantID, c.ID, c.Name, c.Trigger, c.Runtime, c.Code, deps, secrets, c.DraftBuildID, "", micros(created), micros(updated), modules)
 		return tx.conflict(err)
 	})
 }
@@ -153,8 +167,45 @@ func (r actionsRepo) UpdateAction(ctx context.Context, a *store.Action) error {
 		if c.Trigger != old.Trigger {
 			return store.ErrInvalid
 		}
-		_, err = tx.exec(ctx, `UPDATE actions SET name=?,runtime=?,code=?,dependencies=?,secrets=?,draft_build_id=?,updated_at=? WHERE tenant_id=? AND id=?`,
-			c.Name, c.Runtime, c.Code, deps, secrets, c.DraftBuildID, micros(updated), c.TenantID, c.ID)
+		repo := actionsRepo{tx}
+		refs, err := store.ResolveDraftModuleRefs(c.Modules,
+			func(id string) (bool, error) {
+				_, err := repo.GetModule(ctx, c.TenantID, id)
+				if errors.Is(err, store.ErrNotFound) {
+					return false, nil
+				}
+				return err == nil, err
+			},
+			func() ([]store.ModuleRef, error) {
+				rows, err := tx.query(ctx, `SELECT modules FROM action_versions WHERE tenant_id=? AND action_id=?`, c.TenantID, c.ID)
+				if err != nil {
+					return nil, err
+				}
+				defer rows.Close()
+				var pins []store.ModuleRef
+				for rows.Next() {
+					var raw string
+					var refs []store.ModuleRef
+					if err := rows.Scan(&raw); err != nil {
+						return nil, err
+					}
+					if err := fromJSON(raw, &refs); err != nil {
+						return nil, err
+					}
+					pins = append(pins, refs...)
+				}
+				return pins, rows.Err()
+			},
+			func(refs []store.ModuleRef) ([]store.ModuleRef, error) { return repo.resolveModuleRefs(ctx, c.TenantID, refs) })
+		if err != nil {
+			return err
+		}
+		modules, err := toJSON(refs)
+		if err != nil {
+			return err
+		}
+		_, err = tx.exec(ctx, `UPDATE actions SET name=?,runtime=?,code=?,dependencies=?,secrets=?,draft_build_id=?,updated_at=?,modules=? WHERE tenant_id=? AND id=?`,
+			c.Name, c.Runtime, c.Code, deps, secrets, c.DraftBuildID, micros(updated), modules, c.TenantID, c.ID)
 		return tx.conflict(err)
 	})
 }
@@ -203,7 +254,7 @@ func (r actionsRepo) DeleteAction(ctx context.Context, tenant, id string, force 
 				return err
 			}
 		}
-		return nil
+		return (actionsRepo{tx}).purgeModuleTombstones(ctx, tenant)
 	})
 }
 
@@ -252,7 +303,7 @@ func (r actionsRepo) Deploy(ctx context.Context, tenant, actionID, from string) 
 			if err != nil {
 				return err
 			}
-			v.Code, v.Runtime, v.BuildID, v.Dependencies, v.Secrets = src.Code, src.Runtime, src.BuildID, src.Dependencies, src.Secrets
+			v.Code, v.Runtime, v.BuildID, v.Dependencies, v.Secrets, v.Modules = src.Code, src.Runtime, src.BuildID, src.Dependencies, src.Secrets, src.Modules
 		} else {
 			if a.DraftBuildID == "" {
 				return store.ErrBuildNotReady
@@ -272,7 +323,7 @@ func (r actionsRepo) Deploy(ctx context.Context, tenant, actionID, from string) 
 			if err != nil {
 				return err
 			}
-			v.Code, v.Runtime, v.BuildID, v.Dependencies, v.Secrets = a.Code, a.Runtime, b.ID, b.Resolved, a.Secrets
+			v.Code, v.Runtime, v.BuildID, v.Dependencies, v.Secrets, v.Modules = a.Code, a.Runtime, b.ID, b.Resolved, a.Secrets, a.Modules
 		}
 		if err := tx.queryRow(ctx, `SELECT COALESCE(MAX(number),0)+1 FROM action_versions WHERE tenant_id=? AND action_id=?`, tenant, actionID).Scan(&v.Number); err != nil {
 			return err
@@ -285,8 +336,12 @@ func (r actionsRepo) Deploy(ctx context.Context, tenant, actionID, from string) 
 		if err != nil {
 			return err
 		}
-		if _, err = tx.exec(ctx, `INSERT INTO action_versions (`+versionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-			tenant, v.ID, actionID, v.Number, v.Code, v.Runtime, v.BuildID, deps, secrets, micros(now)); err != nil {
+		modules, err := toJSON(v.Modules)
+		if err != nil {
+			return err
+		}
+		if _, err = tx.exec(ctx, `INSERT INTO action_versions (`+versionCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+			tenant, v.ID, actionID, v.Number, v.Code, v.Runtime, v.BuildID, deps, secrets, micros(now), modules); err != nil {
 			return err
 		}
 		if _, err = tx.exec(ctx, `UPDATE actions SET deployed_version_id=?,updated_at=? WHERE tenant_id=? AND id=?`, v.ID, micros(now), tenant, actionID); err != nil {
@@ -465,13 +520,13 @@ func (r actionsRepo) bound(ctx context.Context, tenant, trigger string) ([]store
 	for rows.Next() {
 		bv := store.BoundVersion{Binding: store.Binding{TenantID: tenant, Trigger: trigger}}
 		var bc, bu, ac, au, vc int64
-		var aDeps, aSecrets, vDeps, vSecrets string
+		var aDeps, aSecrets, vDeps, vSecrets, aModules, vModules string
 		a, v := &bv.Action, &bv.Version
 		var missing bool
 		// The first five destinations are the binding's own, never NULL.
 		dest := []any{&bv.ID, &bv.ActionID, &bv.DisplayName, &bc, &bu,
-			&a.TenantID, &a.ID, &a.Name, &a.Trigger, &a.Runtime, &a.Code, &aDeps, &aSecrets, &a.DraftBuildID, &a.DeployedVersionID, &ac, &au,
-			&v.TenantID, &v.ID, &v.ActionID, &v.Number, &v.Code, &v.Runtime, &v.BuildID, &vDeps, &vSecrets, &vc}
+			&a.TenantID, &a.ID, &a.Name, &a.Trigger, &a.Runtime, &a.Code, &aDeps, &aSecrets, &a.DraftBuildID, &a.DeployedVersionID, &ac, &au, &aModules,
+			&v.TenantID, &v.ID, &v.ActionID, &v.Number, &v.Code, &v.Runtime, &v.BuildID, &vDeps, &vSecrets, &vc, &vModules}
 		wrapped := make([]any, len(dest))
 		copy(wrapped, dest[:5])
 		for i := 5; i < len(dest); i++ {
@@ -486,7 +541,7 @@ func (r actionsRepo) bound(ctx context.Context, tenant, trigger string) ([]store
 		for _, f := range []struct {
 			s string
 			v any
-		}{{aDeps, &a.Dependencies}, {aSecrets, &a.Secrets}, {vDeps, &v.Dependencies}, {vSecrets, &v.Secrets}} {
+		}{{aDeps, &a.Dependencies}, {aSecrets, &a.Secrets}, {vDeps, &v.Dependencies}, {vSecrets, &v.Secrets}, {aModules, &a.Modules}, {vModules, &v.Modules}} {
 			if err := fromJSON(f.s, f.v); err != nil {
 				return nil, err
 			}

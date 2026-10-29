@@ -17,6 +17,7 @@ type Factory func(t *testing.T) store.Store
 var Suites = map[string]func(t *testing.T, newStore Factory){
 	"RBAC":                        testRBAC,
 	"Actions":                     testActions,
+	"ActionsII":                   testActionsII,
 	"Tenants":                     testTenants,
 	"CustomDomainAttemptLimits":   testCustomDomainAttemptLimits,
 	"CustomDomainClaims":          testCustomDomainClaims,
@@ -67,7 +68,7 @@ var suiteOrder = []string{
 	"PushedAuthRequests",
 	"RefreshTokens", "PasswordResetTickets", "EmailVerificationTickets", "Tx",
 	"DeviceCodes", "Operators", "Jobs", "TenantsDelete", "EmptyLists",
-	"Email", "HostedLogin", "HostedTransition", "Federation", "Actions",
+	"Email", "HostedLogin", "HostedTransition", "Federation", "Actions", "ActionsII",
 }
 
 // Run executes the conformance tests every driver passes against stores made

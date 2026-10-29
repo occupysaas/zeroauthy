@@ -106,4 +106,37 @@ func TestActionsValidateBindings(t *testing.T) {
 	if len(ValidateBindings("post-login", []store.Binding{{ActionID: "a", Trigger: "credentials-exchange"}})) == 0 {
 		t.Error("mismatched trigger")
 	}
+	// Auth0 allows at most one Action bound to custom-email-provider.
+	if len(ValidateBindings("custom-email-provider", b(1))) != 0 || len(ValidateBindings("custom-email-provider", b(2))) == 0 || len(ValidateBindings("custom-email-provider", nil)) != 0 {
+		t.Error("custom-email-provider binding limit")
+	}
+}
+
+// Rejecting malformed reference pairs prevents silently pinning a different module.
+func TestModuleRules(t *testing.T) {
+	for _, refs := range [][]store.ModuleRef{
+		{{ModuleID: "m"}}, {{VersionID: "v"}}, {{ModuleName: "m"}}, {{VersionNumber: 1}},
+		{{ModuleID: "m", VersionID: "v", ModuleName: "n"}},
+		{{ModuleName: "m", VersionNumber: 1}, {ModuleName: "m", VersionNumber: 2}},
+	} {
+		if len(ValidateModuleRefs(refs)) == 0 {
+			t.Fatalf("accepted malformed refs: %+v", refs)
+		}
+	}
+	for _, refs := range [][]store.ModuleRef{{{ModuleID: "m", VersionID: "v"}}, {{ModuleName: "m", VersionNumber: 1}}, {{ModuleID: "m", VersionID: "v", ModuleName: "n", VersionNumber: 1}}} {
+		if errs := ValidateModuleRefs(refs); len(errs) != 0 {
+			t.Fatal(errs)
+		}
+	}
+	for _, name := range []string{"", "a\x00b", strings.Repeat("x", 256)} {
+		if len(NormalizeModule(&store.ActionModule{Name: name})) == 0 {
+			t.Fatalf("accepted name %q", name)
+		}
+	}
+	if errs := NormalizeModule(&store.ActionModule{Name: "Any Module", Code: strings.Repeat("é", 65536)}); len(errs) != 0 {
+		t.Fatal(errs)
+	}
+	if len(NormalizeModule(&store.ActionModule{Name: "m", Code: strings.Repeat("é", 65537)})) == 0 {
+		t.Fatal("oversized module")
+	}
 }

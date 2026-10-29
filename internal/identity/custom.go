@@ -342,6 +342,12 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 	if err != nil {
 		return nil, err
 	}
+	name, nickname := DefaultNames(in.Name, in.Nickname, email, username)
+	prospective := &store.User{TenantID: conn.TenantID, Email: email, Username: username, Name: name, Nickname: nickname, GivenName: in.GivenName, FamilyName: in.FamilyName, Picture: in.Picture, UserMetadata: in.UserMetadata}
+	if err := d.runSignupActions(ctx, in.Actions, prospective); err != nil {
+		return nil, err
+	}
+	in.UserMetadata = prospective.UserMetadata
 	in.Password = EffectivePassword(conn, in.Password)
 	err = c.Create(ctx, conn, customdb.CreateUser{
 		Tenant: tn.Name, ClientID: in.ClientID, Connection: conn.Name,
@@ -364,12 +370,31 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 		// for the user.
 		return nil, d.scriptErr(ctx, conn, store.ScriptLogin, err)
 	}
-	u, err := d.upsertProfile(ctx, conn, p, true)
-	if err != nil {
-		return nil, err
+	u := d.profileUser(conn, p)
+	u.UserMetadata = mergeSignupMetadata(u.UserMetadata, prospective.UserMetadata)
+	u.AppMetadata = mergeSignupMetadata(u.AppMetadata, prospective.AppMetadata)
+	var historyHash string
+	if h := conn.PasswordOptions.History; h.Active && h.Size > 0 {
+		historyHash, err = secrets.Hash(in.Password)
+		if err != nil {
+			return nil, err
+		}
 	}
-	// The password lives in the legacy store; the history is zeroauthy's.
-	if err := d.RecordLegacyPassword(ctx, conn, u.UserID, in.Password); err != nil {
+	err = d.insertSignup(ctx, conn, in.Actions, u, historyHash)
+	if errors.Is(err, ErrUserExists) {
+		// The legacy store has accepted the account, so a local record (an
+		// earlier login or a concurrent first login) is adopted as before
+		// Actions; upsertProfile still reports a real collision. The
+		// adopted record keeps its own metadata.
+		if u, err = d.upsertProfile(ctx, conn, p, true); err != nil {
+			return nil, err
+		}
+		if err = d.RecordLegacyPassword(ctx, conn, u.UserID, in.Password); err != nil {
+			return nil, err
+		}
+		err = d.Store.WithTx(ctx, func(tx store.Store) error { return d.enqueueSignup(ctx, tx, conn, in.Actions, u) })
+	}
+	if err != nil {
 		return nil, err
 	}
 	if u.Blocked {

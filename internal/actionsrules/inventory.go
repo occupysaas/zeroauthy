@@ -32,26 +32,38 @@ type APIMember struct {
 }
 
 type TriggerContract struct {
-	ID        string      `json:"id"`
-	Version   string      `json:"version,omitempty"`
-	Event     []string    `json:"event"`
-	API       []APIMember `json:"api"`
-	SourceURL string      `json:"source_url"`
+	ID              string      `json:"id"`
+	Handler         string      `json:"handler"`
+	ContinueHandler string      `json:"continue_handler,omitempty"`
+	Blocking        bool        `json:"blocking"`
+	Version         string      `json:"version,omitempty"`
+	Event           []string    `json:"event"`
+	API             []APIMember `json:"api"`
+	SourceURL       string      `json:"source_url"`
+}
+
+// DeferredTrigger records an advertised upstream trigger whose caller is out of scope.
+// Plan is a roadmap plan number, or "deferred" when no plan is assigned.
+type DeferredTrigger struct {
+	ID   string `json:"id"`
+	Plan string `json:"plan"`
 }
 
 type compatibilityInventory struct {
-	Operations   []OperationContract `json:"operations"`
-	Triggers     []TriggerContract   `json:"triggers"`
-	Limits       map[string]int      `json:"limits"`
-	LimitSources map[string]string   `json:"limit_sources"`
+	DeferredTriggers []DeferredTrigger   `json:"deferred_triggers"`
+	Operations       []OperationContract `json:"operations"`
+	Triggers         []TriggerContract   `json:"triggers"`
+	Limits           map[string]int      `json:"limits"`
+	LimitSources     map[string]string   `json:"limit_sources"`
 }
 
-// Catalog is the frozen Plan 27 contract inventory.
+// Catalog is the frozen Actions compatibility contract inventory.
 type Catalog struct {
-	Operations   []OperationContract
-	Triggers     []TriggerContract
-	Limits       map[string]int
-	LimitSources map[string]string
+	DeferredTriggers []DeferredTrigger
+	Operations       []OperationContract
+	Triggers         []TriggerContract
+	Limits           map[string]int
+	LimitSources     map[string]string
 }
 
 // Inventory returns independent values decoded from the embedded JSON.

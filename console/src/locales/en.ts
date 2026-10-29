@@ -1355,6 +1355,8 @@ const en = {
     syntheticHint: 'Preview uses synthetic example.invalid values and never creates a ticket.',
     testSaved: 'Send test of saved template',
     testSavedHint: 'The test sends the saved template to your verified operator address. Preview edits are not included.',
+    customBindingHint: 'Enable custom email only after binding a deployed Action to custom-email-provider. The Action must send the message; there is no SMTP fallback.',
+    customTestResult: 'Custom email: {status} · {reason} · execution {execution}',
     testAccepted: 'The provider accepted the message. Delivery is not confirmed.',
     testUncertain: 'The request failed after it started. The provider may have accepted the message; no automatic retry was made.',
     templateNames: {
@@ -1375,7 +1377,7 @@ const en = {
     },
     providerNames: {
       smtp: 'SMTP', sendgrid: 'SendGrid', mailgun: 'Mailgun', mandrill: 'Mandrill', sparkpost: 'SparkPost',
-      ses: 'Amazon SES', azure_cs: 'Azure Communication Services', ms365: 'Microsoft 365', resend: 'Resend', custom: 'Custom (disabled)',
+      ses: 'Amazon SES', azure_cs: 'Azure Communication Services', ms365: 'Microsoft 365', resend: 'Resend', custom: 'Custom',
     },
     credentialNames: {
       smtp_host: 'SMTP host', smtp_port: 'SMTP port', smtp_user: 'SMTP username', smtp_pass: 'SMTP password',
@@ -1385,6 +1387,13 @@ const en = {
   },
 
   actions: {
+    invalidModuleDraft: 'Module names allow 1–255 characters; code allows up to 65,536 characters.', moduleCodeHint: 'Node.js 22 module code. {used} of 65,536 characters.',
+    modules: 'Modules', moduleEditor: 'Module editor', createModule: 'Create module', modulesHint: 'Publish shared code and pin a published version in each Action.', noModules: 'No modules yet.',
+    moduleDeleteHint: 'Modules used by Actions cannot be deleted. Remove their references first.', moduleUsers: 'Used by {count} Actions',
+    publish: 'Publish', published: 'Published', publishHint: 'Save changes and wait for a successful build before publishing.',
+    moduleRollbackHint: 'Restore a published version to the module draft. Publish it to create a new version; existing Action pins remain unchanged.', moduleRolledBack: 'Version {number} restored to the draft.',
+    addModule: 'Add module', removeModule: 'Remove module', moduleName: 'Module name', moduleVersion: 'Published version', modulePickerHint: 'Pin up to 10 different modules by published version. Publishing a module never changes existing pins.', invalidModules: 'Choose a published version for each of up to 10 unique modules.',
+    template: 'Trigger template', loadTemplate: 'Load sample event', jobAttempt: 'Job {id} · attempt {attempt}',
     title: 'Actions', navigation: 'Actions navigation', library: 'Library', editor: 'Editor', versions: 'Versions', test: 'Test', triggers: 'Triggers', execution: 'Execution lookup',
     libraryHint: 'Build reusable functions, then deploy them and connect them to a trigger.',
     create: 'Create Action', createHint: 'Choose when this Action runs. Code and configuration can be edited in its draft.',
@@ -1412,7 +1421,7 @@ const en = {
     chooseTrigger: 'Choose a trigger', unsupportedTrigger: 'This trigger is not supported.', bindings: 'Ordered bindings',
     reorderHint: 'Use Move up and Move down, or focus a binding and press Alt + Arrow Up or Alt + Arrow Down.',
     up: 'Move up', down: 'Move down', remove: 'Remove', removeNamed: 'Remove {name}', noBindings: 'No Actions are bound to this trigger.',
-    action: 'Action', chooseAction: 'Choose an Action', draft: 'Draft only', addBinding: 'Add binding',
+    action: 'Action', chooseAction: 'Choose an Action', draft: 'Draft only', addBinding: 'Add binding', singleBinding: 'Only one Action can be bound to this trigger. Remove the current binding to replace it.',
     undeployed: 'Deploy this Action before adding it to a trigger.', saveBindings: 'Save bindings', bindingsSaved: 'Trigger bindings saved.', reloadBindings: 'Reload bindings',
     executionHint: 'Find an execution by ID. Results are retained for 10 days and secret values are masked.', executionId: 'Execution ID', lookup: 'Look up',
     build: { pending: 'pending', building: 'building', packaged: 'packaged', built: 'built', retrying: 'retrying', failed: 'failed' },

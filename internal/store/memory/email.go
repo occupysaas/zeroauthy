@@ -96,9 +96,6 @@ func validPublicEmailConfig(p *store.EmailProvider) bool {
 		allowed = map[string]bool{"region": true, "configuration_set_name": true}
 	case "azure_cs", "ms365":
 	case "custom":
-		if p.Enabled {
-			return false
-		}
 	default:
 		return false
 	}

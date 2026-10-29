@@ -114,7 +114,7 @@ func TestActionsPluginRoundTrip(t *testing.T) {
 	}
 
 	ex := &store.Execution{TenantID: "t", ID: "ex_1", Trigger: "post-login", Status: "failed", CreatedAt: now, UpdatedAt: now,
-		Results: []store.ExecutionResult{{ActionName: "Every Field", ErrorID: "e1", ErrorMsg: "boom", StartedAt: now, EndedAt: now.Add(time.Second)}}}
+		Results: []store.ExecutionResult{{JobID: "ajob_every_field", JobAttempt: 4, ActionName: "Every Field", ErrorID: "e1", ErrorMsg: "boom", StartedAt: now, EndedAt: now.Add(time.Second)}}}
 	if err := a.CreateExecution(ctx, ex); err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestActionsPluginRoundTrip(t *testing.T) {
 }
 
 func TestActionsConformanceOverPlugin(t *testing.T) {
-	storetest.RunSuites(t, func(t *testing.T) store.Store { return inProcess(t) }, "Actions")
+	storetest.RunSuites(t, func(t *testing.T) store.Store { return inProcess(t) }, "Actions", "ActionsII")
 }
 
 // badArtifact serves artifact streams that disagree with their header.
@@ -337,6 +337,26 @@ func TestActionsOldPlugin(t *testing.T) {
 	if err := old.Actions().PutArtifact(ctx, "t", "b", []byte("x")); !errors.Is(err, store.ErrActionsUnavailable) {
 		t.Fatalf("put artifact on old plugin: %v", err)
 	}
+
+	// Missing Actions II RPCs must fail closed, including the ticket operation.
+	for name, call := range map[string]func() error{
+		"module":  func() error { _, e := old.Actions().GetModule(ctx, "t", "m"); return e },
+		"publish": func() error { _, e := old.Actions().PublishModule(ctx, "t", "m"); return e },
+		"usage":   func() error { _, e := old.Actions().ModuleUsers(ctx, "t", "m", store.PageRequest{}); return e },
+		"enqueue": func() error { return old.Actions().EnqueueJob(ctx, &store.ActionJob{TenantID: "t", ID: "j"}) },
+		"claim":   func() error { _, e := old.Actions().ClaimJobs(ctx, time.Now(), time.Minute, 1); return e },
+		"finish": func() error {
+			return old.Actions().FinishJob(ctx, &store.ActionJob{TenantID: "t", ID: "j"}, time.Now())
+		},
+		"purge":     func() error { _, e := old.Actions().PurgeJobs(ctx, time.Now()); return e },
+		"challenge": func() error { return old.PasswordResetTickets().MarkChallengePassed(ctx, "t", "h", time.Now(), "") },
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := call(); !errors.Is(err, store.ErrActionsUnavailable) {
+				t.Fatalf("old plugin: %v", err)
+			}
+		})
+	}
 }
 
 type versionOneActionsPlugin struct{ *Server }
@@ -349,5 +369,169 @@ func TestActionsVersionOnePluginRefused(t *testing.T) {
 	defer c.Close()
 	if err := c.CheckActionsSupport(context.Background()); !errors.Is(err, store.ErrActionsUnavailable) {
 		t.Fatalf("v1 plugin without durable binding ownership accepted: %v", err)
+	}
+}
+
+// Losing any field in the new wire messages corrupts published snapshots or worker state.
+func TestActionsIIPluginRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	c := inProcess(t)
+	defer c.Close()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Date(2026, 10, 28, 12, 13, 14, 123456789, time.UTC)
+	must(c.Tenants().Create(ctx, &store.Tenant{ID: "ii", Name: "ii"}))
+	a := c.Actions()
+	must(a.PutBuild(ctx, &store.Build{TenantID: "ii", ID: "b", Status: store.BuildBuilt, Resolved: []store.Dependency{{Name: "dep", Version: "1.2.3"}}, BuiltAt: now}))
+	must(a.PutArtifact(ctx, "ii", "b", []byte("tar")))
+	m := &store.ActionModule{TenantID: "ii", ID: "m", Name: "module", Code: "exports.x=1", Dependencies: []store.Dependency{{Name: "dep", Version: "1.2.3"}}, Secrets: []store.ActionSecret{{Name: "KEY", Sealed: []byte{0, 1, 255}, UpdatedAt: now}}, DraftBuildID: "b", CreatedAt: now, UpdatedAt: now}
+	must(a.CreateModule(ctx, m))
+	got, err := a.GetModule(ctx, "ii", "m")
+	must(err)
+	if !reflect.DeepEqual(got, m) {
+		t.Fatalf("module got %#v want %#v", got, m)
+	}
+	v, err := a.PublishModule(ctx, "ii", "m")
+	must(err)
+	if v.ModuleID != "m" || v.Number != 1 || v.BuildID != "b" || v.Code != "exports.x=1" || !reflect.DeepEqual(v.Dependencies, m.Dependencies) || !reflect.DeepEqual(v.Secrets, m.Secrets) || v.CreatedAt.IsZero() {
+		t.Fatalf("version fields: %#v", v)
+	}
+	back, err := a.GetModuleVersion(ctx, "ii", "m", v.ID)
+	must(err)
+	if !reflect.DeepEqual(back, v) {
+		t.Fatalf("version got %#v want %#v", back, v)
+	}
+	got, err = a.GetModule(ctx, "ii", "m")
+	must(err)
+	if !got.AllChangesPublished || got.LatestVersionNumber != 1 {
+		t.Fatalf("published flags: %#v", got)
+	}
+	pins := []store.ModuleRef{{ModuleID: "m", ModuleName: "module", VersionID: v.ID, VersionNumber: 1}}
+	act := &store.Action{TenantID: "ii", ID: "act", Name: "action", Trigger: "post-login", Runtime: "node22", Code: "exports.onExecutePostLogin=()=>{}", DraftBuildID: "b", Modules: pins, CreatedAt: now, UpdatedAt: now}
+	must(a.CreateAction(ctx, act))
+	act.Code += ";"
+	must(a.UpdateAction(ctx, act))
+	deployed, err := a.Deploy(ctx, "ii", "act", "")
+	must(err)
+	if !reflect.DeepEqual(deployed.Modules, pins) {
+		t.Fatalf("deployment pins: %#v", deployed.Modules)
+	}
+	users, err := a.ModuleUsers(ctx, "ii", "m", store.PageRequest{})
+	must(err)
+	if users.Total != 1 || !users.Items[0].InDraft || !users.Items[0].InDeployed || users.Items[0].ID != "act" || !reflect.DeepEqual(users.Items[0].Modules, pins) {
+		t.Fatalf("module users: %#v", users)
+	}
+	if err = a.DeleteModule(ctx, "ii", "m"); !errors.Is(err, store.ErrPrecondition) {
+		t.Fatalf("delete used module: %v", err)
+	}
+	j := &store.ActionJob{TenantID: "ii", ID: "j", Trigger: "post-user-registration", Status: "pending", Sealed: []byte{0, 2, 255}, NextAt: now, CreatedAt: now, UpdatedAt: now, ExecutionIDs: []string{"e1", "e2"}, ModuleVersionIDs: []string{v.ID}}
+	must(a.EnqueueJob(ctx, j))
+	jobs, err := a.ClaimJobs(ctx, now, time.Minute+123*time.Nanosecond, 1)
+	must(err)
+	if len(jobs) != 1 {
+		t.Fatalf("jobs: %#v", jobs)
+	}
+	claim := jobs[0]
+	if claim.TenantID != "ii" || claim.ID != "j" || claim.Trigger != j.Trigger || claim.Status != "pending" || claim.Attempts != 1 || !claim.LeaseUntil.Equal(now.Add(time.Minute+123*time.Nanosecond)) || !claim.NextAt.Equal(now) || !claim.CreatedAt.Equal(now) || !reflect.DeepEqual(claim.Sealed, j.Sealed) || !reflect.DeepEqual(claim.ExecutionIDs, j.ExecutionIDs) || !reflect.DeepEqual(claim.ModuleVersionIDs, j.ModuleVersionIDs) {
+		t.Fatalf("claim fields: %#v", claim)
+	}
+	claim.Status = "done"
+	must(a.FinishJob(ctx, &claim, claim.LeaseUntil))
+	must(c.Users().Create(ctx, &store.User{TenantID: "ii", UserID: "u", LastPasswordReset: &now}))
+	u, err := c.Users().Get(ctx, "ii", "u")
+	must(err)
+	if u.LastPasswordReset == nil || !u.LastPasswordReset.Equal(now) {
+		t.Fatalf("password reset time: %#v", u)
+	}
+	later := now.Add(time.Second)
+	u.LastPasswordReset = &later
+	must(c.Users().Update(ctx, u))
+	u, err = c.Users().Get(ctx, "ii", "u")
+	must(err)
+	if u.LastPasswordReset == nil || !u.LastPasswordReset.Equal(later) {
+		t.Fatalf("updated password reset time: %#v", u)
+	}
+	ticket := &store.PasswordResetTicket{TenantID: "ii", ID: "t", TokenHash: "h", ExpiresAt: now.Add(time.Hour), ChallengePassedAt: &now, ChallengeResultURL: "https://example.test/first"}
+	must(c.PasswordResetTickets().Create(ctx, ticket))
+	rt, err := c.PasswordResetTickets().GetByTokenHash(ctx, "ii", "h")
+	must(err)
+	if rt.ChallengePassedAt == nil || !rt.ChallengePassedAt.Equal(now) || rt.ChallengeResultURL != "https://example.test/first" {
+		t.Fatalf("initial challenge: %#v", rt)
+	}
+	must(c.PasswordResetTickets().MarkChallengePassed(ctx, "ii", "h", later, "https://example.test/after"))
+	rt, err = c.PasswordResetTickets().Consume(ctx, "ii", "h", later)
+	must(err)
+	if rt.ChallengePassedAt == nil || !rt.ChallengePassedAt.Equal(later) || rt.ChallengeResultURL != "https://example.test/after" {
+		t.Fatalf("marked challenge: %#v", rt)
+	}
+}
+
+type versionTwoActionsPlugin struct{ *Server }
+
+func (versionTwoActionsPlugin) ActionsCapabilities(context.Context, *storev1.PingRequest) (*storev1.ActionsCapabilitiesResult, error) {
+	return &storev1.ActionsCapabilitiesResult{Version: 2}, nil
+}
+func TestActionsOldPluginVersionTwo(t *testing.T) {
+	c := serveWith(t, versionTwoActionsPlugin{NewServer(memory.New())})
+	defer c.Close()
+	err := c.CheckActionsSupport(context.Background())
+	if !errors.Is(err, store.ErrActionsUnavailable) || !strings.Contains(err.Error(), "capability 3") || !strings.Contains(err.Error(), "upgrade") {
+		t.Fatalf("v2 plugin accepted or unclear upgrade diagnostic: %v", err)
+	}
+}
+
+// A dropped tx_id would persist challenge approval despite a failed password transaction.
+func TestActionsIIChallengeTransactionRollback(t *testing.T) {
+	ctx := context.Background()
+	c := inProcessSQLite(t)
+	defer c.Close()
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Now().UTC().Truncate(time.Second)
+	must(c.Tenants().Create(ctx, &store.Tenant{ID: "ii", Name: "ii"}))
+	must(c.Users().Create(ctx, &store.User{TenantID: "ii", UserID: "u"}))
+	must(c.PasswordResetTickets().Create(ctx, &store.PasswordResetTicket{TenantID: "ii", ID: "t", TokenHash: "h", ExpiresAt: now.Add(time.Hour)}))
+	boom := errors.New("rollback")
+	err := c.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.PasswordResetTickets().MarkChallengePassed(ctx, "ii", "h", now, "https://example.test/done"); err != nil {
+			return err
+		}
+		ticket, err := tx.PasswordResetTickets().GetByTokenHash(ctx, "ii", "h")
+		if err != nil {
+			return err
+		}
+		if ticket.ChallengePassedAt == nil || !ticket.ChallengePassedAt.Equal(now) || ticket.ChallengeResultURL != "https://example.test/done" {
+			t.Fatalf("transaction challenge: %#v", ticket)
+		}
+		u, err := tx.Users().Get(ctx, "ii", "u")
+		if err != nil {
+			return err
+		}
+		u.LastPasswordReset = &now
+		if err = tx.Users().Update(ctx, u); err != nil {
+			return err
+		}
+		return boom
+	})
+	if !errors.Is(err, boom) {
+		t.Fatalf("transaction: %v", err)
+	}
+	ticket, err := c.PasswordResetTickets().GetByTokenHash(ctx, "ii", "h")
+	must(err)
+	if ticket.ChallengePassedAt != nil || ticket.ChallengeResultURL != "" {
+		t.Fatalf("challenge survived rollback: %#v", ticket)
+	}
+	u, err := c.Users().Get(ctx, "ii", "u")
+	must(err)
+	if u.LastPasswordReset != nil {
+		t.Fatalf("password timestamp survived rollback: %#v", u)
 	}
 }

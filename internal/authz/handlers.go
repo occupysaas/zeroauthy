@@ -46,6 +46,9 @@ type Handlers struct {
 	Wrapper keys.Wrapper
 	// TrustProxyHeaders is server.trust_proxy_headers, for event.request.ip.
 	TrustProxyHeaders bool
+	// ResetContinue resumes a suspended password-reset-post-challenge flow
+	// (the hosted reset page); nil refuses reset states.
+	ResetContinue func(w http.ResponseWriter, r *http.Request, state string, req actions.RequestInfo)
 }
 
 func (h *Handlers) now() time.Time {

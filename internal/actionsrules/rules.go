@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -40,6 +41,7 @@ func NormalizeAction(a *store.Action) []error {
 	if len(a.Code) > limit("code_bytes") {
 		errs = append(errs, fmt.Errorf("code exceeds %d bytes", limit("code_bytes")))
 	}
+	errs = append(errs, ValidateModuleRefs(a.Modules)...)
 	errs = append(errs, ValidateDependencies(a.Dependencies)...)
 	errs = append(errs, ValidateSecrets(a.Secrets)...)
 	return errs
@@ -103,12 +105,55 @@ func ValidateBindings(trigger string, b []store.Binding) []error {
 	if len(b) > limit("bindings_per_trigger_max") {
 		errs = append(errs, fmt.Errorf("at most %d bindings per trigger", limit("bindings_per_trigger_max")))
 	}
+	// Auth0 allows at most one Action bound to custom-email-provider.
+	if trigger == "custom-email-provider" && len(b) > limit("custom_email_provider_bindings_max") {
+		errs = append(errs, fmt.Errorf("at most %d Action can be bound to custom-email-provider", limit("custom_email_provider_bindings_max")))
+	}
 	for i, v := range b {
 		if v.ActionID == "" {
 			errs = append(errs, fmt.Errorf("binding %d has no action", i))
 		}
 		if v.Trigger != "" && v.Trigger != trigger {
 			errs = append(errs, fmt.Errorf("binding %d trigger %q does not match %q", i, v.Trigger, trigger))
+		}
+	}
+	return errs
+}
+
+// NormalizeModule validates a module draft using the module schema's character limits.
+func NormalizeModule(m *store.ActionModule) []error {
+	var errs []error
+	if !utf8.ValidString(m.Name) || utf8.RuneCountInString(m.Name) < 1 || utf8.RuneCountInString(m.Name) > limit("module_name_chars") || strings.ContainsRune(m.Name, 0) {
+		errs = append(errs, fmt.Errorf("invalid module name"))
+	}
+	if !utf8.ValidString(m.Code) || utf8.RuneCountInString(m.Code) > limit("module_code_chars") {
+		errs = append(errs, fmt.Errorf("module code too long or invalid UTF-8"))
+	}
+	errs = append(errs, ValidateDependencies(m.Dependencies)...)
+	return append(errs, ValidateSecrets(m.Secrets)...)
+}
+
+// ValidateModuleRefs accepts complete ID or name pairs, including resolved refs.
+func ValidateModuleRefs(refs []store.ModuleRef) []error {
+	var errs []error
+	if len(refs) > limit("modules_per_action") {
+		errs = append(errs, fmt.Errorf("too many modules"))
+	}
+	ids, names := map[string]bool{}, map[string]bool{}
+	for _, r := range refs {
+		byID := r.ModuleID != "" && r.VersionID != ""
+		byName := r.ModuleName != "" && r.VersionNumber > 0
+		if (!byID && !byName) || (r.ModuleID != "") != (r.VersionID != "") || (r.ModuleName != "") != (r.VersionNumber > 0) || r.VersionNumber < 0 {
+			errs = append(errs, fmt.Errorf("module reference requires a complete pair"))
+		}
+		if r.ModuleID != "" && ids[r.ModuleID] || r.ModuleName != "" && names[r.ModuleName] {
+			errs = append(errs, fmt.Errorf("duplicate module reference"))
+		}
+		if r.ModuleID != "" {
+			ids[r.ModuleID] = true
+		}
+		if r.ModuleName != "" {
+			names[r.ModuleName] = true
 		}
 	}
 	return errs

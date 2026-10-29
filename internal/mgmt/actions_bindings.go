@@ -16,7 +16,11 @@ func (h *Handlers) GetActionTriggers(w http.ResponseWriter, r *http.Request) {
 		Fail(w, err)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"triggers": []map[string]any{actionTriggerView("post-login"), actionTriggerView("credentials-exchange")}})
+	out := []map[string]any{}
+	for _, t := range actionsrules.Inventory().Triggers {
+		out = append(out, actionTriggerView(t.ID))
+	}
+	writeJSON(w, 200, map[string]any{"triggers": out})
 }
 func (h *Handlers) GetActionBindings(w http.ResponseWriter, r *http.Request, trigger string) {
 	p, err := actionPaging(r)

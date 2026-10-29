@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"strings"
@@ -246,6 +247,44 @@ func mapEnabledClientRefs(rows []object, clients map[string]string) {
 // Validate references independently on each side: two equally broken exports
 // must never pass merely because their dangling IDs happen to be identical.
 func validateReferences(export deploymigration.Export, entries map[string]ManifestResource, r *Report) {
+	if entries["actionModules"].Status == "included" {
+		modules := map[string]float64{}
+		rows, _, _ := decodeRows(export.Resources["actionModules"])
+		for _, row := range rows {
+			name, _ := row["name"].(string)
+			version, _ := row["latest_version_number"].(float64)
+			if name == "" || modules[name] != 0 {
+				addDiff(r, "actionModules", "name", "missing or duplicate module name")
+			}
+			modules[name] = version
+			if secrets, ok := row["secrets"].([]any); ok {
+				for _, secret := range secrets {
+					if s, ok := secret.(map[string]any); ok && s["value"] != nil {
+						addDiff(r, "actionModules", "secrets", "public export contains a secret value")
+					}
+				}
+			}
+		}
+		actions, _, _ := decodeRows(export.Resources["actions"])
+		for _, action := range actions {
+			refs, _ := action["modules"].([]any)
+			for _, ref := range refs {
+				m, ok := ref.(map[string]any)
+				if !ok {
+					addDiff(r, "actions", "modules", "invalid module reference")
+					continue
+				}
+				name, _ := m["module_name"].(string)
+				version, _ := m["module_version_number"].(float64)
+				if name == "" || version < 1 || version != math.Trunc(version) || modules[name] < version {
+					addDiff(r, "actions", "modules", "module name/version is not present in export")
+				}
+				if m["module_id"] != nil || m["module_version_id"] != nil {
+					addDiff(r, "actions", "modules", "export must use canonical module names and version numbers")
+				}
+			}
+		}
+	}
 	if entries["actions"].Status == "included" {
 		actions := map[string]bool{}
 		rows, _, _ := decodeRows(export.Resources["actions"])
@@ -401,7 +440,7 @@ func compareGrants(src, dst []object, clients, apis map[string]string, r *Report
 	}
 }
 func compareRecords(name string, src, dst []object, m Manifest, domains Domains, r *Report) {
-	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template", "branding": "$singleton", "prompts": "$singleton", "themes": "displayName", "customDomains": "domain", "roles": "name", "actions": "name", "triggers": "$singleton"}[name]
+	keyField := map[string]string{"clients": "name", "resourceServers": "identifier", "connections": "name", "databases": "name", "tenant": "name", "attackProtection": "name", "emailProvider": "name", "emailTemplates": "template", "branding": "$singleton", "prompts": "$singleton", "themes": "displayName", "customDomains": "domain", "roles": "name", "actions": "name", "actionModules": "name", "triggers": "$singleton"}[name]
 	by := map[string]object{}
 	for _, o := range src {
 		k := naturalKey(o, keyField)
@@ -443,7 +482,7 @@ func compareRecords(name string, src, dst []object, m Manifest, domains Domains,
 				}
 			}
 		}
-		if name == "resourceServers" || name == "roles" || name == "actions" {
+		if name == "resourceServers" || name == "roles" || name == "actions" || name == "actionModules" {
 			delete(a, "id")
 			delete(b, "id")
 		}

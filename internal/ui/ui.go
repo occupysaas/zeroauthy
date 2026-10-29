@@ -513,6 +513,7 @@ type ResetRequestData struct {
 type ResetFormData struct {
 	Ticket, CSRF string
 	Error        string
+	RedirectURI  string // validated Action result URL; its origin is allowed as form-action
 }
 
 // ResetErrorData is a localized reset-password-error screen.
@@ -532,9 +533,9 @@ func RenderResetEmailSent(w http.ResponseWriter, t Tenant) {
 }
 
 // RenderResetForm asks for the new password. The form posts back to this
-// origin, where the success page renders in place.
+// origin, where success renders or redirects to the validated Action result URL.
 func RenderResetForm(w http.ResponseWriter, status int, t Tenant, d ResetFormData) {
-	render(w, status, "reset_password", t, d, "'self'")
+	render(w, status, "reset_password", t, d, formActionFor(d.RedirectURI))
 }
 
 // RenderResetSuccess confirms the password change.

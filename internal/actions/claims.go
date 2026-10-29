@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"slices"
 	"strings"
 
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
@@ -109,23 +108,4 @@ func checkClaimsSize(m map[string]any) error {
 		return fmt.Errorf("%w (%d bytes, at most %d)", ErrClaimsTooLarge, len(b), max)
 	}
 	return nil
-}
-
-// ApplyScopes returns the final access-token scope: filtered (the scopes
-// left after target edits, API policy, RBAC and consent, spec §7) plus
-// accessToken.addScope minus accessToken.removeScope, which bypass those
-// checks as on Auth0. base is the scope set before Actions ran; it does not
-// change the result and is kept for callers that log the difference. A nil
-// receiver returns filtered unchanged.
-func (e *Effects) ApplyScopes(base []string, filtered []string) []string {
-	out := slices.Clone(filtered)
-	if e == nil {
-		return out
-	}
-	for _, s := range e.AddScopes {
-		if !slices.Contains(out, s) {
-			out = append(out, s)
-		}
-	}
-	return slices.DeleteFunc(out, func(s string) bool { return slices.Contains(e.RemoveScopes, s) })
 }

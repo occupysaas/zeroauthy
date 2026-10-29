@@ -199,7 +199,8 @@ func (m *Manager) TenantRoot(tenantID string) (string, error) {
 	return dir, mkdirPrivate(dir)
 }
 
-// Queue validates deps, resolves empty/"latest" versions synchronously
+// Queue builds dependency sets for both Actions and Modules. It validates
+// deps, resolves empty/"latest" versions synchronously
 // (sandboxed, at most MaxConcurrentBuilds resolutions at once, bounded by
 // ResolveTimeout) and queues the build of the resolved set, returning its
 // content-addressed ID before the build runs; the record goes pending →
@@ -560,6 +561,20 @@ func (m *Manager) Prewarm(ctx context.Context) error {
 				v, err := m.st.Actions().GetVersion(ctx, t.ID, a.ID, a.DeployedVersionID)
 				if err == nil {
 					_, err = m.Ensure(ctx, t.ID, v.BuildID)
+				}
+				if err == nil {
+					for _, ref := range v.Modules {
+						// Version lookups deliberately include tombstones: an
+						// old Action redeployment retains its original pins.
+						mv, merr := m.st.Actions().GetModuleVersion(ctx, t.ID, ref.ModuleID, ref.VersionID)
+						if merr == nil {
+							_, merr = m.Ensure(ctx, t.ID, mv.BuildID)
+						}
+						if merr != nil {
+							err = fmt.Errorf("module %s: %w", ref.ModuleName, merr)
+							break
+						}
+					}
 				}
 				if err != nil {
 					errs = append(errs, fmt.Errorf("tenant %s action %s: %w", t.ID, a.ID, err))

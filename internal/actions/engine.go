@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/actionresult"
 	"github.com/zeroauthy/zeroauthy/internal/actions/build"
 	"github.com/zeroauthy/zeroauthy/internal/actionsrules"
 	"github.com/zeroauthy/zeroauthy/internal/customdb"
@@ -35,53 +36,13 @@ var (
 	ErrTimeout = errors.New("actions: the flow exceeded its time limit")
 )
 
-// TargetEdit is the target scope set after the flow's transaction edits.
-type TargetEdit struct{ Scopes []string }
-
-// RBACSnapshot preserves effective permissions, while token issuance still
-// evaluates the current API definition and application policy.
-type RBACSnapshot struct {
-	Audience    string   `json:"audience"`
-	Permissions []string `json:"permissions"`
-}
-
-// Effects are a flow's validated, accumulated results. Claims are filtered
-// during minting. Metadata patches commit only when the flow completes.
-type Effects struct {
-	// RBAC is fixed before the first Action. Management API assignments made
-	// by an Action affect the next issuance, including across redirects/code exchange.
-	RBAC                      *RBACSnapshot
-	AccessClaims, IDClaims    map[string]any
-	AddScopes, RemoveScopes   []string
-	Target                    *TargetEdit
-	AppMetadata, UserMetadata map[string]any
-	TxnMetadata               map[string]any
-	// Ceiling is set by callers, not the engine: the authorized scopes
-	// before the flow's target-scope edits, the refresh family's ceiling
-	// (spec §7) when it differs from the issued scopes. Nil: the issued
-	// scopes are the ceiling.
-	Ceiling []string
-}
-
-// Denial is access.deny or validation.error. Code is "access_denied" for a
-// post-login deny, the validation.error code, or the credentials-exchange
-// deny code.
-type Denial struct{ Code, Reason string }
-
-// Redirect is a recorded api.redirect.sendUserTo (spec §8).
-type Redirect struct {
-	URL   string
-	Query map[string]string
-}
-
-// Result is the outcome of a flow that did not fail.
-type Result struct {
-	Effects      Effects
-	Denied       *Denial
-	Redirect     *Redirect
-	ExecutionID  string
-	Continuation map[string]string
-}
+type TargetEdit = actionresult.TargetEdit
+type RBACSnapshot = actionresult.RBACSnapshot
+type Effects = actionresult.Effects
+type Denial = actionresult.Denial
+type NotificationOutcome = actionresult.NotificationOutcome
+type Redirect = actionresult.Redirect
+type Result = actionresult.Result
 
 // ErrFlow is a failed flow: no code or token may be issued. ExecutionID
 // names its execution record; it is for operators and the hosted error
@@ -103,7 +64,7 @@ type Engine struct {
 	Store   store.Store
 	Runner  *noderunner.Pool
 	Builds  *build.Manager
-	Secrets keys.Wrapper // opens Action secrets (keys.OpenActionSecret)
+	Secrets keys.Wrapper // opens tenant-bound Action and Module secret snapshots
 	Now     func() time.Time
 	Log     *slog.Logger
 	// FlowBudget bounds one trigger flow; 0 means Auth0's 20 s.
@@ -142,16 +103,19 @@ type roleJSON struct {
 
 // wireRequest is the runner.mjs request; the Pool adds "id".
 type wireRequest struct {
-	VersionKey string                 `json:"version_key"`
-	Code       string                 `json:"code"`
-	DepsRoot   string                 `json:"deps_root"`
-	Handler    string                 `json:"handler"`
-	Event      map[string]any         `json:"event"`
-	Secrets    map[string]string      `json:"secrets"`
-	Cache      map[string]cacheRecord `json:"cache"`
-	Roles      []roleJSON             `json:"roles"`
-	State      map[string]any         `json:"state"`
-	Hostname   string                 `json:"hostname"`
+	VersionKey     string                 `json:"version_key"`
+	Code           string                 `json:"code"`
+	DepsRoot       string                 `json:"deps_root"`
+	Handler        string                 `json:"handler"`
+	API            []string               `json:"api"`
+	UnsupportedAPI []string               `json:"unsupported_api"`
+	Event          map[string]any         `json:"event"`
+	Secrets        map[string]string      `json:"secrets"`
+	Modules        []wireModule           `json:"modules"`
+	Cache          map[string]cacheRecord `json:"cache"`
+	Roles          []roleJSON             `json:"roles"`
+	State          map[string]any         `json:"state"`
+	Hostname       string                 `json:"hostname"`
 }
 
 type wireResponse struct {
@@ -166,21 +130,35 @@ type wireResponse struct {
 type unit struct {
 	name, actionID, versionKey, code, buildID string
 	secrets                                   []store.ActionSecret
+	moduleRefs                                []store.ModuleRef
+	moduleVersions                            []store.ActionModuleVersion // sealed continuation snapshots; nil uses store
+	depsRoot                                  string
+	modules                                   []moduleUnit
 }
 
 // flow is one trigger execution in progress.
 type flow struct {
+	jobID                                string
+	jobAttempt                           int
 	tenantID, trigger, handler, hostname string
 	units                                []unit
 	roles                                []roleJSON
 	acc                                  *accum
 	event                                func() map[string]any
+	validate                             func(*Effects) error
 	cache                                *actionCache
 	deadline                             time.Time
 	input                                *PostLoginInput
+	reset                                *ResetChallengeInput
 	redirectCount, position              int
 	state                                string
 	remaining                            time.Duration
+	// outcomes records, per Action run in this attempt, "ok", "error" or
+	// the notification kind the Action itself recorded. dropped is the
+	// first drop. Job runs use both: drop is terminal, and an attempt in
+	// which an Action completed is never retried (it would run again).
+	outcomes []string
+	dropped  *NotificationOutcome
 }
 
 // stepOut is what one Action produced, masked.
@@ -188,13 +166,6 @@ type stepOut struct {
 	commands []command
 	logs     []string
 	red      *customdb.Redactor
-}
-
-func handlerFor(trigger string) string {
-	if trigger == TriggerCredentialsExchange {
-		return "onExecuteCredentialsExchange"
-	}
-	return "onExecutePostLogin"
 }
 
 // PostLogin runs the tenant's post-login flow.
@@ -271,7 +242,7 @@ func pinned(bound []store.BoundVersion) []unit {
 	out := make([]unit, len(bound))
 	for i, b := range bound {
 		out[i] = unit{name: b.Action.Name, actionID: b.Action.ID, versionKey: b.Version.ID, code: b.Version.Code,
-			buildID: b.Version.BuildID, secrets: b.Version.Secrets}
+			buildID: b.Version.BuildID, secrets: b.Version.Secrets, moduleRefs: b.Version.Modules}
 	}
 	return out
 }
@@ -334,8 +305,20 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 	failed := ""
 	for i, u := range f.units {
 		started := e.now()
+		before := f.acc.notification
 		_, err := e.step(fctx, f, u, f.event())
-		r := store.ExecutionResult{ActionName: u.name, StartedAt: started, EndedAt: e.now()}
+		switch n := f.acc.notification; {
+		case err != nil:
+			f.outcomes = append(f.outcomes, "error")
+		case n != nil && n != before:
+			f.outcomes = append(f.outcomes, n.Kind)
+			if n.Kind == "drop" && f.dropped == nil {
+				f.dropped = n
+			}
+		default:
+			f.outcomes = append(f.outcomes, "ok")
+		}
+		r := store.ExecutionResult{JobID: f.jobID, JobAttempt: f.jobAttempt, ActionName: u.name, StartedAt: started, EndedAt: e.now()}
 		if err != nil {
 			r.ErrorID, r.ErrorMsg = errorID(err), err.Error()
 			failure, failed = err, u.name
@@ -366,6 +349,14 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		f.handler = handlerFor(f.trigger)
 		if failure != nil || f.acc.denied != nil {
 			break
+		}
+	}
+	if failure == nil && f.acc.denied == nil && f.validate != nil {
+		if err := f.validate(&f.acc.eff); err != nil {
+			failure = err
+			last := &ex.Results[len(ex.Results)-1]
+			last.ErrorID, last.ErrorMsg = "internal_error", "the flow's metadata is invalid"
+			failed = last.ActionName
 		}
 	}
 	ex.UpdatedAt = e.now()
@@ -409,7 +400,7 @@ func (e *Engine) run(ctx context.Context, f *flow, user *store.User) (*Result, e
 		e.log().Info("actions flow denied", "tenant", f.tenantID, "trigger", f.trigger,
 			"action", ex.Results[len(ex.Results)-1].ActionName, "execution_id", execID, "code", d.Code)
 	}
-	return &Result{Effects: f.acc.eff, Denied: f.acc.denied, ExecutionID: execID, Continuation: continuationOf(f)}, nil
+	return &Result{Effects: f.acc.eff, Denied: f.acc.denied, ResultURL: f.acc.resultURL, Notification: f.acc.notification, ExecutionID: execID, Continuation: continuationOf(f)}, nil
 }
 
 func hasMetadata(user *store.User, eff *Effects) bool {
@@ -438,19 +429,20 @@ func (e *Engine) commitMetadata(ctx context.Context, tx store.Store, tenantID st
 }
 
 // step runs one Action and applies its commands to f.acc. Its errors are
-// masked with the Action's secrets.
+// masked with the Action's and its pinned Modules' secrets.
 func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any) (*stepOut, error) {
 	remaining := time.Until(f.deadline)
 	if remaining <= 0 {
 		return nil, ErrTimeout
 	}
-	root, err := e.Builds.Ensure(ctx, f.tenantID, u.buildID)
+	loaded, err := e.loadUnits(ctx, f.tenantID, []unit{u})
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ErrTimeout
 		}
-		return nil, fmt.Errorf("actions: dependencies of %q: %w", u.name, err)
+		return nil, err
 	}
+	u = loaded[0]
 	vals := make(map[string]string, len(u.secrets))
 	for _, s := range u.secrets {
 		v, err := keys.OpenActionSecret(e.Secrets, f.tenantID, u.actionID, s.Name, s.Sealed)
@@ -459,14 +451,28 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		}
 		vals[s.Name] = v
 	}
+	red := customdb.NewRedactor(vals)
+	modules := make([]wireModule, 0, len(u.modules))
+	for _, m := range u.modules {
+		mv := make(map[string]string, len(m.version.Secrets))
+		for _, s := range m.version.Secrets {
+			v, err := keys.OpenModuleSecret(e.Secrets, f.tenantID, m.version.ModuleID, s.Name, s.Sealed)
+			if err != nil {
+				return nil, fmt.Errorf("actions: secret %q of module %q does not open", s.Name, m.name)
+			}
+			mv[s.Name] = v
+		}
+		red = red.Union(customdb.NewRedactor(mv))
+		modules = append(modules, wireModule{Name: m.name, VersionKey: m.version.ID, Code: m.version.Code, DepsRoot: m.depsRoot, Secrets: mv})
+	}
 	// Ensure may have waited on a build lock past the deadline; dispatching
 	// now would hit the runner's watchdog and kill the tenant's process.
 	if ctx.Err() != nil || time.Until(f.deadline) <= 0 {
 		return nil, ErrTimeout
 	}
-	red := customdb.NewRedactor(vals)
-	req := wireRequest{VersionKey: u.versionKey, Code: u.code, DepsRoot: root, Handler: f.handler, Event: event,
-		Secrets: vals, Cache: f.cache.snapshot(e.now()), Roles: f.roles,
+	req := wireRequest{VersionKey: u.versionKey, Code: u.code, DepsRoot: u.depsRoot, Handler: f.handler, Event: event,
+		Secrets: vals, Modules: modules, Cache: f.cache.snapshot(e.now()), Roles: f.roles,
+		API: triggerSpecs[f.trigger].API, UnsupportedAPI: triggerSpecs[f.trigger].unsupported,
 		State: map[string]any{"canRedirect": f.acc.canRedirect, "state": f.state}, Hostname: f.hostname}
 	if req.Roles == nil {
 		req.Roles = []roleJSON{}
@@ -485,7 +491,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 	case errors.Is(err, noderunner.ErrTimeout), err != nil && ctx.Err() != nil:
 		return nil, ErrTimeout
 	case err != nil:
-		return nil, fmt.Errorf("actions: runner: %w", err)
+		return nil, &maskedError{msg: red.RedactLine(fmt.Sprintf("actions: runner: %v", err)), err: err}
 	}
 	var resp wireResponse
 	if err := json.Unmarshal(raw, &resp); err != nil {
@@ -610,7 +616,7 @@ func (e *Engine) Test(ctx context.Context, tenantID, actionID string, payload js
 		}
 	}
 	f := &flow{tenantID: tenantID, trigger: a.Trigger, handler: handlerFor(a.Trigger), roles: roles,
-		acc:   newAccum(a.Trigger, target, nil, a.Trigger == TriggerPostLogin),
+		acc:   newAccum(a.Trigger, target, nil, a.Trigger == TriggerPostLogin || a.Trigger == TriggerResetPostChallenge),
 		cache: newActionCache(), deadline: time.Now().Add(e.budget())}
 	if t, err := e.Store.Tenants().Get(ctx, tenantID); err == nil {
 		f.hostname = t.CanonicalHost
@@ -618,7 +624,7 @@ func (e *Engine) Test(ctx context.Context, tenantID, actionID string, payload js
 	fctx, cancel := context.WithDeadline(ctx, f.deadline)
 	defer cancel()
 	start := time.Now()
-	u := unit{name: a.Name, actionID: a.ID, versionKey: "draft:" + a.ID, code: a.Code, buildID: a.DraftBuildID, secrets: a.Secrets}
+	u := unit{name: a.Name, actionID: a.ID, versionKey: "draft:" + a.ID, code: a.Code, buildID: a.DraftBuildID, secrets: a.Secrets, moduleRefs: a.Modules}
 	st, err := e.step(fctx, f, u, event)
 	if errors.Is(err, build.ErrNotBuilt) {
 		return nil, ErrDraftNotBuilt

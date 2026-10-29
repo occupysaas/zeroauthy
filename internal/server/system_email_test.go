@@ -3,7 +3,9 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"net/http"
 	"strings"
 	"sync"
@@ -219,4 +221,68 @@ func mustSystemID(t *testing.T, st store.Store) string {
 		t.Fatal(err)
 	}
 	return sys.ID
+}
+
+type customEmailTestQueue struct {
+	outcome       actions.EmailOutcome
+	enqueued, ran int
+}
+
+func (q *customEmailTestQueue) EnqueueEmail(context.Context, store.Store, actions.EmailInput) error {
+	q.enqueued++
+	return nil
+}
+func (q *customEmailTestQueue) RunEmailNow(context.Context, actions.EmailInput) (actions.EmailOutcome, error) {
+	q.ran++
+	if q.outcome.Status == "failed" {
+		return q.outcome, &actions.ErrFlow{ExecutionID: q.outcome.ExecutionID, Cause: actions.ErrActionError}
+	}
+	return q.outcome, nil
+}
+func TestSystemEmailCustomProviderOutcome(t *testing.T) {
+	for _, status := range []string{"sent", "retry", "drop", "failed", "unbound"} {
+		t.Run(status, func(t *testing.T) {
+			q := &customEmailTestQueue{outcome: actions.EmailOutcome{Status: status, Reason: "provider reason", ExecutionID: "exec-test"}}
+			h, st := newMgmtEnvWith(t, func(d *Deps) {
+				r, _ := email.NewRenderer()
+				d.EmailService = &email.Service{Store: d.Store, Renderer: r, Actions: q, DefaultFrom: "from@example.test"}
+				if status == "unbound" {
+					d.EmailService.Actions = &actions.Engine{Store: d.Store}
+				}
+			})
+			ctx := context.Background()
+			acme, _ := st.Tenants().GetByName(ctx, "acme")
+			if err := st.EmailProviders().Put(ctx, &store.EmailProvider{TenantID: acme.ID, Name: "custom", Enabled: true}, 0); err != nil {
+				t.Fatal(err)
+			}
+			if err := st.EmailTemplates().Put(ctx, &store.EmailTemplate{TenantID: acme.ID, Name: "verify_email", Fields: map[string]any{"body": "<p>Verify</p>", "subject": "Verify", "enabled": true}}, 0); err != nil {
+				t.Fatal(err)
+			}
+			token, userID := tenantOperatorToken(t, st, "custom-op@example.test", []string{"*"})
+			if err := st.Operators().Upsert(ctx, &store.Operator{TenantID: mustSystemID(t, st), UserID: userID, Tenants: []string{"acme"}}); err != nil {
+				t.Fatal(err)
+			}
+			c := newMgmtContract(t)
+			code, body := c.do(h, "POST", "https://"+mgmtSystemHost+"/api/system/tenants/acme/emails/test", token, map[string]any{"template": "verify_email"})
+			if status == "unbound" {
+				if code != http.StatusBadGateway || !strings.Contains(string(body), "email_delivery_failed") {
+					t.Fatalf("unbound configuration response: %d %s", code, body)
+				}
+				if n, err := st.Actions().PurgeExecutions(ctx, time.Now().Add(time.Hour)); err != nil || n != 0 {
+					t.Fatalf("unbound created executions: %d %v", n, err)
+				}
+				if jobs, _ := st.Actions().ClaimJobs(ctx, time.Now(), time.Minute, 1); len(jobs) != 0 {
+					t.Fatal("unbound test queued")
+				}
+				if q.ran != 0 || q.enqueued != 0 {
+					t.Fatal("unbound invoked fake queue")
+				}
+				return
+			}
+			var out actions.EmailOutcome
+			if code != http.StatusOK || json.Unmarshal(body, &out) != nil || out != q.outcome || q.ran != 1 || q.enqueued != 0 {
+				t.Fatalf("custom outcome %d %s queue %+v", code, body, q)
+			}
+		})
+	}
 }
