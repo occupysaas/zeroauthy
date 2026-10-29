@@ -318,3 +318,43 @@ func TestOrganizationInvitationOldPluginFailsClosed(t *testing.T) {
 		e.obj("GET", "/invitations", nil, handler, 501)
 	}
 }
+
+// Unsupported query parameters must not change invitations or enqueue mail.
+func TestOrganizationInvitationMutationQueryRejected(t *testing.T) {
+	for _, query := range []string{"?unknown=yes", "?unknown=yes&unknown=again", "?page=0"} {
+		t.Run(query, func(t *testing.T) {
+			e, org := invitationEnv(t)
+			ctx := context.Background()
+			post := func(w http.ResponseWriter, r *http.Request) { e.h.CreateOrganizationInvitation(w, r, org) }
+			body := invitationBody()
+			body["send_invitation_email"] = true
+			rec, _ := e.call(t, e.tn, e.caller, "POST", "/invitations"+query, body, post)
+			if rec.Code != 400 {
+				t.Errorf("POST unsupported query status=%d, want 400", rec.Code)
+			}
+			invitations, err := e.st.OrganizationsII().ListInvitations(ctx, e.tn.ID, org, store.OrgPage{PerPage: 100})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(invitations.Items) != 0 {
+				t.Errorf("rejected POST stored %d invitations", len(invitations.Items))
+			}
+			jobs, err := e.st.Actions().ClaimJobs(ctx, time.Now().Add(time.Hour), time.Minute, 100)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(jobs) != 0 {
+				t.Errorf("rejected POST queued %d jobs", len(jobs))
+			}
+			target := e.obj("POST", "/invitations", invitationBody(), post, 200)["id"].(string)
+			del := func(w http.ResponseWriter, r *http.Request) { e.h.DeleteOrganizationInvitation(w, r, org, target) }
+			rec, _ = e.call(t, e.tn, e.caller, "DELETE", "/invitations/"+target+query, nil, del)
+			if rec.Code != 400 {
+				t.Errorf("DELETE unsupported query status=%d, want 400", rec.Code)
+			}
+			if _, err := e.st.OrganizationsII().GetInvitation(ctx, e.tn.ID, org, target); err != nil {
+				t.Errorf("rejected DELETE changed target: %v", err)
+			}
+		})
+	}
+}

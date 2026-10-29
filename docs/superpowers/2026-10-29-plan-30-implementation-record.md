@@ -514,3 +514,27 @@ Actual Task 5 verification:
   PostgreSQL/MySQL migration execution or external SMTP/provider send was run.
   Task 6 owns actual delivery and retry lifecycle; Task 17 owns broad release
   validation. No deferred validation is claimed passing.
+
+
+### Task 5 review fix round 1 — Reject mutation query parameters
+
+Verified the review finding against D-0056 and the route inventory: invitation
+POST and DELETE declare no query parameters, while GET/list already validate
+their explicit allowed keys. Added orgQuery(r) before either mutation. The scope
+is confined to Task 5 invitation handlers. Updated the adapter comment to explain
+the temporary generated 501 fallback and required scoped future overrides.
+
+- RED: `go test ./internal/mgmt -run
+  '^TestOrganizationInvitationMutationQueryRejected$' -count=1` FAIL (0.187s).
+  All three unsupported query cases (`unknown=yes`, repeated unknown, `page=0`)
+  produced POST 200 with one persisted invitation and one queued job; DELETE
+  returned 204 and removed its target.
+- GREEN: same command PASS (0.364s). Every rejected POST leaves zero invitations
+  and zero durable jobs, and each rejected DELETE preserves its existing target.
+- `go test ./internal/mgmt ./internal/orglogin ./internal/actions ./internal/server
+  -run 'OrganizationInvitation|InvitationURL|InvitationQueue' -race -count=1`
+  PASS (mgmt 5.036s; orglogin/actions/server 1.035–1.130s).
+- `git diff --check` PASS. No new dependency installation or broad/database suite
+  was performed in this fix round. The earlier vue-demi install-script warning
+  remains explicitly recorded as dependency-install noise, not a clean-output
+  claim or a runtime test result.

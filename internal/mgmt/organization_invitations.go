@@ -132,6 +132,10 @@ func readInvitation(r *http.Request) (*store.OrganizationInvitation, int64, erro
 	return in, ttl, nil
 }
 func (h *Handlers) CreateOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string) {
+	if _, _, err := orgQuery(r); err != nil {
+		Fail(w, err)
+		return
+	}
 	if !h.orgIIAvailable(w, r) {
 		return
 	}
@@ -288,6 +292,10 @@ func (h *Handlers) GetOrganizationInvitation(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, 200, Project(out, fields, include))
 }
 func (h *Handlers) DeleteOrganizationInvitation(w http.ResponseWriter, r *http.Request, id, invitationID string) {
+	if _, _, err := orgQuery(r); err != nil {
+		Fail(w, err)
+		return
+	}
 	if !h.orgIIAvailable(w, r) {
 		return
 	}

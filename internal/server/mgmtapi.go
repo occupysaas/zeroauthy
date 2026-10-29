@@ -8,8 +8,10 @@ import (
 )
 
 // mgmtAPI adapts mgmt.Handlers to the generated ServerInterface, adding
-// each operation's scope check. The var _ assertion fails to compile when
-// api/management.yaml gains an operation that has no method here.
+// each operational route's scope check. The embedded generated Unimplemented
+// temporarily returns 501 for future-task routes; each must gain a scoped
+// override before it is considered operational. The assertion verifies the
+// resulting adapter satisfies the generated interface.
 type mgmtAPI struct {
 	mgmtapi.Unimplemented
 	h *mgmt.Handlers
