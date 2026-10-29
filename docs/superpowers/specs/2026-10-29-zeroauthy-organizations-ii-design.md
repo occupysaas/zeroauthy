@@ -227,6 +227,16 @@ Management API scope grants; delegated execution belongs to Plan 42. The
 console labels them accordingly. `is_enabled` null resets true (local rule).
 Enablement, signup and auto-membership flags remain live in login and refresh.
 
+Internal storage representation (Task 2 local ruling): keep `IsEnabled bool`
+and add `IsEnabledSet bool` as a Go presence marker. Existing Go literals omit
+both fields; creation normalizes them to enabled. Explicit disabled callers set
+the marker true. All persisted/read records carry the marker true; SQL/plugin
+codecs store actual enablement and restore presence, with no API marker field.
+Replacement literals omitting the marker or access strings preserve the current
+II values. Access omission on creation normalizes to none/limited; API null
+clears are translated to explicit none, underlying name or enabled true before
+storage. This preserves old callers without treating zero-value false as disable.
+
 ## 6. Discovery domains and email prompt
 
 Implement documented discovery-domain collection create/list (`{domains,next?}`), item get/update/

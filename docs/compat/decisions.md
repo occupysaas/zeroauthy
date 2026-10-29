@@ -1675,6 +1675,16 @@ metadata only; delegated execution belongs to Plan 42 and never grants scopes
 or login rights. Disabling retains the association; legacy enabled_connections
 lists enabled associations only; legacy add can re-enable, delete removes it.
 
+Internal Task 2 representation ruling (not an observed wire behavior): retain
+`OrganizationConnection.IsEnabled bool` and add `IsEnabledSet bool`. A bare old
+Go literal omits both; creation defaults enabled, while replacement omission
+preserves the stored value. Explicit disable requires the marker true; persisted
+reads and future SQL/plugin decoders restore it true. This marker never appears
+in public DTOs. Empty access strings default none/limited on creation and preserve
+stored values on replacement. API null clears are explicit none/underlying-name/
+enabled-true values before storage. The alternative of interpreting every bare
+false as disable would silently break existing Go callers.
+
 Local validation/error rulings: reject unknown body keys, explicit null except
 the EA clears above, and unsupported query combinations. IDs/references are
 scoped to tenant; missing/cross-tenant parent or item returns 404 not_found for

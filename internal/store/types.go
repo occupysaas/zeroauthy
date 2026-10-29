@@ -261,10 +261,13 @@ const (
 	SubjectTypeClient = "client"
 )
 
-// WithDefaults returns a copy of g with an empty SubjectType read as a
-// client grant. Drivers apply it in Create and Update.
+// WithDefaults returns a copy with empty SubjectType read as a client grant
+// and empty OrganizationUsage as deny. Drivers apply it in Create and Update.
 func (g *ClientGrant) WithDefaults() *ClientGrant {
 	out := *g
+	if out.OrganizationUsage == "" {
+		out.OrganizationUsage = "deny"
+	}
 	if out.SubjectType == "" {
 		out.SubjectType = SubjectTypeClient
 	}
@@ -299,6 +302,10 @@ type ClientGrant struct {
 	// API (and the console), empty for the seed or zeroauthy itself. The
 	// seed never touches API-created grants.
 	Origin string
+
+	// OrganizationUsage governs explicit M2M organization policy; empty defaults deny.
+	OrganizationUsage    string // deny, allow, require
+	AllowAnyOrganization bool
 }
 
 // ExplicitGrantScopes are scopes a grant holds only when it names them:

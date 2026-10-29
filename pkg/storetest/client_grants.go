@@ -11,13 +11,14 @@ import (
 
 func newClientGrant(tenantID, id, clientID, audience string) *store.ClientGrant {
 	return &store.ClientGrant{
-		TenantID:    tenantID,
-		ID:          id,
-		ClientID:    clientID,
-		Audience:    audience,
-		Scopes:      []string{"read:things"},
-		SubjectType: store.SubjectTypeClient,
-		CreatedAt:   ts(0),
+		OrganizationUsage: "deny",
+		TenantID:          tenantID,
+		ID:                id,
+		ClientID:          clientID,
+		Audience:          audience,
+		Scopes:            []string{"read:things"},
+		SubjectType:       store.SubjectTypeClient,
+		CreatedAt:         ts(0),
 	}
 }
 

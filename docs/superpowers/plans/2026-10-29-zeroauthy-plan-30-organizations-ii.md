@@ -106,7 +106,18 @@ organization, invitation, transaction and user IDs plus accepted time.
 `OrganizationDiscoveryDomain` contains tenant/org/id/domain, status, verification
 TXT/host strings and `UseForOrganizationDiscovery bool`. Extend `Organization`
 with `IsAppEntitlementActive bool`; `OrganizationConnection` with `IsEnabled bool`,
-local name and both access levels; `ClientGrant` with the two §5 policy fields.
+`ConnectionName`, `OrganizationAccessLevel`, `OrganizationMemberAccessLevel`;
+`ClientGrant` with the two §5 policy fields. Internal Go connection values also
+carry `IsEnabledSet bool`: false means the old caller omitted the new field;
+true means `IsEnabled` is intentional, including false. Normalize omitted values
+to enabled on creation, preserve stored enablement on replacement, and return
+all persisted/read values with the marker true. SQL/plugin codecs persist the
+actual bool and restore the marker; never expose it in API DTOs. Empty access
+strings default to none/limited on creation and preserve stored values on
+replacement. HTTP explicit-null clears become explicit none (or underlying
+connection name / enabled true). New internal callers disabling a connection
+must set the marker. This is the smallest additive representation preserving
+existing bool-based construction; a bare false cannot encode both meanings.
 
 `ConsumeInvitation` is a conditional state transition, called only on a WithTx
 view after current policy validation. It creates the receipt and hides the invite
@@ -114,7 +125,17 @@ from active reads. Same transaction/user receipt is idempotent; another transact
 gets `ErrPrecondition`. The caller adds membership/roles/metadata within that same
 transaction. Use existing `ErrInvalid`, `ErrNotFound`, `ErrConflict`,
 `ErrPrecondition` and new `ErrOrganizationsIIUnavailable`; define HTTP mapping
-in Task 1. The repository clock is injectable for active-read expiry tests.
+in Task 1. The repository clock is injectable for active-read expiry tests. `PutClients`
+is a validated batch upsert; HTTP POST duplicate checks and PATCH existence checks
+must run in the caller's WithTx. `PutClientGrant` is idempotent, so HTTP duplicate
+association checks also use `HasClientGrant` in that transaction. The sealed invitation bundle carries recoverable
+ticket_id and invitation_url; no plaintext bearer field is added to the model.
+Invitation lists default to created_at descending with ID ties; storage also
+supports ascending and scoped checkpoints (HTTP still exposes offset only).
+Role/forced-connection/client deletion revokes dependent invites. Deleting an
+accepting user removes its receipt and retained consumed invite together, so
+receipt cleanup cannot reactivate a ticket. Grant/client/API/org deletion removes
+grant associations, including before ID reuse.
 
 Policy entry points in `internal/orglogin` (all accept context.Context):
 

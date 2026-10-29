@@ -7,8 +7,8 @@ Worktree: `/mnt/nvme2/code/zeroauthy-plan-30`.
 
 ## Progress
 
-Task 1 implementation is submitted for controller review; its ledger remains
-open until that review. Tasks 2–17 have not been implemented. The inventory
+Task 1 is complete and controller-reviewed, including review fix `5e2ae89`.
+Task 2 is submitted for controller review in this commit; Tasks 3–17 remain. The inventory
 freezes contracts, not operational endpoints. API YAML, individual public scope
 audit, Authentication/reset context, expanded EA connection contracts and D-0056
 are now included in the Task 1 submission.
@@ -134,4 +134,89 @@ Actual checks:
 - `go test ./internal/mgmt -run '^$'`: PASS (compile only, no tests selected).
 - `git diff --check`: PASS. No broad/database/runtime suites run for these fixes.
 
-Controller ledger remains open for re-review.
+Controller reviewed Task 1 and its fixes clean at `5e2ae89`.
+
+
+## Task 2 — transactional memory persistence submission
+
+Implemented the full OrganizationsII model/repository contract, public aliases,
+fail-closed SQL/gRPC placeholders and all store/transaction views. All five II
+maps live inside memory transactional state and snapshot/restore. Input/output
+metadata, roles and wrapped ticket slices are copied. Active reads use the
+injected store clock; consume requires WithTx and creates one tenant-scoped,
+fully bound durable receipt. Same transaction/organization/invite/user replay
+is idempotent; other replay is ErrPrecondition. Failed later membership/role
+writes restore the invite and remove the receipt.
+
+Memory stores invitation, client association, client-grant association/reverse
+lookup and verified discovery-domain operations with tenant/owner validation,
+atomic batches, scoped paging, expiry filtering and deletion cascades. Grant
+lists return original grant records, including origin and scopes; associations
+never copy authority. User deletion removes both accepting receipt and retained
+invite to avoid reactivation; role/forced-connection/client deletion revokes
+associated invites. API/grant deletion removes org-grant edges before ID reuse.
+
+Internal representation ruling: retain IsEnabled bool and add IsEnabledSet bool.
+Legacy omitted literals create enabled links; explicit false needs the marker.
+Stored/read links carry marker true, future SQL/plugin codecs must restore it,
+and the marker is absent from API DTOs. Omitted replacement II fields preserve
+current policy; create access defaults none/limited and explicit null maps to
+none in the API layer. This additive marker resolves the indistinguishable old
+zero bool / intended disabled value without breaking old callers. The shared
+plan, design and D-0056 now document the same contract. Organization entitlement
+defaults false; legacy grants normalize OrganizationUsage to deny and allow-any
+remains false. HTTP input presence/null checks remain management work.
+
+`PutClients` deliberately remains the proposed batch upsert: POST duplicate and
+PATCH existence checks must be serialized in the caller's WithTx. PutClientGrant
+is idempotent; HTTP duplicate checks use HasClientGrant in that transaction. Invitation
+sort defaults created_at descending with ID ties; storage also permits ascending
+and scoped checkpoints, while HTTP remains offset-only. The wrapped ticket
+bundle supplies recoverable ticket_id/URL without plaintext bearer fields.
+
+Actual verification evidence:
+
+- Initial RED `go test ./internal/store/memory -run OrganizationsII -count=1`:
+  compile FAIL for absent OrganizationInvitation and OrganizationsII methods.
+- Behavioral RED same command after adding models and unavailable placeholders:
+  all six required cases FAIL for unavailable persistence or missing connection
+  defaults. The top-level wrapper selected real registered conformance cases.
+- Expanded RED same command: accepting-user deletion made a consumed invitation
+  usable again, and API deletion/recreated grant inherited old access. Fixed by
+  removing the retained invite with its deleted receipt owner and cascading API
+  grant edges. GREEN same command after fixes.
+- Expanded RED same command: user-subject grant association incorrectly returned
+  nil; now rejects ErrInvalid. GREEN after fix.
+- Expanded RED same command: invitation list used ID order instead of newest
+  creation first; corrected created_at ordering and validated sort. GREEN.
+- `go test ./internal/store/memory -run
+  'OrganizationsII|TestConformance/(Organizations|ClientGrants)$' -count=1`: PASS.
+  One intermediate run exposed the old exact connection expectation's omitted
+  II defaults; updated it to explicit enabled/none/limited and underlying name.
+  The shared legacy grant fixture now records the required deny default.
+- `go test ./internal/store/... -run '^$'`: PASS (all store backends compile;
+  no runtime SQL/gRPC test selected).
+
+Focused shared coverage includes all six named cases, reference validation,
+repository CRUD/paging/copies, org/client/grant/API/role/user/tenant cascades,
+transaction cascade rollback, same-receipt replay binding, simultaneous acceptors,
+exact-expiry consume, and memory-only injected-clock active-read boundaries.
+SQL and gRPC TestOrganizationsII wrappers are wired but runtime tests remain for
+Tasks 3/4. No broad/full suite, database-backed, browser or console tests run;
+none are claimed passing. Controller owns the Task 2 review and ledger state.
+
+Final focused verification before commit:
+
+- `go test ./internal/store/memory -run OrganizationsII -race -count=1`: PASS.
+- `go test ./internal/store/... ./internal/mgmt ./internal/orglogin ./pkg/store
+  ./pkg/storetest -run '^$'`: PASS (compile only, no runtime tests selected).
+- `git diff --check`: PASS.
+
+- Final reference-validation RED `go test ./internal/store/memory -run
+  'TestOrganizationsII/OrganizationsII/OrganizationsIIReferenceValidation'
+  -count=1`: FAIL because a cross-tenant batch owner returned ErrInvalid; changed
+  it to ErrNotFound per the tenant-hiding contract. Subsequent full focused
+  OrganizationsII/legacy-memory race run passed.
+- Final `go test ./internal/store/memory -run
+  'OrganizationsII|TestConformance/(Organizations|ClientGrants)$' -race -count=1`:
+  PASS, including the added reference regression.

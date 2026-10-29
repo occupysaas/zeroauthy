@@ -50,9 +50,11 @@ func (r clients) Delete(_ context.Context, tenantID, clientID string) error {
 	if _, ok := r.s.clients[k]; !ok {
 		return store.ErrNotFound
 	}
+	r.s.cleanupOrgII(tenantID, orgIICleanup{client: clientID})
 	delete(r.s.clients, k)
 	for gk, g := range r.s.clientGrants {
 		if gk.tenant == tenantID && g.ClientID == clientID {
+			r.s.cleanupOrgII(tenantID, orgIICleanup{grant: g.ID})
 			delete(r.s.clientGrants, gk)
 		}
 	}

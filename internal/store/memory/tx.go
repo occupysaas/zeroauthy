@@ -69,6 +69,7 @@ func (s *Store) snapshot() *state {
 		modules: cloneMap(s.modules, cloneModule), moduleVersions: cloneMap(s.moduleVersions, cloneModuleVersion), actionJobs: cloneMap(s.actionJobs, cloneActionJob),
 		actions: cloneMap(s.actions, cloneAction), actionVersions: cloneMap(s.actionVersions, cloneActionVersion), builds: cloneMap(s.builds, cloneBuild),
 		bindingSets: maps.Clone(s.bindingSets), artifacts: cloneArtifacts(s.artifacts), bindings: cloneBindingLists(s.bindings), executions: cloneMap(s.executions, cloneExecution), continues: cloneMap(s.continues, cloneContinue),
+		orgInvitations: cloneMap(s.orgInvitations, cloneOrgInvitation), orgReceipts: cloneMap(s.orgReceipts, cloneValue[store.InvitationReceipt]), orgClients: cloneMap(s.orgClients, cloneValue[store.OrganizationClient]), orgGrants: maps.Clone(s.orgGrants), orgDomains: cloneMap(s.orgDomains, cloneValue[store.OrganizationDiscoveryDomain]),
 		orgs: cloneMap(s.orgs, cloneOrg), orgConns: cloneMap(s.orgConns, func(c *store.OrganizationConnection) *store.OrganizationConnection { v := *c; return &v }), orgMembers: maps.Clone(s.orgMembers), orgMemberRoles: maps.Clone(s.orgMemberRoles), orgLimits: s.orgLimits,
 		roles: cloneMap(s.roles, cloneRole), rolePermissions: maps.Clone(s.rolePermissions), userPermissions: maps.Clone(s.userPermissions), roleMembers: maps.Clone(s.roleMembers),
 		customDomains:          cloneMap(s.customDomains, (*store.CustomDomain).Clone),
@@ -121,6 +122,7 @@ func (s *Store) restore(snap *state) {
 	s.modules, s.moduleVersions, s.actionJobs = snap.modules, snap.moduleVersions, snap.actionJobs
 	s.bindingSets = snap.bindingSets
 	s.bindings, s.executions, s.continues = snap.bindings, snap.executions, snap.continues
+	s.orgInvitations, s.orgReceipts, s.orgClients, s.orgGrants, s.orgDomains = snap.orgInvitations, snap.orgReceipts, snap.orgClients, snap.orgGrants, snap.orgDomains
 	s.orgs, s.orgConns, s.orgMembers, s.orgMemberRoles = snap.orgs, snap.orgConns, snap.orgMembers, snap.orgMemberRoles
 	s.roles, s.rolePermissions, s.userPermissions, s.roleMembers = snap.roles, snap.rolePermissions, snap.userPermissions, snap.roleMembers
 	s.customDomains, s.hostBindings, s.domainDefaults = snap.customDomains, snap.hostBindings, snap.domainDefaults

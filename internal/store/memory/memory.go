@@ -31,6 +31,11 @@ type Store struct {
 // txMu's read lock and mu's read lock, so independent reads can run together.
 type state struct {
 	roles                  map[key]*store.Role
+	orgInvitations         map[orgIIKey]*store.OrganizationInvitation
+	orgReceipts            map[key]*store.InvitationReceipt
+	orgClients             map[orgIIKey]*store.OrganizationClient
+	orgGrants              map[orgIIKey]bool
+	orgDomains             map[orgIIKey]*store.OrganizationDiscoveryDomain
 	orgs                   map[key]*store.Organization
 	orgConns               map[orgConnKey]*store.OrganizationConnection
 	orgMembers             map[orgMemberKey]bool
@@ -108,6 +113,7 @@ func New() *Store {
 		modules: map[key]*store.ActionModule{}, moduleVersions: map[key]*store.ActionModuleVersion{}, actionJobs: map[key]*store.ActionJob{},
 		actions: map[key]*store.Action{}, actionVersions: map[key]*store.ActionVersion{}, builds: map[key]*store.Build{},
 		bindingSets: map[key]bool{}, artifacts: map[key][]byte{}, bindings: map[key][]store.Binding{}, executions: map[key]*store.Execution{}, continues: map[key]*store.ContinueState{},
+		orgInvitations: map[orgIIKey]*store.OrganizationInvitation{}, orgReceipts: map[key]*store.InvitationReceipt{}, orgClients: map[orgIIKey]*store.OrganizationClient{}, orgGrants: map[orgIIKey]bool{}, orgDomains: map[orgIIKey]*store.OrganizationDiscoveryDomain{},
 		orgs: map[key]*store.Organization{}, orgConns: map[orgConnKey]*store.OrganizationConnection{}, orgMembers: map[orgMemberKey]bool{}, orgMemberRoles: map[orgRoleKey]bool{}, orgLimits: orgrules.Limits(),
 		roles: map[key]*store.Role{}, rolePermissions: map[permissionEdge]bool{}, userPermissions: map[permissionEdge]bool{}, roleMembers: map[memberEdge]bool{},
 		now:            time.Now,

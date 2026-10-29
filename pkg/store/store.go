@@ -7,6 +7,15 @@ package store
 import "github.com/zeroauthy/zeroauthy/internal/store"
 
 type (
+	OrganizationsII              = store.OrganizationsII
+	UnimplementedOrganizationsII = store.UnimplementedOrganizationsII
+	OrganizationInvitation       = store.OrganizationInvitation
+	InvitationReceipt            = store.InvitationReceipt
+	OrganizationClient           = store.OrganizationClient
+	OrganizationDiscoveryDomain  = store.OrganizationDiscoveryDomain
+)
+
+type (
 	RBAC                        = store.RBAC
 	Actions                     = store.Actions
 	UnimplementedActions        = store.UnimplementedActions
@@ -305,5 +314,6 @@ const (
 
 var ErrRBACUnavailable = store.ErrRBACUnavailable
 var ErrOrganizationsUnavailable = store.ErrOrganizationsUnavailable
+var ErrOrganizationsIIUnavailable = store.ErrOrganizationsIIUnavailable
 var ErrActionsUnavailable = store.ErrActionsUnavailable
 var ErrBuildNotReady = store.ErrBuildNotReady

@@ -36,6 +36,8 @@ type Organization struct {
 	TenantID, ID, Name, DisplayName string
 	Branding                        *OrgBranding
 	Metadata                        map[string]string
+	// IsAppEntitlementActive gates interactive application association policy.
+	IsAppEntitlementActive bool
 	// ThirdPartyClientAccess is "block" or "allow".
 	ThirdPartyClientAccess string
 	CreatedAt, UpdatedAt   time.Time
@@ -53,14 +55,19 @@ type OrgColors struct{ Primary, PageBackground string }
 // OrganizationConnection enables a connection for an organization.
 type OrganizationConnection struct {
 	TenantID, OrganizationID, ConnectionID string
-	AssignMembershipOnLogin                bool
-	ShowAsButton                           bool
-	IsSignupEnabled                        bool
+	// IsEnabledSet distinguishes legacy omitted bools from intentional false.
+	// Stores normalize it to true. New callers disabling a link must set it.
+	IsEnabled, IsEnabledSet                                                bool
+	ConnectionName, OrganizationAccessLevel, OrganizationMemberAccessLevel string
+	AssignMembershipOnLogin                                                bool
+	ShowAsButton                                                           bool
+	IsSignupEnabled                                                        bool
 }
 
 // OrgPage selects a page. Offset mode uses Page and PerPage; checkpoint mode
 // (From set or Take non-zero) uses From and Take and ignores Page. Sort is
-// "field:1" or "field:-1" and applies only to organization lists.
+// "field:1" or "field:-1" for organizations. Invitations support created_at
+// ascending/descending, default descending.
 type OrgPage struct {
 	Page, PerPage int
 	IncludeTotals bool

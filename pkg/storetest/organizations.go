@@ -339,7 +339,7 @@ func testOrganizations(t *testing.T, newStore Factory) {
 		mustNoErr(t, put(a, store.OrganizationConnection{ConnectionID: "con1", ShowAsButton: true, AssignMembershipOnLogin: true, IsSignupEnabled: true}, false))
 		got, err := o.GetConnection(ctx, tid, a.ID, "con1")
 		mustNoErr(t, err)
-		mustEqual(t, *got, store.OrganizationConnection{TenantID: tid, OrganizationID: a.ID, ConnectionID: "con1", ShowAsButton: true, AssignMembershipOnLogin: true, IsSignupEnabled: true})
+		mustEqual(t, *got, store.OrganizationConnection{TenantID: tid, OrganizationID: a.ID, ConnectionID: "con1", ShowAsButton: true, AssignMembershipOnLogin: true, IsSignupEnabled: true, IsEnabled: true, IsEnabledSet: true, ConnectionName: "Database", OrganizationAccessLevel: "none", OrganizationMemberAccessLevel: "limited"})
 		_, err = o.GetConnection(ctx, tid, a.ID, "con3")
 		mustErrIs(t, err, store.ErrNotFound)
 		_, err = o.GetConnection(ctx, tid, orgrules.NewID(), "con1")
