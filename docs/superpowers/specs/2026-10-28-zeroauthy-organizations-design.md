@@ -58,9 +58,10 @@ default below stands, and every default and author's call is frozen as
 - `token_quota` (Early Access) → Plan 35 with client-credentials organizations.
 - `is_app_entitlement_active` (Early Access) → Plan 30.
 - `/organizations/{id}/connections`, the newer "all connections" listing in
-  node-auth0 7.4.0 → Task 1 checks the public reference. If it is a
-  documented GA alias of `enabled_connections`, it joins Plan 29. If not, it
-  moves to Plan 30, and either way this is recorded.
+  node-auth0 7.4.0 → **Plan 30**. Task 1 ruling (D-0055): it is not a
+  documented GA alias. The public OpenAPI document marks it Early Access, and
+  the organization-connections guide calls the new endpoints Early Access.
+  Deploy CLI 9.1.0 manages organization connections only through it.
 - The My Organization API → Plan 42. SAML/WS-Fed organization login → Plan 37.
 - The `organization` parameter on change-password requests (followup list) →
   Plan 30, with invitations.
@@ -104,21 +105,30 @@ Facts found (in our words):
     (with or without one) or `require` (always through one).
   - `organization_require_behavior` is `no_prompt` (default; a request
     without a valid `organization` is rejected), `pre_login_prompt` (the user
-    names the organization before logging in; only valid with `require`) or
-    `post_login_prompt` (log in first, then choose an organization).
-  - `organization_discovery_methods` is `email` and/or `organization_name`,
-    and only applies with `pre_login_prompt`.
+    names the organization before logging in) or `post_login_prompt` (log in
+    first, then choose an organization; requires `oidc_conformant`).
+    Observed (D-0055): `pre_login_prompt` is accepted with `deny`, `allow` and
+    `require`, and with `allow` and no organization `/authorize` shows the
+    prompt.
+  - `organization_discovery_methods` (Early Access upstream) is `email` and/or
+    `organization_name`. Observed: it is allowed only while the behavior is
+    `pre_login_prompt` (400 otherwise).
 - **Organizations are not supported with** Classic Login/Lock, the resource
   owner password grant, the device flow, or WS-Fed with Auth0 as the IdP.
-  There are no per-organization custom domains.
+  There are no per-organization custom domains. Observed (D-0055): a
+  `require` client can't hold the password, password-realm or device grants.
+  Configuring either combination is 400.
 - **Organization object.**
   - `name` is 1–50 characters in the `organization-name` format and unique
     within the tenant.
   - `display_name` is 1–255 characters.
   - `branding` holds `logo_url` (https) and `colors.primary` and
     `colors.page_background` (hex; both required once `colors` is present).
-  - `metadata` has at most 25 keys, each value a string of at most 255
-    characters, or null.
+  - `metadata` has at most 25 keys. Each value is a string of at most 255
+    characters. The public schema also allows null, but observed (D-0055):
+    null and empty values are 400, keys are 1–50 characters matching
+    `^[a-zA-Z0-9]\w*$`, and PATCH replaces `metadata`/`branding` whole, with
+    `{}` or null clearing them.
   - `enabled_connections` at create time holds at most 10 entries, each with
     `connection_id`, `assign_membership_on_login`, `show_as_button`
     (enterprise only, default true) and `is_signup_enabled` (database only,
@@ -154,10 +164,12 @@ Facts found (in our words):
 - **Actions.** `event.organization` has `id`, `name`, `display_name` and
   `metadata`.
 
-**Not documented publicly.** Task 1 freezes each of these as D-0055,
-observing the maintainer's tenant through the documented Management and
-Authentication APIs when the `OBS_AUTH0_*` observer credentials and an
-Organizations-capable tenant are available:
+**Not documented publicly.** Task 1 froze each of these as D-0055. A separate
+observer session observed the maintainer's tenant on 2026-10-28
+([notes](../../compat/observations/organizations.md)). Status per item:
+1 partly observed, 2 partly observed, 3–5 unavailable, 6–8 observed,
+9 partly observed, 10 unavailable. Unavailable parts keep the default below as
+a local decision:
 
 1. `/authorize` errors and where they surface. These are the defaults
    (bodies are error codes only; the descriptions are ours):
@@ -167,9 +179,12 @@ Organizations-capable tenant are available:
    - **Missing organization with `require` + `no_prompt`:** `invalid_request`.
    - **Not a member and no auto-membership:** `access_denied`, redirected
      after authentication.
-   - **Connection not enabled for the organization:** `invalid_request`
-     before authentication when the request names it (`connection=`).
-     Otherwise that connection is simply not offered.
+   - **Connection not enabled for the organization:** observed, there is no
+     error before authentication, even when the request names it
+     (`connection=`). The hosted login offers only the client/organization
+     intersection and refuses authentication through any other connection
+     (local, D-0055).
+   - **`organization=` empty** is treated as absent (observed).
    - **Third-party client with `third_party_client_access: block`:**
      `access_denied`.
    - **No eligible organization in the post-login picker** (`require`, and
@@ -202,12 +217,17 @@ Organizations-capable tenant are available:
    Signup without auto-membership would create a user who then fails the
    membership check.
 7. The resource owner password and device grants for a `require` client.
-   Default: `unauthorized_client`. For `deny`/`allow` clients they work
-   unchanged and never carry an organization.
+   Observed (D-0055): refused at client configuration. `POST`/`PATCH /clients`
+   setting `organization_usage: require` while the client has the password,
+   password-realm or device_code grant is 400, and adding those grants to a
+   `require` client is 400. A token-time `unauthorized_client` remains only as
+   defense in depth for stored legacy data. For `deny`/`allow` clients they
+   work unchanged and never carry an organization.
 8. The organization `name` format. Default:
    - Lowercase ASCII letters, digits, `-` and `_`.
    - Starts with a letter or digit, 1–50 characters.
-   - Task 1 confirms against the public schema.
+   - Observed (D-0055): `^[a-z0-9][a-z0-9_-]{0,49}$`, the same on create and
+     PATCH.
 9. Limits, from Auth0's entity limit policy where it is public. Local
    defaults:
    - 10,000 organizations per tenant
@@ -218,6 +238,8 @@ Organizations-capable tenant are available:
 10. Membership removal versus live sessions. Default:
     - Removal affects only the next authorization or refresh.
     - Sessions stay valid for non-organization logins.
+    - Observed separately: member role assignments survive membership removal
+      and reappear when the user is re-added (§3).
 
 Global constraints: Go 1.26.7; Node ≥ 22.13 (Actions only). SQL migrations are
 additive, and the next number is **0025**. The next decision is **D-0055**.
@@ -228,10 +250,12 @@ Auth0. Every check fails closed. Plan 19's database-test hold does not apply.
 
 New domain types in `internal/store` (names are the builder's):
 
-- **Organization.** `ID` (`org_` + 16 random URL-safe characters, ≤ 50),
+- **Organization.** `ID` (`org_` + 16 random alphanumeric characters, as
+  observed; ≤ 50),
   `TenantID`, `Name` (unique per tenant), `DisplayName`, `Branding`
   (`LogoURL`, `PrimaryColor`, `PageBackground`), `Metadata`
-  (`map[string]*string`), `ThirdPartyClientAccess`, `CreatedAt`,
+  (`map[string]string`; values are never null, D-0055),
+  `ThirdPartyClientAccess`, `CreatedAt`,
   `UpdatedAt`.
 - **OrganizationConnection.** `(TenantID, OrganizationID, ConnectionID)`, with
   `AssignMembershipOnLogin`, `ShowAsButton`, `IsSignupEnabled`.
@@ -247,7 +271,9 @@ Cascades, all in the same transaction as the deletion that causes them:
 - Deleting a user removes their memberships and member roles.
 - Deleting a connection removes it from every organization.
 - Deleting a role removes its member assignments.
-- Removing a member removes that member's roles.
+- Removing a member keeps that member's role assignments (observed, D-0055).
+  They apply again if the user is re-added. Tokens always require current
+  membership.
 
 Validation lives in a pure `internal/orgrules` package, mirroring
 `rbacrules`/`actionsrules`. It checks the name format, display name, branding
@@ -266,25 +292,29 @@ return `400`, and every route returns `404` across tenants.
 | `GET /organizations` | `read:organizations` | offset and checkpoint pagination, `sort` (§2) |
 | `POST /organizations` | `create:organizations` (+ `create:organization_connections` with `enabled_connections`) | 201; 409 duplicate name; ≤ 10 connections |
 | `GET /organizations/{id}` / `GET /organizations/name/{name}` | `read:organizations` | 404 unknown |
-| `PATCH /organizations/{id}` | `update:organizations` | `name`, `display_name`, `branding`, `metadata`, `third_party_client_access`. `branding`/`metadata` are replaced whole, as Auth0's PATCH does; Task 1 confirms |
+| `PATCH /organizations/{id}` | `update:organizations` | `name`, `display_name`, `branding`, `metadata`, `third_party_client_access`. `branding`/`metadata` are replaced whole, and `{}`/null clears them (observed); empty body 400. GET and list responses omit `enabled_connections` |
 | `DELETE /organizations/{id}` | `delete:organizations` | 204; cascades |
-| `GET /organizations/{id}/members` | `read:organization_members` | `user_id`, `email`, `picture`, `name`, and `roles` with `fields=roles` (needs `read:organization_member_roles`); offset and checkpoint |
-| `POST /organizations/{id}/members` | `create:organization_members` | `{members: [user_id…]}`, ≤ 10 per call; 204; unknown user 400 |
+| `GET /organizations/{id}/members` | `read:organization_members` or `read:organization_member_roles` (any of, per the reference) | `user_id`, `email`, `picture`, `name`, and `roles` with `fields=roles` (needs `read:organization_member_roles`); offset and checkpoint |
+| `POST /organizations/{id}/members` | `create:organization_members` | `{members: [user_id…]}`, ≤ 10 per call; 204; unknown user 404 `inexistent_user`, nothing added (observed) |
 | `DELETE /organizations/{id}/members` | `delete:organization_members` | `{members: […]}`; 204 |
-| `GET/POST/DELETE /organizations/{id}/members/{user_id}/roles` | `read/create/delete:organization_member_roles` | `{roles: [role_id…]}`; the user must be a member (400 otherwise) |
-| `GET /organizations/{id}/members/{user_id}/effective-roles` | `read:organization_member_roles` | direct roles only until groups exist |
-| `GET /organizations/{id}/roles/{role_id}/members` | `read:organization_members` | members holding that role |
+| `GET/POST/DELETE /organizations/{id}/members/{user_id}/roles` | `read/create/delete:organization_member_roles` | `{roles: [role_id…]}`; the user must be a member (404 otherwise, observed); unknown role 404; GET is offset only |
+| `GET /organizations/{id}/members/{user_id}/effective-roles` | `read:organization_member_effective_roles` | `{roles: [{id, name, description, sources}], next?}`, checkpoint (observed and public reference); direct roles only until groups exist |
+| `GET /organizations/{id}/roles/{role_id}/members` | `read:organization_members` and `read:roles` | members holding that role; `{members, next?}`, checkpoint only; Early Access upstream, kept in Plan 29 |
 | `GET /organizations/{id}/enabled_connections` | `read:organization_connections` | each entry includes the `connection` summary (`name`, `strategy`) |
 | `POST /organizations/{id}/enabled_connections` | `create:organization_connections` | 201; 409 already enabled; connection must exist and be one the tenant can log in with |
 | `GET/PATCH/DELETE /organizations/{id}/enabled_connections/{connection_id}` | `read/update/delete:organization_connections` | PATCH changes the three flags only |
-| `GET /users/{id}/organizations` | `read:organizations` | offset pagination |
+| `GET /users/{id}/organizations` | `read:users` or `read:organizations` (any of) | offset and checkpoint pagination (public reference) |
 
 Other changes:
 
 - `PATCH /clients/{id}` and `POST /clients` accept and enforce
   `organization_usage`, `organization_require_behavior` and
-  `organization_discovery_methods`. `pre_login_prompt` without `require` is a
-  `400`.
+  `organization_discovery_methods`, with the observed rules (D-0055):
+  - `require` with the password, password-realm or device_code grants is
+    `400`;
+  - `post_login_prompt` needs `oidc_conformant`;
+  - `organization_discovery_methods` is only allowed with `pre_login_prompt`;
+  - `pre_login_prompt` is accepted for any `organization_usage`.
 - Tenant settings make `allow_organization_name_in_authentication_api` live.
 - The OpenAPI document, provenance (`x-source`), generated bindings and
   `make check-sources` cover every route.
@@ -307,7 +337,8 @@ carries `organization`) resolves the organization:
 4. No `organization`:
    - **`deny`/`allow`:** individual login.
    - **`require` + `no_prompt`:** `invalid_request`.
-   - **`require` + `pre_login_prompt`:** the organization prompt (§5.2).
+   - **`require` + `pre_login_prompt`**, and also **`allow` +
+     `pre_login_prompt`** (observed): the organization prompt (§5.2).
    - **`require` + `post_login_prompt`:** log in first, then the picker
      (§5.3).
 
@@ -350,8 +381,10 @@ With an organization in the transaction:
 - **Database signup.** Shown only when the database connection's
   `is_signup_enabled` is true, on top of the existing client/connection
   signup rules.
-- **`connection=` naming a connection outside that intersection** →
-  `invalid_request`.
+- **`connection=` naming a connection outside that intersection:**
+  `/authorize` does not refuse it, as observed. The hosted login never
+  authenticates through it, shows only the intersection and an error (local
+  decision, D-0055).
 - **Identifier-first routing** (Plan 25 home-realm by domain, where it
   exists) considers only that intersection.
 
@@ -416,7 +449,8 @@ transaction that creates or links the user.
 - **`/userinfo`** returns `org_id`/`org_name` when the access token carries
   them.
 - **The resource owner password and device grants** never carry an
-  organization (§2 item 7).
+  organization. A `require` client can't hold them, because client
+  configuration refuses it (§2 item 7).
 - **Permission resolution** (author's call). The Plan 26 resolver takes an
   optional organization ID and returns, in one call, the union of direct
   permissions, tenant roles and that organization's member roles. The API's
@@ -538,9 +572,15 @@ These are local zeroauthy endpoints, with no Auth0 counterpart. Plan 47
   listing paginate the membership table, ordered by `user_id` ascending, in
   both offset and checkpoint modes (the checkpoint cursor is the last
   `user_id`). User fields are joined per page.
-- **Field selection.** The `fields`/`include_fields` semantics and `per_page`
-  limits come from the public reference, and Task 1 freezes them. There is no
-  search parameter; Auth0's reference has none.
+- **Field selection** (frozen in D-0055, observed):
+  - `fields` takes `user_id,email,picture,name,roles`;
+  - `fields` with `include_fields` true or absent returns only those fields;
+  - `include_fields=false` excludes them;
+  - empty `fields` returns everything except roles;
+  - another name is `400`;
+  - `per_page`/`take` are 1–100.
+
+  There is no search parameter; Auth0's reference has none.
 - **Connection summary.** The `connection` summary (`name`, `strategy`) in
   enabled-connection responses needs only the organization-connection read
   scope, as the reference's response shape implies.

@@ -1,0 +1,1172 @@
+{
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations",
+      "required_scopes": [
+        "read:organizations"
+      ],
+      "scope_match": "all",
+      "request_shape": "query page,per_page,include_totals,from,take,sort (name|display_name|created_at with :1|:-1)",
+      "response_shape": "organizations[] | {organizations,start,limit,total} | {organizations,next?}",
+      "pagination": "offset+checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        429
+      ],
+      "limits": [
+        "D-0055 page<=1000, per_page 1-100 (default 50), take 1-100 (default 50)"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organizations",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations",
+      "required_scopes": [
+        "create:organizations"
+      ],
+      "scope_match": "all",
+      "conditional_scopes": [
+        "create:organization_connections"
+      ],
+      "request_shape": "{name,display_name?,branding?,metadata?,enabled_connections?[<=10],third_party_client_access?}; unknown property 400",
+      "response_shape": "{id,name,display_name,branding?,metadata?,third_party_client_access,is_app_entitlement_active:false}; branding/metadata omitted when unset; never enabled_connections; create response alone echoes enabled_connections[] with connection{name,strategy}",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "name 1-50",
+        "display_name 1-255",
+        "metadata<=25",
+        "enabled_connections<=10 at create"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-organizations",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}",
+      "required_scopes": [
+        "read:organizations"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "{id,name,display_name,branding?,metadata?,third_party_client_access,is_app_entitlement_active:false}; branding/metadata omitted when unset; never enabled_connections",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organizations-by-id",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/name/{name}",
+      "required_scopes": [
+        "read:organizations"
+      ],
+      "scope_match": "all",
+      "request_shape": "none; name format validated before lookup (400)",
+      "response_shape": "{id,name,display_name,branding?,metadata?,third_party_client_access,is_app_entitlement_active:false}; branding/metadata omitted when unset; never enabled_connections",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-name-by-name",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/organizations/{id}",
+      "required_scopes": [
+        "update:organizations"
+      ],
+      "scope_match": "all",
+      "request_shape": "{name?,display_name?,branding?,metadata?,third_party_client_access?}; at least one property; branding/metadata replaced whole, {} or null clears",
+      "response_shape": "{id,name,display_name,branding?,metadata?,third_party_client_access,is_app_entitlement_active:false}; branding/metadata omitted when unset; never enabled_connections",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "name 1-50",
+        "display_name 1-255",
+        "metadata<=25"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/patch-organizations-by-id",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}",
+      "required_scopes": [
+        "delete:organizations"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-organizations-by-id",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/members",
+      "required_scopes": [
+        "read:organization_members",
+        "read:organization_member_roles"
+      ],
+      "scope_match": "any",
+      "conditional_scopes": [
+        "read:organization_member_roles"
+      ],
+      "request_shape": "query page,per_page,include_totals,from,take,fields(user_id,email,picture,name,roles),include_fields",
+      "response_shape": "members[] | {members,start,limit,total} | {members,next?}; item {user_id,email,picture,name}; roles[{id,name}] only with fields=roles",
+      "pagination": "offset+checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 page<=1000, per_page 1-100 (default 50), take 1-100 (default 50)"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-members",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/members",
+      "required_scopes": [
+        "create:organization_members"
+      ],
+      "scope_match": "all",
+      "request_shape": "{members:[user_id,...]} 1-10 (D-0055); atomic",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 batch_ids_max 10"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-members",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/members",
+      "required_scopes": [
+        "delete:organization_members"
+      ],
+      "scope_match": "all",
+      "request_shape": "{members:[user_id,...]} 1-10 (D-0055); idempotent",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 batch_ids_max 10"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-members",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/members/{user_id}/roles",
+      "required_scopes": [
+        "read:organization_member_roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "query page,per_page,include_totals; take refused 400",
+      "response_shape": "roles[{id,name,description}] | {roles,start,limit,total}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 page<=1000, per_page 1-100 (default 50), take 1-100 (default 50)"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-member-roles",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/members/{user_id}/roles",
+      "required_scopes": [
+        "create:organization_member_roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "{roles:[role_id,...]} 1-10 (D-0055); idempotent",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0055 batch_ids_max 10",
+        "D-0055 roles_per_member_max 50"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-organization-member-roles",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/members/{user_id}/roles",
+      "required_scopes": [
+        "delete:organization_member_roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "{roles:[role_id,...]} 1-10 (D-0055); idempotent",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 batch_ids_max 10"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-organization-member-roles",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/members/{user_id}/effective-roles",
+      "required_scopes": [
+        "read:organization_member_effective_roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "query from,take",
+      "response_shape": "{roles:[{id,name,description,sources:[\"direct\"]}],next?}",
+      "pagination": "checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 page<=1000, per_page 1-100 (default 50), take 1-100 (default 50)"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-member-effective-roles",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/roles/{role_id}/members",
+      "required_scopes": [
+        "read:organization_members",
+        "read:roles"
+      ],
+      "scope_match": "all",
+      "request_shape": "query from,take,fields,include_fields; page/per_page/include_totals ignored",
+      "response_shape": "{members:[{user_id,email,picture,name}],next?}",
+      "pagination": "checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 page<=1000, per_page 1-100 (default 50), take 1-100 (default 50)"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-role-members",
+      "evidence": "observed",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/enabled_connections",
+      "required_scopes": [
+        "read:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "query page,per_page,include_totals",
+      "response_shape": "entries[] | {enabled_connections,start,limit,total}; entry {connection_id,assign_membership_on_login,is_signup_enabled,show_as_button,connection{name,strategy}}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 page<=1000, per_page 1-100 (default 50), take 1-100 (default 50)"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-enabled-connections",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/enabled_connections",
+      "required_scopes": [
+        "create:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "{connection_id,assign_membership_on_login?,is_signup_enabled?,show_as_button?}; unknown property 400",
+      "response_shape": "entry",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0055 enabled_connections_per_organization_max 50"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-enabled-connections",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/enabled_connections/{connection_id}",
+      "required_scopes": [
+        "read:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "entry",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-enabled-connections-by-connection-id",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/organizations/{id}/enabled_connections/{connection_id}",
+      "required_scopes": [
+        "update:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "{assign_membership_on_login?,is_signup_enabled?,show_as_button?}; {} returns entry unchanged",
+      "response_shape": "entry",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/patch-enabled-connections-by-connection-id",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/enabled_connections/{connection_id}",
+      "required_scopes": [
+        "delete:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-enabled-connections-by-connection-id",
+      "evidence": "observed",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/users/{id}/organizations",
+      "required_scopes": [
+        "read:users",
+        "read:organizations"
+      ],
+      "scope_match": "any",
+      "request_shape": "query page,per_page,include_totals,from,take",
+      "response_shape": "organizations[] | {organizations,start,limit,total} | {organizations,next?}; item as organization GET",
+      "pagination": "offset+checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 page<=1000, per_page 1-100 (default 50), take 1-100 (default 50)"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/users/get-user-organizations",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    }
+  ],
+  "deferred": [
+    {
+      "name": "invitations",
+      "plan": "30",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "invitation_parameter",
+      "plan": "30",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "user_invitation_email",
+      "plan": "30",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "organization_client_grants",
+      "plan": "30",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "client_grant_organization_fields",
+      "plan": "30",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "discovery_domains",
+      "plan": "30",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "email_organization_discovery",
+      "plan": "30",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "client_credentials_organization",
+      "plan": "30",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "organization_clients_ea",
+      "plan": "30",
+      "source": "https://auth0.com/docs/api/management/v2/organizations/get-organization-clients"
+    },
+    {
+      "name": "organizations_search",
+      "plan": "30",
+      "source": "https://auth0.com/docs/api/management/v2/organizations/get-search"
+    },
+    {
+      "name": "organization_groups",
+      "plan": "38",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "token_quota",
+      "plan": "35",
+      "source": "https://auth0.com/docs/api/management/v2/organizations/post-organizations"
+    },
+    {
+      "name": "is_app_entitlement_active",
+      "plan": "30",
+      "source": "https://auth0.com/docs/api/management/v2/organizations/post-organizations"
+    },
+    {
+      "name": "organization_connections_ea",
+      "plan": "30",
+      "source": "https://auth0.com/docs/api/management/v2/organizations/get-organization-connections"
+    },
+    {
+      "name": "my_organization_api",
+      "plan": "42",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "saml_wsfed_organization_login",
+      "plan": "37",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "change_password_organization",
+      "plan": "30",
+      "source": "docs/superpowers/specs/2026-10-28-zeroauthy-organizations-design.md#1-intent-and-scope"
+    },
+    {
+      "name": "organization_scoped_roles_ea",
+      "plan": "30",
+      "source": "https://auth0.com/docs/manage-users/organizations/organization-roles"
+    },
+    {
+      "name": "include_client_association_for",
+      "plan": "30",
+      "source": "https://auth0.com/docs/api/management/v2/organizations/get-organizations"
+    },
+    {
+      "name": "read_organizations_summary_scope",
+      "plan": "30",
+      "source": "https://auth0.com/docs/api/management/v2/organizations/get-organizations"
+    },
+    {
+      "name": "client_default_organization",
+      "plan": "30",
+      "source": "https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id"
+    },
+    {
+      "name": "client_my_organization_configuration",
+      "plan": "42",
+      "source": "https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id"
+    },
+    {
+      "name": "universal_portals",
+      "plan": "42",
+      "source": "https://auth0.com/changelog/v202644.md"
+    },
+    {
+      "name": "effective_roles_group_sources",
+      "plan": "38",
+      "source": "https://auth0.com/docs/api/management/v2/organizations/get-organization-member-role-source-groups"
+    }
+  ],
+  "metadata": {
+    "fields": [
+      {
+        "object": "client",
+        "name": "organization_usage",
+        "values": [
+          "deny",
+          "allow",
+          "require"
+        ],
+        "default": "deny",
+        "rules": [
+          "invalid value 400 invalid_body",
+          "null unsets (effective deny); never-set clients omit the field",
+          "require refused (400) while grant_types holds password, http://auth0.com/oauth/grant-type/password-realm or urn:ietf:params:oauth:grant-type:device_code, in either order of configuration",
+          "writes other than deny return 501 when the plugin lacks OrganizationsCapabilities v1"
+        ],
+        "evidence": "observed",
+        "source_url": "https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id",
+        "decision": "D-0055"
+      },
+      {
+        "object": "client",
+        "name": "organization_require_behavior",
+        "values": [
+          "no_prompt",
+          "pre_login_prompt",
+          "post_login_prompt"
+        ],
+        "default": "no_prompt",
+        "rules": [
+          "invalid value 400 invalid_body",
+          "post_login_prompt requires oidc_conformant true (400)",
+          "pre_login_prompt accepted with deny, allow and require",
+          "null unsets"
+        ],
+        "evidence": "observed",
+        "source_url": "https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id",
+        "decision": "D-0055"
+      },
+      {
+        "object": "client",
+        "name": "organization_discovery_methods",
+        "values": [
+          "email",
+          "organization_name"
+        ],
+        "default": "",
+        "rules": [
+          "array, min 1 entry; empty array or other value 400 invalid_body",
+          "null unsets",
+          "only allowed while organization_require_behavior is pre_login_prompt (else 400)",
+          "stored and validated; Plan 29 always asks for the organization name (email discovery is Plan 30)",
+          "public schema marks the field EA"
+        ],
+        "evidence": "observed",
+        "source_url": "https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id",
+        "decision": "D-0055"
+      },
+      {
+        "object": "tenant.flags",
+        "name": "allow_organization_name_in_authentication_api",
+        "values": [
+          "true",
+          "false"
+        ],
+        "default": "false",
+        "rules": [
+          "while false, organization= must be an organization ID; a name gives invalid_request",
+          "while true, ID match first, then exact name",
+          "org_name claim only while true"
+        ],
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/manage-users/organizations/configure-organizations/use-org-name-authentication-api"
+      }
+    ],
+    "limits": [
+      {
+        "name": "name_chars_max",
+        "value": 50,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/post-organizations"
+      },
+      {
+        "name": "display_name_chars_max",
+        "value": 255,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/post-organizations"
+      },
+      {
+        "name": "metadata_keys_max",
+        "value": 25,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/post-organizations"
+      },
+      {
+        "name": "metadata_key_chars_max",
+        "value": 50,
+        "source": "docs/compat/observations/organizations.md"
+      },
+      {
+        "name": "metadata_value_chars_max",
+        "value": 255,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/post-organizations"
+      },
+      {
+        "name": "enabled_connections_create_max",
+        "value": 10,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/post-organizations"
+      },
+      {
+        "name": "enabled_connections_per_organization_max",
+        "value": 50,
+        "source": "D-0055"
+      },
+      {
+        "name": "organizations_per_tenant_max",
+        "value": 10000,
+        "source": "D-0055"
+      },
+      {
+        "name": "roles_per_member_max",
+        "value": 50,
+        "source": "D-0055"
+      },
+      {
+        "name": "batch_ids_max",
+        "value": 10,
+        "source": "D-0055"
+      },
+      {
+        "name": "page_max",
+        "value": 1000,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/get-organizations"
+      },
+      {
+        "name": "per_page_max",
+        "value": 100,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/get-organizations"
+      },
+      {
+        "name": "per_page_default",
+        "value": 50,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/get-organizations"
+      },
+      {
+        "name": "take_max",
+        "value": 100,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/get-organizations"
+      },
+      {
+        "name": "take_default",
+        "value": 50,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/get-organizations"
+      },
+      {
+        "name": "picker_organizations_max",
+        "value": 20,
+        "source": "https://auth0.com/docs/manage-users/organizations/login-flows-for-organizations"
+      },
+      {
+        "name": "organization_id_random_chars",
+        "value": 16,
+        "source": "docs/compat/observations/organizations.md"
+      },
+      {
+        "name": "organization_id_chars_max",
+        "value": 50,
+        "source": "https://auth0.com/docs/api/management/v2/organizations/get-organizations-by-id"
+      }
+    ],
+    "decisions": [
+      {
+        "item": 1,
+        "topic": "/authorize errors and where they surface",
+        "status": "partly_observed",
+        "evidence": "observed",
+        "value": "Pre-authentication, redirected to the callback with state: invalid_request for an unknown or malformed organization ID, a name while names are off, organization sent to a deny client, require+no_prompt without organization, and any invitation parameter. A connection= not enabled for the organization (or unknown) gives no pre-authentication error.",
+        "local_default": "After authentication: not a member and no auto-membership -> access_denied; third-party client with third_party_client_access block -> access_denied; no eligible organization in the picker -> access_denied; a connection outside the client/organization intersection is not offered and cannot be used to authenticate (hosted login refuses it with a page error). Unredirectable errors use the D-0026 error page.",
+        "source": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "item": 2,
+        "topic": "prompt=none with an organization",
+        "status": "partly_observed",
+        "evidence": "observed",
+        "value": "No session: login_required for a valid organization; require+no_prompt without organization gives invalid_request (organization check runs before the login check).",
+        "local_default": "Session user who is a member, or auto-membership can add, gets tokens silently; otherwise login_required. require+post_login_prompt without organization: silent if exactly one eligible organization, otherwise interaction_required.",
+        "source": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "item": 3,
+        "topic": "Tenant roles and direct permissions in an organization login",
+        "status": "unavailable",
+        "evidence": "local",
+        "value": "Not observable without an interactive login.",
+        "local_default": "permissions is the union of tenant roles, direct permissions and the active organization's member roles, filtered by the API as in Plan 26.",
+        "source": "D-0055",
+        "decision": "D-0055"
+      },
+      {
+        "item": 4,
+        "topic": "Refresh with organizations",
+        "status": "unavailable",
+        "evidence": "local",
+        "value": "Not observable without an interactive login.",
+        "local_default": "Refresh token keeps its organization; each refresh re-checks organization existence and membership (failure invalid_grant, token not revoked); organization-role permissions recomputed.",
+        "source": "D-0055",
+        "decision": "D-0055"
+      },
+      {
+        "item": 5,
+        "topic": "allow + post_login_prompt without organization",
+        "status": "unavailable",
+        "evidence": "local",
+        "value": "Behavior is in the hosted flow; not observed.",
+        "local_default": "No picker; the user logs in as an individual.",
+        "source": "D-0055",
+        "decision": "D-0055"
+      },
+      {
+        "item": 6,
+        "topic": "is_signup_enabled without assign_membership_on_login",
+        "status": "observed",
+        "evidence": "observed",
+        "value": "400 on create (invalid_body) and on enabled-connection PATCH in both directions (setting signup true while assign is false, or assign false while signup is true).",
+        "source": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "item": 7,
+        "topic": "Password and device grants for a require client",
+        "status": "observed",
+        "evidence": "observed",
+        "value": "Refused at client configuration: POST/PATCH /clients with organization_usage require while grant_types holds password, password-realm or device_code is 400, and adding those grants to a require client is 400. For deny/allow clients the grants work, ignore organization and never carry org_id/org_name. Token-time unauthorized_client remains only as defense in depth for stored legacy data.",
+        "source": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "item": 8,
+        "topic": "Organization name format",
+        "status": "observed",
+        "evidence": "observed",
+        "value": "^[a-z0-9][a-z0-9_-]{0,49}$: lowercase ASCII letters, digits, hyphen and underscore; starts with a letter or digit; 1-50 characters; same validator on create and PATCH; invalid 400 invalid_body.",
+        "source": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "item": 9,
+        "topic": "Limits",
+        "status": "partly_observed",
+        "evidence": "observed",
+        "value": "Metadata 25 keys, keys 1-50 characters, values 1-255 characters; display_name 1-255; per_page/take 1-100; page window 1000 (400 invalid_paging beyond).",
+        "local_default": "10,000 organizations per tenant; 50 enabled connections per organization (10 at create, documented); 50 roles per member; unlimited members; organizations per user listed through pagination; 10 IDs per member/role batch.",
+        "source": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "item": 10,
+        "topic": "Membership removal versus live sessions",
+        "status": "unavailable",
+        "evidence": "local",
+        "value": "Session behavior not observable without an interactive login. Observed separately: member role assignments survive membership removal and reappear when the user is re-added.",
+        "local_default": "Removal affects only the next authorization or refresh; sessions stay valid for non-organization logins.",
+        "source": "D-0055",
+        "decision": "D-0055"
+      }
+    ],
+    "rules": [
+      {
+        "name": "name_format",
+        "value": "^[a-z0-9][a-z0-9_-]{0,49}$; unique per tenant (409); rename by PATCH allowed",
+        "evidence": "observed",
+        "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-organizations",
+        "decision": "D-0055"
+      },
+      {
+        "name": "organization_id_format",
+        "value": "org_ + 16 random ASCII alphanumerics; malformed path IDs are 400 invalid_uri",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "display_name_default",
+        "value": "display_name defaults to name when omitted on create; empty display_name 400",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "metadata_values",
+        "value": "values are non-empty strings of at most 255 characters; null, empty string and non-string values are 400 on create and PATCH (public schema allows null; observation wins)",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "metadata_keys",
+        "value": "at most 25 keys; key 1-50 characters matching ^[a-zA-Z0-9]\\w*$",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "branding_rules",
+        "value": "logo_url https only (null allowed by public schema); colors object needs both primary and page_background as HTML hex colors; colors {} is 400",
+        "evidence": "observed",
+        "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-organizations",
+        "decision": "D-0055"
+      },
+      {
+        "name": "patch_replace",
+        "value": "PATCH replaces branding and metadata whole; {} or null clears them; omitted properties are untouched",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "patch_empty_body",
+        "value": "PATCH /organizations/{id} with {} is 400; PATCH of an enabled connection with {} is 200 and unchanged",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "get_omits_enabled_connections",
+        "value": "organization GET, by-name and list responses never contain enabled_connections; only the create response echoes them",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "response_constant_fields",
+        "value": "third_party_client_access always present (default block); is_app_entitlement_active always present and false until Plan 30 (writes of true refused)",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "delete_not_idempotent",
+        "value": "DELETE of an unknown or already deleted organization is 404; delete cascades connections, members and member roles",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "malformed_id",
+        "value": "a path organization ID that is not org_-shaped is 400 invalid_uri; a well-formed unknown ID is 404",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "list_default_order",
+        "value": "offset mode without sort: ascending name; checkpoint mode without sort: creation order; sort honored in both; from wins over page; invalid cursor 400",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "members_fields",
+        "value": "fields from user_id,email,picture,name,roles; empty fields gives all except roles; fields with include_fields true/absent returns only those fields; include_fields=false excludes them; other names 400; roles [{id,name}], [] when none; roles needs read:organization_member_roles",
+        "evidence": "observed",
+        "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-members",
+        "decision": "D-0055"
+      },
+      {
+        "name": "members_unknown_user",
+        "value": "POST members with any nonexistent user is 404 inexistent_user and adds nothing; already-present members are 204; empty array 400",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "member_roles_non_member",
+        "value": "member role GET/POST for a user who is not a member is 404; DELETE for a nonexistent user is 404 inexistent_user",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "member_roles_unknown_role",
+        "value": "POST member roles with an unknown role ID is 404; nothing is assigned",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "member_role_retention",
+        "value": "removing a membership keeps the member's role assignments; re-adding the user restores them; tokens still need current membership; organization, user and role deletion remove them",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "effective_roles_shape",
+        "value": "{roles:[{id,name,description,sources:[\"direct\"]}],next?}; checkpoint from/take; direct roles only until groups (Plan 38); non-member 404",
+        "evidence": "observed",
+        "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-member-effective-roles",
+        "decision": "D-0055"
+      },
+      {
+        "name": "role_members_shape",
+        "value": "{members:[{user_id,email,picture,name}],next?}; checkpoint only; include_totals and page/per_page ignored; unknown role 404; public lifecycle EA, included as the spec chose",
+        "evidence": "observed",
+        "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-role-members",
+        "decision": "D-0055"
+      },
+      {
+        "name": "connection_flags",
+        "value": "assign_membership_on_login default false; is_signup_enabled default false, database only, requires assign_membership_on_login; show_as_button default true, false only on enterprise strategies (database 400); unknown connection 404 inexistent_connection; duplicate 409; camelCase or unknown properties 400",
+        "evidence": "observed",
+        "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-enabled-connections",
+        "decision": "D-0055"
+      },
+      {
+        "name": "enabled_connection_delete",
+        "value": "DELETE of a connection not enabled for the organization is 204 when the connection exists and 404 inexistent_connection when it does not",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "require_grant_conflict",
+        "value": "organization_usage require is incompatible with password, password-realm and device_code grants: 400 at client create/update in either order; token-time unauthorized_client is defense in depth only",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "pre_login_prompt_usage",
+        "value": "pre_login_prompt is accepted for deny, allow and require; with allow (or require) and no organization, /authorize shows the organization prompt",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "post_login_prompt_oidc",
+        "value": "post_login_prompt requires oidc_conformant true; otherwise 400",
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/api/management/v2/clients/patch-clients-by-id",
+        "decision": "D-0055"
+      },
+      {
+        "name": "discovery_methods_rule",
+        "value": "organization_discovery_methods only while organization_require_behavior is pre_login_prompt; Plan 29 always shows the name field",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "authorize_errors",
+        "value": "pre-authentication refusals redirect invalid_request with our own error_description per cause (unknown/invalid ID, not allowed for client, required, must be an ID, invitation not supported)",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "empty_organization_param",
+        "value": "organization= with an empty value is treated as absent",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "connection_not_enabled",
+        "value": "no /authorize error for a connection= that is unknown or not enabled for the organization; the hosted login offers only the client/organization intersection and refuses authentication through any other connection",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "client_credentials_organization",
+        "value": "client_credentials with organization stays invalid_request until Plan 30 (observed for the reserved Management API audience); client organization_usage does not affect client credentials",
+        "evidence": "observed",
+        "source_url": "docs/compat/observations/organizations.md",
+        "decision": "D-0055"
+      },
+      {
+        "name": "connections_alias_ruling",
+        "value": "/organizations/{id}/connections is Early Access in the public reference (OAS x-release-lifecycle EA; guide says the new organization connection endpoints are EA), not a documented GA alias; deferred to Plan 30",
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-connections",
+        "decision": "D-0055"
+      },
+      {
+        "name": "member_order",
+        "value": "member and role-member listings ordered by user_id ascending; checkpoint cursor is the last user_id (not observed)",
+        "evidence": "local-decision",
+        "decision": "D-0055"
+      },
+      {
+        "name": "picker",
+        "value": "post-login picker shows at most 20 eligible organizations sorted by display name; one eligible selects it; none but exactly one auto-membership organization for the connection selects it with membership; else access_denied",
+        "evidence": "documented",
+        "source_url": "https://auth0.com/docs/manage-users/organizations/login-flows-for-organizations",
+        "decision": "D-0055"
+      },
+      {
+        "name": "par_binding",
+        "value": "a pushed request binds organization; request_uri cannot add or override it; the code records the organization ID",
+        "evidence": "local-decision",
+        "decision": "D-0055"
+      }
+    ],
+    "tools": [
+      {
+        "name": "auth0-cli",
+        "version": "1.37.0",
+        "repo": "https://github.com/auth0/auth0-cli/tree/v1.37.0",
+        "files": [
+          "internal/cli/organizations.go",
+          "go-auth0 v1.50.0 management/organization.go"
+        ],
+        "exposes": "orgs list/show/create/update/delete/open; members list; roles list; roles members list; invitations (Plan 30). Uses page/per_page with include_totals=true, GET enabled_connections via go-auth0; update re-sends whole branding and metadata built client-side (consistent with PATCH replace)."
+      },
+      {
+        "name": "node-auth0",
+        "version": "7.4.0",
+        "repo": "https://github.com/auth0/node-auth0/tree/v7.4.0",
+        "files": [
+          "src/management/api/resources/organizations/client/Client.ts",
+          "src/management/api/resources/organizations/resources/{enabledConnections,connections,members,members/resources/roles,members/resources/effectiveRoles,roles/resources/members}/client/Client.ts",
+          "src/management/api/types/types.ts"
+        ],
+        "exposes": "organizations list/create/get/getByName/update/delete/search; enabledConnections list/add/get/update/delete; connections list/create/get/update/delete (EA, deferred); members list/create/delete; members.roles list/assign/delete; members.effectiveRoles list (checkpoint, sources); roles.members list (checkpoint); plus Plan 30/38 resources (invitations, clientGrants, clients, discoveryDomains, groups)."
+      },
+      {
+        "name": "auth0-deploy-cli",
+        "version": "9.1.0",
+        "repo": "https://github.com/auth0/auth0-deploy-cli/tree/v9.1.0",
+        "files": [
+          "src/tools/auth0/handlers/organizations.ts",
+          "src/context/yaml/handlers/organizations.ts",
+          "src/context/directory/handlers/organizations.ts"
+        ],
+        "exposes": "organizations with name, display_name, branding, metadata, connections, client_grants, token_quota, discovery_domains, clients. Connections go through the EA /organizations/{id}/connections resource; export also lists organization client grants unconditionally and treats 404/501 as no organizations. No members or member roles."
+      }
+    ]
+  }
+}

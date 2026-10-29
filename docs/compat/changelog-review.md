@@ -66,6 +66,8 @@ Okta products) need no row; the "Reviewed through" date covers them.
 
 | Entry date | Feature, in our words | Target milestone / sub-project | Status |
 |---|---|---|---|
+| 2026-10-27 | Universal Portals (Developer Preview): hosted self-service portals for end users and for organization administrators, inheriting organization branding | Plan 42 (My Organization API / organization self-service) | open |
+| 2026-07-29 | Roles scoped to a single organization (EA), separate from tenant roles | Plan 30 (Organizations II); Plan 29 keeps tenant roles assigned inside organizations | open |
 | 2026-10-26 | Anonymous sessions and login experimentation grouped in Identity Conversion Suite EA | Future anonymous-session / hosted-login experimentation planning; outside Plan 24 | open |
 | 2026-10-22 | Configurable automatic/manual recovery-link unblock mode for brute-force protection | Plan 19 follow-up | open |
 | 2025-10-28 | Confirmation step for non-verifiable callback URIs; `prompt=none` limits | Milestone 10 (Plan 9) | done (Plan 9) |
@@ -168,3 +170,23 @@ were reviewed separately: phone triggers → Plan 34, custom-token-exchange →
 signup-post-identifier and post-credential-validation remain deferred.
 Early Access custom IDs/risk data are deferred. See D-0054 and the
 [Actions II review](observations/actions.md#actions-ii-contract-review-2026-10-28).
+
+## 2026-10-28 — Plan 29 Task 1
+
+Re-fetched the official [full changelog text](https://auth0.com/changelog/llms-full.txt)
+(735,314 bytes) on 2026-10-28. One entry is newer than the previous coverage
+date (2026-10-26): on October 27, 2026 Universal Portals entered Developer
+Preview. In our words, Auth0 now hosts self-service portals in which end
+users manage their accounts and organization administrators manage their
+organization details and domains, and portals opened in an organization
+context use that organization's branding. It changes no Plan 29 wire
+contract. It belongs with the My Organization API in Plan 42 (backlog row
+added). No entry dated 2026-10-28 or later is visible; coverage is now
+2026-10-27.
+
+Earlier organization entries were re-read for Plan 29: Organization-level
+roles EA (July 29) goes to Plan 30 (backlog row added); Dashboard search for
+members (July 29, Beta) and Organizations Search filters (August 6) are
+dashboard and `/organizations/search` items (Plan 30); My Organization API
+member management EA (September 17) is Plan 42. See D-0055 and
+`internal/orgrules/inventory.json`.

@@ -26,15 +26,23 @@
 - Plugin RPC `OrganizationsCapabilities` is version **1**. A plugin without it starts with a warning, without scanning data. In that case organization routes and writes of `organization_usage` ≠ `deny` return `501`, and the `organization` parameter is `invalid_request`.
 - Organization `name`: 1–50 characters, unique per tenant, format per D-0055 (default `^[a-z0-9][a-z0-9_-]{0,49}$`). `display_name`: 1–255.
 - Branding: `logo_url` https or null; when `colors` is present, both `primary` and `page_background` are hex.
-- Metadata: ≤ 25 keys, each value a string ≤ 255 characters or null.
+- Metadata: ≤ 25 keys, each key 1–50 characters matching `^[a-zA-Z0-9]\w*$`, each value a non-empty string ≤ 255 characters (null is 400, observed; D-0055). PATCH replaces `branding`/`metadata` whole; `{}`/null clears them.
 - Enabled connections: ≤ 10 in `POST /organizations`, ≤ 50 per organization. `show_as_button` only on enterprise strategies (default true). `is_signup_enabled` only on database connections (default false) and requires `assign_membership_on_login`.
 - Local limits (D-0055): 10,000 organizations per tenant; 50 roles per member; ≤ 10 user IDs or role IDs per member/role POST or DELETE.
-- Pagination: offset (`page` ≤ 1000, `per_page` 1–100, default 50, `include_totals`) and checkpoint (`from`, `take` 1–100, `next`). Organization `sort` is `name|display_name|created_at` with `:1|:-1`. Member listings are ordered by `user_id` ascending.
+- Pagination: offset (`page` ≤ 1000, `per_page` 1–100, default 50, `include_totals`) and checkpoint (`from`, `take` 1–100, `next`). Organization `sort` is `name|display_name|created_at` with `:1|:-1`. Member listings are ordered by `user_id` ascending. Member roles are offset only; effective roles and role members are checkpoint only (D-0055).
 - The picker shows at most 20 organizations, sorted by display name.
-- The organization ID is `org_` plus 16 random URL-safe characters.
+- The organization ID is `org_` plus 16 random alphanumeric characters (observed).
 - `org_id`/`org_name` are reserved claims. `org_name` appears only while `allow_organization_name_in_authentication_api` is true.
 - Fail closed. A token never carries an organization the user is not a member of, nor permissions from another organization's roles.
-- Invitations, organization client grants, discovery domains, `/organizations/search`, groups, `token_quota` and `is_app_entitlement_active` stay deferred (spec §1).
+- Invitations, organization client grants, discovery domains, `/organizations/search`, groups, `token_quota`, `is_app_entitlement_active` (always `false` in responses) and the Early Access `/organizations/{id}/connections` stay deferred (spec §1, D-0055).
+- The D-0055 observed corrections take precedence over any per-task bullet below that contradicts them:
+  - a `require` client can't hold the password, password-realm or device_code grants (400 at client create/update, either order); token-time `unauthorized_client` is defense in depth only;
+  - `pre_login_prompt` is accepted for any `organization_usage`; `organization_discovery_methods` only with `pre_login_prompt`; `post_login_prompt` needs `oidc_conformant`;
+  - unknown user in member POST → 404 `inexistent_user`; member roles for a non-member or an unknown role → 404;
+  - membership removal keeps role assignments;
+  - no `/authorize` error for a `connection=` outside the organization; the hosted login refuses it;
+  - effective roles use `read:organization_member_effective_roles` and return `{roles:[…sources], next?}`;
+  - GET and list responses omit `enabled_connections`.
 - Tests never contact Auth0. Plan 19's database-test hold does not apply to this plan.
 
 ## Review Focus
@@ -120,7 +128,7 @@ Before claiming a memory-only focused run, confirm that it actually executes tes
 
 **Interfaces:**
 
-- `store.Organization{TenantID, ID, Name, DisplayName string; Branding *OrgBranding; Metadata map[string]*string; ThirdPartyClientAccess string; CreatedAt, UpdatedAt time.Time}` and `store.OrgBranding{LogoURL *string; Colors *OrgColors{Primary, PageBackground string}}`.
+- `store.Organization{TenantID, ID, Name, DisplayName string; Branding *OrgBranding; Metadata map[string]string; ThirdPartyClientAccess string; CreatedAt, UpdatedAt time.Time}` and `store.OrgBranding{LogoURL *string; Colors *OrgColors{Primary, PageBackground string}}`.
 - `store.OrganizationConnection{TenantID, OrganizationID, ConnectionID string; AssignMembershipOnLogin, ShowAsButton, IsSignupEnabled bool}`.
 - `store.OrgPage{Page, PerPage int; IncludeTotals bool; From string; Take int; Sort string}` and `store.OrgResult[T]{Items []T; Total int; Next string}`.
 - `store.Organizations` interface:
@@ -381,7 +389,7 @@ Before claiming a memory-only focused run, confirm that it actually executes tes
 
 **Interfaces:**
 
-- `hostedlogin.Context` gains `Organization *OrgView{ID, Name, DisplayName string; Metadata map[string]*string; LogoURL, Primary, PageBackground string}`.
+- `hostedlogin.Context` gains `Organization *OrgView{ID, Name, DisplayName string; Metadata map[string]string; LogoURL, Primary, PageBackground string}`.
 - The `actions` event builders gain `Organization *store.Organization`, rendered as `event.organization{id,name,display_name,metadata}`.
 
 - [ ] Write `TestOrganizationBranding`: the organization logo and colors replace the tenant theme's values on login, signup, consent and error pages; other theme values are unchanged; there is no organization → no change; organization values are escaped/CSS-validated through the existing theme path.

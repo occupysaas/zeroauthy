@@ -113,3 +113,13 @@ SDK/CLI/browser and four-cell Deploy CLI migration pass local verification;
 group/organization-role and effective-role APIs remain deferred. See the
 [implementation record](../superpowers/2026-10-27-plan-26-implementation-record.md)
 for full SQL/race/conformance results and unavailable live evidence.
+
+Plan 29 contracts frozen (2026-10-28), not yet implemented: the Organizations
+I inventory has 20 Management operations, the client and tenant
+organization fields, limits and the spec §2 items 1–10 with their observation
+status. See `internal/orgrules/inventory.json`,
+[observation notes](observations/organizations.md) and D-0055. The upstream
+routes `/organizations/{id}/connections` (Early Access), invitations, client
+grants, discovery domains, search and groups are deferred. A `require`
+client can never hold the password, password-realm or device grants
+(400 at configuration, as observed).
