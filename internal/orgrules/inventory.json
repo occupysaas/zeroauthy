@@ -1315,5 +1315,507 @@
         "exposes": "organizations with name, display_name, branding, metadata, connections, client_grants, token_quota, discovery_domains, clients. Connections go through the EA /organizations/{id}/connections resource and export lists organization client grants unconditionally (both served in Plan 29 by the Task 5 ruling); a 404/501 empties the organizations export. No members or member roles."
       }
     ]
-  }
+  },
+  "organizations_ii_operations": [
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/search",
+      "required_scopes": [
+        "read:organizations"
+      ],
+      "scope_match": "all",
+      "request_shape": "q<=1000, parser=lucene|scim(default lucene), take=1..100(default50), from?, sort=name|display_name|created_at(ascending); max5 predicates/depth16",
+      "response_shape": "{organizations:Organization[],next?:string}",
+      "pagination": "checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-search",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/invitations",
+      "required_scopes": [
+        "create:organization_invitations"
+      ],
+      "scope_match": "all",
+      "request_shape": "{inviter:{name},invitee:{email},client_id,connection_id?,app_metadata?,user_metadata?,ttl_sec?:integer0..2592000(default604800,zero=default),roles?:nonempty[],send_invitation_email?:bool(default true)}",
+      "response_shape": "Invitation",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501,
+        409
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-invitations",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/invitations",
+      "required_scopes": [
+        "read:organization_invitations"
+      ],
+      "scope_match": "all",
+      "request_shape": "page?,per_page?(default50,max100),include_totals?(false)",
+      "response_shape": "Invitation[] | {invitations,start,limit,total}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-invitations",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/invitations/{invitation_id}",
+      "required_scopes": [
+        "read:organization_invitations"
+      ],
+      "scope_match": "all",
+      "request_shape": "path invitation_id",
+      "response_shape": "Invitation",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-invitations-by-invitation-id",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/invitations/{invitation_id}",
+      "required_scopes": [
+        "delete:organization_invitations"
+      ],
+      "scope_match": "all",
+      "request_shape": "path invitation_id",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-invitations-by-invitation-id",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/clients",
+      "required_scopes": [
+        "read:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "from?,take?(default50,max100)",
+      "response_shape": "{clients:ClientAssociation[],next?}",
+      "pagination": "checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-clients",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/clients",
+      "required_scopes": [
+        "create:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "{clients:[{client_id,use_for_member_access?:bool(default true)}]} batch1..10",
+      "response_shape": "ClientAssociation[]",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501,
+        409
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-organization-clients",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/clients",
+      "required_scopes": [
+        "delete:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "{clients:string[]} batch1..10",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-organization-clients",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/clients/{client_id}",
+      "required_scopes": [
+        "read:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "path client_id",
+      "response_shape": "ClientAssociation",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-client",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/organizations/{id}/clients/{client_id}",
+      "required_scopes": [
+        "update:organization_clients"
+      ],
+      "scope_match": "all",
+      "request_shape": "{use_for_member_access?:bool}; omitted preserves",
+      "response_shape": "ClientAssociation",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501,
+        409
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/patch-organization-client",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/client-grants",
+      "required_scopes": [
+        "read:organization_client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "page?,per_page?,include_totals?",
+      "response_shape": "ClientGrant[] | {client_grants,start,limit,total}",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-client-grants",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/client-grants",
+      "required_scopes": [
+        "create:organization_client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "{grant_id:string}",
+      "response_shape": "ClientGrant",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501,
+        409
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/create-organization-client-grants",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/client-grants/{client_grant_id}",
+      "required_scopes": [
+        "delete:organization_client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "path client_grant_id",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-organization-client-grants",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/discovery-domains",
+      "required_scopes": [
+        "read:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "from?,take?(default50,max100)",
+      "response_shape": "{discovery_domains:DiscoveryDomain[],next?}",
+      "pagination": "checkpoint",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-discovery-domains",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/discovery-domains",
+      "required_scopes": [
+        "create:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "{domain:string,use_for_organization_discovery?:bool(default true)}; status pending",
+      "response_shape": "DiscoveryDomain",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501,
+        409
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-discovery-domains",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/discovery-domains/name/{discovery_domain}",
+      "required_scopes": [
+        "read:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "path discovery_domain",
+      "response_shape": "DiscoveryDomain",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-discovery-domains-by-domain",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}",
+      "required_scopes": [
+        "read:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "path discovery_domain_id",
+      "response_shape": "DiscoveryDomain",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-discovery-domains-by-discovery-domain-id",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}",
+      "required_scopes": [
+        "update:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "{status?:pending|verified,use_for_organization_discovery?:bool}; omitted preserves; null rejected",
+      "response_shape": "DiscoveryDomain",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501,
+        409
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/patch-discovery-domains-by-discovery-domain-id",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/discovery-domains/{discovery_domain_id}",
+      "required_scopes": [
+        "delete:organization_discovery_domains"
+      ],
+      "scope_match": "all",
+      "request_shape": "path discovery_domain_id",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429,
+        501
+      ],
+      "limits": [
+        "D-0056: tenant-scoped references; unknown fields 400; null rejected unless explicitly permitted"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-discovery-domains-by-discovery-domain-id",
+      "evidence": "documented",
+      "lifecycle": "EA"
+    }
+  ]
 }

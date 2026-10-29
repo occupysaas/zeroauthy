@@ -104,9 +104,10 @@ type ContractMetadata struct {
 }
 
 type compatibilityInventory struct {
-	Operations []OperationContract `json:"operations"`
-	Deferred   []DeferredItem      `json:"deferred"`
-	Metadata   ContractMetadata    `json:"metadata"`
+	Operations      []OperationContract `json:"operations"`
+	OrganizationsII []OperationContract `json:"organizations_ii_operations"`
+	Deferred        []DeferredItem      `json:"deferred"`
+	Metadata        ContractMetadata    `json:"metadata"`
 }
 
 func readInventory() compatibilityInventory {
@@ -121,3 +122,7 @@ func readInventory() compatibilityInventory {
 func Inventory() []OperationContract      { return readInventory().Operations }
 func Deferred() []DeferredItem            { return readInventory().Deferred }
 func InventoryMetadata() ContractMetadata { return readInventory().Metadata }
+
+// OrganizationsIIInventory returns the Plan 30 contracts separately from the
+// frozen Plan 29 surface. These contracts do not advertise implemented routes.
+func OrganizationsIIInventory() []OperationContract { return readInventory().OrganizationsII }
