@@ -23,3 +23,7 @@ func errServer() *Error        { return &Error{"server_error", "internal error"}
 func errUserDeclined() *Error {
 	return &Error{"access_denied", "the user did not authorize the request"}
 }
+
+func errInteractionRequired() *Error {
+	return &Error{"interaction_required", "organization selection requires interaction"}
+}

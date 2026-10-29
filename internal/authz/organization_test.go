@@ -337,13 +337,13 @@ func TestOrganizationBinding(t *testing.T) {
 		}
 	})
 
-	t.Run("an organization request never reuses a session without login", func(t *testing.T) {
+	t.Run("an organization session is checked before reuse", func(t *testing.T) {
 		e := newEnv(t)
 		org := addOrg(t, e.st, e.tenant.ID, "", "acme-corp", "")
 		setOrgClient(t, e.st, e.tenant.ID, "spa", "allow", "")
 		cookie := e.login(t, fixedNow())
 		rec := e.get(t, with(goodQuery(), "organization", org.ID), cookie)
-		e.orgTxn(t, rec)
+		wantCallbackError(t, location(t, rec), "app.acme.test", "access_denied")
 		// Without an organization the session still issues a code.
 		loc := location(t, e.get(t, goodQuery(), cookie))
 		if loc.Query().Get("code") == "" {
@@ -380,4 +380,46 @@ func TestOrganizationBinding(t *testing.T) {
 		rec := e.get(t, goodQuery())
 		e.orgTxn(t, rec)
 	})
+}
+
+func TestOrganizationBindingRecheck(t *testing.T) {
+	f := newFixture(t)
+	for _, tc := range []struct {
+		name, usage, behavior string
+		mode                  OrgMode
+	}{
+		{"empty fixed ID", "allow", "pre_login_prompt", OrgFixed},
+		{"pre prompt changed", "require", "post_login_prompt", OrgPromptBefore},
+		{"post prompt changed", "require", "pre_login_prompt", OrgPickAfter},
+		{"picker now optional", "allow", "post_login_prompt", OrgPickAfter},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := Request{OrgMode: tc.mode}
+			c := &store.Client{OrganizationUsage: tc.usage, OrganizationRequireBehavior: tc.behavior}
+			if e := bindOrganization(context.Background(), f.st, f.tenant, c, &req); e == nil || e.Code != "invalid_request" {
+				t.Fatalf("stale binding accepted: %+v", e)
+			}
+		})
+	}
+}
+
+// The final issuance boundary rechecks membership after any post-login Action
+// wait, even when an earlier continuation already approved the organization.
+func TestOrganizationMembershipAtCodeIssuance(t *testing.T) {
+	e := newEnv(t)
+	org := addOrg(t, e.st, e.tenant.ID, "", "acme-corp", "")
+	setOrgClient(t, e.st, e.tenant.ID, "spa", "allow", "")
+	cookie := e.login(t, fixedNow())
+	sess := e.session(t, cookie)
+	client, err := e.st.Clients().Get(context.Background(), e.tenant.ID, "spa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := ParseRequest(goodQuery())
+	req.OrgID = org.ID
+	req.OrgMode = OrgFixed
+	rec := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "https://acme.example.test/authorize", nil)
+	e.h.issueCode(rec, r, e.res(), client, req, sess, []string{"openid"}, nil)
+	wantCallbackError(t, location(t, rec), "app.acme.test", "access_denied")
 }

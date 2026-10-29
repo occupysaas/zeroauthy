@@ -45,6 +45,8 @@ type TransactionInfo struct {
 // Transaction is nil for dbconnections/signup; CustomDomain is supplied only
 // when the request used a custom domain.
 type RegistrationInput struct {
+	// Organization is the hosted signup context; event shaping is owned by Plan 29 Task 10.
+	Organization *store.Organization
 	Tenant       tenant.Resolved
 	Client       *store.Client
 	User         *store.User

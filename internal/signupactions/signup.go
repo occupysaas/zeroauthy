@@ -65,3 +65,10 @@ func Input(r *http.Request, res tenant.Resolved, client *store.Client, conn *sto
 	}
 	return in
 }
+
+// WithOrganization binds a hosted organization snapshot to the registration
+// input shared by synchronous and queued Actions.
+func WithOrganization(in actions.RegistrationInput, org *store.Organization) actions.RegistrationInput {
+	in.Organization = org
+	return in
+}

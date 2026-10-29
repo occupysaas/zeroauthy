@@ -249,5 +249,21 @@
       "buttonText": "Sign in",
       "editEmailText": "Use a different account"
     }
+  },
+  "organizations": {
+    "organization-selection": {
+      "title": "Choose your organization",
+      "description": "Enter your organization name to continue.",
+      "organizationName": "Organization name",
+      "buttonText": "Continue",
+      "invalid-organization": "Unable to continue with that organization.",
+      "logoAltText": "${companyName}"
+    },
+    "organization-picker": {
+      "title": "Choose your organization",
+      "description": "Select an organization to continue.",
+      "invalid-organization": "Choose one of the available organizations.",
+      "logoAltText": "${companyName}"
+    }
   }
 }

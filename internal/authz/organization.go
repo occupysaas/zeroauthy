@@ -3,6 +3,10 @@ package authz
 import (
 	"context"
 	"errors"
+	"github.com/zeroauthy/zeroauthy/internal/access"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
+	"net/http"
+	"slices"
 
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -128,6 +132,9 @@ func bindOrganization(ctx context.Context, st store.Store, t *store.Tenant, c *s
 		req.OrgID, req.OrgMode = d.OrgID, d.Mode
 		return nil
 	case OrgFixed:
+		if req.OrgID == "" {
+			return errInvalidRequest("the organization binding is not valid")
+		}
 		d, e := ResolveOrganization(ctx, st, res, c, req.OrgID)
 		if e != nil {
 			return e
@@ -143,8 +150,115 @@ func bindOrganization(ctx context.Context, st store.Store, t *store.Tenant, c *s
 		if c.OrganizationUsage != store.OrgUsageAllow && c.OrganizationUsage != store.OrgUsageRequire {
 			return errInvalidRequest("this application does not accept an organization")
 		}
+		if req.OrgMode == OrgPromptBefore && c.OrganizationRequireBehavior != store.OrgBehaviorPreLoginPrompt {
+			return errInvalidRequest("the organization behavior changed")
+		}
+		if req.OrgMode == OrgPickAfter && (c.OrganizationUsage != store.OrgUsageRequire || c.OrganizationRequireBehavior != store.OrgBehaviorPostLoginPrompt) {
+			return errInvalidRequest("the organization behavior changed")
+		}
 		return nil
 	default:
 		return errInvalidRequest("the organization binding is not valid")
 	}
+}
+
+// organizationSession rechecks policy for an authenticated browser. A true
+// result means the picker/name prompt needs a hosted screen. It never trusts
+// an organization or connection from the current HTTP request.
+func (h *Handlers) organizationSession(w http.ResponseWriter, r *http.Request, res tenant.Resolved, c *store.Client, fr *flowReq, sess *store.LoginSession) (bool, *Error) {
+	if fr.OrgMode == OrgNone {
+		return false, nil
+	}
+	silent := slices.Contains(fr.Prompts(), "none")
+	if fr.OrgMode == OrgPromptBefore {
+		if silent {
+			return false, errInteractionRequired()
+		}
+		return true, nil
+	}
+	conn, err := h.Store.Connections().GetByName(r.Context(), res.Tenant.ID, sess.Connection)
+	if err != nil {
+		return false, errLoginRequired()
+	}
+	emptyPicker := false
+	err = h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		fresh, e := tx.Clients().Get(r.Context(), res.Tenant.ID, c.ClientID)
+		if e != nil {
+			return e
+		}
+		current, e := tx.Connections().Get(r.Context(), res.Tenant.ID, conn.ID)
+		if e != nil {
+			return e
+		}
+		if !access.ConnectionUsable(fresh, current) {
+			return orglogin.ErrNotMember
+		}
+		if e := CheckOrganizationBinding(r.Context(), tx, res.Tenant, fresh, fr.params()); e != nil {
+			return orglogin.ErrNotMember
+		}
+
+		if fr.OrgMode == OrgPickAfter {
+			choices, auto, e := orglogin.PickerChoices(r.Context(), tx, res.Tenant.ID, sess.UserID, conn.ID)
+			if e != nil {
+				return e
+			}
+			if auto == nil {
+				emptyPicker = len(choices) == 0
+				return orglogin.ErrNotMember
+			}
+			if !c.IsFirstParty && auto.ThirdPartyClientAccess != "allow" {
+				emptyPicker = true
+				return orglogin.ErrNotMember
+			}
+			fr.OrgID, fr.OrgMode = auto.ID, OrgFixed
+		}
+		oc, e := orglogin.Load(r.Context(), tx, res.Tenant.ID, fr.params())
+		if e != nil {
+			return e
+		}
+		return orglogin.EnsureMembership(r.Context(), tx, oc, sess.UserID, conn.ID)
+	})
+	if errors.Is(err, orglogin.ErrNotMember) || errors.Is(err, store.ErrNotFound) {
+		if fr.OrgMode == OrgPickAfter {
+			if emptyPicker && !silent {
+				return false, errAccessDenied("the user has no eligible organization")
+			}
+			if silent {
+				return false, errInteractionRequired()
+			}
+			return true, nil
+		}
+		if silent {
+			return false, errLoginRequired()
+		}
+		return false, errAccessDenied("the user cannot log in through this organization")
+	}
+	if err != nil {
+		return false, errServer()
+	}
+	return false, nil
+}
+
+// CheckOrganizationBinding revalidates a hosted transaction's binding without
+// allowing query or form values to replace it.
+func CheckOrganizationBinding(ctx context.Context, st store.Store, t *store.Tenant, c *store.Client, params map[string]string) *Error {
+	req := RequestFromParams(params)
+	return bindOrganization(ctx, st, t, c, &req)
+}
+
+// RejectOrganizationConnection reports a hosted connection selection refusal
+// through the transaction's validated OAuth response mode and callback.
+func (h *Handlers) RejectOrganizationConnection(w http.ResponseWriter, r *http.Request, res tenant.Resolved, txn *store.AuthTransaction) {
+	h.EndTxn(w, r, res, txn)
+	fr := flowFromParams(txn.Params)
+	client, e, redirectable := h.validateFlow(r.Context(), res, &fr)
+	if e != nil {
+		if !redirectable {
+			h.flowError(w, r, res, fr, e)
+		} else {
+			h.refuse(w, r, res, client, fr, e)
+		}
+		return
+	}
+	h.refuse(w, r, res, client, fr, errInvalidRequest("the connection is not enabled for this organization"))
 }

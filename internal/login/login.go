@@ -21,6 +21,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/identity"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
@@ -33,6 +34,7 @@ import (
 const maxFormBytes = 16 << 10
 
 var errTxn = errors.New("login: invalid or expired transaction")
+var errOrganizationConnection = errors.New("login: connection is not enabled for the organization")
 
 type Handlers struct {
 	Actions    *actions.Engine
@@ -80,6 +82,7 @@ type flow struct {
 	// clientName is the application's name, or its client ID when it has none.
 	clientName string
 	config     *store.HostedLoginConfig
+	org        OrgContext
 }
 
 // loadTxn validates the transaction named by state: it must exist in this
@@ -123,7 +126,33 @@ func (h *Handlers) loadTxn(r *http.Request, state string) (*flow, error) {
 		l = i18n.New(res.Tenant, txn.HostedState.FormLanguage).WithVar("clientName", clientName)
 	}
 	f := &flow{res: res, view: ui.RequestTenant(viewRequest, res.Tenant, l), txn: txn, clientName: clientName, config: config}
+	if txn.Params[store.TxnParamOrgMode] != "" {
+		client, e := h.Store.Clients().Get(ctx, res.Tenant.ID, txn.ClientID)
+		if e != nil {
+			return f, e
+		}
+		if e := authz.CheckOrganizationBinding(ctx, h.Store, res.Tenant, client, txn.Params); e != nil {
+			return f, errTxn
+		}
+	}
 	f.view.HasClientName = named
+	f.org, err = orglogin.Load(ctx, h.Store, res.Tenant.ID, txn.Params)
+	if err != nil {
+		return f, err
+	}
+	f.view.Organization = f.org.Org
+	if f.org.Org != nil && txn.Params["connection"] != "" {
+		conn, e := h.Store.Connections().GetByName(ctx, res.Tenant.ID, txn.Params["connection"])
+		if errors.Is(e, store.ErrNotFound) {
+			return f, errOrganizationConnection
+		}
+		if e != nil {
+			return f, e
+		}
+		if _, ok := f.org.Connections[conn.ID]; !ok {
+			return f, errOrganizationConnection
+		}
+	}
 	return f, nil
 }
 
@@ -157,7 +186,15 @@ func (h *Handlers) connection(ctx context.Context, tenantID string, txn *store.A
 	if err != nil {
 		return nil, err
 	}
+	oc, err := orglogin.Load(ctx, h.Store, tenantID, txn.Params)
+	if err != nil {
+		return nil, err
+	}
+	conns = EligibleConnections(conns, oc)
 	conns = slices.SortedFunc(slices.Values(conns), func(a, b *store.Connection) int { return strings.Compare(a.Name, b.Name) })
+	if txn.Params[store.TxnParamOrgMode] == string(authz.OrgPromptBefore) {
+		return nil, errNoConnection
+	}
 	want := txn.Params["connection"]
 	for _, c := range conns {
 		if c.Strategy != store.StrategyDatabase || !access.ConnectionUsable(client, c) {
@@ -181,6 +218,8 @@ func (h *Handlers) fail(w http.ResponseWriter, r *http.Request, err error, f *fl
 		view = ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, ""))
 	}
 	switch {
+	case errors.Is(err, errOrganizationConnection) && f != nil:
+		h.Authz.RejectOrganizationConnection(w, r, f.res, f.txn)
 	case errors.Is(err, errTxn):
 		ui.RenderError(w, http.StatusBadRequest, view, view.L.T(i18n.KeyErrSessionExpired))
 	case errors.Is(err, errNoConnection):
@@ -192,7 +231,7 @@ func (h *Handlers) fail(w http.ResponseWriter, r *http.Request, err error, f *fl
 }
 
 func signupURL(f *flow) string {
-	if f.conn.DisableSignup {
+	if !organizationSignupAllowed(f) {
 		return ""
 	}
 	return "/u/signup?" + url.Values{"state": {f.txn.ID}}.Encode()
@@ -212,6 +251,20 @@ func (h *Handlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.fail(w, r, err, f)
 		return
+	}
+	if h.organizationStep(w, r, f) {
+		return
+	}
+	if f.txn.Params[store.TxnParamOrgMode] == string(authz.OrgFixed) && f.txn.Params["za_org_session"] != "" {
+		sess, e := h.Authz.ActiveSession(r.Context(), r, f.res)
+		if e != nil {
+			h.fail(w, r, e, f)
+			return
+		}
+		if sess != nil && sess.ID == f.txn.Params["za_org_session"] {
+			h.Authz.Resume(w, r, f.res, f.txn, sess)
+			return
+		}
 	}
 	// An explicitly selected federated connection goes straight to the
 	// provider, unless a challenge is due: then the page is shown first.
@@ -290,8 +343,17 @@ func (h *Handlers) postedFlow(w http.ResponseWriter, r *http.Request) (*flow, bo
 }
 
 func (h *Handlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
-	f, ok := h.postedFlow(w, r)
+	f, ok := h.postedTxn(w, r)
 	if !ok {
+		return
+	}
+	if h.organizationStep(w, r, f) {
+		return
+	}
+	var err error
+	f.conn, err = h.connection(r.Context(), f.res.Tenant.ID, f.txn)
+	if err != nil {
+		h.fail(w, r, err, f)
 		return
 	}
 	if f.txn.HostedState.Step == "identifier" {
@@ -340,11 +402,27 @@ func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *
 		return
 	}
 
+	var commit func(context.Context, store.Store, *store.User) error
+	if f.org.Org != nil {
+		commit = func(ctx context.Context, tx store.Store, u *store.User) error {
+			oc, e := orglogin.Load(ctx, tx, f.res.Tenant.ID, f.txn.Params)
+			if e != nil {
+				return e
+			}
+			e = EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
+			// Authentication succeeds independently of membership: keep the
+			// identity/session and let authorization redirect the policy refusal.
+			if errors.Is(e, ErrNotMember) {
+				return nil
+			}
+			return e
+		}
+	}
 	var breachErr error
-	user, err := h.Database.LoginWithCheck(ctx, f.conn, login, r.PostForm.Get("password"), func(ctx context.Context) error {
+	user, err := h.Database.LoginWithCheckAndCommit(ctx, f.conn, login, r.PostForm.Get("password"), func(ctx context.Context) error {
 		breachErr = svc.CheckPasswordForUser(ctx, f.res.Tenant, "login", identity.EffectivePassword(f.conn, r.PostForm.Get("password")), decision.SubjectID)
 		return breachErr
-	})
+	}, commit)
 	outcome := protection.CredentialOutcome(err)
 	if breachErr != nil {
 		// Credentials were proved before the policy refusal.
@@ -412,7 +490,7 @@ func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err, f)
 		return
 	}
-	if f.conn.DisableSignup {
+	if !organizationSignupAllowed(f) {
 		ui.RenderError(w, http.StatusForbidden, f.view, f.view.L.T(i18n.KeyErrSignupDisabled))
 		return
 	}
@@ -429,6 +507,10 @@ func (h *Handlers) SignupPage(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	f, ok := h.postedFlow(w, r)
 	if !ok {
+		return
+	}
+	if !organizationSignupAllowed(f) {
+		ui.RenderError(w, http.StatusForbidden, f.view, f.view.L.T(i18n.KeyErrSignupDisabled))
 		return
 	}
 	email, username := r.PostForm.Get("email"), r.PostForm.Get("username")
@@ -521,10 +603,27 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 		input := signupactions.Input(r, f.res, client, f.conn, body, h.TrustProxyHeaders)
 		p := f.txn.Params
+		input = signupactions.WithOrganization(input, f.org.Org)
 		input.Transaction = &actions.TransactionInfo{ID: f.txn.ID, Locale: f.view.L.Lang(), Protocol: actions.ProtocolOIDCBasicProfile, RedirectURI: p["redirect_uri"], RequestedScopes: strings.Fields(p["scope"]), ResponseMode: p["response_mode"], ResponseType: p["response_type"], State: p["state"], UILocales: p["ui_locales"], Prompt: p["prompt"], LoginHint: p["login_hint"], ACRValues: p["acr_values"]}
 		callbacks = signupactions.Callbacks(h.Store, h.Actions, input)
 	} else {
 		callbacks = signupactions.Callbacks(h.Store, nil, actions.RegistrationInput{Tenant: f.res})
+	}
+	callbacks.Commit = func(ctx context.Context, tx store.Store, u *store.User) error {
+		oc, e := orglogin.Load(ctx, tx, f.res.Tenant.ID, f.txn.Params)
+		if e != nil {
+			return e
+		}
+		if oc.Org != nil {
+			link, e := tx.Organizations().GetConnection(ctx, oc.Org.TenantID, oc.Org.ID, f.conn.ID)
+			if e != nil {
+				return e
+			}
+			if !link.IsSignupEnabled || !link.AssignMembershipOnLogin {
+				return identity.ErrSignupDisabled
+			}
+		}
+		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
 	}
 	user, err := h.Database.Signup(r.Context(), f.conn, identity.SignupInput{
 		ClientID: f.txn.ClientID, Email: email, Username: username, Password: r.PostForm.Get("password"), Actions: callbacks,

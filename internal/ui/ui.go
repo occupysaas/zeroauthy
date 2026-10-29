@@ -38,23 +38,25 @@ func parsePage(names ...string) *template.Template {
 
 var (
 	pages = map[string]*template.Template{
-		"login":              parsePage("templates/layout.html", "templates/login.html"),
-		"login_id":           parsePage("templates/layout.html", "templates/login_id.html"),
-		"login_password":     parsePage("templates/layout.html", "templates/login_password.html"),
-		"signup":             parsePage("templates/layout.html", "templates/signup.html"),
-		"consent":            parsePage("templates/layout.html", "templates/consent.html"),
-		"error":              parsePage("templates/layout.html", "templates/error.html"),
-		"logout_confirm":     parsePage("templates/layout.html", "templates/logout_confirm.html"),
-		"logged_out":         parsePage("templates/layout.html", "templates/logged_out.html"),
-		"reset_request":      parsePage("templates/layout.html", "templates/reset_request.html"),
-		"reset_email_sent":   parsePage("templates/layout.html", "templates/reset_email_sent.html"),
-		"reset_password":     parsePage("templates/layout.html", "templates/reset_password.html"),
-		"reset_success":      parsePage("templates/layout.html", "templates/reset_success.html"),
-		"reset_error":        parsePage("templates/layout.html", "templates/reset_error.html"),
-		"email_verification": parsePage("templates/layout.html", "templates/email_verification.html"),
-		"device_code":        parsePage("templates/layout.html", "templates/device_code.html"),
-		"device_confirm":     parsePage("templates/layout.html", "templates/device_confirm.html"),
-		"device_result":      parsePage("templates/layout.html", "templates/device_result.html"),
+		"organization-selection": parsePage("templates/layout.html", "templates/organization-selection.html"),
+		"organization-picker":    parsePage("templates/layout.html", "templates/organization-picker.html"),
+		"login":                  parsePage("templates/layout.html", "templates/login.html"),
+		"login_id":               parsePage("templates/layout.html", "templates/login_id.html"),
+		"login_password":         parsePage("templates/layout.html", "templates/login_password.html"),
+		"signup":                 parsePage("templates/layout.html", "templates/signup.html"),
+		"consent":                parsePage("templates/layout.html", "templates/consent.html"),
+		"error":                  parsePage("templates/layout.html", "templates/error.html"),
+		"logout_confirm":         parsePage("templates/layout.html", "templates/logout_confirm.html"),
+		"logged_out":             parsePage("templates/layout.html", "templates/logged_out.html"),
+		"reset_request":          parsePage("templates/layout.html", "templates/reset_request.html"),
+		"reset_email_sent":       parsePage("templates/layout.html", "templates/reset_email_sent.html"),
+		"reset_password":         parsePage("templates/layout.html", "templates/reset_password.html"),
+		"reset_success":          parsePage("templates/layout.html", "templates/reset_success.html"),
+		"reset_error":            parsePage("templates/layout.html", "templates/reset_error.html"),
+		"email_verification":     parsePage("templates/layout.html", "templates/email_verification.html"),
+		"device_code":            parsePage("templates/layout.html", "templates/device_code.html"),
+		"device_confirm":         parsePage("templates/layout.html", "templates/device_confirm.html"),
+		"device_result":          parsePage("templates/layout.html", "templates/device_result.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
 	formGet    = parsePage("templates/form_get.html")
@@ -63,6 +65,7 @@ var (
 
 // Tenant is the branding and language of a hosted page.
 type Tenant struct {
+	Organization *store.Organization
 	Captcha      *Captcha
 	SupportEmail string
 	SupportURL   string
@@ -262,6 +265,15 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 	}
 	body := buf.String()
 	imageOrigins := append([]string(nil), t.partialOrigins...)
+	if d, ok := data.(OrganizationData); ok {
+		for _, o := range d.Orgs {
+			if o.Branding != nil && o.Branding.LogoURL != nil {
+				if origin := hostedlogin.AssetOrigin(*o.Branding.LogoURL); origin != "" && !slices.Contains(imageOrigins, origin) {
+					imageOrigins = append(imageOrigins, origin)
+				}
+			}
+		}
+	}
 	if t.config != nil && t.config.Template != nil {
 		_, head, hasHead := strings.Cut(body, "<head>")
 		head, _, hasHeadEnd := strings.Cut(head, "</head>")
@@ -611,4 +623,14 @@ func customDomainVars(pd *customdomain.PublicDomain) map[string]any {
 		return map[string]any{}
 	}
 	return map[string]any{"domain": pd.Domain, "domain_metadata": pd.Metadata}
+}
+
+type OrganizationData struct {
+	State, CSRF, Error string
+	Revision           int64
+	Orgs               []store.Organization
+}
+
+func RenderOrganization(w http.ResponseWriter, status int, t Tenant, d OrganizationData, screen string) {
+	render(w, status, screen, t, d, "")
 }

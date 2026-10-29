@@ -96,3 +96,8 @@ const (
 	KeyCaptchaInvalid     = "zeroauthy.captcha.invalid"
 	KeyCaptchaUnavailable = "zeroauthy.captcha.unavailable"
 )
+
+const (
+	KeyOrganizationInvalid       = "organizations.organization-selection.invalid-organization"
+	KeyOrganizationChoiceInvalid = "organizations.organization-picker.invalid-organization"
+)
