@@ -110,20 +110,25 @@ direct permissions, effective direct-role union, RBAC enforcement and four token
 profiles. See [public contract review](observations/roles-permissions.md) and
 D-0052. All 16 tenant-role operations, current grant enforcement, console,
 SDK/CLI/browser and four-cell Deploy CLI migration pass local verification;
-group/organization-role and effective-role APIs remain deferred. See the
+group APIs remain deferred; Plan 29 adds organization roles/effective roles. See the
 [implementation record](../superpowers/2026-10-27-plan-26-implementation-record.md)
 for full SQL/race/conformance results and unavailable live evidence.
 
-Plan 29 contracts frozen (2026-10-28), not yet implemented: the Organizations
-I inventory has 26 Management operations, the client and tenant
-organization fields, limits and the spec §2 items 1–10 with their observation
-status. See `internal/orgrules/inventory.json`,
-[observation notes](observations/organizations.md) and D-0055. By the Task 5
-ruling, two reads that the Deploy CLI 9.1.0 needs are in Plan 29: the Early
-Access `/organizations/{id}/connections` (list, create, get, update, delete;
-the same links as `enabled_connections`, with the access levels at their
-observed defaults and not stored) and a read-only, always empty
-`GET /organizations/{id}/client-grants`. Invitations, organization
-client-grant writes, discovery domains, search and groups are deferred. A
-`require` client can never hold the password, password-realm or device
-grants (400 at configuration, as observed).
+Plan 29 Organizations I is implemented locally: CRUD/name lookup, members,
+organization assignments of tenant roles, enabled connections, login prompt and
+picker, signup/auto-membership, claims and refresh checks, hosted branding and
+Actions context, console/seed and per-tenant operators. See the
+[guide](../organizations.md), [observation notes](observations/organizations.md),
+D-0055 and [verification record](../superpowers/2026-10-28-plan-29-implementation-record.md).
+Observed facts remain distinct from unobserved local login/refresh decisions.
+
+The Early Access `/organizations/{id}/connections` compatibility subset manages
+the same links as `enabled_connections`; access-level defaults are not stored.
+`GET /organizations/{id}/client-grants` is always empty. Invitations, grant
+writes, discovery domains/email discovery, search and app entitlement remain
+Plan 30; groups/inherited roles remain Plan 38. `require` applications reject
+password/password-realm/device grants at configuration time (400).
+Organization grants persist their original connection across session expiry
+and refresh rotation; current membership, connection and client policy are
+re-checked before new tokens. Local operator discovery is
+`/api/console/tenants`; system mutation stays under `/api/system/operators`.

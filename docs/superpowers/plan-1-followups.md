@@ -401,3 +401,14 @@ explicit linking and scoped upstream tokens shipped; see the
   apps available); only local fixtures are evidenced.
 - Plan 25: domain-isolation OAuth2/OIDC tests should use valid baselines so
   the forbidden-option rejection is the only failure cause.
+
+## Plan 29 carried compatibility follow-up
+
+`/authorize` still refuses an unknown or application-disabled `connection=`
+before hosted login. D-0055 observation places the upstream refusal in the
+hosted flow. Plan 29 preserves this existing behavior because changing it
+would affect every individual login as well. Organization requests with an
+application-enabled connection outside their organization are already refused
+in the hosted step. A future core-authentication fix should move the generic
+error timing with focused regression coverage; callers depending on the later
+upstream error currently receive an earlier `invalid_request`.

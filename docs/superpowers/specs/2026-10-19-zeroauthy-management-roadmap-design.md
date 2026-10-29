@@ -7,7 +7,7 @@
 
 ## 0. Where we are (2026-10-28)
 
-**Plans done:** 28. **Next:** Plan 29 (Organizations I). **Left in this roadmap:** 10 more (Plans 29–38), subject to splitting larger designs, then the follow-up plans 39–47 (§3a) that collect work deferred by earlier plans.
+**Plans done:** 29. **Next:** Plan 30 (Organizations II). **Left in this roadmap:** 9 more (Plans 30–38), subject to splitting larger designs, then the follow-up plans 39–47 (§3a) that collect work deferred by earlier plans.
 
 ### Done
 
@@ -36,9 +36,9 @@ Auth0's Management API reference has about 40 resource groups. Status of each:
 
 | Status | Count | Resources |
 |---|---|---|
-| **Done / implemented locally** | 25 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I and II (Plans 27–28) |
+| **Done / implemented locally** | 26 | signing keys (custom public-key publication deferred); clients, resource-servers, client-grants, connections (database strategy); users, users-by-email, tickets, grants, sessions and refresh tokens (Plan 17); jobs (Plan 18); tenant settings, attack protection, user blocks (Plan 19); email provider and templates (Plan 21); branding, themes, prompts/custom text (Plan 22); custom domains (Plan 23); social strategies I (Plan 24), Microsoft/Google email-account connections (Plan 25), roles and permissions (Plan 26), Actions I and II (Plans 27–28), Organizations I (Plan 29) |
 | **Planned, short design** | 4 | organizations II, event streams, client credentials / token exchange, enterprise OIDC |
-| **Planned, full design** | 9 | organizations, logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
+| **Planned, full design** | 8 | logs, log streams, stats, guardian (MFA), passwordless and phone branding, SAML/WS-Fed/SCIM/self-service, AD/LDAP, forms and flows |
 | **Not planned** | 4 | rules, rules-configs, hooks (end-of-life on Auth0), customer-managed encryption keys |
 
 The future Additional social providers plan is deferred without an assigned number and is not an extra counted resource group here.
@@ -83,7 +83,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 26 | Roles and permissions (RBAC) | short (done) | 17 |
 | 27 | Actions I: runtime, post-login, credentials exchange, npm dependencies, the Actions API | full (done) | 26 |
 | 28 | Actions II: signup, password/reset, custom email and Modules | full (done) | 27 |
-| 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full | 26 |
+| 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full (done) | 26 |
 | 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |
 | 31 | Logs, log streams, stats | full | 19 |
 | 32 | Event streams | short | 31 |
@@ -257,9 +257,16 @@ evidence, not formal certification or a claim that all Actions APIs exist.
 
 ### Plan 29 — Organizations I (full design)
 
+**Done.** Implemented locally: [operator guide](../../organizations.md) and
+[verification record](../2026-10-28-plan-29-implementation-record.md).
+D-0055 observed corrections supersede original defaults. The EA connections
+compatibility subset and empty client-grants read shipped for Deploy CLI;
+Plan 30 retains full entitlement/grant/discovery workflows. Independent final
+branch review is recorded separately from Task 14 regression results.
+
 **Endpoints:** `/api/v2/organizations` (CRUD, `name/{name}` lookup), `/organizations/{id}/members`, `/members/{user_id}/roles`, `/organizations/{id}/enabled_connections` (`assign_membership_on_login`, `show_as_button`, `is_signup_enabled`), `/users/{id}/organizations`; client fields `organization_usage`, `organization_require_behavior` become enforced (inert since D-0039).
 
-**Runtime:** `organization` parameter at `/authorize`; the organization prompt (`pre_login_prompt`, `post_login_prompt`, `no_prompt`); `org_id` and `org_name` claims; membership checks; organization branding on hosted pages (Plan 22 variables, which today render without organization context); organization-scoped roles in tokens (Plan 26 left them out); `event.organization` in post-login and the Plan 28 triggers (empty today).
+**Runtime:** `organization` parameter at `/authorize`; the organization prompt (`pre_login_prompt`, `post_login_prompt`, `no_prompt`); `org_id` and `org_name` claims; membership checks; organization branding and Liquid context on hosted pages; organization-scoped roles in tokens; `event.organization` in post-login and organization registration triggers.
 
 **Carried in:** per-tenant operators (the Plan 13 follow-up): the system API sets an operator's tenant list and tenant-scoped operator tokens, as a short sub-design. Hosted-signup `is_signup_enabled` per organization connection.
 
@@ -268,6 +275,13 @@ evidence, not formal certification or a claim that all Actions APIs exist.
 **E2E:** auth0-cli `orgs`; auth0-spa-js with `organization`; Playwright login through the organization prompt.
 
 ### Plan 30 — Organizations II
+
+Carries Plan 29 deferred organization search, app entitlement, EA connection
+parity expansion, change-password organization context, and the reviewed
+organization polish ledger in the Plan 29 implementation record. The already
+active EA connections subset and empty client-grants read must remain tool
+compatible. Organization token quotas remain with Plan 35; groups with Plan 38,
+SAML/WS-Fed login with Plan 37, and My Organization API with Plan 42.
 
 `/organizations/{id}/invitations` (create, list, delete) with the `user_invitation` email (Plan 21) and the invitation acceptance flow (`invitation` and `organization` parameters at `/authorize`); `/organizations/{id}/client-grants` and grant `organization_usage`/`allow_any_organization` enforcement (inert since D-0041); `/organizations/{id}/discovery-domains` and home-realm discovery by email domain if documented at build time. The `user_invitation` template is stored-only since Plan 21 and becomes live here. Auth0's My Organization API (organization-admin self-service, Early Access since 2026-09) goes to Plan 42, not here. **Short.**
 

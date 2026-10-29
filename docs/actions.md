@@ -30,7 +30,7 @@ Redirects resume in `exports.onContinuePostLogin`.
 The post-login event includes user, client, connection, request, transaction,
 resource server, role names, login count, tenant and secrets. Session and
 refresh-token fields appear when available. `request.geoip`, `asn`,
-organization, MFA, prompt, agent and Enterprise data are omitted. Earlier
+MFA, prompt, agent and Enterprise data are omitted. Earlier
 Actions' target scopes, transaction metadata and user/app metadata overlays
 are visible to later Actions. Absent features are not synthesized.
 
@@ -40,6 +40,14 @@ Protocols are `oidc-basic-profile`, `oauth2-device-code`, `oauth2-password`
 passes the authorization query and an empty body. Internal `za_*` query keys
 are omitted. Token request bodies omit password, client secret/assertion,
 PKCE verifier, refresh token, device code and authorization code credentials.
+
+For an organization login, `event.organization` contains `id`, `name`,
+`display_name` and `metadata`. Organization signup provides the same fields to
+pre-user-registration and post-user-registration; queued jobs seal the snapshot.
+It is absent for individual flows. Organization role permissions join tenant
+roles and direct permissions in the frozen authorization snapshot. `org_id`
+and `org_name` are reserved claims; Actions cannot overwrite them. See
+[Organizations](organizations.md) for membership and refresh enforcement.
 
 ## API support
 

@@ -545,3 +545,24 @@ and [compatibility evidence](compat/observations/custom-domains.md) for request
 limits, supported queries, scopes, errors and local/unobserved differences.
 Canonical API audiences remain stable across aliases; local Management API
 tokens must carry the origin serving the request as issuer.
+
+## Organizations and scoped operators (Plan 29)
+
+[Organizations](organizations.md) covers CRUD/name lookup, enabled connections,
+members, member-role/effective-role lists, role members and user organizations.
+Scopes follow the inventory, including `read:organization_member_effective_roles`;
+member listing accepts either members-read or member-roles-read, user organizations
+accepts either users-read or organizations-read, and role members requires both
+members-read and roles-read. Organization creation with `enabled_connections`
+also requires connection-create scope, including an empty supplied array.
+
+D-0055 observed corrections govern validation and replacement PATCH behavior.
+The Early Access `connections` alias manages the same links for Deploy CLI;
+organization-client-grants GET is empty until Plan 30 enables grants. Invitation,
+discovery-domain, search and grant-write workflows remain deferred.
+
+Local system-host `/api/system/operators/{id}` PATCH sets tenant grants.
+`/api/console/tenants` discovers their signed/persisted intersection without
+opening the system API to tenant-only operators. Last-system-admin protection
+also covers deleting, blocking and linking the administrator's user identity.
+These local endpoints have no Auth0 counterpart.

@@ -18,7 +18,9 @@ and open standards. It is not affiliated with Auth0 or Okta. See
 > the device authorization flow ([docs/device-flow.md](docs/device-flow.md))
 > are supported too, and so are Auth0's Management API for applications, APIs, client grants and database connections
 > ([docs/management-api.md](docs/management-api.md), verified with auth0-cli)
-> and an admin console ([docs/console.md](docs/console.md)). See the
+> and an admin console ([docs/console.md](docs/console.md)). Organizations,
+> organization login and roles, and per-tenant operators are implemented
+> ([docs/organizations.md](docs/organizations.md)). See the
 > [compatibility matrix](docs/compat/matrix.md).
 
 Tenant-configurable email providers, bounded Liquid templates, previews and
@@ -36,7 +38,7 @@ features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–28)
+**Done** (Plans 1–29)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -78,11 +80,17 @@ each with its console screens; the full breakdown is in the
   console and migration tooling. Limits and verification are in the
   [Plan 28 implementation record](docs/superpowers/2026-10-28-plan-28-implementation-record.md).
 
-**Later** (Plans 29–47)
+**Organizations I (Plan 29)**
+
+- Organizations, members, role assignments, enabled connections, hosted prompt
+  and picker, claims/refresh checks, branding, Actions context and scoped
+  operators. See [Organizations](docs/organizations.md) and the
+  [verification record](docs/superpowers/2026-10-28-plan-29-implementation-record.md).
+
+**Later** (Plans 30–47)
 
 | Plan | Area | Depth | Needs |
 |---|---|---|---|
-| 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full | 26 |
 | 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |
 | 31 | Logs, log streams, stats | full | 19 |
 | 32 | Event streams | short | 31 |
