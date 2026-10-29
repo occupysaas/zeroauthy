@@ -51,6 +51,12 @@ func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) er
 		if cur.Params[store.TxnParamOrgMode] != f.txn.Params[store.TxnParamOrgMode] || cur.HostedState.Revision != f.txn.HostedState.Revision {
 			return errTxn
 		}
+		// WithTx alone does not serialize SQL readers. Claim the pending
+		// revision before checking policy or replacing the row: a concurrent
+		// loser must not delete a choice another request has committed.
+		if err := tx.AuthTransactions().CompareAndSwapHosted(r.Context(), cur.TenantID, cur.ID, cur.HostedState.Revision, cur.HostedState, h.now()); err != nil {
+			return err
+		}
 		client, err := tx.Clients().Get(r.Context(), f.res.Tenant.ID, cur.ClientID)
 		if err != nil {
 			return err

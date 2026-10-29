@@ -331,6 +331,14 @@ func (r organizations) Connections(ctx context.Context, tid, orgID string, p sto
 }
 
 func (r organizations) GetConnection(ctx context.Context, tid, orgID, connID string) (*store.OrganizationConnection, error) {
+	// A transaction may use these flags to authorize a later membership
+	// insert. Acquire the policy writer boundary before reading, and keep it
+	// until the caller commits, so AddMembers cannot use superseded flags.
+	if r.s.tx != nil {
+		if err := r.s.lockRBAC(ctx, tid); err != nil {
+			return nil, err
+		}
+	}
 	c, err := scanOrgConn(r.s.queryRow(ctx, `SELECT `+orgConnCols+` FROM organization_connections WHERE tenant_id=? AND organization_id=? AND connection_id=?`, tid, orgID, connID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, store.ErrNotFound

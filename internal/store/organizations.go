@@ -107,6 +107,8 @@ type Organizations interface {
 	Delete(ctx context.Context, tid, id string) error
 
 	Connections(ctx context.Context, tid, orgID string, p OrgPage) (OrgResult[OrganizationConnection], error)
+	// In a WithTx view, GetConnection serializes its eligibility read with
+	// policy writers until commit, so later member writes use the same policy.
 	GetConnection(ctx context.Context, tid, orgID, connID string) (*OrganizationConnection, error)
 	// PutConnection creates (create true; ErrConflict if present) or
 	// replaces (create false; ErrNotFound if absent) an enabled connection.
