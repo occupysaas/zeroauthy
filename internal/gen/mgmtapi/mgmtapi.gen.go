@@ -4228,6 +4228,276 @@ type OperatorInvite struct {
 	UserId string `json:"user_id"`
 }
 
+// Organization An organization. `branding` and `metadata` are left out when unset; reads never carry `enabled_connections`.
+type Organization struct {
+	Branding    *OrganizationBranding `json:"branding,omitempty"`
+	DisplayName string                `json:"display_name"`
+
+	// Id `org_` and 16 letters or digits.
+	Id string `json:"id"`
+
+	// IsAppEntitlementActive Always false (D-0055).
+	IsAppEntitlementActive bool                  `json:"is_app_entitlement_active"`
+	Metadata               *OrganizationMetadata `json:"metadata,omitempty"`
+	Name                   string                `json:"name"`
+
+	// ThirdPartyClientAccess `block` (default) or `allow`.
+	ThirdPartyClientAccess string `json:"third_party_client_access"`
+}
+
+// OrganizationBranding defines model for OrganizationBranding.
+type OrganizationBranding struct {
+	Colors  *OrganizationColors `json:"colors,omitempty"`
+	LogoUrl *string             `json:"logo_url,omitempty"`
+}
+
+// OrganizationBrandingWrite Replaced whole on PATCH; null or {} clears it.
+type OrganizationBrandingWrite struct {
+	Colors *OrganizationColors `json:"colors,omitempty"`
+
+	// LogoUrl An https URL.
+	LogoUrl *string `json:"logo_url,omitempty"`
+}
+
+// OrganizationClientGrant defines model for OrganizationClientGrant.
+type OrganizationClientGrant struct {
+	AllowAnyOrganization *bool   `json:"allow_any_organization,omitempty"`
+	Audience             *string `json:"audience,omitempty"`
+	ClientId             *string `json:"client_id,omitempty"`
+	Id                   *string `json:"id,omitempty"`
+
+	// OrganizationUsage `deny`, `allow` or `require`.
+	OrganizationUsage *string   `json:"organization_usage,omitempty"`
+	Scope             *[]string `json:"scope,omitempty"`
+}
+
+// OrganizationClientGrantsPage Organization client grants with `include_totals=true`; always empty (D-0055).
+type OrganizationClientGrantsPage struct {
+	ClientGrants []OrganizationClientGrant `json:"client_grants"`
+	Limit        int                       `json:"limit"`
+	Start        int                       `json:"start"`
+	Total        int                       `json:"total"`
+}
+
+// OrganizationColors defines model for OrganizationColors.
+type OrganizationColors struct {
+	// PageBackground HTML hex color.
+	PageBackground string `json:"page_background"`
+
+	// Primary HTML hex color.
+	Primary string `json:"primary"`
+}
+
+// OrganizationConnection An organization connection of the Early Access resource; the same link as an enabled connection.
+type OrganizationConnection struct {
+	// AssignMembershipOnLogin Members are added when they log in through this connection (default false).
+	AssignMembershipOnLogin bool                          `json:"assign_membership_on_login"`
+	Connection              OrganizationConnectionSummary `json:"connection"`
+	ConnectionId            string                        `json:"connection_id"`
+
+	// IsEnabled Always true; disabled organization connections are not supported (D-0055).
+	IsEnabled bool `json:"is_enabled"`
+
+	// IsSignupEnabled Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+	IsSignupEnabled bool `json:"is_signup_enabled"`
+
+	// OrganizationAccessLevel Always `none`, the observed default; other values are refused (D-0055).
+	OrganizationAccessLevel string `json:"organization_access_level"`
+
+	// OrganizationMemberAccessLevel Always `limited`, the observed default; other values are refused (D-0055).
+	OrganizationMemberAccessLevel string `json:"organization_member_access_level"`
+
+	// ShowAsButton Offer the connection as a button; only enterprise connections can be hidden (default true).
+	ShowAsButton bool `json:"show_as_button"`
+}
+
+// OrganizationConnectionCreate defines model for OrganizationConnectionCreate.
+type OrganizationConnectionCreate struct {
+	// AssignMembershipOnLogin Members are added when they log in through this connection (default false).
+	AssignMembershipOnLogin *bool  `json:"assign_membership_on_login,omitempty"`
+	ConnectionId            string `json:"connection_id"`
+
+	// IsEnabled Only true is accepted (D-0055).
+	IsEnabled *bool `json:"is_enabled,omitempty"`
+
+	// IsSignupEnabled Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+	IsSignupEnabled *bool `json:"is_signup_enabled,omitempty"`
+
+	// OrganizationAccessLevel Only `none` (or null) is accepted (D-0055).
+	OrganizationAccessLevel *string `json:"organization_access_level,omitempty"`
+
+	// OrganizationConnectionName Only null is accepted (D-0055).
+	OrganizationConnectionName *string `json:"organization_connection_name,omitempty"`
+
+	// OrganizationMemberAccessLevel Only `limited` (or null) is accepted (D-0055).
+	OrganizationMemberAccessLevel *string `json:"organization_member_access_level,omitempty"`
+
+	// ShowAsButton Offer the connection as a button; only enterprise connections can be hidden (default true).
+	ShowAsButton *bool `json:"show_as_button,omitempty"`
+}
+
+// OrganizationConnectionSummary defines model for OrganizationConnectionSummary.
+type OrganizationConnectionSummary struct {
+	Name     string `json:"name"`
+	Strategy string `json:"strategy"`
+}
+
+// OrganizationConnectionUpdate defines model for OrganizationConnectionUpdate.
+type OrganizationConnectionUpdate struct {
+	// AssignMembershipOnLogin Members are added when they log in through this connection (default false).
+	AssignMembershipOnLogin *bool `json:"assign_membership_on_login,omitempty"`
+
+	// IsEnabled Only true is accepted (D-0055).
+	IsEnabled *bool `json:"is_enabled,omitempty"`
+
+	// IsSignupEnabled Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+	IsSignupEnabled *bool `json:"is_signup_enabled,omitempty"`
+
+	// OrganizationAccessLevel Only `none` (or null) is accepted (D-0055).
+	OrganizationAccessLevel *string `json:"organization_access_level,omitempty"`
+
+	// OrganizationConnectionName Only null is accepted (D-0055).
+	OrganizationConnectionName *string `json:"organization_connection_name,omitempty"`
+
+	// OrganizationMemberAccessLevel Only `limited` (or null) is accepted (D-0055).
+	OrganizationMemberAccessLevel *string `json:"organization_member_access_level,omitempty"`
+
+	// ShowAsButton Offer the connection as a button; only enterprise connections can be hidden (default true).
+	ShowAsButton *bool `json:"show_as_button,omitempty"`
+}
+
+// OrganizationConnectionsPage Organization connections with `include_totals=true`; `limit` is the number of entries returned.
+type OrganizationConnectionsPage struct {
+	Connections []OrganizationConnection `json:"connections"`
+	Limit       int                      `json:"limit"`
+	Start       int                      `json:"start"`
+	Total       int                      `json:"total"`
+}
+
+// OrganizationCreate defines model for OrganizationCreate.
+type OrganizationCreate struct {
+	// Branding Replaced whole on PATCH; null or {} clears it.
+	Branding *OrganizationBrandingWrite `json:"branding,omitempty"`
+
+	// DisplayName Defaults to `name` on create.
+	DisplayName        *string                                `json:"display_name,omitempty"`
+	EnabledConnections *[]OrganizationEnabledConnectionCreate `json:"enabled_connections,omitempty"`
+
+	// IsAppEntitlementActive Only false is accepted (D-0055).
+	IsAppEntitlementActive *bool `json:"is_app_entitlement_active,omitempty"`
+
+	// Metadata Replaced whole on PATCH; null or {} clears it. Keys 1-50 characters matching `^[a-zA-Z0-9]\w*$`; values non-empty strings of at most 255 characters.
+	Metadata *OrganizationMetadataWrite `json:"metadata,omitempty"`
+	Name     string                     `json:"name"`
+
+	// ThirdPartyClientAccess `block` (default) or `allow`.
+	ThirdPartyClientAccess *string `json:"third_party_client_access,omitempty"`
+}
+
+// OrganizationCreated The create response, which alone echoes the enabled connections.
+type OrganizationCreated struct {
+	Branding           *OrganizationBranding            `json:"branding,omitempty"`
+	DisplayName        string                           `json:"display_name"`
+	EnabledConnections *[]OrganizationEnabledConnection `json:"enabled_connections,omitempty"`
+
+	// Id `org_` and 16 letters or digits.
+	Id string `json:"id"`
+
+	// IsAppEntitlementActive Always false (D-0055).
+	IsAppEntitlementActive bool                  `json:"is_app_entitlement_active"`
+	Metadata               *OrganizationMetadata `json:"metadata,omitempty"`
+	Name                   string                `json:"name"`
+
+	// ThirdPartyClientAccess `block` (default) or `allow`.
+	ThirdPartyClientAccess string `json:"third_party_client_access"`
+}
+
+// OrganizationEnabledConnection defines model for OrganizationEnabledConnection.
+type OrganizationEnabledConnection struct {
+	// AssignMembershipOnLogin Members are added when they log in through this connection (default false).
+	AssignMembershipOnLogin bool                          `json:"assign_membership_on_login"`
+	Connection              OrganizationConnectionSummary `json:"connection"`
+	ConnectionId            string                        `json:"connection_id"`
+
+	// IsSignupEnabled Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+	IsSignupEnabled bool `json:"is_signup_enabled"`
+
+	// ShowAsButton Offer the connection as a button; only enterprise connections can be hidden (default true).
+	ShowAsButton bool `json:"show_as_button"`
+}
+
+// OrganizationEnabledConnectionCreate defines model for OrganizationEnabledConnectionCreate.
+type OrganizationEnabledConnectionCreate struct {
+	// AssignMembershipOnLogin Members are added when they log in through this connection (default false).
+	AssignMembershipOnLogin *bool  `json:"assign_membership_on_login,omitempty"`
+	ConnectionId            string `json:"connection_id"`
+
+	// IsSignupEnabled Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+	IsSignupEnabled *bool `json:"is_signup_enabled,omitempty"`
+
+	// ShowAsButton Offer the connection as a button; only enterprise connections can be hidden (default true).
+	ShowAsButton *bool `json:"show_as_button,omitempty"`
+}
+
+// OrganizationEnabledConnectionUpdate defines model for OrganizationEnabledConnectionUpdate.
+type OrganizationEnabledConnectionUpdate struct {
+	// AssignMembershipOnLogin Members are added when they log in through this connection (default false).
+	AssignMembershipOnLogin *bool `json:"assign_membership_on_login,omitempty"`
+
+	// IsSignupEnabled Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+	IsSignupEnabled *bool `json:"is_signup_enabled,omitempty"`
+
+	// ShowAsButton Offer the connection as a button; only enterprise connections can be hidden (default true).
+	ShowAsButton *bool `json:"show_as_button,omitempty"`
+}
+
+// OrganizationEnabledConnectionsPage Enabled connections with `include_totals=true`; `limit` is the number of entries returned.
+type OrganizationEnabledConnectionsPage struct {
+	EnabledConnections []OrganizationEnabledConnection `json:"enabled_connections"`
+	Limit              int                             `json:"limit"`
+	Start              int                             `json:"start"`
+	Total              int                             `json:"total"`
+}
+
+// OrganizationMetadata defines model for OrganizationMetadata.
+type OrganizationMetadata map[string]string
+
+// OrganizationMetadataWrite Replaced whole on PATCH; null or {} clears it. Keys 1-50 characters matching `^[a-zA-Z0-9]\w*$`; values non-empty strings of at most 255 characters.
+type OrganizationMetadataWrite map[string]string
+
+// OrganizationUpdate defines model for OrganizationUpdate.
+type OrganizationUpdate struct {
+	// Branding Replaced whole on PATCH; null or {} clears it.
+	Branding *OrganizationBrandingWrite `json:"branding,omitempty"`
+
+	// DisplayName Defaults to `name` on create.
+	DisplayName *string `json:"display_name,omitempty"`
+
+	// IsAppEntitlementActive Only false is accepted (D-0055).
+	IsAppEntitlementActive *bool `json:"is_app_entitlement_active,omitempty"`
+
+	// Metadata Replaced whole on PATCH; null or {} clears it. Keys 1-50 characters matching `^[a-zA-Z0-9]\w*$`; values non-empty strings of at most 255 characters.
+	Metadata *OrganizationMetadataWrite `json:"metadata,omitempty"`
+	Name     *string                    `json:"name,omitempty"`
+
+	// ThirdPartyClientAccess `block` (default) or `allow`.
+	ThirdPartyClientAccess *string `json:"third_party_client_access,omitempty"`
+}
+
+// OrganizationsCheckpoint A checkpoint page; `next` is present while more remain.
+type OrganizationsCheckpoint struct {
+	Next          *string        `json:"next,omitempty"`
+	Organizations []Organization `json:"organizations"`
+}
+
+// OrganizationsPage Organizations with `include_totals=true`.
+type OrganizationsPage struct {
+	Limit         int            `json:"limit"`
+	Organizations []Organization `json:"organizations"`
+	Start         int            `json:"start"`
+	Total         int            `json:"total"`
+}
+
 // PasswordChangeTicketCreate `user_id`, or `email` with `connection_id`. Unknown properties are
 // `400 invalid_body`.
 type PasswordChangeTicketCreate struct {
@@ -5569,6 +5839,9 @@ type Forbidden = ManagementError
 // NotFound Auth0's Management API error shape.
 type NotFound = ManagementError
 
+// OrganizationsUnavailable Auth0's Management API error shape.
+type OrganizationsUnavailable = ManagementError
+
 // PayloadTooLarge Auth0's Management API error shape.
 type PayloadTooLarge = ManagementError
 
@@ -5905,6 +6178,107 @@ type GetJobErrors200JSONResponseBody0 = []JobError
 
 // GetJobErrors200JSONResponseBody defines parameters for GetJobErrors.
 type GetJobErrors200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// ListOrganizationsParams defines parameters for ListOrganizations.
+type ListOrganizationsParams struct {
+	// Page Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page, 1 to 100 (default 50).
+	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// From Checkpoint cursor (`next` of the previous page); checkpoint mode wins over `page`.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// Take Number of results of a checkpoint page, 1 to 100 (default 50).
+	Take *int `form:"take,omitempty" json:"take,omitempty"`
+
+	// Sort `name`, `display_name` or `created_at`, with `:1` (ascending) or `:-1`.
+	Sort *string `form:"sort,omitempty" json:"sort,omitempty"`
+}
+
+// ListOrganizations200JSONResponseBody0 defines parameters for ListOrganizations.
+type ListOrganizations200JSONResponseBody0 = []Organization
+
+// ListOrganizations200JSONResponseBody defines parameters for ListOrganizations.
+type ListOrganizations200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// ListOrganizationClientGrantsParams defines parameters for ListOrganizationClientGrants.
+type ListOrganizationClientGrantsParams struct {
+	// Page Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page, 1 to 100 (default 50).
+	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// Audience Only grants for this API identifier.
+	Audience *string `form:"audience,omitempty" json:"audience,omitempty"`
+
+	// ClientId Only grants of this client.
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
+
+	// GrantIds Only these grant IDs (at most 10).
+	GrantIds *[]string `form:"grant_ids,omitempty" json:"grant_ids,omitempty"`
+}
+
+// ListOrganizationClientGrants200JSONResponseBody0 defines parameters for ListOrganizationClientGrants.
+type ListOrganizationClientGrants200JSONResponseBody0 = []OrganizationClientGrant
+
+// ListOrganizationClientGrants200JSONResponseBody defines parameters for ListOrganizationClientGrants.
+type ListOrganizationClientGrants200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// ListOrganizationAllConnectionsParams defines parameters for ListOrganizationAllConnections.
+type ListOrganizationAllConnectionsParams struct {
+	// Page Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page, 1 to 100 (default 50).
+	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+
+	// IsEnabled Only enabled (true) or disabled (false) connections; every stored connection is enabled.
+	IsEnabled *bool `form:"is_enabled,omitempty" json:"is_enabled,omitempty"`
+}
+
+// ListOrganizationAllConnections200JSONResponseBody0 defines parameters for ListOrganizationAllConnections.
+type ListOrganizationAllConnections200JSONResponseBody0 = []OrganizationConnection
+
+// ListOrganizationAllConnections200JSONResponseBody defines parameters for ListOrganizationAllConnections.
+type ListOrganizationAllConnections200JSONResponseBody struct {
+	union json.RawMessage
+}
+
+// ListOrganizationConnectionsParams defines parameters for ListOrganizationConnections.
+type ListOrganizationConnectionsParams struct {
+	// Page Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PerPage Number of results per page, 1 to 100 (default 50).
+	PerPage *int `form:"per_page,omitempty" json:"per_page,omitempty"`
+
+	// IncludeTotals Return an object with the list and `start`, `limit` and `total` instead of a bare array.
+	IncludeTotals *bool `form:"include_totals,omitempty" json:"include_totals,omitempty"`
+}
+
+// ListOrganizationConnections200JSONResponseBody0 defines parameters for ListOrganizationConnections.
+type ListOrganizationConnections200JSONResponseBody0 = []OrganizationEnabledConnection
+
+// ListOrganizationConnections200JSONResponseBody defines parameters for ListOrganizationConnections.
+type ListOrganizationConnections200JSONResponseBody struct {
 	union json.RawMessage
 }
 
@@ -6284,6 +6658,24 @@ type CreateVerificationEmailJobJSONRequestBody = VerificationEmailJobCreate
 
 // PutCustomSigningKeysJSONRequestBody defines body for PutCustomSigningKeys for application/json ContentType.
 type PutCustomSigningKeysJSONRequestBody = CustomSigningJWKS
+
+// CreateOrganizationJSONRequestBody defines body for CreateOrganization for application/json ContentType.
+type CreateOrganizationJSONRequestBody = OrganizationCreate
+
+// UpdateOrganizationJSONRequestBody defines body for UpdateOrganization for application/json ContentType.
+type UpdateOrganizationJSONRequestBody = OrganizationUpdate
+
+// CreateOrganizationAllConnectionJSONRequestBody defines body for CreateOrganizationAllConnection for application/json ContentType.
+type CreateOrganizationAllConnectionJSONRequestBody = OrganizationConnectionCreate
+
+// UpdateOrganizationAllConnectionJSONRequestBody defines body for UpdateOrganizationAllConnection for application/json ContentType.
+type UpdateOrganizationAllConnectionJSONRequestBody = OrganizationConnectionUpdate
+
+// CreateOrganizationConnectionJSONRequestBody defines body for CreateOrganizationConnection for application/json ContentType.
+type CreateOrganizationConnectionJSONRequestBody = OrganizationEnabledConnectionCreate
+
+// UpdateOrganizationConnectionJSONRequestBody defines body for UpdateOrganizationConnection for application/json ContentType.
+type UpdateOrganizationConnectionJSONRequestBody = OrganizationEnabledConnectionUpdate
 
 // UpdatePromptSettingsJSONRequestBody defines body for UpdatePromptSettings for application/json ContentType.
 type UpdatePromptSettingsJSONRequestBody UpdatePromptSettingsJSONBody
@@ -7703,6 +8095,280 @@ func (t *GetJobErrors200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsListOrganizations200JSONResponseBody0 returns the union data inside the ListOrganizations200JSONResponseBody as a ListOrganizations200JSONResponseBody0
+func (t ListOrganizations200JSONResponseBody) AsListOrganizations200JSONResponseBody0() (ListOrganizations200JSONResponseBody0, error) {
+	var body ListOrganizations200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListOrganizations200JSONResponseBody0 overwrites any union data inside the ListOrganizations200JSONResponseBody as the provided ListOrganizations200JSONResponseBody0
+func (t *ListOrganizations200JSONResponseBody) FromListOrganizations200JSONResponseBody0(v ListOrganizations200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListOrganizations200JSONResponseBody0 performs a merge with any union data inside the ListOrganizations200JSONResponseBody, using the provided ListOrganizations200JSONResponseBody0
+func (t *ListOrganizations200JSONResponseBody) MergeListOrganizations200JSONResponseBody0(v ListOrganizations200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsOrganizationsPage returns the union data inside the ListOrganizations200JSONResponseBody as a OrganizationsPage
+func (t ListOrganizations200JSONResponseBody) AsOrganizationsPage() (OrganizationsPage, error) {
+	var body OrganizationsPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrganizationsPage overwrites any union data inside the ListOrganizations200JSONResponseBody as the provided OrganizationsPage
+func (t *ListOrganizations200JSONResponseBody) FromOrganizationsPage(v OrganizationsPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrganizationsPage performs a merge with any union data inside the ListOrganizations200JSONResponseBody, using the provided OrganizationsPage
+func (t *ListOrganizations200JSONResponseBody) MergeOrganizationsPage(v OrganizationsPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsOrganizationsCheckpoint returns the union data inside the ListOrganizations200JSONResponseBody as a OrganizationsCheckpoint
+func (t ListOrganizations200JSONResponseBody) AsOrganizationsCheckpoint() (OrganizationsCheckpoint, error) {
+	var body OrganizationsCheckpoint
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrganizationsCheckpoint overwrites any union data inside the ListOrganizations200JSONResponseBody as the provided OrganizationsCheckpoint
+func (t *ListOrganizations200JSONResponseBody) FromOrganizationsCheckpoint(v OrganizationsCheckpoint) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrganizationsCheckpoint performs a merge with any union data inside the ListOrganizations200JSONResponseBody, using the provided OrganizationsCheckpoint
+func (t *ListOrganizations200JSONResponseBody) MergeOrganizationsCheckpoint(v OrganizationsCheckpoint) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListOrganizations200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListOrganizations200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsListOrganizationClientGrants200JSONResponseBody0 returns the union data inside the ListOrganizationClientGrants200JSONResponseBody as a ListOrganizationClientGrants200JSONResponseBody0
+func (t ListOrganizationClientGrants200JSONResponseBody) AsListOrganizationClientGrants200JSONResponseBody0() (ListOrganizationClientGrants200JSONResponseBody0, error) {
+	var body ListOrganizationClientGrants200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListOrganizationClientGrants200JSONResponseBody0 overwrites any union data inside the ListOrganizationClientGrants200JSONResponseBody as the provided ListOrganizationClientGrants200JSONResponseBody0
+func (t *ListOrganizationClientGrants200JSONResponseBody) FromListOrganizationClientGrants200JSONResponseBody0(v ListOrganizationClientGrants200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListOrganizationClientGrants200JSONResponseBody0 performs a merge with any union data inside the ListOrganizationClientGrants200JSONResponseBody, using the provided ListOrganizationClientGrants200JSONResponseBody0
+func (t *ListOrganizationClientGrants200JSONResponseBody) MergeListOrganizationClientGrants200JSONResponseBody0(v ListOrganizationClientGrants200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsOrganizationClientGrantsPage returns the union data inside the ListOrganizationClientGrants200JSONResponseBody as a OrganizationClientGrantsPage
+func (t ListOrganizationClientGrants200JSONResponseBody) AsOrganizationClientGrantsPage() (OrganizationClientGrantsPage, error) {
+	var body OrganizationClientGrantsPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrganizationClientGrantsPage overwrites any union data inside the ListOrganizationClientGrants200JSONResponseBody as the provided OrganizationClientGrantsPage
+func (t *ListOrganizationClientGrants200JSONResponseBody) FromOrganizationClientGrantsPage(v OrganizationClientGrantsPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrganizationClientGrantsPage performs a merge with any union data inside the ListOrganizationClientGrants200JSONResponseBody, using the provided OrganizationClientGrantsPage
+func (t *ListOrganizationClientGrants200JSONResponseBody) MergeOrganizationClientGrantsPage(v OrganizationClientGrantsPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListOrganizationClientGrants200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListOrganizationClientGrants200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsListOrganizationAllConnections200JSONResponseBody0 returns the union data inside the ListOrganizationAllConnections200JSONResponseBody as a ListOrganizationAllConnections200JSONResponseBody0
+func (t ListOrganizationAllConnections200JSONResponseBody) AsListOrganizationAllConnections200JSONResponseBody0() (ListOrganizationAllConnections200JSONResponseBody0, error) {
+	var body ListOrganizationAllConnections200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListOrganizationAllConnections200JSONResponseBody0 overwrites any union data inside the ListOrganizationAllConnections200JSONResponseBody as the provided ListOrganizationAllConnections200JSONResponseBody0
+func (t *ListOrganizationAllConnections200JSONResponseBody) FromListOrganizationAllConnections200JSONResponseBody0(v ListOrganizationAllConnections200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListOrganizationAllConnections200JSONResponseBody0 performs a merge with any union data inside the ListOrganizationAllConnections200JSONResponseBody, using the provided ListOrganizationAllConnections200JSONResponseBody0
+func (t *ListOrganizationAllConnections200JSONResponseBody) MergeListOrganizationAllConnections200JSONResponseBody0(v ListOrganizationAllConnections200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsOrganizationConnectionsPage returns the union data inside the ListOrganizationAllConnections200JSONResponseBody as a OrganizationConnectionsPage
+func (t ListOrganizationAllConnections200JSONResponseBody) AsOrganizationConnectionsPage() (OrganizationConnectionsPage, error) {
+	var body OrganizationConnectionsPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrganizationConnectionsPage overwrites any union data inside the ListOrganizationAllConnections200JSONResponseBody as the provided OrganizationConnectionsPage
+func (t *ListOrganizationAllConnections200JSONResponseBody) FromOrganizationConnectionsPage(v OrganizationConnectionsPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrganizationConnectionsPage performs a merge with any union data inside the ListOrganizationAllConnections200JSONResponseBody, using the provided OrganizationConnectionsPage
+func (t *ListOrganizationAllConnections200JSONResponseBody) MergeOrganizationConnectionsPage(v OrganizationConnectionsPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListOrganizationAllConnections200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListOrganizationAllConnections200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsListOrganizationConnections200JSONResponseBody0 returns the union data inside the ListOrganizationConnections200JSONResponseBody as a ListOrganizationConnections200JSONResponseBody0
+func (t ListOrganizationConnections200JSONResponseBody) AsListOrganizationConnections200JSONResponseBody0() (ListOrganizationConnections200JSONResponseBody0, error) {
+	var body ListOrganizationConnections200JSONResponseBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListOrganizationConnections200JSONResponseBody0 overwrites any union data inside the ListOrganizationConnections200JSONResponseBody as the provided ListOrganizationConnections200JSONResponseBody0
+func (t *ListOrganizationConnections200JSONResponseBody) FromListOrganizationConnections200JSONResponseBody0(v ListOrganizationConnections200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListOrganizationConnections200JSONResponseBody0 performs a merge with any union data inside the ListOrganizationConnections200JSONResponseBody, using the provided ListOrganizationConnections200JSONResponseBody0
+func (t *ListOrganizationConnections200JSONResponseBody) MergeListOrganizationConnections200JSONResponseBody0(v ListOrganizationConnections200JSONResponseBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsOrganizationEnabledConnectionsPage returns the union data inside the ListOrganizationConnections200JSONResponseBody as a OrganizationEnabledConnectionsPage
+func (t ListOrganizationConnections200JSONResponseBody) AsOrganizationEnabledConnectionsPage() (OrganizationEnabledConnectionsPage, error) {
+	var body OrganizationEnabledConnectionsPage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrganizationEnabledConnectionsPage overwrites any union data inside the ListOrganizationConnections200JSONResponseBody as the provided OrganizationEnabledConnectionsPage
+func (t *ListOrganizationConnections200JSONResponseBody) FromOrganizationEnabledConnectionsPage(v OrganizationEnabledConnectionsPage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrganizationEnabledConnectionsPage performs a merge with any union data inside the ListOrganizationConnections200JSONResponseBody, using the provided OrganizationEnabledConnectionsPage
+func (t *ListOrganizationConnections200JSONResponseBody) MergeOrganizationEnabledConnectionsPage(v OrganizationEnabledConnectionsPage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ListOrganizationConnections200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ListOrganizationConnections200JSONResponseBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsGetResourceServers200JSONResponseBody0 returns the union data inside the GetResourceServers200JSONResponseBody as a GetResourceServers200JSONResponseBody0
 func (t GetResourceServers200JSONResponseBody) AsGetResourceServers200JSONResponseBody0() (GetResourceServers200JSONResponseBody0, error) {
 	var body GetResourceServers200JSONResponseBody0
@@ -8495,6 +9161,57 @@ type ServerInterface interface {
 	// RevokeSigningKey Revoke an eligible previous signing key.
 	// (PUT /api/v2/keys/signing/{kid}/revoke)
 	RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string)
+	// ListOrganizations List the tenant's organizations
+	// (GET /api/v2/organizations)
+	ListOrganizations(w http.ResponseWriter, r *http.Request, params ListOrganizationsParams)
+	// CreateOrganization Create an organization; `enabled_connections` also needs `create:organization_connections`
+	// (POST /api/v2/organizations)
+	CreateOrganization(w http.ResponseWriter, r *http.Request)
+	// GetOrganizationByName Get an organization by name
+	// (GET /api/v2/organizations/name/{name})
+	GetOrganizationByName(w http.ResponseWriter, r *http.Request, name string)
+	// DeleteOrganization Delete an organization with its connections, members and member roles
+	// (DELETE /api/v2/organizations/{id})
+	DeleteOrganization(w http.ResponseWriter, r *http.Request, id string)
+	// GetOrganization Get an organization
+	// (GET /api/v2/organizations/{id})
+	GetOrganization(w http.ResponseWriter, r *http.Request, id string)
+	// UpdateOrganization Update an organization; `branding` and `metadata` are replaced whole
+	// (PATCH /api/v2/organizations/{id})
+	UpdateOrganization(w http.ResponseWriter, r *http.Request, id string)
+	// ListOrganizationClientGrants List an organization's client grants (always empty until organization grants exist)
+	// (GET /api/v2/organizations/{id}/client-grants)
+	ListOrganizationClientGrants(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationClientGrantsParams)
+	// ListOrganizationAllConnections List an organization's connections (Early Access upstream; same links as enabled_connections)
+	// (GET /api/v2/organizations/{id}/connections)
+	ListOrganizationAllConnections(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationAllConnectionsParams)
+	// CreateOrganizationAllConnection Add a connection to an organization (Early Access upstream)
+	// (POST /api/v2/organizations/{id}/connections)
+	CreateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteOrganizationAllConnection Remove a connection from an organization (Early Access upstream)
+	// (DELETE /api/v2/organizations/{id}/connections/{connection_id})
+	DeleteOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
+	// GetOrganizationAllConnection Get an organization connection (Early Access upstream)
+	// (GET /api/v2/organizations/{id}/connections/{connection_id})
+	GetOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
+	// UpdateOrganizationAllConnection Update an organization connection (Early Access upstream)
+	// (PATCH /api/v2/organizations/{id}/connections/{connection_id})
+	UpdateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
+	// ListOrganizationConnections List an organization's enabled connections
+	// (GET /api/v2/organizations/{id}/enabled_connections)
+	ListOrganizationConnections(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationConnectionsParams)
+	// CreateOrganizationConnection Enable a connection for an organization
+	// (POST /api/v2/organizations/{id}/enabled_connections)
+	CreateOrganizationConnection(w http.ResponseWriter, r *http.Request, id string)
+	// DeleteOrganizationConnection Disable a connection for an organization (204 when it was not enabled)
+	// (DELETE /api/v2/organizations/{id}/enabled_connections/{connection_id})
+	DeleteOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
+	// GetOrganizationConnection Get an enabled connection
+	// (GET /api/v2/organizations/{id}/enabled_connections/{connection_id})
+	GetOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
+	// UpdateOrganizationConnection Change an enabled connection's flags
+	// (PATCH /api/v2/organizations/{id}/enabled_connections/{connection_id})
+	UpdateOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string)
 	// GetPromptSettings GetPromptSettings addressed to the current tenant
 	// (GET /api/v2/prompts)
 	GetPromptSettings(w http.ResponseWriter, r *http.Request)
@@ -9317,6 +10034,108 @@ func (_ Unimplemented) GetSigningKey(w http.ResponseWriter, r *http.Request, kid
 // RevokeSigningKey Revoke an eligible previous signing key.
 // (PUT /api/v2/keys/signing/{kid}/revoke)
 func (_ Unimplemented) RevokeSigningKey(w http.ResponseWriter, r *http.Request, kid string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizations List the tenant's organizations
+// (GET /api/v2/organizations)
+func (_ Unimplemented) ListOrganizations(w http.ResponseWriter, r *http.Request, params ListOrganizationsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateOrganization Create an organization; `enabled_connections` also needs `create:organization_connections`
+// (POST /api/v2/organizations)
+func (_ Unimplemented) CreateOrganization(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetOrganizationByName Get an organization by name
+// (GET /api/v2/organizations/name/{name})
+func (_ Unimplemented) GetOrganizationByName(w http.ResponseWriter, r *http.Request, name string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteOrganization Delete an organization with its connections, members and member roles
+// (DELETE /api/v2/organizations/{id})
+func (_ Unimplemented) DeleteOrganization(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetOrganization Get an organization
+// (GET /api/v2/organizations/{id})
+func (_ Unimplemented) GetOrganization(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateOrganization Update an organization; `branding` and `metadata` are replaced whole
+// (PATCH /api/v2/organizations/{id})
+func (_ Unimplemented) UpdateOrganization(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationClientGrants List an organization's client grants (always empty until organization grants exist)
+// (GET /api/v2/organizations/{id}/client-grants)
+func (_ Unimplemented) ListOrganizationClientGrants(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationClientGrantsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationAllConnections List an organization's connections (Early Access upstream; same links as enabled_connections)
+// (GET /api/v2/organizations/{id}/connections)
+func (_ Unimplemented) ListOrganizationAllConnections(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationAllConnectionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateOrganizationAllConnection Add a connection to an organization (Early Access upstream)
+// (POST /api/v2/organizations/{id}/connections)
+func (_ Unimplemented) CreateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteOrganizationAllConnection Remove a connection from an organization (Early Access upstream)
+// (DELETE /api/v2/organizations/{id}/connections/{connection_id})
+func (_ Unimplemented) DeleteOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetOrganizationAllConnection Get an organization connection (Early Access upstream)
+// (GET /api/v2/organizations/{id}/connections/{connection_id})
+func (_ Unimplemented) GetOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateOrganizationAllConnection Update an organization connection (Early Access upstream)
+// (PATCH /api/v2/organizations/{id}/connections/{connection_id})
+func (_ Unimplemented) UpdateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListOrganizationConnections List an organization's enabled connections
+// (GET /api/v2/organizations/{id}/enabled_connections)
+func (_ Unimplemented) ListOrganizationConnections(w http.ResponseWriter, r *http.Request, id string, params ListOrganizationConnectionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateOrganizationConnection Enable a connection for an organization
+// (POST /api/v2/organizations/{id}/enabled_connections)
+func (_ Unimplemented) CreateOrganizationConnection(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteOrganizationConnection Disable a connection for an organization (204 when it was not enabled)
+// (DELETE /api/v2/organizations/{id}/enabled_connections/{connection_id})
+func (_ Unimplemented) DeleteOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetOrganizationConnection Get an enabled connection
+// (GET /api/v2/organizations/{id}/enabled_connections/{connection_id})
+func (_ Unimplemented) GetOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateOrganizationConnection Change an enabled connection's flags
+// (PATCH /api/v2/organizations/{id}/enabled_connections/{connection_id})
+func (_ Unimplemented) UpdateOrganizationConnection(w http.ResponseWriter, r *http.Request, id string, connectionId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -12918,6 +13737,740 @@ func (siw *ServerInterfaceWrapper) RevokeSigningKey(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListOrganizations operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "take" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "take", r.URL.Query(), &params.Take, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "take"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "take", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sort"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizations(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateOrganization operation middleware
+func (siw *ServerInterfaceWrapper) CreateOrganization(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateOrganization(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrganizationByName operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganizationByName(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", chi.URLParam(r, "name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganizationByName(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteOrganization operation middleware
+func (siw *ServerInterfaceWrapper) DeleteOrganization(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteOrganization(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrganization operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganization(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganization(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateOrganization operation middleware
+func (siw *ServerInterfaceWrapper) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateOrganization(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationClientGrants operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationClientGrants(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationClientGrantsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "audience" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "audience", r.URL.Query(), &params.Audience, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "audience"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "audience", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "client_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "client_id", r.URL.Query(), &params.ClientId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "client_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "client_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "grant_ids" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "grant_ids", r.URL.Query(), &params.GrantIds, runtime.BindQueryParameterOptions{Type: "array", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "grant_ids"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "grant_ids", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationClientGrants(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationAllConnections operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationAllConnections(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationAllConnectionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "is_enabled" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "is_enabled", r.URL.Query(), &params.IsEnabled, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "is_enabled"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "is_enabled", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationAllConnections(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateOrganizationAllConnection operation middleware
+func (siw *ServerInterfaceWrapper) CreateOrganizationAllConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateOrganizationAllConnection(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteOrganizationAllConnection operation middleware
+func (siw *ServerInterfaceWrapper) DeleteOrganizationAllConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteOrganizationAllConnection(w, r, id, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrganizationAllConnection operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganizationAllConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganizationAllConnection(w, r, id, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateOrganizationAllConnection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateOrganizationAllConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateOrganizationAllConnection(w, r, id, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrganizationConnections operation middleware
+func (siw *ServerInterfaceWrapper) ListOrganizationConnections(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrganizationConnectionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "per_page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "per_page", r.URL.Query(), &params.PerPage, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "per_page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "per_page", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "include_totals" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "include_totals", r.URL.Query(), &params.IncludeTotals, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "include_totals"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_totals", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrganizationConnections(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateOrganizationConnection operation middleware
+func (siw *ServerInterfaceWrapper) CreateOrganizationConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateOrganizationConnection(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteOrganizationConnection operation middleware
+func (siw *ServerInterfaceWrapper) DeleteOrganizationConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteOrganizationConnection(w, r, id, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrganizationConnection operation middleware
+func (siw *ServerInterfaceWrapper) GetOrganizationConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrganizationConnection(w, r, id, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateOrganizationConnection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateOrganizationConnection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "connection_id" -------------
+	var connectionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "connection_id", chi.URLParam(r, "connection_id"), &connectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "connection_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateOrganizationConnection(w, r, id, connectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetPromptSettings operation middleware
 func (siw *ServerInterfaceWrapper) GetPromptSettings(w http.ResponseWriter, r *http.Request) {
 
@@ -15545,6 +17098,57 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/users/{id}/permissions", wrapper.PostUserPermissions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations", wrapper.ListOrganizations)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/organizations", wrapper.CreateOrganization)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/name/{name}", wrapper.GetOrganizationByName)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/organizations/{id}", wrapper.DeleteOrganization)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}", wrapper.GetOrganization)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/organizations/{id}", wrapper.UpdateOrganization)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/enabled_connections", wrapper.ListOrganizationConnections)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/organizations/{id}/enabled_connections", wrapper.CreateOrganizationConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/organizations/{id}/enabled_connections/{connection_id}", wrapper.DeleteOrganizationConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/enabled_connections/{connection_id}", wrapper.GetOrganizationConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/organizations/{id}/enabled_connections/{connection_id}", wrapper.UpdateOrganizationConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/connections", wrapper.ListOrganizationAllConnections)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/organizations/{id}/connections", wrapper.CreateOrganizationAllConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/organizations/{id}/connections/{connection_id}", wrapper.DeleteOrganizationAllConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/connections/{connection_id}", wrapper.GetOrganizationAllConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/organizations/{id}/connections/{connection_id}", wrapper.UpdateOrganizationAllConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/organizations/{id}/client-grants", wrapper.ListOrganizationClientGrants)
 	})
 
 	return r

@@ -73,6 +73,8 @@ tags:
     description: Password-change and email verification links (Auth0's `/api/v2/tickets`).
   - name: jobs
     description: "Background jobs (verification emails; Auth0's `/api/v2/jobs`)."
+  - name: organizations
+    description: Organizations, their enabled connections and (read-only) client grants.
   - name: system
     description: zeroauthy's own API for tenants and operators (operator tokens only).
 security:
@@ -5663,6 +5665,741 @@ paths:
           description: Parent resource was not found
         '409':
           description: Role name already exists
+  /api/v2/organizations:
+    get:
+      operationId: ListOrganizations
+      summary: List the tenant's organizations
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organizations
+      security:
+      - managementToken:
+        - read:organizations
+      - operatorToken: []
+      parameters:
+      - name: page
+        in: query
+        description: 'Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).'
+        schema: {type: integer}
+      - name: per_page
+        in: query
+        description: 'Number of results per page, 1 to 100 (default 50).'
+        schema: {type: integer}
+      - name: include_totals
+        in: query
+        description: 'Return an object with the list and `start`, `limit` and `total` instead of a bare array.'
+        schema: {type: boolean}
+      - name: from
+        in: query
+        description: 'Checkpoint cursor (`next` of the previous page); checkpoint mode wins over `page`.'
+        schema: {type: string}
+      - name: take
+        in: query
+        description: 'Number of results of a checkpoint page, 1 to 100 (default 50).'
+        schema: {type: integer}
+      - name: sort
+        in: query
+        description: '`name`, `display_name` or `created_at`, with `:1` (ascending) or `:-1`.'
+        schema: {type: string}
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/Organization'
+                - $ref: '#/components/schemas/OrganizationsPage'
+                - $ref: '#/components/schemas/OrganizationsCheckpoint'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+    post:
+      operationId: CreateOrganization
+      summary: Create an organization; `enabled_connections` also needs `create:organization_connections`
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/post-organizations
+      security:
+      - managementToken:
+        - create:organizations
+      - operatorToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationCreate'
+      responses:
+        '201':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationCreated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+  /api/v2/organizations/name/{name}:
+    get:
+      operationId: GetOrganizationByName
+      summary: Get an organization by name
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-name-by-name
+      security:
+      - managementToken:
+        - read:organizations
+      - operatorToken: []
+      parameters:
+      - name: name
+        in: path
+        required: true
+        description: 'Organization name; an invalid name is 400 `invalid_uri`.'
+        schema: {type: string}
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+  /api/v2/organizations/{id}:
+    get:
+      operationId: GetOrganization
+      summary: Get an organization
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organizations-by-id
+      security:
+      - managementToken:
+        - read:organizations
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+    patch:
+      operationId: UpdateOrganization
+      summary: Update an organization; `branding` and `metadata` are replaced whole
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/patch-organizations-by-id
+      security:
+      - managementToken:
+        - update:organizations
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationUpdate'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+    delete:
+      operationId: DeleteOrganization
+      summary: Delete an organization with its connections, members and member roles
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/delete-organizations-by-id
+      security:
+      - managementToken:
+        - delete:organizations
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+  /api/v2/organizations/{id}/enabled_connections:
+    get:
+      operationId: ListOrganizationConnections
+      summary: List an organization's enabled connections
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-enabled-connections
+      security:
+      - managementToken:
+        - read:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      - name: page
+        in: query
+        description: 'Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).'
+        schema: {type: integer}
+      - name: per_page
+        in: query
+        description: 'Number of results per page, 1 to 100 (default 50).'
+        schema: {type: integer}
+      - name: include_totals
+        in: query
+        description: 'Return an object with the list and `start`, `limit` and `total` instead of a bare array.'
+        schema: {type: boolean}
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/OrganizationEnabledConnection'
+                - $ref: '#/components/schemas/OrganizationEnabledConnectionsPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+    post:
+      operationId: CreateOrganizationConnection
+      summary: Enable a connection for an organization
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/post-enabled-connections
+      security:
+      - managementToken:
+        - create:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationEnabledConnectionCreate'
+      responses:
+        '201':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationEnabledConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+  /api/v2/organizations/{id}/enabled_connections/{connection_id}:
+    get:
+      operationId: GetOrganizationConnection
+      summary: Get an enabled connection
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-enabled-connections-by-connection-id
+      security:
+      - managementToken:
+        - read:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      - name: connection_id
+        in: path
+        required: true
+        description: 'Connection ID; a malformed one is 400 `invalid_uri`.'
+        schema: {type: string}
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationEnabledConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+    patch:
+      operationId: UpdateOrganizationConnection
+      summary: Change an enabled connection's flags
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/patch-enabled-connections-by-connection-id
+      security:
+      - managementToken:
+        - update:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      - name: connection_id
+        in: path
+        required: true
+        description: 'Connection ID; a malformed one is 400 `invalid_uri`.'
+        schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationEnabledConnectionUpdate'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationEnabledConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+    delete:
+      operationId: DeleteOrganizationConnection
+      summary: Disable a connection for an organization (204 when it was not enabled)
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/delete-enabled-connections-by-connection-id
+      security:
+      - managementToken:
+        - delete:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      - name: connection_id
+        in: path
+        required: true
+        description: 'Connection ID; a malformed one is 400 `invalid_uri`.'
+        schema: {type: string}
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+  /api/v2/organizations/{id}/connections:
+    get:
+      operationId: ListOrganizationAllConnections
+      summary: List an organization's connections (Early Access upstream; same links as enabled_connections)
+      tags:
+      - organizations
+      x-release-lifecycle: EA
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organization-connections
+      security:
+      - managementToken:
+        - read:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      - name: page
+        in: query
+        description: 'Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).'
+        schema: {type: integer}
+      - name: per_page
+        in: query
+        description: 'Number of results per page, 1 to 100 (default 50).'
+        schema: {type: integer}
+      - name: include_totals
+        in: query
+        description: 'Return an object with the list and `start`, `limit` and `total` instead of a bare array.'
+        schema: {type: boolean}
+      - name: is_enabled
+        in: query
+        description: 'Only enabled (true) or disabled (false) connections; every stored connection is enabled.'
+        schema: {type: boolean}
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/OrganizationConnection'
+                - $ref: '#/components/schemas/OrganizationConnectionsPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+    post:
+      operationId: CreateOrganizationAllConnection
+      summary: Add a connection to an organization (Early Access upstream)
+      tags:
+      - organizations
+      x-release-lifecycle: EA
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/post-organization-connection
+      security:
+      - managementToken:
+        - create:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationConnectionCreate'
+      responses:
+        '201':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+  /api/v2/organizations/{id}/connections/{connection_id}:
+    get:
+      operationId: GetOrganizationAllConnection
+      summary: Get an organization connection (Early Access upstream)
+      tags:
+      - organizations
+      x-release-lifecycle: EA
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organization-connection
+      security:
+      - managementToken:
+        - read:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      - name: connection_id
+        in: path
+        required: true
+        description: 'Connection ID; a malformed one is 400 `invalid_uri`.'
+        schema: {type: string}
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+    patch:
+      operationId: UpdateOrganizationAllConnection
+      summary: Update an organization connection (Early Access upstream)
+      tags:
+      - organizations
+      x-release-lifecycle: EA
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/patch-organization-connection
+      security:
+      - managementToken:
+        - update:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      - name: connection_id
+        in: path
+        required: true
+        description: 'Connection ID; a malformed one is 400 `invalid_uri`.'
+        schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationConnectionUpdate'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+    delete:
+      operationId: DeleteOrganizationAllConnection
+      summary: Remove a connection from an organization (Early Access upstream)
+      tags:
+      - organizations
+      x-release-lifecycle: EA
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/delete-organization-connection
+      security:
+      - managementToken:
+        - delete:organization_connections
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      - name: connection_id
+        in: path
+        required: true
+        description: 'Connection ID; a malformed one is 400 `invalid_uri`.'
+        schema: {type: string}
+      responses:
+        '204':
+          description: Operation completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
+  /api/v2/organizations/{id}/client-grants:
+    get:
+      operationId: ListOrganizationClientGrants
+      summary: List an organization's client grants (always empty until organization grants exist)
+      tags:
+      - organizations
+      x-source:
+      - https://auth0.com/docs/api/management/v2/organizations/get-organization-client-grants
+      security:
+      - managementToken:
+        - read:organization_client_grants
+      - operatorToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: 'Organization ID, `org_` and 16 letters or digits; another shape is 400 `invalid_uri`.'
+        schema: {type: string}
+      - name: page
+        in: query
+        description: 'Page index of the results, from 0; more than 1000 is refused (`invalid_paging`).'
+        schema: {type: integer}
+      - name: per_page
+        in: query
+        description: 'Number of results per page, 1 to 100 (default 50).'
+        schema: {type: integer}
+      - name: include_totals
+        in: query
+        description: 'Return an object with the list and `start`, `limit` and `total` instead of a bare array.'
+        schema: {type: boolean}
+      - name: audience
+        in: query
+        description: 'Only grants for this API identifier.'
+        schema: {type: string}
+      - name: client_id
+        in: query
+        description: 'Only grants of this client.'
+        schema: {type: string}
+      - name: grant_ids
+        in: query
+        description: 'Only these grant IDs (at most 10).'
+        schema:
+          type: array
+          items: {type: string}
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/OrganizationClientGrant'
+                - $ref: '#/components/schemas/OrganizationClientGrantsPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '501':
+          $ref: '#/components/responses/OrganizationsUnavailable'
 components:
   securitySchemes:
     managementToken:
@@ -5707,6 +6444,367 @@ components:
       description: Whether `fields` lists the fields to include (true) or to leave out (false).
       schema: {type: boolean, default: true}
   schemas:
+    Organization:
+      type: object
+      additionalProperties: false
+      description: An organization. `branding` and `metadata` are left out when unset; reads never carry `enabled_connections`.
+      properties:
+        id:
+          type: string
+          description: '`org_` and 16 letters or digits.'
+        name:
+          type: string
+        display_name:
+          type: string
+        branding:
+          $ref: '#/components/schemas/OrganizationBranding'
+        metadata:
+          $ref: '#/components/schemas/OrganizationMetadata'
+        third_party_client_access:
+          type: string
+          description: '`block` (default) or `allow`.'
+        is_app_entitlement_active:
+          type: boolean
+          description: Always false (D-0055).
+      required: [id, name, display_name, third_party_client_access, is_app_entitlement_active]
+    OrganizationCreated:
+      type: object
+      additionalProperties: false
+      description: The create response, which alone echoes the enabled connections.
+      properties:
+        id:
+          type: string
+          description: '`org_` and 16 letters or digits.'
+        name:
+          type: string
+        display_name:
+          type: string
+        branding:
+          $ref: '#/components/schemas/OrganizationBranding'
+        metadata:
+          $ref: '#/components/schemas/OrganizationMetadata'
+        third_party_client_access:
+          type: string
+          description: '`block` (default) or `allow`.'
+        is_app_entitlement_active:
+          type: boolean
+          description: Always false (D-0055).
+        enabled_connections:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationEnabledConnection'
+      required: [id, name, display_name, third_party_client_access, is_app_entitlement_active]
+    OrganizationBranding:
+      type: object
+      additionalProperties: false
+      properties:
+        logo_url: {type: string}
+        colors:
+          $ref: '#/components/schemas/OrganizationColors'
+    OrganizationBrandingWrite:
+      type: object
+      nullable: true
+      additionalProperties: false
+      description: Replaced whole on PATCH; null or {} clears it.
+      properties:
+        logo_url:
+          type: string
+          nullable: true
+          description: An https URL.
+        colors:
+          $ref: '#/components/schemas/OrganizationColors'
+    OrganizationColors:
+      type: object
+      additionalProperties: false
+      properties:
+        primary:
+          type: string
+          description: HTML hex color.
+        page_background:
+          type: string
+          description: HTML hex color.
+      required: [primary, page_background]
+    OrganizationMetadata:
+      type: object
+      additionalProperties: {type: string}
+    OrganizationMetadataWrite:
+      type: object
+      nullable: true
+      maxProperties: 25
+      description: Replaced whole on PATCH; null or {} clears it. Keys 1-50 characters matching `^[a-zA-Z0-9]\w*$`; values non-empty strings of at most 255 characters.
+      additionalProperties:
+        type: string
+        minLength: 1
+        maxLength: 255
+    OrganizationCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: '^[a-z0-9][a-z0-9_-]*$'
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Defaults to `name` on create.
+        branding:
+          $ref: '#/components/schemas/OrganizationBrandingWrite'
+        metadata:
+          $ref: '#/components/schemas/OrganizationMetadataWrite'
+        third_party_client_access:
+          type: string
+          description: '`block` (default) or `allow`.'
+        is_app_entitlement_active:
+          type: boolean
+          description: Only false is accepted (D-0055).
+        enabled_connections:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/OrganizationEnabledConnectionCreate'
+      required: [name]
+    OrganizationUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: '^[a-z0-9][a-z0-9_-]*$'
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Defaults to `name` on create.
+        branding:
+          $ref: '#/components/schemas/OrganizationBrandingWrite'
+        metadata:
+          $ref: '#/components/schemas/OrganizationMetadataWrite'
+        third_party_client_access:
+          type: string
+          description: '`block` (default) or `allow`.'
+        is_app_entitlement_active:
+          type: boolean
+          description: Only false is accepted (D-0055).
+    OrganizationsPage:
+      type: object
+      additionalProperties: false
+      description: Organizations with `include_totals=true`.
+      properties:
+        start: {type: integer}
+        limit: {type: integer}
+        total: {type: integer}
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organization'
+      required: [start, limit, total, organizations]
+    OrganizationsCheckpoint:
+      type: object
+      additionalProperties: false
+      description: A checkpoint page; `next` is present while more remain.
+      properties:
+        organizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organization'
+        next: {type: string}
+      required: [organizations]
+    OrganizationConnectionSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        strategy: {type: string}
+      required: [name, strategy]
+    OrganizationEnabledConnection:
+      type: object
+      additionalProperties: false
+      properties:
+        connection_id: {type: string}
+        assign_membership_on_login:
+          type: boolean
+          description: Members are added when they log in through this connection (default false).
+        is_signup_enabled:
+          type: boolean
+          description: Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+        show_as_button:
+          type: boolean
+          description: Offer the connection as a button; only enterprise connections can be hidden (default true).
+        connection:
+          $ref: '#/components/schemas/OrganizationConnectionSummary'
+      required: [connection_id, assign_membership_on_login, is_signup_enabled, show_as_button, connection]
+    OrganizationEnabledConnectionCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        connection_id: {type: string}
+        assign_membership_on_login:
+          type: boolean
+          description: Members are added when they log in through this connection (default false).
+        is_signup_enabled:
+          type: boolean
+          description: Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+        show_as_button:
+          type: boolean
+          description: Offer the connection as a button; only enterprise connections can be hidden (default true).
+      required: [connection_id]
+    OrganizationEnabledConnectionUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        assign_membership_on_login:
+          type: boolean
+          description: Members are added when they log in through this connection (default false).
+        is_signup_enabled:
+          type: boolean
+          description: Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+        show_as_button:
+          type: boolean
+          description: Offer the connection as a button; only enterprise connections can be hidden (default true).
+    OrganizationEnabledConnectionsPage:
+      type: object
+      additionalProperties: false
+      description: Enabled connections with `include_totals=true`; `limit` is the number of entries returned.
+      properties:
+        start: {type: integer}
+        limit: {type: integer}
+        total: {type: integer}
+        enabled_connections:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationEnabledConnection'
+      required: [start, limit, total, enabled_connections]
+    OrganizationConnection:
+      type: object
+      additionalProperties: false
+      description: An organization connection of the Early Access resource; the same link as an enabled connection.
+      properties:
+        connection_id: {type: string}
+        assign_membership_on_login:
+          type: boolean
+          description: Members are added when they log in through this connection (default false).
+        is_signup_enabled:
+          type: boolean
+          description: Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+        show_as_button:
+          type: boolean
+          description: Offer the connection as a button; only enterprise connections can be hidden (default true).
+        connection:
+          $ref: '#/components/schemas/OrganizationConnectionSummary'
+        is_enabled:
+          type: boolean
+          description: Always true; disabled organization connections are not supported (D-0055).
+        organization_access_level:
+          type: string
+          description: Always `none`, the observed default; other values are refused (D-0055).
+        organization_member_access_level:
+          type: string
+          description: Always `limited`, the observed default; other values are refused (D-0055).
+      required: [connection_id, assign_membership_on_login, is_signup_enabled, show_as_button, connection, is_enabled, organization_access_level, organization_member_access_level]
+    OrganizationConnectionCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        connection_id: {type: string}
+        assign_membership_on_login:
+          type: boolean
+          description: Members are added when they log in through this connection (default false).
+        is_signup_enabled:
+          type: boolean
+          description: Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+        show_as_button:
+          type: boolean
+          description: Offer the connection as a button; only enterprise connections can be hidden (default true).
+        is_enabled:
+          type: boolean
+          description: Only true is accepted (D-0055).
+        organization_connection_name:
+          type: string
+          nullable: true
+          description: Only null is accepted (D-0055).
+        organization_access_level:
+          type: string
+          nullable: true
+          description: Only `none` (or null) is accepted (D-0055).
+        organization_member_access_level:
+          type: string
+          nullable: true
+          description: Only `limited` (or null) is accepted (D-0055).
+      required: [connection_id]
+    OrganizationConnectionUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        assign_membership_on_login:
+          type: boolean
+          description: Members are added when they log in through this connection (default false).
+        is_signup_enabled:
+          type: boolean
+          description: Signup through the organization; database connections only, and only with `assign_membership_on_login` (default false).
+        show_as_button:
+          type: boolean
+          description: Offer the connection as a button; only enterprise connections can be hidden (default true).
+        is_enabled:
+          type: boolean
+          description: Only true is accepted (D-0055).
+        organization_connection_name:
+          type: string
+          nullable: true
+          description: Only null is accepted (D-0055).
+        organization_access_level:
+          type: string
+          nullable: true
+          description: Only `none` (or null) is accepted (D-0055).
+        organization_member_access_level:
+          type: string
+          nullable: true
+          description: Only `limited` (or null) is accepted (D-0055).
+    OrganizationConnectionsPage:
+      type: object
+      additionalProperties: false
+      description: Organization connections with `include_totals=true`; `limit` is the number of entries returned.
+      properties:
+        start: {type: integer}
+        limit: {type: integer}
+        total: {type: integer}
+        connections:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationConnection'
+      required: [start, limit, total, connections]
+    OrganizationClientGrant:
+      type: object
+      additionalProperties: false
+      properties:
+        id: {type: string}
+        client_id: {type: string}
+        audience: {type: string}
+        scope:
+          type: array
+          items: {type: string}
+        organization_usage:
+          type: string
+          description: '`deny`, `allow` or `require`.'
+        allow_any_organization: {type: boolean}
+    OrganizationClientGrantsPage:
+      type: object
+      additionalProperties: false
+      description: Organization client grants with `include_totals=true`; always empty (D-0055).
+      properties:
+        start: {type: integer}
+        limit: {type: integer}
+        total: {type: integer}
+        client_grants:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationClientGrant'
+      required: [start, limit, total, client_grants]
     ActionTrigger:
       type: object
       additionalProperties: false
@@ -9656,6 +10754,11 @@ components:
       required: [actions, total, page, per_page]
 
   responses:
+    OrganizationsUnavailable:
+      description: The storage plugin lacks the Organizations capability (`organizations_unavailable`).
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/ManagementError"}
     BadRequest:
       description: The request is invalid (`invalid_body`, `invalid_query_string`).
       content:

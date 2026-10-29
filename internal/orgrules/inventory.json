@@ -482,6 +482,151 @@
     },
     {
       "method": "GET",
+      "path": "/api/v2/organizations/{id}/connections",
+      "required_scopes": [
+        "read:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "query page,per_page,include_totals,is_enabled",
+      "response_shape": "entries[] | {connections,start,limit,total}; entry {connection_id,assign_membership_on_login,is_signup_enabled,show_as_button,connection{name,strategy},is_enabled:true,organization_access_level:none,organization_member_access_level:limited}; access levels not stored (D-0055); same links as enabled_connections",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 page<=1000, per_page 1-100 (default 50), take 1-100 (default 50)"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-connections",
+      "evidence": "observed",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/organizations/{id}/connections",
+      "required_scopes": [
+        "create:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "{connection_id,assign_membership_on_login?,is_signup_enabled?,show_as_button?,is_enabled?:true,organization_access_level?:none,organization_member_access_level?:limited,organization_connection_name?:null}; other values and unknown properties 400",
+      "response_shape": "entry; 409 when already enabled through either resource",
+      "pagination": "none",
+      "success_status": 201,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        429
+      ],
+      "limits": [
+        "D-0055 enabled_connections_per_organization_max 50"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-organization-connection",
+      "evidence": "observed",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/connections/{connection_id}",
+      "required_scopes": [
+        "read:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "entry",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-connection",
+      "evidence": "observed",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v2/organizations/{id}/connections/{connection_id}",
+      "required_scopes": [
+        "update:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "{assign_membership_on_login?,is_signup_enabled?,show_as_button?,is_enabled?:true,organization_access_level?:none,organization_member_access_level?:limited,organization_connection_name?:null}; {} returns entry unchanged",
+      "response_shape": "entry",
+      "pagination": "none",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/patch-organization-connection",
+      "evidence": "observed",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v2/organizations/{id}/connections/{connection_id}",
+      "required_scopes": [
+        "delete:organization_connections"
+      ],
+      "scope_match": "all",
+      "request_shape": "none",
+      "response_shape": "empty",
+      "pagination": "none",
+      "success_status": 204,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/delete-organization-connection",
+      "evidence": "observed",
+      "lifecycle": "EA"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/organizations/{id}/client-grants",
+      "required_scopes": [
+        "read:organization_client_grants"
+      ],
+      "scope_match": "all",
+      "request_shape": "query page,per_page,include_totals,audience,client_id,grant_ids(<=10)",
+      "response_shape": "[] | {client_grants:[],start,limit:0,total:0}; always empty until Plan 30 (D-0055)",
+      "pagination": "offset",
+      "success_status": 200,
+      "error_statuses": [
+        400,
+        401,
+        403,
+        404,
+        429
+      ],
+      "limits": [
+        "D-0055 page<=1000, per_page 1-100 (default 50), take 1-100 (default 50)"
+      ],
+      "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-client-grants",
+      "evidence": "documented",
+      "lifecycle": "GA"
+    },
+    {
+      "method": "GET",
       "path": "/api/v2/users/{id}/organizations",
       "required_scopes": [
         "read:users",
@@ -572,11 +717,6 @@
       "name": "is_app_entitlement_active",
       "plan": "30",
       "source": "https://auth0.com/docs/api/management/v2/organizations/post-organizations"
-    },
-    {
-      "name": "organization_connections_ea",
-      "plan": "30",
-      "source": "https://auth0.com/docs/api/management/v2/organizations/get-organization-connections"
     },
     {
       "name": "my_organization_api",
@@ -1109,8 +1249,8 @@
       },
       {
         "name": "connections_alias_ruling",
-        "value": "/organizations/{id}/connections is Early Access in the public reference (OAS x-release-lifecycle EA; guide says the new organization connection endpoints are EA), not a documented GA alias; deferred to Plan 30",
-        "evidence": "documented",
+        "value": "/organizations/{id}/connections is Early Access in the public reference (OAS x-release-lifecycle EA; guide says the new organization connection endpoints are EA), not a documented GA alias. Task 5 ruling: served in Plan 29 for the Deploy CLI 9.1.0, from the same links as enabled_connections; is_enabled and the access levels are fixed at the observed defaults and not stored",
+        "evidence": "local-decision",
         "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-connections",
         "decision": "D-0055"
       },
@@ -1131,6 +1271,13 @@
         "name": "par_binding",
         "value": "a pushed request binds organization; request_uri cannot add or override it; the code records the organization ID",
         "evidence": "local-decision",
+        "decision": "D-0055"
+      },
+      {
+        "name": "organization_client_grants_read",
+        "value": "GET /organizations/{id}/client-grants (read:organization_client_grants) returns an empty list in the documented offset shape until Plan 30 adds organization client grants; POST and DELETE stay deferred",
+        "evidence": "local-decision",
+        "source_url": "https://auth0.com/docs/api/management/v2/organizations/get-organization-client-grants",
         "decision": "D-0055"
       }
     ],
@@ -1154,7 +1301,7 @@
           "src/management/api/resources/organizations/resources/{enabledConnections,connections,members,members/resources/roles,members/resources/effectiveRoles,roles/resources/members}/client/Client.ts",
           "src/management/api/types/types.ts"
         ],
-        "exposes": "organizations list/create/get/getByName/update/delete/search; enabledConnections list/add/get/update/delete; connections list/create/get/update/delete (EA, deferred); members list/create/delete; members.roles list/assign/delete; members.effectiveRoles list (checkpoint, sources); roles.members list (checkpoint); plus Plan 30/38 resources (invitations, clientGrants, clients, discoveryDomains, groups)."
+        "exposes": "organizations list/create/get/getByName/update/delete/search; enabledConnections list/add/get/update/delete; connections list/create/get/update/delete (EA, served from the enabled_connections links); members list/create/delete; members.roles list/assign/delete; members.effectiveRoles list (checkpoint, sources); roles.members list (checkpoint); plus Plan 30/38 resources (invitations, clientGrants, clients, discoveryDomains, groups)."
       },
       {
         "name": "auth0-deploy-cli",
@@ -1165,7 +1312,7 @@
           "src/context/yaml/handlers/organizations.ts",
           "src/context/directory/handlers/organizations.ts"
         ],
-        "exposes": "organizations with name, display_name, branding, metadata, connections, client_grants, token_quota, discovery_domains, clients. Connections go through the EA /organizations/{id}/connections resource; export also lists organization client grants unconditionally and treats 404/501 as no organizations. No members or member roles."
+        "exposes": "organizations with name, display_name, branding, metadata, connections, client_grants, token_quota, discovery_domains, clients. Connections go through the EA /organizations/{id}/connections resource and export lists organization client grants unconditionally (both served in Plan 29 by the Task 5 ruling); a 404/501 empties the organizations export. No members or member roles."
       }
     ]
   }

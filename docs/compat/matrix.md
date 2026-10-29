@@ -115,11 +115,15 @@ group/organization-role and effective-role APIs remain deferred. See the
 for full SQL/race/conformance results and unavailable live evidence.
 
 Plan 29 contracts frozen (2026-10-28), not yet implemented: the Organizations
-I inventory has 20 Management operations, the client and tenant
+I inventory has 26 Management operations, the client and tenant
 organization fields, limits and the spec §2 items 1–10 with their observation
 status. See `internal/orgrules/inventory.json`,
-[observation notes](observations/organizations.md) and D-0055. The upstream
-routes `/organizations/{id}/connections` (Early Access), invitations, client
-grants, discovery domains, search and groups are deferred. A `require`
-client can never hold the password, password-realm or device grants
-(400 at configuration, as observed).
+[observation notes](observations/organizations.md) and D-0055. By the Task 5
+ruling, two reads that the Deploy CLI 9.1.0 needs are in Plan 29: the Early
+Access `/organizations/{id}/connections` (list, create, get, update, delete;
+the same links as `enabled_connections`, with the access levels at their
+observed defaults and not stored) and a read-only, always empty
+`GET /organizations/{id}/client-grants`. Invitations, organization
+client-grant writes, discovery domains, search and groups are deferred. A
+`require` client can never hold the password, password-realm or device
+grants (400 at configuration, as observed).

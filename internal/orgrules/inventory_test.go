@@ -36,6 +36,14 @@ func TestOrganizationsInventory(t *testing.T) {
 		"PATCH /api/v2/organizations/{id}/enabled_connections/{connection_id}":  {[]string{"update:organization_connections"}, "all", nil, 200, "none"},
 		"DELETE /api/v2/organizations/{id}/enabled_connections/{connection_id}": {[]string{"delete:organization_connections"}, "all", nil, 204, "none"},
 		"GET /api/v2/users/{id}/organizations":                                  {[]string{"read:users", "read:organizations"}, "any", nil, 200, "offset+checkpoint"},
+		// Task 5 ruling: the Early Access /connections and the read-only
+		// client-grant list, which the Deploy CLI needs.
+		"GET /api/v2/organizations/{id}/connections":                    {[]string{"read:organization_connections"}, "all", nil, 200, "offset"},
+		"POST /api/v2/organizations/{id}/connections":                   {[]string{"create:organization_connections"}, "all", nil, 201, "none"},
+		"GET /api/v2/organizations/{id}/connections/{connection_id}":    {[]string{"read:organization_connections"}, "all", nil, 200, "none"},
+		"PATCH /api/v2/organizations/{id}/connections/{connection_id}":  {[]string{"update:organization_connections"}, "all", nil, 200, "none"},
+		"DELETE /api/v2/organizations/{id}/connections/{connection_id}": {[]string{"delete:organization_connections"}, "all", nil, 204, "none"},
+		"GET /api/v2/organizations/{id}/client-grants":                  {[]string{"read:organization_client_grants"}, "all", nil, 200, "offset"},
 	}
 	ops := Inventory()
 	if len(ops) != len(want) {
@@ -66,8 +74,9 @@ func TestOrganizationsInventory(t *testing.T) {
 		if op.Lifecycle != "GA" && op.Lifecycle != "EA" {
 			t.Errorf("%s lifecycle=%q", key, op.Lifecycle)
 		}
-		if strings.Contains(op.Path, "/connections") && !strings.Contains(op.Path, "/enabled_connections") {
-			t.Errorf("%s: /connections is deferred, not a Plan 29 operation", key)
+		// /connections is Early Access upstream; everything else here is GA.
+		if ea := strings.Contains(op.Path, "/connections") && !strings.Contains(op.Path, "/enabled_connections") || strings.Contains(op.Path, "/roles/{role_id}/members"); ea != (op.Lifecycle == "EA") {
+			t.Errorf("%s lifecycle=%s", key, op.Lifecycle)
 		}
 	}
 	if len(want) != 0 {
@@ -116,7 +125,6 @@ func TestOrganizationsInventory(t *testing.T) {
 		"organization_groups":              "38",
 		"token_quota":                      "35",
 		"is_app_entitlement_active":        "30",
-		"organization_connections_ea":      "30",
 		"my_organization_api":              "42",
 		"saml_wsfed_organization_login":    "37",
 		"change_password_organization":     "30",
@@ -227,7 +235,7 @@ func TestOrganizationsInventory(t *testing.T) {
 		"enabled_connection_delete", "require_grant_conflict", "pre_login_prompt_usage",
 		"post_login_prompt_oidc", "discovery_methods_rule", "authorize_errors", "empty_organization_param",
 		"connection_not_enabled", "client_credentials_organization", "connections_alias_ruling",
-		"member_order", "picker", "par_binding",
+		"member_order", "picker", "par_binding", "organization_client_grants_read",
 	} {
 		if !rules[name] {
 			t.Errorf("missing rule %s", name)

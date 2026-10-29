@@ -1357,7 +1357,7 @@ runtime behavior. Where an observation contradicts a spec default or the
 public schema, the observation wins (strict parity) and the spec was
 corrected.
 
-**Operations (20).** Organizations CRUD and lookup by name; members; member
+**Operations (20; 26 with the Task 5 addition at the end of this section).** Organizations CRUD and lookup by name; members; member
 roles; effective roles; role members; enabled connections;
 `GET /users/{id}/organizations`. Scopes follow the public reference:
 
@@ -1511,7 +1511,8 @@ managing organization connections through the new endpoints and attributes
 is Early Access. The reference page does not call it an alias. The observer
 found it shares state with `enabled_connections` and adds `is_enabled`,
 `organization_access_level` and `organization_member_access_level`. It is
-deferred to Plan 30 (`organization_connections_ea`).
+deferred to Plan 30 (`organization_connections_ea`). Superseded by the Task 5
+addition at the end of this section.
 
 **Deferred** (with target plan in the inventory):
 
@@ -1556,3 +1557,40 @@ deferred to Plan 30 (`organization_connections_ea`).
 - member listings are ordered by `user_id`;
 - the plugin capability is v1 with 501 fallbacks;
 - operators can never leave the system tenant unmanageable (409).
+
+**Addition (Task 5, maintainer ruling): `/connections` and organization
+client grants for the Deploy CLI.** The pinned Deploy CLI 9.1.0 organization
+handler exports nothing without these two reads, so Plan 29 serves them.
+This supersedes the `/connections` deferral above; the POST and DELETE of
+organization client grants stay deferred to Plan 30.
+
+- `/organizations/{id}/connections` (list, POST, get, PATCH, DELETE) is
+  Early Access upstream and is marked so in the inventory and the OpenAPI
+  document. It uses the `*:organization_connections` scopes and is served
+  from the same links as `enabled_connections`, so a link made through one
+  resource is visible, and conflicts (409), through the other (observed).
+  - Entries are the enabled-connection entry plus `is_enabled` (`true`),
+    `organization_access_level` (`none`) and
+    `organization_member_access_level` (`limited`). These are the values the
+    observer saw. The observation does not pin the other values or what they
+    mean, so they are **not stored** (local).
+  - Writes may send `is_enabled: true`, the two default access levels (or
+    null), and `organization_connection_name: null`. Any other value is 400
+    `invalid_body`, citing D-0055 (local). Unknown properties are 400.
+  - Lists accept `page`, `per_page`, `include_totals` and `is_enabled`
+    (`false` gives an empty list). With totals the shape is
+    `{connections,start,limit,total}`.
+  - Flag rules, 404s and DELETE behave as on `enabled_connections`
+    (local where unobserved).
+- `GET /organizations/{id}/client-grants` needs
+  `read:organization_client_grants` (public reference). It accepts `page`,
+  `per_page`, `include_totals`, `audience`, `client_id` and up to 10
+  `grant_ids`. It always returns an empty list (`[]`, or
+  `{client_grants:[],start,limit:0,total:0}`), because organization client
+  grants cannot exist until Plan 30 (local). Unknown and malformed
+  organizations are 404 and 400 `invalid_uri`.
+- Connection lists with totals report `limit` as the number of entries
+  returned. This matches the observed `limit: 0` for an empty list; other
+  pages were not observed (local).
+- A storage plugin without the capability makes every organization route
+  `501 organizations_unavailable` (local error code).
