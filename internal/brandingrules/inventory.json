@@ -688,6 +688,7 @@
     "email-otp-challenge",
     "redeem-ticket",
     "organization-selection",
+    "organization-picker",
     "pre-login-organization-picker",
     "accept-invitation",
     "login-passwordless-email-code",

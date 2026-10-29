@@ -407,6 +407,11 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 func (h *Handlers) deny(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, e *Error) {
 	if access.ShowErrorPage(client) {
 		view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
+		if req.OrgID != "" {
+			if org, err := h.Store.Organizations().Get(r.Context(), res.Tenant.ID, req.OrgID); err == nil {
+				view = ui.WithOrganization(view, org)
+			}
+		}
 		if e.Code == "server_error" {
 			renderPageError(w, view, e)
 			return

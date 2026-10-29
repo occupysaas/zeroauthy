@@ -140,7 +140,7 @@ func (h *Handlers) loadTxn(r *http.Request, state string) (*flow, error) {
 	if err != nil {
 		return f, err
 	}
-	f.view.Organization = f.org.Org
+	f.view = ui.WithOrganization(f.view, f.org.Org)
 	if f.org.Org != nil && txn.Params["connection"] != "" {
 		conn, e := h.Store.Connections().GetByName(ctx, res.Tenant.ID, txn.Params["connection"])
 		if errors.Is(e, store.ErrNotFound) {

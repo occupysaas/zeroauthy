@@ -183,6 +183,16 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}
 	}
+	// Resolve only the bound ID; caller-provided snapshots cannot select a
+	// different organization. The input is sealed unchanged on suspension.
+	in.Organization = nil
+	if in.OrganizationID != "" {
+		org, err := e.Store.Organizations().Get(ctx, tenantID, in.OrganizationID)
+		if err != nil {
+			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
+		}
+		in.Organization = org
+	}
 	// event.transaction.id names this login; a redirect's sealed input keeps it.
 	if in.Transaction.ID == "" {
 		in.Transaction.ID = secrets.RandomString(24)

@@ -355,6 +355,9 @@ func Merge(current *store.HostedLoginConfig, resource string, body []byte) (*sto
 			return nil, errInvalid
 		}
 		for screen, keys := range screens {
+			if parts[0] == "organizations" && screen != "organization-selection" && screen != "organization-picker" {
+				return nil, errInvalid
+			}
 			if keys == nil || (!i18n.KnownScreen(parts[0], screen) && !documentedText.Screens[screen] && (!validPrompt(parts[0]) || screen != parts[0])) {
 				return nil, errInvalid
 			}

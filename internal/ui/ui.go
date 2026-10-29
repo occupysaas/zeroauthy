@@ -127,6 +127,26 @@ func RequestTenant(r *http.Request, t *store.Tenant, l *i18n.Localizer) Tenant {
 	return view
 }
 
+// WithOrganization applies only the organization's validated branding overrides.
+func WithOrganization(view Tenant, org *store.Organization) Tenant {
+	view.Organization = org
+	if org == nil {
+		return view
+	}
+	c := view.config
+	if c == nil {
+		c = &store.HostedLoginConfig{Branding: map[string]any{"logo_url": view.LogoURL, "colors": map[string]any{"primary": view.PrimaryColor}}}
+	}
+	theme, err := hostedlogin.ResolveTheme(c, hostedlogin.NewContext(org).Organization)
+	if err != nil {
+		return view
+	}
+	view.LogoURL, view.PrimaryColor = theme.LogoURL, theme.PrimaryColor
+	view.FaviconURL, view.FontURL, view.BackgroundImageURL = theme.FaviconURL, theme.FontURL, theme.BackgroundImageURL
+	view.ThemeCSS = template.CSS(theme.CSS())
+	return view
+}
+
 type LoginData struct {
 	State, CSRF, Login string
 	// Social are the federated connections offered as buttons; NoPassword
@@ -237,6 +257,7 @@ func customScheme(redirectURI string) string {
 }
 
 func render(w http.ResponseWriter, status int, name string, t Tenant, data any, formAction string) {
+	t = WithOrganization(t, t.Organization)
 	if t.L == nil {
 		t.L = i18n.Default()
 	}
@@ -286,9 +307,10 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 		if hasHead && hasHeadEnd && hasBody && hasBodyEnd {
 			prompt, screen := promptForPage(name)
 			out, err := (hostedlogin.Renderer{}).Render(ctx, hostedlogin.RenderInput{Source: *t.config.Template, Head: head, Widget: widget, Nonce: nonce, Variables: map[string]any{
-				"application": map[string]any{"name": t.L.ApplicationName()},
-				"tenant":      map[string]any{"name": t.Name, "support_email": t.SupportEmail, "support_url": t.SupportURL},
-				"prompt":      map[string]any{"name": prompt, "screen": map[string]any{"name": screen, "text": t.L.ScreenText(prompt, screen)}}, "locale": map[string]any{"language": t.L.Lang()},
+				"organization": hostedlogin.NewContext(t.Organization).Variables()["organization"],
+				"application":  map[string]any{"name": t.L.ApplicationName()},
+				"tenant":       map[string]any{"name": t.Name, "support_email": t.SupportEmail, "support_url": t.SupportURL},
+				"prompt":       map[string]any{"name": prompt, "screen": map[string]any{"name": screen, "text": t.L.ScreenText(prompt, screen)}}, "locale": map[string]any{"language": t.L.Lang()},
 				"branding":      map[string]any{"logo_url": t.LogoURL, "primary_color": t.PrimaryColor},
 				"custom_domain": customDomainVars(t.CustomDomain),
 			}})
@@ -308,7 +330,7 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 		}
 	}
 	setHeaders(w, nonce, "'none'", formAction)
-	if t.config != nil {
+	if t.config != nil || t.Organization != nil {
 		for _, asset := range []string{t.LogoURL, t.FaviconURL, t.BackgroundImageURL} {
 			if o := hostedlogin.AssetOrigin(asset); o != "" && !slices.Contains(imageOrigins, o) {
 				imageOrigins = append(imageOrigins, o)

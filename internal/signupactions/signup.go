@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"maps"
 	"net/http"
 
 	"github.com/zeroauthy/zeroauthy/internal/actions"
@@ -69,6 +70,24 @@ func Input(r *http.Request, res tenant.Resolved, client *store.Client, conn *sto
 // WithOrganization binds a hosted organization snapshot to the registration
 // input shared by synchronous and queued Actions.
 func WithOrganization(in actions.RegistrationInput, org *store.Organization) actions.RegistrationInput {
-	in.Organization = org
+	if org != nil {
+		snapshot := *org
+		snapshot.Metadata = maps.Clone(org.Metadata)
+		if org.Branding != nil {
+			branding := *org.Branding
+			if branding.LogoURL != nil {
+				logo := *branding.LogoURL
+				branding.LogoURL = &logo
+			}
+			if branding.Colors != nil {
+				colors := *branding.Colors
+				branding.Colors = &colors
+			}
+			snapshot.Branding = &branding
+		}
+		in.Organization = &snapshot
+	} else {
+		in.Organization = nil
+	}
 	return in
 }

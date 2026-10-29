@@ -544,3 +544,39 @@ func TestOrganizationPromptBeforeSignup(t *testing.T) {
 		t.Fatalf("signup hint lost: %d %s", rec.Code, u)
 	}
 }
+
+// Both the page template and the signup/login partial use the bound context,
+// never a separate query parameter or an individual tenant-only view.
+func TestOrganizationTemplates(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	org, _, _ := organizationFixture(t, e, store.OrgBehaviorNoPrompt, true, true)
+	org.Metadata = map[string]string{"tier": "gold"}
+	logo := "https://org-assets.test/logo.svg"
+	org.Branding = &store.OrgBranding{LogoURL: &logo, Colors: &store.OrgColors{Primary: "#abcdef", PageBackground: "#fedcba"}}
+	if err := e.st.Organizations().Update(ctx, org); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := e.st.HostedLogins().Get(ctx, org.TenantID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := `<html><head>{% auth0:head %}</head><body><p>Page {{organization.name}} {{organization.metadata.tier}}</p>{% auth0:widget %}</body></html>`
+	cfg.Template = &source
+	cfg.Partials = map[string]map[string]map[string]string{"login": {"login": {"form-footer-end": `<p>Partial {{organization.display_name}} {{organization.branding.colors.primary}}</p>`}}, "signup": {"signup": {"form-footer-end": `<p>Signup partial {{organization.id}}</p>`}}}
+	if err := e.st.HostedLogins().Put(ctx, cfg, cfg.Revision); err != nil {
+		t.Fatal(err)
+	}
+	b := e.browser("acme.example.test")
+	page, state, _ := b.begin(t, "organization", org.ID)
+	for _, want := range []string{"Page acme-org gold", "Partial Acme Organization #abcdef", logo} {
+		if !strings.Contains(page.Body.String(), want) {
+			t.Errorf("missing %s", want)
+		}
+	}
+
+	signup := b.do(t, "GET", "/u/signup?state="+url.QueryEscape(state), nil)
+	if signup.Code != 200 || !strings.Contains(signup.Body.String(), "Signup partial "+org.ID) || !strings.Contains(signup.Body.String(), "Page acme-org gold") {
+		t.Fatalf("signup org context missing: status=%d", signup.Code)
+	}
+}
