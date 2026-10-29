@@ -7,7 +7,7 @@
 
 ## 0. Where we are (2026-10-28)
 
-**Plans done:** 27. **In implementation:** Plan 28 (Actions II; design and plan approved, Tasks 1–7 committed on `plan-28-actions-ii`, Task 8 signup triggers under way). **Left in this roadmap:** 10 more (Plans 29–38), subject to splitting larger designs, then the follow-up plans 39–47 (§3a) that collect work deferred by earlier plans.
+**Plans done:** 28. **Next:** Plan 29 (Organizations I). **Left in this roadmap:** 10 more (Plans 29–38), subject to splitting larger designs, then the follow-up plans 39–47 (§3a) that collect work deferred by earlier plans.
 
 ### Done
 
@@ -28,6 +28,7 @@
 | 24–25 | Generic OAuth/OIDC, Google and Microsoft personal/work/school account connections |
 | 26 | Tenant roles/direct permissions, runtime RBAC, four token profiles, console and Deploy CLI role migration |
 | 27 | Actions I: post-login/credentials-exchange, npm builds, redirect/continue, Management API, console, seed and Deploy CLI; /userinfo custom claims deferred |
+| 28 | Actions II: signup, post-change-password, reset-page and custom-email triggers, durable job queue, Modules, console, seed and Deploy CLI; secrets isolated per tenant, not per module (D-0054) |
 
 ### Management API coverage by resource
 
@@ -81,7 +82,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 25 | Email-account sign-in: Microsoft personal and work/school; Google/Gmail/Workspace coverage | full (done) | 24 |
 | 26 | Roles and permissions (RBAC) | short (done) | 17 |
 | 27 | Actions I: runtime, post-login, credentials exchange, npm dependencies, the Actions API | full (done) | 26 |
-| 28 | Actions II: signup, password/reset, custom email and Modules | full (implemented; final review pending) | 27 |
+| 28 | Actions II: signup, password/reset, custom email and Modules | full (done) | 27 |
 | 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full | 26 |
 | 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |
 | 31 | Logs, log streams, stats | full | 19 |

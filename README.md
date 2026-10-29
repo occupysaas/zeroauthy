@@ -36,7 +36,7 @@ features below add. The Management API is being built resource by resource,
 each with its console screens; the full breakdown is in the
 [Management API roadmap](docs/superpowers/specs/2026-10-19-zeroauthy-management-roadmap-design.md).
 
-**Done** (Plans 1–27; Plan 28 in final verification)
+**Done** (Plans 1–28)
 
 - Core server, signing keys, discovery and JWKS, hosted login and signup,
   authorization code with PKCE, client credentials, password grants, rotating
@@ -70,10 +70,18 @@ each with its console screens; the full breakdown is in the
   domain-bound login and notification links, and console controls. See the
   [operator guide](docs/custom-domains.md) and [acceptance record](docs/superpowers/2026-10-26-plan-23-implementation-record.md).
 
+**Roles, connections and Actions (Plans 24–28)**
+
+- Generic OAuth/OIDC, Google and Microsoft connections; roles and permissions.
+- [Actions](docs/actions.md): login and credentials exchange, signup, password
+  reset/change and custom email triggers; immutable Modules, durable jobs,
+  console and migration tooling. Limits and verification are in the
+  [Plan 28 implementation record](docs/superpowers/2026-10-28-plan-28-implementation-record.md).
+
 **Later** (Plans 29–47)
 
-| Plans | Area |
-|---|---|
+| Plan | Area | Depth | Needs |
+|---|---|---|---|
 | 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full | 26 |
 | 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |
 | 31 | Logs, log streams, stats | full | 19 |
