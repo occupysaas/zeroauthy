@@ -1,7 +1,8 @@
 # Plan 28 implementation record
 
-Status: Tasks 1–13 implemented and acceptance verified; final scoped and
-whole-branch review pending. This record does not yet claim final approval. Branch `plan-28-actions-ii`, based on `f186364`.
+Status: Tasks 1–14 complete. Final whole-branch review done, one fix wave
+applied and re-reviewed; see "Final review disposition". Branch
+`plan-28-actions-ii`, based on `f186364`. Not merged or pushed.
 Tasks 1–9 were implemented before the final Tasks 10–14 session.
 
 ## Verification
@@ -77,7 +78,7 @@ The final review will re-grade these by effect on users.
 | Reset submit cannot bypass current bindings (Review Focus 2) | `TestResetPostChallenge/post_without_pass`; cookie/ticket/replay/result URL/unsupported cases |
 | Retry/drop and lease semantics (Review Focus 3) | `TestJobsRunOnce`, `TestJobsEmailRetry`, `TestJobsLeaseExpiry`, real `TestCustomEmailProvider` |
 | Pinned versions survive module deletion/publication (Review Focus 4) | module tombstone tests and `TestJobsModulesTombstone`; suspended parent/module deletion regression |
-| Module cannot read other secrets/tenant trees (Review Focus 5) | `TestModulesSecretsIsolation`, `TestModulesTenantIsolation`, dependency-root rejection |
+| Module cannot read other secrets/tenant trees (Review Focus 5) | **Partly not met** (see Final review disposition). The tenant boundary holds: `TestModulesTenantIsolation`, dependency-root rejection. Separating secrets inside a tenant is convention only: `TestModulesSecretsIsolation` covers the ordinary `actions.secrets` API, not adversarial host-realm escape |
 | Console stale replies, write-only secrets, module pin selection | Actions/Modules/email Vitest cases; delayed deletion success/412 regressions; 460-test offline gate |
 | Job execution attempt identity | retry/corrupt-envelope tests, three-driver execution JSON roundtrip, plugin codec and operator authorization tests |
 | CLI/SDK/browser/Deploy acceptance | Task 13 SDK/CLI/four-browser and four-cell Deploy lanes passed; historical module-version graph migration remains outside the demonstrated matrix |
@@ -131,3 +132,32 @@ operator's verified email precondition. One Actions II attempt stopped before
 tests on shared DNS port 8073; it is not a pass. The clean rerun waited for
 domain acceptance to finish. These results do not weaken production
 verification or bypass normal browser login/token issuance.
+
+## Final review disposition
+
+A whole-branch review of `f186364..377d809` returned "with fixes": 0 Critical,
+2 Important, 7 Minor. It triaged all 11 deferred minors above as non-blocking.
+Review Focus 1, 2 and 4 held. One fix wave (`377d809..9ca774f`) was re-reviewed
+in its own scope and approved with no new breakage.
+
+| Finding | Disposition |
+|---|---|
+| I-1 Multiple custom-email-provider bindings: a later failure retried past an earlier `drop`, and completed Actions re-ran (double send) | Fixed. Auth0's documented limit of one binding is enforced on API/seed/console/stores; `drop` is terminal; an attempt where an Action completed fails instead of retrying (D-0054 addendum) |
+| I-2 Module/Action VM contexts share host-realm objects, so code can read other Actions' and modules' secrets in the same tenant (Review Focus 5) | Not fixed; documented. Maintainer ruling 2026-10-28: tenant = trust domain, as long as no server environment and no cross-tenant access, both of which hold at the process level. `docs/actions.md` corrected; D-0054 isolation addendum; no follow-up plan |
+| M-1 Signup failed open when no engine was present | Fixed; fails closed like reset (pre-registration only; post-registration still enqueues nothing without an engine) |
+| M-2 Corrupt job envelope retried | Fixed; fails at once |
+| M-6 Console banner shown over a loaded execution | Fixed |
+| M-7 `update_draft` rollback failed with 400 on a tombstoned pin | Fixed; only the Action whose versions pin the tombstone may keep it |
+| M-3 Two clocks, M-4 cross-tenant purge transaction, M-5 module PATCH last-writer-wins | Deferred. No user-visible failure in normal operation; M-4 can contend for locks on large backlogs |
+
+Fix-wave verification (actual): race tests passed for `internal/actions`,
+actionsrules, login, mgmt, identity, dbconn, seed, store/memory and grpcstore
+(the first runs timed out at Go's 10-minute default and passed on rerun with
+`-timeout 60m`); console actions Vitest passed (38 tests) with lint/typecheck
+clean; `go build`, `go vet` and `make check-sources` passed, and
+`go generate ./...` was stable across two runs; SQL conformance passed on
+SQLite, PostgreSQL 17 and MySQL 8.4 (969s, ports 55532/53406 because the
+defaults were occupied). Commit `a6993df` fails one test on its own and is
+repaired by `f039260`; mind this when bisecting. The full e2e and conformance
+lanes were not rerun after the fix wave, so their results above apply to
+`377d809`.

@@ -10,7 +10,7 @@
 
 **Spec:** [Actions II design](../specs/2026-10-28-zeroauthy-actions-ii-design.md), built on the [Actions I design](../specs/2026-10-27-zeroauthy-actions-design.md). Read both; section references (§n) point to the Actions II design unless marked "P27".
 
-**Status:** Tasks 1–13 implemented, verified and reviewed. Task 14 final documentation and whole-branch review are in progress. See the [execution record](../2026-10-28-plan-28-implementation-record.md) for actual results and limitations.
+**Status:** Tasks 1–14 complete; final review done and its fix wave re-reviewed. Not merged. See the [execution record](../2026-10-28-plan-28-implementation-record.md) for actual results and limitations.
 
 ## Global Constraints
 
@@ -214,7 +214,7 @@ not retained in its handover report; resumption verified the committed behavior.
 
 **Files:** Create `docs/superpowers/2026-10-28-plan-28-implementation-record.md`; modify `docs/actions.md`, `docs/email.md`, `docs/compat/matrix.md`, roadmap (Plan 28 done; Plan 34 entry carries the SMS provider note from spec §1), config reference.
 
-- [ ] Document: each trigger's firing points, blocking vs non-blocking, job queue delivery semantics (at-least-once on lease expiry), retry schedule, reset-page challenge rules, custom email provider setup, modules (require, secrets, pinning, tombstones), limits, deferred triggers.
-- [ ] Run `go generate ./...` twice, `make check-sources`, `go vet ./...`, `ZA_REQUIRE_NODE=1 go test -race -timeout=50m ./...`, `./scripts/test-sql.sh -timeout=30m ./internal/store/sqlstore/...`, `make console`, `make e2e`, `make e2e-actions`, `make e2e-actions-ii`, `make e2e-rbac`, `make e2e-deploy`, `make e2e-email-accounts`, `make e2e-domains`, `tests/conformance/run.sh`. Record actual results, skips and unavailable services.
-- [ ] Final whole-branch review against Review Focus and spec coverage; fix with regression tests; rerun affected checks; append the disposition to the record.
-- [ ] Commit `docs: record Actions II behavior and verification evidence`. Hand off; do not merge or push.
+- [x] Document: each trigger's firing points, blocking vs non-blocking, job queue delivery semantics (at-least-once on lease expiry), retry schedule, reset-page challenge rules, custom email provider setup, modules (require, secrets, pinning, tombstones), limits, deferred triggers.
+- [x] Run `go generate ./...` twice, `make check-sources`, `go vet ./...`, `ZA_REQUIRE_NODE=1 go test -race -timeout=50m ./...`, `./scripts/test-sql.sh -timeout=30m ./internal/store/sqlstore/...`, `make console`, `make e2e`, `make e2e-actions`, `make e2e-actions-ii`, `make e2e-rbac`, `make e2e-deploy`, `make e2e-email-accounts`, `make e2e-domains`, `tests/conformance/run.sh`. Record actual results, skips and unavailable services.
+- [x] Final whole-branch review against Review Focus and spec coverage; fix with regression tests; rerun affected checks; append the disposition to the record.
+- [x] Commit `docs: record Actions II behavior and verification evidence`. Hand off; do not merge or push.

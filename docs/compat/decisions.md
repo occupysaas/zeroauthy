@@ -1325,3 +1325,19 @@ signup whose tenant has pre-user-registration bound fails closed, as the reset
 page does. Restoring an old Action version into the draft (`update_draft`)
 keeps that version's pins to deleted-module tombstones; only the Action whose
 versions pin a tombstone may keep it in its draft.
+
+Isolation addendum (2026-10-28). Review Focus 5 asked that module code be unable
+to read the importing Action's secrets or another module's secrets. The final
+review showed this does not hold. Per-version and per-module VM contexts share
+host-realm objects (`console`, `process`, `Buffer`, `require`, Node built-ins),
+and npm dependencies load through Node's own loader in the host realm. So code
+in a tenant's Actions process can read every Action and module secret of that
+tenant. The maintainer ruled on 2026-10-28 that the tenant is the trust domain.
+Separating secrets inside a tenant is documented as a convention, not a
+guarantee, and no follow-up plan is scheduled. The boundaries that still hold
+are enforced outside the VM. Each tenant has its own Node process with an empty
+environment (no server environment variables), Node `--permission` limits reads
+to the runner and the tenant's build root with no writes, child processes,
+workers, addons or WASI, signalling is locked, and unix-socket path connections
+are refused (D-0053). Whether Auth0 separates secrets between Actions and
+modules of one tenant was not observed.

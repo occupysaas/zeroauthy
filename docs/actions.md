@@ -405,12 +405,19 @@ module.exports.greet = name => `${actions.secrets.PREFIX} ${name}`;
 const greetings = require('actions:greetings');
 ```
 
-Each module has its own VM context, npm dependency tree and `actions.secrets`.
-It cannot require another `actions:*` module or read the importing Action's
-secrets. Known Action and module secrets are masked in captured logs. Module
-objects are evaluated once per importing Action version and module version;
-they are not shared across Actions. The tenant process remains the trust
-boundary described above.
+Each module has its own VM context, npm dependency tree and `actions.secrets`,
+and cannot require another `actions:*` module. The VM context separates
+secrets by convention only. It is not a security boundary. Action code,
+module code and npm dependencies of one tenant share that tenant's Node
+process, and code can reach the process's host realm (for example through
+`console`, `process`, `Buffer`, `require` or Node built-ins). From there it can
+read other Actions' and modules' secrets in the same tenant. Treat every
+Action, module and dependency in a tenant as one trust domain (D-0054). Known
+Action and module secrets are masked in captured logs. Module objects are
+evaluated once per importing Action version and module version; they are not
+shared across Actions. The tenant process remains the trust boundary described
+above: no server environment variables, no other tenant's processes, and file
+reads limited to the runner and that tenant's build root.
 
 Action references accept `{module_id, module_version_id}` or
 `{module_name, module_version_number}` and return both pairs. Deploy freezes
