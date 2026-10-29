@@ -1060,14 +1060,14 @@
       },
       {
         "name": "metadata_values",
-        "value": "values are non-empty strings of at most 255 characters; null, empty string and non-string values are 400 on create and PATCH (public schema allows null; observation wins)",
+        "value": "values are non-empty strings of at most 255 characters; null, empty string and non-string values are 400 on create and PATCH (public schema allows null; observation wins); null and empty values carry no errorCode, non-string values are invalid_body",
         "evidence": "observed",
         "source_url": "docs/compat/observations/organizations.md",
         "decision": "D-0055"
       },
       {
         "name": "metadata_keys",
-        "value": "at most 25 keys; key 1-50 characters matching ^[a-zA-Z0-9]\\w*$",
+        "value": "at most 25 keys; key 1-50 characters matching ^[a-zA-Z0-9]\\w*$; a key over 50 characters is 400 without errorCode, a pattern mismatch invalid_body",
         "evidence": "observed",
         "source_url": "docs/compat/observations/organizations.md",
         "decision": "D-0055"
@@ -1179,7 +1179,7 @@
       },
       {
         "name": "connection_flags",
-        "value": "assign_membership_on_login default false; is_signup_enabled default false, database only, requires assign_membership_on_login; show_as_button default true, false only on enterprise strategies (database 400); unknown connection 404 inexistent_connection; duplicate 409; camelCase or unknown properties 400",
+        "value": "assign_membership_on_login default false; is_signup_enabled default false, database only, requires assign_membership_on_login; show_as_button default true, false only on enterprise strategies (database 400); unknown connection 404 inexistent_connection; duplicate 409; camelCase or unknown properties 400; on enabled-connection PATCH the is_signup_enabled/assign_membership_on_login rule is 400 without errorCode (both directions), show_as_button invalid_body",
         "evidence": "observed",
         "source_url": "https://auth0.com/docs/api/management/v2/organizations/post-enabled-connections",
         "decision": "D-0055"

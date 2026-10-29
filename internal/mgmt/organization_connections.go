@@ -123,8 +123,10 @@ func orgConnectionView(c store.OrganizationConnection, conn *store.Connection, a
 
 // orgConnectionTarget loads the connection c enables (404
 // inexistent_connection) and checks c's flags against its strategy.
-// st is the store or transaction to read the connection from.
-func orgConnectionTarget(r *http.Request, st store.Store, c store.OrganizationConnection) (*store.Connection, error) {
+// st is the store or transaction to read the connection from. On a PATCH
+// the signup/assign rule is 400 without errorCode (observed in both
+// directions); the other flag rules stay invalid_body.
+func orgConnectionTarget(r *http.Request, st store.Store, c store.OrganizationConnection, patch bool) (*store.Connection, error) {
 	conn, err := st.Connections().Get(r.Context(), c.TenantID, c.ConnectionID)
 	if errors.Is(err, store.ErrNotFound) {
 		return nil, errConnectionNotFound
@@ -133,6 +135,11 @@ func orgConnectionTarget(r *http.Request, st store.Store, c store.OrganizationCo
 		return nil, err
 	}
 	if err := orgrules.ValidateConnection(conn.Strategy, c); err != nil {
+		buttonOK := c.ShowAsButton || orgrules.IsEnterprise(conn.Strategy)
+		signupOnly := conn.Strategy == store.StrategyDatabase && c.IsSignupEnabled && !c.AssignMembershipOnLogin
+		if patch && buttonOK && signupOnly {
+			return nil, plainBadRequest("%v", err)
+		}
 		return nil, badBody("%v", err)
 	}
 	return conn, nil
@@ -231,7 +238,7 @@ func (h *Handlers) createOrgConnection(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 	c.TenantID, c.OrganizationID = resolved(r).ID, id
-	conn, err := orgConnectionTarget(r, h.Store, c)
+	conn, err := orgConnectionTarget(r, h.Store, c, false)
 	if err != nil {
 		h.orgError(w, r, err)
 		return
@@ -303,7 +310,7 @@ func (h *Handlers) updateOrgConnection(w http.ResponseWriter, r *http.Request, i
 		if err := readConnectionFlags(raw, c, kind); err != nil {
 			return err
 		}
-		if conn, err = orgConnectionTarget(r, tx, *c); err != nil {
+		if conn, err = orgConnectionTarget(r, tx, *c, true); err != nil {
 			return err
 		}
 		if err := tx.Organizations().PutConnection(r.Context(), *c, false); err != nil {

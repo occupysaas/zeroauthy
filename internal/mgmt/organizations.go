@@ -3,9 +3,11 @@ package mgmt
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -21,6 +23,12 @@ var (
 	errOrganizationConflict = &Error{Status: http.StatusConflict, Message: "An organization with this name already exists"}
 	errOrganizationURI      = &Error{Status: http.StatusBadRequest, Code: "invalid_uri", Message: "Path validation error: the organization id is invalid"}
 )
+
+// plainBadRequest is a 400 without errorCode, for the validation failures
+// that were observed without one.
+func plainBadRequest(format string, args ...any) *Error {
+	return &Error{Status: http.StatusBadRequest, Message: "Payload validation error: " + fmt.Sprintf(format, args...)}
+}
 
 // orgs returns the store's organizations, or writes 501 when a storage
 // plugin lacks the capability.
@@ -203,7 +211,7 @@ func readOrgBody(r *http.Request, o *store.Organization, create bool) ([]store.O
 		}
 	} else if len(body) == 0 {
 		// Observed: an empty PATCH is 400 without errorCode.
-		return nil, false, &Error{Status: http.StatusBadRequest, Message: "Payload validation error: at least one property is required"}
+		return nil, false, plainBadRequest("at least one property is required")
 	}
 	var conns []store.OrganizationConnection
 	hasConns := false
@@ -307,9 +315,20 @@ func decodeOrgMetadata(raw json.RawMessage) (map[string]string, error) {
 	}
 	out := make(map[string]string, len(m))
 	for k, v := range m {
+		// Observed: a null or empty value and an over-long key are 400
+		// without errorCode; a non-string value is invalid_body.
+		if isNull(v) {
+			return nil, plainBadRequest("metadata value for %q must not be null", k)
+		}
 		var s string
 		if decodeString(v, &s) != nil {
 			return nil, badBody("metadata value for %q must be a string", k)
+		}
+		if s == "" {
+			return nil, plainBadRequest("metadata value for %q must not be empty", k)
+		}
+		if utf8.RuneCountInString(k) > orgrules.Limit("metadata_key_chars_max") {
+			return nil, plainBadRequest("metadata keys must have at most %d characters", orgrules.Limit("metadata_key_chars_max"))
 		}
 		out[k] = s
 	}
@@ -346,7 +365,7 @@ func (h *Handlers) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 		}
 		seen[conns[i].ConnectionID] = true
 		conns[i].TenantID, conns[i].OrganizationID = tid, o.ID
-		conn, err := orgConnectionTarget(r, h.Store, conns[i])
+		conn, err := orgConnectionTarget(r, h.Store, conns[i], false)
 		if err != nil {
 			h.orgError(w, r, err)
 			return

@@ -213,11 +213,8 @@ func TestOrganizationsContract(t *testing.T) {
 		"space":                    {"name": "a b"},
 		"51 characters":            {"name": strings.Repeat("a", 51)},
 		"26 metadata keys":         {"name": "x3", "metadata": meta(26)},
-		"null metadata value":      {"name": "x3", "metadata": map[string]any{"a": nil}},
-		"empty metadata value":     {"name": "x3", "metadata": map[string]any{"a": ""}},
 		"number metadata value":    {"name": "x3", "metadata": map[string]any{"a": 1}},
 		"256 char metadata value":  {"name": "x3", "metadata": map[string]any{"a": strings.Repeat("v", 256)}},
-		"51 char metadata key":     {"name": "x3", "metadata": map[string]any{strings.Repeat("k", 51): "v"}},
 		"bad metadata key":         {"name": "x3", "metadata": map[string]any{"a b": "v"}},
 		"one color":                {"name": "x4", "branding": map[string]any{"colors": map[string]any{"primary": "#000000"}}},
 		"empty colors":             {"name": "x4", "branding": map[string]any{"colors": map[string]any{}}},
@@ -242,6 +239,15 @@ func TestOrganizationsContract(t *testing.T) {
 		})
 	}
 	e.t = t
+	// Observed without errorCode.
+	for _, body := range []map[string]any{
+		{"name": "x3", "metadata": map[string]any{"a": nil}},
+		{"name": "x3", "metadata": map[string]any{"a": ""}},
+		{"name": "x3", "metadata": map[string]any{strings.Repeat("k", 51): "v"}},
+		{"name": "x3", "metadata": map[string]any{strings.Repeat("k", 256): "v"}},
+	} {
+		e.fail("POST", "/organizations", body, e.h.CreateOrganization, 400, "")
+	}
 	e.fail("POST", "/organizations", map[string]any{"name": "x7", "enabled_connections": []any{map[string]any{"connection_id": orgGhost}}}, e.h.CreateOrganization, 404, "inexistent_connection")
 	e.fail("POST", "/organizations", map[string]any{"name": "x7", "enabled_connections": []any{map[string]any{"connection_id": orgDB}, map[string]any{"connection_id": orgDB}}}, e.h.CreateOrganization, 409, "")
 	e.create(map[string]any{"name": "a", "display_name": strings.Repeat("d", 255), "metadata": meta(25)}, 201)
@@ -341,8 +347,10 @@ func TestOrganizationsContract(t *testing.T) {
 	}
 	e.fail("PATCH", "/organizations/"+fullID, map[string]any{}, e.patch(fullID), 400, "")
 	e.fail("PATCH", "/organizations/"+fullID, map[string]any{"name": "acme-co"}, e.patch(fullID), 409, "")
+	e.fail("PATCH", "/organizations/"+fullID, map[string]any{"metadata": map[string]any{"k": nil}}, e.patch(fullID), 400, "")
+	e.fail("PATCH", "/organizations/"+fullID, map[string]any{"metadata": map[string]any{"k": ""}}, e.patch(fullID), 400, "")
 	for _, body := range []map[string]any{
-		{"name": "Bad"}, {"display_name": ""}, {"display_name": strings.Repeat("d", 256)}, {"metadata": map[string]any{"k": nil}},
+		{"name": "Bad"}, {"display_name": ""}, {"display_name": strings.Repeat("d", 256)},
 		{"branding": map[string]any{"colors": map[string]any{"primary": "#000"}}}, {"enabled_connections": []any{}}, {"id": fullID},
 		{"is_app_entitlement_active": true}, {"metadata": meta(26)},
 	} {
@@ -398,10 +406,13 @@ func TestOrganizationsContract(t *testing.T) {
 		t.Fatalf("patch assign=%v", got)
 	}
 	patchConn(map[string]any{"is_signup_enabled": true}, 200)
-	patchConn(map[string]any{"assign_membership_on_login": false}, 400)
+	// Observed: the signup/assign rule on PATCH has no errorCode, in both
+	// directions; a hidden database button is invalid_body.
+	e.fail("PATCH", ec+"/"+orgDB2, map[string]any{"assign_membership_on_login": false}, e.conn("PATCH", fullID, orgDB2, false), 400, "")
 	patchConn(map[string]any{"is_signup_enabled": false, "assign_membership_on_login": false}, 200)
-	patchConn(map[string]any{"is_signup_enabled": true}, 400)
-	patchConn(map[string]any{"show_as_button": false}, 400)
+	e.fail("PATCH", ec+"/"+orgDB2, map[string]any{"is_signup_enabled": true}, e.conn("PATCH", fullID, orgDB2, false), 400, "")
+	e.fail("PATCH", ec+"/"+orgDB2, map[string]any{"show_as_button": false}, e.conn("PATCH", fullID, orgDB2, false), 400, "invalid_body")
+	e.fail("PATCH", ec+"/"+orgDB2, map[string]any{"show_as_button": false, "is_signup_enabled": true}, e.conn("PATCH", fullID, orgDB2, false), 400, "invalid_body")
 	patchConn(map[string]any{"show_as_button": true}, 200)
 	for _, body := range []map[string]any{{"connection_id": orgDB}, {"is_enabled": true}, {"show_as_button": "yes"}, {"showAsButton": true}} {
 		patchConn(body, 400)
