@@ -14,10 +14,10 @@ const never = () => ({ status: 500, body: {} })
 describe('PlannedPage slots', () => {
   it('shows slots and breadcrumb, hiding the placeholder', async () => {
     const page = defineComponent({
-      render: () => h(PlannedPage, { sectionKey: 'organizations' }, { default: () => h('p', 'preview body'), actions: () => h('button', { disabled: true }, 'Create user') }),
+      render: () => h(PlannedPage, { sectionKey: 'mfa' }, { default: () => h('p', 'preview body'), actions: () => h('button', { disabled: true }, 'Create user') }),
     })
-    const { wrapper } = await mountAt(page, '/t/acme/organizations', never)
-    expect(wrapper.text()).toContain('User management')
+    const { wrapper } = await mountAt(page, '/t/acme/mfa', never)
+    expect(wrapper.text()).toContain('Security')
     expect(wrapper.text()).toContain('Create user')
     expect(wrapper.text()).toContain('preview body')
     expect(wrapper.text()).not.toContain('This section is planned.')
@@ -59,7 +59,7 @@ describe('assertPreviewInert', () => {
 })
 
 it('keeps only sections that are still planned', () => {
-  expect(Object.keys(plannedPages).sort()).toEqual(['logs', 'mfa', 'organizations'])
+  expect(Object.keys(plannedPages).sort()).toEqual(['logs', 'mfa'])
   expect(isPlanned(sections.find(s => s.key === 'emails')!)).toBe(false)
-  for (const key of ['settings', 'attack-protection']) expect(isPlanned(sections.find(s => s.key === key)!)).toBe(false)
+  for (const key of ['settings', 'attack-protection', 'organizations']) expect(isPlanned(sections.find(s => s.key === key)!)).toBe(false)
 })

@@ -1,3 +1,6 @@
+import OrganizationList from './pages/organizations/List.vue'
+import OrganizationCreate from './pages/organizations/Create.vue'
+import OrganizationDetail from './pages/organizations/Detail.vue'
 import ModuleLibrary from './pages/actions/modules/ModuleLibrary.vue'
 import ModuleEditor from './pages/actions/modules/ModuleEditor.vue'
 import ModuleVersions from './pages/actions/modules/ModuleVersions.vue'
@@ -76,6 +79,9 @@ export const routes: RouteRecordRaw[] = [
   { path: '/t/:tenant/enterprise', name: 'enterprise', component: EnterpriseList },
   { path: '/t/:tenant/enterprise/new', name: 'enterprise-new', component: EnterpriseCreate },
   { path: '/t/:tenant/enterprise/:id', name: 'enterprise-connection', component: SocialDetail },
+  { path: '/t/:tenant/organizations', name: 'organizations', component: OrganizationList },
+  { path: '/t/:tenant/organizations/new', name: 'organization-new', component: OrganizationCreate },
+  { path: '/t/:tenant/organizations/:id', name: 'organization', component: OrganizationDetail },
   { path: '/t/:tenant/roles', name: 'roles', component: RoleList },
   { path: '/t/:tenant/roles/new', name: 'role-new', component: RoleCreate },
   { path: '/t/:tenant/roles/:id', name: 'role', component: RoleDetail },

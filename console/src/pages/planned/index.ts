@@ -2,7 +2,6 @@ import { h, type Component } from 'vue'
 import { isPlanned, sections } from '../../layout/sections'
 import MultiFactor from './MultiFactor.vue'
 import Logs from './Logs.vue'
-import Organizations from './Organizations.vue'
 import PlannedPage from './PlannedPage.vue'
 
 /** A planned page with no preview of its own: just the frame for the section. */
@@ -13,7 +12,6 @@ function bare(key: string): Component {
 /** Dedicated pages by section key; the rest use the bare frame until designed. */
 const dedicated: Record<string, Component> = {
   mfa: MultiFactor,
-  organizations: Organizations,
   logs: Logs,
 }
 

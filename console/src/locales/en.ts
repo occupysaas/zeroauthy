@@ -1,6 +1,27 @@
 // The English catalog: every string the console shows. Other languages
 // follow this shape (MessageSchema); vue-i18n checks keys against it.
 const en = {
+  orgs: {
+    title: 'Organizations', create: 'Create organization', back: 'Back to organizations', name: 'Organization name', displayName: 'Display name',
+    filter: 'Filter names on this page', empty: 'No organizations on this page', settings: 'Settings', branding: 'Branding', connections: 'Connections', members: 'Members',
+    metadata: 'Metadata (JSON object)', metadataHint: 'At most 25 keys. Keys use letters, digits and underscores, start with a letter or digit, and have 1–50 characters. Values must be non-empty strings of at most 255 characters. Saving replaces all metadata; an empty object clears it.',
+    invalidMetadata: 'Metadata allows at most 25 keys of 1–50 letters, digits or underscores, starting with a letter or digit; values must be strings of 1–255 characters.',
+    invalidName: 'Use 1–50 lowercase letters, digits, underscores or hyphens, starting with a letter or digit.', invalidDisplayName: 'Display name must have 1–255 characters.',
+    thirdParty: 'Third-party application access', block: 'Block', allow: 'Allow',
+    delete: 'Delete organization', deleteTitle: 'Delete this organization?', deleteHint: 'This removes the organization, its connections, memberships and member role assignments.',
+    logo: 'Logo URL', primary: 'Primary color', background: 'Page background color', preview: 'Branding preview', brandingHint: 'Saving replaces all branding. Clear all fields to remove it.',
+    invalidBranding: 'Use an HTTPS logo URL and provide both colors as hex values (for example #123456), or leave both colors empty.',
+    enable: 'Enable connection', disable: 'Disable connection', selectConnection: 'Connection', connectionLimit: 'An organization can enable at most 50 connections.', noConnections: 'No enabled connections on this page',
+    autoMembership: 'Assign membership on login', signup: 'Enable signup', button: 'Show as button',
+    userSearch: 'Search users (query syntax)', search: 'Search', addMember: 'Add member', removeMember: 'Remove member', noMembers: 'No members on this page',
+    memberRoles: 'Member roles', assignRole: 'Assign role', removeRole: 'Remove role', roleID: 'Role ID', roleLimit: 'A member can hold at most 50 organization roles.', noRoles: 'No member roles on this page',
+    membershipHint: 'Membership changes affect the next login or refresh. Removing a member preserves role assignments for later membership.',
+    uncertain: 'The write may have succeeded. Reload before making another change.', reload: 'Reload',
+    usage: 'Organization usage', deny: 'Individuals only', require: 'Organizations required', allowUsage: 'Individuals and organizations', behavior: 'Organization prompt',
+    noPrompt: 'No prompt', prePrompt: 'Before login', postPrompt: 'After login', discovery: 'Organization discovery methods', email: 'Email', organizationName: 'Organization name',
+    discoveryHint: 'Discovery methods are available only before login. Email discovery is stored; the prompt currently asks for the organization name.',
+    invalidApplication: 'After-login prompts require OIDC conformity. Required organizations cannot use password, password-realm or device grants.',
+  },
   rbac: {
     title: 'Roles', back: 'Back to roles', create: 'Create role', name: 'Role name', description: 'Description',
     filter: 'Filter roles', empty: 'No roles yet', settings: 'Settings', permissions: 'Permissions', users: 'Users',

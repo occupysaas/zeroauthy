@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { ApiError, type Client, type ClientUpdate, type SystemTenant } from '../../api/client'
 import { errorMessage, useServices } from '../../context'
 import { useI18n } from 'vue-i18n'
@@ -16,13 +16,23 @@ const props = defineProps<{ tenant: SystemTenant; client: Client }>()
 const emit = defineEmits<{ saved: [Client] }>()
 const { api } = useServices()
 
-const form = reactive({ name: '', callbacks: '', logout: '', webOrigins: '', allowedOrigins: '' })
+const form = reactive({ name: '', callbacks: '', logout: '', webOrigins: '', allowedOrigins: '',
+  organizationUsage: 'deny' as 'deny' | 'allow' | 'require',
+  organizationBehavior: 'no_prompt' as 'no_prompt' | 'pre_login_prompt' | 'post_login_prompt',
+  discovery: [] as ('email' | 'organization_name')[],
+})
 const errors = reactive<Record<string, string>>({})
 const general = ref('')
 const status = ref('')
 const busy = ref(false)
+let epoch = 0
+watch(() => props.tenant.host + '\0' + props.client.client_id, () => { ++epoch; busy.value = false; general.value = ''; status.value = ''; for (const k of Object.keys(errors)) delete errors[k] })
+onBeforeUnmount(() => { ++epoch })
 
 function reset(c: Client) {
+  form.organizationUsage = c.organization_usage ?? 'deny'
+  form.organizationBehavior = c.organization_require_behavior ?? 'no_prompt'
+  form.discovery = [...(c.organization_discovery_methods ?? [])]
   form.name = c.name
   form.callbacks = c.callbacks.join('\n')
   form.logout = c.allowed_logout_urls.join('\n')
@@ -41,11 +51,20 @@ const fieldKeys = {
 }
 
 async function save() {
+  if (busy.value) return
+  const mine = epoch
   busy.value = true
   general.value = ''
   status.value = ''
   for (const k of Object.keys(errors)) delete errors[k]
+  if ((form.organizationBehavior === 'post_login_prompt' && !props.client.oidc_conformant) ||
+      (form.organizationUsage === 'require' && props.client.grant_types.some(g => ['password', 'http://auth0.com/oauth/grant-type/password-realm', 'urn:ietf:params:oauth:grant-type:device_code'].includes(g)))) {
+    general.value = t('orgs.invalidApplication'); busy.value = false; return
+  }
   const body: ClientUpdate = {
+    organization_usage: form.organizationUsage,
+    organization_require_behavior: form.organizationBehavior,
+    organization_discovery_methods: form.organizationBehavior === 'pre_login_prompt' && form.discovery.length ? [...form.discovery] : null,
     name: form.name.trim(),
     callbacks: lines(form.callbacks),
     allowed_logout_urls: lines(form.logout),
@@ -54,9 +73,11 @@ async function save() {
   }
   try {
     const c = await api.updateClient(props.tenant, props.client.client_id, body)
+    if (mine !== epoch) return
     status.value = t('saved')
     emit('saved', c)
   } catch (e) {
+    if (mine !== epoch) return
     if (e instanceof ApiError && e.errorCode === 'invalid_body') {
       const split = fieldErrors(e.message, fieldKeys)
       Object.assign(errors, split.byField)
@@ -65,7 +86,7 @@ async function save() {
       general.value = errorMessage(e)
     }
   } finally {
-    busy.value = false
+    if (mine === epoch) busy.value = false
   }
 }
 
@@ -111,6 +132,11 @@ function describedBy(id: string, hint: boolean): string {
       <Field id="app-allowedOrigins" :label="t('apps.allowedOrigins')" :hint="t('apps.allowedOriginsHint')" :error="errors.allowedOrigins">
         <textarea id="app-allowedOrigins" v-model="form.allowedOrigins" spellcheck="false" :aria-invalid="!!errors.allowedOrigins" :aria-describedby="describedBy('app-allowedOrigins', true)" />
       </Field>
+      <Field id="app-organization-usage" :label="t('orgs.usage')"><select id="app-organization-usage" v-model="form.organizationUsage"><option value="deny">{{ t('orgs.deny') }}</option><option value="allow">{{ t('orgs.allowUsage') }}</option><option value="require">{{ t('orgs.require') }}</option></select></Field>
+      <Field id="app-organization-behavior" :label="t('orgs.behavior')"><select id="app-organization-behavior" v-model="form.organizationBehavior"><option value="no_prompt">{{ t('orgs.noPrompt') }}</option><option value="pre_login_prompt">{{ t('orgs.prePrompt') }}</option><option value="post_login_prompt" :disabled="!client.oidc_conformant">{{ t('orgs.postPrompt') }}</option></select></Field>
+      <fieldset class="stack"><legend>{{ t('orgs.discovery') }}</legend><p id="organization-discovery-hint">{{ t('orgs.discoveryHint') }}</p>
+        <label v-for="method in ['email', 'organization_name'] as const" :key="method"><input :id="'app-organization-discovery-' + method" v-model="form.discovery" type="checkbox" :value="method" :disabled="form.organizationBehavior !== 'pre_login_prompt'" aria-describedby="organization-discovery-hint" /> {{ method === 'email' ? t('orgs.email') : t('orgs.organizationName') }}</label>
+      </fieldset>
       <div class="row">
         <Button variant="primary" type="submit" :disabled="busy || !form.name.trim()">{{ busy ? t('saving') : t('save') }}</Button>
         <span class="muted" role="status">{{ status }}</span>

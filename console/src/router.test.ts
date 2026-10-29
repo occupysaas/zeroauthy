@@ -85,7 +85,7 @@ describe('planned routes', () => {
     const f = fakes(true)
     f.tenants.loaded = true
     const r = router(f)
-    await r.push('/t/acme/organizations/x')
+    await r.push('/t/acme/mfa/x')
     expect(r.currentRoute.value.name).toBe('not-found')
   })
 })
