@@ -2,8 +2,9 @@
 
 Branch `plan-29-organizations`, base `0f5be0c`; Tasks 1–13 implemented through
 `26e792d`. Task 14 documentation and final regression are complete; evidence is below.
-Independent final whole-branch review is the controller's next gate and is
-pending at this Task 14 handoff. Nothing is merged or pushed.
+Independent whole-branch review and the scoped re-review are complete. Its sole
+Important finding was fixed in `9bdc8b5`; no Critical or Important findings remain.
+The accepted minor items below remain deferred. Nothing is merged or pushed.
 
 The [Organizations guide](../organizations.md) describes the shipped behavior.
 D-0055 and the separate observer's notes override stale task defaults. Task 14
@@ -402,3 +403,19 @@ and historical results above remain unchanged. The existing Playwright
 NO_COLOR/FORCE_COLOR advisory appeared again without failing the organization
 lane. No separate SQL-script, Deploy, console or other broad rerun was made by
 this correction. Final independent re-review and integration remain controller-owned.
+
+
+## Final scoped re-review and handoff
+
+The independent reviewer approved `1a3972a..9bdc8b5`: I1 is addressed, all
+production choice paths apply the shared client policy before selection and
+truncation, and the fix introduces no new Critical, Important or Minor finding.
+The reviewer checked the recorded RED/GREEN, full affected-package race, seven
+organization browser cases and final 73-package Go race evidence without repeating
+the suites. The full earlier three-dialect SQL, console, eight E2E lanes and local
+conformance results remain recorded above.
+
+Plan 29 Tasks 1–14 and the final review gate are complete. The branch
+`plan-29-organizations` is preserved in `/mnt/nvme2/code/zeroauthy-plan-29` for
+maintainer review. No merge or push was performed. Deferred minors, all controller
+rulings and unavailable coverage remain explicit in this record.
