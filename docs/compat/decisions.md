@@ -1314,7 +1314,7 @@ Final-review addendum (2026-10-28). Auth0 documents "You can have at most one
 Action bound to the `custom-email-provider` trigger"
 (https://auth0.com/docs/customize/email/configure-a-custom-email-provider/configure-a-custom-email-provider-with-terraform).
 zeroauthy enforces that limit in `PATCH /actions/triggers/custom-email-provider/bindings`,
-the seed and the console. Auth0 documents no error body for a second binding;
+the seed, the console and every store's `ReplaceBindings`. Auth0 documents no error body for a second binding;
 the refusal uses the existing local binding-validation 400 (`invalid_body`),
 a local choice. Independently of the limit (jobs queued earlier, or bindings
 written outside the API), a recorded `drop` is terminal even when a later
