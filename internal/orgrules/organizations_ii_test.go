@@ -2,6 +2,7 @@ package orgrules
 
 import (
 	"math"
+	"strings"
 	"testing"
 	"time"
 )
@@ -10,6 +11,15 @@ import (
 // an incomplete inventory. Expectations are independent of the inventory data.
 func TestOrganizationsIIInventory(t *testing.T) {
 	want := map[string]int{
+		"GET /api/v2/organizations": 200, "POST /api/v2/organizations": 201, "PATCH /api/v2/organizations/{id}": 200,
+		"GET /api/v2/client-grants": 200, "POST /api/v2/client-grants": 201, "PATCH /api/v2/client-grants/{id}": 200,
+		"POST /api/v2/tickets/password-change": 201, "GET /authorize": 302, "POST /authorize": 302, "POST /oauth/par": 201, "POST /oauth/token": 200, "POST /dbconnections/change_password": 200,
+		"GET /api/v2/organizations/{id}/connections":                                200,
+		"POST /api/v2/organizations/{id}/connections":                               201,
+		"GET /api/v2/organizations/{id}/connections/{connection_id}":                200,
+		"PATCH /api/v2/organizations/{id}/connections/{connection_id}":              200,
+		"DELETE /api/v2/organizations/{id}/connections/{connection_id}":             204,
+		"GET /api/v2/client-grants/{id}/organizations":                              200,
 		"GET /api/v2/organizations/search":                                          200,
 		"POST /api/v2/organizations/{id}/invitations":                               200,
 		"GET /api/v2/organizations/{id}/invitations":                                200,
@@ -22,7 +32,7 @@ func TestOrganizationsIIInventory(t *testing.T) {
 		"PATCH /api/v2/organizations/{id}/clients/{client_id}":                      200,
 		"GET /api/v2/organizations/{id}/client-grants":                              200,
 		"POST /api/v2/organizations/{id}/client-grants":                             201,
-		"DELETE /api/v2/organizations/{id}/client-grants/{client_grant_id}":         204,
+		"DELETE /api/v2/organizations/{id}/client-grants/{grant_id}":                204,
 		"GET /api/v2/organizations/{id}/discovery-domains":                          200,
 		"POST /api/v2/organizations/{id}/discovery-domains":                         201,
 		"GET /api/v2/organizations/{id}/discovery-domains/name/{discovery_domain}":  200,
@@ -41,7 +51,7 @@ func TestOrganizationsIIInventory(t *testing.T) {
 		if op.SuccessStatus != status {
 			t.Errorf("%s status=%d want %d", key, op.SuccessStatus, status)
 		}
-		if len(op.RequiredScopes) == 0 || op.SourceURL == "" || op.RequestShape == "" || op.ResponseShape == "" || op.Pagination == "" || len(op.ErrorStatuses) == 0 {
+		if (strings.HasPrefix(op.Path, "/api/v2/") && len(op.RequiredScopes) == 0) || op.SourceURL == "" || op.RequestShape == "" || op.ResponseShape == "" || op.Pagination == "" || len(op.ErrorStatuses) == 0 {
 			t.Errorf("%s incomplete contract", key)
 		}
 	}

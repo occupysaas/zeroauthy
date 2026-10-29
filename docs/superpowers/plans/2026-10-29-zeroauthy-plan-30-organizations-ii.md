@@ -190,7 +190,7 @@ The memory driver is the semantic reference, including copies of metadata/slices
   expect FAIL for missing repository behavior (wire new cases into the suite).
 - [ ] Implement models/memory transaction views, clone boundaries and cascades.
   Preserve existing client-grant origin behavior. Default old grants deny/false,
-  org entitlement false, connections enabled=true and access-levels none.
+  org entitlement false, connections enabled=true, organization access none and member access limited (D-0055 observed omission/migration defaults). Explicit null resets either access level to none (D-0056). Client association POST requires use_for_member_access; PATCH omission preserves it, null is invalid.
   Keep existing literal construction safe by normalizing defaults at creation;
   don't interpret an omitted Go bool as an intentional disable on old callers.
 - [ ] Rerun focused tests and `go test ./internal/store/... -run '^$'`; expect
