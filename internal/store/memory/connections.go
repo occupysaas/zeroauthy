@@ -94,6 +94,7 @@ func (r connections) Delete(_ context.Context, tenantID, id string) error {
 		p.Clear(store.ProtectionFilter{ConnectionID: id})
 	}
 	delete(r.s.connections, k)
+	r.s.cleanupOrgConnection(tenantID, id)
 	r.s.dropConnectionFederation(tenantID, id)
 	if t, ok := r.s.tenants[tenantID]; ok && t.DefaultDirectory == c.Name {
 		t.DefaultDirectory = ""

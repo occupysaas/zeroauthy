@@ -143,6 +143,7 @@ func (r tenants) Delete(_ context.Context, id string) error {
 			delete(r.s.roleMembers, k)
 		}
 	}
+	r.s.deleteOrgTenant(id)
 	delete(r.s.tenants, id)
 	delete(r.s.protection, id)
 	r.s.dropTenantFederation(id)

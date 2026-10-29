@@ -69,11 +69,11 @@ func inProcessSQLite(t *testing.T) *Client {
 }
 
 func TestConformance(t *testing.T) {
-	storetest.Run(t, func(t *testing.T) store.Store { return inProcess(t) })
+	storetest.RunExcept(t, func(t *testing.T) store.Store { return inProcess(t) }, map[string]string{"Organizations": "Plan 29 Tasks 3-4 add the SQL and gRPC Organizations stores"})
 }
 
 func TestConformanceSQLite(t *testing.T) {
-	storetest.Run(t, func(t *testing.T) store.Store { return inProcessSQLite(t) })
+	storetest.RunExcept(t, func(t *testing.T) store.Store { return inProcessSQLite(t) }, map[string]string{"Organizations": "Plan 29 Tasks 3-4 add the SQL and gRPC Organizations stores"})
 }
 
 // These assertions run against SQL savepoints behind real gRPC transaction

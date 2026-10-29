@@ -823,6 +823,9 @@ type AuthCode struct {
 	// (bound to the tenant and code); nil when no Action ran. Stores keep
 	// the bytes opaque and exact.
 	ActionEffects []byte
+	// OrganizationID is the organization the authorization was bound to;
+	// empty for non-organization codes.
+	OrganizationID string
 }
 
 // PushedAuthRequest is an authorization request pushed to /oauth/par
@@ -932,6 +935,9 @@ type RefreshToken struct {
 	RotatedAt *time.Time
 	RevokedAt *time.Time
 	CreatedAt time.Time
+	// OrganizationID is the organization the family was issued for; empty
+	// for non-organization tokens.
+	OrganizationID string
 }
 
 // RefreshTokenPolicy configures the refresh tokens issued to a client.

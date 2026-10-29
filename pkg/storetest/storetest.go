@@ -16,6 +16,7 @@ type Factory func(t *testing.T) store.Store
 // use RunSuites to bring suites up one at a time.
 var Suites = map[string]func(t *testing.T, newStore Factory){
 	"RBAC":                        testRBAC,
+	"Organizations":               testOrganizations,
 	"Actions":                     testActions,
 	"ActionsII":                   testActionsII,
 	"Tenants":                     testTenants,
@@ -63,7 +64,7 @@ var Suites = map[string]func(t *testing.T, newStore Factory){
 // suiteOrder is the order Run executes the suites in.
 var suiteOrder = []string{
 	"CustomDomainAttemptLimits", "CustomDomainClaims", "CustomDomainCap", "CustomDomainCAS", "CustomDomainDefaultRollback", "CustomDomainCascade", "TLSAssetCopies", "TLSLeaseFence", "OriginRoundTrip",
-	"RBAC", "Protection", "Tenants", "Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys",
+	"RBAC", "Organizations", "Protection", "Tenants", "Clients", "ResourceServers", "ClientGrants", "UserGrants", "SigningKeys", "CustomSigningKeys",
 	"Connections", "PasswordHistories", "Users", "UserDelete", "UserList", "UserQueryMetadataTypes", "Sessions", "AuthTransactions", "AuthCodes",
 	"PushedAuthRequests",
 	"RefreshTokens", "PasswordResetTickets", "EmailVerificationTickets", "Tx",
