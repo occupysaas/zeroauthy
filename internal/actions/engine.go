@@ -61,12 +61,13 @@ func (e *ErrFlow) Unwrap() error { return e.Cause }
 
 // Engine runs Action flows.
 type Engine struct {
-	Store   store.Store
-	Runner  *noderunner.Pool
-	Builds  *build.Manager
-	Secrets keys.Wrapper // opens tenant-bound Action and Module secret snapshots
-	Now     func() time.Time
-	Log     *slog.Logger
+	InvitationEmail InvitationEmailDispatcher
+	Store           store.Store
+	Runner          *noderunner.Pool
+	Builds          *build.Manager
+	Secrets         keys.Wrapper // opens tenant-bound Action and Module secret snapshots
+	Now             func() time.Time
+	Log             *slog.Logger
 	// FlowBudget bounds one trigger flow; 0 means Auth0's 20 s.
 	FlowBudget time.Duration
 
@@ -153,6 +154,8 @@ type flow struct {
 	redirectCount, position              int
 	state                                string
 	remaining                            time.Duration
+	// redactor masks delivery credentials supplied only at dispatch time.
+	redactor *customdb.Redactor
 	// outcomes records, per Action run in this attempt, "ok", "error" or
 	// the notification kind the Action itself recorded. dropped is the
 	// first drop. Job runs use both: drop is terminal, and an attempt in
@@ -461,7 +464,7 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		}
 		vals[s.Name] = v
 	}
-	red := customdb.NewRedactor(vals)
+	red := customdb.NewRedactor(vals).Union(f.redactor)
 	modules := make([]wireModule, 0, len(u.modules))
 	for _, m := range u.modules {
 		mv := make(map[string]string, len(m.version.Secrets))
@@ -523,6 +526,9 @@ func (e *Engine) step(ctx context.Context, f *flow, u unit, event map[string]any
 		if err := f.acc.apply(c); err != nil {
 			return out, &maskedError{msg: red.RedactLine(err.Error()), err: err}
 		}
+	}
+	if f.acc.notification != nil && f.redactor != nil {
+		f.acc.notification.Reason = f.redactor.RedactLine(f.acc.notification.Reason)
 	}
 	// Oversized claims fail at the Action that made them (spec §7).
 	for _, m := range []map[string]any{f.acc.eff.AccessClaims, f.acc.eff.IDClaims} {

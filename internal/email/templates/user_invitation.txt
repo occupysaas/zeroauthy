@@ -1,0 +1,5 @@
+{{t .L "zeroauthy.email-invitation.heading"}}
+{{.Inviter}} — {{.Organization}} — {{.Application}}
+{{t .L "zeroauthy.email-invitation.body"}}
+{{.Link}}
+{{t .L "zeroauthy.email-invitation.expiry"}} {{.Expiry}}

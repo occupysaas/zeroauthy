@@ -230,6 +230,13 @@
       "help": "Complete this verification to continue.",
       "javascript": "Enable JavaScript to complete verification.",
       "retry": "If verification does not load or expires, reload this page and try again."
+    },
+    "email-invitation": {
+      "subject": "Your organization invitation",
+      "heading": "You are invited",
+      "body": "Follow this link to join the organization.",
+      "action": "Accept invitation",
+      "expiry": "This invitation expires at"
     }
   },
   "login-id": {

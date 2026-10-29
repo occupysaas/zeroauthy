@@ -141,6 +141,9 @@ func New(d Deps) http.Handler {
 		renderer, _ := email.NewRenderer()
 		d.EmailService = &email.Service{Store: d.Store, Wrapper: d.Wrapper, Renderer: renderer, Providers: &providers.Factory{}, Fallback: d.Mailer, DefaultFrom: "zeroauthy@localhost"}
 	}
+	if d.Actions != nil {
+		d.Actions.InvitationEmail = d.EmailService
+	}
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, requestLog(d.Log), recoverer(d.Log))
 

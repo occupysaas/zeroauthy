@@ -87,13 +87,15 @@ type EmailMessage struct{ From, To, Subject, HTML, Text, Locale, Type string }
 // EmailInput snapshots a custom provider hand-off. Tenant is its ID;
 // TenantInfo supplies the tenant profile, loaded by the caller.
 type EmailInput struct {
-	Tenant     string
-	TenantInfo *store.Tenant
-	User       *store.User
-	Client     *store.Client
-	Connection *store.Connection
-	Message    EmailMessage
-	Request    RequestInfo
+	// SensitiveValues are masking-only and never enter the public Action event.
+	SensitiveValues []string `json:"-"`
+	Tenant          string
+	TenantInfo      *store.Tenant
+	User            *store.User
+	Client          *store.Client
+	Connection      *store.Connection
+	Message         EmailMessage
+	Request         RequestInfo
 }
 
 // PostLoginInput is everything a post-login flow sees.

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zeroauthy/zeroauthy/internal/customdb"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -106,16 +107,39 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 	corrupt := false
 	plain, err := keys.OpenBound(e.Secrets, jobLabel, []string{j.TenantID, j.ID, j.Trigger}, j.Sealed)
 	var p jobPayload
-	if err == nil && j.Trigger == InvitationDeliveryTrigger && json.Unmarshal(plain, &p) == nil && p.Kind == "invitation" && p.Invitation != nil && p.Invitation.TenantID == j.TenantID {
-		next.NextAt = e.now().Add(time.Minute)
-		next.LeaseUntil = time.Time{}
-		next.UpdatedAt = e.now()
-		return &next
+	sensitive := map[string]string{}
+	invitation := err == nil && j.Trigger == InvitationDeliveryTrigger && json.Unmarshal(plain, &p) == nil && p.Kind == "invitation" && p.Invitation != nil && p.Invitation.TenantID == j.TenantID
+	if invitation {
+		active, readErr := e.Store.OrganizationsII().GetInvitation(ctx, j.TenantID, p.Invitation.OrganizationID, p.Invitation.InvitationID)
+		if errors.Is(readErr, store.ErrNotFound) || (readErr == nil && !e.now().Before(active.ExpiresAt)) {
+			next.Status = "done"
+			next.LeaseUntil = time.Time{}
+			next.UpdatedAt = e.now()
+			return &next
+		}
+		if readErr != nil || e.InvitationEmail == nil {
+			runErr = errors.New("actions: invitation delivery unavailable")
+		} else {
+			input, deliveryErr := e.InvitationEmail.DeliverInvitation(ctx, *p.Invitation, active)
+			if deliveryErr != nil {
+				runErr = errors.New("actions: invitation delivery failed")
+			} else if input == nil {
+				next.Status = "done"
+				next.LeaseUntil = time.Time{}
+				next.UpdatedAt = e.now()
+				return &next
+			} else {
+				for i, v := range input.SensitiveValues {
+					sensitive[fmt.Sprint(i)] = v
+				}
+				p.Input = emailEvent(input, newAccum(j.Trigger, nil, nil, false))
+			}
+		}
 	}
-	if err != nil || !asyncTrigger(j.Trigger) || json.Unmarshal(plain, &p) != nil || len(p.Units) == 0 || p.Input == nil {
+	if runErr == nil && (err != nil || !asyncTrigger(j.Trigger) || (!invitation && json.Unmarshal(plain, &p) != nil) || len(p.Units) == 0 || p.Input == nil) {
 		runErr, corrupt = errors.New("actions: invalid job envelope"), true
-	} else {
-		f = &flow{jobID: j.ID, jobAttempt: j.Attempts, tenantID: j.TenantID, trigger: j.Trigger, handler: handlerFor(j.Trigger), acc: newAccum(j.Trigger, nil, nil, false), cache: e.caches.get(j.TenantID, j.Trigger)}
+	} else if runErr == nil {
+		f = &flow{redactor: customdb.NewRedactor(sensitive), jobID: j.ID, jobAttempt: j.Attempts, tenantID: j.TenantID, trigger: j.Trigger, handler: handlerFor(j.Trigger), acc: newAccum(j.Trigger, nil, nil, false), cache: e.caches.get(j.TenantID, j.Trigger)}
 		for _, u := range p.Units {
 			if u.ActionID == "" || u.VersionKey == "" || u.BuildID == "" || len(u.Modules) != len(u.ModuleVersions) {
 				runErr, corrupt = errors.New("actions: invalid job snapshot"), true
@@ -159,7 +183,7 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 	}
 	// A drop recorded by any Action is terminal, even when a later Action
 	// failed or asked to retry.
-	if f.dropped != nil {
+	if f != nil && f.dropped != nil {
 		e.log().Info("actions email outcome", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID, "outcome", f.dropped.Kind, "reason", f.dropped.Reason)
 		next.Status = "dropped"
 		return &next
@@ -174,7 +198,7 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 		next.Status = "failed"
 		// A retry reruns every pinned Action; one that already completed
 		// (and may have delivered the email) must not run again.
-		completed := slices.Contains(f.outcomes, "ok")
+		completed := f != nil && slices.Contains(f.outcomes, "ok")
 		if completed && j.Trigger == TriggerCustomEmailProvider {
 			e.log().Warn("actions email not retried: an Action in the flow already completed", "tenant", j.TenantID, "job_id", j.ID, "execution_id", executionID)
 		}

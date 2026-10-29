@@ -20,6 +20,17 @@ type InvitationDelivery struct {
 	NotificationHost, Language, TenantName, TenantFriendlyName, TenantSupportEmail, TenantSupportURL string
 	OrganizationBranding                                                                             *store.OrgBranding
 	OrganizationMetadata                                                                             map[string]string
+	TemplateFields                                                                                   map[string]string
+	Disabled                                                                                         bool
+	Provider                                                                                         *store.EmailProvider
+	CustomDomain                                                                                     map[string]any
+}
+
+// InvitationEmailDispatcher renders and delivers without creating another job.
+// Snapshot runs within the creation transaction; Deliver opens only the active ticket.
+type InvitationEmailDispatcher interface {
+	SnapshotInvitation(context.Context, store.Store, *InvitationDelivery) error
+	DeliverInvitation(context.Context, InvitationDelivery, *store.OrganizationInvitation) (*EmailInput, error)
 }
 
 var ErrInvitationProviderConfiguration = errors.New("actions: invalid invitation email provider configuration")
@@ -59,13 +70,36 @@ func (e *Engine) EnqueueInvitation(ctx context.Context, tx store.Store, in Invit
 			return ErrInvitationProviderConfiguration
 		}
 	}
+	if e.InvitationEmail != nil {
+		if err := e.InvitationEmail.SnapshotInvitation(ctx, tx, &in); err != nil {
+			return err
+		}
+	}
 	p := jobPayload{Kind: "invitation", Invitation: &in}
+	var ids []string
+	if provider != nil && provider.Enabled && provider.Name == "custom" {
+		bound, err := tx.Actions().Bindings(ctx, in.TenantID, TriggerCustomEmailProvider)
+		if err != nil {
+			return err
+		}
+		for _, u := range pinned(bound) {
+			versions, err := resolveModuleVersions(ctx, tx.Actions(), in.TenantID, u)
+			if err != nil {
+				return err
+			}
+			p.Units = append(p.Units, continueUnit{Name: u.name, ActionID: u.actionID, VersionKey: u.versionKey, Code: u.code, BuildID: u.buildID, Secrets: u.secrets, Modules: u.moduleRefs, ModuleVersions: versions})
+			for _, v := range versions {
+				ids = append(ids, v.ID)
+			}
+		}
+	}
+
 	plain, err := json.Marshal(p)
 	if err != nil {
 		return err
 	}
 	now := e.now()
-	job := &store.ActionJob{TenantID: in.TenantID, ID: "ajob_" + secrets.RandomString(24), Trigger: InvitationDeliveryTrigger, Status: "pending", NextAt: now, CreatedAt: now, UpdatedAt: now}
+	job := &store.ActionJob{TenantID: in.TenantID, ID: "ajob_" + secrets.RandomString(24), Trigger: InvitationDeliveryTrigger, Status: "pending", NextAt: now, CreatedAt: now, UpdatedAt: now, ModuleVersionIDs: ids}
 	job.Sealed, err = keys.SealBound(e.Secrets, jobLabel, []string{job.TenantID, job.ID, job.Trigger}, plain)
 	if err != nil {
 		return err
