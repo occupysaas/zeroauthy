@@ -375,7 +375,7 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime,
 		ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
 		UsedAt: ptr(nanoTime.Add(time.Second)), ReplayedAt: ptr(nanoTime.Add(2 * time.Second)),
-		ActionEffects: []byte{0, 0xff, 'x'}, OrganizationID: "org_0123456789abcdef",
+		ActionEffects: []byte{0, 0xff, 'x'}, OrganizationID: "org_0123456789abcdef", OrganizationConnectionID: "con_original",
 	}, authCodeToPB, authCodeFromPB)
 	roundTrip(t, "empty", &store.AuthCode{Scopes: []string{}}, authCodeToPB, authCodeFromPB)
 	roundTrip(t, "zero", &store.AuthCode{}, authCodeToPB, authCodeFromPB)
@@ -388,7 +388,7 @@ func TestRefreshTokenRoundTrip(t *testing.T) {
 		SessionID: "sid", Scopes: []string{"openid", "offline_access"}, Audience: "https://api",
 		AuthTime: nanoTime, Rotating: true, ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute),
 		RotatedAt: ptr(nanoTime.Add(time.Second)), RevokedAt: ptr(nanoTime.Add(2 * time.Second)), CreatedAt: nanoTime,
-		OrganizationID: "org_0123456789abcdef",
+		OrganizationID: "org_0123456789abcdef", OrganizationConnectionID: "con_original",
 	}, refreshTokenToPB, refreshTokenFromPB)
 	roundTrip(t, "empty", &store.RefreshToken{Scopes: []string{}}, refreshTokenToPB, refreshTokenFromPB)
 	roundTrip(t, "zero", &store.RefreshToken{}, refreshTokenToPB, refreshTokenFromPB)

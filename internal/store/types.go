@@ -854,6 +854,9 @@ type AuthCode struct {
 	// OrganizationID is the organization the authorization was bound to;
 	// empty for non-organization codes.
 	OrganizationID string
+	// OrganizationConnectionID pins the authenticated connection through code exchange
+	// and refresh, even after the browser session has expired or been removed.
+	OrganizationConnectionID string
 }
 
 // PushedAuthRequest is an authorization request pushed to /oauth/par
@@ -966,6 +969,9 @@ type RefreshToken struct {
 	// OrganizationID is the organization the family was issued for; empty
 	// for non-organization tokens.
 	OrganizationID string
+	// OrganizationConnectionID pins the authenticated connection through code exchange
+	// and refresh, even after the browser session has expired or been removed.
+	OrganizationConnectionID string
 }
 
 // RefreshTokenPolicy configures the refresh tokens issued to a client.

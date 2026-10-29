@@ -201,7 +201,7 @@ func (e *Engine) PostLogin(ctx context.Context, in PostLoginInput) (*Result, err
 		units: pinned(bound), roles: roles, acc: newAccum(TriggerPostLogin, in.TargetScopes, nil, in.CanRedirect),
 		cache: e.caches.get(tenantID, TriggerPostLogin), input: &in}
 	if in.User != nil && in.ResourceServer != nil && !in.ResourceServer.IsSystem && in.ResourceServer.EnforcePolicies {
-		snapshot, err := e.Store.RBAC().Snapshot(ctx, tenantID, in.User.UserID, in.ResourceServer.Identifier)
+		snapshot, err := store.OrganizationAuthorizationSnapshot(ctx, e.Store, tenantID, in.User.UserID, in.OrganizationID, in.ResourceServer.Identifier)
 		if err != nil {
 			return nil, e.unrecorded(tenantID, TriggerPostLogin, err)
 		}

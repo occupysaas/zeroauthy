@@ -81,6 +81,10 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	if oerr != nil {
 		return nil, oerr
 	}
+	org, oerr := h.organizationForToken(ctx, tenantID, user.UserID, ac.OrganizationID, ac.OrganizationConnectionID, c)
+	if oerr != nil {
+		return nil, oerr
+	}
 	rs, lifetime, oerr := h.audienceFor(ctx, tenantID, ac.Audience)
 	if oerr != nil {
 		return nil, oerr
@@ -92,7 +96,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	}
 	scopes := userScopes(ac.Scopes, rs, offlineAllowed(c, rs))
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		user: user, rs: rs, lifetime: lifetime, scopes: scopes,
+		organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
 		nonce: ac.Nonce, sessionID: ac.SessionID, authTime: ac.AuthTime, effects: eff,
 	})
 	if oerr != nil {
@@ -108,6 +112,7 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 			expiresAt = now.UTC().Add(absolute)
 		}
 		rt, raw = h.newRefreshToken(c, tenantID, refreshGrant{
+			organizationID: ac.OrganizationID, organizationConnectionID: ac.OrganizationConnectionID,
 			origin:   res.Origin(),
 			familyID: familyForCode(ac.CodeHash), userID: user.UserID, sessionID: ac.SessionID,
 			audience: ac.Audience, scopes: ceiling, authTime: ac.AuthTime, expiresAt: expiresAt,
@@ -116,13 +121,17 @@ func (h *Handlers) authorizationCode(ctx context.Context, res tenant.Resolved, c
 	// The user authenticated at /authorize, possibly long ago, so there is
 	// no Version to compare (D-0043); the user must still exist and not be
 	// blocked when the tokens are minted.
-	err = h.mintTx(ctx, tenantID, user.UserID, nil, func(tx store.Store) error {
+	err = h.mintCheckedTx(ctx, tenantID, user.UserID, nil, func(tx store.Store) error {
+		return checkTokenOrganization(ctx, tx, tenantID, user.UserID, ac.OrganizationID, ac.OrganizationConnectionID, c.ClientID)
+	}, func(tx store.Store) error {
 		if rt == nil {
 			return nil
 		}
 		return tx.RefreshTokens().Create(ctx, rt)
 	})
 	switch {
+	case errors.Is(err, errOrganizationGrant):
+		return nil, invalidGrant("the organization grant is no longer eligible")
 	case errors.Is(err, errUserChanged):
 		return nil, invalidGrant("the user is not allowed to sign in")
 	case err != nil:

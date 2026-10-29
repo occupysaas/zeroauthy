@@ -98,6 +98,8 @@ type EmailInput struct {
 
 // PostLoginInput is everything a post-login flow sees.
 type PostLoginInput struct {
+	// OrganizationID is the bound organization used by the permission snapshot.
+	OrganizationID  string
 	Tenant          tenant.Resolved
 	Client          *store.Client
 	User            *store.User

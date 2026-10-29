@@ -662,40 +662,83 @@ func testOrganizations(t *testing.T, newStore Factory) {
 		mustNoErr(t, err)
 	})
 
-	// The organization an authorization code or refresh token was issued for
-	// survives storage, and an unbound one stays empty.
+	// Permission resolution must include only the active organization, and
+	// membership removal must refuse assignments retained by the repository.
+	t.Run("AuthorizationSnapshot", func(t *testing.T) {
+		s := open(t, newStore)
+		orgSeed(t, s, false)
+		api := &store.ResourceServer{TenantID: tid, ID: "api", Name: "API", Identifier: "https://org-api.test", Scopes: []store.Scope{{Value: "direct"}, {Value: "tenant"}, {Value: "active"}, {Value: "foreign"}}, EnforcePolicies: true}
+		mustNoErr(t, s.ResourceServers().Create(ctx, api))
+		active, foreign := newOrg(tid, "active", ts(0)), newOrg(tid, "foreign", ts(0))
+		for _, o := range []*store.Organization{active, foreign} {
+			mustNoErr(t, s.Organizations().Create(ctx, o, nil))
+			mustNoErr(t, s.Organizations().AddMembers(ctx, tid, o.ID, []string{uid(1)}))
+		}
+		mustNoErr(t, s.RBAC().ChangeUserPermissions(ctx, tid, uid(1), true, []store.PermissionKey{{ResourceServerIdentifier: api.Identifier, PermissionName: "direct"}}))
+		for role, perm := range map[string]string{"r1": "tenant", "r2": "active", "r3": "foreign"} {
+			mustNoErr(t, s.RBAC().ChangeRolePermissions(ctx, tid, role, true, []store.PermissionKey{{ResourceServerIdentifier: api.Identifier, PermissionName: perm}}))
+		}
+		mustNoErr(t, s.RBAC().ChangeUserRoles(ctx, tid, uid(1), true, []string{"r1"}))
+		mustNoErr(t, s.Organizations().ChangeMemberRoles(ctx, tid, active.ID, uid(1), true, []string{"r2"}))
+		mustNoErr(t, s.Organizations().ChangeMemberRoles(ctx, tid, foreign.ID, uid(1), true, []string{"r3"}))
+		for _, tc := range []struct {
+			org  string
+			want []string
+		}{{active.ID, []string{"active", "direct", "tenant"}}, {foreign.ID, []string{"direct", "foreign", "tenant"}}, {"", []string{"direct", "tenant"}}} {
+			snap, err := store.OrganizationAuthorizationSnapshot(ctx, s, tid, uid(1), tc.org, api.Identifier)
+			mustNoErr(t, err)
+			mustEqual(t, snap.Permissions, tc.want)
+		}
+		mustNoErr(t, s.Organizations().RemoveMembers(ctx, tid, active.ID, []string{uid(1)}))
+		_, err := store.OrganizationAuthorizationSnapshot(ctx, s, tid, uid(1), active.ID, api.Identifier)
+		mustErrIs(t, err, store.ErrNotFound)
+	})
+
+	// Grant organization/connection bindings survive storage and rotation.
 	t.Run("TokenBindings", func(t *testing.T) {
 		s := open(t, newStore)
 		orgSeed(t, s, false)
 		bound := newAuthCode(tid, "bound")
 		bound.OrganizationID = "org_abcdefghij012345"
+		bound.OrganizationConnectionID = "con_original"
 		mustNoErr(t, s.AuthCodes().Create(ctx, bound))
 		mustNoErr(t, s.AuthCodes().Create(ctx, newAuthCode(tid, "plain")))
 		got, err := s.AuthCodes().Get(ctx, tid, "bound")
 		mustNoErr(t, err)
 		mustEqual(t, got.OrganizationID, "org_abcdefghij012345")
+		mustEqual(t, got.OrganizationConnectionID, "con_original")
 		used, err := s.AuthCodes().Consume(ctx, tid, "bound", ts(time.Second))
 		mustNoErr(t, err)
 		mustEqual(t, used.OrganizationID, "org_abcdefghij012345")
+		mustEqual(t, used.OrganizationConnectionID, "con_original")
 		got, err = s.AuthCodes().Get(ctx, tid, "plain")
 		mustNoErr(t, err)
 		mustEqual(t, got.OrganizationID, "")
+		mustEqual(t, got.OrganizationConnectionID, "")
 
 		rt := newRefreshToken(tid, "rt1", "h1", "f1")
 		rt.OrganizationID = "org_abcdefghij012345"
+		rt.OrganizationConnectionID = "con_original"
 		mustNoErr(t, s.RefreshTokens().Create(ctx, rt))
 		mustNoErr(t, s.RefreshTokens().Create(ctx, newRefreshToken(tid, "rt2", "h2", "f2")))
 		for hash, want := range map[string]string{"h1": "org_abcdefghij012345", "h2": ""} {
 			g, err := s.RefreshTokens().GetByTokenHash(ctx, tid, hash)
 			mustNoErr(t, err)
 			mustEqual(t, g.OrganizationID, want)
+			wantConnection := ""
+			if want != "" {
+				wantConnection = "con_original"
+			}
+			mustEqual(t, g.OrganizationConnectionID, wantConnection)
 		}
 		next := newRefreshToken(tid, "rt3", "h3", "f1")
 		next.OrganizationID = "org_abcdefghij012345"
+		next.OrganizationConnectionID = "con_original"
 		mustNoErr(t, s.RefreshTokens().Rotate(ctx, tid, "rt1", next, ts(time.Second), 0))
 		g, err := s.RefreshTokens().Get(ctx, tid, "rt3")
 		mustNoErr(t, err)
 		mustEqual(t, g.OrganizationID, "org_abcdefghij012345")
+		mustEqual(t, g.OrganizationConnectionID, "con_original")
 	})
 
 	t.Run("Limits", func(t *testing.T) {

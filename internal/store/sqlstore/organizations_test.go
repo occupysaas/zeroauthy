@@ -28,11 +28,11 @@ func TestOrganizationsMigration(t *testing.T) {
 				t.Fatal("Organizations migration missing")
 			}
 			code, err := old.AuthCodes().Get(ctx, "legacy", "code")
-			if err != nil || code.ClientID != "client" || code.OrganizationID != "" {
+			if err != nil || code.ClientID != "client" || code.OrganizationID != "" || code.OrganizationConnectionID != "" {
 				t.Fatalf("legacy code: %+v %v", code, err)
 			}
 			rt, err := old.RefreshTokens().Get(ctx, "legacy", "refresh")
-			if err != nil || rt.FamilyID != "family" || rt.OrganizationID != "" {
+			if err != nil || rt.FamilyID != "family" || rt.OrganizationID != "" || rt.OrganizationConnectionID != "" {
 				t.Fatalf("legacy refresh token: %+v %v", rt, err)
 			}
 			fresh := mustOpen(t, mk(t))

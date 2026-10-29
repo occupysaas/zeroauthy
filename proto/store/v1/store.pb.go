@@ -5950,28 +5950,29 @@ func (x *AuthTransaction) GetOrigin() string {
 }
 
 type AuthCode struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	TenantId            string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	CodeHash            string                 `protobuf:"bytes,2,opt,name=code_hash,json=codeHash,proto3" json:"code_hash,omitempty"`
-	ClientId            string                 `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	RedirectUri         string                 `protobuf:"bytes,4,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
-	UserId              string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	SessionId           string                 `protobuf:"bytes,6,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Scopes              *StringList            `protobuf:"bytes,7,opt,name=scopes,proto3" json:"scopes,omitempty"`
-	Audience            string                 `protobuf:"bytes,8,opt,name=audience,proto3" json:"audience,omitempty"`
-	Nonce               string                 `protobuf:"bytes,9,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	CodeChallenge       string                 `protobuf:"bytes,10,opt,name=code_challenge,json=codeChallenge,proto3" json:"code_challenge,omitempty"`
-	CodeChallengeMethod string                 `protobuf:"bytes,11,opt,name=code_challenge_method,json=codeChallengeMethod,proto3" json:"code_challenge_method,omitempty"`
-	AuthTime            *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=auth_time,json=authTime,proto3" json:"auth_time,omitempty"`
-	ExpiresAt           *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UsedAt              *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=used_at,json=usedAt,proto3" json:"used_at,omitempty"`             // absent = nil
-	ReplayedAt          *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=replayed_at,json=replayedAt,proto3" json:"replayed_at,omitempty"` // absent = nil
-	Origin              string                 `protobuf:"bytes,17,opt,name=origin,proto3" json:"origin,omitempty"`
-	ActionEffects       []byte                 `protobuf:"bytes,18,opt,name=action_effects,json=actionEffects,proto3" json:"action_effects,omitempty"`    // sealed post-login effects; empty = none
-	OrganizationId      string                 `protobuf:"bytes,19,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"` // Plan 29; empty = no organization
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	TenantId                 string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	CodeHash                 string                 `protobuf:"bytes,2,opt,name=code_hash,json=codeHash,proto3" json:"code_hash,omitempty"`
+	ClientId                 string                 `protobuf:"bytes,3,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	RedirectUri              string                 `protobuf:"bytes,4,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
+	UserId                   string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	SessionId                string                 `protobuf:"bytes,6,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Scopes                   *StringList            `protobuf:"bytes,7,opt,name=scopes,proto3" json:"scopes,omitempty"`
+	Audience                 string                 `protobuf:"bytes,8,opt,name=audience,proto3" json:"audience,omitempty"`
+	Nonce                    string                 `protobuf:"bytes,9,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	CodeChallenge            string                 `protobuf:"bytes,10,opt,name=code_challenge,json=codeChallenge,proto3" json:"code_challenge,omitempty"`
+	CodeChallengeMethod      string                 `protobuf:"bytes,11,opt,name=code_challenge_method,json=codeChallengeMethod,proto3" json:"code_challenge_method,omitempty"`
+	AuthTime                 *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=auth_time,json=authTime,proto3" json:"auth_time,omitempty"`
+	ExpiresAt                *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	CreatedAt                *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UsedAt                   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=used_at,json=usedAt,proto3" json:"used_at,omitempty"`             // absent = nil
+	ReplayedAt               *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=replayed_at,json=replayedAt,proto3" json:"replayed_at,omitempty"` // absent = nil
+	Origin                   string                 `protobuf:"bytes,17,opt,name=origin,proto3" json:"origin,omitempty"`
+	ActionEffects            []byte                 `protobuf:"bytes,18,opt,name=action_effects,json=actionEffects,proto3" json:"action_effects,omitempty"`                                    // sealed post-login effects; empty = none
+	OrganizationId           string                 `protobuf:"bytes,19,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`                                 // Plan 29; empty = no organization
+	OrganizationConnectionId string                 `protobuf:"bytes,20,opt,name=organization_connection_id,json=organizationConnectionId,proto3" json:"organization_connection_id,omitempty"` // Original authenticated connection
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *AuthCode) Reset() {
@@ -6133,6 +6134,13 @@ func (x *AuthCode) GetActionEffects() []byte {
 func (x *AuthCode) GetOrganizationId() string {
 	if x != nil {
 		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *AuthCode) GetOrganizationConnectionId() string {
+	if x != nil {
+		return x.OrganizationConnectionId
 	}
 	return ""
 }
@@ -6394,27 +6402,28 @@ func (x *DeviceCode) GetActionEffects() []byte {
 }
 
 type RefreshToken struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	TenantId       string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Id             string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	TokenHash      string                 `protobuf:"bytes,3,opt,name=token_hash,json=tokenHash,proto3" json:"token_hash,omitempty"`
-	FamilyId       string                 `protobuf:"bytes,4,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`
-	ClientId       string                 `protobuf:"bytes,5,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	UserId         string                 `protobuf:"bytes,6,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	SessionId      string                 `protobuf:"bytes,7,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	Scopes         *StringList            `protobuf:"bytes,8,opt,name=scopes,proto3" json:"scopes,omitempty"`
-	Audience       string                 `protobuf:"bytes,9,opt,name=audience,proto3" json:"audience,omitempty"`
-	AuthTime       *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=auth_time,json=authTime,proto3" json:"auth_time,omitempty"`
-	Rotating       bool                   `protobuf:"varint,11,opt,name=rotating,proto3" json:"rotating,omitempty"`
-	ExpiresAt      *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	IdleExpiresAt  *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=idle_expires_at,json=idleExpiresAt,proto3" json:"idle_expires_at,omitempty"`
-	RotatedAt      *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=rotated_at,json=rotatedAt,proto3" json:"rotated_at,omitempty"` // absent = nil
-	RevokedAt      *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=revoked_at,json=revokedAt,proto3" json:"revoked_at,omitempty"` // absent = nil
-	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Origin         string                 `protobuf:"bytes,17,opt,name=origin,proto3" json:"origin,omitempty"`
-	OrganizationId string                 `protobuf:"bytes,18,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"` // Plan 29; empty = no organization
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	TenantId                 string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Id                       string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	TokenHash                string                 `protobuf:"bytes,3,opt,name=token_hash,json=tokenHash,proto3" json:"token_hash,omitempty"`
+	FamilyId                 string                 `protobuf:"bytes,4,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`
+	ClientId                 string                 `protobuf:"bytes,5,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	UserId                   string                 `protobuf:"bytes,6,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	SessionId                string                 `protobuf:"bytes,7,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Scopes                   *StringList            `protobuf:"bytes,8,opt,name=scopes,proto3" json:"scopes,omitempty"`
+	Audience                 string                 `protobuf:"bytes,9,opt,name=audience,proto3" json:"audience,omitempty"`
+	AuthTime                 *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=auth_time,json=authTime,proto3" json:"auth_time,omitempty"`
+	Rotating                 bool                   `protobuf:"varint,11,opt,name=rotating,proto3" json:"rotating,omitempty"`
+	ExpiresAt                *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	IdleExpiresAt            *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=idle_expires_at,json=idleExpiresAt,proto3" json:"idle_expires_at,omitempty"`
+	RotatedAt                *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=rotated_at,json=rotatedAt,proto3" json:"rotated_at,omitempty"` // absent = nil
+	RevokedAt                *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=revoked_at,json=revokedAt,proto3" json:"revoked_at,omitempty"` // absent = nil
+	CreatedAt                *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Origin                   string                 `protobuf:"bytes,17,opt,name=origin,proto3" json:"origin,omitempty"`
+	OrganizationId           string                 `protobuf:"bytes,18,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`                                 // Plan 29; empty = no organization
+	OrganizationConnectionId string                 `protobuf:"bytes,19,opt,name=organization_connection_id,json=organizationConnectionId,proto3" json:"organization_connection_id,omitempty"` // Bound for the entire refresh family
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *RefreshToken) Reset() {
@@ -6569,6 +6578,13 @@ func (x *RefreshToken) GetOrigin() string {
 func (x *RefreshToken) GetOrganizationId() string {
 	if x != nil {
 		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *RefreshToken) GetOrganizationConnectionId() string {
+	if x != nil {
+		return x.OrganizationConnectionId
 	}
 	return ""
 }
@@ -17985,7 +18001,7 @@ const file_store_proto_rawDesc = "" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12*\n" +
 	"\x11hosted_state_json\x18\t \x01(\tR\x0fhostedStateJson\x12\x16\n" +
 	"\x06origin\x18\n" +
-	" \x01(\tR\x06origin\"\x8a\x06\n" +
+	" \x01(\tR\x06origin\"\xc8\x06\n" +
 	"\bAuthCode\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
 	"\tcode_hash\x18\x02 \x01(\tR\bcodeHash\x12\x1b\n" +
@@ -18010,7 +18026,8 @@ const file_store_proto_rawDesc = "" +
 	"replayedAt\x12\x16\n" +
 	"\x06origin\x18\x11 \x01(\tR\x06origin\x12%\n" +
 	"\x0eaction_effects\x18\x12 \x01(\fR\ractionEffects\x12'\n" +
-	"\x0forganization_id\x18\x13 \x01(\tR\x0eorganizationId\"\xe0\x02\n" +
+	"\x0forganization_id\x18\x13 \x01(\tR\x0eorganizationId\x12<\n" +
+	"\x1aorganization_connection_id\x18\x14 \x01(\tR\x18organizationConnectionId\"\xe0\x02\n" +
 	"\x11PushedAuthRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x17\n" +
 	"\aid_hash\x18\x02 \x01(\tR\x06idHash\x12\x1b\n" +
@@ -18043,7 +18060,7 @@ const file_store_proto_rawDesc = "" +
 	"\x06origin\x18\x0e \x01(\tR\x06origin\x12%\n" +
 	"\x0eaction_effects\x18\x0f \x01(\fR\ractionEffectsB\x11\n" +
 	"\x0f_last_polled_atB\x16\n" +
-	"\x14_expired_reported_at\"\xe6\x05\n" +
+	"\x14_expired_reported_at\"\xa4\x06\n" +
 	"\fRefreshToken\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1d\n" +
@@ -18069,7 +18086,8 @@ const file_store_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x16\n" +
 	"\x06origin\x18\x11 \x01(\tR\x06origin\x12'\n" +
-	"\x0forganization_id\x18\x12 \x01(\tR\x0eorganizationId\"\x96\x05\n" +
+	"\x0forganization_id\x18\x12 \x01(\tR\x0eorganizationId\x12<\n" +
+	"\x1aorganization_connection_id\x18\x13 \x01(\tR\x18organizationConnectionId\"\x96\x05\n" +
 	"\x13PasswordResetTicket\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1d\n" +

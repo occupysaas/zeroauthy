@@ -16,3 +16,7 @@ ALTER TABLE refresh_tokens ADD COLUMN organization_id VARBINARY(255) NOT NULL DE
 ALTER TABLE clients ADD COLUMN organization_usage VARCHAR(32) NOT NULL DEFAULT '';
 ALTER TABLE clients ADD COLUMN organization_require_behavior VARCHAR(32) NOT NULL DEFAULT '';
 ALTER TABLE clients ADD COLUMN organization_discovery_methods LONGTEXT NULL;
+
+-- Preserve the original authentication connection after session expiry.
+ALTER TABLE auth_codes ADD COLUMN organization_connection_id VARBINARY(255) NOT NULL DEFAULT '';
+ALTER TABLE refresh_tokens ADD COLUMN organization_connection_id VARBINARY(255) NOT NULL DEFAULT '';

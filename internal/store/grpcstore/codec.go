@@ -919,7 +919,7 @@ func authCodeToPB(c *store.AuthCode) (*storev1.AuthCode, error) {
 		Nonce: c.Nonce, CodeChallenge: c.CodeChallenge, CodeChallengeMethod: c.CodeChallengeMethod,
 		AuthTime: tsToPB(c.AuthTime), ExpiresAt: tsToPB(c.ExpiresAt), CreatedAt: tsToPB(c.CreatedAt),
 		UsedAt: optTSToPB(c.UsedAt), ReplayedAt: optTSToPB(c.ReplayedAt), ActionEffects: c.ActionEffects,
-		OrganizationId: c.OrganizationID,
+		OrganizationId: c.OrganizationID, OrganizationConnectionId: c.OrganizationConnectionID,
 	}, nil
 }
 
@@ -937,7 +937,7 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 		Nonce: pb.Nonce, CodeChallenge: pb.CodeChallenge, CodeChallengeMethod: pb.CodeChallengeMethod,
 		AuthTime: tsFromPB(pb.AuthTime), ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
 		UsedAt: optTSFromPB(pb.UsedAt), ReplayedAt: optTSFromPB(pb.ReplayedAt), ActionEffects: bytesFromPB(pb.ActionEffects),
-		OrganizationID: pb.OrganizationId,
+		OrganizationID: pb.OrganizationId, OrganizationConnectionID: pb.OrganizationConnectionId,
 	}, nil
 }
 
@@ -1032,7 +1032,7 @@ func refreshTokenToPB(r *store.RefreshToken) (*storev1.RefreshToken, error) {
 		Audience: r.Audience, AuthTime: tsToPB(r.AuthTime), Rotating: r.Rotating,
 		ExpiresAt: tsToPB(r.ExpiresAt), IdleExpiresAt: tsToPB(r.IdleExpiresAt),
 		RotatedAt: optTSToPB(r.RotatedAt), RevokedAt: optTSToPB(r.RevokedAt), CreatedAt: tsToPB(r.CreatedAt),
-		OrganizationId: r.OrganizationID,
+		OrganizationId: r.OrganizationID, OrganizationConnectionId: r.OrganizationConnectionID,
 	}, nil
 }
 
@@ -1050,7 +1050,7 @@ func refreshTokenFromPB(pb *storev1.RefreshToken) (*store.RefreshToken, error) {
 		Audience: pb.Audience, AuthTime: tsFromPB(pb.AuthTime), Rotating: pb.Rotating,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), IdleExpiresAt: tsFromPB(pb.IdleExpiresAt),
 		RotatedAt: optTSFromPB(pb.RotatedAt), RevokedAt: optTSFromPB(pb.RevokedAt), CreatedAt: tsFromPB(pb.CreatedAt),
-		OrganizationID: pb.OrganizationId,
+		OrganizationID: pb.OrganizationId, OrganizationConnectionID: pb.OrganizationConnectionId,
 	}, nil
 }
 

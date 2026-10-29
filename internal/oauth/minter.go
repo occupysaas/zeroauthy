@@ -44,8 +44,8 @@ type AccessTokenParams struct {
 	// Operator, when not empty, is the tenant.OperatorClaim: the tenants a
 	// console operator manages.
 	Operator []string
-	// CustomClaims are Action custom claims, already filtered
-	// (actions.FilterClaims); a claim the token already carries is kept.
+	// CustomClaims contain filtered Action claims and trusted server claims
+	// (including organizations); a claim the token already carries is kept.
 	CustomClaims map[string]any
 }
 
@@ -160,8 +160,8 @@ type IDTokenParams struct {
 	AccessToken string
 	// Lifetime defaults to DefaultIDTokenLifetime when zero.
 	Lifetime time.Duration
-	// CustomClaims are Action custom claims, already filtered
-	// (actions.FilterClaims); a claim the token already carries is kept.
+	// CustomClaims contain filtered Action claims and trusted server claims
+	// (including organizations); a claim the token already carries is kept.
 	CustomClaims map[string]any
 }
 

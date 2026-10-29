@@ -14,7 +14,7 @@ type refreshTokens struct{ s *Store }
 func (s *Store) RefreshTokens() store.RefreshTokens { return refreshTokens{s} }
 
 const refreshCols = `tenant_id, id, token_hash, family_id, client_id, user_id, session_id, scopes, audience,
- auth_time, rotating, expires_at, idle_expires_at, rotated_at, revoked_at, created_at, origin, organization_id`
+ auth_time, rotating, expires_at, idle_expires_at, rotated_at, revoked_at, created_at, origin, organization_id, organization_connection_id`
 
 // Create retries on deadlock: on MySQL an INSERT can be the victim of a cycle
 // with the sweepers' range DELETEs (gap locks).
@@ -27,10 +27,10 @@ func (r refreshTokens) insert(ctx context.Context, t *store.RefreshToken) error 
 	if err != nil {
 		return err
 	}
-	_, err = r.s.exec(ctx, `INSERT INTO refresh_tokens (`+refreshCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err = r.s.exec(ctx, `INSERT INTO refresh_tokens (`+refreshCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		t.TenantID, t.ID, t.TokenHash, t.FamilyID, t.ClientID, t.UserID, t.SessionID, scopes, t.Audience,
 		micros(t.AuthTime), t.Rotating, micros(t.ExpiresAt), micros(t.IdleExpiresAt),
-		nullMicros(t.RotatedAt), nullMicros(t.RevokedAt), micros(t.CreatedAt), t.Origin, t.OrganizationID)
+		nullMicros(t.RotatedAt), nullMicros(t.RevokedAt), micros(t.CreatedAt), t.Origin, t.OrganizationID, t.OrganizationConnectionID)
 	return r.s.conflict(err)
 }
 
@@ -219,7 +219,7 @@ func scanRefreshToken(row scanner) (*store.RefreshToken, error) {
 	var authAt, exp, idle, created int64
 	var rotated, revoked sql.NullInt64
 	if err := row.Scan(&t.TenantID, &t.ID, &t.TokenHash, &t.FamilyID, &t.ClientID, &t.UserID, &t.SessionID, &scopes,
-		&t.Audience, &authAt, &t.Rotating, &exp, &idle, &rotated, &revoked, &created, &t.Origin, &t.OrganizationID); err != nil {
+		&t.Audience, &authAt, &t.Rotating, &exp, &idle, &rotated, &revoked, &created, &t.Origin, &t.OrganizationID, &t.OrganizationConnectionID); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(scopes, &t.Scopes); err != nil {

@@ -56,6 +56,8 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 	var std jwt.Claims
 	var extra struct {
 		Scope    string `json:"scope"`
+		OrgID    string `json:"org_id"`
+		OrgName  string `json:"org_name"`
 		ClientID string `json:"client_id"`
 	}
 	if err := h.Keys.Verify(ctx, res.Tenant.ID, raw, &std, &extra); err != nil {
@@ -90,7 +92,14 @@ func (h *Handlers) Userinfo(w http.ResponseWriter, r *http.Request) {
 		h.internalError(w, r, res.Tenant.ID, "load user", err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, claims.ForUser(user, strings.Fields(extra.Scope)))
+	body := claims.ForUser(user, strings.Fields(extra.Scope))
+	if extra.OrgID != "" {
+		body["org_id"] = extra.OrgID
+	}
+	if extra.OrgName != "" {
+		body["org_name"] = extra.OrgName
+	}
+	httpx.WriteJSON(w, http.StatusOK, body)
 }
 
 func (h *Handlers) internalError(w http.ResponseWriter, r *http.Request, tenantID, what string, err error) {

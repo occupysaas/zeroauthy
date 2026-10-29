@@ -707,6 +707,7 @@ message AuthCode {
   string origin = 17;
   bytes action_effects = 18; // sealed post-login effects; empty = none
   string organization_id = 19; // Plan 29; empty = no organization
+  string organization_connection_id = 20; // Original authenticated connection
 }
 message PushedAuthRequest {
   string tenant_id = 1; string id_hash = 2; string client_id = 3; StringMap params = 4;
@@ -736,6 +737,7 @@ message RefreshToken {
   google.protobuf.Timestamp created_at = 16;
   string origin = 17;
   string organization_id = 18; // Plan 29; empty = no organization
+  string organization_connection_id = 19; // Bound for the entire refresh family
 }
 
 message PasswordResetTicket {

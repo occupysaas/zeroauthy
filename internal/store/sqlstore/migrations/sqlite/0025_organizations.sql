@@ -16,3 +16,7 @@ ALTER TABLE refresh_tokens ADD COLUMN organization_id TEXT NOT NULL DEFAULT '';
 ALTER TABLE clients ADD COLUMN organization_usage TEXT NOT NULL DEFAULT '';
 ALTER TABLE clients ADD COLUMN organization_require_behavior TEXT NOT NULL DEFAULT '';
 ALTER TABLE clients ADD COLUMN organization_discovery_methods TEXT NULL;
+
+-- Preserve the original authentication connection after session expiry.
+ALTER TABLE auth_codes ADD COLUMN organization_connection_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE refresh_tokens ADD COLUMN organization_connection_id TEXT NOT NULL DEFAULT '';

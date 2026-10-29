@@ -38,10 +38,12 @@ func requestInfoFrom(ctx context.Context) actions.RequestInfo {
 
 // loginFlow is a token-endpoint grant that runs the post-login flow.
 type loginFlow struct {
-	user       *store.User
-	connection *store.Connection // nil when unknown
-	// userConnection loads connection from the user's first identity, only
-	// when Actions are bound.
+	organizationID string
+	connectionID   string // original connection of an organization refresh family
+	user           *store.User
+	connection     *store.Connection // nil when unknown
+	// userConnection resolves the pinned connectionID, or the first identity
+	// for individual grants, only when Actions are bound.
 	userConnection bool
 	rs             *store.ResourceServer
 	protocol       string
@@ -59,12 +61,18 @@ func (h *Handlers) postLogin(ctx context.Context, res tenant.Resolved, c *store.
 		return nil, nil
 	}
 	in := actions.PostLoginInput{
-		Tenant: res, Client: c, User: f.user, Connection: f.connection, Request: requestInfoFrom(ctx),
+		OrganizationID: f.organizationID, Tenant: res, Client: c, User: f.user, Connection: f.connection, Request: requestInfoFrom(ctx),
 		Protocol: f.protocol, RequestedScopes: f.requested, TargetScopes: f.target, ResourceServer: f.rs,
 	}
 	if f.userConnection {
 		in.Prepare = func(ctx context.Context, in *actions.PostLoginInput) error {
-			conn, err := h.userConnection(ctx, res.Tenant.ID, in.User)
+			var conn *store.Connection
+			var err error
+			if f.connectionID != "" {
+				conn, err = h.Store.Connections().Get(ctx, res.Tenant.ID, f.connectionID)
+			} else {
+				conn, err = h.userConnection(ctx, res.Tenant.ID, in.User)
+			}
 			in.Connection = conn
 			return err
 		}
