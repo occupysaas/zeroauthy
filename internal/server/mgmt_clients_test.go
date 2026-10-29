@@ -140,7 +140,7 @@ func TestDeleteClientInUse(t *testing.T) {
 	req = req.WithContext(mgmt.WithCaller(tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: tn, Host: tn.Domains[0]}),
 		mgmt.Caller{Kind: mgmt.M2M, ClientID: "test", Scopes: []string{"delete:clients"}}))
 	rec := httptest.NewRecorder()
-	mgmtAPI{h}.DeleteClient(rec, req, "spa")
+	mgmtAPI{h: h}.DeleteClient(rec, req, "spa")
 	if rec.Code != 204 {
 		t.Fatalf("delete = %d %s", rec.Code, rec.Body)
 	}

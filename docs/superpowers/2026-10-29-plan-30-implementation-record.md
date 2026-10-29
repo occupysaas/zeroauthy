@@ -10,8 +10,9 @@ Worktree: `/mnt/nvme2/code/zeroauthy-plan-30`.
 Task 1 is complete and controller-reviewed, including review fix `5e2ae89`.
 Task 2 is complete and controller-reviewed at `2caddb4`. Task 3 is complete
 and controller-reviewed at `e8f48a8`, with the race-test scheduling and tenant
-serialization limitations recorded below. Task 4 is submitted for controller
-review; Tasks 5–17 remain. The inventory
+serialization limitations recorded below. Task 4 is complete and controller-reviewed at `60c0d29`; the minor reconnect
+coverage limitation (actual backend replacement remains unverified) is retained.
+Task 5 is implemented and submitted for controller review; Tasks 6–17 remain. The inventory
 freezes contracts, not operational endpoints. API YAML, individual public scope
 audit, Authentication/reset context, expanded EA connection contracts and D-0056
 are now included in the Task 1 submission.
@@ -436,3 +437,80 @@ existing StringMap wrapper and codec; no new claim about every old plugin's
 string-map behavior is made. No PostgreSQL/MySQL gRPC run, full Go/SQL suite,
 external plugin process, console or browser tests were run for Task 4. Broad
 release validation remains Task 17. Controller owns Task 4 review and ledger.
+
+
+## Task 5 — Invitation management
+
+Implemented scoped invitation POST/list/get/DELETE, 200 creation, strict
+TTL/null/body/metadata validation and tenant-scoped reference checks before
+writes. The frozen invitation list envelope contains start/limit/invitations
+without total. Authorized reads recover the same ticket and URL from a
+context-bound envelope; audit records contain resource IDs only. A 32-byte
+crypto/rand bearer is independent of the uinv_ resource ID; SHA-256 supports
+lookup. HTTPS URL construction preserves unrelated parameters and replaces
+reserved parameters with URL encoding. Application login URI precedes the tenant
+default; explicit notification domains and owned login-domain claims are checked.
+
+Creation and typed durable email work share Store.WithTx. Disabled templates
+and explicit send=false retain a usable invitation without queue work. Missing
+queue service, corrupt provider configuration, custom provider without bindings,
+and storage enqueue failures cannot leave a committed invitation. The job uses
+the existing custom-email-provider trigger/lease store with a sealed
+jobPayload.Kind=invitation discriminator and InvitationDelivery IDs/frozen
+presentation context. The intermediate worker preserves these jobs as pending;
+Task 6 must dispatch, reload active state, recover the existing ticket and render
+through the existing email service. It must replace the temporary pending branch,
+not introduce another queue. SMTP invitations require no Action bindings.
+
+Prerequisite ruling authorized by controller: initiate_login_uri was previously
+ignored. Added Client.InitiateLoginURI, mgmt create/update/read, clientrules,
+SQL CRUD/migration 0027 for all three dialects and additive protobuf field 24.
+The supported subset requires an HTTPS URI of at most 2048 bytes; omission on
+PATCH preserves, explicit null rejects. This supersedes D-0039's historical
+ignored-field entry only for this setting. Go/protobuf and TypeScript outputs
+were regenerated. The TypeScript regeneration also synchronizes Task 1's II
+contracts, which had not yet reached that output; no console runtime change.
+
+Generated Task 1 II operations had left internal/server uncompilable (missing
+AssociateOrganizationClientGrant on mgmtAPI). Embedded generated Unimplemented
+for future-task routes and overrode only operational invitation methods with
+frozen route scopes. Existing unkeyed constructors were converted to keyed form.
+Future tasks must supply their scoped overrides before claiming those routes live.
+
+Actual Task 5 verification:
+
+- Initial focused mgmt/orglogin command failed compilation for absent handlers,
+  BuildInvitationURL and ticket helpers (RED). Initial actions queue test failed
+  compilation for missing typed payload/enqueue API (RED).
+- Invalid-provider test failed behaviorally (200 instead of 503); provider
+  preflight now rejects corrupt credentials and malformed transport config before
+  commit. Projection test failed behaviorally because GET returned all fields;
+  it now validates and applies the requested field projection.
+- Intermediate checks exposed and corrected a misplaced worker branch during
+  editing, EmailTemplate fixture field/signature errors, and unkeyed server
+  constructors after embedding. A client PATCH test initially lacked
+  update:clients in its caller fixture; corrected the test caller's scopes.
+- Final `go test ./internal/mgmt ./internal/orglogin ./internal/actions
+  ./internal/server -run 'OrganizationInvitation|InvitationURL|InvitationQueue'
+  -race -count=1` PASS (mgmt 3.251s; others 1.021–1.081s).
+- `go test ./internal/store/memory -run '^TestConformance$/^Clients$' -count=1`
+  PASS; `go test ./internal/store/sqlstore -run
+  '^TestConformance$/^sqlite$/^Clients$' -count=1 -v` PASS (0.491s), including
+  create/update URI round trips over migration 0027.
+- `go test ./internal/store/grpcstore -run '^TestClientRoundTrip$' -count=1`
+  PASS; actual protobuf marshaling retains the new URI. Corrected shared command
+  `go test ./internal/store/grpcstore -run
+  '^TestConformance(SQLite)?$/^Clients$' -count=1 -v` PASS (0.576s), memory and
+  SQLite plugin clients. Earlier optional-slash selector ran no SQL subtests;
+  that invocation is not counted as SQL coverage.
+- `go test ./internal/clientrules -run TestFromClientApplyRoundTrip -count=1`
+  PASS. Affected mgmt/orglogin/actions/server/clientrules/store packages,
+  pkg/storetest and cmd/zeroauthy compile with `go test ... -run '^$'`.
+- `go generate ./proto/store/v1` and `go generate ./internal/gen/mgmtapi` PASS.
+  First console `npm run gen` failed because dependencies were absent;
+  `npm ci --no-audit --no-fund` then `npm run gen` PASS under Node v26.8.1.
+  npm reported the existing vue-demi install-script approval warning.
+- `git diff --check` PASS. No full Go suite, browser/console runtime suite,
+  PostgreSQL/MySQL migration execution or external SMTP/provider send was run.
+  Task 6 owns actual delivery and retry lifecycle; Task 17 owns broad release
+  validation. No deferred validation is claimed passing.

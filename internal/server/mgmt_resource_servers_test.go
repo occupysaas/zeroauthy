@@ -160,7 +160,7 @@ func TestDeleteResourceServerCascades(t *testing.T) {
 	req = req.WithContext(mgmt.WithCaller(tenant.WithResolved(req.Context(), tenant.Resolved{Tenant: tn, Host: tn.Domains[0]}),
 		mgmt.Caller{Kind: mgmt.M2M, ClientID: "test", Scopes: []string{"delete:resource_servers"}}))
 	rec := httptest.NewRecorder()
-	mgmtAPI{h}.DeleteResourceServer(rec, req, api.ID)
+	mgmtAPI{h: h}.DeleteResourceServer(rec, req, api.ID)
 	if rec.Code != 204 {
 		t.Fatalf("delete = %d %s", rec.Code, rec.Body)
 	}

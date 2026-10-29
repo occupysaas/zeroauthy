@@ -12614,7 +12614,10 @@ components:
         cross_origin_loc: {description: Accepted and ignored.}
         custom_login_page_on: {description: Accepted and ignored.}
         custom_login_page: {description: Accepted and ignored.}
-        initiate_login_uri: {description: Accepted and ignored.}
+        initiate_login_uri:
+          type: string
+          format: uri
+          description: HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
         native_social_login: {description: Accepted and ignored.}
         mobile: {description: Accepted and ignored.}
         organization_usage:
@@ -12681,6 +12684,10 @@ components:
       description: An application.
       required: [tenant, client_id, name, app_type, is_first_party, oidc_conformant, callbacks, allowed_logout_urls, web_origins, allowed_origins, grant_types, token_endpoint_auth_method, jwt_configuration, refresh_token, global, callback_url_template, require_pushed_authorization_requests]
       properties:
+        initiate_login_uri:
+          type: string
+          format: uri
+          description: HTTPS application login route used for organization invitation links.
         tenant: {type: string, description: The tenant's name.}
         client_id: {type: string}
         client_secret:

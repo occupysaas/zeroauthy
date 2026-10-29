@@ -530,6 +530,7 @@ message Client {
   // refuses non-deny usage with 501 for such a plugin.
   string organization_usage = 21;
   string organization_require_behavior = 22;
+  string initiate_login_uri = 24;
   StringList organization_discovery_methods = 23;   // absent = unset
 }
 

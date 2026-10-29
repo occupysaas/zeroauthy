@@ -132,6 +132,7 @@ type ClientSecret struct {
 
 // Client is an application registered in a tenant.
 type Client struct {
+	InitiateLoginURI        string
 	TenantID                string
 	ClientID                string
 	Name                    string

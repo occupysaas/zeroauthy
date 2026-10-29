@@ -10,7 +10,10 @@ import (
 // mgmtAPI adapts mgmt.Handlers to the generated ServerInterface, adding
 // each operation's scope check. The var _ assertion fails to compile when
 // api/management.yaml gains an operation that has no method here.
-type mgmtAPI struct{ h *mgmt.Handlers }
+type mgmtAPI struct {
+	mgmtapi.Unimplemented
+	h *mgmt.Handlers
+}
 
 var _ mgmtapi.ServerInterface = mgmtAPI{}
 
@@ -779,4 +782,17 @@ func (a mgmtAPI) ListOrganizationRoleMembers(w http.ResponseWriter, r *http.Requ
 }
 func (a mgmtAPI) ListUserOrganizations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListUserOrganizationsParams) {
 	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListUserOrganizations(w, r, id) }, "read:users", "read:organizations")
+}
+
+func (a mgmtAPI) CreateOrganizationInvitation(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.CreateOrganizationInvitationParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.CreateOrganizationInvitation(w, r, id) }, "create:organization_invitations")
+}
+func (a mgmtAPI) ListOrganizationInvitations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationInvitationsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationInvitations(w, r, id) }, "read:organization_invitations")
+}
+func (a mgmtAPI) GetOrganizationInvitation(w http.ResponseWriter, r *http.Request, id, invitationID string, _ mgmtapi.GetOrganizationInvitationParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationInvitation(w, r, id, invitationID) }, "read:organization_invitations")
+}
+func (a mgmtAPI) DeleteOrganizationInvitation(w http.ResponseWriter, r *http.Request, id, invitationID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationInvitation(w, r, id, invitationID) }, "delete:organization_invitations")
 }

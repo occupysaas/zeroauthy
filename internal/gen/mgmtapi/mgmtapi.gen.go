@@ -3817,7 +3817,10 @@ type Client struct {
 	CreatedAt    *time.Time   `json:"created_at,omitempty"`
 	Global       ClientGlobal `json:"global"`
 	GrantTypes   []string     `json:"grant_types"`
-	IsFirstParty bool         `json:"is_first_party"`
+
+	// InitiateLoginUri HTTPS application login route used for organization invitation links.
+	InitiateLoginUri *string `json:"initiate_login_uri,omitempty"`
+	IsFirstParty     bool    `json:"is_first_party"`
 
 	// JwtConfiguration ID token settings.
 	JwtConfiguration JwtConfiguration     `json:"jwt_configuration"`
@@ -3926,8 +3929,8 @@ type ClientCreate struct {
 	// stored but not served.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
 
-	// InitiateLoginUri Accepted and ignored.
-	InitiateLoginUri interface{} `json:"initiate_login_uri,omitempty"`
+	// InitiateLoginUri HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
+	InitiateLoginUri *string `json:"initiate_login_uri,omitempty"`
 
 	// IsFirstParty First-party (true) or third-party application.
 	IsFirstParty *bool `json:"is_first_party,omitempty"`
@@ -4190,8 +4193,8 @@ type ClientSettings struct {
 	// stored but not served.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
 
-	// InitiateLoginUri Accepted and ignored.
-	InitiateLoginUri interface{} `json:"initiate_login_uri,omitempty"`
+	// InitiateLoginUri HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
+	InitiateLoginUri *string `json:"initiate_login_uri,omitempty"`
 
 	// IsTokenEndpointIpHeaderTrusted Accepted and ignored.
 	IsTokenEndpointIpHeaderTrusted interface{} `json:"is_token_endpoint_ip_header_trusted,omitempty"`
@@ -4326,9 +4329,9 @@ type ClientUpdate struct {
 	// stored but not served.
 	GrantTypes *[]string `json:"grant_types,omitempty"`
 
-	// InitiateLoginUri Accepted and ignored.
-	InitiateLoginUri interface{} `json:"initiate_login_uri,omitempty"`
-	IsFirstParty     *bool       `json:"is_first_party,omitempty"`
+	// InitiateLoginUri HTTPS application login route used by organization invitation links. Omission preserves the existing value; null is rejected.
+	InitiateLoginUri *string `json:"initiate_login_uri,omitempty"`
+	IsFirstParty     *bool   `json:"is_first_party,omitempty"`
 
 	// IsTokenEndpointIpHeaderTrusted Accepted and ignored.
 	IsTokenEndpointIpHeaderTrusted interface{} `json:"is_token_endpoint_ip_header_trusted,omitempty"`

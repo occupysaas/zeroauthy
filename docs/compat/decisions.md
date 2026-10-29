@@ -1741,3 +1741,14 @@ DNS attestation, metadata merge or failure ordering: the spec explicitly owns
 these local choices. Domain verified status is administrative attestation, not
 an assertion that DNS was queried. Quotas, groups, SAML, My Organization API and
 self-service connection execution remain excluded.
+
+
+D-0056 Task 5 prerequisite clarification (2026-10-29): application login URI is
+required for application-first invitation URL construction. `initiate_login_uri`
+now persists on Client through memory, SQL migration 0027 and additive protobuf
+field 24; Management create/PATCH accept a validated HTTPS URI (local 2048-byte
+bound), PATCH omission preserves and null rejects. This narrowly supersedes the
+historical D-0039 ignored-field entry. The tenant `default_redirection_uri` is
+used only when the application setting is absent. URI query values are preserved
+except invitation/organization/organization_name, which are replaced. No live
+Auth0 observation informed this prerequisite.

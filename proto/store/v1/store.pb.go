@@ -1597,6 +1597,7 @@ type Client struct {
 	// refuses non-deny usage with 501 for such a plugin.
 	OrganizationUsage            string      `protobuf:"bytes,21,opt,name=organization_usage,json=organizationUsage,proto3" json:"organization_usage,omitempty"`
 	OrganizationRequireBehavior  string      `protobuf:"bytes,22,opt,name=organization_require_behavior,json=organizationRequireBehavior,proto3" json:"organization_require_behavior,omitempty"`
+	InitiateLoginUri             string      `protobuf:"bytes,24,opt,name=initiate_login_uri,json=initiateLoginUri,proto3" json:"initiate_login_uri,omitempty"`
 	OrganizationDiscoveryMethods *StringList `protobuf:"bytes,23,opt,name=organization_discovery_methods,json=organizationDiscoveryMethods,proto3" json:"organization_discovery_methods,omitempty"` // absent = unset
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache
@@ -1782,6 +1783,13 @@ func (x *Client) GetOrganizationUsage() string {
 func (x *Client) GetOrganizationRequireBehavior() string {
 	if x != nil {
 		return x.OrganizationRequireBehavior
+	}
+	return ""
+}
+
+func (x *Client) GetInitiateLoginUri() string {
+	if x != nil {
+		return x.InitiateLoginUri
 	}
 	return ""
 }
@@ -18356,7 +18364,7 @@ const file_store_proto_rawDesc = "" +
 	"\x06leeway\x18\x02 \x01(\x03R\x06leeway\x12\x1a\n" +
 	"\bexpiring\x18\x03 \x01(\bR\bexpiring\x12%\n" +
 	"\x0etoken_lifetime\x18\x04 \x01(\x03R\rtokenLifetime\x12.\n" +
-	"\x13idle_token_lifetime\x18\x05 \x01(\x03R\x11idleTokenLifetime\"\x93\v\n" +
+	"\x13idle_token_lifetime\x18\x05 \x01(\x03R\x11idleTokenLifetime\"\xc1\v\n" +
 	"\x06Client\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
 	"\tclient_id\x18\x02 \x01(\tR\bclientId\x12\x12\n" +
@@ -18383,7 +18391,8 @@ const file_store_proto_rawDesc = "" +
 	"%require_pushed_authorization_requests\x18\x13 \x01(\bR\"requirePushedAuthorizationRequests\x12\x16\n" +
 	"\x06origin\x18\x14 \x01(\tR\x06origin\x12-\n" +
 	"\x12organization_usage\x18\x15 \x01(\tR\x11organizationUsage\x12B\n" +
-	"\x1dorganization_require_behavior\x18\x16 \x01(\tR\x1borganizationRequireBehavior\x12d\n" +
+	"\x1dorganization_require_behavior\x18\x16 \x01(\tR\x1borganizationRequireBehavior\x12,\n" +
+	"\x12initiate_login_uri\x18\x18 \x01(\tR\x10initiateLoginUri\x12d\n" +
 	"\x1eorganization_discovery_methods\x18\x17 \x01(\v2\x1e.zeroauthy.store.v1.StringListR\x1corganizationDiscoveryMethodsB\x11\n" +
 	"\x0f_is_first_partyB7\n" +
 	"5_skip_non_verifiable_callback_uri_confirmation_prompt\"?\n" +

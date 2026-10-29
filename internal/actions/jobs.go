@@ -25,8 +25,10 @@ type AsyncJob struct {
 }
 
 type jobPayload struct {
-	Units []continueUnit
-	Input map[string]any
+	Kind       string              `json:",omitempty"`
+	Invitation *InvitationDelivery `json:",omitempty"`
+	Units      []continueUnit
+	Input      map[string]any
 }
 
 func asyncTrigger(trigger string) bool {
@@ -104,6 +106,12 @@ func (e *Engine) RunJob(ctx context.Context, j *store.ActionJob) *store.ActionJo
 	corrupt := false
 	plain, err := keys.OpenBound(e.Secrets, jobLabel, []string{j.TenantID, j.ID, j.Trigger}, j.Sealed)
 	var p jobPayload
+	if err == nil && j.Trigger == InvitationDeliveryTrigger && json.Unmarshal(plain, &p) == nil && p.Kind == "invitation" && p.Invitation != nil && p.Invitation.TenantID == j.TenantID {
+		next.NextAt = e.now().Add(time.Minute)
+		next.LeaseUntil = time.Time{}
+		next.UpdatedAt = e.now()
+		return &next
+	}
 	if err != nil || !asyncTrigger(j.Trigger) || json.Unmarshal(plain, &p) != nil || len(p.Units) == 0 || p.Input == nil {
 		runErr, corrupt = errors.New("actions: invalid job envelope"), true
 	} else {
