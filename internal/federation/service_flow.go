@@ -19,6 +19,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/connrules"
 	"github.com/zeroauthy/zeroauthy/internal/federation/rules"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -110,6 +111,18 @@ func (s *FlowService) Begin(ctx context.Context, in BeginInput) (*Begun, error) 
 	}
 	if err := RequireMicrosoftConnection(ctx, s.Store, conn); err != nil {
 		return nil, err
+	}
+	if in.Txn == nil {
+		return nil, ErrConnectionUnusable
+	}
+	oc, err := orglogin.Load(ctx, s.Store, conn.TenantID, in.Txn.Params)
+	if err != nil {
+		return nil, ErrConnectionUnusable
+	}
+	if oc.Org != nil {
+		if _, ok := oc.Connections[conn.ID]; !ok {
+			return nil, ErrConnectionUnusable
+		}
 	}
 	spec := connrules.FromConnection(conn)
 	cfg, err := ParseConfig(*spec)
@@ -335,6 +348,13 @@ func (s *FlowService) Complete(ctx context.Context, in CompleteInput) (*Completi
 			user, err := s.ResolveIdentity(ctx, tx, conn, res)
 			if err != nil {
 				return err
+			}
+			oc, e := orglogin.Load(ctx, tx, a.TenantID, txn.Params)
+			if e != nil {
+				return e
+			}
+			if e = orglogin.EnsureMembership(ctx, tx, oc, user.UserID, conn.ID); e != nil && !errors.Is(e, orglogin.ErrNotMember) {
+				return e
 			}
 			if err := tx.Federation().FinishAttempt(ctx, a.TenantID, a.StateHash); err != nil {
 				return ErrAttemptStale

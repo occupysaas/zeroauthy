@@ -6,6 +6,7 @@
 package clientrules
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"slices"
@@ -81,6 +82,11 @@ type Spec struct {
 	RedirectionPolicy                              string
 	SkipNonVerifiableCallbackURIConfirmationPrompt *bool
 	RequirePushedAuthorizationRequests             bool
+
+	// Organization settings (D-0055); empty and nil mean unset.
+	OrganizationUsage            string
+	OrganizationRequireBehavior  string
+	OrganizationDiscoveryMethods []string
 }
 
 // RefreshToken is a client's refresh-token policy in Auth0's terms.
@@ -289,7 +295,67 @@ func Normalize(s *Spec, parSupported bool) []error {
 	if rt.TokenLifetime > 0 && rt.IdleTokenLifetime > rt.TokenLifetime {
 		fail("refresh_token.idle_token_lifetime must not exceed token_lifetime")
 	}
+	if err := ValidateOrganizationFields(s.OrganizationUsage, s.OrganizationRequireBehavior, s.OrganizationDiscoveryMethods); err != nil {
+		errs = append(errs, err)
+	} else if err := CheckOrganizationGrants(s.OrganizationUsage, s.GrantTypes); err != nil {
+		errs = append(errs, err)
+	}
 	return errs
+}
+
+// ErrOrganizationRule marks a client organization setting that is well
+// formed but conflicts with another setting. Auth0 reports these without an
+// errorCode (observed, D-0055), unlike malformed values.
+var ErrOrganizationRule = errors.New("organization setting conflict")
+
+var (
+	orgUsages    = []string{store.OrgUsageDeny, store.OrgUsageAllow, store.OrgUsageRequire}
+	orgBehaviors = []string{store.OrgBehaviorNoPrompt, store.OrgBehaviorPreLoginPrompt, store.OrgBehaviorPostLoginPrompt}
+	orgMethods   = []string{store.OrgDiscoveryEmail, store.OrgDiscoveryName}
+	// orgRefusedGrants cannot be used by a require client: Organizations
+	// do not support the password and device flows (D-0055).
+	orgRefusedGrants = []string{GrantPassword, GrantPasswordRealm, GrantDeviceCode}
+)
+
+// ValidateOrganizationFields checks a client's organization settings, where
+// "" and nil mean unset. pre_login_prompt is accepted with every usage
+// (observed); discovery methods need at least one entry and are allowed
+// only with pre_login_prompt, a conflict wrapping ErrOrganizationRule.
+// post_login_prompt needs an OIDC-conformant client, which every zeroauthy
+// client is.
+func ValidateOrganizationFields(usage, behavior string, methods []string) error {
+	switch {
+	case usage != "" && !slices.Contains(orgUsages, usage):
+		return fmt.Errorf("organization_usage %q must be one of %v", usage, orgUsages)
+	case behavior != "" && !slices.Contains(orgBehaviors, behavior):
+		return fmt.Errorf("organization_require_behavior %q must be one of %v", behavior, orgBehaviors)
+	case methods != nil && len(methods) == 0:
+		return errors.New("organization_discovery_methods needs at least one method")
+	}
+	for _, m := range methods {
+		if !slices.Contains(orgMethods, m) {
+			return fmt.Errorf("organization_discovery_methods: %q must be one of %v", m, orgMethods)
+		}
+	}
+	if methods != nil && behavior != store.OrgBehaviorPreLoginPrompt {
+		return fmt.Errorf("%w: organization_discovery_methods is only allowed with organization_require_behavior %s", ErrOrganizationRule, store.OrgBehaviorPreLoginPrompt)
+	}
+	return nil
+}
+
+// CheckOrganizationGrants refuses a require client holding the password,
+// password-realm or device grants, whichever was configured first
+// (observed, D-0055). The error wraps ErrOrganizationRule.
+func CheckOrganizationGrants(usage string, grants []string) error {
+	if usage != store.OrgUsageRequire {
+		return nil
+	}
+	for _, g := range grants {
+		if slices.Contains(orgRefusedGrants, g) {
+			return fmt.Errorf("%w: organization_usage require cannot be used with grant type %q", ErrOrganizationRule, g)
+		}
+	}
+	return nil
 }
 
 // CheckImmutable reports a change of party or security mode from the
@@ -320,6 +386,8 @@ func Apply(c *store.Client, s *Spec) {
 	c.IsFirstParty, c.ThirdPartySecurityMode = *s.IsFirstParty, s.ThirdPartySecurityMode
 	c.RedirectionPolicy = s.RedirectionPolicy
 	c.RequirePushedAuthorizationRequests = s.RequirePushedAuthorizationRequests
+	c.OrganizationUsage, c.OrganizationRequireBehavior = s.OrganizationUsage, s.OrganizationRequireBehavior
+	c.OrganizationDiscoveryMethods = slices.Clone(s.OrganizationDiscoveryMethods)
 	c.SkipNonVerifiableCallbackURIConfirmationPrompt = nil
 	if p := s.SkipNonVerifiableCallbackURIConfirmationPrompt; p != nil {
 		v := *p
@@ -346,6 +414,9 @@ func FromClient(c *store.Client) Spec {
 		IsFirstParty: &firstParty, ThirdPartySecurityMode: c.ThirdPartySecurityMode,
 		RedirectionPolicy:                  c.RedirectionPolicy,
 		RequirePushedAuthorizationRequests: c.RequirePushedAuthorizationRequests,
+		OrganizationUsage:                  c.OrganizationUsage,
+		OrganizationRequireBehavior:        c.OrganizationRequireBehavior,
+		OrganizationDiscoveryMethods:       slices.Clone(c.OrganizationDiscoveryMethods),
 	}
 	if c.RefreshToken.Rotating {
 		s.RefreshToken.RotationType = Rotating

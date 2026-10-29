@@ -124,7 +124,13 @@ func (d *Database) customLogin(ctx context.Context, conn *store.Connection, logi
 			return nil, err
 		}
 	}
-	u, err := d.upsertProfile(ctx, conn, p, true)
+	u, err := d.loginWrite(ctx, func(bound *Database) (*store.User, error) {
+		u, err := bound.upsertProfile(ctx, conn, p, true)
+		if err == nil && u.Blocked {
+			return nil, ErrUserBlocked
+		}
+		return u, err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -171,6 +177,12 @@ func (d *Database) importLogin(ctx context.Context, conn *store.Connection, logi
 	if err != nil {
 		return nil, err
 	}
+	return d.loginWrite(ctx, func(bound *Database) (*store.User, error) {
+		return bound.persistImportLogin(ctx, conn, p, hash, u, login, password)
+	})
+}
+func (d *Database) persistImportLogin(ctx context.Context, conn *store.Connection, p *customdb.Profile, hash string, u *store.User, login, password string) (*store.User, error) {
+	var err error
 	if u == nil {
 		var created bool
 		u, created, err = d.createImported(ctx, conn, p, hash)
@@ -386,13 +398,23 @@ func (d *Database) customSignup(ctx context.Context, conn *store.Connection, in 
 		// earlier login or a concurrent first login) is adopted as before
 		// Actions; upsertProfile still reports a real collision. The
 		// adopted record keeps its own metadata.
-		if u, err = d.upsertProfile(ctx, conn, p, true); err != nil {
-			return nil, err
-		}
-		if err = d.RecordLegacyPassword(ctx, conn, u.UserID, in.Password); err != nil {
-			return nil, err
-		}
-		err = d.Store.WithTx(ctx, func(tx store.Store) error { return d.enqueueSignup(ctx, tx, conn, in.Actions, u) })
+		err = d.Store.WithTx(ctx, func(tx store.Store) error {
+			bound := *d
+			bound.Store = tx
+			u, err = bound.upsertProfile(ctx, conn, p, true)
+			if err != nil {
+				return err
+			}
+			if err = bound.RecordLegacyPassword(ctx, conn, u.UserID, in.Password); err != nil {
+				return err
+			}
+			if in.Actions.Commit != nil {
+				if err = in.Actions.Commit(ctx, tx, u); err != nil {
+					return err
+				}
+			}
+			return bound.enqueueSignup(ctx, tx, conn, in.Actions, u)
+		})
 	}
 	if err != nil {
 		return nil, err

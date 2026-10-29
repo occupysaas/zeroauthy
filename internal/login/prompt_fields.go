@@ -11,8 +11,9 @@ import (
 
 func formVariables(f *flow, prompt, screen string) map[string]any {
 	return map[string]any{
-		"tenant":      map[string]any{"name": f.view.Name, "support_url": f.view.SupportURL, "support_email": f.view.SupportEmail},
-		"application": map[string]any{"name": f.clientName}, "locale": map[string]any{"language": f.view.L.Lang()},
+		"organization": hostedlogin.NewContext(f.view.Organization).Variables()["organization"],
+		"tenant":       map[string]any{"name": f.view.Name, "support_url": f.view.SupportURL, "support_email": f.view.SupportEmail},
+		"application":  map[string]any{"name": f.clientName}, "locale": map[string]any{"language": f.view.L.Lang()},
 		"prompt":   map[string]any{"name": prompt, "screen": map[string]any{"name": screen, "text": f.view.L.ScreenText(prompt, screen)}},
 		"branding": map[string]any{"logo_url": f.view.LogoURL, "primary_color": f.view.PrimaryColor},
 	}

@@ -31,7 +31,17 @@ type (
 	Paged[T any]                = store.Paged[T]
 	RBACSupporter               = store.RBACSupporter
 	ActionsSupporter            = store.ActionsSupporter
+	OrganizationsSupporter      = store.OrganizationsSupporter
 	UnimplementedRBAC           = store.UnimplementedRBAC
+	Organizations               = store.Organizations
+	UnimplementedOrganizations  = store.UnimplementedOrganizations
+	Organization                = store.Organization
+	OrgBranding                 = store.OrgBranding
+	OrgColors                   = store.OrgColors
+	OrganizationConnection      = store.OrganizationConnection
+	OrgPage                     = store.OrgPage
+	OrgResult[T any]            = store.OrgResult[T]
+	OrgLimits                   = store.OrgLimits
 	Role                        = store.Role
 	PermissionKey               = store.PermissionKey
 	PermissionGrant             = store.PermissionGrant
@@ -294,5 +304,6 @@ const (
 )
 
 var ErrRBACUnavailable = store.ErrRBACUnavailable
+var ErrOrganizationsUnavailable = store.ErrOrganizationsUnavailable
 var ErrActionsUnavailable = store.ErrActionsUnavailable
 var ErrBuildNotReady = store.ErrBuildNotReady

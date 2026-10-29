@@ -201,6 +201,7 @@ func (s *Store) deleteUsers(tenantID string, gone map[string]bool) {
 	s.dropFederation(tenantID, gone)
 	for id := range gone {
 		s.cleanupRBACUser(tenantID, id)
+		s.cleanupOrgUser(tenantID, id)
 		s.deleteEmailClaims(tenantID, id)
 		if p := s.protection[tenantID]; p != nil {
 			if u := s.users[key{tenantID, id}]; u != nil {

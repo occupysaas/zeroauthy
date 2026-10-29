@@ -124,6 +124,7 @@ Fields: `client_id`, `tenant`, `name`, `app_type`, `is_first_party`,
 - **Secrets** are generated with 64 characters, or supplied (at least 48). They are encrypted under the master key (D-0038) and returned only with `read:client_keys`. Secrets stored before D-0038 keep working but cannot be shown: rotate them to get one you can see. Public clients (`none`) have no secret.
 - **Rotation** replaces the secret at once; the old one stops working immediately.
 - **Fixed after creation:** `is_first_party` and `third_party_security_mode`.
+- **Organizations** (D-0055): `organization_usage` (`deny`, `allow`, `require`), `organization_require_behavior` (`no_prompt`, `pre_login_prompt`, `post_login_prompt`) and `organization_discovery_methods` (`email`, `organization_name`; only with `pre_login_prompt`) are stored and reported once set; null unsets them. A `require` application cannot hold the `password`, password-realm or device grants, whichever is set first (`400`). A storage plugin without Organizations refuses a usage other than `deny` (`501 organizations_unavailable`).
 - **Unknown fields** are refused (`invalid_body`), except those Auth0's tools always send, which are accepted and ignored (`description`, `client_metadata`, `logo_uri` and others; D-0039).
 - **Deleting** an application deletes its client grants, user consents and refresh tokens and removes it from every connection; sign-in sessions stay. Deleting an unknown ID answers `204`, as on Auth0.
 - **The seed** never touches applications created through the API, even if it names the same client ID.
@@ -544,3 +545,24 @@ and [compatibility evidence](compat/observations/custom-domains.md) for request
 limits, supported queries, scopes, errors and local/unobserved differences.
 Canonical API audiences remain stable across aliases; local Management API
 tokens must carry the origin serving the request as issuer.
+
+## Organizations and scoped operators (Plan 29)
+
+[Organizations](organizations.md) covers CRUD/name lookup, enabled connections,
+members, member-role/effective-role lists, role members and user organizations.
+Scopes follow the inventory, including `read:organization_member_effective_roles`;
+member listing accepts either members-read or member-roles-read, user organizations
+accepts either users-read or organizations-read, and role members requires both
+members-read and roles-read. Organization creation with `enabled_connections`
+also requires connection-create scope, including an empty supplied array.
+
+D-0055 observed corrections govern validation and replacement PATCH behavior.
+The Early Access `connections` alias manages the same links for Deploy CLI;
+organization-client-grants GET is empty until Plan 30 enables grants. Invitation,
+discovery-domain, search and grant-write workflows remain deferred.
+
+Local system-host `/api/system/operators/{id}` PATCH sets tenant grants.
+`/api/console/tenants` discovers their signed/persisted intersection without
+opening the system API to tenant-only operators. Last-system-admin protection
+also covers deleting, blocking and linking the administrator's user identity.
+These local endpoints have no Auth0 counterpart.

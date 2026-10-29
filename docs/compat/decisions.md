@@ -626,7 +626,7 @@ them. Each entry: context, sources consulted, decision, rationale.
     - **Grant types:** Auth0's names are accepted and stored, including `implicit` and the MFA grants that `auth0-cli` sends by default; the token endpoint serves only the grants zeroauthy implements. Unknown names are `400 invalid_body`.
     - **Origins:** `web_origins` and `allowed_origins` must be origins (scheme and host, no path).
     - **`update:client_keys`:** needed to set `client_secret` on `PATCH`; a body with only `client_secret` needs no `update:clients`.
-    - **Accepted and ignored** (sent by `auth0-cli` or exported by `auth0-deploy-cli`): `description`, `logo_uri`, `client_metadata`, `sso`, `sso_disabled`, `cross_origin_authentication`, `cross_origin_auth`, `cross_origin_loc`, `custom_login_page_on`, `custom_login_page`, `initiate_login_uri`, `native_social_login`, `mobile`, `organization_usage`, `organization_require_behavior`, `is_token_endpoint_ip_header_trusted`, `allowed_clients`; also `jwt_configuration.secret_encoded` and `refresh_token.infinite_idle_token_lifetime`. `refresh_token.infinite_token_lifetime` sets the expiration type when `expiration_type` is absent.
+    - **Accepted and ignored** (sent by `auth0-cli` or exported by `auth0-deploy-cli`): `description`, `logo_uri`, `client_metadata`, `sso`, `sso_disabled`, `cross_origin_authentication`, `cross_origin_auth`, `cross_origin_loc`, `custom_login_page_on`, `custom_login_page`, `initiate_login_uri`, `native_social_login`, `mobile`, `is_token_endpoint_ip_header_trusted`, `allowed_clients` (`organization_usage` and `organization_require_behavior` were here until Plan 29 made them live, D-0055); also `jwt_configuration.secret_encoded` and `refresh_token.infinite_idle_token_lifetime`. `refresh_token.infinite_token_lifetime` sets the expiration type when `expiration_type` is absent.
     - **Read-only fields** in a body (`tenant`, `global`, `callback_url_template`, `signing_keys`, `created_at`) are unknown properties. `client_id` is `403 operation_not_supported` on `POST` (M10) and allowed on `PATCH` only unchanged.
     - **The console's own client** (`zeroauthy-console` in the system tenant) cannot be changed, rotated or deleted through the API (`403 operation_not_supported`).
     - **Deleting** a client deletes its client grants, user grants and refresh tokens and removes it from every connection's enabled clients; login sessions stay.
@@ -1341,3 +1341,291 @@ to the runner and the tenant's build root with no writes, child processes,
 workers, addons or WASI, signalling is locked, and unix-socket path connections
 are refused (D-0053). Whether Auth0 separates secrets between Actions and
 modules of one tenant was not observed.
+
+## D-0055 — Plan 29 Organizations I contracts (2026-10-28)
+
+Sources: the public Management API reference (each operation page under
+`https://auth0.com/docs/api/management/v2/organizations/`, the public
+OpenAPI document `https://auth0.com/docs/oas/management/v2/management-api-oas.json`
+and `users/get-user-organizations`), the Organizations guides listed in spec
+§2, the pinned clients below, and the separate observer's
+[notes](observations/organizations.md) (2026-10-28, maintainer's tenant,
+documented endpoints only). The frozen inventory is
+`internal/orgrules/inventory.json` (`orgrules.Inventory`, `Deferred`,
+`InventoryMetadata`). These are implementation contracts; Task 1 claims no
+runtime behavior. Where an observation contradicts a spec default or the
+public schema, the observation wins (strict parity) and the spec was
+corrected.
+
+**Operations (20; 26 with the Task 5 addition at the end of this section).** Organizations CRUD and lookup by name; members; member
+roles; effective roles; role members; enabled connections;
+`GET /users/{id}/organizations`. Scopes follow the public reference:
+
+- the member list accepts either `read:organization_members` or
+  `read:organization_member_roles`, and `fields=roles` needs
+  `read:organization_member_roles`;
+- effective roles need `read:organization_member_effective_roles`, not
+  `read:organization_member_roles`;
+- role members need both `read:organization_members` and `read:roles`
+  (all-of, as D-0052 does for membership listings; the public reference lists
+  both and gives no 403 text). This operation is Early Access upstream and is
+  kept in Plan 29 as the spec chose;
+- user organizations accept either `read:users` or `read:organizations`;
+- `POST /organizations` also needs `create:organization_connections` when it
+  carries `enabled_connections`.
+
+**Spec §2 items.** Status is from the observer notes. Unavailable or
+unobserved parts keep the spec default as a local decision.
+
+1. `/authorize` errors: **partly observed.** Before authentication, these
+   redirect to the callback with `invalid_request`: an unknown or malformed
+   ID; a name while names are off; `organization` sent to a `deny` client;
+   `require` + `no_prompt` without an organization; and any `invitation`
+   (Plan 30). `organization=` with an empty value counts as absent. **A
+   `connection=` that is unknown, or not enabled for the organization, gives
+   no pre-authentication error** (correction). The hosted login offers only
+   the client/organization intersection and refuses authentication through
+   any other connection (local). Local decisions for the parts after
+   authentication: a non-member without auto-membership gets
+   `access_denied`; a third-party client facing `block` gets `access_denied`;
+   a picker with no eligible organization gives `access_denied`. Errors that
+   cannot be redirected use the D-0026 error page. Error descriptions are our
+   own wording, one per cause.
+2. `prompt=none`: **partly observed.** Without a session the result is
+   `login_required` for a valid organization. `require` + `no_prompt` without
+   an organization is `invalid_request`, because the organization check runs
+   before the login check. The session-user cases keep the spec default
+   (local): silent for a member or an auto-membership user, otherwise
+   `login_required`; `require` + `post_login_prompt` is silent with exactly
+   one eligible organization, otherwise `interaction_required`.
+3. Tenant roles and direct permissions in an organization login:
+   **unavailable.** Local: the union of tenant roles, direct permissions and
+   the active organization's member roles, filtered by API.
+4. Refresh: **unavailable.** Local: the refresh token keeps its organization.
+   Every refresh re-checks that the organization exists and that the user is
+   a member, with `invalid_grant` on failure and no revocation. Permissions
+   are recomputed.
+5. `allow` + `post_login_prompt` without an organization: **unavailable.**
+   Local: no picker; the user logs in as an individual.
+6. `is_signup_enabled` without `assign_membership_on_login`: **observed.**
+   400 on create, and on enabled-connection PATCH in both directions.
+7. Password and device grants for a `require` client: **observed
+   (correction).** Auth0 refuses this at configuration time, not at the token
+   endpoint. `POST`/`PATCH /clients` setting `organization_usage: require`
+   while `grant_types` contains `password`,
+   `http://auth0.com/oauth/grant-type/password-realm` or
+   `urn:ietf:params:oauth:grant-type:device_code` is 400. Adding those grants
+   to a `require` client is also 400. For `deny`/`allow` clients the grants
+   work, ignore `organization` and never carry `org_id`/`org_name`. A
+   token-time `unauthorized_client` remains only as defense in depth for
+   stored legacy data.
+8. Name format: **observed.** `^[a-z0-9][a-z0-9_-]{0,49}$`, the same on create
+   and PATCH. Invalid names are 400 `invalid_body`. Rename is allowed;
+   duplicates are 409.
+9. Limits: **partly observed.** Observed: metadata at most 25 keys, keys 1–50
+   characters matching `^[a-zA-Z0-9]\w*$`, values 1–255 characters;
+   `display_name` 1–255; `per_page`/`take` 1–100; page window 1000 (400
+   `invalid_paging` beyond it). Documented: at most 10 enabled connections on
+   create. Local: 10,000 organizations per tenant; 50 enabled connections per
+   organization; 50 roles per member; unlimited members; 1–10 IDs per
+   member/role POST or DELETE.
+10. Membership removal versus sessions: **unavailable.** Local: removal
+    affects only the next authorization or refresh. Observed separately:
+    **member role assignments survive membership removal** and reappear when
+    the user is re-added (correction to spec §3). Tokens still require current
+    membership. Deleting the organization, user or role removes the
+    assignments.
+
+**Frozen schema details** (observed unless marked otherwise):
+
+- ID `org_` plus 16 ASCII alphanumerics. A malformed path ID is 400
+  `invalid_uri`; a well-formed unknown ID is 404. The by-name route validates
+  the name format before lookup.
+- `display_name` defaults to `name`.
+- `third_party_client_access` is always present and defaults to `block`.
+- `is_app_entitlement_active` is always present and `false`. Writes of `true`
+  are refused until Plan 30 (local).
+- `branding`/`metadata` are omitted when unset.
+- GET, by-name and list responses never carry `enabled_connections`; only the
+  create response echoes them.
+- **Metadata values are strings only**: null, empty and non-string values are
+  400 on create and PATCH. The public schema allows null; the observation
+  wins.
+- `logo_url` must be https. A `colors` object needs both colors as HTML hex.
+- **PATCH replaces `branding` and `metadata` whole, and `{}` or null clears
+  them.** Omitted properties are untouched. An empty PATCH body is 400.
+- DELETE of an unknown organization is 404, so it is not idempotent.
+- Lists: a bare array; with `include_totals`,
+  `{organizations,start,limit,total}`; checkpoint mode returns
+  `{organizations,next?}` (no totals), and `from` wins over `page`. An invalid
+  cursor is 400. Without `sort`, offset mode orders by ascending name and
+  checkpoint mode by creation order.
+- Members:
+  - Items are `{user_id,email,picture,name}`.
+  - `fields` takes `user_id,email,picture,name,roles`. With
+    `include_fields` true or absent, only the named fields come back;
+    `include_fields=false` excludes them; another name is 400. Roles appear
+    only when requested, as `[{id,name}]` and `[]` when there are none.
+  - POST with any nonexistent user is 404 `inexistent_user` and adds
+    nothing. Adds and deletes are idempotent.
+- Member roles:
+  - offset pagination only (`take` is 400);
+  - 404 for a non-member and for an unknown role;
+  - DELETE for a nonexistent user is 404 `inexistent_user`;
+  - otherwise idempotent.
+- Effective roles return `{roles:[{id,name,description,sources:["direct"]}],next?}`,
+  with checkpoint pagination and direct roles only until groups.
+- Role members return `{members:[...],next?}`, checkpoint only.
+  `include_totals`, `page` and `per_page` are ignored.
+- Enabled connections:
+  - Defaults are `assign_membership_on_login` false, `is_signup_enabled`
+    false and `show_as_button` true.
+  - `show_as_button:false` on a database connection is 400.
+  - An unknown connection is 404 `inexistent_connection`; a duplicate is 409.
+  - Unknown or camelCase properties are 400.
+  - PATCH `{}` returns the entry unchanged.
+  - DELETE of an existing connection that is not enabled is 204; DELETE of
+    an unknown connection is 404.
+  - The list with totals is `{enabled_connections,start,limit,total}`.
+- Client fields:
+  - `organization_usage` and `organization_require_behavior` accept null,
+    which unsets them.
+  - `post_login_prompt` requires `oidc_conformant` (documented and observed).
+  - **`pre_login_prompt` is accepted with `deny`, `allow` and `require`**
+    (correction: the spec refused it without `require`). With `allow` and no
+    organization, `/authorize` shows the organization prompt.
+  - `organization_discovery_methods` (EA upstream) needs at least one entry
+    and is **allowed only while the behavior is `pre_login_prompt`**. Plan 29
+    stores it and always asks for the name.
+- Tenant flag: `allow_organization_name_in_authentication_api`, default
+  false (documented). It was not toggled during observation, so name
+  acceptance is a documented default.
+- Client credentials with `organization` stay `invalid_request` (400) until
+  Plan 30, **for every audience** (local), after the client-grant check, so
+  a missing grant is still 403 `access_denied`. This matches the observed
+  result for the reserved Management API audience. Client
+  `organization_usage` does not affect client credentials.
+- `/authorize` and PAR bind the resolved organization in the request under
+  the internal `za_org_id`/`za_org_mode` keys, which no request parameter
+  can set. With `request_uri`, an `organization` in the query is ignored
+  like every other extra parameter (Plan 10 rule P1), so it can neither add
+  nor override the pushed one (local).
+
+**`/organizations/{id}/connections` ruling.** It is not a documented GA alias.
+The public OpenAPI document marks all five operations
+`x-release-lifecycle: EA`. The organization-connections guide says that
+managing organization connections through the new endpoints and attributes
+is Early Access. The reference page does not call it an alias. The observer
+found it shares state with `enabled_connections` and adds `is_enabled`,
+`organization_access_level` and `organization_member_access_level`. It is
+deferred to Plan 30 (`organization_connections_ea`). Superseded by the Task 5
+addition at the end of this section.
+
+**Deferred** (with target plan in the inventory):
+
+- Plan 30: invitations and the `invitation` parameter; organization client
+  grants and grant organization fields; discovery domains and email
+  discovery; client credentials `organization`; `/organizations/{id}/clients`;
+  `/organizations/search`; `is_app_entitlement_active`; `/connections`;
+  organization-scoped roles; `include_client_association_for`; the
+  `read:organizations_summary` scope; client `default_organization`;
+  change-password `organization`.
+- Plan 35: `token_quota`.
+- Plan 37: SAML/WS-Fed organization login.
+- Plan 38: groups and group-sourced effective roles.
+- Plan 42: My Organization API, client `my_organization_configuration`, and
+  Universal Portals.
+
+**Pinned clients** (source read, not run):
+
+- auth0-cli 1.37.0, `internal/cli/organizations.go`, through go-auth0 1.50.0:
+  `orgs list/show/create/update/delete/open`, `members list`, `roles list`,
+  `roles members list` and invitations. It pages with
+  `include_totals=true`, uses `enabled_connections`, and its update re-sends
+  the whole branding and metadata it builds on the client, which is
+  consistent with PATCH replace.
+- node-auth0 7.4.0 organizations resources: every Plan 29 operation, plus
+  EA/Plan 30/38 resources.
+- Deploy CLI 9.1.0, `src/tools/auth0/handlers/organizations.ts` and the YAML
+  and directory handlers: `name`, `display_name`, `branding`, `metadata`,
+  `connections`, `client_grants`, `token_quota`, `discovery_domains` and
+  `clients`. It **reads and writes connections through the EA
+  `/organizations/{id}/connections`**. Its export lists organization client
+  grants unconditionally, and a 404 or 501 empties the whole organizations
+  export. It has no members or member roles. With `/connections` and client
+  grants deferred, Task 13's organization Deploy matrix is unavailable unless
+  the maintainer moves those reads into Plan 29.
+
+**Author's calls carried from spec §5–§12** remain as written there:
+
+- PAR binds `organization`;
+- codes record the organization;
+- the picker shows at most 20 organizations, sorted by display name;
+- member listings are ordered by `user_id`;
+- the plugin capability is v1 with 501 fallbacks;
+- operators can never leave the system tenant unmanageable (409).
+
+**Addition (Task 5, maintainer ruling): `/connections` and organization
+client grants for the Deploy CLI.** The pinned Deploy CLI 9.1.0 organization
+handler exports nothing without these two reads, so Plan 29 serves them.
+This supersedes the `/connections` deferral above; the POST and DELETE of
+organization client grants stay deferred to Plan 30.
+
+- `/organizations/{id}/connections` (list, POST, get, PATCH, DELETE) is
+  Early Access upstream and is marked so in the inventory and the OpenAPI
+  document. It uses the `*:organization_connections` scopes and is served
+  from the same links as `enabled_connections`, so a link made through one
+  resource is visible, and conflicts (409), through the other (observed).
+  - Entries are the enabled-connection entry plus `is_enabled` (`true`),
+    `organization_access_level` (`none`) and
+    `organization_member_access_level` (`limited`). These are the values the
+    observer saw. The observation does not pin the other values or what they
+    mean, so they are **not stored** (local).
+  - Writes may send `is_enabled: true`, the two default access levels (or
+    null), and `organization_connection_name: null`. Any other value is 400
+    `invalid_body`, citing D-0055 (local). Unknown properties are 400.
+  - Lists accept `page`, `per_page`, `include_totals` and `is_enabled`
+    (`false` gives an empty list). With totals the shape is
+    `{connections,start,limit,total}`.
+  - Flag rules, 404s and DELETE behave as on `enabled_connections`
+    (local where unobserved).
+- `GET /organizations/{id}/client-grants` needs
+  `read:organization_client_grants` (public reference). It accepts `page`,
+  `per_page`, `include_totals`, `audience`, `client_id` and up to 10
+  `grant_ids`. It always returns an empty list (`[]`, or
+  `{client_grants:[],start,limit:0,total:0}`), because organization client
+  grants cannot exist until Plan 30 (local). Unknown and malformed
+  organizations are 404 and 400 `invalid_uri`.
+- Connection lists with totals report `limit` as the number of entries
+  returned. This matches the observed `limit: 0` for an empty list; other
+  pages were not observed (local).
+- A storage plugin without the capability makes every organization route
+  `501 organizations_unavailable` (local error code).
+
+**Addition (Task 11, local operator grants).**
+
+- `PATCH /api/system/operators/{id}` replaces `tenants` with existing tenant
+  names, an empty array, or exactly `["*"]`; missing/null/non-array values,
+  unknown names and mixed wildcard/name lists are 400. The response is the
+  operator object. This follows the existing local system API prefix (D-0040).
+- Both signed token grants and the current stored grants constrain every
+  Management request. Shrinks take effect on the next request without reissuing
+  a token; expanding storage does not expand an old token's narrower grant.
+- Only system-capable operators can manage the system API. A separate local
+  `GET /api/console/tenants`, on the system host, allows operator tenant discovery
+  without a system grant. It returns the existing tenant DTO filtered by the
+  intersection of signed and stored grants. It grants no system API access;
+  M2M callers cannot use it. This dedicated discovery route is the maintainer's
+  Task 11 ruling to preserve the no-system-access requirement for tenant-only
+  operators while allowing their console to load.
+- Operator PATCH/delete and system user delete/block/link-as-secondary serialize
+  on the system tenant row before locking users. Removing the last usable
+  system-capable operator is 409 `last_operator`. Tenant-only grants, orphaned
+  operator rows and blocked users cannot serve as fallback administrators.
+- The console refreshes discovery after a Management API 403, clears stale
+  tenants if discovery fails, and offers tenant creation only with system
+  tenant access.
+
+These are local zeroauthy behaviors, without Auth0 API counterparts. The public
+[dashboard operator guide](https://auth0.com/docs/get-started/manage-dashboard-access/add-dashboard-users)
+provides context only, not these wire contracts.

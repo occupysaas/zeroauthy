@@ -34,6 +34,26 @@ const (
 	StoreService_RBACUserPermissions_FullMethodName                     = "/zeroauthy.store.v1.StoreService/RBACUserPermissions"
 	StoreService_RBACChangeUserPermissions_FullMethodName               = "/zeroauthy.store.v1.StoreService/RBACChangeUserPermissions"
 	StoreService_RBACSnapshot_FullMethodName                            = "/zeroauthy.store.v1.StoreService/RBACSnapshot"
+	StoreService_OrganizationsCapabilities_FullMethodName               = "/zeroauthy.store.v1.StoreService/OrganizationsCapabilities"
+	StoreService_OrganizationsCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsCreate"
+	StoreService_OrganizationsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OrganizationsGet"
+	StoreService_OrganizationsGetByName_FullMethodName                  = "/zeroauthy.store.v1.StoreService/OrganizationsGetByName"
+	StoreService_OrganizationsList_FullMethodName                       = "/zeroauthy.store.v1.StoreService/OrganizationsList"
+	StoreService_OrganizationsUpdate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsUpdate"
+	StoreService_OrganizationsDelete_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsDelete"
+	StoreService_OrganizationsConnections_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsConnections"
+	StoreService_OrganizationsGetConnection_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsGetConnection"
+	StoreService_OrganizationsPutConnection_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsPutConnection"
+	StoreService_OrganizationsDeleteConnection_FullMethodName           = "/zeroauthy.store.v1.StoreService/OrganizationsDeleteConnection"
+	StoreService_OrganizationsConnectionsByConnection_FullMethodName    = "/zeroauthy.store.v1.StoreService/OrganizationsConnectionsByConnection"
+	StoreService_OrganizationsMembers_FullMethodName                    = "/zeroauthy.store.v1.StoreService/OrganizationsMembers"
+	StoreService_OrganizationsAddMembers_FullMethodName                 = "/zeroauthy.store.v1.StoreService/OrganizationsAddMembers"
+	StoreService_OrganizationsRemoveMembers_FullMethodName              = "/zeroauthy.store.v1.StoreService/OrganizationsRemoveMembers"
+	StoreService_OrganizationsIsMember_FullMethodName                   = "/zeroauthy.store.v1.StoreService/OrganizationsIsMember"
+	StoreService_OrganizationsUserOrganizations_FullMethodName          = "/zeroauthy.store.v1.StoreService/OrganizationsUserOrganizations"
+	StoreService_OrganizationsMemberRoles_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsMemberRoles"
+	StoreService_OrganizationsChangeMemberRoles_FullMethodName          = "/zeroauthy.store.v1.StoreService/OrganizationsChangeMemberRoles"
+	StoreService_OrganizationsRoleMembers_FullMethodName                = "/zeroauthy.store.v1.StoreService/OrganizationsRoleMembers"
 	StoreService_ActionsCapabilities_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsCapabilities"
 	StoreService_ActionsCreateAction_FullMethodName                     = "/zeroauthy.store.v1.StoreService/ActionsCreateAction"
 	StoreService_ActionsGetAction_FullMethodName                        = "/zeroauthy.store.v1.StoreService/ActionsGetAction"
@@ -336,6 +356,28 @@ type StoreServiceClient interface {
 	RBACUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACChangeUserPermissions(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
 	RBACSnapshot(ctx context.Context, in *RBACRequest, opts ...grpc.CallOption) (*RBACResponse, error)
+	// Plan 29 Organizations repository. A plugin lacking
+	// OrganizationsCapabilities (version 1) starts with the feature disabled.
+	OrganizationsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*OrganizationsCapabilitiesResult, error)
+	OrganizationsCreate(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsGet(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsGetByName(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsList(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsUpdate(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsDelete(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsConnections(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsGetConnection(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsPutConnection(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsDeleteConnection(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsConnectionsByConnection(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsMembers(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsAddMembers(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsRemoveMembers(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsIsMember(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsUserOrganizations(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsMemberRoles(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsChangeMemberRoles(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
+	OrganizationsRoleMembers(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
 	// Plan 27 Actions repository. A plugin lacking ActionsCapabilities fails
 	// closed; artifacts stream in chunks because they may exceed gRPC's
 	// default message size.
@@ -738,6 +780,206 @@ func (c *storeServiceClient) RBACSnapshot(ctx context.Context, in *RBACRequest, 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RBACResponse)
 	err := c.cc.Invoke(ctx, StoreService_RBACSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*OrganizationsCapabilitiesResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsCapabilitiesResult)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsCapabilities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsCreate(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsCreate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsGet(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsGet_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsGetByName(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsGetByName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsList(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsUpdate(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsUpdate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsDelete(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsConnections(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsConnections_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsGetConnection(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsGetConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsPutConnection(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsPutConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsDeleteConnection(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsDeleteConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsConnectionsByConnection(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsConnectionsByConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsMembers(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsAddMembers(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsAddMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsRemoveMembers(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsRemoveMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIsMember(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIsMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsUserOrganizations(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsUserOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsMemberRoles(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsMemberRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsChangeMemberRoles(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsChangeMemberRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsRoleMembers(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsRoleMembers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -3090,6 +3332,28 @@ type StoreServiceServer interface {
 	RBACUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACChangeUserPermissions(context.Context, *RBACRequest) (*RBACResponse, error)
 	RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error)
+	// Plan 29 Organizations repository. A plugin lacking
+	// OrganizationsCapabilities (version 1) starts with the feature disabled.
+	OrganizationsCapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error)
+	OrganizationsCreate(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsGet(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsGetByName(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsList(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsUpdate(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsDelete(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsConnections(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsGetConnection(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsPutConnection(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsDeleteConnection(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsConnectionsByConnection(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsMembers(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsAddMembers(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsRemoveMembers(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsIsMember(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsUserOrganizations(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsMemberRoles(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsChangeMemberRoles(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
+	OrganizationsRoleMembers(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
 	// Plan 27 Actions repository. A plugin lacking ActionsCapabilities fails
 	// closed; artifacts stream in chunks because they may exceed gRPC's
 	// default message size.
@@ -3392,6 +3656,66 @@ func (UnimplementedStoreServiceServer) RBACChangeUserPermissions(context.Context
 }
 func (UnimplementedStoreServiceServer) RBACSnapshot(context.Context, *RBACRequest) (*RBACResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RBACSnapshot not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsCapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsCapabilities not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsCreate(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsCreate not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsGet(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsGet not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsGetByName(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsGetByName not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsList(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsList not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsUpdate(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsUpdate not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsDelete(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsDelete not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsConnections(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsConnections not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsGetConnection(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsGetConnection not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsPutConnection(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsPutConnection not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsDeleteConnection(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsDeleteConnection not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsConnectionsByConnection(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsConnectionsByConnection not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsMembers(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsMembers not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsAddMembers(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsAddMembers not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsRemoveMembers(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsRemoveMembers not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIsMember(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIsMember not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsUserOrganizations(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsUserOrganizations not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsMemberRoles(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsMemberRoles not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsChangeMemberRoles(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsChangeMemberRoles not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsRoleMembers(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsRoleMembers not implemented")
 }
 func (UnimplementedStoreServiceServer) ActionsCapabilities(context.Context, *PingRequest) (*ActionsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method ActionsCapabilities not implemented")
@@ -4355,6 +4679,366 @@ func _StoreService_RBACSnapshot_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).RBACSnapshot(ctx, req.(*RBACRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsCapabilities(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsCreate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsCreate(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsGet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsGet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsGet_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsGet(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsGetByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsGetByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsGetByName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsGetByName(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsList(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsUpdate(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsDelete(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsConnections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsConnections(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsConnections_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsConnections(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsGetConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsGetConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsGetConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsGetConnection(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsPutConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsPutConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsPutConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsPutConnection(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsDeleteConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsDeleteConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsDeleteConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsDeleteConnection(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsConnectionsByConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsConnectionsByConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsConnectionsByConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsConnectionsByConnection(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsMembers(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsAddMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsAddMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsAddMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsAddMembers(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsRemoveMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsRemoveMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsRemoveMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsRemoveMembers(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIsMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIsMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIsMember_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIsMember(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsUserOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsUserOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsUserOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsUserOrganizations(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsMemberRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsMemberRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsMemberRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsMemberRoles(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsChangeMemberRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsChangeMemberRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsChangeMemberRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsChangeMemberRoles(ctx, req.(*OrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsRoleMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsRoleMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsRoleMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsRoleMembers(ctx, req.(*OrganizationsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -8450,6 +9134,86 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RBACSnapshot",
 			Handler:    _StoreService_RBACSnapshot_Handler,
+		},
+		{
+			MethodName: "OrganizationsCapabilities",
+			Handler:    _StoreService_OrganizationsCapabilities_Handler,
+		},
+		{
+			MethodName: "OrganizationsCreate",
+			Handler:    _StoreService_OrganizationsCreate_Handler,
+		},
+		{
+			MethodName: "OrganizationsGet",
+			Handler:    _StoreService_OrganizationsGet_Handler,
+		},
+		{
+			MethodName: "OrganizationsGetByName",
+			Handler:    _StoreService_OrganizationsGetByName_Handler,
+		},
+		{
+			MethodName: "OrganizationsList",
+			Handler:    _StoreService_OrganizationsList_Handler,
+		},
+		{
+			MethodName: "OrganizationsUpdate",
+			Handler:    _StoreService_OrganizationsUpdate_Handler,
+		},
+		{
+			MethodName: "OrganizationsDelete",
+			Handler:    _StoreService_OrganizationsDelete_Handler,
+		},
+		{
+			MethodName: "OrganizationsConnections",
+			Handler:    _StoreService_OrganizationsConnections_Handler,
+		},
+		{
+			MethodName: "OrganizationsGetConnection",
+			Handler:    _StoreService_OrganizationsGetConnection_Handler,
+		},
+		{
+			MethodName: "OrganizationsPutConnection",
+			Handler:    _StoreService_OrganizationsPutConnection_Handler,
+		},
+		{
+			MethodName: "OrganizationsDeleteConnection",
+			Handler:    _StoreService_OrganizationsDeleteConnection_Handler,
+		},
+		{
+			MethodName: "OrganizationsConnectionsByConnection",
+			Handler:    _StoreService_OrganizationsConnectionsByConnection_Handler,
+		},
+		{
+			MethodName: "OrganizationsMembers",
+			Handler:    _StoreService_OrganizationsMembers_Handler,
+		},
+		{
+			MethodName: "OrganizationsAddMembers",
+			Handler:    _StoreService_OrganizationsAddMembers_Handler,
+		},
+		{
+			MethodName: "OrganizationsRemoveMembers",
+			Handler:    _StoreService_OrganizationsRemoveMembers_Handler,
+		},
+		{
+			MethodName: "OrganizationsIsMember",
+			Handler:    _StoreService_OrganizationsIsMember_Handler,
+		},
+		{
+			MethodName: "OrganizationsUserOrganizations",
+			Handler:    _StoreService_OrganizationsUserOrganizations_Handler,
+		},
+		{
+			MethodName: "OrganizationsMemberRoles",
+			Handler:    _StoreService_OrganizationsMemberRoles_Handler,
+		},
+		{
+			MethodName: "OrganizationsChangeMemberRoles",
+			Handler:    _StoreService_OrganizationsChangeMemberRoles_Handler,
+		},
+		{
+			MethodName: "OrganizationsRoleMembers",
+			Handler:    _StoreService_OrganizationsRoleMembers_Handler,
 		},
 		{
 			MethodName: "ActionsCapabilities",

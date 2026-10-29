@@ -131,6 +131,8 @@ func errToPB(err error) *storev1.Error {
 		return &storev1.Error{Kind: storev1.Error_KIND_BUILD_NOT_READY, Message: err.Error()}
 	case errors.Is(err, store.ErrRBACUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_RBAC_UNAVAILABLE, Message: err.Error()}
+	case errors.Is(err, store.ErrOrganizationsUnavailable):
+		return &storev1.Error{Kind: storev1.Error_KIND_ORGANIZATIONS_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrFederationUnavailable):
 		return &storev1.Error{Kind: storev1.Error_KIND_FEDERATION_UNAVAILABLE, Message: err.Error()}
 	case errors.Is(err, store.ErrCustomDomainRepositoryUnavailable):
@@ -165,6 +167,8 @@ func errFromPB(e *storev1.Error) error {
 		return store.ErrBuildNotReady
 	case storev1.Error_KIND_RBAC_UNAVAILABLE:
 		return store.ErrRBACUnavailable
+	case storev1.Error_KIND_ORGANIZATIONS_UNAVAILABLE:
+		return store.ErrOrganizationsUnavailable
 	case storev1.Error_KIND_FEDERATION_UNAVAILABLE:
 		return store.ErrFederationUnavailable
 	case storev1.Error_KIND_CUSTOM_DOMAIN_UNAVAILABLE:
@@ -319,6 +323,9 @@ func clientToPB(c *store.Client) (*storev1.Client, error) {
 		SkipNonVerifiableCallbackUriConfirmationPrompt: cloneBool(c.SkipNonVerifiableCallbackURIConfirmationPrompt),
 		RequirePushedAuthorizationRequests:             c.RequirePushedAuthorizationRequests,
 		Origin:                                         c.Origin,
+		OrganizationUsage:                              c.OrganizationUsage,
+		OrganizationRequireBehavior:                    c.OrganizationRequireBehavior,
+		OrganizationDiscoveryMethods:                   stringsToPB(c.OrganizationDiscoveryMethods),
 	}
 	if c.Secrets != nil {
 		pb.Secrets = &storev1.ClientSecretList{Values: make([]*storev1.ClientSecret, 0, len(c.Secrets))}
@@ -355,6 +362,9 @@ func clientFromPB(pb *storev1.Client) (*store.Client, error) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: cloneBool(pb.SkipNonVerifiableCallbackUriConfirmationPrompt),
 		RequirePushedAuthorizationRequests:             pb.RequirePushedAuthorizationRequests,
 		Origin:                                         pb.Origin,
+		OrganizationUsage:                              pb.OrganizationUsage,
+		OrganizationRequireBehavior:                    pb.OrganizationRequireBehavior,
+		OrganizationDiscoveryMethods:                   stringsFromPB(pb.OrganizationDiscoveryMethods),
 	}
 	if pb.Secrets != nil {
 		c.Secrets = make([]store.ClientSecret, 0, len(pb.Secrets.Values))
@@ -909,6 +919,7 @@ func authCodeToPB(c *store.AuthCode) (*storev1.AuthCode, error) {
 		Nonce: c.Nonce, CodeChallenge: c.CodeChallenge, CodeChallengeMethod: c.CodeChallengeMethod,
 		AuthTime: tsToPB(c.AuthTime), ExpiresAt: tsToPB(c.ExpiresAt), CreatedAt: tsToPB(c.CreatedAt),
 		UsedAt: optTSToPB(c.UsedAt), ReplayedAt: optTSToPB(c.ReplayedAt), ActionEffects: c.ActionEffects,
+		OrganizationId: c.OrganizationID, OrganizationConnectionId: c.OrganizationConnectionID,
 	}, nil
 }
 
@@ -926,6 +937,7 @@ func authCodeFromPB(pb *storev1.AuthCode) (*store.AuthCode, error) {
 		Nonce: pb.Nonce, CodeChallenge: pb.CodeChallenge, CodeChallengeMethod: pb.CodeChallengeMethod,
 		AuthTime: tsFromPB(pb.AuthTime), ExpiresAt: tsFromPB(pb.ExpiresAt), CreatedAt: tsFromPB(pb.CreatedAt),
 		UsedAt: optTSFromPB(pb.UsedAt), ReplayedAt: optTSFromPB(pb.ReplayedAt), ActionEffects: bytesFromPB(pb.ActionEffects),
+		OrganizationID: pb.OrganizationId, OrganizationConnectionID: pb.OrganizationConnectionId,
 	}, nil
 }
 
@@ -1020,6 +1032,7 @@ func refreshTokenToPB(r *store.RefreshToken) (*storev1.RefreshToken, error) {
 		Audience: r.Audience, AuthTime: tsToPB(r.AuthTime), Rotating: r.Rotating,
 		ExpiresAt: tsToPB(r.ExpiresAt), IdleExpiresAt: tsToPB(r.IdleExpiresAt),
 		RotatedAt: optTSToPB(r.RotatedAt), RevokedAt: optTSToPB(r.RevokedAt), CreatedAt: tsToPB(r.CreatedAt),
+		OrganizationId: r.OrganizationID, OrganizationConnectionId: r.OrganizationConnectionID,
 	}, nil
 }
 
@@ -1037,6 +1050,7 @@ func refreshTokenFromPB(pb *storev1.RefreshToken) (*store.RefreshToken, error) {
 		Audience: pb.Audience, AuthTime: tsFromPB(pb.AuthTime), Rotating: pb.Rotating,
 		ExpiresAt: tsFromPB(pb.ExpiresAt), IdleExpiresAt: tsFromPB(pb.IdleExpiresAt),
 		RotatedAt: optTSFromPB(pb.RotatedAt), RevokedAt: optTSFromPB(pb.RevokedAt), CreatedAt: tsFromPB(pb.CreatedAt),
+		OrganizationID: pb.OrganizationId, OrganizationConnectionID: pb.OrganizationConnectionId,
 	}, nil
 }
 

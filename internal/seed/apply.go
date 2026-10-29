@@ -218,6 +218,11 @@ func applyTenant(ctx context.Context, st store.Store, f *File, in Tenant, now ti
 			return fmt.Errorf("user %q: %w", u.Email, err)
 		}
 	}
+	for _, org := range in.Organizations {
+		if err := applyOrganization(ctx, st, tn.ID, org, now); err != nil {
+			return fmt.Errorf("organization %q: %w", org.Name, err)
+		}
+	}
 	return nil
 }
 
@@ -295,6 +300,9 @@ func applyClient(ctx context.Context, st store.Store, tenantID string, in Client
 		// Created through the Management API, or create-only mode: the seed
 		// never touches it.
 		return nil
+	}
+	if in.OrganizationUsage != "" && in.OrganizationUsage != store.OrgUsageDeny && !store.OrganizationsSupported(st) {
+		return store.ErrOrganizationsUnavailable
 	}
 	return tenantsetup.UpsertClient(ctx, st, tenantID, in.ClientID, now, func(c *store.Client, create bool) error {
 		return setClient(c, create, in, now, w)

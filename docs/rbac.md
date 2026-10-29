@@ -97,8 +97,18 @@ all server and storage-plugin writers before enabling RBAC. Old plugins fail
 the versioned capability check at startup; mixed old/new writers are unsupported.
 Lookup, transport and capability failures do not fall back to permissive tokens.
 
-Tenant roles and direct user assignments are supported. Group inheritance,
-organization roles, the Authorization Extension, Actions-provided custom claims
-and new signing algorithms are outside this release. Local compatibility
+Tenant roles, direct user assignments and organization-scoped assignments of
+tenant roles are supported. Group inheritance, the Authorization Extension
+and new signing algorithms remain outside this release. Local compatibility
 choices and public-source evidence are recorded in
 [roles-permissions observations](compat/observations/roles-permissions.md).
+
+## Organization assignments
+
+Assign tenant roles through `/api/v2/organizations/{id}/members/{user_id}/roles`.
+Issuance combines direct permissions, tenant roles and the active organization's
+roles before applying API RBAC. Another organization's assignments cannot
+contribute. Effective roles expose direct assignment sources; group inheritance
+awaits groups. Membership removal keeps role assignments but stops new tokens
+and refresh until membership is restored. Refresh recomputes permissions and
+re-checks the original connection and organization. See [Organizations](organizations.md).

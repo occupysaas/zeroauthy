@@ -308,3 +308,27 @@ func TestLoadDirectoryRoles(t *testing.T) {
 		t.Fatalf("role treated as opaque file: %#v", out.Files)
 	}
 }
+
+func TestDirectoryOrganizations(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "organizations"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	body := `{"name":"acme","display_name":"Acme","metadata":{"team":"engineering"},"connections":[{"name":"Users","assign_membership_on_login":true,"is_signup_enabled":true,"show_as_button":true}],"client_grants":[]}`
+	if err := os.WriteFile(filepath.Join(dir, "organizations", "acme.json"), []byte(body), 0600); err != nil {
+		t.Fatal(err)
+	}
+	export, err := LoadExport(dir, "directory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want, got []map[string]any
+	json.Unmarshal([]byte("["+body+"]"), &want)
+	json.Unmarshal(export.Resources["organizations"], &got)
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("organization not parsed as a resource: %s", export.Resources["organizations"])
+	}
+	if len(export.Files) != 0 {
+		t.Fatal("organization treated as opaque file")
+	}
+}

@@ -87,6 +87,10 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	if oerr != nil {
 		return nil, oerr
 	}
+	org, oerr := h.organizationForToken(ctx, tenantID, user.UserID, rt.OrganizationID, rt.OrganizationConnectionID, c)
+	if oerr != nil {
+		return nil, oerr
+	}
 	// Re-filter in case the API dropped a scope since the token was issued.
 	scopes = userScopes(scopes, rs, true)
 	d, oerr := h.decide(ctx, tenantID, access.Refresh, c, rs, scopes)
@@ -98,7 +102,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	// target-scope and addScope additions are never stored with the
 	// family (whose ceiling never grows): the flow must add them again.
 	// Target edits are filtered by API definition, policy and RBAC.
-	eff, oerr := h.postLogin(ctx, res, c, loginFlow{user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
+	eff, oerr := h.postLogin(ctx, res, c, loginFlow{organizationID: rt.OrganizationID, connectionID: rt.OrganizationConnectionID, user: user, userConnection: true, rs: rs, protocol: actions.ProtocolRefreshToken,
 		requested: d.Scopes, target: d.Scopes})
 	if oerr != nil {
 		return nil, oerr
@@ -115,7 +119,7 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	}
 	scopes = d.Scopes
 	resp, offline, oerr := h.mintUserTokens(ctx, res, c, userTokens{
-		user: user, rs: rs, lifetime: lifetime, scopes: scopes,
+		organization: org, user: user, rs: rs, lifetime: lifetime, scopes: scopes,
 		sessionID: rt.SessionID, authTime: rt.AuthTime, effects: eff,
 	})
 	if oerr != nil {
@@ -134,12 +138,15 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 	version := user.Version
 	var writeErr error
 	var nextRaw string
-	err = h.mintTx(ctx, tenantID, rt.UserID, &version, func(tx store.Store) error {
+	err = h.mintCheckedTx(ctx, tenantID, rt.UserID, &version, func(tx store.Store) error {
+		return checkTokenOrganization(ctx, tx, tenantID, user.UserID, rt.OrganizationID, rt.OrganizationConnectionID, c.ClientID)
+	}, func(tx store.Store) error {
 		if !keep {
 			return nil
 		}
 		if rt.Rotating {
 			next, raw := h.newRefreshToken(c, tenantID, refreshGrant{
+				organizationID: rt.OrganizationID, organizationConnectionID: rt.OrganizationConnectionID,
 				origin:   res.Origin(),
 				familyID: rt.FamilyID, userID: rt.UserID, sessionID: rt.SessionID, audience: rt.Audience,
 				scopes: rt.Scopes, authTime: rt.AuthTime, expiresAt: rt.ExpiresAt,
@@ -158,6 +165,9 @@ func (h *Handlers) refreshToken(ctx context.Context, res tenant.Resolved, c *sto
 		}
 		return nil
 	})
+	if errors.Is(err, errOrganizationGrant) {
+		return nil, invalidGrant("the organization grant is no longer eligible")
+	}
 	if errors.Is(err, errUserBlocked) {
 		return nil, invalidGrant("user is blocked")
 	}

@@ -49,7 +49,7 @@ func (h *Handlers) postLogin(w http.ResponseWriter, r *http.Request, res tenant.
 		continuation["za_screen_shown"] = "true"
 	}
 	result, err := h.Actions.PostLogin(ctx, actions.PostLoginInput{
-		Tenant: res, Client: client, Session: sess, Continuation: continuation,
+		OrganizationID: fr.OrgID, Tenant: res, Client: client, Session: sess, Continuation: continuation,
 		// Loaded only when Actions are bound: a tenant without post-login
 		// Actions pays only the bindings read.
 		Prepare: func(ctx context.Context, in *actions.PostLoginInput) error {

@@ -54,7 +54,9 @@ func inProcess(t *testing.T) *Client { return serve(t, memory.New()) }
 
 // inProcessSQLite serves a fresh, migrated SQLite store over bufconn, so the
 // held transactions run against real savepoints.
-func inProcessSQLite(t *testing.T) *Client {
+func inProcessSQLite(t *testing.T) *Client { return serve(t, openSQLite(t)) }
+
+func openSQLite(t *testing.T) *sqlstore.Store {
 	t.Helper()
 	ctx := context.Background()
 	st, err := sqlstore.Open(ctx, "sqlite://"+filepath.Join(t.TempDir(), "z.db"))
@@ -65,15 +67,31 @@ func inProcessSQLite(t *testing.T) *Client {
 		_ = st.Close()
 		t.Fatal(err)
 	}
-	return serve(t, st)
+	return st
 }
 
+// limitForwarder lets the Organizations Limits subtest shrink the caps of the
+// backing store behind the plugin: a test-only knob that is deliberately not a
+// protocol RPC.
+type limitForwarder struct {
+	*Client
+	backing store.OrgLimitSetter
+}
+
+func (f limitForwarder) SetOrgLimits(l store.OrgLimits) { f.backing.SetOrgLimits(l) }
+
 func TestConformance(t *testing.T) {
-	storetest.Run(t, func(t *testing.T) store.Store { return inProcess(t) })
+	storetest.Run(t, func(t *testing.T) store.Store {
+		m := memory.New()
+		return limitForwarder{serve(t, m), m}
+	})
 }
 
 func TestConformanceSQLite(t *testing.T) {
-	storetest.Run(t, func(t *testing.T) store.Store { return inProcessSQLite(t) })
+	storetest.Run(t, func(t *testing.T) store.Store {
+		st := openSQLite(t)
+		return limitForwarder{serve(t, st), st}
+	})
 }
 
 // These assertions run against SQL savepoints behind real gRPC transaction

@@ -30,6 +30,7 @@ func cloneClient(c *store.Client) *store.Client {
 	out.AllowedLogoutURLs = slices.Clone(c.AllowedLogoutURLs)
 	out.WebOrigins = slices.Clone(c.WebOrigins)
 	out.AllowedOrigins = slices.Clone(c.AllowedOrigins)
+	out.OrganizationDiscoveryMethods = slices.Clone(c.OrganizationDiscoveryMethods)
 	if c.SkipNonVerifiableCallbackURIConfirmationPrompt != nil {
 		v := *c.SkipNonVerifiableCallbackURIConfirmationPrompt
 		out.SkipNonVerifiableCallbackURIConfirmationPrompt = &v

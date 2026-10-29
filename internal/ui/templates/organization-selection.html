@@ -1,0 +1,14 @@
+{{define "title"}}{{t .Tenant.L "organizations.organization-selection.title"}}{{end}}
+{{define "description"}}{{t .Tenant.L "organizations.organization-selection.description"}}{{end}}
+{{define "logoalt"}}{{t .Tenant.L "organizations.organization-selection.logoAltText"}}{{end}}
+{{define "content"}}
+{{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
+<form method="post" action="/u/login">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
+<label for="organization">{{t .Tenant.L "organizations.organization-selection.organizationName"}}</label>
+<input id="organization" name="organization" type="text" autocomplete="organization" autocapitalize="none" required autofocus maxlength="50">
+<button type="submit">{{t .Tenant.L "organizations.organization-selection.buttonText"}}</button>
+</form>
+{{end}}

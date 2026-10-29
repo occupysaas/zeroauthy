@@ -162,6 +162,13 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 			return nil, fmt.Errorf("app: Actions storage capability required: %w", err)
 		}
 	}
+	if capable, ok := st.(store.OrganizationsSupporter); ok {
+		// Unlike RBAC and Actions this is not fatal: an older plugin starts
+		// with Organizations disabled (routes answer 501) and no data scan.
+		if err := capable.CheckOrganizationsSupport(ctx); err != nil {
+			log.Warn("storage plugin lacks the Organizations capability; Organizations are disabled", "error", err)
+		}
+	}
 	if err := federation.PreflightMicrosoftIdentities(ctx, st); err != nil {
 		return nil, err
 	}

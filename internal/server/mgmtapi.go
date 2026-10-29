@@ -259,6 +259,13 @@ func (a mgmtAPI) DeleteTenant(w http.ResponseWriter, r *http.Request, name strin
 func (a mgmtAPI) GetOperators(w http.ResponseWriter, r *http.Request)   { a.h.GetOperators(w, r) }
 func (a mgmtAPI) CreateOperator(w http.ResponseWriter, r *http.Request) { a.h.CreateOperator(w, r) }
 
+func (a mgmtAPI) UpdateOperator(w http.ResponseWriter, r *http.Request, id string) {
+	a.h.UpdateOperator(w, r, id)
+}
+func (a mgmtAPI) GetConsoleTenants(w http.ResponseWriter, r *http.Request) {
+	a.h.GetConsoleTenants(w, r)
+}
+
 func (a mgmtAPI) DeleteOperator(w http.ResponseWriter, r *http.Request, id string) {
 	a.h.DeleteOperator(w, r, id)
 }
@@ -679,4 +686,97 @@ func (a mgmtAPI) GetActionModuleVersion(w http.ResponseWriter, r *http.Request, 
 
 func (a mgmtAPI) GetTenantActionExecutionAttempt(w http.ResponseWriter, r *http.Request, tenant string, id string) {
 	a.h.GetTenantActionExecutionAttempt(w, r, tenant, id)
+}
+
+// Organizations (Plan 29, D-0055). POST /organizations also needs
+// create:organization_connections for enabled_connections; the handler
+// checks it.
+func (a mgmtAPI) ListOrganizations(w http.ResponseWriter, r *http.Request, _ mgmtapi.ListOrganizationsParams) {
+	scopedAll(w, r, a.h.ListOrganizations, "read:organizations")
+}
+func (a mgmtAPI) CreateOrganization(w http.ResponseWriter, r *http.Request) {
+	scopedAll(w, r, a.h.CreateOrganization, "create:organizations")
+}
+func (a mgmtAPI) GetOrganizationByName(w http.ResponseWriter, r *http.Request, name string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationByName(w, r, name) }, "read:organizations")
+}
+func (a mgmtAPI) GetOrganization(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganization(w, r, id) }, "read:organizations")
+}
+func (a mgmtAPI) UpdateOrganization(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateOrganization(w, r, id) }, "update:organizations")
+}
+func (a mgmtAPI) DeleteOrganization(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganization(w, r, id) }, "delete:organizations")
+}
+func (a mgmtAPI) ListOrganizationConnections(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationConnectionsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationConnections(w, r, id) }, "read:organization_connections")
+}
+func (a mgmtAPI) CreateOrganizationConnection(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.CreateOrganizationConnection(w, r, id) }, "create:organization_connections")
+}
+func (a mgmtAPI) GetOrganizationConnection(w http.ResponseWriter, r *http.Request, id, connectionId string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationConnection(w, r, id, connectionId) }, "read:organization_connections")
+}
+func (a mgmtAPI) UpdateOrganizationConnection(w http.ResponseWriter, r *http.Request, id, connectionId string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateOrganizationConnection(w, r, id, connectionId) }, "update:organization_connections")
+}
+func (a mgmtAPI) DeleteOrganizationConnection(w http.ResponseWriter, r *http.Request, id, connectionId string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationConnection(w, r, id, connectionId) }, "delete:organization_connections")
+}
+func (a mgmtAPI) ListOrganizationAllConnections(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationAllConnectionsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationAllConnections(w, r, id) }, "read:organization_connections")
+}
+func (a mgmtAPI) CreateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.CreateOrganizationAllConnection(w, r, id) }, "create:organization_connections")
+}
+func (a mgmtAPI) GetOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id, connectionId string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationAllConnection(w, r, id, connectionId) }, "read:organization_connections")
+}
+func (a mgmtAPI) UpdateOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id, connectionId string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) {
+		a.h.UpdateOrganizationAllConnection(w, r, id, connectionId)
+	}, "update:organization_connections")
+}
+func (a mgmtAPI) DeleteOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id, connectionId string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) {
+		a.h.DeleteOrganizationAllConnection(w, r, id, connectionId)
+	}, "delete:organization_connections")
+}
+func (a mgmtAPI) ListOrganizationClientGrants(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationClientGrantsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationClientGrants(w, r, id) }, "read:organization_client_grants")
+}
+
+// Organization members and roles (Plan 29, D-0055). The member list and the
+// user organizations accept any of their scopes; role members need both.
+// fields=roles on the member list also needs read:organization_member_roles;
+// the handler checks it.
+func (a mgmtAPI) ListOrganizationMembers(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationMembersParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationMembers(w, r, id) }, "read:organization_members", "read:organization_member_roles")
+}
+func (a mgmtAPI) AddOrganizationMembers(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AddOrganizationMembers(w, r, id) }, "create:organization_members")
+}
+func (a mgmtAPI) RemoveOrganizationMembers(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RemoveOrganizationMembers(w, r, id) }, "delete:organization_members")
+}
+func (a mgmtAPI) ListOrganizationMemberRoles(w http.ResponseWriter, r *http.Request, id, userID string, _ mgmtapi.ListOrganizationMemberRolesParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationMemberRoles(w, r, id, userID) }, "read:organization_member_roles")
+}
+func (a mgmtAPI) AddOrganizationMemberRoles(w http.ResponseWriter, r *http.Request, id, userID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AddOrganizationMemberRoles(w, r, id, userID) }, "create:organization_member_roles")
+}
+func (a mgmtAPI) RemoveOrganizationMemberRoles(w http.ResponseWriter, r *http.Request, id, userID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.RemoveOrganizationMemberRoles(w, r, id, userID) }, "delete:organization_member_roles")
+}
+func (a mgmtAPI) ListOrganizationMemberEffectiveRoles(w http.ResponseWriter, r *http.Request, id, userID string, _ mgmtapi.ListOrganizationMemberEffectiveRolesParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) {
+		a.h.ListOrganizationMemberEffectiveRoles(w, r, id, userID)
+	}, "read:organization_member_effective_roles")
+}
+func (a mgmtAPI) ListOrganizationRoleMembers(w http.ResponseWriter, r *http.Request, id, roleID string, _ mgmtapi.ListOrganizationRoleMembersParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationRoleMembers(w, r, id, roleID) }, "read:organization_members", "read:roles")
+}
+func (a mgmtAPI) ListUserOrganizations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListUserOrganizationsParams) {
+	scoped(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListUserOrganizations(w, r, id) }, "read:users", "read:organizations")
 }

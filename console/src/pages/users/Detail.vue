@@ -16,6 +16,7 @@ import IdentitiesTab from './IdentitiesTab.vue'
 import MetadataTab from './MetadataTab.vue'
 import RawTab from './RawTab.vue'
 import RolesTab from './RolesTab.vue'
+import OrganizationsTab from './OrganizationsTab.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import SessionsTab from './SessionsTab.vue'
 
@@ -76,6 +77,7 @@ function identities(list: UserIdentity[]) {
           <TabsTrigger class="tab" value="metadata">{{ t('userd.tabs.metadata') }}</TabsTrigger>
           <TabsTrigger class="tab" value="identities">{{ t('userd.tabs.identities') }}</TabsTrigger>
           <TabsTrigger class="tab" value="sessions">{{ t('userd.tabs.sessions') }}</TabsTrigger>
+          <TabsTrigger class="tab" value="organizations">{{ t('orgs.title') }}</TabsTrigger>
           <TabsTrigger class="tab" value="roles">{{ t('rbac.rolesTab') }}</TabsTrigger>
           <TabsTrigger class="tab" value="permissions">{{ t('rbac.permissions') }}</TabsTrigger>
           <TabsTrigger class="tab" value="apps">{{ t('userd.tabs.apps') }}</TabsTrigger>
@@ -86,6 +88,7 @@ function identities(list: UserIdentity[]) {
         <TabsContent value="metadata"><MetadataTab :tenant="tenant" :user="user" @saved="user = $event" /></TabsContent>
         <TabsContent value="identities"><IdentitiesTab :tenant="tenant" :user="user" @identities="identities" /></TabsContent>
         <TabsContent value="sessions"><SessionsTab :tenant="tenant" :user="user" /></TabsContent>
+        <TabsContent value="organizations"><OrganizationsTab :tenant="tenant" :user-id="user.user_id!" /></TabsContent>
         <TabsContent value="roles"><RolesTab :tenant="tenant" :user="user" /></TabsContent>
         <TabsContent value="permissions"><PermissionsTab :tenant="tenant" :user="user" /></TabsContent>
         <TabsContent value="apps"><AppsTab :tenant="tenant" :user="user" /></TabsContent>

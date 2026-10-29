@@ -213,10 +213,10 @@
     },
     {
       "name": "organizations",
-      "status": "excluded",
-      "owner": "roadmap: Organizations milestone",
-      "reason": "Organizations are outside Plan 20",
-      "fixture": null
+      "status": "included",
+      "owner": "Plan 29",
+      "reason": "Organizations, branding, metadata and enabled connections migrate by name; pinned 9.1.0 has no members or member-role export",
+      "fixture": "fixtures/organizations.json"
     },
     {
       "name": "attackProtection",

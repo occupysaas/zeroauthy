@@ -179,6 +179,9 @@ func TestClientRoundTrip(t *testing.T) {
 		SkipNonVerifiableCallbackURIConfirmationPrompt: ptr(true),
 		RequirePushedAuthorizationRequests:             true,
 		Origin:                                         store.OriginAPI,
+		OrganizationUsage:                              store.OrgUsageRequire,
+		OrganizationRequireBehavior:                    store.OrgBehaviorPreLoginPrompt,
+		OrganizationDiscoveryMethods:                   []string{store.OrgDiscoveryEmail},
 	}, clientToPB, clientFromPB)
 	roundTrip(t, "third party", &store.Client{
 		TenantID: "ten", ClientID: "tp", ThirdPartySecurityMode: store.SecurityModePermissive,
@@ -372,7 +375,7 @@ func TestAuthCodeRoundTrip(t *testing.T) {
 		CodeChallenge: "cc", CodeChallengeMethod: "S256", AuthTime: nanoTime,
 		ExpiresAt: nanoTime.Add(time.Minute), CreatedAt: nanoTime,
 		UsedAt: ptr(nanoTime.Add(time.Second)), ReplayedAt: ptr(nanoTime.Add(2 * time.Second)),
-		ActionEffects: []byte{0, 0xff, 'x'},
+		ActionEffects: []byte{0, 0xff, 'x'}, OrganizationID: "org_0123456789abcdef", OrganizationConnectionID: "con_original",
 	}, authCodeToPB, authCodeFromPB)
 	roundTrip(t, "empty", &store.AuthCode{Scopes: []string{}}, authCodeToPB, authCodeFromPB)
 	roundTrip(t, "zero", &store.AuthCode{}, authCodeToPB, authCodeFromPB)
@@ -385,6 +388,7 @@ func TestRefreshTokenRoundTrip(t *testing.T) {
 		SessionID: "sid", Scopes: []string{"openid", "offline_access"}, Audience: "https://api",
 		AuthTime: nanoTime, Rotating: true, ExpiresAt: nanoTime.Add(time.Hour), IdleExpiresAt: nanoTime.Add(time.Minute),
 		RotatedAt: ptr(nanoTime.Add(time.Second)), RevokedAt: ptr(nanoTime.Add(2 * time.Second)), CreatedAt: nanoTime,
+		OrganizationID: "org_0123456789abcdef", OrganizationConnectionID: "con_original",
 	}, refreshTokenToPB, refreshTokenFromPB)
 	roundTrip(t, "empty", &store.RefreshToken{Scopes: []string{}}, refreshTokenToPB, refreshTokenFromPB)
 	roundTrip(t, "zero", &store.RefreshToken{}, refreshTokenToPB, refreshTokenFromPB)
@@ -492,21 +496,20 @@ func TestTimeHelpers(t *testing.T) {
 }
 
 func TestErrorMapping(t *testing.T) {
-	for _, e := range []error{nil, store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed, store.ErrPrecondition,
-		fmt.Errorf("wrapped: %w", store.ErrPrecondition),
-		fmt.Errorf("wrapped: %w", store.ErrConflict)} {
-		got := errFromPB(errToPB(e))
-		if e == nil {
-			if got != nil {
-				t.Fatalf("nil → %v", got)
-			}
-			continue
-		}
-		for _, sentinel := range []error{store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed} {
-			if errors.Is(e, sentinel) != errors.Is(got, sentinel) {
-				t.Fatalf("%v → %v: errors.Is(%v) differs", e, got, sentinel)
+	// Every sentinel travels as itself and never matches another.
+	sentinels := []error{store.ErrNotFound, store.ErrConflict, store.ErrAlreadyUsed, store.ErrPrecondition, store.ErrOrganizationsUnavailable}
+	for _, e := range sentinels {
+		for _, in := range []error{e, fmt.Errorf("wrapped: %w", e)} {
+			got := errFromPB(errToPB(in))
+			for _, s := range sentinels {
+				if errors.Is(in, s) != errors.Is(got, s) {
+					t.Fatalf("%v → %v: errors.Is(%v) differs", in, got, s)
+				}
 			}
 		}
+	}
+	if got := errFromPB(errToPB(nil)); got != nil {
+		t.Fatalf("nil → %v", got)
 	}
 	other := errFromPB(errToPB(errors.New("next key must have status next")))
 	if other == nil || other.Error() != "next key must have status next" {

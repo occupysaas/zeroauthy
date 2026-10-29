@@ -227,6 +227,9 @@ if (process.env.E2E_M20_PHASE === 'prepare') {
     const created = await api(sourceConfig, 'POST', 'connections', { ...c, enabled_clients: ['e2e-cli-browser'], options: { ...c.options, client_secret: upstreamSecret } });
     assert.equal(JSON.stringify(created).includes(upstreamSecret), false, 'connection create returned its provider credential');
   }
+  const orgDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/organizations.json'),'utf8'));
+  const orgConnections=await api(sourceConfig,'GET','connections');
+  for(const {connections,...declaration} of orgDeclarations){const org=await api(sourceConfig,'POST','organizations',declaration);for(const {name,...flags} of connections){const connection=orgConnections.find(c=>c.name===name);assert.ok(connection);await api(sourceConfig,'POST',`organizations/${org.id}/enabled_connections`,{connection_id:connection.id,...flags});}}
   const rbacAPI=(await api(sourceConfig,'GET','resource-servers')).find(r=>r.identifier==='https://fixture.cli.e2e.test');
   await api(sourceConfig,'PATCH',`resource-servers/${rbacAPI.id}`,{enforce_policies:true,token_dialect:'rfc9068_profile_authz',skip_consent_for_verifiable_first_party_clients:true});
   const roleDeclarations=JSON.parse(await readFile(path.join(e2e,'deploy-cli/fixtures/roles.json'),'utf8'));
@@ -290,6 +293,10 @@ function assertPrivateEmailCredential() {
 assertPrivateEmailCredential();
 let targetPath = await exportTo('target', 'target-first');
 const firstReport=checkedCompare(sourcePath,targetPath);assert.equal(firstReport.equivalent,true,`first round trip differs: ${JSON.stringify(firstReport)}`);
+const migratedOrganizations=await api(targetConfig,'GET','organizations');assert.equal(migratedOrganizations.length,2,'both organizations must migrate');
+for(const org of migratedOrganizations){const links=await api(targetConfig,'GET',`organizations/${org.id}/enabled_connections`);assert.ok(links.length>0,'organization enabled connections were dropped');}
+const migratedOrgBrowser=(await api(targetConfig,'GET','clients')).find(c=>c.name==='E2E deploy fixture');
+assert.equal(migratedOrgBrowser.organization_usage,'allow');assert.equal(migratedOrgBrowser.organization_require_behavior,'pre_login_prompt');assert.deepEqual(migratedOrgBrowser.organization_discovery_methods,['organization_name']);
 const imported = (await exportClients(targetConfig))[0];
 // Every migrated connection must log in through its provider on the target,
 // with canonical identities keyed by the imported connection names.
@@ -410,3 +417,5 @@ for(const header of ['x-azure-clientip','']) {
 }
 console.log('Plan 23 deploy: staged DNS/API proof, canonical reset and template body round trips passed; x-azure-clientip/empty header tool-unavailable (actual CLI rejection); ACUL excluded.');
 process.stdout.write(`Plan 20 deploy-cli: version=9.1.0 format=${format} mode=${mode} lane=local import=passed repeat=passed credentials=passed update=passed targetOnly=passed negative=detected runtime=passed counts=${JSON.stringify(report.counts)}\n`);
+
+console.log('Plan29 deploy: organizations + enabled connections + client organization fields preserved; organization members/member roles unavailable in pinned Deploy CLI 9.1.0');

@@ -14,7 +14,7 @@ type authCodes struct{ s *Store }
 func (s *Store) AuthCodes() store.AuthCodes { return authCodes{s} }
 
 const authCodeCols = `tenant_id, code_hash, client_id, redirect_uri, user_id, session_id, scopes, audience, nonce,
- code_challenge, code_challenge_method, auth_time, expires_at, created_at, used_at, replayed_at, origin, action_effects`
+ code_challenge, code_challenge_method, auth_time, expires_at, created_at, used_at, replayed_at, origin, action_effects, organization_id, organization_connection_id`
 
 func (r authCodes) Create(ctx context.Context, c *store.AuthCode) error {
 	scopes, err := toJSON(c.Scopes)
@@ -24,10 +24,10 @@ func (r authCodes) Create(ctx context.Context, c *store.AuthCode) error {
 	// Retried on deadlock: on MySQL an INSERT can be the victim of a cycle
 	// with DeleteExpired's range DELETE (gap locks).
 	return r.s.atomicRetry(ctx, nil, func(tx *Store) error {
-		_, err := tx.exec(ctx, `INSERT INTO auth_codes (`+authCodeCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		_, err := tx.exec(ctx, `INSERT INTO auth_codes (`+authCodeCols+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			c.TenantID, c.CodeHash, c.ClientID, c.RedirectURI, c.UserID, c.SessionID, scopes, c.Audience, c.Nonce,
 			c.CodeChallenge, c.CodeChallengeMethod, micros(c.AuthTime), micros(c.ExpiresAt), micros(c.CreatedAt),
-			nullMicros(c.UsedAt), nullMicros(c.ReplayedAt), c.Origin, nullBytes(c.ActionEffects))
+			nullMicros(c.UsedAt), nullMicros(c.ReplayedAt), c.Origin, nullBytes(c.ActionEffects), c.OrganizationID, c.OrganizationConnectionID)
 		return tx.conflict(err)
 	})
 }
@@ -99,7 +99,7 @@ func scanAuthCode(row scanner) (*store.AuthCode, error) {
 	var authAt, exp, created int64
 	var used, replayed sql.NullInt64
 	if err := row.Scan(&c.TenantID, &c.CodeHash, &c.ClientID, &c.RedirectURI, &c.UserID, &c.SessionID, &scopes,
-		&c.Audience, &c.Nonce, &c.CodeChallenge, &c.CodeChallengeMethod, &authAt, &exp, &created, &used, &replayed, &c.Origin, &c.ActionEffects); err != nil {
+		&c.Audience, &c.Nonce, &c.CodeChallenge, &c.CodeChallengeMethod, &authAt, &exp, &created, &used, &replayed, &c.Origin, &c.ActionEffects, &c.OrganizationID, &c.OrganizationConnectionID); err != nil {
 		return nil, err
 	}
 	if err := fromJSON(scopes, &c.Scopes); err != nil {

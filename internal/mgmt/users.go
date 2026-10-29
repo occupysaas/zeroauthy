@@ -849,6 +849,9 @@ func (h *Handlers) UpdateUser(w http.ResponseWriter, r *http.Request, id string)
 	now := h.now()
 	var out *store.User
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if err := lockSystemOperators(ctx, tx, resolved(r)); err != nil {
+			return err
+		}
 		cur, err := tx.Users().GetForUpdate(ctx, u.TenantID, id)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserNotFound
@@ -999,6 +1002,9 @@ func (h *Handlers) DeleteUser(w http.ResponseWriter, r *http.Request, id string)
 		}
 	}
 	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		if err := lockSystemOperators(ctx, tx, tn); err != nil {
+			return err
+		}
 		cur, err := tx.Users().GetForUpdate(ctx, tn.ID, id)
 		if err != nil {
 			return err
@@ -1035,4 +1041,34 @@ func (h *Handlers) checkPassword(r *http.Request, tenant *store.Tenant, stage, p
 		return &Error{Status: http.StatusServiceUnavailable, Code: "temporarily_unavailable", Message: protection.ErrBreachUnavailable.Error()}
 	}
 	return nil
+}
+
+// ListUserOrganizations lists the organizations a user is a member of, in
+// the organization list shapes.
+func (h *Handlers) ListUserOrganizations(w http.ResponseWriter, r *http.Request, userID string) {
+	orgs, ok := h.orgs(w)
+	if !ok {
+		return
+	}
+	p, checkpoint, err := orgQuery(r, "page", "per_page", "include_totals", "from", "take")
+	if err != nil {
+		Fail(w, err)
+		return
+	}
+	res, err := orgs.UserOrganizations(r.Context(), resolved(r).ID, userID, p)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		err = errUserNotFound
+	case errors.Is(err, store.ErrInvalid):
+		err = errOrgCursor
+	}
+	if err != nil {
+		h.orgError(w, r, err)
+		return
+	}
+	items := make([]map[string]any, 0, len(res.Items))
+	for _, o := range res.Items {
+		items = append(items, orgView(o))
+	}
+	writeOrgList(w, "organizations", items, res.Total, res.Next, p, checkpoint, false)
 }

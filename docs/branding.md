@@ -67,8 +67,9 @@ The shared email/hosted Liquid subset supports bounded conditionals,
 assignments, loops and documented filters from [email templates](email.md).
 Unknown tags and filters are rejected even in branches that would not execute.
 Full Liquid compatibility is not claimed. Variables expose selected public
-presentation fields under `application`, `tenant`, `prompt`, `locale` and
-`branding`. `prompt.screen.text` includes localized custom variables. Other
+presentation fields under `application`, `tenant`, `prompt`, `locale`,
+`branding` and, for an organization transaction, `organization`.
+`prompt.screen.text` includes localized custom variables. Other
 reserved roots can be empty until their feature exists. User metadata, secrets,
 transaction identifiers, tickets, tokens, passwords and raw captured fields
 are never projected into template context.
@@ -152,8 +153,8 @@ twice. Change-identifier resets identity and transient fields.
 
 `universal_login_experience: classic` and
 `webauthn_platform_first_factor: true` are stored for compatibility and do not
-activate Classic or WebAuthn flows. ACUL, tenant JavaScript, social controls,
-Actions, organizations and custom-domain provisioning remain separate work.
+activate Classic or WebAuthn flows. ACUL, arbitrary tenant JavaScript and
+additional Actions hooks remain separate work.
 
 ## Preview, migration and storage upgrades
 
@@ -209,3 +210,14 @@ PUT still accepts `template`. The Deploy CLI's nonempty custom-domain inventory
 prerequisite can now be satisfied by real declarations. The strict migration
 lane checks nonempty template bodies; it supersedes Plan 22's historical
 unavailable-template result. See [Deploy CLI migration](deploy-cli.md).
+
+## Organization context
+
+[Organizations](organizations.md) can override the tenant-theme logo and primary
+and background colors on login, signup, consent and error pages. Other theme
+settings remain tenant-level. Full page templates expose `organization.id`,
+`name`, `display_name`, `metadata`, `branding.logo_url` and
+`branding.colors.primary/page_background`. Individual transactions have no
+organization context. The `organizations` custom-text prompt supports
+`organization-selection` and `organization-picker` screens; the existing
+escaping, render bounds, fallback and CSP rules apply.

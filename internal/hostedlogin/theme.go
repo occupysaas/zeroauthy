@@ -60,10 +60,10 @@ func (t Theme) CSS() string {
 	return out.String()
 }
 
-func ResolveTheme(c *store.HostedLoginConfig) (Theme, error) {
+func ResolveTheme(c *store.HostedLoginConfig, organization ...*OrgView) (Theme, error) {
 	t := Theme{Properties: map[string]string{}}
 	if c == nil {
-		return t, nil
+		c = &store.HostedLoginConfig{}
 	}
 	if v, ok := c.Branding["logo_url"].(string); ok {
 		t.LogoURL = v
@@ -272,6 +272,28 @@ func ResolveTheme(c *store.HostedLoginConfig) (Theme, error) {
 			default:
 				return Theme{}, ErrTemplate
 			}
+		}
+	}
+	if len(organization) > 0 && organization[0] != nil {
+		org := organization[0]
+		if org.LogoURL != "" {
+			t.LogoURL = org.LogoURL
+		}
+		if org.Primary != "" {
+			if !hexColor.MatchString(org.Primary) {
+				return Theme{}, ErrTemplate
+			}
+			t.PrimaryColor = org.Primary
+			for _, key := range []string{"--accent", "--za-colors-primary-button", "--za-colors-links-focused-components"} {
+				t.Properties[key] = org.Primary
+			}
+		}
+		if org.PageBackground != "" {
+			if !hexColor.MatchString(org.PageBackground) {
+				return Theme{}, ErrTemplate
+			}
+			t.BackgroundColor = org.PageBackground
+			t.Properties["--za-page-background-background-color"] = org.PageBackground
 		}
 	}
 	for _, asset := range []string{t.LogoURL, t.FaviconURL, t.FontURL, t.BackgroundImageURL} {

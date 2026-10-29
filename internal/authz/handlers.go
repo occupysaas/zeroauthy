@@ -129,6 +129,8 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 		h.deny(w, r, res, client, req, errServer())
 		return
 	}
+	// A reusable session still passes organization connection and membership
+	// checks below before it can satisfy this authorization request.
 	login := h.needsLogin(req, sess)
 	if !login {
 		login, err = h.connectionDisabled(ctx, res, client, sess)
@@ -144,6 +146,15 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.startLogin(w, r, res, client, fr)
+		return
+	}
+	if hosted, e := h.organizationSession(w, r, res, client, &fr, sess); e != nil {
+		h.deny(w, r, res, client, req, e)
+		return
+	} else if hosted {
+		frParams := fr.params()
+		frParams["za_org_session"] = sess.ID
+		h.startTxn(w, r, res, client, fr, frParams, "/u/login")
 		return
 	}
 	h.finish(w, r, res, client, fr, sess, nil, false, false)
@@ -246,7 +257,7 @@ func (h *Handlers) startLogin(w http.ResponseWriter, r *http.Request, res tenant
 		delete(params, "prompt")
 	}
 	page := "/u/login"
-	if fr.ScreenHint == "signup" {
+	if fr.ScreenHint == "signup" && fr.OrgMode != OrgPromptBefore {
 		page = "/u/signup"
 	}
 	h.startTxn(w, r, res, client, fr, params, page)
@@ -322,6 +333,17 @@ func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Res
 }
 
 func (h *Handlers) issueCode(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, sess *store.LoginSession, scopes []string, eff *actions.Effects) {
+	// Post-login Actions can wait on external work. Recheck immediately before
+	// minting rather than relying on the decision made before that wait.
+	fr := flowReq{Request: req}
+	if hosted, e := h.organizationSession(w, r, res, client, &fr, sess); e != nil {
+		h.deny(w, r, res, client, req, e)
+		return
+	} else if hosted {
+		h.deny(w, r, res, client, req, errAccessDenied("an organization must be selected before issuing a code"))
+		return
+	}
+	req = fr.Request
 	ctx := r.Context()
 	code, err := h.createCode(ctx, res, client, req, sess, scopes, eff)
 	if err != nil {
@@ -343,7 +365,16 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 	if err != nil {
 		return "", err
 	}
+	connectionID := ""
+	if req.OrgID != "" {
+		conn, e := h.Store.Connections().GetByName(ctx, res.Tenant.ID, sess.Connection)
+		if e != nil {
+			return "", e
+		}
+		connectionID = conn.ID
+	}
 	ac := &store.AuthCode{
+		OrganizationID: req.OrgID, OrganizationConnectionID: connectionID,
 		ActionEffects:       sealed,
 		Origin:              res.Origin(),
 		TenantID:            res.Tenant.ID,
@@ -376,6 +407,11 @@ func (h *Handlers) createCode(ctx context.Context, res tenant.Resolved, client *
 func (h *Handlers) deny(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, req Request, e *Error) {
 	if access.ShowErrorPage(client) {
 		view := ui.RequestTenant(r, res.Tenant, i18n.ForRequest(res.Tenant, r, req.UILocales))
+		if req.OrgID != "" {
+			if org, err := h.Store.Organizations().Get(r.Context(), res.Tenant.ID, req.OrgID); err == nil {
+				view = ui.WithOrganization(view, org)
+			}
+		}
 		if e.Code == "server_error" {
 			renderPageError(w, view, e)
 			return
@@ -431,6 +467,15 @@ func (h *Handlers) accessInput(ctx context.Context, res tenant.Resolved, client 
 // page for this request; screenShown means a login or signup page was shown
 // in this transaction.
 func (h *Handlers) finish(w http.ResponseWriter, r *http.Request, res tenant.Resolved, client *store.Client, fr flowReq, sess *store.LoginSession, carried *actions.Effects, accepted, screenShown bool) {
+	if hosted, e := h.organizationSession(w, r, res, client, &fr, sess); e != nil {
+		h.refuse(w, r, res, client, fr, e)
+		return
+	} else if hosted {
+		params := fr.params()
+		params["za_org_session"] = sess.ID
+		h.startTxn(w, r, res, client, fr, params, "/u/login")
+		return
+	}
 	ctx := r.Context()
 	in, audienceKey, err := h.accessInput(ctx, res, client, fr, sess.UserID)
 	if err != nil {

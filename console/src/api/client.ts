@@ -102,6 +102,17 @@ export type ActionTestRequest = components['schemas']['ActionTestRequest']
 export type ActionTestResponse = components['schemas']['ActionTestResponse']
 export type ActionExecution = components['schemas']['ActionExecution']
 
+export type Organization = components['schemas']['Organization']
+export type OrganizationCreate = components['schemas']['OrganizationCreate']
+export type OrganizationUpdate = components['schemas']['OrganizationUpdate']
+export type OrganizationsPage = components['schemas']['OrganizationsPage']
+export type OrganizationEnabledConnection = components['schemas']['OrganizationEnabledConnection']
+export type OrganizationEnabledConnectionCreate = components['schemas']['OrganizationEnabledConnectionCreate']
+export type OrganizationEnabledConnectionUpdate = components['schemas']['OrganizationEnabledConnectionUpdate']
+export type OrganizationEnabledConnectionsPage = components['schemas']['OrganizationEnabledConnectionsPage']
+export type OrganizationMember = components['schemas']['OrganizationMember']
+export type OrganizationMembersPage = components['schemas']['OrganizationMembersPage']
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -120,6 +131,13 @@ export type BrandingPreview = { html: string; warnings: string[] }
 export type BrandingObject = Record<string, unknown>
 
 export class Api {
+  private forbiddenListeners = new Set<() => Promise<void>>()
+
+  onForbidden(listener: () => Promise<void>): () => void {
+    this.forbiddenListeners.add(listener)
+    return () => { this.forbiddenListeners.delete(listener) }
+  }
+
   constructor(
     // systemOrigin is where the system API lives (the console's origin).
     private systemOrigin: string,
@@ -144,6 +162,10 @@ export class Api {
     if (res.status === 204) return undefined as T
     const body = (await res.json().catch(() => null)) as unknown
     if (!res.ok) {
+      // Discovery failures cannot recursively trigger their own refresh.
+      if (res.status === 403 && path !== '/api/console/tenants') {
+        await Promise.allSettled([...this.forbiddenListeners].map((listener) => listener()))
+      }
       const e = (body ?? {}) as Partial<ManagementError>
       const wait = Number(res.headers.get('Retry-After'))
       throw new ApiError(res.status, e.errorCode ?? '', e.message ?? res.statusText ?? 'Request failed', wait > 0 ? wait : undefined)
@@ -263,6 +285,42 @@ export class Api {
   }
   updateCaptcha(t: SystemTenant, body: CaptchaUpdate): Promise<Captcha> {
     return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/attack-protection/captcha', { body })
+  }
+
+  listOrganizations(t: SystemTenant, page: number, userId?: string): Promise<OrganizationsPage> {
+    const path = userId === undefined ? '/api/v2/organizations' : userPath(userId) + '/organizations'
+    return this.request(Api.tenantOrigin(t), 'GET', path, { query: { page, per_page: 20, include_totals: true } })
+  }
+  getOrganization(t: SystemTenant, id: string): Promise<Organization> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/' + encodeURIComponent(id))
+  }
+  createOrganization(t: SystemTenant, body: OrganizationCreate): Promise<Organization> {
+    return this.request(Api.tenantOrigin(t), 'POST', '/api/v2/organizations', { body })
+  }
+  updateOrganization(t: SystemTenant, id: string, body: OrganizationUpdate): Promise<Organization> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', '/api/v2/organizations/' + encodeURIComponent(id), { body })
+  }
+  deleteOrganization(t: SystemTenant, id: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', '/api/v2/organizations/' + encodeURIComponent(id))
+  }
+  listOrganizationConnections(t: SystemTenant, id: string, page: number, per_page = 20): Promise<OrganizationEnabledConnectionsPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/' + encodeURIComponent(id) + '/enabled_connections', { query: { page, per_page, include_totals: true } })
+  }
+  changeOrganizationConnection(t: SystemTenant, id: string, method: 'POST' | 'PATCH' | 'DELETE', connectionId: string, body?: OrganizationEnabledConnectionUpdate): Promise<void> {
+    const path = '/api/v2/organizations/' + encodeURIComponent(id) + '/enabled_connections'
+    return this.request(Api.tenantOrigin(t), method, path + (method === 'POST' ? '' : '/' + encodeURIComponent(connectionId)), { body: method === 'POST' ? { ...body, connection_id: connectionId } : body })
+  }
+  listOrganizationMembers(t: SystemTenant, id: string, page: number): Promise<OrganizationMembersPage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/' + encodeURIComponent(id) + '/members', { query: { page, per_page: 20, include_totals: true } })
+  }
+  changeOrganizationMembers(t: SystemTenant, id: string, method: 'POST' | 'DELETE', members: string[]): Promise<void> {
+    return this.request(Api.tenantOrigin(t), method, '/api/v2/organizations/' + encodeURIComponent(id) + '/members', { body: { members } })
+  }
+  listOrganizationMemberRoles(t: SystemTenant, id: string, userId: string, page: number): Promise<RolePage> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/' + encodeURIComponent(id) + '/members/' + encodeURIComponent(userId) + '/roles', { query: { page, per_page: 20, include_totals: true } })
+  }
+  changeOrganizationMemberRoles(t: SystemTenant, id: string, userId: string, method: 'POST' | 'DELETE', roles: string[]): Promise<void> {
+    return this.request(Api.tenantOrigin(t), method, '/api/v2/organizations/' + encodeURIComponent(id) + '/members/' + encodeURIComponent(userId) + '/roles', { body: { roles } })
   }
 
   listRoles(t: SystemTenant, q: OffsetPage & { name_filter?: string }): Promise<RolePage> {
@@ -681,7 +739,7 @@ export class Api {
   }
 
   listTenants(): Promise<SystemTenant[]> {
-    return this.request(this.systemOrigin, 'GET', '/api/system/tenants')
+    return this.request(this.systemOrigin, 'GET', '/api/console/tenants')
   }
 
   listOperators(): Promise<Operator[]> {

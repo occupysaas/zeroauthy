@@ -19,7 +19,7 @@ type userAuthorization struct {
 // authorizeUserToken uses permissions fixed before a bound Action flow, or a
 // current snapshot when no flow captured them. API definition, application
 // policy and the original consent/refresh ceiling are still checked at mint.
-func (h *Handlers) authorizeUserToken(ctx context.Context, tid, uid string, rs *store.ResourceServer, scopes []string, frozen *actions.RBACSnapshot) (userAuthorization, *Error) {
+func (h *Handlers) authorizeUserToken(ctx context.Context, tid, uid, orgID string, rs *store.ResourceServer, scopes []string, frozen *actions.RBACSnapshot) (userAuthorization, *Error) {
 	out := userAuthorization{API: rs, Scopes: scopes}
 	if rs == nil || rs.IsSystem {
 		return out, nil
@@ -54,7 +54,7 @@ func (h *Handlers) authorizeUserToken(ctx context.Context, tid, uid string, rs *
 	}
 	var err error
 	if snap == nil {
-		snap, err = h.Store.RBAC().Snapshot(ctx, tid, uid, rs.Identifier)
+		snap, err = store.OrganizationAuthorizationSnapshot(ctx, h.Store, tid, uid, orgID, rs.Identifier)
 	}
 	if snap != nil && snap.API != nil && snap.API.Identifier != rs.Identifier {
 		return out, serverError()

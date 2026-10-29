@@ -45,6 +45,8 @@ type TransactionInfo struct {
 // Transaction is nil for dbconnections/signup; CustomDomain is supplied only
 // when the request used a custom domain.
 type RegistrationInput struct {
+	// Organization is the hosted signup snapshot.
+	Organization *store.Organization
 	Tenant       tenant.Resolved
 	Client       *store.Client
 	User         *store.User
@@ -96,6 +98,10 @@ type EmailInput struct {
 
 // PostLoginInput is everything a post-login flow sees.
 type PostLoginInput struct {
+	// OrganizationID is the bound organization used by the permission snapshot.
+	OrganizationID string
+	// Organization is frozen before external code and sealed with continuations.
+	Organization    *store.Organization
 	Tenant          tenant.Resolved
 	Client          *store.Client
 	User            *store.User
@@ -267,6 +273,14 @@ func sessionEvent(s *store.LoginSession) map[string]any {
 		"expires_at": rfc3339(s.ExpiresAt), "idle_expires_at": rfc3339(s.IdleExpiresAt)}
 }
 
+func organizationEvent(o *store.Organization) map[string]any {
+	md := maps.Clone(o.Metadata)
+	if md == nil {
+		md = map[string]string{}
+	}
+	return map[string]any{"id": o.ID, "name": o.Name, "display_name": o.DisplayName, "metadata": md}
+}
+
 // postLoginEvent builds event for the next Action from the input, the roles
 // snapshot and the effects accumulated so far.
 func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string]any {
@@ -282,6 +296,9 @@ func postLoginEvent(in *PostLoginInput, roleNames []string, a *accum) map[string
 			"requested_scopes": strs(in.RequestedScopes), "target_scopes": strs(a.target),
 			"metadata": obj(a.eff.TxnMetadata),
 		},
+	}
+	if in.Organization != nil {
+		ev["organization"] = organizationEvent(in.Organization)
 	}
 	if in.Connection != nil {
 		ev["connection"] = map[string]any{"id": in.Connection.ID, "name": in.Connection.Name, "strategy": in.Connection.Strategy, "metadata": map[string]any{}}
@@ -375,6 +392,9 @@ func scrubValue(v any) any {
 
 func registrationEvent(in *RegistrationInput, a *accum) map[string]any {
 	ev := map[string]any{"client": clientEvent(in.Client), "tenant": tenantEvent(in.Tenant), "request": signupRequest(in.Request, in.Tenant.Host, false)}
+	if in.Organization != nil {
+		ev["organization"] = organizationEvent(in.Organization)
+	}
 	if in.Connection != nil {
 		ev["connection"] = connectionEvent(in.Connection)
 	}
@@ -399,6 +419,9 @@ func registrationEvent(in *RegistrationInput, a *accum) map[string]any {
 
 func postRegistrationEvent(in *RegistrationInput, a *accum) map[string]any {
 	ev := map[string]any{"user": userEvent(in.User, &a.eff), "tenant": tenantEvent(in.Tenant), "request": signupRequest(in.Request, in.Tenant.Host, false)}
+	if in.Organization != nil {
+		ev["organization"] = organizationEvent(in.Organization)
+	}
 	if in.Connection != nil {
 		ev["connection"] = connectionEvent(in.Connection)
 	}

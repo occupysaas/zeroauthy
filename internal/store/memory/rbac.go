@@ -71,6 +71,7 @@ func (r rbac) DeleteRole(_ context.Context, tid, id string) error {
 		return store.ErrNotFound
 	}
 	delete(r.s.roles, key{tid, id})
+	r.s.cleanupOrgRole(tid, id)
 	for k := range r.s.rolePermissions {
 		if k.tenant == tid && k.owner == id {
 			delete(r.s.rolePermissions, k)

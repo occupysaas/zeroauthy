@@ -18,14 +18,15 @@ import (
 type Client struct {
 	rpc    storev1.StoreServiceClient
 	closer func() error
-	txID   string // empty outside a transaction
+	txID   string       // empty outside a transaction
+	orgCap *orgCapState // Organizations capability cache, shared with transactions
 }
 
 var _ store.Store = (*Client)(nil)
 
 // NewClient returns a store over conn. Close calls closer, which may be nil.
 func NewClient(conn grpc.ClientConnInterface, closer func() error) *Client {
-	return &Client{rpc: storev1.NewStoreServiceClient(conn), closer: closer}
+	return &Client{rpc: storev1.NewStoreServiceClient(conn), closer: closer, orgCap: &orgCapState{}}
 }
 
 // rpcErr wraps a transport failure so it never matches a store sentinel.
@@ -73,7 +74,7 @@ func (c *Client) WithTx(ctx context.Context, fn func(store.Store) error) (err er
 	if e := errFromPB(r.GetError()); e != nil {
 		return e
 	}
-	tx := &Client{rpc: c.rpc, txID: r.TxId}
+	tx := &Client{rpc: c.rpc, txID: r.TxId, orgCap: c.orgCap}
 	end := context.WithoutCancel(ctx)
 	committed, commitFailed := false, false
 	defer func() {

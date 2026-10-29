@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/zeroauthy/zeroauthy/internal/authz"
 	"github.com/zeroauthy/zeroauthy/internal/federation"
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
@@ -23,7 +24,7 @@ import (
 
 // socialConnections lists the application's usable federated connections.
 func (h *Handlers) socialConnections(ctx context.Context, f *flow, includeHidden bool) ([]*store.Connection, error) {
-	if h.Federation == nil {
+	if h.Federation == nil || f.txn.Params[store.TxnParamOrgMode] == string(authz.OrgPromptBefore) {
 		return nil, nil
 	}
 	client, err := h.Store.Clients().Get(ctx, f.res.Tenant.ID, f.txn.ClientID)
@@ -36,6 +37,16 @@ func (h *Handlers) socialConnections(ctx context.Context, f *flow, includeHidden
 	conns, _, err := h.Store.Connections().List(ctx, f.res.Tenant.ID, store.ConnectionFilter{}, store.Page{})
 	if err != nil {
 		return nil, err
+	}
+	conns = EligibleConnections(conns, f.org)
+	if !includeHidden && f.org.Org != nil {
+		var visible []*store.Connection
+		for _, c := range conns {
+			if f.org.Connections[c.ID].ShowAsButton {
+				visible = append(visible, c)
+			}
+		}
+		conns = visible
 	}
 	return federation.SocialChoices(client, conns, includeHidden), nil
 }

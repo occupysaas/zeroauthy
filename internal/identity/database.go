@@ -75,7 +75,8 @@ var dummyHash = sync.OnceValue(func() string {
 // "auth0"): users stored by zeroauthy, or, on a customized connection,
 // users of a legacy store reached through custom database scripts.
 type Database struct {
-	Store store.Store
+	loginCommit func(context.Context, store.Store, *store.User) error
+	Store       store.Store
 	// Scripts runs custom database scripts. When nil, customized
 	// connections fail with ErrScript.
 	Scripts *customdb.Client
@@ -136,6 +137,55 @@ func (d *Database) LoginWithCheck(ctx context.Context, conn *store.Connection, l
 	return u, nil
 }
 
+// LoginWithCheckAndCommit applies commit in the local user-write transaction,
+// after credential and policy checks. External custom scripts run before it.
+func (d *Database) LoginWithCheckAndCommit(ctx context.Context, conn *store.Connection, login, password string, check func(context.Context) error, commit func(context.Context, store.Store, *store.User) error) (*store.User, error) {
+	if commit == nil {
+		return d.LoginWithCheck(ctx, conn, login, password, check)
+	}
+	bound := *d
+	committed := false
+	bound.loginCommit = func(ctx context.Context, tx store.Store, u *store.User) error {
+		if err := commit(ctx, tx, u); err != nil {
+			return err
+		}
+		committed = true
+		return nil
+	}
+	u, err := bound.LoginWithCheck(ctx, conn, login, password, check)
+	if err != nil {
+		return nil, err
+	}
+	if !committed {
+		err = d.Store.WithTx(ctx, func(tx store.Store) error { return commit(ctx, tx, u) })
+		if err != nil {
+			return nil, err
+		}
+	}
+	return u, nil
+}
+func (d *Database) loginWrite(ctx context.Context, fn func(*Database) (*store.User, error)) (*store.User, error) {
+	if d.loginCommit == nil {
+		return fn(d)
+	}
+	var u *store.User
+	err := d.Store.WithTx(ctx, func(tx store.Store) error {
+		bound := *d
+		bound.Store = tx
+		bound.loginCommit = nil
+		var err error
+		u, err = fn(&bound)
+		if err != nil {
+			return err
+		}
+		return d.loginCommit(ctx, tx, u)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
 func (d *Database) loginLocal(ctx context.Context, conn *store.Connection, login, password string, check func(context.Context) error) (*store.User, error) {
 	norm := NormalizeLogin(login)
 	// An over-long login matches no user; it is not sent to the store.
@@ -151,7 +201,7 @@ func (d *Database) loginLocal(ctx context.Context, conn *store.Connection, login
 	}
 	hash, imported := credentials(u, conn.Name, norm)
 	if imported != "" {
-		return d.importedLogin(ctx, conn, u, norm, imported, password, true)
+		return d.importedLogin(ctx, conn, u, norm, imported, password, true, check)
 	}
 	if hash == "" && IsCustom(conn) {
 		return d.importLogin(ctx, conn, strings.TrimSpace(login), password, u, check)
@@ -166,7 +216,7 @@ func (d *Database) loginLocal(ctx context.Context, conn *store.Connection, login
 // upgrade finds the hash replaced meanwhile (a bulk import upserting the
 // user), the user is read once more and checked against what is stored now;
 // retry is false on that second pass.
-func (d *Database) importedLogin(ctx context.Context, conn *store.Connection, u *store.User, login, imported, password string, retry bool) (*store.User, error) {
+func (d *Database) importedLogin(ctx context.Context, conn *store.Connection, u *store.User, login, imported, password string, retry bool, check func(context.Context) error) (*store.User, error) {
 	spec, err := passhash.Unmarshal(imported)
 	if err != nil {
 		return nil, ErrPasswordChangeRequired
@@ -187,6 +237,22 @@ func (d *Database) importedLogin(ctx context.Context, conn *store.Connection, u 
 	if err != nil {
 		return nil, err
 	}
+	if d.loginCommit != nil {
+		if u.Blocked {
+			return nil, ErrUserBlocked
+		}
+		if check != nil {
+			if err := check(ctx); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return d.loginWrite(ctx, func(bound *Database) (*store.User, error) {
+		return bound.persistImportedHash(ctx, conn, u, login, imported, password, hash, retry, check)
+	})
+}
+func (d *Database) persistImportedHash(ctx context.Context, conn *store.Connection, u *store.User, login, imported, password, hash string, retry bool, check func(context.Context) error) (*store.User, error) {
+	var err error
 	err = d.Store.Users().UpgradeImportedHash(ctx, conn.TenantID, u.UserID, conn.Name, imported, hash, d.now().UTC())
 	if errors.Is(err, store.ErrConflict) {
 		fresh, gerr := d.Store.Users().Get(ctx, conn.TenantID, u.UserID)
@@ -202,7 +268,7 @@ func (d *Database) importedLogin(ctx context.Context, conn *store.Connection, u 
 				// Replaced again during the second pass: give up.
 				return nil, ErrInvalidCredentials
 			}
-			return d.importedLogin(ctx, conn, fresh, login, imp, password, false)
+			return d.importedLogin(ctx, conn, fresh, login, imp, password, false, check)
 		}
 		return verifyLocal(fresh, h, password)
 	}
@@ -466,6 +532,7 @@ func (d *Database) FindForReset(ctx context.Context, conn *store.Connection, ema
 // SignupActions injects signup flows without coupling identity to the Actions runtime.
 // actionresult.Result is aliased as actions.Result.
 type SignupActions struct {
+	Commit  func(context.Context, store.Store, *store.User) error
 	Run     func(context.Context, *store.User) (*actionresult.Result, error)
 	Enqueue func(context.Context, store.Store, *store.User) error
 }
@@ -533,6 +600,11 @@ func (d *Database) insertSignup(ctx context.Context, conn *store.Connection, a S
 		}
 		if hash != "" {
 			if err := RecordPassword(ctx, tx, conn, u.UserID, hash); err != nil {
+				return err
+			}
+		}
+		if a.Commit != nil {
+			if err := a.Commit(ctx, tx, u); err != nil {
 				return err
 			}
 		}

@@ -1,0 +1,4 @@
+[
+ {"name":"deploy-alpha","display_name":"Deploy Alpha","branding":{"colors":{"primary":"#123456","page_background":"#eeeeee"}},"metadata":{"department":"engineering"},"connections":[{"name":"deploy-oidc","assign_membership_on_login":true,"show_as_button":false}]},
+ {"name":"deploy-beta","display_name":"Deploy Beta","metadata":{"department":"support"},"connections":[{"name":"microsoft-directory","assign_membership_on_login":false,"show_as_button":true}]}
+]

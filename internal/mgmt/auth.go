@@ -183,7 +183,7 @@ func (cfg Config) authenticate(r *http.Request, res tenant.Resolved) (Caller, er
 		return Caller{}, invalidToken("Invalid token")
 	}
 	if peek.Audience.Contains(tenant.OperatorAudience) {
-		return cfg.operator(r.Context(), res, raw)
+		return cfg.operator(r.Context(), res, raw, r.Method == http.MethodGet && r.URL.Path == "/api/console/tenants" && res.Tenant.Reserved && res.Tenant.Name == tenant.SystemName)
 	}
 	return cfg.m2m(r.Context(), res, raw)
 }
@@ -241,7 +241,7 @@ func (cfg Config) m2m(ctx context.Context, res tenant.Resolved, raw string) (Cal
 	return Caller{Kind: M2M, ClientID: extra.AZP, Scopes: strings.Fields(extra.Scope)}, nil
 }
 
-func (cfg Config) operator(ctx context.Context, res tenant.Resolved, raw string) (Caller, error) {
+func (cfg Config) operator(ctx context.Context, res tenant.Resolved, raw string, discovery bool) (Caller, error) {
 	sys, err := cfg.Store.Tenants().GetByName(ctx, tenant.SystemName)
 	if errors.Is(err, store.ErrNotFound) || (err == nil && !sys.Reserved) || cfg.SystemHost == "" {
 		return Caller{}, invalidToken("Invalid token")
@@ -273,14 +273,28 @@ func (cfg Config) operator(ctx context.Context, res tenant.Resolved, raw string)
 		return Caller{}, &Error{Status: http.StatusInternalServerError, Code: "internal_error", Message: "Internal error"}
 	}
 	// Both the token and the stored operator must allow the tenant.
-	if !manages(*extra.Operator, res.Tenant.Name) || !manages(op.Tenants, res.Tenant.Name) {
+	if !discovery && (!manages(*extra.Operator, res.Tenant.Name) || !manages(op.Tenants, res.Tenant.Name)) {
 		return Caller{}, &Error{Status: http.StatusForbidden, Code: "insufficient_scope", Message: "The operator does not manage this tenant"}
 	}
 	scopes := make([]string, len(tenantsetup.ManagementAPIScopes))
 	for i, s := range tenantsetup.ManagementAPIScopes {
 		scopes[i] = s.Value
 	}
-	return Caller{Kind: Operator, ClientID: extra.AZP, UserID: std.Subject, Scopes: scopes, Tenants: slices.Clone(op.Tenants)}, nil
+	return Caller{Kind: Operator, ClientID: extra.AZP, UserID: std.Subject, Scopes: scopes, Tenants: intersectOperatorTenants(*extra.Operator, op.Tenants)}, nil
+}
+
+// intersectOperatorTenants never expands the rights of an already issued token.
+func intersectOperatorTenants(token, stored []string) []string {
+	if slices.Contains(token, store.OperatorAllTenants) {
+		return slices.Clone(stored)
+	}
+	out := make([]string, 0, len(token))
+	for _, name := range token {
+		if manages(stored, name) {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 func manages(tenants []string, name string) bool {

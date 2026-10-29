@@ -26,6 +26,10 @@ var grantHandlers = map[string]grantHandler{
 	GrantDeviceCode:      (*Handlers).deviceCodeGrant,
 }
 
+// orgLessGrants never carry an organization: they ignore the organization
+// parameter, and a client that requires one may not use them (D-0055).
+var orgLessGrants = []string{"password", GrantPasswordRealm, GrantDeviceCode}
+
 // OauthToken implements POST /oauth/token.
 func (h *Handlers) OauthToken(w http.ResponseWriter, r *http.Request) {
 	res, ok := tenant.FromContext(r.Context())
@@ -61,6 +65,11 @@ func (h *Handlers) token(w http.ResponseWriter, r *http.Request, res tenant.Reso
 	}
 	if !slices.Contains(client.GrantTypes, grantType) {
 		return nil, unauthorizedClient(fmt.Sprintf("grant type %q is not allowed for this client", grantType))
+	}
+	// A require client cannot hold these grants (D-0055); this guards
+	// clients stored before that rule.
+	if client.OrganizationUsage == store.OrgUsageRequire && slices.Contains(orgLessGrants, grantType) {
+		return nil, unauthorizedClient(fmt.Sprintf("grant type %q is not allowed for an application that requires an organization", grantType))
 	}
 	// Grants that throttle by end user see the IP through the context.
 	ip := h.endUserIP(r, client)

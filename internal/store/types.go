@@ -167,7 +167,31 @@ type Client struct {
 	// API (and the console), empty for the seed or zeroauthy itself. The
 	// seed never touches API-created clients.
 	Origin string
+
+	// OrganizationUsage is an OrgUsage* value; empty means unset, which
+	// behaves as OrgUsageDeny (D-0055).
+	OrganizationUsage string
+	// OrganizationRequireBehavior is an OrgBehavior* value; empty means
+	// unset, which behaves as OrgBehaviorNoPrompt.
+	OrganizationRequireBehavior string
+	// OrganizationDiscoveryMethods are OrgDiscovery* values, set only with
+	// OrgBehaviorPreLoginPrompt; nil means unset.
+	OrganizationDiscoveryMethods []string
 }
+
+// Client organization settings (D-0055).
+const (
+	OrgUsageDeny    = "deny"
+	OrgUsageAllow   = "allow"
+	OrgUsageRequire = "require"
+
+	OrgBehaviorNoPrompt        = "no_prompt"
+	OrgBehaviorPreLoginPrompt  = "pre_login_prompt"
+	OrgBehaviorPostLoginPrompt = "post_login_prompt"
+
+	OrgDiscoveryEmail = "email"
+	OrgDiscoveryName  = "organization_name"
+)
 
 // OriginAPI marks a client, tenant, resource server or client grant created through the Management or
 // system API.
@@ -782,6 +806,10 @@ type LoginSession struct {
 const (
 	TxnParamFlow  = "za_flow"
 	TxnFlowDevice = "device"
+	// TxnParamOrgID holds the organization resolved at /authorize or PAR,
+	// and TxnParamOrgMode how the request uses organizations (D-0055).
+	TxnParamOrgID   = "za_org_id"
+	TxnParamOrgMode = "za_org_mode"
 )
 
 // AuthTransaction holds an /authorize request while the user logs in.
@@ -823,6 +851,12 @@ type AuthCode struct {
 	// (bound to the tenant and code); nil when no Action ran. Stores keep
 	// the bytes opaque and exact.
 	ActionEffects []byte
+	// OrganizationID is the organization the authorization was bound to;
+	// empty for non-organization codes.
+	OrganizationID string
+	// OrganizationConnectionID pins the authenticated connection through code exchange
+	// and refresh, even after the browser session has expired or been removed.
+	OrganizationConnectionID string
 }
 
 // PushedAuthRequest is an authorization request pushed to /oauth/par
@@ -932,6 +966,12 @@ type RefreshToken struct {
 	RotatedAt *time.Time
 	RevokedAt *time.Time
 	CreatedAt time.Time
+	// OrganizationID is the organization the family was issued for; empty
+	// for non-organization tokens.
+	OrganizationID string
+	// OrganizationConnectionID pins the authenticated connection through code exchange
+	// and refresh, even after the browser session has expired or been removed.
+	OrganizationConnectionID string
 }
 
 // RefreshTokenPolicy configures the refresh tokens issued to a client.

@@ -38,23 +38,25 @@ func parsePage(names ...string) *template.Template {
 
 var (
 	pages = map[string]*template.Template{
-		"login":              parsePage("templates/layout.html", "templates/login.html"),
-		"login_id":           parsePage("templates/layout.html", "templates/login_id.html"),
-		"login_password":     parsePage("templates/layout.html", "templates/login_password.html"),
-		"signup":             parsePage("templates/layout.html", "templates/signup.html"),
-		"consent":            parsePage("templates/layout.html", "templates/consent.html"),
-		"error":              parsePage("templates/layout.html", "templates/error.html"),
-		"logout_confirm":     parsePage("templates/layout.html", "templates/logout_confirm.html"),
-		"logged_out":         parsePage("templates/layout.html", "templates/logged_out.html"),
-		"reset_request":      parsePage("templates/layout.html", "templates/reset_request.html"),
-		"reset_email_sent":   parsePage("templates/layout.html", "templates/reset_email_sent.html"),
-		"reset_password":     parsePage("templates/layout.html", "templates/reset_password.html"),
-		"reset_success":      parsePage("templates/layout.html", "templates/reset_success.html"),
-		"reset_error":        parsePage("templates/layout.html", "templates/reset_error.html"),
-		"email_verification": parsePage("templates/layout.html", "templates/email_verification.html"),
-		"device_code":        parsePage("templates/layout.html", "templates/device_code.html"),
-		"device_confirm":     parsePage("templates/layout.html", "templates/device_confirm.html"),
-		"device_result":      parsePage("templates/layout.html", "templates/device_result.html"),
+		"organization-selection": parsePage("templates/layout.html", "templates/organization-selection.html"),
+		"organization-picker":    parsePage("templates/layout.html", "templates/organization-picker.html"),
+		"login":                  parsePage("templates/layout.html", "templates/login.html"),
+		"login_id":               parsePage("templates/layout.html", "templates/login_id.html"),
+		"login_password":         parsePage("templates/layout.html", "templates/login_password.html"),
+		"signup":                 parsePage("templates/layout.html", "templates/signup.html"),
+		"consent":                parsePage("templates/layout.html", "templates/consent.html"),
+		"error":                  parsePage("templates/layout.html", "templates/error.html"),
+		"logout_confirm":         parsePage("templates/layout.html", "templates/logout_confirm.html"),
+		"logged_out":             parsePage("templates/layout.html", "templates/logged_out.html"),
+		"reset_request":          parsePage("templates/layout.html", "templates/reset_request.html"),
+		"reset_email_sent":       parsePage("templates/layout.html", "templates/reset_email_sent.html"),
+		"reset_password":         parsePage("templates/layout.html", "templates/reset_password.html"),
+		"reset_success":          parsePage("templates/layout.html", "templates/reset_success.html"),
+		"reset_error":            parsePage("templates/layout.html", "templates/reset_error.html"),
+		"email_verification":     parsePage("templates/layout.html", "templates/email_verification.html"),
+		"device_code":            parsePage("templates/layout.html", "templates/device_code.html"),
+		"device_confirm":         parsePage("templates/layout.html", "templates/device_confirm.html"),
+		"device_result":          parsePage("templates/layout.html", "templates/device_result.html"),
 	}
 	formPost   = parsePage("templates/form_post.html")
 	formGet    = parsePage("templates/form_get.html")
@@ -63,6 +65,7 @@ var (
 
 // Tenant is the branding and language of a hosted page.
 type Tenant struct {
+	Organization *store.Organization
 	Captcha      *Captcha
 	SupportEmail string
 	SupportURL   string
@@ -121,6 +124,26 @@ func RequestTenant(r *http.Request, t *store.Tenant, l *i18n.Localizer) Tenant {
 	view.LogoURL, view.PrimaryColor = theme.LogoURL, theme.PrimaryColor
 	view.FaviconURL, view.FontURL, view.BackgroundImageURL = theme.FaviconURL, theme.FontURL, theme.BackgroundImageURL
 	view.ThemeCSS = template.CSS(theme.CSS()) // only fixed properties with typed, validated values
+	return view
+}
+
+// WithOrganization applies only the organization's validated branding overrides.
+func WithOrganization(view Tenant, org *store.Organization) Tenant {
+	view.Organization = org
+	if org == nil {
+		return view
+	}
+	c := view.config
+	if c == nil {
+		c = &store.HostedLoginConfig{Branding: map[string]any{"logo_url": view.LogoURL, "colors": map[string]any{"primary": view.PrimaryColor}}}
+	}
+	theme, err := hostedlogin.ResolveTheme(c, hostedlogin.NewContext(org).Organization)
+	if err != nil {
+		return view
+	}
+	view.LogoURL, view.PrimaryColor = theme.LogoURL, theme.PrimaryColor
+	view.FaviconURL, view.FontURL, view.BackgroundImageURL = theme.FaviconURL, theme.FontURL, theme.BackgroundImageURL
+	view.ThemeCSS = template.CSS(theme.CSS())
 	return view
 }
 
@@ -234,6 +257,7 @@ func customScheme(redirectURI string) string {
 }
 
 func render(w http.ResponseWriter, status int, name string, t Tenant, data any, formAction string) {
+	t = WithOrganization(t, t.Organization)
 	if t.L == nil {
 		t.L = i18n.Default()
 	}
@@ -262,6 +286,15 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 	}
 	body := buf.String()
 	imageOrigins := append([]string(nil), t.partialOrigins...)
+	if d, ok := data.(OrganizationData); ok {
+		for _, o := range d.Orgs {
+			if o.Branding != nil && o.Branding.LogoURL != nil {
+				if origin := hostedlogin.AssetOrigin(*o.Branding.LogoURL); origin != "" && !slices.Contains(imageOrigins, origin) {
+					imageOrigins = append(imageOrigins, origin)
+				}
+			}
+		}
+	}
 	if t.config != nil && t.config.Template != nil {
 		_, head, hasHead := strings.Cut(body, "<head>")
 		head, _, hasHeadEnd := strings.Cut(head, "</head>")
@@ -274,9 +307,10 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 		if hasHead && hasHeadEnd && hasBody && hasBodyEnd {
 			prompt, screen := promptForPage(name)
 			out, err := (hostedlogin.Renderer{}).Render(ctx, hostedlogin.RenderInput{Source: *t.config.Template, Head: head, Widget: widget, Nonce: nonce, Variables: map[string]any{
-				"application": map[string]any{"name": t.L.ApplicationName()},
-				"tenant":      map[string]any{"name": t.Name, "support_email": t.SupportEmail, "support_url": t.SupportURL},
-				"prompt":      map[string]any{"name": prompt, "screen": map[string]any{"name": screen, "text": t.L.ScreenText(prompt, screen)}}, "locale": map[string]any{"language": t.L.Lang()},
+				"organization": hostedlogin.NewContext(t.Organization).Variables()["organization"],
+				"application":  map[string]any{"name": t.L.ApplicationName()},
+				"tenant":       map[string]any{"name": t.Name, "support_email": t.SupportEmail, "support_url": t.SupportURL},
+				"prompt":       map[string]any{"name": prompt, "screen": map[string]any{"name": screen, "text": t.L.ScreenText(prompt, screen)}}, "locale": map[string]any{"language": t.L.Lang()},
 				"branding":      map[string]any{"logo_url": t.LogoURL, "primary_color": t.PrimaryColor},
 				"custom_domain": customDomainVars(t.CustomDomain),
 			}})
@@ -296,7 +330,7 @@ func render(w http.ResponseWriter, status int, name string, t Tenant, data any, 
 		}
 	}
 	setHeaders(w, nonce, "'none'", formAction)
-	if t.config != nil {
+	if t.config != nil || t.Organization != nil {
 		for _, asset := range []string{t.LogoURL, t.FaviconURL, t.BackgroundImageURL} {
 			if o := hostedlogin.AssetOrigin(asset); o != "" && !slices.Contains(imageOrigins, o) {
 				imageOrigins = append(imageOrigins, o)
@@ -611,4 +645,15 @@ func customDomainVars(pd *customdomain.PublicDomain) map[string]any {
 		return map[string]any{}
 	}
 	return map[string]any{"domain": pd.Domain, "domain_metadata": pd.Metadata}
+}
+
+type OrganizationData struct {
+	RedirectURI        string // validated callback; browsers check form-action across redirects
+	State, CSRF, Error string
+	Revision           int64
+	Orgs               []store.Organization
+}
+
+func RenderOrganization(w http.ResponseWriter, status int, t Tenant, d OrganizationData, screen string) {
+	render(w, status, screen, t, d, formActionFor(d.RedirectURI))
 }

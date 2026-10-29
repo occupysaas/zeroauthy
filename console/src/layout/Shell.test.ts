@@ -7,7 +7,7 @@ import Shell from './Shell.vue'
 
 async function mountShell(path: string) {
   const { services, pinia, i18n } = fakeServices((c) =>
-    c.url.endsWith('/api/system/tenants') ? { status: 200, body: [tenant('acme'), tenant('system', { reserved: true })] } : { status: 404 },
+    c.url.endsWith('/api/console/tenants') ? { status: 200, body: [tenant('acme'), tenant('system', { reserved: true })] } : { status: 404 },
   )
   await useTenantsStore().load(services.api)
   const router = memoryRouter()

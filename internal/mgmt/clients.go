@@ -243,6 +243,10 @@ func (h *Handlers) CreateClient(w http.ResponseWriter, r *http.Request) {
 		Fail(w, err)
 		return
 	}
+	if in.orgUsageSet && !store.OrganizationsSupported(h.Store) {
+		Fail(w, errOrganizationsUnavailable)
+		return
+	}
 	now := h.now()
 	c := &store.Client{TenantID: tn.ID, ClientID: secrets.RandomString(clientIDLength), CreatedAt: now, Origin: store.OriginAPI}
 	clientrules.Apply(c, &spec)
@@ -311,6 +315,9 @@ func (h *Handlers) UpdateClient(w http.ResponseWriter, r *http.Request, id strin
 		}
 		if err := normalize(&spec, tn); err != nil {
 			return err
+		}
+		if in.orgUsageSet && !store.OrganizationsSupported(h.Store) {
+			return errOrganizationsUnavailable
 		}
 		if err := clientrules.CheckImmutable(c, &spec); err != nil {
 			return badBody("%v", err)
@@ -434,11 +441,19 @@ func (h *Handlers) setSecret(c *store.Client, secret string, supplied bool, now 
 	return nil
 }
 
+// normalize applies clientrules.Normalize. Its problems are 400
+// invalid_body, except that a request whose only problems are organization
+// setting conflicts gets the observed 400 without errorCode (D-0055).
 func normalize(s *clientrules.Spec, tn *store.Tenant) error {
 	if errs := clientrules.Normalize(s, tn.PushedAuthorizationRequestsSupported); len(errs) > 0 {
 		msgs := make([]string, len(errs))
+		onlyRules := true
 		for i, e := range errs {
 			msgs[i] = e.Error()
+			onlyRules = onlyRules && errors.Is(e, clientrules.ErrOrganizationRule)
+		}
+		if onlyRules {
+			return plainBadRequest("%s", strings.Join(msgs, "; "))
 		}
 		return badBody("%s", strings.Join(msgs, "; "))
 	}
@@ -498,6 +513,22 @@ func (h *Handlers) clientView(ctx context.Context, tn *store.Tenant, c *store.Cl
 		p := mgmtapi.ClientRedirectionPolicy(c.RedirectionPolicy)
 		v.RedirectionPolicy = &p
 	}
+	// Unset organization settings are left out (observed).
+	if c.OrganizationUsage != "" {
+		u := mgmtapi.ClientOrganizationUsage(c.OrganizationUsage)
+		v.OrganizationUsage = &u
+	}
+	if c.OrganizationRequireBehavior != "" {
+		b := mgmtapi.ClientOrganizationRequireBehavior(c.OrganizationRequireBehavior)
+		v.OrganizationRequireBehavior = &b
+	}
+	if c.OrganizationDiscoveryMethods != nil {
+		ms := make([]mgmtapi.ClientOrganizationDiscoveryMethods, len(c.OrganizationDiscoveryMethods))
+		for i, m := range c.OrganizationDiscoveryMethods {
+			ms[i] = mgmtapi.ClientOrganizationDiscoveryMethods(m)
+		}
+		v.OrganizationDiscoveryMethods = &ms
+	}
 	if p := c.SkipNonVerifiableCallbackURIConfirmationPrompt; p != nil {
 		b := *p
 		v.SkipNonVerifiableCallbackUriConfirmationPrompt = &b
@@ -553,7 +584,7 @@ var ignoredClientFields = []string{
 	"description", "logo_uri", "client_metadata", "sso", "sso_disabled",
 	"cross_origin_authentication", "cross_origin_auth", "cross_origin_loc",
 	"custom_login_page_on", "custom_login_page", "initiate_login_uri",
-	"native_social_login", "mobile", "organization_usage", "organization_require_behavior",
+	"native_social_login", "mobile",
 	"is_token_endpoint_ip_header_trusted", "allowed_clients", "created_at", "updated_at",
 }
 
@@ -564,6 +595,10 @@ type clientBody struct {
 	grantTypesSet   bool
 	firstPartySet   bool
 	securityModeSet bool
+	// orgUsageSet is true when the body sets organization_usage to a
+	// value other than deny, which a storage plugin without Organizations
+	// cannot keep (501).
+	orgUsageSet bool
 }
 
 // readClientBody applies body's fields to s, in name order so that the
@@ -624,6 +659,24 @@ func readClientBody(body map[string]json.RawMessage, s *clientrules.Spec) (clien
 			out.secretSet = true
 			if err == nil && (len(out.secret) < minSecretLength || len(out.secret) > maxSecretLength) {
 				err = fmt.Errorf("must be %d to %d characters", minSecretLength, maxSecretLength)
+			}
+		case "organization_usage":
+			// null unsets: the client then behaves as deny (D-0055).
+			s.OrganizationUsage = ""
+			if !isNull(raw) {
+				err = decodeString(raw, &s.OrganizationUsage)
+			}
+			out.orgUsageSet = s.OrganizationUsage != "" && s.OrganizationUsage != store.OrgUsageDeny
+		case "organization_require_behavior":
+			s.OrganizationRequireBehavior = ""
+			if !isNull(raw) {
+				err = decodeString(raw, &s.OrganizationRequireBehavior)
+			}
+		case "organization_discovery_methods":
+			s.OrganizationDiscoveryMethods = nil
+			if !isNull(raw) {
+				s.OrganizationDiscoveryMethods = []string{}
+				err = decodeStrict(raw, &s.OrganizationDiscoveryMethods)
 			}
 		case "jwt_configuration":
 			err = readJWTConfiguration(raw, s)

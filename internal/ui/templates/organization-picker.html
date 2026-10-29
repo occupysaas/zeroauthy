@@ -1,0 +1,14 @@
+{{define "title"}}{{t .Tenant.L "organizations.organization-picker.title"}}{{end}}
+{{define "description"}}{{t .Tenant.L "organizations.organization-picker.description"}}{{end}}
+{{define "logoalt"}}{{t .Tenant.L "organizations.organization-picker.logoAltText"}}{{end}}
+{{define "content"}}
+{{if .Data.Error}}<p class="alert" role="alert">{{.Data.Error}}</p>{{end}}
+<form method="post" action="/u/login">
+<input type="hidden" name="state" value="{{.Data.State}}">
+<input type="hidden" name="csrf" value="{{.Data.CSRF}}">
+<input type="hidden" name="hosted_revision" value="{{.Data.Revision}}">
+{{range .Data.Orgs}}
+<button type="submit" name="organization" value="{{.ID}}">{{if .Branding}}{{if .Branding.LogoURL}}<img src="{{.Branding.LogoURL}}" alt="" width="32" height="32">{{end}}{{end}} {{.DisplayName}}</button>
+{{end}}
+</form>
+{{end}}

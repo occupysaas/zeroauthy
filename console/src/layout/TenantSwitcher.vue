@@ -8,9 +8,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from 'reka-ui'
-import { ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useTenant } from '../context'
+import { useServices, useTenant } from '../context'
 import { useTenantsStore } from '../stores/tenants'
 import { useI18n } from 'vue-i18n'
 import CreateTenantDialog from './CreateTenantDialog.vue'
@@ -18,6 +18,9 @@ import CreateTenantDialog from './CreateTenantDialog.vue'
 const { t } = useI18n()
 
 const tenants = useTenantsStore()
+const { api } = useServices()
+const canCreateTenant = computed(() => tenants.list.some((item) => item.reserved))
+onUnmounted(api.onForbidden(() => tenants.load(api)))
 const tenant = useTenant()
 const route = useRoute()
 const router = useRouter()
@@ -53,8 +56,8 @@ function switchTo(name: string) {
           <span v-if="item.friendly_name && item.friendly_name !== item.name" class="muted">{{ item.friendly_name }}</span>
           <span v-if="item.name === tenant?.name" class="visually-hidden">{{ t('currentTenant') }}</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator class="menu-sep" />
-        <DropdownMenuItem class="menu-item" @select="creating = true">+ {{ t('createTenant') }}</DropdownMenuItem>
+        <DropdownMenuSeparator v-if="canCreateTenant" class="menu-sep" />
+        <DropdownMenuItem v-if="canCreateTenant" class="menu-item" @select="creating = true">+ {{ t('createTenant') }}</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>

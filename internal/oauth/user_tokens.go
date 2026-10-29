@@ -76,7 +76,19 @@ var errUserBlocked = fmt.Errorf("%w: the user is blocked", errUserChanged)
 // block or session revocation landed between the grant loading the user
 // and minting. Tokens issued earlier are not affected (D-0043).
 func (h *Handlers) mintTx(ctx context.Context, tenantID, userID string, version *int64, write func(tx store.Store) error) error {
+	return h.mintCheckedTx(ctx, tenantID, userID, version, nil, write)
+}
+
+// mintCheckedTx acquires organization authorization locks before the user row,
+// matching organization/user policy writers. All checks and writes share the
+// same transaction; no token is returned when eligibility changed at mint.
+func (h *Handlers) mintCheckedTx(ctx context.Context, tenantID, userID string, version *int64, check, write func(store.Store) error) error {
 	return h.Store.WithTx(ctx, func(tx store.Store) error {
+		if check != nil {
+			if err := check(tx); err != nil {
+				return err
+			}
+		}
 		u, err := tx.Users().GetForUpdate(ctx, tenantID, userID)
 		if errors.Is(err, store.ErrNotFound) {
 			return errUserChanged
@@ -120,13 +132,14 @@ func (h *Handlers) audienceFor(ctx context.Context, tenantID, aud string) (*stor
 
 // userTokens describes the tokens of one user-flow token response.
 type userTokens struct {
-	user      *store.User
-	rs        *store.ResourceServer // nil: the token is for /userinfo only
-	lifetime  time.Duration
-	scopes    []string
-	nonce     string
-	sessionID string
-	authTime  time.Time
+	organization *store.Organization
+	user         *store.User
+	rs           *store.ResourceServer // nil: the token is for /userinfo only
+	lifetime     time.Duration
+	scopes       []string
+	nonce        string
+	sessionID    string
+	authTime     time.Time
 	// grantType becomes the access token's gty claim; empty omits it.
 	grantType string
 	// omitAtHash leaves at_hash out of the ID token.
@@ -151,7 +164,11 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 	if ut.effects != nil {
 		frozen = ut.effects.RBAC
 	}
-	auth, authErr := h.authorizeUserToken(ctx, tenantID, ut.user.UserID, ut.rs, ut.scopes, frozen)
+	orgID := ""
+	if ut.organization != nil {
+		orgID = ut.organization.ID
+	}
+	auth, authErr := h.authorizeUserToken(ctx, tenantID, ut.user.UserID, orgID, ut.rs, ut.scopes, frozen)
 	if authErr != nil {
 		return nil, false, authErr
 	}
@@ -198,6 +215,19 @@ func (h *Handlers) mintUserTokens(ctx context.Context, res tenant.Resolved, c *s
 		if err != nil {
 			h.log().ErrorContext(ctx, "apply Action custom claims", "tenant", tenantID, "err", err)
 			return nil, false, serverError()
+		}
+	}
+	orgClaims := OrgClaims(res, ut.organization)
+	if len(orgClaims) > 0 {
+		if accessClaims == nil {
+			accessClaims = map[string]any{}
+		}
+		if idClaims == nil {
+			idClaims = map[string]any{}
+		}
+		for k, v := range orgClaims {
+			accessClaims[k] = v
+			idClaims[k] = v
 		}
 	}
 	accessToken, err := h.Minter.AccessToken(ctx, AccessTokenParams{

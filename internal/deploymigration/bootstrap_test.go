@@ -238,3 +238,32 @@ func TestBootstrapRerunRefusesConflictsWithoutMutation(t *testing.T) {
 		})
 	}
 }
+
+func TestBootstrapOrganizationFields(t *testing.T) {
+	f, err := seed.Parse([]byte("tenants:\n  - name: destination\n    domains: [dest.example.test]\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := Export{Resources: map[string]json.RawMessage{"clients": json.RawMessage(`[{"client_id":"org-spa","name":"Org SPA","app_type":"spa","token_endpoint_auth_method":"none","grant_types":["authorization_code"],"organization_usage":"require","organization_require_behavior":"pre_login_prompt","organization_discovery_methods":["organization_name"]}]`)}}
+	got, err := PrepareBootstrap(source, f, nil, BootstrapOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := memory.New()
+	w, _ := keys.NewLocalWrapper(bytes.Repeat([]byte{8}, 32))
+	result, err := ApplyBootstrap(t.Context(), st, got, w, time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := st.Clients().Get(t.Context(), result.TenantID, "org-spa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.OrganizationUsage != "require" || c.OrganizationRequireBehavior != "pre_login_prompt" || len(c.OrganizationDiscoveryMethods) != 1 || c.OrganizationDiscoveryMethods[0] != "organization_name" {
+		t.Fatalf("lost organization fields: %+v", c)
+	}
+	if _, err := CheckBootstrap(t.Context(), st, got, w); err != nil {
+		t.Fatal(err)
+	}
+
+}
