@@ -198,16 +198,12 @@ func (h *Handlers) organizationSession(w http.ResponseWriter, r *http.Request, r
 		}
 
 		if fr.OrgMode == OrgPickAfter {
-			choices, auto, e := orglogin.PickerChoices(r.Context(), tx, res.Tenant.ID, sess.UserID, conn.ID)
+			choices, auto, e := orglogin.PickerChoicesForClient(r.Context(), tx, res.Tenant.ID, sess.UserID, conn.ID, fresh)
 			if e != nil {
 				return e
 			}
 			if auto == nil {
 				emptyPicker = len(choices) == 0
-				return orglogin.ErrNotMember
-			}
-			if !c.IsFirstParty && auto.ThirdPartyClientAccess != "allow" {
-				emptyPicker = true
 				return orglogin.ErrNotMember
 			}
 			fr.OrgID, fr.OrgMode = auto.ID, OrgFixed

@@ -265,3 +265,140 @@ The controller approved this scoped test correction before implementation.
 Documentation diff and relative links are checked before commit. Task 14 does
 not perform or dispatch the independent final branch review. Its outcome and
 any required fix wave must be appended by the controller before integration.
+
+
+## Final whole-branch review and I1 correction
+
+The independent review of `0f5be0c..1a3972a` found no Critical issues and one
+Important issue, I1: third-party-blocked organizations participated in membership
+priority, automatic selection and the 20-choice display limit before application
+policy was applied. This could make an otherwise eligible login unavailable.
+The correction excludes organizations unless `third_party_client_access` is
+`allow` for a third-party client before those decisions. First-party selection
+and the existing public `PickerChoices` signature are preserved. All production
+picker calculations now use the client-aware shared helper: authenticated session
+reuse (including silent login), hosted GET/POST, and the transactional binding
+recheck using a freshly loaded client. Existing final binding/token checks remain.
+
+Memory-store regressions cover an allowed membership beside a blocked membership,
+a blocked membership beside an allowed auto-enrollment route, blocked-only
+interactive/silent errors, 20 blocked memberships sorting ahead of allowed choices,
+a forged blocked hosted POST, successful allowed selection through consent/code
+issuance, and unchanged first-party behavior. They exercise real production
+handlers and memory-store transactions; no authorization outcomes are fabricated.
+The final hosted fixture uses the existing strict third-party client and its API
+grant. An initial attempted GREEN reached the allowed choice but failed with
+`invalid_request` for the fixture's missing API audience; the fixture was corrected
+to request its API and complete actual consent. This was a fixture failure, not a
+passing verification result. Final tests were also run against pre-fix production
+source via an overlay and failed at the expected selection/display assertions.
+
+Final fix commands and their actual results are recorded below. Raw logs are in
+the ignored plan workspace `final-fix-logs/`. No separate SQL script, Deploy lane,
+or unchanged console suite is repeated by this focused correction. No new upstream
+observations were made. The final independent re-review remains controller-owned.
+
+### Final retained minors
+
+The review retained three non-gating issues without changes in this fix:
+
+1. Overlapping tenant discovery can restore an older menu after a newer refresh;
+   backend grants remain enforced, and latest-request sequencing is a follow-up.
+2. SQL organization paging loads the tenant collection before slicing; lightweight
+   paging and batch reads remain bounded performance follow-ups, with no measured SLA
+   failure claimed.
+3. Older plugins can echo inert deny-client organization settings they discard;
+   they cannot enable organization login. Response/capability polish stays deferred.
+
+The following historical triage is copied from the final review so it survives
+cleanup of the ignored workspace. References to Minor 1/2/3 refer to the three
+retained items above. Earlier review findings, results and rulings elsewhere in
+this record remain historical and have not been rewritten.
+
+
+These dispositions preserve every individual historical minor theme; they do not turn deferred verification into passes. Item numbers refer to the copied review sections in the committed implementation record.
+
+| Origin | Disposition / actual impact |
+|---|---|
+| T1.1 inventory presence rather than value assertions | Retain low-priority regression-strengthening opportunity; concrete runtime validation and contract tests cover the implemented boundaries. |
+| T1.2 users/organizations evidence classification | Provenance-label cleanup; no runtime impact. |
+| T1.3 empty-fields observation attribution | Documentation provenance remains weaker than the claim; current local projection is consistent and no data-scope bypass found. |
+| T1.4 stale plan defaults | D-0055 precedence and committed implementation record resolve execution intent. Plan status/default prose still needs eventual editorial cleanup. |
+| T1.5 reparsing inventory | Cold/configuration path optimization; not measured as a production bottleneck. |
+| T2.1 empty display-name normalization | API explicitly rejects an empty display_name; store-level default is intentional for unset creation/seed. |
+| T2.2 missing code/refresh roundtrip assertions | Carried work completed: durable token binding fields and conformance/codec/migration tests are present. |
+| T2.3 limit-test skip | SQL exposes SetOrgLimits; gRPC in-process precondition mapping tests exercise lowered backing-store caps. Process plugin setter is not part of protocol; that skip remains explicitly unclaimed. |
+| T2.4 hex edge evidence | Accepted local #rgb/#rrggbb implementation is consistent frontend/backend; broader HTML color provenance/edge-test polish remains minor. |
+| T2.5 Limit panic on unknown key | Internal programmer-error API, not request-controlled; value/name coverage could improve. |
+| T3.1 MySQL duplicate membership/role insert | Resolved by insertIgnore duplicate-safe SQL, with existing WithTx READ COMMITTED semantics. |
+| T3.2 load-all paging | Retained as Minor 2 above. |
+| T3.3 NOT NULL default vs nullable brief | Safe additive choice and documented shipped schema; no runtime fix needed. |
+| T3.4 SetOrgLimits on non-Open literal | Test-only malformed construction concern, not supported production initialization. |
+| T3.5 redundant connection-delete lock comment | Defensive repeated acquisition of same tenant lock; no behavioral issue. |
+| T4.1 transient capability warning | Wording overstates permanence; transient errors are not cached. Minor diagnostic polish. |
+| T4.2 roundtrip relies on conformance | Adequate composed evidence; method-level test need not duplicate the suite. |
+| T4.3 concurrent first capability probes | Bounded 5-second probes can duplicate work; minor singleflight opportunity. |
+| T4.4 nil orgCap on manual Client literal | Supported constructors initialize shared state; no production construction path found requiring a fix. |
+| T5.1 EA evidence labels | Preserve observed/local distinction cleanup; not a behavior gate. |
+| T5.2 deferred paragraph still names implemented subset | Later Task 5 ruling and Organizations guide clarify subset; stale list is editorial debt. |
+| T5.3 unknown query/local choice and include_client_association_for | Strict rejection is documented in guide, unsupported association option explicitly deferred. Additional D-0055 attribution polish remains minor. |
+| T5.4 connection strategy existence vs usable allowlist | Runtime login intersects actual usable connections; stored unsupported-strategy link does not enable unsupported authentication. Guide explains no extra create allowlist. |
+| T5.5 conditional scope validation ordering/empty array | Scope is still required whenever enabled_connections is supplied; earlier body error reveals no protected data. Preserve local-contract documentation cleanup. |
+| T5.6 deleted connection listing error text | Cascades prevent persistent dangling links; a concurrent delete across separate list/read operations can still yield a misleading 404. Cosmetic, not isolation failure. |
+| T6.1 old-plugin deny-client echo | Retained as Minor 3 above, now explicitly documented. |
+| T6.2 checkpoint-only query inconsistency | Frozen/local handling differs by endpoint but does not break supported clients; provenance clarification remains minor. |
+| T6.3 member roles N+1 joins | Bounded but potentially many calls at maximum page/role sizes; batch-read optimization follow-up, no demonstrated outage. |
+| T6.4 short member page after user deletion | Concurrent deletion can shorten a page under READ COMMITTED; no foreign data returned. Cosmetic count consistency. |
+| T6.5 device-code create/grant-only test gap | Shared CheckOrganizationGrants checks all three forbidden grant types in Normalize; missing dedicated combinations remain small coverage debt. |
+| T6.6 removal racing role assignment error | Failure remains atomic/fail-closed; role-vs-member 404 text can be misleading. |
+| T7.1 empty fixed organization ID | Resolved: bindOrganization explicitly rejects empty OrgID. |
+| T7.2 prompt/picker config changes | Prompt/picker behavior is now rechecked. OrgNone can be re-resolved after configuration changes, but cannot acquire an unauthorized org and may only add an interaction/refusal; retained fail-closed behavior. |
+| T11 overlapping discovery | Retained as Minor 1 above. |
+| T11 bundle advisory | Existing nonfatal production-build size notice, not a functional defect. |
+| T11 RFC source reachability | Historical failure superseded by recorded Task 14 check-sources passes; do not rewrite historical result. |
+| T12 branding/metadata clearing and role-removal coverage | Implementation paths reviewed; dedicated console regression expansion remains minor. |
+| T12 npm/Vite notices | Recorded as notices, not passes of an additional security or dependency audit. |
+| T13 NO_COLOR/FORCE_COLOR notice | Inherited runner configuration warning; no functional blocker. |
+
+### Final controller rulings on declined review areas
+
+These controller decisions are preserved verbatim from the final progress ledger;
+they supplement, and do not replace, the 15 historical task rulings above.
+
+```text
+Final: Ruling: rely on frozen D-0055 clean-room observations rather than new live Auth0 probes — sufficient authorized contract evidence — cost if wrong: later upstream drift requires parity followup.
+Final: Ruling: retain documented refusals/defaults for Plan30 invitations, discovery, grants, search, entitlement and change-password context — explicitly deferred scope — cost if wrong: those client workflows remain unsupported until Plan30.
+Final: Ruling: keep the documented EA connection compatibility subset without full access-level semantics — pinned Deploy export/import requirement is met — cost if wrong: clients needing further EA behavior wait for Plan30.
+Final: Ruling: keep client-credentials organization tokens/quotas deferred with parameter refusal — owned by later plan — cost if wrong: unsupported machine organization workflows.
+Final: Ruling: leave groups/inherited roles, SAML/WS-Fed org login and My Organization API to their stated plans — no current implementation promised — cost if wrong: those workflows remain unavailable.
+Final: Ruling: report Deploy member/member-role and upstream migration coverage unavailable — pinned tool lacks exports and no observer lane ran — cost if wrong: manual migration or later tool support needed.
+Final: Ruling: support additive forward migration and legacy rows, not mixed-version writers or rollback — existing deployment contract — cost if wrong: rollback/mixed-writer deployments need a separate migration design.
+Final: Ruling: retain earlier unknown/application-disabled connection rejection as the recorded Plan1 followup — avoids changing all existing authorization flows — cost if wrong: clients receive earlier invalid_request than Auth0.
+Final: Ruling: preserve expiry-based existing access-JWT semantics after member removal/blocking — next login/refresh and operator stored grants are the scoped guarantees — cost if wrong: previously issued JWT remains valid until expiry.
+Final: Ruling: preserve existing Actions event.authorization.roles names while org-aware permission union and event.organization are implemented — no new role-name API semantics specified — cost if wrong: Actions relying on org role names need a later parity change.
+Final: Ruling: retain bounded SQL paging/N+1 performance costs as minors without inventing an unmeasured SLA failure — no benchmark regression demonstrated — cost if wrong: large tenants may need pagination optimization.
+Final: Ruling: audit authored schemas/codecs and reproducible generated output rather than minified/protobuf bulk line by line — generated consistency checks and roundtrips cover wire behavior — cost if wrong: generator-specific defects may need followup.
+```
+
+### Final fix verification
+
+All Go commands below use `GOTOOLCHAIN=go1.26.7`. The overlay maps only the
+three changed production files to their original `1a3972a` contents; the final
+regression tests are unchanged. Logs are under the ignored plan workspace's
+`final-fix-logs/` directory.
+
+| Command | Actual result / log |
+|---|---|
+| `go test -count=1 -timeout=5m ./internal/authz ./internal/login -run '^TestOrganizationPickerClientPolicy'`, before production changes | Expected RED, exit 1: six authz selection failures and hosted blocked choices displayed (`red.log`) |
+| Same focused command, initial attempted GREEN | FAIL, exit 1: authz passed; hosted fixture reached allowed selection but omitted its required API audience. Fixture corrected as described above; no pass claimed for this attempt |
+| Same focused command, corrected fixture and fix | PASS, exit 0: authz 0.348s, login 0.066s (`green.log`) |
+| `go test -overlay="$PWD/.superpowers/sdd/2026-10-28-zeroauthy-plan-29-organizations/final-fix-logs/red-overlay.json" -count=1 -timeout=5m ./internal/authz ./internal/login -run '^TestOrganizationPickerClientPolicy'` | Expected RED, exit 1 with final fixture against original production: same six authz selection failures and hosted blocked-choice failure (`red-final-fixture.log`) |
+| `go test -race -count=1 -timeout=20m ./internal/login ./internal/authz` | PASS, exit 0: login 46.378s, authz 14.779s; no race report (`affected-race.log`) |
+| `make e2e-organizations` | PASS, exit 0: node-auth0 7.4.0 and auth0-cli 1.37.0 checks plus all seven real browser cases, 5.6s (`e2e-organizations.log`) |
+| `ZA_REQUIRE_NODE=1 go test -race -timeout=50m ./...` | PASS, exit 0: 73 packages (56 cached, 17 executed), 22 without tests; sqlstore 847.402s, no failure or race report (`go-race.log`) |
+
+The original Task 14 failed Actions II attempt, all skips/unavailable coverage,
+and historical results above remain unchanged. The existing Playwright
+NO_COLOR/FORCE_COLOR advisory appeared again without failing the organization
+lane. No separate SQL-script, Deploy, console or other broad rerun was made by
+this correction. Final independent re-review and integration remain controller-owned.

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -80,9 +81,20 @@ func EnsureMembership(ctx context.Context, tx store.Store, oc Context, userID, c
 	return tx.Organizations().AddMembers(ctx, tid, id, []string{userID})
 }
 
-// PickerChoices considers all connection links before limiting the display;
-// therefore 21+ matching organizations can never look like a unique choice.
-func PickerChoices(ctx context.Context, st store.Store, tid, userID, connectionID string) (orgs []store.Organization, auto *store.Organization, err error) {
+// PickerChoices preserves the connection/membership-only choice calculation.
+// Authentication flows must use PickerChoicesForClient with their current client.
+func PickerChoices(ctx context.Context, st store.Store, tid, userID, connectionID string) ([]store.Organization, *store.Organization, error) {
+	return pickerChoices(ctx, st, tid, userID, connectionID, nil)
+}
+
+// PickerChoicesForClient applies application policy before membership priority,
+// uniqueness and the display limit. Callers that bind a choice must recheck with
+// the client loaded inside their transaction.
+func PickerChoicesForClient(ctx context.Context, st store.Store, tid, userID, connectionID string, client *store.Client) ([]store.Organization, *store.Organization, error) {
+	return pickerChoices(ctx, st, tid, userID, connectionID, client)
+}
+
+func pickerChoices(ctx context.Context, st store.Store, tid, userID, connectionID string, client *store.Client) (orgs []store.Organization, auto *store.Organization, err error) {
 	links, err := st.Organizations().ConnectionsByConnection(ctx, tid, connectionID)
 	if err != nil {
 		return nil, nil, err
@@ -99,6 +111,9 @@ func PickerChoices(ctx context.Context, st store.Store, tid, userID, connectionI
 		org, e := st.Organizations().Get(ctx, tid, link.OrganizationID)
 		if e != nil {
 			return nil, nil, e
+		}
+		if client != nil && !client.IsFirstParty && org.ThirdPartyClientAccess != orgrules.ThirdPartyAllow {
+			continue
 		}
 		if member {
 			orgs = append(orgs, *org)

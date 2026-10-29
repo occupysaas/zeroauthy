@@ -76,7 +76,7 @@ func (h *Handlers) bindOrg(r *http.Request, f *flow, org *store.Organization) er
 			if e != nil || !access.ConnectionUsable(client, conn) {
 				return errTxn
 			}
-			choices, auto, e := PickerChoices(r.Context(), tx, cur.TenantID, sess.UserID, conn.ID)
+			choices, auto, e := orglogin.PickerChoicesForClient(r.Context(), tx, cur.TenantID, sess.UserID, conn.ID, client)
 			if e != nil {
 				return e
 			}
@@ -160,7 +160,12 @@ func (h *Handlers) organizationStep(w http.ResponseWriter, r *http.Request, f *f
 		h.fail(w, r, err, f)
 		return true
 	}
-	choices, auto, err := PickerChoices(r.Context(), h.Store, f.res.Tenant.ID, sess.UserID, conn.ID)
+	client, err := h.Store.Clients().Get(r.Context(), f.res.Tenant.ID, f.txn.ClientID)
+	if err != nil {
+		h.fail(w, r, err, f)
+		return true
+	}
+	choices, auto, err := orglogin.PickerChoicesForClient(r.Context(), h.Store, f.res.Tenant.ID, sess.UserID, conn.ID, client)
 	if err != nil {
 		h.fail(w, r, err, f)
 		return true
