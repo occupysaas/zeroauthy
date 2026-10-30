@@ -6,6 +6,7 @@ import { ApiError, type Client } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import ApisTab from './ApisTab.vue'
 import ConnectionsTab from './ConnectionsTab.vue'
@@ -52,8 +53,7 @@ function rotated(c: Client) {
 </script>
 
 <template>
-  <div v-if="tenant">
-    <RouterLink :to="{ name: 'applications', params: { tenant: tenant.name } }">← {{ t('apps.back') }}</RouterLink>
+  <RouteModal v-if="tenant" :title="client?.name ?? t('apps.title')" back="applications" wide>
     <Banner v-if="notFound" kind="error">{{ t('notFoundBody') }}</Banner>
     <Banner v-else-if="error" kind="error">
       {{ error }}
@@ -61,7 +61,6 @@ function rotated(c: Client) {
     </Banner>
     <p v-else-if="!client" class="muted" role="status">{{ t('loading') }}</p>
     <template v-else>
-      <h1 class="mt-3 mb-0">{{ client.name }}</h1>
       <p class="muted">{{ typeLabel(client.app_type) }}</p>
       <TabsRoot v-model="tab">
         <TabsList class="tabs" :aria-label="client.name">
@@ -92,6 +91,5 @@ function rotated(c: Client) {
         </TabsContent>
       </TabsRoot>
     </template>
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

@@ -5,7 +5,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { ApiError, type CustomDomain } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
+import ConfirmPrompt from '../../ui/ConfirmPrompt.vue'
+import { useConfirm } from '../../ui/confirm'
 import DNSInstructions from './DNSInstructions.vue'
 import ProxySecret from './ProxySecret.vue'
 import { certificateLabel, statusLabel, verificationLabel } from './labels'
@@ -13,6 +16,7 @@ import { certificateLabel, statusLabel, verificationLabel } from './labels'
 const { t } = useI18n()
 const { api } = useServices()
 const tenant = useTenant()
+const prompt = useConfirm()
 const route = useRoute()
 const router = useRouter()
 
@@ -161,7 +165,8 @@ async function save() {
 async function remove() {
   const tn = tenant.value
   if (!tn || !domain.value || !readable.value || pending.value) return
-  if (!globalThis.confirm(t('customDomain.confirmDelete', { domain: domain.value.domain }))) return
+  if (!(await prompt.ask(t('customDomain.confirmDelete', { domain: domain.value.domain }), t('customDomain.delete')))) return
+  if (!domain.value || !readable.value || pending.value || tenant.value !== tn) return
   const current = generation
   pending.value = true
   try {
@@ -178,12 +183,10 @@ async function remove() {
 </script>
 
 <template>
-  <div v-if="tenant">
-    <RouterLink :to="{ name: 'custom-domains', params: { tenant: tenant.name } }">{{ t('customDomain.back') }}</RouterLink>
+  <RouteModal v-if="tenant" :title="domain?.domain ?? t('customDomain.title')" back="custom-domains" wide>
     <Banner v-if="error" kind="error">{{ error }}</Banner>
     <Banner v-if="notice" kind="info">{{ notice }}</Banner>
     <template v-if="domain">
-      <h1>{{ domain.domain }}</h1>
       <ProxySecret v-if="secret" :secret="secret" @done="secret = ''" />
       <dl>
         <dt>{{ t('customDomain.status') }}</dt><dd>{{ statusLabel(t, domain.status) }}</dd>
@@ -223,5 +226,6 @@ async function remove() {
       </form>
       <Button variant="danger" class="mt-4" :disabled="!readable || pending" @click="remove">{{ t('customDomain.delete') }}</Button>
     </template>
-  </div>
+    <ConfirmPrompt :prompt="prompt" />
+  </RouteModal>
 </template>

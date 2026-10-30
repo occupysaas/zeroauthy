@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import type { Role } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import { onModalClosed } from '../../ui/routeModal'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import Pager from './Pager.vue'
@@ -58,6 +59,7 @@ function search() {
 onBeforeUnmount(() => {
   ++seq
 })
+onModalClosed(load)
 </script>
 <template>
   <div v-if="tenant" class="stack">
@@ -93,6 +95,7 @@ onBeforeUnmount(() => {
       </table>
       <Pager :page="page" :total="total" @change="goto"
     /></template>
+    <RouterView />
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>

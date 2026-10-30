@@ -5,11 +5,14 @@ import { ApiError, type EmailProvider, type EmailProviderWrite } from '../../api
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
+import ConfirmPrompt from '../../ui/ConfirmPrompt.vue'
+import { useConfirm } from '../../ui/confirm'
 import Field from '../../ui/Field.vue'
 
 const { t } = useI18n()
 const { api } = useServices()
 const tenant = useTenant()
+const prompt = useConfirm()
 const names = ['smtp', 'sendgrid', 'mailgun', 'mandrill', 'sparkpost', 'ses', 'azure_cs', 'ms365', 'resend', 'custom'] as const
 type ProviderName = typeof names[number]
 const credentialFields: Record<ProviderName, string[]> = {
@@ -116,7 +119,9 @@ async function save() {
 
 async function remove() {
   const current = tenant.value
-  if (!current || !exists.value || deleting.value || !window.confirm(t('emails.confirmDeleteProvider'))) return
+  if (!current || !exists.value || deleting.value) return
+  if (!(await prompt.ask(t('emails.confirmDeleteProvider'), t('emails.deleteProvider')))) return
+  if (tenant.value?.name !== current.name || !exists.value || deleting.value) return
   const sequence = requestNumber
   deleting.value = true
   error.value = ''
@@ -161,5 +166,6 @@ async function remove() {
         <Button v-if="exists" variant="ghost" :disabled="saving || deleting" @click="remove">{{ t('emails.deleteProvider') }}</Button>
       </div>
     </template>
+    <ConfirmPrompt :prompt="prompt" />
   </section>
 </template>

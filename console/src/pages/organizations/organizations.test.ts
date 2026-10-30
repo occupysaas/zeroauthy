@@ -1,6 +1,6 @@
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, expect, it } from 'vitest'
-import { apiError, mountAt } from '../../test/mount'
+import { apiError, mountAt, topDialog } from '../../test/mount'
 import List from './List.vue'
 import Create from './Create.vue'
 import Detail from './Detail.vue'
@@ -41,7 +41,7 @@ it('edits settings, rejects metadata limits, previews branding and deletes', asy
   expect(wrapper.text()).toContain('HTTPS')
   tab('Settings'); await flushPromises()
   await wrapper.findAll('button').find(b => b.text() === 'Delete organization')!.trigger('click'); await flushPromises()
-  const confirm = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent?.trim() === 'Delete organization' && b.closest('[role="dialog"]'))!
+  const confirm = Array.from(topDialog()!.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent?.trim() === 'Delete organization')!
   confirm.click(); await flushPromises()
   expect(router.currentRoute.value.name).toBe('organizations'); wrapper.unmount()
 })

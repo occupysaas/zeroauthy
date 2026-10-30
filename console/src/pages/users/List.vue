@@ -5,6 +5,7 @@ import { ApiError, type Connection, type User } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
+import { onModalClosed } from '../../ui/routeModal'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import Tag from '../../ui/Tag.vue'
@@ -112,6 +113,7 @@ function connectionOf(u: User): string {
 function ago(iso: string): string {
   return relativeTime(iso, now, locale.value)
 }
+onModalClosed(load)
 </script>
 
 <template>
@@ -197,6 +199,7 @@ function ago(iso: string): string {
         <Button :disabled="to >= total || atDepth" @click="go({ page: page + 1 })">{{ t('users.next') }}</Button>
       </nav>
     </template>
+    <RouterView />
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>

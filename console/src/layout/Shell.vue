@@ -29,6 +29,16 @@ const groups = computed(() => {
   return out
 })
 
+// The section the page belongs to: a detail, create or sub-page keeps its
+// section marked in the sidebar.
+const current = computed(() => {
+  const name = tenant.value?.name
+  const prefix = '/t/' + (name ?? '') + '/'
+  if (!name || !route.path.startsWith(prefix)) return undefined
+  const rest = route.path.slice(prefix.length)
+  return visibleSections(tenant.value?.reserved ?? false).find((s) => (s.path === '' ? rest === '' : rest === s.path || rest.startsWith(s.path + '/')))?.key
+})
+
 function tip(s: Section): string | undefined {
   return isPlanned(s) ? t('plannedTip', { when: t(plannedWhenKey(s.status)), apis: s.status.api.join(', ') }) : undefined
 }
@@ -100,6 +110,7 @@ watch(() => route.fullPath, close)
             <RouterLink
               class="flex items-center gap-2 border-l-[3px] border-transparent px-3 py-2 font-bold text-text no-underline hover:bg-active aria-[current=page]:border-accent aria-[current=page]:bg-active"
               :to="{ name: s.key, params: { tenant: tenant.name } }"
+              :class="{ 'border-accent bg-active': s.key === current }"
               :title="tip(s)"
               active-class=""
               exact-active-class="active"

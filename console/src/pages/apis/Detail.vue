@@ -6,6 +6,7 @@ import { ApiError, type ResourceServer } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import ClientsTab from './ClientsTab.vue'
 import DangerZone from './DangerZone.vue'
@@ -41,8 +42,7 @@ watch([tenant, () => route.params.id], load, { immediate: true })
 </script>
 
 <template>
-  <div v-if="tenant">
-    <RouterLink :to="{ name: 'apis', params: { tenant: tenant.name } }">← {{ t('apis.back') }}</RouterLink>
+  <RouteModal v-if="tenant" :title="server ? server.name || t('apis.unnamed') : t('apis.title')" back="apis" wide>
     <Banner v-if="notFound" kind="error">{{ t('notFoundBody') }}</Banner>
     <Banner v-else-if="error" kind="error">
       {{ error }}
@@ -50,11 +50,10 @@ watch([tenant, () => route.params.id], load, { immediate: true })
     </Banner>
     <p v-else-if="!server" class="muted" role="status">{{ t('loading') }}</p>
     <template v-else>
-      <h1 class="mt-3 mb-0">
-        {{ server.name || t('apis.unnamed') }}
+      <p class="muted">
+        <code>{{ server.identifier }}</code>
         <Tag v-if="server.is_system" class="ml-2 align-middle" data-testid="system-badge">{{ t('apis.system') }}</Tag>
-      </h1>
-      <p class="muted"><code>{{ server.identifier }}</code></p>
+      </p>
       <TabsRoot v-model="tab">
         <TabsList class="tabs" :aria-label="server.name || server.identifier">
           <TabsTrigger class="tab" value="settings">{{ t('apis.settings') }}</TabsTrigger>
@@ -76,6 +75,5 @@ watch([tenant, () => route.params.id], load, { immediate: true })
         </TabsContent>
       </TabsRoot>
     </template>
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

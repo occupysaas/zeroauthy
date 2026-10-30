@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { ApiError, type Client, type ConnectionCreate } from '../../../api/client'
 import { errorMessage, useServices, useTenant } from '../../../context'
 import Banner from '../../../ui/Banner.vue'
+import RouteModal from '../../../ui/RouteModal.vue'
 import Button from '../../../ui/Button.vue'
 import Field from '../../../ui/Field.vue'
 import ScriptEditor from './ScriptEditor.vue'
@@ -150,10 +151,8 @@ function describedBy(id: string, key: string, hint = false): string {
 </script>
 
 <template>
-  <div v-if="tenant">
-    <RouterLink :to="{ name: audience, params: { tenant: tenant.name } }">← {{ t(`${audience}.back`) }}</RouterLink>
-    <h1>{{ t(`${audience}.createTitle`) }}</h1>
-    <form class="card stack" novalidate @submit.prevent="submit">
+  <RouteModal v-if="tenant" v-slot="{ close }" :title="t(`${audience}.createTitle`)" :back="audience" wide>
+    <form class="stack" novalidate @submit.prevent="submit">
       <Banner v-if="general" kind="error">{{ general }}</Banner>
       <Banner v-if="uncertain" kind="warn">{{ t('social.uncertainCreate') }}</Banner>
       <fieldset class="stack m-0 border-0 p-0">
@@ -220,8 +219,8 @@ function describedBy(id: string, key: string, hint = false): string {
       </fieldset>
       <div class="row">
         <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('creating') : t('social.createSubmit') }}</Button>
+        <Button @click="close">{{ t('cancel') }}</Button>
       </div>
     </form>
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

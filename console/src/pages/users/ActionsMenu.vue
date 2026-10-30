@@ -7,7 +7,7 @@ import { errorMessage, useServices } from '../../context'
 import Button from '../../ui/Button.vue'
 import Banner from '../../ui/Banner.vue'
 import Field from '../../ui/Field.vue'
-import ConfirmDialog from './ConfirmDialog.vue'
+import ConfirmDialog from '../../ui/ConfirmDialog.vue'
 import TicketDialog from './TicketDialog.vue'
 
 const { t } = useI18n()

@@ -3,7 +3,7 @@ import { getActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { User, UserGrant, UserRefreshToken, UserSession } from '../../api/client'
-import { apiError, mountAt } from '../../test/mount'
+import { apiError, mountAt, topDialog, dialogCount } from '../../test/mount'
 import type { Call, Reply } from '../../test/services'
 import Detail from './Detail.vue'
 
@@ -153,7 +153,7 @@ describe('user detail', () => {
   it('shows the profile, with the phone as stored only, and saves only what changed', async () => {
     const { handler } = world()
     const { wrapper, calls } = await mountAt(Detail, path, handler)
-    expect(wrapper.find('h1').text()).toBe('Ada Lovelace')
+    expect(wrapper.find('[role="dialog"] h2').text()).toBe('Ada Lovelace')
     expect(wrapper.text()).toContain('ada@example.test')
     expect(wrapper.text()).toContain('auth0|abc')
     expect(wrapper.get('[data-testid="phone"]').text()).toContain('+15550100')
@@ -193,7 +193,7 @@ describe('user detail', () => {
   it('shows blocked users with a tag', async () => {
     const { handler } = world({ user: user({ blocked: true }) })
     const { wrapper } = await mountAt(Detail, path, handler)
-    expect(wrapper.get('h1').text()).toContain('Ada Lovelace')
+    expect(wrapper.get('[role="dialog"] h2').text()).toContain('Ada Lovelace')
     expect(wrapper.text()).toContain('Blocked')
     wrapper.unmount()
   })
@@ -301,7 +301,7 @@ describe('identities tab', () => {
     await click(button('Link'))
     expect(writes(calls)).toHaveLength(0)
     expect(body().textContent).toContain('stops existing')
-    await click(Array.from(body().querySelectorAll('[role="dialog"] button')).find((b) => b.textContent?.trim() === 'Link user')!)
+    await click(Array.from(topDialog()!.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Link user')!)
     expect(writes(calls)[0]!.body).toEqual({ provider: 'auth0', user_id: 'zed' })
     expect(new URL(writes(calls)[0]!.url).pathname).toBe('/api/v2/users/auth0%7Cabc/identities')
     expect(wrapper.text()).toContain('zed@example.test')
@@ -335,7 +335,7 @@ describe('identities tab', () => {
     await tab('Identities')
     await click(button('Unlink'))
     expect(writes(calls)).toHaveLength(0)
-    await click(Array.from(body().querySelectorAll('[role="dialog"] button')).find((b) => b.textContent?.trim() === 'Unlink identity')!)
+    await click(Array.from(topDialog()!.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Unlink identity')!)
     expect(writes(calls)[0]!.method).toBe('DELETE')
     expect(decodeURIComponent(new URL(writes(calls)[0]!.url).pathname)).toBe('/api/v2/users/auth0|abc/identities/auth0/zed')
     expect(wrapper.text()).not.toContain('zed@example.test')
@@ -389,7 +389,7 @@ describe('sessions tab', () => {
     expect(new URL(writes(calls).at(-1)!.url).pathname).toBe('/api/v2/refresh-tokens/t1')
     await click(button('Revoke all sessions'))
     const n = writes(calls).length
-    await click(Array.from(body().querySelectorAll('[role="dialog"] button')).find((b) => b.textContent?.trim() === 'Revoke all')!)
+    await click(Array.from(topDialog()!.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Revoke all')!)
     expect(writes(calls).length).toBe(n + 1)
     expect(new URL(writes(calls).at(-1)!.url).pathname).toBe('/api/v2/users/auth0%7Cabc/sessions')
     expect(body().textContent).toContain('No active sessions.')
@@ -459,7 +459,7 @@ describe('actions', () => {
     const { handler } = world()
     const { wrapper, calls } = await mountAt(Detail, path, handler)
     await click(button('Block'))
-    await click(Array.from(body().querySelectorAll('[role="dialog"] button')).find((b) => b.textContent?.trim() === 'Block user')!)
+    await click(Array.from(topDialog()!.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Block user')!)
     expect(writes(calls)[0]!.body).toEqual({ blocked: true })
     expect(wrapper.text()).toContain('Blocked')
     await click(button('Unblock'))
@@ -504,7 +504,7 @@ describe('actions', () => {
     expect(button('Copy')).toBeDefined()
     expect(JSON.stringify(getActivePinia()!.state.value)).not.toContain('SECRET')
     // Close it: the URL is gone from the page and cannot be shown again.
-    await click(button('Done', q('[role="dialog"]')))
+    await click(button('Done', topDialog()!))
     expect(body().textContent).not.toContain('SECRETRESET')
     expect(wrapper.html()).not.toContain('SECRETRESET')
     expect(JSON.stringify(getActivePinia()!.state.value)).not.toContain('SECRET')
@@ -521,7 +521,7 @@ describe('actions', () => {
     expect(new URL(sent[0]!.url).pathname).toBe('/api/v2/jobs/verification-email')
     expect(sent[0]!.body).toEqual({ user_id: 'auth0|abc' })
     expect(q('[role="status"]').textContent).toContain('job_abcdefgh12345678')
-    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    expect(dialogCount()).toBe(1)
     wrapper.unmount()
   })
 
@@ -547,7 +547,7 @@ describe('actions', () => {
     const { handler } = world()
     const { wrapper, calls, router } = await mountAt(Detail, path, handler)
     await click(button('Delete user'))
-    const dialog = q('[role="dialog"]')
+    const dialog = topDialog()!
     for (const w of ['sessions', 'refresh tokens', 'grants', 'tickets']) expect(dialog.textContent).toContain(w)
     const del = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Delete user')!
     expect(del.disabled).toBe(true)
@@ -567,7 +567,7 @@ describe('actions', () => {
     const { handler } = world({ user: user({ email: undefined }) })
     const { wrapper } = await mountAt(Detail, path, handler)
     await click(button('Delete user'))
-    const del = Array.from(q('[role="dialog"]').querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Delete user')!
+    const del = Array.from(topDialog()!.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Delete user')!
     setInput(q<HTMLInputElement>('#delete-confirm'), 'auth0|abc')
     await flushPromises()
     expect(del.disabled).toBe(false)

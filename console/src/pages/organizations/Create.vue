@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { ApiError } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import { validName } from './context'
@@ -28,11 +29,11 @@ async function submit() {
 }
 </script>
 <template>
-  <div v-if="tenant" class="stack"><RouterLink :to="{ name: 'organizations', params: { tenant: tenant.name } }">← {{ t('orgs.back') }}</RouterLink><h1>{{ t('orgs.create') }}</h1>
-    <form class="card stack" novalidate @submit.prevent="submit"><Banner v-if="error" kind="error">{{ error }}</Banner>
+  <RouteModal v-if="tenant" v-slot="{ close }" :title="t('orgs.create')" back="organizations">
+    <form class="stack" novalidate @submit.prevent="submit"><Banner v-if="error" kind="error">{{ error }}</Banner>
       <Field id="organization-name" :label="t('orgs.name')" :error="nameError"><input id="organization-name" v-model="name" maxlength="50" required :aria-invalid="!!nameError" aria-describedby="organization-name-error" /></Field>
       <Field id="organization-display-name" :label="t('orgs.displayName')"><input id="organization-display-name" v-model="displayName" maxlength="255" /></Field>
-      <Button type="submit" variant="primary" :disabled="busy">{{ t('orgs.create') }}</Button>
+      <div class="row"><Button type="submit" variant="primary" :disabled="busy">{{ t('orgs.create') }}</Button><Button @click="close">{{ t('cancel') }}</Button></div>
     </form>
-  </div><Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

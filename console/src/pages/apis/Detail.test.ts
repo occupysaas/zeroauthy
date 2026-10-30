@@ -1,7 +1,7 @@
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ClientGrant, ResourceServer } from '../../api/client'
-import { apiError, mountAt } from '../../test/mount'
+import { apiError, mountAt, topDialog, dialogCount } from '../../test/mount'
 import { client, clientGrant, resourceServer, type Call } from '../../test/services'
 import Detail from './Detail.vue'
 
@@ -75,7 +75,7 @@ describe('API detail', () => {
   it('loads and shows the identifier with copy', async () => {
     const { handler } = backend()
     const { wrapper } = await mountAt(Detail, path, handler)
-    expect(wrapper.find('h1').text()).toBe('Orders')
+    expect(wrapper.find('[role="dialog"] h2').text()).toBe('Orders')
     expect(wrapper.find('[data-testid="identifier"]').text()).toBe('https://api.example.test/r1')
     expect(wrapper.find('#api-name').attributes('disabled')).toBeUndefined()
     expect(wrapper.find('[data-testid="system-badge"]').exists()).toBe(false)
@@ -135,7 +135,7 @@ describe('API detail', () => {
         subject_type_authorization: { user: { policy: 'deny_all' }, client: { policy: 'deny_all' } },
       })
       expect(wrapper.text()).toContain('Saved')
-      expect(wrapper.find('h1').text()).toBe('Orders v2')
+      expect(wrapper.find('[role="dialog"] h2').text()).toBe('Orders v2')
       wrapper.unmount()
     })
 
@@ -243,7 +243,7 @@ describe('API detail', () => {
       await flushPromises()
       button('Save permissions').click()
       await flushPromises()
-      expect(body().querySelector('[role="dialog"]')).toBeNull()
+      expect(dialogCount()).toBe(1)
       expect(calls.at(-1)!.body).toEqual({ scopes: [{ value: 'write:orders' }] })
       wrapper.unmount()
     })
@@ -257,7 +257,7 @@ describe('API detail', () => {
       await flushPromises()
       button('Save permissions').click()
       await flushPromises()
-      const dialog = body().querySelector('[role="dialog"]')!
+      const dialog = topDialog()!
       expect(dialog.textContent).toContain('read:orders is granted to 1 application')
       expect(calls.some((c) => c.method === 'PATCH')).toBe(false)
       button('Cancel', dialog).click()
@@ -265,11 +265,11 @@ describe('API detail', () => {
       expect(calls.some((c) => c.method === 'PATCH')).toBe(false)
       button('Save permissions').click()
       await flushPromises()
-      button('Remove and save', body().querySelector('[role="dialog"]')!).click()
+      button('Remove and save', topDialog()!).click()
       await flushPromises()
       expect(calls.at(-1)!.method).toBe('PATCH')
       expect(state.server.scopes).toEqual([{ value: 'write:orders' }])
-      expect(body().querySelector('[role="dialog"]')).toBeNull()
+      expect(dialogCount()).toBe(1)
       wrapper.unmount()
     })
 
@@ -390,7 +390,7 @@ describe('API detail', () => {
       await flushPromises()
       button('Delete API').click()
       await flushPromises()
-      const dialog = body().querySelector('[role="dialog"]')!
+      const dialog = topDialog()!
       expect(dialog.textContent).toContain('grant for this API')
       expect(dialog.textContent).toContain('consents')
       const confirm = () => button('Delete API', dialog)
@@ -410,12 +410,12 @@ describe('API detail', () => {
     it('asks for the identifier when the API has no name', async () => {
       const { handler } = backend({ server: resourceServer('r1', { name: undefined }) })
       const { wrapper, calls } = await mountAt(Detail, path, handler)
-      expect(wrapper.find('h1').text()).toBe('(no name)')
+      expect(wrapper.find('[role="dialog"] h2').text()).toBe('(no name)')
       tabTo('Danger zone')
       await flushPromises()
       button('Delete API').click()
       await flushPromises()
-      const dialog = body().querySelector('[role="dialog"]')!
+      const dialog = topDialog()!
       setInput(dialog.querySelector('#delete-confirm')!, 'https://api.example.test/r1')
       await flushPromises()
       button('Delete API', dialog).click()
@@ -431,7 +431,7 @@ describe('API detail', () => {
       await flushPromises()
       button('Delete API').click()
       await flushPromises()
-      const dialog = body().querySelector('[role="dialog"]')!
+      const dialog = topDialog()!
       setInput(dialog.querySelector('#delete-confirm')!, 'Orders')
       await flushPromises()
       button('Delete API', dialog).click()

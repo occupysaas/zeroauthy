@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 const { t } = useI18n(),
@@ -46,16 +47,16 @@ async function submit() {
 }
 </script>
 <template>
-  <div v-if="tenant" class="stack">
-    <RouterLink :to="{ name: 'roles', params: { tenant: tenant.name } }">← {{ t('rbac.back') }}</RouterLink>
-    <h1>{{ t('rbac.create') }}</h1>
-    <form class="card stack" @submit.prevent="submit">
+  <RouteModal v-if="tenant" v-slot="{ close }" :title="t('rbac.create')" back="roles">
+    <form class="stack" @submit.prevent="submit">
       <Banner v-if="error" kind="error">{{ error }}</Banner
       ><Field id="role-name" :label="t('rbac.name')"><input id="role-name" v-model="name" required maxlength="128" /></Field
       ><Field id="role-description" :label="t('rbac.description')">
         <textarea id="role-description" v-model="description" maxlength="255" /></Field
-      ><Button variant="primary" type="submit" :disabled="busy">{{ t('rbac.create') }}</Button>
+      ><div class="row">
+        <Button variant="primary" type="submit" :disabled="busy">{{ t('rbac.create') }}</Button>
+        <Button @click="close">{{ t('cancel') }}</Button>
+      </div>
     </form>
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

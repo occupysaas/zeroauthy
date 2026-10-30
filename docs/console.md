@@ -58,7 +58,18 @@ session.
   Actions; Branding (Universal Login, Email templates, Custom domains);
   Monitoring (Logs); Settings (Tenant settings); System (Operators, system
   tenant only). Items read black and bold; sections that are not built yet
-  carry a "Planned" tag.
+  carry a "Planned" tag. The current section stays marked on its detail and
+  create screens too.
+- **Modals:** creating, editing and deleting happen in modals over the
+  section's list, so the sidebar keeps its place. Applications, APIs,
+  database, social and enterprise connections, users, roles, organizations
+  and custom domains open their create form and their detail (edit) screen
+  as a modal at its own address (`/t/<tenant>/users/new`,
+  `/t/<tenant>/users/<id>`), so direct links still work; closing it returns
+  to the list, which reloads. A modal closes only with its X, its Cancel
+  button or Escape, never with a click outside it, and focus returns to
+  what opened it. Deletes and other consequential actions ask in a modal
+  rather than a browser prompt.
 - **Planned sections:** every section that is not built yet has its own
   page (a direct link works), showing a banner with the slice that will
   deliver it and the Management API it will use, and a disabled preview of

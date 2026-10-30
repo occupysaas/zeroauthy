@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
-import { mountAt } from '../../test/mount'
+import { confirmPrompt, mountAt } from '../../test/mount'
 import CustomDomains from './CustomDomains.vue'
 import DomainDetail from './DomainDetail.vue'
 import { domain } from './fixtures'
@@ -62,7 +62,6 @@ describe('custom domains list', () => {
 
 describe('custom domain detail', () => {
   it('shows DNS and certificate progress, saves settings and deletes', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
     const managed = domain({ status: 'pending_verification', certificate: { status: 'provisioning_failed', error_msg: 'the certificate authority rate limited issuance' } })
     const { wrapper, calls, router } = await mountAt(DomainDetail, '/t/acme/custom-domains/cd_1', c => {
       if (c.method === 'PATCH') return { status: 200, body: { ...managed, custom_client_ip_header: null } }
@@ -83,6 +82,8 @@ describe('custom domain detail', () => {
     expect(calls.find(c => c.method === 'PATCH')?.body).toEqual({ custom_client_ip_header: null, domain_metadata: { brand: 'Acme', region: 'eu' }, relying_party_identifier: 'id.acme.test' })
     await wrapper.findAll('button').find(b => b.text().includes('Delete domain'))!.trigger('click')
     await flushPromises()
+    expect(calls.some(c => c.method === 'DELETE')).toBe(false)
+    await confirmPrompt()
     expect(calls.some(c => c.method === 'DELETE')).toBe(true)
     expect(router.currentRoute.value.name).toBe('custom-domains')
   })

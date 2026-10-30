@@ -1,7 +1,7 @@
 import { flushPromises } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import type { Client } from '../../api/client'
-import { apiError, mountAt } from '../../test/mount'
+import { apiError, mountAt, topDialog, dialogCount } from '../../test/mount'
 import { client } from '../../test/services'
 import Detail from './Detail.vue'
 
@@ -18,7 +18,7 @@ describe('Application detail', () => {
     const { wrapper } = await mountAt(Detail, path, () => ({ status: 200, body: client('abc', { name: 'Billing' }) }))
     tabTo('Settings')
     await flushPromises()
-    expect(wrapper.find('h1').text()).toBe('Billing')
+    expect(wrapper.find('[role="dialog"] h2').text()).toBe('Billing')
     expect(wrapper.find('[data-testid="client-id"]').text()).toBe('abc')
     const secret = wrapper.find('[data-testid="secret"]')
     expect(secret.text()).not.toContain('SSSS')
@@ -107,13 +107,13 @@ describe('Application detail', () => {
     await flushPromises()
     Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Rotate secret')!.click()
     await flushPromises()
-    const dialog = document.body.querySelector('[role="dialog"]')!
+    const dialog = topDialog()!
     expect(dialog.textContent).toContain('Rotate the secret?')
     Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Rotate secret')!.click()
     await flushPromises()
     expect(calls.at(-1)!.method).toBe('POST')
     expect(calls.at(-1)!.url).toBe('https://acme.example.test/api/v2/clients/abc/rotate-secret')
-    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+    expect(dialogCount()).toBe(1)
     wrapper.unmount()
   })
 
@@ -125,7 +125,7 @@ describe('Application detail', () => {
     await flushPromises()
     Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Delete application')!.click()
     await flushPromises()
-    const dialog = document.body.querySelector('[role="dialog"]')!
+    const dialog = topDialog()!
     const confirm = () => Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Delete application')!
     expect(confirm().disabled).toBe(true)
     const input = dialog.querySelector<HTMLInputElement>('#delete-confirm')!

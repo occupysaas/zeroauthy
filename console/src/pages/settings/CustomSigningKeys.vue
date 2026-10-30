@@ -4,10 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { ApiError, type CustomSigningJWKS, type SystemTenant } from '../../api/client'
 import { useServices } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import ConfirmPrompt from '../../ui/ConfirmPrompt.vue'
+import { useConfirm } from '../../ui/confirm'
 
 const props = defineProps<{ tenant: SystemTenant }>()
 const { t } = useI18n()
 const { api } = useServices()
+const prompt = useConfirm()
 const text = ref('{\n  "keys": []\n}')
 const error = ref('')
 const busy = ref(false)
@@ -48,9 +51,10 @@ function validate(): CustomSigningJWKS {
   return parsed as CustomSigningJWKS
 }
 async function replace() {
-  if (props.tenant.reserved || loading.value || busy.value || !globalThis.confirm(t('signingKeys.confirmReplace'))) return
+  if (props.tenant.reserved || loading.value || busy.value) return
   let payload: CustomSigningJWKS
   try { payload = validate() } catch (e) { error.value = e instanceof Error ? e.message : String(e); return }
+  if (!(await prompt.ask(t('signingKeys.confirmReplace'), t('signingKeys.replace')))) return
   const current = generation.value
   const tenant = props.tenant
   busy.value = true; error.value = ''
@@ -61,7 +65,8 @@ async function replace() {
   finally { if (!disposed && current === generation.value) busy.value = false }
 }
 async function remove() {
-  if (props.tenant.reserved || loading.value || busy.value || !globalThis.confirm(t('signingKeys.confirmDelete'))) return
+  if (props.tenant.reserved || loading.value || busy.value) return
+  if (!(await prompt.ask(t('signingKeys.confirmDelete'), t('signingKeys.delete')))) return
   const current = generation.value
   const tenant = props.tenant
   busy.value = true; error.value = ''
@@ -83,5 +88,6 @@ async function remove() {
     <textarea id="custom-signing-jwks" v-model="text" class="input mt-2 min-h-64 w-full font-mono" spellcheck="false" :disabled="busy || loading" maxlength="65536" />
     <div class="mt-3 flex gap-2"><button type="button" class="button" :disabled="tenant.reserved || loading || busy" @click="replace">{{ t('signingKeys.replace') }}</button>
       <button type="button" class="button" :disabled="tenant.reserved || loading || busy" @click="remove">{{ t('signingKeys.delete') }}</button></div>
+    <ConfirmPrompt :prompt="prompt" />
   </section>
 </template>

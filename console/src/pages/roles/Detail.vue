@@ -6,9 +6,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { ApiError, type Role } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
-import ConfirmDialog from '../users/ConfirmDialog.vue'
+import ConfirmDialog from '../../ui/ConfirmDialog.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import UsersTab from './UsersTab.vue'
 const { t } = useI18n(),
@@ -128,15 +129,13 @@ async function remove() {
 }
 </script>
 <template>
-  <div v-if="tenant" class="stack">
-    <RouterLink :to="{ name: 'roles', params: { tenant: tenant.name } }">← {{ t('rbac.back') }}</RouterLink
-    ><Banner v-if="notFound" kind="error">{{ t('notFoundBody') }}</Banner
+  <RouteModal v-if="tenant" :title="role?.name ?? t('rbac.title')" back="roles" wide>
+    <Banner v-if="notFound" kind="error">{{ t('notFoundBody') }}</Banner
     ><Banner v-else-if="error" kind="error"
       >{{ error }} <Button @click="load">{{ t('retry') }}</Button></Banner
     >
     <p v-else-if="!role" role="status">{{ t('loading') }}</p>
-    <template v-else
-      ><h1>{{ role.name }}</h1>
+    <template v-else>
       <code>{{ role.id }}</code
       ><TabsRoot v-model="tab"
         ><TabsList class="tabs" :aria-label="role.name"
@@ -172,6 +171,5 @@ async function remove() {
       :error="deleteError"
       @confirm="remove"
     />
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

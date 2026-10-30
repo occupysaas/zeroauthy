@@ -5,6 +5,7 @@ import { ApiError, type Client } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 
@@ -67,10 +68,8 @@ async function submit() {
 </script>
 
 <template>
-  <div v-if="tenant">
-    <RouterLink :to="{ name: 'connections', params: { tenant: tenant.name } }">← {{ t('conns.back') }}</RouterLink>
-    <h1>{{ t('conns.createTitle') }}</h1>
-    <form class="card stack" novalidate @submit.prevent="submit">
+  <RouteModal v-if="tenant" v-slot="{ close }" :title="t('conns.createTitle')" back="connections">
+    <form class="stack" novalidate @submit.prevent="submit">
       <Banner v-if="general" kind="error">{{ general }}</Banner>
       <Field id="conn-name" :label="t('conns.name')" :hint="t('conns.nameHint')" :error="errors.name">
         <input id="conn-name" v-model="name" type="text" maxlength="128" autocomplete="off" spellcheck="false" :aria-invalid="!!errors.name" :aria-describedby="'conn-name-hint' + (errors.name ? ' conn-name-error' : '')" />
@@ -90,8 +89,8 @@ async function submit() {
       </fieldset>
       <div class="row">
         <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('creating') : t('conns.createSubmit') }}</Button>
+        <Button @click="close">{{ t('cancel') }}</Button>
       </div>
     </form>
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

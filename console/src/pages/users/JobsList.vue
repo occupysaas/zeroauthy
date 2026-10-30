@@ -193,6 +193,7 @@ async function download(j: Job) {
 
     <Modal v-model:open="errorsOpen" :title="t('jobs.errors.title')" :description="errorsFor ? errorsFor.id : undefined">
       <JobErrors v-if="errorsFor" :key="errorsFor.id" :tenant="tenant" :job-id="errorsFor.id" />
+      <div class="row"><Button @click="errorsOpen = false">{{ t('close') }}</Button></div>
     </Modal>
   </section>
 </template>

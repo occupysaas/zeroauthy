@@ -1,6 +1,6 @@
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, expect, it } from 'vitest'
-import { mountAt } from '../../test/mount'
+import { mountAt, topDialog } from '../../test/mount'
 import Detail from './Detail.vue'
 
 afterEach(() => {
@@ -17,14 +17,14 @@ it('saves role settings and confirms deletion with the current affected user cou
   await wrapper.get('form').trigger('submit')
   await flushPromises()
   expect(calls.find((c) => c.method === 'PATCH')!.body).toEqual({ name: 'Reviewers', description: '' })
-  expect(wrapper.get('h1').text()).toBe('Reviewers')
+  expect(wrapper.get('[role="dialog"] h2').text()).toBe('Reviewers')
   await wrapper
     .findAll('button')
     .find((b) => b.text() === 'Delete role')!
     .trigger('click')
   await flushPromises()
-  expect(document.querySelector('[role=dialog]')!.textContent).toContain('42 users')
-  document.querySelector<HTMLButtonElement>('[role=dialog] button[type=submit]')!.click()
+  expect(topDialog()!.textContent).toContain('42 users')
+  topDialog()!.querySelector<HTMLButtonElement>('button[type=submit]')!.click()
   await flushPromises()
   expect(router.currentRoute.value.name).toBe('roles')
   wrapper.unmount()

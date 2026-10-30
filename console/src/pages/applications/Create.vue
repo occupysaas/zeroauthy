@@ -5,6 +5,7 @@ import type { AppType } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import { appTypes, defaultsFor } from './defaults'
@@ -36,10 +37,8 @@ async function submit() {
 </script>
 
 <template>
-  <div v-if="tenant">
-    <RouterLink :to="{ name: 'applications', params: { tenant: tenant.name } }">← {{ t('apps.back') }}</RouterLink>
-    <h1>{{ t('apps.createTitle') }}</h1>
-    <form class="card stack" novalidate @submit.prevent="submit">
+  <RouteModal v-if="tenant" v-slot="{ close }" :title="t('apps.createTitle')" back="applications">
+    <form class="stack" novalidate @submit.prevent="submit">
       <Banner v-if="error" kind="error">{{ error }}</Banner>
       <Field id="app-name" :label="t('apps.name')">
         <input id="app-name" v-model="name" type="text" required maxlength="255" autocomplete="off" />
@@ -56,8 +55,8 @@ async function submit() {
       </fieldset>
       <div class="row">
         <Button variant="primary" type="submit" :disabled="busy || !name.trim()">{{ busy ? t('creating') : t('apps.createSubmit') }}</Button>
+        <Button @click="close">{{ t('cancel') }}</Button>
       </div>
     </form>
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

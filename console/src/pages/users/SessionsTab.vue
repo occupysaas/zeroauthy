@@ -5,7 +5,7 @@ import type { SystemTenant, User, UserRefreshToken, UserSession } from '../../ap
 import { errorMessage, useServices } from '../../context'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
-import ConfirmDialog from './ConfirmDialog.vue'
+import ConfirmDialog from '../../ui/ConfirmDialog.vue'
 import { formatTime } from './policy'
 
 const { t, locale } = useI18n()

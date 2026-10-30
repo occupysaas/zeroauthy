@@ -6,7 +6,7 @@ import { errorMessage, useServices } from '../../context'
 import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
-import ConfirmDialog from './ConfirmDialog.vue'
+import ConfirmDialog from '../../ui/ConfirmDialog.vue'
 const props = defineProps<{ tenant: SystemTenant; user?: User }>()
 const { t } = useI18n()
 const { api } = useServices()

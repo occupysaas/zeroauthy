@@ -6,8 +6,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { ApiError, type Organization } from '../../api/client'
 import { useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
-import ConfirmDialog from '../users/ConfirmDialog.vue'
+import ConfirmDialog from '../../ui/ConfirmDialog.vue'
 import SettingsTab from './SettingsTab.vue'
 import BrandingTab from './BrandingTab.vue'
 import ConnectionsTab from './ConnectionsTab.vue'
@@ -28,10 +29,10 @@ async function remove() {
 }
 </script>
 <template>
-  <div v-if="tenant" class="stack"><RouterLink :to="{ name: 'organizations', params: { tenant: tenant.name } }">← {{ t('orgs.back') }}</RouterLink>
+  <RouteModal v-if="tenant" :title="organization?.display_name || organization?.name || t('orgs.title')" back="organizations" wide>
     <Banner v-if="notFound" kind="error">{{ t('notFoundBody') }}</Banner><Banner v-else-if="error" kind="error">{{ error }} <Button :disabled="busy" @click="load">{{ t('retry') }}</Button></Banner>
     <p v-else-if="!organization" role="status">{{ t('loading') }}</p>
-    <template v-if="organization"><h1>{{ organization.display_name }}</h1><code>{{ organization.id }}</code>
+    <template v-if="organization"><code>{{ organization.id }}</code>
       <TabsRoot v-model="tab"><TabsList class="tabs" :aria-label="organization.display_name"><TabsTrigger v-for="item in tabs" :key="item.key" class="tab" :value="item.key">{{ t(item.label) }}</TabsTrigger></TabsList>
         <TabsContent value="settings"><SettingsTab :tenant="tenant" :organization-id="organization.id" @saved="organization = $event" /><section class="card mt-4"><Button variant="danger" :disabled="busy || reloadRequired" @click="deleteOpen = true">{{ t('orgs.delete') }}</Button></section></TabsContent>
         <TabsContent value="branding"><BrandingTab :tenant="tenant" :organization-id="organization.id" @saved="organization = $event" /></TabsContent>
@@ -40,5 +41,5 @@ async function remove() {
       </TabsRoot>
     </template>
     <ConfirmDialog v-model:open="deleteOpen" :title="t('orgs.deleteTitle')" :description="t('orgs.deleteHint')" :confirm-label="t('orgs.delete')" :busy="busy" :disabled="reloadRequired" :error="error" @confirm="remove" />
-  </div><Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

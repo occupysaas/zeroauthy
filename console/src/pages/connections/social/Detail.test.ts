@@ -90,7 +90,7 @@ describe('Social connection detail', () => {
     await flushPromises()
     release(undefined)
     await flushPromises()
-    expect(wrapper.find('h1').text()).toBe('second')
+    expect(wrapper.find('[role="dialog"] h2').text()).toBe('second')
     wrapper.unmount()
   })
 })

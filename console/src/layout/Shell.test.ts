@@ -54,6 +54,21 @@ describe('Shell sidebar', () => {
   })
 })
 
+describe('Shell current section', () => {
+  it('keeps the section marked while its create or edit modal is open', async () => {
+    const { wrapper, router } = await mountShell('/t/acme/users')
+    const marked = () => wrapper.findAll(`${nav} a.border-accent`).map((a) => a.get('span').text())
+    expect(marked()).toEqual(['Users'])
+    await router.push('/t/acme/users/auth0|abc')
+    expect(marked()).toEqual(['Users'])
+    await router.push('/t/acme/organizations/new')
+    expect(marked()).toEqual(['Organizations'])
+    await router.push('/t/acme/')
+    expect(marked()).toEqual(['Home'])
+    wrapper.unmount()
+  })
+})
+
 describe('Shell tenant switching', () => {
   it('shows Operators only while on the system tenant, without a remount', async () => {
     const { wrapper, router } = await mountShell('/t/acme/')

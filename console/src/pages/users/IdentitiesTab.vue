@@ -7,7 +7,7 @@ import Banner from '../../ui/Banner.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import Tag from '../../ui/Tag.vue'
-import ConfirmDialog from './ConfirmDialog.vue'
+import ConfirmDialog from '../../ui/ConfirmDialog.vue'
 
 const { t } = useI18n()
 const props = defineProps<{ tenant: SystemTenant; user: User }>()

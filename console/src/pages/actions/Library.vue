@@ -81,14 +81,14 @@ function goto(n: number) { page.value = n; void load() }
       <form class="stack" @submit.prevent="create">
         <Field id="action-name" :label="t('actions.name')"><input id="action-name" v-model="name" required maxlength="128" :disabled="busy" /></Field>
         <Field id="action-trigger" :label="t('actions.trigger')"><select id="action-trigger" v-model="trigger" :disabled="busy"><option v-for="tr in triggers" :key="tr.id" :value="tr.id">{{ tr.id }}</option></select></Field>
-        <Button type="submit" variant="primary" :disabled="busy || !triggers.length">{{ t('actions.create') }}</Button>
+        <div class="row"><Button type="submit" variant="primary" :disabled="busy || !triggers.length">{{ t('actions.create') }}</Button><Button @click="creating = false">{{ t('cancel') }}</Button></div>
         <Banner v-if="error" kind="error">{{ error }}</Banner>
       </form>
     </Modal>
     <Modal v-model:open="deleting" :title="t('actions.deleteNamed', { name: selected?.name })" :description="t('actions.deleteHint')">
       <Banner v-if="deleteError" kind="error">{{ deleteError }}</Banner>
       <label v-if="forceRequired" class="row" for="force-delete"><input id="force-delete" v-model="force" type="checkbox" :disabled="busy" />{{ t('actions.forceHint') }}</label>
-      <Button data-testid="confirm-delete" variant="danger" :disabled="busy || (forceRequired && !force)" @click="remove">{{ t(forceRequired ? 'actions.forceDelete' : 'actions.confirmDelete') }}</Button>
+      <div class="row"><Button data-testid="confirm-delete" variant="danger" :disabled="busy || (forceRequired && !force)" @click="remove">{{ t(forceRequired ? 'actions.forceDelete' : 'actions.confirmDelete') }}</Button><Button @click="deleting = false">{{ t('cancel') }}</Button></div>
     </Modal>
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>

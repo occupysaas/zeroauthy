@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import Banner from '../../ui/Banner.vue'
-import Button from '../../ui/Button.vue'
-import Modal from '../../ui/Modal.vue'
+import Banner from './Banner.vue'
+import Button from './Button.vue'
+import Modal from './Modal.vue'
 
 const { t } = useI18n()
 

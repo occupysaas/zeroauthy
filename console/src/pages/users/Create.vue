@@ -5,6 +5,7 @@ import { ApiError, type Connection, type UserCreate } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import Field from '../../ui/Field.vue'
 import { checkPassword, emptyProfile, type RuleResult } from '../connections/checker'
@@ -89,12 +90,10 @@ async function submit() {
 </script>
 
 <template>
-  <div v-if="tenant">
-    <RouterLink :to="{ name: 'users', params: { tenant: tenant.name } }">← {{ t('users.back') }}</RouterLink>
-    <h1>{{ t('users.createTitle') }}</h1>
+  <RouteModal v-if="tenant" v-slot="{ close }" :title="t('users.createTitle')" back="users">
     <Banner v-if="loadError" kind="error">{{ loadError }}</Banner>
     <Banner v-else-if="loaded && connections.length === 0" kind="info">{{ t('users.noConnections') }}</Banner>
-    <form v-else class="card stack" novalidate @submit.prevent="submit">
+    <form v-else class="stack" novalidate @submit.prevent="submit">
       <Banner v-if="general" kind="error">{{ general }}</Banner>
       <Field id="user-connection" :label="t('users.connection')" :error="errors.connection">
         <select id="user-connection" v-model="form.connection" :aria-invalid="!!errors.connection" :aria-describedby="errors.connection ? 'user-connection-error' : undefined">
@@ -128,8 +127,8 @@ async function submit() {
       </label>
       <div class="row">
         <Button variant="primary" type="submit" :disabled="busy">{{ busy ? t('creating') : t('users.createSubmit') }}</Button>
+        <Button @click="close">{{ t('cancel') }}</Button>
       </div>
     </form>
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

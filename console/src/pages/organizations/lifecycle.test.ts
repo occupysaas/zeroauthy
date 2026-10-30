@@ -39,7 +39,7 @@ it('keeps the current detail when an older request finishes', async () => {
   let resolve!: (r: Reply) => void
   const { wrapper, router } = await mountAt(Detail, '/t/acme/organizations/org_old', c => c.url.endsWith('/org_old') ? new Promise(r => { resolve = r }) : { status: 200, body: org('fresh') })
   await router.push('/t/acme/organizations/org_new'); await flushPromises(); resolve({ status: 404, body: { message: 'obsolete' } }); await flushPromises()
-  expect(wrapper.get('h1').text()).toBe('fresh'); expect(wrapper.text()).not.toContain('obsolete'); wrapper.unmount()
+  expect(wrapper.get('[role="dialog"] h2').text()).toBe('fresh'); expect(wrapper.text()).not.toContain('obsolete'); wrapper.unmount()
 })
 it('keeps list responses scoped to the selected tenant', async () => {
   let resolve!: (r: Reply) => void

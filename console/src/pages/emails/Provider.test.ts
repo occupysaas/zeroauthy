@@ -1,6 +1,6 @@
 import { flushPromises } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
-import { apiError, mountAt } from '../../test/mount'
+import { apiError, confirmPrompt, mountAt } from '../../test/mount'
 import Provider from './Provider.vue'
 
 const stored = { name: 'sendgrid', enabled: false, default_from_address: 'mail@example.test', settings: {} }
@@ -41,7 +41,6 @@ describe('Email provider settings', () => {
   })
 
   it('confirms deletion and returns to server fallback state', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
     const { wrapper, calls } = await mountAt(Provider, '/t/acme/emails', (c) => {
       if (c.method === 'GET') return { status: 200, body: stored }
       if (c.method === 'DELETE') return { status: 204 }
@@ -49,6 +48,8 @@ describe('Email provider settings', () => {
     })
     await wrapper.findAll('button').find((b) => b.text() === 'Delete provider')!.trigger('click')
     await flushPromises()
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
+    await confirmPrompt()
     expect(calls.some((c) => c.method === 'DELETE')).toBe(true)
     expect(wrapper.text()).toContain('No tenant provider is configured')
     vi.unstubAllGlobals()

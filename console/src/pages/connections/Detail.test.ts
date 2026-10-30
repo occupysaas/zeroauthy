@@ -88,7 +88,7 @@ describe('connection detail', () => {
 
     const b = backend()
     const { wrapper } = await mountAt(Detail, path, b.handler)
-    expect(wrapper.find('h1').text()).toBe('People')
+    expect(wrapper.find('[role="dialog"] h2').text()).toBe('People')
     expect(Array.from(body().querySelectorAll('[role="tab"]')).map((x) => x.textContent?.trim())).toEqual([
       'Settings',
       'Password policy',
@@ -111,7 +111,7 @@ describe('connection detail', () => {
     fail = false
     await wrapper.findAll('button').find((x) => x.text() === 'Try again')!.trigger('click')
     await flushPromises()
-    expect(wrapper.find('h1').text()).toBe('People')
+    expect(wrapper.find('[role="dialog"] h2').text()).toBe('People')
     wrapper.unmount()
   })
 

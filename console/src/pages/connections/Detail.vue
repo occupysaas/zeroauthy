@@ -6,6 +6,7 @@ import { ApiError, type Connection } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import ClientsTab from './ClientsTab.vue'
 import CustomDbTab from './CustomDbTab.vue'
@@ -49,8 +50,7 @@ watch([tenant, () => route.params.id], load, { immediate: true })
 </script>
 
 <template>
-  <div v-if="tenant">
-    <RouterLink :to="{ name: 'connections', params: { tenant: tenant.name } }">← {{ t('conns.back') }}</RouterLink>
+  <RouteModal v-if="tenant" :title="connection?.name ?? t('conns.title')" back="connections" wide>
     <Banner v-if="notFound" kind="error">{{ t('notFoundBody') }}</Banner>
     <Banner v-else-if="error" kind="error">
       {{ error }}
@@ -58,7 +58,6 @@ watch([tenant, () => route.params.id], load, { immediate: true })
     </Banner>
     <p v-else-if="!connection" class="muted" role="status">{{ t('loading') }}</p>
     <template v-else>
-      <h1 class="mt-3 mb-0">{{ connection.name }}</h1>
       <p class="muted">
         {{ strategyLabel(connection.strategy) }} · <code>{{ connection.id }}</code>
       </p>
@@ -88,6 +87,5 @@ watch([tenant, () => route.params.id], load, { immediate: true })
         </TabsContent>
       </TabsRoot>
     </template>
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
-import { mountAt } from '../../test/mount'
+import { confirmPrompt, mountAt } from '../../test/mount'
 import CustomDomains from './CustomDomains.vue'
 import DomainDetail from './DomainDetail.vue'
 import { domain } from './fixtures'
@@ -86,7 +86,6 @@ describe('async detail progress', () => {
 
 describe('mutation navigation boundaries', () => {
   it('does not navigate back when an old deletion completes', async () => {
-    vi.stubGlobal('confirm', () => true)
     let release!: () => void
     const blocked = new Promise<void>(r => { release = r })
     try {
@@ -95,6 +94,8 @@ describe('mutation navigation boundaries', () => {
         return { status: 200, body: domain() }
       })
       await wrapper.findAll('button').find(b => b.text().includes('Delete domain'))!.trigger('click')
+      await flushPromises()
+      await confirmPrompt()
       await router.push('/t/acme/custom-domains/cd_2')
       await flushPromises()
       release()

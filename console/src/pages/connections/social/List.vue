@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import type { Connection } from '../../../api/client'
 import { errorMessage, useServices, useTenant } from '../../../context'
 import Banner from '../../../ui/Banner.vue'
+import { onModalClosed } from '../../../ui/routeModal'
 import Button from '../../../ui/Button.vue'
 import { useRoute } from 'vue-router'
 import { isEnterpriseConnection, isSocialConnection } from './social'
@@ -36,6 +37,7 @@ async function load() {
   }
 }
 watch(tenant, load, { immediate: true })
+onModalClosed(load)
 </script>
 
 <template>
@@ -72,6 +74,7 @@ watch(tenant, load, { immediate: true })
         </tbody>
       </table>
     </div>
+    <RouterView />
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>

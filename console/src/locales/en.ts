@@ -295,6 +295,7 @@ const en = {
   retry: 'Try again',
   cancel: 'Cancel',
   close: 'Close',
+  areYouSure: 'Are you sure?',
   done: 'Done',
   copy: 'Copy',
   copied: 'Copied',

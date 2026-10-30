@@ -4,10 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { ApiError, type ManagedSigningKey, type SystemTenant } from '../../api/client'
 import { useServices } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import ConfirmPrompt from '../../ui/ConfirmPrompt.vue'
+import { useConfirm } from '../../ui/confirm'
 
 const props = defineProps<{ tenant: SystemTenant }>()
 const { t } = useI18n()
 const { api } = useServices()
+const prompt = useConfirm()
 const keys = ref<ManagedSigningKey[]>([])
 const error = ref('')
 const loading = ref(false)
@@ -40,7 +43,7 @@ async function mutate(kind: 'rotate' | 'revoke', key?: ManagedSigningKey) {
   if (props.tenant.reserved || loading.value || pending.value || uncertain.value) return
   if (kind === 'revoke' && (!key || !keys.value.some(k => k.kid === key.kid && k.previous && !k.revoked))) return
   const message = kind === 'rotate' ? t('signingKeys.confirmRotate') : t('signingKeys.confirmRevoke', { kid: key?.kid })
-  if (!globalThis.confirm(message)) return
+  if (!(await prompt.ask(message, kind === 'rotate' ? t('signingKeys.rotate') : t('signingKeys.revoke')))) return
   const tenant = props.tenant
   const currentTenant = tenantGeneration
   pending.value = true
@@ -101,5 +104,6 @@ function download(key: ManagedSigningKey) {
       </tr></tbody>
     </table>
     <p v-else-if="!loading">{{ t('signingKeys.empty') }}</p>
+    <ConfirmPrompt :prompt="prompt" />
   </section>
 </template>

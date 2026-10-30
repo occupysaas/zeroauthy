@@ -5,6 +5,7 @@ import type { ResourceServer } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import { useI18n } from 'vue-i18n'
 import Banner from '../../ui/Banner.vue'
+import { onModalClosed } from '../../ui/routeModal'
 import Button from '../../ui/Button.vue'
 import Tag from '../../ui/Tag.vue'
 
@@ -45,6 +46,7 @@ function goto(p: number) {
 }
 const from = computed(() => (total.value === 0 ? 0 : page.value * PER_PAGE + 1))
 const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
+onModalClosed(load)
 </script>
 
 <template>
@@ -89,6 +91,7 @@ const to = computed(() => Math.min(total.value, (page.value + 1) * PER_PAGE))
         <Button :disabled="to >= total" @click="goto(page + 1)">{{ t('apis.next') }}</Button>
       </nav>
     </template>
+    <RouterView />
   </div>
   <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
 </template>

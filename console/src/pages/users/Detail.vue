@@ -6,6 +6,7 @@ import { useRoute } from 'vue-router'
 import { ApiError, type User, type UserIdentity } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import RouteModal from '../../ui/RouteModal.vue'
 import Button from '../../ui/Button.vue'
 import Tag from '../../ui/Tag.vue'
 import BlocksPanel from './BlocksPanel.vue'
@@ -56,8 +57,7 @@ function identities(list: UserIdentity[]) {
 </script>
 
 <template>
-  <div v-if="tenant">
-    <RouterLink :to="{ name: 'users', params: { tenant: tenant.name } }">← {{ t('users.back') }}</RouterLink>
+  <RouteModal v-if="tenant" :title="user ? user.name || user.email || user.user_id || '' : t('users.title')" back="users" wide>
     <Banner v-if="notFound" kind="error">{{ t('notFoundBody') }}</Banner>
     <Banner v-else-if="error" kind="error">
       {{ error }}
@@ -65,13 +65,12 @@ function identities(list: UserIdentity[]) {
     </Banner>
     <p v-else-if="!user" class="muted" role="status">{{ t('loading') }}</p>
     <template v-else>
-      <h1 class="mt-3 mb-0">
-        {{ user.name || user.email || user.user_id }}
+      <p class="muted">
+        {{ user.user_id }}
         <Tag v-if="user.blocked" class="ml-2">{{ t('users.blocked') }}</Tag>
-      </h1>
-      <p class="muted">{{ user.user_id }}</p>
+      </p>
       <ActionsMenu :tenant="tenant" :user="user" @updated="user = $event" @blocks="tab = 'blocks'" />
-      <TabsRoot v-model="tab" class="mt-4">
+      <TabsRoot v-model="tab">
         <TabsList class="tabs" :aria-label="user.name || user.email || user.user_id">
           <TabsTrigger class="tab" value="details">{{ t('userd.tabs.details') }}</TabsTrigger>
           <TabsTrigger class="tab" value="metadata">{{ t('userd.tabs.metadata') }}</TabsTrigger>
@@ -96,6 +95,5 @@ function identities(list: UserIdentity[]) {
         <TabsContent value="raw"><RawTab :user="user" /></TabsContent>
       </TabsRoot>
     </template>
-  </div>
-  <Banner v-else kind="error">{{ t('unknownTenant') }}</Banner>
+  </RouteModal>
 </template>

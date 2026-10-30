@@ -1,14 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
-import { mountAt } from '../../test/mount'
+import { confirmPrompt, mountAt } from '../../test/mount'
 import Settings from './TenantSettings.vue'
 
 afterEach(() => { document.body.innerHTML = '' })
 
 describe('managed signing keys settings', () => {
   it('loads metadata and requires confirmation before rotating once', async () => {
-    const confirm = vi.fn(() => true)
-    vi.stubGlobal('confirm', confirm)
     const keys = [{ kid: 'current-kid', alg: 'RS256', cert: 'pem-data', current: true, next: false, previous: false, revoked: false }]
     const { wrapper, calls } = await mountAt(Settings, '/t/acme/settings', c => {
       if (c.url.endsWith('/api/v2/keys/signing')) return { status: 200, body: keys }
@@ -20,7 +18,8 @@ describe('managed signing keys settings', () => {
     expect(wrapper.text()).toContain('current-kid')
     await wrapper.findAll('button').find(x => x.text().includes('Rotate'))!.trigger('click')
     await flushPromises()
-    expect(confirm).toHaveBeenCalledOnce()
+    expect(calls.filter(c => c.method === 'POST')).toHaveLength(0)
+    await confirmPrompt()
     expect(calls.filter(c => c.method === 'POST')).toHaveLength(1)
     expect(calls.find(c => c.method === 'POST')?.url).toContain('/api/v2/keys/signing/rotate')
     wrapper.unmount()
@@ -28,7 +27,6 @@ describe('managed signing keys settings', () => {
   })
 
   it('blocks another rotation after a lost response until a later refresh succeeds', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
     let lists = 0
     const keys = [{ kid: 'previous-kid', alg: 'RS256', current: false, next: false, previous: true, revoked: false }]
     const { wrapper, calls } = await mountAt(Settings, '/t/acme/settings', c => {
@@ -43,6 +41,7 @@ describe('managed signing keys settings', () => {
     await flushPromises()
     const rotate = wrapper.findAll('button').find(x => x.text().includes('Rotate'))!
     await rotate.trigger('click'); await flushPromises()
+    await confirmPrompt()
     expect(wrapper.text()).toContain('Refresh the key list')
     expect((rotate.element as HTMLButtonElement).disabled).toBe(true)
     expect(calls.filter(c => c.method === 'POST')).toHaveLength(1)
@@ -68,11 +67,11 @@ import { deferred, signingMount } from './signing-test'
 import { tenant, type Reply } from '../../test/services'
 
 it('does not apply old fetches or mutation errors to another tenant', async () => {
-  vi.stubGlobal('confirm', () => true)
   const oldWrite = deferred<Reply>()
   const { wrapper, calls } = signingMount(SigningKeys, c => c.method === 'POST' ? oldWrite.promise : { status: 200, body: [{ kid: c.url.includes('other') ? 'other-current' : 'old-current', current: true, alg: 'RS256' }] })
   await flushPromises()
-  await wrapper.findAll('button').find(b => b.text().includes('Rotate'))!.trigger('click')
+  await wrapper.findAll('button').find(b => b.text().includes('Rotate'))!.trigger('click'); await flushPromises()
+  await confirmPrompt()
   await wrapper.setProps({ tenant: tenant('other') }); await flushPromises()
   oldWrite.resolve({ status: 503, body: { message: 'old tenant timeout' } }); await flushPromises()
   expect(wrapper.text()).toContain('other-current')
@@ -85,7 +84,6 @@ it('does not apply old fetches or mutation errors to another tenant', async () =
 it('disables stale revocation during refresh and offers public certificate copy and download', async () => {
   const delayed = deferred<Reply>()
   let lists = 0
-  vi.stubGlobal('confirm', () => true)
   const { wrapper, calls } = signingMount(SigningKeys, () => ++lists === 1 ? { status: 200, body: [{ kid: 'previous', alg: 'RS256', previous: true, cert: 'PUBLIC PEM' }] } : delayed.promise)
   await flushPromises()
   const revoke = wrapper.findAll('button').find(b => b.text().includes('Revoke'))!
@@ -100,12 +98,12 @@ it('disables stale revocation during refresh and offers public certificate copy 
 })
 
 it('announces a denied mutation and preserves focus without retrying it', async () => {
-  vi.stubGlobal('confirm', () => true)
   const { wrapper, calls } = signingMount(SigningKeys, c => c.method === 'POST' ? { status: 403, body: { message: 'Read-only delegation' } } : { status: 200, body: [{ kid: 'current', current: true, alg: 'RS256' }] })
   await flushPromises()
   const rotate = wrapper.findAll('button').find(b => b.text().includes('Rotate'))!
   ;(rotate.element as HTMLButtonElement).focus()
   await rotate.trigger('click'); await flushPromises()
+  await confirmPrompt()
   expect(wrapper.get('[role=alert]').text()).toContain('Read-only delegation')
   expect(document.activeElement).toBe(rotate.element)
   expect(calls.filter(c => c.method === 'POST')).toHaveLength(1)

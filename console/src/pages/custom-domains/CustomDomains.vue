@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import type { CustomDomain } from '../../api/client'
 import { errorMessage, useServices, useTenant } from '../../context'
 import Banner from '../../ui/Banner.vue'
+import { onModalClosed } from '../../ui/routeModal'
 import Button from '../../ui/Button.vue'
 import { statusLabel } from './labels'
 
@@ -104,6 +105,7 @@ async function setDefault(host: string) {
   }
   if (current === generation) await load()
 }
+onModalClosed(() => load())
 </script>
 
 <template>
@@ -154,5 +156,6 @@ async function setDefault(host: string) {
       </tbody>
     </table>
     <p v-else-if="readable">{{ t('customDomain.empty') }}</p>
+    <RouterView />
   </div>
 </template>
