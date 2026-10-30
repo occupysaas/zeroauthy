@@ -36,6 +36,9 @@ type Organization struct {
 	TenantID, ID, Name, DisplayName string
 	Branding                        *OrgBranding
 	Metadata                        map[string]string
+	// ClientAssociation is a read-only list annotation requested through OrgPage.
+	ClientAssociation       *OrganizationClient
+	ClientAssociationLoaded bool
 	// IsAppEntitlementActive gates interactive application association policy.
 	IsAppEntitlementActive bool
 	// ThirdPartyClientAccess is "block" or "allow".
@@ -54,6 +57,8 @@ type OrgColors struct{ Primary, PageBackground string }
 
 // OrganizationConnection enables a connection for an organization.
 type OrganizationConnection struct {
+	// Read-only page summary, populated by repository list reads.
+	SummaryName, SummaryStrategy           string
 	TenantID, OrganizationID, ConnectionID string
 	// IsEnabledSet distinguishes legacy omitted bools from intentional false.
 	// Stores normalize it to true. New callers disabling a link must set it.
@@ -69,11 +74,12 @@ type OrganizationConnection struct {
 // "field:1" or "field:-1" for organizations. Invitations support created_at
 // ascending/descending, default descending.
 type OrgPage struct {
-	Page, PerPage int
-	IncludeTotals bool
-	From          string
-	Take          int
-	Sort          string
+	IncludeClientAssociationFor string
+	Page, PerPage               int
+	IncludeTotals               bool
+	From                        string
+	Take                        int
+	Sort                        string
 }
 
 // OrgResult is one page. Total is set in offset mode; Next is set in

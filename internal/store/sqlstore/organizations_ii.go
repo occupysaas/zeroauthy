@@ -423,11 +423,7 @@ func (r organizationsII) GrantOrganizations(ctx context.Context, tid, grant stri
 	if err := r.exists(ctx, "client_grants", "id", tid, grant); err != nil {
 		return out, err
 	}
-	orgs, err := (organizations{r.s}).queryOrgs(ctx, `SELECT `+orgCols+` FROM organizations WHERE tenant_id=? AND id IN (SELECT organization_id FROM organization_client_grants WHERE tenant_id=? AND grant_id=?)`, tid, tid, grant)
-	if err != nil {
-		return out, err
-	}
-	return orgrules.PageOrgs(orgs, p, orgrules.Scope("ii-grant-orgs", tid, grant))
+	return (organizations{r.s}).pageOrgs(ctx, p, orgrules.Scope("ii-grant-orgs", tid, grant), `tenant_id=? AND id IN (SELECT organization_id FROM organization_client_grants WHERE tenant_id=? AND grant_id=?)`, tid, tid, grant)
 }
 
 func (r organizationsII) PutDiscoveryDomain(ctx context.Context, in *store.OrganizationDiscoveryDomain, create bool) error {

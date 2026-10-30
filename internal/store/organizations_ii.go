@@ -41,6 +41,7 @@ type OrganizationDiscoveryDomain struct {
 // callers validate policy and write membership, roles and metadata in that transaction.
 // All references are tenant-scoped. Mutating batches validate fully before writing.
 type OrganizationsII interface {
+	Search(context.Context, string, OrganizationQuery, OrganizationSearchPage) (OrgResult[Organization], error)
 	// CreateInvitation validates all owner references before writing. IDs and
 	// ticket hashes are unique within a tenant. Active reads exclude expiry and
 	// consumption; DeleteInvitation is idempotent inside an existing organization.
@@ -157,4 +158,25 @@ func OrganizationsIISupported(st Store) bool {
 		return c.OrganizationsIISupported()
 	}
 	return true
+}
+
+// OrganizationQuery is a bounded expression. Empty Op matches all; boolean
+// nodes have exactly two children, predicates have a validated field/operator.
+// Repositories validate this AST too, including across a plugin boundary.
+type OrganizationQuery struct {
+	Op, Field, Value, Upper        string
+	LowerExclusive, UpperExclusive bool
+	Left, Right                    *OrganizationQuery
+}
+
+// OrganizationSearchPage carries a validated ascending keyset position. HTTP
+// authenticates the opaque cursor; repositories receive only the last tuple.
+type OrganizationSearchPage struct {
+	Take              int
+	Sort              string
+	LastValue, LastID string
+}
+
+func (UnimplementedOrganizationsII) Search(context.Context, string, OrganizationQuery, OrganizationSearchPage) (OrgResult[Organization], error) {
+	return OrgResult[Organization]{}, ErrOrganizationsIIUnavailable
 }

@@ -57,6 +57,7 @@ const (
 	StoreService_OrganizationsIIListDiscoveryDomains_FullMethodName     = "/zeroauthy.store.v1.StoreService/OrganizationsIIListDiscoveryDomains"
 	StoreService_OrganizationsIIDeleteDiscoveryDomain_FullMethodName    = "/zeroauthy.store.v1.StoreService/OrganizationsIIDeleteDiscoveryDomain"
 	StoreService_OrganizationsIIDiscoverOrganizations_FullMethodName    = "/zeroauthy.store.v1.StoreService/OrganizationsIIDiscoverOrganizations"
+	StoreService_OrganizationsIISearch_FullMethodName                   = "/zeroauthy.store.v1.StoreService/OrganizationsIISearch"
 	StoreService_OrganizationsCapabilities_FullMethodName               = "/zeroauthy.store.v1.StoreService/OrganizationsCapabilities"
 	StoreService_OrganizationsCreate_FullMethodName                     = "/zeroauthy.store.v1.StoreService/OrganizationsCreate"
 	StoreService_OrganizationsGet_FullMethodName                        = "/zeroauthy.store.v1.StoreService/OrganizationsGet"
@@ -403,6 +404,7 @@ type StoreServiceClient interface {
 	OrganizationsIIListDiscoveryDomains(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
 	OrganizationsIIDeleteDiscoveryDomain(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
 	OrganizationsIIDiscoverOrganizations(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
+	OrganizationsIISearch(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error)
 	// Plan 29 Organizations repository. Missing capability disables this feature.
 	OrganizationsCapabilities(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsCreate(ctx context.Context, in *OrganizationsRequest, opts ...grpc.CallOption) (*OrganizationsResponse, error)
@@ -1056,6 +1058,16 @@ func (c *storeServiceClient) OrganizationsIIDiscoverOrganizations(ctx context.Co
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(OrganizationsIIResponse)
 	err := c.cc.Invoke(ctx, StoreService_OrganizationsIIDiscoverOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storeServiceClient) OrganizationsIISearch(ctx context.Context, in *OrganizationsIIRequest, opts ...grpc.CallOption) (*OrganizationsIIResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OrganizationsIIResponse)
+	err := c.cc.Invoke(ctx, StoreService_OrganizationsIISearch_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -3632,6 +3644,7 @@ type StoreServiceServer interface {
 	OrganizationsIIListDiscoveryDomains(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
 	OrganizationsIIDeleteDiscoveryDomain(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
 	OrganizationsIIDiscoverOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
+	OrganizationsIISearch(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error)
 	// Plan 29 Organizations repository. Missing capability disables this feature.
 	OrganizationsCapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error)
 	OrganizationsCreate(context.Context, *OrganizationsRequest) (*OrganizationsResponse, error)
@@ -4024,6 +4037,9 @@ func (UnimplementedStoreServiceServer) OrganizationsIIDeleteDiscoveryDomain(cont
 }
 func (UnimplementedStoreServiceServer) OrganizationsIIDiscoverOrganizations(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OrganizationsIIDiscoverOrganizations not implemented")
+}
+func (UnimplementedStoreServiceServer) OrganizationsIISearch(context.Context, *OrganizationsIIRequest) (*OrganizationsIIResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OrganizationsIISearch not implemented")
 }
 func (UnimplementedStoreServiceServer) OrganizationsCapabilities(context.Context, *PingRequest) (*OrganizationsCapabilitiesResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method OrganizationsCapabilities not implemented")
@@ -5461,6 +5477,24 @@ func _StoreService_OrganizationsIIDiscoverOrganizations_Handler(srv interface{},
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StoreServiceServer).OrganizationsIIDiscoverOrganizations(ctx, req.(*OrganizationsIIRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StoreService_OrganizationsIISearch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationsIIRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).OrganizationsIISearch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_OrganizationsIISearch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).OrganizationsIISearch(ctx, req.(*OrganizationsIIRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -10008,6 +10042,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OrganizationsIIDiscoverOrganizations",
 			Handler:    _StoreService_OrganizationsIIDiscoverOrganizations_Handler,
+		},
+		{
+			MethodName: "OrganizationsIISearch",
+			Handler:    _StoreService_OrganizationsIISearch_Handler,
 		},
 		{
 			MethodName: "OrganizationsCapabilities",

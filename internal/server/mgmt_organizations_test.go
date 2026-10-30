@@ -11,7 +11,7 @@ import (
 )
 
 var orgMgmtScopes = []string{
-	"read:organizations", "create:organizations", "update:organizations", "delete:organizations",
+	"read:organizations", "read:organizations_summary", "create:organizations", "update:organizations", "delete:organizations",
 	"read:organization_connections", "create:organization_connections", "update:organization_connections", "delete:organization_connections",
 	"read:organization_client_grants", "create:organization_client_grants", "delete:organization_client_grants",
 	"read:organization_discovery_domains", "create:organization_discovery_domains", "update:organization_discovery_domains", "delete:organization_discovery_domains",
@@ -341,5 +341,23 @@ func TestClientOrganizationFieldsRoutes(t *testing.T) {
 	}
 	if code, c, raw := a.call("GET", "/clients/"+id, a.admin, nil); code != 200 || c["organization_usage"] != nil {
 		t.Fatalf("get=%d %s", code, raw)
+	}
+}
+
+func TestOrganizationSearchRoutesAndScopes(t *testing.T) {
+	a := newOrgManagement(t)
+	if code, _, raw := a.call("POST", "/organizations", a.admin, map[string]any{"name": "search-route"}); code != 201 {
+		t.Fatalf("create: %d %s", code, raw)
+	}
+	if code, out, raw := a.call("GET", "/organizations/search", a.admin, nil); code != 200 || len(out["organizations"].([]any)) != 1 {
+		t.Fatalf("search: %d %s", code, raw)
+	}
+	for _, scopes := range [][]string{{"read:organizations"}, {"read:organizations_summary"}} {
+		if code, _, raw := a.call("GET", "/organizations/search", a.token(scopes), nil); code != 403 {
+			t.Fatalf("scope %v: %d %s", scopes, code, raw)
+		}
+	}
+	if code, _, raw := a.call("GET", "/organizations/search", "", nil); code != 401 {
+		t.Fatalf("anonymous: %d %s", code, raw)
 	}
 }

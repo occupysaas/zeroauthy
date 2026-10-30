@@ -75,8 +75,11 @@ func orgToPB(o *store.Organization) *storev1.OrganizationMsg {
 		return nil
 	}
 	pb := &storev1.OrganizationMsg{TenantId: o.TenantID, Id: o.ID, Name: o.Name, DisplayName: o.DisplayName,
-		IsAppEntitlementActive: o.IsAppEntitlementActive, Metadata: stringMapToPB(o.Metadata), ThirdPartyClientAccess: o.ThirdPartyClientAccess,
+		ClientAssociationLoaded: o.ClientAssociationLoaded, IsAppEntitlementActive: o.IsAppEntitlementActive, Metadata: stringMapToPB(o.Metadata), ThirdPartyClientAccess: o.ThirdPartyClientAccess,
 		CreatedAt: tsToPB(o.CreatedAt), UpdatedAt: tsToPB(o.UpdatedAt)}
+	if o.ClientAssociation != nil {
+		pb.ClientAssociation, _ = organizationClientToPB(o.ClientAssociation)
+	}
 	if b := o.Branding; b != nil {
 		pb.Branding = &storev1.OrganizationBrandingMsg{LogoUrl: cloneString(b.LogoURL)}
 		if b.Colors != nil {
@@ -91,8 +94,11 @@ func orgFromPB(pb *storev1.OrganizationMsg) *store.Organization {
 		return nil
 	}
 	o := &store.Organization{TenantID: pb.TenantId, ID: pb.Id, Name: pb.Name, DisplayName: pb.DisplayName,
-		IsAppEntitlementActive: pb.IsAppEntitlementActive, Metadata: stringMapFromPB(pb.Metadata), ThirdPartyClientAccess: pb.ThirdPartyClientAccess,
+		ClientAssociationLoaded: pb.ClientAssociationLoaded, IsAppEntitlementActive: pb.IsAppEntitlementActive, Metadata: stringMapFromPB(pb.Metadata), ThirdPartyClientAccess: pb.ThirdPartyClientAccess,
 		CreatedAt: tsFromPB(pb.CreatedAt), UpdatedAt: tsFromPB(pb.UpdatedAt)}
+	if pb.ClientAssociation != nil {
+		o.ClientAssociation, _ = organizationClientFromPB(pb.ClientAssociation)
+	}
 	if b := pb.Branding; b != nil {
 		o.Branding = &store.OrgBranding{LogoURL: cloneString(b.LogoUrl)}
 		if b.Colors != nil {
@@ -111,7 +117,7 @@ func cloneString(s *string) *string {
 }
 
 func orgConnToPB(c store.OrganizationConnection) *storev1.OrganizationConnectionMsg {
-	p := &storev1.OrganizationConnectionMsg{TenantId: c.TenantID, OrganizationId: c.OrganizationID, ConnectionId: c.ConnectionID, AssignMembershipOnLogin: c.AssignMembershipOnLogin, ShowAsButton: c.ShowAsButton, IsSignupEnabled: c.IsSignupEnabled, ConnectionName: c.ConnectionName, OrganizationAccessLevel: c.OrganizationAccessLevel, OrganizationMemberAccessLevel: c.OrganizationMemberAccessLevel}
+	p := &storev1.OrganizationConnectionMsg{TenantId: c.TenantID, OrganizationId: c.OrganizationID, ConnectionId: c.ConnectionID, AssignMembershipOnLogin: c.AssignMembershipOnLogin, ShowAsButton: c.ShowAsButton, IsSignupEnabled: c.IsSignupEnabled, SummaryName: c.SummaryName, SummaryStrategy: c.SummaryStrategy, ConnectionName: c.ConnectionName, OrganizationAccessLevel: c.OrganizationAccessLevel, OrganizationMemberAccessLevel: c.OrganizationMemberAccessLevel}
 	if c.IsEnabledSet {
 		v := c.IsEnabled
 		p.IsEnabled = &v
@@ -121,7 +127,7 @@ func orgConnToPB(c store.OrganizationConnection) *storev1.OrganizationConnection
 func orgConnFromPB(c *storev1.OrganizationConnectionMsg) store.OrganizationConnection {
 	// Preserve omission on writes. Persisted modern rows carry optional presence;
 	// old server reads are normalized by the client read boundary below.
-	return store.OrganizationConnection{TenantID: c.GetTenantId(), OrganizationID: c.GetOrganizationId(), ConnectionID: c.GetConnectionId(), AssignMembershipOnLogin: c.GetAssignMembershipOnLogin(), ShowAsButton: c.GetShowAsButton(), IsSignupEnabled: c.GetIsSignupEnabled(), IsEnabled: c.GetIsEnabled(), IsEnabledSet: c != nil && c.IsEnabled != nil, ConnectionName: c.GetConnectionName(), OrganizationAccessLevel: c.GetOrganizationAccessLevel(), OrganizationMemberAccessLevel: c.GetOrganizationMemberAccessLevel()}
+	return store.OrganizationConnection{TenantID: c.GetTenantId(), OrganizationID: c.GetOrganizationId(), ConnectionID: c.GetConnectionId(), AssignMembershipOnLogin: c.GetAssignMembershipOnLogin(), ShowAsButton: c.GetShowAsButton(), IsSignupEnabled: c.GetIsSignupEnabled(), IsEnabled: c.GetIsEnabled(), IsEnabledSet: c != nil && c.IsEnabled != nil, SummaryName: c.GetSummaryName(), SummaryStrategy: c.GetSummaryStrategy(), ConnectionName: c.GetConnectionName(), OrganizationAccessLevel: c.GetOrganizationAccessLevel(), OrganizationMemberAccessLevel: c.GetOrganizationMemberAccessLevel()}
 }
 func orgConnReadFromPB(c *storev1.OrganizationConnectionMsg) store.OrganizationConnection {
 	out := orgConnFromPB(c)
@@ -159,12 +165,12 @@ func orgConnsFromPB(cs []*storev1.OrganizationConnectionMsg) []store.Organizatio
 
 func orgPageToPB(p store.OrgPage) *storev1.OrganizationPageMsg {
 	return &storev1.OrganizationPageMsg{Page: int64(p.Page), PerPage: int64(p.PerPage), IncludeTotals: p.IncludeTotals,
-		From: p.From, Take: int64(p.Take), Sort: p.Sort}
+		From: p.From, Take: int64(p.Take), Sort: p.Sort, IncludeClientAssociationFor: p.IncludeClientAssociationFor}
 }
 
 func orgPageFromPB(p *storev1.OrganizationPageMsg) store.OrgPage {
 	return store.OrgPage{Page: int(p.GetPage()), PerPage: int(p.GetPerPage()), IncludeTotals: p.GetIncludeTotals(),
-		From: p.GetFrom(), Take: int(p.GetTake()), Sort: p.GetSort()}
+		From: p.GetFrom(), Take: int(p.GetTake()), Sort: p.GetSort(), IncludeClientAssociationFor: p.GetIncludeClientAssociationFor()}
 }
 
 func isOrgUnavailable(err error) bool {

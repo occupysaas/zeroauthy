@@ -848,3 +848,7 @@ func (a mgmtAPI) UpdateOrganizationDiscoveryDomain(w http.ResponseWriter, r *htt
 func (a mgmtAPI) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationDiscoveryDomain(w, r, id, key) }, "delete:organization_discovery_domains")
 }
+
+func (a mgmtAPI) SearchOrganizations(w http.ResponseWriter, r *http.Request, _ mgmtapi.SearchOrganizationsParams) {
+	scopedAll(w, r, a.h.SearchOrganizations, "read:organizations", "read:organizations_summary")
+}

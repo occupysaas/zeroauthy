@@ -272,11 +272,11 @@ func (r organizations) queryOrgs(ctx context.Context, q string, args ...any) ([]
 }
 
 func (r organizations) List(ctx context.Context, tid string, p store.OrgPage) (store.OrgResult[store.Organization], error) {
-	orgs, err := r.queryOrgs(ctx, `SELECT `+orgCols+` FROM organizations WHERE tenant_id=?`, tid)
-	if err != nil {
-		return store.OrgResult[store.Organization]{}, err
+	out, err := r.pageOrgs(ctx, p, orgrules.Scope("orgs", tid), `tenant_id=?`, tid)
+	if err == nil && p.IncludeClientAssociationFor != "" {
+		err = r.clientSummaries(ctx, tid, p.IncludeClientAssociationFor, out.Items)
 	}
-	return orgrules.PageOrgs(orgs, p, orgrules.Scope("orgs", tid))
+	return out, err
 }
 
 func (r organizations) Update(ctx context.Context, o *store.Organization) error {
@@ -359,16 +359,45 @@ func (r organizations) Connections(ctx context.Context, tid, orgID string, p sto
 	if err := r.orgExists(ctx, tid, orgID); err != nil {
 		return store.OrgResult[store.OrganizationConnection]{}, err
 	}
-	conns, err := r.queryConns(ctx, `SELECT `+orgConnCols+` FROM organization_connections WHERE tenant_id=? AND organization_id=?`, tid, orgID)
+
+	out := store.OrgResult[store.OrganizationConnection]{Items: []store.OrganizationConnection{}}
+	mode, err := orgrules.NormalizePage(&p)
 	if err != nil {
-		return store.OrgResult[store.OrganizationConnection]{}, err
+		return out, store.ErrInvalid
 	}
-	es := make([]orgrules.Entry[store.OrganizationConnection], len(conns))
-	for i, c := range conns {
-		es[i] = orgrules.Entry[store.OrganizationConnection]{Item: c, ID: c.ConnectionID}
+	args := []any{tid, orgID}
+	query := `SELECT ` + orgConnCols + ` FROM organization_connections WHERE tenant_id=? AND organization_id=?`
+	if mode == orgrules.Offset {
+		if err = r.s.queryRow(ctx, `SELECT COUNT(*) FROM organization_connections WHERE tenant_id=? AND organization_id=?`, tid, orgID).Scan(&out.Total); err != nil {
+			return out, err
+		}
+	} else if p.From != "" {
+		c, e := orgrules.DecodeCursor(p.From, orgrules.Scope("conns", tid, orgID), p.Sort)
+		if e != nil {
+			return out, store.ErrInvalid
+		}
+		query += ` AND connection_id` + r.s.d.byteOrder + `>?`
+		args = append(args, c.ID)
 	}
-	orgrules.OrderEntries(es, false)
-	return orgrules.PageEntries(es, p, orgrules.Scope("conns", tid, orgID), false)
+	query += ` ORDER BY connection_id` + r.s.d.byteOrder
+	if mode == orgrules.Offset {
+		query += ` LIMIT ` + strconv.Itoa(p.PerPage) + ` OFFSET ` + strconv.Itoa(p.Page*p.PerPage)
+	} else {
+		query += ` LIMIT ` + strconv.Itoa(p.Take+1)
+	}
+	out.Items, err = r.queryConns(ctx, query, args...)
+	if err != nil {
+		return out, err
+	}
+	if mode == orgrules.Checkpoint && len(out.Items) > p.Take {
+		out.Items = out.Items[:p.Take]
+		out.Next = orgrules.EncodeCursor(orgrules.Cursor{Scope: orgrules.Scope("conns", tid, orgID), Sort: p.Sort, ID: out.Items[p.Take-1].ConnectionID})
+	}
+	if err = r.connectionSummaries(ctx, tid, out.Items); err != nil {
+		return out, err
+	}
+	return out, nil
+
 }
 
 func (r organizations) GetConnection(ctx context.Context, tid, orgID, connID string) (*store.OrganizationConnection, error) {
@@ -576,11 +605,7 @@ func (r organizations) UserOrganizations(ctx context.Context, tid, userID string
 	if err != nil {
 		return store.OrgResult[store.Organization]{}, err
 	}
-	orgs, err := r.queryOrgs(ctx, `SELECT `+orgCols+` FROM organizations WHERE tenant_id=? AND id IN (SELECT organization_id FROM organization_members WHERE tenant_id=? AND user_id=?)`, tid, tid, userID)
-	if err != nil {
-		return store.OrgResult[store.Organization]{}, err
-	}
-	return orgrules.PageOrgs(orgs, p, orgrules.Scope("user-orgs", tid, userID))
+	return r.pageOrgs(ctx, p, orgrules.Scope("user-orgs", tid, userID), `tenant_id=? AND id IN (SELECT organization_id FROM organization_members WHERE tenant_id=? AND user_id=?)`, tid, tid, userID)
 }
 
 // member reports ErrNotFound unless the organization exists and userID

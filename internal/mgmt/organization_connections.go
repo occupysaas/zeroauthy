@@ -199,7 +199,11 @@ func (h *Handlers) listOrgConnections(w http.ResponseWriter, r *http.Request, id
 		res.Items, total = nil, 0
 	}
 	for _, c := range res.Items {
-		conn, err := h.Store.Connections().Get(r.Context(), tid, c.ConnectionID)
+		conn := &store.Connection{Name: c.SummaryName, Strategy: c.SummaryStrategy}
+		var err error
+		if c.SummaryName == "" {
+			conn, err = h.Store.Connections().Get(r.Context(), tid, c.ConnectionID)
+		}
 		if err != nil {
 			h.orgError(w, r, err)
 			return

@@ -156,7 +156,17 @@ func (r organizations) List(_ context.Context, tid string, p store.OrgPage) (sto
 			orgs = append(orgs, o)
 		}
 	}
-	return pageOrgs(orgs, p, orgScope("orgs", tid))
+	out, err := pageOrgs(orgs, p, orgScope("orgs", tid))
+	if p.IncludeClientAssociationFor != "" {
+		for i := range out.Items {
+			out.Items[i].ClientAssociationLoaded = true
+			if link, ok := r.s.orgClients[orgIIKey{tid, out.Items[i].ID, p.IncludeClientAssociationFor}]; ok {
+				v := *link
+				out.Items[i].ClientAssociation = &v
+			}
+		}
+	}
+	return out, err
 }
 
 func (r organizations) Update(_ context.Context, o *store.Organization) error {
@@ -297,7 +307,14 @@ func (r organizations) Connections(_ context.Context, tid, orgID string, p store
 		}
 	}
 	orgrules.OrderEntries(es, false)
-	return orgrules.PageEntries(es, p, orgScope("conns", tid, orgID), false)
+	out, err := orgrules.PageEntries(es, p, orgScope("conns", tid, orgID), false)
+	for i := range out.Items {
+		if c := r.s.connections[key{tid, out.Items[i].ConnectionID}]; c != nil {
+			out.Items[i].SummaryName = c.Name
+			out.Items[i].SummaryStrategy = c.Strategy
+		}
+	}
+	return out, err
 }
 
 func (r organizations) GetConnection(_ context.Context, tid, orgID, connID string) (*store.OrganizationConnection, error) {
@@ -533,6 +550,7 @@ func (r organizations) RoleMembers(_ context.Context, tid, orgID, roleID string,
 // normalizeOrgConnection preserves omitted legacy Go fields and distinguishes
 // intentional false by its presence marker. API null clears map to explicit values.
 func (s *Store) normalizeOrgConnection(c store.OrganizationConnection, old *store.OrganizationConnection) store.OrganizationConnection {
+	c.SummaryName, c.SummaryStrategy = "", ""
 	if !c.IsEnabledSet {
 		if old != nil {
 			c.IsEnabled = old.IsEnabled

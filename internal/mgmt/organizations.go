@@ -192,6 +192,7 @@ func (h *Handlers) ListOrganizations(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	p.IncludeClientAssociationFor = r.URL.Query().Get("include_client_association_for")
 	res, err := orgs.List(r.Context(), resolved(r).ID, p)
 	if errors.Is(err, store.ErrInvalid) {
 		Fail(w, &Error{Status: http.StatusBadRequest, Message: "The from parameter is not a valid checkpoint"})
@@ -204,14 +205,18 @@ func (h *Handlers) ListOrganizations(w http.ResponseWriter, r *http.Request) {
 	items := make([]map[string]any, 0, len(res.Items))
 	for _, o := range res.Items {
 		view := orgView(o)
-		if clientID := r.URL.Query().Get("include_client_association_for"); clientID != "" {
-			link, err := h.Store.OrganizationsII().GetClient(r.Context(), resolved(r).ID, o.ID, clientID)
-			if err == nil {
-				view["client"] = map[string]any{"use_for_member_access": link.UseForMemberAccess}
-			} else if !errors.Is(err, store.ErrNotFound) {
-				h.orgIIError(w, r, err)
+		// Older plugins ignore additive page-summary fields. Preserve their
+		// existing annotation behavior while modern stores batch the reads.
+		if p.IncludeClientAssociationFor != "" && !o.ClientAssociationLoaded {
+			link, e := h.Store.OrganizationsII().GetClient(r.Context(), resolved(r).ID, o.ID, p.IncludeClientAssociationFor)
+			if e != nil && !errors.Is(e, store.ErrNotFound) {
+				h.orgIIError(w, r, e)
 				return
 			}
+			o.ClientAssociation = link
+		}
+		if link := o.ClientAssociation; link != nil {
+			view["client"] = map[string]any{"use_for_member_access": link.UseForMemberAccess}
 		}
 		items = append(items, view)
 	}

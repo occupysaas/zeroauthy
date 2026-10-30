@@ -98,6 +98,7 @@ service StoreService {
   rpc OrganizationsIIListDiscoveryDomains(OrganizationsIIRequest) returns (OrganizationsIIResponse);
   rpc OrganizationsIIDeleteDiscoveryDomain(OrganizationsIIRequest) returns (OrganizationsIIResponse);
   rpc OrganizationsIIDiscoverOrganizations(OrganizationsIIRequest) returns (OrganizationsIIResponse);
+  rpc OrganizationsIISearch(OrganizationsIIRequest) returns (OrganizationsIIResponse);
   // Plan 29 Organizations repository. Missing capability disables this feature.
   rpc OrganizationsCapabilities(PingRequest) returns (OrganizationsCapabilitiesResult);
   rpc OrganizationsCreate(OrganizationsRequest) returns (OrganizationsResponse);
@@ -1118,13 +1119,16 @@ message OrganizationMsg {
   string third_party_client_access=7;
   google.protobuf.Timestamp created_at=8; google.protobuf.Timestamp updated_at=9;
   bool is_app_entitlement_active=10;
+  OrganizationClientMsg client_association=11;
+  bool client_association_loaded=12;
 }
 message OrganizationConnectionMsg {
   string tenant_id=1; string organization_id=2; string connection_id=3;
   bool assign_membership_on_login=4; bool show_as_button=5; bool is_signup_enabled=6;
   optional bool is_enabled=7; string connection_name=8; string organization_access_level=9; string organization_member_access_level=10;
+ string summary_name=11; string summary_strategy=12;
 }
-message OrganizationPageMsg { int64 page=1; int64 per_page=2; bool include_totals=3; string from=4; int64 take=5; string sort=6; }
+message OrganizationPageMsg { int64 page=1; int64 per_page=2; bool include_totals=3; string from=4; int64 take=5; string sort=6; string include_client_association_for=7; }
 // Fields are used by the method that names them: tenant_id/organization_id/
 // user_id/role_id/connection_id address rows; ids carries user or role IDs.
 message OrganizationsRequest {
@@ -1283,6 +1287,7 @@ message OrganizationsIIRequest {
  OrganizationPageMsg page=12; bool create=13; google.protobuf.Timestamp now=14;
  OrganizationInvitationMsg invitation=15; repeated OrganizationClientMsg clients=16;
  OrganizationDiscoveryDomainMsg discovery_domain=17;
+ OrganizationQueryMsg search_query=18; OrganizationSearchPageMsg search_page=19;
 }
 message OrganizationsIIResponse {
  Error error=1; OrganizationInvitationMsg invitation=2; repeated OrganizationInvitationMsg invitations=3;
@@ -1291,3 +1296,11 @@ message OrganizationsIIResponse {
  OrganizationDiscoveryDomainMsg discovery_domain=9; repeated OrganizationDiscoveryDomainMsg discovery_domains=10;
  int64 total=11; string next=12; bool flag=13;
 }
+
+// Bounded search AST; servers validate shape, depth, fields and operators.
+message OrganizationQueryMsg {
+ string op=1; string field=2; string value=3; string upper=4;
+ bool lower_exclusive=5; bool upper_exclusive=6;
+ OrganizationQueryMsg left=7; OrganizationQueryMsg right=8;
+}
+message OrganizationSearchPageMsg { int64 take=1; string sort=2; string last_value=3; string last_id=4; }

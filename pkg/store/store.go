@@ -9,6 +9,8 @@ import "github.com/zeroauthy/zeroauthy/internal/store"
 type (
 	OrganizationsIISupporter     = store.OrganizationsIISupporter
 	OrganizationsII              = store.OrganizationsII
+	OrganizationQuery            = store.OrganizationQuery
+	OrganizationSearchPage       = store.OrganizationSearchPage
 	UnimplementedOrganizationsII = store.UnimplementedOrganizationsII
 	OrganizationInvitation       = store.OrganizationInvitation
 	InvitationReceipt            = store.InvitationReceipt

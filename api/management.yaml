@@ -7151,8 +7151,10 @@ paths:
     get:
       operationId: SearchOrganizations
       summary: GET /organizations/search
-      description: Plan 30 contract; route implementation is tracked separately. parser absent=lucene; take absent=50;
-        sort absent=created_at with ID tie-break (local); q absent/empty=all (local); next omitted at end; no offset/totals
+      description: Bounded local SCIM/Lucene organization search. parser absent=lucene; take absent=50;
+        sort absent=created_at with ID tie-break (local); q absent/empty=all (local); next omitted at end; no offset/totals.
+        Cursors authenticate tenant, normalized query, parser and sort under stable server key material. They are not snapshots;
+        concurrent writes can change subsequent pages. Local reads are immediately consistent. See docs/organization-search.md.
       tags:
       - organizations
       x-source:
