@@ -29,6 +29,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/jobs"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
 	"github.com/zeroauthy/zeroauthy/internal/login"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
 	"github.com/zeroauthy/zeroauthy/internal/mgmt"
 	"github.com/zeroauthy/zeroauthy/internal/noderunner"
@@ -54,6 +55,8 @@ type App struct {
 	profiles   *script.Runner        // nil when profile scripts cannot run
 	actionJobs *actions.Worker
 	jobs       *jobs.Runner
+	logs       *logs.AsyncRecorder
+	logPurge   *logs.Purger
 	handler    http.Handler
 	breachFile *protection.FileChecker
 	// tls serves certificates when ACME is on; nil keeps static or
@@ -363,6 +366,8 @@ func build(ctx context.Context, cfg *config.Config, log *slog.Logger, st store.S
 		actions:    actionsRunner,
 		actionJobs: &actions.Worker{Engine: engine, Store: st, Workers: cfg.Actions.JobWorkers, Poll: cfg.Actions.JobPollInterval},
 		jobs:       jobRunner,
+		logs:       logs.NewRecorder(st, logs.Config{Retention: cfg.Logs.Retention, QueueSize: cfg.Logs.QueueSize}, log),
+		logPurge:   logs.NewPurger(st, logs.Config{Retention: cfg.Logs.Retention}, log),
 		breachFile: breachFile,
 		handler: server.New(server.Deps{
 			Store:        st,
@@ -567,6 +572,24 @@ func certificateWorker(cfg *config.Config, m *certificates.Manager, domains *cus
 // Serve listens until ctx is cancelled, then shuts down gracefully.
 func (a *App) Serve(ctx context.Context) error {
 	srv := a.httpServer()
+	if a.logs != nil {
+		writerCtx, stopWriter := context.WithCancel(context.Background())
+		go a.logs.Run(writerCtx)
+		defer func() {
+			stopWriter()
+			flush, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := a.logs.Flush(flush); err != nil {
+				a.log.Warn("tenant log shutdown flush failed")
+			}
+		}()
+	}
+	if a.logPurge != nil {
+		purgeCtx, stopPurge := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() { defer close(done); a.logPurge.Run(purgeCtx) }()
+		defer func() { stopPurge(); <-done }()
+	}
 	useTLS := a.cfg.Server.TLSCertFile != "" || a.tls != nil
 	errc := make(chan error, 1)
 	go func() {
@@ -689,7 +712,13 @@ func (a *App) Close() error {
 	if a.breachFile != nil {
 		errBreach = a.breachFile.Close()
 	}
-	return errors.Join(errRunner, errBreach, a.store.Close())
+	var errLogs error
+	if a.logs != nil {
+		flush, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		errLogs = a.logs.Flush(flush)
+		cancel()
+	}
+	return errors.Join(errRunner, errBreach, errLogs, a.store.Close())
 }
 
 func seconds(n int) time.Duration { return time.Duration(n) * time.Second }

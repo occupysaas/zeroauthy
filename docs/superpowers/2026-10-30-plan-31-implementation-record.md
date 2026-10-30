@@ -639,3 +639,78 @@ run again in Task5. Whole-project runtime/E2E regression remains Task16.
 No later task is claimed complete. Full evidence/report is in
 `.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-5-report.md`.
 Task5 implementation commit subject: `feat: add Logs storage plugin capability`.
+
+## Task 6 — asynchronous recorder, statistics and retention
+
+Added `internal/logs` Event/Recorder/Nop/FromRequest contracts, forwarding ID
+helpers, bounded asynchronous recorder and fenced retention purger. Events are
+copied and scrubbed with request masks before admission, including nested JSON,
+dynamic keys, descriptions, indexed string columns and Action execution IDs.
+No request context is retained. Tenant names are looked up only by the writer,
+once per tenant per batch. Batches contain at most 100 events and partial batches
+write every 250 ms. Stats mappings come from `logrules.Codes` and the UTC-day
+counter deltas accompany events in the same atomic `AppendLogs` call.
+
+Record performs no store/tenant lookup and no synchronous logger operation.
+Queue overflow, invalid admission and failed writes increment the exposed dropped
+counter. A separate bounded notification worker emits at most one warning per
+minute, using the injected clock, even while AppendLogs is blocked. Failed batches
+are not retried. Missing Logs capability falls back to the scrubbed server logger;
+transient capability errors drop only the affected batch and later batches probe
+again. The first batch error remains available to shutdown callers.
+
+`Flush` is terminal: it closes admission, waits for queued and in-flight batches,
+and reports storage errors. A deadline cancels ongoing backend work; late Record
+calls drop without waiting. Concurrent Run/Record/Flush are covered by race tests.
+Run cancellation performs a bounded shutdown flush. App Serve starts the recorder
+and hourly purger, drains HTTP/other workers before final flush, and App Close
+also flushes before closing storage. Emitter dependency wiring remains later tasks.
+
+Configuration adds `logs.retention` (30 days default, minimum 24h),
+`logs.queue_size` (10,000 default, positive), and both explicit stream transport
+flags (false by default). Environment/YAML loading and unknown keys are tested.
+
+Ruling: reuse the existing TLSAssets fenced lease repository under the distinct
+`logs/retention` namespace (certificate resources use `domain/` and `hosted/`).
+There is no exported generic leader helper. Sweep renews the lease between bounded
+1,000-row deletion transactions and checks the fence inside each transaction.
+This preserves ownership through deletion across current memory, SQL and gRPC
+stores. Cost if wrong: a plugin implementing Logs without the older TLS lease
+capability cannot purge; it logs an hourly warning and other features continue.
+
+Ruling: Flush permanently closes admission, rather than being a temporary drain
+barrier. This makes concurrent admission/in-flight completion precise for shutdown.
+Cost if wrong: a future caller wanting a reusable drain barrier needs a separate API.
+
+Actual verification (all commands use `GOTOOLCHAIN=go1.26.7`):
+
+- RED `go test ./internal/logs ./internal/config -count=1`: exit 1, missing
+  Recorder/Event/Config symbols and missing config.Logs (before implementation).
+- RED `go test ./internal/logs ./internal/app -run 'TestPurge|TestRecorderMissing|TestAppCloses' -count=1`:
+  exit 1, missing NewPurger/lease key/app recorder field (before wiring).
+- RED `go test ./internal/logs -run TestPurgeUnavailableWarningRate -count=1`:
+  exit 1, observed zero unavailable warnings; added hourly suppression.
+- RED strengthened `go test ./internal/logs -run '^TestRecorderNeverBlocks$' -count=1`:
+  exit 1, warning could not run while AppendLogs blocked; separated notification
+  handling from the writer. The earlier test setup overflowed before blocking,
+  so it was corrected to fill exactly one initial batch before testing overflow.
+- RED `go test ./internal/logs -run '^TestRecorderScrubsExecutionEnrichment$' -count=1`:
+  exit 1, enrichment reintroduced a masked `actions` key; moved enrichment before
+  the complete document scrub, preserving caller immutability.
+- Final GREEN `go test ./internal/logs ./internal/app ./internal/config -count=1`:
+  exit 0; logs 0.334s, app 4.846s, config 0.007s.
+- Final race `go test -race ./internal/logs ./internal/app ./internal/config -count=1`:
+  exit 0; logs 1.436s, app 10.388s, config 1.029s.
+- `git diff --check`: exit 0. Self-review checked all new files and integration
+  changes; no generated files/dependency pins changed.
+
+The named behavior tests cover bounded/full queues, 1,000 Record calls within
+50ms while the store is blocked, warning rate/DB-busy responsiveness, immutable
+scrubbing, UTC statistics, batch size/delay, per-batch tenant cache, blocked tenant
+lookup, queued/in-flight/deadline/error shutdown, concurrent admission/flush,
+capability fallback/recovery, ID/request helpers, retention cutoff and lease
+contention/release. App tests cover both Close and Serve shutdown flushes.
+
+Unrun: broad repository/SQL-driver conformance/browser/stream/emitter regression
+suites; final regression remains Task 16. The required focused app suite did run
+its existing SQLite/plugin checks. No deferred or unrun check is called passing.

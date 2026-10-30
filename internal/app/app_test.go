@@ -17,7 +17,9 @@ import (
 	"time"
 
 	"github.com/zeroauthy/zeroauthy/internal/config"
+	"github.com/zeroauthy/zeroauthy/internal/logs"
 	"github.com/zeroauthy/zeroauthy/internal/logscrub"
+	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/pkg/storeplugin"
 )
 
@@ -418,5 +420,49 @@ func TestNewWiresActionsBuilds(t *testing.T) {
 	}
 	if root, err := a.builds.TenantRoot("t1"); err != nil || root != filepath.Join(cache, "t1") {
 		t.Fatalf("TenantRoot = %s, %v; want under %s", root, err, cache)
+	}
+}
+
+func TestAppClosesAndFlushesRecorder(t *testing.T) {
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}}
+	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tn, err := a.store.Tenants().GetByName(context.Background(), "system")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.logs.Record(context.Background(), logs.Event{TenantID: tn.ID, Type: "s"})
+	if err := a.Close(); err != nil {
+		t.Fatal(err)
+	}
+	_, total, err := a.store.Logs().SearchLogs(context.Background(), tn.ID, nil, store.LogPage{PerPage: 100, IncludeTotals: true})
+	if err != nil || total != 1 {
+		t.Fatalf("close flushed %d events: %v", total, err)
+	}
+}
+
+func TestAppServeFlushesRecorder(t *testing.T) {
+	cfg := &config.Config{Server: testServer, Storage: config.Storage{DSN: "memory://"}}
+	cfg.Server.Listen = "127.0.0.1:0"
+	a, err := New(context.Background(), cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer a.Close()
+	tn, err := a.store.Tenants().GetByName(context.Background(), "system")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.logs.Record(context.Background(), logs.Event{TenantID: tn.ID, Type: "s"})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := a.Serve(ctx); err != nil {
+		t.Fatal(err)
+	}
+	_, total, err := a.store.Logs().SearchLogs(context.Background(), tn.ID, nil, store.LogPage{PerPage: 100, IncludeTotals: true})
+	if err != nil || total != 1 {
+		t.Fatalf("serve shutdown flushed %d events: %v", total, err)
 	}
 }
