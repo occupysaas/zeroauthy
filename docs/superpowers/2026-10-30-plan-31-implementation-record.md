@@ -310,3 +310,111 @@ immutable caller maps and request contexts, deterministic collisions including
 literal marker-name collisions, direct/bound/nested/inline group namespaces, and
 public data preservation. No new dependencies, app restructuring or extra agents.
 Fix commit subject: `fix: mask registered secrets in dynamic log keys`.
+
+## Task 3 — Logs models and memory store
+
+Implemented the Logs v1 storage interface, event/stat/stream models, unavailable
+error and stub, optional context-aware capability probe, and public `pkg/store`
+aliases/ID forwards. `Store.Logs()` is available on memory, SQL and gRPC store
+views, including transaction views. SQL and gRPC return `ErrLogsUnavailable`
+until Tasks 4 and 5 implement them. Their real `TestLogs` conformance wrappers
+are registered; they have not been run or represented as passing here.
+
+Memory stores a true 10,000-event ring per tenant, with global monotonic int64
+sequences and canonical 56-digit IDs. Event bodies and stream sink/secrets/
+filters/PII are copied at inputs, outputs and transaction snapshots. Rollback
+restores rings (including an eviction), sequence allocation, stats, streams and
+lease/delivery state. Page reads sort Date then Seq; checkpoint/latest reads
+sort Seq and gate on commit timestamps. Outer transaction success fixes the
+commit timestamp after the callback; nested transactions join that commit and
+retain existing savepoint rollback behavior. Tenant deletion removes events,
+streams and stats; user deletion retains that user's events. Retention purges
+only expired event rows, in bounded batches, leaving daily stats intact.
+
+Daily deltas atomically add per UTC calendar day alongside append; range reads
+are inclusive and sparse. ActiveUsers counts tenant users with LastLogin>=since.
+Streams support copy-safe CRUD, optimistic admin versions, atomic exclusive
+leases, expiry/owner fencing, nondecreasing delivery checkpoints, and admin
+updates that invalidate in-flight leases while preserving fresh delivery state.
+Resuming resets scheduling/failure state without losing checkpoint or success.
+
+### Task 3 rulings and interfaces carried forward
+
+- Ruling: shared ID primitives are `store.FormatLogID` and `store.ParseLogID`,
+  also forwarded by `pkg/store`; Task 6 forwards these from logs — store cannot
+  import logs without a cycle — costs preserving these names at later call sites.
+  Parse accepts only positive int64 sequences in the canonical 56-digit form;
+  malformed/overflowing/cross-tenant IDs read as NotFound.
+- Ruling: `store.LogQuery` has Op/Field/Value/Upper strings, Left/Right children
+  and lower/upper-exclusive flags. Nil/empty root matches all; and/or are binary,
+  not has only Left, and leaves use eq/sw/range — aligns storage, parser and SQL
+  without a cycle — costs keeping parser/SQL consistent with this documented AST.
+- Ruling: introduce `internal/logsearch/eval.go` and its tests early in Task 3,
+  including Validate and Match, rather than a temporary second memory evaluator
+  — one implementation owns evaluation — Task 7 still owns parser/SQL and must
+  retain/extend the early evaluator/tests. Validation uses logrules fields and
+  organization-search bounds (1000 runes, depth 16, five predicates).
+- Ruling: admin UpdateLogStream merges only admin fields, retaining latest
+  delivery state and create-only StartFrom, increments Version and clears the
+  lease — a stale admin snapshot must not rewind a completed delivery — costs
+  implementing the same merge rule in SQL and gRPC.
+- Ruling (controller approved): paused/suspended→active sets NextAt=now,
+  Failures=0, FailingSince zero and LastErrorClass empty; retain checkpoint,
+  StartFrom and LastSuccessAt — resume must escape suspension/backoff — store
+  now owns documented resume semantics across drivers.
+- Ruling: LeaseOwner is a unique token per acquisition, not a stable worker name
+  — the existing RecordDelivery signature cannot distinguish successive leases
+  that deliberately reuse a token — Task 12 must generate fresh acquisition
+  tokens. Expired, replaced, deleted or admin-invalidated leases are fenced.
+- Verification is focused on memory/runtime plus all-store compilation as the
+  task/controller requests. Full regression remains Task 16; no database test
+  was executed for Task 3. No new module, dependency, generated file or agent.
+
+### Task 3 commands and actual results
+
+Every Go command used `GOTOOLCHAIN=go1.26.7`. Captured outputs are under
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-3-*.log`.
+
+- RED `go test ./internal/store/memory -run Logs -count=1`: exit 1, missing
+  Store.Logs and storage types, before implementation. After contract/stub
+  scaffolding, the same command again exited 1: all eleven then-written real
+  conformance cases failed with `store: logs repository unavailable`.
+- First implementation run failed only LogsDeleteTenant because its user
+  fixture prepends `auth0|` while deletion used bare `u`; corrected the fixture
+  reference to u.UserID and aligned the event's UserID with that real user.
+  No production behavior was weakened to accommodate the fixture.
+- Additional RED `go test ./internal/store/memory -run 'Logs/Logs/LogStreamResume' -count=1`:
+  exit 1, resume could not lease because the old future NextAt survived.
+  Implemented the controller-approved atomic reset; focused/full Logs GREEN.
+- Self-review RED `go test ./internal/logsearch -run TestValidateQueryBounds -count=1`:
+  exit 1, six predicates were accepted. Matched the existing orgsearch five-leaf
+  bound; GREEN `go test ./internal/logsearch -count=1`, exit 0, 0.004 s.
+- Final required `go test ./internal/store/memory -run Logs -count=1`: exit 0,
+  0.023 s. All nine required named cases exist, plus transaction rollback,
+  boolean queries, StartFrom policy, concurrent leases, resume and admin merge;
+  memory-specific tests also verify ring/input-copy/eviction rollback and outer
+  commit timestamps with nested rollback.
+- `go test ./internal/store/memory ./internal/logsearch -count=1`: exit 0;
+  memory 8.542 s, logsearch 0.007 s. This covers the complete memory package;
+  the final fixture-only UserID correction was followed by the required focused
+  Logs run above. Earlier full memory run also passed (5.404 s).
+- `go test -race ./internal/store/memory ./internal/logsearch -run 'Logs|MatchLogQueries|ValidateQueryBounds' -count=1`:
+  exit 0; memory 1.146 s, logsearch 1.038 s. Earlier focused Logs race also
+  passed (1.133 s). No data race was reported.
+- Required `go test ./internal/store/... -run '^$'`: exit 0, compile-only.
+  Final expanded compile check `go test ./internal/store/... ./internal/logsearch ./pkg/store ./pkg/storetest -run '^$'`:
+  exit 0; SQL/gRPC explicitly report no tests to run. This is not database or
+  transport runtime acceptance.
+- `git diff --check`: exit 0.
+
+Self-review checked every named case against the brief, ring rotation and
+snapshot ownership, outer commit visibility, UTC normalization, date/sequence
+ordering, cross-tenant reads/deletion, query rejection and boolean/date/prefix
+behavior, lease expiry/takeover/concurrency, stale-delivery fencing, admin merges
+and resumed delivery. Controller supplies review; no subagents were spawned.
+Commit subject: `feat: add logs storage contract and memory store`.
+
+Deferred/unrun: SQL Logs runtime conformance (SQLite/PostgreSQL/MySQL), gRPC Logs
+runtime conformance (memory and SQL backends), SQL scripts, recorder/API/worker,
+stream network delivery, browser/E2E acceptance and broad project regression.
+SQL/gRPC stubs remain an intentional Task 3 boundary, not passing implementations.

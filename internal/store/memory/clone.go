@@ -239,3 +239,29 @@ func cloneOrgInvitation(in *store.OrganizationInvitation) *store.OrganizationInv
 	out.AppMetadata = cloneJSON(in.AppMetadata)
 	return &out
 }
+
+func cloneLog(e store.LogEvent) store.LogEvent { e.Body = bytes.Clone(e.Body); return e }
+func cloneLogRings(in map[string]*logRing) map[string]*logRing {
+	out := make(map[string]*logRing, len(in))
+	for tid, r := range in {
+		c := &logRing{start: r.start, events: make([]storedLog, len(r.events))}
+		for i, e := range r.events {
+			e.event = cloneLog(e.event)
+			c.events[i] = e
+		}
+		out[tid] = c
+	}
+	return out
+}
+func cloneLogStream(in *store.LogStream) *store.LogStream {
+	out := *in
+	out.Sink = cloneJSON(in.Sink)
+	out.SealedSecrets = bytes.Clone(in.SealedSecrets)
+	out.Filters = append([]store.LogStreamFilter(nil), in.Filters...)
+	if in.PII != nil {
+		v := *in.PII
+		v.LogFields = append([]string(nil), in.PII.LogFields...)
+		out.PII = &v
+	}
+	return &out
+}

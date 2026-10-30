@@ -27,7 +27,21 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	}
 	s.txMu.Lock()
 	defer s.txMu.Unlock()
-	return s.savepoint(fn)
+	err := s.savepoint(fn)
+	if err == nil {
+		// Only the outer transaction fixes commit visibility for newly appended events.
+		s.mu.Lock()
+		committed := s.now().UTC()
+		for _, ring := range s.logEvents {
+			for i := range ring.events {
+				if ring.events[i].committed.IsZero() {
+					ring.events[i].committed = committed
+				}
+			}
+		}
+		s.mu.Unlock()
+	}
+	return err
 }
 
 // savepoint runs fn against the transaction view and restores the maps it
@@ -66,6 +80,7 @@ func (s *Store) snapshot() *state {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return &state{
+		logEvents: cloneLogRings(s.logEvents), logStreams: cloneMap(s.logStreams, cloneLogStream), logStats: cloneMap(s.logStats, cloneValue[store.DailyStat]), logSeq: s.logSeq,
 		modules: cloneMap(s.modules, cloneModule), moduleVersions: cloneMap(s.moduleVersions, cloneModuleVersion), actionJobs: cloneMap(s.actionJobs, cloneActionJob),
 		actions: cloneMap(s.actions, cloneAction), actionVersions: cloneMap(s.actionVersions, cloneActionVersion), builds: cloneMap(s.builds, cloneBuild),
 		bindingSets: maps.Clone(s.bindingSets), artifacts: cloneArtifacts(s.artifacts), bindings: cloneBindingLists(s.bindings), executions: cloneMap(s.executions, cloneExecution), continues: cloneMap(s.continues, cloneContinue),
@@ -118,6 +133,7 @@ func (s *Store) snapshot() *state {
 func (s *Store) restore(snap *state) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.logEvents, s.logStreams, s.logStats, s.logSeq = snap.logEvents, snap.logStreams, snap.logStats, snap.logSeq
 	s.actions, s.actionVersions, s.builds, s.artifacts = snap.actions, snap.actionVersions, snap.builds, snap.artifacts
 	s.modules, s.moduleVersions, s.actionJobs = snap.modules, snap.moduleVersions, snap.actionJobs
 	s.bindingSets = snap.bindingSets

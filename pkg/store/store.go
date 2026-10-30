@@ -322,3 +322,24 @@ var ErrActionsUnavailable = store.ErrActionsUnavailable
 var ErrBuildNotReady = store.ErrBuildNotReady
 
 var OrganizationsIISupported = store.OrganizationsIISupported
+
+// Logs v1 storage contracts.
+type (
+	Logs              = store.Logs
+	LogsSupporter     = store.LogsSupporter
+	UnimplementedLogs = store.UnimplementedLogs
+	LogEvent          = store.LogEvent
+	LogQuery          = store.LogQuery
+	LogPage           = store.LogPage
+	DailyStatDelta    = store.DailyStatDelta
+	DailyStat         = store.DailyStat
+	LogStream         = store.LogStream
+	LogStreamFilter   = store.LogStreamFilter
+	LogStreamPII      = store.LogStreamPII
+	LogStreamDelivery = store.LogStreamDelivery
+)
+
+var ErrLogsUnavailable = store.ErrLogsUnavailable
+
+func FormatLogID(seq int64) string        { return store.FormatLogID(seq) }
+func ParseLogID(id string) (int64, error) { return store.ParseLogID(id) }

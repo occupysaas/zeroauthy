@@ -36,6 +36,7 @@ var (
 
 // Store aggregates the repositories of one storage backend.
 type Store interface {
+	Logs() Logs
 	RBAC() RBAC
 	Organizations() Organizations
 	OrganizationsII() OrganizationsII

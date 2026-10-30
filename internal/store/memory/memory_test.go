@@ -20,3 +20,7 @@ func TestActions(t *testing.T) {
 func TestOrganizationsII(t *testing.T) {
 	storetest.RunSuites(t, func(*testing.T) store.Store { return memory.New() }, "OrganizationsII")
 }
+
+func TestLogs(t *testing.T) {
+	storetest.RunSuites(t, func(*testing.T) store.Store { return memory.New() }, "Logs")
+}
