@@ -155,16 +155,25 @@ With the quick-start config (`system_host: system.localhost:8443`) it is at
 `https://system.localhost:8443/admin/`. Browsers resolve `*.localhost` to
 127.0.0.1; for other clients add `127.0.0.1 system.localhost` to `/etc/hosts`.
 
-With the server running, create the first operator in another terminal:
+The quick-start config stores everything in memory, so the first operator
+must be created by the server itself: start it with
+`ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL` set.
 
 ```bash
-./bin/zeroauthy admin create --email you@example.com --config tests/e2e/config.yaml
+ZEROAUTHY_SERVER__TLS_CERT_FILE=cert.pem ZEROAUTHY_SERVER__TLS_KEY_FILE=key.pem \
+ZEROAUTHY_BOOTSTRAP__ADMIN_EMAIL=you@example.com \
+  ./bin/zeroauthy serve --config tests/e2e/config.yaml
 ```
 
-Open the printed one-time link (valid for one hour), choose a password of at
-least 12 characters, then sign in at `https://system.localhost:8443/admin/`.
-The quick-start config stores everything in memory, so run `admin create`
-again after each restart.
+The server logs a one-time setup link (valid for one hour). Open it, choose a
+password of at least 12 characters, then sign in at
+`https://system.localhost:8443/admin/`. Memory storage is lost on restart, and
+so is the operator; the next start logs a new link.
+
+`zeroauthy admin create --email you@example.com --config <file>` does the same
+from another terminal, but only with persistent storage (SQLite, PostgreSQL,
+MySQL): it opens the database directly, so with `memory://` its link points at
+data the server never sees.
 
 The built console (`console/dist`) is embedded in the binary at compile time.
 After changing the console, run `make console` and then rebuild the binary
