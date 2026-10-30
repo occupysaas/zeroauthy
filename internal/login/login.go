@@ -627,7 +627,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 			if e != nil {
 				return e
 			}
-			if !link.IsSignupEnabled || (!link.AssignMembershipOnLogin && f.txn.Params[orglogin.InvitationIDParam] == "") {
+			if (link.IsEnabledSet && !link.IsEnabled) || !link.IsSignupEnabled || (!link.AssignMembershipOnLogin && f.txn.Params[orglogin.InvitationIDParam] == "") {
 				return identity.ErrSignupDisabled
 			}
 		}

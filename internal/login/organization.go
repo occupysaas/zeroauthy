@@ -221,7 +221,7 @@ func organizationSignupAllowed(f *flow) bool {
 		return f.txn.Params[store.TxnParamOrgMode] != string(authz.OrgPromptBefore)
 	}
 	link, ok := f.org.Connections[f.conn.ID]
-	return ok && link.IsSignupEnabled && (link.AssignMembershipOnLogin || f.txn.Params[orglogin.InvitationIDParam] != "")
+	return ok && (!link.IsEnabledSet || link.IsEnabled) && link.IsSignupEnabled && (link.AssignMembershipOnLogin || f.txn.Params[orglogin.InvitationIDParam] != "")
 }
 
 // Empty methods preserve the original name prompt for existing clients.

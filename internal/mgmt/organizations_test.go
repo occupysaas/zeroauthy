@@ -469,7 +469,7 @@ func TestOrganizationsAllConnections(t *testing.T) {
 	id := e.create(map[string]any{"name": "deploy"}, 201)["id"].(string)
 	base := "/organizations/" + id + "/connections"
 	created := e.obj("POST", base, map[string]any{"connection_id": orgDB, "assign_membership_on_login": true, "is_enabled": true, "organization_access_level": "none", "organization_member_access_level": "limited", "organization_connection_name": nil}, e.addConn(id, true), 201)
-	want := []string{"assign_membership_on_login", "connection", "connection_id", "is_enabled", "is_signup_enabled", "organization_access_level", "organization_member_access_level", "show_as_button"}
+	want := []string{"assign_membership_on_login", "connection", "connection_id", "is_enabled", "is_signup_enabled", "organization_access_level", "organization_connection_name", "organization_member_access_level", "show_as_button"}
 	if got := keysOf(created); !slices.Equal(got, want) || created["is_enabled"] != true || created["organization_access_level"] != "none" || created["organization_member_access_level"] != "limited" {
 		t.Fatalf("created=%v", created)
 	}
@@ -489,10 +489,6 @@ func TestOrganizationsAllConnections(t *testing.T) {
 		t.Fatalf("disabled=%v", none)
 	}
 	for _, body := range []map[string]any{
-		{"connection_id": orgDB2, "is_enabled": false},
-		{"connection_id": orgDB2, "organization_access_level": "full"},
-		{"connection_id": orgDB2, "organization_member_access_level": "none"},
-		{"connection_id": orgDB2, "organization_connection_name": "alias"},
 		{"connection_id": orgDB2, "show_as_button": false},
 		{"connection_id": orgDB2, "unknown": true},
 	} {
@@ -509,7 +505,7 @@ func TestOrganizationsAllConnections(t *testing.T) {
 	if ec := e.obj("GET", "/organizations/"+id+"/enabled_connections/"+orgDB, nil, e.conn("GET", id, orgDB, false), 200); ec["is_signup_enabled"] != true || ec["is_enabled"] != nil {
 		t.Fatalf("shared patch=%v", ec)
 	}
-	e.fail("PATCH", base+"/"+orgDB, map[string]any{"organization_access_level": "readonly"}, e.conn("PATCH", id, orgDB, true), 400, "invalid_body")
+	e.fail("PATCH", base+"/"+orgDB, map[string]any{"organization_access_level": "admin"}, e.conn("PATCH", id, orgDB, true), 400, "invalid_body")
 	e.fail("PATCH", base+"/"+orgDB2, map[string]any{}, e.conn("PATCH", id, orgDB2, true), 404, "inexistent_connection")
 	e.do(e.tn, "DELETE", base+"/"+orgDB, nil, e.conn("DELETE", id, orgDB, true), 204)
 	e.fail("GET", "/organizations/"+id+"/enabled_connections/"+orgDB, nil, e.conn("GET", id, orgDB, false), 404, "")

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
+	"unicode/utf8"
 
 	"github.com/zeroauthy/zeroauthy/internal/orgrules"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -11,9 +13,8 @@ import (
 
 // An organization's connections are served by two resources over the same
 // links: the GA /enabled_connections and the Early Access /connections
-// that the Deploy CLI uses (D-0055). /connections adds is_enabled and the
-// two access levels, which zeroauthy does not store: responses carry the
-// observed defaults and writes of any other value are 400.
+// that the Deploy CLI uses. EA associations may remain disabled; access levels
+// are metadata only and never confer authentication or Management permissions.
 
 const (
 	orgAccessLevelDefault       = "none"
@@ -72,28 +73,30 @@ func readConnectionFlags(raw json.RawMessage, c *store.OrganizationConnection, k
 			if !all {
 				return badBody("unknown property %q", k)
 			}
-			var on bool
-			if decodeStrict(v, &on) != nil || !on {
-				return badBody("is_enabled can only be true: disabled organization connections are not supported (D-0055)")
+			c.IsEnabled, c.IsEnabledSet = true, true
+			if !isNull(v) {
+				err = decodeStrict(v, &c.IsEnabled)
 			}
 		case "organization_connection_name":
 			if !all {
 				return badBody("unknown property %q", k)
 			}
-			if !isNull(v) {
-				return badBody("organization_connection_name is not supported (D-0055)")
+			c.ConnectionName = ""
+			if !isNull(v) && (decodeString(v, &c.ConnectionName) != nil || utf8.RuneCountInString(c.ConnectionName) < 1 || utf8.RuneCountInString(c.ConnectionName) > 50) {
+				return badBody("organization_connection_name must be a string of 1 to 50 characters or null")
 			}
 		case "organization_access_level", "organization_member_access_level":
 			if !all {
 				return badBody("unknown property %q", k)
 			}
-			want := orgAccessLevelDefault
-			if k == "organization_member_access_level" {
-				want = orgMemberAccessLevelDefault
+			level := "none"
+			if !isNull(v) && (decodeString(v, &level) != nil || (level != "none" && level != "readonly" && level != "limited" && level != "full")) {
+				return badBody("%s must be a documented access level or null", k)
 			}
-			var level string
-			if !isNull(v) && (decodeString(v, &level) != nil || level != want) {
-				return badBody("%s can only be %q (D-0055)", k, want)
+			if k == "organization_access_level" {
+				c.OrganizationAccessLevel = level
+			} else {
+				c.OrganizationMemberAccessLevel = level
 			}
 		default:
 			return badBody("unknown property %q", k)
@@ -114,9 +117,14 @@ func orgConnectionView(c store.OrganizationConnection, conn *store.Connection, a
 		"connection":                 map[string]any{"name": conn.Name, "strategy": conn.Strategy},
 	}
 	if all {
-		out["is_enabled"] = true
-		out["organization_access_level"] = orgAccessLevelDefault
-		out["organization_member_access_level"] = orgMemberAccessLevelDefault
+		out["is_enabled"] = !c.IsEnabledSet || c.IsEnabled
+		out["organization_access_level"] = c.OrganizationAccessLevel
+		out["organization_member_access_level"] = c.OrganizationMemberAccessLevel
+		name := c.ConnectionName
+		if name == "" {
+			name = conn.Name
+		}
+		out["organization_connection_name"] = name
 	}
 	return out
 }
@@ -168,6 +176,10 @@ func (h *Handlers) listOrgConnections(w http.ResponseWriter, r *http.Request, id
 	if _, ok := h.orgs(w); !ok {
 		return
 	}
+	if _, err := url.ParseQuery(r.URL.RawQuery); err != nil {
+		Fail(w, badQuery("Query validation error: malformed query"))
+		return
+	}
 	allowed := []string{"page", "per_page", "include_totals"}
 	if all {
 		allowed = append(allowed, "is_enabled")
@@ -175,6 +187,10 @@ func (h *Handlers) listOrgConnections(w http.ResponseWriter, r *http.Request, id
 	p, _, err := orgQuery(r, allowed...)
 	if err != nil {
 		Fail(w, err)
+		return
+	}
+	if values, present := r.URL.Query()["is_enabled"]; present && (len(values) != 1 || (values[0] != "true" && values[0] != "false")) {
+		Fail(w, badQuery("Query validation error: is_enabled must be true or false"))
 		return
 	}
 	enabledOnly, err := boolParam(r, "is_enabled", true)
@@ -187,17 +203,27 @@ func (h *Handlers) listOrgConnections(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 	tid := resolved(r).ID
-	res, err := orgs.Connections(r.Context(), tid, id, p)
+	// Associations are bounded by the organization connection limit. Filter the
+	// single summary snapshot before slicing so totals and page boundaries agree.
+	res, err := orgs.Connections(r.Context(), tid, id, store.OrgPage{PerPage: 100})
 	if err != nil {
 		h.orgError(w, r, err)
 		return
 	}
-	items := make([]map[string]any, 0, len(res.Items))
-	total := res.Total
-	if !enabledOnly {
-		// Every stored link is enabled.
-		res.Items, total = nil, 0
+	filtered := res.Items[:0]
+	_, filterEnabled := r.URL.Query()["is_enabled"]
+	for _, c := range res.Items {
+		enabled := !c.IsEnabledSet || c.IsEnabled
+		if (!all && !enabled) || (all && filterEnabled && enabled != enabledOnly) {
+			continue
+		}
+		filtered = append(filtered, c)
 	}
+	total := len(filtered)
+	start := min(p.Page*p.PerPage, total)
+	end := min(start+p.PerPage, total)
+	res.Items = filtered[start:end]
+	items := make([]map[string]any, 0, len(res.Items))
 	for _, c := range res.Items {
 		conn := &store.Connection{Name: c.SummaryName, Strategy: c.SummaryStrategy}
 		var err error
@@ -217,7 +243,19 @@ func (h *Handlers) listOrgConnections(w http.ResponseWriter, r *http.Request, id
 	writeOrgList(w, name, items, total, "", p, false, true)
 }
 
+// EA item and write operations have no documented query parameters.
+func orgConnectionNoQuery(w http.ResponseWriter, r *http.Request) bool {
+	if r.URL.RawQuery != "" {
+		Fail(w, badQuery("Query validation error: this operation accepts no query parameters"))
+		return false
+	}
+	return true
+}
+
 func (h *Handlers) createOrgConnection(w http.ResponseWriter, r *http.Request, id string, all bool) {
+	if all && !orgConnectionNoQuery(w, r) {
+		return
+	}
 	orgs, ok := h.orgs(w)
 	if !ok {
 		return
@@ -228,7 +266,7 @@ func (h *Handlers) createOrgConnection(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 	raw, _ := json.Marshal(data)
-	c := store.OrganizationConnection{ShowAsButton: true}
+	c := store.OrganizationConnection{ShowAsButton: true, IsEnabled: true, IsEnabledSet: true, OrganizationAccessLevel: orgAccessLevelDefault, OrganizationMemberAccessLevel: orgMemberAccessLevelDefault}
 	kind := connectionCreate
 	if all {
 		kind = allConnectionCreate
@@ -247,7 +285,23 @@ func (h *Handlers) createOrgConnection(w http.ResponseWriter, r *http.Request, i
 		h.orgError(w, r, err)
 		return
 	}
-	if err := orgs.PutConnection(r.Context(), c, true); err != nil {
+	if err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
+		create := true
+		if !all {
+			old, err := tx.Organizations().GetConnection(r.Context(), c.TenantID, id, c.ConnectionID)
+			if err != nil && !errors.Is(err, store.ErrNotFound) {
+				return err
+			}
+			if err == nil && old.IsEnabledSet && !old.IsEnabled {
+				create = false
+				// A legacy write preserves organization-local metadata.
+				c.ConnectionName = old.ConnectionName
+				c.OrganizationAccessLevel = old.OrganizationAccessLevel
+				c.OrganizationMemberAccessLevel = old.OrganizationMemberAccessLevel
+			}
+		}
+		return tx.Organizations().PutConnection(r.Context(), c, create)
+	}); err != nil {
 		switch {
 		case errors.Is(err, store.ErrConflict):
 			Fail(w, errOrgConnectionConflict)
@@ -263,13 +317,16 @@ func (h *Handlers) createOrgConnection(w http.ResponseWriter, r *http.Request, i
 }
 
 func (h *Handlers) getOrgConnection(w http.ResponseWriter, r *http.Request, id, connID string, all bool) {
+	if all && !orgConnectionNoQuery(w, r) {
+		return
+	}
 	orgs, ok := h.orgConnectionPath(w, r, id, connID)
 	if !ok {
 		return
 	}
 	tid := resolved(r).ID
 	c, err := orgs.GetConnection(r.Context(), tid, id, connID)
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || (err == nil && !all && c.IsEnabledSet && !c.IsEnabled) {
 		Fail(w, errOrgConnectionNotEnabled)
 		return
 	}
@@ -286,6 +343,9 @@ func (h *Handlers) getOrgConnection(w http.ResponseWriter, r *http.Request, id, 
 }
 
 func (h *Handlers) updateOrgConnection(w http.ResponseWriter, r *http.Request, id, connID string, all bool) {
+	if all && !orgConnectionNoQuery(w, r) {
+		return
+	}
 	if _, ok := h.orgConnectionPath(w, r, id, connID); !ok {
 		return
 	}
@@ -294,7 +354,7 @@ func (h *Handlers) updateOrgConnection(w http.ResponseWriter, r *http.Request, i
 	var conn *store.Connection
 	err := h.Store.WithTx(r.Context(), func(tx store.Store) error {
 		c, err := tx.Organizations().GetConnection(r.Context(), tid, id, connID)
-		if errors.Is(err, store.ErrNotFound) {
+		if errors.Is(err, store.ErrNotFound) || (err == nil && !all && c.IsEnabledSet && !c.IsEnabled) {
 			// Observed: PATCH of a connection that is not enabled is 404
 			// inexistent_connection.
 			return errConnectionNotFound
@@ -316,6 +376,11 @@ func (h *Handlers) updateOrgConnection(w http.ResponseWriter, r *http.Request, i
 		}
 		if conn, err = orgConnectionTarget(r, tx, *c, true); err != nil {
 			return err
+		}
+		// Storage preserves omitted empty names for legacy callers. Translate an
+		// explicit API null to the underlying name before that normalization.
+		if name, present := data["organization_connection_name"]; present && isNull(name) {
+			c.ConnectionName = conn.Name
 		}
 		if err := tx.Organizations().PutConnection(r.Context(), *c, false); err != nil {
 			return err
@@ -385,5 +450,8 @@ func (h *Handlers) UpdateOrganizationAllConnection(w http.ResponseWriter, r *htt
 	h.updateOrgConnection(w, r, id, connID, true)
 }
 func (h *Handlers) DeleteOrganizationAllConnection(w http.ResponseWriter, r *http.Request, id, connID string) {
+	if !orgConnectionNoQuery(w, r) {
+		return
+	}
 	h.deleteOrgConnection(w, r, id, connID)
 }

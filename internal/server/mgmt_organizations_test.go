@@ -123,7 +123,7 @@ func TestOrganizationsRoutes(t *testing.T) {
 		{"GET", "/organizations/" + id + "/connections?include_totals=true&is_enabled=true", nil, 200},
 		{"GET", "/organizations/" + id + "/connections/" + dbID, nil, 200},
 		{"PATCH", "/organizations/" + id + "/connections/" + dbID, map[string]any{"is_enabled": true, "organization_access_level": "none"}, 200},
-		{"PATCH", "/organizations/" + id + "/connections/" + dbID, map[string]any{"organization_access_level": "full"}, 400},
+		{"PATCH", "/organizations/" + id + "/connections/" + dbID, map[string]any{"organization_access_level": "full"}, 200},
 		{"GET", "/organizations/" + id + "/client-grants", nil, 200},
 		{"GET", "/organizations/" + id + "/client-grants?include_totals=true", nil, 200},
 		{"DELETE", "/organizations/" + id + "/connections/" + dbID, nil, 204},
