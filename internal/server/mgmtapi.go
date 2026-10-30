@@ -824,3 +824,27 @@ func (a mgmtAPI) DeleteOrganizationClientGrant(w http.ResponseWriter, r *http.Re
 func (a mgmtAPI) ListClientGrantOrganizations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListClientGrantOrganizationsParams) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListClientGrantOrganizations(w, r, id) }, "read:organization_client_grants")
 }
+
+func (a mgmtAPI) ListOrganizationDiscoveryDomains(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListOrganizationDiscoveryDomainsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListOrganizationDiscoveryDomains(w, r, id) }, "read:organization_discovery_domains")
+}
+
+func (a mgmtAPI) CreateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.CreateOrganizationDiscoveryDomain(w, r, id) }, "create:organization_discovery_domains")
+}
+
+func (a mgmtAPI) GetOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationDiscoveryDomain(w, r, id, key) }, "read:organization_discovery_domains")
+}
+
+func (a mgmtAPI) GetOrganizationDiscoveryDomainByName(w http.ResponseWriter, r *http.Request, id, key string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.GetOrganizationDiscoveryDomainByName(w, r, id, key) }, "read:organization_discovery_domains")
+}
+
+func (a mgmtAPI) UpdateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateOrganizationDiscoveryDomain(w, r, id, key) }, "update:organization_discovery_domains")
+}
+
+func (a mgmtAPI) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationDiscoveryDomain(w, r, id, key) }, "delete:organization_discovery_domains")
+}

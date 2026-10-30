@@ -746,3 +746,36 @@ column. Other selected tests PASS all three dialects; corrected migration fixtur
 rerun PASS all three (6.668s), including 0027 and clients upgraded/fresh shape.
 The initial covering command remains recorded as FAIL; no unchanged passing
 selections were rerun. Final diff check PASS.
+
+Task 9 was controller-reviewed and approved. Minor dedicated regressions for
+replacing a grant under a different ID and scope shrink during an Action remain
+recommended for final-review triage; both protections are implemented. Existing
+SQL barrier scope-shrink tests passed; the remaining gap is specifically Action
+timing and ID replacement.
+
+## Task 10 — Discovery-domain management and exact-domain resolution
+
+Activated the frozen D-0056 domain CRUD routes and four dedicated management
+scopes. Lists use checkpoint from/take and the domains envelope. Creates store
+pending canonical domains, a random challenge and _zeroauthy-org host; the use
+flag defaults true. PATCH preserves omitted fields and accepts administrator
+status attestations without performing DNS/network verification. Null, unknown,
+read-only domain/challenge fields and unsupported/repeated queries are rejected.
+Existing OrganizationsII repositories enforce owner references and per-org
+uniqueness; domains may be shared across organizations and tenants.
+
+NormalizeDiscoveryDomain uses IDNA ASCII lowercase and strict DNS label checks,
+rejecting wildcard, IP, URL, port and trailing-dot forms. Discover reads no user
+accounts and writes no records. It returns fresh, tenant-scoped, deduplicated,
+ID-sorted organizations with verified enabled exact-domain records, after client
+organization usage, third-party, member entitlement and current usable enabled
+connection filtering. It imposes no candidate cap; the caller owns picker bounds.
+It never treats domain attestation as email verification or membership consent.
+Old plugins fail closed through the existing capability boundary.
+
+Focused pinned Go 1.26.7 checks and exact limitations are recorded in the workspace
+task-10-report.md. Initial normalization compile RED and focused GREEN observed;
+management/policy coverage was expanded after implementation. Memory and
+memory-backed gRPC OrganizationsII shared conformance passed. No full-suite,
+SQL, browser, external provider or hosted discovery-flow claim is made; Task 11
+owns caller binding and picker flow. Controller owns review and ledger completion.
