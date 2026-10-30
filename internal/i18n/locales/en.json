@@ -260,8 +260,10 @@
   "organizations": {
     "organization-selection": {
       "title": "Choose your organization",
-      "description": "Enter your organization name to continue.",
+      "description": "Find your organization to continue.",
       "organizationName": "Organization name",
+      "email": "Email address",
+      "personal": "Continue without an organization",
       "buttonText": "Continue",
       "invalid-organization": "Unable to continue with that organization.",
       "logoAltText": "${companyName}"

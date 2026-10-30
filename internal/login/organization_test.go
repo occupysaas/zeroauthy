@@ -263,16 +263,16 @@ func TestOrganizationPromptSessionAndBypass(t *testing.T) {
 	org, _, _ := organizationFixture(t, e, store.OrgBehaviorPreLoginPrompt, true, false)
 	ctx := context.Background()
 	c, _ := e.st.Clients().Get(ctx, org.TenantID, "spa")
-	c.OrganizationDiscoveryMethods = []string{"email"}
+	c.OrganizationDiscoveryMethods = []string{store.OrgDiscoveryEmail, store.OrgDiscoveryName}
 	c.OrganizationUsage = store.OrgUsageAllow
 	if err := e.st.Clients().Update(ctx, c); err != nil {
 		t.Fatal(err)
 	}
 	b := e.browser("acme.example.test")
-	// The name field stays available even with email-only discovery.
+	// Configuring both discovery methods retains the original name flow.
 	page, state, csrf := b.begin(t)
 	if !strings.Contains(page.Body.String(), `name="organization"`) {
-		t.Fatal("email-only discovery lost name field")
+		t.Fatal("both discovery methods lost name field")
 	}
 	// A direct signup request cannot bypass the unresolved organization prompt.
 	rec := b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"bypass@acme.test"}, "password": {"a good password 1"}})
