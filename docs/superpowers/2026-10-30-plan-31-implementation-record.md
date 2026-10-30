@@ -714,3 +714,53 @@ contention/release. App tests cover both Close and Serve shutdown flushes.
 Unrun: broad repository/SQL-driver conformance/browser/stream/emitter regression
 suites; final regression remains Task 16. The required focused app suite did run
 its existing SQLite/plugin checks. No deferred or unrun check is called passing.
+
+### Task 6 review fixes — asynchronous masking and semantic statistics
+
+Review of commit `4799d67` identified two Important defects. Both were reproduced
+before changes: a registered value `acme` leaked through asynchronously loaded
+`tenant_name` in stored and fallback server bodies, and registered `leak` masked
+`pwd_leak` before classification, incorrectly leaving LeakedPasswords at zero.
+
+Added `logscrub.DetachedScrubber(ctx)`, which copies only immutable registered
+mask strings into a scrub function. It captures no request context, cancellation
+or unrelated context values. Its calls reuse ScrubValueContext, including
+secret-key, dynamic-key and encoded-JSON handling. Each queued event carries its
+own snapshot so cached tenant lookups can safely serve events with different
+masks. The writer masks the tenant-name value before the final sink scrub;
+`tenant_name` remains a fixed schema key. Tests explicitly assert no request
+context reads occur after Record, and that one batch lookup preserves distinct
+masked/unmasked values for separate events in both storage and fallback logging.
+
+Statistics classification is now captured from the original event type before
+privacy masking. Only the frozen semantic StatsKind is queued; the original
+unmasked event code is not retained for statistics. Public body/indexed type
+remain masked, while the original semantic daily counter still increments in
+the same AppendLogs call.
+
+Actual verification, all under `GOTOOLCHAIN=go1.26.7`:
+
+- RED `go test ./internal/logs -run 'TestRecorderScrubsAsyncTenantName|TestRecorderStats' -count=1`:
+  exit 1; both tenant-name sink tests showed `acme`, and the UTC fixture had
+  LeakedPasswords:0 instead of 1. Output: `task-6-review-red.log`.
+- RED `go test ./internal/logscrub -run '^TestDetachedScrubber$' -count=1`:
+  exit 1, missing DetachedScrubber before implementing the helper. Output:
+  `task-6-review-red-detached.log`.
+- GREEN `go test ./internal/logscrub ./internal/logs ./internal/app ./internal/config -count=1`:
+  exit 0; logscrub 0.015s, logs 0.350s, app 5.094s, config 0.009s.
+- Race `go test -race ./internal/logscrub ./internal/logs ./internal/app ./internal/config -count=1`:
+  exit 0; logscrub 1.032s, logs 1.455s, app 13.465s, config 1.037s.
+- `git diff --check`: exit 0. Reviewed only the two fixes, helper and regression
+  tests; no feature scope, dependency or generated-file changes.
+
+Ruling: retain detached immutable mask metadata alongside already scrubbed queued
+JSON so asynchronous enrichment can use the original masks without retaining
+request contexts. Cost: each queued event holds a cloned mask list until its
+batch is written; this remains bounded by the existing queue/batch sizes.
+Earlier statements that events are scrubbed before enqueue still hold for event
+JSON; detached masking metadata intentionally contains the values needed to
+scrub enrichment. No such metadata reaches storage or fallback output.
+
+Broad/final regression suites remain unrun and assigned to Task 16. The exact
+review was copied to the plan scratch `task-6-review.md`; detailed fix output is
+in `task-6-review-{red,red-detached,green,race}.log`.

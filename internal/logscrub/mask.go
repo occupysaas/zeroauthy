@@ -23,6 +23,20 @@ func WithValues(ctx context.Context, values ...string) context.Context {
 	return context.WithValue(ctx, valuesKey{}, merged)
 }
 
+// DetachedScrubber snapshots only the immutable registered mask values. The
+// returned function retains no request context, cancellation, or unrelated
+// context values, and may safely scrub enrichment produced after a request ends.
+// Each invocation uses the same key/value and encoded-JSON policies as
+// ScrubValueContext and returns an independent JSON-compatible value.
+func DetachedScrubber(ctx context.Context) func(any) any {
+	registered, _ := ctx.Value(valuesKey{}).([]string)
+	values := slices.Clone(registered)
+	return func(v any) any {
+		maskCtx := context.WithValue(context.Background(), valuesKey{}, values)
+		return ScrubValueContext(maskCtx, v)
+	}
+}
+
 // MaskText replaces exact registered values, merging overlapping occurrences.
 // Matches are found in the original text, so replacement markers are never
 // themselves remasked or used to interfere with another replacement.

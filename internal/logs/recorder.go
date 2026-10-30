@@ -19,8 +19,10 @@ const batchSize = 100
 const batchDelay = 250 * time.Millisecond
 
 type queuedEvent struct {
-	event store.LogEvent
-	body  map[string]any
+	event     store.LogEvent
+	body      map[string]any
+	scrub     func(any) any
+	statsKind string
 }
 
 // AsyncRecorder owns a bounded queue and one batch writer. Run starts the writer;
@@ -78,6 +80,7 @@ func (r *AsyncRecorder) Record(ctx context.Context, e Event) {
 	if e.Date.IsZero() {
 		e.Date = r.cfg.Now()
 	}
+	statsKind := r.statsKinds[e.Type]
 	e.Date = e.Date.UTC()
 	doc := map[string]any{"date": e.Date.Format(time.RFC3339Nano), "type": e.Type}
 	fields := map[string]string{"description": e.Description, "client_id": e.ClientID, "client_name": e.ClientName, "connection": e.Connection, "connection_id": e.ConnectionID, "strategy": e.Strategy, "strategy_type": e.StrategyType, "user_id": e.UserID, "user_name": e.UserName, "audience": e.Audience, "scope": e.Scope, "organization_id": e.OrganizationID, "organization_name": e.OrganizationName, "hostname": e.Hostname, "ip": e.IP, "user_agent": e.UserAgent}
@@ -104,8 +107,9 @@ func (r *AsyncRecorder) Record(ctx context.Context, e Event) {
 		doc["details"] = details
 	}
 	// Scrub the completed document, including enrichment. This immutable
-	// context-aware scrub masks dynamic names and encoded JSON. No context or
-	// caller-owned value survives in the queue.
+	// context-aware scrub masks dynamic names and encoded JSON. Only detached
+	// immutable mask metadata accompanies the independent body; no request context
+	// or caller-owned mutable value survives in the queue.
 	safe := logscrub.ScrubValueContext(ctx, doc).(map[string]any)
 	body, err := json.Marshal(safe)
 	if err != nil {
@@ -121,7 +125,7 @@ func (r *AsyncRecorder) Record(ctx context.Context, e Event) {
 		return
 	}
 	select {
-	case r.queue <- queuedEvent{event: event, body: safe}:
+	case r.queue <- queuedEvent{event: event, body: safe, scrub: logscrub.DetachedScrubber(ctx), statsKind: statsKind}:
 	default:
 		r.drop(1)
 	}
@@ -247,7 +251,7 @@ func (r *AsyncRecorder) writeBatch(ctx context.Context, batch []queuedEvent) {
 			names[tid] = name
 		}
 		if name != "" {
-			batch[i].body["tenant_name"] = name
+			batch[i].body["tenant_name"] = batch[i].scrub(name)
 		}
 		body, err := json.Marshal(logscrub.ScrubValue(batch[i].body))
 		if err != nil {
@@ -272,7 +276,7 @@ func (r *AsyncRecorder) writeBatch(ctx context.Context, batch []queuedEvent) {
 			tenant string
 			day    time.Time
 		}{q.event.TenantID, day}
-		kind := r.statsKinds[q.event.Type]
+		kind := q.statsKind
 		if kind == "" {
 			continue
 		}

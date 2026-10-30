@@ -184,10 +184,26 @@ func TestRecorderStats(t *testing.T) {
 	r := NewRecorder(st, Config{}, quiet())
 	date := time.Date(2026, 10, 30, 23, 0, 0, 0, time.FixedZone("west", -3*3600))
 	for _, typ := range []string{"s", "ss", "pwd_leak", "f"} {
-		r.Record(bg, Event{TenantID: "t", Type: typ, Date: date})
+		r.Record(logscrub.WithValues(bg, "leak"), Event{TenantID: "t", Type: typ, Date: date})
 	}
 	if err := r.Flush(bg); err != nil {
 		t.Fatal(err)
+	}
+	rows, _, err := st.Logs().SearchLogs(bg, "t", nil, store.LogPage{PerPage: 100})
+	if err != nil || len(rows) != 4 {
+		t.Fatalf("stats events %d err %v", len(rows), err)
+	}
+	maskedType := false
+	for _, row := range rows {
+		if strings.Contains(string(row.Body), "leak") || strings.Contains(row.Type, "leak") {
+			t.Fatalf("stats event leaked mask: %s (%s)", row.Body, row.Type)
+		}
+		if row.Type == "pwd_"+logscrub.Marker {
+			maskedType = true
+		}
+	}
+	if !maskedType {
+		t.Fatal("leaked-password display type was not masked")
 	}
 	day := time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC)
 	stats, err := st.Logs().DailyStats(bg, "t", day, day)
@@ -461,5 +477,76 @@ func TestRecorderScrubsExecutionEnrichment(t *testing.T) {
 	}
 	if _, ok := details["actions"].(map[string]any)["executions"]; ok {
 		t.Fatal("enrichment mutated caller details")
+	}
+}
+
+type requestContextProbe struct {
+	context.Context
+	finished  atomic.Bool
+	lateReads atomic.Int64
+}
+
+func (p *requestContextProbe) Value(key any) any {
+	if p.finished.Load() {
+		p.lateReads.Add(1)
+	}
+	return p.Context.Value(key)
+}
+
+func TestRecorderScrubsAsyncTenantName(t *testing.T) {
+	for _, fallback := range []bool{false, true} {
+		t.Run(map[bool]string{false: "stored", true: "fallback"}[fallback], func(t *testing.T) {
+			st := tenantStore(t)
+			tenants := &countingTenants{Tenants: st.Tenants()}
+			output := &safeBuffer{}
+			wrapped := wrappedStore{Store: st, repo: st.Logs(), tenants: tenants}
+			var target store.Store = wrapped
+			if fallback {
+				target = &capabilityStore{wrappedStore: wrapped, err: store.ErrLogsUnavailable}
+			}
+			r := NewRecorder(target, Config{}, slog.New(slog.NewJSONHandler(output, nil)))
+			ctx := &requestContextProbe{Context: logscrub.WithValues(bg, "acme")}
+			r.Record(ctx, Event{TenantID: "t", Type: "f"})
+			ctx.finished.Store(true)
+			// A second event shares the batch tenant lookup, but has a different mask.
+			r.Record(bg, Event{TenantID: "t", Type: "s"})
+			if err := r.Flush(bg); err != nil {
+				t.Fatal(err)
+			}
+			if ctx.lateReads.Load() != 0 {
+				t.Fatalf("writer read request context %d times", ctx.lateReads.Load())
+			}
+			if tenants.count.Load() != 1 {
+				t.Fatalf("tenant lookups %d, want 1 per batch", tenants.count.Load())
+			}
+			bodies := map[string]map[string]any{}
+			if fallback {
+				for _, line := range strings.Split(strings.TrimSpace(output.String()), "\n") {
+					var entry struct {
+						Event map[string]any `json:"event"`
+					}
+					if err := json.Unmarshal([]byte(line), &entry); err != nil {
+						t.Fatal(err)
+					}
+					typ, _ := entry.Event["type"].(string)
+					bodies[typ] = entry.Event
+				}
+			} else {
+				rows, _, err := st.Logs().SearchLogs(bg, "t", nil, store.LogPage{PerPage: 100})
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, row := range rows {
+					var body map[string]any
+					if err := json.Unmarshal(row.Body, &body); err != nil {
+						t.Fatal(err)
+					}
+					bodies[row.Type] = body
+				}
+			}
+			if len(bodies) != 2 || bodies["f"]["tenant_name"] != logscrub.Marker || bodies["s"]["tenant_name"] != "acme" {
+				t.Fatalf("async tenant masks %+v", bodies)
+			}
+		})
 	}
 }
