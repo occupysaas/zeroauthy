@@ -403,7 +403,7 @@ func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *
 	}
 
 	var commit func(context.Context, store.Store, *store.User) error
-	if f.org.Org != nil {
+	if f.org.Org != nil && f.txn.Params[orglogin.InvitationIDParam] == "" {
 		commit = func(ctx context.Context, tx store.Store, u *store.User) error {
 			oc, e := orglogin.Load(ctx, tx, f.res.Tenant.ID, f.txn.Params)
 			if e != nil {
@@ -485,6 +485,9 @@ func (h *Handlers) authenticateLogin(w http.ResponseWriter, r *http.Request, f *
 		// kept the script from answering does not (D-0023).
 		h.fail(w, r, err, f)
 		return
+	}
+	if f.txn.Params[orglogin.InvitationIDParam] != "" {
+		h.sendSignupVerification(f, user)
 	}
 	h.complete(w, r, f, user)
 }
@@ -624,7 +627,7 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 			if e != nil {
 				return e
 			}
-			if !link.IsSignupEnabled || !link.AssignMembershipOnLogin {
+			if !link.IsSignupEnabled || (!link.AssignMembershipOnLogin && f.txn.Params[orglogin.InvitationIDParam] == "") {
 				return identity.ErrSignupDisabled
 			}
 		}
@@ -632,6 +635,20 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 			if err := orglogin.CheckMemberClient(ctx, tx, f.res.Tenant.ID, oc.Org.ID, f.txn.ClientID); err != nil {
 				return err
 			}
+		}
+		if f.txn.Params[orglogin.InvitationIDParam] != "" {
+			cur, err := tx.AuthTransactions().Get(ctx, f.res.Tenant.ID, f.txn.ID)
+			if err != nil {
+				return err
+			}
+			if err = tx.AuthTransactions().CompareAndSwapHosted(ctx, cur.TenantID, cur.ID, cur.HostedState.Revision, cur.HostedState, h.now()); err != nil {
+				return err
+			}
+			cur.Params[orglogin.InvitationSignupParam] = "1"
+			if err = tx.AuthTransactions().Delete(ctx, cur.TenantID, cur.ID); err != nil {
+				return err
+			}
+			return tx.AuthTransactions().Create(ctx, cur)
 		}
 		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
 	}

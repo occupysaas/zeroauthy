@@ -18,6 +18,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/httpx"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/session"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -131,7 +132,7 @@ func (h *Handlers) Authorize(w http.ResponseWriter, r *http.Request) {
 	}
 	// A reusable session still passes organization connection and membership
 	// checks below before it can satisfy this authorization request.
-	login := h.needsLogin(req, sess)
+	login := h.needsLogin(req, sess) || req.invitationBinding[orglogin.InvitationIDParam] != ""
 	if !login {
 		login, err = h.connectionDisabled(ctx, res, client, sess)
 		if err != nil {
@@ -315,7 +316,6 @@ func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Res
 		h.invalidTxn(w, r, res, txn)
 		return
 	}
-	h.EndTxn(w, r, res, txn)
 	fr := flowFromParams(txn.Params)
 	client, verr, redirectable := h.validateFlow(r.Context(), res, &fr)
 	if verr != nil {
@@ -327,6 +327,25 @@ func (h *Handlers) Resume(w http.ResponseWriter, r *http.Request, res tenant.Res
 		}
 		h.refuse(w, r, res, client, fr, verr)
 		return
+	}
+	if txn.Params[orglogin.InvitationIDParam] != "" {
+		if err := h.acceptInvitation(r.Context(), txn, sess); err != nil {
+			description := "the invitation can no longer be accepted"
+			if errors.Is(err, orglogin.ErrInvitationIdentity) {
+				description = orglogin.ErrInvitationIdentity.Error()
+			}
+			h.refuse(w, r, res, client, fr, errAccessDenied(description))
+			return
+		}
+	}
+	if txn.Params[orglogin.InvitationIDParam] != "" {
+		if err := h.claimInvitationCompletion(r.Context(), txn, sess); err != nil {
+			h.refuse(w, r, res, client, fr, errAccessDenied("the invitation transaction has already completed"))
+			return
+		}
+		h.clearTxnCookie(w, txn)
+	} else {
+		h.EndTxn(w, r, res, txn)
 	}
 	// The login or signup page was just shown, so no confirmation (D-0027).
 	h.finish(w, r, res, client, fr, sess, nil, false, true)

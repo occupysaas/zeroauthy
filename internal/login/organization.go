@@ -207,5 +207,5 @@ func organizationSignupAllowed(f *flow) bool {
 		return f.txn.Params[store.TxnParamOrgMode] != string(authz.OrgPromptBefore)
 	}
 	link, ok := f.org.Connections[f.conn.ID]
-	return ok && link.IsSignupEnabled && link.AssignMembershipOnLogin
+	return ok && link.IsSignupEnabled && (link.AssignMembershipOnLogin || f.txn.Params[orglogin.InvitationIDParam] != "")
 }

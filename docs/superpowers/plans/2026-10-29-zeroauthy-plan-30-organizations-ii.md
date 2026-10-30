@@ -336,7 +336,8 @@ serialization, `internal/login/{organization,login,verify,social}.go`, and
 `internal/oauth/organization.go`; add focused invitation tests in those packages.
 
 **Interfaces:** implements `AcceptInvitation` and `AcceptanceInput` above;
-produces the durable receipt used only by the same authorization transaction.
+produces the durable receipt used only by the same live, pending authorization transaction.
+Completed hosted transactions end before Actions and cannot be replayed.
 Consume Task 8 `CheckMemberClient`; Task 8 must be complete before this task.
 Do not introduce an interim entitlement bypass.
 

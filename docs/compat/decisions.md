@@ -1752,3 +1752,31 @@ historical D-0039 ignored-field entry. The tenant `default_redirection_uri` is
 used only when the application setting is absent. URI query values are preserved
 except invitation/organization/organization_name, which are replaced. No live
 Auth0 observation informed this prerequisite.
+
+
+D-0056 Task 7 acceptance rulings (2026-10-29): the existing AuthTransaction.Params
+is the sole invitation binding authority (invitation/org/client/forced connection),
+with no additional InvitationID model field. External authorize/PAR parameters
+cannot supply the reserved binding keys. Raw invitation bearers are replaced by
+internal invitation IDs before transaction/PAR persistence and are absent from
+Actions request query snapshots.
+
+Acceptance checks the server-bound, persisted authenticated session, normalized
+invited email and stored verified ownership. The current platform has no enforced
+MFA subsystem (connection MFA remains stored-only under D-0041); Task 7 uses the
+strongest established authentication completion point and introduces no client
+MFA/verification assertion. Future enforced MFA must complete before this point.
+Existing verification tickets/scripts remain authoritative; verification failure
+retains the invitation and pending transaction for a verified retry.
+
+Same-transaction receipt idempotence applies only to a live, pending transaction,
+with its authenticated user/session binding. The normal completed hosted
+transaction is claimed/deleted before Actions, preventing repeated Actions or
+code issuance from completed POST replay. Actions denial or later issuance
+failure leaves membership/receipt durable, but a denied completed flow needs a
+new authorization request. A new transaction cannot reuse the consumed ticket.
+Actions role snapshots now union tenant roles and the active organization's
+member roles, deduplicated by role ID; other organizations and removed membership
+contribute no roles. This is additive to the existing tenant role event/API
+contract and does not assign organization roles at tenant scope. API permission
+snapshot semantics remain the Plan 29 union.

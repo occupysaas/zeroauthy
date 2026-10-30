@@ -90,10 +90,6 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 	if !slices.Contains(client.GrantTypes, "authorization_code") {
 		return client, errUnauthorizedClient("the application may not use the authorization code grant"), true
 	}
-	// Invitations arrive with Plan 30; until then none can be found.
-	if req.Invitation != "" {
-		return client, errInvalidRequest("the invitation was not found"), true
-	}
 	// The organization is resolved and bound before any login check, so
 	// prompt=none reports a missing organization first (D-0055).
 	if e := bindOrganization(ctx, st, t, client, req); e != nil {
@@ -152,6 +148,9 @@ func ValidateRequest(ctx context.Context, st store.Store, t *store.Tenant, req *
 		} else if err != nil {
 			return client, errServer(), true
 		}
+	}
+	if e := bindInvitation(ctx, st, t, client, req); e != nil {
+		return client, e, true
 	}
 	return client, nil, true
 }

@@ -153,8 +153,10 @@ fails the whole transaction; no partial acceptance.
 Acceptance is the durable business event. An Action denial, failed token
 exchange or abandoned redirect afterward does not undo membership/consumption.
 Actions see the accepted organization and effective roles. A resumed *same*
-authorization transaction can continue using its acceptance receipt; a second
-transaction cannot replay the ticket. Concurrent accept/delete/expiry races
+live, pending authorization transaction can continue using its acceptance receipt; a second
+transaction cannot replay the ticket. Once hosted authentication completes, the
+normal transaction is ended before Actions; a denial requires a new authorization
+request and cannot rewind completed login or rerun Actions. Concurrent accept/delete/expiry races
 have one serialized outcome. Recheck all active authorization policy at code
 exchange and refresh as Plan 29 does; no re-enrollment at those stages.
 

@@ -13,8 +13,8 @@ and controller-reviewed at `e8f48a8`, with the race-test scheduling and tenant
 serialization limitations recorded below. Task 4 is complete and controller-reviewed at `60c0d29`; the minor reconnect
 coverage limitation (actual backend replacement remains unverified) is retained.
 Task 5 is complete and controller-reviewed. Task 6 is complete and controller-reviewed,
-including sender fix `b13ad41`. Task 8 is submitted for controller review; Task 7
-and Tasks 9–17 remain. The inventory
+including sender fix `b13ad41`. Task 8 is complete and controller-reviewed at `f5d75c2`. Task 7 is submitted
+for controller review; Tasks 9–17 remain. The inventory
 freezes contracts, not operational endpoints. API YAML, individual public scope
 audit, Authentication/reset context, expanded EA connection contracts and D-0056
 are now included in the Task 1 submission.
@@ -602,3 +602,60 @@ Verification from the finishing worker:
   PASS (compile only). Log: /tmp/plan30-task8-final-compile.log.
 - `git diff --check` PASS. No broad SQL driver, full Go, external plugin,
   console or browser suite was run for Task 8. Controller owns review/ledger.
+
+
+## Task 7 — Interactive invitation acceptance
+
+Implemented immutable invitation/org/client/forced-primary-connection binding in
+server AuthTransaction.Params, preserved through PAR and hosted continuations.
+Normal client/callback/PKCE validation precedes bearer resolution. Reserved browser
+parameters are ignored, and the raw invitation bearer is removed before Params
+persistence. Silent requests require interaction and cannot accept invitations.
+
+AcceptInvitation opens its own transaction, checks the durable server-bound
+session/user and current client/org/connection/entitlement, verified normalized
+email ownership, expiry, role ownership and blocked state, then consumes with a
+receipt, adds membership/organization roles and shallow-adds metadata with existing
+keys winning. Hosted signup bypasses only automatic membership assignment;
+connection/signup/application policies remain active. Database and federation
+login defer automatic enrollment for invitation-bound flows until acceptance.
+
+Acceptance precedes the post-login Actions snapshot. Active organization roles
+are unioned with tenant roles and deduplicated by ID in the event/API snapshot;
+other organizations and removed membership cannot contribute roles. API permission
+union is unchanged. Actions denial cannot roll back acceptance. A live pending
+transaction may reuse its matching receipt; successful authentication claims and
+deletes its transaction before Actions, so completed POST replay cannot execute
+Actions or issue another code. This continuation-scope ruling is recorded in the
+spec and D-0056. No extra InvitationID model field was added.
+
+Platform limitation/ruling: no enforced MFA pipeline exists today. Acceptance uses
+the established completed authentication session and stored verified ownership;
+no request assertion of MFA/verification is trusted. Actual MFA challenge coverage
+belongs to the future MFA implementation. Verification retry tests model the
+verification subsystem's persisted successful update; existing verification-ticket
+and legacy-script tests retain ownership of that subsystem.
+
+Task 8 review is complete (controller-confirmed prerequisite). Exact Task 7
+verification and remaining limits are recorded in the task report; controller owns
+Task 7 review and ledger completion.
+
+Task 7 verification (GOTOOLCHAIN=go1.26.7): focused invitation tests PASS;
+`go test ./internal/orglogin ./internal/authz ./internal/login ./internal/oauth
+./internal/actions ./internal/federation -run
+'Invitation|Organization|RequestParamsRoundTrip|Resume|EngineRoles' -race -count=1`
+PASS (federation selected no tests). Concurrent final transaction claim test PASS.
+`go test ./internal/store/sqlstore -run
+'^Test(InvitationAcceptanceSQL|OrganizationsIIAcceptDeleteRace|OrganizationsIIPolicyRevocationRace)$'
+-race -count=1` PASS (9.825s; SQLite configured, no PostgreSQL/MySQL).
+Server and CLI compile-only checks PASS. The initial orglogin RED failed missing
+acceptance APIs plus a corrected test signature; the exact four-package selection
+was first run after implementation, so no preimplementation four-package RED is
+claimed. Final focused rerun and remaining limits are in the task report.
+Final Task 7 invitation race rerun PASS in all four runtime packages. Explicit
+Node-required Actions/authorization role+invitation regression selection PASS
+(actions 2.723s, authz 4.130s). Final signup provenance policy recheck selection
+PASS (orglogin 1.040s, login 1.948s); server-only signup provenance is persisted
+atomically with signup so later verification retry respects current signup flags.
+Final `git diff --check` PASS. No MFA challenge, external provider, PostgreSQL/
+MySQL, external plugin, full-Go/release or browser validation is claimed.
