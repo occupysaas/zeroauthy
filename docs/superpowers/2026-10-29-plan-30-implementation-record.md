@@ -956,3 +956,30 @@ pins changed, and the scratch HTML/dev server were removed/stopped after QA.
 `git diff --check` passes. A mechanical comparison confirms all 39 historical
 triage row labels are present in the table above. This task does not approve its
 own independent review or mark release E2E as passing.
+
+### Task 15 review correction 1 — clearing local connection names
+
+Independent review found that clearing `organization_connection_name` sent an
+empty string, which the API rejects. The save path now translates an explicitly
+empty input into JSON `null`, the documented reset to the underlying connection
+name. Omitted values and nonempty names retain their existing behavior. A scoped
+console regression asserts the exact null wire value, then checks that the
+successful reload displays the underlying name in both heading and input and
+leaves Save enabled without a reload-required error.
+
+The first regression attempt used “Save” instead of the existing “Save changes”
+label and failed before submission; an initial GREEN attempt shared that fixture
+mistake. Correcting the label and reverting the production change produced clean
+behavioral RED: expected `null`, received `""` (`task-15-fix1-red-corrected.log`).
+Reapplying the one-line fix passed all 10 focused tab tests
+(`task-15-fix1-green-corrected.log`). A premature full make, started before the
+fixture correction, failed the new test (523 passed, one failed); that run is
+retained in `task-15-fix1-make-console.log`, not claimed passing. The first retry
+of corrected RED also overlapped npm ci and could not locate vitest; the recorded
+corrected RED above is the completed subsequent invocation.
+
+Final correction verification: `make console` PASS, exit 0: npm ci, generation,
+lint, typecheck, 72 test files / 524 tests, production build (1.69s).
+`task-15-fix1-make-console-final.log` records the exact output; the existing Vite
+>500 kB chunk advisory remains. Committed dist regenerated. `git diff --check`
+passes. No new browser, database, SDK or full-Go verification claim.

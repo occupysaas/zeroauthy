@@ -77,3 +77,15 @@ it('removes member roles using the organization and member path', async () => {
 it('legacy connection capability never exposes discarded settings', async () => {
  const { wrapper } = await setup(ConnectionsTab, {}, c => c.url.includes('/organizations/') && !c.url.includes('enabled_connections') ? { status: 501, body: { errorCode: 'organizations_ii_unavailable', message: 'Unsupported' } } : { status: 200, body: c.url.includes('enabled_connections') ? { enabled_connections: [{ connection_id: 'db', connection: { name: 'Database', strategy: 'auth0' } }], total: 1 } : { connections: [], total: 0 } }); expect(wrapper.text()).toContain('Database'); expect(wrapper.find('[data-flag="is_enabled"]').exists()).toBe(false); expect(wrapper.text()).toContain('Connection names and delegation settings are unavailable'); wrapper.unmount()
 })
+it('clears an organization connection name with null and restores its underlying name', async () => {
+ let cleared = false
+ const { wrapper, calls } = await setup(ConnectionsTab, {}, c => {
+  if (c.method === 'PATCH') { cleared = (c.body as { organization_connection_name?: unknown }).organization_connection_name === null; return cleared ? { status: 200, body: {} } : { status: 400, body: { message: 'Name must be nonempty or null' } } }
+  return { status: 200, body: c.url.includes('/organizations/') ? { connections: [{ connection_id: 'db', organization_connection_name: cleared ? 'Database' : 'Local database', organization_access_level: 'none', organization_member_access_level: 'limited', connection: { name: 'Database', strategy: 'auth0' } }], total: 1 } : { connections: [], total: 0 } }
+ })
+ await wrapper.get('#connection-name-db').setValue(''); await wrapper.findAll('button').find(b => b.text() === 'Save changes')!.trigger('click'); await flushPromises()
+ expect(calls.find(c => c.method === 'PATCH')!.body).toMatchObject({ organization_connection_name: null })
+ expect(wrapper.get('[data-connection="db"] h3').text()).toBe('Database')
+ expect((wrapper.get('#connection-name-db').element as HTMLInputElement).value).toBe('Database')
+ expect(wrapper.text()).not.toContain('Reload before'); expect(wrapper.findAll('button').find(b => b.text() === 'Save changes')!.attributes('disabled')).toBeUndefined(); wrapper.unmount()
+})

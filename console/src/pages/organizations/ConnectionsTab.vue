@@ -40,7 +40,7 @@ function enable() {
 function save(entry: OrganizationConnection) {
   if (!extended.value || !entry.connection_id || blocked.value) return
   const tn = props.tenant, id = props.organizationId, cid = entry.connection_id
-  const body = { organization_connection_name: entry.organization_connection_name, organization_access_level: entry.organization_access_level, organization_member_access_level: entry.organization_member_access_level }
+  const body = { organization_connection_name: entry.organization_connection_name === '' ? null : entry.organization_connection_name, organization_access_level: entry.organization_access_level, organization_member_access_level: entry.organization_member_access_level }
   void change(() => api.changeAllOrganizationConnection(tn, id, cid, 'PATCH', body))
 }
 function remove(entry: OrganizationConnection) {
