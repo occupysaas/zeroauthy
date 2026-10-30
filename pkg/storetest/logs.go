@@ -317,7 +317,7 @@ func testLogs(t *testing.T, f Factory) {
 		appendLog(t, s, ctx, "ten_logs", at)
 		rows, err := s.Logs().LogsAfter(ctx, "ten_logs", 0, nil, 10, time.Now().Add(time.Hour))
 		mustNoErr(t, err)
-		if len(rows) != 2 || rows[0].ID != before[0].ID || rows[1].Seq != rows[0].Seq+1 {
+		if len(rows) != 2 || rows[0].ID != before[0].ID || rows[1].Seq <= rows[0].Seq {
 			t.Fatalf("rollback sequence/events %+v", rows)
 		}
 		streams, err := s.Logs().ListLogStreams(ctx, "ten_logs")
@@ -427,4 +427,26 @@ func testLogs(t *testing.T, f Factory) {
 			}
 		}
 	})
+	t.Run("LogsRejectOutOfRangeTime", func(t *testing.T) {
+		s, ctx, at := logsFixture(t, f)
+		for _, bad := range []time.Time{time.Date(-1, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC)} {
+			mustErrIs(t, s.Logs().AppendLogs(ctx, []store.LogEvent{{TenantID: "ten_logs", Date: bad}}, nil), store.ErrInvalid)
+			mustErrIs(t, s.Logs().AppendLogs(ctx, nil, []store.DailyStatDelta{{TenantID: "ten_logs", Day: bad}}), store.ErrInvalid)
+			stream := logStream("ten_logs", "invalid-time")
+			stream.StartFrom = bad
+			mustErrIs(t, s.Logs().CreateLogStream(ctx, stream), store.ErrInvalid)
+			_, err := s.Logs().LogsAfter(ctx, "ten_logs", 0, nil, 1, bad)
+			mustErrIs(t, err, store.ErrInvalid)
+			_, err = s.Logs().PurgeLogs(ctx, bad, 1)
+			mustErrIs(t, err, store.ErrInvalid)
+			_, err = s.Logs().LeaseLogStream(ctx, "owner", at, bad)
+			mustErrIs(t, err, store.ErrInvalid)
+			_, err = s.Logs().DailyStats(ctx, "ten_logs", bad, bad)
+			mustErrIs(t, err, store.ErrInvalid)
+			_, err = s.Logs().ActiveUsers(ctx, "ten_logs", bad)
+			mustErrIs(t, err, store.ErrInvalid)
+			mustErrIs(t, s.Logs().RecordDelivery(ctx, "ten_logs", "missing", "owner", store.LogStreamDelivery{NextAt: bad}), store.ErrInvalid)
+		}
+	})
+
 }

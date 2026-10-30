@@ -176,3 +176,18 @@ func (UnimplementedLogs) DailyStats(context.Context, string, time.Time, time.Tim
 func (UnimplementedLogs) ActiveUsers(context.Context, string, time.Time) (int, error) {
 	return 0, ErrLogsUnavailable
 }
+
+// LogTimeLayout is the sortable full-range UTC timestamp encoding for SQL Logs.
+const LogTimeLayout = "2006-01-02T15:04:05.000000000Z"
+
+// ValidateLogTimes keeps all drivers within the full RFC3339 UTC year range.
+// Conversion to UTC happens before validation because an offset near a year
+// boundary can otherwise produce an unrepresentable stored timestamp.
+func ValidateLogTimes(times ...time.Time) error {
+	for _, t := range times {
+		if year := t.UTC().Year(); year < 0 || year > 9999 {
+			return ErrInvalid
+		}
+	}
+	return nil
+}

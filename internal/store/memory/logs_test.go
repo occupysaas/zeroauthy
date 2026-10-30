@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -249,6 +250,42 @@ func TestLogsStreamRejectsInvalidSink(t *testing.T) {
 				t.Fatal("invalid update changed version/lease")
 			}
 			assertOriginalLogSink(t, s)
+		})
+	}
+}
+
+func TestLogsBackwardsClockCheckpoint(t *testing.T) {
+	for _, transaction := range []bool{false, true} {
+		t.Run(fmt.Sprint(transaction), func(t *testing.T) {
+			s := New()
+			ctx := context.Background()
+			base := time.Now().UTC()
+			now := base.Add(10 * time.Second)
+			s.now = func() time.Time { return now }
+			appendBatch := func() error { return s.Logs().AppendLogs(ctx, []store.LogEvent{{TenantID: "t", Date: base}}, nil) }
+			if err := appendBatch(); err != nil {
+				t.Fatal(err)
+			}
+			now = base
+			var err error
+			if transaction {
+				err = s.WithTx(ctx, func(tx store.Store) error {
+					return tx.Logs().AppendLogs(ctx, []store.LogEvent{{TenantID: "t", Date: base}}, nil)
+				})
+			} else {
+				err = appendBatch()
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			rows, err := s.Logs().LogsAfter(ctx, "t", 0, nil, 100, base.Add(time.Second))
+			if err != nil || len(rows) != 0 {
+				t.Fatalf("clock skew: %v %v", rows, err)
+			}
+			rows, err = s.Logs().LogsAfter(ctx, "t", 0, nil, 100, base.Add(20*time.Second))
+			if err != nil || len(rows) != 2 {
+				t.Fatalf("lost events: %v %v", rows, err)
+			}
 		})
 	}
 }

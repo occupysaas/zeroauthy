@@ -468,3 +468,102 @@ retains its exact value, and invalid updates preserve the prior sink, Version
 and active LeaseOwner. SQL/gRPC runtime acceptance remains Tasks 4/5; broad
 project regression remains Task 16. No subagents or unrelated clone changes.
 Fix commit subject: `fix: own typed log stream sink values`.
+
+## Task 4 — SQL log events, streams and statistics
+
+Implemented all SQL Logs methods and migration0028 in SQLite/PostgreSQL/MySQL.
+Events/stats write atomically. Sorted tenant row locks precede driver identity
+allocation and remain held through outer WithTx commit. A bounded locking read
+of the latest tenant committed_at clamps backwards clocks; memory uses the same
+nondecreasing timestamp rule, including transaction commit. Added bounded page,
+checkpoint/latest and purge queries, stream admin CAS/runtime merge/resume/lease
+fencing, daily UTC counters, active-user counts, and tenant cleanup. Stream Sink
+JSON reads use UseNumber and all writes/reads own their values. Wide federation
+user IDs retain existing capacity (MySQL VARBINARY1280; PG/SQLite TEXT).
+
+Ruling: settlement alone cannot prevent lower-sequence late commits — serialize
+per tenant before identity allocation, sorting multi-tenant locks — costs tenant
+write contention. The delayed-commit test actually blocks a lower sequence's
+outer transaction while separate connections append and poll under an injected
+clock. A Go overlay removing the serialization reproduced the PostgreSQL defect.
+
+Ruling: backwards clocks must not let higher sequences settle first — clamp to
+max(now,last retained tenant committed_at) using a LIMIT1 locking read — costs
+one bounded indexed read per tenant batch; an instance far ahead can postpone
+settlement until clocks catch up. Memory clamps direct writes in O(1) per event
+and outer transaction commits per retained ring, with explicit pending flags.
+
+Ruling: use full-range fixed-width UTC text timestamps — UnixNano wraps outside
+approximately1678–2262 and a numeric zero sentinel aliases epoch — costs wider
+indexes. Bind new log/stream/stat times as t.UTC().Format(store.LogTimeLayout),
+`2006-01-02T15:04:05.000000000Z`. Go zero is ordinary year0001, epoch is distinct,
+and year0000 sorts before it. Shared ValidateLogTimes rejects normalized UTC
+years outside0000–9999 in memory and SQL. Existing users.last_login remains
+microseconds, so ActiveUsers binds the existing representation. Task7 must use
+the shared text layout for event date query parameters.
+
+Ruling: SQL identity rollbacks may consume sequence numbers — the contract is
+strictly increasing opaque IDs, not contiguous integers — updated the shared
+rollback assertion while retaining absence/state rollback checks. Clients must
+tolerate gaps. Ruling: delivery expiry must be measured after stream row locking
+— obtaining a connection/savepoint/row lock can exceed remaining lease life —
+costs one locking read/transaction. Owner remains a unique caller acquisition
+token; stale and expired acquisitions fail ErrPrecondition.
+
+Task4 intentionally adds a temporary logsearch.SQL that validates AST then
+matches all. This is the plan's Task7 handoff, not established query parity.
+No negative-filtering/API parity claim is made. Broad project/E2E regression
+remains Task16; gRPC runtime conformance remains Task5.
+
+Actual verification, all Go commands with GOTOOLCHAIN=go1.26.7:
+
+- RED `go test ./internal/store/sqlstore -run 'Logs' -count=1`: exit1,
+  unavailable repository; named migration27/page-bound tests and conformance
+  failed. task-4-red.log in scratch workspace.
+- RED checkpoint mutation `go test -overlay=<task-4-no-lock-overlay.json>
+  ./internal/store/sqlstore -run '^TestLogsConcurrentWritersCheckpoint$'
+  -count=1` with a real PostgreSQL DSN: exit1, second connection committed
+  before intentionally delayed first commit. task-4-checkpoint-lock-red.log.
+- RED expiry-after-wait test: exit1, expired lease accepted before lock/clock fix;
+  task-4-delivery-wait-red.log. RED backwards-clock tests: SQL and both memory
+  direct/transaction cases exposed higher sequences early;
+  task-4-clock-skew-red.log. RED out-of-range-year conformance: memory and SQL
+  accepted year -1; task-4-year-range-red.log and task-4-year-range-sql-red.log.
+- RED full-range timestamp expansion exposed empty-zero sentinel ordering;
+  task-4-zero-time-red.log. Initial microsecond truncation had also failed
+  StartFrom/LastSuccessAt equality; task-4-green-initial.log.
+- RED real accepted1280-byte user roundtrip via all-driver script (ports56643,
+  38895): PostgreSQL22001 and MySQL1406 on tenant_logs.user_id; SQLite passed;
+  task-4-wide-id-red.log. Fixed schema capacities before final test.
+- Intermediate all-driver failures are retained and explained in full report:
+  invalid MySQL CREATE INDEX engine options; PostgreSQL query-spy placeholder
+  assertion (including rebinding suffix starting numbering at1); timestamp test
+  stats range excluding the extra early-year rows it expected. These were fixed
+  and not reported passing. Despite its filename,
+  task-4-driver-regressions-green.log is a failing intermediate run.
+- Final authoritative command:
+  `GOTOOLCHAIN=go1.26.7 ZEROAUTHY_TEST_PG_PORT=56644
+  ZEROAUTHY_TEST_MYSQL_PORT=38896 ./scripts/test-sql.sh -v -run 'Logs'
+  -count=1 ./internal/store/sqlstore/...`: exit0, SQL75.327s, race enabled by
+  script. SQLite PASS, PostgreSQL PASS, MySQL PASS, no skips or race warnings.
+  Each driver ran conformance plus migration27, page bounds, delayed-commit
+  checkpoint, expiry/precision, timestamp boundaries, expiry after wait,
+  backwards clock and wide-ID tests. task-4-sql-authoritative.log.
+- `go test -race ./internal/store/memory ./internal/logsearch -run
+  'Logs|MatchLogQueries|ValidateQueryBounds' -count=1`: exit0, memory1.224s,
+  logsearch1.038s; task-4-memory-search-final.log.
+- `go test ./internal/store/... ./internal/logsearch ./pkg/store ./pkg/storetest
+  -run '^$'`: exit0; task-4-compile-final.log. Compilation evidence only.
+- Focused local SQL/memory race `-run 'Logs|TestLatestVersion'`: exit0;
+  task-4-clock-skew-green.log. Final memory optimization separately race checked
+  above. `git diff --check`: exit0.
+
+Self-review checked parameterization/tenant scoping, page arithmetic and bound
+arguments, sorted locks through outer commit, MySQL locking current reads,
+atomic counters/rollback, runtime-preserving stream updates, resume reset,
+lease fencing after waits, sink precision/ownership, migrated-versus-fresh table
+shape, identifier capacity, pending snapshot state, and user/tenant deletion.
+No external evidence or live Auth0 tenant used; no subagents/reviewers spawned.
+Controller supplies review. Full report and per-command logs:
+`.superpowers/sdd/2026-10-30-zeroauthy-plan-31-logs-streams-stats/task-4-report.md`.
+Task4 implementation commit subject: `feat: persist logs, streams and stats in SQL`.

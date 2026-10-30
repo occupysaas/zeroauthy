@@ -14,6 +14,7 @@ const logCapacity = 10000
 type storedLog struct {
 	event     store.LogEvent
 	committed time.Time
+	pending   bool
 }
 type logRing struct {
 	events []storedLog
@@ -43,6 +44,16 @@ func (s *Store) Logs() store.Logs                    { return logs{s} }
 func (s *Store) LogsSupported(context.Context) error { return nil }
 
 func (r logs) AppendLogs(ctx context.Context, events []store.LogEvent, deltas []store.DailyStatDelta) error {
+	for _, e := range events {
+		if err := store.ValidateLogTimes(e.Date); err != nil {
+			return err
+		}
+	}
+	for _, d := range deltas {
+		if err := store.ValidateLogTimes(d.Day); err != nil {
+			return err
+		}
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -65,7 +76,14 @@ func (r logs) AppendLogs(ctx context.Context, events []store.LogEvent, deltas []
 			ring = &logRing{}
 			r.s.logEvents[e.TenantID] = ring
 		}
-		ring.append(storedLog{cloneLog(e), committed})
+		stamp := committed
+		if !r.s.tx && len(ring.events) > 0 {
+			previous := ring.events[(ring.start+len(ring.events)-1)%len(ring.events)]
+			if previous.committed.After(stamp) {
+				stamp = previous.committed
+			}
+		}
+		ring.append(storedLog{event: cloneLog(e), committed: stamp, pending: r.s.tx})
 	}
 	for _, d := range deltas {
 		day := utcDay(d.Day)
@@ -159,6 +177,9 @@ func compareSeq(a, b int64) int {
 	return 0
 }
 func (r logs) checkpoint(ctx context.Context, tid string, after int64, q *store.LogQuery, take int, settled time.Time, latest bool) ([]store.LogEvent, error) {
+	if err := store.ValidateLogTimes(settled); err != nil {
+		return nil, err
+	}
 	if take < 1 || take > 100 || after < 0 {
 		return nil, store.ErrInvalid
 	}
@@ -193,6 +214,9 @@ func (r logs) LatestLogs(ctx context.Context, tid string, q *store.LogQuery, tak
 	return r.checkpoint(ctx, tid, 0, q, take, settled, true)
 }
 func (r logs) PurgeLogs(ctx context.Context, before time.Time, limit int) (int, error) {
+	if err := store.ValidateLogTimes(before); err != nil {
+		return 0, err
+	}
 	if limit < 1 {
 		return 0, store.ErrInvalid
 	}
@@ -234,6 +258,11 @@ func (r logs) DeleteTenantLogs(ctx context.Context, tid string) error {
 	return nil
 }
 func (r logs) CreateLogStream(ctx context.Context, in *store.LogStream) error {
+	if in != nil {
+		if err := store.ValidateLogTimes(in.StartFrom, in.NextAt, in.FailingSince, in.LastSuccessAt); err != nil {
+			return err
+		}
+	}
 	if in == nil || in.ID == "" || in.TenantID == "" {
 		return store.ErrInvalid
 	}
@@ -357,6 +386,9 @@ func (r logs) DeleteLogStream(ctx context.Context, tid, id string) error {
 	return nil
 }
 func (r logs) LeaseLogStream(ctx context.Context, owner string, now, until time.Time) (*store.LogStream, error) {
+	if err := store.ValidateLogTimes(now, until); err != nil {
+		return nil, err
+	}
 	if owner == "" || !until.After(now) {
 		return nil, store.ErrInvalid
 	}
@@ -390,6 +422,9 @@ func (r logs) LeaseLogStream(ctx context.Context, owner string, now, until time.
 	return cloneLogStream(s), nil
 }
 func (r logs) RecordDelivery(ctx context.Context, tid, id, owner string, d store.LogStreamDelivery) error {
+	if err := store.ValidateLogTimes(d.NextAt, d.FailingSince, d.LastSuccessAt); err != nil {
+		return err
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -421,6 +456,9 @@ func utcDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 }
 func (r logs) DailyStats(ctx context.Context, tid string, from, to time.Time) ([]store.DailyStat, error) {
+	if err := store.ValidateLogTimes(from, to); err != nil {
+		return nil, err
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -441,6 +479,9 @@ func (r logs) DailyStats(ctx context.Context, tid string, from, to time.Time) ([
 	return out, nil
 }
 func (r logs) ActiveUsers(ctx context.Context, tid string, since time.Time) (int, error) {
+	if err := store.ValidateLogTimes(since); err != nil {
+		return 0, err
+	}
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}

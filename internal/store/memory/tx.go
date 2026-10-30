@@ -31,11 +31,18 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	if err == nil {
 		// Only the outer transaction fixes commit visibility for newly appended events.
 		s.mu.Lock()
-		committed := s.now().UTC()
+		now := s.now().UTC()
 		for _, ring := range s.logEvents {
+			committed := now
+			for _, e := range ring.events {
+				if !e.pending && e.committed.After(committed) {
+					committed = e.committed
+				}
+			}
 			for i := range ring.events {
-				if ring.events[i].committed.IsZero() {
+				if ring.events[i].pending {
 					ring.events[i].committed = committed
+					ring.events[i].pending = false
 				}
 			}
 		}
