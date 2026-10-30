@@ -70,11 +70,13 @@ type LogStreamPII struct {
 }
 type LogStream struct {
 	TenantID, ID, Name, Type, Status string
-	Sink                             map[string]any
-	SealedSecrets                    []byte
-	Filters                          []LogStreamFilter
-	IsPriority                       bool
-	PII                              *LogStreamPII
+	// Sink accepts JSON-serializable values; drivers may normalize typed values
+	// to their JSON representation. Create/update reject invalid JSON as ErrInvalid.
+	Sink          map[string]any
+	SealedSecrets []byte
+	Filters       []LogStreamFilter
+	IsPriority    bool
+	PII           *LogStreamPII
 	// StartFrom is create-only. Reads for public API consumers omit this field.
 	StartFrom                                       time.Time
 	Checkpoint                                      int64

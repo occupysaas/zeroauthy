@@ -418,3 +418,53 @@ Deferred/unrun: SQL Logs runtime conformance (SQLite/PostgreSQL/MySQL), gRPC Log
 runtime conformance (memory and SQL backends), SQL scripts, recorder/API/worker,
 stream network delivery, browser/E2E acceptance and broad project regression.
 SQL/gRPC stubs remain an intentional Task 3 boundary, not passing implementations.
+
+## Task 3 review correction — typed stream sink ownership
+
+Review of `8b1dae6` found an Important deep-copy gap: cloneJSON only recurses
+through map[string]any and []any, leaving typed nested maps/slices aliased.
+Confirmed that create input, get/list/lease output, update input and transaction
+snapshot rollback could all mutate stored sink configuration through typed
+[]string, map[string]string and []map[string]string values.
+
+Added a stream-local write-boundary normalization helper. Create and update
+marshal the supplied Sink as JSON and decode into fresh ordinary map/slice
+containers using UseNumber before acquiring the mutation lock. Snapshots and
+read copies can then use the existing JSON clone safely. The unrelated baseline
+cloneJSON/cloneJSONValue behavior is unchanged. Invalid/cyclic JSON, unsupported
+channels/functions, nonfinite numbers, invalid RawMessage and invalid json.Number
+return ErrInvalid before any stream/version/lease change. Typed and native map
+cycles and a self-referential slice are covered without panic.
+
+Ruling: stream Sink accepts JSON-serializable values and drivers may normalize
+Go types to their JSON meaning — arbitrary serializable typed containers must
+not retain caller ownership, and all real sink fields are JSON values — costs
+one JSON round trip on create/update and normalized Go representations on reads.
+UseNumber preserves exact numeric JSON, including 9007199254740993. The storage
+contract now states normalization and ErrInvalid behavior explicitly. Existing
+admin merge, resume, lease fencing and transaction semantics are unchanged.
+
+Actual verification (all GOTOOLCHAIN=go1.26.7):
+
+- RED `go test ./internal/store/memory -run 'TestLogsStream(TypedSinkCopies|RejectsInvalidSink)$' -count=1`:
+  exit 1. All six ownership boundaries changed the stored sink to "changed";
+  all six initial invalid-value cases were accepted with nil error. Full output
+  task-3-sink-red.log in the plan scratch workspace.
+- GREEN same focused command after normalization: exit 0, memory 0.010 s;
+  task-3-sink-green.log. Extended invalid tests then added native-map and
+  native-slice cycles; final covering run below includes them.
+- `go test ./internal/store/memory ./internal/logsearch -run 'Logs|MatchLogQueries|ValidateQueryBounds' -count=1`:
+  exit 0; memory 0.105 s, logsearch 0.011 s; task-3-sink-focused.log.
+- `go test -race ./internal/store/memory ./internal/logsearch -run 'Logs|MatchLogQueries|ValidateQueryBounds' -count=1`:
+  exit 0; memory 1.152 s, logsearch 1.025 s; task-3-sink-race.log.
+- `go test ./internal/store/... ./internal/logsearch ./pkg/store ./pkg/storetest -run '^$'`:
+  exit 0; all selected packages compile, SQL/gRPC explicitly have no tests to
+  run; task-3-sink-compile.log. No database runtime test was executed.
+- `git diff --check`: exit 0.
+
+Self-review verified normalization happens before any mutation, every sink write
+uses it, reads/snapshots only see owned ordinary containers, large numeric JSON
+retains its exact value, and invalid updates preserve the prior sink, Version
+and active LeaseOwner. SQL/gRPC runtime acceptance remains Tasks 4/5; broad
+project regression remains Task 16. No subagents or unrelated clone changes.
+Fix commit subject: `fix: own typed log stream sink values`.

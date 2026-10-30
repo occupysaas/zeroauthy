@@ -240,13 +240,17 @@ func (r logs) CreateLogStream(ctx context.Context, in *store.LogStream) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	fields, err := cloneLogStreamInput(in)
+	if err != nil {
+		return err
+	}
 	r.s.lock()
 	defer r.s.unlock()
 	k := key{in.TenantID, in.ID}
 	if r.s.logStreams[k] != nil {
 		return store.ErrConflict
 	}
-	out := cloneLogStream(in)
+	out := fields
 	out.Version = 1
 	out.CreatedAt = r.s.now().UTC()
 	out.UpdatedAt = out.CreatedAt
@@ -300,6 +304,10 @@ func (r logs) UpdateLogStream(ctx context.Context, in *store.LogStream, version 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	fields, err := cloneLogStreamInput(in)
+	if err != nil {
+		return err
+	}
 	r.s.lock()
 	defer r.s.unlock()
 	k := key{in.TenantID, in.ID}
@@ -315,7 +323,6 @@ func (r logs) UpdateLogStream(ctx context.Context, in *store.LogStream, version 
 	}
 	// Preserve delivery fields even if the admin loaded its snapshot before a worker completed.
 	out := cloneLogStream(old)
-	fields := cloneLogStream(in)
 	out.Name = fields.Name
 	out.Status = fields.Status
 	out.Sink = fields.Sink

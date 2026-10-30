@@ -1,8 +1,11 @@
 package memory
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -96,5 +99,156 @@ func TestLogsCommitTimestampAndNestedRollback(t *testing.T) {
 	stats, err := s.Logs().DailyStats(ctx, "a", at, at)
 	if err != nil || len(stats) != 1 || stats[0].Logins != 1 {
 		t.Fatalf("nested stats rollback: %+v %v", stats, err)
+	}
+}
+
+// Stream inputs may contain typed JSON values; compare their JSON meaning rather
+// than assuming a particular Go representation after storage normalization.
+func typedLogSink() map[string]any {
+	return map[string]any{"items": []string{"original"}, "nested": map[string]string{"value": "original"}, "headers": []map[string]string{{"header": "X-Name", "value": "original"}}, "number": json.Number("9007199254740993")}
+}
+func mutateLogSink(sink map[string]any) {
+	switch items := sink["items"].(type) {
+	case []string:
+		items[0] = "changed"
+	case []any:
+		items[0] = "changed"
+	}
+	switch nested := sink["nested"].(type) {
+	case map[string]string:
+		nested["value"] = "changed"
+	case map[string]any:
+		nested["value"] = "changed"
+	}
+	switch headers := sink["headers"].(type) {
+	case []map[string]string:
+		headers[0]["value"] = "changed"
+	case []any:
+		headers[0].(map[string]any)["value"] = "changed"
+	}
+}
+func assertOriginalLogSink(t *testing.T, s store.Store) {
+	t.Helper()
+	got, err := s.Logs().GetLogStream(context.Background(), "a", "s")
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := json.Marshal(got.Sink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected, err := json.Marshal(typedLogSink())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(actual, expected) {
+		t.Fatalf("stored sink changed or lost JSON precision:\n got %s\nwant %s", actual, expected)
+	}
+}
+func TestLogsStreamTypedSinkCopies(t *testing.T) {
+	for _, boundary := range []string{"create input", "get output", "list output", "lease output", "update input", "snapshot rollback"} {
+		t.Run(boundary, func(t *testing.T) {
+			s := New()
+			ctx := context.Background()
+			input := &store.LogStream{TenantID: "a", ID: "s", Type: "http", Status: "active", Sink: typedLogSink()}
+			if err := s.Logs().CreateLogStream(ctx, input); err != nil {
+				t.Fatal(err)
+			}
+			switch boundary {
+			case "create input":
+				mutateLogSink(input.Sink)
+			case "get output":
+				got, err := s.Logs().GetLogStream(ctx, "a", "s")
+				if err != nil {
+					t.Fatal(err)
+				}
+				mutateLogSink(got.Sink)
+			case "list output":
+				got, err := s.Logs().ListLogStreams(ctx, "a")
+				if err != nil {
+					t.Fatal(err)
+				}
+				mutateLogSink(got[0].Sink)
+			case "lease output":
+				now := time.Now()
+				got, err := s.Logs().LeaseLogStream(ctx, "lease", now, now.Add(time.Hour))
+				if err != nil {
+					t.Fatal(err)
+				}
+				mutateLogSink(got.Sink)
+			case "update input":
+				got, err := s.Logs().GetLogStream(ctx, "a", "s")
+				if err != nil {
+					t.Fatal(err)
+				}
+				got.Sink = typedLogSink()
+				if err := s.Logs().UpdateLogStream(ctx, got, got.Version); err != nil {
+					t.Fatal(err)
+				}
+				mutateLogSink(got.Sink)
+			case "snapshot rollback":
+				rollback := errors.New("rollback")
+				err := s.WithTx(ctx, func(tx store.Store) error {
+					got, err := tx.Logs().GetLogStream(ctx, "a", "s")
+					if err != nil {
+						return err
+					}
+					mutateLogSink(got.Sink)
+					got.Name = "temporary"
+					if err := tx.Logs().UpdateLogStream(ctx, got, got.Version); err != nil {
+						return err
+					}
+					return rollback
+				})
+				if !errors.Is(err, rollback) {
+					t.Fatal(err)
+				}
+			}
+			assertOriginalLogSink(t, s)
+		})
+	}
+}
+
+func TestLogsStreamRejectsInvalidSink(t *testing.T) {
+	type typedMap map[string]any
+	cyclic := typedMap{}
+	cyclic["self"] = cyclic
+	nativeMap := map[string]any{}
+	nativeMap["self"] = nativeMap
+	nativeSlice := make([]any, 1)
+	nativeSlice[0] = nativeSlice
+	for name, value := range map[string]any{"cycle": cyclic, "native map cycle": nativeMap, "native slice cycle": nativeSlice, "channel": make(chan int), "function": func() {}, "nonfinite": math.NaN(), "invalid JSON": json.RawMessage(`{"bad":`), "invalid number": json.Number("invalid")} {
+		t.Run(name, func(t *testing.T) {
+			s := New()
+			ctx := context.Background()
+			bad := &store.LogStream{TenantID: "a", ID: "bad", Type: "http", Status: "active", Sink: map[string]any{"bad": value}}
+			if err := s.Logs().CreateLogStream(ctx, bad); !errors.Is(err, store.ErrInvalid) {
+				t.Fatalf("create invalid sink: %v", err)
+			}
+			if _, err := s.Logs().GetLogStream(ctx, "a", "bad"); !errors.Is(err, store.ErrNotFound) {
+				t.Fatalf("invalid create persisted: %v", err)
+			}
+			good := &store.LogStream{TenantID: "a", ID: "s", Type: "http", Status: "active", Sink: typedLogSink()}
+			if err := s.Logs().CreateLogStream(ctx, good); err != nil {
+				t.Fatal(err)
+			}
+			now := time.Now()
+			leased, err := s.Logs().LeaseLogStream(ctx, "owner", now, now.Add(time.Hour))
+			if err != nil {
+				t.Fatal(err)
+			}
+			leased.Sink = bad.Sink
+			if err := s.Logs().UpdateLogStream(ctx, leased, leased.Version); !errors.Is(err, store.ErrInvalid) {
+				t.Fatalf("update invalid sink: %v", err)
+			}
+			fresh, err := s.Logs().GetLogStream(ctx, "a", "s")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if fresh.Version != leased.Version || fresh.LeaseOwner != "owner" {
+				t.Fatal("invalid update changed version/lease")
+			}
+			assertOriginalLogSink(t, s)
+		})
 	}
 }
