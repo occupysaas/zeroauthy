@@ -1822,3 +1822,26 @@ the trusted context frozen before external Actions; no organization roles,
 member application entitlements, inferred organization or membership writes
 participate. JSON organization/invitation values must be strings, including
 rejecting explicit null; an empty organization string follows absent semantics.
+
+
+D-0056 Task 16 provisioning ruling (2026-10-30): organization seed configuration
+is create-only in both seed modes, including entitlement, application/grant links,
+EA connection policy and discovery domains. Domains default pending and seed
+rejects verified attestation. Tenant-level grant organization policy applies only
+on creation; API-owned grants retain their ownership protection. Reference errors
+roll back the entire seed transaction, including earlier tenant/grant writes.
+
+Pinned-tool audit: auth0/auth0-deploy-cli v9.1.0,
+`src/tools/auth0/handlers/organizations.ts`,
+`src/tools/auth0/handlers/clientGrants.ts`, and the YAML/directory organization
+handlers inform only the test client's resource mapping. API semantics remain
+those already documented in the operation inventory and D-0056. The organization
+schema declares entitlement, third-party access, clients, grant associations,
+discovery domains, enabled state and organization access metadata. It omits
+organization_member_access_level from its schema/update mapping; the client-grant
+schema omits organization_usage/allow_any_organization. Offline preflight rejects
+nondefault member access and active grant policy rather than promising preservation.
+Default limited and deny/false remain compatible. Verified domain import requires
+explicit destination attestation and is rejected. Invitations, receipts, ticket
+material and member/member-role export are not promised. No upstream tenant was
+observed and no new API behavior was inferred from tool code.

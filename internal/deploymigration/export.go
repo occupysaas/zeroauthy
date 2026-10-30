@@ -216,6 +216,9 @@ func LoadExport(path, format string) (Export, error) {
 			}
 		}
 	}
+	if err := ValidateOrganizations(out); err != nil {
+		return Export{}, err
+	}
 	return out, nil
 }
 

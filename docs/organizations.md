@@ -236,6 +236,48 @@ references fail startup. Pinned Deploy CLI 9.1.0 round trips organizations and
 connections in YAML/directory with generated or preserved credentials. It does
 not migrate members or member-role assignments.
 
+Organizations II seed fields include `is_app_entitlement_active`,
+`third_party_client_access`, `clients`, `client_grants`, `discovery_domains` and
+connection enabled/access metadata. All organization configuration is create-only
+in either seed mode: reseeding never restores a removed association/domain or
+overwrites API-managed policy. Client references accept an existing ID or unique
+application name. Organization grant references use `client_id` plus `audience`
+and resolve an existing client-subject grant in the same tenant. Connection and
+organization names use the existing seed mapping. An unresolved reference rolls
+back the entire seed transaction, including earlier grant scope changes.
+
+```yaml
+organizations:
+  - name: example
+    is_app_entitlement_active: true
+    third_party_client_access: block
+    clients:
+      - client_id: Browser # existing ID or unique name
+        use_for_member_access: true
+    client_grants:
+      - client_id: Service
+        audience: https://api.example.test
+    connections:
+      - name: Enterprise
+        is_enabled: false
+        organization_connection_name: Enterprise login
+        organization_access_level: none
+        organization_member_access_level: limited
+    discovery_domains:
+      - domain: example.test
+        use_for_organization_discovery: true
+```
+
+Tenant-level `client_grants` accept `organization_usage` and
+`allow_any_organization` only as initial policy. Existing grants keep those
+values across reseeding; API-created grants retain their ownership protections.
+User-subject grants cannot activate organization policy, and third-party
+applications cannot use allow-any. Discovery domains default pending; seed
+rejects verified status, requiring a deliberate Management API attestation.
+Invitations, receipts and bearer ticket fields are rejected by the seed parser.
+See [Deploy CLI limitations](deploy-cli.md) for the pinned tool's smaller
+portable policy subset.
+
 Plan 30 owns invitations/acceptance and invitation email, organization-grant
 writes/enforcement, discovery domains/email discovery, organization search,
 app entitlement and change-password organization context. The existing EA
