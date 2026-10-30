@@ -84,7 +84,7 @@ Ordered by dependencies first, then by how much a typical tenant (and the mainta
 | 27 | Actions I: runtime, post-login, credentials exchange, npm dependencies, the Actions API | full (done) | 26 |
 | 28 | Actions II: signup, password/reset, custom email and Modules | full (done) | 27 |
 | 29 | Organizations I: organizations, members, roles, enabled connections, login with an organization | full (done) | 26 |
-| 30 | Organizations II: invitations, client grants, discovery domains | short | 29, 21 |
+| 30 | Organizations II: invitations, client grants, discovery domains | full (final verification in progress) | 29, 21 |
 | 31 | Logs, log streams, stats | full | 19 |
 | 32 | Event streams | short | 31 |
 | 33 | MFA I: OTP, email, recovery codes, WebAuthn, policies, the MFA API, user authentication methods | full | 21, 27 |
@@ -279,19 +279,25 @@ branch review is recorded separately from Task 14 regression results.
 **Design:** [Organizations II](2026-10-29-zeroauthy-organizations-ii-design.md).
 **Implementation:** [Plan 30](../plans/2026-10-29-zeroauthy-plan-30-organizations-ii.md).
 
-Minimal explicit-organization client-credentials issuance moves into Plan 30
-to make grant enforcement live; quotas remain in Plan 35. The accumulated
-Plan 29 follow-ups make this a multi-track implementation, superseding the
-earlier short-plan estimate.
+Organizations II implementation is in final verification. See the
+[implementation record](../2026-10-29-plan-30-implementation-record.md) for actual
+SDK/CLI/browser and driver outcomes, including unavailable checks.
 
-Carries Plan 29 deferred organization search, app entitlement, EA connection
-parity expansion, change-password organization context, and the reviewed
-organization polish ledger in the Plan 29 implementation record. The already
-active EA connections subset and empty client-grants read must remain tool
-compatible. Organization token quotas remain with Plan 35; groups with Plan 38,
-SAML/WS-Fed login with Plan 37, and My Organization API with Plan 42.
+The implementation includes invitation CRUD and durable delivery, application
+login forwarding and verified-account acceptance, application entitlement,
+client-subject grant associations and explicit-organization M2M enforcement,
+domain attestation/email discovery, bounded organization search, EA connection
+enablement/local names/delegation metadata, password-change organization context,
+console management and create-only seed configuration. The existing pinned
+Deploy tool supports a smaller documented policy subset and rejects unsupported
+active policy during offline preflight.
 
-`/organizations/{id}/invitations` (create, list, delete) with the `user_invitation` email (Plan 21) and the invitation acceptance flow (`invitation` and `organization` parameters at `/authorize`); `/organizations/{id}/client-grants` and grant `organization_usage`/`allow_any_organization` enforcement (inert since D-0041); `/organizations/{id}/discovery-domains` and home-realm discovery by email domain if documented at build time. The `user_invitation` template is stored-only since Plan 21 and becomes live here. Auth0's My Organization API (organization-admin self-service, Early Access since 2026-09) goes to Plan 42, not here.
+Domain verification is administrator attestation, not automated DNS proof. MFA
+is unavailable in the platform; first-time federated invitation provisioning
+fails closed while existing provisioned federated accounts are supported.
+Token quotas and default M2M organization selection remain Plan 35, groups and
+inherited roles Plan 38, SAML/WS-Fed organization login Plan 37, and the
+My Organization API/self-service organization administration Plan 42.
 
 ### Plan 31 — Logs, log streams, stats (full design)
 

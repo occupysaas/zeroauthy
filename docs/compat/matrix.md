@@ -123,10 +123,14 @@ D-0055 and [verification record](../superpowers/2026-10-28-plan-29-implementatio
 Observed facts remain distinct from unobserved local login/refresh decisions.
 
 The Early Access `/organizations/{id}/connections` compatibility subset manages
-the same links as `enabled_connections`; access-level defaults are not stored.
-`GET /organizations/{id}/client-grants` is always empty. Invitations, grant
-writes, discovery domains/email discovery, search and app entitlement remain
-Plan 30; groups/inherited roles remain Plan 38. `require` applications reject
+the same links as `enabled_connections`, with disabled links, local names and
+stored delegation metadata. Organizations II adds invitations, grant writes and
+explicit-org M2M policy, discovery domains/email discovery, search and application
+entitlement. Domain verification is administrator attestation, not a DNS check.
+MFA is unavailable and first-time federated invitation provisioning fails closed.
+See the [Plan 30 record](../superpowers/2026-10-29-plan-30-implementation-record.md)
+for actual verification outcomes and retained limitations. Groups/inherited roles
+remain Plan 38. `require` applications reject
 password/password-realm/device grants at configuration time (400).
 Organization grants persist their original connection across session expiry
 and refresh rotation; current membership, connection and client policy are

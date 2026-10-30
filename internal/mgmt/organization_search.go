@@ -53,7 +53,7 @@ func (h *Handlers) SearchOrganizations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if values.Has("from") {
-		p, err = orgsearch.DecodeCursor(h.Wrapper, values.Get("from"), resolved(r).ID, parser, q, p)
+		p, err = decodeOrganizationSearchCursor(h.Wrapper, values.Get("from"), resolved(r).ID, parser, q, p)
 		if err != nil {
 			Fail(w, badQuery("invalid search cursor"))
 			return
@@ -72,7 +72,7 @@ func (h *Handlers) SearchOrganizations(w http.ResponseWriter, r *http.Request) {
 	if res.Next != "" && len(res.Items) > 0 {
 		last := res.Items[len(res.Items)-1]
 		p.LastValue, p.LastID = orgsearch.SortValue(last, p.Sort), last.ID
-		next, err := orgsearch.EncodeCursor(h.Wrapper, resolved(r).ID, parser, q, p)
+		next, err := encodeOrganizationSearchCursor(h.Wrapper, resolved(r).ID, parser, q, p)
 		if err != nil {
 			h.orgIIError(w, r, err)
 			return

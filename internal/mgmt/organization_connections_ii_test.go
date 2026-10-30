@@ -25,7 +25,7 @@ func TestOrganizationConnectionsIIViews(t *testing.T) {
 	}
 	e.obj("POST", legacy, map[string]any{"connection_id": orgDB}, e.addConn(id, false), 201)
 	c = e.obj("GET", base+"/"+orgDB, nil, e.conn("GET", id, orgDB, true), 200)
-	if c["is_enabled"] != true || c["organization_connection_name"] != "Local database" || c["organization_access_level"] != "full" {
+	if c["is_enabled"] != true || c["organization_connection_name"] != "Local database" || c["organization_access_level"] != "full" || c["organization_member_access_level"] != "readonly" {
 		t.Fatalf("reenable %v", c)
 	}
 	c = e.obj("PATCH", base+"/"+orgDB, map[string]any{"is_enabled": nil, "organization_connection_name": nil, "organization_access_level": nil, "organization_member_access_level": nil}, e.conn("PATCH", id, orgDB, true), 200)
@@ -42,6 +42,14 @@ func TestOrganizationConnectionsIIViews(t *testing.T) {
 			t.Fatal(c)
 		}
 	}
+	// The bound is characters rather than UTF-8 bytes; re-enabling via the
+	// legacy family must retain the EA member-access metadata above.
+	unicodeName := strings.Repeat("界", 50)
+	c = e.obj("PATCH", base+"/"+orgDB, map[string]any{"organization_connection_name": unicodeName}, e.conn("PATCH", id, orgDB, true), 200)
+	if c["organization_connection_name"] != unicodeName {
+		t.Fatalf("unicode name: %v", c)
+	}
+	e.fail("PATCH", base+"/"+orgDB, map[string]any{"organization_connection_name": unicodeName + "界"}, e.conn("PATCH", id, orgDB, true), 400, "invalid_body")
 	for _, body := range []map[string]any{{"is_enabled": "false"}, {"organization_access_level": "admin"}, {"organization_member_access_level": true}, {"organization_connection_name": 5}, {"organization_connection_name": ""}, {"organization_connection_name": strings.Repeat("a", 51)}, {"unknown": true}} {
 		e.fail("PATCH", base+"/"+orgDB, body, e.conn("PATCH", id, orgDB, true), 400, "invalid_body")
 	}

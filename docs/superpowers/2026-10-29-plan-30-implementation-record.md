@@ -13,7 +13,8 @@ and controller-reviewed at `e8f48a8`, with the race-test scheduling and tenant
 serialization limitations recorded below. Task 4 is complete and controller-reviewed at `60c0d29`; the minor reconnect
 coverage limitation (actual backend replacement remains unverified) is retained.
 Task 5 is complete and controller-reviewed. Task 6 is complete and controller-reviewed,
-including sender fix `b13ad41`. Task 8 is complete and controller-reviewed at `f5d75c2`. Task 7 is complete and controller-reviewed including fix `4c2dd32`. Task 9 is submitted for controller review; Tasks 10–17 remain. The inventory
+including sender fix `b13ad41`. Task 8 is complete and controller-reviewed at `f5d75c2`. Task 7 is complete and controller-reviewed including fix `4c2dd32`. Tasks 9–16 are complete and controller-reviewed at `b356554`; Task 17 final
+regression is in progress. The inventory
 freezes contracts, not operational endpoints. API YAML, individual public scope
 audit, Authentication/reset context, expanded EA connection contracts and D-0056
 are now included in the Task 1 submission.
@@ -983,3 +984,161 @@ lint, typecheck, 72 test files / 524 tests, production build (1.69s).
 `task-15-fix1-make-console-final.log` records the exact output; the existing Vite
 >500 kB chunk advisory remains. Committed dist regenerated. `git diff --check`
 passes. No new browser, database, SDK or full-Go verification claim.
+
+## Task 17 — end-to-end acceptance and final regression
+
+Task 17 final regression verification is complete; outcomes below are the
+actual recorded exits. Base is b356554, with Tasks 1–16 reviewed. Tests use local synthetic
+accounts and fixtures only; no hosted Auth0 observation occurred.
+
+The new `make e2e-organizations-ii` retains `make e2e-organizations` for Plan 29.
+The real application invitation route forwards organization/ticket into a normal
+PKCE authorization request. Durable custom-email Actions capture the invitation
+and normal verification messages. Browser acceptance proves signup first fails
+acceptance while unverified, normal email verification succeeds, a fresh login
+accepts the same invitation, Actions see the accepted organization, token exchange
+succeeds and a second transaction cannot replay the ticket. Separate cases prove
+wrong-account retry, entitlement revocation before code exchange/refresh, console
+domain attestation and tenant navigation, pending/verified/disabled discovery,
+and password-reset organization context in an actual custom-email Action.
+
+The pinned SDK tests invitation CRUD, application associations, discovery-domain
+CRUD/attestation and search/cursor rejection. CLI invitation CRUD uses the actual
+`auth0 api` command; no native EA-command coverage is implied. The M2M matrix
+covers 48 explicit-org configurations: 36 real token requests and 12 invalid
+third-party allow-any configurations refused by the Management API. Six further
+requests cover omitted organization with deny/allow/require for first/third-party
+clients. Invalid configurations are never fabricated directly in fixture storage.
+
+### Bugs found by release verification
+
+- Normal Management API credentials could not obtain invitation scopes because
+  `ManagementAPIScopes` omitted all three. The new runner exposed the failure;
+  `TestOrganizationsIIInvitationScopesIssuable` failed before the registry fix.
+  Existing tenant scope upgrade appends them without expanding client grants;
+  the upgrade test now names the invitation scopes explicitly.
+- The full Go command exposed a test import cycle: keys tests use the memory
+  store, whose organization search imported keys for cursor sealing. Sealing now
+  belongs to the Management HTTP boundary; the parser/store package no longer
+  imports keys. Existing search/cursor rejection assertions remain intact.
+- The CAPTCHA regression test submitted unsupported password/proof fields to a
+  strict request-contract helper. The hostile-input test still asserts 401
+  `requires_verification` against the handler using response-only validation;
+  an additional valid reset payload asserts the same refusal. No unsupported
+  CAPTCHA transport was added to the API schema and no runtime policy weakened.
+
+- The final full Go race run reached all packages and exposed the migration
+  inventory test's stale latest-version expectation of 25. Plan 30 includes
+  migrations 0026 and 0027 for all three dialects; the fixture now expects 27.
+  Focused `TestLatestVersion` reproduced the failure, then passed under race.
+  No runtime migration changed. The broad run's actual exit was 1; its corrected
+  exact full Go race rerun passed with actual exit 0. A SQL run compiled before the fixture correction was
+  deliberately cancelled, with actual exit 1; its corrected rerun exited 0
+  (`task-17-sql-repaired`).
+
+### Retained review dispositions and limits
+
+All **39** historical Plan 29 rows retain their individual Task 15 dispositions
+above. Task 17 does not silently upgrade deferred provenance, performance or
+observability work into passing acceptance claims. The Task 13 Unicode boundary
+and member-access-metadata gaps are now covered by focused race regressions:
+50 Unicode characters accepted, 51 refused, and legacy re-enable retains member
+metadata. Task 4's real server replacement gap is closed by a TCP gRPC replacement
+regression: same client survives II→v1-only→II replacement, Plan 29 reads remain
+available, active II writes fail without persistence on the old plugin, and II
+writes recover on upgrade. The actual custom-email Action browser case closes
+Task 14's organization reset-context coverage gap.
+
+The dedicated SQL writer-contention-entry signal and grant-ID replacement/
+Action-time scope-shrink regressions remain deferred minors. Existing transaction
+race and final grant/scope recheck tests remain their evidence; no new dedicated
+coverage for those exact schedules is claimed.
+
+MFA infrastructure is absent; no MFA completion or enforcement pass is claimed.
+First-time federated invitation provisioning fails closed; existing provisioned
+federated users remain supported. Domain verification is administrator
+attestation, not automated DNS proof. Quotas, default M2M organization selection
+and self-service domain administration remain excluded. Destination verified
+status is not portable seed state. Whole-branch review remains controller-owned.
+
+### Tested tools and current evidence
+
+| Tool | Actual installed version |
+| --- | --- |
+| Go | go1.26.7 linux/amd64 (`GOTOOLCHAIN=go1.26.7`) |
+| Node | v26.8.1 |
+| node-auth0 | 7.4.0; asserted by the new runner |
+| Auth0 CLI | 1.37.0; asserted by the actual CLI test |
+| Playwright | 1.64.0 |
+| auth0-spa-js | 2.28.3; retained existing browser dependency |
+| auth0-deploy-cli | 9.1.0; Task 16 four-cell result on b356554 |
+
+The release Organizations II runner passes six browser cases plus SDK/CLI and
+M2M checks (`task-17-organizations-ii-release.log`, actual exit 0). It retains
+existing dependency pins. Focused affected-package race checks pass for keys,
+dbconn, mgmt and orgsearch (`task-17-go-fixes.log`, exit 0); the actual TCP plugin
+replacement race and Unicode/re-enable regressions also pass. The original broad
+Go run reported the two failures described above and is not a passing suite.
+Final broad/driver/regression outcomes are recorded below.
+
+### Capability matrix
+
+| Surface | Current memory/SQL/II plugin | Organizations-I-only plugin | Tool/provisioning scope |
+| --- | --- | --- | --- |
+| Plan 29 organizations/members/connections | Retained | Retained | Existing SDK/CLI/console/seed/Deploy support |
+| Invitations/receipts/durable email | OrganizationsII v1 required | Refused | SDK CRUD, CLI raw API and console; no seed/Deploy ticket export |
+| Active application entitlement | OrganizationsII v1 required | Refused | SDK/console and create-only seed; supported Deploy organization fields |
+| Active organization M2M grant policy | OrganizationsII v1 required | Refused | SDK/raw HTTP, console and create-only seed; unsupported active Deploy policy rejected offline |
+| Discovery domains/email discovery | OrganizationsII v1 required | Refused | SDK/console; seed pending domains only; destination attestation required |
+| Organization search | OrganizationsII v1 required | Refused | Bounded parser, SDK/console; authenticated tenant/query-bound cursors |
+| Change-password organization context | Current durable codecs required | Refused when context cannot be retained | Raw HTTP/tickets and actual custom-email Actions context |
+
+The current driver implementations share the repository contract; final driver
+execution results are recorded separately from this capability description.
+Definitive unsupported capability and transient transport failure remain distinct;
+transient failure is retried, and no active II write silently becomes a no-op.
+
+### Final regression outcomes
+
+Logs and numeric exit files are retained under
+`.superpowers/sdd/2026-10-29-zeroauthy-plan-30-organizations-ii/task-17-*`.
+Interrupted invocations without completion files are not passing results. The
+first full Go run found the import-cycle/CAPTCHA fixture issues above; its old
+SQL and gRPC-SQLite children were deliberately stopped after those fixes. A
+subsequent environment interruption lost the final Go/queue processes without
+completion; the first nohup attempt also did not survive its tool process group.
+The durable setsid run completed full Go with exit 1 solely for the latest-version
+fixture, then continued the sequential regression queue. A SQL run compiled
+before that fixture fix was cancelled by terminating only its owned test child;
+its actual exit 1 and automatic removal of its two containers are recorded.
+
+| Check | Actual outcome | Evidence filename stem |
+| --- | --- | --- |
+| Organizations II SDK/CLI/M2M/browser | Exit 0; six browser cases | `task-17-organizations-ii-release` |
+| Console | Exit 0; lint/typecheck, 72 files / 524 tests, build | `task-17-console` |
+| Sources | Exit 0 | `task-17-sources` |
+| Plan 29 organizations | Initial exit 2; corrected exact UI wording, exit 0; seven browser cases plus SDK/CLI | `task-17-organizations`, `task-17-organizations-repaired` |
+| Baseline E2E | Initial exit 2; clean-environment rerun exit 0; 24 browser passes, 55 feature-gated skips | `task-17-e2e`, `task-17-e2e-repaired` |
+| RBAC | Exit 0 | `task-17-rbac` |
+| Actions I | Exit 0 | `task-17-actions` |
+| Actions II | Exit 0; four browser cases | `task-17-actions-ii` |
+| Email accounts | Exit 0 | `task-17-email-accounts` |
+| Email | Initial exit 2; clean-environment rerun exit 0 | `task-17-email`, `task-17-email-repaired` |
+| Domains | Exit 0; two browser cases | `task-17-domains` |
+| Affected OIDF plans | Exit 0; zero failed modules, existing warning/review/skip dispositions retained | `task-17-conformance` |
+| Full Go race | Initial completed run exit 1; corrected exact rerun exit 0 | `task-17-go-race-persistent`, `task-17-go-race-repaired` |
+| SQLite/PostgreSQL/MySQL race | First run cancelled, exit 1; corrected rerun exit 0 | `task-17-sql`, `task-17-sql-repaired` |
+
+The baseline E2E and email initial failures came from the validation script
+exporting SQL test-port environment variables globally: the application config
+loader correctly rejected the unknown keys. Corrected invocations unset those
+variables; SQL overrides are scoped to the SQL command. The Plan 29 browser
+fixture still named the pre-Task-15 removal button and empty state; its two exact
+strings now match the approved UI without changing the removal assertion.
+
+OIDF outcomes: basic and form-post each 35 modules (21 passed, 6 warnings,
+4 review, 4 skipped); config 1 passed; logout 11 modules (3 passed, 8 review).
+These retain D-0036 dispositions and are not claims that skipped/review modules
+passed. Task 16's four Deploy cells passed at ancestor `b356554`; Task 17's scope
+registration, cursor dependency move, test fixtures and opt-in runner do not
+affect Deploy import/export. `git merge-base --is-ancestor b356554 HEAD` exited 0.

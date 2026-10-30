@@ -181,6 +181,26 @@ func run() error {
 				case "/reset-redirect":
 					w.Header().Set("Content-Type", "text/html")
 					_, _ = w.Write([]byte(`<form method="post" action="https://sdk.e2e.test/continue?ok=1"><input name="state" type="hidden"><button>Continue reset</button></form><script>document.querySelector("input").value=new URLSearchParams(location.search).get("state")</script>`))
+				case "/invitation-login":
+					if os.Getenv("E2E_M30") != "1" {
+						http.NotFound(w, r)
+						return
+					}
+					// Application-owned route forwards the two email bindings into
+					// its normal authorization request, including PKCE and state.
+					w.Header().Set("Content-Type", "text/html")
+					_, _ = w.Write([]byte(`<script>
+(async()=>{
+const incoming=new URLSearchParams(location.search);
+const bytes=n=>crypto.getRandomValues(new Uint8Array(n));
+const b64=b=>btoa(String.fromCharCode(...b)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
+const verifier=b64(bytes(32)),state=b64(bytes(16)),nonce=b64(bytes(16));
+const challenge=b64(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));
+const flow={domain:'sdk.e2e.test',client:'m24-spa',redirect:'https://callback.e2e.test/',verifier,state,nonce};
+sessionStorage.setItem('m30-flow',JSON.stringify(flow));
+const p=new URLSearchParams({client_id:flow.client,redirect_uri:flow.redirect,response_type:'code',scope:'openid profile email offline_access',state,nonce,code_challenge:challenge,code_challenge_method:'S256',invitation:incoming.get('invitation'),organization:incoming.get('organization')});
+location.replace('https://sdk.e2e.test/authorize?'+p);
+})();</script>`))
 				case "/org-spa":
 					http.ServeFile(w, r, "tests/e2e/organizations-spa.html")
 				case "/spa":

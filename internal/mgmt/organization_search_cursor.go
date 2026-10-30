@@ -1,10 +1,11 @@
-package orgsearch
+package mgmt
 
 import (
 	"encoding/base64"
 	"encoding/json"
 
 	"github.com/zeroauthy/zeroauthy/internal/keys"
+	"github.com/zeroauthy/zeroauthy/internal/orgsearch"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
 
@@ -18,9 +19,9 @@ func cursorFields(tid, parser, sort string, q store.OrganizationQuery) []string 
 	raw, _ := json.Marshal(q)
 	return []string{tid, parser, sort, string(raw)}
 }
-func EncodeCursor(w keys.Wrapper, tid, parser string, q store.OrganizationQuery, p store.OrganizationSearchPage) (string, error) {
-	p, e := Page(p)
-	if e != nil || p.LastID == "" || Validate(q) != nil {
+func encodeOrganizationSearchCursor(w keys.Wrapper, tid, parser string, q store.OrganizationQuery, p store.OrganizationSearchPage) (string, error) {
+	p, e := orgsearch.Page(p)
+	if e != nil || p.LastID == "" || orgsearch.Validate(q) != nil {
 		return "", store.ErrInvalid
 	}
 	raw, _ := json.Marshal([]string{p.LastValue, p.LastID})
@@ -30,9 +31,9 @@ func EncodeCursor(w keys.Wrapper, tid, parser string, q store.OrganizationQuery,
 	}
 	return base64.RawURLEncoding.EncodeToString(sealed), nil
 }
-func DecodeCursor(w keys.Wrapper, token, tid, parser string, q store.OrganizationQuery, p store.OrganizationSearchPage) (store.OrganizationSearchPage, error) {
-	p, e := Page(p)
-	if e != nil || len(token) > 10000 || Validate(q) != nil {
+func decodeOrganizationSearchCursor(w keys.Wrapper, token, tid, parser string, q store.OrganizationQuery, p store.OrganizationSearchPage) (store.OrganizationSearchPage, error) {
+	p, e := orgsearch.Page(p)
+	if e != nil || len(token) > 10000 || orgsearch.Validate(q) != nil {
 		return p, store.ErrInvalid
 	}
 	sealed, e := base64.RawURLEncoding.DecodeString(token)
@@ -48,5 +49,5 @@ func DecodeCursor(w keys.Wrapper, token, tid, parser string, q store.Organizatio
 		return p, store.ErrInvalid
 	}
 	p.LastValue, p.LastID = tuple[0], tuple[1]
-	return Page(p)
+	return orgsearch.Page(p)
 }
