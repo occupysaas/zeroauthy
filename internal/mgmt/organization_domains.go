@@ -3,12 +3,23 @@ package mgmt
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 )
+
+// ParseQuery must report invalid escapes and separators before URL.Query can
+// silently discard them, including malformed duplicates of allowed list keys.
+func (h *Handlers) organizationDomainParent(w http.ResponseWriter, r *http.Request, id string) bool {
+	if _, err := url.ParseQuery(r.URL.RawQuery); err != nil {
+		Fail(w, badQuery("malformed query parameter"))
+		return false
+	}
+	return h.organizationClientParent(w, r, id)
+}
 
 func discoveryDomainView(d *store.OrganizationDiscoveryDomain) map[string]any {
 	return map[string]any{"id": d.ID, "domain": d.Domain, "status": d.Status, "verification_host": d.VerificationHost, "verification_txt": d.VerificationTXT, "use_for_organization_discovery": d.UseForOrganizationDiscovery}
@@ -54,7 +65,7 @@ func readDiscoveryDomain(r *http.Request, d *store.OrganizationDiscoveryDomain, 
 	return nil
 }
 func (h *Handlers) ListOrganizationDiscoveryDomains(w http.ResponseWriter, r *http.Request, id string) {
-	if !h.organizationClientParent(w, r, id) {
+	if !h.organizationDomainParent(w, r, id) {
 		return
 	}
 	p := store.OrgPage{Take: 50}
@@ -94,7 +105,7 @@ func (h *Handlers) ListOrganizationDiscoveryDomains(w http.ResponseWriter, r *ht
 	writeJSON(w, 200, out)
 }
 func (h *Handlers) CreateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id string) {
-	if !h.organizationClientParent(w, r, id) {
+	if !h.organizationDomainParent(w, r, id) {
 		return
 	}
 	d := &store.OrganizationDiscoveryDomain{TenantID: resolved(r).ID, OrganizationID: id, ID: "dd_" + secrets.RandomString(24), Status: "pending", UseForOrganizationDiscovery: true}
@@ -112,7 +123,7 @@ func (h *Handlers) CreateOrganizationDiscoveryDomain(w http.ResponseWriter, r *h
 	writeJSON(w, 201, discoveryDomainView(d))
 }
 func (h *Handlers) getDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string, byName bool) {
-	if !h.organizationClientParent(w, r, id) {
+	if !h.organizationDomainParent(w, r, id) {
 		return
 	}
 	if err := noClientQuery(r); err != nil {
@@ -144,7 +155,7 @@ func (h *Handlers) GetOrganizationDiscoveryDomainByName(w http.ResponseWriter, r
 	h.getDiscoveryDomain(w, r, id, key, true)
 }
 func (h *Handlers) UpdateOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
-	if !h.organizationClientParent(w, r, id) {
+	if !h.organizationDomainParent(w, r, id) {
 		return
 	}
 	var out *store.OrganizationDiscoveryDomain
@@ -174,7 +185,7 @@ func (h *Handlers) UpdateOrganizationDiscoveryDomain(w http.ResponseWriter, r *h
 	writeJSON(w, 200, discoveryDomainView(out))
 }
 func (h *Handlers) DeleteOrganizationDiscoveryDomain(w http.ResponseWriter, r *http.Request, id, key string) {
-	if !h.organizationClientParent(w, r, id) {
+	if !h.organizationDomainParent(w, r, id) {
 		return
 	}
 	if err := noClientQuery(r); err != nil {

@@ -779,3 +779,13 @@ management/policy coverage was expanded after implementation. Memory and
 memory-backed gRPC OrganizationsII shared conformance passed. No full-suite,
 SQL, browser, external provider or hosted discovery-flow claim is made; Task 11
 owns caller binding and picker flow. Controller owns review and ledger completion.
+
+Task 10 review fix 1: domain handlers now parse RawQuery with url.ParseQuery
+before accessing URL.Query or operating on storage. Invalid escapes/separators
+can no longer disappear along with unknown or repeated parameters. This helper
+is scoped to the new domain handlers; Task 8 client handlers are unchanged.
+TestOrganizationDiscoveryMalformedQueries observed RED (malformed unknown key
+returned 200), then GREEN. It checks every domain operation and asserts malformed
+POST/PATCH/DELETE leave domain count, status and existence unchanged. Final pinned
+Go focused discovery race check passed (mgmt 1.278s, orglogin 1.027s, server 2.280s)
+and diff whitespace check passed. Controller owns re-review.

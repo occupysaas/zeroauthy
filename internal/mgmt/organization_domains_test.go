@@ -53,3 +53,33 @@ func TestOrganizationDiscoveryDomains(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestOrganizationDiscoveryMalformedQueries(t *testing.T) {
+	e := newOrgEnv(t)
+	org := e.create(map[string]any{"name": "malformedqueries"}, 201)["id"].(string)
+	create := func(w http.ResponseWriter, r *http.Request) { e.h.CreateOrganizationDiscoveryDomain(w, r, org) }
+	d := e.obj("POST", "/domains", map[string]any{"domain": "example.com"}, create, 201)
+	id := d["id"].(string)
+	get := func(w http.ResponseWriter, r *http.Request) { e.h.GetOrganizationDiscoveryDomain(w, r, org, id) }
+	list := func(w http.ResponseWriter, r *http.Request) { e.h.ListOrganizationDiscoveryDomains(w, r, org) }
+	patch := func(w http.ResponseWriter, r *http.Request) { e.h.UpdateOrganizationDiscoveryDomain(w, r, org, id) }
+	del := func(w http.ResponseWriter, r *http.Request) { e.h.DeleteOrganizationDiscoveryDomain(w, r, org, id) }
+	named := func(w http.ResponseWriter, r *http.Request) {
+		e.h.GetOrganizationDiscoveryDomainByName(w, r, org, "example.com")
+	}
+	for _, query := range []string{"?unknown=%zz", "?take=1&take=%zz", "?unknown=bad;value"} {
+		e.obj("GET", "/domains"+query, nil, list, 400)
+		e.obj("GET", "/domains"+query, nil, get, 400)
+		e.obj("GET", "/domains"+query, nil, named, 400)
+		e.obj("POST", "/domains"+query, map[string]any{"domain": "new.example.com"}, create, 400)
+		e.obj("PATCH", "/domains"+query, map[string]any{"status": "verified"}, patch, 400)
+		e.obj("DELETE", "/domains"+query, nil, del, 400)
+		if got := e.obj("GET", "/domains", nil, get, 200); got["status"] != "pending" {
+			t.Fatalf("malformed PATCH mutated state: %v", got)
+		}
+		got := e.obj("GET", "/domains", nil, list, 200)
+		if len(got["domains"].([]any)) != 1 {
+			t.Fatalf("malformed POST mutated state: %v", got)
+		}
+	}
+}
