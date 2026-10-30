@@ -814,3 +814,13 @@ func (a mgmtAPI) GetOrganizationClient(w http.ResponseWriter, r *http.Request, i
 func (a mgmtAPI) UpdateOrganizationClient(w http.ResponseWriter, r *http.Request, id, clientID string) {
 	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.UpdateOrganizationClient(w, r, id, clientID) }, "update:organization_clients")
 }
+
+func (a mgmtAPI) AssociateOrganizationClientGrant(w http.ResponseWriter, r *http.Request, id string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.AssociateOrganizationClientGrant(w, r, id) }, "create:organization_client_grants")
+}
+func (a mgmtAPI) DeleteOrganizationClientGrant(w http.ResponseWriter, r *http.Request, id, grantID string) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.DeleteOrganizationClientGrant(w, r, id, grantID) }, "delete:organization_client_grants")
+}
+func (a mgmtAPI) ListClientGrantOrganizations(w http.ResponseWriter, r *http.Request, id string, _ mgmtapi.ListClientGrantOrganizationsParams) {
+	scopedAll(w, r, func(w http.ResponseWriter, r *http.Request) { a.h.ListClientGrantOrganizations(w, r, id) }, "read:organization_client_grants")
+}

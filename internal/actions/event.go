@@ -128,6 +128,8 @@ type PostLoginInput struct {
 
 // CredentialsInput is everything a credentials-exchange flow sees.
 type CredentialsInput struct {
+	// Organization is the trusted snapshot frozen before credentials Actions execute.
+	Organization    *store.Organization
 	Tenant          tenant.Resolved
 	Client          *store.Client
 	ResourceServer  *store.ResourceServer
@@ -330,6 +332,9 @@ func credentialsEvent(in *CredentialsInput, a *accum) map[string]any {
 	}
 	if rs := resourceServerEvent(in.ResourceServer); rs != nil {
 		ev["resource_server"] = rs
+	}
+	if in.Organization != nil {
+		ev["organization"] = organizationEvent(in.Organization)
 	}
 	return ev
 }

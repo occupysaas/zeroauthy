@@ -36,6 +36,8 @@ var ManagementAPIScopes = []store.Scope{
 	{Value: "update:organization_connections", Description: "Update organization connections"},
 	{Value: "delete:organization_connections", Description: "Disable connections for organizations"},
 	{Value: "read:organization_client_grants", Description: "Read organization client grants"},
+	{Value: "create:organization_client_grants", Description: "Associate organization client grants"},
+	{Value: "delete:organization_client_grants", Description: "Remove organization client grants"},
 	{Value: "read:organization_clients", Description: "Read organization applications"},
 	{Value: "create:organization_clients", Description: "Associate organization applications"},
 	{Value: "update:organization_clients", Description: "Update organization applications"},

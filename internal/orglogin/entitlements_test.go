@@ -102,3 +102,29 @@ func TestOrganizationMemberEntitlementLegacyPlugin(t *testing.T) {
 		t.Fatalf("active policy %v", err)
 	}
 }
+
+func TestOrganizationM2MEligibility(t *testing.T) {
+	st, o, c := entitlementFixture(t)
+	ctx := context.Background()
+	g := &store.ClientGrant{TenantID: "t", ID: "cgr_machine", ClientID: c.ClientID, SubjectType: store.SubjectTypeClient, OrganizationUsage: "allow", AllowAnyOrganization: true}
+	if err := CheckMachineGrant(ctx, st, "t", nil, o.ID); !errors.Is(err, ErrNotMember) {
+		t.Fatal(err)
+	}
+	wrong := *g
+	wrong.TenantID = "other"
+	if err := CheckMachineGrant(ctx, st, "t", &wrong, o.ID); !errors.Is(err, ErrNotMember) {
+		t.Fatal(err)
+	}
+	user := *g
+	user.SubjectType = store.SubjectTypeUser
+	if err := CheckMachineGrant(ctx, st, "t", &user, o.ID); !errors.Is(err, ErrNotMember) {
+		t.Fatal(err)
+	}
+	o.IsAppEntitlementActive = true
+	if err := st.Organizations().Update(ctx, o); err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckMachineGrant(ctx, st, "t", g, o.ID); err != nil {
+		t.Fatalf("member entitlement incorrectly gates machines: %v", err)
+	}
+}

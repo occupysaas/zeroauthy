@@ -1798,3 +1798,27 @@ when replacing a transaction. Session and signup provenance writes share this
 monotonic implementation; stale readers cannot overwrite newer authentication
 bindings under READ COMMITTED. SQLite stale-reader regressions cover the same
 compare-and-swap contract; PostgreSQL/MySQL need configured service validation.
+
+D-0056 Task 9 activation clarification (2026-10-29): the OrganizationsII grant
+operations frozen by Task 1 supersede Plan 29's empty grant-list placeholder.
+Organization grant GET accepts only page/per_page/include_totals, uses configured
+per_page for totals.limit (including an empty list), and missing parents/references
+return not_found. Historical Plan 29 inventory remains unchanged. POST requires
+exactly grant_id; DELETE and reads accept no body. Reverse grant organizations
+retains its independently documented offset/checkpoint variants and
+read:organization_client_grants scope. Grant listing filters allow_any_organization
+before pagination; both organization policy fields are always returned with their
+deny/false defaults, including allow_all_scopes responses.
+
+M2M's final eligibility transaction is the issuance authorization boundary.
+Current client/API/grant and organization association/third-party policy are read
+under the policy writer boundary; current API and grant scopes cap the approved
+scope snapshot. Signing uses the existing key manager after commit, because that
+manager uses the outer store and would deadlock inside an exclusive memory or
+SQLite transaction. A revocation committed before the eligibility read prevents
+issuance. Later revocations do not cancel an already approved issuance or revoke
+an existing JWT. Organization claims and the credentials-exchange event retain
+the trusted context frozen before external Actions; no organization roles,
+member application entitlements, inferred organization or membership writes
+participate. JSON organization/invitation values must be strings, including
+rejecting explicit null; an empty organization string follows absent semantics.

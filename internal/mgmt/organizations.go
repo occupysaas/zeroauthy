@@ -495,26 +495,3 @@ func (h *Handlers) DeleteOrganization(w http.ResponseWriter, r *http.Request, id
 	h.audit(r, "delete organization", "id", id)
 	w.WriteHeader(http.StatusNoContent)
 }
-
-// ListOrganizationClientGrants answers the read-only organization client
-// grant list. Associating grants with organizations is Plan 30, so the list
-// is always empty (D-0055); the organization must exist.
-func (h *Handlers) ListOrganizationClientGrants(w http.ResponseWriter, r *http.Request, id string) {
-	orgs, ok := h.orgs(w)
-	if !ok {
-		return
-	}
-	p, _, err := orgQuery(r, "page", "per_page", "include_totals", "audience", "client_id", "grant_ids")
-	if err == nil && len(r.URL.Query()["grant_ids"]) > orgrules.Limit("batch_ids_max") {
-		err = badQuery("Query validation error: grant_ids can be given at most %d times", orgrules.Limit("batch_ids_max"))
-	}
-	if err != nil {
-		Fail(w, err)
-		return
-	}
-	if _, err := loadOrg(r, orgs, id); err != nil {
-		h.orgError(w, r, err)
-		return
-	}
-	writeOrgList(w, "client_grants", []map[string]any{}, 0, "", p, false, true)
-}

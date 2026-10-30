@@ -13,6 +13,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/access"
 	"github.com/zeroauthy/zeroauthy/internal/actions"
 	"github.com/zeroauthy/zeroauthy/internal/gen/authapi"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/internal/tenant"
 	"github.com/zeroauthy/zeroauthy/internal/tenantsetup"
@@ -63,18 +64,24 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 	if grant == nil {
 		return nil, accessDenied("client is not authorized for this audience")
 	}
-	// Organization client grants arrive with Plan 30. Until then no audience
-	// admits an organization here, as observed for the Management API
-	// (D-0055); the client's organization_usage plays no part.
-	if form.Get("organization") != "" {
-		return nil, invalidRequest("this application may not request an organization for this audience")
+	org, oerr := h.machineOrganization(ctx, res, form)
+	if oerr != nil {
+		return nil, oerr
+	}
+	orgID := ""
+	if org != nil {
+		orgID = org.ID
+	}
+	if err := orglogin.CheckMachineGrant(ctx, h.Store, tenantID, grant, orgID); err != nil {
+		return nil, accessDenied("the organization grant is not eligible")
 	}
 	allowed := grant.EffectiveScopes(rs.Scopes)
 	scopes, oerr := resolveScopes(form.Get("scope"), allowed, rs.Scopes)
 	if oerr != nil {
 		return nil, oerr
 	}
-	scopes, claims, oerr := h.credentialsExchange(ctx, res, c, rs, strings.Fields(form.Get("scope")), scopes, allowed)
+	orgClaims := OrgClaims(res, org)
+	scopes, claims, oerr := h.credentialsExchange(ctx, res, c, rs, strings.Fields(form.Get("scope")), scopes, allowed, org)
 	if oerr != nil {
 		return nil, oerr
 	}
@@ -82,6 +89,56 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 	lifetime := time.Duration(rs.TokenLifetime) * time.Second
 	if lifetime <= 0 {
 		lifetime = DefaultAccessTokenLifetime
+	}
+	// Trusted organization claims were frozen before Actions; final reads authorize issuance.
+	if claims == nil {
+		claims = map[string]any{}
+	}
+	for k, v := range orgClaims {
+		claims[k] = v
+	}
+	// This transaction is issuance's authorization boundary. A revocation
+	// committed before its policy reads wins; later writes do not cancel an
+	// already approved issuance. Sign after commit because the key manager
+	// uses the outer store (which memory/SQLite transactions exclusively hold).
+	err = h.Store.WithTx(ctx, func(tx store.Store) error {
+		currentClient, err := tx.Clients().Get(ctx, tenantID, c.ClientID)
+		if err != nil {
+			return err
+		}
+		currentAPI, err := tx.ResourceServers().GetByIdentifier(ctx, tenantID, aud)
+		if err != nil {
+			return err
+		}
+		currentGrant, err := tx.ClientGrants().Find(ctx, tenantID, c.ClientID, aud, store.SubjectTypeClient)
+		if err != nil {
+			return err
+		}
+		if currentGrant.ID != grant.ID {
+			return orglogin.ErrNotMember
+		}
+		if d := access.Decide(access.Input{Flow: access.ClientCredentials, Client: currentClient, API: currentAPI, ClientGrant: currentGrant}); d.Err != nil {
+			return orglogin.ErrNotMember
+		}
+		if err := orglogin.CheckMachineGrant(ctx, tx, tenantID, currentGrant, orgID); err != nil {
+			return err
+		}
+		// Winning scope/API revocations also cap the already executed Action.
+		currentAllowed := currentGrant.EffectiveScopes(currentAPI.Scopes)
+		scopes = slices.DeleteFunc(scopes, func(scope string) bool { return !slices.Contains(currentAllowed, scope) })
+		defined := []string{}
+		for _, scope := range currentAPI.Scopes {
+			defined = append(defined, scope.Value)
+		}
+		scopes = slices.DeleteFunc(scopes, func(scope string) bool { return !slices.Contains(defined, scope) })
+		return nil
+	})
+	if errors.Is(err, store.ErrNotFound) || errors.Is(err, orglogin.ErrNotMember) || errors.Is(err, store.ErrOrganizationsIIUnavailable) {
+		return nil, accessDenied("the organization grant is no longer eligible")
+	}
+	if err != nil {
+		h.log().ErrorContext(ctx, "mint access token", "tenant", tenantID, "err", err)
+		return nil, serverError()
 	}
 	token, err := h.Minter.AccessToken(ctx, AccessTokenParams{
 		TenantID:     tenantID,
@@ -117,13 +174,13 @@ func (h *Handlers) clientCredentials(ctx context.Context, res tenant.Resolved, c
 // the client grant (allowed) and the API's defined scopes, and the filtered custom claims. A denial is
 // the OAuth error its code names (invalid_scope and invalid_request 400,
 // server_error 500, D-0053); a failed flow is server_error.
-func (h *Handlers) credentialsExchange(ctx context.Context, res tenant.Resolved, c *store.Client, rs *store.ResourceServer, requested, scopes, allowed []string) ([]string, map[string]any, *Error) {
+func (h *Handlers) credentialsExchange(ctx context.Context, res tenant.Resolved, c *store.Client, rs *store.ResourceServer, requested, scopes, allowed []string, org *store.Organization) ([]string, map[string]any, *Error) {
 	if h.Actions == nil {
 		return scopes, nil, nil
 	}
 	result, err := h.Actions.CredentialsExchange(ctx, actions.CredentialsInput{
 		Tenant: res, Client: c, ResourceServer: rs, Request: requestInfoFrom(ctx),
-		RequestedScopes: requested, TargetScopes: scopes,
+		RequestedScopes: requested, TargetScopes: scopes, Organization: org,
 	})
 	if err != nil {
 		var fe *actions.ErrFlow

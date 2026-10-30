@@ -13,7 +13,7 @@ import (
 var orgMgmtScopes = []string{
 	"read:organizations", "create:organizations", "update:organizations", "delete:organizations",
 	"read:organization_connections", "create:organization_connections", "update:organization_connections", "delete:organization_connections",
-	"read:organization_client_grants",
+	"read:organization_client_grants", "create:organization_client_grants", "delete:organization_client_grants",
 	"read:organization_clients", "create:organization_clients", "update:organization_clients", "delete:organization_clients",
 	"read:organization_members", "create:organization_members", "delete:organization_members",
 	"read:organization_member_roles", "create:organization_member_roles", "delete:organization_member_roles",
@@ -124,7 +124,7 @@ func TestOrganizationsRoutes(t *testing.T) {
 		{"PATCH", "/organizations/" + id + "/connections/" + dbID, map[string]any{"is_enabled": true, "organization_access_level": "none"}, 200},
 		{"PATCH", "/organizations/" + id + "/connections/" + dbID, map[string]any{"organization_access_level": "full"}, 400},
 		{"GET", "/organizations/" + id + "/client-grants", nil, 200},
-		{"GET", "/organizations/" + id + "/client-grants?include_totals=true&grant_ids=a&grant_ids=b", nil, 200},
+		{"GET", "/organizations/" + id + "/client-grants?include_totals=true", nil, 200},
 		{"DELETE", "/organizations/" + id + "/connections/" + dbID, nil, 204},
 		{"POST", "/organizations/" + id + "/connections", map[string]any{"connection_id": dbID, "is_enabled": true}, 201},
 		{"DELETE", "/organizations/" + id + "/enabled_connections/" + dbID, nil, 204},

@@ -13,8 +13,7 @@ and controller-reviewed at `e8f48a8`, with the race-test scheduling and tenant
 serialization limitations recorded below. Task 4 is complete and controller-reviewed at `60c0d29`; the minor reconnect
 coverage limitation (actual backend replacement remains unverified) is retained.
 Task 5 is complete and controller-reviewed. Task 6 is complete and controller-reviewed,
-including sender fix `b13ad41`. Task 8 is complete and controller-reviewed at `f5d75c2`. Task 7 is submitted
-for controller review; Tasks 9–17 remain. The inventory
+including sender fix `b13ad41`. Task 8 is complete and controller-reviewed at `f5d75c2`. Task 7 is complete and controller-reviewed including fix `4c2dd32`. Task 9 is submitted for controller review; Tasks 10–17 remain. The inventory
 freezes contracts, not operational endpoints. API YAML, individual public scope
 audit, Authentication/reset context, expanded EA connection contracts and D-0056
 are now included in the Task 1 submission.
@@ -693,3 +692,57 @@ GOTOOLCHAIN=go1.26.7 final checks:
 
 No PostgreSQL/MySQL READ COMMITTED service, actual MFA, external provider or
 whole-release validation was performed. Controller owns re-review and ledger.
+
+
+## Task 9 — Grant organization policy and bound M2M
+
+Prerequisites: Tasks 1–8 are controller-reviewed; execution intentionally landed
+Task 8 before Task 7. Task 7 review fix `4c2dd32` is complete. Its actual MFA /
+external provider exclusions, first-time federated invitation provisioning refusal,
+and other recorded restrictions remain in force; Task 9 adds no interactive flow.
+
+Management grant CRUD now persists and returns deny/allow/require and allow-any,
+with strict null/type checks, omission preservation, user-subject active rejection,
+third-party allow-any rejection and old-plugin active-write fail-closed checks.
+Organization grant list/associate/delete and reverse organization lookup use the
+frozen Task 1 contracts, tenant-scoped transactional references, duplicate checks
+and existing cascade repositories; associations never copy scopes. Create/delete
+organization-client-grants scopes are registered and enforced on the real routes.
+
+The active OrganizationsII GET contract intentionally supersedes Plan 29's empty
+stub: unknown filters are rejected, empty totals.limit is per_page (50 by default),
+and missing parent/reference is not_found. Historical inventory is unchanged.
+The placeholder HTTP and Management assertions now verify this frozen D-0056
+contract; this is an intentional contract activation, not an upstream observation.
+
+Client credentials resolves only explicit organization IDs or tenant-enabled
+names and applies grant policy independently of client member-login policy.
+CheckMachineGrant enforces existing organization, association or allow-any, plus
+explicit-only third-party opt-in. Credentials Actions receive an immutable flow
+snapshot and reserved claim filtering prevents organization spoofing; grant/API
+scope ceilings hold. M2M issues only access tokens and creates no membership.
+
+Final eligibility and scope intersection share one policy transaction; its commit
+is the authorization linearization boundary. Signing follows commit with frozen
+parameters and the existing key manager, avoiding a same-store memory/SQLite
+key-read deadlock. A writer that commits before final eligibility wins. Revocation
+after authorization does not retroactively cancel an approved issuance/JWT.
+
+Verification and exact RED/GREEN evidence are in the workspace task-9-report.md.
+Focused pinned-Go / required-Node checks and actual token-endpoint races cover
+all three SQL dialects. The version-25 migration fixture now inserts its historical
+client columns instead of calling current Clients.Create before migration 0027;
+upgraded/fresh clients shapes are compared, explicitly covering that URI column.
+No full-Go/release, browser, quota, external plugin/provider or MFA claim is made.
+Controller owns final Task 9 review and ledger completion.
+
+Task 9 final pinned-Go verification: required-Node five-package focused race
+selection PASS (mgmt 5.272s, orglogin 1.032s, oauth 44.095s, actions 1.785s,
+server 3.164s). Actual token-endpoint channel-barrier revocation/scope races PASS
+on SQLite/PostgreSQL/MySQL (48.371s). The all-three-driver OrganizationsII
+conformance/policy-lock/composite/migration selection initially FAIL (108.543s)
+solely because its historical v25 fixture used Clients.Create with a future
+column. Other selected tests PASS all three dialects; corrected migration fixture
+rerun PASS all three (6.668s), including 0027 and clients upgraded/fresh shape.
+The initial covering command remains recorded as FAIL; no unchanged passing
+selections were rerun. Final diff check PASS.

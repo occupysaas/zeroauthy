@@ -7,6 +7,7 @@ import (
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"github.com/zeroauthy/zeroauthy/pkg/storetest"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -34,7 +35,11 @@ func TestOrganizationsIIMigrationFrom25(t *testing.T) {
 				}
 			}
 			must(s.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "t"}))
-			must(s.Clients().Create(ctx, &store.Client{TenantID: "t", ClientID: "c"}))
+			// Seed the version-25 shape, before 0027 adds initiate_login_uri.
+			clientValues, err := clientArgs(&store.Client{TenantID: "t", ClientID: "c"})
+			must(err)
+			oldColumns := strings.TrimSuffix(clientCols, ", initiate_login_uri")
+			mustExec(t, s, "INSERT INTO clients ("+oldColumns+") VALUES ("+strings.TrimSuffix(strings.Repeat("?,", len(clientValues)-1), ",")+")", clientValues[:len(clientValues)-1]...)
 			must(s.Connections().Create(ctx, &store.Connection{TenantID: "t", ID: "conn", Name: "database", Strategy: "auth0"}))
 			must(s.Users().Create(ctx, &store.User{TenantID: "t", UserID: "auth0|u"}))
 			must(s.RBAC().CreateRole(ctx, &store.Role{TenantID: "t", ID: "role", Name: "role"}))
@@ -70,7 +75,7 @@ func TestOrganizationsIIMigrationFrom25(t *testing.T) {
 				t.Fatalf("grant upgrade %+v", g)
 			}
 			fresh := mustOpen(t, mk(t))
-			for _, table := range []string{"organizations", "organization_connections", "client_grants", "organization_invitations", "organization_invitation_roles", "organization_invitation_receipts", "organization_clients", "organization_client_grants", "organization_discovery_domains"} {
+			for _, table := range []string{"clients", "organizations", "organization_connections", "client_grants", "organization_invitations", "organization_invitation_roles", "organization_invitation_receipts", "organization_clients", "organization_client_grants", "organization_discovery_domains"} {
 				if !slices.Equal(tableShape(t, s, table), tableShape(t, fresh, table)) {
 					t.Fatalf("upgrade shape differs: %s", table)
 				}

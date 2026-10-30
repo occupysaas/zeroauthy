@@ -517,8 +517,7 @@ func TestOrganizationsAllConnections(t *testing.T) {
 	e.fail("GET", "/organizations/org_0000000000000000/connections", nil, e.conns("org_0000000000000000", true), 404, "")
 }
 
-// TestOrganizationsClientGrants: the read-only list is always empty until
-// Plan 30 lets grants be associated with organizations.
+// Empty association lists retain their documented offset shape.
 func TestOrganizationsClientGrants(t *testing.T) {
 	e := newOrgEnv(t)
 	id := e.create(map[string]any{"name": "grants"}, 201)["id"].(string)
@@ -528,13 +527,13 @@ func TestOrganizationsClientGrants(t *testing.T) {
 	if l := e.list("/organizations/"+id+"/client-grants", list(id)); len(l) != 0 {
 		t.Fatalf("list=%v", l)
 	}
-	page := e.obj("GET", "/organizations/"+id+"/client-grants?include_totals=true&page=0&per_page=50&audience=https://api.test&client_id=c&grant_ids=a&grant_ids=b", nil, list(id), 200)
-	if fmt.Sprint(page) != "map[client_grants:[] limit:0 start:0 total:0]" {
+	page := e.obj("GET", "/organizations/"+id+"/client-grants?include_totals=true&page=0&per_page=50", nil, list(id), 200)
+	if fmt.Sprint(page) != "map[client_grants:[] limit:50 start:0 total:0]" {
 		t.Fatalf("page=%v", page)
 	}
 	e.fail("GET", "/organizations/"+id+"/client-grants?per_page=101", nil, list(id), 400, "invalid_query_string")
 	e.fail("GET", "/organizations/"+id+"/client-grants?take=1", nil, list(id), 400, "invalid_query_string")
-	e.fail("GET", "/organizations/org_0000000000000000/client-grants", nil, list("org_0000000000000000"), 404, "")
+	e.fail("GET", "/organizations/org_0000000000000000/client-grants", nil, list("org_0000000000000000"), 404, "not_found")
 	e.fail("GET", "/organizations/bad/client-grants", nil, list("bad"), 400, "invalid_uri")
 }
 
