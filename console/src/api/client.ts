@@ -113,6 +113,14 @@ export type OrganizationEnabledConnectionsPage = components['schemas']['Organiza
 export type OrganizationMember = components['schemas']['OrganizationMember']
 export type OrganizationMembersPage = components['schemas']['OrganizationMembersPage']
 
+export type OrganizationInvitation = components['schemas']['OrganizationInvitation']
+export type OrganizationInvitationCreate = components['schemas']['OrganizationInvitationCreate']
+export type OrganizationClientAssociation = components['schemas']['OrganizationClientAssociation']
+export type OrganizationDiscoveryDomain = components['schemas']['OrganizationDiscoveryDomain']
+export type OrganizationConnection = components['schemas']['OrganizationConnection']
+export type OrganizationConnectionUpdate = components['schemas']['OrganizationConnectionUpdate']
+export type OrganizationClientGrant = components['schemas']['OrganizationClientGrant']
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -290,6 +298,55 @@ export class Api {
   listOrganizations(t: SystemTenant, page: number, userId?: string): Promise<OrganizationsPage> {
     const path = userId === undefined ? '/api/v2/organizations' : userPath(userId) + '/organizations'
     return this.request(Api.tenantOrigin(t), 'GET', path, { query: { page, per_page: 20, include_totals: true } })
+  }
+  searchOrganizations(t: SystemTenant, q: string, parser: 'lucene' | 'scim', from?: string): Promise<components['schemas']['IISearchOrganizationsPaginatedResponseContent']> {
+    return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/search', { query: { q, parser, from, take: 20 } })
+  }
+  organizationPath(id: string, resource: string): string { return '/api/v2/organizations/' + encodeURIComponent(id) + '/' + resource }
+  listOrganizationInvitations(t: SystemTenant, id: string, page: number): Promise<components['schemas']['IIListOrganizationInvitationsOffsetPaginatedResponseContent']> {
+    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'invitations'), { query: { page, per_page: 20, include_totals: true } })
+  }
+  createOrganizationInvitation(t: SystemTenant, id: string, body: OrganizationInvitationCreate): Promise<OrganizationInvitation> {
+    return this.request(Api.tenantOrigin(t), 'POST', this.organizationPath(id, 'invitations'), { body })
+  }
+  deleteOrganizationInvitation(t: SystemTenant, id: string, invitationId: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', this.organizationPath(id, 'invitations/' + encodeURIComponent(invitationId)))
+  }
+  listOrganizationClients(t: SystemTenant, id: string, from?: string): Promise<components['schemas']['IIListOrganizationClientsResponseContent']> {
+    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'clients'), { query: { take: 20, from } })
+  }
+  associateOrganizationClient(t: SystemTenant, id: string, clientId: string, memberAccess: boolean): Promise<unknown> {
+    return this.request(Api.tenantOrigin(t), 'POST', this.organizationPath(id, 'clients'), { body: { clients: [{ client_id: clientId, use_for_member_access: memberAccess }] } })
+  }
+  updateOrganizationClient(t: SystemTenant, id: string, clientId: string, memberAccess: boolean): Promise<unknown> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', this.organizationPath(id, 'clients/' + encodeURIComponent(clientId)), { body: { use_for_member_access: memberAccess } })
+  }
+  deleteOrganizationClient(t: SystemTenant, id: string, clientId: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', this.organizationPath(id, 'clients'), { body: { clients: [clientId] } })
+  }
+  listOrganizationGrants(t: SystemTenant, id: string, page: number): Promise<components['schemas']['OrganizationClientGrantsPage']> {
+    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'client-grants'), { query: { page, per_page: 20, include_totals: true } })
+  }
+  changeOrganizationGrant(t: SystemTenant, id: string, grantId: string, method: 'POST' | 'DELETE'): Promise<unknown> {
+    return this.request(Api.tenantOrigin(t), method, this.organizationPath(id, 'client-grants' + (method === 'DELETE' ? '/' + encodeURIComponent(grantId) : '')), { body: method === 'POST' ? { grant_id: grantId } : undefined })
+  }
+  listOrganizationDomains(t: SystemTenant, id: string, from?: string): Promise<components['schemas']['IIListOrganizationDiscoveryDomainsResponseContent']> {
+    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'discovery-domains'), { query: { take: 20, from } })
+  }
+  createOrganizationDomain(t: SystemTenant, id: string, body: components['schemas']['IICreateOrganizationDiscoveryDomainRequestContent']): Promise<OrganizationDiscoveryDomain> {
+    return this.request(Api.tenantOrigin(t), 'POST', this.organizationPath(id, 'discovery-domains'), { body })
+  }
+  updateOrganizationDomain(t: SystemTenant, id: string, domainId: string, body: components['schemas']['IIUpdateOrganizationDiscoveryDomainRequestContent']): Promise<OrganizationDiscoveryDomain> {
+    return this.request(Api.tenantOrigin(t), 'PATCH', this.organizationPath(id, 'discovery-domains/' + encodeURIComponent(domainId)), { body })
+  }
+  deleteOrganizationDomain(t: SystemTenant, id: string, domainId: string): Promise<void> {
+    return this.request(Api.tenantOrigin(t), 'DELETE', this.organizationPath(id, 'discovery-domains/' + encodeURIComponent(domainId)))
+  }
+  listAllOrganizationConnections(t: SystemTenant, id: string): Promise<components['schemas']['OrganizationConnectionsPage']> {
+    return this.request(Api.tenantOrigin(t), 'GET', this.organizationPath(id, 'connections'), { query: { page: 0, per_page: 50, include_totals: true } })
+  }
+  changeAllOrganizationConnection(t: SystemTenant, id: string, connectionId: string, method: 'POST' | 'PATCH' | 'DELETE', body?: OrganizationConnectionUpdate): Promise<unknown> {
+    return this.request(Api.tenantOrigin(t), method, this.organizationPath(id, 'connections' + (method === 'POST' ? '' : '/' + encodeURIComponent(connectionId))), { body: method === 'POST' ? { connection_id: connectionId, ...body } : body })
   }
   getOrganization(t: SystemTenant, id: string): Promise<Organization> {
     return this.request(Api.tenantOrigin(t), 'GET', '/api/v2/organizations/' + encodeURIComponent(id))

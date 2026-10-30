@@ -2638,7 +2638,7 @@ export interface paths {
         };
         /**
          * GET /organizations/search
-         * @description Plan 30 contract; route implementation is tracked separately. parser absent=lucene; take absent=50; sort absent=created_at with ID tie-break (local); q absent/empty=all (local); next omitted at end; no offset/totals
+         * @description Bounded local SCIM/Lucene organization search. parser absent=lucene; take absent=50; sort absent=created_at with ID tie-break (local); q absent/empty=all (local); next omitted at end; no offset/totals. Cursors authenticate tenant, normalized query, parser and sort under stable server key material. They are not snapshots; concurrent writes can change subsequent pages. Local reads are immediately consistent. See docs/organization-search.md.
          */
         get: operations["SearchOrganizations"];
         put?: never;
@@ -2910,10 +2910,10 @@ export interface components {
             app_metadata?: components["schemas"]["IIAppMetadata"];
             user_metadata?: components["schemas"]["IIUserMetadata"];
             /** @default 604800 */
-            ttl_sec: number;
+            ttl_sec?: number;
             roles?: string[];
             /** @default true */
-            send_invitation_email: boolean;
+            send_invitation_email?: boolean;
         };
         IIOrganizationInvitationInviter: {
             name: string;
@@ -3054,9 +3054,9 @@ export interface components {
              * @default pending
              * @enum {string}
              */
-            status: "pending";
+            status?: "pending";
             /** @default true */
-            use_for_organization_discovery: boolean;
+            use_for_organization_discovery?: boolean;
         };
         IIGetOrganizationDiscoveryDomainByNameResponseContent: {
             id: string;
@@ -3291,7 +3291,7 @@ export interface components {
              * @description Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
              * @default false
              */
-            is_app_entitlement_active: boolean;
+            is_app_entitlement_active?: boolean;
             enabled_connections?: components["schemas"]["OrganizationEnabledConnectionCreate"][];
         };
         OrganizationUpdate: {
@@ -3306,7 +3306,7 @@ export interface components {
              * @description Enforce member application associations; absent create defaults false; PATCH omission preserves; null rejected (D-0056).
              * @default false
              */
-            is_app_entitlement_active: boolean;
+            is_app_entitlement_active?: boolean;
         };
         /** @description Organizations with `include_totals=true`. */
         OrganizationsPage: {
@@ -3457,7 +3457,7 @@ export interface components {
              * @default node22
              * @enum {string}
              */
-            runtime: "node22";
+            runtime?: "node22";
             secrets?: components["schemas"]["ActionSecretInput"][];
             deploy?: boolean;
             modules?: components["schemas"]["ActionModuleRef"][];
@@ -3472,7 +3472,7 @@ export interface components {
              * @default node22
              * @enum {string}
              */
-            runtime: "node22";
+            runtime?: "node22";
             secrets?: components["schemas"]["ActionSecretInput"][];
             modules?: components["schemas"]["ActionModuleRef"][];
         };
@@ -3587,7 +3587,7 @@ export interface components {
         };
         ActionDeployVersion: {
             /** @default false */
-            update_draft: boolean;
+            update_draft?: boolean;
         };
         ActionExecution: {
             id: string;
@@ -3774,9 +3774,9 @@ export interface components {
              * @default count_per_identifier_and_ip
              * @enum {string}
              */
-            mode: "count_per_identifier_and_ip" | "count_per_identifier";
+            mode?: "count_per_identifier_and_ip" | "count_per_identifier";
             /** @default 10 */
-            max_attempts: number;
+            max_attempts?: number;
             /** @enum {string} */
             form_submission_mode?: "auto" | "manual";
         };
@@ -3788,9 +3788,9 @@ export interface components {
              * @default count_per_identifier_and_ip
              * @enum {string}
              */
-            mode: "count_per_identifier_and_ip" | "count_per_identifier";
+            mode?: "count_per_identifier_and_ip" | "count_per_identifier";
             /** @default 10 */
-            max_attempts: number;
+            max_attempts?: number;
             /** @enum {string} */
             form_submission_mode?: "auto" | "manual";
         };
@@ -3801,21 +3801,21 @@ export interface components {
             stage?: {
                 "pre-login"?: {
                     /** @default 100 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 864000 */
-                    rate: number;
+                    rate?: number;
                 };
                 "pre-user-registration"?: {
                     /** @default 50 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 1728000 */
-                    rate: number;
+                    rate?: number;
                 };
                 "pre-custom-token-exchange"?: {
                     /** @default 10 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 8640000 */
-                    rate: number;
+                    rate?: number;
                 };
             };
         };
@@ -3826,34 +3826,34 @@ export interface components {
             stage?: {
                 "pre-login"?: {
                     /** @default 100 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 864000 */
-                    rate: number;
+                    rate?: number;
                 };
                 "pre-user-registration"?: {
                     /** @default 50 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 1728000 */
-                    rate: number;
+                    rate?: number;
                 };
                 "pre-custom-token-exchange"?: {
                     /** @default 10 */
-                    max_attempts: number;
+                    max_attempts?: number;
                     /** @default 8640000 */
-                    rate: number;
+                    rate?: number;
                 };
             };
         };
         BreachedPasswordDetectionUpdate: {
             /** @default true */
-            enabled: boolean;
+            enabled?: boolean;
             shields?: ("block" | "user_notification" | "admin_notification")[];
             admin_notification_frequency?: ("immediately" | "daily" | "weekly" | "monthly")[];
             /**
              * @default standard
              * @enum {string}
              */
-            method: "standard" | "enhanced";
+            method?: "standard" | "enhanced";
             stage?: {
                 "pre-user-registration"?: {
                     shields?: ("block" | "admin_notification")[];
@@ -3865,14 +3865,14 @@ export interface components {
         };
         BreachedPasswordDetection: {
             /** @default true */
-            enabled: boolean;
+            enabled?: boolean;
             shields?: ("block" | "user_notification" | "admin_notification")[];
             admin_notification_frequency?: ("immediately" | "daily" | "weekly" | "monthly")[];
             /**
              * @default standard
              * @enum {string}
              */
-            method: "standard" | "enhanced";
+            method?: "standard" | "enhanced";
             stage?: {
                 "pre-user-registration"?: {
                     shields?: ("block" | "admin_notification")[];
@@ -3980,9 +3980,9 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             change_password?: {
                 /** @default false */
-                enabled: boolean;
+                enabled?: boolean;
                 /** @default  */
-                html: string;
+                html?: string;
             } | null;
             /** @description Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code. */
             device_flow?: {
@@ -3990,32 +3990,32 @@ export interface components {
                  * @default base20
                  * @enum {string}
                  */
-                charset: "base20" | "digits";
+                charset?: "base20" | "digits";
                 /** @default ****-**** */
-                mask: string;
+                mask?: string;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             guardian_mfa_page?: {
                 /** @default false */
-                enabled: boolean;
+                enabled?: boolean;
                 /** @default  */
-                html: string;
+                html?: string;
             } | null;
             /** @default  */
-            default_audience: string;
+            default_audience?: string;
             /** @default  */
-            default_directory: string;
+            default_directory?: string;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             error_page?: {
                 /** @default  */
-                html: string;
+                html?: string;
                 /** @default false */
-                show_log_link: boolean;
+                show_log_link?: boolean;
                 /**
                  * Format: absolute-uri-or-empty
                  * @default https://mycompany.org/error
                  */
-                url: string;
+                url?: string;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             default_token_quota?: {
@@ -4041,15 +4041,15 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             flags?: {
                 /** @default false */
-                change_pwd_flow_v1: boolean;
+                change_pwd_flow_v1?: boolean;
                 /** @default false */
-                enable_apis_section: boolean;
+                enable_apis_section?: boolean;
                 /** @default false */
-                readonly disable_impersonation: boolean;
+                readonly disable_impersonation?: boolean;
                 /** @default true */
-                enable_client_connections: boolean;
+                enable_client_connections?: boolean;
                 /** @default true */
-                enable_pipeline2: boolean;
+                enable_pipeline2?: boolean;
                 allow_legacy_delegation_grant_types?: boolean;
                 allow_legacy_ro_grant_types?: boolean;
                 allow_legacy_tokeninfo_endpoint?: boolean;
@@ -4072,57 +4072,57 @@ export interface components {
                 genai_trial?: boolean;
                 local_resource_discovery?: boolean;
                 /** @default false */
-                enable_dynamic_client_registration: boolean;
+                enable_dynamic_client_registration?: boolean;
                 /** @default true */
-                disable_management_api_sms_obfuscation: boolean;
+                disable_management_api_sms_obfuscation?: boolean;
                 /** @default false */
-                trust_azure_adfs_email_verified_connection_property: boolean;
+                trust_azure_adfs_email_verified_connection_property?: boolean;
                 /** @default false */
-                custom_domains_provisioning: boolean;
+                custom_domains_provisioning?: boolean;
             };
             /** @default My Company */
-            friendly_name: string;
+            friendly_name?: string;
             /**
              * Format: absolute-uri-or-empty
              * @default https://mycompany.org/logo.png
              */
-            picture_url: string;
+            picture_url?: string;
             /**
              * Format: email-or-empty
              * @default support@mycompany.org
              */
-            support_email: string;
+            support_email?: string;
             /**
              * Format: absolute-uri-or-empty
              * @default https://mycompany.org/support
              */
-            support_url: string;
+            support_url?: string;
             allowed_logout_urls?: string[];
             /**
              * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
              * @default 168
              */
-            session_lifetime: number;
+            session_lifetime?: number;
             /**
              * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
              * @default 72
              */
-            idle_session_lifetime: number;
+            idle_session_lifetime?: number;
             /**
              * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
              * @default 72
              */
-            ephemeral_session_lifetime: number;
+            ephemeral_session_lifetime?: number;
             /**
              * @description Hours, including fractional hours for minute-backed settings. Runtime expiry saturates at year 9999.
              * @default 24
              */
-            idle_ephemeral_session_lifetime: number;
+            idle_ephemeral_session_lifetime?: number;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default 22
              */
-            sandbox_version: string;
+            sandbox_version?: string;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             legacy_sandbox_version?: string;
             /**
@@ -4186,65 +4186,65 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             sessions?: {
                 /** @default true */
-                oidc_logout_prompt_enabled: boolean;
+                oidc_logout_prompt_enabled?: boolean;
                 anonymous?: {
                     /** @default 43200 */
-                    lifetime_in_minutes: number;
+                    lifetime_in_minutes?: number;
                     /** @default true */
-                    activate_cookie: boolean;
+                    activate_cookie?: boolean;
                 } | null;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             oidc_logout?: {
                 /** @default true */
-                rp_logout_end_session_endpoint_discovery: boolean;
+                rp_logout_end_session_endpoint_discovery?: boolean;
             };
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            customize_mfa_in_postlogin_action: boolean | null;
+            customize_mfa_in_postlogin_action?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            allow_organization_name_in_authentication_api: boolean | null;
+            allow_organization_name_in_authentication_api?: boolean | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             acr_values_supported?: string[] | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             mtls?: {
                 /** @default false */
-                enable_endpoint_aliases: boolean;
+                enable_endpoint_aliases?: boolean;
             } | null;
             /** @default false */
-            pushed_authorization_requests_supported: boolean;
+            pushed_authorization_requests_supported?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            authorization_response_iss_parameter_supported: boolean | null;
+            authorization_response_iss_parameter_supported?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            dpop_strict_refresh_token_binding: boolean | null;
+            dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default audience
              * @enum {string}
              */
-            resource_parameter_profile: "audience" | "compatibility";
+            resource_parameter_profile?: "audience" | "compatibility";
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            client_id_metadata_document_supported: boolean;
+            client_id_metadata_document_supported?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            client_id_metadata_document_dynamic_registration_supported: boolean;
+            client_id_metadata_document_dynamic_registration_supported?: boolean;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             enable_ai_guide?: boolean;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
@@ -4253,7 +4253,7 @@ export interface components {
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            include_session_metadata_in_tenant_logs: boolean;
+            include_session_metadata_in_tenant_logs?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @enum {string}
@@ -4272,9 +4272,9 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             change_password?: {
                 /** @default false */
-                enabled: boolean;
+                enabled?: boolean;
                 /** @default  */
-                html: string;
+                html?: string;
             } | null;
             /** @description Shapes device codes. Empty mask uses the runtime default. A nonempty mask must satisfy runtime code entropy requirements before device authorization can issue a code. */
             device_flow?: {
@@ -4282,32 +4282,32 @@ export interface components {
                  * @default base20
                  * @enum {string}
                  */
-                charset: "base20" | "digits";
+                charset?: "base20" | "digits";
                 /** @default ****-**** */
-                mask: string;
+                mask?: string;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             guardian_mfa_page?: {
                 /** @default false */
-                enabled: boolean;
+                enabled?: boolean;
                 /** @default  */
-                html: string;
+                html?: string;
             } | null;
             /** @default  */
-            default_audience: string;
+            default_audience?: string;
             /** @default  */
-            default_directory: string;
+            default_directory?: string;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             error_page?: {
                 /** @default  */
-                html: string;
+                html?: string;
                 /** @default false */
-                show_log_link: boolean;
+                show_log_link?: boolean;
                 /**
                  * Format: absolute-uri-or-empty
                  * @default https://mycompany.org/error
                  */
-                url: string;
+                url?: string;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             default_token_quota?: {
@@ -4333,15 +4333,15 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             flags?: {
                 /** @default false */
-                change_pwd_flow_v1: boolean;
+                change_pwd_flow_v1?: boolean;
                 /** @default false */
-                enable_apis_section: boolean;
+                enable_apis_section?: boolean;
                 /** @default false */
-                readonly disable_impersonation: boolean;
+                readonly disable_impersonation?: boolean;
                 /** @default true */
-                enable_client_connections: boolean;
+                enable_client_connections?: boolean;
                 /** @default true */
-                enable_pipeline2: boolean;
+                enable_pipeline2?: boolean;
                 allow_legacy_delegation_grant_types?: boolean;
                 allow_legacy_ro_grant_types?: boolean;
                 allow_legacy_tokeninfo_endpoint?: boolean;
@@ -4364,56 +4364,56 @@ export interface components {
                 genai_trial?: boolean;
                 local_resource_discovery?: boolean;
                 /** @default false */
-                enable_dynamic_client_registration: boolean;
+                enable_dynamic_client_registration?: boolean;
                 /** @default true */
-                disable_management_api_sms_obfuscation: boolean;
+                disable_management_api_sms_obfuscation?: boolean;
                 /** @default false */
-                trust_azure_adfs_email_verified_connection_property: boolean;
+                trust_azure_adfs_email_verified_connection_property?: boolean;
                 /** @default false */
-                custom_domains_provisioning: boolean;
+                custom_domains_provisioning?: boolean;
             };
             /** @default My Company */
-            friendly_name: string;
+            friendly_name?: string;
             /**
              * Format: absolute-uri-or-empty
              * @default https://mycompany.org/logo.png
              */
-            picture_url: string;
+            picture_url?: string;
             /**
              * Format: email-or-empty
              * @default support@mycompany.org
              */
-            support_email: string;
+            support_email?: string;
             /**
              * Format: absolute-uri-or-empty
              * @default https://mycompany.org/support
              */
-            support_url: string;
+            support_url?: string;
             allowed_logout_urls?: string[];
             /**
              * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
              * @default 168
              */
-            session_lifetime: number;
+            session_lifetime?: number;
             /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
             session_lifetime_in_minutes?: number;
             /**
              * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
              * @default 72
              */
-            idle_session_lifetime: number;
+            idle_session_lifetime?: number;
             /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
             idle_session_lifetime_in_minutes?: number;
             /**
              * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
              * @default 72
              */
-            ephemeral_session_lifetime: number;
+            ephemeral_session_lifetime?: number;
             /**
              * @description Integer hours on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999.
              * @default 24
              */
-            idle_ephemeral_session_lifetime: number;
+            idle_ephemeral_session_lifetime?: number;
             /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
             ephemeral_session_lifetime_in_minutes?: number;
             /** @description Integer minutes on PATCH; mutually exclusive with its duration alias. Used for new sessions; existing absolute expiry never extends. Runtime expiry saturates at year 9999. */
@@ -4422,7 +4422,7 @@ export interface components {
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default 22
              */
-            sandbox_version: string;
+            sandbox_version?: string;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             legacy_sandbox_version?: string;
             /**
@@ -4486,65 +4486,65 @@ export interface components {
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             sessions?: {
                 /** @default true */
-                oidc_logout_prompt_enabled: boolean;
+                oidc_logout_prompt_enabled?: boolean;
                 anonymous?: {
                     /** @default 43200 */
-                    lifetime_in_minutes: number;
+                    lifetime_in_minutes?: number;
                     /** @default true */
-                    activate_cookie: boolean;
+                    activate_cookie?: boolean;
                 } | null;
             } | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             oidc_logout?: {
                 /** @default true */
-                rp_logout_end_session_endpoint_discovery: boolean;
+                rp_logout_end_session_endpoint_discovery?: boolean;
             };
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            customize_mfa_in_postlogin_action: boolean | null;
+            customize_mfa_in_postlogin_action?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            allow_organization_name_in_authentication_api: boolean | null;
+            allow_organization_name_in_authentication_api?: boolean | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             acr_values_supported?: string[] | null;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             mtls?: {
                 /** @default false */
-                enable_endpoint_aliases: boolean;
+                enable_endpoint_aliases?: boolean;
             } | null;
             /** @default false */
-            pushed_authorization_requests_supported: boolean | null;
+            pushed_authorization_requests_supported?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            authorization_response_iss_parameter_supported: boolean | null;
+            authorization_response_iss_parameter_supported?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            dpop_strict_refresh_token_binding: boolean | null;
+            dpop_strict_refresh_token_binding?: boolean | null;
             skip_non_verifiable_callback_uri_confirmation_prompt?: boolean | null;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default audience
              * @enum {string}
              */
-            resource_parameter_profile: "audience" | "compatibility";
+            resource_parameter_profile?: "audience" | "compatibility";
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            client_id_metadata_document_supported: boolean;
+            client_id_metadata_document_supported?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            client_id_metadata_document_dynamic_registration_supported: boolean;
+            client_id_metadata_document_dynamic_registration_supported?: boolean;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
             enable_ai_guide?: boolean;
             /** @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner. */
@@ -4553,7 +4553,7 @@ export interface components {
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @default false
              */
-            include_session_metadata_in_tenant_logs: boolean;
+            include_session_metadata_in_tenant_logs?: boolean;
             /**
              * @description Validated and stored only; not enforced in this milestone. See the tenant settings compatibility inventory for the follow-up owner.
              * @enum {string}
@@ -4907,12 +4907,12 @@ export interface components {
              * @default deny
              * @enum {string}
              */
-            organization_usage: "deny" | "allow" | "require";
+            organization_usage?: "deny" | "allow" | "require";
             /**
              * @description Client-subject grant only; third-party clients require explicit associations. Omission preserves on PATCH; null rejected (D-0056).
              * @default false
              */
-            allow_any_organization: boolean;
+            allow_any_organization?: boolean;
             /** @description zeroauthy has no rich authorization requests; only an empty list (or null) is accepted. */
             authorization_details_types?: string[];
         };
@@ -4929,7 +4929,7 @@ export interface components {
              * @default client
              * @enum {string}
              */
-            subject_type: "client" | "user";
+            subject_type?: "client" | "user";
         };
         /**
          * @description Fields to change; at least one property is required. Unknown
@@ -4951,9 +4951,9 @@ export interface components {
              * @default deny
              * @enum {string}
              */
-            organization_usage: "deny" | "allow" | "require";
+            organization_usage?: "deny" | "allow" | "require";
             /** @default false */
-            allow_any_organization: boolean;
+            allow_any_organization?: boolean;
             /** @enum {string} */
             subject_type: "client" | "user";
         };
@@ -5370,7 +5370,7 @@ export interface components {
              * @default csv
              * @enum {string}
              */
-            format: "json" | "csv";
+            format?: "json" | "csv";
             /** @description The most users to export; all when absent. */
             limit?: number;
             fields?: {

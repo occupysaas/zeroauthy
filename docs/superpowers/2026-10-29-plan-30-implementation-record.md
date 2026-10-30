@@ -837,3 +837,122 @@ the corrected explicit SQLite command passed and is reported separately. No
 PostgreSQL/MySQL, full-suite, browser, live Auth0 or external-provider run is
 claimed. Plan 19's database hold does not apply to Plan 30. Controller owns
 independent review, task checkbox approval and ledger completion.
+
+## Task 15 — Console organization management and retained polish
+
+Task 14 (`84aa91b`) was controller-reviewed and approved. Its retained minor is
+additional custom-email-provider organization Action coverage; no additional
+coverage is claimed by this console task. Task 15 adds Invitations, Applications,
+API Grants and Discovery Domains using generated Management API types. Invitation
+URLs stay in component memory and copying requires an explicit button. Domain
+verification requires a separate administrator-attestation confirmation; the UI
+explains that the server does not check DNS ownership. Connection associations
+remain visible when disabled, support local names and stored-only delegation
+metadata, and have separate enablement and removal controls.
+
+Panel reads and writes use captured tenant/organization keys and request epochs;
+synchronous context invalidation and unmount discard obsolete completions. Tenant
+discovery uses a monotonic revision, including failures, so an older success
+cannot restore grants after a newer denial. Search uses `q`, parser and opaque
+cursor, resetting the cursor whenever the query or parser changes. A definitive
+OrganizationsII 501 preserves legacy organization browsing/connection management,
+without offering unsupported settings. New resource read errors block writes and
+provide explicit retry; a transient failure is not cached as permanent absence.
+There is no console capability/scope introspection endpoint: operator grants and
+conditional role/scoped writes remain enforced by the Management API, with its
+403/501 errors displayed, rather than fabricated client capability claims.
+
+The generator's default treatment made optional default-valued request fields
+required in TypeScript. `npm run gen` now uses the supported
+`--default-non-nullable false` flag. Authored YAML defaults and required lists
+remain unchanged; this avoids sending unrelated policy resets to satisfy an
+incorrect generated request requirement. The initial suspicion of incorrect YAML
+required lists was disproved by inspecting the source. Invitation pagination uses
+returned item count and offset, because its documented response has no `total`.
+No generated source was hand edited.
+
+### Historical Plan 29 ledger triage
+
+This revisits **every row** of the historical triage table in
+`2026-10-28-plan-29-implementation-record.md`. Historical outcomes remain intact.
+“Already resolved” cites existing source or earlier recorded verification;
+it does not claim Task 15 reran backend suites. Deferred rows identify the
+remaining work and its cost individually.
+
+| Historical row | Task 15 disposition and evidence |
+| --- | --- |
+| T1.1 inventory presence rather than value assertions | Deferred: strengthen inventory value assertions independently; existing `internal/orgrules` contracts and runtime validation remain the behavioral evidence. No new inventory-strength claim. |
+| T1.2 users/organizations evidence classification | Deferred: provenance-label editorial cleanup; no API behavior changes or new observations in Task 15. Existing D-0055 remains authoritative. |
+| T1.3 empty-fields observation attribution | Deferred: improve attribution with authorized evidence; `Project` behavior is unchanged and Task 15 makes no upstream parity claim for that edge. |
+| T1.4 stale plan defaults | Already resolved for execution: D-0055/D-0056 and this implementation record govern shipped defaults; original plan is historical. Editorial plan-status cleanup remains deferred. |
+| T1.5 reparsing inventory | Deferred: cold/configuration-path optimization in `internal/orgrules`; no measured bottleneck warrants changing it in the console task. |
+| T2.1 empty display-name normalization | Already resolved: API rejects explicit empty display name; store create/seed normalization supplies unset defaults. Existing `organizations.go` validation preserves that distinction. |
+| T2.2 missing code/refresh roundtrip assertions | Already resolved: Plan 29 final ledger records durable token-binding, conformance, codec and migration coverage. Task 15 does not rerun it. |
+| T2.3 limit-test skip | Deferred: process-plugin setter is outside protocol; SQL `SetOrgLimits` and in-process gRPC precondition tests remain the existing evidence. The historical skipped process case remains unclaimed. |
+| T2.4 hex edge evidence | Deferred: broader HTML-color provenance/edge cases; local three/six-digit hex validation is shared in existing organization rules and `BrandingTab.vue`. Console validation suite remains green. |
+| T2.5 Limit panic on unknown key | Deferred: internal programmer-error API coverage; no request-controlled key is added by this task. |
+| T3.1 MySQL duplicate membership/role insert | Already resolved: existing SQL `insertIgnore` and transaction handling, as recorded in Plan 29. No new MySQL run by Task 15. |
+| T3.2 load-all paging | Already resolved for organization/ID paging: `sqlstore/organizations.go` now uses `pageOrgs`/`pageIDs` with SQL LIMIT, OFFSET/keyset predicates; Task 11 native search is in `organization_search.go`. Other bounded II collection paging remains a performance follow-up, without an SLA claim. |
+| T3.3 NOT NULL default vs nullable brief | Already resolved: shipped additive schema and migrations define the supported defaults; no runtime mismatch requiring console changes. |
+| T3.4 SetOrgLimits on non-Open literal | Deferred: unsupported test-only store construction; production SQL initialization still uses Open. |
+| T3.5 redundant connection-delete lock comment | Deferred: comment simplification only; repeated same-tenant locking is defensive and no behavioral defect is demonstrated. |
+| T4.1 transient capability warning | Deferred: backend diagnostic wording; `grpcstore/organizations.go` caches only definitive absence. Console transient-retry regression demonstrates that UI absence is not permanent. |
+| T4.2 roundtrip relies on conformance | Already resolved: composed plugin conformance/codec evidence remains adequate; existing `TestOrganizationsPluginRoundTrip` owns this boundary. No duplicate backend suite claim. |
+| T4.3 concurrent first capability probes | Deferred: bounded five-second duplicate probes remain a singleflight optimization in `grpcstore/organizations.go`; they do not authorize unsupported actions. |
+| T4.4 nil orgCap on manual Client literal | Deferred: unsupported manual construction; supported constructors initialize shared capability state. No production path requiring a change was found in existing source. |
+| T5.1 EA evidence labels | Deferred: observed/local provenance-label cleanup; Task 13 explicitly records the local null/reset/default decisions and Task 15 labels stored-only delegation. No new observation is invented. |
+| T5.2 deferred paragraph still names implemented subset | Already resolved for active behavior: Plan 30 Task 13 and current connection interfaces supersede that Plan 29 subset. The historical paragraph remains historical; editorial cleanup is deferred. |
+| T5.3 unknown query/local choice and include_client_association_for | Already resolved for association support: Tasks 8/11 implement it, with source in `mgmt/organizations.go` and SQL summaries. Strict unknown-key handling stays an explicit local decision; attribution editorial work remains deferred. |
+| T5.4 connection strategy existence vs usable allowlist | Already resolved as intentional behavior: stored links do not enable unsupported authentication; runtime usable-connection intersection remains in `orglogin`. Console strategy-specific flag tests pass. |
+| T5.5 conditional scope validation ordering/empty array | Deferred: further local-contract prose; supplied enabled_connections still requires its scope, even for an empty array. Existing backend validation is unchanged; no protected data exposure claim. |
+| T5.6 deleted connection listing error text | Deferred: concurrent cascade/list race may show misleading 404; source cascade prevents durable dangling links. UI surfaces the failure and retry without applying stale data. |
+| T6.1 old-plugin deny-client echo | Deferred by controller ruling: legacy plugins may echo inert client prompt/discovery fields on deny-client writes they cannot store. They cannot enable organization login. Correcting client API normalization is separate backend work; cost is misleading inert client configuration. Task 15 does fix truthful **organization panel** capability UI: new II reads fail closed, and legacy connections/search expose only supported controls. This row is not claimed fixed. |
+| T6.2 checkpoint-only query inconsistency | Deferred: endpoint-specific compatibility/local contracts remain frozen; current console uses documented query styles (offset invitations/grants, checkpoint clients/domains/search). No cross-endpoint normalization attempted. |
+| T6.3 member roles N+1 joins | Deferred: bounded role hydration/batch-read optimization; no benchmark outage demonstrated. Existing `MemberRoles` path is unchanged and focused assignment/removal tests pass. |
+| T6.4 short member page after user deletion | Deferred: READ COMMITTED count consistency under concurrent deletion; no foreign-tenant rows returned. UI can reload; no stronger snapshot guarantee added. |
+| T6.5 device-code create/grant-only test gap | Deferred: dedicated forbidden-grant combinations remain coverage work; shared `CheckOrganizationGrants` still enforces password/password-realm/device restrictions. Existing application validation tests run in the full console suite. |
+| T6.6 removal racing role assignment error | Deferred: improve role-versus-member 404 diagnostics; existing mutation remains atomic/fail-closed. Task 15 adds scoped role-removal console coverage, not a backend race claim. |
+| T7.1 empty fixed organization ID | Already resolved: `bindOrganization` explicitly rejects empty OrgID, with Plan 29 recorded fix evidence. |
+| T7.2 prompt/picker config changes | Already resolved for policy rechecks: Plan 29 final picker correction and Plan 30 entitlement/discovery rechecks preserve fail-closed behavior. OrgNone re-resolution can still require interaction/refusal; no new snapshot semantics promised. |
+| T11 overlapping discovery | Fixed: tenant store monotonic revision; tests `latest tenant discovery wins` and newer failed discovery versus older success assert current list/error survive out-of-order completions. |
+| T11 bundle advisory | Deferred: production chunk splitting remains a build-performance follow-up. Actual Vite build passes with the existing >500 kB notice; this is not a dependency/security audit pass. |
+| T11 RFC source reachability | Already resolved historically: Plan 29 Task 14 recorded `check-sources` passes supersede the earlier failed reachability attempt. Task 15 does not repeat network source verification. |
+| T12 branding/metadata clearing and role-removal coverage | Fixed: dedicated `clears metadata with an empty replacement`, `clears branding with an empty replacement`, and scoped member-role DELETE regressions pass with the full console suite. |
+| T12 npm/Vite notices | Deferred: notices remain informational; `make console` uses pinned dependencies and `npm ci --no-audit --no-fund`. No extra security/dependency audit is claimed. |
+| T13 NO_COLOR/FORCE_COLOR notice | Deferred: inherited browser-runner environment warning. No Plan 30 release E2E lane runs in Task 15; Task 17 owns actual browser acceptance. |
+
+### Task 15 verification
+
+Raw command logs are in the ignored plan workspace, prefixed `task-15-`.
+
+| Command/check | Actual outcome |
+| --- | --- |
+| Focused new II test file before UI implementation | RED: 7/7 assertions fail for absent tabs/search/tenant sequencing (`red.log`). An earlier wrong-working-directory invocation found no test file and is not RED behavioral evidence. |
+| Focused connection tests before connection UI changes | FAIL: disabled association assertion fails and the new fixture also triggers an unhandled render error because the old endpoint expects enabled_connections. Existing membership/role tests pass (`connections-red.log`). This is not claimed as a clean standalone behavioral RED; the final fixture uses the new all-associations endpoint. |
+| Initial new-panel GREEN attempt | 7/8 passed, search failed because new Next label was not localized (`green-first.log`); corrected catalog. |
+| Legacy search focused RED | New fallback assertion fails; transient-retry assertion initially used the wrong label, corrected to existing “Try again” (`search-legacy-red.log`). |
+| Organization tests after panel/fallback fixes | PASS: 51/51 (`panels-green.log`). New API-grant assertion was added before its component implementation but was not separately observed RED; no claim of a separately observed grant RED. Clearing/role-removal regression assertions cover already-working paths. |
+| First `make console` | FAIL: 522/523 tests pass; catalog literal-key test detects dynamic key prefixes in ConnectionsTab. Replaced prefixes with explicit catalog key maps (`make-console.log`). |
+| Final `make console` | PASS: npm ci, generated API types, lint, typecheck, 72 test files / 523 tests, production build. Existing >500 kB Vite chunk notice retained (`make-console-final.log`). |
+
+No database suite, SDK compatibility lane, full Go suite, or release browser E2E
+is claimed by Task 15. Task 17 owns that verification. Controller owns independent
+review and task approval; historical deferred items above are not relabeled passes.
+
+Task 15 visual QA used a temporary Vite page mounting the actual Vue components
+against invented local API fixtures, **not** a signed-in server or release E2E.
+The connected Playwright tool could not initialize (its configured Google Chrome
+binary was absent). The existing local Playwright package and `/usr/bin/chromium`
+then rendered the four new tabs plus the attestation dialog. Inspected screenshots
+show readable labels, aligned forms, explicit scopes and pending status, and a
+separate confirmation overlay. The 390px discovery-domain view wraps the tabs and
+has `scrollWidth === innerWidth === 390`; no horizontal overflow was observed.
+Artifacts and the exact preview script/log are in ignored `task-15-*.png`,
+`task-15-preview.mjs` and `task-15-preview-final.log`. Initial preview attempts
+hit Vite's stale optimized dependency cache after `npm ci`; restarting this task's
+dev server with `--force` resolved that fixture-only startup failure. No dependency
+pins changed, and the scratch HTML/dev server were removed/stopped after QA.
+
+`git diff --check` passes. A mechanical comparison confirms all 39 historical
+triage row labels are present in the table above. This task does not approve its
+own independent review or mark release E2E as passing.

@@ -12,9 +12,13 @@ import SettingsTab from './SettingsTab.vue'
 import BrandingTab from './BrandingTab.vue'
 import ConnectionsTab from './ConnectionsTab.vue'
 import MembersTab from './MembersTab.vue'
+import InvitationsTab from './InvitationsTab.vue'
+import ApplicationsTab from './ApplicationsTab.vue'
+import ApiGrantsTab from './ApiGrantsTab.vue'
+import DiscoveryDomainsTab from './DiscoveryDomainsTab.vue'
 import { usePanel } from './context'
 const { t } = useI18n(), { api } = useServices(), tenant = useTenant(), route = useRoute(), router = useRouter()
-const tabs = [{ key: 'settings', label: 'orgs.settings' }, { key: 'branding', label: 'orgs.branding' }, { key: 'connections', label: 'orgs.connections' }, { key: 'members', label: 'orgs.members' }]
+const tabs = [{ key: 'settings', label: 'orgs.settings' }, { key: 'branding', label: 'orgs.branding' }, { key: 'connections', label: 'orgs.connections' }, { key: 'members', label: 'orgs.members' }, ...['invitations', 'applications', 'apiGrants', 'discoveryDomains'].map(key => ({ key, label: 'orgs.' + key }))]
 const organization = ref<Organization>(), tab = ref('settings'), deleteOpen = ref(false), notFound = ref(false)
 const { error, busy, reloadRequired, load, change } = usePanel(() => [tenant.value?.host, route.params.id], async () => {
   if (!tenant.value || typeof route.params.id !== 'string') return
@@ -37,6 +41,10 @@ async function remove() {
         <TabsContent value="branding"><BrandingTab :tenant="tenant" :organization-id="organization.id" @saved="organization = $event" /></TabsContent>
         <TabsContent value="connections"><ConnectionsTab :tenant="tenant" :organization-id="organization.id" /></TabsContent>
         <TabsContent value="members"><MembersTab :tenant="tenant" :organization-id="organization.id" /></TabsContent>
+        <TabsContent value="invitations"><InvitationsTab :tenant="tenant" :organization-id="organization.id" /></TabsContent>
+        <TabsContent value="applications"><ApplicationsTab :tenant="tenant" :organization-id="organization.id" /></TabsContent>
+        <TabsContent value="apiGrants"><ApiGrantsTab :tenant="tenant" :organization-id="organization.id" /></TabsContent>
+        <TabsContent value="discoveryDomains"><DiscoveryDomainsTab :tenant="tenant" :organization-id="organization.id" /></TabsContent>
       </TabsRoot>
     </template>
     <ConfirmDialog v-model:open="deleteOpen" :title="t('orgs.deleteTitle')" :description="t('orgs.deleteHint')" :confirm-label="t('orgs.delete')" :busy="busy" :disabled="reloadRequired" :error="error" @confirm="remove" />

@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "gen": "openapi-typescript ../api/management.yaml -o src/api/schema.d.ts",
+    "gen": "openapi-typescript --default-non-nullable false ../api/management.yaml -o src/api/schema.d.ts",
     "lint": "eslint --max-warnings 0 .",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
