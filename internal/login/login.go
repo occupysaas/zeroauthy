@@ -641,14 +641,8 @@ func (h *Handlers) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return err
 			}
-			if err = tx.AuthTransactions().CompareAndSwapHosted(ctx, cur.TenantID, cur.ID, cur.HostedState.Revision, cur.HostedState, h.now()); err != nil {
-				return err
-			}
 			cur.Params[orglogin.InvitationSignupParam] = "1"
-			if err = tx.AuthTransactions().Delete(ctx, cur.TenantID, cur.ID); err != nil {
-				return err
-			}
-			return tx.AuthTransactions().Create(ctx, cur)
+			return orglogin.SaveInvitationTransaction(ctx, tx, cur, h.now())
 		}
 		return EnsureMembership(ctx, tx, oc, u.UserID, f.conn.ID)
 	}

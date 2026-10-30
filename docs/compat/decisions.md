@@ -1780,3 +1780,21 @@ member roles, deduplicated by role ID; other organizations and removed membershi
 contribute no roles. This is additive to the existing tenant role event/API
 contract and does not assign organization roles at tenant scope. API permission
 snapshot semantics remain the Plan 29 union.
+
+
+D-0056 Task 7 review correction (2026-10-29): `is_signup_enabled` retains its
+existing database-only applicability and auto-assignment validation; this task
+does not broaden that contract. A first-time federated identity cannot provision
+an account as part of invitation login (local conservative restriction), even
+without a signup screen hint. Provision it separately through normal federation,
+then accept the invitation as an existing account. Identity resolution reports
+trusted creation provenance inside its transaction and executes invitation signup
+policy before provisioning; a refusal creates neither user, membership nor receipt.
+Any future supported created-account acceptance must persist that provenance in
+the same transaction and recheck current signup flags at acceptance.
+
+Invitation Params mutations preserve the CAS-generated `expectedRevision + 1`
+when replacing a transaction. Session and signup provenance writes share this
+monotonic implementation; stale readers cannot overwrite newer authentication
+bindings under READ COMMITTED. SQLite stale-reader regressions cover the same
+compare-and-swap contract; PostgreSQL/MySQL need configured service validation.

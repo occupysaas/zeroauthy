@@ -338,6 +338,9 @@ serialization, `internal/login/{organization,login,verify,social}.go`, and
 **Interfaces:** implements `AcceptInvitation` and `AcceptanceInput` above;
 produces the durable receipt used only by the same live, pending authorization transaction.
 Completed hosted transactions end before Actions and cannot be replayed.
+Local supported limitation: new federated account provisioning during invitation
+login fails closed; accounts provisioned separately may accept. Existing federated
+users remain eligible. The documented database-only signup flag is not extended.
 Consume Task 8 `CheckMemberClient`; Task 8 must be complete before this task.
 Do not introduce an interim entitlement bypass.
 

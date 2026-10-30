@@ -160,6 +160,14 @@ request and cannot rewind completed login or rerun Actions. Concurrent accept/de
 have one serialized outcome. Recheck all active authorization policy at code
 exchange and refresh as Plan 29 does; no re-enrollment at those stages.
 
+Local conservative restriction: organization `is_signup_enabled` remains a
+supported database-only flag. First-time federated provisioning during an
+invitation login is refused before creating a user, regardless of screen hint.
+An account provisioned separately through normal federation may subsequently
+accept an invitation. Existing federated users are not subject to signup checks.
+Trusted identity-resolution provenance and invitation Params writes are committed
+atomically and advance the hosted transaction revision monotonically.
+
 Invitation signup may bypass the requirement for *existing membership*, but
 must still respect client connection enablement, blocked users, database signup
 restrictions and the organization's `is_signup_enabled`. Creating an invite

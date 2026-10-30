@@ -2,6 +2,7 @@ package authz
 
 import (
 	"context"
+	"errors"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -270,5 +271,23 @@ func TestInvitationCrossTenantTicket(t *testing.T) {
 	}
 	if _, err = e.st.OrganizationsII().GetInvitation(ctx, e.tenant.ID, o.ID, inv.ID); err != nil {
 		t.Fatal("cross-tenant refusal consumed invitation", err)
+	}
+}
+
+func TestInvitationSessionBindingRevision(t *testing.T) {
+	e, o, _ := invitationEnv(t)
+	ctx := context.Background()
+	rec := e.get(t, with(goodQuery(), "organization", o.ID, "invitation", "bearer"))
+	txn, err := e.st.AuthTransactions().Get(ctx, e.tenant.ID, location(t, rec).Query().Get("state"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := txn.HostedState.Revision
+	sess := e.session(t, e.login(t, fixedNow()))
+	if err = e.h.bindInvitationSession(ctx, txn, sess); err != nil {
+		t.Fatal(err)
+	}
+	if err = e.st.AuthTransactions().CompareAndSwapHosted(ctx, txn.TenantID, txn.ID, old, txn.HostedState, e.h.now()); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("stale revision after session binding: %v", err)
 	}
 }

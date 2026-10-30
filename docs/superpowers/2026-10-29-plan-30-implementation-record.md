@@ -659,3 +659,37 @@ PASS (orglogin 1.040s, login 1.948s); server-only signup provenance is persisted
 atomically with signup so later verification retry respects current signup flags.
 Final `git diff --check` PASS. No MFA challenge, external provider, PostgreSQL/
 MySQL, external plugin, full-Go/release or browser validation is claimed.
+
+### Task 7 review fix round 1
+
+Addressed federated signup provenance and CAS revision rollback findings.
+Identity resolution now distinguishes actual first provisioning, enforces
+invitation signup policy before creating a user inside its transaction, and
+carries trusted created provenance for atomic Params persistence. Controller
+ruling preserves the documented database-only signup-enabled flag and existing
+auto-assignment validation: first-time federated provisioning during invitation
+login is unsupported/fails closed; separately provisioned existing provider
+users can accept. Same-transaction and new-authorization retries after refusal
+create no user and cannot consume the invitation. This restriction is recorded
+in the spec, plan and D-0056.
+
+Session/signup Params mutations share SaveInvitationTransaction, preserving the
+CAS expectedRevision+1 through row replacement. Hosted actual session/signup
+regressions first reproduced stale-CAS success, then pass with stale conflicts.
+SQL stale-reader cases for both Params mutations preserve winner values/revision.
+
+GOTOOLCHAIN=go1.26.7 final checks:
+
+- Required-Node six-package selection `go test ./internal/orglogin ./internal/authz
+  ./internal/login ./internal/oauth ./internal/actions ./internal/federation -run
+  'Invitation|Organization|FederatedIdentityLifecycle|SocialLoginFlow' -race
+  -count=1`: PASS (ZA_REQUIRE_NODE=1).
+- SQL selection `go test ./internal/store/sqlstore -run
+  '^Test(InvitationAcceptanceSQL|InvitationBindingRevisionSQL|OrganizationsIIAcceptDeleteRace|OrganizationsIIPolicyRevocationRace)$'
+  -race -count=1`: PASS (17.725s, configured SQLite).
+- Final first-provider refusal same/new transaction retry test: PASS race (1.446s).
+- `git diff --check`: PASS. Exact RED/GREEN outcomes and corrected fixture setup
+  errors are in task-7-report.md; no fabricated social signup-enabled positive.
+
+No PostgreSQL/MySQL READ COMMITTED service, actual MFA, external provider or
+whole-release validation was performed. Controller owns re-review and ledger.

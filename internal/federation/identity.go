@@ -43,36 +43,52 @@ func (s *Service) now() time.Time {
 // session. A concurrent first login returns store.ErrConflict; the caller may
 // retry its transaction once.
 func (s *Service) ResolveIdentity(ctx context.Context, tx store.Store, conn *store.Connection, res ProviderResult) (*store.User, error) {
+	user, _, err := s.resolveIdentity(ctx, tx, conn, res, nil)
+	return user, err
+}
+
+// resolveIdentity reports provisioning only from the identity-index miss that
+// actually creates the user. Its callback runs in the same transaction before
+// provisioning, never from a browser hint or an earlier unprotected lookup.
+func (s *Service) resolveIdentity(ctx context.Context, tx store.Store, conn *store.Connection, res ProviderResult, beforeProvision func() error) (*store.User, bool, error) {
 	if conn.Strategy == rules.WindowsLive || conn.Strategy == rules.WAAD {
 		if err := RequireMicrosoftFederation(ctx, tx); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
+	created := false
 	p := res.Profile
 	if err := ValidateSubject(p.Subject); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	key := store.FederatedIdentityKey{TenantID: conn.TenantID, ConnectionID: conn.ID, Subject: p.Subject}
 	u, err := tx.Users().FindByIdentity(ctx, conn.TenantID, conn.ID, p.Subject)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
-		if u, err = s.provision(ctx, tx, conn, p); err != nil {
-			return nil, err
+		if beforeProvision != nil {
+			if err := beforeProvision(); err != nil {
+				return nil, false, err
+			}
 		}
+		if u, err = s.provision(ctx, tx, conn, p); err != nil {
+			return nil, false, err
+		}
+		created = true
 	case err != nil:
-		return nil, err
+		return nil, false, err
 	default:
 		if u.Blocked {
-			return nil, ErrUserBlocked
+			return nil, false, ErrUserBlocked
 		}
 		if err := s.synchronize(ctx, tx, conn, u, p); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 	if err := s.storeTokens(ctx, tx, key, res.Tokens); err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return tx.Users().Get(ctx, conn.TenantID, u.UserID)
+	user, err := tx.Users().Get(ctx, conn.TenantID, u.UserID)
+	return user, created, err
 }
 
 // identityUserID is the identity's user_id: Google and Microsoft personal

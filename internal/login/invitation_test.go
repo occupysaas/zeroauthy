@@ -2,6 +2,7 @@ package login
 
 import (
 	"context"
+	"errors"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"net/url"
@@ -91,5 +92,114 @@ func TestInvitationAcceptance(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestInvitationFederatedSignupPolicy(t *testing.T) {
+	for _, kind := range []string{"new-disabled", "existing-disabled"} {
+		t.Run(kind, func(t *testing.T) {
+			s := newSocialEnv(t)
+			ctx := context.Background()
+			o, _, _ := organizationFixture(t, s.env, store.OrgBehaviorNoPrompt, false, false)
+			if kind == "existing-disabled" {
+				c, err := s.st.Clients().Get(ctx, o.TenantID, "spa")
+				if err != nil {
+					t.Fatal(err)
+				}
+				c.OrganizationUsage = store.OrgUsageAllow
+				if err = s.st.Clients().Update(ctx, c); err != nil {
+					t.Fatal(err)
+				}
+				toApp(t, s.explicitLogin(t, s.browser("acme.example.test"), s.idp, "corp", "Invited"), "app.acme.test")
+			}
+			if err := s.st.Organizations().PutConnection(ctx, store.OrganizationConnection{TenantID: o.TenantID, OrganizationID: o.ID, ConnectionID: "con_corp", ShowAsButton: true, IsSignupEnabled: false}, true); err != nil {
+				t.Fatal(err)
+			}
+			invite := &store.OrganizationInvitation{TenantID: o.TenantID, OrganizationID: o.ID, ID: "social-invite", ClientID: "spa", InviteeEmail: "invited@idp.example", ConnectionID: "con_corp", TicketHash: orglogin.InvitationTicketHash("bearer"), WrappedTicket: []byte("sealed"), ExpiresAt: time.Now().Add(time.Hour)}
+			if err := s.st.OrganizationsII().CreateInvitation(ctx, invite); err != nil {
+				t.Fatal(err)
+			}
+			b := s.browser("acme.example.test")
+			page := s.authorizeTo(t, b, "spa", "organization", o.ID, "invitation", "bearer", "connection", "corp")
+			rec := b.do(t, "GET", page, nil)
+			callback := s.idp.authorize(t, providerURL(t, rec), "Invited")
+			rec = b.do(t, "GET", callback, nil)
+			loc, _ := url.Parse(rec.Header().Get("Location"))
+			u, err := s.st.Users().Get(ctx, o.TenantID, s.identityID("Invited"))
+			if kind == "new-disabled" {
+				if err == nil {
+					t.Fatal("disabled first signup provisioned user", u)
+				}
+				if !errors.Is(err, store.ErrNotFound) {
+					t.Fatal(err)
+				}
+				if _, err = s.st.OrganizationsII().GetInvitation(ctx, o.TenantID, o.ID, invite.ID); err != nil {
+					t.Fatal("failed signup consumed invitation", err)
+				}
+				members, err := s.st.Organizations().Members(ctx, o.TenantID, o.ID, store.OrgPage{})
+				if err != nil || len(members.Items) != 0 {
+					t.Fatal(members, err)
+				}
+				if loc.Query().Get("code") != "" {
+					t.Fatal("disabled signup issued code", loc)
+				}
+				for _, newTxn := range []bool{false, true} {
+					if newTxn {
+						page = s.authorizeTo(t, b, "spa", "organization", o.ID, "invitation", "bearer", "connection", "corp")
+					}
+					retry := b.do(t, "GET", page, nil)
+					callback = s.idp.authorize(t, providerURL(t, retry), "Invited")
+					retry = b.do(t, "GET", callback, nil)
+					if _, err = s.st.Users().Get(ctx, o.TenantID, s.identityID("Invited")); !errors.Is(err, store.ErrNotFound) {
+						t.Fatalf("retry created/preserved user: newTxn=%v err=%v", newTxn, err)
+					}
+					if _, err = s.st.OrganizationsII().GetInvitation(ctx, o.TenantID, o.ID, invite.ID); err != nil {
+						t.Fatal("retry consumed invitation", err)
+					}
+					loc, _ = url.Parse(retry.Header().Get("Location"))
+					if loc.Query().Get("code") != "" {
+						t.Fatal("retry bypassed signup policy", loc)
+					}
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			member, err := s.st.Organizations().IsMember(ctx, o.TenantID, o.ID, u.UserID)
+			if err != nil || !member || loc.Query().Get("code") == "" {
+				t.Fatal(member, err, loc, rec.Body)
+			}
+		})
+	}
+}
+
+func TestInvitationSignupBindingRevision(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	o, _, _ := organizationFixture(t, e, store.OrgBehaviorNoPrompt, true, true)
+	invite := &store.OrganizationInvitation{TenantID: o.TenantID, OrganizationID: o.ID, ID: "invite", ClientID: "spa", InviteeEmail: "new@acme.test", TicketHash: orglogin.InvitationTicketHash("bearer"), WrappedTicket: []byte("sealed"), ExpiresAt: time.Now().Add(time.Hour)}
+	if err := e.st.OrganizationsII().CreateInvitation(ctx, invite); err != nil {
+		t.Fatal(err)
+	}
+	b := e.browser("acme.example.test")
+	_, state, csrf := b.begin(t, "organization", o.ID, "invitation", "bearer", "screen_hint", "signup")
+	before, err := e.st.AuthTransactions().Get(ctx, o.TenantID, state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.do(t, "POST", "/u/signup", url.Values{"state": {state}, "csrf": {csrf}, "email": {"new@acme.test"}, "password": {"a good password 1"}})
+	after, err := e.st.AuthTransactions().Get(ctx, o.TenantID, state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Params[orglogin.InvitationSignupParam] != "1" {
+		t.Fatal("missing signup provenance")
+	}
+	// Submission consumes the rendered form revision before signup's provenance
+	// mutation. That prebinding revision must never be usable afterwards.
+	prebinding := before.HostedState.Revision + 1
+	if err = e.st.AuthTransactions().CompareAndSwapHosted(ctx, o.TenantID, state, prebinding, before.HostedState, e.h.Now()); !errors.Is(err, store.ErrConflict) {
+		t.Fatalf("stale revision after signup binding: before=%d after=%d err=%v", before.HostedState.Revision, after.HostedState.Revision, err)
 	}
 }

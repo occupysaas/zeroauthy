@@ -146,3 +146,18 @@ func mergeInvitationMetadata(existing, invited map[string]any) map[string]any {
 	}
 	return out
 }
+
+// SaveInvitationTransaction persists server-owned Params on a transaction view.
+// The caller owns WithTx. CAS advances the stored revision by value, so the
+// replacement must carry that increment too; stale readers must never regain a
+// usable prebinding revision after the row is recreated.
+func SaveInvitationTransaction(ctx context.Context, tx store.Store, txn *store.AuthTransaction, now time.Time) error {
+	if err := tx.AuthTransactions().CompareAndSwapHosted(ctx, txn.TenantID, txn.ID, txn.HostedState.Revision, txn.HostedState, now); err != nil {
+		return err
+	}
+	txn.HostedState.Revision++
+	if err := tx.AuthTransactions().Delete(ctx, txn.TenantID, txn.ID); err != nil {
+		return err
+	}
+	return tx.AuthTransactions().Create(ctx, txn)
+}

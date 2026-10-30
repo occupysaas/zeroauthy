@@ -58,9 +58,6 @@ func (h *Handlers) bindInvitationSession(ctx context.Context, txn *store.AuthTra
 		if e != nil {
 			return e
 		}
-		if e = tx.AuthTransactions().CompareAndSwapHosted(ctx, cur.TenantID, cur.ID, cur.HostedState.Revision, cur.HostedState, h.now()); e != nil {
-			return e
-		}
 		if old := cur.Params[orglogin.InvitationSessionParam]; old != "" && old != sess.ID {
 			receipt, e := tx.OrganizationsII().GetInvitationReceipt(ctx, txn.TenantID, txn.ID)
 			if e == nil && receipt.UserID != sess.UserID {
@@ -78,10 +75,7 @@ func (h *Handlers) bindInvitationSession(ctx context.Context, txn *store.AuthTra
 			return store.ErrPrecondition
 		}
 		cur.Params[orglogin.InvitationSessionParam] = sess.ID
-		if e = tx.AuthTransactions().Delete(ctx, cur.TenantID, cur.ID); e != nil {
-			return e
-		}
-		if e = tx.AuthTransactions().Create(ctx, cur); e != nil {
+		if e = orglogin.SaveInvitationTransaction(ctx, tx, cur, h.now()); e != nil {
 			return e
 		}
 		*txn = *cur

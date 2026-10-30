@@ -2,6 +2,7 @@ package sqlstore
 
 import (
 	"context"
+	"errors"
 	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/store"
 	"testing"
@@ -37,6 +38,52 @@ func TestInvitationAcceptanceSQL(t *testing.T) {
 			must(err)
 			if !member {
 				t.Fatal("missing member")
+			}
+		})
+	}
+}
+
+func TestInvitationBindingRevisionSQL(t *testing.T) {
+	for name, mk := range dialectsUnderTest(t) {
+		t.Run(name, func(t *testing.T) {
+			for _, key := range []string{orglogin.InvitationSessionParam, orglogin.InvitationSignupParam} {
+				t.Run(key, func(t *testing.T) {
+					st := mk(t)
+					ctx := context.Background()
+					now := time.Now().UTC()
+					must := func(e error) {
+						t.Helper()
+						if e != nil {
+							t.Fatal(e)
+						}
+					}
+					must(st.Tenants().Create(ctx, &store.Tenant{ID: "t", Name: "tenant"}))
+					must(st.AuthTransactions().Create(ctx, &store.AuthTransaction{TenantID: "t", ID: "txn", ClientID: "client", ExpiresAt: now.Add(time.Hour), Params: map[string]string{orglogin.InvitationIDParam: "invite"}}))
+					// A READ COMMITTED reader may carry this old Params/revision after another
+					// writer commits. Its later CAS must conflict and preserve the winning Params.
+					stale, e := st.AuthTransactions().Get(ctx, "t", "txn")
+					must(e)
+					must(st.WithTx(ctx, func(tx store.Store) error {
+						current, e := tx.AuthTransactions().Get(ctx, "t", "txn")
+						if e != nil {
+							return e
+						}
+						current.Params[key] = "winner"
+						return orglogin.SaveInvitationTransaction(ctx, tx, current, now)
+					}))
+					err := st.WithTx(ctx, func(tx store.Store) error {
+						stale.Params[key] = "stale"
+						return orglogin.SaveInvitationTransaction(ctx, tx, stale, now)
+					})
+					if !errors.Is(err, store.ErrConflict) {
+						t.Fatalf("stale binding write: %v", err)
+					}
+					current, e := st.AuthTransactions().Get(ctx, "t", "txn")
+					must(e)
+					if current.Params[key] != "winner" || current.HostedState.Revision != 1 {
+						t.Fatal(current)
+					}
+				})
 			}
 		})
 	}
