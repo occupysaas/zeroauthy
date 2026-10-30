@@ -1,5 +1,7 @@
 package email
 
+import "github.com/zeroauthy/zeroauthy/internal/store"
+
 // BuildRenderContext returns only documented, presentation-safe context keys.
 // Callers must resolve every input from the event's tenant, never from a
 // recipient address or a background context.
@@ -45,4 +47,26 @@ func selectKeys(input map[string]any, keys ...string) map[string]any {
 		}
 	}
 	return out
+}
+
+// OrganizationRenderContext exposes only validated presentation data. It is
+// always selected by the ticket's tenant-scoped ID, never by metadata.
+func OrganizationRenderContext(org *store.Organization) map[string]any {
+	if org == nil {
+		return nil
+	}
+	branding := map[string]any{}
+	if org.Branding != nil {
+		if org.Branding.LogoURL != nil {
+			branding["logo_url"] = *org.Branding.LogoURL
+		}
+		if org.Branding.Colors != nil {
+			branding["colors"] = map[string]any{"primary": org.Branding.Colors.Primary, "page_background": org.Branding.Colors.PageBackground}
+		}
+	}
+	metadata := map[string]any{}
+	for k, v := range org.Metadata {
+		metadata[k] = v
+	}
+	return map[string]any{"id": org.ID, "name": org.Name, "display_name": org.DisplayName, "metadata": metadata, "branding": branding}
 }

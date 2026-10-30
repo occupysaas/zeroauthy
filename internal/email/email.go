@@ -16,8 +16,8 @@ import (
 // Message is one email. Text is required; HTML is optional.
 // Type, Locale, UserID and ClientID carry context for custom email Actions.
 type Message struct {
-	From, To, Subject, Text, HTML  string
-	Type, Locale, UserID, ClientID string
+	From, To, Subject, Text, HTML                  string
+	Type, Locale, UserID, ClientID, OrganizationID string
 }
 
 type Mailer interface {

@@ -789,3 +789,51 @@ returned 200), then GREEN. It checks every domain operation and asserts malforme
 POST/PATCH/DELETE leave domain count, status and existence unchanged. Final pinned
 Go focused discovery race check passed (mgmt 1.278s, orglogin 1.027s, server 2.280s)
 and diff whitespace check passed. Controller owns re-review.
+
+## Task 13 — Review carry-forward
+
+Controller reviewed be2616e and approved the EA connection implementation
+functionally. Its post-implementation baseline regression run is explicitly a
+TDD process deviation, not a pre-implementation RED claim. Minor dedicated
+Unicode boundary and retained-metadata re-enable regressions remain final-review
+triage items; their absence does not change the functional approval.
+
+## Task 14 — Organization context in password-change workflows
+
+Authentication accepts ID-only organization and Management reset tickets accept
+ID-only organization_id under the frozen Task 1 schemas. Null/empty/malformed
+context is rejected. Authentication resolves context before account lookup and
+preserves identical missing-account responses. Management rejects result_url with
+organization_id and maps missing organization/client/connection references to
+404 not_found for this context. Legacy context-free ticket behavior is retained.
+
+The resolved organization ID survives ticket creation, built-in/template email,
+hosted reset rendering and reset/custom-email Action snapshots. Presentation
+variables cannot impersonate the organization. Tenant-scoped current organization,
+enabled connection, client connection enablement and active app entitlement are
+checked without requiring, adding or changing membership or roles. Reset completion
+reloads this policy both at ticket consumption and in the password-write
+transaction; the latter check is covered by revocation immediately after Consume.
+Invalid context never searches for a replacement organization. Existing linked
+identity selection, anti-enumeration, redirect restrictions and one-use semantics
+remain in place. No schema/protobuf change was needed: Tasks 3/4 supplied the
+persisted OrganizationID field. Provider From precedence is unchanged.
+
+Initial TestOrganizationPasswordChangeContext tests in the four entry-point
+packages preceded implementation; after fixture corrections their focused run
+failed for lost ticket context, rejected Management context, missing hosted
+branding and untrusted organization variables. Additional mutation-recheck and
+Management-reference tests each observed genuine RED before their corresponding
+fixes. Extra hosted/linked-identity/Action/no-enrollment coverage followed the
+initial implementation. Exact commands and results are in workspace
+.superpowers/sdd/2026-10-29-zeroauthy-plan-30-organizations-ii/task-14-report.md.
+
+Final Go 1.26.7 focused four-package command PASS. Required-Node focused race
+selection PASS across dbconn/mgmt/login/email/actions (Node v26.8.1). Shared reset
+ticket conformance, including retained OrganizationID and concurrent consumption,
+PASS on memory, direct SQLite, memory-backed gRPC and SQLite-backed gRPC; codec
+round-trip PASS. The initial combined store regex selected no direct SQL tests;
+the corrected explicit SQLite command passed and is reported separately. No
+PostgreSQL/MySQL, full-suite, browser, live Auth0 or external-provider run is
+claimed. Plan 19's database hold does not apply to Plan 30. Controller owns
+independent review, task checkbox approval and ledger completion.

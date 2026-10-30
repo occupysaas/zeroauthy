@@ -25,6 +25,7 @@ func testPasswordResetTickets(t *testing.T, newStore Factory) {
 	t.Run("CreateGetConsume", func(t *testing.T) {
 		s := open(t, newStore)
 		want := newTicket("ten_a", "pr1", "h1")
+		want.OrganizationID = "org_0000000000000014"
 		mustNoErr(t, s.PasswordResetTickets().Create(ctx, want))
 		mustErrIs(t, s.PasswordResetTickets().Create(ctx, newTicket("ten_a", "pr1", "h2")), store.ErrConflict)
 		mustErrIs(t, s.PasswordResetTickets().Create(ctx, newTicket("ten_a", "pr2", "h1")), store.ErrConflict)
@@ -36,6 +37,7 @@ func testPasswordResetTickets(t *testing.T, newStore Factory) {
 
 		used, err := s.PasswordResetTickets().Consume(ctx, "ten_a", "h1", ts(time.Minute))
 		mustNoErr(t, err)
+		mustEqual(t, used.OrganizationID, want.OrganizationID)
 		mustEqual(t, used.UsedAt != nil && used.UsedAt.Equal(ts(time.Minute)), true)
 		again, err := s.PasswordResetTickets().Consume(ctx, "ten_a", "h1", ts(2*time.Minute))
 		mustErrIs(t, err, store.ErrAlreadyUsed)

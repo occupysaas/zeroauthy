@@ -11,6 +11,7 @@ import (
 
 	"github.com/zeroauthy/zeroauthy/internal/email"
 	"github.com/zeroauthy/zeroauthy/internal/i18n"
+	"github.com/zeroauthy/zeroauthy/internal/orglogin"
 	"github.com/zeroauthy/zeroauthy/internal/protection"
 	"github.com/zeroauthy/zeroauthy/internal/secrets"
 	"github.com/zeroauthy/zeroauthy/internal/store"
@@ -101,7 +102,15 @@ func ResetLink(issuer, raw string) string {
 
 // StartReset creates a single-use ticket for user and emails the reset link.
 // It sends synchronously; callers run it through h.goRun.
-func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *store.Connection, user *store.User, clientID, lang string) error {
+func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *store.Connection, user *store.User, clientID, lang string, organizationIDs ...string) error {
+	organizationID := ""
+	if len(organizationIDs) > 0 {
+		organizationID = organizationIDs[0]
+	}
+	org, err := orglogin.PasswordResetContext(ctx, h.Store, res.Tenant.ID, organizationID, clientID, conn)
+	if err != nil {
+		return err
+	}
 	var policy email.Policy
 	if h.Email != nil {
 		var err error
@@ -123,7 +132,7 @@ func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *st
 		lifetime = policy.Lifetime
 	}
 	raw, err := IssueResetTicket(ctx, h.Store, store.PasswordResetTicket{
-		Origin: res.Origin(), TenantID: res.Tenant.ID, UserID: user.UserID, Connection: conn.Name, ClientID: clientID, Lang: lang,
+		OrganizationID: organizationID, Origin: res.Origin(), TenantID: res.Tenant.ID, UserID: user.UserID, Connection: conn.Name, ClientID: clientID, Lang: lang,
 		ResultURL: policy.ResultURL, IncludeEmailInRedirect: policy.IncludeEmailInRedirect,
 	}, 43, h.now(), lifetime)
 	if err != nil {
@@ -131,13 +140,13 @@ func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *st
 	}
 	link := ResetLink(res.Issuer(), raw)
 	if policy.Template != nil {
-		return h.Email.Send(ctx, email.Event{TenantID: res.Tenant.ID, UserID: user.UserID, ClientID: clientID, Template: "reset_email", Language: lang, URL: link})
+		return h.Email.Send(ctx, email.Event{TenantID: res.Tenant.ID, UserID: user.UserID, ClientID: clientID, OrganizationID: organizationID, Template: "reset_email", Language: lang, URL: link})
 	}
 	localized, err := tenantview.Localized(ctx, h.Store, res.Tenant)
 	if err != nil {
 		return err
 	}
-	m := email.ResetPassword(i18n.New(localized, lang), link)
+	m := email.ResetPassword(i18n.New(localized, lang), link, org)
 	m.To = user.Email
 	m.UserID = user.UserID
 	m.ClientID = clientID
@@ -150,7 +159,7 @@ func (h *Handlers) StartReset(ctx context.Context, res tenant.Resolved, conn *st
 // RequestReset sends user a reset link in the background, unless the user
 // is blocked or has reached the per-user send limit. The hosted
 // forgot-password page and /dbconnections/change_password share the limit.
-func (h *Handlers) RequestReset(res tenant.Resolved, conn *store.Connection, user *store.User, clientID, lang string) error {
+func (h *Handlers) RequestReset(res tenant.Resolved, conn *store.Connection, user *store.User, clientID, lang string, organizationIDs ...string) error {
 	if user.Blocked {
 		return nil
 	}
@@ -180,7 +189,7 @@ func (h *Handlers) RequestReset(res tenant.Resolved, conn *store.Connection, use
 		// The request context ends with the response.
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		if err := h.StartReset(ctx, res, conn, user, clientID, lang); err != nil {
+		if err := h.StartReset(ctx, res, conn, user, clientID, lang, organizationIDs...); err != nil {
 			h.log().Error("send reset email", "err", err, "tenant", res.Tenant.ID, "user_id", user.UserID)
 		}
 	})
