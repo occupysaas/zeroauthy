@@ -118,9 +118,11 @@ rules-configs, which Auth0 is retiring, and customer-managed encryption keys).
 ```bash
 go build -o bin/zeroauthy ./cmd/zeroauthy
 
-# Self-signed certificate for localhost (SDKs require HTTPS).
+# Self-signed certificate for localhost and the console's system host
+# (SDKs require HTTPS).
 openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost" -keyout key.pem -out cert.pem
+  -addext "subjectAltName=DNS:localhost,DNS:system.localhost" \
+  -keyout key.pem -out cert.pem
 
 ZEROAUTHY_SERVER__TLS_CERT_FILE=cert.pem ZEROAUTHY_SERVER__TLS_KEY_FILE=key.pem \
   ./bin/zeroauthy serve --config tests/e2e/config.yaml
@@ -145,6 +147,29 @@ https://localhost:8443/authorize?client_id=e2e-spa&response_type=code&redirect_u
 
 and sign in as `alice@e2e.local` / `Correct-Horse-Battery-9` (test data from
 `tests/e2e/seed.yaml`). You are redirected to `https://localhost:3443/?code=…`.
+
+### Open the admin console
+
+The console is served only on the system tenant's host, not on `localhost`.
+With the quick-start config (`system_host: system.localhost:8443`) it is at
+`https://system.localhost:8443/admin/`. Browsers resolve `*.localhost` to
+127.0.0.1; for other clients add `127.0.0.1 system.localhost` to `/etc/hosts`.
+
+With the server running, create the first operator in another terminal:
+
+```bash
+./bin/zeroauthy admin create --email you@example.com --config tests/e2e/config.yaml
+```
+
+Open the printed one-time link (valid for one hour), choose a password of at
+least 12 characters, then sign in at `https://system.localhost:8443/admin/`.
+The quick-start config stores everything in memory, so run `admin create`
+again after each restart.
+
+The built console (`console/dist`) is embedded in the binary at compile time.
+After changing the console, run `make console` and then rebuild the binary
+(`make build` or the `go build` above); a running server keeps the console it
+was built with. See [docs/console.md](docs/console.md) for the screens.
 
 API reference: `https://localhost:8443/docs`. The raw contract is at
 `/openapi.yaml`, and its source is [api/authentication.yaml](api/authentication.yaml).
@@ -269,7 +294,7 @@ notes for hosting untrusted tenants.
 make test           # unit + contract + storage conformance tests (memory and SQLite)
 make test-sql       # SQL driver tests against PostgreSQL 17 and MySQL 8.4 containers (needs podman or docker)
 make generate       # regenerate code from api/authentication.yaml and api/management.yaml
-make console        # lint, test and rebuild the admin console (needs Node 22+)
+make console        # lint, test and rebuild the admin console (needs Node 22+; then make build to embed it)
 make e2e            # Auth0 SDKs against a live zeroauthy on SQLite (needs Node 22+, openssl)
 make check-sources  # verify every x-source provenance link
 make conformance    # OpenID conformance suite against zeroauthy (podman or docker, Linux; ~10-20 min)
