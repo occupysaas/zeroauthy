@@ -6964,13 +6964,46 @@ type LogEvent struct {
 	UserName        *string                 `json:"user_name,omitempty"`
 }
 
+// LogEventListItem Log list item; every field is optional because page-mode include/exclude projection can remove log_id, date and type. Available fields retain the full event types and scrubbed values (D-0057).
+type LogEventListItem struct {
+	// EventSchema Optional event schema metadata, omitted when unavailable.
+	EventSchema  *map[string]interface{} `json:"$event_schema,omitempty"`
+	Audience     *string                 `json:"audience,omitempty"`
+	ClientId     *string                 `json:"client_id,omitempty"`
+	ClientName   *string                 `json:"client_name,omitempty"`
+	Connection   *string                 `json:"connection,omitempty"`
+	ConnectionId *string                 `json:"connection_id,omitempty"`
+	Date         *time.Time              `json:"date,omitempty"`
+	Description  *string                 `json:"description,omitempty"`
+
+	// Details Scrubbed event detail; Actions execution IDs appear at actions.executions.
+	Details          *map[string]interface{} `json:"details,omitempty"`
+	Hostname         *string                 `json:"hostname,omitempty"`
+	Ip               *string                 `json:"ip,omitempty"`
+	IsMobile         *bool                   `json:"isMobile,omitempty"`
+	LogId            *string                 `json:"log_id,omitempty"`
+	OrganizationId   *string                 `json:"organization_id,omitempty"`
+	OrganizationName *string                 `json:"organization_name,omitempty"`
+	Scope            *string                 `json:"scope,omitempty"`
+
+	// SecurityContext Only trustworthy available security signals are included.
+	SecurityContext *map[string]interface{} `json:"security_context,omitempty"`
+	Strategy        *string                 `json:"strategy,omitempty"`
+	StrategyType    *string                 `json:"strategy_type,omitempty"`
+	TenantName      *string                 `json:"tenant_name,omitempty"`
+	Type            *string                 `json:"type,omitempty"`
+	UserAgent       *string                 `json:"user_agent,omitempty"`
+	UserId          *string                 `json:"user_id,omitempty"`
+	UserName        *string                 `json:"user_name,omitempty"`
+}
+
 // LogEventsPage defines model for LogEventsPage.
 type LogEventsPage struct {
-	Length int        `json:"length"`
-	Limit  int        `json:"limit"`
-	Logs   []LogEvent `json:"logs"`
-	Start  int        `json:"start"`
-	Total  int        `json:"total"`
+	Length int                `json:"length"`
+	Limit  int                `json:"limit"`
+	Logs   []LogEventListItem `json:"logs"`
+	Start  int                `json:"start"`
+	Total  int                `json:"total"`
 }
 
 // LogEventsResponse defines model for LogEventsResponse.
@@ -6979,7 +7012,7 @@ type LogEventsResponse struct {
 }
 
 // LogEventsResponse0 defines model for LogEventsResponse.0.
-type LogEventsResponse0 = []LogEvent
+type LogEventsResponse0 = []LogEventListItem
 
 // LogStream defines model for LogStream.
 type LogStream struct {

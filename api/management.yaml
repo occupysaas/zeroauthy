@@ -9340,6 +9340,68 @@ components:
       - type
       description: Tenant event; absent fields omitted. location_info is unavailable locally. All responses are scrubbed
         (D-0057).
+    LogEventListItem:
+      type: object
+      additionalProperties: false
+      properties:
+        log_id:
+          type: string
+          pattern: ^[0-9]{56}$
+        date:
+          type: string
+          format: date-time
+        type:
+          type: string
+        description:
+          type: string
+        client_id:
+          type: string
+        client_name:
+          type: string
+        connection:
+          type: string
+        connection_id:
+          type: string
+        strategy:
+          type: string
+        strategy_type:
+          type: string
+        user_id:
+          type: string
+        user_name:
+          type: string
+        audience:
+          type: string
+        scope:
+          type: string
+        ip:
+          type: string
+        hostname:
+          type: string
+        user_agent:
+          type: string
+        isMobile:
+          type: boolean
+        organization_id:
+          type: string
+        organization_name:
+          type: string
+        tenant_name:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+          description: Scrubbed event detail; Actions execution IDs appear at actions.executions.
+        $event_schema:
+          type: object
+          additionalProperties: true
+          description: Optional event schema metadata, omitted when unavailable.
+        security_context:
+          type: object
+          additionalProperties: true
+          description: Only trustworthy available security signals are included.
+      description: Log list item; every field is optional because page-mode include/exclude projection can remove
+        log_id, date and type. Available fields retain the full event types and scrubbed values (D-0057).
     LogEventsPage:
       type: object
       additionalProperties: false
@@ -9347,7 +9409,7 @@ components:
         logs:
           type: array
           items:
-            $ref: '#/components/schemas/LogEvent'
+            $ref: '#/components/schemas/LogEventListItem'
         start:
           type: integer
           minimum: 0
@@ -9370,7 +9432,7 @@ components:
       oneOf:
       - type: array
         items:
-          $ref: '#/components/schemas/LogEvent'
+          $ref: '#/components/schemas/LogEventListItem'
       - $ref: '#/components/schemas/LogEventsPage'
     LogStreamFilter:
       type: object

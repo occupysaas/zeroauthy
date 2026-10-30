@@ -335,3 +335,48 @@ func TestRedactedStreamResponseSchema(t *testing.T) {
 		t.Fatalf("read schema rejects redacted credentials: %v", err)
 	}
 }
+
+// Page-mode field projection may remove even the otherwise required event
+// identity fields. Both bare arrays and totals envelopes must describe it.
+func TestLogProjectionResponseSchemas(t *testing.T) {
+	data, err := os.ReadFile("../../api/management.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := openapi3.NewLoader().LoadFromData(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := doc.Paths.Value("/api/v2/logs").Get.Responses.Value("200").Value.Content["application/json"].Schema.Value
+	full := doc.Paths.Value("/api/v2/logs/{id}").Get.Responses.Value("200").Value.Content["application/json"].Schema.Value
+	fullEvent := map[string]any{"log_id": strings.Repeat("0", 55) + "1", "date": "2026-10-30T12:00:00Z", "type": "s"}
+	if err := full.VisitJSON(fullEvent); err != nil {
+		t.Fatalf("GET-by-ID rejects a full event: %v", err)
+	}
+	for _, name := range []string{"log_id", "date", "type"} {
+		if !slices.Contains(full.Required, name) {
+			t.Errorf("GET-by-ID no longer requires %s", name)
+		}
+	}
+	for _, tc := range []struct {
+		name string
+		item map[string]any
+	}{
+		{"include_user_id", map[string]any{"user_id": "auth0|example"}},
+		{"exclude_log_id_and_type", map[string]any{"date": "2026-10-30T12:00:00Z", "user_id": "auth0|example"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			items := []any{tc.item}
+			if err := list.VisitJSON(items); err != nil {
+				t.Errorf("bare array rejects projected event: %v", err)
+			}
+			totals := map[string]any{"logs": items, "start": float64(0), "limit": float64(50), "length": float64(1), "total": float64(1)}
+			if err := list.VisitJSON(totals); err != nil {
+				t.Errorf("totals envelope rejects projected event: %v", err)
+			}
+			if err := full.VisitJSON(tc.item); err == nil {
+				t.Error("GET-by-ID accepted an incomplete event")
+			}
+		})
+	}
+}

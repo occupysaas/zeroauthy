@@ -133,3 +133,35 @@ has no runtime logs store, recorder, parser, management routes, delivery worker,
 console, browser or per-code emission test implementation. Dedicated SQL driver,
 Logs plugin, race, vendor network and E2E acceptance remains deferred to the
 corresponding tasks; none is labeled passing here.
+
+## Task 1 review correction — field projection
+
+Review of `778af39` identified an Important contradiction: page-mode
+fields/include_fields could remove log_id/date/type, but the published list
+schema required those fields. Added `LogEventListItem`, with the same typed
+properties and no required fields, and used it in bare-array and totals-envelope
+items. GET-by-ID retains `LogEvent` and its required log_id/date/type.
+Regenerated Management API models; the list model uses optional fields with
+omitempty, while the full generated LogEvent struct is byte-for-byte unchanged.
+No route, provenance URL, privacy ruling or emitter inventory changed. The two
+Minor review findings are left to the controller ledger as requested.
+
+Verification, with Go 1.26.7:
+
+- RED `GOTOOLCHAIN=go1.26.7 go test ./internal/logrules -run TestLogProjectionResponseSchemas -count=1`:
+  FAIL, both include_user_id and exclude_log_id_and_type rejected by the old
+  bare-array and totals schemas because required log_id was missing. Captured
+  output: task scratch `task-1-projection-red.log`.
+- GREEN same focused command: `ok github.com/zeroauthy/zeroauthy/internal/logrules`.
+- `GOTOOLCHAIN=go1.26.7 make generate`: exit 0. No generated hand edits.
+- Fresh `GOTOOLCHAIN=go1.26.7 go test ./internal/logrules ./api ./internal/gen/mgmtapi -count=1`:
+  exit 0; logrules and api passed, generated package compiled with no tests.
+  API checks include provenance completeness and spec validity. No source URL
+  changed, so external URL checking was not repeated.
+- `git diff --check`: exit 0.
+
+Self-review: both projection modes validate in both list envelopes; full-event
+lookup still rejects each incomplete projection and accepts a complete event.
+The new schema retains field types, ID/date constraints and strict unknown-field
+behavior. Only the Important finding was changed; runtime acceptance remains
+with later tasks. Fix commit subject: `fix: allow projected log list responses`.
